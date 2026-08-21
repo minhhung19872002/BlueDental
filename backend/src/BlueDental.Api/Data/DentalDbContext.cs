@@ -9,6 +9,7 @@ public sealed class DentalDbContext(DbContextOptions<DentalDbContext> options) :
     public DbSet<Dentist> Dentists => Set<Dentist>();
     public DbSet<Appointment> Appointments => Set<Appointment>();
     public DbSet<TreatmentRecord> TreatmentRecords => Set<TreatmentRecord>();
+    public DbSet<Payment> Payments => Set<Payment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -30,5 +31,10 @@ public sealed class DentalDbContext(DbContextOptions<DentalDbContext> options) :
             .WithMany()
             .HasForeignKey(record => record.DentistId);
         modelBuilder.Entity<TreatmentRecord>().Property(record => record.Cost).HasPrecision(12, 2);
+        modelBuilder.Entity<Payment>()
+            .HasOne(payment => payment.Patient)
+            .WithMany()
+            .HasForeignKey(payment => payment.PatientId);
+        modelBuilder.Entity<Payment>().Property(payment => payment.Amount).HasPrecision(12, 2);
     }
 }

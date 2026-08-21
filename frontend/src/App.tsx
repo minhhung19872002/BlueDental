@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import './App.css'
 
-type Dashboard = { patientCount: number; appointmentsToday: number; pendingAppointments: number }
+type Dashboard = { patientCount: number; appointmentsToday: number; pendingAppointments: number; revenueToday: number }
 type Patient = { id: string; fullName: string; phoneNumber: string }
 type Dentist = { id: string; fullName: string; specialty: string; phoneNumber?: string }
 type Appointment = { id: string; startAtUtc: string; reason: string; status: string; patient?: Patient; dentist?: Dentist }
 type TreatmentRecord = { id: string; performedAtUtc: string; toothNumber?: string; diagnosis: string; procedureName: string; cost: number; patient?: Patient; dentist?: Dentist }
+type Payment = { id: string; amount: number; method: number; paidAtUtc: string; patient?: Patient }
 
 const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api'
 
@@ -16,19 +17,21 @@ export default function App() {
   const [dentists, setDentists] = useState<Dentist[]>([])
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [treatments, setTreatments] = useState<TreatmentRecord[]>([])
+  const [payments, setPayments] = useState<Payment[]>([])
   const [patientName, setPatientName] = useState('')
   const [patientPhone, setPatientPhone] = useState('')
   const [dentistName, setDentistName] = useState('')
   const [specialty, setSpecialty] = useState('Tổng quát')
   const [appointment, setAppointment] = useState({ patientId: '', dentistId: '', startAtUtc: '', reason: '' })
   const [treatment, setTreatment] = useState({ patientId: '', dentistId: '', toothNumber: '', diagnosis: '', procedureName: '', cost: '' })
+  const [payment, setPayment] = useState({ patientId: '', amount: '', method: '0' })
   const [message, setMessage] = useState('')
 
   const load = async () => {
-    const responses = await Promise.all(['dashboard', 'patients', 'dentists', 'appointments', 'treatment-records'].map((path) => fetch(`${apiUrl}/${path}`)))
+    const responses = await Promise.all(['dashboard', 'patients', 'dentists', 'appointments', 'treatment-records', 'payments'].map((path) => fetch(`${apiUrl}/${path}`)))
     if (responses.every((response) => response.ok)) {
-      const [dashboardData, patientData, dentistData, appointmentData, treatmentData] = await Promise.all(responses.map((response) => response.json()))
-      setDashboard(dashboardData); setPatients(patientData); setDentists(dentistData); setAppointments(appointmentData); setTreatments(treatmentData)
+      const [dashboardData, patientData, dentistData, appointmentData, treatmentData, paymentData] = await Promise.all(responses.map((response) => response.json()))
+      setDashboard(dashboardData); setPatients(patientData); setDentists(dentistData); setAppointments(appointmentData); setTreatments(treatmentData); setPayments(paymentData)
     }
   }
 
@@ -82,12 +85,21 @@ export default function App() {
     } catch { setMessage('Không thể ghi nhận điều trị.') }
   }
 
+  const addPayment = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    try {
+      await submit('payments', { patientId: payment.patientId, amount: Number(payment.amount), method: Number(payment.method), notes: null })
+      setPayment({ patientId: '', amount: '', method: '0' }); setMessage('Đã ghi nhận thanh toán.')
+    } catch { setMessage('Không thể ghi nhận thanh toán.') }
+  }
+
   return <main className="page">
     <header><p className="eyebrow">BLUE DENTAL</p><h1>Quản lý nha khoa</h1><p>Theo dõi bệnh nhân, nha sĩ và lịch hẹn tại một nơi.</p>{message && <p className="message">{message}</p>}</header>
     <section className="metrics">
       <article><span>Bệnh nhân</span><strong>{dashboard?.patientCount ?? '—'}</strong></article>
       <article><span>Lịch hẹn hôm nay</span><strong>{dashboard?.appointmentsToday ?? '—'}</strong></article>
       <article><span>Chờ xác nhận</span><strong>{dashboard?.pendingAppointments ?? '—'}</strong></article>
+      <article><span>Doanh thu hôm nay</span><strong>{dashboard ? `${dashboard.revenueToday.toLocaleString('vi-VN')} ₫` : '—'}</strong></article>
     </section>
     <section className="content">
       <div className="panel"><h2>Thêm bệnh nhân</h2><form onSubmit={addPatient}>
@@ -114,6 +126,12 @@ export default function App() {
         <label>Chi phí (VND)<input type="number" min="0" value={treatment.cost} onChange={(event) => setTreatment({ ...treatment, cost: event.target.value })} required /></label><button>Lưu điều trị</button>
       </form></div>
       <div className="panel"><h2>Điều trị gần đây</h2>{treatments.length === 0 ? <p>Chưa có hồ sơ điều trị.</p> : <ul>{treatments.slice(0, 6).map((item) => <li key={item.id}><b>{item.patient?.fullName} · {item.procedureName}</b><span>Răng {item.toothNumber || '—'} · {item.cost.toLocaleString('vi-VN')} VND</span></li>)}</ul>}</div>
+      <div className="panel"><h2>Ghi nhận thanh toán</h2><form onSubmit={addPayment}>
+        <label>Bệnh nhân<select value={payment.patientId} onChange={(event) => setPayment({ ...payment, patientId: event.target.value })} required><option value="">Chọn bệnh nhân</option>{patients.map((patient) => <option key={patient.id} value={patient.id}>{patient.fullName}</option>)}</select></label>
+        <label>Số tiền (VND)<input type="number" min="1" value={payment.amount} onChange={(event) => setPayment({ ...payment, amount: event.target.value })} required /></label>
+        <label>Phương thức<select value={payment.method} onChange={(event) => setPayment({ ...payment, method: event.target.value })}><option value="0">Tiền mặt</option><option value="1">Chuyển khoản</option><option value="2">Thẻ</option><option value="3">Ví điện tử</option></select></label><button>Ghi nhận thanh toán</button>
+      </form></div>
+      <div className="panel"><h2>Thanh toán gần đây</h2>{payments.length === 0 ? <p>Chưa có thanh toán nào.</p> : <ul>{payments.slice(0, 6).map((item) => <li key={item.id}><b>{item.patient?.fullName}</b><span>{item.amount.toLocaleString('vi-VN')} VND · {['Tiền mặt', 'Chuyển khoản', 'Thẻ', 'Ví điện tử'][item.method]}</span></li>)}</ul>}</div>
     </section>
   </main>
 }

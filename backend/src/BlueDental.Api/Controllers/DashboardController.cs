@@ -17,7 +17,8 @@ public sealed class DashboardController(DentalDbContext database) : ControllerBa
         {
             patientCount = await database.Patients.CountAsync(cancellationToken),
             appointmentsToday = await database.Appointments.CountAsync(appointment => appointment.StartAtUtc.Date == today, cancellationToken),
-            pendingAppointments = await database.Appointments.CountAsync(appointment => appointment.Status == AppointmentStatus.Scheduled, cancellationToken)
+            pendingAppointments = await database.Appointments.CountAsync(appointment => appointment.Status == AppointmentStatus.Scheduled, cancellationToken),
+            revenueToday = await database.Payments.Where(payment => payment.PaidAtUtc.Date == today).SumAsync(payment => (decimal?)payment.Amount, cancellationToken) ?? 0
         });
     }
 }
