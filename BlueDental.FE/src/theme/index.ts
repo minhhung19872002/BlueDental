@@ -116,6 +116,6 @@ export const themeConfig: ThemeConfig = {
   },
 };
 
-export const SIDEBAR_WIDTH = 64;
+export const SIDEBAR_WIDTH = 118;
 export const SIDEBAR_EXPANDED_WIDTH = 240;
 export const HEADER_HEIGHT = 64;

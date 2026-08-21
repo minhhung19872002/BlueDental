@@ -30,7 +30,7 @@ interface TabConfig {
 
 const TABS: TabConfig[] = [
   { key: "All", label: "Tất cả", countKey: "totalCount" },
-  { key: "WaitingForExam", label: "Khách đến", countKey: "waitingCount" },
+  { key: "WaitingForExam", label: "Chờ khám", countKey: "waitingCount" },
   { key: "InProgress", label: "Đang khám", countKey: "inProgressCount" },
   { key: "Completed", label: "Hoàn thành", countKey: "completedCount" },
 ];

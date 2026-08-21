@@ -29,6 +29,7 @@ Read and follow:
 
 .claude/rules/00-reference-readonly.md
 .claude/rules/01-production-data.md
+.claude/rules/02-clone-methodology.md
 
 before interacting with the reference application.
 
@@ -139,7 +140,7 @@ Hỗ trợ song ngữ Việt/Anh (i18n via ABP Localization).
 
 ### Frontend
 - **Framework**: React 19 + TypeScript + Vite 8
-- **UI**: Ant Design 6 (Admin dashboard)
+- **UI & Styling**: Tailwind CSS (Khớp 1:1 với app.nfcdental.com) + Reusable Components
 - **Server state**: TanStack Query v5
 - **Client state**: Zustand 5
 - **Forms**: React Hook Form + Zod
@@ -147,7 +148,6 @@ Hỗ trợ song ngữ Việt/Anh (i18n via ABP Localization).
 - **Charts**: Recharts 3
 - **Real-time**: @microsoft/signalr
 - **i18n**: ABP Localization (Việt/Anh)
-- **KHÔNG** tham khảo FE của bất kỳ dự án nào — thiết kế mới hoàn toàn
 
 ---
 
