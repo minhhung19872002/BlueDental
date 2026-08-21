@@ -215,9 +215,9 @@ export function AppLayout() {
     ? SIDEBAR_EXPANDED_WIDTH
     : SIDEBAR_WIDTH;
 
-  const clinicName = user?.clinicName ?? "NFC Dental";
-  const clinicLogoUrl = user?.clinicLogoUrl ?? undefined;
-  const clinicTagline = user?.clinicTagline ?? "Quản lý Phòng khám Nha khoa";
+  const clinicName = user?.clinicName ?? "NHA KHOA ĐỨC HẠNH PREMIUM";
+  const clinicLogoUrl = user?.clinicLogoUrl ?? "/logo_app.jpg";
+  const clinicTagline = user?.clinicTagline ?? "Kiến Tạo Nụ Cười - Giá Trị Bền Vững";
 
   const branchContent = (
     <div className="app-popover-list">

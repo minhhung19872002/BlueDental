@@ -38,7 +38,7 @@ export const statusPalette = {
 } as const;
 
 export const FONT_FAMILY =
-  "'Google Sans', 'DM Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif";
+  "'Plus Jakarta Sans', 'Google Sans', system-ui, -apple-system, sans-serif";
 
 export const themeConfig: ThemeConfig = {
   token: {
