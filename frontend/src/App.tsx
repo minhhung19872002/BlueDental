@@ -6,6 +6,7 @@ type Dashboard = { patientCount: number; appointmentsToday: number; pendingAppoi
 type Patient = { id: string; fullName: string; phoneNumber: string }
 type Dentist = { id: string; fullName: string; specialty: string; phoneNumber?: string }
 type Appointment = { id: string; startAtUtc: string; reason: string; status: string; patient?: Patient; dentist?: Dentist }
+type TreatmentRecord = { id: string; performedAtUtc: string; toothNumber?: string; diagnosis: string; procedureName: string; cost: number; patient?: Patient; dentist?: Dentist }
 
 const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api'
 
@@ -14,18 +15,20 @@ export default function App() {
   const [patients, setPatients] = useState<Patient[]>([])
   const [dentists, setDentists] = useState<Dentist[]>([])
   const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [treatments, setTreatments] = useState<TreatmentRecord[]>([])
   const [patientName, setPatientName] = useState('')
   const [patientPhone, setPatientPhone] = useState('')
   const [dentistName, setDentistName] = useState('')
   const [specialty, setSpecialty] = useState('Tổng quát')
   const [appointment, setAppointment] = useState({ patientId: '', dentistId: '', startAtUtc: '', reason: '' })
+  const [treatment, setTreatment] = useState({ patientId: '', dentistId: '', toothNumber: '', diagnosis: '', procedureName: '', cost: '' })
   const [message, setMessage] = useState('')
 
   const load = async () => {
-    const responses = await Promise.all(['dashboard', 'patients', 'dentists', 'appointments'].map((path) => fetch(`${apiUrl}/${path}`)))
+    const responses = await Promise.all(['dashboard', 'patients', 'dentists', 'appointments', 'treatment-records'].map((path) => fetch(`${apiUrl}/${path}`)))
     if (responses.every((response) => response.ok)) {
-      const [dashboardData, patientData, dentistData, appointmentData] = await Promise.all(responses.map((response) => response.json()))
-      setDashboard(dashboardData); setPatients(patientData); setDentists(dentistData); setAppointments(appointmentData)
+      const [dashboardData, patientData, dentistData, appointmentData, treatmentData] = await Promise.all(responses.map((response) => response.json()))
+      setDashboard(dashboardData); setPatients(patientData); setDentists(dentistData); setAppointments(appointmentData); setTreatments(treatmentData)
     }
   }
 
@@ -71,6 +74,14 @@ export default function App() {
     }
   }
 
+  const addTreatment = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    try {
+      await submit('treatment-records', { ...treatment, performedAtUtc: new Date().toISOString(), cost: Number(treatment.cost), notes: null })
+      setTreatment({ patientId: '', dentistId: '', toothNumber: '', diagnosis: '', procedureName: '', cost: '' }); setMessage('Đã ghi nhận điều trị.')
+    } catch { setMessage('Không thể ghi nhận điều trị.') }
+  }
+
   return <main className="page">
     <header><p className="eyebrow">BLUE DENTAL</p><h1>Quản lý nha khoa</h1><p>Theo dõi bệnh nhân, nha sĩ và lịch hẹn tại một nơi.</p>{message && <p className="message">{message}</p>}</header>
     <section className="metrics">
@@ -94,6 +105,15 @@ export default function App() {
         <label>Lý do<input value={appointment.reason} onChange={(event) => setAppointment({ ...appointment, reason: event.target.value })} required /></label><button>Tạo lịch hẹn</button>
       </form></div>
       <div className="panel"><h2>Lịch hẹn sắp tới</h2>{appointments.length === 0 ? <p>Chưa có lịch hẹn nào.</p> : <ul>{appointments.slice(0, 6).map((item) => <li key={item.id}><b>{item.patient?.fullName ?? 'Bệnh nhân'}</b><span>{new Date(item.startAtUtc).toLocaleString('vi-VN')} · {item.dentist?.fullName}</span><div className="actions"><em>{item.status}</em>{item.status === 'Scheduled' && <button onClick={() => void updateStatus(item.id, 'Confirmed')}>Xác nhận</button>}{item.status === 'Confirmed' && <button onClick={() => void updateStatus(item.id, 'Completed')}>Hoàn thành</button>}</div></li>)}</ul>}</div>
+      <div className="panel"><h2>Ghi nhận điều trị</h2><form onSubmit={addTreatment}>
+        <label>Bệnh nhân<select value={treatment.patientId} onChange={(event) => setTreatment({ ...treatment, patientId: event.target.value })} required><option value="">Chọn bệnh nhân</option>{patients.map((patient) => <option key={patient.id} value={patient.id}>{patient.fullName}</option>)}</select></label>
+        <label>Nha sĩ<select value={treatment.dentistId} onChange={(event) => setTreatment({ ...treatment, dentistId: event.target.value })} required><option value="">Chọn nha sĩ</option>{dentists.map((dentist) => <option key={dentist.id} value={dentist.id}>{dentist.fullName}</option>)}</select></label>
+        <label>Số răng<input value={treatment.toothNumber} onChange={(event) => setTreatment({ ...treatment, toothNumber: event.target.value })} placeholder="Ví dụ: 16" /></label>
+        <label>Chẩn đoán<input value={treatment.diagnosis} onChange={(event) => setTreatment({ ...treatment, diagnosis: event.target.value })} required /></label>
+        <label>Thủ thuật<input value={treatment.procedureName} onChange={(event) => setTreatment({ ...treatment, procedureName: event.target.value })} required /></label>
+        <label>Chi phí (VND)<input type="number" min="0" value={treatment.cost} onChange={(event) => setTreatment({ ...treatment, cost: event.target.value })} required /></label><button>Lưu điều trị</button>
+      </form></div>
+      <div className="panel"><h2>Điều trị gần đây</h2>{treatments.length === 0 ? <p>Chưa có hồ sơ điều trị.</p> : <ul>{treatments.slice(0, 6).map((item) => <li key={item.id}><b>{item.patient?.fullName} · {item.procedureName}</b><span>Răng {item.toothNumber || '—'} · {item.cost.toLocaleString('vi-VN')} VND</span></li>)}</ul>}</div>
     </section>
   </main>
 }
