@@ -6,7 +6,6 @@ import { useTablePagination } from "@/hooks/useTablePagination";
 import { useDebounce } from "@/hooks/useDebounce";
 import { formatDate } from "@/utils/format";
 import type { PatientListItem, Gender } from "../types/patient";
-import { brand } from "@/theme/index";
 
 const GENDER_LABELS: Record<Gender, string> = {
   male: "Nam",
@@ -38,7 +37,7 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
         <Space>
           <Avatar
             size={32}
-            style={{ backgroundColor: brand.blue, fontSize: 12, fontWeight: 700 }}
+            style={{ backgroundColor: "#2671D8", fontSize: 12, fontWeight: 600 }}
           >
             {record.fullName
               .split(" ")
@@ -48,8 +47,8 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
               .toUpperCase()}
           </Avatar>
           <div>
-            <div style={{ fontWeight: 600, fontSize: 13 }}>{record.fullName}</div>
-            <div style={{ fontSize: 11.5, color: brand.muted }}>{record.code}</div>
+            <div style={{ fontWeight: 500, fontSize: 14, color: "#1B2A41" }}>{record.fullName}</div>
+            <div style={{ fontSize: 13, color: "#5A6B82" }}>{record.code}</div>
           </div>
         </Space>
       ),

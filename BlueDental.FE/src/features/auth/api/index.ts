@@ -32,7 +32,10 @@ export const authApi = {
         name: "BS. Trần Minh Tuấn",
         email: "admin@bluedental.com",
         clinicId: "clinic-01",
-        clinicName: "NFC Dental - Chi nhánh Central",
+        clinicName: "NHA KHOA ĐỨC HẠNH PREMIUM",
+        clinicLogoUrl:
+          "https://pub-cc7eec789022438c8f5969cd7869999c.r2.dev/avatar/9kd9W3cR6ejRwcRIbOEt_A_nh_ma_n_hi_nh_2026-08-10_lu_c_11.42.42.png",
+        clinicTagline: "Kiến Tạo Nụ Cười - Giá Trị Bền Vững",
         roles: ["Admin", "Doctor", "Receptionist"],
         permissions: ["*"],
         passwordMustChange: false,

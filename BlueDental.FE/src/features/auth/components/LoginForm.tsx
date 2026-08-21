@@ -48,6 +48,8 @@ export function LoginForm() {
         email: user.email,
         clinicId: user.clinicId,
         clinicName: user.clinicName,
+        clinicLogoUrl: user.clinicLogoUrl,
+        clinicTagline: user.clinicTagline,
         roles: user.roles,
         permissions: user.permissions,
       });

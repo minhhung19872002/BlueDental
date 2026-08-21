@@ -1,72 +1,45 @@
-# BlueDental Reference — Route Map Discovery
+# Routes — Reference Application
 
-> Reference System: https://app.nfcdental.com  
-> Inspection Date: 2026-08-21  
-> Phase: Phase 1 — Reception / Tiếp nhận Page Discovery
+Source: https://app.nfcdental.com
+Observed: 2026-08-21
 
----
+All routes include `?branchId=<id>` query parameter for clinic branch scoping.
 
-## 1. Authentication & System Routes
+## Observed Routes
 
-| Route Path | Page Title / Description | Auth Guard | Discovered Features & Notes |
-|------------|--------------------------|------------|-----------------------------|
-| `/` | Root Navigation | Public | Redirects unauthenticated visitors to `/signin` |
-| `/signin` | Đăng nhập | Public | User login form, email + password, "Quên mật khẩu?" link |
-| `/forgot-password` | Quên mật khẩu | Public | Password recovery flow |
+| Route | Label (VI) | Label (EN) | Notes |
+|---|---|---|---|
+| `/reception` | Tiếp nhận | Reception | Daily reception/visit tracking |
+| `/patient` | Danh sách bệnh nhân | Patient List | Patient registry with financial summary |
+| `/calendar` | Lịch hẹn | Appointments | Calendar view |
+| `/cskh-grouping` | CSKH - Phân nhóm | Customer Care - Grouping | Customer care segmentation |
+| `/labo` | Labo | Lab | Lab orders |
+| `/operations` | Quản trị vận hành | Operations Management | Operations admin |
+| `/report` | Báo cáo | Reports | Reporting |
+| `/staff` | Nhân viên | Staff | Staff management |
+| `/materials` | Vật tư | Materials/Supplies | Inventory/materials |
+| `/taxonomy` | Danh mục | Categories | Category/catalog management |
+| `/tools` | Công cụ | Tools | System tools |
 
----
+## External Links
 
-## 2. Main Application Routes (Discovered from Client Chunks & RSC Tree)
+| Route | Label (VI) | Notes |
+|---|---|---|
+| `https://nfcdental.com/` | Hướng dẫn & hỗ trợ | Help & Support — external site |
 
-| Route Path | Navigation Label (VI) | English Label | Key Features / Purpose |
-|------------|-----------------------|---------------|------------------------|
-| `/reception` | **Tiếp nhận** | Customer Reception | Patient arrival queue, status pipeline (Khách đến, Đang khám, Hoàn thành), create reception, doctor assignment |
-| `/patient` | **Quản lý bệnh nhân** | Patient Management | Patient profiles, medical history, dental chart, treatment plans, prescriptions, labo history |
-| `/calendar` | **Lịch hẹn** | Appointment Calendar | Week/Day grid calendar, appointment scheduling, room/chair allocation |
-| `/operations` | **Quản trị vận hành** | Operations Management | Multi-block management (Khối điều trị, Khối lễ tân, Khối CSKH, Khối Marketing, Khối tài chính, Khối bảo vệ) |
-| `/cskh-grouping` | **Chăm sóc khách hàng** | Customer Care | Customer care groups (Periodic, Special, Post-treatment, Birthday reminders) |
-| `/labo` | **Labo** | Laboratory Orders | Labo order tracking, warranty, shipping dates, supplier tracking |
-| `/materials` | **Vật tư** | Inventory & Materials | Dental consumable materials, stock tracking |
-| `/report` | **Báo cáo** | Reports & Analytics | Sales revenue, customer count, income/expense reports |
-| `/staff` | **Nhân viên** | Staff Management | Staff directory, doctor/assistant/receptionist role assignments |
-| `/taxonomy` | **Danh mục** | System Catalogs | Dental procedures, diagnosis codes, medicine templates, prescription templates, customer sources |
-| `/tools` | **Công cụ** | System Tools | Utility functions and auxiliary tools |
-| `/roles` | **Phân quyền** | Role & Permissions | Permission matrix, access control per role |
+## Patient Detail Route
 
----
+Pattern: `/patient/:patientId?branchId=<id>`
 
-## 3. Route Group Hierarchy (Next.js App Router Structure)
+Example observed: `/patient/6a826ca096965840407319df?branchId=6a7909122bbcbb000133e6bb`
 
-```
-app/
-├── (auth)/
-│   ├── signin/
-│   │   └── page.tsx           # /signin
-│   └── forgot-password/
-│       └── page.tsx           # /forgot-password
-├── (dashboard)/
-│   ├── reception/
-│   │   └── page.tsx           # /reception (Tiếp nhận)
-│   ├── patient/
-│   │   └── page.tsx           # /patient (Danh sách & Hồ sơ bệnh nhân)
-│   ├── calendar/
-│   │   └── page.tsx           # /calendar (Lịch hẹn)
-│   ├── operations/
-│   │   └── page.tsx           # /operations (Quản trị vận hành)
-│   ├── cskh-grouping/
-│   │   └── page.tsx           # /cskh-grouping (CSKH)
-│   ├── labo/
-│   │   └── page.tsx           # /labo (Labo)
-│   ├── materials/
-│   │   └── page.tsx           # /materials (Vật tư)
-│   ├── report/
-│   │   └── page.tsx           # /report (Báo cáo)
-│   ├── staff/
-│   │   └── page.tsx           # /staff (Nhân sự)
-│   ├── taxonomy/
-│   │   └── page.tsx           # /taxonomy (Danh mục)
-│   ├── tools/
-│   │   └── page.tsx           # /tools (Công cụ)
-│   └── roles/
-│       └── page.tsx           # /roles (Phân quyền)
-```
+## Branch ID
+
+All routes carry `branchId` as a query parameter. Observed value: `6a7909122bbcbb000133e6bb` (MongoDB ObjectId format — 24 hex chars).
+
+## Technology
+
+The reference app uses Next.js with React Server Components (RSC). Evidence:
+- `_rsc` query parameter on route prefetch requests
+- `/_next/static/chunks/` JS bundle paths
+- Route prefetching observed for all sidebar links on page load

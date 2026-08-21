@@ -1,4 +1,16 @@
-export type ReceptionStatus = "Arrived" | "InProgress" | "Completed" | "All";
+export type ReceptionStatus =
+  | "All"
+  | "WaitingForExam"
+  | "InProgress"
+  | "Completed";
+
+export type AppointmentCounterType =
+  | "Scheduled"
+  | "Arrived"
+  | "Cancelled"
+  | "Late"
+  | "Temporary"
+  | "Converted";
 
 export type PatientType = "New" | "Returning";
 
@@ -33,15 +45,25 @@ export interface ReceptionFilter {
   pageSize?: number;
 }
 
+export interface ReceptionCounters {
+  scheduledCount: number;
+  arrivedCount: number;
+  cancelledCount: number;
+  lateCount: number;
+  temporaryCount: number;
+  convertedCount: number;
+}
+
 export interface ReceptionMetrics {
   totalCount: number;
-  newPatientsCount: number;
-  oldPatientsCount: number;
-  scheduledCount: number;
-  cancelledCount: number;
-  arrivedCount: number;
+  waitingCount: number;
   inProgressCount: number;
   completedCount: number;
+  newPatientsCount?: number;
+  oldPatientsCount?: number;
+  scheduledCount?: number;
+  arrivedCount?: number;
+  counters: ReceptionCounters;
 }
 
 export interface CreateReceptionInput {

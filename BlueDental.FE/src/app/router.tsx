@@ -6,17 +6,15 @@ import { AppLayout } from "./AppLayout";
 import { PrivateRoute } from "./PrivateRoute";
 import { RouteErrorBoundary } from "./RouteErrorBoundary";
 
-// ── Lazy-loaded pages ─────────────────────────────────────────────────────────
-
 const LoginPage = lazy(() =>
   import("@/features/auth/pages/LoginPage").then((m) => ({
     default: m.LoginPage,
   })),
 );
 
-const DashboardPage = lazy(() =>
-  import("@/features/dashboard/pages/DashboardPage").then((m) => ({
-    default: m.DashboardPage,
+const ReceptionPage = lazy(() =>
+  import("@/features/reception/pages/ReceptionPage").then((m) => ({
+    default: m.ReceptionPage,
   })),
 );
 
@@ -38,19 +36,17 @@ const AppointmentCalendarPage = lazy(() =>
   ).then((m) => ({ default: m.AppointmentCalendarPage })),
 );
 
-const ReceptionPage = lazy(() =>
-  import("@/features/reception/pages/ReceptionPage").then((m) => ({
-    default: m.ReceptionPage,
-  })),
-);
-
 const AppointmentListPage = lazy(() =>
   import("@/features/appointments/pages/AppointmentListPage").then((m) => ({
     default: m.AppointmentListPage,
   })),
 );
 
-// ── Route loading spinner ─────────────────────────────────────────────────────
+const DashboardPage = lazy(() =>
+  import("@/features/dashboard/pages/DashboardPage").then((m) => ({
+    default: m.DashboardPage,
+  })),
+);
 
 function RouteLoading() {
   return (
@@ -63,8 +59,6 @@ function RouteLoading() {
 function S({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<RouteLoading />}>{children}</Suspense>;
 }
-
-// ── Route tree ────────────────────────────────────────────────────────────────
 
 const appRoutes: RouteObject[] = [
   {
@@ -85,17 +79,9 @@ const appRoutes: RouteObject[] = [
     children: [
       {
         index: true,
-        element: <Navigate to="/dashboard" replace />,
+        element: <Navigate to="/reception" replace />,
       },
-      {
-        path: "dashboard",
-        element: (
-          <S>
-            <DashboardPage />
-          </S>
-        ),
-      },
-      // ── Reception ──────────────────────────────────────────────────────────
+      // ── Reception (default page) ──
       {
         path: "reception",
         element: (
@@ -104,9 +90,9 @@ const appRoutes: RouteObject[] = [
           </S>
         ),
       },
-      // ── Patients ──────────────────────────────────────────────────────────
+      // ── Patient list ──
       {
-        path: "patients",
+        path: "patient",
         element: (
           <S>
             <PatientManagementPage />
@@ -114,16 +100,16 @@ const appRoutes: RouteObject[] = [
         ),
       },
       {
-        path: "patients/:id",
+        path: "patient/:id",
         element: (
           <S>
             <PatientProfilePage />
           </S>
         ),
       },
-      // ── Appointments ──────────────────────────────────────────────────────
+      // ── Calendar (appointments) ──
       {
-        path: "appointments",
+        path: "calendar",
         element: (
           <S>
             <AppointmentCalendarPage />
@@ -131,107 +117,67 @@ const appRoutes: RouteObject[] = [
         ),
       },
       {
-        path: "appointments/list",
+        path: "calendar/list",
         element: (
           <S>
             <AppointmentListPage />
           </S>
         ),
       },
-      // ── Stubs — will be implemented incrementally ─────────────────────────
+      // ── Stubs matching reference routes ──
       {
-        path: "treatment",
+        path: "cskh-grouping",
+        element: <S><RouteLoading /></S>,
+      },
+      {
+        path: "labo",
+        element: <S><RouteLoading /></S>,
+      },
+      {
+        path: "operations",
+        element: <S><RouteLoading /></S>,
+      },
+      {
+        path: "report",
+        element: <S><RouteLoading /></S>,
+      },
+      {
+        path: "staff",
+        element: <S><RouteLoading /></S>,
+      },
+      {
+        path: "materials",
+        element: <S><RouteLoading /></S>,
+      },
+      {
+        path: "taxonomy",
+        element: <S><RouteLoading /></S>,
+      },
+      {
+        path: "tools",
+        element: <S><RouteLoading /></S>,
+      },
+      // ── Dashboard (kept for internal use) ──
+      {
+        path: "dashboard",
         element: (
           <S>
-            <RouteLoading />
+            <DashboardPage />
           </S>
         ),
       },
-      {
-        path: "billing",
-        element: (
-          <S>
-            <RouteLoading />
-          </S>
-        ),
-      },
-      {
-        path: "inventory",
-        element: (
-          <S>
-            <RouteLoading />
-          </S>
-        ),
-      },
-      {
-        path: "reporting",
-        element: (
-          <S>
-            <RouteLoading />
-          </S>
-        ),
-      },
-      {
-        path: "organizations",
-        element: (
-          <S>
-            <RouteLoading />
-          </S>
-        ),
-      },
-      {
-        path: "catalogs",
-        element: (
-          <S>
-            <RouteLoading />
-          </S>
-        ),
-      },
-      {
-        path: "administration/identity",
-        element: (
-          <S>
-            <RouteLoading />
-          </S>
-        ),
-      },
-      {
-        path: "administration/audit-logs",
-        element: (
-          <S>
-            <RouteLoading />
-          </S>
-        ),
-      },
-      {
-        path: "administration/settings",
-        element: (
-          <S>
-            <RouteLoading />
-          </S>
-        ),
-      },
+      // ── Account ──
       {
         path: "account/profile",
-        element: (
-          <S>
-            <RouteLoading />
-          </S>
-        ),
+        element: <S><RouteLoading /></S>,
       },
       {
         path: "account/change-password",
-        element: (
-          <S>
-            <RouteLoading />
-          </S>
-        ),
+        element: <S><RouteLoading /></S>,
       },
       {
         path: "*",
-        element: (
-          <RouteErrorBoundary />
-        ),
+        element: <RouteErrorBoundary />,
       },
     ],
   },

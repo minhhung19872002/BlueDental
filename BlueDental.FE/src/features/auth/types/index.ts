@@ -17,6 +17,8 @@ export interface CurrentUserDto {
   email: string;
   clinicId: string | null;
   clinicName: string | null;
+  clinicLogoUrl: string | null;
+  clinicTagline: string | null;
   roles: string[];
   permissions: string[];
   passwordMustChange: boolean;

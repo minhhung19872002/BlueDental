@@ -37,7 +37,7 @@ function createTestQueryClient() {
 }
 
 describe("ReceptionPage", () => {
-  it("renders reception header title and stat counters", async () => {
+  it("renders reception toolbar controls and date selector", async () => {
     const queryClient = createTestQueryClient();
     render(
       <QueryClientProvider client={queryClient}>
@@ -45,22 +45,9 @@ describe("ReceptionPage", () => {
       </QueryClientProvider>,
     );
 
-    expect(screen.getByText("Tiếp nhận khách hàng")).toBeInTheDocument();
-    await waitFor(() => {
-      expect(screen.getByText("Khách mới")).toBeInTheDocument();
-      expect(screen.getByText("Khách cũ phát sinh")).toBeInTheDocument();
-      expect(screen.getByText("Đã hẹn")).toBeInTheDocument();
-    });
-  });
-
-  it("renders toolbar controls and primary create button", async () => {
-    const queryClient = createTestQueryClient();
-    render(
-      <QueryClientProvider client={queryClient}>
-        <ReceptionPage />
-      </QueryClientProvider>,
-    );
-
+    expect(screen.getByText("Ngày")).toBeInTheDocument();
+    expect(screen.getByText("Tuần")).toBeInTheDocument();
+    expect(screen.getByText("Tháng")).toBeInTheDocument();
     expect(
       screen.getByPlaceholderText("Nhập từ khoá tìm kiếm"),
     ).toBeInTheDocument();
@@ -96,9 +83,9 @@ describe("ReceptionPage", () => {
       </QueryClientProvider>,
     );
 
+    expect(screen.getByText(/Tất cả/)).toBeInTheDocument();
     expect(screen.getByText(/Khách đến/)).toBeInTheDocument();
     expect(screen.getByText(/Đang khám/)).toBeInTheDocument();
     expect(screen.getByText(/Hoàn thành/)).toBeInTheDocument();
-    expect(screen.getByText(/Tất cả/)).toBeInTheDocument();
   });
 });

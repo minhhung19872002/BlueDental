@@ -30,6 +30,9 @@ Thumbs.db
 reference-private/
 .playwright/
 .playwright-profile/
+screenshot-*.png
+screenshot-*.cjs
+extract-full*
 
 # Browser auth
 storage-state*.json

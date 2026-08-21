@@ -19,7 +19,7 @@ const INITIAL_MOCK_RECEPTIONS: ReceptionItem[] = [
     doctorName: "BS. Trần Minh Tuấn",
     adviseDoctorName: "BS. Lê Thị Hoa",
     refType: "Medical",
-    status: "Arrived",
+    status: "WaitingForExam",
     totalDue: 1500000,
     expectedRevenue: 1500000,
     services: ["Khám tổng quát", "Chụp phim X-quang Pano"],
@@ -76,7 +76,7 @@ const INITIAL_MOCK_RECEPTIONS: ReceptionItem[] = [
     doctorName: "BS. Đặng Thu Hà",
     adviseDoctorName: "NV. Lê Thanh",
     refType: "Self",
-    status: "Arrived",
+    status: "WaitingForExam",
     totalDue: 800000,
     expectedRevenue: 800000,
     services: ["Chăm sóc định kỳ niềng răng"],
@@ -119,7 +119,6 @@ export const receptionApi = {
     total: number;
   }> {
     try {
-      // Attempt backend API fetch
       const res = await api.get("/v1/app/appointments", {
         params: {
           filter: filter.keyword,
@@ -128,28 +127,31 @@ export const receptionApi = {
       });
 
       if (res.data?.items && Array.isArray(res.data.items) && res.data.items.length > 0) {
-        const mappedItems: ReceptionItem[] = res.data.items.map((dto: any) => ({
-          id: dto.id,
-          voucherCode: `TN-${dto.id.slice(0, 8).toUpperCase()}`,
-          patientId: dto.patientId,
-          patientName: dto.patientName || "Bệnh nhân",
-          patientPhone: dto.patientPhone || "0900000000",
-          patientType: "New",
-          doctorId: dto.dentistId,
-          doctorName: dto.dentistName || "Bác sĩ",
-          refType: "Medical",
-          status: dto.status === 3 ? "Arrived" : dto.status === 4 ? "InProgress" : dto.status === 5 ? "Completed" : "Arrived",
+        const mappedItems: ReceptionItem[] = res.data.items.map((dto: Record<string, unknown>) => ({
+          id: dto.id as string,
+          voucherCode: `TN-${(dto.id as string).slice(0, 8).toUpperCase()}`,
+          patientId: dto.patientId as string,
+          patientName: (dto.patientName as string) || "Bệnh nhân",
+          patientPhone: (dto.patientPhone as string) || "0900000000",
+          patientType: "New" as const,
+          doctorId: dto.dentistId as string,
+          doctorName: (dto.dentistName as string) || "Bác sĩ",
+          refType: "Medical" as const,
+          status: dto.status === 3 ? "WaitingForExam" as const
+            : dto.status === 4 ? "InProgress" as const
+            : dto.status === 5 ? "Completed" as const
+            : "WaitingForExam" as const,
           totalDue: 0,
           expectedRevenue: 0,
-          services: [dto.procedureName || "Khám tư vấn"],
-          notes: dto.notes || dto.chiefComplaint,
-          arrivalTime: new Date(dto.slotStart).toLocaleTimeString("vi-VN", {
+          services: [(dto.procedureName as string) || "Khám tư vấn"],
+          notes: (dto.notes as string) || (dto.chiefComplaint as string),
+          arrivalTime: new Date(dto.slotStart as string).toLocaleTimeString("vi-VN", {
             hour: "2-digit",
             minute: "2-digit",
           }),
-          createdAt: dto.creationTime || new Date().toISOString(),
+          createdAt: (dto.creationTime as string) || new Date().toISOString(),
         }));
-        return { items: mappedItems, total: res.data.totalCount };
+        return { items: mappedItems, total: res.data.totalCount as number };
       }
     } catch {
       // Failover to local store in dev mode
@@ -182,32 +184,24 @@ export const receptionApi = {
   },
 
   async getMetrics(): Promise<ReceptionMetrics> {
-    const totalCount = localReceptionsStore.length;
-    const newPatientsCount = localReceptionsStore.filter(
-      (i) => i.patientType === "New",
-    ).length;
-    const oldPatientsCount = localReceptionsStore.filter(
-      (i) => i.patientType === "Returning",
-    ).length;
-    const arrivedCount = localReceptionsStore.filter(
-      (i) => i.status === "Arrived",
-    ).length;
-    const inProgressCount = localReceptionsStore.filter(
-      (i) => i.status === "InProgress",
-    ).length;
-    const completedCount = localReceptionsStore.filter(
-      (i) => i.status === "Completed",
-    ).length;
+    const store = localReceptionsStore;
+    const waitingCount = store.filter((i) => i.status === "WaitingForExam").length;
+    const inProgressCount = store.filter((i) => i.status === "InProgress").length;
+    const completedCount = store.filter((i) => i.status === "Completed").length;
 
     return {
-      totalCount,
-      newPatientsCount,
-      oldPatientsCount,
-      scheduledCount: 12,
-      cancelledCount: 1,
-      arrivedCount,
+      totalCount: store.length,
+      waitingCount,
       inProgressCount,
       completedCount,
+      counters: {
+        scheduledCount: 12,
+        arrivedCount: store.length,
+        cancelledCount: 1,
+        lateCount: 0,
+        temporaryCount: 0,
+        convertedCount: 0,
+      },
     };
   },
 
@@ -223,7 +217,7 @@ export const receptionApi = {
         chiefComplaint: input.notes,
       });
     } catch {
-      // Failover to local store creation in dev mode
+      // Failover to local store creation
     }
 
     const doc = MOCK_DOCTORS.find((d) => d.id === input.doctorId);
@@ -241,7 +235,7 @@ export const receptionApi = {
       doctorName: doc ? doc.name : "BS. Chưa phân công",
       adviseDoctorName: doc ? doc.name : undefined,
       refType: input.refType,
-      status: "Arrived",
+      status: "WaitingForExam",
       totalDue: 0,
       expectedRevenue: 0,
       services: input.services && input.services.length > 0 ? input.services : ["Khám tư vấn"],

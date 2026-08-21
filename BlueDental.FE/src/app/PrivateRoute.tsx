@@ -30,6 +30,8 @@ export function PrivateRoute({ children }: Props) {
         email: currentUser.data.email,
         clinicId: currentUser.data.clinicId,
         clinicName: currentUser.data.clinicName,
+        clinicLogoUrl: currentUser.data.clinicLogoUrl,
+        clinicTagline: currentUser.data.clinicTagline,
         roles: currentUser.data.roles,
         permissions: currentUser.data.permissions,
       });

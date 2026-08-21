@@ -32,7 +32,7 @@ export function PatientProfilePage() {
           <Button
             type="text"
             icon={<ArrowLeftOutlined />}
-            onClick={() => navigate("/patients")}
+            onClick={() => navigate("/patient")}
             style={{ marginBottom: 8 }}
           >
             Quay lại danh sách

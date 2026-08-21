@@ -1,133 +1,107 @@
-import { useMemo, useState } from "react";
-import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   Layout,
-  Menu,
   Avatar,
   Dropdown,
-  Breadcrumb,
-  Drawer,
-  Button,
+  Input,
+  Popover,
   type MenuProps,
 } from "antd";
 import {
   UserOutlined,
   LogoutOutlined,
   KeyOutlined,
-  MenuOutlined,
   DownOutlined,
+  BellOutlined,
+  GlobalOutlined,
+  SearchOutlined,
+  ScheduleOutlined,
+  TeamOutlined,
+  CalendarOutlined,
+  CustomerServiceOutlined,
+  ExperimentOutlined,
+  SettingOutlined,
+  BarChartOutlined,
+  IdcardOutlined,
+  MedicineBoxOutlined,
+  AppstoreOutlined,
+  ToolOutlined,
+  QuestionCircleOutlined,
+  CheckOutlined,
+  HeartOutlined,
 } from "@ant-design/icons";
-import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useMutation } from "@tanstack/react-query";
 import { authApi } from "@/features/auth/api";
-import { brand, SIDEBAR_WIDTH, SIDEBAR_COLLAPSED_WIDTH } from "@/theme/index";
+import {
+  brand,
+  SIDEBAR_WIDTH,
+  SIDEBAR_EXPANDED_WIDTH,
+} from "@/theme/index";
 
-const { Sider, Content } = Layout;
+const { Content } = Layout;
 
-const BREADCRUMB_LABELS: Record<string, string> = {
-  dashboard: "Bảng điều khiển",
-  reception: "Tiếp nhận khách hàng",
-  patients: "Bệnh nhân",
-  appointments: "Lịch hẹn",
-  treatment: "Điều trị",
-  billing: "Thanh toán",
-  inventory: "Kho vật tư",
-  reporting: "Báo cáo",
-  notifications: "Thông báo",
-  organizations: "Tổ chức",
-  catalogs: "Danh mục",
-  identity: "Tài khoản & quyền",
-  "audit-logs": "Nhật ký hoạt động",
-  settings: "Cấu hình hệ thống",
-  administration: "Quản trị hệ thống",
-  account: "Tài khoản",
-  "change-password": "Đổi mật khẩu",
-  profile: "Thông tin cá nhân",
-};
-
-function navIcon(glyph: string) {
-  return (
-    <span className="nav-icon" aria-hidden="true">
-      {glyph}
-    </span>
-  );
+interface NavItem {
+  key: string;
+  icon: React.ReactNode;
+  label: string;
+  external?: boolean;
 }
 
-const NAV_CONFIG = [
+const MAIN_NAV: NavItem[] = [
+  { key: "/reception", icon: <ScheduleOutlined />, label: "Tiếp nhận" },
+  { key: "/patient", icon: <TeamOutlined />, label: "Danh sách\nbệnh nhân" },
+  { key: "/calendar", icon: <CalendarOutlined />, label: "Lịch hẹn" },
   {
-    key: "overview",
-    label: "Tổng quan",
-    children: [
-      { key: "/dashboard", icon: navIcon("📊"), label: "Bảng điều khiển" },
-      { key: "/reception", icon: navIcon("📋"), label: "Tiếp nhận khách hàng" },
-    ],
+    key: "/cskh-grouping",
+    icon: <CustomerServiceOutlined />,
+    label: "CSKH - Phân\nnhóm",
   },
+  { key: "/labo", icon: <ExperimentOutlined />, label: "Labo" },
   {
-    key: "clinical",
-    label: "Lâm sàng",
-    children: [
-      { key: "/patients", icon: navIcon("🦷"), label: "Bệnh nhân" },
-      { key: "/appointments", icon: navIcon("📅"), label: "Lịch hẹn" },
-      { key: "/treatment", icon: navIcon("💉"), label: "Điều trị" },
-    ],
+    key: "/operations",
+    icon: <SettingOutlined />,
+    label: "Quản trị\nvận hành",
   },
+  { key: "/report", icon: <BarChartOutlined />, label: "Báo cáo" },
+  { key: "/staff", icon: <IdcardOutlined />, label: "Nhân viên" },
+  { key: "/materials", icon: <MedicineBoxOutlined />, label: "Vật tư" },
+  { key: "/taxonomy", icon: <AppstoreOutlined />, label: "Danh mục" },
+  { key: "/tools", icon: <ToolOutlined />, label: "Công cụ" },
+];
+
+const BOTTOM_NAV: NavItem[] = [
   {
-    key: "finance",
-    label: "Tài chính",
-    children: [
-      { key: "/billing", icon: navIcon("💳"), label: "Thanh toán & Hóa đơn" },
-      { key: "/inventory", icon: navIcon("📦"), label: "Kho vật tư" },
-    ],
-  },
-  {
-    key: "analytics",
-    label: "Phân tích",
-    children: [
-      { key: "/reporting", icon: navIcon("📈"), label: "Báo cáo" },
-    ],
-  },
-  {
-    key: "system",
-    label: "Quản trị hệ thống",
-    children: [
-      {
-        key: "/administration/identity",
-        icon: navIcon("🛡️"),
-        label: "Tài khoản & quyền",
-      },
-      { key: "/organizations", icon: navIcon("🏥"), label: "Phòng khám" },
-      { key: "/catalogs", icon: navIcon("🗃️"), label: "Danh mục" },
-      {
-        key: "/administration/audit-logs",
-        icon: navIcon("📝"),
-        label: "Nhật ký hoạt động",
-      },
-      {
-        key: "/administration/settings",
-        icon: navIcon("⚙️"),
-        label: "Cấu hình hệ thống",
-      },
-    ],
+    key: "https://nfcdental.com/",
+    icon: <QuestionCircleOutlined />,
+    label: "Hướng dẫn &\nhỗ trợ",
+    external: true,
   },
 ];
 
-function buildMenuItems(): MenuProps["items"] {
-  const result: NonNullable<MenuProps["items"]> = [];
-  for (const group of NAV_CONFIG) {
-    result.push({
-      type: "group",
-      key: group.key,
-      label: group.label,
-      children: group.children.map((child) => ({
-        key: child.key,
-        icon: child.icon,
-        label: child.label,
-      })),
-    });
-  }
-  return result;
-}
+const SEARCH_CATEGORIES = [
+  {
+    icon: <UserOutlined style={{ fontSize: 18, color: brand.muted }} />,
+    title: "Khách hàng",
+    desc: "Tìm theo tên, mã KH, số điện thoại",
+  },
+  {
+    icon: <CalendarOutlined style={{ fontSize: 18, color: brand.muted }} />,
+    title: "Lịch hẹn",
+    desc: "Tìm theo tên hoặc SĐT khách hàng",
+  },
+  {
+    icon: <HeartOutlined style={{ fontSize: 18, color: brand.muted }} />,
+    title: "CSKH",
+    desc: "Tìm theo khách hàng, nội dung",
+  },
+  {
+    icon: <IdcardOutlined style={{ fontSize: 18, color: brand.muted }} />,
+    title: "Nhân viên",
+    desc: "Tìm theo tên, email, số điện thoại",
+  },
+];
 
 function initialsOf(name: string | undefined): string {
   const words = (name ?? "").trim().split(/\s+/).filter(Boolean);
@@ -136,18 +110,33 @@ function initialsOf(name: string | undefined): string {
   return (words[0][0] + words[words.length - 1][0]).toUpperCase();
 }
 
-function buildBreadcrumbs(pathname: string) {
-  const segments = pathname.split("/").filter(Boolean);
-  const items = [{ title: BREADCRUMB_LABELS[segments[0]] ?? "Trang chủ" }];
-  if (segments.length > 1) {
-    items.push({ title: BREADCRUMB_LABELS[segments[1]] ?? segments[1] });
-  }
-  return items;
+function SidebarItem({
+  item,
+  active,
+  expanded,
+  onClick,
+}: {
+  item: NavItem;
+  active: boolean;
+  expanded: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`sidebar-nav-item ${active ? "sidebar-nav-item--active" : ""} ${expanded ? "sidebar-nav-item--expanded" : ""}`}
+    >
+      <span className="sidebar-nav-icon">{item.icon}</span>
+      <span className="sidebar-nav-label">{item.label}</span>
+    </button>
+  );
 }
 
 export function AppLayout() {
-  const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const [currentLang, setCurrentLang] = useState<"vi" | "en">("vi");
   const navigate = useNavigate();
   const location = useLocation();
   const user = useAuthStore((s) => s.user);
@@ -161,21 +150,41 @@ export function AppLayout() {
     },
   });
 
-  const menuItems = useMemo(() => buildMenuItems(), []);
-  const breadcrumbItems = useMemo(
-    () => buildBreadcrumbs(location.pathname),
-    [location.pathname],
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen((prev) => !prev);
+      }
+      if (e.key === "Escape" && searchOpen) {
+        setSearchOpen(false);
+      }
+    },
+    [searchOpen],
   );
 
-  const handleMenuClick: MenuProps["onClick"] = ({ key }) => {
-    navigate(key);
-    setMobileOpen(false);
+  useEffect(() => {
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
+
+  const handleNavClick = (item: NavItem) => {
+    if (item.external) {
+      window.open(item.key, "_blank", "noopener");
+    } else {
+      navigate(item.key);
+    }
+  };
+
+  const isActive = (key: string) => {
+    if (key === "/reception") return location.pathname === "/reception";
+    return location.pathname.startsWith(key);
   };
 
   const userMenuItems: MenuProps["items"] = [
     {
       key: "user-info",
-      label: user?.clinicName ?? "Toàn hệ thống",
+      label: user?.clinicName ?? "BlueDental",
       disabled: true,
       style: { color: "rgba(0,0,0,0.45)", fontSize: 12 },
     },
@@ -202,141 +211,278 @@ export function AppLayout() {
     },
   ];
 
-  const sidebarContent = (
-    <>
-      <Link
-        to="/dashboard"
-        className="sidebar-logo"
-        aria-label="Về trang chủ"
-        onClick={() => setMobileOpen(false)}
+  const currentSidebarWidth = sidebarExpanded
+    ? SIDEBAR_EXPANDED_WIDTH
+    : SIDEBAR_WIDTH;
+
+  const clinicName = user?.clinicName ?? "NFC Dental";
+  const clinicLogoUrl = user?.clinicLogoUrl ?? undefined;
+  const clinicTagline = user?.clinicTagline ?? "Quản lý Phòng khám Nha khoa";
+
+  const branchContent = (
+    <div className="app-popover-list">
+      <div className="app-popover-header">Chi nhánh</div>
+      <button type="button" className="app-popover-item">
+        <span
+          className="app-popover-dot"
+          style={{ background: brand.faint }}
+        />
+        <span>Tất cả chi nhánh</span>
+      </button>
+      <button type="button" className="app-popover-item app-popover-item--active">
+        <span
+          className="app-popover-dot"
+          style={{ background: "#2BB673" }}
+        />
+        <span>{clinicName}</span>
+      </button>
+    </div>
+  );
+
+  const langContent = (
+    <div className="app-popover-list">
+      <div className="app-popover-header">Ngôn ngữ</div>
+      <button
+        type="button"
+        className="app-popover-item"
+        onClick={() => setCurrentLang("vi")}
       >
-        <div
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 8,
-            background: brand.blue,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#fff",
-            fontWeight: 900,
-            fontSize: 16,
-            flexShrink: 0,
-          }}
-        >
-          BD
-        </div>
-        <div className="sidebar-logo-text">
-          <span className="sidebar-logo-title">BlueDental</span>
-          <span className="sidebar-logo-subtitle">Quản lý Phòng khám Nha</span>
-        </div>
-      </Link>
-      <Menu
-        theme="dark"
-        mode="inline"
-        selectedKeys={[location.pathname]}
-        items={menuItems}
-        onClick={handleMenuClick}
-        style={{ borderRight: 0, paddingTop: 8 }}
-      />
-    </>
+        <span>Tiếng Việt</span>
+        {currentLang === "vi" && (
+          <CheckOutlined style={{ color: brand.blue, fontSize: 12 }} />
+        )}
+      </button>
+      <button
+        type="button"
+        className="app-popover-item"
+        onClick={() => setCurrentLang("en")}
+      >
+        <span>Tiếng Anh</span>
+        {currentLang === "en" && (
+          <CheckOutlined style={{ color: brand.blue, fontSize: 12 }} />
+        )}
+      </button>
+    </div>
   );
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
-      <Sider
-        collapsible
-        collapsed={collapsed}
-        onCollapse={setCollapsed}
-        theme="dark"
-        width={SIDEBAR_WIDTH}
-        collapsedWidth={SIDEBAR_COLLAPSED_WIDTH}
-        className={collapsed ? "sidebar-collapsed" : ""}
-        breakpoint="lg"
-        onBreakpoint={(broken) => {
-          if (broken) setCollapsed(true);
-        }}
-        style={{
-          overflow: "auto",
-          height: "100vh",
-          position: "sticky",
-          top: 0,
-          left: 0,
-        }}
-        trigger={null}
+      {/* ── Sidebar ── */}
+      <aside
+        className={`app-sidebar ${sidebarExpanded ? "app-sidebar--expanded" : ""}`}
+        style={{ width: currentSidebarWidth }}
       >
-        {sidebarContent}
-      </Sider>
+        <div className="sidebar-logo-area">
+          <div className="sidebar-logo-icon">
+            <img src="/logo_app.jpg" alt="NFC Dental" />
+          </div>
+          {sidebarExpanded && (
+            <div className="sidebar-logo-text">
+              <span className="sidebar-logo-name">NFC Dental</span>
+              <span className="sidebar-logo-sub">
+                Phần Mềm Quản Trị Vận Hành
+              </span>
+            </div>
+          )}
+        </div>
 
-      <Drawer
-        placement="left"
-        width={SIDEBAR_WIDTH}
-        open={mobileOpen}
-        onClose={() => setMobileOpen(false)}
-        styles={{ body: { padding: 0, background: brand.ink } }}
-        closable={false}
-      >
-        {sidebarContent}
-      </Drawer>
+        {sidebarExpanded && (
+          <div className="sidebar-section-label">MENU</div>
+        )}
 
-      <Layout>
-        <header className="app-header">
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <Button
-              type="text"
-              icon={<MenuOutlined />}
-              onClick={() => {
-                if (window.innerWidth < 992) {
-                  setMobileOpen(true);
-                } else {
-                  setCollapsed(!collapsed);
-                }
-              }}
-              style={{ fontSize: 16, width: 32, height: 32 }}
+        <nav className="sidebar-nav-main">
+          {MAIN_NAV.map((item) => (
+            <SidebarItem
+              key={item.key}
+              item={item}
+              active={isActive(item.key)}
+              expanded={sidebarExpanded}
+              onClick={() => handleNavClick(item)}
             />
-            <Breadcrumb items={breadcrumbItems} />
+          ))}
+        </nav>
+
+        {sidebarExpanded && (
+          <div className="sidebar-section-label">KHÁC</div>
+        )}
+
+        <nav className="sidebar-nav-bottom">
+          {BOTTOM_NAV.map((item) => (
+            <SidebarItem
+              key={item.key}
+              item={item}
+              active={false}
+              expanded={sidebarExpanded}
+              onClick={() => handleNavClick(item)}
+            />
+          ))}
+        </nav>
+      </aside>
+
+      {/* ── Main area ── */}
+      <Layout
+        style={{
+          marginLeft: currentSidebarWidth,
+          transition: "margin-left 0.2s",
+        }}
+      >
+        {/* ── Header ── */}
+        <header className="app-header">
+          <div className="app-header-left">
+            <button
+              type="button"
+              className="app-header-toggle"
+              onClick={() => setSidebarExpanded((prev) => !prev)}
+            >
+              <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <rect x="1" y="1" width="16" height="16" rx="2" />
+                <path d="M6 1v16" />
+                <path d="M10 7l2 2-2 2" />
+              </svg>
+            </button>
+
+            <div className="app-header-clinic">
+              {clinicLogoUrl ? (
+                <div className="app-header-clinic-logo">
+                  <img
+                    src={clinicLogoUrl}
+                    alt={clinicName}
+                    className="app-header-clinic-logo-img"
+                  />
+                </div>
+              ) : (
+                <div className="app-header-clinic-logo">
+                  {initialsOf(clinicName)}
+                </div>
+              )}
+              <div className="app-header-clinic-text">
+                <p className="app-header-clinic-name">{clinicName}</p>
+                <p className="app-header-clinic-tagline">{clinicTagline}</p>
+              </div>
+            </div>
           </div>
 
-          <div className="app-header-actions">
-            <NotificationBell />
+          <div className="app-header-right">
+            <button
+              type="button"
+              className="app-header-search"
+              onClick={() => setSearchOpen(true)}
+            >
+              <SearchOutlined style={{ fontSize: 16 }} />
+              <span className="app-header-search-text">
+                Tìm kiếm khách hàng, lịch hẹn, nhân viên…
+              </span>
+              <kbd className="app-header-search-kbd">Ctrl K</kbd>
+            </button>
 
-            <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-              <div className="app-header-user">
-                <Avatar
-                  size={32}
-                  style={{
-                    backgroundColor: brand.blue,
-                    fontSize: 13,
-                    fontWeight: 700,
-                  }}
-                >
-                  {initialsOf(user?.name)}
-                </Avatar>
-                <div className="app-header-user-text">
+            <Popover
+              content={branchContent}
+              trigger="click"
+              placement="bottomRight"
+              arrow={false}
+            >
+              <button type="button" className="app-header-branch">
+                <span className="app-header-branch-dot" />
+                <span className="app-header-branch-name">{clinicName}</span>
+                <DownOutlined style={{ fontSize: 14, color: "#5A6B82" }} />
+              </button>
+            </Popover>
+
+            <div className="app-header-actions">
+              <Popover
+                content={langContent}
+                trigger="click"
+                placement="bottomRight"
+                arrow={false}
+              >
+                <button type="button" className="app-header-icon-btn">
+                  <GlobalOutlined style={{ fontSize: 18 }} />
+                </button>
+              </Popover>
+
+              <button type="button" className="app-header-icon-btn">
+                <BellOutlined style={{ fontSize: 18 }} />
+                <span className="app-header-notif-dot" />
+              </button>
+
+              <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
+                <div className="app-header-user">
+                  <Avatar
+                    size={32}
+                    style={{
+                      backgroundColor: brand.blue,
+                      fontSize: 13,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {initialsOf(user?.name)}
+                  </Avatar>
                   <span className="app-header-user-name">
-                    {user?.name ?? "Người dùng"}
+                    {user?.name ?? "Admin"}
                   </span>
-                  <span className="app-header-user-org">
-                    {user?.clinicName ?? "Toàn hệ thống"}
-                  </span>
+                  <DownOutlined style={{ fontSize: 14, color: "#5A6B82" }} />
                 </div>
-                <DownOutlined
-                  style={{ fontSize: 10, color: brand.muted, flexShrink: 0 }}
-                />
-              </div>
-            </Dropdown>
+              </Dropdown>
+            </div>
           </div>
         </header>
 
-        <Content style={{ margin: 24, minHeight: 280 }}>
+        <Content style={{ padding: 16, minHeight: 280 }}>
           <Outlet />
         </Content>
-
-        <footer className="app-footer">
-          BlueDental v1.0 — Phần mềm quản lý Phòng khám Nha khoa
-        </footer>
       </Layout>
+
+      {/* ── Global search modal ── */}
+      {searchOpen && (
+        <div
+          className="app-search-overlay"
+          onClick={() => setSearchOpen(false)}
+        >
+          <div
+            className="app-search-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="app-search-input-row">
+              <Input
+                autoFocus
+                size="large"
+                prefix={<SearchOutlined />}
+                placeholder="Tìm kiếm khách hàng, lịch hẹn, nhân viên…"
+                onPressEnter={() => setSearchOpen(false)}
+                style={{ borderRadius: 12 }}
+              />
+              <kbd
+                className="app-search-esc"
+                onClick={() => setSearchOpen(false)}
+              >
+                Esc
+              </kbd>
+            </div>
+
+            <div className="app-search-categories">
+              <div className="app-search-categories-title">
+                Gợi ý tìm kiếm
+              </div>
+              {SEARCH_CATEGORIES.map((cat) => (
+                <div key={cat.title} className="app-search-category-item">
+                  <span className="app-search-category-icon">{cat.icon}</span>
+                  <div className="app-search-category-text">
+                    <span className="app-search-category-name">
+                      {cat.title}
+                    </span>
+                    <span className="app-search-category-desc">
+                      {cat.desc}
+                    </span>
+                  </div>
+                </div>
+              ))}
+              <div className="app-search-hint">
+                Nhập ít nhất 2 ký tự để tìm kiếm.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }

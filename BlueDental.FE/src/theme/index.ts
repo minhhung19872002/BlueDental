@@ -1,31 +1,23 @@
 import type { ThemeConfig } from "antd";
 
-/**
- * Design tokens for BlueDental.
- * Primary color: dental blue — professional, clinical, trustworthy.
- */
 export const brand = {
-  /** Blue primary — main buttons, links, emphasis */
   blue: "#1565C0",
   blueDark: "#0D47A1",
   blueMid: "#1976D2",
   blueLight: "#90CAF9",
   bluePale: "#E3F2FD",
-  /** Dark ink for sidebar, footer */
   ink: "#0D1B2A",
   body: "#1A2744",
   sub: "#374E6E",
   muted: "#5E748E",
   faint: "#8FA8C0",
   dim: "#4A6080",
-  /** Borders and backgrounds */
   line: "#D0DCE8",
   lineSoft: "#E8EFF6",
   border: "#C5D5E4",
   bg: "#F4F7FA",
   bgSoft: "#F8FAFB",
   bgHead: "#EEF3F8",
-  /** Accent colors */
   gold: "#F9A825",
   red: "#C62828",
   redDark: "#8E1C1C",
@@ -46,47 +38,51 @@ export const statusPalette = {
 } as const;
 
 export const FONT_FAMILY =
-  "'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif";
+  "'Google Sans', 'DM Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif";
 
 export const themeConfig: ThemeConfig = {
   token: {
-    colorPrimary: brand.blue,
-    colorLink: brand.blue,
+    colorPrimary: "#2671D8",
+    colorLink: "#2671D8",
     colorLinkHover: brand.blueDark,
-    colorInfo: brand.blue,
+    colorInfo: "#2671D8",
     colorSuccess: brand.success,
     colorWarning: brand.amber,
     colorError: brand.red,
-    colorTextBase: brand.body,
-    colorBorder: brand.border,
-    colorBorderSecondary: brand.line,
-    borderRadius: 10,
+    colorTextBase: "#1B2A41",
+    colorBorder: "#DCE3EE",
+    colorBorderSecondary: "#DCE3EE",
+    borderRadius: 8,
     fontFamily: FONT_FAMILY,
-    colorBgLayout: brand.bg,
+    colorBgLayout: "#F6F8FB",
+    fontSize: 14,
   },
   components: {
     Layout: {
-      siderBg: brand.ink,
+      siderBg: "#ffffff",
       headerBg: "#ffffff",
       bodyBg: brand.bg,
     },
     Menu: {
-      darkItemBg: "transparent",
-      darkSubMenuItemBg: "transparent",
-      darkItemColor: brand.faint,
-      darkItemHoverBg: "rgba(255, 255, 255, 0.06)",
-      darkItemHoverColor: "#ffffff",
-      darkItemSelectedBg: "rgba(21, 101, 192, 0.30)",
-      darkItemSelectedColor: "#ffffff",
-      itemHeight: 38,
-      itemBorderRadius: 9,
-      groupTitleColor: brand.dim,
+      itemBg: "transparent",
+      subMenuItemBg: "transparent",
+      itemColor: brand.muted,
+      itemHoverBg: brand.bluePale,
+      itemHoverColor: brand.blue,
+      itemSelectedBg: brand.bluePale,
+      itemSelectedColor: brand.blue,
+      itemHeight: 44,
+      itemBorderRadius: 8,
+      iconSize: 20,
     },
     Table: {
-      headerBg: brand.bgHead,
-      headerColor: brand.muted,
+      headerBg: "#F6F8FB",
+      headerColor: "#5A6B82",
       rowHoverBg: brand.bgSoft,
-      borderColor: brand.lineSoft,
+      borderColor: "#DCE3EE",
+      cellFontSize: 14,
+      cellPaddingBlock: 12,
+      cellPaddingInline: 16,
     },
     Card: {
       paddingLG: 20,
@@ -100,16 +96,26 @@ export const themeConfig: ThemeConfig = {
       separatorColor: brand.border,
     },
     Button: {
-      fontWeight: 600,
+      fontWeight: 500,
       primaryShadow: "none",
       defaultShadow: "none",
+      borderRadius: 8,
+      controlHeight: 40,
+      controlHeightLG: 44,
     },
     Input: {
       activeShadow: `0 0 0 3px ${brand.bluePale}`,
+      borderRadius: 8,
+      controlHeight: 40,
+      controlHeightLG: 44,
+    },
+    Select: {
+      borderRadius: 8,
+      controlHeight: 40,
     },
   },
 };
 
-export const SIDEBAR_WIDTH = 248;
-export const SIDEBAR_COLLAPSED_WIDTH = 64;
-export const HEADER_HEIGHT = 58;
+export const SIDEBAR_WIDTH = 110;
+export const SIDEBAR_EXPANDED_WIDTH = 248;
+export const HEADER_HEIGHT = 65;

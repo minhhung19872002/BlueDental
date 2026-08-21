@@ -1,60 +1,86 @@
-# BlueDental Reference — Application & Page States
+# UI States — Reference Application
 
-> Reference System: https://app.nfcdental.com  
-> Inspection Date: 2026-08-21  
-> Phase: Phase 1 — Reception / Tiếp nhận Application States
+Source: https://app.nfcdental.com
+Observed: 2026-08-21 (updated with screenshot comparison)
 
----
+## Reception Page States
 
-## 1. Global Application States
+### Reception Visit Status (tab filters)
+- Tất cả (All) — count in parentheses
+- Chờ khám (Waiting for exam) — count in parentheses
+- Đang khám (Being examined) — count in parentheses
+- Hoàn thành (Completed) — count in parentheses
 
-### 1.1 Unauthenticated Visitor State (Observed)
-- **Trigger**: Accessing `https://app.nfcdental.com` without a valid session token.
-- **Behavior**: System executes `POST /api/auth/refresh`, receives `401 Unauthorized`, and automatically redirects browser location to `/signin`.
-- **UI Rendered**: Centered floating authentication card (`rounded-[40px] border border-white/80 bg-white/70 backdrop-blur-xl shadow-[0_32px_80px_rgba(15,23,42,0.12)]`).
-- **Form Controls**: Email input, Password input with show/hide password toggle button, "Ghi nhớ đăng nhập" checkbox (`role="checkbox"`), "Quên mật khẩu?" link (`href="/forgot-password"`), and "Đăng Nhập" submit button (`bg-[#2671D8]`).
+### Reception Counter Categories
+- Đã hẹn (Scheduled) — green/teal
+- Đã đến (Arrived) — blue
+- Huỷ hẹn (Cancelled) — yellow/amber
+- Trễ hẹn (Late) — red/coral
+- Lịch tạm (Temporary) — orange
+- Chuyển đổi (Converted) — light blue
 
-### 1.2 Authenticated Dashboard State (Discovered)
-- **Trigger**: Valid session token present.
-- **Behavior**: System renders `AppLayout` chrome with active sidebar navigation item, sticky top header bar, and active route content.
+### Empty State (OBSERVED in reference)
+Displayed when no receptions match current filters:
+- Container: light blue-gray background, rounded corners
+- Icon: person/user outline (centered)
+- Heading: "Không có lượt tiếp nhận phù hợp"
+- Subtitle: "Hãy thử đổi bộ lọc hoặc từ khoá tìm kiếm để xem thêm dữ liệu."
 
----
+### Populated State — Table (INFERRED from local implementation)
+When receptions exist for the selected date:
+- Data table with 9 columns
+- Row-level status badges with colored dots
+- Patient "Mới"/"Cũ" (New/Existing) badges
+- Source badges: Y tế, Tự đến, Marketing, Giới thiệu
+- Action buttons per row: "Tiếp nhận" (blue) or "Xong" (green) + three-dot menu
+- Pagination: total count + page size selector + page navigation
 
-## 2. Reception Page (`/reception`) UI & Data States
+NOTE: The reference populated state has NOT been directly observed.
+See docs/clone/pages/reception.md § "Content Area — Populated State" for details.
 
-### 2.1 Initial Loading State
-- **Trigger**: Route navigation to `/reception`.
-- **UI Behavior**: Displays Ant Design Spin loading indicator or skeleton loaders for table rows and counter cards.
+### Reception Status Badges (local implementation)
+- Chờ khám — blue dot + blue text
+- Đang khám — orange dot + orange text
+- Hoàn thành — green checkmark + green text
 
-### 2.2 Reception Queue Status Pipeline States
-The Reception page filters patient queue records across 4 primary status states:
+### Reception Source Badges (local implementation)
+- Y tế — blue badge
+- Tự đến — default/gray badge
+- Marketing — green badge
+- Giới thiệu — orange badge
 
-1. **Khách đến** (`overview.reception.arrived` / `overview.label.come`):
-   - Patients who have physically arrived at the clinic reception and are in the waiting queue.
-   - Status tag color: `cyan` / `blue`.
-2. **Đang khám** (`overview.reception.reception` / `overview.label.admittingDoctor`):
-   - Patients currently in consultation or actively undergoing treatment with an assigned doctor.
-   - Status tag color: `orange` / `processing`.
-3. **Hoàn thành** (`overview.reception.done` / `overview.label.done`):
-   - Patients whose examination/treatment session for today is complete.
-   - Status tag color: `green` / `success`.
-4. **Tất cả** (`overview.label.all`):
-   - Complete view of all patient reception records for the selected date filter regardless of status.
+### Patient Type Badges (local implementation)
+- Mới (New) — blue badge
+- Cũ (Existing) — gray badge
 
-### 2.3 Reception Counter States
-- **Khách mới** (`overview.label.newCustomer` / `overview.label.newPatient`): Count of first-time registered patients today.
-- **Khách cũ** (`overview.label.oldCustomer` / `overview.label.oldPatient`): Count of returning patients today.
-- **Đã hẹn** (`overview.label.created`): Count of patients with scheduled appointments today.
-- **Huỷ hẹn** (`overview.label.cancel`): Count of cancelled appointments.
+## Patient List Page States
 
-### 2.4 Empty Queue State (Observed Spec)
-- **Trigger**: When no patient reception records match the current status filter, keyword search, or doctor filter.
-- **UI Behavior**: Renders `EmptyState` component.
-- **Text Labels**:
-  - Primary: `Danh sách trống` (`overview.label.noItem`)
-  - Secondary: `Không có lịch hẹn hôm nay` (`customer.label.reception.notValid`) / `Không có ghi chú` (`overview.label.noNote`)
-- **Styling**: Centered empty illustration graphic, muted text (`text-slate-500`), clean layout.
+### Patient Treatment Status (tab filters)
+- Tất cả (All)
+- Điều trị hoàn tất (Treatment completed)
+- Đang điều trị (In treatment)
+- Chưa phát sinh (No activity)
+- Active tab: blue background, white text, rounded pill
 
-### 2.5 Active Drawer / Modal State
-- **Trigger**: Clicking `Tạo tiếp nhận` (`overview.action.newProfile`) button in toolbar.
-- **UI Behavior**: Opens slide-over drawer / modal form for patient reception entry (**UNSAFE TO SUBMIT ON PRODUCTION — MARKED UNKNOWN_REFERENCE_BEHAVIOR**).
+### Patient Record Status Badges
+- Chưa phát sinh — gray/default tag
+- Đang điều trị — blue tag
+- Hoàn tất — green tag
+
+### Patient Code Format
+Pattern: `[DH26XXX]` — prefix "DH" + year(2) + sequence number
+
+## Time Period States
+
+Both pages support viewing data by:
+- Ngày (Day) — default active
+- Tuần (Week)
+- Tháng (Month)
+
+## UNKNOWN_REFERENCE_BEHAVIOR
+
+### Week/Month view layout
+- Page: /reception, /patient
+- Control: "Tuần" and "Tháng" tabs
+- Reason: Not observed in reference. Unknown if layout changes (e.g. weekly calendar grid vs. daily list).
+- Action taken: NONE

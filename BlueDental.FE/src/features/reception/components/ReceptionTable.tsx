@@ -106,10 +106,10 @@ export const ReceptionTable: React.FC<ReceptionTableProps> = ({
       key: "status",
       width: 140,
       render: (status: ReceptionStatus) => {
-        if (status === "Arrived") {
+        if (status === "WaitingForExam") {
           return (
             <Tag icon={<ClockCircleOutlined />} color="processing">
-              Khách đến
+              Chờ khám
             </Tag>
           );
         }
@@ -190,7 +190,7 @@ export const ReceptionTable: React.FC<ReceptionTableProps> = ({
 
         return (
           <Space size={8}>
-            {record.status === "Arrived" && (
+            {record.status === "WaitingForExam" && (
               <Tooltip title="Chuyển vào khám">
                 <Button
                   size="small"

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { message } from "antd";
-import { ReceptionHeader } from "../components/ReceptionHeader";
+import dayjs, { type Dayjs } from "dayjs";
 import { ReceptionToolbar } from "../components/ReceptionToolbar";
 import { ReceptionStatusTabs } from "../components/ReceptionStatusTabs";
 import { ReceptionTable } from "../components/ReceptionTable";
@@ -14,20 +14,25 @@ import {
 import { useUpdateReceptionStatus } from "../api/receptionMutations";
 import type { ReceptionStatus, ReceptionFilter } from "../types/reception";
 
+type ViewMode = "day" | "week" | "month";
+
 export const ReceptionPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ReceptionStatus>("All");
   const [keyword, setKeyword] = useState("");
   const [selectedDoctorId, setSelectedDoctorId] = useState<string | undefined>();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("day");
+  const [currentDate, setCurrentDate] = useState<Dayjs>(dayjs());
 
   const filter: ReceptionFilter = {
     status: activeTab,
     keyword,
     doctorId: selectedDoctorId,
+    date: currentDate.format("YYYY-MM-DD"),
   };
 
   const { data: listData, isLoading: listLoading } = useReceptionList(filter);
-  const { data: metrics, isLoading: metricsLoading } = useReceptionMetrics();
+  const { data: metrics } = useReceptionMetrics();
   const { data: doctors = [] } = useReceptionDoctors();
   const updateStatusMutation = useUpdateReceptionStatus();
 
@@ -48,35 +53,33 @@ export const ReceptionPage: React.FC = () => {
   const items = listData?.items ?? [];
 
   return (
-    <div style={{ maxWidth: 1400, margin: "0 auto" }}>
-      <ReceptionHeader metrics={metrics} loading={metricsLoading} />
+    <div className="reception-page">
+      {/* Row 1: Toolbar — time tabs + date nav + search + create */}
+      <ReceptionToolbar
+        keyword={keyword}
+        viewMode={viewMode}
+        currentDate={currentDate}
+        onSearchChange={setKeyword}
+        onDoctorSelect={setSelectedDoctorId}
+        onCreateClick={() => setDrawerOpen(true)}
+        onViewModeChange={setViewMode}
+        onDateChange={setCurrentDate}
+      />
 
-      <div
-        style={{
-          background: "#FFFFFF",
-          borderRadius: 20,
-          padding: 24,
-          boxShadow: "0 4px 24px rgba(15, 23, 42, 0.04)",
-          border: "1px solid #E2E8F0",
-        }}
-      >
-        <ReceptionToolbar
-          keyword={keyword}
-          selectedDoctorId={selectedDoctorId}
-          doctors={doctors}
-          onSearchChange={setKeyword}
-          onDoctorSelect={setSelectedDoctorId}
-          onCreateClick={() => setDrawerOpen(true)}
-        />
+      {/* Row 2: Status tabs + doctor filter + counter cards */}
+      <ReceptionStatusTabs
+        activeTab={activeTab}
+        metrics={metrics}
+        selectedDoctorId={selectedDoctorId}
+        doctors={doctors}
+        onChange={setActiveTab}
+        onDoctorSelect={setSelectedDoctorId}
+      />
 
-        <ReceptionStatusTabs
-          activeTab={activeTab}
-          metrics={metrics}
-          onChange={setActiveTab}
-        />
-
+      {/* Content: table or empty state */}
+      <div className="reception-content">
         {items.length === 0 && !listLoading ? (
-          <ReceptionEmptyState onCreateClick={() => setDrawerOpen(true)} />
+          <ReceptionEmptyState />
         ) : (
           <ReceptionTable
             items={items}
