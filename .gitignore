@@ -25,3 +25,21 @@ appsettings.Development.json
 *.cache
 Thumbs.db
 .DS_Store
+
+# Claude / Playwright production artifacts
+reference-private/
+.playwright/
+.playwright-profile/
+
+# Browser auth
+storage-state*.json
+auth.json
+cookies.json
+
+# Network captures
+*.har
+
+# Secrets
+.env
+.env.*
+!.env.example

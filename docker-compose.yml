@@ -1,36 +1,175 @@
+name: bluedental
+
+x-backend-environment: &backend-environment
+  ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+  ConnectionStrings__Default: Host=postgres;Port=5432;Database=${POSTGRES_DB:-BlueDental};Username=${POSTGRES_USER:-bluedental};Password=${POSTGRES_PASSWORD:-bluedental}
+  App__CorsOrigins: ${FRONTEND_URL:-http://localhost:8080}
+  App__KnownProxies__0: 172.29.0.10
+  Redis__IsEnabled: "true"
+  Redis__Configuration: redis:6379,password=${REDIS_PASSWORD:-redis}
+  BlobStorage__Endpoint: minio:9000
+  BlobStorage__AccessKey: ${MINIO_ROOT_USER:-minioadmin}
+  BlobStorage__SecretKey: ${MINIO_ROOT_PASSWORD:-minioadmin}
+  BlobStorage__BucketName: bluedental-files
+  BlobStorage__WithSsl: "false"
+  MalwareScan__Host: clamav
+  MalwareScan__Port: "3310"
+
 services:
   postgres:
-    image: postgres:17-alpine
+    image: postgres:15-alpine
     environment:
-      POSTGRES_DB: bluedental
-      POSTGRES_USER: bluedental
-      POSTGRES_PASSWORD: bluedental
+      POSTGRES_DB: ${POSTGRES_DB:-BlueDental}
+      POSTGRES_USER: ${POSTGRES_USER:-bluedental}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bluedental}
     ports:
-      - "5432:5432"
+      - "${INFRA_BIND_ADDRESS:-127.0.0.1}:${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bluedental} -d ${POSTGRES_DB:-BlueDental}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+    networks:
+      bluedental:
+        ipv4_address: 172.29.0.30
+
+  redis:
+    image: redis:7-alpine
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis}
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - ${REDIS_PASSWORD:-redis}
+    ports:
+      - "${INFRA_BIND_ADDRESS:-127.0.0.1}:${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a $$REDIS_PASSWORD ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+    networks:
+      bluedental:
+        ipv4_address: 172.29.0.40
+
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    command: server /data --console-address ":9001"
+    ports:
+      - "${INFRA_BIND_ADDRESS:-127.0.0.1}:${MINIO_API_PORT:-9000}:9000"
+      - "${INFRA_BIND_ADDRESS:-127.0.0.1}:${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+    networks:
+      bluedental:
+        ipv4_address: 172.29.0.50
+
+  clamav:
+    image: clamav/clamav:1.4
+    ports:
+      - "${INFRA_BIND_ADDRESS:-127.0.0.1}:3310:3310"
+    volumes:
+      - clamav_data:/var/lib/clamav
+    healthcheck:
+      test: ["CMD", "clamdscan", "--ping", "1"]
+      interval: 15s
+      timeout: 10s
+      retries: 30
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      bluedental:
+        ipv4_address: 172.29.0.70
+
+  migrator:
+    build:
+      context: ./BlueDental.BE
+      dockerfile: Dockerfile
+    environment:
+      <<: *backend-environment
+      OpenIddict__Applications__BlueDental_Swagger__RootUrl: ${API_ROOT_URL:-http://localhost:5019}
+      Seed__AdminEmail: ${SEED_ADMIN_EMAIL:-admin@bluedental.local}
+      Seed__AdminPassword: ${SEED_ADMIN_PASSWORD:-Admin@123456}
+    entrypoint: ["dotnet", "/app/migrator/BlueDental.DbMigrator.dll"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    networks:
+      bluedental:
+        ipv4_address: 172.29.0.21
 
   api:
     build:
-      context: ./backend/src/BlueDental.Api
+      context: ./BlueDental.BE
+      dockerfile: Dockerfile
     environment:
-      ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DentalDb: Host=postgres;Port=5432;Database=bluedental;Username=bluedental;Password=bluedental
-      FrontendUrl: http://localhost:5173
+      <<: *backend-environment
+      ASPNETCORE_URLS: http://+:8080
     ports:
-      - "8080:8080"
+      - "${API_BIND_ADDRESS:-127.0.0.1}:${API_PORT:-5019}:8080"
     depends_on:
-      - postgres
+      migrator:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      clamav:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://127.0.0.1:8080/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      bluedental:
+        ipv4_address: 172.29.0.20
 
-  web:
+  frontend:
     build:
-      context: ./frontend
+      context: ./BlueDental.FE
+      dockerfile: Dockerfile
       args:
-        VITE_API_URL: http://localhost:8080/api
-    ports:
-      - "5173:80"
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:5019/api}
     depends_on:
-      - api
+      api:
+        condition: service_healthy
+    ports:
+      - "${WEB_BIND_ADDRESS:-127.0.0.1}:${WEB_PORT:-8080}:8080"
+    restart: unless-stopped
+    networks:
+      bluedental:
+        ipv4_address: 172.29.0.10
 
 volumes:
-  postgres-data:
+  postgres_data:
+  redis_data:
+  minio_data:
+  clamav_data:
+
+networks:
+  bluedental:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.29.0.0/24

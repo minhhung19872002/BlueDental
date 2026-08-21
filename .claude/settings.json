@@ -1,0 +1,50 @@
+{
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "disableBypassPermissionsMode": "disable",
+
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_find",
+      "mcp__playwright__browser_console_messages",
+      "mcp__playwright__browser_network_requests",
+      "mcp__playwright__browser_network_request",
+      "mcp__playwright__browser_take_screenshot"
+    ],
+
+    "ask": [
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_navigate_back",
+      "mcp__playwright__browser_hover",
+      "mcp__playwright__browser_resize",
+      "mcp__playwright__browser_wait_for",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_evaluate"
+    ],
+
+    "deny": [
+      "mcp__playwright__browser_type",
+      "mcp__playwright__browser_fill_form",
+      "mcp__playwright__browser_select_option",
+      "mcp__playwright__browser_press_key",
+      "mcp__playwright__browser_drag",
+      "mcp__playwright__browser_drop",
+      "mcp__playwright__browser_file_upload",
+      "mcp__playwright__browser_handle_dialog",
+      "mcp__playwright__browser_run_code_unsafe"
+    ]
+  },
+  "enabledPlugins": {
+    "csharp-lsp@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true,
+    "feature-dev@claude-plugins-official": true,
+    "code-review@claude-plugins-official": true,
+    "code-simplifier@claude-plugins-official": true,
+    "security-guidance@claude-plugins-official": true
+  }
+}

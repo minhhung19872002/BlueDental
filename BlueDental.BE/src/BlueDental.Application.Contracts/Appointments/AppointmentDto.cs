@@ -1,0 +1,62 @@
+using System;
+using Volo.Abp.Application.Dtos;
+
+namespace BlueDental.Appointments;
+
+public class AppointmentDto : FullAuditedEntityDto<Guid>
+{
+    public Guid PatientId { get; set; }
+    public string PatientName { get; set; } = default!;
+    public Guid DentistId { get; set; }
+    public string DentistName { get; set; } = default!;
+    public Guid BranchId { get; set; }
+    public Guid? ProcedureId { get; set; }
+    public string? ProcedureName { get; set; }
+    public DateTimeOffset SlotStart { get; set; }
+    public DateTimeOffset SlotEnd { get; set; }
+    public AppointmentStatus Status { get; set; }
+    public AppointmentType Type { get; set; }
+    public string? ChiefComplaint { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class CreateAppointmentDto
+{
+    public Guid PatientId { get; set; }
+    public Guid DentistId { get; set; }
+    public Guid BranchId { get; set; }
+    public Guid? ProcedureId { get; set; }
+    public DateTimeOffset SlotStart { get; set; }
+    public DateTimeOffset SlotEnd { get; set; }
+    public AppointmentType Type { get; set; }
+    public string? ChiefComplaint { get; set; }
+}
+
+public class UpdateAppointmentDto
+{
+    public DateTimeOffset SlotStart { get; set; }
+    public DateTimeOffset SlotEnd { get; set; }
+    public Guid? DentistId { get; set; }
+    public string? ChiefComplaint { get; set; }
+}
+
+public class CancelAppointmentDto
+{
+    public CancellationReason Reason { get; set; }
+    public string? Note { get; set; }
+}
+
+public class CompleteAppointmentDto
+{
+    public string? Notes { get; set; }
+}
+
+public class GetAppointmentListInput : PagedAndSortedResultRequestDto
+{
+    public string? Filter { get; set; }
+    public Guid? PatientId { get; set; }
+    public Guid? DentistId { get; set; }
+    public Guid? BranchId { get; set; }
+    public AppointmentStatus? Status { get; set; }
+    public DateOnly? Date { get; set; }
+}

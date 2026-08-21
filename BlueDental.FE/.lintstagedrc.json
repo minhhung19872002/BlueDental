@@ -1,0 +1,9 @@
+{
+  "src/**/*.{ts,tsx}": [
+    "oxlint",
+    "prettier --write"
+  ],
+  "src/**/*.{json,css}": [
+    "prettier --write"
+  ]
+}
