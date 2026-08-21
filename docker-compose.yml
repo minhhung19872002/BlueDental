@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: bluedental
+      POSTGRES_USER: bluedental
+      POSTGRES_PASSWORD: bluedental
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: ./backend/src/BlueDental.Api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DentalDb: Host=postgres;Port=5432;Database=bluedental;Username=bluedental;Password=bluedental
+      FrontendUrl: http://localhost:5173
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://localhost:8080/api
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+
+volumes:
+  postgres-data:
