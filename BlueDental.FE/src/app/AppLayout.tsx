@@ -27,6 +27,7 @@ const { Sider, Content } = Layout;
 
 const BREADCRUMB_LABELS: Record<string, string> = {
   dashboard: "Bảng điều khiển",
+  reception: "Tiếp nhận khách hàng",
   patients: "Bệnh nhân",
   appointments: "Lịch hẹn",
   treatment: "Điều trị",
@@ -59,6 +60,7 @@ const NAV_CONFIG = [
     label: "Tổng quan",
     children: [
       { key: "/dashboard", icon: navIcon("📊"), label: "Bảng điều khiển" },
+      { key: "/reception", icon: navIcon("📋"), label: "Tiếp nhận khách hàng" },
     ],
   },
   {

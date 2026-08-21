@@ -86,7 +86,6 @@ public class BlueDentalHttpApiHostModule : AbpModule
             options.KeepAliveInterval = TimeSpan.FromSeconds(15);
             options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
         });
-        context.Services.AddSingleton<Microsoft.AspNetCore.SignalR.IUserIdProvider, AbpUserIdProvider>();
 
         context.Services.AddHealthChecks();
     }

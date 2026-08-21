@@ -94,7 +94,7 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
       onCancel={onClose}
       footer={null}
       width={640}
-      destroyOnHide
+      destroyOnHidden
     >
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
         <Row gutter={16}>

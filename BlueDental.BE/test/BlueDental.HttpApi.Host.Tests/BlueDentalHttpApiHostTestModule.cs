@@ -1,3 +1,4 @@
+using BlueDental.Application.Tests;
 using Volo.Abp.Modularity;
 
 namespace BlueDental.HttpApi.Host.Tests;

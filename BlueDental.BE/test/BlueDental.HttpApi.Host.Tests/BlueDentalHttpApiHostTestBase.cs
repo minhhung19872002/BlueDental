@@ -1,3 +1,5 @@
+using BlueDental;
+
 namespace BlueDental.HttpApi.Host.Tests;
 
 public abstract class BlueDentalHttpApiHostTestBase

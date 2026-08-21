@@ -42,7 +42,7 @@ export function FormModal({
           )}
         </div>
       }
-      destroyOnHide
+      destroyOnHidden
     >
       {children}
     </Modal>

@@ -1,7 +1,8 @@
+using Volo.Abp.Modularity;
 using Volo.Abp.Testing;
 
 namespace BlueDental;
 
 public abstract class BlueDentalTestBase<TStartupModule>
     : AbpIntegratedTest<TStartupModule>
-    where TStartupModule : class;
+    where TStartupModule : class, IAbpModule;

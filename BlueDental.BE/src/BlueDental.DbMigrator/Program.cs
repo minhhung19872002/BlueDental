@@ -1,4 +1,7 @@
 using BlueDental.DbMigrator;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Events;
 
@@ -13,9 +16,12 @@ Log.Logger = new LoggerConfiguration()
 
 await Host.CreateDefaultBuilder(args)
     .AddAppSettingsSecretsJson()
-    .ConfigureLogging((_, logging) => logging.ClearProviders())
+    .ConfigureLogging((_, logging) =>
+    {
+        logging.ClearProviders();
+        logging.AddSerilog();
+    })
     .UseAutofac()
-    .UseSerilog()
     .ConfigureServices((hostContext, services) =>
     {
         services.AddHostedService<DbMigratorHostedService>();

@@ -38,6 +38,12 @@ const AppointmentCalendarPage = lazy(() =>
   ).then((m) => ({ default: m.AppointmentCalendarPage })),
 );
 
+const ReceptionPage = lazy(() =>
+  import("@/features/reception/pages/ReceptionPage").then((m) => ({
+    default: m.ReceptionPage,
+  })),
+);
+
 const AppointmentListPage = lazy(() =>
   import("@/features/appointments/pages/AppointmentListPage").then((m) => ({
     default: m.AppointmentListPage,
@@ -86,6 +92,15 @@ const appRoutes: RouteObject[] = [
         element: (
           <S>
             <DashboardPage />
+          </S>
+        ),
+      },
+      // ── Reception ──────────────────────────────────────────────────────────
+      {
+        path: "reception",
+        element: (
+          <S>
+            <ReceptionPage />
           </S>
         ),
       },

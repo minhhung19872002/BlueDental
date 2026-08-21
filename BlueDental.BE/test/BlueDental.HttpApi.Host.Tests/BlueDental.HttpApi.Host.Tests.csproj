@@ -11,6 +11,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\BlueDental.HttpApi.Host\BlueDental.HttpApi.Host.csproj" />
+    <ProjectReference Include="..\BlueDental.TestBase\BlueDental.TestBase.csproj" />
+    <ProjectReference Include="..\BlueDental.Application.Tests\BlueDental.Application.Tests.csproj" />
   </ItemGroup>
 
   <ItemGroup>
