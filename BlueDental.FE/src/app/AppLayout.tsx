@@ -126,6 +126,43 @@ function SidebarItem({
   );
 }
 
+function NfcLogoIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      width="32"
+      height="36"
+      viewBox="0 0 36 40"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      <path
+        d="M18 1L34 8V24L18 39L2 24V8L18 1Z"
+        fill="#1E70E6"
+        stroke="#1E70E6"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <rect x="7" y="12" width="22" height="11" rx="2" fill="#1E70E6" />
+      <text
+        x="18"
+        y="20.5"
+        fill="#FFFFFF"
+        fontSize="8.5"
+        fontWeight="800"
+        fontFamily="sans-serif"
+        textAnchor="middle"
+      >
+        NFC
+      </text>
+      <path
+        d="M9 27C12 25.5 15 26.5 18 28.5C21 26.5 24 25.5 27 27V30C24 28.5 21 29.5 18 31.5C15 29.5 12 28.5 9 30V27Z"
+        fill="#FFFFFF"
+      />
+    </svg>
+  );
+}
+
 export function AppLayout() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
@@ -267,7 +304,7 @@ export function AppLayout() {
       >
         <div className="sidebar-logo-area">
           <div className="sidebar-logo-icon">
-            <img src="/logo_app.jpg" alt="NFC Dental" />
+            <NfcLogoIcon />
           </div>
           {sidebarExpanded && (
             <div className="sidebar-logo-text">
