@@ -11,8 +11,24 @@ namespace BlueDental.Api.Controllers;
 public sealed class PatientsController(DentalDbContext database) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Patient>>> GetAll(CancellationToken cancellationToken) =>
-        Ok(await database.Patients.AsNoTracking().OrderBy(patient => patient.FullName).ToListAsync(cancellationToken));
+    public async Task<ActionResult<IEnumerable<Patient>>> GetAll([FromQuery] string? search, CancellationToken cancellationToken)
+    {
+        var patients = database.Patients.AsNoTracking();
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            patients = patients.Where(patient => patient.FullName.Contains(term) || patient.PhoneNumber.Contains(term));
+        }
+
+        return Ok(await patients.OrderBy(patient => patient.FullName).ToListAsync(cancellationToken));
+    }
+
+    [HttpGet("{id:guid}")]
+    public async Task<ActionResult<Patient>> GetById(Guid id, CancellationToken cancellationToken)
+    {
+        var patient = await database.Patients.AsNoTracking().SingleOrDefaultAsync(patient => patient.Id == id, cancellationToken);
+        return patient is null ? NotFound() : Ok(patient);
+    }
 
     [HttpPost]
     public async Task<ActionResult<Patient>> Create(CreatePatientRequest request, CancellationToken cancellationToken)
@@ -26,5 +42,24 @@ public sealed class PatientsController(DentalDbContext database) : ControllerBas
         database.Patients.Add(patient);
         await database.SaveChangesAsync(cancellationToken);
         return CreatedAtAction(nameof(GetAll), new { patient.Id }, patient);
+    }
+
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> Update(Guid id, CreatePatientRequest request, CancellationToken cancellationToken)
+    {
+        var patient = await database.Patients.FindAsync([id], cancellationToken);
+        if (patient is null)
+        {
+            return NotFound();
+        }
+
+        patient.FullName = request.FullName.Trim();
+        patient.DateOfBirth = request.DateOfBirth;
+        patient.PhoneNumber = request.PhoneNumber.Trim();
+        patient.Email = request.Email;
+        patient.Address = request.Address;
+        patient.MedicalNotes = request.MedicalNotes;
+        await database.SaveChangesAsync(cancellationToken);
+        return NoContent();
     }
 }

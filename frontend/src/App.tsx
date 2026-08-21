@@ -3,7 +3,7 @@ import type { FormEvent } from 'react'
 import './App.css'
 
 type Dashboard = { patientCount: number; appointmentsToday: number; pendingAppointments: number; revenueToday: number }
-type Patient = { id: string; fullName: string; phoneNumber: string }
+type Patient = { id: string; fullName: string; phoneNumber: string; email?: string; address?: string; medicalNotes?: string }
 type Dentist = { id: string; fullName: string; specialty: string; phoneNumber?: string }
 type Appointment = { id: string; startAtUtc: string; reason: string; status: string; patient?: Patient; dentist?: Dentist }
 type TreatmentRecord = { id: string; performedAtUtc: string; toothNumber?: string; diagnosis: string; procedureName: string; cost: number; patient?: Patient; dentist?: Dentist }
@@ -20,6 +20,11 @@ export default function App() {
   const [payments, setPayments] = useState<Payment[]>([])
   const [patientName, setPatientName] = useState('')
   const [patientPhone, setPatientPhone] = useState('')
+  const [patientEmail, setPatientEmail] = useState('')
+  const [patientAddress, setPatientAddress] = useState('')
+  const [patientNotes, setPatientNotes] = useState('')
+  const [editingPatientId, setEditingPatientId] = useState<string>()
+  const [patientSearch, setPatientSearch] = useState('')
   const [dentistName, setDentistName] = useState('')
   const [specialty, setSpecialty] = useState('Tổng quát')
   const [appointment, setAppointment] = useState({ patientId: '', dentistId: '', startAtUtc: '', reason: '' })
@@ -46,10 +51,24 @@ export default function App() {
   const addPatient = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     try {
-      await submit('patients', { fullName: patientName, phoneNumber: patientPhone, email: null, address: null, dateOfBirth: null, medicalNotes: null })
-      setPatientName(''); setPatientPhone(''); setMessage('Đã lưu bệnh nhân.')
+      const body = { fullName: patientName, phoneNumber: patientPhone, email: patientEmail || null, address: patientAddress || null, dateOfBirth: null, medicalNotes: patientNotes || null }
+      if (editingPatientId) {
+        const response = await fetch(`${apiUrl}/patients/${editingPatientId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+        if (!response.ok) throw new Error()
+        await load()
+      } else {
+        await submit('patients', body)
+      }
+      setPatientName(''); setPatientPhone(''); setPatientEmail(''); setPatientAddress(''); setPatientNotes(''); setEditingPatientId(undefined); setMessage('Đã lưu bệnh nhân.')
     } catch { setMessage('Không thể lưu bệnh nhân.') }
   }
+
+  const editPatient = (patient: Patient) => {
+    setEditingPatientId(patient.id); setPatientName(patient.fullName); setPatientPhone(patient.phoneNumber)
+    setPatientEmail(patient.email ?? ''); setPatientAddress(patient.address ?? ''); setPatientNotes(patient.medicalNotes ?? '')
+  }
+
+  const matchingPatients = patients.filter((patient) => `${patient.fullName} ${patient.phoneNumber}`.toLocaleLowerCase().includes(patientSearch.toLocaleLowerCase()))
 
   const addDentist = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -105,7 +124,14 @@ export default function App() {
       <div className="panel"><h2>Thêm bệnh nhân</h2><form onSubmit={addPatient}>
         <label>Họ và tên<input value={patientName} onChange={(event) => setPatientName(event.target.value)} required /></label>
         <label>Số điện thoại<input value={patientPhone} onChange={(event) => setPatientPhone(event.target.value)} required /></label><button>Lưu bệnh nhân</button>
+        <label>Email<input type="email" value={patientEmail} onChange={(event) => setPatientEmail(event.target.value)} /></label>
+        <label>Địa chỉ<input value={patientAddress} onChange={(event) => setPatientAddress(event.target.value)} /></label>
+        <label>Ghi chú y khoa<input value={patientNotes} onChange={(event) => setPatientNotes(event.target.value)} /></label><button>{editingPatientId ? 'Cập nhật bệnh nhân' : 'Lưu bệnh nhân'}</button>
+        {editingPatientId && <button type="button" className="secondary" onClick={() => { setEditingPatientId(undefined); setPatientName(''); setPatientPhone(''); setPatientEmail(''); setPatientAddress(''); setPatientNotes('') }}>Huỷ chỉnh sửa</button>}
       </form></div>
+      <div className="panel"><h2>Tìm bệnh nhân</h2><input value={patientSearch} onChange={(event) => setPatientSearch(event.target.value)} placeholder="Tên hoặc số điện thoại" />
+        {matchingPatients.length === 0 ? <p>Không tìm thấy bệnh nhân.</p> : <ul>{matchingPatients.slice(0, 6).map((patient) => <li key={patient.id}><b>{patient.fullName}</b><span>{patient.phoneNumber}</span><button onClick={() => editPatient(patient)}>Sửa</button></li>)}</ul>}
+      </div>
       <div className="panel"><h2>Thêm nha sĩ</h2><form onSubmit={addDentist}>
         <label>Họ và tên<input value={dentistName} onChange={(event) => setDentistName(event.target.value)} required /></label>
         <label>Chuyên môn<input value={specialty} onChange={(event) => setSpecialty(event.target.value)} required /></label><button>Lưu nha sĩ</button>
