@@ -24,6 +24,7 @@ export default function App() {
   const [patientAddress, setPatientAddress] = useState('')
   const [patientNotes, setPatientNotes] = useState('')
   const [editingPatientId, setEditingPatientId] = useState<string>()
+  const [selectedPatientId, setSelectedPatientId] = useState<string>()
   const [patientSearch, setPatientSearch] = useState('')
   const [dentistName, setDentistName] = useState('')
   const [specialty, setSpecialty] = useState('Tổng quát')
@@ -69,6 +70,11 @@ export default function App() {
   }
 
   const matchingPatients = patients.filter((patient) => `${patient.fullName} ${patient.phoneNumber}`.toLocaleLowerCase().includes(patientSearch.toLocaleLowerCase()))
+  const selectedPatient = patients.find((patient) => patient.id === selectedPatientId)
+  const patientAppointments = appointments.filter((item) => item.patient?.id === selectedPatientId)
+  const patientTreatments = treatments.filter((item) => item.patient?.id === selectedPatientId)
+  const patientPayments = payments.filter((item) => item.patient?.id === selectedPatientId)
+  const patientTotalPaid = patientPayments.reduce((total, item) => total + item.amount, 0)
 
   const addDentist = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -130,8 +136,13 @@ export default function App() {
         {editingPatientId && <button type="button" className="secondary" onClick={() => { setEditingPatientId(undefined); setPatientName(''); setPatientPhone(''); setPatientEmail(''); setPatientAddress(''); setPatientNotes('') }}>Huỷ chỉnh sửa</button>}
       </form></div>
       <div className="panel"><h2>Tìm bệnh nhân</h2><input value={patientSearch} onChange={(event) => setPatientSearch(event.target.value)} placeholder="Tên hoặc số điện thoại" />
-        {matchingPatients.length === 0 ? <p>Không tìm thấy bệnh nhân.</p> : <ul>{matchingPatients.slice(0, 6).map((patient) => <li key={patient.id}><b>{patient.fullName}</b><span>{patient.phoneNumber}</span><button onClick={() => editPatient(patient)}>Sửa</button></li>)}</ul>}
+        {matchingPatients.length === 0 ? <p>Không tìm thấy bệnh nhân.</p> : <ul>{matchingPatients.slice(0, 6).map((patient) => <li key={patient.id}><b>{patient.fullName}</b><span>{patient.phoneNumber}</span><div className="actions"><button onClick={() => setSelectedPatientId(patient.id)}>Hồ sơ</button><button onClick={() => editPatient(patient)}>Sửa</button></div></li>)}</ul>}
       </div>
+      {selectedPatient && <div className="panel patient-profile"><h2>Hồ sơ: {selectedPatient.fullName}</h2><p>{selectedPatient.phoneNumber}{selectedPatient.email ? ` · ${selectedPatient.email}` : ''}</p><div className="profile-metrics"><span>{patientAppointments.length} lịch hẹn</span><span>{patientTreatments.length} điều trị</span><span>{patientTotalPaid.toLocaleString('vi-VN')} VND đã thu</span></div>
+        <h3>Lịch sử điều trị</h3>{patientTreatments.length === 0 ? <p>Chưa có điều trị.</p> : <ul>{patientTreatments.slice(0, 4).map((item) => <li key={item.id}><b>{item.procedureName}</b><span>Răng {item.toothNumber || '—'} · {item.cost.toLocaleString('vi-VN')} VND</span></li>)}</ul>}
+        <h3>Thanh toán</h3>{patientPayments.length === 0 ? <p>Chưa có thanh toán.</p> : <ul>{patientPayments.slice(0, 4).map((item) => <li key={item.id}><b>{item.amount.toLocaleString('vi-VN')} VND</b><span>{new Date(item.paidAtUtc).toLocaleString('vi-VN')}</span></li>)}</ul>}
+        <h3>Lịch hẹn</h3>{patientAppointments.length === 0 ? <p>Chưa có lịch hẹn.</p> : <ul>{patientAppointments.slice(0, 4).map((item) => <li key={item.id}><b>{item.reason}</b><span>{new Date(item.startAtUtc).toLocaleString('vi-VN')} · {item.status}</span></li>)}</ul>}
+      </div>}
       <div className="panel"><h2>Thêm nha sĩ</h2><form onSubmit={addDentist}>
         <label>Họ và tên<input value={dentistName} onChange={(event) => setDentistName(event.target.value)} required /></label>
         <label>Chuyên môn<input value={specialty} onChange={(event) => setSpecialty(event.target.value)} required /></label><button>Lưu nha sĩ</button>
