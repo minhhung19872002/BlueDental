@@ -5,8 +5,8 @@
 
 :root {
   --bd-font: "Plus Jakarta Sans", "Google Sans", system-ui, -apple-system, sans-serif;
-  --bd-blue: #1E70E6;
-  --bd-blue-dark: #185BBA;
+  --bd-blue: #2671D8;
+  --bd-blue-dark: #1a5bbf;
   --bd-blue-light: #90caf9;
   --bd-blue-pale: #e3f2fd;
   --bd-ink: #0d1b2a;
@@ -28,11 +28,11 @@
   --bd-radius: 14px;
   --bd-shadow-card: 0 8px 30px rgba(13, 27, 42, 0.08);
   --bd-shadow-lift: 0 10px 26px rgba(13, 27, 42, 0.1);
-  --bd-sidebar-width: 118px;
-  --bd-sidebar-expanded-width: 240px;
-  --bd-header-height: 64px;
-  --bd-sidebar-bg: #1E70E6;
-  --bd-primary: #1E70E6;
+  --bd-sidebar-width: 110px;
+  --bd-sidebar-expanded-width: 248px;
+  --bd-header-height: 65px;
+  --bd-sidebar-bg: #2671D8;
+  --bd-primary: #2671D8;
 }
 
 *,
@@ -78,10 +78,9 @@ button {
   position: fixed;
   top: 0;
   left: 0;
-  width: var(--bd-sidebar-width);
   height: 100vh;
-  background: var(--bd-sidebar-bg);
-  border-right: 1px solid var(--bd-line);
+  background: #2671D8;
+  border-right: 1px solid #DCE3EE;
   display: flex;
   flex-direction: column;
   z-index: 100;
@@ -90,39 +89,48 @@ button {
   transition: width 0.2s ease;
 }
 
-.app-sidebar--expanded {
-  width: var(--bd-sidebar-expanded-width);
+.app-main {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
+/* Logo area — height 64px, white bg, border-bottom gray */
 .sidebar-logo-area {
   height: 64px;
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 12px;
-  border-bottom: 1px solid #E2E8F0;
-  border-top-left-radius: 12px;
+  border-bottom: 1px solid #E5E7EB;
   flex-shrink: 0;
-  padding: 0;
+  padding: 0 12px;
   background: #fff;
-  transition: padding 0.2s ease, justify-content 0.2s ease;
+  overflow: hidden;
 }
 
-.app-sidebar--expanded .sidebar-logo-area {
-  justify-content: flex-start;
-  padding: 0 16px;
+/* Collapsed: center the logo */
+.sidebar-logo-area.sidebar-logo-area--collapsed {
+  justify-content: center;
+  padding: 0 12px;
 }
 
-.sidebar-logo-icon {
-  width: 32px;
-  height: 36px;
-  border-radius: 8px;
-  background: transparent;
+.sidebar-logo-img-wrap {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  border-radius: 12px;
+  background: #F3F4F6;
   overflow: hidden;
+  min-width: 56px;
+}
+
+.sidebar-logo-img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
 }
 
 .sidebar-logo-text {
@@ -131,135 +139,136 @@ button {
   justify-content: center;
   min-width: 0;
   line-height: 1.25;
+  overflow: hidden;
 }
 
 .sidebar-logo-name {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   color: #0F172A;
   white-space: nowrap;
-  letter-spacing: -0.2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sidebar-logo-sub {
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 400;
   color: #64748B;
   white-space: nowrap;
-  letter-spacing: -0.1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.sidebar-section-label {
-  padding: 16px 16px 6px;
-  font-size: 11px;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.75);
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-}
-
+/* Nav containers */
 .sidebar-nav-main {
   flex: 1;
-  padding: 10px 8px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
-.app-sidebar--expanded .sidebar-nav-main {
-  align-items: stretch;
-  padding: 10px 12px;
+  gap: 2px;
 }
 
 .sidebar-nav-bottom {
-  padding: 10px 8px;
+  padding: 12px;
   border-top: 1px solid rgba(255, 255, 255, 0.15);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
+  gap: 2px;
 }
 
-.app-sidebar--expanded .sidebar-nav-bottom {
-  align-items: stretch;
-  padding: 10px 12px;
-}
-
-/* Collapsed / Normal sidebar item (Vertical Column layout matching app.nfcdental.com 118px) */
+/* Base nav item */
 .sidebar-nav-item {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
   width: 100%;
-  min-height: 60px;
-  padding: 6px 4px;
   border: none;
-  border-radius: 12px;
   background: transparent;
   color: #ffffff;
-  gap: 4px;
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   text-decoration: none;
+  outline: none;
 }
 
 .sidebar-nav-item:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.15);
   color: #ffffff;
 }
 
-.sidebar-nav-item--active {
-  background: rgba(255, 255, 255, 0.22);
-  color: #ffffff;
-  font-weight: 600;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+/* Collapsed item — column layout */
+.sidebar-nav-item--collapsed {
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  min-height: 60px;
+  padding: 8px 4px;
+  border-radius: 12px;
 }
 
-/* Expanded sidebar item */
+/* Expanded item — row layout */
 .sidebar-nav-item--expanded {
   flex-direction: row;
   justify-content: flex-start;
-  align-items: center;
   gap: 12px;
-  width: 100%;
-  min-height: 42px;
-  padding: 10px 14px;
-  border-radius: 10px;
+  min-height: 40px;
+  padding: 10px 12px 10px 9px;
+  border-radius: 12px;
 }
 
-.sidebar-nav-item--expanded .sidebar-nav-label {
-  font-size: 13.5px;
-  font-weight: 500;
-  text-align: left;
-  white-space: nowrap;
+/* Active state — white bg, blue text, subtle shadow + scale */
+.sidebar-nav-item--active {
+  background: #ffffff !important;
+  color: #2671D8 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  transform: scale(1.03);
 }
 
-.sidebar-nav-item--active .sidebar-nav-label {
-  font-weight: 600;
-  color: #ffffff;
-}
-
-.sidebar-nav-item--active .sidebar-nav-icon {
-  color: #ffffff;
+.sidebar-nav-item--active:hover {
+  background: #ffffff !important;
+  color: #2671D8 !important;
 }
 
 .sidebar-nav-icon {
-  font-size: 20px;
+  font-size: 18px;
   line-height: 1;
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 20px;
+  height: 20px;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.sidebar-nav-label {
-  font-size: 11px;
+.sidebar-nav-item--active .sidebar-nav-icon {
+  color: #2671D8;
+}
+
+/* Collapsed label — 12px centered, 2-line clamp */
+.sidebar-nav-label-collapsed {
+  font-size: 12px;
   font-weight: 500;
-  line-height: 1.25;
+  line-height: 1.3;
   text-align: center;
-  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-width: 100%;
+  padding: 0 2px;
+  color: inherit;
+}
+
+/* Expanded label — 13.5px left-aligned */
+.sidebar-nav-label-expanded {
+  font-size: 13.5px;
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: inherit;
 }
 
 /* ── Header ── */
@@ -1123,24 +1132,26 @@ button {
   align-items: center;
   justify-content: center;
   min-width: 68px;
-  height: 46px;
-  padding: 4px 8px;
-  border: 1px solid #E2E8F0;
-  border-top-width: 3px;
-  border-radius: 8px;
+  padding: 8px 0;
+  border: 1px solid;
+  border-radius: 6px;
+  text-align: center;
+  line-height: 1.3;
 }
 
 .reception-counter-value {
   font-size: 14px;
   font-weight: 700;
   line-height: 1.2;
+  color: inherit;
 }
 
 .reception-counter-label {
   font-size: 10.5px;
   font-weight: 500;
-  color: #64748B;
+  color: inherit;
   white-space: nowrap;
+  opacity: 0.85;
 }
 
 .reception-content {

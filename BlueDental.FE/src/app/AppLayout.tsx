@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
-  Layout,
   Avatar,
   Dropdown,
   Input,
@@ -34,13 +33,7 @@ import {
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useMutation } from "@tanstack/react-query";
 import { authApi } from "@/features/auth/api";
-import {
-  brand,
-  SIDEBAR_WIDTH,
-  SIDEBAR_EXPANDED_WIDTH,
-} from "@/theme/index";
-
-const { Content } = Layout;
+import { brand } from "@/theme/index";
 
 interface NavItem {
   key: string;
@@ -102,7 +95,7 @@ function initialsOf(name: string | undefined): string {
   return (words[0][0] + words[words.length - 1][0]).toUpperCase();
 }
 
-function SidebarItem({
+function SidebarNavItem({
   item,
   active,
   expanded,
@@ -113,59 +106,36 @@ function SidebarItem({
   expanded: boolean;
   onClick: () => void;
 }) {
+  if (expanded) {
+    return (
+      <button
+        type="button"
+        title={item.label}
+        onClick={onClick}
+        className={`sidebar-nav-item sidebar-nav-item--expanded ${active ? "sidebar-nav-item--active" : ""}`}
+      >
+        <span className="sidebar-nav-icon">{item.icon}</span>
+        <span className="sidebar-nav-label-expanded">{item.label}</span>
+      </button>
+    );
+  }
+
   return (
     <button
       type="button"
       title={item.label}
       onClick={onClick}
-      className={`sidebar-nav-item ${active ? "sidebar-nav-item--active" : ""} ${expanded ? "sidebar-nav-item--expanded" : ""}`}
+      className={`sidebar-nav-item sidebar-nav-item--collapsed ${active ? "sidebar-nav-item--active" : ""}`}
     >
       <span className="sidebar-nav-icon">{item.icon}</span>
-      <span className="sidebar-nav-label">{item.label}</span>
+      <span className="sidebar-nav-label-collapsed">{item.label}</span>
     </button>
-  );
-}
-
-function NfcLogoIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      width="32"
-      height="36"
-      viewBox="0 0 36 40"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-    >
-      <path
-        d="M18 1L34 8V24L18 39L2 24V8L18 1Z"
-        fill="#1E70E6"
-        stroke="#1E70E6"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
-      <rect x="7" y="12" width="22" height="11" rx="2" fill="#1E70E6" />
-      <text
-        x="18"
-        y="20.5"
-        fill="#FFFFFF"
-        fontSize="8.5"
-        fontWeight="800"
-        fontFamily="sans-serif"
-        textAnchor="middle"
-      >
-        NFC
-      </text>
-      <path
-        d="M9 27C12 25.5 15 26.5 18 28.5C21 26.5 24 25.5 27 27V30C24 28.5 21 29.5 18 31.5C15 29.5 12 28.5 9 30V27Z"
-        fill="#FFFFFF"
-      />
-    </svg>
   );
 }
 
 export function AppLayout() {
   const [searchOpen, setSearchOpen] = useState(false);
-  const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [currentLang, setCurrentLang] = useState<"vi" | "en">("vi");
   const navigate = useNavigate();
   const location = useLocation();
@@ -241,29 +211,20 @@ export function AppLayout() {
     },
   ];
 
-  const currentSidebarWidth = sidebarExpanded
-    ? SIDEBAR_EXPANDED_WIDTH
-    : SIDEBAR_WIDTH;
-
   const clinicName = user?.clinicName ?? "NHA KHOA ĐỨC HẠNH PREMIUM";
   const clinicLogoUrl = user?.clinicLogoUrl ?? "/logo_app.jpg";
   const clinicTagline = user?.clinicTagline ?? "Kiến Tạo Nụ Cười - Giá Trị Bền Vững";
+  const sidebarWidth = sidebarExpanded ? 248 : 110;
 
   const branchContent = (
     <div className="app-popover-list">
       <div className="app-popover-header">Chi nhánh</div>
       <button type="button" className="app-popover-item">
-        <span
-          className="app-popover-dot"
-          style={{ background: brand.faint }}
-        />
+        <span className="app-popover-dot" style={{ background: brand.faint }} />
         <span>Tất cả chi nhánh</span>
       </button>
       <button type="button" className="app-popover-item app-popover-item--active">
-        <span
-          className="app-popover-dot"
-          style={{ background: "#2BB673" }}
-        />
+        <span className="app-popover-dot" style={{ background: "#2BB673" }} />
         <span>{clinicName}</span>
       </button>
     </div>
@@ -272,57 +233,42 @@ export function AppLayout() {
   const langContent = (
     <div className="app-popover-list">
       <div className="app-popover-header">Ngôn ngữ</div>
-      <button
-        type="button"
-        className="app-popover-item"
-        onClick={() => setCurrentLang("vi")}
-      >
+      <button type="button" className="app-popover-item" onClick={() => setCurrentLang("vi")}>
         <span>Tiếng Việt</span>
-        {currentLang === "vi" && (
-          <CheckOutlined style={{ color: brand.blue, fontSize: 12 }} />
-        )}
+        {currentLang === "vi" && <CheckOutlined style={{ color: brand.blue, fontSize: 12 }} />}
       </button>
-      <button
-        type="button"
-        className="app-popover-item"
-        onClick={() => setCurrentLang("en")}
-      >
+      <button type="button" className="app-popover-item" onClick={() => setCurrentLang("en")}>
         <span>Tiếng Anh</span>
-        {currentLang === "en" && (
-          <CheckOutlined style={{ color: brand.blue, fontSize: 12 }} />
-        )}
+        {currentLang === "en" && <CheckOutlined style={{ color: brand.blue, fontSize: 12 }} />}
       </button>
     </div>
   );
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
+    <div style={{ minHeight: "100vh", background: "#F6F8FB" }}>
       {/* ── Sidebar ── */}
-      <aside
-        className={`app-sidebar ${sidebarExpanded ? "app-sidebar--expanded" : ""}`}
-        style={{ width: currentSidebarWidth }}
-      >
-        <div className="sidebar-logo-area">
-          <div className="sidebar-logo-icon">
-            <NfcLogoIcon />
+      <aside className="app-sidebar" style={{ width: sidebarWidth }}>
+        {/* Logo area */}
+        <div className={`sidebar-logo-area ${!sidebarExpanded ? "sidebar-logo-area--collapsed" : ""}`}>
+          <div className="sidebar-logo-img-wrap">
+            <img
+              src={clinicLogoUrl}
+              alt={clinicName}
+              className="sidebar-logo-img"
+            />
           </div>
           {sidebarExpanded && (
             <div className="sidebar-logo-text">
               <span className="sidebar-logo-name">NFC Dental</span>
-              <span className="sidebar-logo-sub">
-                Phần Mềm Quản Trị Vận Hành
-              </span>
+              <span className="sidebar-logo-sub">Phần Mềm Quản Trị Vận Hành</span>
             </div>
           )}
         </div>
 
-        {sidebarExpanded && (
-          <div className="sidebar-section-label">MENU</div>
-        )}
-
+        {/* Main nav */}
         <nav className="sidebar-nav-main">
           {MAIN_NAV.map((item) => (
-            <SidebarItem
+            <SidebarNavItem
               key={item.key}
               item={item}
               active={isActive(item.key)}
@@ -332,13 +278,10 @@ export function AppLayout() {
           ))}
         </nav>
 
-        {sidebarExpanded && (
-          <div className="sidebar-section-label">KHÁC</div>
-        )}
-
+        {/* Bottom nav */}
         <nav className="sidebar-nav-bottom">
           {BOTTOM_NAV.map((item) => (
-            <SidebarItem
+            <SidebarNavItem
               key={item.key}
               item={item}
               active={false}
@@ -350,11 +293,9 @@ export function AppLayout() {
       </aside>
 
       {/* ── Main area ── */}
-      <Layout
-        style={{
-          marginLeft: currentSidebarWidth,
-          transition: "margin-left 0.2s",
-        }}
+      <div
+        className="app-main"
+        style={{ marginLeft: sidebarWidth, transition: "margin-left 0.2s" }}
       >
         {/* ── Header ── */}
         <header className="app-header">
@@ -363,28 +304,36 @@ export function AppLayout() {
               type="button"
               className="app-header-toggle"
               onClick={() => setSidebarExpanded((prev) => !prev)}
+              title={sidebarExpanded ? "Thu gọn menu" : "Mở rộng menu"}
             >
-              <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <rect x="1" y="1" width="16" height="16" rx="2" />
-                <path d="M6 1v16" />
-                <path d="M10 7l2 2-2 2" />
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <path d="M9 3v18" />
+                {sidebarExpanded ? (
+                  <path d="M15 9l-3 3 3 3" />
+                ) : (
+                  <path d="M13 9l3 3-3 3" />
+                )}
               </svg>
             </button>
 
             <div className="app-header-clinic">
-              {clinicLogoUrl ? (
-                <div className="app-header-clinic-logo">
-                  <img
-                    src={clinicLogoUrl}
-                    alt={clinicName}
-                    className="app-header-clinic-logo-img"
-                  />
-                </div>
-              ) : (
-                <div className="app-header-clinic-logo">
-                  {initialsOf(clinicName)}
-                </div>
-              )}
+              <div className="app-header-clinic-logo">
+                <img
+                  src={clinicLogoUrl}
+                  alt={clinicName}
+                  className="app-header-clinic-logo-img"
+                />
+              </div>
               <div className="app-header-clinic-text">
                 <p className="app-header-clinic-name">{clinicName}</p>
                 <p className="app-header-clinic-tagline">{clinicTagline}</p>
@@ -405,12 +354,7 @@ export function AppLayout() {
               <kbd className="app-header-search-kbd">Ctrl K</kbd>
             </button>
 
-            <Popover
-              content={branchContent}
-              trigger="click"
-              placement="bottomRight"
-              arrow={false}
-            >
+            <Popover content={branchContent} trigger="click" placement="bottomRight" arrow={false}>
               <button type="button" className="app-header-branch">
                 <span className="app-header-branch-dot" />
                 <span className="app-header-branch-name">{clinicName}</span>
@@ -419,37 +363,26 @@ export function AppLayout() {
             </Popover>
 
             <div className="app-header-actions">
-              <Popover
-                content={langContent}
-                trigger="click"
-                placement="bottomRight"
-                arrow={false}
-              >
-                <button type="button" className="app-header-icon-btn">
+              <Popover content={langContent} trigger="click" placement="bottomRight" arrow={false}>
+                <button type="button" className="app-header-icon-btn" aria-label="Ngôn ngữ">
                   <GlobalOutlined style={{ fontSize: 18 }} />
                 </button>
               </Popover>
 
-              <button type="button" className="app-header-icon-btn">
+              <button type="button" className="app-header-icon-btn" aria-label="Thông báo">
                 <BellOutlined style={{ fontSize: 18 }} />
                 <span className="app-header-notif-dot" />
               </button>
 
               <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-                <div className="app-header-user">
+                <div className="app-header-user" role="button" tabIndex={0} aria-label="Tài khoản người dùng">
                   <Avatar
                     size={32}
-                    style={{
-                      backgroundColor: brand.blue,
-                      fontSize: 13,
-                      fontWeight: 700,
-                    }}
+                    style={{ backgroundColor: brand.blue, fontSize: 13, fontWeight: 700 }}
                   >
                     {initialsOf(user?.name)}
                   </Avatar>
-                  <span className="app-header-user-name">
-                    {user?.name ?? "Admin"}
-                  </span>
+                  <span className="app-header-user-name">{user?.name ?? "Admin"}</span>
                   <DownOutlined style={{ fontSize: 14, color: "#5A6B82" }} />
                 </div>
               </Dropdown>
@@ -457,21 +390,15 @@ export function AppLayout() {
           </div>
         </header>
 
-        <Content style={{ padding: 16, minHeight: 280 }}>
+        <main style={{ padding: 16, minHeight: 280 }}>
           <Outlet />
-        </Content>
-      </Layout>
+        </main>
+      </div>
 
       {/* ── Global search modal ── */}
       {searchOpen && (
-        <div
-          className="app-search-overlay"
-          onClick={() => setSearchOpen(false)}
-        >
-          <div
-            className="app-search-modal"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className="app-search-overlay" onClick={() => setSearchOpen(false)}>
+          <div className="app-search-modal" onClick={(e) => e.stopPropagation()}>
             <div className="app-search-input-row">
               <Input
                 autoFocus
@@ -481,38 +408,24 @@ export function AppLayout() {
                 onPressEnter={() => setSearchOpen(false)}
                 style={{ borderRadius: 12 }}
               />
-              <kbd
-                className="app-search-esc"
-                onClick={() => setSearchOpen(false)}
-              >
-                Esc
-              </kbd>
+              <kbd className="app-search-esc" onClick={() => setSearchOpen(false)}>Esc</kbd>
             </div>
-
             <div className="app-search-categories">
-              <div className="app-search-categories-title">
-                Gợi ý tìm kiếm
-              </div>
+              <div className="app-search-categories-title">Gợi ý tìm kiếm</div>
               {SEARCH_CATEGORIES.map((cat) => (
                 <div key={cat.title} className="app-search-category-item">
                   <span className="app-search-category-icon">{cat.icon}</span>
                   <div className="app-search-category-text">
-                    <span className="app-search-category-name">
-                      {cat.title}
-                    </span>
-                    <span className="app-search-category-desc">
-                      {cat.desc}
-                    </span>
+                    <span className="app-search-category-name">{cat.title}</span>
+                    <span className="app-search-category-desc">{cat.desc}</span>
                   </div>
                 </div>
               ))}
-              <div className="app-search-hint">
-                Nhập ít nhất 2 ký tự để tìm kiếm.
-              </div>
+              <div className="app-search-hint">Nhập ít nhất 2 ký tự để tìm kiếm.</div>
             </div>
           </div>
         </div>
       )}
-    </Layout>
+    </div>
   );
 }

@@ -1,8 +1,8 @@
 import type { ThemeConfig } from "antd";
 
 export const brand = {
-  blue: "#1565C0",
-  blueDark: "#0D47A1",
+  blue: "#2671D8",
+  blueDark: "#1a5bbf",
   blueMid: "#1976D2",
   blueLight: "#90CAF9",
   bluePale: "#E3F2FD",
@@ -116,6 +116,6 @@ export const themeConfig: ThemeConfig = {
   },
 };
 
-export const SIDEBAR_WIDTH = 118;
-export const SIDEBAR_EXPANDED_WIDTH = 240;
-export const HEADER_HEIGHT = 64;
+export const SIDEBAR_WIDTH = 110;
+export const SIDEBAR_EXPANDED_WIDTH = 248;
+export const HEADER_HEIGHT = 65;

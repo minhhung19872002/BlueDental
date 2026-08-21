@@ -44,12 +44,12 @@ interface CounterConfig {
 }
 
 const COUNTERS: CounterConfig[] = [
-  { key: "scheduledCount", label: "Đã hẹn", borderColor: "#1E70E6", bgColor: "#EBF3FE", textColor: "#1E70E6" },
-  { key: "arrivedCount", label: "Đã đến", borderColor: "#10B981", bgColor: "#E6F4EA", textColor: "#10B981" },
-  { key: "cancelledCount", label: "Huỷ hẹn", borderColor: "#EF4444", bgColor: "#FCE8E6", textColor: "#EF4444" },
-  { key: "lateCount", label: "Trễ hẹn", borderColor: "#F59E0B", bgColor: "#FEF3C7", textColor: "#D97706" },
-  { key: "temporaryCount", label: "Lịch tạm", borderColor: "#F97316", bgColor: "#FFEDD5", textColor: "#EA580C" },
-  { key: "convertedCount", label: "Chuyển đổi", borderColor: "#06B6D4", bgColor: "#CFFAFE", textColor: "#0891B2" },
+  { key: "scheduledCount", label: "Đã hẹn",    borderColor: "#BFD6F6", bgColor: "#DCEBFA", textColor: "#1E5BB0" },
+  { key: "arrivedCount",   label: "Đã đến",    borderColor: "#BDE8CF", bgColor: "#DDF3E7", textColor: "#1F7A45" },
+  { key: "cancelledCount", label: "Huỷ hẹn",   borderColor: "#F3BABA", bgColor: "#FBE0E0", textColor: "#B93832" },
+  { key: "lateCount",      label: "Trễ hẹn",   borderColor: "#E8CF92", bgColor: "#F7E7C2", textColor: "#9A6A10" },
+  { key: "temporaryCount", label: "Lịch tạm",  borderColor: "#E8C19B", bgColor: "#F9E3CC", textColor: "#B7611F" },
+  { key: "convertedCount", label: "Chuyển đổi", borderColor: "#AAD7EA", bgColor: "#D5ECF7", textColor: "#176F99" },
 ];
 
 export const ReceptionStatusTabs: React.FC<ReceptionStatusTabsProps> = ({
@@ -103,12 +103,9 @@ export const ReceptionStatusTabs: React.FC<ReceptionStatusTabsProps> = ({
           <div
             key={c.key}
             className="reception-counter-card"
-            style={{ borderTopColor: c.borderColor, backgroundColor: c.bgColor }}
+            style={{ borderColor: c.borderColor, backgroundColor: c.bgColor, color: c.textColor }}
           >
-            <span
-              className="reception-counter-value"
-              style={{ color: c.textColor }}
-            >
+            <span className="reception-counter-value">
               {counters?.[c.key] ?? 0}
             </span>
             <span className="reception-counter-label">{c.label}</span>
