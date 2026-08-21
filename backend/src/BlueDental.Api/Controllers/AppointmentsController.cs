@@ -37,4 +37,18 @@ public sealed class AppointmentsController(DentalDbContext database) : Controlle
         await database.SaveChangesAsync(cancellationToken);
         return CreatedAtAction(nameof(GetAll), new { appointment.Id }, appointment);
     }
+
+    [HttpPatch("{id:guid}/status")]
+    public async Task<IActionResult> UpdateStatus(Guid id, UpdateAppointmentStatusRequest request, CancellationToken cancellationToken)
+    {
+        var appointment = await database.Appointments.FindAsync([id], cancellationToken);
+        if (appointment is null)
+        {
+            return NotFound();
+        }
+
+        appointment.Status = request.Status;
+        await database.SaveChangesAsync(cancellationToken);
+        return NoContent();
+    }
 }

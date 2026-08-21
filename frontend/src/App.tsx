@@ -61,6 +61,16 @@ export default function App() {
     } catch { setMessage('Không thể tạo lịch hẹn.') }
   }
 
+  const updateStatus = async (id: string, status: string) => {
+    const response = await fetch(`${apiUrl}/appointments/${id}/status`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }),
+    })
+    if (response.ok) {
+      setMessage('Đã cập nhật trạng thái lịch hẹn.')
+      await load()
+    }
+  }
+
   return <main className="page">
     <header><p className="eyebrow">BLUE DENTAL</p><h1>Quản lý nha khoa</h1><p>Theo dõi bệnh nhân, nha sĩ và lịch hẹn tại một nơi.</p>{message && <p className="message">{message}</p>}</header>
     <section className="metrics">
@@ -83,7 +93,7 @@ export default function App() {
         <label>Thời gian<input type="datetime-local" value={appointment.startAtUtc} onChange={(event) => setAppointment({ ...appointment, startAtUtc: event.target.value })} required /></label>
         <label>Lý do<input value={appointment.reason} onChange={(event) => setAppointment({ ...appointment, reason: event.target.value })} required /></label><button>Tạo lịch hẹn</button>
       </form></div>
-      <div className="panel"><h2>Lịch hẹn sắp tới</h2>{appointments.length === 0 ? <p>Chưa có lịch hẹn nào.</p> : <ul>{appointments.slice(0, 6).map((item) => <li key={item.id}><b>{item.patient?.fullName ?? 'Bệnh nhân'}</b><span>{new Date(item.startAtUtc).toLocaleString('vi-VN')} · {item.dentist?.fullName}</span></li>)}</ul>}</div>
+      <div className="panel"><h2>Lịch hẹn sắp tới</h2>{appointments.length === 0 ? <p>Chưa có lịch hẹn nào.</p> : <ul>{appointments.slice(0, 6).map((item) => <li key={item.id}><b>{item.patient?.fullName ?? 'Bệnh nhân'}</b><span>{new Date(item.startAtUtc).toLocaleString('vi-VN')} · {item.dentist?.fullName}</span><div className="actions"><em>{item.status}</em>{item.status === 'Scheduled' && <button onClick={() => void updateStatus(item.id, 'Confirmed')}>Xác nhận</button>}{item.status === 'Confirmed' && <button onClick={() => void updateStatus(item.id, 'Completed')}>Hoàn thành</button>}</div></li>)}</ul>}</div>
     </section>
   </main>
 }
