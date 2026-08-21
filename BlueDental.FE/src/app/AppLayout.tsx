@@ -116,11 +116,12 @@ function SidebarItem({
   return (
     <button
       type="button"
+      title={item.label}
       onClick={onClick}
       className={`sidebar-nav-item ${active ? "sidebar-nav-item--active" : ""} ${expanded ? "sidebar-nav-item--expanded" : ""}`}
     >
       <span className="sidebar-nav-icon">{item.icon}</span>
-      <span className="sidebar-nav-label">{item.label}</span>
+      {expanded && <span className="sidebar-nav-label">{item.label}</span>}
     </button>
   );
 }
