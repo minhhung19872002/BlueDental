@@ -51,19 +51,11 @@ interface NavItem {
 
 const MAIN_NAV: NavItem[] = [
   { key: "/reception", icon: <ScheduleOutlined />, label: "Tiếp nhận" },
-  { key: "/patient", icon: <TeamOutlined />, label: "Danh sách\nbệnh nhân" },
+  { key: "/patient", icon: <TeamOutlined />, label: "Danh sách bệnh nhân" },
   { key: "/calendar", icon: <CalendarOutlined />, label: "Lịch hẹn" },
-  {
-    key: "/cskh-grouping",
-    icon: <CustomerServiceOutlined />,
-    label: "CSKH - Phân\nnhóm",
-  },
+  { key: "/cskh-grouping", icon: <CustomerServiceOutlined />, label: "CSKH - Phân nhóm" },
   { key: "/labo", icon: <ExperimentOutlined />, label: "Labo" },
-  {
-    key: "/operations",
-    icon: <SettingOutlined />,
-    label: "Quản trị\nvận hành",
-  },
+  { key: "/operations", icon: <SettingOutlined />, label: "Quản trị vận hành" },
   { key: "/report", icon: <BarChartOutlined />, label: "Báo cáo" },
   { key: "/staff", icon: <IdcardOutlined />, label: "Nhân viên" },
   { key: "/materials", icon: <MedicineBoxOutlined />, label: "Vật tư" },
@@ -75,7 +67,7 @@ const BOTTOM_NAV: NavItem[] = [
   {
     key: "https://nfcdental.com/",
     icon: <QuestionCircleOutlined />,
-    label: "Hướng dẫn &\nhỗ trợ",
+    label: "Hướng dẫn & hỗ trợ",
     external: true,
   },
 ];
@@ -135,7 +127,7 @@ function SidebarItem({
 
 export function AppLayout() {
   const [searchOpen, setSearchOpen] = useState(false);
-  const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [currentLang, setCurrentLang] = useState<"vi" | "en">("vi");
   const navigate = useNavigate();
   const location = useLocation();
