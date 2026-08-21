@@ -49,7 +49,7 @@ describe("ReceptionPage", () => {
     expect(screen.getByText("Tuần")).toBeInTheDocument();
     expect(screen.getByText("Tháng")).toBeInTheDocument();
     expect(
-      screen.getByPlaceholderText("Nhập từ khoá tìm kiếm"),
+      screen.getByPlaceholderText("Tìm bệnh nhân..."),
     ).toBeInTheDocument();
     expect(screen.getByText("Tạo tiếp nhận")).toBeInTheDocument();
   });

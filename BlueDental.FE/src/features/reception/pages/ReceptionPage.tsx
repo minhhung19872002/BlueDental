@@ -54,39 +54,41 @@ export const ReceptionPage: React.FC = () => {
 
   return (
     <div className="reception-page">
-      {/* Row 1: Toolbar — time tabs + date nav + search + create */}
-      <ReceptionToolbar
-        keyword={keyword}
-        viewMode={viewMode}
-        currentDate={currentDate}
-        onSearchChange={setKeyword}
-        onDoctorSelect={setSelectedDoctorId}
-        onCreateClick={() => setDrawerOpen(true)}
-        onViewModeChange={setViewMode}
-        onDateChange={setCurrentDate}
-      />
+      <div className="reception-card">
+        {/* Row 1: Toolbar — time tabs + date nav + search + create */}
+        <ReceptionToolbar
+          keyword={keyword}
+          viewMode={viewMode}
+          currentDate={currentDate}
+          onSearchChange={setKeyword}
+          onDoctorSelect={setSelectedDoctorId}
+          onCreateClick={() => setDrawerOpen(true)}
+          onViewModeChange={setViewMode}
+          onDateChange={setCurrentDate}
+        />
 
-      {/* Row 2: Status tabs + doctor filter + counter cards */}
-      <ReceptionStatusTabs
-        activeTab={activeTab}
-        metrics={metrics}
-        selectedDoctorId={selectedDoctorId}
-        doctors={doctors}
-        onChange={setActiveTab}
-        onDoctorSelect={setSelectedDoctorId}
-      />
+        {/* Row 2: Status tabs + doctor filter + counter cards */}
+        <ReceptionStatusTabs
+          activeTab={activeTab}
+          metrics={metrics}
+          selectedDoctorId={selectedDoctorId}
+          doctors={doctors}
+          onChange={setActiveTab}
+          onDoctorSelect={setSelectedDoctorId}
+        />
 
-      {/* Content: table or empty state */}
-      <div className="reception-content">
-        {items.length === 0 && !listLoading ? (
-          <ReceptionEmptyState />
-        ) : (
-          <ReceptionTable
-            items={items}
-            loading={listLoading}
-            onStatusChange={handleStatusChange}
-          />
-        )}
+        {/* Content: table or empty state */}
+        <div className="reception-content">
+          {items.length === 0 && !listLoading ? (
+            <ReceptionEmptyState />
+          ) : (
+            <ReceptionTable
+              items={items}
+              loading={listLoading}
+              onStatusChange={handleStatusChange}
+            />
+          )}
+        </div>
       </div>
 
       <ReceptionNewDrawer

@@ -99,12 +99,12 @@ export const ReceptionToolbar: React.FC<ReceptionToolbarProps> = ({
         </div>
 
         <Input
-          placeholder="Nhập từ khoá tìm kiếm"
+          placeholder="Tìm bệnh nhân..."
           prefix={<SearchOutlined style={{ color: "#94A3B8" }} />}
           value={keyword}
           onChange={(e) => onSearchChange(e.target.value)}
           allowClear
-          style={{ width: 220, height: 36 }}
+          style={{ width: 240, height: 38 }}
         />
       </div>
 
