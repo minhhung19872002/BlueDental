@@ -10,7 +10,7 @@ using Volo.Abp.Domain.Repositories;
 
 namespace BlueDental.PatientManagement;
 
-[Authorize(BlueDentalPermissions.PatientManagement.Default)]
+[Authorize]
 public class PatientAppService : ApplicationService, IPatientAppService
 {
     private readonly IRepository<Patient, Guid> _repository;
@@ -20,7 +20,7 @@ public class PatientAppService : ApplicationService, IPatientAppService
         _repository = repository;
     }
 
-    [Authorize(BlueDentalPermissions.PatientManagement.Patients.View)]
+    [Authorize(BlueDentalAbilityPermissions.Patient.Read)]
     public async Task<PagedResultDto<PatientDto>> GetListAsync(GetPatientListInput input)
     {
         var query = await _repository.GetQueryableAsync();
@@ -44,14 +44,14 @@ public class PatientAppService : ApplicationService, IPatientAppService
             ObjectMapper.Map<System.Collections.Generic.List<Patient>, System.Collections.Generic.List<PatientDto>>(items));
     }
 
-    [Authorize(BlueDentalPermissions.PatientManagement.Patients.View)]
+    [Authorize(BlueDentalAbilityPermissions.Patient.Read)]
     public async Task<PatientDto> GetAsync(Guid id)
     {
         var patient = await _repository.GetAsync(id);
         return ObjectMapper.Map<Patient, PatientDto>(patient);
     }
 
-    [Authorize(BlueDentalPermissions.PatientManagement.Patients.Create)]
+    [Authorize(BlueDentalAbilityPermissions.Patient.Create)]
     public async Task<PatientDto> RegisterAsync(RegisterPatientDto input)
     {
         var contact = new ContactInfo(input.PhoneNumber, input.Email, null);
@@ -72,7 +72,7 @@ public class PatientAppService : ApplicationService, IPatientAppService
         return ObjectMapper.Map<Patient, PatientDto>(patient);
     }
 
-    [Authorize(BlueDentalPermissions.PatientManagement.Patients.Edit)]
+    [Authorize(BlueDentalAbilityPermissions.Patient.Update)]
     public async Task<PatientDto> UpdateAsync(Guid id, UpdatePatientDto input)
     {
         var patient = await _repository.GetAsync(id);
@@ -83,7 +83,7 @@ public class PatientAppService : ApplicationService, IPatientAppService
         return ObjectMapper.Map<Patient, PatientDto>(patient);
     }
 
-    [Authorize(BlueDentalPermissions.PatientManagement.Patients.Delete)]
+    [Authorize(BlueDentalAbilityPermissions.Patient.Update)]
     public async Task DeactivateAsync(Guid id)
     {
         var patient = await _repository.GetAsync(id);

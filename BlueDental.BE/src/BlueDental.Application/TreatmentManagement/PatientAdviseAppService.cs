@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
@@ -28,6 +29,7 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
         _diagnosisRepository = diagnosisRepository;
     }
 
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Read)]
     public async Task<PagedResultDto<PatientAdviseDto>> GetListAsync(GetPatientAdviseListInput input)
     {
         var query = await BuildQueryAsync(input);
@@ -43,6 +45,7 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
         return new PagedResultDto<PatientAdviseDto>(totalCount, items.Select(MapToDto).ToList());
     }
 
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Read)]
     public async Task<PatientAdviseSummaryDto> GetSummaryAsync(GetPatientAdviseListInput input)
     {
         var query = await BuildQueryAsync(input);
@@ -59,11 +62,13 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
         };
     }
 
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Read)]
     public async Task<PatientAdviseDto> GetAsync(Guid id)
     {
         return MapToDto(await _repository.GetAsync(id));
     }
 
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Create)]
     public async Task<PatientAdviseDto> CreateAsync(CreatePatientAdviseDto input)
     {
         var diagnosis = await _diagnosisRepository.FindAsync(input.PatientDiagnosisId)
@@ -104,6 +109,7 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
         return MapToDto(advise);
     }
 
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Update)]
     public async Task<PatientAdviseDto> UpdateAsync(Guid id, UpdatePatientAdviseDto input)
     {
         var advise = await _repository.GetAsync(id);
@@ -117,6 +123,7 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
         return MapToDto(advise);
     }
 
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Update)]
     public async Task<PatientAdviseDto> AcceptAsync(Guid id)
     {
         var advise = await _repository.GetAsync(id);
@@ -125,6 +132,7 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
         return MapToDto(advise);
     }
 
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Update)]
     public async Task<PatientAdviseDto> RejectAsync(Guid id)
     {
         var advise = await _repository.GetAsync(id);
@@ -133,6 +141,7 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
         return MapToDto(advise);
     }
 
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Update)]
     public async Task<PatientAdviseDto> CancelAsync(Guid id)
     {
         var advise = await _repository.GetAsync(id);
@@ -141,6 +150,7 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
         return MapToDto(advise);
     }
 
+    [Authorize(BlueDentalAbilityPermissions.Voucher.Update)]
     public async Task<PatientAdviseDto> ApplyVoucherAsync(Guid id, decimal voucherDiscountAmount)
     {
         var advise = await _repository.GetAsync(id);
@@ -149,6 +159,7 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
         return MapToDto(advise);
     }
 
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Delete)]
     public async Task DeleteAsync(Guid id)
     {
         await _repository.DeleteAsync(id, autoSave: true);

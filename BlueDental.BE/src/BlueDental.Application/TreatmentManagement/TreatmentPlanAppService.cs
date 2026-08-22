@@ -10,7 +10,7 @@ using Volo.Abp.Users;
 
 namespace BlueDental.TreatmentManagement;
 
-[Authorize(BlueDentalPermissions.TreatmentManagement.Default)]
+[Authorize]
 public class TreatmentPlanAppService : ApplicationService, ITreatmentPlanAppService
 {
     private readonly IRepository<TreatmentPlan, Guid> _repository;
@@ -24,7 +24,7 @@ public class TreatmentPlanAppService : ApplicationService, ITreatmentPlanAppServ
         _currentUser = currentUser;
     }
 
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.View)]
+    [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Read)]
     public async Task<PagedResultDto<TreatmentPlanDto>> GetListAsync(GetTreatmentPlanListInput input)
     {
         var query = await _repository.GetQueryableAsync();
@@ -39,14 +39,14 @@ public class TreatmentPlanAppService : ApplicationService, ITreatmentPlanAppServ
             ObjectMapper.Map<System.Collections.Generic.List<TreatmentPlan>, System.Collections.Generic.List<TreatmentPlanDto>>(items));
     }
 
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.View)]
+    [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Read)]
     public async Task<TreatmentPlanDto> GetAsync(Guid id)
     {
         var plan = await _repository.GetAsync(id);
         return ObjectMapper.Map<TreatmentPlan, TreatmentPlanDto>(plan);
     }
 
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Create)]
+    [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Create)]
     public async Task<TreatmentPlanDto> CreateAsync(CreateTreatmentPlanDto input)
     {
         var plan = new TreatmentPlan(
@@ -62,7 +62,7 @@ public class TreatmentPlanAppService : ApplicationService, ITreatmentPlanAppServ
         return ObjectMapper.Map<TreatmentPlan, TreatmentPlanDto>(plan);
     }
 
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Edit)]
+    [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Update)]
     public async Task<TreatmentPlanDto> UpdateAsync(Guid id, UpdateTreatmentPlanDto input)
     {
         var plan = await _repository.GetAsync(id);
@@ -70,6 +70,7 @@ public class TreatmentPlanAppService : ApplicationService, ITreatmentPlanAppServ
         return ObjectMapper.Map<TreatmentPlan, TreatmentPlanDto>(plan);
     }
 
+    [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Update)]
     public async Task<TreatmentPlanDto> SubmitForApprovalAsync(Guid id)
     {
         var plan = await _repository.GetAsync(id);
@@ -78,7 +79,7 @@ public class TreatmentPlanAppService : ApplicationService, ITreatmentPlanAppServ
         return ObjectMapper.Map<TreatmentPlan, TreatmentPlanDto>(plan);
     }
 
-    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Approve)]
+    [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Update)]
     public async Task<TreatmentPlanDto> ApproveAsync(Guid id, ApproveTreatmentPlanDto input)
     {
         var plan = await _repository.GetAsync(id);
@@ -87,6 +88,7 @@ public class TreatmentPlanAppService : ApplicationService, ITreatmentPlanAppServ
         return ObjectMapper.Map<TreatmentPlan, TreatmentPlanDto>(plan);
     }
 
+    [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Update)]
     public async Task<TreatmentPlanDto> StartAsync(Guid id)
     {
         var plan = await _repository.GetAsync(id);
@@ -95,6 +97,7 @@ public class TreatmentPlanAppService : ApplicationService, ITreatmentPlanAppServ
         return ObjectMapper.Map<TreatmentPlan, TreatmentPlanDto>(plan);
     }
 
+    [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Update)]
     public async Task<TreatmentPlanDto> CompleteAsync(Guid id)
     {
         var plan = await _repository.GetAsync(id);
@@ -103,6 +106,7 @@ public class TreatmentPlanAppService : ApplicationService, ITreatmentPlanAppServ
         return ObjectMapper.Map<TreatmentPlan, TreatmentPlanDto>(plan);
     }
 
+    [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Update)]
     public async Task<TreatmentPlanDto> CancelAsync(Guid id)
     {
         var plan = await _repository.GetAsync(id);

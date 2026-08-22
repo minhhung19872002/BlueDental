@@ -11,7 +11,7 @@ using Volo.Abp.Domain.Repositories;
 
 namespace BlueDental.Appointments;
 
-[Authorize(BlueDentalPermissions.Appointments.Default)]
+[Authorize]
 public class AppointmentAppService : ApplicationService, IAppointmentAppService
 {
     private readonly IRepository<Appointment, Guid> _repository;
@@ -25,7 +25,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         _conflictChecker = conflictChecker;
     }
 
-    [Authorize(BlueDentalPermissions.Appointments.View)]
+    [Authorize(BlueDentalAbilityPermissions.Appointment.Read)]
     public async Task<PagedResultDto<AppointmentDto>> GetListAsync(GetAppointmentListInput input)
     {
         var query = await _repository.GetQueryableAsync();
@@ -43,14 +43,14 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
             ObjectMapper.Map<System.Collections.Generic.List<Appointment>, System.Collections.Generic.List<AppointmentDto>>(items));
     }
 
-    [Authorize(BlueDentalPermissions.Appointments.View)]
+    [Authorize(BlueDentalAbilityPermissions.Appointment.Read)]
     public async Task<AppointmentDto> GetAsync(Guid id)
     {
         var appointment = await _repository.GetAsync(id);
         return ObjectMapper.Map<Appointment, AppointmentDto>(appointment);
     }
 
-    [Authorize(BlueDentalPermissions.Appointments.Create)]
+    [Authorize(BlueDentalAbilityPermissions.Appointment.Create)]
     public async Task<AppointmentDto> CreateAsync(CreateAppointmentDto input)
     {
         var slot = new AppointmentSlot(input.SlotStart, input.SlotEnd);
@@ -83,7 +83,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         return ObjectMapper.Map<Appointment, AppointmentDto>(appointment);
     }
 
-    [Authorize(BlueDentalPermissions.Appointments.Edit)]
+    [Authorize(BlueDentalAbilityPermissions.Appointment.Update)]
     public async Task<AppointmentDto> UpdateAsync(Guid id, UpdateAppointmentDto input)
     {
         var appointment = await _repository.GetAsync(id);
@@ -93,7 +93,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         return ObjectMapper.Map<Appointment, AppointmentDto>(appointment);
     }
 
-    [Authorize(BlueDentalPermissions.Appointments.Confirm)]
+    [Authorize(BlueDentalAbilityPermissions.Appointment.Update)]
     public async Task<AppointmentDto> ConfirmAsync(Guid id)
     {
         var appointment = await _repository.GetAsync(id);
@@ -102,7 +102,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         return ObjectMapper.Map<Appointment, AppointmentDto>(appointment);
     }
 
-    [Authorize(BlueDentalPermissions.Appointments.Cancel)]
+    [Authorize(BlueDentalAbilityPermissions.Appointment.Update)]
     public async Task<AppointmentDto> CancelAsync(Guid id, CancelAppointmentDto input)
     {
         var appointment = await _repository.GetAsync(id);
@@ -111,7 +111,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         return ObjectMapper.Map<Appointment, AppointmentDto>(appointment);
     }
 
-    [Authorize(BlueDentalPermissions.Appointments.CheckIn)]
+    [Authorize(BlueDentalAbilityPermissions.Appointment.Update)]
     public async Task<AppointmentDto> CheckInAsync(Guid id)
     {
         var appointment = await _repository.GetAsync(id);
@@ -120,7 +120,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         return ObjectMapper.Map<Appointment, AppointmentDto>(appointment);
     }
 
-    [Authorize(BlueDentalPermissions.Appointments.Edit)]
+    [Authorize(BlueDentalAbilityPermissions.Appointment.Update)]
     public async Task<AppointmentDto> StartAsync(Guid id)
     {
         var appointment = await _repository.GetAsync(id);
@@ -129,7 +129,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         return ObjectMapper.Map<Appointment, AppointmentDto>(appointment);
     }
 
-    [Authorize(BlueDentalPermissions.Appointments.Complete)]
+    [Authorize(BlueDentalAbilityPermissions.Appointment.Update)]
     public async Task<AppointmentDto> CompleteAsync(Guid id, CompleteAppointmentDto input)
     {
         var appointment = await _repository.GetAsync(id);
@@ -138,7 +138,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         return ObjectMapper.Map<Appointment, AppointmentDto>(appointment);
     }
 
-    [Authorize(BlueDentalPermissions.Appointments.Edit)]
+    [Authorize(BlueDentalAbilityPermissions.Appointment.Update)]
     public async Task<AppointmentDto> MarkNoShowAsync(Guid id)
     {
         var appointment = await _repository.GetAsync(id);

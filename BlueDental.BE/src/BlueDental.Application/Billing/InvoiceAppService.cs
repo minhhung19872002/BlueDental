@@ -10,7 +10,7 @@ using Volo.Abp.Domain.Repositories;
 
 namespace BlueDental.Billing;
 
-[Authorize(BlueDentalPermissions.Billing.Default)]
+[Authorize]
 public class InvoiceAppService : ApplicationService, IInvoiceAppService
 {
     private readonly IRepository<Invoice, Guid> _repository;
@@ -20,7 +20,7 @@ public class InvoiceAppService : ApplicationService, IInvoiceAppService
         _repository = repository;
     }
 
-    [Authorize(BlueDentalPermissions.Billing.Invoices.View)]
+    [Authorize(BlueDentalAbilityPermissions.Payment.Read)]
     public async Task<PagedResultDto<InvoiceDto>> GetListAsync(GetInvoiceListInput input)
     {
         var query = await _repository.GetQueryableAsync();
@@ -35,14 +35,14 @@ public class InvoiceAppService : ApplicationService, IInvoiceAppService
             ObjectMapper.Map<System.Collections.Generic.List<Invoice>, System.Collections.Generic.List<InvoiceDto>>(items));
     }
 
-    [Authorize(BlueDentalPermissions.Billing.Invoices.View)]
+    [Authorize(BlueDentalAbilityPermissions.Payment.Read)]
     public async Task<InvoiceDto> GetAsync(Guid id)
     {
         var invoice = await _repository.GetAsync(id);
         return ObjectMapper.Map<Invoice, InvoiceDto>(invoice);
     }
 
-    [Authorize(BlueDentalPermissions.Billing.Invoices.Create)]
+    [Authorize(BlueDentalAbilityPermissions.Payment.Create)]
     public async Task<InvoiceDto> CreateAsync(CreateInvoiceDto input)
     {
         var invoiceNumber = $"INV-{Clock.Now:yyyyMMdd}-{GuidGenerator.Create().ToString("N")[..6].ToUpper()}";
@@ -61,7 +61,7 @@ public class InvoiceAppService : ApplicationService, IInvoiceAppService
         return ObjectMapper.Map<Invoice, InvoiceDto>(invoice);
     }
 
-    [Authorize(BlueDentalPermissions.Billing.Invoices.Edit)]
+    [Authorize(BlueDentalAbilityPermissions.Payment.Update)]
     public async Task<InvoiceDto> IssueAsync(Guid id)
     {
         var invoice = await _repository.GetAsync(id);
@@ -70,7 +70,7 @@ public class InvoiceAppService : ApplicationService, IInvoiceAppService
         return ObjectMapper.Map<Invoice, InvoiceDto>(invoice);
     }
 
-    [Authorize(BlueDentalPermissions.Billing.Invoices.Process)]
+    [Authorize(BlueDentalAbilityPermissions.Payment.Update)]
     public async Task<InvoiceDto> RecordPaymentAsync(Guid id, RecordPaymentDto input)
     {
         var invoice = await _repository.GetAsync(id);
@@ -79,7 +79,7 @@ public class InvoiceAppService : ApplicationService, IInvoiceAppService
         return ObjectMapper.Map<Invoice, InvoiceDto>(invoice);
     }
 
-    [Authorize(BlueDentalPermissions.Billing.Invoices.Void)]
+    [Authorize(BlueDentalAbilityPermissions.Payment.Update)]
     public async Task<InvoiceDto> VoidAsync(Guid id, VoidInvoiceDto input)
     {
         var invoice = await _repository.GetAsync(id);

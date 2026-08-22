@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
@@ -28,6 +29,7 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
         _categoryRepository = categoryRepository;
     }
 
+    [Authorize(BlueDentalAbilityPermissions.ReportTransfer.Read)]
     public async Task<CashBalanceDto> GetBalanceAsync(Guid clinicBranchId)
     {
         var query = await _repository.GetQueryableAsync();
@@ -36,6 +38,7 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
         return BuildBalance(entries);
     }
 
+    [Authorize(BlueDentalAbilityPermissions.ReportTransfer.Read)]
     public async Task<CashflowOverviewDto> GetOverviewAsync(GetCashflowEntryListInput input)
     {
         var query = await BuildQueryAsync(input);
@@ -66,6 +69,7 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
         };
     }
 
+    [Authorize(BlueDentalAbilityPermissions.ReportTransfer.Read)]
     public async Task<PagedResultDto<CashflowEntryDto>> GetEntriesAsync(GetCashflowEntryListInput input)
     {
         var query = await BuildQueryAsync(input);
@@ -87,6 +91,14 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
 
     public async Task<CashflowEntryDto> CreateEntryAsync(CreateCashflowEntryDto input)
     {
+        // The reference gives each cash operation its own action on reportTransfer.
+        await AuthorizationService.CheckAsync(input.TransactionType switch
+        {
+            CashTransactionType.Deposit => BlueDentalAbilityPermissions.ReportTransfer.Deposit,
+            CashTransactionType.Withdraw => BlueDentalAbilityPermissions.ReportTransfer.Withdraw,
+            _ => BlueDentalAbilityPermissions.ReportTransfer.Transfer
+        });
+
         var id = GuidGenerator.Create();
 
         var entry = input.TransactionType switch
@@ -116,6 +128,7 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
         return MapToDto(entry, new Dictionary<Guid, string>());
     }
 
+    [Authorize(BlueDentalAbilityPermissions.ReportTransfer.Delete)]
     public async Task DeleteEntryAsync(Guid id)
     {
         await _repository.DeleteAsync(id, autoSave: true);

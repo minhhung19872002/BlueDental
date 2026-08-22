@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
@@ -19,6 +20,7 @@ public class VisitAppService : ApplicationService, IVisitAppService
         _repository = repository;
     }
 
+    [Authorize(BlueDentalAbilityPermissions.Reception.Read)]
     public async Task<PagedResultDto<VisitDto>> GetListAsync(GetVisitListInput input)
     {
         var query = await _repository.GetQueryableAsync();
@@ -42,12 +44,14 @@ public class VisitAppService : ApplicationService, IVisitAppService
             ObjectMapper.Map<List<Visit>, List<VisitDto>>(items));
     }
 
+    [Authorize(BlueDentalAbilityPermissions.Reception.Read)]
     public async Task<VisitDto> GetAsync(Guid id)
     {
         var visit = await _repository.GetAsync(id);
         return ObjectMapper.Map<Visit, VisitDto>(visit);
     }
 
+    [Authorize(BlueDentalAbilityPermissions.Reception.Create)]
     public async Task<VisitDto> CreateAsync(CreateVisitDto input)
     {
         var visit = new Visit(
@@ -61,6 +65,7 @@ public class VisitAppService : ApplicationService, IVisitAppService
         return ObjectMapper.Map<Visit, VisitDto>(visit);
     }
 
+    [Authorize(BlueDentalAbilityPermissions.Reception.Update)]
     public async Task<VisitDto> UpdateAsync(Guid id, UpdateVisitDto input)
     {
         var visit = await _repository.GetAsync(id);
@@ -68,6 +73,7 @@ public class VisitAppService : ApplicationService, IVisitAppService
         return ObjectMapper.Map<Visit, VisitDto>(visit);
     }
 
+    [Authorize(BlueDentalAbilityPermissions.Reception.Update)]
     public async Task CheckInAsync(Guid id)
     {
         var visit = await _repository.GetAsync(id);
@@ -75,6 +81,7 @@ public class VisitAppService : ApplicationService, IVisitAppService
         await _repository.UpdateAsync(visit, autoSave: true);
     }
 
+    [Authorize(BlueDentalAbilityPermissions.Reception.Update)]
     public async Task StartAsync(Guid id)
     {
         var visit = await _repository.GetAsync(id);
@@ -82,6 +89,7 @@ public class VisitAppService : ApplicationService, IVisitAppService
         await _repository.UpdateAsync(visit, autoSave: true);
     }
 
+    [Authorize(BlueDentalAbilityPermissions.Reception.Update)]
     public async Task CompleteAsync(Guid id, string? notes)
     {
         var visit = await _repository.GetAsync(id);
@@ -89,6 +97,7 @@ public class VisitAppService : ApplicationService, IVisitAppService
         await _repository.UpdateAsync(visit, autoSave: true);
     }
 
+    [Authorize(BlueDentalAbilityPermissions.Reception.Update)]
     public async Task CancelAsync(Guid id, string reason)
     {
         var visit = await _repository.GetAsync(id);
@@ -96,6 +105,7 @@ public class VisitAppService : ApplicationService, IVisitAppService
         await _repository.UpdateAsync(visit, autoSave: true);
     }
 
+    [Authorize(BlueDentalAbilityPermissions.Reception.Update)]
     public async Task MarkNoShowAsync(Guid id)
     {
         var visit = await _repository.GetAsync(id);

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
@@ -19,6 +20,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         _repository = repository;
     }
 
+    [Authorize(BlueDentalAbilityPermissions.CskhCare.Read)]
     public async Task<PagedResultDto<CareRecordDto>> GetListAsync(GetCareRecordListInput input)
     {
         var query = await _repository.GetQueryableAsync();
@@ -44,12 +46,14 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
             ObjectMapper.Map<List<CareRecord>, List<CareRecordDto>>(items));
     }
 
+    [Authorize(BlueDentalAbilityPermissions.CskhCare.Read)]
     public async Task<CareRecordDto> GetAsync(Guid id)
     {
         var record = await _repository.GetAsync(id);
         return ObjectMapper.Map<CareRecord, CareRecordDto>(record);
     }
 
+    [Authorize(BlueDentalAbilityPermissions.CskhCare.Create)]
     public async Task<CareRecordDto> CreateAsync(CreateCareRecordDto input)
     {
         var record = new CareRecord(
@@ -65,6 +69,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         return ObjectMapper.Map<CareRecord, CareRecordDto>(record);
     }
 
+    [Authorize(BlueDentalAbilityPermissions.CskhCare.Update)]
     public async Task StartAsync(Guid id)
     {
         var record = await _repository.GetAsync(id);
@@ -72,6 +77,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         await _repository.UpdateAsync(record, autoSave: true);
     }
 
+    [Authorize(BlueDentalAbilityPermissions.CskhCare.Update)]
     public async Task CompleteAsync(Guid id, string resolution)
     {
         var record = await _repository.GetAsync(id);
@@ -79,6 +85,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         await _repository.UpdateAsync(record, autoSave: true);
     }
 
+    [Authorize(BlueDentalAbilityPermissions.CskhCare.Update)]
     public async Task CancelAsync(Guid id)
     {
         var record = await _repository.GetAsync(id);

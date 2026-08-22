@@ -9,7 +9,7 @@ using Volo.Abp.Domain.Repositories;
 
 namespace BlueDental.Inventory;
 
-[Authorize(BlueDentalPermissions.Inventory.Default)]
+[Authorize]
 public class InventoryItemAppService : ApplicationService, IInventoryItemAppService
 {
     private readonly IRepository<InventoryItem, Guid> _repository;
@@ -19,7 +19,7 @@ public class InventoryItemAppService : ApplicationService, IInventoryItemAppServ
         _repository = repository;
     }
 
-    [Authorize(BlueDentalPermissions.Inventory.View)]
+    [Authorize(BlueDentalAbilityPermissions.Materials.Read)]
     public async Task<PagedResultDto<InventoryItemDto>> GetListAsync(GetInventoryItemListInput input)
     {
         var query = await _repository.GetQueryableAsync();
@@ -35,14 +35,14 @@ public class InventoryItemAppService : ApplicationService, IInventoryItemAppServ
             ObjectMapper.Map<System.Collections.Generic.List<InventoryItem>, System.Collections.Generic.List<InventoryItemDto>>(items));
     }
 
-    [Authorize(BlueDentalPermissions.Inventory.View)]
+    [Authorize(BlueDentalAbilityPermissions.Materials.Read)]
     public async Task<InventoryItemDto> GetAsync(Guid id)
     {
         var item = await _repository.GetAsync(id);
         return ObjectMapper.Map<InventoryItem, InventoryItemDto>(item);
     }
 
-    [Authorize(BlueDentalPermissions.Inventory.Manage)]
+    [Authorize(BlueDentalAbilityPermissions.Materials.Create)]
     public async Task<InventoryItemDto> CreateAsync(CreateInventoryItemDto input)
     {
         var item = new InventoryItem(
@@ -59,7 +59,7 @@ public class InventoryItemAppService : ApplicationService, IInventoryItemAppServ
         return ObjectMapper.Map<InventoryItem, InventoryItemDto>(item);
     }
 
-    [Authorize(BlueDentalPermissions.Inventory.Manage)]
+    [Authorize(BlueDentalAbilityPermissions.Materials.Update)]
     public async Task<InventoryItemDto> UpdateAsync(Guid id, UpdateInventoryItemDto input)
     {
         var item = await _repository.GetAsync(id);
@@ -67,7 +67,7 @@ public class InventoryItemAppService : ApplicationService, IInventoryItemAppServ
         return ObjectMapper.Map<InventoryItem, InventoryItemDto>(item);
     }
 
-    [Authorize(BlueDentalPermissions.Inventory.AdjustStock)]
+    [Authorize(BlueDentalAbilityPermissions.Materials.Update)]
     public async Task<InventoryItemDto> AdjustStockAsync(Guid id, AdjustStockDto input)
     {
         var item = await _repository.GetAsync(id);
@@ -85,7 +85,7 @@ public class InventoryItemAppService : ApplicationService, IInventoryItemAppServ
         return ObjectMapper.Map<InventoryItem, InventoryItemDto>(item);
     }
 
-    [Authorize(BlueDentalPermissions.Inventory.Manage)]
+    [Authorize(BlueDentalAbilityPermissions.Materials.Delete)]
     public async Task DeleteAsync(Guid id)
     {
         await _repository.DeleteAsync(id, autoSave: true);

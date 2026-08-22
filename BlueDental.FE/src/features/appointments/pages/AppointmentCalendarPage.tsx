@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button, Tabs, Segmented } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 import { LeftOutlined, RightOutlined } from "@ant-design/icons";
@@ -28,7 +29,20 @@ export function AppointmentCalendarPage() {
   const doctors: DayViewDoctor[] = dentistData
     ? dentistData.map((d) => ({ id: d.id, name: d.name, appointmentCount: 0 }))
     : FALLBACK_DOCTORS;
-  const [topTab, setTopTab] = useState("customer");
+  // The reference keeps this tab in the URL (/calendar?tab=timekeeping), so a
+  // link to the work schedule board is shareable and survives a reload.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const topTab = searchParams.get("tab") === "timekeeping" ? "work" : "customer";
+  const setTopTab = (key: string) => {
+    setSearchParams((params) => {
+      if (key === "work") {
+        params.set("tab", "timekeeping");
+      } else {
+        params.delete("tab");
+      }
+      return params;
+    });
+  };
   const [viewMode, setViewMode] = useState<ViewMode>("day");
   const [currentDate, setCurrentDate] = useState<Dayjs>(dayjs());
   const [keyword, setKeyword] = useState("");

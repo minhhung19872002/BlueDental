@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
@@ -23,6 +24,7 @@ public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
 
     public async Task<PagedResultDto<SalesEntryDto>> GetListAsync(GetSalesEntryListInput input)
     {
+        await CheckReadPermissionAsync(input.Type);
         var query = await BuildQueryAsync(input);
 
         var totalCount = query.Count();
@@ -38,6 +40,7 @@ public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
 
     public async Task<SalesStatsDto> GetStatsAsync(GetSalesEntryListInput input)
     {
+        await CheckReadPermissionAsync(input.Type);
         var query = await BuildQueryAsync(input);
         var items = query.ToList();
 
@@ -65,11 +68,14 @@ public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
 
     public async Task<SalesEntryDto> GetAsync(Guid id)
     {
-        return MapToDto(await _repository.GetAsync(id));
+        var entry = await _repository.GetAsync(id);
+        await CheckReadPermissionAsync(entry.Type);
+        return MapToDto(entry);
     }
 
     public async Task<SalesEntryDto> CreateAsync(CreateSalesEntryDto input)
     {
+        await AuthorizationService.CheckAsync(PermissionFor(input.Type, BlueDentalAbilities.Actions.Create));
         var code = await GenerateCodeAsync(input.ClinicBranchId, input.Type);
 
         var entry = SalesEntry.Record(
@@ -92,6 +98,7 @@ public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
     public async Task<SalesEntryDto> UpdateAsync(Guid id, UpdateSalesEntryDto input)
     {
         var entry = await _repository.GetAsync(id);
+        await AuthorizationService.CheckAsync(PermissionFor(entry.Type, BlueDentalAbilities.Actions.Update));
 
         entry.UpdateDetails(
             input.CategoryId,
@@ -105,6 +112,7 @@ public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
         return MapToDto(entry);
     }
 
+    [Authorize(BlueDentalAbilityPermissions.ReportCost.Approve)]
     public async Task<SalesEntryDto> ApproveAsync(Guid id, ApproveSalesEntryInput input)
     {
         var entry = await _repository.GetAsync(id);
@@ -113,6 +121,7 @@ public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
         return MapToDto(entry);
     }
 
+    [Authorize(BlueDentalAbilityPermissions.ReportCost.Approve)]
     public async Task<SalesEntryDto> RejectAsync(Guid id, RejectSalesEntryInput input)
     {
         var entry = await _repository.GetAsync(id);
@@ -123,7 +132,37 @@ public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
 
     public async Task DeleteAsync(Guid id)
     {
+        var entry = await _repository.GetAsync(id);
+        await AuthorizationService.CheckAsync(PermissionFor(entry.Type, BlueDentalAbilities.Actions.Delete));
         await _repository.DeleteAsync(id, autoSave: true);
+    }
+
+    /// <summary>
+    /// The reference guards receipts with <c>reportIncome</c> and payments with
+    /// <c>reportCost</c>. One endpoint serves both, so the subject is resolved
+    /// from the voucher type.
+    /// </summary>
+    private static string PermissionFor(SalesEntryType type, string action) =>
+        BlueDentalAbilities.Permission(
+            type == SalesEntryType.Income
+                ? BlueDentalAbilities.Subjects.ReportIncome
+                : BlueDentalAbilities.Subjects.ReportCost,
+            action);
+
+    /// <summary>
+    /// A list that is not filtered by type needs both read permissions, since it
+    /// returns receipts and payments together.
+    /// </summary>
+    private async Task CheckReadPermissionAsync(SalesEntryType? type)
+    {
+        if (type.HasValue)
+        {
+            await AuthorizationService.CheckAsync(PermissionFor(type.Value, BlueDentalAbilities.Actions.Read));
+            return;
+        }
+
+        await AuthorizationService.CheckAsync(BlueDentalAbilityPermissions.ReportIncome.Read);
+        await AuthorizationService.CheckAsync(BlueDentalAbilityPermissions.ReportCost.Read);
     }
 
     private async Task<IQueryable<SalesEntry>> BuildQueryAsync(GetSalesEntryListInput input)
