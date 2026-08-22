@@ -96,6 +96,19 @@ public static class BlueDentalDomainErrorCodes
         public const string DuplicateOrderCode = "BlueDental:Labo:0003";
     }
 
+    public static class Finance
+    {
+        public const string InvalidAmount = "BlueDental:Finance:0001";
+        public const string ApprovalNotApplicable = "BlueDental:Finance:0002";
+        public const string AlreadyApproved = "BlueDental:Finance:0003";
+        public const string VoucherLocked = "BlueDental:Finance:0004";
+        public const string SystemCategoryLocked = "BlueDental:Finance:0005";
+        public const string SameTransferHolding = "BlueDental:Finance:0006";
+        public const string SalesEntryNotFound = "BlueDental:Finance:0007";
+        public const string CategoryNotFound = "BlueDental:Finance:0008";
+        public const string CashflowEntryNotFound = "BlueDental:Finance:0009";
+    }
+
     public static class Timekeeping
     {
         public const string RecordNotFound = "BlueDental:Timekeeping:0001";
