@@ -8,4 +8,5 @@ public interface IReportAppService : IApplicationService
 {
     Task<AppointmentSummaryReportDto> GetAppointmentSummaryAsync(ReportQueryDto input);
     Task<RevenueReportDto> GetRevenueReportAsync(ReportQueryDto input);
+    Task<ExpenseReportResultDto> GetExpenseLineItemsAsync(ReportQueryDto input);
 }

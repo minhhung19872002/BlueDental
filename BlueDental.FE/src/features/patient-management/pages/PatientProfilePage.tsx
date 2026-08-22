@@ -17,6 +17,8 @@ import { useTreatmentPlanList, usePatientPrescriptions } from "@/features/treatm
 import { usePatientInvoices } from "@/features/billing/api/index";
 import { usePatientLaboOrders } from "@/features/labo/api/laboApi";
 import { useCareRecordList } from "@/features/cskh/api/careApi";
+import { usePatientDiagnosticRecords } from "@/features/treatment-management/api/diagnosticApi";
+import { usePatientConsultationRecords } from "@/features/treatment-management/api/consultationApi";
 
 const { Text } = Typography;
 
@@ -64,12 +66,16 @@ export function PatientProfilePage() {
   const { data: laboOrders } = usePatientLaboOrders(id ?? "");
   const { data: careRecords } = useCareRecordList({ patientId: id, maxResultCount: 50 });
   const { data: prescriptions } = usePatientPrescriptions(id ?? "");
+  const { data: diagnosticRecords } = usePatientDiagnosticRecords(id ?? "");
+  const { data: consultationRecords } = usePatientConsultationRecords(id ?? "");
   const appointments = appointmentsData?.items ?? [];
   const plans = treatmentPlans?.items ?? [];
   const patientInvoices = invoices ?? [];
   const patientLaboOrders = laboOrders ?? [];
   const patientCareRecords = careRecords?.items ?? [];
   const patientPrescriptions = prescriptions ?? [];
+  const patientDiagnostics = diagnosticRecords ?? [];
+  const patientConsultations = consultationRecords ?? [];
 
   const handleTabChange = (key: string) => {
     setSearchParams({ tab: key });
@@ -294,14 +300,15 @@ export function PatientProfilePage() {
               <Card title="Phiếu chẩn đoán" size="small" style={{ marginBottom: 16 }}>
                 <Table
                   size="small"
+                  rowKey="id"
                   columns={[
-                    { title: "Số phiếu", dataIndex: "code", width: 80 },
-                    { title: "Bác sĩ chẩn đoán 1", dataIndex: "doctor1", width: 160 },
-                    { title: "Răng", dataIndex: "tooth" },
+                    { title: "Số phiếu", dataIndex: "code", width: 120 },
+                    { title: "Bác sĩ chẩn đoán", dataIndex: "dentistName", width: 160 },
+                    { title: "Răng", dataIndex: "teethNumbers" },
                     { title: "Ghi chú", dataIndex: "notes" },
                     { title: "Thao tác", key: "actions", width: 80, render: () => <Button type="link" size="small">Tạo Dịch Vụ</Button> },
                   ]}
-                  dataSource={[]}
+                  dataSource={patientDiagnostics}
                   pagination={false}
                   locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>Chưa có phiếu chẩn đoán</span> }}
                 />
@@ -310,13 +317,14 @@ export function PatientProfilePage() {
               <Card title="Phiếu tư vấn" size="small">
                 <Table
                   size="small"
+                  rowKey="id"
                   columns={[
-                    { title: "Ngày", dataIndex: "date", width: 100, render: (v) => formatDate(v) },
-                    { title: "Dịch vụ", dataIndex: "service" },
-                    { title: "Đơn giá", dataIndex: "unitPrice", width: 120, align: "right", render: (v) => `${formatVND(v)} đ` },
-                    { title: "Thành tiền", dataIndex: "total", width: 120, align: "right", render: (v) => `${formatVND(v)} đ` },
+                    { title: "Ngày", dataIndex: "creationTime", width: 100, render: (v: string) => formatDate(v) },
+                    { title: "Dịch vụ", dataIndex: "serviceName" },
+                    { title: "Đơn giá", dataIndex: "unitPrice", width: 120, align: "right" as const, render: (v: number) => `${formatVND(v ?? 0)} đ` },
+                    { title: "Thành tiền", dataIndex: "totalAmount", width: 120, align: "right" as const, render: (v: number) => `${formatVND(v ?? 0)} đ` },
                   ]}
-                  dataSource={[]}
+                  dataSource={patientConsultations}
                   pagination={false}
                   locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>Chưa có phiếu tư vấn</span> }}
                 />
@@ -326,7 +334,7 @@ export function PatientProfilePage() {
                   padding: "10px 0", borderTop: "1px solid #E5E7EB",
                 }}>
                   <Text strong style={{ fontSize: 13 }}>TỔNG KẾ HOẠCH</Text>
-                  <Text style={{ fontSize: 13, color: "#5A6B82" }}>Tổng thành tiền: 0 đ</Text>
+                  <Text style={{ fontSize: 13, color: "#5A6B82" }}>Tổng thành tiền: {formatVND(patientConsultations.reduce((s, c) => s + (c.totalAmount ?? 0), 0))} đ</Text>
                   <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
                     <Button size="small">Thêm kế hoạch điều trị</Button>
                     <Button size="small">Tạo báo giá</Button>
@@ -685,8 +693,15 @@ export function PatientProfilePage() {
               { title: "Nhân viên", dataIndex: "staffName", key: "staffName", width: 160 },
               { title: "Ghi chú", dataIndex: "notes", key: "notes" },
             ]}
-            dataSource={[]}
-            pagination={{ pageSize: 20, showTotal: (total) => `Hiển thị 0 trên ${total} giao dịch` }}
+            dataSource={(patientInvoices ?? []).map((inv) => ({
+              id: inv.id,
+              transactionDate: inv.issuedDate,
+              type: inv.status === "Paid" ? "Thanh toán" : inv.status === "Voided" ? "Huỷ" : "Hóa đơn",
+              amount: inv.totalAmount - inv.paidAmount,
+              staffName: "—",
+              notes: `${inv.invoiceNumber} — ${inv.status}`,
+            })).filter((r) => r.amount > 0)}
+            pagination={{ pageSize: 20, showTotal: (total, range) => `Hiển thị ${range[0]}–${range[1]} trên ${total} giao dịch` }}
             locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>Chưa có lịch sử dư nợ</span> }}
           />
         </div>

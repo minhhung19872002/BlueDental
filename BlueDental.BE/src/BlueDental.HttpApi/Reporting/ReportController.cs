@@ -18,4 +18,8 @@ public sealed class ReportController(IReportAppService service) : BlueDentalCont
     [HttpGet("billing/revenue")]
     public Task<RevenueReportDto> GetRevenueReportAsync(
         [FromQuery] ReportQueryDto input) => service.GetRevenueReportAsync(input);
+
+    [HttpGet("expense/line-items")]
+    public Task<ExpenseReportResultDto> GetExpenseLineItemsAsync(
+        [FromQuery] ReportQueryDto input) => service.GetExpenseLineItemsAsync(input);
 }

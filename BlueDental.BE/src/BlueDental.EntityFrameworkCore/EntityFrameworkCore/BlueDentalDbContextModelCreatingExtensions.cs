@@ -272,6 +272,28 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Instructions).HasMaxLength(1000);
             entity.Property(x => x.Status).HasConversion<short>();
         });
+
+        builder.Entity<DiagnosticRecord>(entity =>
+        {
+            entity.ToTable("bd_diagnostic_records");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Code).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.TeethNumbers).HasMaxLength(200);
+            entity.Property(x => x.Diagnosis).HasMaxLength(2000);
+            entity.Property(x => x.Notes).HasMaxLength(2000);
+            entity.HasIndex(x => x.PatientId);
+        });
+
+        builder.Entity<ConsultationRecord>(entity =>
+        {
+            entity.ToTable("bd_consultation_records");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.ServiceName).HasMaxLength(300).IsRequired();
+            entity.Property(x => x.UnitPrice).HasPrecision(18, 2);
+            entity.Property(x => x.TotalAmount).HasPrecision(18, 2);
+            entity.Property(x => x.Notes).HasMaxLength(2000);
+            entity.HasIndex(x => x.PatientId);
+        });
     }
 
     private static void ConfigureBilling(ModelBuilder builder)

@@ -5,7 +5,7 @@ import { DownloadOutlined, LeftOutlined, RightOutlined } from "@ant-design/icons
 import dayjs, { type Dayjs } from "dayjs";
 import { formatVND } from "@/utils/format";
 import { exportToExcel } from "@/utils/exportExcel";
-import { useReportSummary, useRevenueReport, type ReportSummaryDto, type RevenueReportDto } from "@/features/reporting/api/index";
+import { useReportSummary, useRevenueReport, useExpenseReport, type ReportSummaryDto, type RevenueReportDto } from "@/features/reporting/api/index";
 
 const { Text } = Typography;
 
@@ -85,6 +85,7 @@ export function ReportPage() {
 
   const { data: summary, isLoading: summaryLoading } = useReportSummary({ startDate, endDate });
   const { data: revenueData } = useRevenueReport({ startDate, endDate });
+  const { data: expenseData, isLoading: expenseLoading } = useExpenseReport({ startDate, endDate });
 
   const setActiveTab = (tab: string) => {
     setSearchParams((p) => { p.set("tab", tab); return p; });
@@ -190,9 +191,9 @@ export function ReportPage() {
           <div className="reception-card reception-card--toolbar">
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
               <span style={{ fontSize: 13, color: "#5A6B82" }}>Doanh số:</span>
-              {summaryLoading ? <Spin size="small" /> : (
+              {expenseLoading ? <Spin size="small" /> : (
                 <span style={{ fontWeight: 700, fontSize: 18, color: "#1B2A41" }}>
-                  {formatVND(Array.isArray(revenueData) ? revenueData.reduce((s, d) => s + d.totalRevenue, 0) : 0)} đ
+                  {formatVND(expenseData?.grandTotalAmount ?? 0)} đ
                 </span>
               )}
               <Button icon={<DownloadOutlined />} style={{ marginLeft: "auto" }} onClick={handleExportRevenue}>Xuất Excel</Button>
@@ -205,7 +206,8 @@ export function ReportPage() {
               size="small"
               rowKey="id"
               columns={EXPENSE_COLUMNS}
-              dataSource={[]}
+              dataSource={expenseData?.items ?? []}
+              loading={expenseLoading}
               pagination={{
                 pageSize: 20,
                 showSizeChanger: true,
@@ -223,7 +225,7 @@ export function ReportPage() {
                 <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 10 }}>Thông tin lượt khách</div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
                   <span style={{ color: "#5A6B82" }}>Lượt khách</span>
-                  <span style={{ fontWeight: 600 }}>{summaryLoading ? "…" : (summary?.totalPatients ?? 0)} lượt</span>
+                  <span style={{ fontWeight: 600 }}>{expenseLoading ? "…" : (expenseData?.totalCount ?? 0)} lượt</span>
                 </div>
               </div>
             </Col>
@@ -242,7 +244,7 @@ export function ReportPage() {
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
                   <span style={{ color: "#5A6B82" }}>Doanh thu</span>
                   <span style={{ fontWeight: 600, color: "#10B981" }}>
-                    {summaryLoading ? "…" : formatVND(summary?.totalRevenue ?? 0)} đ
+                    {expenseLoading ? "…" : formatVND(expenseData?.grandTotalAmount ?? 0)} đ
                   </span>
                 </div>
               </div>
@@ -253,7 +255,11 @@ export function ReportPage() {
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
                   <span style={{ color: "#5A6B82" }}>Trung bình</span>
                   <span style={{ fontWeight: 600 }}>
-                    {summaryLoading ? "…" : formatVND(summary?.avgRevenuePerPatient ?? 0)} đ
+                    {expenseLoading ? "…" : formatVND(
+                      (expenseData?.totalCount ?? 0) > 0
+                        ? (expenseData?.grandTotalAmount ?? 0) / (expenseData?.totalCount ?? 1)
+                        : 0
+                    )} đ
                   </span>
                 </div>
               </div>
@@ -263,7 +269,7 @@ export function ReportPage() {
       )}
 
       {activeTab === "cashflow" && <CashflowTab revenueData={Array.isArray(revenueData) ? revenueData : []} />}
-      {activeTab === "result" && <BusinessResultTab summary={summary} />}
+      {activeTab === "result" && <BusinessResultTab summary={summary} expenseTotal={expenseData?.grandTotalAmount ?? 0} expensePaid={expenseData?.grandPaidAmount ?? 0} />}
       {activeTab === "cashflow-v2" && <CashflowV2Tab />}
     </div>
   );
@@ -438,13 +444,20 @@ function CashflowV2Tab() {
   );
 }
 
-function BusinessResultTab({ summary }: { summary?: ReportSummaryDto }) {
-  const revenue = summary?.totalRevenue ?? 0;
+function BusinessResultTab({ summary, expenseTotal, expensePaid }: { summary?: ReportSummaryDto; expenseTotal: number; expensePaid: number }) {
+  const revenue = expenseTotal;
+  const expense = 0;
+  const profit = revenue - expense;
+  const margin = revenue > 0 ? Math.round((profit / revenue) * 100) : 0;
   const resultSummary = [
     { label: "Doanh thu", value: revenue, color: "#1E70E6" },
-    { label: "Chi phí", value: 0, color: "#EF4444" },
-    { label: "Lợi nhuận", value: revenue, color: "#10B981" },
-    { label: "Tỷ lệ lợi nhuận", value: revenue > 0 ? "~100%" : "0%", color: "#F59E0B" },
+    { label: "Chi phí", value: expense, color: "#EF4444" },
+    { label: "Lợi nhuận", value: profit, color: "#10B981" },
+    { label: "Tỷ lệ lợi nhuận", value: `${margin}%`, color: "#F59E0B" },
+  ];
+
+  const resultData = [
+    { category: "Dịch vụ nha khoa", revenue, expense: 0, profit: revenue, margin: revenue > 0 ? 100 : 0 },
   ];
 
   return (
@@ -473,16 +486,16 @@ function BusinessResultTab({ summary }: { summary?: ReportSummaryDto }) {
           size="small"
           rowKey="category"
           columns={RESULT_COLUMNS}
-          dataSource={[]}
+          dataSource={resultData}
           pagination={false}
           locale={{ emptyText: "Không có dữ liệu" }}
           summary={() => (
             <Table.Summary.Row>
               <Table.Summary.Cell index={0}><Text strong>Tổng</Text></Table.Summary.Cell>
-              <Table.Summary.Cell index={1} align="right"><Text strong style={{ fontVariantNumeric: "tabular-nums" }}>0 đ</Text></Table.Summary.Cell>
-              <Table.Summary.Cell index={2} align="right"><Text strong style={{ color: "#EF4444", fontVariantNumeric: "tabular-nums" }}>0 đ</Text></Table.Summary.Cell>
-              <Table.Summary.Cell index={3} align="right"><Text strong style={{ color: "#10B981", fontVariantNumeric: "tabular-nums" }}>0 đ</Text></Table.Summary.Cell>
-              <Table.Summary.Cell index={4} align="right"><Text strong>0%</Text></Table.Summary.Cell>
+              <Table.Summary.Cell index={1} align="right"><Text strong style={{ fontVariantNumeric: "tabular-nums" }}>{formatVND(revenue)} đ</Text></Table.Summary.Cell>
+              <Table.Summary.Cell index={2} align="right"><Text strong style={{ color: "#EF4444", fontVariantNumeric: "tabular-nums" }}>{formatVND(expense)} đ</Text></Table.Summary.Cell>
+              <Table.Summary.Cell index={3} align="right"><Text strong style={{ color: "#10B981", fontVariantNumeric: "tabular-nums" }}>{formatVND(profit)} đ</Text></Table.Summary.Cell>
+              <Table.Summary.Cell index={4} align="right"><Text strong>{margin}%</Text></Table.Summary.Cell>
             </Table.Summary.Row>
           )}
         />

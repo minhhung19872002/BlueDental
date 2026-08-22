@@ -38,3 +38,33 @@ export function useRevenueReport(params: { startDate: string; endDate: string; g
     enabled: Boolean(params.startDate && params.endDate),
   });
 }
+
+export interface ExpenseLineItemDto {
+  id: string;
+  date: string;
+  patientName: string;
+  counselorName?: string;
+  doctorName?: string;
+  serviceName?: string;
+  quantity: number;
+  totalAmount: number;
+  paidAmount: number;
+}
+
+export interface ExpenseReportResultDto {
+  items: ExpenseLineItemDto[];
+  totalCount: number;
+  grandTotalAmount: number;
+  grandPaidAmount: number;
+}
+
+export function useExpenseReport(params: { startDate: string; endDate: string }) {
+  return useQuery({
+    queryKey: ["report-expense", params],
+    queryFn: (): Promise<ExpenseReportResultDto> =>
+      api.get("/v1/app/reports/expense/line-items", {
+        params: { from: params.startDate, to: params.endDate },
+      }).then((r) => r.data),
+    enabled: Boolean(params.startDate && params.endDate),
+  });
+}
