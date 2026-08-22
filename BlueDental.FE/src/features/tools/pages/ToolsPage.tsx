@@ -11,14 +11,14 @@ interface ToolsTab {
 }
 
 const TOOLS_TABS: ToolsTab[] = [
-  { key: "sms-send", label: "Gửi SMS" },
-  { key: "sms-template", label: "Mẫu SMS" },
-  { key: "sms-history", label: "Lịch sử gửi" },
-  { key: "config", label: "Cấu hình" },
+  { key: "call",     label: "Gọi thoại" },
+  { key: "message",  label: "Tin nhắn" },
+  { key: "zalo-oa",  label: "Zalo OA" },
+  { key: "invoice",  label: "Hóa đơn" },
 ];
 
 export function ToolsPage() {
-  const [activeTab, setActiveTab] = useState("sms-send");
+  const [activeTab, setActiveTab] = useState("call");
 
   return (
     <div className="reception-page">
