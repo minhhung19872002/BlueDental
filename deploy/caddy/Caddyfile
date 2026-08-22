@@ -1,0 +1,23 @@
+# Caddy reverse proxy for BlueDental (production).
+# - Terminates TLS with automatic Let's Encrypt certificates.
+# - Forwards everything to the frontend nginx container, which in turn
+#   routes /api and /signalr to the API.
+# - Caddy sets X-Forwarded-For / X-Forwarded-Proto / X-Forwarded-Host
+#   automatically; the API honours them via ASPNETCORE_FORWARDEDHEADERS_ENABLED.
+
+# Optional: set an ACME contact email for expiry notices by adding a global
+# block:   { email you@example.com }
+{$SITE_DOMAIN} {
+	reverse_proxy frontend:8080 {
+		# SignalR websockets need long idle timeouts.
+		transport http {
+			read_timeout 3600s
+			write_timeout 3600s
+		}
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}
