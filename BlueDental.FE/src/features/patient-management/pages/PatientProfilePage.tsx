@@ -206,29 +206,30 @@ export function PatientProfilePage() {
                 ))}
               </Row>
 
-              {/* Treatment history stub */}
+              {/* Treatment history — uses completed appointments as proxy */}
               <Card title="Lịch sử điều trị" size="small">
                 <Table
                   size="small"
                   columns={[
-                    { title: "Ngày", dataIndex: "date", width: 110, render: (v) => formatDate(v) },
+                    { title: "Ngày", dataIndex: "date", width: 110, render: (v: string) => formatDate(v) },
                     { title: "Dịch vụ / Thủ thuật", dataIndex: "service" },
                     { title: "Bác sĩ", dataIndex: "doctor", width: 140 },
                     {
                       title: "Trạng thái",
                       dataIndex: "status",
                       width: 130,
-                      render: (s: string) => <Tag color="success">{s}</Tag>,
-                    },
-                    {
-                      title: "Số tiền",
-                      dataIndex: "amount",
-                      width: 120,
-                      align: "right",
-                      render: (v) => <Text style={{ fontVariantNumeric: "tabular-nums" }}>{formatVND(v)}</Text>,
+                      render: () => <Tag color="success">Hoàn thành</Tag>,
                     },
                   ]}
-                  dataSource={[]}
+                  dataSource={appointments
+                    .filter((a) => a.status === "completed")
+                    .map((a) => ({
+                      key: a.id,
+                      date: a.startTime,
+                      service: a.reason ?? "Khám tổng quát",
+                      doctor: a.doctorName,
+                      status: a.status,
+                    }))}
                   pagination={false}
                   locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>Chưa có lịch sử điều trị</span> }}
                 />
@@ -416,23 +417,33 @@ export function PatientProfilePage() {
       children: (
         <div style={{ padding: "16px 0" }}>
           {/* Counter cards */}
-          <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-            {APPOINTMENT_COUNTER_CARDS.map((card) => (
-              <div
-                key={card.key}
-                style={{
-                  minWidth: 70, minHeight: 55, padding: "8px 14px",
-                  borderTop: `3px solid ${card.borderColor}`,
-                  backgroundColor: card.bgColor,
-                  borderRadius: 8, textAlign: "center",
-                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                }}
-              >
-                <span style={{ fontSize: 20, fontWeight: 700, color: card.textColor }}>0</span>
-                <span style={{ fontSize: 11, color: card.textColor }}>{card.label}</span>
+          {(() => {
+            const counts: Record<string, number> = {
+              scheduled: appointments.filter((a) => a.status === "scheduled" || a.status === "confirmed").length,
+              arrived: appointments.filter((a) => a.status === "inProgress" || a.status === "completed").length,
+              cancelled: appointments.filter((a) => a.status === "cancelled").length,
+              late: appointments.filter((a) => a.status === "noShow").length,
+            };
+            return (
+              <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+                {APPOINTMENT_COUNTER_CARDS.map((card) => (
+                  <div
+                    key={card.key}
+                    style={{
+                      minWidth: 70, minHeight: 55, padding: "8px 14px",
+                      borderTop: `3px solid ${card.borderColor}`,
+                      backgroundColor: card.bgColor,
+                      borderRadius: 8, textAlign: "center",
+                      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                    }}
+                  >
+                    <span style={{ fontSize: 20, fontWeight: 700, color: card.textColor }}>{counts[card.key] ?? 0}</span>
+                    <span style={{ fontSize: 11, color: card.textColor }}>{card.label}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            );
+          })()}
 
           <Table<AppointmentRow>
             size="small"
