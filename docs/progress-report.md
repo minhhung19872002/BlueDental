@@ -31,8 +31,10 @@ Nguồn: `docs/clone/business-features.md` + `docs/clone/permissions.md`
 | Chấm công | `TimeKeepingRecord`, `WorkShift` | `/api/v1/app/time-keepings` | `AddTimekeepingModule` | 18 |
 | Thu chi & Dòng tiền | `SalesEntry`, `CashflowCategory`, `CashflowEntry` | `/api/v1/app/{sales,cashflow-categories,cash-management}` | `AddFinanceModule` | 21 |
 | Voucher | `Voucher` | `/api/v1/app/vouchers` | `AddVoucherModule` | 14 |
+| Danh mục (taxonomy) | `Taxonomy`, `CatalogEntry`, `TaxonomyGroups` | `/api/v1/app/{taxonomies,catalog-entries}` | `AddTaxonomyModule` | 23 |
+| Phân quyền (ability model) | `BlueDentalAbilities` (83 subject) | Đăng ký qua `PermissionDefinitionProvider` | — | 12 |
 
-Tổng test BE: **207 pass** (102 domain + 51 application + 39 EF + 15 HttpApi).
+Tổng test BE: **254 pass** (149 domain + 51 application + 39 EF + 15 HttpApi).
 
 ### FE đã bổ sung
 
@@ -54,8 +56,8 @@ Build FE production: OK. Typecheck: sạch. Unit test FE: 3/3 pass.
 |---|----------|---------|
 | A | Form tạo/sửa cho Thu chi, Luân chuyển, Voucher | Hiện FE mới ở mức đọc (list + summary) |
 | B | Dental chart ghi nhận mặt răng (top/right/bottom/left/center) | `DentalChartView` mới chọn cả răng, chưa chọn mặt |
-| C | Map 83 ability của app gốc sang `BlueDentalPermissions` | Hiện permission set còn thô |
-| D | Taxonomy tổng quát (group + entity list) | App gốc dùng 1 pattern cho 12 danh mục |
+| C | Gắn `[Authorize(BlueDentalAbilities.Permission(...))]` vào từng AppService | Catalog đã có, chưa áp lên endpoint |
+| D | FE cho Danh mục dùng API taxonomy mới | BE xong, `TaxonomyPage` vẫn dữ liệu tĩnh |
 | E | Treatment stage (công đoạn) | Chưa quan sát được payload — UNKNOWN_REFERENCE_BEHAVIOR |
 | F | `docs/testing/*` registry theo CLAUDE.md | Chưa tạo |
 | G | Real full-stack acceptance test (Playwright + PostgreSQL thật) | Test hiện tại là domain/mapping/contract, chưa phải runtime acceptance |
