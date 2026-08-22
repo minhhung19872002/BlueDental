@@ -19,6 +19,11 @@ services:
       ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
       App__SelfUrl: https://${SITE_DOMAIN:?SITE_DOMAIN is required in .env}
       AuthServer__Authority: https://${SITE_DOMAIN}
+      # Persist DataProtection keys; otherwise every api recreate rotates
+      # them and invalidates all auth cookies (everyone gets logged out).
+      DataProtection__KeysPath: /data/keys
+    volumes:
+      - dataprotection_keys:/data/keys
 
   caddy:
     image: caddy:2-alpine
@@ -49,3 +54,4 @@ services:
 volumes:
   caddy_data:
   caddy_config:
+  dataprotection_keys:
