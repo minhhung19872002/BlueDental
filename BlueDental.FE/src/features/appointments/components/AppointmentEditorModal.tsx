@@ -7,18 +7,8 @@ import dayjs from "dayjs";
 import { useCreateAppointment } from "../api/appointmentMutations";
 import { SearchSelect } from "@/components/SearchSelect";
 import { usePatientList } from "@/features/patient-management/api/patientQueries";
+import { useDentistList } from "@/features/staff/api/staffQueries";
 import { useDebounce } from "@/hooks/useDebounce";
-
-const MOCK_DOCTORS = [
-  { id: "d1", name: "BS Khanh" },
-  { id: "d2", name: "BS Tiên" },
-  { id: "d3", name: "BS Hương 4" },
-  { id: "d4", name: "BS Hương" },
-  { id: "d5", name: "BS Tới 10" },
-  { id: "d6", name: "BS Tới 3" },
-  { id: "d7", name: "BS Tới 1" },
-  { id: "d8", name: "BS Tới" },
-];
 
 const schema = z.object({
   patientId: z.string().min(1, "Vui lòng chọn khách hàng"),
@@ -47,6 +37,7 @@ export function AppointmentEditorModal({ open, appointmentId, initialDate, onClo
   const [patientKeyword, setPatientKeyword] = useState("");
   const debouncedPatientKeyword = useDebounce(patientKeyword);
   const { data: patientData } = usePatientList({ keyword: debouncedPatientKeyword || undefined, maxResultCount: 20 });
+  const { data: dentists } = useDentistList();
 
   const { control, handleSubmit, reset, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -150,7 +141,7 @@ export function AppointmentEditorModal({ open, appointmentId, initialDate, onClo
               <SearchSelect
                 value={field.value || undefined}
                 placeholder="Chọn bác sĩ"
-                options={MOCK_DOCTORS.map((d) => ({ value: d.id, label: d.name }))}
+                options={(dentists ?? []).map((d) => ({ value: d.id, label: d.name ?? d.userName }))}
                 onChange={(v) => field.onChange(v ?? "")}
                 status={errors.doctorId ? "error" : ""}
               />
