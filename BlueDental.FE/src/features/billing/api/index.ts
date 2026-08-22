@@ -27,7 +27,7 @@ const billingApi = {
     api.get(`/v1/app/invoices/${id}`).then((r) => r.data),
 
   recordPayment: (id: string, data: RecordPaymentRequest): Promise<InvoiceDto> =>
-    api.post(`/v1/app/invoices/${id}/payments`, data).then((r) => r.data),
+    api.post(`/v1/app/invoices/${id}/payment`, data).then((r) => r.data),
 
   void: (id: string, reason: string): Promise<void> =>
     api.post(`/v1/app/invoices/${id}/void`, { reason }).then(() => undefined),

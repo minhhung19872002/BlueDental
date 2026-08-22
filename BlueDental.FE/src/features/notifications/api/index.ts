@@ -15,10 +15,10 @@ const notificationApi = {
     api.get("/v1/app/notifications", { params: { maxResultCount: 50 } }).then((r) => r.data),
 
   markRead: (id: string): Promise<void> =>
-    api.post(`/v1/app/notifications/${id}/mark-read`).then(() => undefined),
+    api.post(`/v1/app/notifications/${id}/read`).then(() => undefined),
 
   markAllRead: (): Promise<void> =>
-    api.post("/v1/app/notifications/mark-all-read").then(() => undefined),
+    api.post("/v1/app/notifications/read-all").then(() => undefined),
 };
 
 export function useNotifications() {

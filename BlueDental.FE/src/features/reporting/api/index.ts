@@ -17,10 +17,10 @@ export interface ReportSummaryDto {
 
 const reportingApi = {
   summary: (params: { startDate: string; endDate: string }): Promise<ReportSummaryDto> =>
-    api.get("/v1/app/reports/summary", { params }).then((r) => r.data),
+    api.get("/v1/app/reports/appointments/summary", { params }).then((r) => r.data),
 
   revenue: (params: { startDate: string; endDate: string; groupBy?: string }): Promise<RevenueReportDto[]> =>
-    api.get("/v1/app/reports/revenue", { params }).then((r) => r.data),
+    api.get("/v1/app/reports/billing/revenue", { params }).then((r) => r.data),
 };
 
 export function useReportSummary(params: { startDate: string; endDate: string }) {
