@@ -92,6 +92,34 @@ public class BlueDentalPermissionDefinitionProvider : PermissionDefinitionProvid
             L("Permission:Reporting"));
         reportPerm.AddChild(BlueDentalPermissions.Reporting.View, L("Permission:Reporting.View"));
         reportPerm.AddChild(BlueDentalPermissions.Reporting.Generate, L("Permission:Reporting.Generate"));
+
+        DefineAbilities(context);
+    }
+
+    /// <summary>
+    /// Registers the reference application's (action, subject) ability model as
+    /// ABP permissions, one group with a permission per subject and a child per
+    /// supported action. See <see cref="BlueDentalAbilities"/>.
+    /// </summary>
+    private static void DefineAbilities(IPermissionDefinitionContext context)
+    {
+        var abilityGroup = context.AddGroup(
+            BlueDentalAbilities.GroupName,
+            L("Permission:Abilities"));
+
+        foreach (var (subject, actions) in BlueDentalAbilities.Catalog)
+        {
+            var subjectPermission = abilityGroup.AddPermission(
+                BlueDentalAbilities.SubjectPermission(subject),
+                L($"Permission:Subject:{subject}"));
+
+            foreach (var action in actions)
+            {
+                subjectPermission.AddChild(
+                    BlueDentalAbilities.Permission(subject, action),
+                    L($"Permission:Action:{action}"));
+            }
+        }
     }
 
     private static LocalizableString L(string name)
