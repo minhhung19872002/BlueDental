@@ -142,7 +142,8 @@ function CatalogPanel({ tab }: { tab: TaxonomyTab }) {
   const [groupModalOpen, setGroupModalOpen] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
 
-  const { data: groupPage, isLoading: groupsLoading } = useTaxonomyGroups(branchId, group);
+  const { data: groupPage, isLoading: groupsLoading, isFetching: groupsFetching } =
+    useTaxonomyGroups(branchId, group);
   const groups = useMemo(() => groupPage?.items ?? [], [groupPage]);
 
   const { data: entryPage, isLoading: entriesLoading } = useCatalogEntries(
@@ -156,12 +157,16 @@ function CatalogPanel({ tab }: { tab: TaxonomyTab }) {
   const deleteEntry = useDeleteCatalogEntry();
 
   // Selecting a group that then disappears (deleted elsewhere) would show an
-  // empty table with no way back, so fall back to "all groups".
+  // empty table with no way back, so fall back to "all groups" — but only once
+  // the list has settled, otherwise this races a freshly created group whose
+  // refetch is still in flight and clears the selection we just made.
   useEffect(() => {
+    if (groupsFetching) return;
+
     if (selectedGroupId && !groups.some((g) => g.id === selectedGroupId)) {
       setSelectedGroupId(null);
     }
-  }, [groups, selectedGroupId]);
+  }, [groups, groupsFetching, selectedGroupId]);
 
   const currentGroup = groups.find((g) => g.id === selectedGroupId);
 
@@ -232,11 +237,14 @@ function CatalogPanel({ tab }: { tab: TaxonomyTab }) {
     if (!newGroupName.trim()) return;
 
     try {
-      await createGroup.mutateAsync({
+      const created = await createGroup.mutateAsync({
         clinicBranchId: branchId,
         group,
         name: newGroupName.trim(),
       });
+      // Select the new group so the next "Thêm mục" lands where the user just
+      // created it, instead of falling back to the first group in the list.
+      setSelectedGroupId(created.id);
       message.success("Đã thêm nhóm");
       setGroupModalOpen(false);
       setNewGroupName("");

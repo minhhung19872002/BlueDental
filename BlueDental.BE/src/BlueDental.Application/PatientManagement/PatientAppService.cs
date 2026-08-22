@@ -55,7 +55,7 @@ public class PatientAppService : ApplicationService, IPatientAppService
     public async Task<PatientDto> RegisterAsync(RegisterPatientDto input)
     {
         var contact = new ContactInfo(input.PhoneNumber, input.Email, null);
-        var patientCode = $"P{Clock.Now:yyyyMMdd}{GuidGenerator.Create().ToString("N")[..6].ToUpper()}";
+        var patientCode = await GeneratePatientCodeAsync(input.BranchId);
 
         var patient = Patient.Register(
             GuidGenerator.Create(),
@@ -71,6 +71,36 @@ public class PatientAppService : ApplicationService, IPatientAppService
         await _repository.InsertAsync(patient, autoSave: true);
         return ObjectMapper.Map<Patient, PatientDto>(patient);
     }
+
+    /// <summary>
+    /// Human-readable patient code, per branch and year — the reference uses the
+    /// same shape (e.g. <c>DH26010</c>).
+    ///
+    /// The previous scheme took six characters of a sequential GUID, which are
+    /// the high-order timestamp bits and barely move: two registrations seconds
+    /// apart produced the same code and hit the unique index.
+    /// </summary>
+    private async Task<string> GeneratePatientCodeAsync(Guid branchId)
+    {
+        var year = Clock.Now.Year;
+        var query = await _repository.GetQueryableAsync();
+
+        var sequence = query.Count(p => p.BranchId == branchId && p.CreationTime.Year == year) + 1;
+        var code = FormatPatientCode(year, sequence);
+
+        // Deleted or imported records can leave gaps and duplicates in the count,
+        // so walk forward until the code is genuinely free.
+        while (query.Any(p => p.PatientCode == code))
+        {
+            sequence++;
+            code = FormatPatientCode(year, sequence);
+        }
+
+        return code;
+    }
+
+    private static string FormatPatientCode(int year, int sequence) =>
+        $"BD{year % 100:D2}{sequence:D4}";
 
     [Authorize(BlueDentalAbilityPermissions.Patient.Update)]
     public async Task<PatientDto> UpdateAsync(Guid id, UpdatePatientDto input)

@@ -140,7 +140,18 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
       destroyOnHidden
       styles={{ body: { padding: "20px 24px" } }}
     >
-      <form onSubmit={handleSubmit(onSubmit)} noValidate>
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        noValidate
+        // Enter commits a typed value in antd's DatePicker/Select, and would
+        // otherwise also submit the whole form — producing a duplicate
+        // registration. Submitting stays on the explicit Lưu button.
+        onKeyDown={(event) => {
+          if (event.key === "Enter" && event.target instanceof HTMLInputElement) {
+            event.preventDefault();
+          }
+        }}
+      >
         <Row gutter={24}>
           {/* Column 1 — Contact & Source */}
           <Col span={8}>

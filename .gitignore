@@ -46,3 +46,6 @@ cookies.json
 .env
 .env.*
 !.env.example
+# Playwright
+BlueDental.FE/test-results/
+BlueDental.FE/playwright-report/
