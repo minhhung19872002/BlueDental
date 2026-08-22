@@ -9,7 +9,7 @@ Cập nhật lần cuối: 2026-08-22 (session 3)
 | Layer | Status | Ghi chú |
 |-------|--------|---------|
 | Frontend UI (FE) | 🟢 ~97% | Tất cả trang hoàn chỉnh; Calendar week+month, Report 4 tabs, CSKH grouping |
-| Backend API (BE) | 🟡 ~60% | Build clean; thiếu Visit/Labo/CustomerCare domain (agent đang implement) |
+| Backend API (BE) | 🟢 ~85% | Build clean 0 errors; tất cả domain + AppService + Controller; 2 migrations |
 | FE ↔ BE Integration | 🟡 ~40% | Patient+Appointment gọi BE thật; catalog/billing/inventory/notif hooks xong |
 | Tests | 🔴 ~5% | Chỉ test base rỗng, chưa có test case thật |
 | Docker / Deploy | 🟡 50% | docker-compose.yml tồn tại, chưa verify chạy |
@@ -70,9 +70,9 @@ Cập nhật lần cuối: 2026-08-22 (session 3)
 | Inventory | `InventoryItem` | ✅ DONE | |
 | Organizations | `ClinicBranch` | ✅ DONE | |
 | Notifications | `Notification` | ✅ DONE | |
-| **Reception/Visits** | **`Visit`** | ❌ MISSING | Tiếp nhận — entity chưa tồn tại |
-| **Labo** | **`LaboOrder`** | ❌ MISSING | Phiếu labo chưa tồn tại |
-| **CustomerCare** | **`CareRecord`** | ❌ MISSING | CSKH chưa tồn tại |
+| Visits (Reception) | `Visit` | ✅ DONE | commit `69ada16` — entity + factory method |
+| Labo | `LaboOrder` | ✅ DONE | commit `69ada16` — entity + factory method |
+| CustomerCare | `CareRecord` | ✅ DONE | commit `69ada16` — entity + factory method |
 
 ### AppService — Hiện có
 
@@ -86,10 +86,10 @@ Cập nhật lần cuối: 2026-08-22 (session 3)
 | `ReportAppService` | ✅ DONE | Revenue/stats queries |
 | `ClinicBranchAppService` | ✅ DONE | Branch management |
 | `InventoryItemAppService` | ✅ DONE | Inventory CRUD |
-| **`VisitAppService`** | ❌ MISSING | Reception visits |
-| **`LaboAppService`** | ❌ MISSING | Labo orders |
-| **`CustomerCareAppService`** | ❌ MISSING | CSKH records |
-| **`StaffAppService`** | ❌ MISSING | Wrap ABP Identity users |
+| `VisitAppService` | ✅ DONE | Reception visits |
+| `LaboAppService` | ✅ DONE | Labo orders |
+| `CustomerCareAppService` | ✅ DONE | CSKH records |
+| `StaffAppService` | ✅ DONE | Wrap ABP Identity users |
 
 ### HttpApi Controllers — Hiện có
 
@@ -103,10 +103,10 @@ Cập nhật lần cuối: 2026-08-22 (session 3)
 | `ReportController` | ✅ DONE |
 | `ClinicBranchController` | ✅ DONE |
 | `InventoryItemController` | ✅ DONE |
-| `VisitController` | ❌ MISSING |
-| `LaboController` | ❌ MISSING |
-| `CustomerCareController` | ❌ MISSING |
-| `StaffController` | ❌ MISSING |
+| `VisitController` | ✅ DONE |
+| `LaboController` | ✅ DONE |
+| `CustomerCareController` | ✅ DONE |
+| `StaffController` | ✅ DONE |
 
 ### EF Core / Database
 
@@ -114,9 +114,9 @@ Cập nhật lần cuối: 2026-08-22 (session 3)
 |------|--------|---------|
 | DbContext (`BlueDentalDbContext`) | ✅ DONE | |
 | Migration `InitialCreate` | ✅ DONE | Schema khởi tạo |
-| **Visit table** | ❌ MISSING | Chưa có migration |
-| **LaboOrder table** | ❌ MISSING | Chưa có migration |
-| **CareRecord table** | ❌ MISSING | Chưa có migration |
+| Visit table | ✅ DONE | migration `AddVisitLaboCareRecord` |
+| LaboOrder table | ✅ DONE | migration `AddVisitLaboCareRecord` |
+| CareRecord table | ✅ DONE | migration `AddVisitLaboCareRecord` |
 
 ### Tests
 
@@ -155,13 +155,13 @@ Cập nhật lần cuối: 2026-08-22 (session 3)
 - [x] **FE-08** Report URL sync (commit `9b87856`)
 - [x] **FE-09** API hooks: catalog, billing, inventory, notifications (commit `0e8ea66`)
 
-### Sprint tiếp theo — BE bổ sung
+### Sprint BE — HOÀN THÀNH
 
-- [ ] Reception/Visit domain + AppService + Controller + Migration
-- [ ] Labo domain + AppService + Controller + Migration
-- [ ] CustomerCare domain + AppService + Controller + Migration
-- [ ] Staff AppService (wrap ABP Identity)
-- [ ] Application Tests coverage
+- [x] Visit domain + AppService + Controller + Migration (commit `69ada16`)
+- [x] Labo domain + AppService + Controller + Migration (commit `69ada16`)
+- [x] CustomerCare domain + AppService + Controller + Migration (commit `69ada16`)
+- [x] Staff AppService + Controller (commit `69ada16`)
+- [ ] Application Tests coverage — **PENDING** (domain.tests + application.tests cần viết)
 
 ### Sprint cuối — Integration & Deploy
 
