@@ -158,10 +158,12 @@ export const receptionApi = {
     total: number;
   }> {
     try {
-      const res = await api.get("/v1/app/appointments", {
+      const res = await api.get("/v1/app/visits", {
         params: {
-          filter: filter.keyword,
+          keyword: filter.keyword,
           dentistId: filter.doctorId,
+          status: filter.status !== "All" ? filter.status : undefined,
+          maxResultCount: 50,
         },
       });
 
@@ -246,13 +248,11 @@ export const receptionApi = {
 
   async create(input: CreateReceptionInput): Promise<ReceptionItem> {
     try {
-      await api.post("/v1/app/appointments", {
+      await api.post("/v1/app/visits", {
         patientId: "00000000-0000-0000-0000-000000000001",
         dentistId: input.doctorId,
         branchId: "00000000-0000-0000-0000-000000000001",
-        slotStart: new Date().toISOString(),
-        slotEnd: new Date(Date.now() + 3600000).toISOString(),
-        type: 1,
+        scheduledAt: new Date().toISOString(),
         chiefComplaint: input.notes,
       });
     } catch {
@@ -296,7 +296,7 @@ export const receptionApi = {
   ): Promise<ReceptionItem> {
     try {
       const action = status === "InProgress" ? "start" : status === "Completed" ? "complete" : "check-in";
-      await api.post(`/v1/app/appointments/${id}/${action}`);
+      await api.post(`/v1/app/visits/${id}/${action}`);
     } catch {
       // Failover to local store update
     }
