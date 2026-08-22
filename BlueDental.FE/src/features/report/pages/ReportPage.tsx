@@ -217,15 +217,7 @@ export function ReportPage() {
 
       {activeTab === "cashflow" && <CashflowTab />}
       {activeTab === "result" && <BusinessResultTab />}
-      {activeTab === "cashflow-v2" && (
-        <div className="reception-card reception-card--content">
-          <div style={{ padding: "48px 0", textAlign: "center", color: "#9CA3AF" }}>
-            <div style={{ fontSize: 32, marginBottom: 8 }}>📊</div>
-            <div style={{ fontWeight: 500, color: "#6B7280" }}>Luân chuyển dòng tiền V2</div>
-            <div style={{ fontSize: 13, marginTop: 4 }}>Nội dung đang được phát triển</div>
-          </div>
-        </div>
-      )}
+      {activeTab === "cashflow-v2" && <CashflowV2Tab />}
     </div>
   );
 }
@@ -294,6 +286,91 @@ function CashflowTab() {
           }}
           locale={{ emptyText: "Không có dữ liệu" }}
         />
+      </div>
+    </>
+  );
+}
+
+const CF_V2_SECTIONS = [
+  {
+    key: "operating",
+    label: "I. Dòng tiền từ hoạt động kinh doanh",
+    items: [
+      { label: "Thu từ dịch vụ y tế", value: 0 },
+      { label: "Chi phí vật tư, thuốc", value: 0 },
+      { label: "Chi phí nhân sự", value: 0 },
+      { label: "Chi phí quản lý", value: 0 },
+    ],
+  },
+  {
+    key: "investing",
+    label: "II. Dòng tiền từ hoạt động đầu tư",
+    items: [
+      { label: "Mua thiết bị y tế", value: 0 },
+      { label: "Sửa chữa, nâng cấp", value: 0 },
+    ],
+  },
+  {
+    key: "financing",
+    label: "III. Dòng tiền từ hoạt động tài chính",
+    items: [
+      { label: "Vay vốn ngân hàng", value: 0 },
+      { label: "Trả nợ vay", value: 0 },
+    ],
+  },
+];
+
+function CashflowV2Tab() {
+  return (
+    <>
+      <div className="reception-card reception-card--toolbar">
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <Button icon={<DownloadOutlined />}>Xuất Excel</Button>
+        </div>
+      </div>
+
+      {CF_V2_SECTIONS.map((section) => (
+        <div key={section.key} className="reception-card" style={{ marginBottom: 12, padding: "16px" }}>
+          <div style={{ fontWeight: 700, fontSize: 14, color: "#1B2A41", marginBottom: 12 }}>
+            {section.label}
+          </div>
+          {section.items.map((item) => (
+            <div
+              key={item.label}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                padding: "6px 0",
+                borderBottom: "1px solid #F3F4F6",
+                fontSize: 13,
+              }}
+            >
+              <span style={{ color: "#5A6B82" }}>{item.label}</span>
+              <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>
+                {formatVND(item.value)} đ
+              </span>
+            </div>
+          ))}
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, fontWeight: 700 }}>
+            <span>Dòng tiền thuần</span>
+            <span style={{ color: "#1677ff" }}>0 đ</span>
+          </div>
+        </div>
+      ))}
+
+      <div className="reception-card" style={{ padding: "16px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, fontSize: 15 }}>
+          <span style={{ color: "#1B2A41" }}>TỔNG DÒNG TIỀN THUẦN</span>
+          <span style={{ color: "#1677ff" }}>0 đ</span>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 13, color: "#5A6B82" }}>
+          <span>Số dư đầu kỳ</span>
+          <span>0 đ</span>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 13, color: "#1B2A41", fontWeight: 600 }}>
+          <span>Số dư cuối kỳ</span>
+          <span>0 đ</span>
+        </div>
       </div>
     </>
   );
