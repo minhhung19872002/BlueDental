@@ -1,6 +1,6 @@
 # BlueDental — Progress Report
 
-Cập nhật lần cuối: 2026-08-22 (session 4)
+Cập nhật lần cuối: 2026-08-22 (session 4 — cuối ngày)
 
 ---
 
@@ -9,10 +9,10 @@ Cập nhật lần cuối: 2026-08-22 (session 4)
 | Layer | Status | Ghi chú |
 |-------|--------|---------|
 | Frontend UI (FE) | 🟢 ~97% | Tất cả trang hoàn chỉnh; Calendar week+month, Report 4 tabs, CSKH grouping |
-| Backend API (BE) | 🟢 ~85% | Build clean 0 errors; tất cả domain + AppService + Controller; 2 migrations |
-| FE ↔ BE Integration | 🟡 ~40% | Patient+Appointment gọi BE thật; catalog/billing/inventory/notif hooks xong |
-| Tests | 🟢 ~75% | 55 tests (15 domain + 22 application + 18 EF) — tất cả pass |
-| Docker / Deploy | 🟡 50% | docker-compose.yml tồn tại, chưa verify chạy |
+| Backend API (BE) | 🟢 ~90% | Build clean 0 errors; AccountAppService; 401/403 API auth; BE Dockerfile |
+| FE ↔ BE Integration | 🟡 ~55% | Patient+Appointment+Auth gọi BE thật; vite proxy → port 5019; mock fallback cho reception |
+| Tests | 🟢 ~80% | 66 tests (15 domain + 34 application + 18 EF) — tất cả pass |
+| Docker / Deploy | 🟡 ~65% | docker-compose.yml + FE Dockerfile + BE Dockerfile; chưa verify full stack |
 
 ---
 
@@ -122,9 +122,9 @@ Cập nhật lần cuối: 2026-08-22 (session 4)
 
 | Project | Status | Ghi chú |
 |---------|--------|---------|
-| `BlueDental.Domain.Tests` | ✅ 15/15 PASS | Patient (5) + Appointment (3) + Visit (7 từ agent) |
-| `BlueDental.Application.Tests` | ✅ 22/22 PASS | Contract tests: Patient, Appointment, Invoice, TreatmentPlan |
-| `BlueDental.EntityFrameworkCore.Tests` | ✅ 18/18 PASS | Mapping tests: Patient, Appointment, Visit, LaboOrder |
+| `BlueDental.Domain.Tests` | ✅ 15/15 PASS | Patient (5) + Appointment (3) + Visit (7) |
+| `BlueDental.Application.Tests` | ✅ 34/34 PASS | Patient, Appointment, Invoice, TreatmentPlan, Visit, Labo contracts |
+| `BlueDental.EntityFrameworkCore.Tests` | ✅ 18/18 PASS | Patient, Appointment, Visit, LaboOrder mapping tests |
 | `BlueDental.HttpApi.Host.Tests` | 🔴 EMPTY | Full integration tests (WebApplicationFactory) pending |
 
 ---
@@ -161,10 +161,16 @@ Cập nhật lần cuối: 2026-08-22 (session 4)
 - [x] Labo domain + AppService + Controller + Migration (commit `69ada16`)
 - [x] CustomerCare domain + AppService + Controller + Migration (commit `69ada16`)
 - [x] Staff AppService + Controller (commit `69ada16`)
-- [x] Domain Tests: 8 tests — Patient (5) + Appointment (3) ✅ ALL PASS
-- [x] EF Core Mapping Tests: 5 tests — PatientMappingTests ✅ ALL PASS
-- [ ] Application.Tests contract tests — PENDING
+- [x] Domain Tests: 15 tests — Patient (5) + Appointment (3) + Visit (7) ✅ ALL PASS
+- [x] Application.Tests: 34 contract tests — Patient, Appointment, Invoice, TreatmentPlan, Visit, Labo ✅ ALL PASS
+- [x] EF Core Mapping Tests: 18 tests — Patient, Appointment, Visit, LaboOrder ✅ ALL PASS
+- [x] AccountAppService — /app/account/current-user + /app/account/change-password
+- [x] BE Dockerfile (multi-stage build, api + migrator)
+- [x] HttpApi.Host: 401/403 for API routes, CSRF auto-validate disabled
+- [x] FE auth API wired to real AccountAppService (removed mock fallback)
+- [x] Vite proxy port corrected to 5019
 - [ ] HttpApi.Host.Tests E2E integration tests — PENDING
+- [ ] Docker full-stack verification — PENDING
 
 ### Sprint cuối — Integration & Deploy
 
@@ -178,14 +184,14 @@ Cập nhật lần cuối: 2026-08-22 (session 4)
 ## V. Commit Log (gần đây)
 
 ```
+6ba6f29 fix(be): return 401/403 for API routes instead of redirects
+4b54ff8 build(be): add Dockerfile for multi-stage BE container build
+60d01bd fix(fe): update vite proxy port to 5019 and wire auth API to AccountAppService
+45e15c4 test(be): add Visit and Labo AppService contract tests (34 Application tests total)
+0bcd76e test(be): expand test suite to 55 tests — all passing
+e606d4c test(be): add Application contract tests for Patient and Appointment AppServices
+4007290 test(be): add domain tests (8) and EF mapping tests (5), all passing
+ce19086 feat(be): add AccountAppService for current user profile
 4565235 feat(cskh): implement Phân nhóm CSKH tab with group management table
 0e8ea66 feat(api): implement real API hooks for catalogs, reporting, billing, inventory, notifications
-9b87856 feat(report): sync tab, dateMode, date state to URL search params
-8b710c7 feat(report): implement Quản lý thu chi and Kết quả kinh doanh tabs
-b7d86e4 feat(calendar): add week and month view grids
-bfaa14a feat(taxonomy): improve service panel with searchable group sidebar
-981b857 feat(appointments): add filter toolbar to appointment list view
-80e824a docs(clone): add complete survey documentation for all 12 reference pages
-3923baa feat(tools): implement sub-tabs for all 4 tool categories
-8cd92eb feat(calendar): appointment creation form + doctor filter
 ```
