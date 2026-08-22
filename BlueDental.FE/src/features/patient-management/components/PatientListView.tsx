@@ -41,9 +41,10 @@ const FILTER_TABS: { key: FilterStatus; label: string }[] = [
 interface Props {
   onAdd?: () => void;
   onRowClick?: (patient: PatientListItem) => void;
+  onEdit?: (id: string) => void;
 }
 
-export function PatientListView({ onAdd, onRowClick }: Props) {
+export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
   const [viewMode, setViewMode] = useState<ViewMode>("day");
   const [currentDate, setCurrentDate] = useState<Dayjs>(dayjs());
   const [keyword, setKeyword] = useState("");
@@ -296,7 +297,7 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
               size="small"
               icon={<EditOutlined />}
               style={{ color: "#6B7280" }}
-            />
+              onClick={(e) => { e.stopPropagation(); onEdit?.(record.id); }}
           </Tooltip>
         </Space>
       ),
