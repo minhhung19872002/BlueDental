@@ -37,9 +37,13 @@ export function AppointmentCalendarPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [initialDate, setInitialDate] = useState<string | undefined>();
 
-  // Fetch appointments for the current date/week/month range
+  // Fetch appointments for the current date/week range
+  const weekStart = currentDate.startOf("week");
+  const weekEnd = currentDate.endOf("week");
   const { data: appointmentData } = useAppointmentList({
     date: viewMode === "day" ? currentDate.format("YYYY-MM-DD") : undefined,
+    startDate: viewMode === "week" ? weekStart.format("YYYY-MM-DD") : undefined,
+    endDate: viewMode === "week" ? weekEnd.format("YYYY-MM-DD") : undefined,
     maxResultCount: 200,
   });
   const appointments: AppointmentDto[] = appointmentData?.items ?? [];
@@ -143,6 +147,7 @@ export function AppointmentCalendarPage() {
                 <WeekViewCalendar
                   currentDate={currentDate}
                   doctors={doctors}
+                  appointments={appointments}
                   keyword={keyword}
                   onKeywordChange={setKeyword}
                   onCreateAppointment={() => setAddOpen(true)}
@@ -151,6 +156,7 @@ export function AppointmentCalendarPage() {
                     setAddOpen(true);
                     void slotIdx;
                   }}
+                  onAppointmentClick={(appt) => setSelectedId(appt.id)}
                 />
               )}
               {viewMode === "month" && (

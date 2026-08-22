@@ -36,6 +36,8 @@ export type UpdateAppointmentRequest = Partial<CreateAppointmentRequest> & {
 
 export interface AppointmentListQuery {
   date?: string;
+  startDate?: string;
+  endDate?: string;
   doctorId?: string;
   patientId?: string;
   status?: AppointmentStatus;
