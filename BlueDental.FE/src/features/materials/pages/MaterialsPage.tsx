@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, Input, Table, Modal, Form, InputNumber, Tag, message, Popconfirm } from "antd";
+import { Button, Input, Table, Modal, Form, InputNumber, Tag, message, Popconfirm, Select } from "antd";
 import { SearchOutlined, PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
@@ -11,6 +11,19 @@ import {
   type InventoryItemDto,
   type UpdateInventoryItemDto,
 } from "../api";
+import {
+  useDepartmentList,
+  useCreateDepartment,
+  useUpdateDepartment,
+  useDeleteDepartment,
+  type DepartmentDto,
+} from "../api/departmentApi";
+import {
+  useAllocationList,
+  useCreateAllocation,
+  useDeleteAllocation,
+  type MaterialAllocationDto,
+} from "../api/allocationApi";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -284,20 +297,57 @@ function ClinicMaterialsView() {
 
 function AllocationView() {
   const [keyword, setKeyword] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [form] = Form.useForm();
 
-  const columns = [
-    { title: "Thời gian phân bổ", dataIndex: "allocationTime", key: "allocationTime" },
-    { title: "Mã phân bổ", dataIndex: "allocationCode", key: "allocationCode" },
-    { title: "Vật tư", dataIndex: "material", key: "material" },
-    { title: "SL được phân bổ", dataIndex: "allocatedQty", key: "allocatedQty" },
-    { title: "SL confirm còn lại", dataIndex: "confirmedRemaining", key: "confirmedRemaining" },
-    { title: "Phòng ban", dataIndex: "department", key: "department" },
-    { title: "Người thực hiện", dataIndex: "performer", key: "performer" },
-    { title: "Ghi chú", dataIndex: "note", key: "note" },
+  const { data, isLoading } = useAllocationList();
+  const { data: inventoryData } = useInventoryItemList();
+  const { data: deptData } = useDepartmentList();
+  const createMutation = useCreateAllocation();
+  const deleteMutation = useDeleteAllocation();
+
+  const allItems = data?.items ?? [];
+  const filtered = allItems.filter((item) => {
+    if (!keyword) return true;
+    const kw = keyword.toLowerCase();
+    return item.allocationCode.toLowerCase().includes(kw) ||
+      (item.inventoryItemName ?? "").toLowerCase().includes(kw) ||
+      (item.performerName ?? "").toLowerCase().includes(kw);
+  });
+
+  const handleCreate = async () => {
+    try {
+      const values = await form.validateFields();
+      await createMutation.mutateAsync(values);
+      message.success("Tạo phiếu phân bổ thành công");
+      form.resetFields();
+      setModalOpen(false);
+    } catch { /* validation */ }
+  };
+
+  const handleDelete = async (id: string) => {
+    await deleteMutation.mutateAsync(id);
+    message.success("Xóa phiếu phân bổ thành công");
+  };
+
+  const columns: ColumnsType<MaterialAllocationDto> = [
+    { title: "Thời gian phân bổ", dataIndex: "allocationTime", key: "allocationTime", width: 160, render: (v: string) => v ? dayjs(v).format("DD/MM/YYYY HH:mm") : "—" },
+    { title: "Mã phân bổ", dataIndex: "allocationCode", key: "allocationCode", width: 150 },
+    { title: "Vật tư", dataIndex: "inventoryItemName", key: "material", render: (v: string) => v ?? "—" },
+    { title: "SL được phân bổ", dataIndex: "allocatedQuantity", key: "allocatedQty", width: 130, align: "right" },
+    { title: "SL confirm còn lại", dataIndex: "confirmedRemaining", key: "confirmedRemaining", width: 150, align: "right" },
+    { title: "Phòng ban", dataIndex: "departmentName", key: "department", render: (v: string) => v ?? "—" },
+    { title: "Người thực hiện", dataIndex: "performerName", key: "performer", render: (v: string) => v ?? "—" },
+    { title: "Ghi chú", dataIndex: "note", key: "note", render: (v: string) => v ?? "—" },
     {
       title: "Thao tác",
       key: "actions",
-      render: () => <Button size="small" type="link">Chi tiết</Button>,
+      width: 80,
+      render: (_, record) => (
+        <Popconfirm title="Xác nhận xóa?" onConfirm={() => handleDelete(record.id)} okText="Xóa" cancelText="Hủy" okButtonProps={{ danger: true }}>
+          <Button size="small" danger icon={<DeleteOutlined />} />
+        </Popconfirm>
+      ),
     },
   ];
 
@@ -305,27 +355,32 @@ function AllocationView() {
     <>
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
-          <Input
-            prefix={<SearchOutlined />}
-            placeholder="Tìm phiếu phân bổ..."
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            style={{ width: 280 }}
-            allowClear
-          />
+          <div style={{ display: "flex", gap: 8 }}>
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => { form.resetFields(); setModalOpen(true); }}>Tạo phiếu phân bổ</Button>
+            <Input prefix={<SearchOutlined />} placeholder="Tìm phiếu phân bổ..." value={keyword} onChange={(e) => setKeyword(e.target.value)} style={{ width: 280 }} allowClear />
+          </div>
           <Button>Lịch sử kiểm kho</Button>
         </div>
       </div>
       <div className="reception-card reception-card--content">
-        <Table
-          columns={columns}
-          dataSource={[]}
-          rowKey="id"
-          pagination={{ pageSize: 20, showTotal: (total) => `Hiển thị 0 trên ${total}` }}
-          locale={{ emptyText: "Chưa có phiếu phân bổ" }}
-          size="middle"
-        />
+        <Table columns={columns} dataSource={filtered} rowKey="id" loading={isLoading} pagination={{ pageSize: 20, showTotal: (total) => `Hiển thị ${filtered.length} trên ${total}` }} locale={{ emptyText: "Chưa có phiếu phân bổ" }} size="middle" scroll={{ x: "max-content" }} />
       </div>
+
+      <Modal title="Tạo phiếu phân bổ" open={modalOpen} onCancel={() => setModalOpen(false)} onOk={handleCreate} confirmLoading={createMutation.isPending} okText="Tạo phiếu" cancelText="Hủy" destroyOnClose>
+        <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
+          <Form.Item name="inventoryItemId" label="Vật tư" rules={[{ required: true, message: "Chọn vật tư" }]}>
+            <Select placeholder="Chọn vật tư..." showSearch optionFilterProp="label" options={(inventoryData?.items ?? []).map((i) => ({ value: i.id, label: `${i.itemCode} - ${i.name}` }))} />
+          </Form.Item>
+          <Form.Item name="departmentId" label="Phòng ban" rules={[{ required: true, message: "Chọn phòng ban" }]}>
+            <Select placeholder="Chọn phòng ban..." options={(deptData?.items ?? []).map((d) => ({ value: d.id, label: d.name }))} />
+          </Form.Item>
+          <Form.Item name="allocatedQuantity" label="Số lượng phân bổ" rules={[{ required: true, message: "Nhập số lượng" }]}>
+            <InputNumber<number> min={0.001} style={{ width: "100%" }} placeholder="0" />
+          </Form.Item>
+          <Form.Item name="performerName" label="Người thực hiện"><Input placeholder="Tên người thực hiện..." /></Form.Item>
+          <Form.Item name="note" label="Ghi chú"><Input.TextArea rows={2} placeholder="Ghi chú..." /></Form.Item>
+        </Form>
+      </Modal>
     </>
   );
 }
@@ -334,21 +389,54 @@ function AllocationView() {
 
 function DepartmentView() {
   const [keyword, setKeyword] = useState("");
+  const [selectedDeptId, setSelectedDeptId] = useState<string | null>(null);
+  const [deptModalOpen, setDeptModalOpen] = useState(false);
+  const [editingDept, setEditingDept] = useState<DepartmentDto | null>(null);
+  const [deptForm] = Form.useForm();
 
-  const rightColumns = [
-    { title: "Thời gian phân bổ", dataIndex: "allocationTime", key: "allocationTime" },
-    { title: "Mã phân bổ", dataIndex: "allocationCode", key: "allocationCode" },
-    { title: "Vật tư", dataIndex: "material", key: "material" },
-    { title: "SL được phát", dataIndex: "distributedQty", key: "distributedQty" },
-    { title: "SL còn lại (đã duyệt)", dataIndex: "approvedRemaining", key: "approvedRemaining" },
-    { title: "Kiểm kho", dataIndex: "inventoryCheck", key: "inventoryCheck" },
-    { title: "Người thực hiện", dataIndex: "performer", key: "performer" },
-    { title: "Ghi chú", dataIndex: "note", key: "note" },
-    {
-      title: "Thao tác",
-      key: "actions",
-      render: () => <Button size="small" type="link">Chi tiết</Button>,
-    },
+  const { data: deptData, isLoading: deptLoading } = useDepartmentList();
+  const createDept = useCreateDepartment();
+  const updateDept = useUpdateDepartment();
+  const deleteDept = useDeleteDepartment();
+  const { data: allocData, isLoading: allocLoading } = useAllocationList(selectedDeptId ?? undefined);
+
+  const departments = deptData?.items ?? [];
+  const allocations = (allocData?.items ?? []).filter((a) => {
+    if (!keyword) return true;
+    const kw = keyword.toLowerCase();
+    return (a.inventoryItemName ?? "").toLowerCase().includes(kw) || a.allocationCode.toLowerCase().includes(kw);
+  });
+
+  const handleDeptSave = async () => {
+    try {
+      const values = await deptForm.validateFields();
+      if (editingDept) {
+        await updateDept.mutateAsync({ id: editingDept.id, data: values });
+        message.success("Cập nhật phòng ban thành công");
+      } else {
+        await createDept.mutateAsync(values);
+        message.success("Tạo phòng ban thành công");
+      }
+      deptForm.resetFields();
+      setDeptModalOpen(false);
+      setEditingDept(null);
+    } catch { /* validation */ }
+  };
+
+  const handleDeptDelete = async (id: string) => {
+    await deleteDept.mutateAsync(id);
+    if (selectedDeptId === id) setSelectedDeptId(null);
+    message.success("Xóa phòng ban thành công");
+  };
+
+  const rightColumns: ColumnsType<MaterialAllocationDto> = [
+    { title: "Thời gian phân bổ", dataIndex: "allocationTime", key: "allocationTime", width: 160, render: (v: string) => v ? dayjs(v).format("DD/MM/YYYY HH:mm") : "—" },
+    { title: "Mã phân bổ", dataIndex: "allocationCode", key: "allocationCode", width: 150 },
+    { title: "Vật tư", dataIndex: "inventoryItemName", key: "material", render: (v: string) => v ?? "—" },
+    { title: "SL được phát", dataIndex: "allocatedQuantity", key: "distributedQty", width: 120, align: "right" },
+    { title: "SL còn lại (đã duyệt)", dataIndex: "confirmedRemaining", key: "approvedRemaining", width: 170, align: "right" },
+    { title: "Người thực hiện", dataIndex: "performerName", key: "performer", render: (v: string) => v ?? "—" },
+    { title: "Ghi chú", dataIndex: "note", key: "note", render: (v: string) => v ?? "—" },
   ];
 
   return (
@@ -356,42 +444,67 @@ function DepartmentView() {
       <div className="reception-card" style={{ width: 240, minWidth: 200, padding: 16, flexShrink: 0 }}>
         <div style={{ fontWeight: 600, marginBottom: 4 }}>
           Phòng ban
-          <span style={{ fontWeight: 400, color: "#8c8c8c", marginLeft: 6 }}>0 phòng ban</span>
+          <span style={{ fontWeight: 400, color: "#8c8c8c", marginLeft: 6 }}>{departments.length} phòng ban</span>
         </div>
         <div style={{ fontSize: 12, color: "#8c8c8c", marginBottom: 10 }}>
           Chọn phòng ban để xem vật tư đã phát và kiểm kho
         </div>
-        <Input placeholder="Tìm phòng ban..." size="small" style={{ marginBottom: 8 }} />
-        <Button type="dashed" block size="small">Tạo phòng ban</Button>
-        <div style={{ color: "#8c8c8c", fontSize: 13, textAlign: "center", paddingTop: 24 }}>
-          Chưa có phòng ban
-        </div>
+        <Button type="dashed" block size="small" style={{ marginBottom: 8 }} onClick={() => { setEditingDept(null); deptForm.resetFields(); setDeptModalOpen(true); }}>Tạo phòng ban</Button>
+        {deptLoading ? null : departments.length === 0 ? (
+          <div style={{ color: "#8c8c8c", fontSize: 13, textAlign: "center", paddingTop: 24 }}>Chưa có phòng ban</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            {departments.map((d) => (
+              <div
+                key={d.id}
+                onClick={() => setSelectedDeptId(d.id === selectedDeptId ? null : d.id)}
+                style={{
+                  padding: "6px 8px", fontSize: 13, borderRadius: 4, cursor: "pointer",
+                  background: d.id === selectedDeptId ? "#E6F4FF" : "#F9FAFB",
+                  color: d.id === selectedDeptId ? "#1677ff" : "#374151",
+                  fontWeight: d.id === selectedDeptId ? 600 : 400,
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                }}
+              >
+                <span>{d.name}</span>
+                <div style={{ display: "flex", gap: 2 }} onClick={(e) => e.stopPropagation()}>
+                  <Button type="text" size="small" icon={<EditOutlined />} style={{ padding: 0, width: 22, height: 22 }} onClick={() => { setEditingDept(d); deptForm.setFieldsValue(d); setDeptModalOpen(true); }} />
+                  <Popconfirm title="Xóa phòng ban?" onConfirm={() => handleDeptDelete(d.id)} okText="Xóa" cancelText="Hủy" okButtonProps={{ danger: true }}>
+                    <Button type="text" size="small" danger icon={<DeleteOutlined />} style={{ padding: 0, width: 22, height: 22 }} />
+                  </Popconfirm>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
         <div className="reception-card reception-card--toolbar">
           <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
-            <Input
-              prefix={<SearchOutlined />}
-              placeholder="Tìm vật tư..."
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              style={{ width: 220 }}
-              allowClear
-            />
+            <Input prefix={<SearchOutlined />} placeholder="Tìm vật tư..." value={keyword} onChange={(e) => setKeyword(e.target.value)} style={{ width: 220 }} allowClear />
             <Button>Gộp số lượng vật tư</Button>
           </div>
         </div>
         <div className="reception-card reception-card--content">
           <Table
             columns={rightColumns}
-            dataSource={[]}
+            dataSource={selectedDeptId ? allocations : []}
             rowKey="id"
-            pagination={{ pageSize: 20, showTotal: (total) => `Hiển thị 0 trên ${total}` }}
-            locale={{ emptyText: "Chọn phòng ban để xem vật tư đã phân bổ" }}
+            loading={allocLoading}
+            pagination={{ pageSize: 20, showTotal: (total) => `Hiển thị ${allocations.length} trên ${total}` }}
+            locale={{ emptyText: selectedDeptId ? "Chưa có vật tư phân bổ cho phòng ban này" : "Chọn phòng ban để xem vật tư đã phân bổ" }}
             size="middle"
+            scroll={{ x: "max-content" }}
           />
         </div>
       </div>
+
+      <Modal title={editingDept ? "Chỉnh sửa phòng ban" : "Tạo phòng ban"} open={deptModalOpen} onCancel={() => { setDeptModalOpen(false); setEditingDept(null); deptForm.resetFields(); }} onOk={handleDeptSave} confirmLoading={createDept.isPending || updateDept.isPending} okText={editingDept ? "Lưu" : "Tạo"} cancelText="Hủy" destroyOnClose>
+        <Form form={deptForm} layout="vertical" style={{ marginTop: 16 }}>
+          <Form.Item name="name" label="Tên phòng ban" rules={[{ required: true, message: "Nhập tên phòng ban" }]}><Input placeholder="VD: Phòng khám 1, Phòng lễ tân..." /></Form.Item>
+          <Form.Item name="description" label="Mô tả"><Input.TextArea rows={2} placeholder="Mô tả..." /></Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 }

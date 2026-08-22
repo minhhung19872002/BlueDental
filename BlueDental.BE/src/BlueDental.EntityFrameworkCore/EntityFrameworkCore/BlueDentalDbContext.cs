@@ -43,6 +43,7 @@ public class BlueDentalDbContext :
 
     // Organizations
     public DbSet<ClinicBranch> ClinicBranches { get; set; }
+    public DbSet<Department> Departments { get; set; }
 
     // Catalogs
     public DbSet<DentalProcedure> DentalProcedures { get; set; }
@@ -76,6 +77,7 @@ public class BlueDentalDbContext :
 
     // Inventory
     public DbSet<InventoryItem> InventoryItems { get; set; }
+    public DbSet<MaterialAllocation> MaterialAllocations { get; set; }
 
     // Notifications
     public DbSet<Notification> Notifications { get; set; }
@@ -92,6 +94,7 @@ public class BlueDentalDbContext :
     public DbSet<LaboBiteType> LaboBiteTypes { get; set; }
     public DbSet<LaboFinishLine> LaboFinishLines { get; set; }
     public DbSet<LaboRhythmType> LaboRhythmTypes { get; set; }
+    public DbSet<LaboMaterial> LaboMaterials { get; set; }
 
     // Customer Care
     public DbSet<CareRecord> CareRecords { get; set; }

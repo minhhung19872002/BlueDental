@@ -53,6 +53,14 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Status).HasConversion<short>();
             entity.HasIndex(x => x.Code).IsUnique();
         });
+
+        builder.Entity<Department>(entity =>
+        {
+            entity.ToTable("bd_departments");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(1000);
+        });
     }
 
     private static void ConfigureCatalogs(ModelBuilder builder)
@@ -344,6 +352,19 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Ignore(x => x.NeedsReorder);
             entity.HasIndex(x => new { x.BranchId, x.ItemCode }).IsUnique();
         });
+
+        builder.Entity<MaterialAllocation>(entity =>
+        {
+            entity.ToTable("bd_material_allocations");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.AllocationCode).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.AllocatedQuantity).HasPrecision(18, 3);
+            entity.Property(x => x.ConfirmedRemaining).HasPrecision(18, 3);
+            entity.Property(x => x.PerformerName).HasMaxLength(200);
+            entity.Property(x => x.Note).HasMaxLength(1000);
+            entity.HasIndex(x => x.AllocationCode).IsUnique();
+            entity.HasIndex(x => new { x.DepartmentId, x.AllocationTime });
+        });
     }
 
     private static void ConfigureNotifications(ModelBuilder builder)
@@ -442,6 +463,15 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.ToTable("bd_labo_rhythm_types");
             entity.ConfigureByConvention();
             entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(1000);
+        });
+
+        builder.Entity<LaboMaterial>(entity =>
+        {
+            entity.ToTable("bd_labo_materials");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Category).HasMaxLength(100);
             entity.Property(x => x.Description).HasMaxLength(1000);
         });
     }

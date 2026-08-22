@@ -167,3 +167,46 @@ export function useDeleteLaboRhythmType() {
   const qc = useQueryClient();
   return useMutation({ mutationFn: (id: string) => laboRhythmTypeApi.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ["labo-rhythm-types"] }) });
 }
+
+// ── Labo Material ──────────────────────────────────────────────────────
+
+export interface LaboMaterialDto {
+  id: string;
+  name: string;
+  category?: string;
+  description?: string;
+  supplierId?: string;
+  isActive: boolean;
+  creationTime: string;
+  lastModificationTime?: string;
+}
+
+export interface CreateLaboMaterialDto { name: string; category?: string; description?: string; supplierId?: string; }
+export interface UpdateLaboMaterialDto { name: string; category?: string; description?: string; supplierId?: string; }
+
+const laboMaterialApi = {
+  list: (params?: { filter?: string; maxResultCount?: number }): Promise<PagedResult<LaboMaterialDto>> =>
+    api.get("/v1/app/labo-materials", { params }).then((r) => r.data),
+  create: (data: CreateLaboMaterialDto): Promise<LaboMaterialDto> =>
+    api.post("/v1/app/labo-materials", data).then((r) => r.data),
+  update: (id: string, data: UpdateLaboMaterialDto): Promise<LaboMaterialDto> =>
+    api.put(`/v1/app/labo-materials/${id}`, data).then((r) => r.data),
+  delete: (id: string): Promise<void> =>
+    api.delete(`/v1/app/labo-materials/${id}`).then((r) => r.data),
+};
+
+export function useLaboMaterialList() {
+  return useQuery({ queryKey: ["labo-materials"], queryFn: () => laboMaterialApi.list({ maxResultCount: 200 }) });
+}
+export function useCreateLaboMaterial() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: (data: CreateLaboMaterialDto) => laboMaterialApi.create(data), onSuccess: () => qc.invalidateQueries({ queryKey: ["labo-materials"] }) });
+}
+export function useUpdateLaboMaterial() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: ({ id, data }: { id: string; data: UpdateLaboMaterialDto }) => laboMaterialApi.update(id, data), onSuccess: () => qc.invalidateQueries({ queryKey: ["labo-materials"] }) });
+}
+export function useDeleteLaboMaterial() {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: (id: string) => laboMaterialApi.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ["labo-materials"] }) });
+}

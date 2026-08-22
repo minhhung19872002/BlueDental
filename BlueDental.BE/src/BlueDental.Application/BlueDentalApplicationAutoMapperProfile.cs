@@ -19,6 +19,7 @@ public class BlueDentalApplicationAutoMapperProfile : Profile
     {
         /* Organizations */
         CreateMap<ClinicBranch, ClinicBranchDto>();
+        CreateMap<Department, DepartmentDto>();
 
         /* Catalogs */
         CreateMap<DentalProcedure, DentalProcedureDto>();
@@ -40,6 +41,7 @@ public class BlueDentalApplicationAutoMapperProfile : Profile
         CreateMap<Labo.LaboBiteType, Labo.LaboBiteTypeDto>();
         CreateMap<Labo.LaboFinishLine, Labo.LaboFinishLineDto>();
         CreateMap<Labo.LaboRhythmType, Labo.LaboRhythmTypeDto>();
+        CreateMap<Labo.LaboMaterial, Labo.LaboMaterialDto>();
 
         // Customer Care
         CreateMap<CustomerCare.CskhGroup, CustomerCare.CskhGroupDto>();
@@ -75,6 +77,9 @@ public class BlueDentalApplicationAutoMapperProfile : Profile
 
         /* Inventory */
         CreateMap<InventoryItem, InventoryItemDto>();
+        CreateMap<MaterialAllocation, MaterialAllocationDto>()
+            .ForMember(d => d.InventoryItemName, opt => opt.Ignore())
+            .ForMember(d => d.DepartmentName, opt => opt.Ignore());
 
         /* Notifications */
         CreateMap<Notification, NotificationDto>();

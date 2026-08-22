@@ -16,7 +16,9 @@ import {
   useLaboBiteTypeList, useCreateLaboBiteType, useUpdateLaboBiteType, useDeleteLaboBiteType,
   useLaboFinishLineList, useCreateLaboFinishLine, useUpdateLaboFinishLine, useDeleteLaboFinishLine,
   useLaboRhythmTypeList, useCreateLaboRhythmType, useUpdateLaboRhythmType, useDeleteLaboRhythmType,
+  useLaboMaterialList, useCreateLaboMaterial, useUpdateLaboMaterial, useDeleteLaboMaterial,
   type LaboSupplierDto,
+  type LaboMaterialDto,
 } from "../api/laboCatalogApi";
 import { usePatientList } from "@/features/patient-management/api/patientQueries";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -509,18 +511,60 @@ function LaboCrudView({ config }: { config: LaboCrudConfig }) {
 
 function ServiceMaterialView() {
   const [keyword, setKeyword] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<LaboMaterialDto | null>(null);
+  const [form] = Form.useForm();
 
-  const columns = [
+  const { data, isLoading } = useLaboMaterialList();
+  const createMutation = useCreateLaboMaterial();
+  const updateMutation = useUpdateLaboMaterial();
+  const deleteMutation = useDeleteLaboMaterial();
+  const { data: suppliers } = useLaboSupplierList();
+
+  const items = (data?.items ?? []).filter((item) => {
+    if (!keyword) return true;
+    const kw = keyword.toLowerCase();
+    return item.name.toLowerCase().includes(kw) || (item.category ?? "").toLowerCase().includes(kw);
+  });
+
+  const supplierMap = new Map((suppliers?.items ?? []).map((s) => [s.id, s.name]));
+
+  const handleOk = async () => {
+    try {
+      const values = await form.validateFields();
+      if (editingItem) {
+        await updateMutation.mutateAsync({ id: editingItem.id, data: values });
+        message.success("Cập nhật vật liệu thành công");
+      } else {
+        await createMutation.mutateAsync(values);
+        message.success("Thêm vật liệu thành công");
+      }
+      form.resetFields();
+      setModalOpen(false);
+      setEditingItem(null);
+    } catch { /* validation */ }
+  };
+
+  const handleDelete = async (id: string) => {
+    await deleteMutation.mutateAsync(id);
+    message.success("Xóa vật liệu thành công");
+  };
+
+  const columns: ColumnsType<LaboMaterialDto> = [
     { title: "Vật liệu", dataIndex: "name", key: "name" },
-    { title: "Nhóm phân loại", dataIndex: "category", key: "category" },
-    { title: "Cập nhật gần nhất", dataIndex: "updatedAt", key: "updatedAt" },
+    { title: "Nhóm phân loại", dataIndex: "category", key: "category", render: (v: string) => v ?? "—" },
+    { title: "Nhà cung cấp", key: "supplier", render: (_, r) => r.supplierId ? supplierMap.get(r.supplierId) ?? "—" : "—" },
+    { title: "Cập nhật gần nhất", dataIndex: "lastModificationTime", key: "updatedAt", render: (v: string) => v ? dayjs(v).format("DD/MM/YYYY") : "—" },
     {
       title: "Thao tác",
       key: "actions",
-      render: () => (
-        <div style={{ display: "flex", gap: 8 }}>
-          <Button size="small">Chỉnh sửa</Button>
-          <Button size="small" danger>Xoá</Button>
+      width: 120,
+      render: (_, record) => (
+        <div style={{ display: "flex", gap: 6 }}>
+          <Button size="small" icon={<EditOutlined />} onClick={() => { setEditingItem(record); form.setFieldsValue(record); setModalOpen(true); }} />
+          <Popconfirm title="Xác nhận xóa?" onConfirm={() => handleDelete(record.id)} okText="Xóa" cancelText="Hủy" okButtonProps={{ danger: true }}>
+            <Button size="small" danger icon={<DeleteOutlined />} />
+          </Popconfirm>
         </div>
       ),
     },
@@ -529,38 +573,51 @@ function ServiceMaterialView() {
   return (
     <div style={{ display: "flex", gap: 16 }}>
       <div className="reception-card" style={{ width: 240, minWidth: 200, padding: 16, flexShrink: 0 }}>
-        <div style={{ marginBottom: 12 }}>
-          <Button type="dashed" block>Thêm Mới</Button>
+        <div style={{ fontWeight: 600, marginBottom: 8 }}>
+          Nhà cung cấp
+          <span style={{ fontWeight: 400, color: "#8c8c8c", marginLeft: 6 }}>{(suppliers?.items ?? []).length} NCC</span>
         </div>
-        <div style={{ color: "#8c8c8c", fontSize: 13, textAlign: "center", paddingTop: 24 }}>
-          Chưa có nhà cung cấp
-        </div>
+        {(suppliers?.items ?? []).length === 0 ? (
+          <div style={{ color: "#8c8c8c", fontSize: 13, textAlign: "center", paddingTop: 24 }}>Chưa có nhà cung cấp</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {(suppliers?.items ?? []).map((s) => (
+              <div key={s.id} style={{ padding: "6px 8px", fontSize: 13, borderRadius: 4, background: "#F3F4F6", cursor: "default" }}>{s.name}</div>
+            ))}
+          </div>
+        )}
       </div>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
         <div className="reception-card reception-card--toolbar">
           <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
-            <Button type="primary">Tạo vật liệu</Button>
-            <Input
-              prefix={<SearchOutlined />}
-              placeholder="Tìm kiếm..."
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              style={{ width: 220 }}
-              allowClear
-            />
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingItem(null); form.resetFields(); setModalOpen(true); }}>Tạo vật liệu</Button>
+            <Input prefix={<SearchOutlined />} placeholder="Tìm kiếm..." value={keyword} onChange={(e) => setKeyword(e.target.value)} style={{ width: 220 }} allowClear />
           </div>
         </div>
         <div className="reception-card reception-card--content">
-          <Table
-            columns={columns}
-            dataSource={[]}
-            rowKey="id"
-            pagination={{ pageSize: 20, showTotal: (total) => `${total} vật liệu` }}
-            locale={{ emptyText: "Không có dữ liệu" }}
-            size="middle"
-          />
+          <Table columns={columns} dataSource={items} rowKey="id" loading={isLoading} pagination={{ pageSize: 20, showTotal: (total) => `${total} vật liệu` }} locale={{ emptyText: "Không có dữ liệu" }} size="middle" />
         </div>
       </div>
+
+      <Modal
+        title={editingItem ? "Chỉnh sửa vật liệu" : "Thêm vật liệu Labo"}
+        open={modalOpen}
+        onCancel={() => { setModalOpen(false); setEditingItem(null); form.resetFields(); }}
+        onOk={handleOk}
+        confirmLoading={createMutation.isPending || updateMutation.isPending}
+        okText={editingItem ? "Lưu" : "Thêm"}
+        cancelText="Hủy"
+        destroyOnClose
+      >
+        <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
+          <Form.Item name="name" label="Tên vật liệu" rules={[{ required: true, message: "Nhập tên vật liệu" }]}><Input placeholder="Nhập tên..." /></Form.Item>
+          <Form.Item name="category" label="Nhóm phân loại"><Input placeholder="VD: Kim loại, Sứ, Composite..." /></Form.Item>
+          <Form.Item name="supplierId" label="Nhà cung cấp">
+            <Select placeholder="Chọn nhà cung cấp" allowClear options={(suppliers?.items ?? []).map((s) => ({ value: s.id, label: s.name }))} />
+          </Form.Item>
+          <Form.Item name="description" label="Mô tả"><Input.TextArea rows={2} placeholder="Mô tả..." /></Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 }
