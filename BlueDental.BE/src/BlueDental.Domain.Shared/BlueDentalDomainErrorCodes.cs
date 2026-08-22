@@ -17,6 +17,15 @@ public static class BlueDentalDomainErrorCodes
         public const string InsurancePlanNotFound = "BlueDental:Catalogs:0003";
         public const string MedicationNotFound = "BlueDental:Catalogs:0004";
         public const string DuplicateMedicationCode = "BlueDental:Catalogs:0005";
+        public const string UnknownTaxonomyGroup = "BlueDental:Catalogs:0006";
+        public const string SystemTaxonomyLocked = "BlueDental:Catalogs:0007";
+        public const string InvalidTaxonomyColor = "BlueDental:Catalogs:0008";
+        public const string InvalidCatalogPrice = "BlueDental:Catalogs:0009";
+        public const string PriceNotSupported = "BlueDental:Catalogs:0010";
+        public const string ContentNotSupported = "BlueDental:Catalogs:0011";
+        public const string TaxonomyNotFound = "BlueDental:Catalogs:0012";
+        public const string CatalogEntryNotFound = "BlueDental:Catalogs:0013";
+        public const string TaxonomyNotEmpty = "BlueDental:Catalogs:0014";
     }
 
     public static class PatientManagement

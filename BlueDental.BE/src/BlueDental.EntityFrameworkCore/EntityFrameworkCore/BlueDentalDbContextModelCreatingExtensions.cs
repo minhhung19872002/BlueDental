@@ -494,5 +494,35 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => x.Code).IsUnique();
             entity.HasIndex(x => new { x.Status, x.ValidFrom, x.ValidTo });
         });
+
+        // Nhom danh muc
+        builder.Entity<Taxonomy>(entity =>
+        {
+            entity.ToTable("bd_taxonomies");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Group).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Alias).HasMaxLength(200);
+            entity.Property(x => x.Color).HasMaxLength(9);
+            entity.Property(x => x.SubGroup).HasMaxLength(100);
+            entity.Property(x => x.Description).HasMaxLength(1000);
+            entity.Ignore(x => x.IsPriced);
+            entity.Ignore(x => x.IsTemplated);
+            entity.HasIndex(x => new { x.ClinicBranchId, x.Group, x.SortOrder });
+        });
+
+        // Muc danh muc
+        builder.Entity<CatalogEntry>(entity =>
+        {
+            entity.ToTable("bd_catalog_entries");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Group).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.Name).HasMaxLength(300).IsRequired();
+            entity.Property(x => x.Code).HasMaxLength(64);
+            entity.Property(x => x.Description).HasMaxLength(2000);
+            entity.Property(x => x.Price).HasColumnType("numeric(18,2)");
+            entity.HasIndex(x => new { x.ClinicBranchId, x.Group, x.IsActive });
+            entity.HasIndex(x => new { x.TaxonomyId, x.SortOrder });
+        });
     }
 }
