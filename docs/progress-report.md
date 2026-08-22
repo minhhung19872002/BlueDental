@@ -50,17 +50,37 @@ Tổng test BE: **254 pass** (149 domain + 51 application + 39 EF + 15 HttpApi).
 
 Build FE production: OK. Typecheck: sạch. Unit test FE: 3/3 pass.
 
-### Còn thiếu (ưu tiên tiếp theo)
+### Hạng mục A–G — ĐÃ HOÀN THÀNH (session 6, đợt 2)
+
+| # | Hạng mục | Kết quả |
+|---|----------|---------|
+| A | Form tạo/sửa Thu chi, Luân chuyển, Voucher | ✅ Dialog tạo/sửa phiếu thu-chi (tạo mục inline), duyệt/từ chối, Nạp/Rút/Luân chuyển, và trang `/voucher` |
+| B | Dental chart theo mặt răng | ✅ `ToothSurfaceChart` — 5 mặt/răng, chọn cả răng, shortcut Hàm Trên/Dưới/Nguyên Hàm |
+| C | Gắn ability lên endpoint | ✅ 447 hằng số permission; attribute trên toàn bộ AppService; check động cho thu/chi, danh mục, 3 thao tác tiền mặt, 12 danh mục và `attendanceOthers` |
+| D | FE Danh mục dùng API taxonomy | ✅ 1 panel cấu hình cho 9 danh mục thật; 2 danh mục còn lại nêu rõ lý do |
+| E | Treatment stage (công đoạn) | ⛔ Vẫn `UNKNOWN_REFERENCE_BEHAVIOR` — app gốc không có dữ liệu để quan sát an toàn |
+| F | `docs/testing/*` registry | ✅ 4 file gốc + 4 file feature |
+| G | Acceptance test full-stack thật | ✅ 9 test Playwright trên Postgres + API + Vite thật, không mock |
+
+### Bug thật phát hiện khi chạy stack thật (đã sửa)
+
+Chi tiết: `docs/testing/03-regression-log.md` — 9 lỗi, nghiêm trọng nhất:
+
+- Danh sách bệnh nhân **crash** ngay khi có 1 bệnh nhân (bind thẳng DTO server vào bảng)
+- **Không thể tạo bệnh nhân**: ô "Họ và tên" bind `lastName` nhưng schema còn bắt buộc `firstName`
+- Request tạo bệnh nhân sai contract (`phone` / thiếu `branchId` / `dateOfBirth` rỗng)
+- **Trùng `PatientCode`** do cắt 6 ký tự đầu của GUID tuần tự → 500 ở lần đăng ký thứ hai trong ngày
+- Enter trong dialog vừa commit ngày vừa submit form → gửi trùng
+
+### Còn lại
 
 | # | Hạng mục | Ghi chú |
 |---|----------|---------|
-| A | Form tạo/sửa cho Thu chi, Luân chuyển, Voucher | Hiện FE mới ở mức đọc (list + summary) |
-| B | Dental chart ghi nhận mặt răng (top/right/bottom/left/center) | `DentalChartView` mới chọn cả răng, chưa chọn mặt |
-| C | Gắn `[Authorize(BlueDentalAbilities.Permission(...))]` vào từng AppService | Catalog đã có, chưa áp lên endpoint |
-| D | FE cho Danh mục dùng API taxonomy mới | BE xong, `TaxonomyPage` vẫn dữ liệu tĩnh |
-| E | Treatment stage (công đoạn) | Chưa quan sát được payload — UNKNOWN_REFERENCE_BEHAVIOR |
-| F | `docs/testing/*` registry theo CLAUDE.md | Chưa tạo |
-| G | Real full-stack acceptance test (Playwright + PostgreSQL thật) | Test hiện tại là domain/mapping/contract, chưa phải runtime acceptance |
+| 1 | Dialog tạo phiếu chẩn đoán / tư vấn | Bảng đã đọc API thật; chưa có form ghi |
+| 2 | Acceptance cho Voucher (tạo + redeem) | Trang chạy thật, chưa có spec |
+| 3 | Check-in/out chấm công qua UI | Cần seed ngày làm việc trước mới có thẻ để thao tác |
+| 4 | CSKH / Labo / Vật tư / Vận hành | Mới ở mức UI |
+| 5 | Branch isolation | Chỉ seed 1 chi nhánh nên chưa kiểm chứng chặn chéo chi nhánh |
 
 ---
 
