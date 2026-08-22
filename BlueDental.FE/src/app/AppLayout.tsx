@@ -2,11 +2,19 @@ import { useState, useEffect, useCallback } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   Avatar,
+  Badge,
   Dropdown,
   Input,
+  List,
   Popover,
   type MenuProps,
 } from "antd";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import "dayjs/locale/vi";
+import { useMyNotifications, useMarkNotificationRead, useMarkAllNotificationsRead } from "@/features/notifications/api";
+dayjs.extend(relativeTime);
+dayjs.locale("vi");
 import {
   UserOutlined,
   LogoutOutlined,
@@ -97,6 +105,65 @@ function initialsOf(name: string | undefined): string {
   if (words.length === 0) return "BD";
   if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
   return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+}
+
+function NotificationBell() {
+  const { data } = useMyNotifications();
+  const markRead = useMarkNotificationRead();
+  const markAllRead = useMarkAllNotificationsRead();
+  const notifications = data?.items ?? [];
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
+
+  const content = (
+    <div style={{ width: 320 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", borderBottom: "1px solid #F0F0F0" }}>
+        <span style={{ fontWeight: 600, fontSize: 14 }}>Thông báo</span>
+        {unreadCount > 0 && (
+          <button
+            type="button"
+            style={{ background: "none", border: "none", color: "#1677ff", cursor: "pointer", fontSize: 12 }}
+            onClick={() => markAllRead.mutate()}
+          >
+            Đánh dấu tất cả đã đọc
+          </button>
+        )}
+      </div>
+      {notifications.length === 0 ? (
+        <div style={{ padding: "24px 0", textAlign: "center", color: "#9CA3AF", fontSize: 13 }}>
+          Không có thông báo
+        </div>
+      ) : (
+        <List
+          size="small"
+          dataSource={notifications}
+          renderItem={(notif) => (
+            <List.Item
+              style={{ padding: "8px 12px", background: notif.isRead ? "#fff" : "#F0F7FF", cursor: "pointer" }}
+              onClick={() => { if (!notif.isRead) markRead.mutate(notif.id); }}
+            >
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, color: "#1B2A41", lineHeight: 1.4 }}>{notif.message}</div>
+                <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 2 }}>
+                  {dayjs(notif.creationTime).fromNow()}
+                </div>
+              </div>
+              {!notif.isRead && <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#1677ff", flexShrink: 0 }} />}
+            </List.Item>
+          )}
+        />
+      )}
+    </div>
+  );
+
+  return (
+    <Popover content={content} trigger="click" placement="bottomRight" arrow={false}>
+      <button type="button" className="app-header-icon-btn" aria-label="Thông báo">
+        <Badge count={unreadCount} size="small" offset={[-2, 2]}>
+          <BellOutlined style={{ fontSize: 18 }} />
+        </Badge>
+      </button>
+    </Popover>
+  );
 }
 
 function SidebarNavItem({
@@ -373,10 +440,7 @@ export function AppLayout() {
                 </button>
               </Popover>
 
-              <button type="button" className="app-header-icon-btn" aria-label="Thông báo">
-                <BellOutlined style={{ fontSize: 18 }} />
-                <span className="app-header-notif-dot" />
-              </button>
+              <NotificationBell />
 
               <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
                 <div className="app-header-user" role="button" tabIndex={0} aria-label="Tài khoản người dùng">
