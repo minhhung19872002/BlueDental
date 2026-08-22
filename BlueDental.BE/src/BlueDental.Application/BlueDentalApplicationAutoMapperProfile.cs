@@ -28,6 +28,21 @@ public class BlueDentalApplicationAutoMapperProfile : Profile
         CreateMap<Occupation, OccupationDto>();
         CreateMap<PaymentMethodOption, PaymentMethodDto>();
         CreateMap<PatientTag, PatientTagDto>();
+        CreateMap<Diagnosis, DiagnosisDto>();
+        CreateMap<MedicationType, MedicationTypeDto>();
+        CreateMap<ConsultingData, ConsultingDataDto>();
+        CreateMap<MedicalHistoryType, MedicalHistoryTypeDto>();
+        CreateMap<PrescriptionTemplate, PrescriptionTemplateDto>();
+        CreateMap<MedicalRecordTemplate, MedicalRecordTemplateDto>();
+
+        // Labo catalogs
+        CreateMap<Labo.LaboSupplier, Labo.LaboSupplierDto>();
+        CreateMap<Labo.LaboBiteType, Labo.LaboBiteTypeDto>();
+        CreateMap<Labo.LaboFinishLine, Labo.LaboFinishLineDto>();
+        CreateMap<Labo.LaboRhythmType, Labo.LaboRhythmTypeDto>();
+
+        // Customer Care
+        CreateMap<CustomerCare.CskhGroup, CustomerCare.CskhGroupDto>();
 
         /* Patient Management */
         CreateMap<Patient, PatientDto>()

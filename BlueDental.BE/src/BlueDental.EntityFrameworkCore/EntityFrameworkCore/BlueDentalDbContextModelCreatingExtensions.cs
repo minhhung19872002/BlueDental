@@ -90,6 +90,95 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.DosageForm).HasMaxLength(100);
             entity.Property(x => x.Strength).HasMaxLength(100);
         });
+
+        builder.Entity<PatientSource>(entity =>
+        {
+            entity.ToTable("bd_patient_sources");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Code).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(1000);
+            entity.HasIndex(x => x.Code).IsUnique();
+        });
+
+        builder.Entity<Occupation>(entity =>
+        {
+            entity.ToTable("bd_occupations");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(1000);
+        });
+
+        builder.Entity<PaymentMethodOption>(entity =>
+        {
+            entity.ToTable("bd_payment_methods");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Code).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(1000);
+            entity.HasIndex(x => x.Code).IsUnique();
+        });
+
+        builder.Entity<PatientTag>(entity =>
+        {
+            entity.ToTable("bd_patient_tags");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Color).HasMaxLength(20);
+            entity.Property(x => x.Description).HasMaxLength(1000);
+        });
+
+        builder.Entity<Diagnosis>(entity =>
+        {
+            entity.ToTable("bd_diagnoses");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Code).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(1000);
+            entity.HasIndex(x => x.Code).IsUnique();
+        });
+
+        builder.Entity<MedicationType>(entity =>
+        {
+            entity.ToTable("bd_medication_types");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(1000);
+        });
+
+        builder.Entity<ConsultingData>(entity =>
+        {
+            entity.ToTable("bd_consulting_data");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(1000);
+        });
+
+        builder.Entity<MedicalHistoryType>(entity =>
+        {
+            entity.ToTable("bd_medical_history_types");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(1000);
+        });
+
+        builder.Entity<PrescriptionTemplate>(entity =>
+        {
+            entity.ToTable("bd_prescription_templates");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Content).HasMaxLength(8000);
+            entity.Property(x => x.Description).HasMaxLength(1000);
+        });
+
+        builder.Entity<MedicalRecordTemplate>(entity =>
+        {
+            entity.ToTable("bd_medical_record_templates");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Content).HasMaxLength(8000);
+            entity.Property(x => x.Description).HasMaxLength(1000);
+        });
     }
 
     private static void ConfigurePatientManagement(ModelBuilder builder)
@@ -321,6 +410,40 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => x.OrderCode).IsUnique();
             entity.HasIndex(x => new { x.BranchId, x.Status });
         });
+
+        builder.Entity<LaboSupplier>(entity =>
+        {
+            entity.ToTable("bd_labo_suppliers");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Phone).HasMaxLength(50);
+            entity.Property(x => x.Email).HasMaxLength(256);
+            entity.Property(x => x.Address).HasMaxLength(500);
+        });
+
+        builder.Entity<LaboBiteType>(entity =>
+        {
+            entity.ToTable("bd_labo_bite_types");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(1000);
+        });
+
+        builder.Entity<LaboFinishLine>(entity =>
+        {
+            entity.ToTable("bd_labo_finish_lines");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(1000);
+        });
+
+        builder.Entity<LaboRhythmType>(entity =>
+        {
+            entity.ToTable("bd_labo_rhythm_types");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(1000);
+        });
     }
 
     private static void ConfigureCustomerCare(ModelBuilder builder)
@@ -336,6 +459,15 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Resolution).HasMaxLength(2000);
             entity.HasIndex(x => new { x.BranchId, x.Status });
             entity.HasIndex(x => new { x.PatientId, x.Status });
+        });
+
+        builder.Entity<CskhGroup>(entity =>
+        {
+            entity.ToTable("bd_cskh_groups");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Criteria).HasMaxLength(1000);
+            entity.Property(x => x.Description).HasMaxLength(1000);
         });
     }
 }

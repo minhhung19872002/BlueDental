@@ -52,6 +52,12 @@ public class BlueDentalDbContext :
     public DbSet<Occupation> Occupations { get; set; }
     public DbSet<PaymentMethodOption> PaymentMethods { get; set; }
     public DbSet<PatientTag> PatientTags { get; set; }
+    public DbSet<Diagnosis> Diagnoses { get; set; }
+    public DbSet<MedicationType> MedicationTypes { get; set; }
+    public DbSet<ConsultingData> ConsultingDataItems { get; set; }
+    public DbSet<MedicalHistoryType> MedicalHistoryTypes { get; set; }
+    public DbSet<PrescriptionTemplate> PrescriptionTemplates { get; set; }
+    public DbSet<MedicalRecordTemplate> MedicalRecordTemplates { get; set; }
 
     // Patient Management
     public DbSet<Patient> Patients { get; set; }
@@ -82,9 +88,14 @@ public class BlueDentalDbContext :
 
     // Labo
     public DbSet<LaboOrder> LaboOrders { get; set; }
+    public DbSet<LaboSupplier> LaboSuppliers { get; set; }
+    public DbSet<LaboBiteType> LaboBiteTypes { get; set; }
+    public DbSet<LaboFinishLine> LaboFinishLines { get; set; }
+    public DbSet<LaboRhythmType> LaboRhythmTypes { get; set; }
 
     // Customer Care
     public DbSet<CareRecord> CareRecords { get; set; }
+    public DbSet<CskhGroup> CskhGroups { get; set; }
 
     public BlueDentalDbContext(DbContextOptions<BlueDentalDbContext> options)
         : base(options)
