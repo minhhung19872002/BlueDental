@@ -19,7 +19,13 @@ import {
   useOccupationList, useCreateOccupation, useUpdateOccupation, useDeleteOccupation,
   usePaymentMethodList, useCreatePaymentMethod, useUpdatePaymentMethod, useDeletePaymentMethod,
   usePatientTagList, useCreatePatientTag, useUpdatePatientTag, useDeletePatientTag,
-  type PatientSourceDto, type OccupationDto, type PaymentMethodDto, type PatientTagDto,
+  // Remaining 6 catalog entities
+  useDiagnosisList, useCreateDiagnosis, useUpdateDiagnosis, useDeleteDiagnosis,
+  useMedicationTypeList, useCreateMedicationType, useUpdateMedicationType, useDeleteMedicationType,
+  useConsultingDataList, useCreateConsultingData, useUpdateConsultingData, useDeleteConsultingData,
+  useMedicalHistoryTypeList, useCreateMedicalHistoryType, useUpdateMedicalHistoryType, useDeleteMedicalHistoryType,
+  usePrescriptionTemplateList, useCreatePrescriptionTemplate, useUpdatePrescriptionTemplate, useDeletePrescriptionTemplate,
+  useMedicalRecordTemplateList, useCreateMedicalRecordTemplate, useUpdateMedicalRecordTemplate, useDeleteMedicalRecordTemplate,
 } from "../api/catalogApi";
 
 // ── Constants ─────────────────────────────────────────────────────────────
@@ -683,6 +689,66 @@ const CRUD_CONFIGS: Record<string, CrudPanelConfig> = {
     useUpdate: useUpdatePatientTag as CrudPanelConfig["useUpdate"],
     useDelete: useDeletePatientTag as CrudPanelConfig["useDelete"],
   },
+  diagnosis: {
+    nameLabel: "Chẩn đoán",
+    hasCode: true,
+    hasColor: false,
+    hasSortOrder: true,
+    useList: useDiagnosisList as CrudPanelConfig["useList"],
+    useCreate: useCreateDiagnosis as CrudPanelConfig["useCreate"],
+    useUpdate: useUpdateDiagnosis as CrudPanelConfig["useUpdate"],
+    useDelete: useDeleteDiagnosis as CrudPanelConfig["useDelete"],
+  },
+  medicine: {
+    nameLabel: "Loại thuốc",
+    hasCode: false,
+    hasColor: false,
+    hasSortOrder: true,
+    useList: useMedicationTypeList as CrudPanelConfig["useList"],
+    useCreate: useCreateMedicationType as CrudPanelConfig["useCreate"],
+    useUpdate: useUpdateMedicationType as CrudPanelConfig["useUpdate"],
+    useDelete: useDeleteMedicationType as CrudPanelConfig["useDelete"],
+  },
+  consulting: {
+    nameLabel: "Dữ liệu tư vấn",
+    hasCode: false,
+    hasColor: false,
+    hasSortOrder: true,
+    useList: useConsultingDataList as CrudPanelConfig["useList"],
+    useCreate: useCreateConsultingData as CrudPanelConfig["useCreate"],
+    useUpdate: useUpdateConsultingData as CrudPanelConfig["useUpdate"],
+    useDelete: useDeleteConsultingData as CrudPanelConfig["useDelete"],
+  },
+  history: {
+    nameLabel: "Lịch sử bệnh",
+    hasCode: false,
+    hasColor: false,
+    hasSortOrder: true,
+    useList: useMedicalHistoryTypeList as CrudPanelConfig["useList"],
+    useCreate: useCreateMedicalHistoryType as CrudPanelConfig["useCreate"],
+    useUpdate: useUpdateMedicalHistoryType as CrudPanelConfig["useUpdate"],
+    useDelete: useDeleteMedicalHistoryType as CrudPanelConfig["useDelete"],
+  },
+  "prescription-template": {
+    nameLabel: "Đơn thuốc mẫu",
+    hasCode: false,
+    hasColor: false,
+    hasSortOrder: true,
+    useList: usePrescriptionTemplateList as CrudPanelConfig["useList"],
+    useCreate: useCreatePrescriptionTemplate as CrudPanelConfig["useCreate"],
+    useUpdate: useUpdatePrescriptionTemplate as CrudPanelConfig["useUpdate"],
+    useDelete: useDeletePrescriptionTemplate as CrudPanelConfig["useDelete"],
+  },
+  "medical-record-template": {
+    nameLabel: "Bệnh án mẫu",
+    hasCode: false,
+    hasColor: false,
+    hasSortOrder: true,
+    useList: useMedicalRecordTemplateList as CrudPanelConfig["useList"],
+    useCreate: useCreateMedicalRecordTemplate as CrudPanelConfig["useCreate"],
+    useUpdate: useUpdateMedicalRecordTemplate as CrudPanelConfig["useUpdate"],
+    useDelete: useDeleteMedicalRecordTemplate as CrudPanelConfig["useDelete"],
+  },
 };
 
 // ── Simple Tab Panel (placeholder for tabs without BE yet) ───────────────
@@ -764,12 +830,6 @@ function SimpleTabPanel({ activeTab }: { activeTab: string }) {
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────
-
-// suppress unused variable warnings for DTO type imports used only for type-level casting
-void (0 as unknown as PatientSourceDto);
-void (0 as unknown as OccupationDto);
-void (0 as unknown as PaymentMethodDto);
-void (0 as unknown as PatientTagDto);
 
 export function TaxonomyPage() {
   const [activeTab, setActiveTab] = useState("service");

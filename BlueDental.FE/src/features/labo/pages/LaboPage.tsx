@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button, Input, Select, Table, Tag, Modal, Form, InputNumber, DatePicker, message, Popconfirm } from "antd";
-import { SearchOutlined, DownloadOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
+import { SearchOutlined, DownloadOutlined, PlusOutlined, DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import {
   useLaboOrderList,
@@ -11,8 +11,16 @@ import {
   type LaboOrderDto,
   type CreateLaboOrderDto,
 } from "../api/laboApi";
+import {
+  useLaboSupplierList, useCreateLaboSupplier, useUpdateLaboSupplier, useDeleteLaboSupplier,
+  useLaboBiteTypeList, useCreateLaboBiteType, useUpdateLaboBiteType, useDeleteLaboBiteType,
+  useLaboFinishLineList, useCreateLaboFinishLine, useUpdateLaboFinishLine, useDeleteLaboFinishLine,
+  useLaboRhythmTypeList, useCreateLaboRhythmType, useUpdateLaboRhythmType, useDeleteLaboRhythmType,
+  type LaboSupplierDto,
+} from "../api/laboCatalogApi";
 import { usePatientList } from "@/features/patient-management/api/patientQueries";
 import { useDebounce } from "@/hooks/useDebounce";
+import type { ColumnsType } from "antd/es/table";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -300,20 +308,54 @@ function MauLaboView() {
 
 function SupplierView() {
   const [keyword, setKeyword] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<LaboSupplierDto | null>(null);
+  const [form] = Form.useForm();
 
-  const columns = [
+  const { data, isLoading } = useLaboSupplierList();
+  const createMutation = useCreateLaboSupplier();
+  const updateMutation = useUpdateLaboSupplier();
+  const deleteMutation = useDeleteLaboSupplier();
+  const isEdit = Boolean(editingItem);
+
+  const filtered = (data?.items ?? []).filter(
+    (s) => !keyword || s.name.toLowerCase().includes(keyword.toLowerCase()) || (s.phone ?? "").includes(keyword),
+  );
+
+  const handleOk = async () => {
+    try {
+      const values = await form.validateFields();
+      if (isEdit && editingItem) {
+        await updateMutation.mutateAsync({ id: editingItem.id, data: values });
+        message.success("Cập nhật nhà cung cấp thành công");
+      } else {
+        await createMutation.mutateAsync(values);
+        message.success("Tạo nhà cung cấp thành công");
+      }
+      form.resetFields();
+      setEditingItem(null);
+      setModalOpen(false);
+    } catch { /* validation */ }
+  };
+
+  const handleDelete = async (id: string) => {
+    try { await deleteMutation.mutateAsync(id); message.success("Xóa thành công"); } catch { message.error("Xóa thất bại"); }
+  };
+
+  const columns: ColumnsType<LaboSupplierDto> = [
     { title: "Tên labo", dataIndex: "name", key: "name" },
-    { title: "Số điện thoại", dataIndex: "phone", key: "phone" },
-    { title: "Email", dataIndex: "email", key: "email" },
-    { title: "Địa chỉ", dataIndex: "address", key: "address" },
-    { title: "Lần cập nhật cuối", dataIndex: "updatedAt", key: "updatedAt" },
+    { title: "Số điện thoại", dataIndex: "phone", key: "phone", render: (v: string) => v ?? "—" },
+    { title: "Email", dataIndex: "email", key: "email", render: (v: string) => v ?? "—" },
+    { title: "Địa chỉ", dataIndex: "address", key: "address", render: (v: string) => v ?? "—" },
+    { title: "Lần cập nhật cuối", dataIndex: "lastModificationTime", key: "updatedAt", render: (v: string) => v ? dayjs(v).format("DD/MM/YYYY") : "—" },
     {
-      title: "Thao tác",
-      key: "actions",
-      render: () => (
-        <div style={{ display: "flex", gap: 8 }}>
-          <Button size="small">Chỉnh sửa</Button>
-          <Button size="small" danger>Xoá</Button>
+      title: "Thao tác", key: "actions", width: 120,
+      render: (_, record) => (
+        <div style={{ display: "flex", gap: 6 }}>
+          <Button size="small" icon={<EditOutlined />} onClick={() => { setEditingItem(record); setModalOpen(true); }} />
+          <Popconfirm title="Xóa nhà cung cấp?" onConfirm={() => handleDelete(record.id)} okText="Xóa" cancelText="Hủy" okButtonProps={{ danger: true }}>
+            <Button size="small" danger icon={<DeleteOutlined />} />
+          </Popconfirm>
         </div>
       ),
     },
@@ -323,54 +365,116 @@ function SupplierView() {
     <>
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
-          <Input
-            prefix={<SearchOutlined />}
-            placeholder="Tìm kiếm Labo..."
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            style={{ width: 280 }}
-            allowClear
-          />
-          <Button type="primary">Tạo nhà cung cấp</Button>
+          <Input prefix={<SearchOutlined />} placeholder="Tìm kiếm Labo..." value={keyword} onChange={(e) => setKeyword(e.target.value)} style={{ width: 280 }} allowClear />
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingItem(null); form.resetFields(); setModalOpen(true); }}>Tạo nhà cung cấp</Button>
         </div>
       </div>
       <div className="reception-card reception-card--content">
-        <Table
-          columns={columns}
-          dataSource={[]}
-          rowKey="id"
+        <Table columns={columns} dataSource={filtered} rowKey="id" loading={isLoading}
           pagination={{ pageSize: 20, showTotal: (total) => `${total} nhà cung cấp` }}
-          locale={{ emptyText: "Không có dữ liệu" }}
-          size="middle"
-        />
+          locale={{ emptyText: "Không có dữ liệu" }} size="middle" />
       </div>
+      <Modal title={isEdit ? "Chỉnh sửa nhà cung cấp" : "Thêm nhà cung cấp"} open={modalOpen}
+        onCancel={() => { form.resetFields(); setEditingItem(null); setModalOpen(false); }}
+        onOk={handleOk} confirmLoading={createMutation.isPending || updateMutation.isPending}
+        okText={isEdit ? "Lưu thay đổi" : "Tạo mới"} cancelText="Hủy" width={480} destroyOnClose
+        afterOpenChange={(visible) => { if (visible && editingItem) form.setFieldsValue(editingItem); }}>
+        <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
+          <Form.Item name="name" label="Tên nhà cung cấp" rules={[{ required: true, message: "Nhập tên" }]}><Input placeholder="Tên..." /></Form.Item>
+          <Form.Item name="phone" label="Số điện thoại"><Input placeholder="Số điện thoại..." /></Form.Item>
+          <Form.Item name="email" label="Email"><Input placeholder="Email..." /></Form.Item>
+          <Form.Item name="address" label="Địa chỉ"><Input.TextArea rows={2} placeholder="Địa chỉ..." /></Form.Item>
+        </Form>
+      </Modal>
     </>
   );
 }
 
-function SimpleCatalogView({
-  searchPlaceholder,
-  createLabel,
-  columnLabel,
-  paginationUnit,
-}: {
-  searchPlaceholder: string;
-  createLabel: string;
-  columnLabel: string;
-  paginationUnit: string;
-}) {
-  const [keyword, setKeyword] = useState("");
+interface LaboCatalogItem {
+  id: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  lastModificationTime?: string;
+}
 
-  const columns = [
-    { title: columnLabel, dataIndex: "name", key: "name" },
-    { title: "Cập nhật gần nhất", dataIndex: "updatedAt", key: "updatedAt" },
+interface LaboCrudConfig {
+  label: string;
+  useList: () => { data: { items: LaboCatalogItem[] } | undefined; isLoading: boolean };
+  useCreate: () => { mutateAsync: (data: { name: string; description?: string }) => Promise<unknown>; isPending: boolean };
+  useUpdate: () => { mutateAsync: (data: { id: string; data: { name: string; description?: string } }) => Promise<unknown>; isPending: boolean };
+  useDelete: () => { mutateAsync: (id: string) => Promise<unknown>; isPending: boolean };
+}
+
+const LABO_CRUD_CONFIGS: Record<string, LaboCrudConfig> = {
+  bite: {
+    label: "Khớp cắn Labo",
+    useList: useLaboBiteTypeList as LaboCrudConfig["useList"],
+    useCreate: useCreateLaboBiteType as LaboCrudConfig["useCreate"],
+    useUpdate: useUpdateLaboBiteType as LaboCrudConfig["useUpdate"],
+    useDelete: useDeleteLaboBiteType as LaboCrudConfig["useDelete"],
+  },
+  "finish-line": {
+    label: "Đường hoàn tất",
+    useList: useLaboFinishLineList as LaboCrudConfig["useList"],
+    useCreate: useCreateLaboFinishLine as LaboCrudConfig["useCreate"],
+    useUpdate: useUpdateLaboFinishLine as LaboCrudConfig["useUpdate"],
+    useDelete: useDeleteLaboFinishLine as LaboCrudConfig["useDelete"],
+  },
+  nhip: {
+    label: "Kiểu nhịp Labo",
+    useList: useLaboRhythmTypeList as LaboCrudConfig["useList"],
+    useCreate: useCreateLaboRhythmType as LaboCrudConfig["useCreate"],
+    useUpdate: useUpdateLaboRhythmType as LaboCrudConfig["useUpdate"],
+    useDelete: useDeleteLaboRhythmType as LaboCrudConfig["useDelete"],
+  },
+};
+
+function LaboCrudView({ config }: { config: LaboCrudConfig }) {
+  const [keyword, setKeyword] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<LaboCatalogItem | null>(null);
+  const [form] = Form.useForm();
+
+  const { data, isLoading } = config.useList();
+  const createMutation = config.useCreate();
+  const updateMutation = config.useUpdate();
+  const deleteMutation = config.useDelete();
+  const isEdit = Boolean(editingItem);
+
+  const items = (data?.items ?? []).filter(
+    (item) => !keyword || item.name.toLowerCase().includes(keyword.toLowerCase()),
+  );
+
+  const handleOk = async () => {
+    try {
+      const values = await form.validateFields();
+      if (isEdit && editingItem) {
+        await updateMutation.mutateAsync({ id: editingItem.id, data: values });
+        message.success("Cập nhật thành công");
+      } else {
+        await createMutation.mutateAsync(values);
+        message.success("Tạo thành công");
+      }
+      form.resetFields(); setEditingItem(null); setModalOpen(false);
+    } catch { /* validation */ }
+  };
+
+  const handleDelete = async (id: string) => {
+    try { await deleteMutation.mutateAsync(id); message.success("Xóa thành công"); } catch { message.error("Xóa thất bại"); }
+  };
+
+  const columns: ColumnsType<LaboCatalogItem> = [
+    { title: config.label, dataIndex: "name", key: "name" },
+    { title: "Cập nhật gần nhất", dataIndex: "lastModificationTime", key: "updatedAt", render: (v: string) => v ? dayjs(v).format("DD/MM/YYYY") : "—" },
     {
-      title: "Thao tác",
-      key: "actions",
-      render: () => (
-        <div style={{ display: "flex", gap: 8 }}>
-          <Button size="small">Chỉnh sửa</Button>
-          <Button size="small" danger>Xoá</Button>
+      title: "Thao tác", key: "actions", width: 120,
+      render: (_, record) => (
+        <div style={{ display: "flex", gap: 6 }}>
+          <Button size="small" icon={<EditOutlined />} onClick={() => { setEditingItem(record); setModalOpen(true); }} />
+          <Popconfirm title="Xác nhận xóa?" onConfirm={() => handleDelete(record.id)} okText="Xóa" cancelText="Hủy" okButtonProps={{ danger: true }}>
+            <Button size="small" danger icon={<DeleteOutlined />} />
+          </Popconfirm>
         </div>
       ),
     },
@@ -380,27 +484,25 @@ function SimpleCatalogView({
     <>
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
-          <Input
-            prefix={<SearchOutlined />}
-            placeholder={searchPlaceholder}
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            style={{ width: 280 }}
-            allowClear
-          />
-          <Button type="primary">{createLabel}</Button>
+          <Input prefix={<SearchOutlined />} placeholder={`Tìm kiếm ${config.label.toLowerCase()}...`} value={keyword} onChange={(e) => setKeyword(e.target.value)} style={{ width: 280 }} allowClear />
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingItem(null); form.resetFields(); setModalOpen(true); }}>Tạo {config.label.toLowerCase()}</Button>
         </div>
       </div>
       <div className="reception-card reception-card--content">
-        <Table
-          columns={columns}
-          dataSource={[]}
-          rowKey="id"
-          pagination={{ pageSize: 20, showTotal: (total) => `${total} ${paginationUnit}` }}
-          locale={{ emptyText: "Không có dữ liệu" }}
-          size="middle"
-        />
+        <Table columns={columns} dataSource={items} rowKey="id" loading={isLoading}
+          pagination={{ pageSize: 20, showTotal: (total) => `${total} mục` }}
+          locale={{ emptyText: "Không có dữ liệu" }} size="middle" />
       </div>
+      <Modal title={isEdit ? `Chỉnh sửa ${config.label.toLowerCase()}` : `Thêm ${config.label.toLowerCase()}`} open={modalOpen}
+        onCancel={() => { form.resetFields(); setEditingItem(null); setModalOpen(false); }}
+        onOk={handleOk} confirmLoading={createMutation.isPending || updateMutation.isPending}
+        okText={isEdit ? "Lưu" : "Tạo mới"} cancelText="Hủy" width={420} destroyOnClose
+        afterOpenChange={(visible) => { if (visible && editingItem) form.setFieldsValue(editingItem); }}>
+        <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
+          <Form.Item name="name" label={config.label} rules={[{ required: true, message: `Nhập ${config.label.toLowerCase()}` }]}><Input placeholder={`Nhập ${config.label.toLowerCase()}...`} /></Form.Item>
+          <Form.Item name="description" label="Mô tả"><Input.TextArea rows={2} placeholder="Mô tả..." /></Form.Item>
+        </Form>
+      </Modal>
     </>
   );
 }
@@ -475,32 +577,9 @@ export function LaboPage() {
       case "supplier":
         return <SupplierView />;
       case "bite":
-        return (
-          <SimpleCatalogView
-            searchPlaceholder="Tìm kiếm khớp cắn..."
-            createLabel="Tạo khớp cắn"
-            columnLabel="Khớp cắn Labo"
-            paginationUnit="mục"
-          />
-        );
       case "finish-line":
-        return (
-          <SimpleCatalogView
-            searchPlaceholder="Tìm kiếm đường hoàn tất..."
-            createLabel="Tạo đường hoàn tất"
-            columnLabel="Đường hoàn tất"
-            paginationUnit="mục"
-          />
-        );
       case "nhip":
-        return (
-          <SimpleCatalogView
-            searchPlaceholder="Tìm kiếm kiểu nhịp..."
-            createLabel="Tạo kiểu nhịp"
-            columnLabel="Kiểu nhịp Labo"
-            paginationUnit="mục"
-          />
-        );
+        return <LaboCrudView config={LABO_CRUD_CONFIGS[activeTab]} />;
       case "service-material":
         return <ServiceMaterialView />;
       default:

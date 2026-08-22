@@ -1,10 +1,13 @@
 import { useState } from "react";
-import { Button, Input, Select, Spin, Table, Tag } from "antd";
+import { Button, Input, Select, Spin, Table, Tag, Modal, Form, message, Popconfirm } from "antd";
 import {
   SearchOutlined,
   DownloadOutlined,
   LeftOutlined,
   RightOutlined,
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
 } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 import "dayjs/locale/vi";
@@ -345,52 +348,69 @@ export function CskhGroupingPage() {
   );
 }
 
-interface CskhGroup {
-  id: string;
-  name: string;
-  criteria: string;
-  patientCount: number;
-  status: "active" | "inactive";
-  createdAt: string;
-}
-
-const SYNTHETIC_GROUPS: CskhGroup[] = [
-  { id: "g1", name: "Sau điều trị Implant", criteria: "Bệnh nhân hoàn thành Implant trong 30 ngày",        patientCount: 0, status: "active",   createdAt: "20/08/2026" },
-  { id: "g2", name: "Sinh nhật tháng này",  criteria: "Bệnh nhân có sinh nhật trong tháng hiện tại",       patientCount: 0, status: "active",   createdAt: "01/08/2026" },
-  { id: "g3", name: "Tái khám định kỳ",     criteria: "Bệnh nhân chưa tái khám sau 6 tháng",               patientCount: 0, status: "active",   createdAt: "15/07/2026" },
-  { id: "g4", name: "Khách hàng VIP",       criteria: "Tổng chi tiêu >= 10.000.000 đ",                     patientCount: 0, status: "active",   createdAt: "01/06/2026" },
-  { id: "g5", name: "Nhắc niềng răng",      criteria: "Bệnh nhân chỉnh nha chưa đến hẹn điều chỉnh",      patientCount: 0, status: "inactive", createdAt: "10/05/2026" },
-];
+import {
+  useCskhGroupList,
+  useCreateCskhGroup,
+  useUpdateCskhGroup,
+  useDeleteCskhGroup,
+  type CskhGroupDto,
+} from "../api/cskhGroupApi";
 
 function CskhGroupingPanel() {
   const [keyword, setKeyword] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<CskhGroupDto | null>(null);
+  const [form] = Form.useForm();
 
-  const filtered = SYNTHETIC_GROUPS.filter((g) =>
-    g.name.toLowerCase().includes(keyword.toLowerCase()),
+  const { data, isLoading } = useCskhGroupList();
+  const createMutation = useCreateCskhGroup();
+  const updateMutation = useUpdateCskhGroup();
+  const deleteMutation = useDeleteCskhGroup();
+  const isEdit = Boolean(editingItem);
+
+  const filtered = (data?.items ?? []).filter((g) =>
+    !keyword || g.name.toLowerCase().includes(keyword.toLowerCase()),
   );
+
+  const handleOk = async () => {
+    try {
+      const values = await form.validateFields();
+      if (isEdit && editingItem) {
+        await updateMutation.mutateAsync({ id: editingItem.id, data: values });
+        message.success("Cập nhật nhóm thành công");
+      } else {
+        await createMutation.mutateAsync(values);
+        message.success("Tạo nhóm thành công");
+      }
+      form.resetFields(); setEditingItem(null); setModalOpen(false);
+    } catch { /* validation */ }
+  };
+
+  const handleDelete = async (id: string) => {
+    try { await deleteMutation.mutateAsync(id); message.success("Xóa thành công"); } catch { message.error("Xóa thất bại"); }
+  };
 
   const columns = [
     { title: "Tên nhóm", dataIndex: "name", key: "name", width: 220, render: (v: string) => <span style={{ fontWeight: 500 }}>{v}</span> },
-    { title: "Tiêu chí phân nhóm", dataIndex: "criteria", key: "criteria" },
-    { title: "Số khách", dataIndex: "patientCount", key: "patientCount", width: 100, align: "right" as const },
+    { title: "Tiêu chí phân nhóm", dataIndex: "criteria", key: "criteria", render: (v: string) => v ?? "—" },
     {
       title: "Trạng thái",
-      dataIndex: "status",
+      dataIndex: "isActive",
       key: "status",
       width: 120,
-      render: (v: string) => (
-        <Tag color={v === "active" ? "green" : "default"}>{v === "active" ? "Đang dùng" : "Tạm dừng"}</Tag>
+      render: (v: boolean) => (
+        <Tag color={v ? "green" : "default"}>{v ? "Đang dùng" : "Tạm dừng"}</Tag>
       ),
     },
-    { title: "Ngày tạo", dataIndex: "createdAt", key: "createdAt", width: 120 },
+    { title: "Ngày tạo", dataIndex: "creationTime", key: "createdAt", width: 120, render: (v: string) => v ? dayjs(v).format("DD/MM/YYYY") : "—" },
     {
-      title: "Thao tác",
-      key: "actions",
-      width: 140,
-      render: () => (
+      title: "Thao tác", key: "actions", width: 140,
+      render: (_: unknown, record: CskhGroupDto) => (
         <div style={{ display: "flex", gap: 6 }}>
-          <Button size="small">Chỉnh sửa</Button>
-          <Button size="small" danger>Xóa</Button>
+          <Button size="small" icon={<EditOutlined />} onClick={() => { setEditingItem(record); setModalOpen(true); }} />
+          <Popconfirm title="Xóa nhóm CSKH?" onConfirm={() => handleDelete(record.id)} okText="Xóa" cancelText="Hủy" okButtonProps={{ danger: true }}>
+            <Button size="small" danger icon={<DeleteOutlined />} />
+          </Popconfirm>
         </div>
       ),
     },
@@ -400,27 +420,26 @@ function CskhGroupingPanel() {
     <>
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Input
-            prefix={<SearchOutlined />}
-            placeholder="Tìm nhóm CSKH..."
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            style={{ width: 260 }}
-            allowClear
-          />
-          <Button type="primary" style={{ marginLeft: "auto" }}>Tạo nhóm mới</Button>
+          <Input prefix={<SearchOutlined />} placeholder="Tìm nhóm CSKH..." value={keyword} onChange={(e) => setKeyword(e.target.value)} style={{ width: 260 }} allowClear />
+          <Button type="primary" icon={<PlusOutlined />} style={{ marginLeft: "auto" }} onClick={() => { setEditingItem(null); form.resetFields(); setModalOpen(true); }}>Tạo nhóm mới</Button>
         </div>
       </div>
       <div className="reception-card reception-card--content">
-        <Table<CskhGroup>
-          columns={columns}
-          dataSource={filtered}
-          rowKey="id"
-          size="middle"
+        <Table columns={columns} dataSource={filtered} rowKey="id" size="middle" loading={isLoading}
           pagination={{ pageSize: 20, showTotal: (total) => `${total} nhóm` }}
-          locale={{ emptyText: "Chưa có nhóm CSKH nào" }}
-        />
+          locale={{ emptyText: "Chưa có nhóm CSKH nào" }} />
       </div>
+      <Modal title={isEdit ? "Chỉnh sửa nhóm CSKH" : "Tạo nhóm CSKH mới"} open={modalOpen}
+        onCancel={() => { form.resetFields(); setEditingItem(null); setModalOpen(false); }}
+        onOk={handleOk} confirmLoading={createMutation.isPending || updateMutation.isPending}
+        okText={isEdit ? "Lưu" : "Tạo nhóm"} cancelText="Hủy" width={500} destroyOnClose
+        afterOpenChange={(visible) => { if (visible && editingItem) form.setFieldsValue(editingItem); }}>
+        <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
+          <Form.Item name="name" label="Tên nhóm" rules={[{ required: true, message: "Nhập tên nhóm" }]}><Input placeholder="VD: Sau điều trị Implant..." /></Form.Item>
+          <Form.Item name="criteria" label="Tiêu chí phân nhóm"><Input.TextArea rows={2} placeholder="VD: Bệnh nhân hoàn thành Implant trong 30 ngày..." /></Form.Item>
+          <Form.Item name="description" label="Mô tả"><Input.TextArea rows={2} placeholder="Mô tả thêm..." /></Form.Item>
+        </Form>
+      </Modal>
     </>
   );
 }
