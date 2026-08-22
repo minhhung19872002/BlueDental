@@ -8,6 +8,7 @@ using BlueDental.Labo;
 using BlueDental.Notifications;
 using BlueDental.Organizations;
 using BlueDental.PatientManagement;
+using BlueDental.Finance;
 using BlueDental.Timekeeping;
 using BlueDental.TreatmentManagement;
 using BlueDental.Visits;
@@ -66,6 +67,11 @@ public class BlueDentalDbContext :
 
     // Timekeeping
     public DbSet<TimeKeepingRecord> TimeKeepingRecords { get; set; }
+
+    // Finance (thu chi, luan chuyen dong tien)
+    public DbSet<SalesEntry> SalesEntries { get; set; }
+    public DbSet<CashflowCategory> CashflowCategories { get; set; }
+    public DbSet<CashflowEntry> CashflowEntries { get; set; }
 
     // Billing
     public DbSet<Invoice> Invoices { get; set; }

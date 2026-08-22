@@ -11,6 +11,7 @@ using BlueDental.Notifications;
 using BlueDental.Organizations;
 using BlueDental.PatientManagement;
 using BlueDental.PatientManagement.Values;
+using BlueDental.Finance;
 using BlueDental.Timekeeping;
 using BlueDental.TreatmentManagement;
 using BlueDental.Visits;
@@ -427,6 +428,50 @@ public static class BlueDentalDbContextModelCreatingExtensions
             // One attendance record per staff member per day per branch.
             entity.HasIndex(x => new { x.ClinicBranchId, x.WorkDate, x.StaffId }).IsUnique();
             entity.HasIndex(x => new { x.ClinicBranchId, x.WorkDate, x.Status });
+        });
+
+        // Phieu thu / phieu chi
+        builder.Entity<SalesEntry>(entity =>
+        {
+            entity.ToTable("bd_sales_entries");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Code).HasMaxLength(32).IsRequired();
+            entity.Property(x => x.Type).HasConversion<short>();
+            entity.Property(x => x.Channel).HasConversion<short>();
+            entity.Property(x => x.ApprovalStatus).HasConversion<short>();
+            entity.Property(x => x.Amount).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.Description).HasMaxLength(1000).IsRequired();
+            entity.Property(x => x.RejectionReason).HasMaxLength(500);
+            entity.Ignore(x => x.CountsTowardsCashflow);
+            entity.Ignore(x => x.SignedAmount);
+            entity.HasIndex(x => new { x.ClinicBranchId, x.EntryDate, x.Type });
+            entity.HasIndex(x => new { x.ClinicBranchId, x.ApprovalStatus });
+            entity.HasIndex(x => x.Code).IsUnique();
+        });
+
+        // Danh muc thu chi / luan chuyen
+        builder.Entity<CashflowCategory>(entity =>
+        {
+            entity.ToTable("bd_cashflow_categories");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Type).HasConversion<short>();
+            entity.Property(x => x.Description).HasMaxLength(500);
+            entity.HasIndex(x => new { x.ClinicBranchId, x.AppliesToTransfers, x.Type });
+        });
+
+        // Luan chuyen dong tien
+        builder.Entity<CashflowEntry>(entity =>
+        {
+            entity.ToTable("bd_cashflow_entries");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.TransactionType).HasConversion<short>();
+            entity.Property(x => x.FromHolding).HasConversion<short>();
+            entity.Property(x => x.ToHolding).HasConversion<short>();
+            entity.Property(x => x.Amount).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.Note).HasMaxLength(1000);
+            entity.HasIndex(x => new { x.ClinicBranchId, x.EntryDate });
+            entity.HasIndex(x => new { x.ClinicBranchId, x.TransactionType });
         });
     }
 }
