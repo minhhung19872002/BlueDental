@@ -1,23 +1,24 @@
-import React from "react";
-import { Drawer, Form, Input, Select, Button, Space, message } from "antd";
+import React, { useState } from "react";
+import { Modal, Button, Input, message } from "antd";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useCreateReception } from "../api/receptionMutations";
+import { MOCK_PATIENTS } from "../api/receptionApi";
+import { SearchSelect } from "@/components/SearchSelect";
 import type { RefType } from "../types/reception";
 
-const receptionFormSchema = z.object({
-  patientName: z.string().min(1, "Vui lòng nhập tên khách hàng"),
-  phoneNumber: z
-    .string()
-    .min(10, "Số điện thoại phải có ít nhất 10 chữ số")
-    .regex(/^[0-9+ ]+$/, "Số điện thoại không hợp lệ"),
-  doctorId: z.string().min(1, "Vui lòng chọn bác sĩ tiếp nhận"),
-  refType: z.enum(["Medical", "Self", "Referral", "Marketing"] as const),
+const schema = z.object({
+  patientId: z.string().optional(),
+  patientName: z.string().min(1, "Vui lòng chọn khách hàng"),
+  phoneNumber: z.string().optional(),
+  doctorId: z.string({ required_error: "Vui lòng chọn bác sĩ" }).min(1, "Vui lòng chọn bác sĩ"),
+  appointmentHour: z.string().optional(),
+  appointmentMinute: z.string().optional(),
   notes: z.string().optional(),
 });
 
-type ReceptionFormValues = z.infer<typeof receptionFormSchema>;
+type FormValues = z.infer<typeof schema>;
 
 interface DoctorOption {
   id: string;
@@ -31,43 +32,58 @@ interface ReceptionNewDrawerProps {
   onClose: () => void;
 }
 
+
 export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
   open,
   doctors,
   onClose,
 }) => {
   const createMutation = useCreateReception();
+  const [selectedPhone, setSelectedPhone] = useState<string>("---");
 
   const {
     control,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
-  } = useForm<ReceptionFormValues>({
-    resolver: zodResolver(receptionFormSchema),
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
     defaultValues: {
+      patientId: undefined,
       patientName: "",
       phoneNumber: "",
-      doctorId: "",
-      refType: "Self",
+      doctorId: undefined,
+      appointmentHour: new Date().getHours().toString().padStart(2, "0"),
+      appointmentMinute: "00",
       notes: "",
     },
   });
 
-  const onSubmit = (data: ReceptionFormValues) => {
+  const handlePatientChange = (patientId: string) => {
+    const patient = MOCK_PATIENTS.find((p) => p.id === patientId);
+    if (patient) {
+      setValue("patientName", patient.name, { shouldValidate: true });
+      setValue("patientId", patient.id);
+      setSelectedPhone(patient.phone);
+    }
+  };
+
+  const onSubmit = (data: FormValues) => {
     createMutation.mutate(
       {
         patientName: data.patientName,
-        phoneNumber: data.phoneNumber,
+        phoneNumber: data.phoneNumber ?? "",
         doctorId: data.doctorId,
-        refType: data.refType as RefType,
+        refType: "Self" as RefType,
         notes: data.notes,
         services: ["Khám tư vấn ban đầu"],
       },
       {
         onSuccess: () => {
-          message.success("Tạo tiếp nhận khách hàng mới thành công!");
+          message.success("Tạo tiếp nhận thành công!");
           reset();
+          setSelectedPhone("---");
           onClose();
         },
         onError: (err) => {
@@ -77,115 +93,120 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
     );
   };
 
+  const handleClose = () => {
+    reset();
+    setSelectedPhone("---");
+    onClose();
+  };
+
   return (
-    <Drawer
-      title="Tạo tiếp nhận khách hàng mới"
-      width={480}
+    <Modal
+      title="Tạo tiếp nhận"
       open={open}
-      onClose={onClose}
-      styles={{ body: { paddingBottom: 80 } }}
-      footer={
-        <div style={{ textAlign: "right" }}>
-          <Space>
-            <Button onClick={onClose}>Hủy</Button>
+      onCancel={handleClose}
+      footer={null}
+      width={620}
+      centered
+      styles={{
+        header: { paddingBottom: 8 },
+        body: { paddingTop: 8 },
+      }}
+    >
+      <div className="rn-form">
+        {/* Patient select + Tạo Mới */}
+        <div className="rn-row">
+          <div className="rn-field rn-field--flex1">
+            <label className="rn-label rn-label--required">Khách hàng</label>
+            <Controller
+              name="patientId"
+              control={control}
+              render={({ field }) => (
+                <SearchSelect
+                  value={field.value || undefined}
+                  placeholder="Tìm kiếm khách hàng"
+                  options={MOCK_PATIENTS.map((p) => ({
+                    value: p.id,
+                    label: `[${p.code}] - ${p.name.toUpperCase()}`,
+                  }))}
+                  onChange={(val) => {
+                    field.onChange(val ?? "");
+                    if (val) handlePatientChange(val);
+                  }}
+                  status={errors.patientName ? "error" : ""}
+                />
+              )}
+            />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", flexShrink: 0 }}>
+            <span style={{ display: "block", height: 21, marginBottom: 4 }} />
             <Button
               type="primary"
-              loading={createMutation.isPending}
-              onClick={handleSubmit(onSubmit)}
-              style={{ backgroundColor: "#2671D8", borderColor: "#2671D8" }}
+              style={{ background: "#2671D8", height: 40, fontWeight: 600 }}
             >
-              Lưu tiếp nhận
+              Tạo Mới
             </Button>
-          </Space>
+          </div>
         </div>
-      }
-    >
-      <Form layout="vertical" onFinish={handleSubmit(onSubmit)}>
-        <Form.Item
-          label="Tên khách hàng / Bệnh nhân"
-          required
-          validateStatus={errors.patientName ? "error" : ""}
-          help={errors.patientName?.message}
-        >
-          <Controller
-            name="patientName"
-            control={control}
-            render={({ field }) => (
-              <Input
-                {...field}
-                placeholder="Nhập họ và tên khách hàng"
-                height={40}
-              />
-            )}
-          />
-        </Form.Item>
 
-        <Form.Item
-          label="Số điện thoại"
-          required
-          validateStatus={errors.phoneNumber ? "error" : ""}
-          help={errors.phoneNumber?.message}
-        >
-          <Controller
-            name="phoneNumber"
-            control={control}
-            render={({ field }) => (
-              <Input
-                {...field}
-                placeholder="Nhập số điện thoại liên hệ"
-                height={40}
-              />
-            )}
-          />
-        </Form.Item>
+        {/* Phone */}
+        <div className="rn-phone-row">
+          <span className="rn-phone-label">Số điện thoại:</span>
+          <span className="rn-phone-value">{selectedPhone}</span>
+        </div>
 
-        <Form.Item
-          label="Bác sĩ tiếp nhận"
-          required
-          validateStatus={errors.doctorId ? "error" : ""}
-          help={errors.doctorId?.message}
-        >
+        {/* Doctor select */}
+        <div className="rn-field">
+          <label className="rn-label">Bác sĩ điều trị</label>
           <Controller
             name="doctorId"
             control={control}
             render={({ field }) => (
-              <Select
-                {...field}
-                placeholder="Chọn bác sĩ khám"
-                options={doctors.map((d) => ({
-                  value: d.id,
-                  label: `${d.name} (${d.title})`,
-                }))}
+              <SearchSelect
+                value={field.value || undefined}
+                placeholder="Chọn bác sĩ"
+                options={doctors.map((d) => ({ value: d.id, label: d.name }))}
+                onChange={(val) => field.onChange(val ?? "")}
+                status={errors.doctorId ? "error" : ""}
               />
             )}
           />
-        </Form.Item>
+          {errors.doctorId && <span className="rn-error">{errors.doctorId.message}</span>}
+        </div>
 
-        <Form.Item
-          label="Nguồn tiếp nhận"
-          required
-          validateStatus={errors.refType ? "error" : ""}
-          help={errors.refType?.message}
-        >
-          <Controller
-            name="refType"
-            control={control}
-            render={({ field }) => (
-              <Select
-                {...field}
-                placeholder="Chọn nguồn khách hàng"
-                options={[
-                  { value: "Self", label: "Tự đến" },
-                  { value: "Medical", label: "Y tế" },
-                  { value: "Referral", label: "Người quen giới thiệu" },
-                  { value: "Marketing", label: "Kênh Marketing / Quảng cáo" },
-                ]}
-              />
-            )}
-          />
-        </Form.Item>
+        {/* Time row */}
+        <div className="rn-time-row">
+          <div className="rn-field rn-field--flex1">
+            <label className="rn-label">Giờ hẹn</label>
+            <Controller
+              name="appointmentHour"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  style={{ height: 40 }}
+                  suffix={
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"/><path d="M12 6v6h4"/>
+                    </svg>
+                  }
+                />
+              )}
+            />
+          </div>
+          <div className="rn-field rn-field--flex1">
+            <label className="rn-label">Phút</label>
+            <Controller
+              name="appointmentMinute"
+              control={control}
+              render={({ field }) => (
+                <Input {...field} style={{ height: 40 }} />
+              )}
+            />
+          </div>
+        </div>
 
-        <Form.Item label="Ghi chú tiếp nhận">
+        {/* Notes */}
+        <div className="rn-field">
           <Controller
             name="notes"
             control={control}
@@ -193,12 +214,31 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
               <Input.TextArea
                 {...field}
                 rows={4}
-                placeholder="Nhập nội dung ghi chú hoặc lý do khám..."
+                placeholder="Nội dung đặt lịch"
+                style={{ resize: "none" }}
               />
             )}
           />
-        </Form.Item>
-      </Form>
-    </Drawer>
+        </div>
+
+        {/* Footer */}
+        <div className="rn-footer">
+          <Button
+            type="primary"
+            loading={createMutation.isPending}
+            onClick={handleSubmit(onSubmit)}
+            style={{ background: "#2671D8", height: 40, fontWeight: 600, paddingLeft: 20, paddingRight: 20 }}
+            icon={
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+              </svg>
+            }
+          >
+            Lưu
+          </Button>
+        </div>
+      </div>
+    </Modal>
   );
 };

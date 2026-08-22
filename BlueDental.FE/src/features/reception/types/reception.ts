@@ -16,11 +16,19 @@ export type PatientType = "New" | "Returning";
 
 export type RefType = "Medical" | "Self" | "Referral" | "Marketing";
 
+export type AppointmentOutcome =
+  | "EndTreatment"
+  | "FollowUp"
+  | "TransferDoctor"
+  | "Revisit"
+  | null;
+
 export interface ReceptionItem {
   id: string;
   voucherCode: string;
   patientId: string;
   patientName: string;
+  patientYearOfBirth?: number;
   patientPhone: string;
   patientType: PatientType;
   doctorId: string;
@@ -28,11 +36,17 @@ export interface ReceptionItem {
   adviseDoctorName?: string;
   refType: RefType;
   status: ReceptionStatus;
+  counterStatus?: AppointmentCounterType;
   totalDue: number;
   expectedRevenue: number;
   services: string[];
   notes?: string;
+  appointmentTime?: string;
   arrivalTime: string;
+  step1Time?: string;
+  step2Time?: string;
+  step3Time?: string;
+  selectedOutcome?: AppointmentOutcome;
   createdAt: string;
 }
 

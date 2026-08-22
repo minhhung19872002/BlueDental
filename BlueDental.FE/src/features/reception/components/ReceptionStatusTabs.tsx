@@ -1,6 +1,5 @@
 import React from "react";
-import { Select } from "antd";
-import { SearchOutlined } from "@ant-design/icons";
+import { SearchSelect } from "@/components/SearchSelect";
 import type {
   ReceptionStatus,
   ReceptionMetrics,
@@ -83,17 +82,13 @@ export const ReceptionStatusTabs: React.FC<ReceptionStatusTabsProps> = ({
           })}
         </div>
 
-        <Select
-          placeholder="Bác sĩ"
+        <SearchSelect
           value={selectedDoctorId}
-          onChange={(val) => onDoctorSelect?.(val)}
+          placeholder="Bác sĩ"
           allowClear
-          suffixIcon={<SearchOutlined style={{ color: "#94A3B8" }} />}
-          style={{ width: 180, height: 34 }}
-          options={doctors.map((d) => ({
-            value: d.id,
-            label: d.name,
-          }))}
+          options={doctors.map((d) => ({ value: d.id, label: d.name }))}
+          onChange={(val) => onDoctorSelect?.(val)}
+          style={{ width: 180 }}
         />
       </div>
 

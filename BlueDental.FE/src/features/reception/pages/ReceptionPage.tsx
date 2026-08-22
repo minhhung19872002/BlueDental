@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import { message } from "antd";
+import { message, Spin } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 import { ReceptionToolbar } from "../components/ReceptionToolbar";
 import { ReceptionStatusTabs } from "../components/ReceptionStatusTabs";
-import { ReceptionTable } from "../components/ReceptionTable";
+import { ReceptionCard } from "../components/ReceptionCard";
 import { ReceptionEmptyState } from "../components/ReceptionEmptyState";
 import { ReceptionNewDrawer } from "../components/ReceptionNewDrawer";
 import {
@@ -12,7 +12,11 @@ import {
   useReceptionDoctors,
 } from "../api/receptionQueries";
 import { useUpdateReceptionStatus } from "../api/receptionMutations";
-import type { ReceptionStatus, ReceptionFilter } from "../types/reception";
+import type {
+  ReceptionStatus,
+  ReceptionFilter,
+  AppointmentOutcome,
+} from "../types/reception";
 
 type ViewMode = "day" | "week" | "month";
 
@@ -50,12 +54,24 @@ export const ReceptionPage: React.FC = () => {
     );
   };
 
+  const handleOutcomeChange = (_id: string, _outcome: AppointmentOutcome) => {
+    // TODO: wire up mutation
+  };
+
+  const handleDoctorChange = (_id: string, _doctorId: string) => {
+    // TODO: wire up mutation
+  };
+
+  const handleCancel = (id: string) => {
+    handleStatusChange(id, "All");
+  };
+
   const items = listData?.items ?? [];
 
   return (
     <div className="reception-page">
-      <div className="reception-card">
-        {/* Row 1: Toolbar — time tabs + date nav + search + create */}
+      {/* Card 1: toolbar */}
+      <div className="reception-card reception-card--toolbar">
         <ReceptionToolbar
           keyword={keyword}
           viewMode={viewMode}
@@ -66,8 +82,10 @@ export const ReceptionPage: React.FC = () => {
           onViewModeChange={setViewMode}
           onDateChange={setCurrentDate}
         />
+      </div>
 
-        {/* Row 2: Status tabs + doctor filter + counter cards */}
+      {/* Card 2: status tabs + counters */}
+      <div className="reception-card reception-card--tabs">
         <ReceptionStatusTabs
           activeTab={activeTab}
           metrics={metrics}
@@ -76,19 +94,30 @@ export const ReceptionPage: React.FC = () => {
           onChange={setActiveTab}
           onDoctorSelect={setSelectedDoctorId}
         />
+      </div>
 
-        {/* Content: table or empty state */}
-        <div className="reception-content">
-          {items.length === 0 && !listLoading ? (
-            <ReceptionEmptyState />
-          ) : (
-            <ReceptionTable
-              items={items}
-              loading={listLoading}
-              onStatusChange={handleStatusChange}
-            />
-          )}
-        </div>
+      {/* Card 3: content */}
+      <div className="reception-card reception-card--content">
+        {listLoading ? (
+          <div className="reception-loading">
+            <Spin size="large" />
+          </div>
+        ) : items.length === 0 ? (
+          <ReceptionEmptyState />
+        ) : (
+          <div className="reception-card-grid">
+            {items.map((item) => (
+              <ReceptionCard
+                key={item.id}
+                item={item}
+                doctors={doctors}
+                onOutcomeChange={handleOutcomeChange}
+                onDoctorChange={handleDoctorChange}
+                onCancel={handleCancel}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       <ReceptionNewDrawer
