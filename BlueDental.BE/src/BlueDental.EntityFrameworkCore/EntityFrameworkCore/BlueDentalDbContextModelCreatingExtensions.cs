@@ -12,6 +12,7 @@ using BlueDental.Organizations;
 using BlueDental.PatientManagement;
 using BlueDental.PatientManagement.Values;
 using BlueDental.Finance;
+using BlueDental.Promotions;
 using BlueDental.Timekeeping;
 using BlueDental.TreatmentManagement;
 using BlueDental.Visits;
@@ -472,6 +473,26 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Note).HasMaxLength(1000);
             entity.HasIndex(x => new { x.ClinicBranchId, x.EntryDate });
             entity.HasIndex(x => new { x.ClinicBranchId, x.TransactionType });
+        });
+
+        // Voucher khuyen mai
+        builder.Entity<Voucher>(entity =>
+        {
+            entity.ToTable("bd_vouchers");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Code).HasMaxLength(32).IsRequired();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(1000);
+            entity.Property(x => x.DiscountType).HasConversion<short>();
+            entity.Property(x => x.CustomerTarget).HasConversion<short>();
+            entity.Property(x => x.Status).HasConversion<short>();
+            entity.Property(x => x.DiscountValue).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.MaxDiscountAmount).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.MinOrderAmount).HasColumnType("numeric(18,2)");
+            entity.Ignore(x => x.RemainingUses);
+            entity.Ignore(x => x.IsExhausted);
+            entity.HasIndex(x => x.Code).IsUnique();
+            entity.HasIndex(x => new { x.Status, x.ValidFrom, x.ValidTo });
         });
     }
 }
