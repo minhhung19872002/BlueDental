@@ -15,13 +15,13 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 
 await Host.CreateDefaultBuilder(args)
+    .UseContentRoot(AppContext.BaseDirectory)
     .AddAppSettingsSecretsJson()
     .ConfigureLogging((_, logging) =>
     {
         logging.ClearProviders();
         logging.AddSerilog();
     })
-    .UseAutofac()
     .ConfigureServices((hostContext, services) =>
     {
         services.AddHostedService<DbMigratorHostedService>();
