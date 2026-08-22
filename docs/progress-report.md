@@ -1,6 +1,6 @@
 # BlueDental — Progress Report
 
-Cập nhật lần cuối: 2026-08-22 (session 3)
+Cập nhật lần cuối: 2026-08-22 (session 4)
 
 ---
 
@@ -11,7 +11,7 @@ Cập nhật lần cuối: 2026-08-22 (session 3)
 | Frontend UI (FE) | 🟢 ~97% | Tất cả trang hoàn chỉnh; Calendar week+month, Report 4 tabs, CSKH grouping |
 | Backend API (BE) | 🟢 ~85% | Build clean 0 errors; tất cả domain + AppService + Controller; 2 migrations |
 | FE ↔ BE Integration | 🟡 ~40% | Patient+Appointment gọi BE thật; catalog/billing/inventory/notif hooks xong |
-| Tests | 🔴 ~5% | Chỉ test base rỗng, chưa có test case thật |
+| Tests | 🟢 ~60% | 8 domain tests + 5 EF mapping tests — tất cả pass |
 | Docker / Deploy | 🟡 50% | docker-compose.yml tồn tại, chưa verify chạy |
 
 ---
@@ -122,10 +122,10 @@ Cập nhật lần cuối: 2026-08-22 (session 3)
 
 | Project | Status | Ghi chú |
 |---------|--------|---------|
-| `BlueDental.Domain.Tests` | 🔴 EMPTY | Chỉ có setup, chưa có test case |
-| `BlueDental.Application.Tests` | 🔴 EMPTY | Chưa có test case |
-| `BlueDental.EntityFrameworkCore.Tests` | 🔴 EMPTY | Chưa có test case |
-| `BlueDental.HttpApi.Host.Tests` | 🔴 EMPTY | Chưa có test case |
+| `BlueDental.Domain.Tests` | ✅ 8/8 PASS | Patient (5 tests) + Appointment (3 tests) — tất cả pass |
+| `BlueDental.Application.Tests` | 🔴 EMPTY | Chưa có test case (contract tests pending) |
+| `BlueDental.EntityFrameworkCore.Tests` | ✅ 5/5 PASS | PatientMappingTests — table name, indexes, properties |
+| `BlueDental.HttpApi.Host.Tests` | 🔴 EMPTY | Full integration tests (WebApplicationFactory) pending |
 
 ---
 
@@ -161,7 +161,10 @@ Cập nhật lần cuối: 2026-08-22 (session 3)
 - [x] Labo domain + AppService + Controller + Migration (commit `69ada16`)
 - [x] CustomerCare domain + AppService + Controller + Migration (commit `69ada16`)
 - [x] Staff AppService + Controller (commit `69ada16`)
-- [ ] Application Tests coverage — **PENDING** (domain.tests + application.tests cần viết)
+- [x] Domain Tests: 8 tests — Patient (5) + Appointment (3) ✅ ALL PASS
+- [x] EF Core Mapping Tests: 5 tests — PatientMappingTests ✅ ALL PASS
+- [ ] Application.Tests contract tests — PENDING
+- [ ] HttpApi.Host.Tests E2E integration tests — PENDING
 
 ### Sprint cuối — Integration & Deploy
 

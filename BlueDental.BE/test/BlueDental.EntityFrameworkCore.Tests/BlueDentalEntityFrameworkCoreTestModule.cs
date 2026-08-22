@@ -6,6 +6,8 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Volo.Abp;
+using Volo.Abp.BackgroundJobs;
+using Volo.Abp.BackgroundWorkers;
 using Volo.Abp.EntityFrameworkCore;
 using Volo.Abp.EntityFrameworkCore.Sqlite;
 using Volo.Abp.Modularity;
@@ -30,6 +32,16 @@ public class BlueDentalEntityFrameworkCoreTestModule : AbpModule
                 dbContextConfigurationContext.DbContextOptions
                     .UseSqlite(CreateDatabaseAndGetConnection());
             });
+        });
+
+        context.Services.Configure<AbpBackgroundJobOptions>(opts =>
+        {
+            opts.IsJobExecutionEnabled = false;
+        });
+
+        context.Services.Configure<AbpBackgroundWorkerOptions>(opts =>
+        {
+            opts.IsEnabled = false;
         });
     }
 
