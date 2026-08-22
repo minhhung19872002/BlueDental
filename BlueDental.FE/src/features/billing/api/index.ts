@@ -20,7 +20,7 @@ export interface RecordPaymentRequest {
 }
 
 const billingApi = {
-  list: (params: { skipCount?: number; maxResultCount?: number }): Promise<{ items: InvoiceDto[]; totalCount: number }> =>
+  list: (params: { skipCount?: number; maxResultCount?: number; patientId?: string }): Promise<{ items: InvoiceDto[]; totalCount: number }> =>
     api.get("/v1/app/invoices", { params }).then((r) => r.data),
 
   get: (id: string): Promise<InvoiceDto> =>
@@ -33,10 +33,19 @@ const billingApi = {
     api.post(`/v1/app/invoices/${id}/void`, { reason }).then(() => undefined),
 };
 
-export function useInvoiceList(params: { skipCount?: number; maxResultCount?: number } = {}) {
+export function useInvoiceList(params: { skipCount?: number; maxResultCount?: number; patientId?: string } = {}) {
   return useQuery({
     queryKey: ["invoices", params],
     queryFn: () => billingApi.list(params),
+  });
+}
+
+export function usePatientInvoices(patientId: string) {
+  return useQuery({
+    queryKey: ["invoices", { patientId }],
+    queryFn: () => billingApi.list({ patientId, maxResultCount: 50 }),
+    enabled: Boolean(patientId),
+    select: (d) => d.items,
   });
 }
 

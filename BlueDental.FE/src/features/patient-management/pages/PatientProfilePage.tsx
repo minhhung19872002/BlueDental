@@ -12,6 +12,9 @@ import {
 import { usePatient } from "../api/patientQueries";
 import { DentalChartView, type ToothRecord } from "../components/DentalChartView";
 import { formatDate, formatDateTime, formatVND } from "@/utils/format";
+import { useAppointmentList } from "@/features/appointments/api/appointmentQueries";
+import { useTreatmentPlanList } from "@/features/treatment-management/api/index";
+import { usePatientInvoices } from "@/features/billing/api/index";
 
 const { Text } = Typography;
 
@@ -52,6 +55,13 @@ export function PatientProfilePage() {
 
   const activeTab = searchParams.get("tab") ?? "profile";
   const { data: patient, isLoading } = usePatient(id ?? "");
+
+  const { data: appointmentsData } = useAppointmentList({ patientId: id, maxResultCount: 50 });
+  const { data: treatmentPlans } = useTreatmentPlanList({ patientId: id });
+  const { data: invoices } = usePatientInvoices(id ?? "");
+  const appointments = appointmentsData?.items ?? [];
+  const plans = treatmentPlans?.items ?? [];
+  const patientInvoices = invoices ?? [];
 
   const handleTabChange = (key: string) => {
     setSearchParams({ tab: key });
@@ -368,8 +378,22 @@ export function PatientProfilePage() {
                 { title: "Phải thu", dataIndex: "toCollect", key: "toCollect", width: 110, align: "right", render: (v: number) => `${formatVND(v ?? 0)} đ` },
                 { title: "Thao tác", key: "actions", width: 80, fixed: "right", render: () => <Space size={4}><Button type="text" size="small" icon={<EditOutlined />} /></Space> },
               ]}
-              dataSource={[]}
-              pagination={{ pageSize: 20, showTotal: (total) => `Hiển thị 0 trên ${total} kế hoạch` }}
+              dataSource={plans.map((p) => ({
+                id: p.id,
+                code: p.id.slice(0, 8).toUpperCase(),
+                serviceName: p.title,
+                doctorName: "—",
+                status: p.status,
+                createdAt: p.creationTime,
+                totalAmount: p.estimatedCost ?? 0,
+                discountAmount: 0,
+                finalAmount: p.estimatedCost ?? 0,
+                paidAmount: 0,
+                refundedAmount: 0,
+                remainingAmount: p.estimatedCost ?? 0,
+                toCollect: p.estimatedCost ?? 0,
+              }))}
+              pagination={{ pageSize: 20, showTotal: (total, range) => `${range[0]}–${range[1]} / ${total} kế hoạch` }}
               scroll={{ x: 1400 }}
               locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>Chưa có kế hoạch điều trị</span> }}
             />
@@ -406,8 +430,15 @@ export function PatientProfilePage() {
             size="small"
             rowKey="id"
             columns={appointmentColumns}
-            dataSource={[]}
-            pagination={false}
+            dataSource={appointments.map((a) => ({
+              id: a.id,
+              date: a.startTime,
+              doctorName: a.doctorName,
+              content: a.reason ?? "Khám tổng quát",
+              notes: a.notes ?? "—",
+              status: a.status,
+            }))}
+            pagination={{ pageSize: 20, showTotal: (t, r) => `${r[0]}–${r[1]} / ${t}` }}
             locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>Chưa có lịch hẹn nào</span> }}
           />
         </div>
@@ -568,9 +599,24 @@ export function PatientProfilePage() {
       label: "Hóa đơn",
       icon: <DollarOutlined />,
       children: (
-        <div style={{ padding: "48px 0", textAlign: "center", color: "#9CA3AF" }}>
-          <div style={{ fontSize: 32, marginBottom: 8 }}>📄</div>
-          <Text type="secondary">Nội dung đang được hoàn thiện</Text>
+        <div style={{ padding: "16px 0" }}>
+          <Table
+            size="small"
+            rowKey="id"
+            columns={[
+              { title: "Số hóa đơn", dataIndex: "invoiceNumber", key: "invoiceNumber", width: 140 },
+              { title: "Ngày tạo", dataIndex: "issuedDate", key: "issuedDate", width: 120, render: (v: string) => v ? formatDate(v) : "—" },
+              { title: "Tổng tiền", dataIndex: "totalAmount", key: "totalAmount", width: 140, align: "right" as const,
+                render: (v: number) => <Text style={{ fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
+              { title: "Đã thanh toán", dataIndex: "paidAmount", key: "paidAmount", width: 140, align: "right" as const,
+                render: (v: number) => <Text style={{ color: "#10B981", fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
+              { title: "Trạng thái", dataIndex: "status", key: "status", width: 120,
+                render: (s: string) => <Tag color={s === "Paid" ? "success" : s === "Draft" ? "default" : "warning"}>{s}</Tag> },
+            ]}
+            dataSource={patientInvoices}
+            pagination={{ pageSize: 20, showTotal: (t, r) => `${r[0]}–${r[1]} / ${t} hóa đơn` }}
+            locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>Chưa có hóa đơn</span> }}
+          />
         </div>
       ),
     },
