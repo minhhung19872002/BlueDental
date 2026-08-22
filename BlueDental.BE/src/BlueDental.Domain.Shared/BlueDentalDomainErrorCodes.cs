@@ -96,6 +96,19 @@ public static class BlueDentalDomainErrorCodes
         public const string DuplicateOrderCode = "BlueDental:Labo:0003";
     }
 
+    public static class Promotions
+    {
+        public const string VoucherNotFound = "BlueDental:Promotions:0001";
+        public const string InvalidDiscount = "BlueDental:Promotions:0002";
+        public const string InvalidValidityWindow = "BlueDental:Promotions:0003";
+        public const string InvalidUsageLimit = "BlueDental:Promotions:0004";
+        public const string VoucherExpired = "BlueDental:Promotions:0005";
+        public const string InvalidVoucherTransition = "BlueDental:Promotions:0006";
+        public const string VoucherNotApplicable = "BlueDental:Promotions:0007";
+        public const string VoucherLocked = "BlueDental:Promotions:0008";
+        public const string DuplicateVoucherCode = "BlueDental:Promotions:0009";
+    }
+
     public static class Finance
     {
         public const string InvalidAmount = "BlueDental:Finance:0001";
