@@ -12,7 +12,7 @@ const schema = z.object({
   patientId: z.string().optional(),
   patientName: z.string().min(1, "Vui lòng chọn khách hàng"),
   phoneNumber: z.string().optional(),
-  doctorId: z.string({ required_error: "Vui lòng chọn bác sĩ" }).min(1, "Vui lòng chọn bác sĩ"),
+  doctorId: z.string({ error: "Vui lòng chọn bác sĩ" }).min(1, "Vui lòng chọn bác sĩ"),
   appointmentHour: z.string().optional(),
   appointmentMinute: z.string().optional(),
   notes: z.string().optional(),

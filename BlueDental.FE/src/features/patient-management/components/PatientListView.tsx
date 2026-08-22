@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Table, Tag, Button, Space, Typography, Tooltip, Segmented, Input } from "antd";
+import { Table, Button, Space, Typography, Tooltip, Segmented, Input } from "antd";
 import type { TableColumnsType } from "antd";
 import {
   PlusOutlined,
