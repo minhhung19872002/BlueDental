@@ -14,8 +14,9 @@ export interface StaffDto {
 export interface GetStaffListInput {
   skipCount?: number;
   maxResultCount?: number;
-  keyword?: string;
+  filter?: string;
   isActive?: boolean;
+  sorting?: string;
 }
 
 export const staffApi = {
