@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Button, Tabs, Segmented } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
-import { LeftOutlined, RightOutlined } from "@ant-design/icons";
+import { LeftOutlined, RightOutlined, UnorderedListOutlined, CalendarOutlined } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
 import { DayViewCalendar, type DayViewDoctor } from "../components/DayViewCalendar";
 import { WeekViewCalendar } from "../components/WeekViewCalendar";
 import { MonthViewCalendar } from "../components/MonthViewCalendar";
@@ -25,6 +26,7 @@ const FALLBACK_DOCTORS: DayViewDoctor[] = [
 ];
 
 export function AppointmentCalendarPage() {
+  const navigate = useNavigate();
   const { data: dentistData } = useDentistList();
   const doctors: DayViewDoctor[] = dentistData
     ? dentistData.map((d) => ({ id: d.id, name: d.name, appointmentCount: 0 }))
@@ -118,6 +120,14 @@ export function AppointmentCalendarPage() {
             ]}
             style={{ fontWeight: 500 }}
           />
+
+          <Button
+            icon={<UnorderedListOutlined />}
+            onClick={() => navigate("/calendar/list")}
+            title="Xem danh sách lịch hẹn"
+          >
+            Danh sách
+          </Button>
 
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
             <Button type="text" size="small" icon={<LeftOutlined />} onClick={() => navigateDate(-1)} />

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Table, Tag, Button, Input, Popconfirm, message } from "antd";
-import { SearchOutlined, PlusOutlined } from "@ant-design/icons";
+import { SearchOutlined, PlusOutlined, CalendarOutlined } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
 import { useAppointmentList } from "../api/appointmentQueries";
 import { useConfirmAppointment, useCancelAppointment } from "../api/appointmentMutations";
 import { adaptAppointment } from "../api/appointmentAdapters";
@@ -25,6 +26,7 @@ const STATUS_TABS: { key: StatusFilter; label: string }[] = [
 ];
 
 export function AppointmentListPage() {
+  const navigate = useNavigate();
   const pagination = useTablePagination(20);
   const [keyword, setKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -71,9 +73,14 @@ export function AppointmentListPage() {
             style={{ width: 280 }}
             allowClear
           />
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setAddOpen(true)}>
-            Tạo lịch hẹn
-          </Button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Button icon={<CalendarOutlined />} onClick={() => navigate("/calendar")}>
+              Lịch hẹn
+            </Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => setAddOpen(true)}>
+              Tạo lịch hẹn
+            </Button>
+          </div>
         </div>
       </div>
 
