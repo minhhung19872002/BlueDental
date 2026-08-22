@@ -15,6 +15,8 @@ import { formatDate, formatDateTime, formatVND } from "@/utils/format";
 import { useAppointmentList } from "@/features/appointments/api/appointmentQueries";
 import { useTreatmentPlanList } from "@/features/treatment-management/api/index";
 import { usePatientInvoices } from "@/features/billing/api/index";
+import { usePatientLaboOrders } from "@/features/labo/api/laboApi";
+import { useCareRecordList } from "@/features/cskh/api/careApi";
 
 const { Text } = Typography;
 
@@ -59,9 +61,13 @@ export function PatientProfilePage() {
   const { data: appointmentsData } = useAppointmentList({ patientId: id, maxResultCount: 50 });
   const { data: treatmentPlans } = useTreatmentPlanList({ patientId: id });
   const { data: invoices } = usePatientInvoices(id ?? "");
+  const { data: laboOrders } = usePatientLaboOrders(id ?? "");
+  const { data: careRecords } = useCareRecordList({ patientId: id, maxResultCount: 50 });
   const appointments = appointmentsData?.items ?? [];
   const plans = treatmentPlans?.items ?? [];
   const patientInvoices = invoices ?? [];
+  const patientLaboOrders = laboOrders ?? [];
+  const patientCareRecords = careRecords?.items ?? [];
 
   const handleTabChange = (key: string) => {
     setSearchParams({ tab: key });
@@ -506,7 +512,18 @@ export function PatientProfilePage() {
               { title: "File Labo gửi về", dataIndex: "returnedFile", key: "returnedFile", width: 130 },
               { title: "Thao tác", key: "actions", width: 80, render: () => <Button type="text" size="small" icon={<EditOutlined />} /> },
             ]}
-            dataSource={[]}
+            dataSource={patientLaboOrders.map((o) => ({
+              ...o,
+              code: o.orderCode,
+              sentAt: o.sentAt,
+              deliveredAt: o.receivedAt,
+              doctorName: "—",
+              supplierName: o.labProviderName,
+              material: o.workDescription ?? "—",
+              toothNumbers: o.toothNumbers ?? "—",
+              quantity: 1,
+              returnedFile: "—",
+            }))}
             pagination={{ pageSize: 20, showTotal: (total) => `Hiển thị 0 trên ${total} phiếu labo` }}
             locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>Không có dữ liệu</span> }}
           />
@@ -587,7 +604,17 @@ export function PatientProfilePage() {
               { title: "Đánh giá", dataIndex: "rating", key: "rating", width: 100 },
               { title: "Thao tác", key: "actions", width: 100, render: () => <Space size={4}><Button type="text" size="small" icon={<EditOutlined />} /></Space> },
             ]}
-            dataSource={[]}
+            dataSource={patientCareRecords.map((r) => ({
+              id: r.id,
+              careDate: r.dueAt ?? r.creationTime,
+              careStatus: r.status,
+              group: r.type,
+              serviceName: r.subject,
+              content: r.description ?? "—",
+              doctorName: "—",
+              staffName: "—",
+              rating: r.resolution ?? "—",
+            }))}
             pagination={{ pageSize: 20, showTotal: (total) => `Hiển thị 0–0 trên ${total} nhật ký` }}
             locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>Chưa có dữ liệu chăm sóc</span> }}
           />
