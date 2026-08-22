@@ -5,7 +5,7 @@ import { DownloadOutlined, LeftOutlined, RightOutlined } from "@ant-design/icons
 import dayjs, { type Dayjs } from "dayjs";
 import { formatVND } from "@/utils/format";
 import { exportToExcel } from "@/utils/exportExcel";
-import { useReportSummary, useRevenueReport } from "@/features/reporting/api/index";
+import { useReportSummary, useRevenueReport, type ReportSummaryDto, type RevenueReportDto } from "@/features/reporting/api/index";
 
 const { Text } = Typography;
 
@@ -262,21 +262,36 @@ export function ReportPage() {
         </>
       )}
 
-      {activeTab === "cashflow" && <CashflowTab />}
-      {activeTab === "result" && <BusinessResultTab />}
+      {activeTab === "cashflow" && <CashflowTab revenueData={Array.isArray(revenueData) ? revenueData : []} />}
+      {activeTab === "result" && <BusinessResultTab summary={summary} />}
       {activeTab === "cashflow-v2" && <CashflowV2Tab />}
     </div>
   );
 }
 
-function CashflowTab() {
+function CashflowTab({ revenueData }: { revenueData: RevenueReportDto[] }) {
   const [typeFilter, setTypeFilter] = useState("all");
 
+  const totalThu = revenueData.reduce((s, r) => s + (r.totalRevenue ?? 0), 0);
   const summaryCards = [
-    { label: "Tổng thu", value: 0, color: "#10B981" },
+    { label: "Tổng thu", value: totalThu, color: "#10B981" },
     { label: "Tổng chi", value: 0, color: "#EF4444" },
-    { label: "Lợi nhuận ước tính", value: 0, color: "#1E70E6" },
+    { label: "Lợi nhuận ước tính", value: totalThu, color: "#1E70E6" },
   ];
+
+  const tableData = revenueData
+    .filter(() => typeFilter === "all" || typeFilter === "thu")
+    .map((row, i) => ({
+      id: String(i),
+      date: dayjs(row.date).format("DD/MM/YYYY"),
+      type: "Thu",
+      category: "Dịch vụ nha khoa",
+      description: `${row.appointments ?? 0} lịch hẹn — ${row.newPatients ?? 0} BN mới`,
+      amount: row.totalRevenue ?? 0,
+      method: "—",
+      performer: "—",
+      note: "—",
+    }));
 
   return (
     <>
@@ -326,7 +341,7 @@ function CashflowTab() {
           size="small"
           rowKey="id"
           columns={CASHFLOW_COLUMNS}
-          dataSource={[]}
+          dataSource={tableData}
           pagination={{
             pageSize: 20,
             showTotal: (total, range) => `Hiển thị ${range[0]}–${range[1]} trên ${total} dòng`,
@@ -423,12 +438,13 @@ function CashflowV2Tab() {
   );
 }
 
-function BusinessResultTab() {
+function BusinessResultTab({ summary }: { summary?: ReportSummaryDto }) {
+  const revenue = summary?.totalRevenue ?? 0;
   const resultSummary = [
-    { label: "Doanh thu", value: 0, color: "#1E70E6" },
+    { label: "Doanh thu", value: revenue, color: "#1E70E6" },
     { label: "Chi phí", value: 0, color: "#EF4444" },
-    { label: "Lợi nhuận", value: 0, color: "#10B981" },
-    { label: "Tỷ lệ lợi nhuận", value: "0%", color: "#F59E0B" },
+    { label: "Lợi nhuận", value: revenue, color: "#10B981" },
+    { label: "Tỷ lệ lợi nhuận", value: revenue > 0 ? "~100%" : "0%", color: "#F59E0B" },
   ];
 
   return (
