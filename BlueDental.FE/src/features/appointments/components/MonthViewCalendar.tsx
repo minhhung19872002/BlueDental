@@ -1,15 +1,28 @@
+import { useMemo } from "react";
 import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
+import type { AppointmentDto } from "../types/appointment";
 
 const DAY_LABELS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 
+const STATUS_DOT_COLOR: Record<string, string> = {
+  scheduled:  "#1677ff",
+  confirmed:  "#0ea5e9",
+  inProgress: "#f97316",
+  completed:  "#22c55e",
+  cancelled:  "#ef4444",
+  noShow:     "#9ca3af",
+};
+
 interface Props {
   currentDate: Dayjs;
+  appointments?: AppointmentDto[];
   onDayClick?: (day: Dayjs) => void;
+  onAppointmentClick?: (appt: AppointmentDto) => void;
   onCreateAppointment?: () => void;
 }
 
-export function MonthViewCalendar({ currentDate, onDayClick, onCreateAppointment: _onCreateAppointment }: Props) {
+export function MonthViewCalendar({ currentDate, appointments = [], onDayClick, onAppointmentClick: _onAppointmentClick, onCreateAppointment: _onCreateAppointment }: Props) {
   const monthStart = currentDate.startOf("month");
   const monthEnd = currentDate.endOf("month");
   const calStart = monthStart.startOf("week");
@@ -26,6 +39,17 @@ export function MonthViewCalendar({ currentDate, onDayClick, onCreateAppointment
     }
     weeks.push(week);
   }
+
+  const appointmentsByDay = useMemo(() => {
+    const map = new Map<string, AppointmentDto[]>();
+    for (const appt of appointments) {
+      const key = dayjs(appt.startTime).format("YYYY-MM-DD");
+      const list = map.get(key) ?? [];
+      list.push(appt);
+      map.set(key, list);
+    }
+    return map;
+  }, [appointments]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "auto" }}>
@@ -63,6 +87,9 @@ export function MonthViewCalendar({ currentDate, onDayClick, onCreateAppointment
             const isCurrentMonth = day.month() === currentDate.month();
             const isToday = day.isSame(today, "day");
             const isSunday = day.day() === 0;
+            const dayKey = day.format("YYYY-MM-DD");
+            const dayAppts = appointmentsByDay.get(dayKey) ?? [];
+            const MAX_DOTS = 5;
             return (
               <div
                 key={di}
@@ -99,6 +126,29 @@ export function MonthViewCalendar({ currentDate, onDayClick, onCreateAppointment
                 >
                   {day.date()}
                 </div>
+                {dayAppts.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 2, marginTop: 3 }}>
+                    {dayAppts.slice(0, MAX_DOTS).map((appt) => (
+                      <span
+                        key={appt.id}
+                        style={{
+                          display: "inline-block",
+                          width: 7,
+                          height: 7,
+                          borderRadius: "50%",
+                          background: STATUS_DOT_COLOR[appt.status] ?? "#9ca3af",
+                          flexShrink: 0,
+                        }}
+                        title={appt.patientName}
+                      />
+                    ))}
+                    {dayAppts.length > MAX_DOTS && (
+                      <span style={{ fontSize: 10, color: "#6B7280", lineHeight: "7px" }}>
+                        +{dayAppts.length - MAX_DOTS}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}

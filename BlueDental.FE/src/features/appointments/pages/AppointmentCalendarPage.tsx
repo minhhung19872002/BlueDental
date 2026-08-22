@@ -37,14 +37,16 @@ export function AppointmentCalendarPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [initialDate, setInitialDate] = useState<string | undefined>();
 
-  // Fetch appointments for the current date/week range
+  // Fetch appointments for the current date/week/month range
   const weekStart = currentDate.startOf("week");
   const weekEnd = currentDate.endOf("week");
+  const monthStart = currentDate.startOf("month").startOf("week");
+  const monthEnd = currentDate.endOf("month").endOf("week");
   const { data: appointmentData } = useAppointmentList({
     date: viewMode === "day" ? currentDate.format("YYYY-MM-DD") : undefined,
-    startDate: viewMode === "week" ? weekStart.format("YYYY-MM-DD") : undefined,
-    endDate: viewMode === "week" ? weekEnd.format("YYYY-MM-DD") : undefined,
-    maxResultCount: 200,
+    startDate: viewMode === "week" ? weekStart.format("YYYY-MM-DD") : viewMode === "month" ? monthStart.format("YYYY-MM-DD") : undefined,
+    endDate: viewMode === "week" ? weekEnd.format("YYYY-MM-DD") : viewMode === "month" ? monthEnd.format("YYYY-MM-DD") : undefined,
+    maxResultCount: 500,
   });
   const appointments: AppointmentDto[] = appointmentData?.items ?? [];
 
@@ -162,10 +164,12 @@ export function AppointmentCalendarPage() {
               {viewMode === "month" && (
                 <MonthViewCalendar
                   currentDate={currentDate}
+                  appointments={appointments}
                   onDayClick={(day) => {
                     setCurrentDate(day);
                     setViewMode("day");
                   }}
+                  onAppointmentClick={(appt) => setSelectedId(appt.id)}
                 />
               )}
             </>
