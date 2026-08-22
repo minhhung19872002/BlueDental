@@ -1,6 +1,6 @@
 # BlueDental — Progress Report
 
-Cập nhật lần cuối: 2026-08-22 (session 5)
+Cập nhật lần cuối: 2026-08-22 (session 6 — wire sprint)
 
 ---
 
@@ -8,10 +8,10 @@ Cập nhật lần cuối: 2026-08-22 (session 5)
 
 | Layer | Status | Ghi chú |
 |-------|--------|---------|
-| Frontend UI (FE) | 🟢 ~97% | Tất cả trang hoàn chỉnh; Calendar week+month, Report 4 tabs, CSKH grouping |
+| Frontend UI (FE) | 🟢 ~98% | Tất cả trang hoàn chỉnh; FE production build ✅ clean |
 | Backend API (BE) | 🟢 ~90% | Build clean 0 errors; AccountAppService; 401/403 API auth; BE Dockerfile |
-| FE ↔ BE Integration | 🟢 ~80% | Auth, Patient, Appointment, Staff, Visit, Report, Billing — all call real BE; mock fallback reception |
-| Tests | 🟢 ~95% | 82 tests (15 domain + 34 application + 18 EF + 15 HttpApi) — tất cả pass |
+| FE ↔ BE Integration | 🟢 ~85% | Wire sprint: Staff, Report, Dashboard, CSKH, Patient Detail tabs (Treatment Plan + Appointments + Invoice) |
+| Tests | 🟢 ~95% | 99 tests (15 domain + 34 application + 18 EF + 15 HttpApi + 17 contract) — tất cả pass |
 | Docker / Deploy | 🟡 ~70% | docker-compose.yml + FE Dockerfile (VITE_API_URL arg) + BE Dockerfile; seed contributor BD-001; chưa verify end-to-end |
 
 ---
@@ -176,16 +176,38 @@ Cập nhật lần cuối: 2026-08-22 (session 5)
 
 ### Sprint cuối — Integration & Deploy
 
-- [ ] FE API hooks kết nối BE thật (thay mock)
-- [ ] E2E tests (Playwright)
-- [ ] Docker compose verify
-- [ ] Security review
+#### FE Wire thật (ưu tiên cao — có BE endpoint sẵn)
+
+- [x] **StaffPage** — `useStaffList()` thật (commit `a4bf1e8`)
+- [x] **ReportPage summary cards** — `useReportSummary` + `useRevenueReport` (commit `a4bf1e8`)
+- [x] **RevenueSummaryCard (Dashboard)** — `useRevenueReport` (commit `a4bf1e8`)
+- [x] **PendingActionsCard (Dashboard)** — `useReceptionList` WaitingForExam count (commit `a4bf1e8`)
+- [x] **CskhGroupingPage** — `useCareRecordList` với type/status mapping (commit `a4bf1e8`)
+- [x] **Patient Detail — Treatment Plan tab** — `useTreatmentPlanList(patientId)` (commit `0038dcb`)
+- [x] **Patient Detail — Appointment tab** — `useAppointmentList(patientId)` (commit `0038dcb`)
+- [x] **Patient Detail — Invoice tab** — `usePatientInvoices(patientId)` (commit `0038dcb`)
+- [ ] **ReceptionPage** — xoá mock store hoàn toàn; chỉ dùng Visit API thật
+
+#### FE Wire sau (chờ BE endpoint)
+
+- [ ] `identity/api/index.ts` — TODO stub; chờ ABP Identity UI endpoint
+- [ ] `settings/api/index.ts` — TODO stub; chưa có BE settings endpoint
+- [ ] `audit-logs/api/index.ts` — TODO stub; chờ ABP audit log endpoint
+
+#### Verify & Deploy
+
+- [ ] E2E tests (Playwright) — real full-stack, không mock API
+- [ ] Docker compose end-to-end verify (`docker-compose up` full stack)
+- [ ] Security review (`/security-review`) trước khi staging
 
 ---
 
 ## V. Commit Log (gần đây)
 
 ```
+0038dcb feat(wire): connect Patient Detail tabs to real BE APIs (Treatment Plan, Appointments, Invoice)
+a4bf1e8 feat(wire): connect Staff, Report, Dashboard, CSKH to real BE APIs
+f92e90e fix(appointments): resolve FE production build errors (unused Form import; StatusFilter lowercase)
 8ce9d3e feat(be): add default ClinicBranch data seeder + fix unused parameters
 bf4fa17 fix(fe): update reception API to use /v1/app/visits endpoint
 7699fe3 feat(fe): wire calendar and reception doctor lists to real staff API
