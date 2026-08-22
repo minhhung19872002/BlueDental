@@ -1,5 +1,7 @@
 export type Gender = "male" | "female" | "other";
 
+export type PatientStatus = "NoActivity" | "InTreatment" | "Completed";
+
 export interface PatientDto {
   id: string;
   code: string;
@@ -21,10 +23,18 @@ export interface PatientListItem {
   id: string;
   code: string;
   fullName: string;
-  dateOfBirth: string;
+  createdAt: string;
+  dateOfBirth: string | null;
   gender: Gender;
   phone: string;
   email: string | null;
+  status: PatientStatus;
+  serviceName: string | null;
+  doctorName: string | null;
+  totalAmount: number;
+  collectedAmount: number;
+  debtAmount: number;
+  nextAppointmentAt: string | null;
   lastVisitAt: string | null;
 }
 
@@ -44,7 +54,10 @@ export type UpdatePatientRequest = Partial<RegisterPatientRequest>;
 
 export interface PatientListQuery {
   keyword?: string;
-  gender?: Gender;
+  status?: PatientStatus | "All";
+  doctorId?: string;
+  serviceCategory?: string;
+  tagId?: string;
   skipCount?: number;
   maxResultCount?: number;
 }

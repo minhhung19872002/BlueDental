@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { Modal, Form, Input, Select, DatePicker, Row, Col, Button } from "antd";
+import { useEffect, useState } from "react";
+import { Modal, Form, Input, Select, DatePicker, Row, Col, Button, Radio, Tabs } from "antd";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -11,12 +11,18 @@ import type { PatientDto } from "../types/patient";
 const schema = z.object({
   firstName: z.string().min(1, "Vui lòng nhập họ"),
   lastName: z.string().min(1, "Vui lòng nhập tên"),
-  dateOfBirth: z.string().min(1, "Vui lòng chọn ngày sinh"),
-  gender: z.enum(["male", "female", "other"]),
-  phone: z.string().min(9, "Số điện thoại không hợp lệ"),
+  phone: z.string().regex(/^\d{8,15}$/, "Số điện thoại không hợp lệ"),
+  gender: z.enum(["male", "female", "other"]).optional(),
+  dateOfBirth: z.string().optional(),
   email: z.string().email("Email không hợp lệ").optional().or(z.literal("")),
   address: z.string().optional(),
+  notes: z.string().optional(),
   medicalHistory: z.string().optional(),
+  examReason: z.string().optional(),
+  insuranceNumber: z.string().optional(),
+  province: z.string().optional(),
+  district: z.string().optional(),
+  ward: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -30,6 +36,7 @@ interface Props {
 
 export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props) {
   const isEdit = Boolean(patient);
+  const [infoTab, setInfoTab] = useState("basic");
 
   const {
     control,
@@ -42,12 +49,18 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
     defaultValues: {
       firstName: "",
       lastName: "",
-      dateOfBirth: "",
-      gender: "male",
       phone: "",
+      gender: "male",
+      dateOfBirth: "",
       email: "",
       address: "",
+      notes: "",
       medicalHistory: "",
+      examReason: "",
+      insuranceNumber: "",
+      province: "",
+      district: "",
+      ward: "",
     },
   });
 
@@ -56,29 +69,39 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
       reset({
         firstName: patient.firstName,
         lastName: patient.lastName,
-        dateOfBirth: patient.dateOfBirth,
-        gender: patient.gender,
         phone: patient.phone,
+        gender: patient.gender,
+        dateOfBirth: patient.dateOfBirth,
         email: patient.email ?? "",
         address: patient.address ?? "",
         medicalHistory: patient.medicalHistory ?? "",
       });
     } else if (open && !patient) {
       reset();
+      setInfoTab("basic");
     }
   }, [open, patient, reset]);
 
   const createMutation = useRegisterPatient();
   const updateMutation = useUpdatePatient(patient?.id ?? "");
-
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   const onSubmit = async (values: FormValues) => {
     try {
+      const payload = {
+        firstName: values.firstName,
+        lastName: values.lastName,
+        phone: values.phone,
+        gender: values.gender ?? "male",
+        dateOfBirth: values.dateOfBirth ?? "",
+        email: values.email,
+        address: values.address,
+        medicalHistory: values.medicalHistory,
+      };
       if (isEdit && patient) {
-        await updateMutation.mutateAsync(values);
+        await updateMutation.mutateAsync(payload);
       } else {
-        await createMutation.mutateAsync(values);
+        await createMutation.mutateAsync(payload);
       }
       onSuccess?.();
       onClose();
@@ -90,156 +113,250 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
   return (
     <Modal
       open={open}
-      title={isEdit ? "Chỉnh sửa thông tin bệnh nhân" : "Thêm bệnh nhân mới"}
+      title={isEdit ? "Chỉnh sửa thông tin bệnh nhân" : "Tạo hồ sơ bệnh nhân"}
       onCancel={onClose}
       footer={null}
-      width={640}
+      width={1100}
       destroyOnHidden
+      styles={{ body: { padding: "20px 24px" } }}
     >
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item
-              label="Họ"
-              required
-              validateStatus={errors.firstName ? "error" : ""}
-              help={errors.firstName?.message}
-            >
-              <Controller
-                name="firstName"
-                control={control}
-                render={({ field }) => <Input {...field} placeholder="Nguyễn" />}
-              />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item
-              label="Tên"
-              required
-              validateStatus={errors.lastName ? "error" : ""}
-              help={errors.lastName?.message}
-            >
-              <Controller
-                name="lastName"
-                control={control}
-                render={({ field }) => <Input {...field} placeholder="Văn An" />}
-              />
-            </Form.Item>
-          </Col>
-        </Row>
+        <Row gutter={24}>
+          {/* Column 1 — Contact & Source */}
+          <Col span={8}>
+            <Row gutter={8}>
+              <Col span={8}>
+                <Form.Item label="Mã KH">
+                  <Input placeholder="Tự động" disabled />
+                </Form.Item>
+              </Col>
+              <Col span={16}>
+                <Form.Item label="Họ và tên" required validateStatus={errors.lastName ? "error" : ""} help={errors.lastName?.message}>
+                  <Controller
+                    name="lastName"
+                    control={control}
+                    render={({ field }) => <Input {...field} placeholder="Nguyễn Văn An" />}
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
 
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item
-              label="Ngày sinh"
-              required
-              validateStatus={errors.dateOfBirth ? "error" : ""}
-              help={errors.dateOfBirth?.message}
-            >
+            <Form.Item label="Điện thoại" required validateStatus={errors.phone ? "error" : ""} help={errors.phone?.message}>
               <Controller
-                name="dateOfBirth"
+                name="phone"
+                control={control}
+                render={({ field }) => <Input {...field} placeholder="09xxxxxxxx" type="tel" />}
+              />
+            </Form.Item>
+
+            <Form.Item label="Chọn loại nguồn đến">
+              <Select placeholder="Chọn nguồn" allowClear style={{ width: "100%" }}>
+                <Select.Option value="walk_in">Vãng lai tự tìm đến</Select.Option>
+                <Select.Option value="referral">Giới thiệu</Select.Option>
+                <Select.Option value="online">Online</Select.Option>
+              </Select>
+            </Form.Item>
+
+            <Form.Item label="Kênh kết nối">
+              <Select placeholder="Chọn kênh" allowClear disabled style={{ width: "100%" }} />
+            </Form.Item>
+
+            <Form.Item label="Ngày tạo">
+              <Input value={dayjs().format("DD/MM/YYYY")} disabled />
+            </Form.Item>
+
+            <Form.Item label="Lý do đến khám">
+              <Controller
+                name="examReason"
                 control={control}
                 render={({ field }) => (
-                  <DatePicker
+                  <Input.TextArea {...field} rows={3} placeholder="Lý do khám bệnh..." maxLength={1000} />
+                )}
+              />
+            </Form.Item>
+          </Col>
+
+          {/* Column 2 — Basic info / Medical history (tabbed) */}
+          <Col span={8}>
+            <Tabs
+              activeKey={infoTab}
+              onChange={setInfoTab}
+              size="small"
+              items={[
+                {
+                  key: "basic",
+                  label: "Thông tin cơ bản",
+                  children: (
+                    <>
+                      <Form.Item label="Giới tính" validateStatus={errors.gender ? "error" : ""}>
+                        <Controller
+                          name="gender"
+                          control={control}
+                          render={({ field }) => (
+                            <Radio.Group {...field}>
+                              <Radio value="male">Nam</Radio>
+                              <Radio value="female">Nữ</Radio>
+                              <Radio value="other">Khác</Radio>
+                            </Radio.Group>
+                          )}
+                        />
+                      </Form.Item>
+
+                      <Form.Item label="Ngày sinh">
+                        <Controller
+                          name="dateOfBirth"
+                          control={control}
+                          render={({ field }) => (
+                            <DatePicker
+                              style={{ width: "100%" }}
+                              format="DD/MM/YYYY"
+                              disabledDate={(d) => d && d.isAfter(dayjs())}
+                              value={field.value ? dayjs(field.value) : null}
+                              onChange={(d) => field.onChange(d ? d.format("YYYY-MM-DD") : "")}
+                            />
+                          )}
+                        />
+                      </Form.Item>
+
+                      <Form.Item label="Email" validateStatus={errors.email ? "error" : ""} help={errors.email?.message}>
+                        <Controller
+                          name="email"
+                          control={control}
+                          render={({ field }) => <Input {...field} placeholder="email@example.com" />}
+                        />
+                      </Form.Item>
+
+                      <Form.Item label="Ghi chú">
+                        <Controller
+                          name="notes"
+                          control={control}
+                          render={({ field }) => (
+                            <Input.TextArea {...field} rows={3} placeholder="Ghi chú thêm..." />
+                          )}
+                        />
+                      </Form.Item>
+
+                      <Form.Item label="Nghề nghiệp">
+                        <Select placeholder="Chọn nghề nghiệp" allowClear style={{ width: "100%" }}>
+                          <Select.Option value="other">Khác</Select.Option>
+                        </Select>
+                      </Form.Item>
+                    </>
+                  ),
+                },
+                {
+                  key: "history",
+                  label: "Tiểu sử bệnh",
+                  children: (
+                    <Form.Item label="Tiểu sử bệnh">
+                      <Controller
+                        name="medicalHistory"
+                        control={control}
+                        render={({ field }) => (
+                          <Input.TextArea {...field} rows={8} placeholder="Ghi nhận tiền sử bệnh..." />
+                        )}
+                      />
+                    </Form.Item>
+                  ),
+                },
+              ]}
+            />
+          </Col>
+
+          {/* Column 3 — Insurance & Address */}
+          <Col span={8}>
+            <Form.Item label="Số thẻ BHYT">
+              <Controller
+                name="insuranceNumber"
+                control={control}
+                render={({ field }) => (
+                  <Input {...field} placeholder="Số thẻ bảo hiểm y tế" minLength={10} maxLength={15} />
+                )}
+              />
+            </Form.Item>
+
+            <Form.Item label="Quốc gia">
+              <Input value="Việt Nam" disabled />
+            </Form.Item>
+
+            <Form.Item label="Số nhà / Đường">
+              <Controller
+                name="address"
+                control={control}
+                render={({ field }) => <Input {...field} placeholder="Địa chỉ..." />}
+              />
+            </Form.Item>
+
+            <Form.Item label="Tỉnh / Thành phố">
+              <Controller
+                name="province"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    {...field}
+                    showSearch
+                    allowClear
+                    placeholder="Chọn tỉnh / thành"
                     style={{ width: "100%" }}
-                    format="DD/MM/YYYY"
-                    value={field.value ? dayjs(field.value) : null}
-                    onChange={(d) =>
-                      field.onChange(d ? d.format("YYYY-MM-DD") : "")
+                    filterOption={(input, option) =>
+                      (option?.label as string ?? "").toLowerCase().includes(input.toLowerCase())
                     }
+                    options={[
+                      { value: "HCM", label: "TP. Hồ Chí Minh" },
+                      { value: "HN", label: "Hà Nội" },
+                      { value: "DN", label: "Đà Nẵng" },
+                    ]}
+                  />
+                )}
+              />
+            </Form.Item>
+
+            <Form.Item label="Quận / Huyện">
+              <Controller
+                name="district"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    {...field}
+                    showSearch
+                    allowClear
+                    placeholder="Chọn quận / huyện"
+                    style={{ width: "100%" }}
+                    options={[]}
+                  />
+                )}
+              />
+            </Form.Item>
+
+            <Form.Item label="Xã / Phường">
+              <Controller
+                name="ward"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    {...field}
+                    showSearch
+                    allowClear
+                    placeholder="Chọn xã / phường"
+                    style={{ width: "100%" }}
+                    options={[]}
                   />
                 )}
               />
             </Form.Item>
           </Col>
-          <Col span={12}>
-            <Form.Item
-              label="Giới tính"
-              required
-              validateStatus={errors.gender ? "error" : ""}
-              help={errors.gender?.message}
-            >
-              <Controller
-                name="gender"
-                control={control}
-                render={({ field }) => (
-                  <Select {...field} style={{ width: "100%" }}>
-                    <Select.Option value="male">Nam</Select.Option>
-                    <Select.Option value="female">Nữ</Select.Option>
-                    <Select.Option value="other">Khác</Select.Option>
-                  </Select>
-                )}
-              />
-            </Form.Item>
-          </Col>
         </Row>
-
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item
-              label="Số điện thoại"
-              required
-              validateStatus={errors.phone ? "error" : ""}
-              help={errors.phone?.message}
-            >
-              <Controller
-                name="phone"
-                control={control}
-                render={({ field }) => (
-                  <Input {...field} placeholder="0912 345 678" />
-                )}
-              />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item
-              label="Email"
-              validateStatus={errors.email ? "error" : ""}
-              help={errors.email?.message}
-            >
-              <Controller
-                name="email"
-                control={control}
-                render={({ field }) => (
-                  <Input {...field} placeholder="email@example.com" />
-                )}
-              />
-            </Form.Item>
-          </Col>
-        </Row>
-
-        <Form.Item label="Địa chỉ">
-          <Controller
-            name="address"
-            control={control}
-            render={({ field }) => (
-              <Input {...field} placeholder="Địa chỉ liên hệ" />
-            )}
-          />
-        </Form.Item>
-
-        <Form.Item label="Tiền sử bệnh">
-          <Controller
-            name="medicalHistory"
-            control={control}
-            render={({ field }) => (
-              <Input.TextArea {...field} rows={3} placeholder="Ghi chú tiền sử bệnh..." />
-            )}
-          />
-        </Form.Item>
 
         {errors.root && (
-          <Form.Item>
-            <span style={{ color: "#C62828", fontSize: 13 }}>
-              {errors.root.message}
-            </span>
-          </Form.Item>
+          <div style={{ color: "#C62828", fontSize: 13, marginBottom: 12 }}>
+            {errors.root.message}
+          </div>
         )}
 
-        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", paddingTop: 8, borderTop: "1px solid #E5E7EB" }}>
           <Button onClick={onClose}>Hủy</Button>
-          <Button type="primary" htmlType="submit" loading={isPending}>
-            {isEdit ? "Lưu thay đổi" : "Thêm bệnh nhân"}
+          <Button type="primary" htmlType="submit" loading={isPending} icon={<span>💾</span>}>
+            {isEdit ? "Lưu thay đổi" : "Lưu"}
           </Button>
         </div>
       </form>

@@ -35,11 +35,17 @@ export function formatDateTime(
   );
 }
 
-/** Format currency as VND */
+/** Format currency as VND with symbol */
 export function formatCurrency(value: number): string {
   return new Intl.NumberFormat("vi-VN", {
     style: "currency",
     currency: "VND",
     maximumFractionDigits: 0,
   }).format(value);
+}
+
+/** Format VND amount as dot-separated number without symbol (e.g. 24.000.000) */
+export function formatVND(value: number): string {
+  if (value === 0) return "0";
+  return value.toLocaleString("vi-VN");
 }
