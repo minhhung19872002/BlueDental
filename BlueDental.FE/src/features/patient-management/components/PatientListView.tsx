@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Table, Button, Space, Typography, Tooltip, Segmented, Input } from "antd";
+import { Table, Button, Space, Typography, Tooltip, Segmented, Input, message } from "antd";
 import type { TableColumnsType } from "antd";
 import {
   PlusOutlined,
@@ -12,9 +12,11 @@ import {
 } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 import { usePatientList } from "../api/patientQueries";
+import { patientApi } from "../api/patientApi";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { useDebounce } from "@/hooks/useDebounce";
 import { formatDate, formatDateTime, formatVND } from "@/utils/format";
+import { exportToExcel } from "@/utils/exportExcel";
 import { SearchSelect } from "@/components/SearchSelect";
 import type { PatientListItem, PatientStatus } from "../types/patient";
 
@@ -58,9 +60,46 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
     maxResultCount: pagination.maxResultCount,
   });
 
+  const [exporting, setExporting] = useState(false);
+
   const navigateDate = (dir: 1 | -1) => {
     const unit = viewMode === "day" ? "day" : viewMode === "week" ? "week" : "month";
     setCurrentDate((d) => d.add(dir, unit));
+  };
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const result = await patientApi.list({
+        keyword: debouncedKeyword || undefined,
+        status: filterStatus === "All" ? undefined : filterStatus,
+        doctorId: selectedDoctorId,
+        maxResultCount: 10000,
+      });
+      exportToExcel(
+        result.items,
+        [
+          { header: "Mã BN", key: "code" },
+          { header: "Họ và tên", key: "fullName" },
+          { header: "Ngày sinh", key: "dateOfBirth", format: (v) => (v ? formatDate(String(v)) : "") },
+          { header: "Số điện thoại", key: "phone" },
+          { header: "Trạng thái", key: "status", format: (v) => STATUS_CONFIG[v as PatientStatus]?.label ?? String(v) },
+          { header: "Dịch vụ", key: "serviceName", format: (v) => String(v ?? "") },
+          { header: "Bác sĩ", key: "doctorName", format: (v) => String(v ?? "") },
+          { header: "Số tiền", key: "totalAmount", format: (v) => formatVND(Number(v ?? 0)) },
+          { header: "Thực thu", key: "collectedAmount", format: (v) => formatVND(Number(v ?? 0)) },
+          { header: "Công nợ", key: "debtAmount", format: (v) => formatVND(Number(v ?? 0)) },
+          { header: "Lịch hẹn gần nhất", key: "nextAppointmentAt", format: (v) => (v ? formatDateTime(String(v)) : "") },
+          { header: "Lần khám cuối", key: "lastVisitAt", format: (v) => (v ? formatDateTime(String(v)) : "") },
+          { header: "Ngày tạo hồ sơ", key: "createdAt", format: (v) => formatDate(String(v)) },
+        ],
+        `danh-sach-benh-nhan-${dayjs().format("YYYYMMDD")}`,
+      );
+    } catch {
+      message.error("Xuất file thất bại");
+    } finally {
+      setExporting(false);
+    }
   };
 
   const displayDate = () => {
@@ -318,7 +357,7 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
 
           {/* Right: export + create */}
           <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
-            <Button icon={<ExportOutlined />}>Xuất file</Button>
+            <Button icon={<ExportOutlined />} loading={exporting} onClick={handleExport}>Xuất file</Button>
             <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>
               Tạo hồ sơ
             </Button>

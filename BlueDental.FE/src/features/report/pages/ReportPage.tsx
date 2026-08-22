@@ -4,6 +4,7 @@ import { Tabs, Row, Col, Button, Select, Segmented, Spin, Table, Typography, Tag
 import { DownloadOutlined, LeftOutlined, RightOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 import { formatVND } from "@/utils/format";
+import { exportToExcel } from "@/utils/exportExcel";
 import { useReportSummary, useRevenueReport } from "@/features/reporting/api/index";
 
 const { Text } = Typography;
@@ -104,6 +105,20 @@ export function ReportPage() {
     setCurrentDate((d) => d.add(dir, unit));
   };
 
+  const handleExportRevenue = () => {
+    if (!Array.isArray(revenueData) || revenueData.length === 0) return;
+    exportToExcel(
+      revenueData,
+      [
+        { header: "Ngày", key: "date" },
+        { header: "Doanh thu", key: "totalRevenue", format: (v) => formatVND(Number(v ?? 0)) },
+        { header: "Bệnh nhân mới", key: "newPatients", format: (v) => String(v ?? 0) },
+        { header: "Lịch hẹn", key: "appointments", format: (v) => String(v ?? 0) },
+      ],
+      `bao-cao-doanh-so-${dayjs().format("YYYYMMDD")}`,
+    );
+  };
+
   const displayDate = () => {
     if (dateMode === "day") return currentDate.format("DD/MM/YYYY");
     if (dateMode === "week") return `${currentDate.startOf("week").format("DD/MM")} – ${currentDate.endOf("week").format("DD/MM/YYYY")}`;
@@ -180,7 +195,7 @@ export function ReportPage() {
                   {formatVND(Array.isArray(revenueData) ? revenueData.reduce((s, d) => s + d.totalRevenue, 0) : 0)} đ
                 </span>
               )}
-              <Button icon={<DownloadOutlined />} style={{ marginLeft: "auto" }}>Xuất Excel</Button>
+              <Button icon={<DownloadOutlined />} style={{ marginLeft: "auto" }} onClick={handleExportRevenue}>Xuất Excel</Button>
             </div>
           </div>
 
