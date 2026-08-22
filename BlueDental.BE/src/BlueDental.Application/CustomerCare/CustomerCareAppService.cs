@@ -10,11 +10,18 @@ using Volo.Abp.Domain.Repositories;
 namespace BlueDental.CustomerCare;
 
 [Authorize]
-public class CustomerCareAppService(IRepository<CareRecord, Guid> repository) : ApplicationService, ICustomerCareAppService
+public class CustomerCareAppService : ApplicationService, ICustomerCareAppService
 {
+    private readonly IRepository<CareRecord, Guid> _repository;
+
+    public CustomerCareAppService(IRepository<CareRecord, Guid> repository)
+    {
+        _repository = repository;
+    }
+
     public async Task<PagedResultDto<CareRecordDto>> GetListAsync(GetCareRecordListInput input)
     {
-        var query = await repository.GetQueryableAsync();
+        var query = await _repository.GetQueryableAsync();
 
         if (input.BranchId.HasValue)
             query = query.Where(r => r.BranchId == input.BranchId.Value);
@@ -39,7 +46,7 @@ public class CustomerCareAppService(IRepository<CareRecord, Guid> repository) : 
 
     public async Task<CareRecordDto> GetAsync(Guid id)
     {
-        var record = await repository.GetAsync(id);
+        var record = await _repository.GetAsync(id);
         return ObjectMapper.Map<CareRecord, CareRecordDto>(record);
     }
 
@@ -54,28 +61,28 @@ public class CustomerCareAppService(IRepository<CareRecord, Guid> repository) : 
             input.AssignedStaffId,
             input.Description,
             input.DueAt);
-        await repository.InsertAsync(record, autoSave: true);
+        await _repository.InsertAsync(record, autoSave: true);
         return ObjectMapper.Map<CareRecord, CareRecordDto>(record);
     }
 
     public async Task StartAsync(Guid id)
     {
-        var record = await repository.GetAsync(id);
+        var record = await _repository.GetAsync(id);
         record.Start();
-        await repository.UpdateAsync(record, autoSave: true);
+        await _repository.UpdateAsync(record, autoSave: true);
     }
 
     public async Task CompleteAsync(Guid id, string resolution)
     {
-        var record = await repository.GetAsync(id);
+        var record = await _repository.GetAsync(id);
         record.Complete(resolution);
-        await repository.UpdateAsync(record, autoSave: true);
+        await _repository.UpdateAsync(record, autoSave: true);
     }
 
     public async Task CancelAsync(Guid id)
     {
-        var record = await repository.GetAsync(id);
+        var record = await _repository.GetAsync(id);
         record.Cancel();
-        await repository.UpdateAsync(record, autoSave: true);
+        await _repository.UpdateAsync(record, autoSave: true);
     }
 }

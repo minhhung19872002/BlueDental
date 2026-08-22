@@ -10,11 +10,18 @@ using Volo.Abp.Domain.Repositories;
 namespace BlueDental.Labo;
 
 [Authorize]
-public class LaboAppService(IRepository<LaboOrder, Guid> repository) : ApplicationService, ILaboAppService
+public class LaboAppService : ApplicationService, ILaboAppService
 {
+    private readonly IRepository<LaboOrder, Guid> _repository;
+
+    public LaboAppService(IRepository<LaboOrder, Guid> repository)
+    {
+        _repository = repository;
+    }
+
     public async Task<PagedResultDto<LaboOrderDto>> GetListAsync(GetLaboOrderListInput input)
     {
-        var query = await repository.GetQueryableAsync();
+        var query = await _repository.GetQueryableAsync();
 
         if (input.BranchId.HasValue)
             query = query.Where(o => o.BranchId == input.BranchId.Value);
@@ -39,7 +46,7 @@ public class LaboAppService(IRepository<LaboOrder, Guid> repository) : Applicati
 
     public async Task<LaboOrderDto> GetAsync(Guid id)
     {
-        var order = await repository.GetAsync(id);
+        var order = await _repository.GetAsync(id);
         return ObjectMapper.Map<LaboOrder, LaboOrderDto>(order);
     }
 
@@ -57,42 +64,42 @@ public class LaboAppService(IRepository<LaboOrder, Guid> repository) : Applicati
             input.ToothNumbers,
             input.WorkDescription,
             input.DueDate);
-        await repository.InsertAsync(order, autoSave: true);
+        await _repository.InsertAsync(order, autoSave: true);
         return ObjectMapper.Map<LaboOrder, LaboOrderDto>(order);
     }
 
     public async Task<LaboOrderDto> UpdateAsync(Guid id, UpdateLaboOrderDto input)
     {
-        var order = await repository.GetAsync(id);
-        await repository.UpdateAsync(order, autoSave: true);
+        var order = await _repository.GetAsync(id);
+        await _repository.UpdateAsync(order, autoSave: true);
         return ObjectMapper.Map<LaboOrder, LaboOrderDto>(order);
     }
 
     public async Task SendAsync(Guid id)
     {
-        var order = await repository.GetAsync(id);
+        var order = await _repository.GetAsync(id);
         order.Send();
-        await repository.UpdateAsync(order, autoSave: true);
+        await _repository.UpdateAsync(order, autoSave: true);
     }
 
     public async Task ReceiveAsync(Guid id)
     {
-        var order = await repository.GetAsync(id);
+        var order = await _repository.GetAsync(id);
         order.Receive();
-        await repository.UpdateAsync(order, autoSave: true);
+        await _repository.UpdateAsync(order, autoSave: true);
     }
 
     public async Task CompleteAsync(Guid id)
     {
-        var order = await repository.GetAsync(id);
+        var order = await _repository.GetAsync(id);
         order.Complete();
-        await repository.UpdateAsync(order, autoSave: true);
+        await _repository.UpdateAsync(order, autoSave: true);
     }
 
     public async Task RejectAsync(Guid id, string reason)
     {
-        var order = await repository.GetAsync(id);
+        var order = await _repository.GetAsync(id);
         order.Reject(reason);
-        await repository.UpdateAsync(order, autoSave: true);
+        await _repository.UpdateAsync(order, autoSave: true);
     }
 }

@@ -9,17 +9,24 @@ using Volo.Abp.Identity;
 namespace BlueDental.Staff;
 
 [Authorize]
-public class StaffAppService(IIdentityUserRepository userRepository) : ApplicationService, IStaffAppService
+public class StaffAppService : ApplicationService, IStaffAppService
 {
+    private readonly IIdentityUserRepository _userRepository;
+
+    public StaffAppService(IIdentityUserRepository userRepository)
+    {
+        _userRepository = userRepository;
+    }
+
     public async Task<PagedResultDto<StaffDto>> GetListAsync(GetStaffListInput input)
     {
-        var users = await userRepository.GetListAsync(
+        var users = await _userRepository.GetListAsync(
             sorting: input.Sorting ?? "Name",
             maxResultCount: input.MaxResultCount,
             skipCount: input.SkipCount,
             filter: input.Filter);
 
-        var totalCount = await userRepository.GetCountAsync(filter: input.Filter);
+        var totalCount = await _userRepository.GetCountAsync(filter: input.Filter);
 
         var dtos = users.Select(u => new StaffDto
         {
@@ -37,7 +44,7 @@ public class StaffAppService(IIdentityUserRepository userRepository) : Applicati
 
     public async Task<StaffDto> GetAsync(Guid id)
     {
-        var user = await userRepository.GetAsync(id);
+        var user = await _userRepository.GetAsync(id);
         return new StaffDto
         {
             Id = user.Id,
