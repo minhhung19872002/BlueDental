@@ -61,7 +61,7 @@ function mapToStaffDto(u: IdentityUserDto): StaffDto {
 
 export const staffApi = {
   list: async (params: GetStaffListInput): Promise<PagedResult<StaffDto>> => {
-    const res = await api.get<PagedResult<IdentityUserDto>>("/identity/users", {
+    const res = await api.get<PagedResult<StaffDto>>("/v1/app/staff", {
       params: {
         filter: params.filter,
         skipCount: params.skipCount,
@@ -69,15 +69,18 @@ export const staffApi = {
         sorting: params.sorting,
       },
     });
-    const items = (res.data.items ?? []).map(mapToStaffDto);
+    const items = (res.data.items ?? []).map((u) => ({
+      ...u,
+      name: u.name || (u as unknown as { surname?: string; firstName?: string }).surname || u.userName,
+    }));
     const filtered =
       params.isActive !== undefined ? items.filter((u) => u.isActive === params.isActive) : items;
     return { items: filtered, totalCount: filtered.length };
   },
 
   get: async (id: string): Promise<StaffDto> => {
-    const res = await api.get<IdentityUserDto>(`/identity/users/${id}`);
-    return mapToStaffDto(res.data);
+    const res = await api.get<StaffDto>(`/v1/app/staff/${id}`);
+    return res.data;
   },
 
   create: async (input: CreateStaffInput): Promise<StaffDto> => {
