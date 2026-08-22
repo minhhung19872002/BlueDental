@@ -1,19 +1,19 @@
 import { useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  Button, Spin, Tabs, Tag, Row, Col, Card, Table, Typography, Space,
+  Button, Spin, Tabs, Tag, Row, Col, Card, Table, Typography, Space, Select,
   type TableColumnsType,
 } from "antd";
 import {
   ArrowLeftOutlined, EditOutlined, CalendarOutlined,
   FileTextOutlined, PictureOutlined, MedicineBoxOutlined,
-  PhoneOutlined, DollarOutlined, HistoryOutlined,
+  PhoneOutlined, DollarOutlined, HistoryOutlined, PlusOutlined, UploadOutlined,
 } from "@ant-design/icons";
 import { usePatient } from "../api/patientQueries";
 import { DentalChartView, type ToothRecord } from "../components/DentalChartView";
 import { formatDate, formatDateTime, formatVND } from "@/utils/format";
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
 const GENDER_LABELS: Record<string, string> = { male: "Nam", female: "Nữ", other: "Khác" };
 
@@ -43,15 +43,6 @@ const APPOINTMENT_COUNTER_CARDS = [
   { key: "late",      label: "Trễ hẹn",  borderColor: "#F59E0B", bgColor: "#FEF3C7", textColor: "#F59E0B" },
 ];
 
-function TabPlaceholder({ label }: { label: string }) {
-  return (
-    <div style={{ padding: "48px 0", textAlign: "center", color: "#9CA3AF" }}>
-      <div style={{ fontSize: 40, marginBottom: 12 }}>🔧</div>
-      <Title level={5} style={{ color: "#6B7280" }}>{label}</Title>
-      <Text type="secondary">Nội dung đang được phát triển</Text>
-    </div>
-  );
-}
 
 export function PatientProfilePage() {
   const { id } = useParams<{ id: string }>();
@@ -325,7 +316,66 @@ export function PatientProfilePage() {
       key: "treatment-plan",
       label: "Kế hoạch điều trị",
       icon: <FileTextOutlined />,
-      children: <TabPlaceholder label="Kế hoạch điều trị" />,
+      children: (
+        <div style={{ padding: "16px 0" }}>
+          {/* Toolbar */}
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 16 }}>
+            <Button icon={<PlusOutlined />}>Tạo kế hoạch mới</Button>
+            <Button>Xem tất cả dịch vụ</Button>
+          </div>
+
+          {/* Summary cards */}
+          <Row gutter={12} style={{ marginBottom: 16 }}>
+            <Col span={12}>
+              <Card size="small" style={{ borderLeft: "4px solid #2671D8" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ background: "#2671D8", color: "#fff", borderRadius: 12, padding: "2px 10px", fontWeight: 700, fontSize: 14 }}>0</span>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41" }}>Dịch vụ đang điều trị</div>
+                    <div style={{ fontSize: 12, color: "#9CA3AF" }}>Chưa có dịch vụ đang điều trị</div>
+                  </div>
+                </div>
+              </Card>
+            </Col>
+            <Col span={12}>
+              <Card size="small" style={{ borderLeft: "4px solid #10B981" }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 4 }}>Dịch vụ có công đoạn gần nhất</div>
+                  <div style={{ fontSize: 12, color: "#9CA3AF" }}>Chưa có công đoạn</div>
+                </div>
+              </Card>
+            </Col>
+          </Row>
+
+          {/* Treatment plan table */}
+          <Card size="small">
+            <Table
+              size="small"
+              rowKey="id"
+              columns={[
+                { title: "Thêm công đoạn", key: "addStep", width: 120, render: () => <Button size="small" type="link">+ Công đoạn</Button> },
+                { title: "Số phiếu", dataIndex: "code", key: "code", width: 80, render: (v: string) => <Button type="link" size="small">{v}</Button> },
+                { title: "Dịch vụ", dataIndex: "serviceName", key: "serviceName", width: 200 },
+                { title: "Bác sĩ tiếp nhận", dataIndex: "doctorName", key: "doctorName", width: 140 },
+                { title: "Trạng thái", dataIndex: "status", key: "status", width: 140, render: (v: string) => v ? <Tag color="processing">{v}</Tag> : null },
+                { title: "Ngày tạo", dataIndex: "createdAt", key: "createdAt", width: 110, render: (v: string) => v ? formatDate(v) : "—" },
+                { title: "Tổng phiếu", dataIndex: "totalAmount", key: "totalAmount", width: 120, align: "right", render: (v: number) => `${formatVND(v ?? 0)} đ` },
+                { title: "Giảm giá", dataIndex: "discountAmount", key: "discountAmount", width: 110, align: "right", render: (v: number) => `${formatVND(v ?? 0)} đ` },
+                { title: "Thành tiền", dataIndex: "finalAmount", key: "finalAmount", width: 120, align: "right", render: (v: number) => `${formatVND(v ?? 0)} đ` },
+                { title: "Đã trả", dataIndex: "paidAmount", key: "paidAmount", width: 110, align: "right", render: (v: number) => <Text style={{ color: "#10B981" }}>{formatVND(v ?? 0)} đ</Text> },
+                { title: "Hoàn tiền", dataIndex: "refundedAmount", key: "refundedAmount", width: 100, align: "right", render: (v: number) => `${formatVND(v ?? 0)} đ` },
+                { title: "Còn lại", dataIndex: "remainingAmount", key: "remainingAmount", width: 120, align: "right", render: (v: number) => <Text style={{ color: "#EF4444" }}>{formatVND(v ?? 0)} đ</Text> },
+                { title: "Phải thu", dataIndex: "toCollect", key: "toCollect", width: 110, align: "right", render: (v: number) => `${formatVND(v ?? 0)} đ` },
+                { title: "Thao tác", key: "actions", width: 80, fixed: "right", render: () => <Space size={4}><Button type="text" size="small" icon={<EditOutlined />} /></Space> },
+              ]}
+              dataSource={[]}
+              pagination={{ pageSize: 20, showTotal: (total) => `Hiển thị 0 trên ${total} kế hoạch` }}
+              scroll={{ x: 1400 }}
+              locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>Chưa có kế hoạch điều trị</span> }}
+            />
+          </Card>
+        </div>
+      ),
     },
     {
       key: "appointment",
@@ -367,24 +417,151 @@ export function PatientProfilePage() {
       key: "image",
       label: "Hình ảnh",
       icon: <PictureOutlined />,
-      children: <TabPlaceholder label="Hình ảnh" />,
+      children: (
+        <div style={{ padding: "16px 0" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+            <Select placeholder="Giai đoạn điều trị" style={{ width: 220 }} allowClear options={[]} />
+            <Button icon={<UploadOutlined />} style={{ marginLeft: "auto" }}>Tải ảnh</Button>
+          </div>
+          <div style={{ padding: "60px 0", textAlign: "center", color: "#9CA3AF", border: "1px dashed #E5E7EB", borderRadius: 8 }}>
+            <PictureOutlined style={{ fontSize: 40, marginBottom: 12, color: "#D1D5DB" }} />
+            <div style={{ fontWeight: 500, color: "#6B7280", marginBottom: 4 }}>Không có ảnh trong bộ lọc đã chọn</div>
+            <div style={{ fontSize: 13 }}>Hãy đổi bộ lọc hoặc tải thêm ảnh để tiếp tục.</div>
+          </div>
+        </div>
+      ),
     },
     {
       key: "labo",
       label: "Labo",
-      children: <TabPlaceholder label="Labo" />,
+      children: (
+        <div style={{ padding: "16px 0" }}>
+          {/* Top bar: counter filter buttons + create button */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+            {[
+              { label: "Đơn hàng mới", count: 0, bg: "#E6F4EA", text: "#10B981", border: "#10B981" },
+              { label: "Tiếp tục công đoạn", count: 0, bg: "#FEF3C7", text: "#D97706", border: "#F59E0B" },
+              { label: "Bảo hành", count: 0, bg: "#FCE8E6", text: "#DC2626", border: "#EF4444" },
+            ].map((c) => (
+              <button
+                key={c.label}
+                style={{
+                  display: "flex", alignItems: "center", gap: 6, padding: "6px 14px",
+                  background: c.bg, color: c.text, border: `1px solid ${c.border}`,
+                  borderRadius: 20, fontSize: 13, fontWeight: 500, cursor: "pointer",
+                }}
+              >
+                <span style={{ fontWeight: 700, fontSize: 15 }}>{c.count}</span>
+                {c.label}
+              </button>
+            ))}
+            <Button type="primary" icon={<PlusOutlined />} style={{ marginLeft: "auto", background: "#2671D8" }}>
+              Tạo phiếu Labo
+            </Button>
+          </div>
+
+          <Table
+            size="small"
+            rowKey="id"
+            columns={[
+              { title: "Mã phiếu labo", dataIndex: "code", key: "code", width: 120 },
+              { title: "Ngày gửi / Tình trạng mẫu", dataIndex: "sentAt", key: "sentAt", width: 160, render: (v: string) => v ? formatDate(v) : "—" },
+              { title: "Ngày giao / Trạng thái Labo", dataIndex: "deliveredAt", key: "deliveredAt", width: 170, render: (v: string) => v ? formatDate(v) : "—" },
+              { title: "Bác sĩ chỉ định", dataIndex: "doctorName", key: "doctorName", width: 140 },
+              { title: "Nhà cung cấp", dataIndex: "supplierName", key: "supplierName", width: 140 },
+              { title: "Vật liệu", dataIndex: "material", key: "material", width: 120 },
+              { title: "Số răng", dataIndex: "toothNumbers", key: "toothNumbers", width: 100 },
+              { title: "Số lượng", dataIndex: "quantity", key: "quantity", width: 80, align: "right" },
+              { title: "File Labo gửi về", dataIndex: "returnedFile", key: "returnedFile", width: 130 },
+              { title: "Thao tác", key: "actions", width: 80, render: () => <Button type="text" size="small" icon={<EditOutlined />} /> },
+            ]}
+            dataSource={[]}
+            pagination={{ pageSize: 20, showTotal: (total) => `Hiển thị 0 trên ${total} phiếu labo` }}
+            locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>Không có dữ liệu</span> }}
+          />
+        </div>
+      ),
     },
     {
       key: "prescription",
       label: "Đơn thuốc",
       icon: <MedicineBoxOutlined />,
-      children: <TabPlaceholder label="Đơn thuốc" />,
+      children: (
+        <div style={{ padding: "16px 0" }}>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+            <Button type="primary" icon={<PlusOutlined />} style={{ background: "#2671D8" }}>Tạo đơn thuốc</Button>
+          </div>
+          <Table
+            size="small"
+            rowKey="id"
+            columns={[
+              { title: "Mã đơn thuốc", dataIndex: "code", key: "code", width: 130 },
+              { title: "Bác sĩ", dataIndex: "doctorName", key: "doctorName", width: 160 },
+              { title: "Chẩn đoán", dataIndex: "diagnosis", key: "diagnosis" },
+              { title: "Tái khám", dataIndex: "followUpDate", key: "followUpDate", width: 130, render: (v: string) => v ? formatDate(v) : "—" },
+              { title: "Ngày tạo", dataIndex: "createdAt", key: "createdAt", width: 120, render: (v: string) => v ? formatDate(v) : "—" },
+              { title: "Thao tác", key: "actions", width: 80, render: () => <Button type="text" size="small" icon={<EditOutlined />} /> },
+            ]}
+            dataSource={[]}
+            pagination={{ pageSize: 20, showTotal: (total) => `Hiển thị 0 trên ${total}` }}
+            locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>Không có dữ liệu</span> }}
+          />
+        </div>
+      ),
     },
     {
       key: "care",
       label: "Chăm sóc KH",
       icon: <PhoneOutlined />,
-      children: <TabPlaceholder label="Chăm sóc KH" />,
+      children: (
+        <div style={{ padding: "16px 0" }}>
+          {/* Status filter buttons + action button */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+            {[
+              { label: "Đã chăm sóc", count: 0 },
+              { label: "Tốt", count: 0 },
+              { label: "Khá", count: 0 },
+              { label: "Bình thường", count: 0 },
+              { label: "Khiếu nại", count: 0 },
+              { label: "Đặc biệt", count: 0 },
+              { label: "Định kỳ", count: 0 },
+              { label: "Cơ bản", count: 0 },
+            ].map((b) => (
+              <button
+                key={b.label}
+                style={{
+                  padding: "4px 12px", borderRadius: 16, border: "1px solid #E5E7EB",
+                  background: "#F9FAFB", color: "#374151", fontSize: 13, cursor: "pointer",
+                  display: "flex", alignItems: "center", gap: 4,
+                }}
+              >
+                <span style={{ fontWeight: 600 }}>{b.count}</span>
+                {b.label}
+              </button>
+            ))}
+            <Button style={{ marginLeft: "auto" }}>CSKH đặc biệt</Button>
+          </div>
+
+          <Table
+            size="small"
+            rowKey="id"
+            columns={[
+              { title: "Ngày chăm sóc", dataIndex: "careDate", key: "careDate", width: 130, render: (v: string) => v ? formatDate(v) : "—" },
+              { title: "Trạng thái CSKH", dataIndex: "careStatus", key: "careStatus", width: 140 },
+              { title: "Nhóm", dataIndex: "group", key: "group", width: 160 },
+              { title: "Dịch vụ", dataIndex: "serviceName", key: "serviceName", width: 180 },
+              { title: "Nội dung", dataIndex: "content", key: "content" },
+              { title: "Bác sĩ điều trị", dataIndex: "doctorName", key: "doctorName", width: 140 },
+              { title: "Nhân viên chăm sóc", dataIndex: "staffName", key: "staffName", width: 150 },
+              { title: "Đánh giá", dataIndex: "rating", key: "rating", width: 100 },
+              { title: "Thao tác", key: "actions", width: 100, render: () => <Space size={4}><Button type="text" size="small" icon={<EditOutlined />} /></Space> },
+            ]}
+            dataSource={[]}
+            pagination={{ pageSize: 20, showTotal: (total) => `Hiển thị 0–0 trên ${total} nhật ký` }}
+            locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>Chưa có dữ liệu chăm sóc</span> }}
+          />
+        </div>
+      ),
     },
     {
       key: "invoice",
@@ -401,7 +578,24 @@ export function PatientProfilePage() {
       key: "debt-history",
       label: "Lịch sử dư nợ",
       icon: <HistoryOutlined />,
-      children: <TabPlaceholder label="Lịch sử dư nợ" />,
+      children: (
+        <div style={{ padding: "16px 0" }}>
+          <Table
+            size="small"
+            rowKey="id"
+            columns={[
+              { title: "Ngày giao dịch", dataIndex: "transactionDate", key: "transactionDate", width: 160, render: (v: string) => v ? formatDateTime(v) : "—" },
+              { title: "Loại", dataIndex: "type", key: "type", width: 140 },
+              { title: "Số tiền", dataIndex: "amount", key: "amount", width: 140, align: "right", render: (v: number) => <Text style={{ fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
+              { title: "Nhân viên", dataIndex: "staffName", key: "staffName", width: 160 },
+              { title: "Ghi chú", dataIndex: "notes", key: "notes" },
+            ]}
+            dataSource={[]}
+            pagination={{ pageSize: 20, showTotal: (total) => `Hiển thị 0 trên ${total} giao dịch` }}
+            locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>Chưa có lịch sử dư nợ</span> }}
+          />
+        </div>
+      ),
     },
   ];
 
