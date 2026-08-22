@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { message, Spin } from "antd";
+import { message, Spin, Drawer } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 import { ReceptionToolbar } from "../components/ReceptionToolbar";
 import { ReceptionStatusTabs } from "../components/ReceptionStatusTabs";
+import { ReceptionTable } from "../components/ReceptionTable";
 import { ReceptionCard } from "../components/ReceptionCard";
 import { ReceptionEmptyState } from "../components/ReceptionEmptyState";
 import { ReceptionNewDrawer } from "../components/ReceptionNewDrawer";
@@ -13,6 +14,7 @@ import {
 } from "../api/receptionQueries";
 import { useUpdateReceptionStatus } from "../api/receptionMutations";
 import type {
+  ReceptionItem,
   ReceptionStatus,
   ReceptionFilter,
   AppointmentOutcome,
@@ -27,6 +29,7 @@ export const ReceptionPage: React.FC = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("day");
   const [currentDate, setCurrentDate] = useState<Dayjs>(dayjs());
+  const [selectedItem, setSelectedItem] = useState<ReceptionItem | null>(null);
 
   const filter: ReceptionFilter = {
     status: activeTab,
@@ -46,6 +49,10 @@ export const ReceptionPage: React.FC = () => {
       {
         onSuccess: () => {
           message.success("Cập nhật trạng thái tiếp nhận thành công!");
+          // Sync selected item status if detail drawer is open
+          if (selectedItem?.id === id) {
+            setSelectedItem((prev) => prev ? { ...prev, status: newStatus } : null);
+          }
         },
         onError: (err) => {
           message.error(err.message || "Cập nhật trạng thái thất bại");
@@ -64,6 +71,7 @@ export const ReceptionPage: React.FC = () => {
 
   const handleCancel = (id: string) => {
     handleStatusChange(id, "All");
+    setSelectedItem(null);
   };
 
   const items = listData?.items ?? [];
@@ -96,7 +104,7 @@ export const ReceptionPage: React.FC = () => {
         />
       </div>
 
-      {/* Card 3: content */}
+      {/* Card 3: table */}
       <div className="reception-card reception-card--content">
         {listLoading ? (
           <div className="reception-loading">
@@ -105,20 +113,34 @@ export const ReceptionPage: React.FC = () => {
         ) : items.length === 0 ? (
           <ReceptionEmptyState />
         ) : (
-          <div className="reception-card-grid">
-            {items.map((item) => (
-              <ReceptionCard
-                key={item.id}
-                item={item}
-                doctors={doctors}
-                onOutcomeChange={handleOutcomeChange}
-                onDoctorChange={handleDoctorChange}
-                onCancel={handleCancel}
-              />
-            ))}
-          </div>
+          <ReceptionTable
+            items={items}
+            loading={listLoading}
+            onStatusChange={handleStatusChange}
+            onRowClick={(item) => setSelectedItem(item)}
+          />
         )}
       </div>
+
+      {/* Detail drawer — shown when clicking a row */}
+      <Drawer
+        open={!!selectedItem}
+        onClose={() => setSelectedItem(null)}
+        width={760}
+        title={selectedItem ? `Chi tiết tiếp nhận — ${selectedItem.voucherCode}` : "Chi tiết tiếp nhận"}
+        destroyOnClose
+        styles={{ body: { padding: 0 } }}
+      >
+        {selectedItem && (
+          <ReceptionCard
+            item={selectedItem}
+            doctors={doctors}
+            onOutcomeChange={handleOutcomeChange}
+            onDoctorChange={handleDoctorChange}
+            onCancel={handleCancel}
+          />
+        )}
+      </Drawer>
 
       <ReceptionNewDrawer
         open={drawerOpen}

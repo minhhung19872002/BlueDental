@@ -15,6 +15,7 @@ interface ReceptionTableProps {
   items: ReceptionItem[];
   loading?: boolean;
   onStatusChange: (id: string, newStatus: ReceptionStatus) => void;
+  onRowClick?: (item: ReceptionItem) => void;
 }
 
 const REF_TYPE_LABELS: Record<RefType, { label: string; color: string }> = {
@@ -28,6 +29,7 @@ export const ReceptionTable: React.FC<ReceptionTableProps> = ({
   items,
   loading = false,
   onStatusChange,
+  onRowClick,
 }) => {
   const columns: ColumnsType<ReceptionItem> = [
     {
@@ -239,6 +241,10 @@ export const ReceptionTable: React.FC<ReceptionTableProps> = ({
       dataSource={items}
       rowKey="id"
       loading={loading}
+      onRow={(record) => ({
+        onClick: () => onRowClick?.(record),
+        style: onRowClick ? { cursor: "pointer" } : undefined,
+      })}
       pagination={{
         pageSize: 10,
         showSizeChanger: true,
