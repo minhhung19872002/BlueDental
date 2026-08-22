@@ -12,10 +12,29 @@ import {
 import { usePatient } from "../api/patientQueries";
 import { DentalChartView, type ToothRecord } from "../components/DentalChartView";
 import { formatDate, formatDateTime, formatVND } from "@/utils/format";
+import {
+  usePatientAdviseSummary,
+  usePatientAdvises,
+  usePatientDiagnoses,
+} from "@/features/treatment-management/api/consultingQueries";
+import {
+  ADVISE_STATUS,
+  formatTeeth,
+  type PatientAdviseStatus,
+} from "@/features/treatment-management/api/consultingApi";
+import { useCurrentBranchId } from "@/lib/clinicBranch";
 
 const { Text } = Typography;
 
 const GENDER_LABELS: Record<string, string> = { male: "Nam", female: "Nữ", other: "Khác" };
+
+const ADVISE_STATUS_CONFIG: Record<PatientAdviseStatus, { label: string; color: string }> = {
+  [ADVISE_STATUS.Created]:   { label: "Chờ duyệt",   color: "default" },
+  [ADVISE_STATUS.Accepted]:  { label: "Đã chốt",     color: "blue" },
+  [ADVISE_STATUS.Converted]: { label: "Đã lên KHĐT", color: "green" },
+  [ADVISE_STATUS.Rejected]:  { label: "Từ chối",     color: "red" },
+  [ADVISE_STATUS.Cancelled]: { label: "Đã hủy",      color: "default" },
+};
 
 interface AppointmentRow {
   id: string;
@@ -52,6 +71,15 @@ export function PatientProfilePage() {
 
   const activeTab = searchParams.get("tab") ?? "profile";
   const { data: patient, isLoading } = usePatient(id ?? "");
+
+  const branchId = useCurrentBranchId();
+  const consultingParams = { patientId: id ?? "", clinicBranchId: branchId, maxResultCount: 50 };
+  const { data: diagnosisPage, isLoading: diagnosesLoading } = usePatientDiagnoses(consultingParams);
+  const { data: advisePage, isLoading: advisesLoading } = usePatientAdvises(consultingParams);
+  const { data: adviseSummary } = usePatientAdviseSummary(consultingParams);
+
+  const diagnosisRows = diagnosisPage?.items ?? [];
+  const adviseRows = advisePage?.items ?? [];
 
   const handleTabChange = (key: string) => {
     setSearchParams({ tab: key });
@@ -268,14 +296,38 @@ export function PatientProfilePage() {
               <Card title="Phiếu chẩn đoán" size="small" style={{ marginBottom: 16 }}>
                 <Table
                   size="small"
+                  rowKey="id"
+                  loading={diagnosesLoading}
                   columns={[
-                    { title: "Số phiếu", dataIndex: "code", width: 80 },
-                    { title: "Bác sĩ chẩn đoán 1", dataIndex: "doctor1", width: 160 },
-                    { title: "Răng", dataIndex: "tooth" },
-                    { title: "Ghi chú", dataIndex: "notes" },
-                    { title: "Thao tác", key: "actions", width: 80, render: () => <Button type="link" size="small">Tạo Dịch Vụ</Button> },
+                    { title: "Số phiếu", dataIndex: "code", width: 100 },
+                    {
+                      title: "Bác sĩ chẩn đoán",
+                      dataIndex: "staffName",
+                      width: 160,
+                      render: (v: string | null) => v ?? "—",
+                    },
+                    {
+                      title: "Răng",
+                      key: "teeth",
+                      render: (_, row) => formatTeeth(row.teeth),
+                    },
+                    {
+                      title: "Ghi chú",
+                      dataIndex: "note",
+                      render: (v: string | null) => v ?? "—",
+                    },
+                    {
+                      title: "Thao tác",
+                      key: "actions",
+                      width: 110,
+                      render: (_, row) => (
+                        <Button type="link" size="small" disabled={row.hasTreatmentService}>
+                          {row.hasTreatmentService ? "Đã tạo DV" : "Tạo Dịch Vụ"}
+                        </Button>
+                      ),
+                    },
                   ]}
-                  dataSource={[]}
+                  dataSource={diagnosisRows}
                   pagination={false}
                   locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>Chưa có phiếu chẩn đoán</span> }}
                 />
@@ -284,13 +336,34 @@ export function PatientProfilePage() {
               <Card title="Phiếu tư vấn" size="small">
                 <Table
                   size="small"
+                  rowKey="id"
+                  loading={advisesLoading}
                   columns={[
-                    { title: "Ngày", dataIndex: "date", width: 100, render: (v) => formatDate(v) },
-                    { title: "Dịch vụ", dataIndex: "service" },
-                    { title: "Đơn giá", dataIndex: "unitPrice", width: 120, align: "right", render: (v) => `${formatVND(v)} đ` },
-                    { title: "Thành tiền", dataIndex: "total", width: 120, align: "right", render: (v) => `${formatVND(v)} đ` },
+                    { title: "Ngày", dataIndex: "creationTime", width: 100, render: (v) => formatDate(v) },
+                    {
+                      title: "Dịch vụ",
+                      dataIndex: "serviceName",
+                      render: (v: string | null, row) => v ?? row.code,
+                    },
+                    { title: "SL", dataIndex: "quantity", width: 50, align: "right" },
+                    { title: "Đơn giá", dataIndex: "price", width: 110, align: "right", render: (v) => `${formatVND(v)} đ` },
+                    {
+                      title: "Thành tiền",
+                      dataIndex: "effectiveAmount",
+                      width: 120,
+                      align: "right",
+                      render: (v) => `${formatVND(v)} đ`,
+                    },
+                    {
+                      title: "Trạng thái",
+                      dataIndex: "status",
+                      width: 120,
+                      render: (v: PatientAdviseStatus) => (
+                        <Tag color={ADVISE_STATUS_CONFIG[v].color}>{ADVISE_STATUS_CONFIG[v].label}</Tag>
+                      ),
+                    },
                   ]}
-                  dataSource={[]}
+                  dataSource={adviseRows}
                   pagination={false}
                   locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>Chưa có phiếu tư vấn</span> }}
                 />
@@ -300,7 +373,14 @@ export function PatientProfilePage() {
                   padding: "10px 0", borderTop: "1px solid #E5E7EB",
                 }}>
                   <Text strong style={{ fontSize: 13 }}>TỔNG KẾ HOẠCH</Text>
-                  <Text style={{ fontSize: 13, color: "#5A6B82" }}>Tổng thành tiền: 0 đ</Text>
+                  <Text style={{ fontSize: 13, color: "#5A6B82" }}>
+                    Tổng thành tiền: {formatVND(adviseSummary?.totalEffectiveAmount ?? 0)} đ
+                  </Text>
+                  {(adviseSummary?.totalDiscountAmount ?? 0) > 0 && (
+                    <Text style={{ fontSize: 13, color: "#5A6B82" }}>
+                      Chiết khấu: {formatVND(adviseSummary?.totalDiscountAmount ?? 0)} đ
+                    </Text>
+                  )}
                   <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
                     <Button size="small">Thêm kế hoạch điều trị</Button>
                     <Button size="small">Tạo báo giá</Button>
