@@ -1,76 +1,135 @@
 import { useState } from "react";
-import { Button } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
-import dayjs from "dayjs";
-import isoWeek from "dayjs/plugin/isoWeek";
-import { AppointmentCalendar } from "../components/AppointmentCalendar";
+import { Button, Tabs, Segmented } from "antd";
+import dayjs, { type Dayjs } from "dayjs";
+import { LeftOutlined, RightOutlined } from "@ant-design/icons";
+import { DayViewCalendar, type DayViewDoctor } from "../components/DayViewCalendar";
 import { AppointmentEditorModal } from "../components/AppointmentEditorModal";
 import { AppointmentDetailDrawer } from "../components/AppointmentDetailDrawer";
-import { useAppointmentList } from "../api/appointmentQueries";
-import { adaptAppointment } from "../api/appointmentAdapters";
 
-dayjs.extend(isoWeek);
+type ViewMode = "day" | "week" | "month";
+
+const MOCK_DOCTORS: DayViewDoctor[] = [
+  { id: "1", name: "BS Khanh",    appointmentCount: 0 },
+  { id: "2", name: "BS Tiên",     appointmentCount: 0 },
+  { id: "3", name: "BS Hương 4",  appointmentCount: 0 },
+  { id: "4", name: "BS Hương",    appointmentCount: 0 },
+  { id: "5", name: "BS Tới 10",   appointmentCount: 0 },
+  { id: "6", name: "BS Tới 3",    appointmentCount: 0 },
+  { id: "7", name: "BS Tới 1",    appointmentCount: 0 },
+  { id: "8", name: "BS Tới",      appointmentCount: 0 },
+];
 
 export function AppointmentCalendarPage() {
-  const [weekStart, setWeekStart] = useState(() =>
-    dayjs().startOf("isoWeek"),
-  );
+  const [topTab, setTopTab] = useState("customer");
+  const [viewMode, setViewMode] = useState<ViewMode>("day");
+  const [currentDate, setCurrentDate] = useState<Dayjs>(dayjs());
+  const [keyword, setKeyword] = useState("");
   const [addOpen, setAddOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [initialDate, setInitialDate] = useState<string | undefined>();
-  const [initialTime, setInitialTime] = useState<string | undefined>();
 
-  const { data } = useAppointmentList({
-    date: weekStart.format("YYYY-MM-DD"),
-    maxResultCount: 200,
-  });
+  const navigateDate = (dir: -1 | 1) => {
+    const unit = viewMode === "day" ? "day" : viewMode === "week" ? "week" : "month";
+    setCurrentDate((d) => d.add(dir, unit));
+  };
 
-  const appointments = (data?.items ?? []).map(adaptAppointment);
+  const displayDate = () => {
+    if (viewMode === "day") return currentDate.format("DD/MM/YYYY");
+    if (viewMode === "week") {
+      const start = currentDate.startOf("week").format("DD/MM");
+      const end = currentDate.endOf("week").format("DD/MM/YYYY");
+      return `${start} – ${end}`;
+    }
+    return currentDate.format("MM/YYYY");
+  };
 
-  const handleSlotClick = (date: string, slotStart: string) => {
-    setInitialDate(date);
-    setInitialTime(slotStart);
+  const handleCellClick = (doctorId: string, slotIndex: number) => {
+    setInitialDate(currentDate.format("YYYY-MM-DD"));
     setAddOpen(true);
+    void doctorId;
+    void slotIndex;
   };
 
   return (
     <>
-      <div className="page-container">
-        <div className="page-header">
-          <div className="page-header-left">
-            <h1 className="page-header-title">Lịch hẹn</h1>
-            <p className="page-header-subtitle">
-              Xem và quản lý lịch hẹn khám của phòng khám
-            </p>
-          </div>
-          <div className="page-header-actions">
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => {
-                setInitialDate(undefined);
-                setInitialTime(undefined);
-                setAddOpen(true);
-              }}
-            >
-              Đặt lịch hẹn
-            </Button>
+      <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+        {/* Top-level tabs */}
+        <div
+          style={{
+            background: "#fff",
+            borderBottom: "1px solid #E5E7EB",
+            paddingLeft: 16,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <Tabs
+            activeKey={topTab}
+            onChange={setTopTab}
+            style={{ marginBottom: 0 }}
+            items={[
+              { key: "customer", label: "Lịch hẹn khách hàng" },
+              { key: "work",     label: "Lịch làm việc" },
+            ]}
+          />
+        </div>
+
+        {/* Toolbar row 1: view mode + date nav */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            padding: "10px 16px",
+            background: "#fff",
+            borderBottom: "1px solid #E5E7EB",
+          }}
+        >
+          <Segmented
+            value={viewMode}
+            onChange={(v) => setViewMode(v as ViewMode)}
+            options={[
+              { label: "Ngày",  value: "day" },
+              { label: "Tuần",  value: "week" },
+              { label: "Tháng", value: "month" },
+            ]}
+            style={{ fontWeight: 500 }}
+          />
+
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <Button type="text" size="small" icon={<LeftOutlined />} onClick={() => navigateDate(-1)} />
+            <span style={{ minWidth: 120, textAlign: "center", fontWeight: 600, fontSize: 14, color: "#1B2A41" }}>
+              {displayDate()}
+            </span>
+            <Button type="text" size="small" icon={<RightOutlined />} onClick={() => navigateDate(1)} />
           </div>
         </div>
 
-        <AppointmentCalendar
-          weekStart={weekStart}
-          appointments={appointments}
-          onWeekChange={(dir) => setWeekStart((w) => w.add(dir * 7, "day"))}
-          onSlotClick={handleSlotClick}
-          onAppointmentClick={(appt) => setSelectedId(appt.id)}
-        />
+        {/* Day view calendar with doctor columns */}
+        <div style={{ flex: 1, overflow: "auto", background: "#fff" }}>
+          {topTab === "customer" ? (
+            <DayViewCalendar
+              currentDate={currentDate}
+              doctors={MOCK_DOCTORS}
+              onDateChange={navigateDate}
+              onCellClick={handleCellClick}
+              keyword={keyword}
+              onKeywordChange={setKeyword}
+            />
+          ) : (
+            <div style={{ padding: "48px 0", textAlign: "center", color: "#9CA3AF" }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>📅</div>
+              <div style={{ fontWeight: 500, color: "#6B7280" }}>Lịch làm việc</div>
+              <div style={{ fontSize: 13, marginTop: 4 }}>Nội dung đang được phát triển</div>
+            </div>
+          )}
+        </div>
       </div>
 
       <AppointmentEditorModal
         open={addOpen}
         initialDate={initialDate}
-        initialTime={initialTime}
         onClose={() => setAddOpen(false)}
         onSuccess={() => setAddOpen(false)}
       />
