@@ -1,5 +1,61 @@
 # BlueDental — Progress Report
 
+Cập nhật lần cuối: 2026-08-23 (session 6)
+
+---
+
+## Session 6 — Bổ sung nghiệp vụ từ quan sát read-only app gốc
+
+Nguồn: `docs/clone/business-features.md` + `docs/clone/permissions.md`
+(quan sát READ-ONLY https://app.nfcdental.com, không ghi bất kỳ dữ liệu nào).
+
+### Phát hiện chính
+
+| # | Phát hiện | Ảnh hưởng |
+|---|-----------|-----------|
+| 1 | App gốc dùng ability model `(action, subject)` — 83 subject cho role `clinicAdmin` | Cần map sang ABP permissions |
+| 2 | Chuỗi nghiệp vụ lõi: Chẩn đoán → Tư vấn → Kế hoạch điều trị → Dịch vụ → Công đoạn → Thanh toán | Trước đây clone thiếu hẳn 2 mắt xích đầu |
+| 3 | Sơ đồ răng lưu theo `{ code, selected, top, right, bottom, left, center }` | ToothSelection value object |
+| 4 | Money rollup 13 trường lặp lại ở patient / treatment / service | PaymentSummary value object |
+| 5 | Module **Chấm công** (`/calendar?tab=timekeeping`) chưa từng được ghi nhận | Đã implement mới |
+| 6 | Thu chi có bước **duyệt** cho phiếu chi; luân chuyển dòng tiền có 3 holding | Đã implement mới |
+| 7 | Voucher áp vào tư vấn/điều trị (`appliedCoupons`) | Đã implement mới |
+| 8 | Tab "Hóa đơn" của hồ sơ bệnh nhân ở app gốc **cũng là placeholder** | Không cần clone nội dung |
+| 9 | Lưới lịch ngày là 06:00–23:30 (36 slot), không phải 48 | FE hiện đã đúng |
+
+### Module BE đã bổ sung trong session này
+
+| Module | Entity / VO | API | Migration | Tests |
+|--------|-------------|-----|-----------|-------|
+| Chẩn đoán & Tư vấn | `PatientDiagnosis`, `PatientAdvise`, `AdviseGroup`, `ToothSelection`, `PaymentSummary` | `/api/v1/app/{patient-diagnoses,patient-advises,advise-groups}` | `AddClinicalConsultingModule` | 33 |
+| Chấm công | `TimeKeepingRecord`, `WorkShift` | `/api/v1/app/time-keepings` | `AddTimekeepingModule` | 18 |
+| Thu chi & Dòng tiền | `SalesEntry`, `CashflowCategory`, `CashflowEntry` | `/api/v1/app/{sales,cashflow-categories,cash-management}` | `AddFinanceModule` | 21 |
+| Voucher | `Voucher` | `/api/v1/app/vouchers` | `AddVoucherModule` | 14 |
+
+Tổng test BE: **207 pass** (102 domain + 51 application + 39 EF + 15 HttpApi).
+
+### FE đã bổ sung
+
+- `features/timekeeping/` — API hooks + `TimekeepingBoard` (KPI bar + thẻ nhân viên
+  với ON/OFF, 2 ca, vào ca/ra ca), thay placeholder ở tab "Lịch làm việc".
+- `lib/clinicBranch.ts` — điểm tập trung `branchId` cho tới khi có branch switcher.
+
+### Còn thiếu (ưu tiên tiếp theo)
+
+| # | Hạng mục | Ghi chú |
+|---|----------|---------|
+| A | FE cho Thu chi / Dòng tiền / Voucher | BE đã sẵn sàng, FE Report tab vẫn dùng dữ liệu tĩnh |
+| B | FE cho Chẩn đoán & Tư vấn (tab consulting) | Cần dental chart SVG dùng ToothSelection |
+| C | Map 83 ability của app gốc sang `BlueDentalPermissions` | Hiện permission set còn thô |
+| D | Taxonomy tổng quát (group + entity list) | App gốc dùng 1 pattern cho 12 danh mục |
+| E | Treatment stage (công đoạn) | Chưa quan sát được payload — UNKNOWN_REFERENCE_BEHAVIOR |
+| F | `docs/testing/*` registry theo CLAUDE.md | Chưa tạo |
+| G | Real full-stack acceptance test (Playwright + PostgreSQL thật) | Test hiện tại là domain/mapping/contract |
+
+---
+
+# BlueDental — Progress Report
+
 Cập nhật lần cuối: 2026-08-22 (session 5)
 
 ---

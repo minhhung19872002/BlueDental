@@ -8,6 +8,7 @@ import { MonthViewCalendar } from "../components/MonthViewCalendar";
 import { AppointmentEditorModal } from "../components/AppointmentEditorModal";
 import { AppointmentDetailDrawer } from "../components/AppointmentDetailDrawer";
 import { useDentistList } from "@/features/staff/api/staffQueries";
+import { TimekeepingBoard } from "@/features/timekeeping/components/TimekeepingBoard";
 
 type ViewMode = "day" | "week" | "month";
 
@@ -153,11 +154,7 @@ export function AppointmentCalendarPage() {
               )}
             </>
           ) : (
-            <div style={{ padding: "48px 0", textAlign: "center", color: "#9CA3AF" }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>📅</div>
-              <div style={{ fontWeight: 500, color: "#6B7280" }}>Lịch làm việc</div>
-              <div style={{ fontSize: 13, marginTop: 4 }}>Nội dung đang được phát triển</div>
-            </div>
+            <TimekeepingBoard currentDate={currentDate} />
           )}
         </div>
       </div>
