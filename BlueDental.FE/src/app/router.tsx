@@ -96,6 +96,18 @@ const ToolsPage = lazy(() =>
   })),
 );
 
+const AccountProfilePage = lazy(() =>
+  import("@/features/account/pages/AccountProfilePage").then((m) => ({
+    default: m.AccountProfilePage,
+  })),
+);
+
+const ChangePasswordPage = lazy(() =>
+  import("@/features/account/pages/ChangePasswordPage").then((m) => ({
+    default: m.ChangePasswordPage,
+  })),
+);
+
 function RouteLoading() {
   return (
     <div style={{ minHeight: 200, display: "grid", placeItems: "center" }}>
@@ -249,11 +261,11 @@ const appRoutes: RouteObject[] = [
       // ── Account ──
       {
         path: "account/profile",
-        element: <S><RouteLoading /></S>,
+        element: <S><AccountProfilePage /></S>,
       },
       {
         path: "account/change-password",
-        element: <S><RouteLoading /></S>,
+        element: <S><ChangePasswordPage /></S>,
       },
       {
         path: "*",
