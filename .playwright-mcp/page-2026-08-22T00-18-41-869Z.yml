@@ -1,0 +1,197 @@
+- generic [active] [ref=f3e1]:
+  - generic [ref=f3e5]:
+    - complementary [ref=f3e6]:
+      - generic [ref=f3e7]:
+        - img "NFC Dental" [ref=f3e11]
+        - navigation [ref=f3e12]:
+          - generic [ref=f3e13]:
+            - list [ref=f3e15]:
+              - listitem [ref=f3e16]:
+                - link "Tiếp nhận" [ref=f3e17] [cursor=pointer]:
+                  - /url: /reception?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f3e23]:
+                - link "Danh sách bệnh nhân" [ref=f3e24] [cursor=pointer]:
+                  - /url: /patient?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f3e31]:
+                - link "Lịch hẹn" [ref=f3e32] [cursor=pointer]:
+                  - /url: /calendar?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f3e37]:
+                - link "CSKH - Phân nhóm" [ref=f3e38] [cursor=pointer]:
+                  - /url: /cskh-grouping?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f3e43]:
+                - link "Labo" [ref=f3e44] [cursor=pointer]:
+                  - /url: /labo?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f3e49]:
+                - link "Quản trị vận hành" [ref=f3e50] [cursor=pointer]:
+                  - /url: /operations?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f3e56]:
+                - link "Báo cáo" [ref=f3e57] [cursor=pointer]:
+                  - /url: /report?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f3e62]:
+                - link "Nhân viên" [ref=f3e63] [cursor=pointer]:
+                  - /url: /staff?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f3e70]:
+                - link "Vật tư" [ref=f3e71] [cursor=pointer]:
+                  - /url: /materials?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f3e78]:
+                - link "Danh mục" [ref=f3e79] [cursor=pointer]:
+                  - /url: /taxonomy?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f3e86]:
+                - link "Công cụ" [ref=f3e87] [cursor=pointer]:
+                  - /url: /tools?branchId=6a7909122bbcbb000133e6bb
+            - list [ref=f3e93]:
+              - listitem [ref=f3e94]:
+                - link "Hướng dẫn & hỗ trợ" [ref=f3e95] [cursor=pointer]:
+                  - /url: https://nfcdental.com/
+    - generic [ref=f3e101]:
+      - banner [ref=f3e102]:
+        - generic [ref=f3e103]:
+          - button [ref=f3e105] [cursor=pointer]
+          - generic [ref=f3e106]:
+            - img "NHA KHOA ĐỨC HẠNH PREMIUM" [ref=f3e108]
+            - generic [ref=f3e109]:
+              - paragraph [ref=f3e110]: NHA KHOA ĐỨC HẠNH PREMIUM
+              - paragraph [ref=f3e111]: Kiến Tạo Nụ Cười - Giá Trị Bền Vững
+          - generic [ref=f3e112]:
+            - button "Tìm kiếm khách hàng, lịch hẹn, nhân viên…" [ref=f3e113] [cursor=pointer]:
+              - generic [ref=f3e118]: Ctrl K
+            - button "NHA KHOA ĐỨC HẠNH PREMIUM" [ref=f3e119] [cursor=pointer]
+            - generic [ref=f3e124]:
+              - button "Ngôn ngữ" [ref=f3e125] [cursor=pointer]
+              - button "Thông báo" [ref=f3e129] [cursor=pointer]
+              - button "Tài khoản người dùng" [ref=f3e134] [cursor=pointer]:
+                - img "Admin" [ref=f3e136]
+                - generic [ref=f3e137]: Admin
+      - main [ref=f3e140]:
+        - generic [ref=f3e497]:
+          - generic [ref=f3e499]:
+            - generic [ref=f3e500]:
+              - link "Quay lại" [ref=f3e501] [cursor=pointer]:
+                - /url: /patient?branchId=6a7909122bbcbb000133e6bb
+              - generic [ref=f3e504]: /
+              - generic [ref=f3e505]: "[DH26012] - LÊ THI LIÊN"
+            - tablist [ref=f3e509]:
+              - tab "Hồ sơ" [selected] [ref=f3e510] [cursor=pointer]
+              - tab "Chẩn đoán & Tư vấn" [ref=f3e511] [cursor=pointer]
+              - tab "Kế hoạch điều trị" [ref=f3e512] [cursor=pointer]
+              - tab "Lịch hẹn" [ref=f3e513] [cursor=pointer]
+              - tab "Hình ảnh" [ref=f3e514] [cursor=pointer]
+              - tab "Labo" [ref=f3e515] [cursor=pointer]
+              - tab "Đơn thuốc" [ref=f3e516] [cursor=pointer]
+              - tab "Chăm sóc KH" [ref=f3e517] [cursor=pointer]
+              - tab "Hóa đơn" [ref=f3e518] [cursor=pointer]
+              - tab "Lịch sử dư nợ" [ref=f3e519] [cursor=pointer]
+          - generic [ref=f3e520]:
+            - generic [ref=f3e521]:
+              - generic [ref=f3e522]:
+                - generic [ref=f3e523]:
+                  - generic [ref=f3e525]:
+                    - heading "(DH26012) - LÊ THI LIÊN" [level=1] [ref=f3e526]:
+                      - generic [ref=f3e527]: (DH26012)
+                      - text: "- LÊ THI LIÊN"
+                    - button "Chỉnh sửa bệnh nhân" [ref=f3e528] [cursor=pointer]
+                  - button "Thêm tag" [ref=f3e533] [cursor=pointer]
+                - generic [ref=f3e537]:
+                  - generic [ref=f3e542]:
+                    - paragraph [ref=f3e543]: Ngày sinh
+                    - paragraph [ref=f3e544]: 30/08/2005 - 20 tuổi
+                  - generic [ref=f3e549]:
+                    - paragraph [ref=f3e550]: Điện thoại
+                    - paragraph [ref=f3e551]: "0339579290"
+                  - generic [ref=f3e557]:
+                    - paragraph [ref=f3e558]: Email
+                    - paragraph [ref=f3e559]: "-"
+                  - generic [ref=f3e565]:
+                    - paragraph [ref=f3e566]: Giới tính
+                    - paragraph [ref=f3e567]: Nữ
+                  - generic [ref=f3e574]:
+                    - paragraph [ref=f3e575]: Nghề nghiệp
+                    - paragraph [ref=f3e576]: "-"
+                - generic [ref=f3e583]:
+                  - paragraph [ref=f3e584]: Địa chỉ
+                  - paragraph [ref=f3e585]: Cách mạng T8, Quận 1, Thành phố Hồ Chí Minh
+              - generic [ref=f3e586]:
+                - generic [ref=f3e587]:
+                  - heading "Lý do đến khám" [level=2] [ref=f3e588]
+                  - button "Thêm lý do khám" [ref=f3e589] [cursor=pointer]
+                - paragraph [ref=f3e592]: Chưa có lý do đến khám.
+                - paragraph [ref=f3e593]:
+                  - generic [ref=f3e598]:
+                    - generic [ref=f3e599]: "Tiểu sử bệnh:"
+                    - text: Chưa có dữ liệu
+                - paragraph [ref=f3e600]:
+                  - generic [ref=f3e605]:
+                    - generic [ref=f3e606]: "Về KH:"
+                    - text: "CCCD: 064305007676"
+                - paragraph [ref=f3e607]:
+                  - generic [ref=f3e612]:
+                    - generic [ref=f3e613]: "Nguồn đến:"
+                    - text: "-"
+              - generic [ref=f3e614]:
+                - generic [ref=f3e615]:
+                  - heading "Lịch hẹn gần nhất" [level=2] [ref=f3e616]
+                  - button [ref=f3e617] [cursor=pointer]
+                - paragraph [ref=f3e619]: Chưa có lịch hẹn sắp tới
+            - generic [ref=f3e620]:
+              - generic [ref=f3e628]:
+                - paragraph [ref=f3e629]: 0 đ
+                - paragraph [ref=f3e630]: Tổng dự kiến thu
+              - generic [ref=f3e637]:
+                - paragraph [ref=f3e638]: 0 đ
+                - paragraph [ref=f3e639]: Đã thu
+              - generic [ref=f3e649]:
+                - paragraph [ref=f3e650]: 0 đ
+                - paragraph [ref=f3e651]: Dự kiến thu còn lại
+              - generic [ref=f3e657]:
+                - paragraph [ref=f3e658]: 0 đ
+                - paragraph [ref=f3e660]: Dư nợ
+              - generic [ref=f3e666]:
+                - paragraph [ref=f3e667]: 0 đ
+                - paragraph [ref=f3e668]: Phải thu
+              - generic [ref=f3e675]:
+                - paragraph [ref=f3e676]: 0 đ
+                - paragraph [ref=f3e677]: Đã hoàn
+            - generic [ref=f3e678]:
+              - generic [ref=f3e679]:
+                - tablist [ref=f3e682]:
+                  - tab "Tất cả" [selected] [ref=f3e683] [cursor=pointer]
+                  - tab "Điều trị hoàn tất" [ref=f3e684] [cursor=pointer]
+                  - tab "Đang điều trị" [ref=f3e685] [cursor=pointer]
+                  - tab "Các chẩn đoán" [ref=f3e686] [cursor=pointer]
+                  - tab "Tái khám" [ref=f3e687] [cursor=pointer]
+                  - tab "Bảo hành" [ref=f3e688] [cursor=pointer]
+                - generic [ref=f3e689]:
+                  - button "Tạo Tái khám" [ref=f3e690] [cursor=pointer]
+                  - button "Thanh toán" [ref=f3e691] [cursor=pointer]
+              - generic [ref=f3e693]:
+                - table [ref=f3e695]:
+                  - rowgroup [ref=f3e696]:
+                    - row [ref=f3e697]:
+                      - columnheader "Ngày" [ref=f3e698]
+                      - columnheader "Dịch vụ" [ref=f3e699]
+                      - columnheader "Nội dung điều trị" [ref=f3e700]
+                      - columnheader "Răng" [ref=f3e701]
+                      - columnheader "SL" [ref=f3e702]
+                      - columnheader "Bác sĩ điều trị" [ref=f3e703]
+                      - columnheader "Bác sĩ hỗ trợ" [ref=f3e704]
+                      - columnheader "Công đoạn" [ref=f3e705]
+                      - columnheader "Chăm sóc sau điều trị" [ref=f3e706]
+                      - columnheader "Thao tác" [ref=f3e707]
+                  - rowgroup [ref=f3e708]:
+                    - row [ref=f3e709]:
+                      - cell "Chưa có điều trị" [ref=f3e710]
+                - generic [ref=f3e711]:
+                  - generic [ref=f3e712]:
+                    - combobox [ref=f3e713]:
+                      - option "5 / trang"
+                      - option "10 / trang"
+                      - option "20 / trang" [selected]
+                      - option "25 / trang"
+                      - option "50 / trang"
+                      - option "100 / trang"
+                    - paragraph [ref=f3e714]: Hiển thị 0 trên 0 điều trị
+                  - generic [ref=f3e715]:
+                    - button "Trước" [disabled]
+                    - button "Sau" [disabled]
+  - region "Notifications alt+T"
+  - alert [ref=f3e4]

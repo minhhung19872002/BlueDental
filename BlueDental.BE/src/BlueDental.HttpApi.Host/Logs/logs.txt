@@ -924,3 +924,140 @@ Volo.Abp.AbpException: No theme registered! Use AbpThemingOptions to register th
 2026-08-22 15:42:37.270 +07:00 [INF] Application started. Press Ctrl+C to shut down.
 2026-08-22 15:42:37.270 +07:00 [INF] Hosting environment: Production
 2026-08-22 15:42:37.270 +07:00 [INF] Content root path: C:\Users\ADMIN\workspace\Free\BlueDental\BlueDental.BE\src\BlueDental.HttpApi.Host
+2026-08-22 16:28:09.862 +07:00 [INF] Starting BlueDental.HttpApi.Host.
+2026-08-22 16:28:10.767 +07:00 [DBG] Loaded ABP modules:
+2026-08-22 16:28:10.768 +07:00 [DBG] - BlueDental.BlueDentalHttpApiHostModule
+2026-08-22 16:28:10.768 +07:00 [DBG]   - BlueDental.BlueDentalHttpApiModule
+2026-08-22 16:28:10.768 +07:00 [DBG]     - BlueDental.BlueDentalApplicationContractsModule
+2026-08-22 16:28:10.768 +07:00 [DBG]       - BlueDental.BlueDentalDomainSharedModule
+2026-08-22 16:28:10.768 +07:00 [DBG]         - Volo.Abp.AuditLogging.AbpAuditLoggingDomainSharedModule
+2026-08-22 16:28:10.768 +07:00 [DBG]           - Volo.Abp.Validation.AbpValidationModule
+2026-08-22 16:28:10.768 +07:00 [DBG]             - Volo.Abp.Validation.AbpValidationAbstractionsModule
+2026-08-22 16:28:10.768 +07:00 [DBG]             - Volo.Abp.Localization.AbpLocalizationModule
+2026-08-22 16:28:10.768 +07:00 [DBG]               - Volo.Abp.VirtualFileSystem.AbpVirtualFileSystemModule
+2026-08-22 16:28:10.768 +07:00 [DBG]               - Volo.Abp.Settings.AbpSettingsModule
+2026-08-22 16:28:10.768 +07:00 [DBG]                 - Volo.Abp.Localization.AbpLocalizationAbstractionsModule
+2026-08-22 16:28:10.768 +07:00 [DBG]                 - Volo.Abp.Security.AbpSecurityModule
+2026-08-22 16:28:10.768 +07:00 [DBG]                 - Volo.Abp.Data.AbpDataModule
+2026-08-22 16:28:10.768 +07:00 [DBG]                   - Volo.Abp.ObjectExtending.AbpObjectExtendingModule
+2026-08-22 16:28:10.768 +07:00 [DBG]                   - Volo.Abp.Uow.AbpUnitOfWorkModule
+2026-08-22 16:28:10.768 +07:00 [DBG]                   - Volo.Abp.EventBus.Abstractions.AbpEventBusAbstractionsModule
+2026-08-22 16:28:10.768 +07:00 [DBG]               - Volo.Abp.Threading.AbpThreadingModule
+2026-08-22 16:28:10.768 +07:00 [DBG]         - Volo.Abp.BackgroundJobs.AbpBackgroundJobsDomainSharedModule
+2026-08-22 16:28:10.768 +07:00 [DBG]         - Volo.Abp.FeatureManagement.AbpFeatureManagementDomainSharedModule
+2026-08-22 16:28:10.768 +07:00 [DBG]           - Volo.Abp.Json.SystemTextJson.AbpJsonSystemTextJsonModule
+2026-08-22 16:28:10.768 +07:00 [DBG]             - Volo.Abp.Json.AbpJsonAbstractionsModule
+2026-08-22 16:28:10.768 +07:00 [DBG]             - Volo.Abp.Timing.AbpTimingModule
+2026-08-22 16:28:10.768 +07:00 [DBG]         - Volo.Abp.Identity.AbpIdentityDomainSharedModule
+2026-08-22 16:28:10.768 +07:00 [DBG]           - Volo.Abp.Users.AbpUsersDomainSharedModule
+2026-08-22 16:28:10.768 +07:00 [DBG]           - Volo.Abp.Features.AbpFeaturesModule
+2026-08-22 16:28:10.768 +07:00 [DBG]             - Volo.Abp.MultiTenancy.AbpMultiTenancyModule
+2026-08-22 16:28:10.768 +07:00 [DBG]               - Volo.Abp.MultiTenancy.AbpMultiTenancyAbstractionsModule
+2026-08-22 16:28:10.768 +07:00 [DBG]             - Volo.Abp.Authorization.AbpAuthorizationAbstractionsModule
+2026-08-22 16:28:10.768 +07:00 [DBG]         - Volo.Abp.OpenIddict.AbpOpenIddictDomainSharedModule
+2026-08-22 16:28:10.768 +07:00 [DBG]         - Volo.Abp.PermissionManagement.AbpPermissionManagementDomainSharedModule
+2026-08-22 16:28:10.768 +07:00 [DBG]         - Volo.Abp.SettingManagement.AbpSettingManagementDomainSharedModule
+2026-08-22 16:28:10.768 +07:00 [DBG]       - Volo.Abp.Account.AbpAccountApplicationContractsModule
+2026-08-22 16:28:10.768 +07:00 [DBG]         - Volo.Abp.Identity.AbpIdentityApplicationContractsModule
+2026-08-22 16:28:10.768 +07:00 [DBG]           - Volo.Abp.Users.AbpUsersAbstractionModule
+2026-08-22 16:28:10.768 +07:00 [DBG]             - Volo.Abp.EventBus.AbpEventBusModule
+2026-08-22 16:28:10.768 +07:00 [DBG]               - Volo.Abp.Json.AbpJsonModule
+2026-08-22 16:28:10.768 +07:00 [DBG]               - Volo.Abp.Guids.AbpGuidsModule
+2026-08-22 16:28:10.768 +07:00 [DBG]               - Volo.Abp.BackgroundWorkers.AbpBackgroundWorkersModule
+2026-08-22 16:28:10.768 +07:00 [DBG]               - Volo.Abp.DistributedLocking.AbpDistributedLockingAbstractionsModule
+2026-08-22 16:28:10.768 +07:00 [DBG]           - Volo.Abp.Authorization.AbpAuthorizationModule
+2026-08-22 16:28:10.768 +07:00 [DBG]           - Volo.Abp.PermissionManagement.AbpPermissionManagementApplicationContractsModule
+2026-08-22 16:28:10.768 +07:00 [DBG]             - Volo.Abp.Application.AbpDddApplicationContractsModule
+2026-08-22 16:28:10.768 +07:00 [DBG]               - Volo.Abp.Auditing.AbpAuditingContractsModule
+2026-08-22 16:28:10.768 +07:00 [DBG]       - Volo.Abp.FeatureManagement.AbpFeatureManagementApplicationContractsModule
+2026-08-22 16:28:10.768 +07:00 [DBG]       - Volo.Abp.SettingManagement.AbpSettingManagementApplicationContractsModule
+2026-08-22 16:28:10.768 +07:00 [DBG]     - Volo.Abp.Account.AbpAccountHttpApiModule
+2026-08-22 16:28:10.768 +07:00 [DBG]       - Volo.Abp.Identity.AbpIdentityHttpApiModule
+2026-08-22 16:28:10.768 +07:00 [DBG]         - Volo.Abp.AspNetCore.Mvc.AbpAspNetCoreMvcModule
+2026-08-22 16:28:10.768 +07:00 [DBG]           - Volo.Abp.AspNetCore.AbpAspNetCoreModule
+2026-08-22 16:28:10.768 +07:00 [DBG]             - Volo.Abp.Auditing.AbpAuditingModule
+2026-08-22 16:28:10.768 +07:00 [DBG]             - Volo.Abp.Http.AbpHttpModule
+2026-08-22 16:28:10.768 +07:00 [DBG]               - Volo.Abp.Http.AbpHttpAbstractionsModule
+2026-08-22 16:28:10.768 +07:00 [DBG]               - Volo.Abp.Minify.AbpMinifyModule
+2026-08-22 16:28:10.768 +07:00 [DBG]             - Volo.Abp.ExceptionHandling.AbpExceptionHandlingModule
+2026-08-22 16:28:10.768 +07:00 [DBG]             - Volo.Abp.AspNetCore.AbpAspNetCoreAbstractionsModule
+2026-08-22 16:28:10.768 +07:00 [DBG]           - Volo.Abp.ApiVersioning.AbpApiVersioningAbstractionsModule
+2026-08-22 16:28:10.768 +07:00 [DBG]           - Volo.Abp.AspNetCore.Mvc.AbpAspNetCoreMvcContractsModule
+2026-08-22 16:28:10.768 +07:00 [DBG]           - Volo.Abp.UI.Navigation.AbpUiNavigationModule
+2026-08-22 16:28:10.768 +07:00 [DBG]             - Volo.Abp.UI.AbpUiModule
+2026-08-22 16:28:10.768 +07:00 [DBG]           - Volo.Abp.GlobalFeatures.AbpGlobalFeaturesModule
+2026-08-22 16:28:10.768 +07:00 [DBG]           - Volo.Abp.Application.AbpDddApplicationModule
+2026-08-22 16:28:10.768 +07:00 [DBG]             - Volo.Abp.Domain.AbpDddDomainModule
+2026-08-22 16:28:10.768 +07:00 [DBG]               - Volo.Abp.ObjectMapping.AbpObjectMappingModule
+2026-08-22 16:28:10.768 +07:00 [DBG]               - Volo.Abp.Specifications.AbpSpecificationsModule
+2026-08-22 16:28:10.768 +07:00 [DBG]               - Volo.Abp.Caching.AbpCachingModule
+2026-08-22 16:28:10.768 +07:00 [DBG]                 - Volo.Abp.Serialization.AbpSerializationModule
+2026-08-22 16:28:10.768 +07:00 [DBG]               - Volo.Abp.Domain.AbpDddDomainSharedModule
+2026-08-22 16:28:10.768 +07:00 [DBG]     - Volo.Abp.PermissionManagement.HttpApi.AbpPermissionManagementHttpApiModule
+2026-08-22 16:28:10.768 +07:00 [DBG]     - Volo.Abp.FeatureManagement.AbpFeatureManagementHttpApiModule
+2026-08-22 16:28:10.768 +07:00 [DBG]     - Volo.Abp.SettingManagement.AbpSettingManagementHttpApiModule
+2026-08-22 16:28:10.768 +07:00 [DBG]   - Volo.Abp.Autofac.AbpAutofacModule
+2026-08-22 16:28:10.768 +07:00 [DBG]     - Volo.Abp.Castle.AbpCastleCoreModule
+2026-08-22 16:28:10.768 +07:00 [DBG]   - BlueDental.BlueDentalApplicationModule
+2026-08-22 16:28:10.768 +07:00 [DBG]     - BlueDental.BlueDentalDomainModule
+2026-08-22 16:28:10.768 +07:00 [DBG]       - Volo.Abp.AuditLogging.AbpAuditLoggingDomainModule
+2026-08-22 16:28:10.768 +07:00 [DBG]       - Volo.Abp.BackgroundJobs.AbpBackgroundJobsDomainModule
+2026-08-22 16:28:10.768 +07:00 [DBG]         - Volo.Abp.BackgroundJobs.AbpBackgroundJobsModule
+2026-08-22 16:28:10.768 +07:00 [DBG]           - Volo.Abp.BackgroundJobs.AbpBackgroundJobsAbstractionsModule
+2026-08-22 16:28:10.768 +07:00 [DBG]         - Volo.Abp.AutoMapper.AbpAutoMapperModule
+2026-08-22 16:28:10.768 +07:00 [DBG]       - Volo.Abp.FeatureManagement.AbpFeatureManagementDomainModule
+2026-08-22 16:28:10.768 +07:00 [DBG]       - Volo.Abp.Identity.AbpIdentityDomainModule
+2026-08-22 16:28:10.768 +07:00 [DBG]         - Volo.Abp.Users.AbpUsersDomainModule
+2026-08-22 16:28:10.768 +07:00 [DBG]       - Volo.Abp.OpenIddict.AbpOpenIddictDomainModule
+2026-08-22 16:28:10.768 +07:00 [DBG]       - Volo.Abp.PermissionManagement.OpenIddict.AbpPermissionManagementDomainOpenIddictModule
+2026-08-22 16:28:10.768 +07:00 [DBG]         - Volo.Abp.PermissionManagement.AbpPermissionManagementDomainModule
+2026-08-22 16:28:10.768 +07:00 [DBG]       - Volo.Abp.PermissionManagement.Identity.AbpPermissionManagementDomainIdentityModule
+2026-08-22 16:28:10.768 +07:00 [DBG]       - Volo.Abp.SettingManagement.AbpSettingManagementDomainModule
+2026-08-22 16:28:10.768 +07:00 [DBG]       - Volo.Abp.Emailing.AbpEmailingModule
+2026-08-22 16:28:10.768 +07:00 [DBG]         - Volo.Abp.TextTemplating.AbpTextTemplatingModule
+2026-08-22 16:28:10.768 +07:00 [DBG]           - Volo.Abp.TextTemplating.Scriban.AbpTextTemplatingScribanModule
+2026-08-22 16:28:10.768 +07:00 [DBG]             - Volo.Abp.TextTemplating.AbpTextTemplatingCoreModule
+2026-08-22 16:28:10.768 +07:00 [DBG]     - Volo.Abp.Account.AbpAccountApplicationModule
+2026-08-22 16:28:10.768 +07:00 [DBG]       - Volo.Abp.Identity.AbpIdentityApplicationModule
+2026-08-22 16:28:10.768 +07:00 [DBG]         - Volo.Abp.PermissionManagement.AbpPermissionManagementApplicationModule
+2026-08-22 16:28:10.768 +07:00 [DBG]     - Volo.Abp.FeatureManagement.AbpFeatureManagementApplicationModule
+2026-08-22 16:28:10.768 +07:00 [DBG]     - Volo.Abp.SettingManagement.AbpSettingManagementApplicationModule
+2026-08-22 16:28:10.768 +07:00 [DBG]     - Volo.Abp.BlobStoring.AbpBlobStoringModule
+2026-08-22 16:28:10.768 +07:00 [DBG]   - BlueDental.EntityFrameworkCore.BlueDentalEntityFrameworkCoreModule
+2026-08-22 16:28:10.768 +07:00 [DBG]     - Volo.Abp.Identity.EntityFrameworkCore.AbpIdentityEntityFrameworkCoreModule
+2026-08-22 16:28:10.768 +07:00 [DBG]       - Volo.Abp.Users.EntityFrameworkCore.AbpUsersEntityFrameworkCoreModule
+2026-08-22 16:28:10.768 +07:00 [DBG]         - Volo.Abp.EntityFrameworkCore.AbpEntityFrameworkCoreModule
+2026-08-22 16:28:10.768 +07:00 [DBG]     - Volo.Abp.OpenIddict.EntityFrameworkCore.AbpOpenIddictEntityFrameworkCoreModule
+2026-08-22 16:28:10.768 +07:00 [DBG]     - Volo.Abp.PermissionManagement.EntityFrameworkCore.AbpPermissionManagementEntityFrameworkCoreModule
+2026-08-22 16:28:10.768 +07:00 [DBG]     - Volo.Abp.SettingManagement.EntityFrameworkCore.AbpSettingManagementEntityFrameworkCoreModule
+2026-08-22 16:28:10.768 +07:00 [DBG]     - Volo.Abp.EntityFrameworkCore.PostgreSql.AbpEntityFrameworkCorePostgreSqlModule
+2026-08-22 16:28:10.768 +07:00 [DBG]     - Volo.Abp.BackgroundJobs.EntityFrameworkCore.AbpBackgroundJobsEntityFrameworkCoreModule
+2026-08-22 16:28:10.768 +07:00 [DBG]     - Volo.Abp.AuditLogging.EntityFrameworkCore.AbpAuditLoggingEntityFrameworkCoreModule
+2026-08-22 16:28:10.768 +07:00 [DBG]     - Volo.Abp.FeatureManagement.EntityFrameworkCore.AbpFeatureManagementEntityFrameworkCoreModule
+2026-08-22 16:28:10.768 +07:00 [DBG]   - Volo.Abp.Account.Web.AbpAccountWebOpenIddictModule
+2026-08-22 16:28:10.768 +07:00 [DBG]     - Volo.Abp.Account.Web.AbpAccountWebModule
+2026-08-22 16:28:10.768 +07:00 [DBG]       - Volo.Abp.Identity.AspNetCore.AbpIdentityAspNetCoreModule
+2026-08-22 16:28:10.768 +07:00 [DBG]       - Volo.Abp.AspNetCore.Mvc.UI.Theme.Shared.AbpAspNetCoreMvcUiThemeSharedModule
+2026-08-22 16:28:10.768 +07:00 [DBG]         - Volo.Abp.AspNetCore.Mvc.UI.Bootstrap.AbpAspNetCoreMvcUiBootstrapModule
+2026-08-22 16:28:10.768 +07:00 [DBG]           - Volo.Abp.AspNetCore.Mvc.UI.AbpAspNetCoreMvcUiModule
+2026-08-22 16:28:10.768 +07:00 [DBG]         - Volo.Abp.AspNetCore.Mvc.UI.Packages.AbpAspNetCoreMvcUiPackagesModule
+2026-08-22 16:28:10.768 +07:00 [DBG]           - Volo.Abp.AspNetCore.Mvc.UI.Bundling.AbpAspNetCoreMvcUiBundlingAbstractionsModule
+2026-08-22 16:28:10.768 +07:00 [DBG]         - Volo.Abp.AspNetCore.Mvc.UI.Widgets.AbpAspNetCoreMvcUiWidgetsModule
+2026-08-22 16:28:10.768 +07:00 [DBG]           - Volo.Abp.AspNetCore.Mvc.UI.Bundling.AbpAspNetCoreMvcUiBundlingModule
+2026-08-22 16:28:10.768 +07:00 [DBG]             - Volo.Abp.AspNetCore.Bundling.AbpAspNetCoreBundlingModule
+2026-08-22 16:28:10.768 +07:00 [DBG]     - Volo.Abp.OpenIddict.AbpOpenIddictAspNetCoreModule
+2026-08-22 16:28:10.768 +07:00 [DBG]       - Volo.Abp.AspNetCore.MultiTenancy.AbpAspNetCoreMultiTenancyModule
+2026-08-22 16:28:10.768 +07:00 [DBG]   - Volo.Abp.MailKit.AbpMailKitModule
+2026-08-22 16:28:10.768 +07:00 [DBG]   - Volo.Abp.AspNetCore.Serilog.AbpAspNetCoreSerilogModule
+2026-08-22 16:28:10.768 +07:00 [DBG]   - Volo.Abp.Swashbuckle.AbpSwashbuckleModule
+2026-08-22 16:28:10.768 +07:00 [DBG]   - Volo.Abp.BlobStoring.Minio.AbpBlobStoringMinioModule
+2026-08-22 16:28:10.768 +07:00 [DBG]   - Volo.Abp.Caching.StackExchangeRedis.AbpCachingStackExchangeRedisModule
+2026-08-22 16:28:10.807 +07:00 [DBG] Started background worker: Volo.Abp.BackgroundJobs.BackgroundJobWorker
+2026-08-22 16:28:10.811 +07:00 [DBG] Started background worker: Volo.Abp.OpenIddict.Tokens.TokenCleanupBackgroundWorker
+2026-08-22 16:28:10.877 +07:00 [INF] User profile is available. Using 'C:\Users\ADMIN\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2026-08-22 16:28:10.955 +07:00 [INF] Initialized all ABP modules.
+2026-08-22 16:28:10.955 +07:00 [INF] BlueDental HttpApi Host started. Running...
+2026-08-22 16:28:10.983 +07:00 [INF] Now listening on: http://localhost:5019
+2026-08-22 16:28:10.983 +07:00 [INF] Application started. Press Ctrl+C to shut down.
+2026-08-22 16:28:10.983 +07:00 [INF] Hosting environment: Production
+2026-08-22 16:28:10.983 +07:00 [INF] Content root path: C:\Users\ADMIN\workspace\Free\BlueDental\BlueDental.BE\src\BlueDental.HttpApi.Host

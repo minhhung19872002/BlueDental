@@ -1,0 +1,241 @@
+- generic [active] [ref=f47e1]:
+  - generic [ref=f47e5]:
+    - complementary [ref=f47e6]:
+      - generic [ref=f47e7]:
+        - img "NFC Dental" [ref=f47e11]
+        - navigation [ref=f47e12]:
+          - generic [ref=f47e13]:
+            - list [ref=f47e15]:
+              - listitem [ref=f47e16]:
+                - link "Tiếp nhận" [ref=f47e17] [cursor=pointer]:
+                  - /url: /reception?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f47e23]:
+                - link "Danh sách bệnh nhân" [ref=f47e24] [cursor=pointer]:
+                  - /url: /patient?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f47e31]:
+                - link "Lịch hẹn" [ref=f47e32] [cursor=pointer]:
+                  - /url: /calendar?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f47e37]:
+                - link "CSKH - Phân nhóm" [ref=f47e38] [cursor=pointer]:
+                  - /url: /cskh-grouping?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f47e43]:
+                - link "Labo" [ref=f47e44] [cursor=pointer]:
+                  - /url: /labo?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f47e49]:
+                - link "Quản trị vận hành" [ref=f47e50] [cursor=pointer]:
+                  - /url: /operations?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f47e56]:
+                - link "Báo cáo" [ref=f47e57] [cursor=pointer]:
+                  - /url: /report?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f47e62]:
+                - link "Nhân viên" [ref=f47e63] [cursor=pointer]:
+                  - /url: /staff?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f47e70]:
+                - link "Vật tư" [ref=f47e71] [cursor=pointer]:
+                  - /url: /materials?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f47e78]:
+                - link "Danh mục" [ref=f47e79] [cursor=pointer]:
+                  - /url: /taxonomy?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f47e86]:
+                - link "Công cụ" [ref=f47e87] [cursor=pointer]:
+                  - /url: /tools?branchId=6a7909122bbcbb000133e6bb
+            - list [ref=f47e93]:
+              - listitem [ref=f47e94]:
+                - link "Hướng dẫn & hỗ trợ" [ref=f47e95] [cursor=pointer]:
+                  - /url: https://nfcdental.com/
+    - generic [ref=f47e101]:
+      - banner [ref=f47e102]:
+        - generic [ref=f47e103]:
+          - button [ref=f47e105] [cursor=pointer]
+          - generic [ref=f47e106]:
+            - img "NHA KHOA ĐỨC HẠNH PREMIUM" [ref=f47e108]
+            - generic [ref=f47e109]:
+              - paragraph [ref=f47e110]: NHA KHOA ĐỨC HẠNH PREMIUM
+              - paragraph [ref=f47e111]: Kiến Tạo Nụ Cười - Giá Trị Bền Vững
+          - generic [ref=f47e112]:
+            - button "Tìm kiếm khách hàng, lịch hẹn, nhân viên…" [ref=f47e113] [cursor=pointer]:
+              - generic [ref=f47e118]: Ctrl K
+            - button "NHA KHOA ĐỨC HẠNH PREMIUM" [ref=f47e119] [cursor=pointer]
+            - generic [ref=f47e124]:
+              - button "Ngôn ngữ" [ref=f47e125] [cursor=pointer]
+              - button "Thông báo" [ref=f47e129] [cursor=pointer]
+              - button "Tài khoản người dùng" [ref=f47e134] [cursor=pointer]:
+                - img "Admin" [ref=f47e136]
+                - generic [ref=f47e137]: Admin
+      - main [ref=f47e140]:
+        - generic [ref=f47e141]:
+          - generic [ref=f47e143]:
+            - link "Quản trị vận hành" [ref=f47e144] [cursor=pointer]:
+              - /url: /operations/overview?branchId=6a7909122bbcbb000133e6bb&financeTab=access&financeSubTab=service-complete
+            - link "Khối trợ lý" [ref=f47e145] [cursor=pointer]:
+              - /url: /operations/assistant?branchId=6a7909122bbcbb000133e6bb&financeTab=access&financeSubTab=service-complete
+            - link "Khối lễ tân" [ref=f47e146] [cursor=pointer]:
+              - /url: /operations/reception?branchId=6a7909122bbcbb000133e6bb&financeTab=access&financeSubTab=service-complete
+            - link "Khối CSKH" [ref=f47e147] [cursor=pointer]:
+              - /url: /operations/cskh?branchId=6a7909122bbcbb000133e6bb&financeTab=access&financeSubTab=service-complete
+            - link "Khối Marketing" [ref=f47e148] [cursor=pointer]:
+              - /url: /operations/marketing?branchId=6a7909122bbcbb000133e6bb&financeTab=access&financeSubTab=service-complete
+            - link "Khối bảo vệ" [ref=f47e149] [cursor=pointer]:
+              - /url: /operations/security?branchId=6a7909122bbcbb000133e6bb&financeTab=access&financeSubTab=service-complete
+            - link "Khối điều trị" [ref=f47e150] [cursor=pointer]:
+              - /url: /operations/treatment?branchId=6a7909122bbcbb000133e6bb&financeTab=access&financeSubTab=service-complete
+            - link "Khối tài chính" [ref=f47e151] [cursor=pointer]:
+              - /url: /operations/finance?branchId=6a7909122bbcbb000133e6bb&financeTab=access&financeSubTab=service-complete
+          - generic [ref=f47e515]:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - tablist:
+                        - tab "Tổng quan"
+                        - tab "Truy cập" [selected]
+                  - generic:
+                    - generic:
+                      - generic:
+                        - tablist:
+                          - tab "Ngày"
+                          - tab "Tuần"
+                          - tab "Tháng" [selected]
+                    - generic:
+                      - button "Tháng trước"
+                      - button "08/2026"
+                      - button "Tháng kế tiếp"
+                - generic:
+                  - button "Bộ lọc"
+                  - generic:
+                    - button "Đồng bộ phần mềm bán hàng" [disabled]
+                    - button "Xuất Excel"
+            - generic [ref=f47e516]:
+              - generic [ref=f47e517]:
+                - tablist [ref=f47e520]:
+                  - tab "Tổng quan" [ref=f47e521] [cursor=pointer]
+                  - tab "Truy cập" [selected] [ref=f47e522] [cursor=pointer]
+                - generic [ref=f47e523]:
+                  - tablist [ref=f47e526]:
+                    - tab "Ngày" [ref=f47e527] [cursor=pointer]
+                    - tab "Tuần" [ref=f47e528] [cursor=pointer]
+                    - tab "Tháng" [selected] [ref=f47e529] [cursor=pointer]
+                  - generic [ref=f47e530]:
+                    - button "Tháng trước" [ref=f47e531] [cursor=pointer]
+                    - button "08/2026" [ref=f47e532] [cursor=pointer]
+                    - button "Tháng kế tiếp" [ref=f47e534] [cursor=pointer]
+              - generic [ref=f47e535]:
+                - generic [ref=f47e536]:
+                  - generic [ref=f47e539]:
+                    - textbox "Tìm khách hàng, dịch vụ" [ref=f47e540]:
+                      - /placeholder: " "
+                    - generic: Tìm khách hàng, dịch vụ
+                  - generic [ref=f47e543]:
+                    - combobox "Phân loại dịch vụ" [ref=f47e544] [cursor=pointer]
+                    - generic: Phân loại dịch vụ
+                  - generic [ref=f47e548]:
+                    - combobox "BS điều trị" [ref=f47e549] [cursor=pointer]
+                    - generic: BS điều trị
+                  - generic [ref=f47e553]:
+                    - combobox "Nhóm dịch vụ" [ref=f47e554] [cursor=pointer]
+                    - generic: Nhóm dịch vụ
+                - generic [ref=f47e556]:
+                  - button "Đồng bộ phần mềm bán hàng" [disabled]
+                  - button "Xuất Excel" [ref=f47e557] [cursor=pointer]
+            - generic [ref=f47e558]:
+              - generic [ref=f47e565]:
+                - paragraph [ref=f47e566]: 1.300.000 đ
+                - paragraph [ref=f47e567]: Thực thu
+              - generic [ref=f47e568]:
+                - generic [ref=f47e574]:
+                  - paragraph [ref=f47e575]: 300.000 đ
+                  - paragraph [ref=f47e576]: Tổng doanh thu
+                - generic [ref=f47e577]: Chưa có dữ liệu kỳ trước
+              - generic [ref=f47e579]:
+                - generic [ref=f47e585]:
+                  - paragraph [ref=f47e586]: 300.000 đ
+                  - paragraph [ref=f47e587]: Dịch vụ hoàn thành
+                - generic [ref=f47e588]: 100% đúng tiến độ
+              - generic [ref=f47e590]:
+                - generic [ref=f47e595]:
+                  - paragraph [ref=f47e596]: 0 đ
+                  - paragraph [ref=f47e597]: Dịch vụ doanh số riêng
+                - generic [ref=f47e598]: Tính theo định mức riêng
+            - generic [ref=f47e601]:
+              - table [ref=f47e603]:
+                - rowgroup [ref=f47e604]:
+                  - row [ref=f47e605]:
+                    - columnheader [ref=f47e606]:
+                      - checkbox "Chọn tất cả" [ref=f47e608] [cursor=pointer]
+                    - columnheader "Ngày thao tác" [ref=f47e609]
+                    - columnheader "Khách hàng" [ref=f47e610]
+                    - columnheader "Nghề nghiệp" [ref=f47e611]
+                    - columnheader "Chi nhánh" [ref=f47e612]
+                    - columnheader "Dịch vụ" [ref=f47e613]
+                    - columnheader "Tên chi tiết" [ref=f47e614]
+                    - columnheader "Nhóm dịch vụ" [ref=f47e615]
+                    - columnheader "Phân loại" [ref=f47e616]
+                    - columnheader "Bác sĩ chẩn đoán 1" [ref=f47e617]
+                    - columnheader "Chẩn đoán 2" [ref=f47e618]
+                    - columnheader "Nhân sự tư vấn 1" [ref=f47e619]
+                    - columnheader "Nhân sự tư vấn 2" [ref=f47e620]
+                    - columnheader "Bác sĩ điều trị" [ref=f47e621]
+                    - columnheader "Bác sĩ hỗ trợ" [ref=f47e622]
+                    - columnheader "Phụ tá" [ref=f47e623]
+                    - columnheader "Răng" [ref=f47e624]
+                    - columnheader "Ghi chú dịch vụ" [ref=f47e625]
+                    - columnheader "Nội dung điều trị" [ref=f47e626]
+                    - columnheader "Giá dịch vụ" [ref=f47e627]
+                    - columnheader "Số lượng" [ref=f47e628]
+                    - columnheader "Tổng giảm giá" [ref=f47e629]
+                    - columnheader "Giá điều trị bác sĩ" [ref=f47e630]
+                    - columnheader "Hình ảnh sau điều trị" [ref=f47e631]
+                    - columnheader "Công đoạn" [ref=f47e632]
+                    - columnheader "Loại thuế" [ref=f47e633]
+                    - columnheader "% Thuế" [ref=f47e634]
+                - rowgroup [ref=f47e635]:
+                  - row [ref=f47e636]:
+                    - cell [ref=f47e637]:
+                      - checkbox "Chọn đồng bộ Cạo vôi, đánh bóng" [ref=f47e639] [cursor=pointer]
+                    - cell "11/08/2026" [ref=f47e640]
+                    - cell [ref=f47e641]:
+                      - generic [ref=f47e642]:
+                        - link "[DH26002] - NGUYỄN THỊ THANH THÚY" [ref=f47e643] [cursor=pointer]:
+                          - /url: /patient/6a7ae4bdd1ef9bbda95fa76d?branchId=6a7909122bbcbb000133e6bb
+                        - paragraph [ref=f47e644]: "Ngày tạo: 11/08/2026"
+                    - cell "Nội Trợ" [ref=f47e645]
+                    - cell "NHA KHOA ĐỨC HẠNH PREMIUM" [ref=f47e646]
+                    - cell "Cạo vôi, đánh bóng" [ref=f47e647]
+                    - cell [ref=f47e648]
+                    - cell "NHA KHOA TỔNG QUÁT" [ref=f47e649]
+                    - cell "Dịch vụ đã hoàn thành" [ref=f47e650]
+                    - cell "BS Tới" [ref=f47e652]
+                    - cell [ref=f47e653]
+                    - cell "BS Tới" [ref=f47e654]
+                    - cell [ref=f47e655]
+                    - cell "BS Tới" [ref=f47e656]
+                    - cell [ref=f47e657]
+                    - cell [ref=f47e658]
+                    - cell "Nguyên hàm" [ref=f47e659]
+                    - cell [ref=f47e660]
+                    - cell "CVR ĐB" [ref=f47e661]
+                    - cell "500.000 đ" [ref=f47e662]
+                    - cell "1" [ref=f47e663]
+                    - cell "200.000 đ" [ref=f47e664]
+                    - cell "300.000 đ" [ref=f47e665]
+                    - cell "—" [ref=f47e666]
+                    - cell "—" [ref=f47e667]
+                    - cell "Trước thuế" [ref=f47e668]
+                    - cell "—" [ref=f47e669]
+              - generic [ref=f47e670]:
+                - generic [ref=f47e671]:
+                  - combobox [ref=f47e672]:
+                    - option "5 / trang"
+                    - option "10 / trang"
+                    - option "20 / trang" [selected]
+                    - option "25 / trang"
+                    - option "50 / trang"
+                    - option "100 / trang"
+                  - paragraph [ref=f47e673]: Hiển thị 1 trên 1 doanh số
+                - generic [ref=f47e674]:
+                  - button "Trước" [disabled]
+                  - button "1" [ref=f47e675] [cursor=pointer]
+                  - button "Sau" [disabled]
+  - region "Notifications alt+T"
+  - alert [ref=f47e4]

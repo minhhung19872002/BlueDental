@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button, Tabs, Segmented } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
-import { LeftOutlined, RightOutlined, UnorderedListOutlined, CalendarOutlined } from "@ant-design/icons";
+import { LeftOutlined, RightOutlined, UnorderedListOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { DayViewCalendar, type DayViewDoctor } from "../components/DayViewCalendar";
 import { WeekViewCalendar } from "../components/WeekViewCalendar";

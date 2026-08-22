@@ -1,0 +1,86 @@
+- generic [ref=f43e1]:
+  - generic [ref=f43e5]:
+    - complementary [ref=f43e6]:
+      - generic [ref=f43e7]:
+        - img "NFC Dental" [ref=f43e11]
+        - navigation [ref=f43e12]:
+          - generic [ref=f43e13]:
+            - list [ref=f43e15]:
+              - listitem [ref=f43e16]:
+                - link "Tiếp nhận" [ref=f43e17] [cursor=pointer]:
+                  - /url: /reception?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f43e23]:
+                - link "Danh sách bệnh nhân" [ref=f43e24] [cursor=pointer]:
+                  - /url: /patient?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f43e31]:
+                - link "Lịch hẹn" [ref=f43e32] [cursor=pointer]:
+                  - /url: /calendar?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f43e37]:
+                - link "CSKH - Phân nhóm" [ref=f43e38] [cursor=pointer]:
+                  - /url: /cskh-grouping?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f43e43]:
+                - link "Labo" [ref=f43e44] [cursor=pointer]:
+                  - /url: /labo?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f43e49]:
+                - link "Quản trị vận hành" [ref=f43e50] [cursor=pointer]:
+                  - /url: /operations?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f43e56]:
+                - link "Báo cáo" [ref=f43e57] [cursor=pointer]:
+                  - /url: /report?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f43e62]:
+                - link "Nhân viên" [ref=f43e63] [cursor=pointer]:
+                  - /url: /staff?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f43e70]:
+                - link "Vật tư" [ref=f43e71] [cursor=pointer]:
+                  - /url: /materials?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f43e78]:
+                - link "Danh mục" [ref=f43e79] [cursor=pointer]:
+                  - /url: /taxonomy?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f43e86]:
+                - link "Công cụ" [ref=f43e87] [cursor=pointer]:
+                  - /url: /tools?branchId=6a7909122bbcbb000133e6bb
+            - list [ref=f43e93]:
+              - listitem [ref=f43e94]:
+                - link "Hướng dẫn & hỗ trợ" [ref=f43e95] [cursor=pointer]:
+                  - /url: https://nfcdental.com/
+    - generic [ref=f43e101]:
+      - banner [ref=f43e102]:
+        - generic [ref=f43e103]:
+          - button [ref=f43e105] [cursor=pointer]
+          - generic [ref=f43e106]:
+            - img "NHA KHOA ĐỨC HẠNH PREMIUM" [ref=f43e108]
+            - generic [ref=f43e109]:
+              - paragraph [ref=f43e110]: NHA KHOA ĐỨC HẠNH PREMIUM
+              - paragraph [ref=f43e111]: Kiến Tạo Nụ Cười - Giá Trị Bền Vững
+          - generic [ref=f43e112]:
+            - button "Tìm kiếm khách hàng, lịch hẹn, nhân viên…" [ref=f43e113] [cursor=pointer]:
+              - generic [ref=f43e118]: Ctrl K
+            - button "NHA KHOA ĐỨC HẠNH PREMIUM" [ref=f43e119] [cursor=pointer]
+            - generic [ref=f43e124]:
+              - button "Ngôn ngữ" [ref=f43e125] [cursor=pointer]
+              - button "Thông báo" [ref=f43e129] [cursor=pointer]
+              - button "Tài khoản người dùng" [ref=f43e134] [cursor=pointer]:
+                - img "Admin" [ref=f43e136]
+                - generic [ref=f43e137]: Admin
+      - main [ref=f43e140]:
+        - generic [ref=f43e141]:
+          - generic [ref=f43e143]:
+            - generic [ref=f43e144]:
+              - link "Quay lại" [ref=f43e145] [cursor=pointer]:
+                - /url: /patient?branchId=6a7909122bbcbb000133e6bb
+              - generic [ref=f43e148]: /
+              - generic [ref=f43e149]: "[DH26001] - MÃ THỊ THẢO"
+            - tablist [ref=f43e153]:
+              - tab "Hồ sơ" [ref=f43e154] [cursor=pointer]
+              - tab "Chẩn đoán & Tư vấn" [ref=f43e155] [cursor=pointer]
+              - tab "Kế hoạch điều trị" [ref=f43e156] [cursor=pointer]
+              - tab "Lịch hẹn" [ref=f43e157] [cursor=pointer]
+              - tab "Hình ảnh" [ref=f43e158] [cursor=pointer]
+              - tab "Labo" [ref=f43e159] [cursor=pointer]
+              - tab "Đơn thuốc" [ref=f43e160] [cursor=pointer]
+              - tab "Chăm sóc KH" [ref=f43e161] [cursor=pointer]
+              - tab "Hóa đơn" [active] [selected] [ref=f43e162] [cursor=pointer]
+              - tab "Lịch sử dư nợ" [ref=f43e163] [cursor=pointer]
+          - generic [ref=f43e164]: Nội dung đang được hoàn thiện.
+  - region "Notifications alt+T"
+  - alert [ref=f43e4]: DH26001 - MÃ THỊ THẢO

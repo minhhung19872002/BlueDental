@@ -298,6 +298,7 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
               icon={<EditOutlined />}
               style={{ color: "#6B7280" }}
               onClick={(e) => { e.stopPropagation(); onEdit?.(record.id); }}
+            />
           </Tooltip>
         </Space>
       ),

@@ -1,0 +1,125 @@
+- generic [ref=f41e1]:
+  - generic [ref=f41e5]:
+    - complementary [ref=f41e6]:
+      - generic [ref=f41e7]:
+        - img "NFC Dental" [ref=f41e11]
+        - navigation [ref=f41e12]:
+          - generic [ref=f41e13]:
+            - list [ref=f41e15]:
+              - listitem [ref=f41e16]:
+                - link "Tiếp nhận" [ref=f41e17] [cursor=pointer]:
+                  - /url: /reception?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f41e23]:
+                - link "Danh sách bệnh nhân" [ref=f41e24] [cursor=pointer]:
+                  - /url: /patient?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f41e31]:
+                - link "Lịch hẹn" [ref=f41e32] [cursor=pointer]:
+                  - /url: /calendar?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f41e37]:
+                - link "CSKH - Phân nhóm" [ref=f41e38] [cursor=pointer]:
+                  - /url: /cskh-grouping?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f41e43]:
+                - link "Labo" [ref=f41e44] [cursor=pointer]:
+                  - /url: /labo?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f41e49]:
+                - link "Quản trị vận hành" [ref=f41e50] [cursor=pointer]:
+                  - /url: /operations?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f41e56]:
+                - link "Báo cáo" [ref=f41e57] [cursor=pointer]:
+                  - /url: /report?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f41e62]:
+                - link "Nhân viên" [ref=f41e63] [cursor=pointer]:
+                  - /url: /staff?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f41e70]:
+                - link "Vật tư" [ref=f41e71] [cursor=pointer]:
+                  - /url: /materials?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f41e78]:
+                - link "Danh mục" [ref=f41e79] [cursor=pointer]:
+                  - /url: /taxonomy?branchId=6a7909122bbcbb000133e6bb
+              - listitem [ref=f41e86]:
+                - link "Công cụ" [ref=f41e87] [cursor=pointer]:
+                  - /url: /tools?branchId=6a7909122bbcbb000133e6bb
+            - list [ref=f41e93]:
+              - listitem [ref=f41e94]:
+                - link "Hướng dẫn & hỗ trợ" [ref=f41e95] [cursor=pointer]:
+                  - /url: https://nfcdental.com/
+    - generic [ref=f41e101]:
+      - banner [ref=f41e102]:
+        - generic [ref=f41e103]:
+          - button [ref=f41e105] [cursor=pointer]
+          - generic [ref=f41e106]:
+            - img "NHA KHOA ĐỨC HẠNH PREMIUM" [ref=f41e108]
+            - generic [ref=f41e109]:
+              - paragraph [ref=f41e110]: NHA KHOA ĐỨC HẠNH PREMIUM
+              - paragraph [ref=f41e111]: Kiến Tạo Nụ Cười - Giá Trị Bền Vững
+          - generic [ref=f41e112]:
+            - button "Tìm kiếm khách hàng, lịch hẹn, nhân viên…" [ref=f41e113] [cursor=pointer]:
+              - generic [ref=f41e118]: Ctrl K
+            - button "NHA KHOA ĐỨC HẠNH PREMIUM" [ref=f41e119] [cursor=pointer]
+            - generic [ref=f41e124]:
+              - button "Ngôn ngữ" [ref=f41e125] [cursor=pointer]
+              - button "Thông báo" [ref=f41e129] [cursor=pointer]
+              - button "Tài khoản người dùng" [ref=f41e134] [cursor=pointer]:
+                - img "Admin" [ref=f41e136]
+                - generic [ref=f41e137]: Admin
+      - main [ref=f41e140]:
+        - generic [ref=f41e141]:
+          - generic [ref=f41e143]:
+            - link "Quản trị vận hành" [ref=f41e144] [cursor=pointer]:
+              - /url: /operations/overview?branchId=6a7909122bbcbb000133e6bb&assistantSubTab=home&receptionSubTab=home&overviewSubTab=home&cskhSubTab=home&marketingSubTab=home
+            - link "Khối trợ lý" [ref=f41e146] [cursor=pointer]:
+              - /url: /operations/assistant?branchId=6a7909122bbcbb000133e6bb&assistantSubTab=home&receptionSubTab=home&overviewSubTab=home&cskhSubTab=home&marketingSubTab=home
+            - link "Khối lễ tân" [ref=f41e147] [cursor=pointer]:
+              - /url: /operations/reception?branchId=6a7909122bbcbb000133e6bb&assistantSubTab=home&receptionSubTab=home&overviewSubTab=home&cskhSubTab=home&marketingSubTab=home
+            - link "Khối CSKH" [ref=f41e148] [cursor=pointer]:
+              - /url: /operations/cskh?branchId=6a7909122bbcbb000133e6bb&assistantSubTab=home&receptionSubTab=home&overviewSubTab=home&cskhSubTab=home&marketingSubTab=home
+            - link "Khối Marketing" [active] [ref=f41e149] [cursor=pointer]:
+              - /url: /operations/marketing?branchId=6a7909122bbcbb000133e6bb&assistantSubTab=home&receptionSubTab=home&overviewSubTab=home&cskhSubTab=home&marketingSubTab=home
+            - link "Khối bảo vệ" [ref=f41e150] [cursor=pointer]:
+              - /url: /operations/security?branchId=6a7909122bbcbb000133e6bb&assistantSubTab=home&receptionSubTab=home&overviewSubTab=home&cskhSubTab=home&marketingSubTab=home
+            - link "Khối điều trị" [ref=f41e151] [cursor=pointer]:
+              - /url: /operations/treatment?branchId=6a7909122bbcbb000133e6bb&assistantSubTab=home&receptionSubTab=home&overviewSubTab=home&cskhSubTab=home&marketingSubTab=home
+            - link "Khối tài chính" [ref=f41e152] [cursor=pointer]:
+              - /url: /operations/finance?branchId=6a7909122bbcbb000133e6bb&assistantSubTab=home&receptionSubTab=home&overviewSubTab=home&cskhSubTab=home&marketingSubTab=home
+          - generic [ref=f41e267]:
+            - generic [ref=f41e269]:
+              - button "Trang chủ" [ref=f41e270] [cursor=pointer]
+              - button "Quy trình" [ref=f41e271] [cursor=pointer]
+              - button "Công việc" [ref=f41e272] [cursor=pointer]
+              - button "Báo cáo" [ref=f41e273] [cursor=pointer]
+            - generic [ref=f41e274]:
+              - complementary [ref=f41e275]:
+                - button "Thêm Mới" [ref=f41e278] [cursor=pointer]
+              - generic [ref=f41e280]:
+                - generic [ref=f41e281]:
+                  - button "Tạo Bài Viết" [disabled]
+                  - generic [ref=f41e283]:
+                    - textbox "Tìm kiếm" [ref=f41e284]:
+                      - /placeholder: " "
+                    - generic: Tìm kiếm
+                - generic [ref=f41e286]:
+                  - table [ref=f41e288]:
+                    - rowgroup [ref=f41e289]:
+                      - row [ref=f41e290]:
+                        - columnheader "Tiêu đề" [ref=f41e291]
+                        - columnheader "Ngày tạo" [ref=f41e292]
+                        - columnheader "Ngày cập nhật" [ref=f41e293]
+                        - columnheader "Thao tác" [ref=f41e294]
+                    - rowgroup [ref=f41e295]:
+                      - row [ref=f41e296]:
+                        - cell "Không có dữ liệu" [ref=f41e297]
+                  - generic [ref=f41e298]:
+                    - generic [ref=f41e299]:
+                      - combobox [ref=f41e300]:
+                        - option "5 / trang"
+                        - option "10 / trang"
+                        - option "20 / trang" [selected]
+                        - option "25 / trang"
+                        - option "50 / trang"
+                        - option "100 / trang"
+                      - paragraph [ref=f41e301]: Hiển thị 0 trên 0
+                    - generic [ref=f41e302]:
+                      - button "Trước" [disabled]
+                      - button "Sau" [disabled]
+  - region "Notifications alt+T"
+  - alert [ref=f41e4]

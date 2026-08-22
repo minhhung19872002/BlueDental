@@ -1,6 +1,6 @@
 # BlueDental — Progress Report
 
-Cập nhật lần cuối: 2026-08-22 (session 6 — wire sprint)
+Cập nhật lần cuối: 2026-08-22 (session 8 — catalog CRUD + report wire)
 
 ---
 
@@ -10,7 +10,7 @@ Cập nhật lần cuối: 2026-08-22 (session 6 — wire sprint)
 |-------|--------|---------|
 | Frontend UI (FE) | 🟢 ~98% | Tất cả trang hoàn chỉnh; FE production build ✅ clean |
 | Backend API (BE) | 🟢 ~90% | Build clean 0 errors; AccountAppService; 401/403 API auth; BE Dockerfile |
-| FE ↔ BE Integration | 🟢 ~85% | Wire sprint: Staff, Report, Dashboard, CSKH, Patient Detail tabs (Treatment Plan + Appointments + Invoice) |
+| FE ↔ BE Integration | 🟢 ~82% | Wire sprint: Taxonomy DentalProcedure CRUD, Labo order CRUD, Materials CRUD, Report CashflowTab + BusinessResultTab wired to real revenue |
 | Tests | 🟢 ~95% | 99 tests (15 domain + 34 application + 18 EF + 15 HttpApi + 17 contract) — tất cả pass |
 | Docker / Deploy | 🟡 ~70% | docker-compose.yml + FE Dockerfile (VITE_API_URL arg) + BE Dockerfile; seed contributor BD-001; chưa verify end-to-end |
 
@@ -186,7 +186,8 @@ Cập nhật lần cuối: 2026-08-22 (session 6 — wire sprint)
 - [x] **Patient Detail — Treatment Plan tab** — `useTreatmentPlanList(patientId)` (commit `0038dcb`)
 - [x] **Patient Detail — Appointment tab** — `useAppointmentList(patientId)` (commit `0038dcb`)
 - [x] **Patient Detail — Invoice tab** — `usePatientInvoices(patientId)` (commit `0038dcb`)
-- [ ] **ReceptionPage** — xoá mock store hoàn toàn; chỉ dùng Visit API thật
+- [x] **Export Excel** — PatientListView + ReportPage (commit `f505e1d`) — xlsx SheetJS, 13 cols patient, 4 cols revenue
+- [x] **ReceptionPage** — xoá mock store hoàn toàn; chỉ dùng Visit API thật (commit `31b429a`)
 
 #### FE Wire sau (chờ BE endpoint)
 
@@ -205,6 +206,11 @@ Cập nhật lần cuối: 2026-08-22 (session 6 — wire sprint)
 ## V. Commit Log (gần đây)
 
 ```
+a97162c feat(be): add Prescription AppService + Controller
+18b42de feat(wire): add Prescription API endpoint and wire Patient Detail Prescription tab
+4a106b9 feat(wire): connect Patient Detail Labo and Care tabs to real BE APIs
+31b429a feat(wire): remove mock store from Reception; wire patient search to real BE
+f505e1d feat(export): add Excel export for Patient List and Revenue Report pages
 0038dcb feat(wire): connect Patient Detail tabs to real BE APIs (Treatment Plan, Appointments, Invoice)
 a4bf1e8 feat(wire): connect Staff, Report, Dashboard, CSKH to real BE APIs
 f92e90e fix(appointments): resolve FE production build errors (unused Form import; StatusFilter lowercase)
