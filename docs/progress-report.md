@@ -11,7 +11,7 @@ Cập nhật lần cuối: 2026-08-22 (session 4)
 | Frontend UI (FE) | 🟢 ~97% | Tất cả trang hoàn chỉnh; Calendar week+month, Report 4 tabs, CSKH grouping |
 | Backend API (BE) | 🟢 ~85% | Build clean 0 errors; tất cả domain + AppService + Controller; 2 migrations |
 | FE ↔ BE Integration | 🟡 ~40% | Patient+Appointment gọi BE thật; catalog/billing/inventory/notif hooks xong |
-| Tests | 🟢 ~60% | 8 domain tests + 5 EF mapping tests — tất cả pass |
+| Tests | 🟢 ~75% | 55 tests (15 domain + 22 application + 18 EF) — tất cả pass |
 | Docker / Deploy | 🟡 50% | docker-compose.yml tồn tại, chưa verify chạy |
 
 ---
@@ -122,9 +122,9 @@ Cập nhật lần cuối: 2026-08-22 (session 4)
 
 | Project | Status | Ghi chú |
 |---------|--------|---------|
-| `BlueDental.Domain.Tests` | ✅ 8/8 PASS | Patient (5 tests) + Appointment (3 tests) — tất cả pass |
-| `BlueDental.Application.Tests` | 🔴 EMPTY | Chưa có test case (contract tests pending) |
-| `BlueDental.EntityFrameworkCore.Tests` | ✅ 5/5 PASS | PatientMappingTests — table name, indexes, properties |
+| `BlueDental.Domain.Tests` | ✅ 15/15 PASS | Patient (5) + Appointment (3) + Visit (7 từ agent) |
+| `BlueDental.Application.Tests` | ✅ 22/22 PASS | Contract tests: Patient, Appointment, Invoice, TreatmentPlan |
+| `BlueDental.EntityFrameworkCore.Tests` | ✅ 18/18 PASS | Mapping tests: Patient, Appointment, Visit, LaboOrder |
 | `BlueDental.HttpApi.Host.Tests` | 🔴 EMPTY | Full integration tests (WebApplicationFactory) pending |
 
 ---
