@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Tabs, Row, Col, Button, Select, Segmented, Table, Typography, Tag } from "antd";
 import { DownloadOutlined, LeftOutlined, RightOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
@@ -76,10 +77,26 @@ const EXPENSE_COLUMNS = [
 ];
 
 export function ReportPage() {
-  const [activeTab, setActiveTab] = useState("expense");
-  const [dateMode, setDateMode] = useState<DateMode>("day");
-  const [currentDate, setCurrentDate] = useState<Dayjs>(dayjs());
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const activeTab = searchParams.get("tab") ?? "expense";
+  const dateMode = (searchParams.get("dateMode") as DateMode) ?? "day";
+  const currentDate = dayjs(searchParams.get("date") ?? undefined);
   const [subFilter, setSubFilter] = useState("service");
+
+  const setActiveTab = (tab: string) => {
+    setSearchParams((p) => { p.set("tab", tab); return p; });
+  };
+  const setDateMode = (mode: DateMode) => {
+    setSearchParams((p) => { p.set("dateMode", mode); return p; });
+  };
+  const setCurrentDate = (updater: (d: Dayjs) => Dayjs) => {
+    setSearchParams((p) => {
+      const next = updater(dayjs(p.get("date") ?? undefined));
+      p.set("date", next.format("YYYY-MM-DD"));
+      return p;
+    });
+  };
 
   const navigateDate = (dir: 1 | -1) => {
     const unit = dateMode === "day" ? "day" : dateMode === "week" ? "week" : dateMode === "month" ? "month" : "year";
