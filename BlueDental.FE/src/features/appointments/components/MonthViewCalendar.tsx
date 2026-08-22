@@ -1,114 +1,109 @@
-import { useMemo } from "react";
-import { Button } from "antd";
 import type { Dayjs } from "dayjs";
+import dayjs from "dayjs";
 
-const VI_WEEKDAYS_FULL = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+const DAY_LABELS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 
 interface Props {
   currentDate: Dayjs;
+  onDayClick?: (day: Dayjs) => void;
   onCreateAppointment?: () => void;
-  onDayClick?: (date: Dayjs) => void;
 }
 
-export function MonthViewCalendar({ currentDate, onCreateAppointment, onDayClick }: Props) {
+export function MonthViewCalendar({ currentDate, onDayClick, onCreateAppointment: _onCreateAppointment }: Props) {
   const monthStart = currentDate.startOf("month");
   const monthEnd = currentDate.endOf("month");
   const calStart = monthStart.startOf("week");
-  const totalDays = calStart.daysInMonth();
-  const weeksNeeded = Math.ceil((monthEnd.diff(calStart, "day") + 1) / 7);
-  const today = currentDate.format("YYYY-MM-DD");
+  const calEnd = monthEnd.endOf("week");
+  const today = dayjs();
 
-  const weeks = useMemo(() => {
-    return Array.from({ length: weeksNeeded }, (_, w) =>
-      Array.from({ length: 7 }, (_, d) => calStart.add(w * 7 + d, "day")),
-    );
-  }, [calStart, weeksNeeded]);
+  const weeks: Dayjs[][] = [];
+  let current = calStart;
+  while (current.isBefore(calEnd) || current.isSame(calEnd, "day")) {
+    const week: Dayjs[] = [];
+    for (let i = 0; i < 7; i++) {
+      week.push(current);
+      current = current.add(1, "day");
+    }
+    weeks.push(week);
+  }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column" }}>
-      {/* Toolbar */}
-      <div style={{
-        display: "flex", alignItems: "center", gap: 8,
-        padding: "8px 16px", background: "#fff", borderBottom: "1px solid #E5E7EB",
-      }}>
-        <span style={{ fontSize: 14, fontWeight: 600, color: "#1B2A41" }}>
-          Tháng {currentDate.format("M")} / {currentDate.format("YYYY")}
-        </span>
-        <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-          <Button size="small">Xuất File</Button>
-          <Button type="primary" size="small" style={{ background: "#2671D8" }} onClick={onCreateAppointment}>
-            Tạo lịch hẹn mới
-          </Button>
-        </div>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "auto" }}>
+      {/* Header */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", borderBottom: "2px solid #E5E7EB", background: "#F9FAFB" }}>
+        {DAY_LABELS.map((d) => (
+          <div
+            key={d}
+            style={{
+              padding: "8px 0",
+              textAlign: "center",
+              fontSize: 12,
+              fontWeight: 600,
+              color: d === "CN" ? "#EF4444" : "#5A6B82",
+              borderRight: "1px solid #E5E7EB",
+            }}
+          >
+            {d}
+          </div>
+        ))}
       </div>
 
-      {/* Month grid */}
-      <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 700, tableLayout: "fixed" }}>
-          <thead>
-            <tr>
-              {VI_WEEKDAYS_FULL.map((d) => (
-                <th key={d} style={{
-                  padding: "8px 4px",
-                  textAlign: "center",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: "#6B7280",
-                  background: "#F8FAFC",
-                  borderBottom: "2px solid #E5E7EB",
-                }}>
-                  {d}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {weeks.map((week, wi) => (
-              <tr key={wi}>
-                {week.map((day, di) => {
-                  const isCurrentMonth = day.month() === currentDate.month();
-                  const isToday = day.format("YYYY-MM-DD") === today;
-                  return (
-                    <td
-                      key={di}
-                      onClick={() => onDayClick?.(day)}
-                      style={{
-                        height: 100,
-                        verticalAlign: "top",
-                        padding: "6px 8px",
-                        border: "1px solid #E5E7EB",
-                        background: isToday ? "#EBF3FE" : isCurrentMonth ? "#fff" : "#F9FAFB",
-                        cursor: "pointer",
-                        transition: "background 0.15s",
-                      }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "#DBEAFE"; }}
-                      onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLElement).style.background = isToday
-                          ? "#EBF3FE"
-                          : isCurrentMonth ? "#fff" : "#F9FAFB";
-                      }}
-                    >
-                      <div style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        width: 28, height: 28,
-                        borderRadius: "50%",
-                        background: isToday ? "#1E70E6" : "none",
-                        color: isToday ? "#fff" : isCurrentMonth ? "#1B2A41" : "#D1D5DB",
-                        fontSize: 13,
-                        fontWeight: isToday ? 700 : isCurrentMonth ? 500 : 400,
-                      }}>
-                        {day.format("D")}
-                      </div>
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {/* Week rows */}
+      {weeks.map((week, wi) => (
+        <div
+          key={wi}
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(7, 1fr)",
+            flex: 1,
+            minHeight: 90,
+          }}
+        >
+          {week.map((day, di) => {
+            const isCurrentMonth = day.month() === currentDate.month();
+            const isToday = day.isSame(today, "day");
+            const isSunday = day.day() === 0;
+            return (
+              <div
+                key={di}
+                onClick={() => onDayClick?.(day)}
+                style={{
+                  borderRight: "1px solid #E5E7EB",
+                  borderBottom: "1px solid #E5E7EB",
+                  padding: "6px 8px",
+                  background: isToday ? "#EBF3FE" : "#fff",
+                  cursor: "pointer",
+                  transition: "background 0.1s",
+                  opacity: isCurrentMonth ? 1 : 0.4,
+                }}
+                onMouseEnter={(e) => {
+                  if (!isToday) (e.currentTarget as HTMLDivElement).style.background = "#F3F8FF";
+                }}
+                onMouseLeave={(e) => {
+                  if (!isToday) (e.currentTarget as HTMLDivElement).style.background = "#fff";
+                }}
+              >
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 26,
+                    height: 26,
+                    borderRadius: "50%",
+                    background: isToday ? "#1677ff" : "transparent",
+                    color: isToday ? "#fff" : isSunday ? "#EF4444" : "#1B2A41",
+                    fontWeight: isToday ? 700 : 400,
+                    fontSize: 13,
+                  }}
+                >
+                  {day.date()}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ))}
     </div>
   );
 }

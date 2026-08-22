@@ -140,7 +140,6 @@ export function AppointmentCalendarPage() {
               {viewMode === "month" && (
                 <MonthViewCalendar
                   currentDate={currentDate}
-                  onCreateAppointment={() => setAddOpen(true)}
                   onDayClick={(day) => {
                     setCurrentDate(day);
                     setViewMode("day");
