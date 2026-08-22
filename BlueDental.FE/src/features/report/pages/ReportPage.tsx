@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Tabs, Row, Col, Button, Select, Segmented, Table, Typography } from "antd";
+import { Tabs, Row, Col, Button, Select, Segmented, Table, Typography, Tag } from "antd";
 import { DownloadOutlined, LeftOutlined, RightOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 import { formatVND } from "@/utils/format";
@@ -27,6 +27,41 @@ const SUMMARY_CARDS = [
   { title: "Thông tin lịch hẹn",    metrics: [{ label: "Lịch hẹn hôm nay",   value: 0, unit: "lịch hẹn" }] },
   { title: "Thông tin thanh toán",  metrics: [{ label: "Doanh thu hôm nay",   value: 0, unit: "đ" }] },
   { title: "Thông tin thu chi",     metrics: [{ label: "Thu",                 value: 0, unit: "đ" }, { label: "Chi", value: 0, unit: "đ" }] },
+];
+
+const CASHFLOW_TYPES = [
+  { key: "all", label: "Tất cả" },
+  { key: "thu", label: "Thu" },
+  { key: "chi", label: "Chi" },
+];
+
+const CASHFLOW_COLUMNS = [
+  { title: "Ngày", dataIndex: "date", key: "date", width: 110 },
+  { title: "Loại", dataIndex: "type", key: "type", width: 80,
+    render: (v: string) => <Tag color={v === "Thu" ? "green" : "red"}>{v}</Tag> },
+  { title: "Danh mục", dataIndex: "category", key: "category", width: 160 },
+  { title: "Nội dung", dataIndex: "description", key: "description" },
+  { title: "Số tiền", dataIndex: "amount", key: "amount", width: 140, align: "right" as const,
+    render: (v: number, r: { type: string }) => (
+      <Text style={{ color: r.type === "Thu" ? "#10B981" : "#EF4444", fontVariantNumeric: "tabular-nums" }}>
+        {r.type === "Thu" ? "+" : "-"}{formatVND(v ?? 0)} đ
+      </Text>
+    ) },
+  { title: "Phương thức", dataIndex: "method", key: "method", width: 130 },
+  { title: "Người thực hiện", dataIndex: "performer", key: "performer", width: 160 },
+  { title: "Ghi chú", dataIndex: "note", key: "note", width: 140 },
+];
+
+const RESULT_COLUMNS = [
+  { title: "Danh mục", dataIndex: "category", key: "category" },
+  { title: "Doanh thu", dataIndex: "revenue", key: "revenue", width: 160, align: "right" as const,
+    render: (v: number) => <Text style={{ fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
+  { title: "Chi phí", dataIndex: "expense", key: "expense", width: 160, align: "right" as const,
+    render: (v: number) => <Text style={{ color: "#EF4444", fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
+  { title: "Lợi nhuận", dataIndex: "profit", key: "profit", width: 160, align: "right" as const,
+    render: (v: number) => <Text style={{ color: "#10B981", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
+  { title: "Tỷ lệ LN (%)", dataIndex: "margin", key: "margin", width: 120, align: "right" as const,
+    render: (v: number) => <Text style={{ color: v >= 0 ? "#10B981" : "#EF4444" }}>{v ?? 0}%</Text> },
 ];
 
 const EXPENSE_COLUMNS = [
@@ -163,17 +198,138 @@ export function ReportPage() {
         </>
       )}
 
-      {activeTab !== "expense" && (
+      {activeTab === "cashflow" && <CashflowTab />}
+      {activeTab === "result" && <BusinessResultTab />}
+      {activeTab === "cashflow-v2" && (
         <div className="reception-card reception-card--content">
           <div style={{ padding: "48px 0", textAlign: "center", color: "#9CA3AF" }}>
             <div style={{ fontSize: 32, marginBottom: 8 }}>📊</div>
-            <div style={{ fontWeight: 500, color: "#6B7280" }}>
-              {REPORT_TABS.find((t) => t.key === activeTab)?.label}
-            </div>
+            <div style={{ fontWeight: 500, color: "#6B7280" }}>Luân chuyển dòng tiền V2</div>
             <div style={{ fontSize: 13, marginTop: 4 }}>Nội dung đang được phát triển</div>
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+function CashflowTab() {
+  const [typeFilter, setTypeFilter] = useState("all");
+
+  const summaryCards = [
+    { label: "Tổng thu", value: 0, color: "#10B981" },
+    { label: "Tổng chi", value: 0, color: "#EF4444" },
+    { label: "Lợi nhuận ước tính", value: 0, color: "#1E70E6" },
+  ];
+
+  return (
+    <>
+      <div className="reception-card reception-card--tabs">
+        <div style={{ display: "flex", gap: 0 }}>
+          {CASHFLOW_TYPES.map((f) => (
+            <button
+              key={f.key}
+              type="button"
+              onClick={() => setTypeFilter(f.key)}
+              style={{
+                padding: "8px 14px", border: "none",
+                borderBottom: typeFilter === f.key ? "2px solid #1677ff" : "2px solid transparent",
+                background: "none",
+                color: typeFilter === f.key ? "#1677ff" : "#595959",
+                fontWeight: typeFilter === f.key ? 600 : 400,
+                cursor: "pointer", fontSize: 13, whiteSpace: "nowrap",
+              }}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <Row gutter={[12, 12]} style={{ margin: "12px 0" }}>
+        {summaryCards.map((c) => (
+          <Col key={c.label} xs={24} sm={8}>
+            <div className="reception-card" style={{ padding: "16px 20px" }}>
+              <div style={{ fontSize: 12, color: "#5A6B82", marginBottom: 4 }}>{c.label}</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: c.color, fontVariantNumeric: "tabular-nums" }}>
+                {formatVND(c.value)} đ
+              </div>
+            </div>
+          </Col>
+        ))}
+      </Row>
+
+      <div className="reception-card reception-card--toolbar">
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <Button icon={<DownloadOutlined />} style={{ marginLeft: "auto" }}>Xuất Excel</Button>
+        </div>
+      </div>
+
+      <div className="reception-card reception-card--content">
+        <Table
+          size="small"
+          rowKey="id"
+          columns={CASHFLOW_COLUMNS}
+          dataSource={[]}
+          pagination={{
+            pageSize: 20,
+            showTotal: (total, range) => `Hiển thị ${range[0]}–${range[1]} trên ${total} dòng`,
+          }}
+          locale={{ emptyText: "Không có dữ liệu" }}
+        />
+      </div>
+    </>
+  );
+}
+
+function BusinessResultTab() {
+  const resultSummary = [
+    { label: "Doanh thu", value: 0, color: "#1E70E6" },
+    { label: "Chi phí", value: 0, color: "#EF4444" },
+    { label: "Lợi nhuận", value: 0, color: "#10B981" },
+    { label: "Tỷ lệ lợi nhuận", value: "0%", color: "#F59E0B" },
+  ];
+
+  return (
+    <>
+      <Row gutter={[12, 12]} style={{ margin: "12px 0" }}>
+        {resultSummary.map((c) => (
+          <Col key={c.label} xs={24} sm={12} md={6}>
+            <div className="reception-card" style={{ padding: "16px 20px" }}>
+              <div style={{ fontSize: 12, color: "#5A6B82", marginBottom: 4 }}>{c.label}</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: c.color, fontVariantNumeric: "tabular-nums" }}>
+                {typeof c.value === "number" ? `${formatVND(c.value)} đ` : c.value}
+              </div>
+            </div>
+          </Col>
+        ))}
+      </Row>
+
+      <div className="reception-card reception-card--toolbar">
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <Button icon={<DownloadOutlined />} style={{ marginLeft: "auto" }}>Xuất Excel</Button>
+        </div>
+      </div>
+
+      <div className="reception-card reception-card--content">
+        <Table
+          size="small"
+          rowKey="category"
+          columns={RESULT_COLUMNS}
+          dataSource={[]}
+          pagination={false}
+          locale={{ emptyText: "Không có dữ liệu" }}
+          summary={() => (
+            <Table.Summary.Row>
+              <Table.Summary.Cell index={0}><Text strong>Tổng</Text></Table.Summary.Cell>
+              <Table.Summary.Cell index={1} align="right"><Text strong style={{ fontVariantNumeric: "tabular-nums" }}>0 đ</Text></Table.Summary.Cell>
+              <Table.Summary.Cell index={2} align="right"><Text strong style={{ color: "#EF4444", fontVariantNumeric: "tabular-nums" }}>0 đ</Text></Table.Summary.Cell>
+              <Table.Summary.Cell index={3} align="right"><Text strong style={{ color: "#10B981", fontVariantNumeric: "tabular-nums" }}>0 đ</Text></Table.Summary.Cell>
+              <Table.Summary.Cell index={4} align="right"><Text strong>0%</Text></Table.Summary.Cell>
+            </Table.Summary.Row>
+          )}
+        />
+      </div>
+    </>
   );
 }
