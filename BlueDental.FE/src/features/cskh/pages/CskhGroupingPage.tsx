@@ -272,22 +272,106 @@ export function CskhGroupingPage() {
         </div>
       </div>
 
-      {/* Table */}
+      {/* Tab content */}
+      {topTab === "care" && (
+        <div className="reception-card reception-card--content">
+          <Table
+            columns={TABLE_COLUMNS}
+            dataSource={[]}
+            rowKey="id"
+            pagination={{
+              pageSize: 20,
+              showSizeChanger: true,
+              pageSizeOptions: ["5", "10", "20", "25", "50", "100"],
+              showTotal: (total) => `Hiển thị 0 trên ${total} khách`,
+            }}
+            locale={{ emptyText: "Không có dữ liệu" }}
+            size="middle"
+          />
+        </div>
+      )}
+
+      {topTab === "grouping" && <CskhGroupingPanel />}
+    </div>
+  );
+}
+
+interface CskhGroup {
+  id: string;
+  name: string;
+  criteria: string;
+  patientCount: number;
+  status: "active" | "inactive";
+  createdAt: string;
+}
+
+const SYNTHETIC_GROUPS: CskhGroup[] = [
+  { id: "g1", name: "Sau điều trị Implant", criteria: "Bệnh nhân hoàn thành Implant trong 30 ngày",        patientCount: 0, status: "active",   createdAt: "20/08/2026" },
+  { id: "g2", name: "Sinh nhật tháng này",  criteria: "Bệnh nhân có sinh nhật trong tháng hiện tại",       patientCount: 0, status: "active",   createdAt: "01/08/2026" },
+  { id: "g3", name: "Tái khám định kỳ",     criteria: "Bệnh nhân chưa tái khám sau 6 tháng",               patientCount: 0, status: "active",   createdAt: "15/07/2026" },
+  { id: "g4", name: "Khách hàng VIP",       criteria: "Tổng chi tiêu >= 10.000.000 đ",                     patientCount: 0, status: "active",   createdAt: "01/06/2026" },
+  { id: "g5", name: "Nhắc niềng răng",      criteria: "Bệnh nhân chỉnh nha chưa đến hẹn điều chỉnh",      patientCount: 0, status: "inactive", createdAt: "10/05/2026" },
+];
+
+function CskhGroupingPanel() {
+  const [keyword, setKeyword] = useState("");
+
+  const filtered = SYNTHETIC_GROUPS.filter((g) =>
+    g.name.toLowerCase().includes(keyword.toLowerCase()),
+  );
+
+  const columns = [
+    { title: "Tên nhóm", dataIndex: "name", key: "name", width: 220, render: (v: string) => <span style={{ fontWeight: 500 }}>{v}</span> },
+    { title: "Tiêu chí phân nhóm", dataIndex: "criteria", key: "criteria" },
+    { title: "Số khách", dataIndex: "patientCount", key: "patientCount", width: 100, align: "right" as const },
+    {
+      title: "Trạng thái",
+      dataIndex: "status",
+      key: "status",
+      width: 120,
+      render: (v: string) => (
+        <Tag color={v === "active" ? "green" : "default"}>{v === "active" ? "Đang dùng" : "Tạm dừng"}</Tag>
+      ),
+    },
+    { title: "Ngày tạo", dataIndex: "createdAt", key: "createdAt", width: 120 },
+    {
+      title: "Thao tác",
+      key: "actions",
+      width: 140,
+      render: () => (
+        <div style={{ display: "flex", gap: 6 }}>
+          <Button size="small">Chỉnh sửa</Button>
+          <Button size="small" danger>Xóa</Button>
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <>
+      <div className="reception-card reception-card--toolbar">
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Input
+            prefix={<SearchOutlined />}
+            placeholder="Tìm nhóm CSKH..."
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            style={{ width: 260 }}
+            allowClear
+          />
+          <Button type="primary" style={{ marginLeft: "auto" }}>Tạo nhóm mới</Button>
+        </div>
+      </div>
       <div className="reception-card reception-card--content">
-        <Table
-          columns={TABLE_COLUMNS}
-          dataSource={[]}
+        <Table<CskhGroup>
+          columns={columns}
+          dataSource={filtered}
           rowKey="id"
-          pagination={{
-            pageSize: 20,
-            showSizeChanger: true,
-            pageSizeOptions: ["5", "10", "20", "25", "50", "100"],
-            showTotal: (total) => `Hiển thị 0 trên ${total} khách`,
-          }}
-          locale={{ emptyText: "Không có dữ liệu" }}
           size="middle"
+          pagination={{ pageSize: 20, showTotal: (total) => `${total} nhóm` }}
+          locale={{ emptyText: "Chưa có nhóm CSKH nào" }}
         />
       </div>
-    </div>
+    </>
   );
 }
