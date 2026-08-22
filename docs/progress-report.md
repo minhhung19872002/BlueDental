@@ -38,19 +38,27 @@ Tổng test BE: **207 pass** (102 domain + 51 application + 39 EF + 15 HttpApi).
 
 - `features/timekeeping/` — API hooks + `TimekeepingBoard` (KPI bar + thẻ nhân viên
   với ON/OFF, 2 ca, vào ca/ra ca), thay placeholder ở tab "Lịch làm việc".
+- `features/treatment-management/api/consulting*` — nối 2 bảng Phiếu chẩn đoán /
+  Phiếu tư vấn ở tab "Chẩn đoán & Tư vấn" vào API thật (trước đó `dataSource={[]}`).
+- `features/report/api/financeApi.ts` — nối tab "Quản lý thu chi" và
+  "Luân chuyển dòng tiền V2" vào BE finance; tab V2 được dựng lại đúng theo app gốc
+  (4 panel số dư + bảng giao dịch) thay cho báo cáo lưu chuyển tiền tệ tự chế.
 - `lib/clinicBranch.ts` — điểm tập trung `branchId` cho tới khi có branch switcher.
+- Sửa 2 test ReceptionPage đã lỗi thời (label "Chờ khám", dialog là Modal).
+
+Build FE production: OK. Typecheck: sạch. Unit test FE: 3/3 pass.
 
 ### Còn thiếu (ưu tiên tiếp theo)
 
 | # | Hạng mục | Ghi chú |
 |---|----------|---------|
-| A | FE cho Thu chi / Dòng tiền / Voucher | BE đã sẵn sàng, FE Report tab vẫn dùng dữ liệu tĩnh |
-| B | FE cho Chẩn đoán & Tư vấn (tab consulting) | Cần dental chart SVG dùng ToothSelection |
+| A | Form tạo/sửa cho Thu chi, Luân chuyển, Voucher | Hiện FE mới ở mức đọc (list + summary) |
+| B | Dental chart ghi nhận mặt răng (top/right/bottom/left/center) | `DentalChartView` mới chọn cả răng, chưa chọn mặt |
 | C | Map 83 ability của app gốc sang `BlueDentalPermissions` | Hiện permission set còn thô |
 | D | Taxonomy tổng quát (group + entity list) | App gốc dùng 1 pattern cho 12 danh mục |
 | E | Treatment stage (công đoạn) | Chưa quan sát được payload — UNKNOWN_REFERENCE_BEHAVIOR |
 | F | `docs/testing/*` registry theo CLAUDE.md | Chưa tạo |
-| G | Real full-stack acceptance test (Playwright + PostgreSQL thật) | Test hiện tại là domain/mapping/contract |
+| G | Real full-stack acceptance test (Playwright + PostgreSQL thật) | Test hiện tại là domain/mapping/contract, chưa phải runtime acceptance |
 
 ---
 
