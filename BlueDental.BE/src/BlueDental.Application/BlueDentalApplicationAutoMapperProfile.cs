@@ -24,6 +24,10 @@ public class BlueDentalApplicationAutoMapperProfile : Profile
         CreateMap<DentalProcedure, DentalProcedureDto>();
         CreateMap<InsurancePlan, InsurancePlanDto>();
         CreateMap<Medication, MedicationDto>();
+        CreateMap<PatientSource, PatientSourceDto>();
+        CreateMap<Occupation, OccupationDto>();
+        CreateMap<PaymentMethodOption, PaymentMethodDto>();
+        CreateMap<PatientTag, PatientTagDto>();
 
         /* Patient Management */
         CreateMap<Patient, PatientDto>()

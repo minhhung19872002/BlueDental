@@ -48,6 +48,10 @@ public class BlueDentalDbContext :
     public DbSet<DentalProcedure> DentalProcedures { get; set; }
     public DbSet<InsurancePlan> InsurancePlans { get; set; }
     public DbSet<Medication> Medications { get; set; }
+    public DbSet<PatientSource> PatientSources { get; set; }
+    public DbSet<Occupation> Occupations { get; set; }
+    public DbSet<PaymentMethodOption> PaymentMethods { get; set; }
+    public DbSet<PatientTag> PatientTags { get; set; }
 
     // Patient Management
     public DbSet<Patient> Patients { get; set; }
