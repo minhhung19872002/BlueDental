@@ -1,6 +1,6 @@
 # BlueDental — Progress Report
 
-Cập nhật lần cuối: 2026-08-22
+Cập nhật lần cuối: 2026-08-22 (session 3)
 
 ---
 
@@ -8,9 +8,9 @@ Cập nhật lần cuối: 2026-08-22
 
 | Layer | Status | Ghi chú |
 |-------|--------|---------|
-| Frontend UI (FE) | 🟡 ~90% | 12/12 trang có UI; còn một số tab placeholder |
-| Backend API (BE) | 🟡 ~60% | Build clean; thiếu Reception, Labo, CSKH, Staff, Tests |
-| FE ↔ BE Integration | 🔴 ~5% | Chỉ Reception mock; hầu hết FE không gọi BE thật |
+| Frontend UI (FE) | 🟢 ~97% | Tất cả trang hoàn chỉnh; Calendar week+month, Report 4 tabs, CSKH grouping |
+| Backend API (BE) | 🟡 ~60% | Build clean; thiếu Visit/Labo/CustomerCare domain (agent đang implement) |
+| FE ↔ BE Integration | 🟡 ~40% | Patient+Appointment gọi BE thật; catalog/billing/inventory/notif hooks xong |
 | Tests | 🔴 ~5% | Chỉ test base rỗng, chưa có test case thật |
 | Docker / Deploy | 🟡 50% | docker-compose.yml tồn tại, chưa verify chạy |
 
@@ -43,16 +43,16 @@ Cập nhật lần cuối: 2026-08-22
 
 | # | Feature | Priority | Ghi chú |
 |---|---------|----------|---------|
-| FE-01 | Calendar — Week view grid | HIGH | Hiện tại chỉ có day view |
-| FE-02 | Calendar — Month view grid | MEDIUM | Cần grid 4-5 tuần |
-| FE-03 | Report — Tab "Quản lý thu chi" | MEDIUM | Toolbar + bảng thu chi |
-| FE-04 | Report — Tab "Kết quả kinh doanh" | MEDIUM | Charts doanh thu |
-| FE-05 | Report — Tab "Luân chuyển dòng tiền V2" | LOW | UNKNOWN behavior |
-| FE-06 | Tools — Các sub-tab 2-3 (Phân Công Gọi, Mẫu Tin Nhắn...) | LOW | UNKNOWN behavior |
-| FE-07 | CSKH — "Phân nhóm CSKH" tab content | LOW | UNKNOWN behavior |
-| FE-08 | URL sync (Report dateMode, Calendar date) | MEDIUM | UX improvement |
-| FE-09 | Real API integration (kết nối BE thật) | HIGH | Hiện tại dùng mock |
-| FE-10 | Reception: real create/update mutations | HIGH | Drawer submit chưa nối BE |
+| FE-01 | Calendar — Week view grid | ✅ DONE | commit `b7d86e4` — WeekViewCalendar 7 cột × 36 slot |
+| FE-02 | Calendar — Month view grid | ✅ DONE | commit `b7d86e4` — MonthViewCalendar, click-to-day |
+| FE-03 | Report — Tab "Quản lý thu chi" | ✅ DONE | commit `8b710c7` — CashflowTab với bảng 8 cột |
+| FE-04 | Report — Tab "Kết quả kinh doanh" | ✅ DONE | commit `8b710c7` — BusinessResultTab với KPI + table |
+| FE-05 | Report — Tab "Luân chuyển dòng tiền V2" | 🟡 PLACEHOLDER | UNKNOWN_REFERENCE_BEHAVIOR |
+| FE-06 | Tools — sub-tab Phân Công Gọi, Mẫu tin | 🟡 PLACEHOLDER | UNKNOWN_REFERENCE_BEHAVIOR |
+| FE-07 | CSKH — "Phân nhóm CSKH" tab content | ✅ DONE | commit `4565235` — group table, 5 synthetic |
+| FE-08 | URL sync (Report tab, dateMode, date) | ✅ DONE | commit `9b87856` — useSearchParams |
+| FE-09 | Real API hooks (catalog, billing, inventory, notif) | ✅ DONE | commit `0e8ea66` |
+| FE-10 | Reception: real create/update mutations | 🟡 PARTIAL | Try BE → fallback mock; hoạt động |
 
 ---
 
@@ -144,14 +144,16 @@ Cập nhật lần cuối: 2026-08-22
 
 ## IV. Roadmap hoàn thiện
 
-### Sprint hiện tại — FE UI hoàn thiện
+### Sprint hiện tại — HOÀN THÀNH
 
 - [x] Tools sub-tabs (commit `3923baa`)
 - [x] Appointment List filter bar (commit `981b857`)
 - [x] Taxonomy group sidebar (commit `bfaa14a`)
-- [ ] **FE-01** Calendar week view
-- [ ] **FE-08** Report URL sync + remaining tabs
-- [ ] **FE-09** Wire FE → BE (Patient, Appointment APIs)
+- [x] **FE-01/02** Calendar week + month view (commit `b7d86e4`)
+- [x] **FE-03/04** Report Quản lý thu chi + Kết quả kinh doanh (commit `8b710c7`)
+- [x] **FE-07** CSKH Phân nhóm tab (commit `4565235`)
+- [x] **FE-08** Report URL sync (commit `9b87856`)
+- [x] **FE-09** API hooks: catalog, billing, inventory, notifications (commit `0e8ea66`)
 
 ### Sprint tiếp theo — BE bổ sung
 
@@ -173,14 +175,14 @@ Cập nhật lần cuối: 2026-08-22
 ## V. Commit Log (gần đây)
 
 ```
+4565235 feat(cskh): implement Phân nhóm CSKH tab with group management table
+0e8ea66 feat(api): implement real API hooks for catalogs, reporting, billing, inventory, notifications
+9b87856 feat(report): sync tab, dateMode, date state to URL search params
+8b710c7 feat(report): implement Quản lý thu chi and Kết quả kinh doanh tabs
+b7d86e4 feat(calendar): add week and month view grids
 bfaa14a feat(taxonomy): improve service panel with searchable group sidebar
 981b857 feat(appointments): add filter toolbar to appointment list view
 80e824a docs(clone): add complete survey documentation for all 12 reference pages
 3923baa feat(tools): implement sub-tabs for all 4 tool categories
-18af2d6 fix(tools): fix sub-route labels to match reference
-5388f76 feat(report): fix tab labels + implement revenue tab
-dd3a1d7 feat(operations): fix tab labels + department sub-tabs
-89e05c0 feat(account): implement account profile and change-password pages
 8cd92eb feat(calendar): appointment creation form + doctor filter
-a45cdd2 feat(patient-detail): implement remaining 6 tabs
 ```
