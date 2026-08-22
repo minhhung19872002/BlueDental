@@ -36,8 +36,8 @@ if ! docker compose run --rm migrator; then
 fi
 
 echo
-echo "==> [5/6] Khoi dong api + frontend"
-docker compose up -d api frontend
+echo "==> [5/6] Khoi dong api + frontend (+ caddy neu dung docker-compose.prod.yml)"
+docker compose up -d
 
 echo "    Cho api healthy..."
 for _ in $(seq 1 60); do
@@ -53,8 +53,15 @@ echo "==> [6/6] Kiem tra"
 docker compose ps
 echo
 echo -n "    API health (noi bo): "; curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5019/health/ready || echo FAIL
-echo -n "    Frontend /healthz  : "; curl -s http://127.0.0.1:80/healthz || echo FAIL
-echo -n "    Frontend -> /api   : "; curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:80/health || echo FAIL
+WEB_BIND=$(grep '^WEB_BIND_ADDRESS=' .env | cut -d= -f2); WEB_BIND=${WEB_BIND:-127.0.0.1}
+WEB_PORT=$(grep '^WEB_PORT=' .env | cut -d= -f2); WEB_PORT=${WEB_PORT:-8080}
+[[ "$WEB_BIND" == 0.0.0.0 ]] && WEB_BIND=127.0.0.1
+echo -n "    Frontend /healthz  : "; curl -s "http://$WEB_BIND:$WEB_PORT/healthz" || echo FAIL
+echo -n "    Frontend -> /api   : "; curl -s -o /dev/null -w '%{http_code}\n' "http://$WEB_BIND:$WEB_PORT/health" || echo FAIL
+if docker compose ps --services 2>/dev/null | grep -qx caddy; then
+  echo -n "    Caddy TLS cert     : "
+  docker compose logs caddy 2>/dev/null | grep -q "certificate obtained successfully" && echo "OK" || echo "CHUA CO (kiem tra port 80/443 mo tu Internet; docker compose logs caddy)"
+fi
 
 echo
 echo "======================================================"

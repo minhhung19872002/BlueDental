@@ -1,0 +1,51 @@
+# Production overlay: adds a Caddy TLS reverse proxy in front of the frontend.
+#
+# Activate by putting this in .env (docker compose reads it automatically):
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml
+#   SITE_DOMAIN=your.domain.tld
+#   WEB_BIND_ADDRESS=127.0.0.1   # frontend no longer needs to be public
+#   WEB_PORT=8080
+#
+# Caddy owns 0.0.0.0:80 and :443. Port 80 must be reachable from the
+# internet for the Let's Encrypt HTTP-01 challenge.
+
+services:
+  api:
+    environment:
+      # Trust X-Forwarded-Proto/For from the proxy chain so ASP.NET sees
+      # scheme=https. Without this OpenIddict rejects token requests
+      # ("This server only accepts HTTPS requests") and UseHttpsRedirection
+      # would misbehave. Only reachable via the docker network + 127.0.0.1.
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+      App__SelfUrl: https://${SITE_DOMAIN:?SITE_DOMAIN is required in .env}
+      AuthServer__Authority: https://${SITE_DOMAIN}
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "${CADDY_BIND_ADDRESS:-0.0.0.0}:80:80"
+      - "${CADDY_BIND_ADDRESS:-0.0.0.0}:443:443"
+      - "${CADDY_BIND_ADDRESS:-0.0.0.0}:443:443/udp"
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN}
+    volumes:
+      - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      frontend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:80/"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      bluedental:
+        ipv4_address: 172.29.0.11
+
+volumes:
+  caddy_data:
+  caddy_config:
