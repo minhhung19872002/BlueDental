@@ -7,10 +7,11 @@ import { WeekViewCalendar } from "../components/WeekViewCalendar";
 import { MonthViewCalendar } from "../components/MonthViewCalendar";
 import { AppointmentEditorModal } from "../components/AppointmentEditorModal";
 import { AppointmentDetailDrawer } from "../components/AppointmentDetailDrawer";
+import { useDentistList } from "@/features/staff/api/staffQueries";
 
 type ViewMode = "day" | "week" | "month";
 
-const MOCK_DOCTORS: DayViewDoctor[] = [
+const FALLBACK_DOCTORS: DayViewDoctor[] = [
   { id: "1", name: "BS Khanh",    appointmentCount: 0 },
   { id: "2", name: "BS Tiên",     appointmentCount: 0 },
   { id: "3", name: "BS Hương 4",  appointmentCount: 0 },
@@ -22,6 +23,10 @@ const MOCK_DOCTORS: DayViewDoctor[] = [
 ];
 
 export function AppointmentCalendarPage() {
+  const { data: dentistData } = useDentistList();
+  const doctors: DayViewDoctor[] = dentistData
+    ? dentistData.map((d) => ({ id: d.id, name: d.name, appointmentCount: 0 }))
+    : FALLBACK_DOCTORS;
   const [topTab, setTopTab] = useState("customer");
   const [viewMode, setViewMode] = useState<ViewMode>("day");
   const [currentDate, setCurrentDate] = useState<Dayjs>(dayjs());
@@ -115,7 +120,7 @@ export function AppointmentCalendarPage() {
               {viewMode === "day" && (
                 <DayViewCalendar
                   currentDate={currentDate}
-                  doctors={MOCK_DOCTORS}
+                  doctors={doctors}
                   onDateChange={navigateDate}
                   onCellClick={handleCellClick}
                   keyword={keyword}
@@ -126,7 +131,7 @@ export function AppointmentCalendarPage() {
               {viewMode === "week" && (
                 <WeekViewCalendar
                   currentDate={currentDate}
-                  doctors={MOCK_DOCTORS}
+                  doctors={doctors}
                   keyword={keyword}
                   onKeywordChange={setKeyword}
                   onCreateAppointment={() => setAddOpen(true)}
