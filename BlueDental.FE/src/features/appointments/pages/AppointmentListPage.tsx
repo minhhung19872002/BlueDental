@@ -10,15 +10,15 @@ import { formatDate } from "@/utils/format";
 import dayjs from "dayjs";
 import type { Appointment } from "../types/appointment";
 
-type StatusFilter = "all" | "Scheduled" | "Confirmed" | "CheckedIn" | "Completed" | "Cancelled";
+type StatusFilter = "all" | "scheduled" | "confirmed" | "inProgress" | "completed" | "cancelled";
 
 const STATUS_TABS: { key: StatusFilter; label: string }[] = [
   { key: "all",        label: "Tất cả" },
-  { key: "Scheduled",  label: "Đã hẹn" },
-  { key: "Confirmed",  label: "Đã xác nhận" },
-  { key: "CheckedIn",  label: "Đã đến" },
-  { key: "Completed",  label: "Hoàn thành" },
-  { key: "Cancelled",  label: "Đã hủy" },
+  { key: "scheduled",  label: "Đã hẹn" },
+  { key: "confirmed",  label: "Đã xác nhận" },
+  { key: "inProgress", label: "Đang khám" },
+  { key: "completed",  label: "Hoàn thành" },
+  { key: "cancelled",  label: "Đã hủy" },
 ];
 
 export function AppointmentListPage() {
