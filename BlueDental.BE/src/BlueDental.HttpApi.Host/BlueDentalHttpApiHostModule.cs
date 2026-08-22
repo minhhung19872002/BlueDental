@@ -216,8 +216,8 @@ public class BlueDentalHttpApiHostModule : AbpModule
         app.UseAbpRequestLocalization();
         app.UseCorrelationId();
         app.UseStaticFiles();
-        app.UseCors();
         app.UseRouting();
+        app.UseCors();
         app.UseAuthentication();
         app.UseAbpOpenIddictValidation();
         app.UseUnitOfWork();
