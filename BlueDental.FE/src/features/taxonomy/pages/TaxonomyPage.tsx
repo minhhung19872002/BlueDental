@@ -14,6 +14,13 @@ import {
   type CreateDentalProcedureDto,
   type UpdateDentalProcedureDto,
 } from "../api";
+import {
+  usePatientSourceList, useCreatePatientSource, useUpdatePatientSource, useDeletePatientSource,
+  useOccupationList, useCreateOccupation, useUpdateOccupation, useDeleteOccupation,
+  usePaymentMethodList, useCreatePaymentMethod, useUpdatePaymentMethod, useDeletePaymentMethod,
+  usePatientTagList, useCreatePatientTag, useUpdatePatientTag, useDeletePatientTag,
+  type PatientSourceDto, type OccupationDto, type PaymentMethodDto, type PatientTagDto,
+} from "../api/catalogApi";
 
 // ── Constants ─────────────────────────────────────────────────────────────
 
@@ -55,7 +62,17 @@ const CATEGORY_OPTIONS = Object.entries(PROCEDURE_CATEGORY_LABELS).map(([value, 
   label,
 }));
 
-// ── Create/Edit Modal ─────────────────────────────────────────────────────
+const TAG_COLORS = [
+  { value: "#2671D8", label: "Xanh dương" },
+  { value: "#10B981", label: "Xanh lá" },
+  { value: "#F59E0B", label: "Vàng" },
+  { value: "#EF4444", label: "Đỏ" },
+  { value: "#8B5CF6", label: "Tím" },
+  { value: "#EC4899", label: "Hồng" },
+  { value: "#6B7280", label: "Xám" },
+];
+
+// ── Create/Edit Modal (Dental Procedure) ─────────────────────────────────
 
 interface ProcedureModalProps {
   open: boolean;
@@ -395,7 +412,280 @@ function ServicePanel() {
   );
 }
 
-// ── Simple Tab Panel ───────────────────────────────────────────────────────
+// ── Generic CRUD Panel for simple catalog entities ────────────────────────
+
+interface CatalogItem {
+  id: string;
+  name: string;
+  code?: string;
+  color?: string;
+  description?: string;
+  sortOrder?: number;
+  isActive: boolean;
+  creationTime: string;
+  lastModificationTime?: string;
+}
+
+interface CrudPanelConfig {
+  nameLabel: string;
+  hasCode: boolean;
+  hasColor: boolean;
+  hasSortOrder: boolean;
+  useList: () => { data: { items: CatalogItem[] } | undefined; isLoading: boolean };
+  useCreate: () => { mutateAsync: (data: Record<string, unknown>) => Promise<unknown>; isPending: boolean };
+  useUpdate: () => { mutateAsync: (data: { id: string; data: Record<string, unknown> }) => Promise<unknown>; isPending: boolean };
+  useDelete: () => { mutateAsync: (id: string) => Promise<unknown>; isPending: boolean };
+}
+
+function CrudPanel({ config }: { config: CrudPanelConfig }) {
+  const [keyword, setKeyword] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<CatalogItem | null>(null);
+  const [form] = Form.useForm();
+
+  const { data, isLoading } = config.useList();
+  const createMutation = config.useCreate();
+  const updateMutation = config.useUpdate();
+  const deleteMutation = config.useDelete();
+
+  const isEdit = Boolean(editingItem);
+
+  const items = (data?.items ?? []).filter(
+    (item) => !keyword || item.name.toLowerCase().includes(keyword.toLowerCase()) || (item.code?.toLowerCase().includes(keyword.toLowerCase()) ?? false),
+  );
+
+  const handleOk = async () => {
+    try {
+      const values = await form.validateFields();
+      if (isEdit && editingItem) {
+        const updateData: Record<string, unknown> = { name: values.name, description: values.description };
+        if (config.hasSortOrder) updateData.sortOrder = values.sortOrder ?? 0;
+        if (config.hasColor) updateData.color = values.color;
+        await updateMutation.mutateAsync({ id: editingItem.id, data: updateData });
+        message.success("Cập nhật thành công");
+      } else {
+        const createData: Record<string, unknown> = { name: values.name, description: values.description };
+        if (config.hasCode) createData.code = values.code;
+        if (config.hasSortOrder) createData.sortOrder = values.sortOrder ?? 0;
+        if (config.hasColor) createData.color = values.color;
+        await createMutation.mutateAsync(createData);
+        message.success("Tạo thành công");
+      }
+      form.resetFields();
+      setEditingItem(null);
+      setModalOpen(false);
+    } catch {
+      // validation
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteMutation.mutateAsync(id);
+      message.success("Xóa thành công");
+    } catch {
+      message.error("Xóa thất bại");
+    }
+  };
+
+  const columns: ColumnsType<CatalogItem> = [
+    {
+      title: "",
+      key: "drag",
+      width: 32,
+      render: () => <span style={{ color: "#CBD5E1", cursor: "grab" }}>⠿</span>,
+    },
+    ...(config.hasCode ? [{
+      title: "Mã" as const,
+      dataIndex: "code" as const,
+      key: "code",
+      width: 90,
+    }] : []),
+    {
+      title: config.nameLabel,
+      dataIndex: "name",
+      key: "name",
+      render: (v: string, record: CatalogItem) => (
+        <span style={{ fontWeight: 500 }}>
+          {config.hasColor && record.color && (
+            <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", backgroundColor: record.color, marginRight: 8, verticalAlign: "middle" }} />
+          )}
+          {v}
+        </span>
+      ),
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "isActive",
+      key: "isActive",
+      width: 110,
+      render: (active: boolean) => (
+        <Tag color={active ? "green" : "default"}>{active ? "Đang dùng" : "Ngừng"}</Tag>
+      ),
+    },
+    {
+      title: "Cập nhật gần nhất",
+      dataIndex: "lastModificationTime",
+      key: "updatedAt",
+      render: (v: string) => v ? dayjs(v).format("DD/MM/YYYY") : "—",
+    },
+    {
+      title: "Thao tác",
+      key: "actions",
+      width: 120,
+      render: (_: unknown, record: CatalogItem) => (
+        <div style={{ display: "flex", gap: 6 }}>
+          <Button
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => {
+              setEditingItem(record);
+              setModalOpen(true);
+            }}
+          />
+          <Popconfirm
+            title="Xác nhận xóa?"
+            onConfirm={() => handleDelete(record.id)}
+            okText="Xóa"
+            cancelText="Hủy"
+            okButtonProps={{ danger: true }}
+          >
+            <Button size="small" danger icon={<DeleteOutlined />} />
+          </Popconfirm>
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <Input
+          prefix={<SearchOutlined />}
+          placeholder={`Tìm ${config.nameLabel.toLowerCase()}...`}
+          value={keyword}
+          onChange={(e) => setKeyword(e.target.value)}
+          allowClear
+          style={{ width: 280 }}
+        />
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={() => { setEditingItem(null); form.resetFields(); setModalOpen(true); }}
+        >
+          Tạo mới
+        </Button>
+      </div>
+      <Table<CatalogItem>
+        rowKey="id"
+        dataSource={items}
+        columns={columns}
+        loading={isLoading}
+        locale={{
+          emptyText: (
+            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Chưa có dữ liệu" />
+          ),
+        }}
+        pagination={{ pageSize: 20, showTotal: (total) => `Hiển thị ${total} bản ghi` }}
+        size="middle"
+      />
+
+      <Modal
+        title={isEdit ? `Chỉnh sửa ${config.nameLabel.toLowerCase()}` : `Thêm ${config.nameLabel.toLowerCase()} mới`}
+        open={modalOpen}
+        onCancel={() => { form.resetFields(); setEditingItem(null); setModalOpen(false); }}
+        onOk={handleOk}
+        confirmLoading={createMutation.isPending || updateMutation.isPending}
+        okText={isEdit ? "Lưu thay đổi" : "Tạo mới"}
+        cancelText="Hủy"
+        width={480}
+        destroyOnClose
+        afterOpenChange={(visible) => {
+          if (visible && editingItem) {
+            form.setFieldsValue({
+              code: editingItem.code,
+              name: editingItem.name,
+              description: editingItem.description,
+              sortOrder: editingItem.sortOrder,
+              color: editingItem.color,
+            });
+          }
+        }}
+      >
+        <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
+          {config.hasCode && !isEdit && (
+            <Form.Item name="code" label="Mã" rules={[{ required: true, message: "Nhập mã" }]}>
+              <Input placeholder="VD: NS001" />
+            </Form.Item>
+          )}
+          <Form.Item name="name" label={config.nameLabel} rules={[{ required: true, message: `Nhập ${config.nameLabel.toLowerCase()}` }]}>
+            <Input placeholder={`Nhập ${config.nameLabel.toLowerCase()}...`} />
+          </Form.Item>
+          {config.hasColor && (
+            <Form.Item name="color" label="Màu sắc">
+              <Select placeholder="Chọn màu" allowClear options={TAG_COLORS} />
+            </Form.Item>
+          )}
+          {config.hasSortOrder && (
+            <Form.Item name="sortOrder" label="Thứ tự sắp xếp">
+              <InputNumber min={0} style={{ width: "100%" }} placeholder="0" />
+            </Form.Item>
+          )}
+          <Form.Item name="description" label="Mô tả">
+            <Input.TextArea rows={3} placeholder="Mô tả..." />
+          </Form.Item>
+        </Form>
+      </Modal>
+    </>
+  );
+}
+
+// ── Crud Panel Configs ────────────────────────────────────────────────────
+
+const CRUD_CONFIGS: Record<string, CrudPanelConfig> = {
+  source: {
+    nameLabel: "Nguồn đến",
+    hasCode: true,
+    hasColor: false,
+    hasSortOrder: true,
+    useList: usePatientSourceList as CrudPanelConfig["useList"],
+    useCreate: useCreatePatientSource as CrudPanelConfig["useCreate"],
+    useUpdate: useUpdatePatientSource as CrudPanelConfig["useUpdate"],
+    useDelete: useDeletePatientSource as CrudPanelConfig["useDelete"],
+  },
+  occupation: {
+    nameLabel: "Nghề nghiệp",
+    hasCode: false,
+    hasColor: false,
+    hasSortOrder: true,
+    useList: useOccupationList as CrudPanelConfig["useList"],
+    useCreate: useCreateOccupation as CrudPanelConfig["useCreate"],
+    useUpdate: useUpdateOccupation as CrudPanelConfig["useUpdate"],
+    useDelete: useDeleteOccupation as CrudPanelConfig["useDelete"],
+  },
+  "payment-method": {
+    nameLabel: "Phương thức thanh toán",
+    hasCode: true,
+    hasColor: false,
+    hasSortOrder: false,
+    useList: usePaymentMethodList as CrudPanelConfig["useList"],
+    useCreate: useCreatePaymentMethod as CrudPanelConfig["useCreate"],
+    useUpdate: useUpdatePaymentMethod as CrudPanelConfig["useUpdate"],
+    useDelete: useDeletePaymentMethod as CrudPanelConfig["useDelete"],
+  },
+  tags: {
+    nameLabel: "Thẻ hồ sơ",
+    hasCode: false,
+    hasColor: true,
+    hasSortOrder: false,
+    useList: usePatientTagList as CrudPanelConfig["useList"],
+    useCreate: useCreatePatientTag as CrudPanelConfig["useCreate"],
+    useUpdate: useUpdatePatientTag as CrudPanelConfig["useUpdate"],
+    useDelete: useDeletePatientTag as CrudPanelConfig["useDelete"],
+  },
+};
+
+// ── Simple Tab Panel (placeholder for tabs without BE yet) ───────────────
 
 interface TaxonomyRecord {
   id: string;
@@ -475,8 +765,21 @@ function SimpleTabPanel({ activeTab }: { activeTab: string }) {
 
 // ── Main ──────────────────────────────────────────────────────────────────
 
+// suppress unused variable warnings for DTO type imports used only for type-level casting
+void (0 as unknown as PatientSourceDto);
+void (0 as unknown as OccupationDto);
+void (0 as unknown as PaymentMethodDto);
+void (0 as unknown as PatientTagDto);
+
 export function TaxonomyPage() {
   const [activeTab, setActiveTab] = useState("service");
+
+  const renderContent = () => {
+    if (activeTab === "service") return <ServicePanel />;
+    const crudConfig = CRUD_CONFIGS[activeTab];
+    if (crudConfig) return <CrudPanel config={crudConfig} />;
+    return <SimpleTabPanel activeTab={activeTab} />;
+  };
 
   return (
     <div className="reception-page">
@@ -492,11 +795,7 @@ export function TaxonomyPage() {
         />
       </div>
       <div className="reception-card reception-card--content">
-        {activeTab === "service" ? (
-          <ServicePanel />
-        ) : (
-          <SimpleTabPanel activeTab={activeTab} />
-        )}
+        {renderContent()}
       </div>
     </div>
   );
