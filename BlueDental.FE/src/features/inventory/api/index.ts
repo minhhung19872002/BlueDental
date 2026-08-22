@@ -21,7 +21,7 @@ const inventoryApi = {
     api.get(`/v1/app/inventory-items/${id}`).then((r) => r.data),
 
   adjustStock: (id: string, adjustment: number, note: string): Promise<InventoryItemDto> =>
-    api.post(`/v1/app/inventory-items/${id}/adjust`, { adjustment, note }).then((r) => r.data),
+    api.post(`/v1/app/inventory-items/${id}/adjust-stock`, { adjustment, note }).then((r) => r.data),
 };
 
 export function useInventoryList(params: { skipCount?: number; maxResultCount?: number; filter?: string } = {}) {
