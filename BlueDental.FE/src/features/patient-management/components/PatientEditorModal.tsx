@@ -34,31 +34,31 @@ interface Props {
   onSuccess?: () => void;
 }
 
+const CHANNEL_MAP: Record<string, { value: string; label: string }[]> = {
+  walk_in: [
+    { value: "direct", label: "Trực tiếp đến" },
+    { value: "appointment_app", label: "Đặt lịch qua app" },
+    { value: "appointment_web", label: "Đặt lịch qua website" },
+  ],
+  referral: [
+    { value: "friend", label: "Bạn bè" },
+    { value: "family", label: "Người thân" },
+    { value: "doctor", label: "Bác sĩ giới thiệu" },
+  ],
+  online: [
+    { value: "facebook", label: "Facebook" },
+    { value: "zalo", label: "Zalo" },
+    { value: "google", label: "Google" },
+    { value: "tiktok", label: "TikTok" },
+    { value: "instagram", label: "Instagram" },
+    { value: "youtube", label: "YouTube" },
+  ],
+};
+
 export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props) {
   const isEdit = Boolean(patient);
   const [infoTab, setInfoTab] = useState("basic");
   const [sourceType, setSourceType] = useState<string | undefined>();
-
-  const CHANNEL_MAP: Record<string, { value: string; label: string }[]> = {
-    walk_in: [
-      { value: "direct", label: "Trực tiếp đến" },
-      { value: "appointment_app", label: "Đặt lịch qua app" },
-      { value: "appointment_web", label: "Đặt lịch qua website" },
-    ],
-    referral: [
-      { value: "friend", label: "Bạn bè" },
-      { value: "family", label: "Người thân" },
-      { value: "doctor", label: "Bác sĩ giới thiệu" },
-    ],
-    online: [
-      { value: "facebook", label: "Facebook" },
-      { value: "zalo", label: "Zalo" },
-      { value: "google", label: "Google" },
-      { value: "tiktok", label: "TikTok" },
-      { value: "instagram", label: "Instagram" },
-      { value: "youtube", label: "YouTube" },
-    ],
-  };
 
   const channelOptions = useMemo(
     () => (sourceType ? CHANNEL_MAP[sourceType] ?? [] : []),
