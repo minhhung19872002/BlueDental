@@ -10,7 +10,6 @@ import {
   PhoneOutlined, DollarOutlined, HistoryOutlined, PlusOutlined, UploadOutlined,
 } from "@ant-design/icons";
 import { usePatient } from "../api/patientQueries";
-import { DentalChartView, type ToothRecord } from "../components/DentalChartView";
 import { formatDate, formatDateTime, formatVND } from "@/utils/format";
 import {
   usePatientAdviseSummary,
@@ -21,12 +20,33 @@ import {
   ADVISE_STATUS,
   formatTeeth,
   type PatientAdviseStatus,
+  type ToothSelectionDto,
 } from "@/features/treatment-management/api/consultingApi";
+import { ToothSurfaceChart } from "@/features/treatment-management/components/ToothSurfaceChart";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 
 const { Text } = Typography;
 
 const GENDER_LABELS: Record<string, string> = { male: "Nam", female: "Nữ", other: "Khác" };
+
+const UPPER_TEETH = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
+const LOWER_TEETH = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
+
+/** "Hàm Trên / Hàm Dưới / Nguyên Hàm" shortcuts, as on the reference toolbar. */
+function selectWholeJaw(jaw: "upper" | "lower" | "full"): ToothSelectionDto[] {
+  const codes =
+    jaw === "upper" ? UPPER_TEETH : jaw === "lower" ? LOWER_TEETH : [...UPPER_TEETH, ...LOWER_TEETH];
+
+  return codes.map((toothCode) => ({
+    toothCode,
+    selected: true,
+    top: false,
+    right: false,
+    bottom: false,
+    left: false,
+    center: false,
+  }));
+}
 
 const ADVISE_STATUS_CONFIG: Record<PatientAdviseStatus, { label: string; color: string }> = {
   [ADVISE_STATUS.Created]:   { label: "Chờ duyệt",   color: "default" },
@@ -67,7 +87,9 @@ export function PatientProfilePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [selectedTeeth, setSelectedTeeth] = useState<ToothRecord[]>([]);
+  // The consulting tab records surfaces, not a per-tooth status, so it keeps its
+  // own selection shaped like the API's ToothSelection.
+  const [consultingTeeth, setConsultingTeeth] = useState<ToothSelectionDto[]>([]);
 
   const activeTab = searchParams.get("tab") ?? "profile";
   const { data: patient, isLoading } = usePatient(id ?? "");
@@ -83,14 +105,6 @@ export function PatientProfilePage() {
 
   const handleTabChange = (key: string) => {
     setSearchParams({ tab: key });
-  };
-
-  const handleToothClick = (fdi: number) => {
-    setSelectedTeeth((prev) => {
-      const exists = prev.find((t) => t.fdi === fdi);
-      if (exists) return prev.filter((t) => t.fdi !== fdi);
-      return [...prev, { fdi, status: "treated" }];
-    });
   };
 
   if (isLoading) {
@@ -267,26 +281,29 @@ export function PatientProfilePage() {
                 }
                 style={{ marginBottom: 16 }}
               >
-                <Tabs
-                  size="small"
-                  defaultActiveKey="select"
-                  items={[
-                    { key: "select", label: "Chọn Răng" },
-                    { key: "upper", label: "Hàm Trên" },
-                    { key: "lower", label: "Hàm Dưới" },
-                    { key: "full", label: "Nguyên Hàm" },
-                  ]}
-                />
-                <DentalChartView
-                  teeth={selectedTeeth}
-                  onToothClick={handleToothClick}
+                <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                  <Button size="small" onClick={() => setConsultingTeeth(selectWholeJaw("upper"))}>
+                    Hàm Trên
+                  </Button>
+                  <Button size="small" onClick={() => setConsultingTeeth(selectWholeJaw("lower"))}>
+                    Hàm Dưới
+                  </Button>
+                  <Button size="small" onClick={() => setConsultingTeeth(selectWholeJaw("full"))}>
+                    Nguyên Hàm
+                  </Button>
+                  <Button size="small" onClick={() => setConsultingTeeth([])}>
+                    Bỏ chọn
+                  </Button>
+                </div>
+
+                <ToothSurfaceChart
+                  value={consultingTeeth}
+                  onChange={setConsultingTeeth}
                   style={{ marginTop: 8 }}
                 />
+
                 <div style={{ marginTop: 8, fontSize: 12, color: "#9CA3AF" }}>
-                  Đã chọn:{" "}
-                  {selectedTeeth.length > 0
-                    ? selectedTeeth.map((t) => t.fdi).join(", ")
-                    : "Chưa chọn răng"}
+                  Đã chọn: {consultingTeeth.length > 0 ? formatTeeth(consultingTeeth) : "Chưa chọn răng"}
                 </div>
               </Card>
             </Col>

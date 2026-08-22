@@ -6,14 +6,34 @@ import { z } from "zod";
 import dayjs from "dayjs";
 import { useRegisterPatient, useUpdatePatient } from "../api/patientMutations";
 import { extractApiError } from "@/lib/apiError";
-import type { PatientDto } from "../types/patient";
+import { useCurrentBranchId } from "@/lib/clinicBranch";
+import type { Patient } from "../types/patient";
+
+/**
+ * The form shows one "Họ và tên" field, as the reference does, while the API
+ * keeps họ (lastName) and tên (firstName) apart. Requiring two schema fields for
+ * one input made the form impossible to submit, so the name is captured whole
+ * and split on the way out.
+ */
+function splitVietnameseName(fullName: string): { firstName: string; lastName: string } {
+  const parts = fullName.trim().split(/\s+/);
+
+  if (parts.length === 1) {
+    return { firstName: parts[0], lastName: parts[0] };
+  }
+
+  // Vietnamese order puts the given name last; everything before it is họ + đệm.
+  return {
+    firstName: parts[parts.length - 1],
+    lastName: parts.slice(0, -1).join(" "),
+  };
+}
 
 const schema = z.object({
-  firstName: z.string().min(1, "Vui lòng nhập họ"),
-  lastName: z.string().min(1, "Vui lòng nhập tên"),
+  fullName: z.string().min(1, "Vui lòng nhập họ và tên"),
   phone: z.string().regex(/^\d{8,15}$/, "Số điện thoại không hợp lệ"),
   gender: z.enum(["male", "female", "other"]).optional(),
-  dateOfBirth: z.string().optional(),
+  dateOfBirth: z.string().min(1, "Vui lòng chọn ngày sinh"),
   email: z.string().email("Email không hợp lệ").optional().or(z.literal("")),
   address: z.string().optional(),
   notes: z.string().optional(),
@@ -29,13 +49,14 @@ type FormValues = z.infer<typeof schema>;
 
 interface Props {
   open: boolean;
-  patient?: PatientDto | null;
+  patient?: Patient | null;
   onClose: () => void;
   onSuccess?: () => void;
 }
 
 export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props) {
   const isEdit = Boolean(patient);
+  const branchId = useCurrentBranchId();
   const [infoTab, setInfoTab] = useState("basic");
 
   const {
@@ -47,8 +68,7 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      firstName: "",
-      lastName: "",
+      fullName: "",
       phone: "",
       gender: "male",
       dateOfBirth: "",
@@ -67,8 +87,7 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
   useEffect(() => {
     if (open && patient) {
       reset({
-        firstName: patient.firstName,
-        lastName: patient.lastName,
+        fullName: [patient.lastName, patient.firstName].filter(Boolean).join(" ").trim(),
         phone: patient.phone,
         gender: patient.gender,
         dateOfBirth: patient.dateOfBirth,
@@ -88,15 +107,16 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
 
   const onSubmit = async (values: FormValues) => {
     try {
+      const { firstName, lastName } = splitVietnameseName(values.fullName);
       const payload = {
-        firstName: values.firstName,
-        lastName: values.lastName,
-        phone: values.phone,
+        firstName,
+        lastName,
+        phoneNumber: values.phone,
         gender: values.gender ?? "male",
-        dateOfBirth: values.dateOfBirth ?? "",
-        email: values.email,
-        address: values.address,
-        medicalHistory: values.medicalHistory,
+        dateOfBirth: values.dateOfBirth,
+        email: values.email || undefined,
+        nationalId: values.insuranceNumber || undefined,
+        branchId,
       };
       if (isEdit && patient) {
         await updateMutation.mutateAsync(payload);
@@ -131,9 +151,9 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
                 </Form.Item>
               </Col>
               <Col span={16}>
-                <Form.Item label="Họ và tên" required validateStatus={errors.lastName ? "error" : ""} help={errors.lastName?.message}>
+                <Form.Item label="Họ và tên" required validateStatus={errors.fullName ? "error" : ""} help={errors.fullName?.message}>
                   <Controller
-                    name="lastName"
+                    name="fullName"
                     control={control}
                     render={({ field }) => <Input {...field} placeholder="Nguyễn Văn An" />}
                   />

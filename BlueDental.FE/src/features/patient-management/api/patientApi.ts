@@ -1,4 +1,5 @@
 import { api } from "@/lib/axios";
+import { adaptPatientListItem } from "./patientAdapters";
 import type {
   PagedResult,
   PatientDto,
@@ -11,8 +12,14 @@ import type {
 const BASE = "/v1/app/patients";
 
 export const patientApi = {
-  list: (params: PatientListQuery): Promise<PagedResult<PatientListItem>> =>
-    api.get<PagedResult<PatientListItem>>(BASE, { params }).then((r) => r.data),
+  list: async (params: PatientListQuery): Promise<PagedResult<PatientListItem>> => {
+    const page = await api.get<PagedResult<PatientDto>>(BASE, { params }).then((r) => r.data);
+
+    return {
+      totalCount: page.totalCount,
+      items: page.items.map(adaptPatientListItem),
+    };
+  },
 
   get: (id: string): Promise<PatientDto> =>
     api.get<PatientDto>(`${BASE}/${id}`).then((r) => r.data),
