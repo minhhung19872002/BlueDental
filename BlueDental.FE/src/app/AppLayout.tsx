@@ -29,6 +29,7 @@ import {
   QuestionCircleOutlined,
   CheckOutlined,
   HeartOutlined,
+  SafetyCertificateOutlined,
 } from "@ant-design/icons";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useMutation } from "@tanstack/react-query";
@@ -54,6 +55,7 @@ const MAIN_NAV: NavItem[] = [
   { key: "/materials", icon: <MedicineBoxOutlined />, label: "Vật tư" },
   { key: "/taxonomy", icon: <AppstoreOutlined />, label: "Danh mục" },
   { key: "/tools", icon: <ToolOutlined />, label: "Công cụ" },
+  { key: "/identity", icon: <SafetyCertificateOutlined />, label: "Người dùng & vai trò" },
 ];
 
 const BOTTOM_NAV: NavItem[] = [

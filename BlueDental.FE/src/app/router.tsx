@@ -108,6 +108,12 @@ const ChangePasswordPage = lazy(() =>
   })),
 );
 
+const IdentityAdministrationPage = lazy(() =>
+  import("@/features/identity/pages").then((m) => ({
+    default: m.IdentityAdministrationPage,
+  })),
+);
+
 function RouteLoading() {
   return (
     <div style={{ minHeight: 200, display: "grid", placeItems: "center" }}>
@@ -255,6 +261,15 @@ const appRoutes: RouteObject[] = [
         element: (
           <S>
             <DashboardPage />
+          </S>
+        ),
+      },
+      // ── Identity Administration ──
+      {
+        path: "identity",
+        element: (
+          <S>
+            <IdentityAdministrationPage />
           </S>
         ),
       },
