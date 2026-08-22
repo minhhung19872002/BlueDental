@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Volo.Abp.Application.Dtos;
 
 namespace BlueDental.Staff;
@@ -12,6 +13,7 @@ public class StaffDto : EntityDto<Guid>
     public string? Email { get; set; }
     public string? PhoneNumber { get; set; }
     public bool IsActive { get; set; }
+    public List<string> RoleNames { get; set; } = [];
 }
 
 public class GetStaffListInput : PagedAndSortedResultRequestDto

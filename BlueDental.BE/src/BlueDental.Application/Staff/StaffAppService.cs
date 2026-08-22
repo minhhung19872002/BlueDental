@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -9,51 +10,54 @@ using Volo.Abp.Identity;
 namespace BlueDental.Staff;
 
 [Authorize]
-public class StaffAppService : ApplicationService, IStaffAppService
+public class StaffAppService(
+    IIdentityUserRepository userRepository,
+    IdentityUserManager userManager) : ApplicationService, IStaffAppService
 {
-    private readonly IIdentityUserRepository _userRepository;
-
-    public StaffAppService(IIdentityUserRepository userRepository)
-    {
-        _userRepository = userRepository;
-    }
-
     public async Task<PagedResultDto<StaffDto>> GetListAsync(GetStaffListInput input)
     {
-        var users = await _userRepository.GetListAsync(
+        var users = await userRepository.GetListAsync(
             sorting: input.Sorting ?? "Name",
             maxResultCount: input.MaxResultCount,
             skipCount: input.SkipCount,
             filter: input.Filter);
 
-        var totalCount = await _userRepository.GetCountAsync(filter: input.Filter);
+        var totalCount = await userRepository.GetCountAsync(filter: input.Filter);
 
-        var dtos = users.Select(u => new StaffDto
+        var dtos = new List<StaffDto>();
+        foreach (var user in users)
         {
-            Id = u.Id,
-            UserName = u.UserName,
-            Name = u.Name,
-            Surname = u.Surname,
-            Email = u.Email,
-            PhoneNumber = u.PhoneNumber,
-            IsActive = u.IsActive,
-        }).ToList();
+            var roles = await userManager.GetRolesAsync(user);
+            dtos.Add(new StaffDto
+            {
+                Id = user.Id,
+                UserName = user.UserName ?? string.Empty,
+                Name = user.Name,
+                Surname = user.Surname,
+                Email = user.Email,
+                PhoneNumber = user.PhoneNumber,
+                IsActive = user.IsActive,
+                RoleNames = roles.ToList(),
+            });
+        }
 
         return new PagedResultDto<StaffDto>(totalCount, dtos);
     }
 
     public async Task<StaffDto> GetAsync(Guid id)
     {
-        var user = await _userRepository.GetAsync(id);
+        var user = await userRepository.GetAsync(id);
+        var roles = await userManager.GetRolesAsync(user);
         return new StaffDto
         {
             Id = user.Id,
-            UserName = user.UserName,
+            UserName = user.UserName ?? string.Empty,
             Name = user.Name,
             Surname = user.Surname,
             Email = user.Email,
             PhoneNumber = user.PhoneNumber,
             IsActive = user.IsActive,
+            RoleNames = roles.ToList(),
         };
     }
 }
