@@ -116,6 +116,7 @@ export function AppointmentCalendarPage() {
               onCellClick={handleCellClick}
               keyword={keyword}
               onKeywordChange={setKeyword}
+              onCreateAppointment={() => setAddOpen(true)}
             />
           ) : (
             <div style={{ padding: "48px 0", textAlign: "center", color: "#9CA3AF" }}>

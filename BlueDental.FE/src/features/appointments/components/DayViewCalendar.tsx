@@ -1,5 +1,5 @@
 import { useMemo, useRef } from "react";
-import { Button, Input } from "antd";
+import { Button, Input, Select } from "antd";
 import { SearchOutlined, LeftOutlined, RightOutlined } from "@ant-design/icons";
 import type { Dayjs } from "dayjs";
 
@@ -31,6 +31,7 @@ interface Props {
   onCellClick?: (doctorId: string, slotIndex: number) => void;
   keyword?: string;
   onKeywordChange?: (v: string) => void;
+  onCreateAppointment?: () => void;
 }
 
 const STATUS_FILTER_BUTTONS = [
@@ -49,6 +50,7 @@ export function DayViewCalendar({
   onCellClick,
   keyword = "",
   onKeywordChange,
+  onCreateAppointment,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -129,10 +131,16 @@ export function DayViewCalendar({
           allowClear
           style={{ maxWidth: 200 }}
         />
+        <Select
+          placeholder="Chọn bác sĩ"
+          allowClear
+          style={{ minWidth: 160 }}
+          options={doctors.map((d) => ({ value: d.id, label: d.name }))}
+        />
 
         <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
           <Button size="small">Xuất File</Button>
-          <Button type="primary" size="small">Tạo lịch hẹn mới</Button>
+          <Button type="primary" size="small" style={{ background: "#2671D8" }} onClick={onCreateAppointment}>Tạo lịch hẹn mới</Button>
           <Button size="small">Tạo lịch tạm</Button>
           <Button size="small">Xem theo giờ</Button>
           <Button size="small">Toàn màn hình</Button>
