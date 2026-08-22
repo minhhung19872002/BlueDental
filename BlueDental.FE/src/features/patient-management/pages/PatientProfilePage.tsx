@@ -13,7 +13,7 @@ import { usePatient } from "../api/patientQueries";
 import { DentalChartView, type ToothRecord } from "../components/DentalChartView";
 import { formatDate, formatDateTime, formatVND } from "@/utils/format";
 import { useAppointmentList } from "@/features/appointments/api/appointmentQueries";
-import { useTreatmentPlanList } from "@/features/treatment-management/api/index";
+import { useTreatmentPlanList, usePatientPrescriptions } from "@/features/treatment-management/api/index";
 import { usePatientInvoices } from "@/features/billing/api/index";
 import { usePatientLaboOrders } from "@/features/labo/api/laboApi";
 import { useCareRecordList } from "@/features/cskh/api/careApi";
@@ -63,11 +63,13 @@ export function PatientProfilePage() {
   const { data: invoices } = usePatientInvoices(id ?? "");
   const { data: laboOrders } = usePatientLaboOrders(id ?? "");
   const { data: careRecords } = useCareRecordList({ patientId: id, maxResultCount: 50 });
+  const { data: prescriptions } = usePatientPrescriptions(id ?? "");
   const appointments = appointmentsData?.items ?? [];
   const plans = treatmentPlans?.items ?? [];
   const patientInvoices = invoices ?? [];
   const patientLaboOrders = laboOrders ?? [];
   const patientCareRecords = careRecords?.items ?? [];
+  const patientPrescriptions = prescriptions ?? [];
 
   const handleTabChange = (key: string) => {
     setSearchParams({ tab: key });
@@ -541,18 +543,20 @@ export function PatientProfilePage() {
           </div>
           <Table
             size="small"
-            rowKey="id"
             columns={[
-              { title: "Mã đơn thuốc", dataIndex: "code", key: "code", width: 130 },
-              { title: "Bác sĩ", dataIndex: "doctorName", key: "doctorName", width: 160 },
-              { title: "Chẩn đoán", dataIndex: "diagnosis", key: "diagnosis" },
-              { title: "Tái khám", dataIndex: "followUpDate", key: "followUpDate", width: 130, render: (v: string) => v ? formatDate(v) : "—" },
-              { title: "Ngày tạo", dataIndex: "createdAt", key: "createdAt", width: 120, render: (v: string) => v ? formatDate(v) : "—" },
+              { title: "Thuốc", dataIndex: "medicationName", key: "medicationName", render: (v: string) => v || "—" },
+              { title: "Liều dùng", dataIndex: "dosage", key: "dosage", width: 120 },
+              { title: "Tần suất", dataIndex: "frequency", key: "frequency", width: 120 },
+              { title: "Số ngày", dataIndex: "durationDays", key: "durationDays", width: 80, align: "right" as const },
+              { title: "Hướng dẫn", dataIndex: "instructions", key: "instructions", render: (v: string) => v || "—" },
+              { title: "Trạng thái", dataIndex: "status", key: "status", width: 120 },
+              { title: "Ngày kê", dataIndex: "issuedAt", key: "issuedAt", width: 120, render: (v: string) => v ? formatDate(v) : "—" },
               { title: "Thao tác", key: "actions", width: 80, render: () => <Button type="text" size="small" icon={<EditOutlined />} /> },
             ]}
-            dataSource={[]}
+            dataSource={patientPrescriptions}
+            rowKey="id"
             pagination={{ pageSize: 20, showTotal: (total) => `Hiển thị 0 trên ${total}` }}
-            locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>Không có dữ liệu</span> }}
+            locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>Không có đơn thuốc</span> }}
           />
         </div>
       ),

@@ -55,3 +55,37 @@ export function useCreateTreatmentPlan() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["treatment-plans"] }),
   });
 }
+
+// ── Prescription ──────────────────────────────────────────────────────────────
+
+export interface PrescriptionDto {
+  id: string;
+  patientId: string;
+  treatmentRecordId: string;
+  prescribedBy: string;
+  prescribedByName?: string;
+  medicationId: string;
+  medicationName?: string;
+  dosage: string;
+  frequency: string;
+  durationDays: number;
+  instructions?: string;
+  status: string;
+  issuedAt: string;
+  expiresAt: string;
+  creationTime: string;
+}
+
+const prescriptionApi = {
+  list: (params: { patientId?: string; skipCount?: number; maxResultCount?: number }): Promise<PagedResult<PrescriptionDto>> =>
+    api.get("/v1/app/prescriptions", { params }).then((r) => r.data),
+};
+
+export function usePatientPrescriptions(patientId: string) {
+  return useQuery({
+    queryKey: ["prescriptions", { patientId }],
+    queryFn: () => prescriptionApi.list({ patientId, maxResultCount: 50 }),
+    enabled: Boolean(patientId),
+    select: (d) => d.items,
+  });
+}
