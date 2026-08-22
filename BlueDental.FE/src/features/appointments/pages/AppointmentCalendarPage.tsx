@@ -3,6 +3,8 @@ import { Button, Tabs, Segmented } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 import { LeftOutlined, RightOutlined } from "@ant-design/icons";
 import { DayViewCalendar, type DayViewDoctor } from "../components/DayViewCalendar";
+import { WeekViewCalendar } from "../components/WeekViewCalendar";
+import { MonthViewCalendar } from "../components/MonthViewCalendar";
 import { AppointmentEditorModal } from "../components/AppointmentEditorModal";
 import { AppointmentDetailDrawer } from "../components/AppointmentDetailDrawer";
 
@@ -106,18 +108,46 @@ export function AppointmentCalendarPage() {
           </div>
         </div>
 
-        {/* Day view calendar with doctor columns */}
+        {/* Calendar grid — switches by viewMode */}
         <div style={{ flex: 1, overflow: "auto", background: "#fff" }}>
           {topTab === "customer" ? (
-            <DayViewCalendar
-              currentDate={currentDate}
-              doctors={MOCK_DOCTORS}
-              onDateChange={navigateDate}
-              onCellClick={handleCellClick}
-              keyword={keyword}
-              onKeywordChange={setKeyword}
-              onCreateAppointment={() => setAddOpen(true)}
-            />
+            <>
+              {viewMode === "day" && (
+                <DayViewCalendar
+                  currentDate={currentDate}
+                  doctors={MOCK_DOCTORS}
+                  onDateChange={navigateDate}
+                  onCellClick={handleCellClick}
+                  keyword={keyword}
+                  onKeywordChange={setKeyword}
+                  onCreateAppointment={() => setAddOpen(true)}
+                />
+              )}
+              {viewMode === "week" && (
+                <WeekViewCalendar
+                  currentDate={currentDate}
+                  doctors={MOCK_DOCTORS}
+                  keyword={keyword}
+                  onKeywordChange={setKeyword}
+                  onCreateAppointment={() => setAddOpen(true)}
+                  onCellClick={(dayIdx, slotIdx) => {
+                    setInitialDate(currentDate.startOf("week").add(dayIdx, "day").format("YYYY-MM-DD"));
+                    setAddOpen(true);
+                    void slotIdx;
+                  }}
+                />
+              )}
+              {viewMode === "month" && (
+                <MonthViewCalendar
+                  currentDate={currentDate}
+                  onCreateAppointment={() => setAddOpen(true)}
+                  onDayClick={(day) => {
+                    setCurrentDate(day);
+                    setViewMode("day");
+                  }}
+                />
+              )}
+            </>
           ) : (
             <div style={{ padding: "48px 0", textAlign: "center", color: "#9CA3AF" }}>
               <div style={{ fontSize: 40, marginBottom: 12 }}>📅</div>
