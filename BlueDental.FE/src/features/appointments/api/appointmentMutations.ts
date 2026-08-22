@@ -43,9 +43,18 @@ export function useCancelAppointment() {
     mutationKey: ["appointments", "cancel"],
     mutationFn: (id: string) => appointmentApi.cancel(id),
     onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: appointmentKeys.lists(),
-      });
+      void queryClient.invalidateQueries({ queryKey: appointmentKeys.lists() });
+    },
+  });
+}
+
+export function useConfirmAppointment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ["appointments", "confirm"],
+    mutationFn: (id: string) => appointmentApi.confirm(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: appointmentKeys.lists() });
     },
   });
 }

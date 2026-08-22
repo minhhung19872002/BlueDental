@@ -31,4 +31,7 @@ export const appointmentApi = {
 
   cancel: (id: string): Promise<void> =>
     api.post(`${BASE}/${id}/cancel`).then(() => undefined),
+
+  confirm: (id: string): Promise<void> =>
+    api.post(`${BASE}/${id}/confirm`).then(() => undefined),
 };
