@@ -81,6 +81,7 @@ export interface ReceptionMetrics {
 }
 
 export interface CreateReceptionInput {
+  patientId?: string;
   patientName: string;
   phoneNumber: string;
   dateOfBirth?: string;

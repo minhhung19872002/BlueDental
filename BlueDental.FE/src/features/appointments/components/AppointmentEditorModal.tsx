@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Modal, Button, Input, DatePicker, TimePicker, message } from "antd";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -6,7 +6,8 @@ import { z } from "zod";
 import dayjs from "dayjs";
 import { useCreateAppointment } from "../api/appointmentMutations";
 import { SearchSelect } from "@/components/SearchSelect";
-import { MOCK_PATIENTS } from "@/features/reception/api/receptionApi";
+import { usePatientList } from "@/features/patient-management/api/patientQueries";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const MOCK_DOCTORS = [
   { id: "d1", name: "BS Khanh" },
@@ -43,6 +44,9 @@ interface Props {
 export function AppointmentEditorModal({ open, appointmentId, initialDate, onClose, onSuccess }: Props) {
   const isEdit = Boolean(appointmentId);
   const createMutation = useCreateAppointment();
+  const [patientKeyword, setPatientKeyword] = useState("");
+  const debouncedPatientKeyword = useDebounce(patientKeyword);
+  const { data: patientData } = usePatientList({ keyword: debouncedPatientKeyword || undefined, maxResultCount: 20 });
 
   const { control, handleSubmit, reset, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -123,10 +127,11 @@ export function AppointmentEditorModal({ open, appointmentId, initialDate, onClo
               <SearchSelect
                 value={field.value || undefined}
                 placeholder="Tìm kiếm khách hàng..."
-                options={MOCK_PATIENTS.map((p) => ({
+                options={(patientData?.items ?? []).map((p) => ({
                   value: p.id,
-                  label: `[${p.code}] - ${p.name.toUpperCase()}`,
+                  label: `[${p.code}] - ${p.fullName.toUpperCase()}`,
                 }))}
+                onSearch={setPatientKeyword}
                 onChange={(v) => field.onChange(v ?? "")}
                 status={errors.patientId ? "error" : ""}
               />

@@ -4,7 +4,8 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useCreateReception } from "../api/receptionMutations";
-import { MOCK_PATIENTS } from "../api/receptionApi";
+import { usePatientList } from "@/features/patient-management/api/patientQueries";
+import { useDebounce } from "@/hooks/useDebounce";
 import { SearchSelect } from "@/components/SearchSelect";
 import type { RefType } from "../types/reception";
 
@@ -40,6 +41,13 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
 }) => {
   const createMutation = useCreateReception();
   const [selectedPhone, setSelectedPhone] = useState<string>("---");
+  const [patientKeyword, setPatientKeyword] = useState("");
+  const debouncedPatientKeyword = useDebounce(patientKeyword);
+
+  const { data: patientData } = usePatientList({
+    keyword: debouncedPatientKeyword || undefined,
+    maxResultCount: 20,
+  });
 
   const {
     control,
@@ -61,17 +69,18 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
   });
 
   const handlePatientChange = (patientId: string) => {
-    const patient = MOCK_PATIENTS.find((p) => p.id === patientId);
+    const patient = patientData?.items.find((p) => p.id === patientId);
     if (patient) {
-      setValue("patientName", patient.name, { shouldValidate: true });
+      setValue("patientName", patient.fullName, { shouldValidate: true });
       setValue("patientId", patient.id);
-      setSelectedPhone(patient.phone);
+      setSelectedPhone(patient.phone ?? "---");
     }
   };
 
   const onSubmit = (data: FormValues) => {
     createMutation.mutate(
       {
+        patientId: data.patientId,
         patientName: data.patientName,
         phoneNumber: data.phoneNumber ?? "",
         doctorId: data.doctorId,
@@ -124,10 +133,11 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
                 <SearchSelect
                   value={field.value || undefined}
                   placeholder="Tìm kiếm khách hàng"
-                  options={MOCK_PATIENTS.map((p) => ({
+                  options={(patientData?.items ?? []).map((p) => ({
                     value: p.id,
-                    label: `[${p.code}] - ${p.name.toUpperCase()}`,
+                    label: `[${p.code}] - ${p.fullName.toUpperCase()}`,
                   }))}
+                  onSearch={setPatientKeyword}
                   onChange={(val) => {
                     field.onChange(val ?? "");
                     if (val) handlePatientChange(val);
