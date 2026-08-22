@@ -3,13 +3,16 @@ using BlueDental.Appointments.Values;
 using BlueDental.Billing;
 using BlueDental.Billing.Values;
 using BlueDental.Catalogs;
+using BlueDental.CustomerCare;
 using BlueDental.FileManagement;
 using BlueDental.Inventory;
+using BlueDental.Labo;
 using BlueDental.Notifications;
 using BlueDental.Organizations;
 using BlueDental.PatientManagement;
 using BlueDental.PatientManagement.Values;
 using BlueDental.TreatmentManagement;
+using BlueDental.Visits;
 using Microsoft.EntityFrameworkCore;
 using Volo.Abp;
 using Volo.Abp.EntityFrameworkCore.Modeling;
@@ -31,6 +34,9 @@ public static class BlueDentalDbContextModelCreatingExtensions
         ConfigureInventory(builder);
         ConfigureNotifications(builder);
         ConfigureFileManagement(builder);
+        ConfigureVisits(builder);
+        ConfigureLabo(builder);
+        ConfigureCustomerCare(builder);
     }
 
     private static void ConfigureOrganizations(ModelBuilder builder)
@@ -280,6 +286,56 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Description).HasMaxLength(500);
             entity.Property(x => x.OwnerEntityType).HasMaxLength(100).IsRequired();
             entity.HasIndex(x => new { x.OwnerEntityType, x.OwnerEntityId });
+        });
+    }
+
+    private static void ConfigureVisits(ModelBuilder builder)
+    {
+        builder.Entity<Visit>(entity =>
+        {
+            entity.ToTable("bd_visits");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Status).HasConversion<short>();
+            entity.Property(x => x.ChiefComplaint).HasMaxLength(500);
+            entity.Property(x => x.Notes).HasMaxLength(2000);
+            entity.Property(x => x.CancellationReason).HasMaxLength(500);
+            entity.HasIndex(x => new { x.BranchId, x.Status });
+            entity.HasIndex(x => new { x.PatientId, x.ScheduledAt });
+        });
+    }
+
+    private static void ConfigureLabo(ModelBuilder builder)
+    {
+        builder.Entity<LaboOrder>(entity =>
+        {
+            entity.ToTable("bd_labo_orders");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.OrderCode).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.LabProviderName).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Status).HasConversion<short>();
+            entity.Property(x => x.ToothNumbers).HasMaxLength(200);
+            entity.Property(x => x.WorkDescription).HasMaxLength(1000);
+            entity.Property(x => x.Notes).HasMaxLength(2000);
+            entity.Property(x => x.EstimatedCost).HasPrecision(18, 2);
+            entity.Property(x => x.RejectionReason).HasMaxLength(500);
+            entity.HasIndex(x => x.OrderCode).IsUnique();
+            entity.HasIndex(x => new { x.BranchId, x.Status });
+        });
+    }
+
+    private static void ConfigureCustomerCare(ModelBuilder builder)
+    {
+        builder.Entity<CareRecord>(entity =>
+        {
+            entity.ToTable("bd_care_records");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Type).HasConversion<short>();
+            entity.Property(x => x.Status).HasConversion<short>();
+            entity.Property(x => x.Subject).HasMaxLength(300).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(2000);
+            entity.Property(x => x.Resolution).HasMaxLength(2000);
+            entity.HasIndex(x => new { x.BranchId, x.Status });
+            entity.HasIndex(x => new { x.PatientId, x.Status });
         });
     }
 }

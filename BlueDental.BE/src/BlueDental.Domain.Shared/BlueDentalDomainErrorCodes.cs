@@ -71,4 +71,23 @@ public static class BlueDentalDomainErrorCodes
         public const string NotificationNotFound = "BlueDental:Notification:0001";
         public const string DeliveryFailed = "BlueDental:Notification:0002";
     }
+
+    public static class Visits
+    {
+        public const string VisitNotFound = "BlueDental:Visit:0001";
+        public const string InvalidTransition = "BlueDental:Visit:0002";
+    }
+
+    public static class Labo
+    {
+        public const string OrderNotFound = "BlueDental:Labo:0001";
+        public const string InvalidTransition = "BlueDental:Labo:0002";
+        public const string DuplicateOrderCode = "BlueDental:Labo:0003";
+    }
+
+    public static class CustomerCare
+    {
+        public const string RecordNotFound = "BlueDental:CustomerCare:0001";
+        public const string InvalidTransition = "BlueDental:CustomerCare:0002";
+    }
 }

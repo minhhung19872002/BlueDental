@@ -125,6 +125,39 @@ public static class BlueDentalPermissions
         public const string Export = Default + ".Export";
     }
 
+    public static class Visits
+    {
+        public const string Default = GroupName + ".Visits";
+        public const string View = Default + ".View";
+        public const string Create = Default + ".Create";
+        public const string Edit = Default + ".Edit";
+        public const string Workflow = Default + ".Workflow";
+    }
+
+    public static class LaboOrders
+    {
+        public const string Default = GroupName + ".LaboOrders";
+        public const string View = Default + ".View";
+        public const string Create = Default + ".Create";
+        public const string Edit = Default + ".Edit";
+        public const string Workflow = Default + ".Workflow";
+    }
+
+    public static class CustomerCare
+    {
+        public const string Default = GroupName + ".CustomerCare";
+        public const string View = Default + ".View";
+        public const string Create = Default + ".Create";
+        public const string Manage = Default + ".Manage";
+    }
+
+    public static class Staff
+    {
+        public const string Default = GroupName + ".Staff";
+        public const string View = Default + ".View";
+        public const string Manage = Default + ".Manage";
+    }
+
     public static class SystemAdministration
     {
         public const string Default = GroupName + ".SystemAdmin";

@@ -2,11 +2,14 @@ using AutoMapper;
 using BlueDental.Appointments;
 using BlueDental.Billing;
 using BlueDental.Catalogs;
+using BlueDental.CustomerCare;
 using BlueDental.Inventory;
+using BlueDental.Labo;
 using BlueDental.Notifications;
 using BlueDental.Organizations;
 using BlueDental.PatientManagement;
 using BlueDental.TreatmentManagement;
+using BlueDental.Visits;
 
 namespace BlueDental;
 
@@ -56,5 +59,18 @@ public class BlueDentalApplicationAutoMapperProfile : Profile
 
         /* Notifications */
         CreateMap<Notification, NotificationDto>();
+
+        /* Visits */
+        CreateMap<Visit, VisitDto>()
+            .ForMember(d => d.PatientName, opt => opt.Ignore())
+            .ForMember(d => d.DentistName, opt => opt.Ignore());
+
+        /* Labo */
+        CreateMap<LaboOrder, LaboOrderDto>()
+            .ForMember(d => d.PatientName, opt => opt.Ignore());
+
+        /* Customer Care */
+        CreateMap<CareRecord, CareRecordDto>()
+            .ForMember(d => d.PatientName, opt => opt.Ignore());
     }
 }
