@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Modal, Form, Input, Select, DatePicker, Row, Col, Button, Radio, Tabs } from "antd";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -37,6 +37,33 @@ interface Props {
 export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props) {
   const isEdit = Boolean(patient);
   const [infoTab, setInfoTab] = useState("basic");
+  const [sourceType, setSourceType] = useState<string | undefined>();
+
+  const CHANNEL_MAP: Record<string, { value: string; label: string }[]> = {
+    walk_in: [
+      { value: "direct", label: "Trực tiếp đến" },
+      { value: "appointment_app", label: "Đặt lịch qua app" },
+      { value: "appointment_web", label: "Đặt lịch qua website" },
+    ],
+    referral: [
+      { value: "friend", label: "Bạn bè" },
+      { value: "family", label: "Người thân" },
+      { value: "doctor", label: "Bác sĩ giới thiệu" },
+    ],
+    online: [
+      { value: "facebook", label: "Facebook" },
+      { value: "zalo", label: "Zalo" },
+      { value: "google", label: "Google" },
+      { value: "tiktok", label: "TikTok" },
+      { value: "instagram", label: "Instagram" },
+      { value: "youtube", label: "YouTube" },
+    ],
+  };
+
+  const channelOptions = useMemo(
+    () => (sourceType ? CHANNEL_MAP[sourceType] ?? [] : []),
+    [sourceType],
+  );
 
   const {
     control,
@@ -150,15 +177,28 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
             </Form.Item>
 
             <Form.Item label="Chọn loại nguồn đến">
-              <Select placeholder="Chọn nguồn" allowClear style={{ width: "100%" }}>
-                <Select.Option value="walk_in">Vãng lai tự tìm đến</Select.Option>
-                <Select.Option value="referral">Giới thiệu</Select.Option>
-                <Select.Option value="online">Online</Select.Option>
-              </Select>
+              <Select
+                placeholder="Chọn nguồn"
+                allowClear
+                style={{ width: "100%" }}
+                value={sourceType}
+                onChange={(v) => { setSourceType(v); }}
+                options={[
+                  { value: "walk_in", label: "Vãng lai tự tìm đến" },
+                  { value: "referral", label: "Giới thiệu" },
+                  { value: "online", label: "Online" },
+                ]}
+              />
             </Form.Item>
 
             <Form.Item label="Kênh kết nối">
-              <Select placeholder="Chọn kênh" allowClear disabled style={{ width: "100%" }} />
+              <Select
+                placeholder={sourceType ? "Chọn kênh" : "Chọn nguồn đến trước"}
+                allowClear
+                disabled={!sourceType}
+                style={{ width: "100%" }}
+                options={channelOptions}
+              />
             </Form.Item>
 
             <Form.Item label="Ngày tạo">
