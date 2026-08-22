@@ -48,6 +48,54 @@ const DashboardPage = lazy(() =>
   })),
 );
 
+const CskhGroupingPage = lazy(() =>
+  import("@/features/cskh/pages/CskhGroupingPage").then((m) => ({
+    default: m.CskhGroupingPage,
+  })),
+);
+
+const StaffPage = lazy(() =>
+  import("@/features/staff/pages/StaffPage").then((m) => ({
+    default: m.StaffPage,
+  })),
+);
+
+const LaboPage = lazy(() =>
+  import("@/features/labo/pages/LaboPage").then((m) => ({
+    default: m.LaboPage,
+  })),
+);
+
+const MaterialsPage = lazy(() =>
+  import("@/features/materials/pages/MaterialsPage").then((m) => ({
+    default: m.MaterialsPage,
+  })),
+);
+
+const OperationsPage = lazy(() =>
+  import("@/features/operations/pages/OperationsPage").then((m) => ({
+    default: m.OperationsPage,
+  })),
+);
+
+const ReportPage = lazy(() =>
+  import("@/features/report/pages/ReportPage").then((m) => ({
+    default: m.ReportPage,
+  })),
+);
+
+const TaxonomyPage = lazy(() =>
+  import("@/features/taxonomy/pages/TaxonomyPage").then((m) => ({
+    default: m.TaxonomyPage,
+  })),
+);
+
+const ToolsPage = lazy(() =>
+  import("@/features/tools/pages/ToolsPage").then((m) => ({
+    default: m.ToolsPage,
+  })),
+);
+
 function RouteLoading() {
   return (
     <div style={{ minHeight: 200, display: "grid", placeItems: "center" }}>
@@ -127,35 +175,67 @@ const appRoutes: RouteObject[] = [
       // ── Stubs matching reference routes ──
       {
         path: "cskh-grouping",
-        element: <S><RouteLoading /></S>,
+        element: (
+          <S>
+            <CskhGroupingPage />
+          </S>
+        ),
       },
       {
         path: "labo",
-        element: <S><RouteLoading /></S>,
+        element: (
+          <S>
+            <LaboPage />
+          </S>
+        ),
       },
       {
         path: "operations",
-        element: <S><RouteLoading /></S>,
+        element: (
+          <S>
+            <OperationsPage />
+          </S>
+        ),
       },
       {
         path: "report",
-        element: <S><RouteLoading /></S>,
+        element: (
+          <S>
+            <ReportPage />
+          </S>
+        ),
       },
       {
         path: "staff",
-        element: <S><RouteLoading /></S>,
+        element: (
+          <S>
+            <StaffPage />
+          </S>
+        ),
       },
       {
         path: "materials",
-        element: <S><RouteLoading /></S>,
+        element: (
+          <S>
+            <MaterialsPage />
+          </S>
+        ),
       },
       {
         path: "taxonomy",
-        element: <S><RouteLoading /></S>,
+        element: (
+          <S>
+            <TaxonomyPage />
+          </S>
+        ),
       },
       {
         path: "tools",
-        element: <S><RouteLoading /></S>,
+        element: (
+          <S>
+            <ToolsPage />
+          </S>
+        ),
       },
       // ── Dashboard (kept for internal use) ──
       {
