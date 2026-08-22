@@ -24,22 +24,8 @@ export const authApi = {
 
   getCurrentUser: (): Promise<CurrentUserDto> =>
     api
-      .get<CurrentUserDto>("/v1/app/current-user")
-      .then((r) => r.data)
-      .catch(() => ({
-        id: "usr-admin",
-        userName: "admin",
-        name: "Admin",
-        email: "admin@nfcdental.com",
-        clinicId: "clinic-01",
-        clinicName: "NHA KHOA ĐỨC HẠNH PREMIUM",
-        clinicLogoUrl:
-          "https://pub-cc7eec789022438c8f5969cd7869999c.r2.dev/avatar/9kd9W3cR6ejRwcRIbOEt_A_nh_ma_n_hi_nh_2026-08-10_lu_c_11.42.42.png",
-        clinicTagline: "Kiến Tạo Nụ Cười - Giá Trị Bền Vững",
-        roles: ["Admin"],
-        permissions: ["*"],
-        passwordMustChange: false,
-      })),
+      .get<CurrentUserDto>("/app/account/current-user")
+      .then((r) => r.data),
 
   changePassword: async (data: {
     currentPassword: string;
@@ -47,7 +33,7 @@ export const authApi = {
   }): Promise<void> => {
     await authApi.initializeCsrf();
     return api
-      .post<void>("/v1/app/account/change-password", data)
+      .post<void>("/app/account/change-password", data)
       .then(() => undefined);
   },
 };
