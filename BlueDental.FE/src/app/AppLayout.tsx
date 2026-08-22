@@ -30,6 +30,7 @@ import {
   CheckOutlined,
   HeartOutlined,
   SafetyCertificateOutlined,
+  AuditOutlined,
 } from "@ant-design/icons";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useMutation } from "@tanstack/react-query";
@@ -56,6 +57,7 @@ const MAIN_NAV: NavItem[] = [
   { key: "/taxonomy", icon: <AppstoreOutlined />, label: "Danh mục" },
   { key: "/tools", icon: <ToolOutlined />, label: "Công cụ" },
   { key: "/identity", icon: <SafetyCertificateOutlined />, label: "Người dùng & vai trò" },
+  { key: "/audit-logs", icon: <AuditOutlined />, label: "Nhật ký hoạt động" },
 ];
 
 const BOTTOM_NAV: NavItem[] = [

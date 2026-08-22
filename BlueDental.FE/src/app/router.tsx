@@ -114,6 +114,12 @@ const IdentityAdministrationPage = lazy(() =>
   })),
 );
 
+const AuditLogPage = lazy(() =>
+  import("@/features/audit-logs/pages").then((m) => ({
+    default: m.AuditLogPage,
+  })),
+);
+
 function RouteLoading() {
   return (
     <div style={{ minHeight: 200, display: "grid", placeItems: "center" }}>
@@ -270,6 +276,15 @@ const appRoutes: RouteObject[] = [
         element: (
           <S>
             <IdentityAdministrationPage />
+          </S>
+        ),
+      },
+      // ── Audit Logs ──
+      {
+        path: "audit-logs",
+        element: (
+          <S>
+            <AuditLogPage />
           </S>
         ),
       },

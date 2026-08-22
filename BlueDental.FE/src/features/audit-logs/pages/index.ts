@@ -1,2 +1,1 @@
-﻿// TODO: Implement AuditLogPage.
-export function AuditLogPage() { return null; }
+export { AuditLogPage } from "./AuditLogPage";
