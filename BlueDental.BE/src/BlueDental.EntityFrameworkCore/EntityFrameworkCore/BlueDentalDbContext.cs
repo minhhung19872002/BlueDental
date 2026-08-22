@@ -8,6 +8,7 @@ using BlueDental.Labo;
 using BlueDental.Notifications;
 using BlueDental.Organizations;
 using BlueDental.PatientManagement;
+using BlueDental.Timekeeping;
 using BlueDental.TreatmentManagement;
 using BlueDental.Visits;
 using Microsoft.EntityFrameworkCore;
@@ -62,6 +63,9 @@ public class BlueDentalDbContext :
     public DbSet<PatientDiagnosis> PatientDiagnoses { get; set; }
     public DbSet<PatientAdvise> PatientAdvises { get; set; }
     public DbSet<AdviseGroup> AdviseGroups { get; set; }
+
+    // Timekeeping
+    public DbSet<TimeKeepingRecord> TimeKeepingRecords { get; set; }
 
     // Billing
     public DbSet<Invoice> Invoices { get; set; }
