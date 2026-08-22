@@ -9,6 +9,7 @@ using BlueDental.Notifications;
 using BlueDental.Operations;
 using BlueDental.Organizations;
 using BlueDental.PatientManagement;
+using BlueDental.Tools;
 using BlueDental.TreatmentManagement;
 using BlueDental.Visits;
 using Microsoft.EntityFrameworkCore;
@@ -106,6 +107,12 @@ public class BlueDentalDbContext :
     // Operations
     public DbSet<OperationCategory> OperationCategories { get; set; }
     public DbSet<OperationArticle> OperationArticles { get; set; }
+
+    // Tools
+    public DbSet<CallAssignment> CallAssignments { get; set; }
+    public DbSet<CallLog> CallLogs { get; set; }
+    public DbSet<MessageTemplate> MessageTemplates { get; set; }
+    public DbSet<MessageLog> MessageLogs { get; set; }
 
     public BlueDentalDbContext(DbContextOptions<BlueDentalDbContext> options)
         : base(options)

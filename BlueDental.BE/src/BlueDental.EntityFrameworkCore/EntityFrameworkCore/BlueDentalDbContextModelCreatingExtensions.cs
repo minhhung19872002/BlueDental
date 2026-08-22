@@ -10,6 +10,7 @@ using BlueDental.Labo;
 using BlueDental.Notifications;
 using BlueDental.Operations;
 using BlueDental.Organizations;
+using BlueDental.Tools;
 using BlueDental.PatientManagement;
 using BlueDental.PatientManagement.Values;
 using BlueDental.TreatmentManagement;
@@ -39,6 +40,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
         ConfigureLabo(builder);
         ConfigureCustomerCare(builder);
         ConfigureOperations(builder);
+        ConfigureTools(builder);
     }
 
     private static void ConfigureOrganizations(ModelBuilder builder)
@@ -546,6 +548,58 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Department).HasMaxLength(50).IsRequired();
             entity.Property(x => x.SubTab).HasMaxLength(50).IsRequired();
             entity.HasIndex(x => new { x.Department, x.SubTab, x.CategoryId });
+        });
+    }
+
+    private static void ConfigureTools(ModelBuilder builder)
+    {
+        builder.Entity<CallAssignment>(entity =>
+        {
+            entity.ToTable("bd_call_assignments");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.PatientName).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.PhoneNumber).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.Notes).HasMaxLength(1000);
+            entity.Property(x => x.Status).HasConversion<short>();
+            entity.HasIndex(x => x.StaffId);
+            entity.HasIndex(x => x.PatientId);
+        });
+
+        builder.Entity<CallLog>(entity =>
+        {
+            entity.ToTable("bd_call_logs");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.PatientName).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.PhoneNumber).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.StaffName).HasMaxLength(200);
+            entity.Property(x => x.Notes).HasMaxLength(1000);
+            entity.Property(x => x.Direction).HasConversion<short>();
+            entity.Property(x => x.Status).HasConversion<short>();
+            entity.HasIndex(x => x.CreationTime);
+        });
+
+        builder.Entity<MessageTemplate>(entity =>
+        {
+            entity.ToTable("bd_message_templates");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Content).HasMaxLength(2000).IsRequired();
+            entity.Property(x => x.Channel).HasConversion<short>();
+            entity.Property(x => x.Category).HasMaxLength(100);
+            entity.HasIndex(x => x.Channel);
+        });
+
+        builder.Entity<MessageLog>(entity =>
+        {
+            entity.ToTable("bd_message_logs");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.RecipientName).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.RecipientPhone).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.Content).HasMaxLength(2000).IsRequired();
+            entity.Property(x => x.Channel).HasConversion<short>();
+            entity.Property(x => x.Status).HasConversion<short>();
+            entity.Property(x => x.ErrorMessage).HasMaxLength(500);
+            entity.HasIndex(x => new { x.Channel, x.CreationTime });
         });
     }
 }

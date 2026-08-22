@@ -751,84 +751,6 @@ const CRUD_CONFIGS: Record<string, CrudPanelConfig> = {
   },
 };
 
-// ── Simple Tab Panel (placeholder for tabs without BE yet) ───────────────
-
-interface TaxonomyRecord {
-  id: string;
-  name: string;
-  group?: string;
-  updatedAt?: string;
-}
-
-function buildSimpleColumns(nameLabel: string): ColumnsType<TaxonomyRecord> {
-  return [
-    {
-      title: "",
-      key: "drag",
-      width: 32,
-      render: () => <span style={{ color: "#CBD5E1", cursor: "grab" }}>⠿</span>,
-    },
-    { title: nameLabel, dataIndex: "name", key: "name", render: (v: string) => <span style={{ fontWeight: 500 }}>{v}</span> },
-    { title: "Nhóm phân loại", dataIndex: "group", key: "group", render: (v: string) => v ? <Tag>{v}</Tag> : "—" },
-    { title: "Cập nhật gần nhất", dataIndex: "updatedAt", key: "updatedAt", render: (v: string) => v ? dayjs(v).format("DD/MM/YYYY") : "—" },
-    {
-      title: "Thao tác",
-      key: "actions",
-      width: 120,
-      render: () => (
-        <div style={{ display: "flex", gap: 6 }}>
-          <Button size="small" icon={<EditOutlined />} />
-          <Button size="small" icon={<DeleteOutlined />} danger />
-        </div>
-      ),
-    },
-  ];
-}
-
-function SimpleTabPanel({ activeTab }: { activeTab: string }) {
-  const [keyword, setKeyword] = useState("");
-  const tab = TAXONOMY_TABS.find((t) => t.key === activeTab);
-  const nameLabel = tab?.label ?? "Tên";
-  const columns = buildSimpleColumns(nameLabel);
-
-  return (
-    <div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-        <Input
-          prefix={<SearchOutlined />}
-          placeholder={`Tìm ${nameLabel.toLowerCase()}...`}
-          value={keyword}
-          onChange={(e) => setKeyword(e.target.value)}
-          allowClear
-          style={{ width: 280 }}
-        />
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => message.info("Chức năng đang phát triển")}
-        >
-          Tạo mới
-        </Button>
-      </div>
-      <Table<TaxonomyRecord>
-        rowKey="id"
-        dataSource={[]}
-        columns={columns}
-        locale={{
-          emptyText: (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="Chưa có dữ liệu"
-            />
-          ),
-        }}
-        pagination={false}
-        size="middle"
-      />
-    </div>
-  );
-}
-
 // ── Main ──────────────────────────────────────────────────────────────────
 
 export function TaxonomyPage() {
@@ -838,7 +760,7 @@ export function TaxonomyPage() {
     if (activeTab === "service") return <ServicePanel />;
     const crudConfig = CRUD_CONFIGS[activeTab];
     if (crudConfig) return <CrudPanel config={crudConfig} />;
-    return <SimpleTabPanel activeTab={activeTab} />;
+    return null;
   };
 
   return (
