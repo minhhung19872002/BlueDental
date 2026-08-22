@@ -8,6 +8,7 @@ using BlueDental.FileManagement;
 using BlueDental.Inventory;
 using BlueDental.Labo;
 using BlueDental.Notifications;
+using BlueDental.Operations;
 using BlueDental.Organizations;
 using BlueDental.PatientManagement;
 using BlueDental.PatientManagement.Values;
@@ -37,6 +38,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
         ConfigureVisits(builder);
         ConfigureLabo(builder);
         ConfigureCustomerCare(builder);
+        ConfigureOperations(builder);
     }
 
     private static void ConfigureOrganizations(ModelBuilder builder)
@@ -520,6 +522,30 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
             entity.Property(x => x.Criteria).HasMaxLength(1000);
             entity.Property(x => x.Description).HasMaxLength(1000);
+        });
+    }
+
+    private static void ConfigureOperations(ModelBuilder builder)
+    {
+        builder.Entity<OperationCategory>(entity =>
+        {
+            entity.ToTable("bd_operation_categories");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Department).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.SubTab).HasMaxLength(50).IsRequired();
+            entity.HasIndex(x => new { x.Department, x.SubTab });
+        });
+
+        builder.Entity<OperationArticle>(entity =>
+        {
+            entity.ToTable("bd_operation_articles");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Title).HasMaxLength(500).IsRequired();
+            entity.Property(x => x.Content).HasMaxLength(10000);
+            entity.Property(x => x.Department).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.SubTab).HasMaxLength(50).IsRequired();
+            entity.HasIndex(x => new { x.Department, x.SubTab, x.CategoryId });
         });
     }
 }

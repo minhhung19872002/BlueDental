@@ -6,6 +6,7 @@ using BlueDental.FileManagement;
 using BlueDental.Inventory;
 using BlueDental.Labo;
 using BlueDental.Notifications;
+using BlueDental.Operations;
 using BlueDental.Organizations;
 using BlueDental.PatientManagement;
 using BlueDental.TreatmentManagement;
@@ -101,6 +102,10 @@ public class BlueDentalDbContext :
     // Customer Care
     public DbSet<CareRecord> CareRecords { get; set; }
     public DbSet<CskhGroup> CskhGroups { get; set; }
+
+    // Operations
+    public DbSet<OperationCategory> OperationCategories { get; set; }
+    public DbSet<OperationArticle> OperationArticles { get; set; }
 
     public BlueDentalDbContext(DbContextOptions<BlueDentalDbContext> options)
         : base(options)
