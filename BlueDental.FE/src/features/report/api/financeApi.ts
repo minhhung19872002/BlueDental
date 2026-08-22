@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import type { PagedResult } from "@/types";
 
@@ -125,6 +125,51 @@ export interface CashflowEntryDto {
   createdByStaffName: string | null;
 }
 
+export interface CashflowCategoryDto {
+  id: string;
+  clinicBranchId: string;
+  name: string;
+  type: SalesEntryType;
+  appliesToTransfers: boolean;
+  isSystem: boolean;
+  isActive: boolean;
+  sortOrder: number;
+  description: string | null;
+}
+
+export interface CreateSalesEntryInput {
+  clinicBranchId: string;
+  type: SalesEntryType;
+  categoryId: string;
+  staffId: string;
+  patientId?: string;
+  amount: number;
+  channel: PaymentChannel;
+  description: string;
+  entryDate: string;
+}
+
+export interface UpdateSalesEntryInput {
+  categoryId: string;
+  patientId?: string;
+  amount: number;
+  channel: PaymentChannel;
+  description: string;
+  entryDate: string;
+}
+
+export interface CreateCashflowEntryInput {
+  clinicBranchId: string;
+  transactionType: CashTransactionType;
+  fromHolding?: CashHolding | null;
+  toHolding?: CashHolding | null;
+  amount: number;
+  categoryId?: string | null;
+  createdByStaffId: string;
+  entryDate: string;
+  note?: string;
+}
+
 export interface SalesQueryInput {
   clinicBranchId?: string;
   type?: SalesEntryType;
@@ -145,6 +190,44 @@ export interface CashflowQueryInput {
 }
 
 const financeApi = {
+  categories: (params: {
+    clinicBranchId: string;
+    appliesToTransfers?: boolean;
+    isActive?: boolean;
+    maxResultCount?: number;
+  }): Promise<PagedResult<CashflowCategoryDto>> =>
+    api
+      .get<PagedResult<CashflowCategoryDto>>("/v1/app/cashflow-categories", { params })
+      .then((r) => r.data),
+
+  createCategory: (input: {
+    clinicBranchId: string;
+    name: string;
+    type: SalesEntryType;
+    appliesToTransfers: boolean;
+  }): Promise<CashflowCategoryDto> =>
+    api.post<CashflowCategoryDto>("/v1/app/cashflow-categories", input).then((r) => r.data),
+
+  createSales: (input: CreateSalesEntryInput): Promise<SalesEntryDto> =>
+    api.post<SalesEntryDto>("/v1/app/sales", input).then((r) => r.data),
+
+  updateSales: (id: string, input: UpdateSalesEntryInput): Promise<SalesEntryDto> =>
+    api.put<SalesEntryDto>(`/v1/app/sales/${id}`, input).then((r) => r.data),
+
+  approveSales: (id: string, staffId: string): Promise<SalesEntryDto> =>
+    api.post<SalesEntryDto>(`/v1/app/sales/${id}/approve`, { staffId }).then((r) => r.data),
+
+  rejectSales: (id: string, staffId: string, reason: string): Promise<SalesEntryDto> =>
+    api.post<SalesEntryDto>(`/v1/app/sales/${id}/reject`, { staffId, reason }).then((r) => r.data),
+
+  deleteSales: (id: string): Promise<void> =>
+    api.delete(`/v1/app/sales/${id}`).then(() => undefined),
+
+  createCashflowEntry: (input: CreateCashflowEntryInput): Promise<CashflowEntryDto> =>
+    api
+      .post<CashflowEntryDto>("/v1/app/cash-management/cashflow-entries", input)
+      .then((r) => r.data),
+
   sales: (params: SalesQueryInput): Promise<PagedResult<SalesEntryDto>> =>
     api.get<PagedResult<SalesEntryDto>>("/v1/app/sales", { params }).then((r) => r.data),
 
@@ -177,6 +260,71 @@ export const financeKeys = {
   cashflowEntries: (params: CashflowQueryInput) =>
     [...financeKeys.all, "cashflow-entries", params] as const,
 };
+
+export function useCashflowCategories(clinicBranchId: string, appliesToTransfers: boolean) {
+  return useQuery({
+    queryKey: [...financeKeys.all, "categories", clinicBranchId, appliesToTransfers] as const,
+    queryFn: () =>
+      financeApi.categories({
+        clinicBranchId,
+        appliesToTransfers,
+        isActive: true,
+        maxResultCount: 100,
+      }),
+    enabled: Boolean(clinicBranchId),
+  });
+}
+
+/** Any finance write invalidates the whole finance tree — lists, stats and balances move together. */
+function useFinanceMutation<TVariables, TData>(fn: (variables: TVariables) => Promise<TData>) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: financeKeys.all });
+    },
+  });
+}
+
+export function useCreateCashflowCategory() {
+  return useFinanceMutation(
+    (input: { clinicBranchId: string; name: string; type: SalesEntryType; appliesToTransfers: boolean }) =>
+      financeApi.createCategory(input),
+  );
+}
+
+export function useCreateSalesEntry() {
+  return useFinanceMutation((input: CreateSalesEntryInput) => financeApi.createSales(input));
+}
+
+export function useUpdateSalesEntry() {
+  return useFinanceMutation(({ id, input }: { id: string; input: UpdateSalesEntryInput }) =>
+    financeApi.updateSales(id, input),
+  );
+}
+
+export function useApproveSalesEntry() {
+  return useFinanceMutation(({ id, staffId }: { id: string; staffId: string }) =>
+    financeApi.approveSales(id, staffId),
+  );
+}
+
+export function useRejectSalesEntry() {
+  return useFinanceMutation(({ id, staffId, reason }: { id: string; staffId: string; reason: string }) =>
+    financeApi.rejectSales(id, staffId, reason),
+  );
+}
+
+export function useDeleteSalesEntry() {
+  return useFinanceMutation((id: string) => financeApi.deleteSales(id));
+}
+
+export function useCreateCashflowEntry() {
+  return useFinanceMutation((input: CreateCashflowEntryInput) =>
+    financeApi.createCashflowEntry(input),
+  );
+}
 
 export function useSalesEntries(params: SalesQueryInput) {
   return useQuery({

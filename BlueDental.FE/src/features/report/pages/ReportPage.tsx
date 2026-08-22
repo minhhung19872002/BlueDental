@@ -1,20 +1,29 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Tabs, Row, Col, Button, Select, Segmented, Table, Typography, Tag } from "antd";
-import { DownloadOutlined, LeftOutlined, RightOutlined } from "@ant-design/icons";
+import { Tabs, Row, Col, Button, Select, Segmented, Table, Typography, Tag, Modal, Input, Popconfirm, message } from "antd";
+import { DownloadOutlined, LeftOutlined, RightOutlined, PlusOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
-import { formatVND } from "@/utils/format";
+import { formatDate, formatVND } from "@/utils/format";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
+import { useAuthStore } from "@/features/auth/store/authStore";
+import { extractApiError } from "@/lib/apiError";
+import { SalesEntryModal } from "../components/SalesEntryModal";
+import { CashflowEntryModal } from "../components/CashflowEntryModal";
 import {
   CASH_HOLDING_LABELS,
   CASH_TRANSACTION_LABELS,
+  CASH_TRANSACTION_TYPE,
   PAYMENT_CHANNEL_LABELS,
   SALES_APPROVAL_STATUS,
   SALES_ENTRY_TYPE,
+  useApproveSalesEntry,
   useCashflowEntries,
   useCashflowOverview,
+  useDeleteSalesEntry,
+  useRejectSalesEntry,
   useSalesEntries,
   useSalesStats,
+  type SalesEntryDto,
   type CashHolding,
   type CashTransactionType,
   type PaymentChannel,
@@ -53,8 +62,9 @@ const CASHFLOW_TYPES = [
   { key: "chi", label: "Chi" },
 ];
 
-const CASHFLOW_COLUMNS = [
-  { title: "Ngày", dataIndex: "entryDate", key: "entryDate", width: 110 },
+function buildCashflowColumns(actions: (row: SalesEntryDto) => React.ReactNode) {
+  return [
+  { title: "Ngày", dataIndex: "entryDate", key: "entryDate", width: 110, render: (v: string) => formatDate(v) },
   { title: "Số phiếu", dataIndex: "code", key: "code", width: 110 },
   { title: "Loại", dataIndex: "type", key: "type", width: 80,
     render: (v: SalesEntryType) => (
@@ -83,7 +93,9 @@ const CASHFLOW_COLUMNS = [
       const config = APPROVAL_CONFIG[v];
       return config ? <Tag color={config.color}>{config.label}</Tag> : <Text type="secondary">—</Text>;
     } },
-];
+  { title: "Thao tác", key: "actions", width: 200, render: (_: unknown, row: SalesEntryDto) => actions(row) },
+  ];
+}
 
 const RESULT_COLUMNS = [
   { title: "Danh mục", dataIndex: "category", key: "category" },
@@ -278,7 +290,14 @@ const APPROVAL_CONFIG: Record<SalesApprovalStatus, { label: string; color: strin
 
 function CashflowTab({ period }: { period: PeriodRange }) {
   const branchId = useCurrentBranchId();
+  const currentUserId = useAuthStore((s) => s.user?.id);
   const [typeFilter, setTypeFilter] = useState("all");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState<SalesEntryDto | null>(null);
+
+  const approveEntry = useApproveSalesEntry();
+  const rejectEntry = useRejectSalesEntry();
+  const deleteEntry = useDeleteSalesEntry();
 
   const typeParam: SalesEntryType | undefined =
     typeFilter === "thu" ? SALES_ENTRY_TYPE.Income
@@ -292,6 +311,80 @@ function CashflowTab({ period }: { period: PeriodRange }) {
     type: typeParam,
     maxResultCount: 100,
   });
+
+  const handleApprove = async (row: SalesEntryDto) => {
+    if (!currentUserId) return;
+    try {
+      await approveEntry.mutateAsync({ id: row.id, staffId: currentUserId });
+      message.success("Đã duyệt phiếu chi");
+    } catch (error) {
+      message.error(extractApiError(error));
+    }
+  };
+
+  const handleReject = (row: SalesEntryDto) => {
+    if (!currentUserId) return;
+    let reason = "";
+
+    Modal.confirm({
+      title: `Từ chối phiếu ${row.code}`,
+      content: (
+        <Input.TextArea
+          rows={3}
+          placeholder="Lý do từ chối"
+          onChange={(e) => { reason = e.target.value; }}
+        />
+      ),
+      okText: "Từ chối",
+      cancelText: "Huỷ",
+      onOk: async () => {
+        if (!reason.trim()) {
+          message.error("Vui lòng nhập lý do từ chối.");
+          throw new Error("missing reason");
+        }
+        try {
+          await rejectEntry.mutateAsync({ id: row.id, staffId: currentUserId, reason: reason.trim() });
+          message.success("Đã từ chối phiếu chi");
+        } catch (error) {
+          message.error(extractApiError(error));
+          throw error;
+        }
+      },
+    });
+  };
+
+  const columns = buildCashflowColumns((row) => (
+    <>
+      {row.approvalStatus === SALES_APPROVAL_STATUS.Pending && (
+        <>
+          <Button type="link" size="small" onClick={() => handleApprove(row)}>Duyệt</Button>
+          <Button type="link" size="small" danger onClick={() => handleReject(row)}>Từ chối</Button>
+        </>
+      )}
+      {row.approvalStatus !== SALES_APPROVAL_STATUS.Approved && (
+        <>
+          <Button type="link" size="small" onClick={() => { setEditing(row); setModalOpen(true); }}>
+            Sửa
+          </Button>
+          <Popconfirm
+            title="Xoá phiếu này?"
+            okText="Xoá"
+            cancelText="Huỷ"
+            onConfirm={async () => {
+              try {
+                await deleteEntry.mutateAsync(row.id);
+                message.success("Đã xoá phiếu");
+              } catch (error) {
+                message.error(extractApiError(error));
+              }
+            }}
+          >
+            <Button type="link" size="small" danger>Xoá</Button>
+          </Popconfirm>
+        </>
+      )}
+    </>
+  ));
 
   const summaryCards = [
     { label: "Tổng thu", value: stats?.totalIncome ?? 0, color: "#10B981" },
@@ -346,7 +439,14 @@ function CashflowTab({ period }: { period: PeriodRange }) {
       )}
 
       <div className="reception-card reception-card--toolbar">
-        <div style={{ display: "flex", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => { setEditing(null); setModalOpen(true); }}
+          >
+            Thêm mới
+          </Button>
           <Button icon={<DownloadOutlined />} style={{ marginLeft: "auto" }}>Xuất Excel</Button>
         </div>
       </div>
@@ -356,7 +456,7 @@ function CashflowTab({ period }: { period: PeriodRange }) {
           size="small"
           rowKey="id"
           loading={isLoading}
-          columns={CASHFLOW_COLUMNS}
+          columns={columns}
           dataSource={page?.items ?? []}
           pagination={{
             pageSize: 20,
@@ -365,12 +465,19 @@ function CashflowTab({ period }: { period: PeriodRange }) {
           locale={{ emptyText: "Không có dữ liệu" }}
         />
       </div>
+
+      <SalesEntryModal
+        open={modalOpen}
+        entry={editing}
+        defaultType={typeFilter === "chi" ? SALES_ENTRY_TYPE.Expense : SALES_ENTRY_TYPE.Income}
+        onClose={() => { setModalOpen(false); setEditing(null); }}
+      />
     </>
   );
 }
 
 const CASHFLOW_ENTRY_COLUMNS = [
-  { title: "Ngày", dataIndex: "entryDate", key: "entryDate", width: 110 },
+  { title: "Ngày", dataIndex: "entryDate", key: "entryDate", width: 110, render: (v: string) => formatDate(v) },
   { title: "Loại giao dịch", dataIndex: "transactionType", key: "transactionType", width: 130,
     render: (v: CashTransactionType) => <Tag>{CASH_TRANSACTION_LABELS[v]}</Tag> },
   { title: "Hình thức", key: "holding", width: 200,
@@ -392,6 +499,7 @@ const CASHFLOW_ENTRY_COLUMNS = [
 function CashflowV2Tab({ period }: { period: PeriodRange }) {
   const branchId = useCurrentBranchId();
   const params = { clinicBranchId: branchId, ...period };
+  const [cashModal, setCashModal] = useState<CashTransactionType | null>(null);
 
   const { data: overview } = useCashflowOverview(params);
   const { data: page, isLoading } = useCashflowEntries({ ...params, maxResultCount: 100 });
@@ -420,8 +528,11 @@ function CashflowV2Tab({ period }: { period: PeriodRange }) {
       </Row>
 
       <div className="reception-card reception-card--toolbar">
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Text style={{ fontSize: 13, color: "#5A6B82" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <Button type="primary" onClick={() => setCashModal(CASH_TRANSACTION_TYPE.Deposit)}>Nạp</Button>
+          <Button onClick={() => setCashModal(CASH_TRANSACTION_TYPE.Withdraw)}>Rút</Button>
+          <Button onClick={() => setCashModal(CASH_TRANSACTION_TYPE.Transfer)}>Luân chuyển</Button>
+          <Text style={{ fontSize: 13, color: "#5A6B82", marginLeft: 12 }}>
             Nạp: {formatVND(overview?.totalDeposit ?? 0)} đ · Rút: {formatVND(overview?.totalWithdraw ?? 0)} đ ·
             Luân chuyển: {formatVND(overview?.totalTransfer ?? 0)} đ
           </Text>
@@ -443,6 +554,14 @@ function CashflowV2Tab({ period }: { period: PeriodRange }) {
           locale={{ emptyText: "Không có dữ liệu" }}
         />
       </div>
+
+      {cashModal !== null && (
+        <CashflowEntryModal
+          open
+          transactionType={cashModal}
+          onClose={() => setCashModal(null)}
+        />
+      )}
     </>
   );
 }

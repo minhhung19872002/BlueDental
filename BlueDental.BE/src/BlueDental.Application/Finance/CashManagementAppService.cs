@@ -8,6 +8,7 @@ using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
+using Volo.Abp.Identity;
 
 namespace BlueDental.Finance;
 
@@ -20,13 +21,16 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
 {
     private readonly IRepository<CashflowEntry, Guid> _repository;
     private readonly IRepository<CashflowCategory, Guid> _categoryRepository;
+    private readonly IIdentityUserRepository _userRepository;
 
     public CashManagementAppService(
         IRepository<CashflowEntry, Guid> repository,
-        IRepository<CashflowCategory, Guid> categoryRepository)
+        IRepository<CashflowCategory, Guid> categoryRepository,
+        IIdentityUserRepository userRepository)
     {
         _repository = repository;
         _categoryRepository = categoryRepository;
+        _userRepository = userRepository;
     }
 
     [Authorize(BlueDentalAbilityPermissions.ReportTransfer.Read)]
@@ -83,10 +87,11 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
             .ToList();
 
         var categoryNames = await GetCategoryNamesAsync(items);
+        var staffNames = await GetStaffNamesAsync(items);
 
         return new PagedResultDto<CashflowEntryDto>(
             totalCount,
-            items.Select(x => MapToDto(x, categoryNames)).ToList());
+            items.Select(x => MapToDto(x, categoryNames, staffNames)).ToList());
     }
 
     public async Task<CashflowEntryDto> CreateEntryAsync(CreateCashflowEntryDto input)
@@ -125,7 +130,7 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
         };
 
         await _repository.InsertAsync(entry, autoSave: true);
-        return MapToDto(entry, new Dictionary<Guid, string>());
+        return MapToDto(entry, new Dictionary<Guid, string>(), new Dictionary<Guid, string>());
     }
 
     [Authorize(BlueDentalAbilityPermissions.ReportTransfer.Delete)]
@@ -175,6 +180,20 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
             .ToDictionary(c => c.Id, c => c.Name);
     }
 
+    private async Task<Dictionary<Guid, string>> GetStaffNamesAsync(
+        IReadOnlyCollection<CashflowEntry> entries)
+    {
+        var ids = entries.Select(x => x.CreatedByStaffId).Distinct().ToList();
+
+        if (ids.Count == 0)
+        {
+            return new Dictionary<Guid, string>();
+        }
+
+        var users = await _userRepository.GetListByIdsAsync(ids);
+        return users.ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
+    }
+
     private static CashBalanceDto BuildBalance(IReadOnlyCollection<CashflowEntry> entries)
     {
         var cash = entries.Sum(x => x.EffectOn(CashHolding.Cash));
@@ -200,7 +219,8 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
 
     private static CashflowEntryDto MapToDto(
         CashflowEntry entity,
-        IReadOnlyDictionary<Guid, string> categoryNames) => new()
+        IReadOnlyDictionary<Guid, string> categoryNames,
+        IReadOnlyDictionary<Guid, string> staffNames) => new()
     {
         Id = entity.Id,
         ClinicBranchId = entity.ClinicBranchId,
@@ -213,6 +233,7 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
             ? name
             : null,
         CreatedByStaffId = entity.CreatedByStaffId,
+        CreatedByStaffName = staffNames.TryGetValue(entity.CreatedByStaffId, out var staffName) ? staffName : null,
         EntryDate = entity.EntryDate,
         Note = entity.Note,
         CreationTime = entity.CreationTime,
