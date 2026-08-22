@@ -188,23 +188,30 @@ export function PatientProfilePage() {
             {/* Right: financial summary + treatment history */}
             <Col xs={24} lg={16}>
               {/* Financial summary */}
-              <Row gutter={12} style={{ marginBottom: 16 }}>
-                {[
-                  { label: "Tổng chi phí", value: 0, color: "#1B2A41" },
-                  { label: "Thực thu", value: 0, color: "#10B981" },
-                  { label: "Công nợ", value: 0, color: "#EF4444" },
-                ].map(({ label, value, color }) => (
-                  <Col span={8} key={label}>
-                    <Card size="small" style={{ textAlign: "center" }}>
-                      <div style={{ fontSize: 12, color: "#5A6B82", marginBottom: 4 }}>{label}</div>
-                      <div style={{ fontSize: 20, fontWeight: 700, color }}>
-                        {formatVND(value)}
-                        <span style={{ fontSize: 12, fontWeight: 400, marginLeft: 2 }}>đ</span>
-                      </div>
-                    </Card>
-                  </Col>
-                ))}
-              </Row>
+              {(() => {
+                const totalCost = patientInvoices.reduce((s, inv) => s + (inv.totalAmount ?? 0), 0);
+                const totalPaid = patientInvoices.reduce((s, inv) => s + (inv.paidAmount ?? 0), 0);
+                const totalDebt = Math.max(0, totalCost - totalPaid);
+                return (
+                  <Row gutter={12} style={{ marginBottom: 16 }}>
+                    {[
+                      { label: "Tổng chi phí", value: totalCost,  color: "#1B2A41" },
+                      { label: "Thực thu",      value: totalPaid,  color: "#10B981" },
+                      { label: "Công nợ",       value: totalDebt,  color: "#EF4444" },
+                    ].map(({ label, value, color }) => (
+                      <Col span={8} key={label}>
+                        <Card size="small" style={{ textAlign: "center" }}>
+                          <div style={{ fontSize: 12, color: "#5A6B82", marginBottom: 4 }}>{label}</div>
+                          <div style={{ fontSize: 20, fontWeight: 700, color }}>
+                            {formatVND(value)}
+                            <span style={{ fontSize: 12, fontWeight: 400, marginLeft: 2 }}>đ</span>
+                          </div>
+                        </Card>
+                      </Col>
+                    ))}
+                  </Row>
+                );
+              })()}
 
               {/* Treatment history — uses completed appointments as proxy */}
               <Card title="Lịch sử điều trị" size="small">
