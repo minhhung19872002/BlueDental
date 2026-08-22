@@ -11,6 +11,7 @@ using BlueDental.Notifications;
 using BlueDental.Organizations;
 using BlueDental.PatientManagement;
 using BlueDental.PatientManagement.Values;
+using BlueDental.Timekeeping;
 using BlueDental.TreatmentManagement;
 using BlueDental.Visits;
 using Microsoft.EntityFrameworkCore;
@@ -387,6 +388,45 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
             entity.Property(x => x.Description).HasMaxLength(1000);
             entity.HasIndex(x => new { x.PatientId, x.SortOrder });
+        });
+
+        // Cham cong / lich lam viec
+        builder.Entity<TimeKeepingRecord>(entity =>
+        {
+            entity.ToTable("bd_time_keeping_records");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Registration).HasConversion<short>();
+            entity.Property(x => x.Status).HasConversion<short>();
+            entity.Property(x => x.LeaveReason).HasMaxLength(500);
+            entity.Property(x => x.Note).HasMaxLength(1000);
+
+            entity.OwnsOne(x => x.MorningShift, shift =>
+            {
+                shift.Property(s => s.Kind).HasColumnName("MorningKind").HasConversion<short>();
+                shift.Property(s => s.PlannedStart).HasColumnName("MorningPlannedStart");
+                shift.Property(s => s.PlannedEnd).HasColumnName("MorningPlannedEnd");
+                shift.Property(s => s.CheckedInAt).HasColumnName("MorningCheckedInAt");
+                shift.Property(s => s.CheckedOutAt).HasColumnName("MorningCheckedOutAt");
+            });
+            entity.Navigation(x => x.MorningShift).IsRequired();
+
+            entity.OwnsOne(x => x.AfternoonShift, shift =>
+            {
+                shift.Property(s => s.Kind).HasColumnName("AfternoonKind").HasConversion<short>();
+                shift.Property(s => s.PlannedStart).HasColumnName("AfternoonPlannedStart");
+                shift.Property(s => s.PlannedEnd).HasColumnName("AfternoonPlannedEnd");
+                shift.Property(s => s.CheckedInAt).HasColumnName("AfternoonCheckedInAt");
+                shift.Property(s => s.CheckedOutAt).HasColumnName("AfternoonCheckedOutAt");
+            });
+            entity.Navigation(x => x.AfternoonShift).IsRequired();
+
+            entity.Ignore(x => x.HasAnyAttendance);
+            entity.Ignore(x => x.HasOpenShift);
+            entity.Ignore(x => x.TotalWorkedMinutes);
+
+            // One attendance record per staff member per day per branch.
+            entity.HasIndex(x => new { x.ClinicBranchId, x.WorkDate, x.StaffId }).IsUnique();
+            entity.HasIndex(x => new { x.ClinicBranchId, x.WorkDate, x.Status });
         });
     }
 }
