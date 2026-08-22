@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Tabs, Row, Col, Button, Select, Segmented, Table, Typography, Tag } from "antd";
+import { Tabs, Row, Col, Button, Select, Segmented, Spin, Table, Typography, Tag } from "antd";
 import { DownloadOutlined, LeftOutlined, RightOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 import { formatVND } from "@/utils/format";
+import { useReportSummary, useRevenueReport } from "@/features/reporting/api/index";
 
 const { Text } = Typography;
 
@@ -23,12 +24,6 @@ const SUB_FILTERS = [
   { key: "debt",     label: "Dư nợ" },
 ];
 
-const SUMMARY_CARDS = [
-  { title: "Thông tin lượt khách",  metrics: [{ label: "Lượt khách hôm nay", value: 0, unit: "lượt khách" }] },
-  { title: "Thông tin lịch hẹn",    metrics: [{ label: "Lịch hẹn hôm nay",   value: 0, unit: "lịch hẹn" }] },
-  { title: "Thông tin thanh toán",  metrics: [{ label: "Doanh thu hôm nay",   value: 0, unit: "đ" }] },
-  { title: "Thông tin thu chi",     metrics: [{ label: "Thu",                 value: 0, unit: "đ" }, { label: "Chi", value: 0, unit: "đ" }] },
-];
 
 const CASHFLOW_TYPES = [
   { key: "all", label: "Tất cả" },
@@ -83,6 +78,12 @@ export function ReportPage() {
   const dateMode = (searchParams.get("dateMode") as DateMode) ?? "day";
   const currentDate = dayjs(searchParams.get("date") ?? undefined);
   const [subFilter, setSubFilter] = useState("service");
+
+  const startDate = currentDate.startOf(dateMode === "day" ? "day" : dateMode === "week" ? "week" : dateMode === "month" ? "month" : "year").format("YYYY-MM-DD");
+  const endDate = currentDate.endOf(dateMode === "day" ? "day" : dateMode === "week" ? "week" : dateMode === "month" ? "month" : "year").format("YYYY-MM-DD");
+
+  const { data: summary, isLoading: summaryLoading } = useReportSummary({ startDate, endDate });
+  const { data: revenueData } = useRevenueReport({ startDate, endDate });
 
   const setActiveTab = (tab: string) => {
     setSearchParams((p) => { p.set("tab", tab); return p; });
@@ -174,7 +175,11 @@ export function ReportPage() {
           <div className="reception-card reception-card--toolbar">
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
               <span style={{ fontSize: 13, color: "#5A6B82" }}>Doanh số:</span>
-              <span style={{ fontWeight: 700, fontSize: 18, color: "#1B2A41" }}>0 đ</span>
+              {summaryLoading ? <Spin size="small" /> : (
+                <span style={{ fontWeight: 700, fontSize: 18, color: "#1B2A41" }}>
+                  {formatVND(Array.isArray(revenueData) ? revenueData.reduce((s, d) => s + d.totalRevenue, 0) : 0)} đ
+                </span>
+              )}
               <Button icon={<DownloadOutlined />} style={{ marginLeft: "auto" }}>Xuất Excel</Button>
             </div>
           </div>
@@ -198,19 +203,46 @@ export function ReportPage() {
 
           {/* Summary cards */}
           <Row gutter={[12, 12]}>
-            {SUMMARY_CARDS.map((card) => (
-              <Col key={card.title} xs={24} sm={12} md={6}>
-                <div className="reception-card" style={{ padding: 16 }}>
-                  <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 10 }}>{card.title}</div>
-                  {card.metrics.map((m) => (
-                    <div key={m.label} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
-                      <span style={{ color: "#5A6B82" }}>{m.label}</span>
-                      <span style={{ fontWeight: 600, color: "#1B2A41" }}>{m.value.toLocaleString("vi-VN")} {m.unit}</span>
-                    </div>
-                  ))}
+            <Col xs={24} sm={12} md={6}>
+              <div className="reception-card" style={{ padding: 16 }}>
+                <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 10 }}>Thông tin lượt khách</div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                  <span style={{ color: "#5A6B82" }}>Lượt khách</span>
+                  <span style={{ fontWeight: 600 }}>{summaryLoading ? "…" : (summary?.totalPatients ?? 0)} lượt</span>
                 </div>
-              </Col>
-            ))}
+              </div>
+            </Col>
+            <Col xs={24} sm={12} md={6}>
+              <div className="reception-card" style={{ padding: 16 }}>
+                <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 10 }}>Thông tin lịch hẹn</div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                  <span style={{ color: "#5A6B82" }}>Lịch hẹn</span>
+                  <span style={{ fontWeight: 600 }}>{summaryLoading ? "…" : (summary?.totalAppointments ?? 0)} lịch hẹn</span>
+                </div>
+              </div>
+            </Col>
+            <Col xs={24} sm={12} md={6}>
+              <div className="reception-card" style={{ padding: 16 }}>
+                <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 10 }}>Thông tin thanh toán</div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                  <span style={{ color: "#5A6B82" }}>Doanh thu</span>
+                  <span style={{ fontWeight: 600, color: "#10B981" }}>
+                    {summaryLoading ? "…" : formatVND(summary?.totalRevenue ?? 0)} đ
+                  </span>
+                </div>
+              </div>
+            </Col>
+            <Col xs={24} sm={12} md={6}>
+              <div className="reception-card" style={{ padding: 16 }}>
+                <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 10 }}>TB doanh thu / KH</div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                  <span style={{ color: "#5A6B82" }}>Trung bình</span>
+                  <span style={{ fontWeight: 600 }}>
+                    {summaryLoading ? "…" : formatVND(summary?.avgRevenuePerPatient ?? 0)} đ
+                  </span>
+                </div>
+              </div>
+            </Col>
           </Row>
         </>
       )}

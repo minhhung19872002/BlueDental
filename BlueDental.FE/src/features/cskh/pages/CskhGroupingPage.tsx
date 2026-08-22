@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, Input, Select, Table, Tag } from "antd";
+import { Button, Input, Select, Spin, Table, Tag } from "antd";
 import {
   SearchOutlined,
   DownloadOutlined,
@@ -8,6 +8,9 @@ import {
 } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 import "dayjs/locale/vi";
+import { useCareRecordList } from "../api/careApi";
+import type { CareType as ApiCareType, CareStatus } from "../api/careApi";
+import { useDebounce } from "@/hooks/useDebounce";
 
 dayjs.locale("vi");
 
@@ -106,6 +109,22 @@ const TABLE_COLUMNS = [
   },
 ];
 
+const CARE_TYPE_MAP: Record<CareType, ApiCareType> = {
+  "after-treatment": "AfterTreatment",
+  "birthday": "Birthday",
+  "appointment-reminder": "AppointmentReminder",
+  "periodic": "Periodic",
+  "special": "Special",
+};
+
+const STATUS_MAP: Record<StatusFilter, CareStatus | undefined> = {
+  "total": undefined,
+  "success": "Completed",
+  "failed": "Cancelled",
+  "not-cared": "Pending",
+  "zalo-sent": undefined,
+};
+
 // ── Component ──────────────────────────────────────────────────────────────
 
 export function CskhGroupingPage() {
@@ -115,6 +134,16 @@ export function CskhGroupingPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("total");
   const [careType, setCareType] = useState<CareType>("after-treatment");
   const [keyword, setKeyword] = useState("");
+  const debouncedKeyword = useDebounce(keyword);
+
+  const { data: careData, isLoading: careLoading } = useCareRecordList({
+    type: CARE_TYPE_MAP[careType],
+    status: STATUS_MAP[statusFilter],
+    filter: debouncedKeyword || undefined,
+    maxResultCount: 50,
+  });
+
+  const careRecords = careData?.items ?? [];
 
   const handlePrev = () => {
     if (viewMode === "day") setCurrentDate((d) => d.subtract(1, "day"));
@@ -205,25 +234,32 @@ export function CskhGroupingPage() {
       {/* Status counter buttons */}
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {STATUS_FILTERS.map((sf) => (
-            <button
-              key={sf.key}
-              onClick={() => setStatusFilter(sf.key)}
-              style={{
-                padding: "6px 16px",
-                borderRadius: 20,
-                border: "1px solid",
-                borderColor: statusFilter === sf.key ? "#1677ff" : "#d9d9d9",
-                background: statusFilter === sf.key ? "#e6f4ff" : "#fff",
-                color: statusFilter === sf.key ? "#1677ff" : "#595959",
-                cursor: "pointer",
-                fontSize: 13,
-                fontWeight: statusFilter === sf.key ? 600 : 400,
-              }}
-            >
-              {sf.count} {sf.label}
-            </button>
-          ))}
+          {STATUS_FILTERS.map((sf) => {
+            const count = sf.key === "total" ? (careData?.totalCount ?? 0)
+              : sf.key === "success" ? careRecords.filter(r => r.status === "Completed").length
+              : sf.key === "failed" ? careRecords.filter(r => r.status === "Cancelled").length
+              : sf.key === "not-cared" ? careRecords.filter(r => r.status === "Pending").length
+              : 0;
+            return (
+              <button
+                key={sf.key}
+                onClick={() => setStatusFilter(sf.key)}
+                style={{
+                  padding: "6px 16px",
+                  borderRadius: 20,
+                  border: "1px solid",
+                  borderColor: statusFilter === sf.key ? "#1677ff" : "#d9d9d9",
+                  background: statusFilter === sf.key ? "#e6f4ff" : "#fff",
+                  color: statusFilter === sf.key ? "#1677ff" : "#595959",
+                  cursor: "pointer",
+                  fontSize: 13,
+                  fontWeight: statusFilter === sf.key ? 600 : 400,
+                }}
+              >
+                {count} {sf.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -275,19 +311,32 @@ export function CskhGroupingPage() {
       {/* Tab content */}
       {topTab === "care" && (
         <div className="reception-card reception-card--content">
-          <Table
-            columns={TABLE_COLUMNS}
-            dataSource={[]}
-            rowKey="id"
-            pagination={{
-              pageSize: 20,
-              showSizeChanger: true,
-              pageSizeOptions: ["5", "10", "20", "25", "50", "100"],
-              showTotal: (total) => `Hiển thị 0 trên ${total} khách`,
-            }}
-            locale={{ emptyText: "Không có dữ liệu" }}
-            size="middle"
-          />
+          {careLoading ? (
+            <div style={{ textAlign: "center", padding: 48 }}><Spin /></div>
+          ) : (
+            <Table
+              columns={TABLE_COLUMNS}
+              dataSource={careRecords.map((r) => ({
+                id: r.id,
+                careDate: r.dueAt ? dayjs(r.dueAt).format("DD/MM/YYYY") : dayjs(r.creationTime).format("DD/MM/YYYY"),
+                fullName: r.patientName ?? "—",
+                phone: "—",
+                doctor: "—",
+                upcomingAppointment: "—",
+                status: r.status,
+                note: r.description ?? "—",
+              }))}
+              rowKey="id"
+              pagination={{
+                pageSize: 20,
+                showSizeChanger: true,
+                pageSizeOptions: ["10", "20", "50", "100"],
+                showTotal: (total, range) => `Hiển thị ${range[0]}–${range[1]} trên ${total} khách`,
+              }}
+              locale={{ emptyText: "Không có dữ liệu" }}
+              size="middle"
+            />
+          )}
         </div>
       )}
 
