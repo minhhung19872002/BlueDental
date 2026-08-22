@@ -45,6 +45,17 @@ public static class BlueDentalDomainErrorCodes
         public const string PrescriptionNotFound = "BlueDental:Treatment:0003";
         public const string TreatmentRecordNotFound = "BlueDental:Treatment:0004";
         public const string NoActiveAppointment = "BlueDental:Treatment:0005";
+        public const string InvalidToothCode = "BlueDental:Treatment:0006";
+        public const string EmptyToothSelection = "BlueDental:Treatment:0007";
+        public const string DuplicateToothSelection = "BlueDental:Treatment:0008";
+        public const string NegativePaymentAmount = "BlueDental:Treatment:0009";
+        public const string InvalidDiagnosisTransition = "BlueDental:Treatment:0010";
+        public const string InvalidAdviseTransition = "BlueDental:Treatment:0011";
+        public const string InvalidAdviseQuantity = "BlueDental:Treatment:0012";
+        public const string InvalidDiscount = "BlueDental:Treatment:0013";
+        public const string PatientDiagnosisNotFound = "BlueDental:Treatment:0014";
+        public const string PatientAdviseNotFound = "BlueDental:Treatment:0015";
+        public const string AdviseGroupNotFound = "BlueDental:Treatment:0016";
     }
 
     public static class Billing
