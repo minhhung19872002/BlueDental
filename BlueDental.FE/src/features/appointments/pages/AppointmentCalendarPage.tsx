@@ -8,6 +8,8 @@ import { MonthViewCalendar } from "../components/MonthViewCalendar";
 import { AppointmentEditorModal } from "../components/AppointmentEditorModal";
 import { AppointmentDetailDrawer } from "../components/AppointmentDetailDrawer";
 import { useDentistList } from "@/features/staff/api/staffQueries";
+import { useAppointmentList } from "../api/appointmentQueries";
+import type { AppointmentDto } from "../types/appointment";
 
 type ViewMode = "day" | "week" | "month";
 
@@ -34,6 +36,13 @@ export function AppointmentCalendarPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [initialDate, setInitialDate] = useState<string | undefined>();
+
+  // Fetch appointments for the current date/week/month range
+  const { data: appointmentData } = useAppointmentList({
+    date: viewMode === "day" ? currentDate.format("YYYY-MM-DD") : undefined,
+    maxResultCount: 200,
+  });
+  const appointments: AppointmentDto[] = appointmentData?.items ?? [];
 
   const navigateDate = (dir: -1 | 1) => {
     const unit = viewMode === "day" ? "day" : viewMode === "week" ? "week" : "month";
@@ -121,8 +130,10 @@ export function AppointmentCalendarPage() {
                 <DayViewCalendar
                   currentDate={currentDate}
                   doctors={doctors}
+                  appointments={appointments}
                   onDateChange={navigateDate}
                   onCellClick={handleCellClick}
+                  onAppointmentClick={(appt) => setSelectedId(appt.id)}
                   keyword={keyword}
                   onKeywordChange={setKeyword}
                   onCreateAppointment={() => setAddOpen(true)}

@@ -96,4 +96,12 @@ export const receptionApi = {
     const res = await api.post(`/v1/app/visits/${id}/${action}`);
     return mapVisitDto(res.data as Record<string, unknown>);
   },
+
+  async updateOutcome(id: string, outcome: string): Promise<void> {
+    await api.put(`/v1/app/visits/${id}`, { outcome });
+  },
+
+  async updateDoctor(id: string, doctorId: string): Promise<void> {
+    await api.put(`/v1/app/visits/${id}`, { dentistId: doctorId });
+  },
 };

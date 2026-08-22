@@ -12,7 +12,7 @@ import {
   useReceptionMetrics,
   useReceptionDoctors,
 } from "../api/receptionQueries";
-import { useUpdateReceptionStatus } from "../api/receptionMutations";
+import { useUpdateReceptionStatus, useUpdateReceptionOutcome, useUpdateReceptionDoctor } from "../api/receptionMutations";
 import type {
   ReceptionItem,
   ReceptionStatus,
@@ -42,6 +42,8 @@ export const ReceptionPage: React.FC = () => {
   const { data: metrics } = useReceptionMetrics();
   const { data: doctors = [] } = useReceptionDoctors();
   const updateStatusMutation = useUpdateReceptionStatus();
+  const updateOutcomeMutation = useUpdateReceptionOutcome();
+  const updateDoctorMutation = useUpdateReceptionDoctor();
 
   const handleStatusChange = (id: string, newStatus: ReceptionStatus) => {
     updateStatusMutation.mutate(
@@ -61,12 +63,12 @@ export const ReceptionPage: React.FC = () => {
     );
   };
 
-  const handleOutcomeChange = (_id: string, _outcome: AppointmentOutcome) => {
-    // TODO: wire up mutation
+  const handleOutcomeChange = (id: string, outcome: AppointmentOutcome) => {
+    updateOutcomeMutation.mutate({ id, outcome });
   };
 
-  const handleDoctorChange = (_id: string, _doctorId: string) => {
-    // TODO: wire up mutation
+  const handleDoctorChange = (id: string, doctorId: string) => {
+    updateDoctorMutation.mutate({ id, doctorId });
   };
 
   const handleCancel = (id: string) => {
