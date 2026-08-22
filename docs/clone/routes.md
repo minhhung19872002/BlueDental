@@ -1,45 +1,122 @@
 # Routes — Reference Application
 
 Source: https://app.nfcdental.com
-Observed: 2026-08-21
+Observed: 2026-08-21 / 2026-08-22
+All routes require `?branchId=<24-char-hex>` query parameter.
 
-All routes include `?branchId=<id>` query parameter for clinic branch scoping.
+## Route Map
 
-## Observed Routes
+### Primary Navigation (Sidebar)
 
-| Route | Label (VI) | Label (EN) | Notes |
-|---|---|---|---|
-| `/reception` | Tiếp nhận | Reception | Daily reception/visit tracking |
-| `/patient` | Danh sách bệnh nhân | Patient List | Patient registry with financial summary |
-| `/calendar` | Lịch hẹn | Appointments | Calendar view |
-| `/cskh-grouping` | CSKH - Phân nhóm | Customer Care - Grouping | Customer care segmentation |
-| `/labo` | Labo | Lab | Lab orders |
-| `/operations` | Quản trị vận hành | Operations Management | Operations admin |
-| `/report` | Báo cáo | Reports | Reporting |
-| `/staff` | Nhân viên | Staff | Staff management |
-| `/materials` | Vật tư | Materials/Supplies | Inventory/materials |
-| `/taxonomy` | Danh mục | Categories | Category/catalog management |
-| `/tools` | Công cụ | Tools | System tools |
+| Route | Label (VI) | Default Sub-Route | Screenshot |
+|-------|-----------|------------------|------------|
+| /reception | Tiếp nhận | (same) | reception-01.png |
+| /patient | Danh sách bệnh nhân | (same) | patient-list.png |
+| /calendar | Lịch hẹn | (same) | calendar-main.png |
+| /cskh-grouping | CSKH - Phân nhóm | (same) | cskh-grouping.png |
+| /labo | Labo | /labo/mau-labo | labo-main.png |
+| /operations | Quản trị vận hành | /operations/overview?overviewSubTab=home | operations-main.png |
+| /report | Báo cáo | + ?report_dateMode=day&report_date=YYYY-MM-DD | report-main.png |
+| /staff | Nhân viên | (same) | staff-main.png |
+| /materials | Vật tư | /materials/clinic | materials-main.png |
+| /taxonomy | Danh mục | /taxonomy/service | taxonomy-main.png |
+| /tools | Công cụ | /tools/call | tools-main.png |
 
-## External Links
+External link:
+| https://nfcdental.com/ | Hướng dẫn & hỗ trợ | External |
 
-| Route | Label (VI) | Notes |
-|---|---|---|
-| `https://nfcdental.com/` | Hướng dẫn & hỗ trợ | Help & Support — external site |
+### Patient
 
-## Patient Detail Route
+| Route | Description |
+|-------|-------------|
+| /patient | Patient list |
+| /patient/:patientId | Patient detail |
+| /patient/:patientId?tab=consulting | Tab: Chẩn đoán & Tư vấn |
+| /patient/:patientId?tab=treatment-plan | Tab: Kế hoạch điều trị |
+| /patient/:patientId?tab=appointment | Tab: Lịch hẹn |
+| /patient/:patientId?tab=image | Tab: Hình ảnh |
+| /patient/:patientId?tab=labo | Tab: Labo |
+| /patient/:patientId?tab=prescription | Tab: Đơn thuốc |
+| /patient/:patientId?tab=care | Tab: Chăm sóc KH |
+| /patient/:patientId?tab=invoice | Tab: Hóa đơn |
+| /patient/:patientId?tab=debt | Tab: Lịch sử dư nợ |
 
-Pattern: `/patient/:patientId?branchId=<id>`
+### Labo Sub-Routes
 
-Example observed: `/patient/6a826ca096965840407319df?branchId=6a7909122bbcbb000133e6bb`
+| Route | Description |
+|-------|-------------|
+| /labo/mau-labo | Mẫu Labo (Labo samples) |
+| /labo/supplier | Nhà cung cấp Labo |
+| /labo/bite | Khớp cắn Labo |
+| /labo/finish-line | Đường hoàn tất |
+| /labo/nhip | Kiểu nhịp Labo |
+| /labo/service-material | Dịch vụ - vật liệu |
 
-## Branch ID
+### Operations Sub-Routes
 
-All routes carry `branchId` as a query parameter. Observed value: `6a7909122bbcbb000133e6bb` (MongoDB ObjectId format — 24 hex chars).
+| Route | Description |
+|-------|-------------|
+| /operations/overview | Quản trị vận hành (default) |
+| /operations/assistant | Khối trợ lý |
+| /operations/reception | Khối lễ tân |
+| /operations/cskh | Khối CSKH |
+| /operations/marketing | Khối Marketing |
+| /operations/security | Khối bảo vệ |
+| /operations/treatment | Khối điều trị |
+| /operations/finance | Khối tài chính |
 
-## Technology
+### Materials Sub-Routes
 
-The reference app uses Next.js with React Server Components (RSC). Evidence:
-- `_rsc` query parameter on route prefetch requests
-- `/_next/static/chunks/` JS bundle paths
-- Route prefetching observed for all sidebar links on page load
+| Route | Description |
+|-------|-------------|
+| /materials/clinic | Vật tư phòng khám (default) |
+| /materials/allocation | Phân bổ vật tư |
+| /materials/department | Phòng ban |
+
+### Taxonomy Sub-Routes
+
+| Route | Description |
+|-------|-------------|
+| /taxonomy/service | Dịch vụ (services/procedures) |
+| /taxonomy/diagnosis | Chẩn đoán |
+| /taxonomy/medicine | Loại thuốc |
+| /taxonomy/consulting | Dữ liệu tư vấn |
+| /taxonomy/source | Nguồn đến |
+| /taxonomy/history | Lịch sử bệnh |
+| /taxonomy/prescription-template | Đơn thuốc mẫu |
+| /taxonomy/medical-record-template | Bệnh án mẫu |
+| /taxonomy/tags | Thẻ hồ sơ |
+| /taxonomy/payment-method | Phương thức thanh toán |
+| /taxonomy/occupation | Nghề nghiệp |
+
+### Tools Sub-Routes
+
+| Route | Description |
+|-------|-------------|
+| /tools/call | Gọi thoại (voice calls) |
+| /tools/message | Tin nhắn (messages) |
+| /tools/zalo-oa | Zalo OA |
+| /tools/invoice | Hóa đơn (invoice tools) |
+
+### Other Routes (not in sidebar)
+
+| Route | Description |
+|-------|-------------|
+| /voucher | Vouchers — observed in network prefetch, NOT in sidebar |
+
+## URL Parameter Conventions
+
+| Parameter | Required | Format | Example |
+|-----------|----------|--------|---------|
+| branchId | Yes (all routes) | 24-char hex MongoDB ObjectId | 6a7909122bbcbb000133e6bb |
+| tab | Patient detail only | slug string | consulting, treatment-plan, appointment, image, labo, prescription, care, invoice, debt |
+| report_dateMode | Report only | day \| week \| month \| year | day |
+| report_date | Report only | YYYY-MM-DD | 2026-08-22 |
+| overviewSubTab | Operations only | home \| (others unknown) | home |
+
+## Technical Notes
+
+- Framework: Next.js with React Server Components (RSC)
+- API: Separate backend at https://api.nfcdental.com/api/v1/
+- Route prefetch: All sidebar routes prefetched via `?_rsc=<token>` on page load
+- Redirect pattern: Multi-section pages redirect to default sub-route on navigate

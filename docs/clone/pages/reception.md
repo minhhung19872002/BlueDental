@@ -1,7 +1,7 @@
 # Reception Page — /reception
 
 Source: https://app.nfcdental.com/reception?branchId=<id>
-Observed: 2026-08-21 (updated with screenshot comparison)
+Observed: 2026-08-21 (updated 2026-08-22 with screenshot comparison + local clone analysis)
 
 ## Purpose
 
@@ -23,35 +23,26 @@ branchId is a 24-character hex string (MongoDB ObjectId format).
 │          │          tagline                 [branch ▼][🌐][🔔][avatar]│
 │ ┌──────┐ ├──────────────────────────────────────────────────────────────┤
 │ │NFClog│ │  TOOLBAR ROW 1                                              │
-│ └──────┘ │  [Ngày|Tuần|Tháng]  [< 📅 21/08/2026 >]  [🔍Tìm bệnh     │
+│ └──────┘ │  [Ngày|Tuần|Tháng]  [< 📅 22/08/2026 >]  [🔍 Tìm bệnh    │
 │ Tiếp nhận│  nhân...]                         [📋 Tạo tiếp nhận]       │
 │ *active* ├──────────────────────────────────────────────────────────────┤
 │          │  TOOLBAR ROW 2 / FILTER BAR                                 │
-│ DS bệnh  │  [Tất cả(0)] Chờ khám(0) Đang khám(0) Hoàn thành(0)       │
-│ nhân     │  [🔍 Bác sĩ ▼]            [counter][counter][counter]      │
-│          │                            [counter][counter][counter]      │
+│ DS bệnh  │  [Tất cả(5)] [Chờ khám(2)] [Đang khám(2)] [Hoàn thành(1)] │
+│ nhân     │  [🔍 Bác sĩ ▼]      [12 Đã hẹn][5 Đã đến][1 Huỷ]        │
+│          │                       [0 Trễ hẹn][0 Lịch tạm][0 Chuyển]   │
 │ Lịch hẹn ├──────────────────────────────────────────────────────────────┤
 │          │  CONTENT AREA                                               │
 │ CSKH-    │                                                             │
 │ Phân nhóm│  ┌─────────────────────────────────────────────────────┐    │
-│          │  │                                                     │    │
-│ Labo     │  │          👤 (person outline icon)                   │    │
-│          │  │      Không có lượt tiếp nhận phù hợp               │    │
-│ Quản trị │  │  Hãy thử đổi bộ lọc hoặc từ khoá tìm kiếm        │    │
-│ vận hành │  │  để xem thêm dữ liệu.                             │    │
-│          │  │                                                     │    │
-│ Báo cáo  │  └─────────────────────────────────────────────────────┘    │
-│          │                                                             │
-│ Nhân viên│  OR (when populated):                                       │
-│          │                                                             │
-│ Vật tư   │  ┌──────────────────────────────────────────────────────┐   │
-│          │  │ SỐ PHIẾU │ BỆNH NHÂN │ BÁC SĨ │ ... │ THAO TÁC   │   │
-│ Danh mục │  ├──────────────────────────────────────────────────────┤   │
-│          │  │ TN-xxx   │ Name Mới  │ BS...  │ ... │ [Tiếp nhận]  │   │
-│ Công cụ  │  │ TN-xxx   │ Name Cũ   │ BS...  │ ... │ [Xong] ⋮    │   │
-│          │  ├──────────────────────────────────────────────────────┤   │
-│ Hướng dẫn│  │ Tổng số N hồ sơ tiếp nhận  10/trang ▼   < 1 >     │   │
-│ & hỗ trợ │  └──────────────────────────────────────────────────────┘   │
+│          │  │ SỐ PHIẾU │ BỆNH NHÂN │ BÁC SĨ │ ... │ THAO TÁC   │    │
+│ Labo     │  ├─────────────────────────────────────────────────────┤    │
+│          │  │ TN-xxx   │ Name [Mới]│ BS...  │ ... │ [Tiếp nhận] │    │
+│ Quản trị │  │ TN-xxx   │ Name [Cũ] │ BS...  │ ... │ [Xong]  ⋮  │    │
+│ vận hành │  │ TN-xxx   │ Name [Mới]│ BS...  │ ... │         ⋮  │    │
+│          │  ├─────────────────────────────────────────────────────┤    │
+│ Báo cáo  │  │ Tổng số N hồ sơ tiếp nhận  10/trang ▼   < 1 >    │    │
+│          │  └─────────────────────────────────────────────────────┘    │
+│ Nhân viên│                                                             │
 └──────────┴─────────────────────────────────────────────────────────────┘
 ```
 
@@ -59,17 +50,16 @@ branchId is a 24-character hex string (MongoDB ObjectId format).
 
 ### 1. Header Bar (~55px height)
 
-**Left section (inside sidebar area):**
-- NFC logo icon (small blue/gold mark) — top of sidebar
-
 **Left section (inside header, right of sidebar):**
 - Sidebar toggle button — panel/layout icon, controls sidebar collapse/expand
-- Clinic logo image — circular branded image (~45px), NOT a text avatar
+- Clinic logo image — circular branded image (~45px), NOT a text avatar. Dynamic per clinic.
 - Clinic name — bold text (e.g. "NHA KHOA ĐỨC HẠNH PREMIUM")
 - Tagline — smaller lighter text (e.g. "Kiến Tạo Nụ Cười - Giá Trị Bền Vững")
 
 **Center section:**
-- Global search — styled as button/input, placeholder "Tìm kiếm khách hàng, lịch hẹn, nhân viên...", "Ctrl K" keyboard shortcut badge on right
+- Global search — styled as button/input
+- Placeholder: "Tìm kiếm khách hàng, lịch hẹn, nhân viên..."
+- "Ctrl K" keyboard shortcut badge on right
 
 **Right section:**
 - Branch selector — green dot indicator + branch name + dropdown chevron
@@ -81,11 +71,11 @@ branchId is a 24-character hex string (MongoDB ObjectId format).
 
 - Position: fixed left, full viewport height
 - Background: white
-- Active item: blue background highlight (#e6f4ff-ish), blue icon, blue text, rounded corners
+- Active item: blue background (~#e6f4ff), blue icon, blue text, rounded corners
 - Inactive items: gray icon, dark text
 - Bottom-pinned: "Hướng dẫn & hỗ trợ" separated from main nav
 
-**Collapsed state (default):**
+**Collapsed state:**
 - Width: ~70-80px
 - Each item: icon centered above label text, stacked vertically
 - Labels: small text (~11px), may wrap to 2 lines
@@ -95,201 +85,256 @@ branchId is a 24-character hex string (MongoDB ObjectId format).
 - Width: ~180px
 - Each item: icon left + label text right, horizontal layout
 - Section heading "MENU" (blue uppercase, ~11px) above main nav
-- Section heading "KHÁC" (blue uppercase) above bottom "Hướng dẫn & hỗ trợ"
-- Top area: "NFC Dental" bold + "Phần Mềm Quản Trị Vận Hành" subtitle
+- Section heading "KHÁC" (blue uppercase) above "Hướng dẫn & hỗ trợ"
+- Top area shows NFC Dental logo + "NFC Dental" bold + "Phần Mềm Quản Trị Vận Hành" subtitle
 
-**Navigation items (top to bottom):**
+**Navigation items:**
 
-| # | Icon | Label (VI) | Route |
-|---|------|-----------|-------|
-| 1 | calendar-clipboard | Tiếp nhận | /reception |
-| 2 | person | Danh sách bệnh nhân | /patient |
-| 3 | calendar | Lịch hẹn | /calendar |
-| 4 | people-group | CSKH - Phân nhóm | /cskh-grouping |
-| 5 | flask | Labo | /labo |
-| 6 | settings-sliders | Quản trị vận hành | /operations |
-| 7 | bar-chart | Báo cáo | /report |
-| 8 | person-badge | Nhân viên | /staff |
-| 9 | package | Vật tư | /materials |
-| 10 | document-list | Danh mục | /taxonomy |
-| 11 | wrench | Công cụ | /tools |
-| — | help-circle | Hướng dẫn & hỗ trợ | external: nfcdental.com |
+| # | Label (VI) | Route |
+|---|-----------|-------|
+| 1 | Tiếp nhận | /reception |
+| 2 | Danh sách bệnh nhân | /patient |
+| 3 | Lịch hẹn | /calendar |
+| 4 | CSKH - Phân nhóm | /cskh-grouping |
+| 5 | Labo | /labo |
+| 6 | Quản trị vận hành | /operations |
+| 7 | Báo cáo | /report |
+| 8 | Nhân viên | /staff |
+| 9 | Vật tư | /materials |
+| 10 | Danh mục | /taxonomy |
+| 11 | Công cụ | /tools |
+| — | Hướng dẫn & hỗ trợ | external: https://nfcdental.com/ |
 
 ### 3. Toolbar Row 1
 
 **Left group:**
 - Time period tablist: `Ngày` | `Tuần` | `Tháng`
-  - Active tab: blue background (#1677ff-ish), white text, rounded pill (~60w x 32h px)
-  - Inactive tabs: transparent background, dark text
+  - Active: blue background (#1677ff), white text, rounded pill (~60w x 32h px)
+  - Inactive: transparent background, dark text
 - Date navigator:
-  - Left chevron button (previous day/week/month)
-  - Calendar icon (📅) + date text "21/08/2026" (DD/MM/YYYY)
-  - Right chevron button (next day/week/month)
+  - Left chevron button `<` (previous day/week/month)
+  - Calendar icon (📅) + date text "22/08/2026" (DD/MM/YYYY format)
+  - Right chevron button `>` (next day/week/month)
 - Patient search: magnifying glass prefix + placeholder "Tìm bệnh nhân..."
+  - Width ~200-240px
 
 **Right group:**
-- Primary action button: clipboard/form icon (📋) + "Tạo tiếp nhận"
-  - Style: blue primary button, white text, rounded, ~150w x 36h px
-  - Icon is a clipboard/document icon, NOT a "+" plus sign
+- Primary action button: clipboard/document icon (NOT a "+" plus icon) + "Tạo tiếp nhận"
+  - Style: blue primary button, white text, rounded
+  - Dimensions: ~150w x 36-40h px
+  - UNKNOWN_REFERENCE_BEHAVIOR: opens form/drawer — not clicked
 
 ### 4. Toolbar Row 2 / Filter Bar
 
 **Left group:**
-- Status filter tabs:
-  - `Tất cả (N)` — All — active: blue pill badge
+- Status filter tabs (pill style):
+  - `Tất cả (N)` — All
   - `Chờ khám (N)` — Waiting
   - `Đang khám (N)` — In Progress
   - `Hoàn thành (N)` — Completed
-  - Each shows count in parentheses
   - Active: solid blue pill, white text
   - Inactive: plain text, no background
-- Doctor filter: combobox with magnifying glass icon + "Bác sĩ" label + dropdown chevron
+  - Count shown in parentheses
+- Doctor filter combobox:
+  - Magnifying glass icon + "Bác sĩ" label + dropdown chevron
+  - Width ~180px
 
-**Right group — 6 Status Counter Cards:**
+**Right group — 6 Status Counter Cards (OBSERVED):**
 
-| # | Label (VI) | Label (EN) | Top Border Color | Number Color |
-|---|-----------|-----------|-----------------|-------------|
-| 1 | Đã hẹn | Scheduled | Green/teal | Green/teal |
-| 2 | Đã đến | Arrived | Blue | Blue |
-| 3 | Huỷ hẹn | Cancelled | Yellow/amber | Yellow/amber |
-| 4 | Trễ hẹn | Late | Red/coral | Red/coral |
-| 5 | Lịch tạm | Temporary | Orange | Orange |
-| 6 | Chuyển đổi | Converted | Light blue | Light blue |
+| # | Label (VI) | Label (EN) | Top Border Color | Number Color | BG Color |
+|---|-----------|-----------|-----------------|-------------|---------|
+| 1 | Đã hẹn | Scheduled | Blue (#1E70E6) | Blue | #EBF3FE |
+| 2 | Đã đến | Arrived | Green (#10B981) | Green | #E6F4EA |
+| 3 | Huỷ hẹn | Cancelled | Red (#EF4444) | Red | #FCE8E6 |
+| 4 | Trễ hẹn | Late | Amber (#F59E0B) | Amber | #FEF3C7 |
+| 5 | Lịch tạm | Temporary | Orange (#F97316) | Orange | #FFEDD5 |
+| 6 | Chuyển đổi | Converted | Cyan (#06B6D4) | Cyan | #CFFAFE |
 
 Card style:
-- White background
+- White/tinted background (color-tinted)
 - Rounded corners (~8px border-radius)
-- Colored top border (~3px)
-- Number displayed large and centered (bold, colored to match border)
-- Label below number (smaller, gray text)
-- Estimated dimensions: ~70w x 55h px
+- Colored top border (~3px solid)
+- Number: large bold centered, colored to match border
+- Label: below number, smaller ~12px, gray text
+- Dimensions: ~70w x 55h px each
 - Horizontal row, right-aligned
-- Cards have subtle shadow or border
+
+UNKNOWN_REFERENCE_BEHAVIOR: Whether counter cards are clickable for filtering.
 
 ### 5. Content Area — Empty State (OBSERVED)
 
-- Container: light blue-gray background (#f0f5ff or similar), rounded corners (~12px)
-- Full width of content area with padding/margin
-- Vertically centered content:
-  - Person outline icon (user silhouette, blue/gray, ~48px)
-  - Heading: "Không có lượt tiếp nhận phù hợp" (bold, dark text, ~16px)
-  - Subtitle: "Hãy thử đổi bộ lọc hoặc từ khoá tìm kiếm để xem thêm dữ liệu." (lighter text, ~14px)
-- All text centered horizontally
+Container: light blue-gray background (#f0f5ff), rounded corners (~12px), full width with padding.
 
-### 6. Content Area — Populated State (INFERRED from local implementation)
+Centered content:
+- Person outline icon (user silhouette, blue/gray, ~48px)
+- Heading: "Không có lượt tiếp nhận phù hợp" (bold, dark, ~16px)
+- Subtitle: "Hãy thử đổi bộ lọc hoặc từ khoá tìm kiếm để xem thêm dữ liệu." (lighter, ~14px)
 
-UNKNOWN_REFERENCE_BEHAVIOR — The reference showed empty state (0 receptions).
-The populated table layout below is from the LOCAL implementation and has NOT
-been verified against the reference.
+### 6. Content Area — Populated Table
 
-**Table columns (local implementation):**
+OBSERVED via reference screenshots (date 22/08/2026 with 5 records):
 
-| # | Column Header (VI) | Column Header (EN) | Content |
-|---|-------------------|-------------------|---------|
-| 1 | SỐ PHIẾU | Ticket No. | TN-YYYYMMDD-NN format |
-| 2 | BỆNH NHÂN | Patient | Name + "Mới"/"Cũ" badge + phone |
-| 3 | BÁC SĨ TIẾP NHẬN | Receiving Doctor | Doctor name |
-| 4 | NHÂN SỰ TƯ VẤN | Counselor | Staff name |
-| 5 | NGUỒN TIẾP NHẬN | Source | Badge: Y tế/Tự đến/Marketing/Giới thiệu |
-| 6 | TRẠNG THÁI | Status | Badge: Chờ khám/Đang khám/Hoàn thành |
-| 7 | DỊCH VỤ ĐIỀU TRỊ | Treatment Services | Comma-separated service names |
-| 8 | TỔNG TIỀN | Total | VND formatted (e.g. 1.500.000 đ) |
-| 9 | THAO TÁC | Actions | [Tiếp nhận]/[Xong] button + ⋮ menu |
+**Table columns:**
 
-**Patient badge types (local):**
-- "Mới" (New) — blue badge
-- "Cũ" (Existing) — gray badge
+| # | Column Header (VI) | Content | Width |
+|---|-------------------|---------|-------|
+| 1 | Số phiếu | TN-YYYYMMDD-NN (blue link) | ~130px |
+| 2 | Bệnh nhân | Name + [Mới/Cũ] badge + phone number (second line) | ~200px |
+| 3 | Bác sĩ tiếp nhận | Doctor full name | ~150px |
+| 4 | Nhân sự tư vấn | Staff name (lighter text) | ~150px |
+| 5 | Nguồn tiếp nhận | Colored badge (see below) | ~100px |
+| 6 | Trạng thái | Badge with icon (see below) | ~120px |
+| 7 | Dịch vụ điều trị | Service name(s), multiple shown as chips | ~200px |
+| 8 | Tổng tiền | Amount in VND (e.g. "1.500.000 đ") | ~120px |
+| 9 | Thao tác | Action button + ⋮ menu | ~100px |
 
-**Source badge types (local):**
-- "Y tế" — blue
-- "Tự đến" — default/gray
-- "Marketing" — green
-- "Giới thiệu" — orange
+**Ticket number format:** `TN-{YYYYMMDD}-{NN}` (e.g. TN-20260821-01)
 
-**Status badge types (local):**
-- "Chờ khám" — blue dot + blue text
-- "Đang khám" — orange dot + orange text
-- "Hoàn thành" — green checkmark + green text
+**Patient column content:**
+- Line 1: Full name + [Mới] or [Cũ] badge
+- Line 2: Phone number (smaller, lighter text)
+- "Mới" (New patient): green tag
+- "Cũ" (Returning patient): gray/default tag
 
-**Action buttons (local):**
-- "Tiếp nhận" — blue outlined button (shown for Chờ khám status)
-- "Xong" — green solid button (shown for Đang khám status)
-- ⋮ (three-dot menu) — additional actions
+**Source badges (Nguồn tiếp nhận):**
+| Value | Label | Color |
+|-------|-------|-------|
+| SELF | Tự đến | Blue |
+| MEDICAL | Y tế | Purple |
+| MARKETING | Marketing | Green (geekblue) |
+| REFERRAL | Giới thiệu | Cyan/Orange |
 
-**Pagination (local):**
+**Status badges (Trạng thái):**
+| Value | Label | Color | Icon |
+|-------|-------|-------|------|
+| WAITING | Chờ khám | Blue | Clock icon |
+| IN_PROGRESS | Đang khám | Orange | Sync/spinner icon |
+| COMPLETED | Hoàn thành | Green | Checkmark icon |
+
+**Action column (Thao tác):**
+| Status | Button shown | Style |
+|--------|-------------|-------|
+| Chờ khám | "Tiếp nhận" | Blue primary button |
+| Đang khám | "Xong" | Green primary button |
+| Hoàn thành | (none) | Only ⋮ menu |
+
+Three-dot menu (⋮): UNKNOWN_REFERENCE_BEHAVIOR — not clicked.
+
+**Pagination:**
 - Left: "Tổng số N hồ sơ tiếp nhận"
-- Center: "10 / trang" page size dropdown
-- Right: < [page numbers] > navigation
+- Center: page size dropdown "10 / trang" (options: unknown)
+- Right: `<` [1] `>` page navigation
 
-## Layout Mismatches — Reference vs Local
+### 7. Detail Card View (OBSERVED from reference screenshot 2026-08-20)
 
-### MISMATCH 1: Header — Sidebar Toggle Button
-- **Reference**: Has a panel/layout toggle button in the header, left of the clinic logo
-- **Local**: Missing this toggle button
-- **Impact**: Medium — affects sidebar collapse/expand functionality
+When clicking on a reception record (appears as a card overlay or expanded row):
 
-### MISMATCH 2: Header — Clinic Logo Image
-- **Reference**: Shows a circular crop of the clinic's brand logo (~45px). The full logo is a gold tooth/implant icon with "ĐỨC HẠNH — PREMIUM DENTAL CENTER" text on navy background. In the header it renders as a small circular image.
-- **Local**: Uses a simple "BD" text-avatar circle as the app logo; no separate clinic logo image
-- **Impact**: Medium — the header component must support an `imageUrl` for the clinic logo, not just text initials. Each clinic has its own branded logo loaded from the backend.
+```
+┌─────────────────────────────────────────────────────────┐
+│ 📁 DH2609        [Trễ hẹn] badge              [📅 icon] │
+│ 👤 CAO THỊ THANH TUYẾT (2001)                          │
+│ ⚙️  BS Hương                                            │
+│ 🏷️  Khách cũ                                           │
+│ 🕐  15:00                                               │
+│ 📝  gmc 2h, chụp lại phim                              │
+│                                                         │
+│    [──1──]────[──2──]────[──3──]                       │
+│     Đã đến   Đang khám   Hoàn tất                      │
+│     --:--     --:--       --:--                         │
+│                                                         │
+│    [🔍 BS Hương              ▼]                        │
+│                                                         │
+│  ○ Kết thúc điều trị  (radio selected)                 │
+│  ○ Đã hẹn tiếp                                         │
+│  ○ Chuyển bác sĩ                                       │
+│  ○ Hẹn tái khám                                        │
+└─────────────────────────────────────────────────────────┘
+```
 
-### MISMATCH 3: "Tạo tiếp nhận" Button Icon
-- **Reference**: Uses a clipboard/document icon (📋)
-- **Local**: Uses a "+" plus icon
-- **Impact**: Low — visual detail, easy fix
+**Card fields observed:**
+- Patient code (e.g. DH2609) + status badge (e.g. "Trễ hẹn")
+- Calendar icon button (top right) — UNKNOWN_REFERENCE_BEHAVIOR
+- Patient full name + birth year in parentheses
+- Doctor name (with person/doctor icon)
+- Patient type (Khách cũ / Khách mới)
+- Appointment time (HH:mm format)
+- Notes text (free text field)
 
-### MISMATCH 4: Date Navigator — Calendar Icon
-- **Reference**: Shows a calendar icon (📅) before the date text "21/08/2026"
-- **Local**: Shows just the date text between arrows, no calendar icon
-- **Impact**: Low — visual detail
+**Progress stepper (3 steps):**
+1. Đã đến (Arrived) — shows timestamp or --:--
+2. Đang khám (In progress) — shows timestamp or --:--
+3. Hoàn tất (Completed) — shows timestamp or --:--
 
-### MISMATCH 5: Counter Card Colors (needs verification)
-- **Reference**: Card 1 "Đã hẹn" appears to use green/teal border
-- **Local**: Card 1 "Đã hẹn" appears to use blue border
-- **Impact**: Low-Medium — may just be screenshot rendering; needs pixel-level comparison
+**Doctor selector:** Dropdown to select/change doctor
 
-### MISMATCH 6: Populated Table State
-- **Reference**: NOT OBSERVED (showed empty state)
-- **Local**: Shows full data table with 9 columns
-- **Status**: UNKNOWN_REFERENCE_BEHAVIOR — cannot verify table column layout, row layout, action buttons, or pagination format against reference
+**Outcome radio buttons (Kết quả):**
+- Kết thúc điều trị (End treatment) — default selected
+- Đã hẹn tiếp (Next appointment booked)
+- Chuyển bác sĩ (Transfer to doctor)
+- Hẹn tái khám (Follow-up appointment)
+
+## API Observations
+
+Reference uses Next.js RSC — no traditional REST endpoints observed.
+Route prefetch: `GET /reception?branchId=<id>&_rsc=<token>` → HTTP 200
+
+Local BlueDental BE endpoints designed (not reverse-engineered from reference):
+- `GET /v1/app/appointments` — list receptions
+- `POST /v1/app/appointments` — create reception
+- `POST /v1/app/appointments/{id}/check-in` — check-in (step 1)
+- `POST /v1/app/appointments/{id}/start` — start exam (step 2)
+- `POST /v1/app/appointments/{id}/complete` — complete (step 3)
+
+## Status Flow
+
+```
+Chờ khám (WAITING)
+    ↓ [Tiếp nhận button]
+Đã đến / Đang khám (IN_PROGRESS)
+    ↓ [Xong button]
+Hoàn thành (COMPLETED)
+    ↓ [Kết quả radio]
+    ├─ Kết thúc điều trị
+    ├─ Đã hẹn tiếp
+    ├─ Chuyển bác sĩ
+    └─ Hẹn tái khám
+```
+
+Counter cards track appointment-level statuses (different from reception status):
+- Đã hẹn (Scheduled appointment) → Trạng thái trong hệ thống lịch hẹn
+- Đã đến (Arrived)
+- Huỷ hẹn (Cancelled)
+- Trễ hẹn (Late/No-show)
+- Lịch tạm (Temporary schedule)
+- Chuyển đổi (Converted)
 
 ## Dimensions (Estimated from reference at ~1920x948 viewport)
 
 | Element | Estimated Size |
 |---------|---------------|
-| Sidebar width | ~70-80px (collapsed/icon mode) |
+| Sidebar width (collapsed) | ~70-80px |
+| Sidebar width (expanded) | ~180px |
 | Header height | ~55px |
 | Toolbar Row 1 height | ~48px |
 | Toolbar Row 2 height | ~48px |
-| Content area top offset | ~155px (header + toolbar rows) |
-| Content area | remaining viewport height |
 | Counter card | ~70w x 55h px |
-| Time tab pill | ~55w x 32h px |
-| Status tab pill (active) | ~110w x 32h px |
+| Time tab pill (active) | ~55w x 32h px |
+| Status tab pill | ~110w x 32h px |
 | Patient search input | ~200w x 36h px |
 | Primary button | ~150w x 40h px |
 | Date navigator | ~180w x 36h px |
 
-## Responsive Behavior
+## UNKNOWN_REFERENCE_BEHAVIOR
 
-Observed viewport: ~1920x948
-
-Previous accessibility snapshots revealed duplicate toolbar elements in the DOM,
-suggesting responsive variants — different toolbar layouts rendered for
-different breakpoints, with CSS showing/hiding the appropriate version.
-
-At least 3 responsive breakpoints appear to exist for the toolbar area.
-
-## Accessibility
-
-- Proper landmark roles: complementary (sidebar), banner (header), main (content), navigation
-- Tab lists use proper `tablist` + `tab` roles
-- Buttons have descriptive labels
-- Search inputs have associated labels
-- Notification region with keyboard shortcut Alt+T
-
-## Technology (Reference)
-
-- Next.js with React Server Components (RSC)
-- MongoDB (branchId is 24-char ObjectId)
-- Route prefetching via RSC (`_rsc` query parameter)
+| # | Control | Reason |
+|---|---------|--------|
+| 1 | "Tạo tiếp nhận" button | Opens form to create — mutating |
+| 2 | Three-dot (⋮) menu per row | Unknown menu items — could be mutating |
+| 3 | "Tiếp nhận" action button | Transitions status — mutating |
+| 4 | "Xong" action button | Transitions status — mutating |
+| 5 | Counter cards click | Unknown if filters the list |
+| 6 | Date picker popup | Full calendar picker UI unknown |
+| 7 | "Tuần" and "Tháng" views | Layout change when switching |
+| 8 | Calendar icon in detail card | Unknown action |
+| 9 | Doctor selector in detail | Whether changing doctor mutates data |
+| 10 | Outcome radio buttons (save) | How/when outcome is saved |
