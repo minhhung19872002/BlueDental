@@ -10,9 +10,9 @@ Cập nhật lần cuối: 2026-08-22 (session 5)
 |-------|--------|---------|
 | Frontend UI (FE) | 🟢 ~97% | Tất cả trang hoàn chỉnh; Calendar week+month, Report 4 tabs, CSKH grouping |
 | Backend API (BE) | 🟢 ~90% | Build clean 0 errors; AccountAppService; 401/403 API auth; BE Dockerfile |
-| FE ↔ BE Integration | 🟡 ~55% | Patient+Appointment+Auth gọi BE thật; vite proxy → port 5019; mock fallback cho reception |
+| FE ↔ BE Integration | 🟢 ~80% | Auth, Patient, Appointment, Staff, Visit, Report, Billing — all call real BE; mock fallback reception |
 | Tests | 🟢 ~95% | 82 tests (15 domain + 34 application + 18 EF + 15 HttpApi) — tất cả pass |
-| Docker / Deploy | 🟡 ~65% | docker-compose.yml + FE Dockerfile + BE Dockerfile; chưa verify full stack |
+| Docker / Deploy | 🟡 ~70% | docker-compose.yml + FE Dockerfile (VITE_API_URL arg) + BE Dockerfile; seed contributor BD-001; chưa verify end-to-end |
 
 ---
 
@@ -133,12 +133,14 @@ Cập nhật lần cuối: 2026-08-22 (session 5)
 
 | Feature | Status | Ghi chú |
 |---------|--------|---------|
-| Auth (login/logout) | 🟡 PARTIAL | FE có flow, cần test với BE thật |
-| Patient List API | ❌ NOT WIRED | FE gọi mock |
-| Appointment Calendar API | ❌ NOT WIRED | FE dùng MOCK_DOCTORS |
-| Reception API | 🟡 PARTIAL | `receptionApi.ts` có skeleton nhưng trả mock |
-| Report API | ❌ NOT WIRED | |
-| Labo API | ❌ NOT WIRED | |
+| Auth (login/logout) | ✅ WIRED | `/api/account/login` + `/api/app/account/current-user` |
+| Patient List API | ✅ WIRED | `usePatientList` → GET `/api/v1/app/patients` |
+| Appointment Calendar API | ✅ WIRED | `useDentistList` → GET `/api/v1/app/staff`; fallback doctors |
+| Reception API | 🟡 PARTIAL | GET/POST `/api/v1/app/visits`; mock fallback khi BE offline |
+| Report API | ✅ WIRED | GET `/api/v1/app/reports/revenue` |
+| Billing API | ✅ WIRED | GET/POST `/api/v1/app/invoices` |
+| Notifications API | ✅ WIRED | GET `/api/v1/app/notifications` (30s polling) |
+| Labo API (catalog) | N/A | Labo page là catalog UI — không cần hook |
 
 ---
 
@@ -184,14 +186,14 @@ Cập nhật lần cuối: 2026-08-22 (session 5)
 ## V. Commit Log (gần đây)
 
 ```
+8ce9d3e feat(be): add default ClinicBranch data seeder + fix unused parameters
+bf4fa17 fix(fe): update reception API to use /v1/app/visits endpoint
+7699fe3 feat(fe): wire calendar and reception doctor lists to real staff API
+f5beb86 docs: update progress report — 82 tests all pass, HttpApi tests complete
 d303bf3 test(be): add HttpApi controller convention tests (82 tests total, all pass)
 6ba6f29 fix(be): return 401/403 for API routes instead of redirects
 4b54ff8 build(be): add Dockerfile for multi-stage BE container build
 60d01bd fix(fe): update vite proxy port to 5019 and wire auth API to AccountAppService
 45e15c4 test(be): add Visit and Labo AppService contract tests (34 Application tests total)
-0bcd76e test(be): expand test suite to 55 tests — all passing
-e606d4c test(be): add Application contract tests for Patient and Appointment AppServices
 ce19086 feat(be): add AccountAppService for current user profile
-4565235 feat(cskh): implement Phân nhóm CSKH tab with group management table
-0e8ea66 feat(api): implement real API hooks for catalogs, reporting, billing, inventory, notifications
 ```
