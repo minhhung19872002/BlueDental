@@ -6,6 +6,10 @@ export type AppointmentStatus =
   | "cancelled"
   | "noShow";
 
+/**
+ * What the screens work with. The server speaks its own shape
+ * (DentistId / SlotStart / numeric status); see appointmentAdapters.
+ */
 export interface AppointmentDto {
   id: string;
   patientId: string;
@@ -24,6 +28,8 @@ export interface AppointmentDto {
 export interface CreateAppointmentRequest {
   patientId: string;
   doctorId: string;
+  /** Defaults to the current clinic branch. */
+  branchId?: string;
   startTime: string;
   endTime: string;
   reason?: string;
@@ -36,6 +42,7 @@ export type UpdateAppointmentRequest = Partial<CreateAppointmentRequest> & {
 
 export interface AppointmentListQuery {
   date?: string;
+  patientId?: string;
   doctorId?: string;
   status?: AppointmentStatus;
   skipCount?: number;
@@ -53,3 +60,15 @@ export interface Appointment extends AppointmentDto {
   statusLabel: string;
   durationMinutes: number;
 }
+
+/** Matches BlueDental.Appointments.CancellationReason. */
+export const CANCELLATION_REASON = {
+  PatientRequest: 1,
+  DentistUnavailable: 2,
+  EquipmentFailure: 3,
+  EmergencyPriority: 4,
+  PatientNoResponse: 5,
+  Other: 6,
+} as const;
+export type CancellationReason =
+  (typeof CANCELLATION_REASON)[keyof typeof CANCELLATION_REASON];

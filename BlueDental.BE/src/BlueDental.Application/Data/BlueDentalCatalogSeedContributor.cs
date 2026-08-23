@@ -27,6 +27,8 @@ public class BlueDentalCatalogSeedContributor(
     private static readonly Guid ServiceTaxonomyId = new("33333333-0000-0000-0000-000000000002");
     private static readonly Guid DiagnosisEntryId = new("33333333-1111-0000-0000-000000000001");
     private static readonly Guid ServiceEntryId = new("33333333-1111-0000-0000-000000000002");
+    private static readonly Guid MedicationTaxonomyId = new("33333333-0000-0000-0000-000000000003");
+    private static readonly Guid MedicationEntryId = new("33333333-1111-0000-0000-000000000003");
 
     public async Task SeedAsync(DataSeedContext context)
     {
@@ -50,6 +52,14 @@ public class BlueDentalCatalogSeedContributor(
             groupName: "Nhóm dịch vụ chung",
             entryName: "Trám răng thẩm mỹ",
             price: 500_000m);
+
+        await SeedAsync(
+            MedicationTaxonomyId,
+            MedicationEntryId,
+            TaxonomyGroups.MedicationType,
+            groupName: "Nhóm thuốc chung",
+            entryName: "Amoxicillin 500mg",
+            price: 5_000m);
     }
 
     private bool IsDevelopment() =>

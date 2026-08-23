@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { appointmentApi } from "./appointmentApi";
-import { adaptAppointment } from "./appointmentAdapters";
 import type { AppointmentListQuery } from "../types/appointment";
 
 export const appointmentKeys = {
@@ -22,10 +21,7 @@ export function useAppointmentList(params: AppointmentListQuery) {
 export function useAppointment(id: string) {
   return useQuery({
     queryKey: appointmentKeys.detail(id),
-    queryFn: async () => {
-      const dto = await appointmentApi.get(id);
-      return adaptAppointment(dto);
-    },
+    queryFn: () => appointmentApi.get(id),
     enabled: Boolean(id),
   });
 }

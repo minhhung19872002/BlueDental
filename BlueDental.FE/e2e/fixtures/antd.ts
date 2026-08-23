@@ -17,7 +17,17 @@ export async function selectOption(
   label: string,
   optionText?: string,
 ): Promise<void> {
-  const input = scope.getByLabel(label, { exact: true });
+  await pickOption(page, scope.getByLabel(label, { exact: true }), optionText);
+}
+
+/**
+ * Same, for a Select that carries no label — pass its combobox input directly.
+ */
+export async function pickOption(
+  page: Page,
+  input: Locator,
+  optionText?: string,
+): Promise<void> {
   const inputId = await input.getAttribute("id");
 
   await input.click();

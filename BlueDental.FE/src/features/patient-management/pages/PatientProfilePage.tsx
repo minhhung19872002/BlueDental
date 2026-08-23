@@ -2,15 +2,14 @@ import { useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Button, Spin, Tabs, Tag, Row, Col, Card, Table, Typography, Space, Select, message,
-  type TableColumnsType,
 } from "antd";
 import {
   ArrowLeftOutlined, EditOutlined, CalendarOutlined,
   FileTextOutlined, PictureOutlined, MedicineBoxOutlined,
-  PhoneOutlined, DollarOutlined, HistoryOutlined, PlusOutlined, UploadOutlined,
+  PhoneOutlined, DollarOutlined, HistoryOutlined, UploadOutlined,
 } from "@ant-design/icons";
 import { usePatient } from "../api/patientQueries";
-import { formatDate, formatDateTime, formatVND } from "@/utils/format";
+import { formatDate, formatVND } from "@/utils/format";
 import {
   useAcceptAdvise,
   usePatientAdviseSummary,
@@ -30,6 +29,10 @@ import { TreatmentStagePanel } from "@/features/treatment-management/components/
 import { TreatmentPlanPanel } from "@/features/treatment-management/components/TreatmentPlanPanel";
 import { PatientAccountPanel } from "@/features/treatment-management/components/PatientAccountPanel";
 import { PatientDebtHistoryPanel } from "@/features/treatment-management/components/PatientDebtHistoryPanel";
+import { PrescriptionPanel } from "@/features/treatment-management/components/PrescriptionPanel";
+import { PatientAppointmentPanel } from "@/features/appointments/components/PatientAppointmentPanel";
+import { PatientLaboPanel } from "@/features/labo/components/PatientLaboPanel";
+import { PatientCarePanel } from "@/features/cskh/components/PatientCarePanel";
 import type { PatientDiagnosisDto } from "@/features/treatment-management/api/consultingApi";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { extractApiError } from "@/lib/apiError";
@@ -64,32 +67,6 @@ const ADVISE_STATUS_CONFIG: Record<PatientAdviseStatus, { label: string; color: 
   [ADVISE_STATUS.Rejected]:  { label: "Từ chối",     color: "red" },
   [ADVISE_STATUS.Cancelled]: { label: "Đã hủy",      color: "default" },
 };
-
-interface AppointmentRow {
-  id: string;
-  date: string;
-  doctorName: string;
-  content: string;
-  notes: string;
-  status: string;
-}
-
-const APPOINTMENT_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  Scheduled:  { label: "Đã hẹn",    color: "#2671D8" },
-  Confirmed:  { label: "Đã xác nhận", color: "#3B82F6" },
-  CheckedIn:  { label: "Đã đến",    color: "#10B981" },
-  InProgress: { label: "Đang khám", color: "#F97316" },
-  Completed:  { label: "Hoàn thành", color: "#10B981" },
-  Cancelled:  { label: "Đã hủy",    color: "#EF4444" },
-  NoShow:     { label: "Vắng mặt",  color: "#6B7280" },
-};
-
-const APPOINTMENT_COUNTER_CARDS = [
-  { key: "scheduled", label: "Đã hẹn",   borderColor: "#1E70E6", bgColor: "#EBF3FE", textColor: "#1E70E6" },
-  { key: "arrived",   label: "Đã đến",   borderColor: "#10B981", bgColor: "#E6F4EA", textColor: "#10B981" },
-  { key: "cancelled", label: "Đã huỷ",   borderColor: "#EF4444", bgColor: "#FCE8E6", textColor: "#EF4444" },
-  { key: "late",      label: "Trễ hẹn",  borderColor: "#F59E0B", bgColor: "#FEF3C7", textColor: "#F59E0B" },
-];
 
 
 export function PatientProfilePage() {
@@ -138,49 +115,6 @@ export function PatientProfilePage() {
   }
 
   if (!patient) return null;
-
-  const appointmentColumns: TableColumnsType<AppointmentRow> = [
-    {
-      title: "Ngày / Giờ",
-      dataIndex: "date",
-      key: "date",
-      width: 140,
-      render: (v: string) => <Text style={{ fontSize: 13 }}>{formatDateTime(v)}</Text>,
-    },
-    { title: "Bác sĩ phụ trách", dataIndex: "doctorName", key: "doctorName", width: 160 },
-    { title: "Nội dung", dataIndex: "content", key: "content" },
-    { title: "Ghi chú", dataIndex: "notes", key: "notes", width: 180 },
-    {
-      title: "Trạng thái",
-      dataIndex: "status",
-      key: "status",
-      width: 130,
-      render: (status: string) => {
-        const conf = APPOINTMENT_STATUS_CONFIG[status] ?? { label: status, color: "#6B7280" };
-        return (
-          <span
-            style={{
-              display: "inline-block",
-              padding: "2px 10px",
-              borderRadius: 10,
-              backgroundColor: conf.color + "22",
-              color: conf.color,
-              fontSize: 12,
-              fontWeight: 500,
-            }}
-          >
-            {conf.label}
-          </span>
-        );
-      },
-    },
-    {
-      title: "Thao tác",
-      key: "actions",
-      width: 80,
-      render: () => <Button type="text" size="small" icon={<EditOutlined />} />,
-    },
-  ];
 
   const TAB_ITEMS = [
     {
@@ -478,33 +412,7 @@ export function PatientProfilePage() {
       icon: <CalendarOutlined />,
       children: (
         <div style={{ padding: "16px 0" }}>
-          {/* Counter cards */}
-          <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-            {APPOINTMENT_COUNTER_CARDS.map((card) => (
-              <div
-                key={card.key}
-                style={{
-                  minWidth: 70, minHeight: 55, padding: "8px 14px",
-                  borderTop: `3px solid ${card.borderColor}`,
-                  backgroundColor: card.bgColor,
-                  borderRadius: 8, textAlign: "center",
-                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                }}
-              >
-                <span style={{ fontSize: 20, fontWeight: 700, color: card.textColor }}>0</span>
-                <span style={{ fontSize: 11, color: card.textColor }}>{card.label}</span>
-              </div>
-            ))}
-          </div>
-
-          <Table<AppointmentRow>
-            size="small"
-            rowKey="id"
-            columns={appointmentColumns}
-            dataSource={[]}
-            pagination={false}
-            locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>Chưa có lịch hẹn nào</span> }}
-          />
+          <PatientAppointmentPanel patientId={id ?? ""} />
         </div>
       ),
     },
@@ -529,51 +437,10 @@ export function PatientProfilePage() {
     {
       key: "labo",
       label: "Labo",
+      icon: <MedicineBoxOutlined />,
       children: (
         <div style={{ padding: "16px 0" }}>
-          {/* Top bar: counter filter buttons + create button */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-            {[
-              { label: "Đơn hàng mới", count: 0, bg: "#E6F4EA", text: "#10B981", border: "#10B981" },
-              { label: "Tiếp tục công đoạn", count: 0, bg: "#FEF3C7", text: "#D97706", border: "#F59E0B" },
-              { label: "Bảo hành", count: 0, bg: "#FCE8E6", text: "#DC2626", border: "#EF4444" },
-            ].map((c) => (
-              <button
-                key={c.label}
-                style={{
-                  display: "flex", alignItems: "center", gap: 6, padding: "6px 14px",
-                  background: c.bg, color: c.text, border: `1px solid ${c.border}`,
-                  borderRadius: 20, fontSize: 13, fontWeight: 500, cursor: "pointer",
-                }}
-              >
-                <span style={{ fontWeight: 700, fontSize: 15 }}>{c.count}</span>
-                {c.label}
-              </button>
-            ))}
-            <Button type="primary" icon={<PlusOutlined />} style={{ marginLeft: "auto", background: "#2671D8" }}>
-              Tạo phiếu Labo
-            </Button>
-          </div>
-
-          <Table
-            size="small"
-            rowKey="id"
-            columns={[
-              { title: "Mã phiếu labo", dataIndex: "code", key: "code", width: 120 },
-              { title: "Ngày gửi / Tình trạng mẫu", dataIndex: "sentAt", key: "sentAt", width: 160, render: (v: string) => v ? formatDate(v) : "—" },
-              { title: "Ngày giao / Trạng thái Labo", dataIndex: "deliveredAt", key: "deliveredAt", width: 170, render: (v: string) => v ? formatDate(v) : "—" },
-              { title: "Bác sĩ chỉ định", dataIndex: "doctorName", key: "doctorName", width: 140 },
-              { title: "Nhà cung cấp", dataIndex: "supplierName", key: "supplierName", width: 140 },
-              { title: "Vật liệu", dataIndex: "material", key: "material", width: 120 },
-              { title: "Số răng", dataIndex: "toothNumbers", key: "toothNumbers", width: 100 },
-              { title: "Số lượng", dataIndex: "quantity", key: "quantity", width: 80, align: "right" },
-              { title: "File Labo gửi về", dataIndex: "returnedFile", key: "returnedFile", width: 130 },
-              { title: "Thao tác", key: "actions", width: 80, render: () => <Button type="text" size="small" icon={<EditOutlined />} /> },
-            ]}
-            dataSource={[]}
-            pagination={{ pageSize: 20, showTotal: (total) => `Hiển thị 0 trên ${total} phiếu labo` }}
-            locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>Không có dữ liệu</span> }}
-          />
+          <PatientLaboPanel patientId={id ?? ""} />
         </div>
       ),
     },
@@ -583,24 +450,7 @@ export function PatientProfilePage() {
       icon: <MedicineBoxOutlined />,
       children: (
         <div style={{ padding: "16px 0" }}>
-          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
-            <Button type="primary" icon={<PlusOutlined />} style={{ background: "#2671D8" }}>Tạo đơn thuốc</Button>
-          </div>
-          <Table
-            size="small"
-            rowKey="id"
-            columns={[
-              { title: "Mã đơn thuốc", dataIndex: "code", key: "code", width: 130 },
-              { title: "Bác sĩ", dataIndex: "doctorName", key: "doctorName", width: 160 },
-              { title: "Chẩn đoán", dataIndex: "diagnosis", key: "diagnosis" },
-              { title: "Tái khám", dataIndex: "followUpDate", key: "followUpDate", width: 130, render: (v: string) => v ? formatDate(v) : "—" },
-              { title: "Ngày tạo", dataIndex: "createdAt", key: "createdAt", width: 120, render: (v: string) => v ? formatDate(v) : "—" },
-              { title: "Thao tác", key: "actions", width: 80, render: () => <Button type="text" size="small" icon={<EditOutlined />} /> },
-            ]}
-            dataSource={[]}
-            pagination={{ pageSize: 20, showTotal: (total) => `Hiển thị 0 trên ${total}` }}
-            locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>Không có dữ liệu</span> }}
-          />
+          <PrescriptionPanel patientId={id ?? ""} />
         </div>
       ),
     },
@@ -610,51 +460,7 @@ export function PatientProfilePage() {
       icon: <PhoneOutlined />,
       children: (
         <div style={{ padding: "16px 0" }}>
-          {/* Status filter buttons + action button */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-            {[
-              { label: "Đã chăm sóc", count: 0 },
-              { label: "Tốt", count: 0 },
-              { label: "Khá", count: 0 },
-              { label: "Bình thường", count: 0 },
-              { label: "Khiếu nại", count: 0 },
-              { label: "Đặc biệt", count: 0 },
-              { label: "Định kỳ", count: 0 },
-              { label: "Cơ bản", count: 0 },
-            ].map((b) => (
-              <button
-                key={b.label}
-                style={{
-                  padding: "4px 12px", borderRadius: 16, border: "1px solid #E5E7EB",
-                  background: "#F9FAFB", color: "#374151", fontSize: 13, cursor: "pointer",
-                  display: "flex", alignItems: "center", gap: 4,
-                }}
-              >
-                <span style={{ fontWeight: 600 }}>{b.count}</span>
-                {b.label}
-              </button>
-            ))}
-            <Button style={{ marginLeft: "auto" }}>CSKH đặc biệt</Button>
-          </div>
-
-          <Table
-            size="small"
-            rowKey="id"
-            columns={[
-              { title: "Ngày chăm sóc", dataIndex: "careDate", key: "careDate", width: 130, render: (v: string) => v ? formatDate(v) : "—" },
-              { title: "Trạng thái CSKH", dataIndex: "careStatus", key: "careStatus", width: 140 },
-              { title: "Nhóm", dataIndex: "group", key: "group", width: 160 },
-              { title: "Dịch vụ", dataIndex: "serviceName", key: "serviceName", width: 180 },
-              { title: "Nội dung", dataIndex: "content", key: "content" },
-              { title: "Bác sĩ điều trị", dataIndex: "doctorName", key: "doctorName", width: 140 },
-              { title: "Nhân viên chăm sóc", dataIndex: "staffName", key: "staffName", width: 150 },
-              { title: "Đánh giá", dataIndex: "rating", key: "rating", width: 100 },
-              { title: "Thao tác", key: "actions", width: 100, render: () => <Space size={4}><Button type="text" size="small" icon={<EditOutlined />} /></Space> },
-            ]}
-            dataSource={[]}
-            pagination={{ pageSize: 20, showTotal: (total) => `Hiển thị 0–0 trên ${total} nhật ký` }}
-            locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>Chưa có dữ liệu chăm sóc</span> }}
-          />
+          <PatientCarePanel patientId={id ?? ""} />
         </div>
       ),
     },

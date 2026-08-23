@@ -62,3 +62,34 @@ public sealed class PatientPaymentController(IPatientPaymentAppService service)
     [HttpDelete("{id:guid}")]
     public Task DeleteAsync(Guid id) => service.DeleteAsync(id);
 }
+
+/// <summary>Đơn thuốc.</summary>
+[RemoteService]
+[Authorize]
+[Route("api/v1/app/prescriptions")]
+public sealed class PrescriptionController(IPrescriptionAppService service) : BlueDentalController
+{
+    [HttpGet]
+    public Task<PagedResultDto<PrescriptionDto>> GetListAsync(
+        [FromQuery] GetPrescriptionListInput input) => service.GetListAsync(input);
+
+    [HttpGet("{id:guid}")]
+    public Task<PrescriptionDto> GetAsync(Guid id) => service.GetAsync(id);
+
+    [HttpPost]
+    public Task<PrescriptionDto> CreateAsync([FromBody] CreatePrescriptionDto input) =>
+        service.CreateAsync(input);
+
+    [HttpPut("{id:guid}")]
+    public Task<PrescriptionDto> UpdateAsync(Guid id, [FromBody] UpdatePrescriptionDto input) =>
+        service.UpdateAsync(id, input);
+
+    [HttpPost("{id:guid}/dispense")]
+    public Task<PrescriptionDto> DispenseAsync(Guid id) => service.DispenseAsync(id);
+
+    [HttpPost("{id:guid}/cancel")]
+    public Task<PrescriptionDto> CancelAsync(Guid id) => service.CancelAsync(id);
+
+    [HttpDelete("{id:guid}")]
+    public Task DeleteAsync(Guid id) => service.DeleteAsync(id);
+}

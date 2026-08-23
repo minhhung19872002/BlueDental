@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Table, Tag, Button, Input, Select } from "antd";
 import { SearchOutlined, PlusOutlined } from "@ant-design/icons";
 import { useAppointmentList } from "../api/appointmentQueries";
-import { adaptAppointment } from "../api/appointmentAdapters";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { useDebounce } from "@/hooks/useDebounce";
 import { StatusBadge } from "../components/StatusBadge";
@@ -32,7 +31,7 @@ export function AppointmentListPage() {
     maxResultCount: pagination.maxResultCount,
   });
 
-  const appointments = (data?.items ?? []).map(adaptAppointment).filter((a) => {
+  const appointments = (data?.items ?? []).filter((a) => {
     const matchesStatus = statusFilter === "all" || a.status === statusFilter;
     const matchesKeyword =
       !debouncedKeyword ||
