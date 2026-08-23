@@ -49,7 +49,7 @@ export function PrivateRoute({ children }: Props) {
       <div
         style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}
       >
-        <Spin size="large" tip={t("Đang xác thực phiên đăng nhập")} />
+        <Spin size="large" description={t("Đang xác thực phiên đăng nhập")} />
       </div>
     );
   }

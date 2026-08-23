@@ -23,7 +23,7 @@ export function AppointmentDetailDrawer({ appointmentId, onClose }: Props) {
       open={Boolean(appointmentId)}
       onClose={onClose}
       title={t("Chi tiết lịch hẹn")}
-      width={480}
+      size={480}
     >
       {isLoading && (
         <div style={{ display: "grid", placeItems: "center", minHeight: 200 }}>

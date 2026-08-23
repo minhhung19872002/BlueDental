@@ -136,7 +136,7 @@ export const ReceptionPage: React.FC = () => {
       <Drawer
         open={!!selectedItem}
         onClose={() => setSelectedItem(null)}
-        width={760}
+        size={760}
         title={selectedItem ? t("Chi tiết tiếp nhận — {0}", selectedItem.voucherCode) : t("Chi tiết tiếp nhận")}
         destroyOnClose
         styles={{ body: { padding: 0 } }}

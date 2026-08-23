@@ -2902,4 +2902,73 @@ body {
   }
 }
 
+/* Ctrl-K palette results */
+
+.app-search-results {
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.app-search-loading {
+  padding: 28px;
+  text-align: center;
+}
+
+.app-search-hit {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--bd-bg);
+  cursor: pointer;
+}
+
+.app-search-hit:hover,
+.app-search-hit:focus-visible {
+  background: #f5f8fd;
+  outline: none;
+}
+
+.app-search-hit-badge {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 11px;
+  background: rgba(28, 53, 102, .08);
+  color: var(--bd-blue);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.app-search-hit-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.app-search-hit-name {
+  display: block;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--bd-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-search-hit-meta {
+  display: block;
+  font-size: 11.5px;
+  color: var(--bd-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-search-hit-arrow {
+  color: #b3bdc9;
+  flex: none;
+}
+
 

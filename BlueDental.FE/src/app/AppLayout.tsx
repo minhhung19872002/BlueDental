@@ -3,7 +3,6 @@ import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   Avatar,
   Dropdown,
-  Input,
   Popover,
   type MenuProps,
 } from "antd";
@@ -28,13 +27,13 @@ import {
   AppstoreOutlined,
   ToolOutlined,
   CheckOutlined,
-  HeartOutlined,
 } from "@ant-design/icons";
 import { useLanguage, useT } from "@/lib/i18n";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useMutation } from "@tanstack/react-query";
 import { authApi } from "@/features/auth/api";
 import { brand, SIDEBAR_WIDTH, SIDEBAR_EXPANDED_WIDTH } from "@/theme/index";
+import { GlobalSearch } from "@/components/GlobalSearch";
 
 interface NavItem {
   key: string;
@@ -59,29 +58,6 @@ const mainNav = (t: Translate): NavItem[] => [
   { key: "/materials", icon: <MedicineBoxOutlined />, label: t("Vật tư") },
   { key: "/taxonomy", icon: <AppstoreOutlined />, label: t("Danh mục") },
   { key: "/tools", icon: <ToolOutlined />, label: t("Công cụ") },
-];
-
-const searchCategories = (t: Translate) => [
-  {
-    icon: <UserOutlined style={{ fontSize: 18, color: brand.muted }} />,
-    title: t("Khách hàng"),
-    desc: t("Tìm theo tên, mã KH, số điện thoại"),
-  },
-  {
-    icon: <CalendarOutlined style={{ fontSize: 18, color: brand.muted }} />,
-    title: t("Lịch hẹn"),
-    desc: t("Tìm theo tên hoặc SĐT khách hàng"),
-  },
-  {
-    icon: <HeartOutlined style={{ fontSize: 18, color: brand.muted }} />,
-    title: t("CSKH"),
-    desc: t("Tìm theo khách hàng, nội dung"),
-  },
-  {
-    icon: <IdcardOutlined style={{ fontSize: 18, color: brand.muted }} />,
-    title: t("Nhân viên"),
-    desc: t("Tìm theo tên, email, số điện thoại"),
-  },
 ];
 
 function initialsOf(name: string | undefined): string {
@@ -387,37 +363,7 @@ export function AppLayout() {
         </main>
       </div>
 
-      {/* ── Global search modal ── */}
-      {searchOpen && (
-        <div className="app-search-overlay" onClick={() => setSearchOpen(false)}>
-          <div className="app-search-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="app-search-input-row">
-              <Input
-                autoFocus
-                size="large"
-                prefix={<SearchOutlined />}
-                placeholder={t("Tìm kiếm khách hàng, lịch hẹn, nhân viên…")}
-                onPressEnter={() => setSearchOpen(false)}
-                style={{ borderRadius: 12 }}
-              />
-              <kbd className="app-search-esc" onClick={() => setSearchOpen(false)}>Esc</kbd>
-            </div>
-            <div className="app-search-categories">
-              <div className="app-search-categories-title">{t("Gợi ý tìm kiếm")}</div>
-              {searchCategories(t).map((cat) => (
-                <div key={cat.title} className="app-search-category-item">
-                  <span className="app-search-category-icon">{cat.icon}</span>
-                  <div className="app-search-category-text">
-                    <span className="app-search-category-name">{cat.title}</span>
-                    <span className="app-search-category-desc">{cat.desc}</span>
-                  </div>
-                </div>
-              ))}
-              <div className="app-search-hint">{t("Nhập ít nhất 2 ký tự để tìm kiếm.")}</div>
-            </div>
-          </div>
-        </div>
-      )}
+      <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   );
 }

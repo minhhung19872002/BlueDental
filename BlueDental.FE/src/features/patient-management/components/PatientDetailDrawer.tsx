@@ -20,7 +20,7 @@ export function PatientDetailDrawer({ patientId, onClose }: Props) {
       open={Boolean(patientId)}
       onClose={onClose}
       title={patient ? t("Hồ sơ: {0}", patient.fullName) : t("Hồ sơ bệnh nhân")}
-      width={640}
+      size={640}
     >
       {isLoading && (
         <div style={{ display: "grid", placeItems: "center", minHeight: 200 }}>

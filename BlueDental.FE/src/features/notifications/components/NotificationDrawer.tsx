@@ -16,7 +16,7 @@ export function NotificationDrawer({ open, onClose }: Props) {
       onClose={onClose}
       title={t("Thông báo")}
       placement="right"
-      width={380}
+      size={380}
     >
       <Empty description={t("Không có thông báo mới")} />
     </Drawer>

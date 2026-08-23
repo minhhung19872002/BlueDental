@@ -36,6 +36,7 @@ Last run: 2026-08-24, stack on `localhost:5173` (Vite) → `localhost:5019` (API
 | F-23 | Đơn thuốc | `VERIFIED` | `e2e/prescription.spec.ts` | Medicine lines snapshotted; a dispensed slip is frozen |
 | F-24 | Hình ảnh bệnh nhân | `VERIFIED` | `e2e/patient-image.spec.ts` | Real multipart upload to MinIO, bytes fetched back through the API |
 | F-25 | Nhân viên | `VERIFIED` | `e2e/staff.spec.ts` | Account created, edited and deleted; weak password refused by Identity |
+| F-28 | Tìm kiếm nhanh (Ctrl K) | `VERIFIED` | manual browser run, 2026-08-24 | The palette used to render a search box with no `value`, no `onChange` and no results. It now queries `/patients?filter=` and opens the record; typing TRAN returned 8 real patients and the first one opened `/patient/:id` |
 | F-27 | Thanh toán & hoá đơn (màn hoá đơn phòng khám) | `VERIFIED` | manual browser run, 2026-08-24 | Payment recorded through the real modal on `HD-202608-0012`; PostgreSQL shows `paid_amount=1000000`, `Status=3 (PartiallyPaid)`; survives a reload. Excel export returns a real `.xlsx` |
 | F-26 | Song ngữ Việt/Anh (i18n) | `VERIFIED` | manual browser sweep, 2026-08-23 | Switch is instant, no reload; 985 keys, 0 untranslated; survives reload via `localStorage`; Zod messages and `Accept-Language` follow the switch |
 
