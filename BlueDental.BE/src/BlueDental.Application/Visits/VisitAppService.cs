@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
+using Volo.Abp.Domain.Entities;
 using Volo.Abp.Domain.Repositories;
 
 namespace BlueDental.Visits;
@@ -54,7 +55,7 @@ public class VisitAppService : ApplicationService, IVisitAppService
     public async Task<VisitDto> GetAsync(Guid id)
     {
         var visit = await _repository.GetAsync(id);
-        GuardBranchAccess(visit.BranchId);
+        GuardBranchAccess(visit);
         return ObjectMapper.Map<Visit, VisitDto>(visit);
     }
 
@@ -77,7 +78,7 @@ public class VisitAppService : ApplicationService, IVisitAppService
     public async Task<VisitDto> UpdateAsync(Guid id, UpdateVisitDto input)
     {
         var visit = await _repository.GetAsync(id);
-        GuardBranchAccess(visit.BranchId);
+        GuardBranchAccess(visit);
         visit.Update(input.DentistId, input.ScheduledAt, input.ChiefComplaint, input.Notes);
         await _repository.UpdateAsync(visit, autoSave: true);
         return ObjectMapper.Map<Visit, VisitDto>(visit);
@@ -87,7 +88,7 @@ public class VisitAppService : ApplicationService, IVisitAppService
     public async Task CheckInAsync(Guid id)
     {
         var visit = await _repository.GetAsync(id);
-        GuardBranchAccess(visit.BranchId);
+        GuardBranchAccess(visit);
         visit.CheckIn();
         await _repository.UpdateAsync(visit, autoSave: true);
     }
@@ -96,7 +97,7 @@ public class VisitAppService : ApplicationService, IVisitAppService
     public async Task StartAsync(Guid id)
     {
         var visit = await _repository.GetAsync(id);
-        GuardBranchAccess(visit.BranchId);
+        GuardBranchAccess(visit);
         visit.Start();
         await _repository.UpdateAsync(visit, autoSave: true);
     }
@@ -105,7 +106,7 @@ public class VisitAppService : ApplicationService, IVisitAppService
     public async Task CompleteAsync(Guid id, string? notes)
     {
         var visit = await _repository.GetAsync(id);
-        GuardBranchAccess(visit.BranchId);
+        GuardBranchAccess(visit);
         visit.Complete(notes);
         await _repository.UpdateAsync(visit, autoSave: true);
     }
@@ -114,7 +115,7 @@ public class VisitAppService : ApplicationService, IVisitAppService
     public async Task CancelAsync(Guid id, string reason)
     {
         var visit = await _repository.GetAsync(id);
-        GuardBranchAccess(visit.BranchId);
+        GuardBranchAccess(visit);
         visit.Cancel(reason);
         await _repository.UpdateAsync(visit, autoSave: true);
     }
@@ -123,15 +124,15 @@ public class VisitAppService : ApplicationService, IVisitAppService
     public async Task MarkNoShowAsync(Guid id)
     {
         var visit = await _repository.GetAsync(id);
-        GuardBranchAccess(visit.BranchId);
+        GuardBranchAccess(visit);
         visit.MarkNoShow();
         await _repository.UpdateAsync(visit, autoSave: true);
     }
 
-    private void GuardBranchAccess(Guid entityBranchId)
+    private void GuardBranchAccess(Visit entity)
     {
         var branchId = _branchResolver.GetRequiredClinicBranchId();
-        if (entityBranchId != branchId)
-            throw new BusinessException(BlueDentalDomainErrorCodes.Organizations.BranchNotAssigned);
+        if (entity.BranchId != branchId)
+            throw new EntityNotFoundException(typeof(Visit), entity.Id);
     }
 }

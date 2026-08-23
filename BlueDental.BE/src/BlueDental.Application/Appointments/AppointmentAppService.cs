@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
+using Volo.Abp.Domain.Entities;
 using Volo.Abp.Domain.Repositories;
 
 namespace BlueDental.Appointments;
@@ -52,7 +53,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     public async Task<AppointmentDto> GetAsync(Guid id)
     {
         var appointment = await _repository.GetAsync(id);
-        GuardBranchAccess(appointment.BranchId);
+        GuardBranchAccess(appointment);
         return ObjectMapper.Map<Appointment, AppointmentDto>(appointment);
     }
 
@@ -94,7 +95,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     public async Task<AppointmentDto> UpdateAsync(Guid id, UpdateAppointmentDto input)
     {
         var appointment = await _repository.GetAsync(id);
-        GuardBranchAccess(appointment.BranchId);
+        GuardBranchAccess(appointment);
         var slot = new AppointmentSlot(input.SlotStart, input.SlotEnd);
         appointment.Reschedule(slot, input.DentistId);
         await _repository.UpdateAsync(appointment, autoSave: true);
@@ -105,7 +106,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     public async Task<AppointmentDto> ConfirmAsync(Guid id)
     {
         var appointment = await _repository.GetAsync(id);
-        GuardBranchAccess(appointment.BranchId);
+        GuardBranchAccess(appointment);
         appointment.Confirm();
         await _repository.UpdateAsync(appointment, autoSave: true);
         return ObjectMapper.Map<Appointment, AppointmentDto>(appointment);
@@ -115,7 +116,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     public async Task<AppointmentDto> CancelAsync(Guid id, CancelAppointmentDto input)
     {
         var appointment = await _repository.GetAsync(id);
-        GuardBranchAccess(appointment.BranchId);
+        GuardBranchAccess(appointment);
         appointment.Cancel(input.Reason, input.Note);
         await _repository.UpdateAsync(appointment, autoSave: true);
         return ObjectMapper.Map<Appointment, AppointmentDto>(appointment);
@@ -125,7 +126,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     public async Task<AppointmentDto> CheckInAsync(Guid id)
     {
         var appointment = await _repository.GetAsync(id);
-        GuardBranchAccess(appointment.BranchId);
+        GuardBranchAccess(appointment);
         appointment.CheckIn();
         await _repository.UpdateAsync(appointment, autoSave: true);
         return ObjectMapper.Map<Appointment, AppointmentDto>(appointment);
@@ -135,7 +136,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     public async Task<AppointmentDto> StartAsync(Guid id)
     {
         var appointment = await _repository.GetAsync(id);
-        GuardBranchAccess(appointment.BranchId);
+        GuardBranchAccess(appointment);
         appointment.Start();
         await _repository.UpdateAsync(appointment, autoSave: true);
         return ObjectMapper.Map<Appointment, AppointmentDto>(appointment);
@@ -145,7 +146,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     public async Task<AppointmentDto> CompleteAsync(Guid id, CompleteAppointmentDto input)
     {
         var appointment = await _repository.GetAsync(id);
-        GuardBranchAccess(appointment.BranchId);
+        GuardBranchAccess(appointment);
         appointment.Complete(input.Notes);
         await _repository.UpdateAsync(appointment, autoSave: true);
         return ObjectMapper.Map<Appointment, AppointmentDto>(appointment);
@@ -155,16 +156,16 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     public async Task<AppointmentDto> MarkNoShowAsync(Guid id)
     {
         var appointment = await _repository.GetAsync(id);
-        GuardBranchAccess(appointment.BranchId);
+        GuardBranchAccess(appointment);
         appointment.MarkNoShow();
         await _repository.UpdateAsync(appointment, autoSave: true);
         return ObjectMapper.Map<Appointment, AppointmentDto>(appointment);
     }
 
-    private void GuardBranchAccess(Guid entityBranchId)
+    private void GuardBranchAccess(Appointment entity)
     {
         var branchId = _branchResolver.GetRequiredClinicBranchId();
-        if (entityBranchId != branchId)
-            throw new BusinessException(BlueDentalDomainErrorCodes.Organizations.BranchNotAssigned);
+        if (entity.BranchId != branchId)
+            throw new EntityNotFoundException(typeof(Appointment), entity.Id);
     }
 }

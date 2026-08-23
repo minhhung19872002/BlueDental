@@ -1644,6 +1644,7 @@
     "fieldCode": "Voucher code",
     "fieldCodeRequired": "Please enter a code",
     "fieldName": "Program name",
+    "namePlaceholder": "Summer promotion",
     "fieldNameRequired": "Please enter a name",
     "fieldDiscountType": "Discount type",
     "discountTypePercent": "Percentage (%)",
@@ -1738,6 +1739,7 @@
     "itemCodeLabel": "Item Code",
     "itemCodeRequired": "Please enter item code",
     "nameLabel": "Material Name",
+    "namePlaceholder": "Medical gloves",
     "nameRequired": "Please enter name",
     "groupLabel": "Category Group",
     "selectGroupPlaceholder": "Select group",
@@ -1748,6 +1750,7 @@
     "salePriceLabel": "Sale Price (₫)",
     "supplierLabel": "Supplier",
     "originLabel": "Origin",
+    "originPlaceholder": "Vietnam",
     "reorderLevelLabel": "Minimum Stock Level",
     "reorderLevelTooltip": "Below this level, the supply shows Low Stock status",
     "notNegative": "Must not be negative"

@@ -43,5 +43,4 @@ public class GetPatientListInput : PagedAndSortedResultRequestDto
 {
     public string? Filter { get; set; }
     public PatientStatus? Status { get; set; }
-    public Guid? BranchId { get; set; }
 }

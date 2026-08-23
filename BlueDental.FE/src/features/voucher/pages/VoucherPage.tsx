@@ -175,7 +175,7 @@ function VoucherModal({
               label={t("voucher.fieldName")}
               rules={[{ required: true, message: t("voucher.fieldNameRequired") }]}
             >
-              <Input placeholder="Khuyến mãi hè" />
+              <Input placeholder={t("voucher.namePlaceholder")} />
             </Form.Item>
           </Col>
         </Row>

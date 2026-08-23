@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
+using Volo.Abp.Domain.Entities;
 using Volo.Abp.Domain.Repositories;
 
 namespace BlueDental.PatientManagement;
@@ -56,7 +57,7 @@ public class PatientAppService : ApplicationService, IPatientAppService
     public async Task<PatientDto> GetAsync(Guid id)
     {
         var patient = await _repository.GetAsync(id);
-        GuardBranchAccess(patient.BranchId);
+        GuardBranchAccess(patient);
         return ObjectMapper.Map<Patient, PatientDto>(patient);
     }
 
@@ -116,7 +117,7 @@ public class PatientAppService : ApplicationService, IPatientAppService
     public async Task<PatientDto> UpdateAsync(Guid id, UpdatePatientDto input)
     {
         var patient = await _repository.GetAsync(id);
-        GuardBranchAccess(patient.BranchId);
+        GuardBranchAccess(patient);
         patient.UpdateDemographics(input.FirstName, input.LastName, input.DateOfBirth, input.Gender);
         var contact = new ContactInfo(input.PhoneNumber, input.Email, null);
         patient.UpdateContact(contact);
@@ -128,15 +129,15 @@ public class PatientAppService : ApplicationService, IPatientAppService
     public async Task DeactivateAsync(Guid id)
     {
         var patient = await _repository.GetAsync(id);
-        GuardBranchAccess(patient.BranchId);
+        GuardBranchAccess(patient);
         patient.Deactivate();
         await _repository.UpdateAsync(patient, autoSave: true);
     }
 
-    private void GuardBranchAccess(Guid entityBranchId)
+    private void GuardBranchAccess(Patient entity)
     {
         var branchId = _branchResolver.GetRequiredClinicBranchId();
-        if (entityBranchId != branchId)
-            throw new BusinessException(BlueDentalDomainErrorCodes.Organizations.BranchNotAssigned);
+        if (entity.BranchId != branchId)
+            throw new EntityNotFoundException(typeof(Patient), entity.Id);
     }
 }

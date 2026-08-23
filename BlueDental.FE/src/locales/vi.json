@@ -1741,6 +1741,7 @@
     "fieldCode": "Mã voucher",
     "fieldCodeRequired": "Vui lòng nhập mã",
     "fieldName": "Tên chương trình",
+    "namePlaceholder": "Khuyến mãi hè",
     "fieldNameRequired": "Vui lòng nhập tên",
     "fieldDiscountType": "Kiểu giảm",
     "discountTypePercent": "Theo phần trăm (%)",
@@ -1789,6 +1790,7 @@
     "itemCodeLabel": "Mã vật tư",
     "itemCodeRequired": "Vui lòng nhập mã",
     "nameLabel": "Tên vật liệu",
+    "namePlaceholder": "Găng tay y tế",
     "nameRequired": "Vui lòng nhập tên",
     "groupLabel": "Nhóm phân loại",
     "selectGroupPlaceholder": "Chọn nhóm",
@@ -1799,6 +1801,7 @@
     "salePriceLabel": "Giá bán (đ)",
     "supplierLabel": "Nhà cung cấp",
     "originLabel": "Xuất xứ",
+    "originPlaceholder": "Việt Nam",
     "reorderLevelLabel": "Mức tồn tối thiểu",
     "reorderLevelTooltip": "Dưới mức này, vật tư hiển thị trạng thái Sắp hết",
     "notNegative": "Không được âm"

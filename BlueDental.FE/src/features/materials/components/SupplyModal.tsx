@@ -139,7 +139,7 @@ export function SupplyModal({
               label={t("supplyModal.nameLabel")}
               rules={[{ required: true, message: t("supplyModal.nameRequired") }]}
             >
-              <Input placeholder="Găng tay y tế" />
+              <Input placeholder={t("supplyModal.namePlaceholder")} />
             </Form.Item>
           </Col>
         </Row>
@@ -182,7 +182,7 @@ export function SupplyModal({
           </Col>
           <Col span={12}>
             <Form.Item name="origin" label={t("supplyModal.originLabel")}>
-              <Input placeholder="Việt Nam" />
+              <Input placeholder={t("supplyModal.originPlaceholder")} />
             </Form.Item>
           </Col>
         </Row>
