@@ -81,6 +81,8 @@ export interface ReceptionMetrics {
 }
 
 export interface CreateReceptionInput {
+  /** Existing record; omit for a walk-in with no record yet. */
+  patientId?: string;
   patientName: string;
   phoneNumber: string;
   dateOfBirth?: string;

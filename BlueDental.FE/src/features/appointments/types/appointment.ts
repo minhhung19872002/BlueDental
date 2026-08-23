@@ -42,6 +42,9 @@ export type UpdateAppointmentRequest = Partial<CreateAppointmentRequest> & {
 
 export interface AppointmentListQuery {
   date?: string;
+  /** Inclusive range, for the week and month grids. */
+  fromDate?: string;
+  toDate?: string;
   patientId?: string;
   doctorId?: string;
   status?: AppointmentStatus;

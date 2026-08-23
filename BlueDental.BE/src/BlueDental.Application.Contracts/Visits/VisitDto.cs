@@ -43,3 +43,18 @@ public class GetVisitListInput : PagedAndSortedResultRequestDto
     public VisitStatus? Status { get; set; }
     public string? Filter { get; set; }
 }
+
+/// <summary>
+/// The counters above the reception list. The reference shows the same six on
+/// <c>/schedules/schedule_stats</c>.
+/// </summary>
+public class VisitStatsDto
+{
+    public int Total { get; set; }
+    public int Scheduled { get; set; }
+    public int CheckedIn { get; set; }
+    public int InProgress { get; set; }
+    public int Completed { get; set; }
+    public int Cancelled { get; set; }
+    public int NoShow { get; set; }
+}

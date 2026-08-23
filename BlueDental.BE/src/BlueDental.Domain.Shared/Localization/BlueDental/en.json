@@ -156,6 +156,13 @@
     "BlueDental:CustomerCare:0004": "A successful care call needs an outcome.",
     "BlueDental:Patient:0006": "That image file size is not accepted.",
     "BlueDental:Patient:0007": "That image type is not supported.",
-    "BlueDental:Patient:0008": "Image not found."
+    "BlueDental:Patient:0008": "Image not found.",
+    "BlueDental:Appointment:InvalidSlot": "An appointment must end after it starts.",
+    "BlueDental:Appointment:SlotTooLong": "That appointment is longer than allowed.",
+    "BlueDental:Auth:ChangePasswordFailed": "The password could not be changed.",
+    "BlueDental:Auth:NotAuthenticated": "You are not signed in.",
+    "BlueDental:Tooth:InvalidFdiCode": "That tooth number is not a valid FDI code.",
+    "BlueDental:Tooth:InvalidPosition": "That tooth position is not valid.",
+    "BlueDental:Tooth:InvalidQuadrant": "That quadrant is not valid."
   }
 }

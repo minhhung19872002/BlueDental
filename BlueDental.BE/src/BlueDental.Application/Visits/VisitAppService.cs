@@ -23,14 +23,7 @@ public class VisitAppService : ApplicationService, IVisitAppService
     [Authorize(BlueDentalAbilityPermissions.Reception.Read)]
     public async Task<PagedResultDto<VisitDto>> GetListAsync(GetVisitListInput input)
     {
-        var query = await _repository.GetQueryableAsync();
-
-        if (input.BranchId.HasValue)
-            query = query.Where(v => v.BranchId == input.BranchId.Value);
-        if (input.PatientId.HasValue)
-            query = query.Where(v => v.PatientId == input.PatientId.Value);
-        if (input.Status.HasValue)
-            query = query.Where(v => v.Status == input.Status.Value);
+        var query = await FilteredQueryAsync(input);
 
         var totalCount = query.Count();
         var items = query
@@ -42,6 +35,47 @@ public class VisitAppService : ApplicationService, IVisitAppService
         return new PagedResultDto<VisitDto>(
             totalCount,
             ObjectMapper.Map<List<Visit>, List<VisitDto>>(items));
+    }
+
+    [Authorize(BlueDentalAbilityPermissions.Reception.Read)]
+    public async Task<VisitStatsDto> GetStatsAsync(GetVisitListInput input)
+    {
+        // The counters describe the whole filtered set, so they ignore paging.
+        var items = (await FilteredQueryAsync(input)).ToList();
+
+        return new VisitStatsDto
+        {
+            Total = items.Count,
+            Scheduled = items.Count(v => v.Status == VisitStatus.Scheduled),
+            CheckedIn = items.Count(v => v.Status == VisitStatus.CheckedIn),
+            InProgress = items.Count(v => v.Status == VisitStatus.InProgress),
+            Completed = items.Count(v => v.Status == VisitStatus.Completed),
+            Cancelled = items.Count(v => v.Status == VisitStatus.Cancelled),
+            NoShow = items.Count(v => v.Status == VisitStatus.NoShow)
+        };
+    }
+
+    /// <summary>Shared so the list and the counters can never drift apart.</summary>
+    private async Task<IQueryable<Visit>> FilteredQueryAsync(GetVisitListInput input)
+    {
+        var query = await _repository.GetQueryableAsync();
+
+        if (input.BranchId.HasValue)
+            query = query.Where(v => v.BranchId == input.BranchId.Value);
+        if (input.PatientId.HasValue)
+            query = query.Where(v => v.PatientId == input.PatientId.Value);
+        if (input.Status.HasValue)
+            query = query.Where(v => v.Status == input.Status.Value);
+
+        if (!string.IsNullOrWhiteSpace(input.Filter))
+        {
+            var filter = input.Filter.Trim();
+            query = query.Where(v =>
+                (v.ChiefComplaint != null && v.ChiefComplaint.Contains(filter))
+                || (v.Notes != null && v.Notes.Contains(filter)));
+        }
+
+        return query;
     }
 
     [Authorize(BlueDentalAbilityPermissions.Reception.Read)]

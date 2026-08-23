@@ -1,314 +1,201 @@
 import { api } from "@/lib/axios";
+import { DEFAULT_BRANCH_ID } from "@/lib/clinicBranch";
+import { splitVietnameseName } from "@/utils/vietnameseName";
 import type {
-  ReceptionItem,
-  ReceptionFilter,
-  ReceptionMetrics,
   CreateReceptionInput,
+  ReceptionFilter,
+  ReceptionItem,
+  ReceptionMetrics,
   ReceptionStatus,
 } from "../types/reception";
 
-export const MOCK_PATIENTS = [
-  { id: "pat-001", code: "DH26001", name: "Nguyễn Văn An", phone: "0912345678" },
-  { id: "pat-002", code: "DH26002", name: "Trần Thị Mai", phone: "0987654321" },
-  { id: "pat-003", code: "DH26003", name: "Lê Hoàng Nam", phone: "0903112233" },
-  { id: "pat-004", code: "DH26004", name: "Phạm Hồng Dung", phone: "0977889900" },
-  { id: "pat-005", code: "DH26005", name: "Vũ Quốc Anh", phone: "0944556677" },
-  { id: "pat-006", code: "DH26006", name: "Cao Thị Thanh Tuyết", phone: "0901234567" },
-  { id: "pat-007", code: "DH26007", name: "Lê Thị Liên", phone: "0933445566" },
-  { id: "pat-008", code: "DH26008", name: "Đặng Hoàng Nghi Dung", phone: "0966778899" },
-  { id: "pat-009", code: "DH26009", name: "Phan Hải Bình", phone: "0955667788" },
-  { id: "pat-010", code: "DH26010", name: "Trần Cao Phong", phone: "0944332211" },
-  { id: "pat-011", code: "DH26011", name: "Mai Thị Thu Thủy", phone: "0922113344" },
-  { id: "pat-012", code: "DH26012", name: "Trần Quế Chi", phone: "0911223344" },
-];
+/** Matches BlueDental.Visits.VisitStatus. */
+const VISIT_STATUS = {
+  Scheduled: 1,
+  CheckedIn: 2,
+  InProgress: 3,
+  Completed: 4,
+  Cancelled: 5,
+  NoShow: 6,
+} as const;
 
-const INITIAL_MOCK_RECEPTIONS: ReceptionItem[] = [
-  {
-    id: "rec-001",
-    voucherCode: "TN-20260821-01",
-    patientId: "pat-001",
-    patientName: "Nguyễn Văn An",
-    patientYearOfBirth: 1990,
-    patientPhone: "0912345678",
+/** What the server sends for one reception. */
+interface VisitDto {
+  id: string;
+  patientId: string;
+  branchId: string;
+  dentistId: string | null;
+  status: number;
+  chiefComplaint: string | null;
+  notes: string | null;
+  scheduledAt: string;
+  checkedInAt: string | null;
+  completedAt: string | null;
+  patientName: string | null;
+  dentistName: string | null;
+  creationTime: string;
+}
+
+interface VisitStatsDto {
+  total: number;
+  scheduled: number;
+  checkedIn: number;
+  inProgress: number;
+  completed: number;
+  cancelled: number;
+  noShow: number;
+}
+
+/**
+ * The reception board groups Scheduled and CheckedIn together as "chờ khám" —
+ * both mean the patient is waiting for a dentist.
+ */
+function toReceptionStatus(status: number): ReceptionStatus {
+  switch (status) {
+    case VISIT_STATUS.InProgress:
+      return "InProgress";
+    case VISIT_STATUS.Completed:
+      return "Completed";
+    default:
+      return "WaitingForExam";
+  }
+}
+
+function toVisitStatus(status?: ReceptionStatus): number | undefined {
+  switch (status) {
+    case "InProgress":
+      return VISIT_STATUS.InProgress;
+    case "Completed":
+      return VISIT_STATUS.Completed;
+    case "WaitingForExam":
+      return VISIT_STATUS.CheckedIn;
+    default:
+      return undefined;
+  }
+}
+
+function formatTime(value: string | null): string {
+  if (!value) return "—";
+  return new Date(value).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+}
+
+function adaptVisit(dto: VisitDto): ReceptionItem {
+  return {
+    id: dto.id,
+    voucherCode: `TN-${dto.id.slice(0, 8).toUpperCase()}`,
+    patientId: dto.patientId,
+    patientName: dto.patientName ?? "Bệnh nhân",
+    patientPhone: "",
     patientType: "New",
-    doctorId: "doc-001",
-    doctorName: "BS. Trần Minh Tuấn",
-    adviseDoctorName: "BS. Lê Thị Hoa",
+    doctorId: dto.dentistId ?? "",
+    doctorName: dto.dentistName ?? "Chưa phân công",
     refType: "Medical",
-    status: "WaitingForExam",
-    counterStatus: "Arrived",
-    appointmentTime: "08:00",
-    step1Time: "08:15",
-    totalDue: 1500000,
-    expectedRevenue: 1500000,
-    services: ["Khám tổng quát", "Chụp phim X-quang Pano"],
-    notes: "Bệnh nhân đau răng số 36 nhẹ",
-    arrivalTime: "08:15",
-    createdAt: "2026-08-21T08:15:00Z",
-  },
-  {
-    id: "rec-002",
-    voucherCode: "TN-20260821-02",
-    patientId: "pat-002",
-    patientName: "Trần Thị Mai",
-    patientYearOfBirth: 1985,
-    patientPhone: "0987654321",
-    patientType: "Returning",
-    doctorId: "doc-002",
-    doctorName: "BS. Nguyễn Văn Hùng",
-    adviseDoctorName: "NV. Phạm Thị Hương",
-    refType: "Self",
-    status: "InProgress",
-    counterStatus: "Arrived",
-    appointmentTime: "08:30",
-    step1Time: "08:45",
-    step2Time: "09:00",
-    selectedOutcome: "EndTreatment",
-    totalDue: 4500000,
-    expectedRevenue: 5000000,
-    services: ["Tẩy trắng răng Laser", "Cạo vôi răng hai hàm"],
-    notes: "Lịch hẹn tái khám 6 tháng",
-    arrivalTime: "08:45",
-    createdAt: "2026-08-21T08:45:00Z",
-  },
-  {
-    id: "rec-003",
-    voucherCode: "TN-20260821-03",
-    patientId: "pat-003",
-    patientName: "Lê Hoàng Nam",
-    patientYearOfBirth: 1995,
-    patientPhone: "0903112233",
-    patientType: "New",
-    doctorId: "doc-001",
-    doctorName: "BS. Trần Minh Tuấn",
-    adviseDoctorName: "BS. Trần Minh Tuấn",
-    refType: "Marketing",
-    status: "Completed",
-    counterStatus: "Converted",
-    appointmentTime: "09:00",
-    step1Time: "09:05",
-    step2Time: "09:20",
-    step3Time: "10:30",
-    selectedOutcome: "FollowUp",
-    totalDue: 12000000,
-    expectedRevenue: 12000000,
-    services: ["Trám răng Composite 2 răng", "Gắn mão sứ Zirconia"],
-    notes: "Đã thanh toán đủ, hẹn lắp mão ngày 25/08",
-    arrivalTime: "09:00",
-    createdAt: "2026-08-21T09:00:00Z",
-  },
-  {
-    id: "rec-004",
-    voucherCode: "TN-20260821-04",
-    patientId: "pat-004",
-    patientName: "Phạm Hồng Dung",
-    patientYearOfBirth: 2000,
-    patientPhone: "0977889900",
-    patientType: "Returning",
-    doctorId: "doc-003",
-    doctorName: "BS. Đặng Thu Hà",
-    adviseDoctorName: "NV. Lê Thanh",
-    refType: "Self",
-    status: "WaitingForExam",
-    counterStatus: "Late",
-    appointmentTime: "09:00",
-    totalDue: 800000,
-    expectedRevenue: 800000,
-    services: ["Chăm sóc định kỳ niềng răng"],
-    notes: "Thay thun chỉnh nha định kỳ",
-    arrivalTime: "09:30",
-    createdAt: "2026-08-21T09:30:00Z",
-  },
-  {
-    id: "rec-005",
-    voucherCode: "TN-20260821-05",
-    patientId: "pat-005",
-    patientName: "Vũ Quốc Anh",
-    patientYearOfBirth: 1988,
-    patientPhone: "0944556677",
-    patientType: "New",
-    doctorId: "doc-002",
-    doctorName: "BS. Nguyễn Văn Hùng",
-    adviseDoctorName: "BS. Nguyễn Văn Hùng",
-    refType: "Referral",
-    status: "InProgress",
-    counterStatus: "Arrived",
-    appointmentTime: "10:00",
-    step1Time: "10:05",
-    totalDue: 25000000,
-    expectedRevenue: 30000000,
-    services: ["Cấy ghép Implant Straumann - Trụ 1"],
-    notes: "Khách hàng ưu tiên phòng VIP 1",
-    arrivalTime: "10:00",
-    createdAt: "2026-08-21T10:00:00Z",
-  },
-];
+    status: toReceptionStatus(dto.status),
+    totalDue: 0,
+    expectedRevenue: 0,
+    services: dto.chiefComplaint ? [dto.chiefComplaint] : ["Khám tư vấn"],
+    notes: dto.notes ?? dto.chiefComplaint ?? undefined,
+    arrivalTime: formatTime(dto.checkedInAt ?? dto.scheduledAt),
+    createdAt: dto.creationTime,
+  };
+}
 
-let localReceptionsStore = [...INITIAL_MOCK_RECEPTIONS];
+const VISITS = "/v1/app/visits";
 
-export const MOCK_DOCTORS = [
-  { id: "doc-001", name: "BS. Trần Minh Tuấn", title: "Bác sĩ Chỉnh nha" },
-  { id: "doc-002", name: "BS. Nguyễn Văn Hùng", title: "Bác sĩ Phục hình & Implant" },
-  { id: "doc-003", name: "BS. Đặng Thu Hà", title: "Bác sĩ Nha khoa Tổng quát" },
-];
+/** A walk-in with no record yet gets one before the visit is opened. */
+async function registerWalkIn(input: CreateReceptionInput): Promise<string> {
+  const { firstName, lastName } = splitVietnameseName(input.patientName);
 
+  const patient = await api
+    .post<{ id: string }>("/v1/app/patients", {
+      firstName,
+      lastName,
+      dateOfBirth: input.dateOfBirth ?? "1990-01-01",
+      gender: "Other",
+      phoneNumber: input.phoneNumber || undefined,
+      branchId: DEFAULT_BRANCH_ID,
+    })
+    .then((r) => r.data);
+
+  return patient.id;
+}
+
+/**
+ * Tiếp nhận. Every call goes to the real API — the screen used to fall back to a
+ * local store, which made it look like it worked while nothing was persisted.
+ */
 export const receptionApi = {
-  async getList(filter: ReceptionFilter = {}): Promise<{
-    items: ReceptionItem[];
-    total: number;
-  }> {
-    try {
-      const res = await api.get("/v1/app/visits", {
+  async getList(filter: ReceptionFilter = {}): Promise<{ items: ReceptionItem[]; total: number }> {
+    const page = await api
+      .get<{ items: VisitDto[]; totalCount: number }>(VISITS, {
         params: {
-          keyword: filter.keyword,
-          dentistId: filter.doctorId,
-          status: filter.status !== "All" ? filter.status : undefined,
+          branchId: DEFAULT_BRANCH_ID,
+          filter: filter.keyword,
+          status: toVisitStatus(filter.status),
           maxResultCount: 50,
         },
-      });
+      })
+      .then((r) => r.data);
 
-      if (res.data?.items && Array.isArray(res.data.items) && res.data.items.length > 0) {
-        const mappedItems: ReceptionItem[] = res.data.items.map((dto: Record<string, unknown>) => ({
-          id: dto.id as string,
-          voucherCode: `TN-${(dto.id as string).slice(0, 8).toUpperCase()}`,
-          patientId: dto.patientId as string,
-          patientName: (dto.patientName as string) || "Bệnh nhân",
-          patientPhone: (dto.patientPhone as string) || "0900000000",
-          patientType: "New" as const,
-          doctorId: dto.dentistId as string,
-          doctorName: (dto.dentistName as string) || "Bác sĩ",
-          refType: "Medical" as const,
-          status: dto.status === 3 ? "WaitingForExam" as const
-            : dto.status === 4 ? "InProgress" as const
-            : dto.status === 5 ? "Completed" as const
-            : "WaitingForExam" as const,
-          totalDue: 0,
-          expectedRevenue: 0,
-          services: [(dto.procedureName as string) || "Khám tư vấn"],
-          notes: (dto.notes as string) || (dto.chiefComplaint as string),
-          arrivalTime: new Date(dto.slotStart as string).toLocaleTimeString("vi-VN", {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-          createdAt: (dto.creationTime as string) || new Date().toISOString(),
-        }));
-        return { items: mappedItems, total: res.data.totalCount as number };
-      }
-    } catch {
-      // Failover to local store in dev mode
-    }
+    // The dentist filter is not a server filter yet, so it narrows what loaded.
+    const items = page.items
+      .map(adaptVisit)
+      .filter((item) => !filter.doctorId || item.doctorId === filter.doctorId);
 
-    let result = [...localReceptionsStore];
-
-    if (filter.status && filter.status !== "All") {
-      result = result.filter((item) => item.status === filter.status);
-    }
-
-    if (filter.doctorId) {
-      result = result.filter((item) => item.doctorId === filter.doctorId);
-    }
-
-    if (filter.keyword) {
-      const kw = filter.keyword.trim().toLowerCase();
-      result = result.filter(
-        (item) =>
-          item.patientName.toLowerCase().includes(kw) ||
-          item.patientPhone.includes(kw) ||
-          item.voucherCode.toLowerCase().includes(kw),
-      );
-    }
-
-    return {
-      items: result,
-      total: result.length,
-    };
+    return { items, total: page.totalCount };
   },
 
   async getMetrics(): Promise<ReceptionMetrics> {
-    const store = localReceptionsStore;
-    const waitingCount = store.filter((i) => i.status === "WaitingForExam").length;
-    const inProgressCount = store.filter((i) => i.status === "InProgress").length;
-    const completedCount = store.filter((i) => i.status === "Completed").length;
+    const stats = await api
+      .get<VisitStatsDto>(`${VISITS}/stats`, { params: { branchId: DEFAULT_BRANCH_ID } })
+      .then((r) => r.data);
 
     return {
-      totalCount: store.length,
-      waitingCount,
-      inProgressCount,
-      completedCount,
+      totalCount: stats.total,
+      waitingCount: stats.scheduled + stats.checkedIn,
+      inProgressCount: stats.inProgress,
+      completedCount: stats.completed,
       counters: {
-        scheduledCount: 12,
-        arrivedCount: store.length,
-        cancelledCount: 1,
-        lateCount: 0,
+        scheduledCount: stats.scheduled,
+        arrivedCount: stats.checkedIn + stats.inProgress + stats.completed,
+        cancelledCount: stats.cancelled,
+        lateCount: stats.noShow,
         temporaryCount: 0,
         convertedCount: 0,
       },
     };
   },
 
+  /**
+   * Receiving a patient registers them first — a reception is always about a
+   * patient record, so one is created when the walk-in has none yet.
+   */
   async create(input: CreateReceptionInput): Promise<ReceptionItem> {
-    try {
-      await api.post("/v1/app/visits", {
-        patientId: "00000000-0000-0000-0000-000000000001",
-        dentistId: input.doctorId,
-        branchId: "00000000-0000-0000-0000-000000000001",
+    const patientId = input.patientId ?? (await registerWalkIn(input));
+
+    const visit = await api
+      .post<VisitDto>(VISITS, {
+        patientId,
+        branchId: DEFAULT_BRANCH_ID,
+        dentistId: input.doctorId || undefined,
         scheduledAt: new Date().toISOString(),
-        chiefComplaint: input.notes,
-      });
-    } catch {
-      // Failover to local store creation
-    }
+        chiefComplaint: input.services?.[0] ?? input.notes,
+      })
+      .then((r) => r.data);
 
-    const doc = MOCK_DOCTORS.find((d) => d.id === input.doctorId);
-    const newId = `rec-${Date.now().toString().slice(-4)}`;
-    const newItem: ReceptionItem = {
-      id: newId,
-      voucherCode: `TN-20260821-${(localReceptionsStore.length + 1)
-        .toString()
-        .padStart(2, "0")}`,
-      patientId: `pat-${Date.now().toString().slice(-4)}`,
-      patientName: input.patientName,
-      patientPhone: input.phoneNumber,
-      patientType: "New",
-      doctorId: input.doctorId,
-      doctorName: doc ? doc.name : "BS. Chưa phân công",
-      adviseDoctorName: doc ? doc.name : undefined,
-      refType: input.refType,
-      status: "WaitingForExam",
-      totalDue: 0,
-      expectedRevenue: 0,
-      services: input.services && input.services.length > 0 ? input.services : ["Khám tư vấn"],
-      notes: input.notes,
-      arrivalTime: new Date().toLocaleTimeString("vi-VN", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      createdAt: new Date().toISOString(),
-    };
+    // A walk-in is already here, so the visit is checked in straight away.
+    await api.post(`${VISITS}/${visit.id}/check-in`);
 
-    localReceptionsStore = [newItem, ...localReceptionsStore];
-    return newItem;
+    return adaptVisit({ ...visit, status: VISIT_STATUS.CheckedIn });
   },
 
-  async updateStatus(
-    id: string,
-    status: ReceptionStatus,
-  ): Promise<ReceptionItem> {
-    try {
-      const action = status === "InProgress" ? "start" : status === "Completed" ? "complete" : "check-in";
-      await api.post(`/v1/app/visits/${id}/${action}`);
-    } catch {
-      // Failover to local store update
-    }
+  async updateStatus(id: string, status: ReceptionStatus): Promise<ReceptionItem> {
+    const action =
+      status === "InProgress" ? "start" : status === "Completed" ? "complete" : "check-in";
 
-    const idx = localReceptionsStore.findIndex((i) => i.id === id);
-    if (idx === -1) {
-      throw new Error("Không tìm thấy hồ sơ tiếp nhận");
-    }
-    localReceptionsStore[idx] = {
-      ...localReceptionsStore[idx],
-      status,
-    };
-    return localReceptionsStore[idx];
+    await api.post(`${VISITS}/${id}/${action}`);
+
+    const visit = await api.get<VisitDto>(`${VISITS}/${id}`).then((r) => r.data);
+    return adaptVisit(visit);
   },
 };

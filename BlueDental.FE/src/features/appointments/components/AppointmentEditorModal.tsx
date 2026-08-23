@@ -6,18 +6,11 @@ import { z } from "zod";
 import dayjs from "dayjs";
 import { useCreateAppointment } from "../api/appointmentMutations";
 import { SearchSelect } from "@/components/SearchSelect";
-import { MOCK_PATIENTS } from "@/features/reception/api/receptionApi";
+import { usePatientOptions } from "@/hooks/usePatientOptions";
+import { useDentistList } from "@/features/staff/api/staffQueries";
 
-const MOCK_DOCTORS = [
-  { id: "d1", name: "BS Khanh" },
-  { id: "d2", name: "BS Tiên" },
-  { id: "d3", name: "BS Hương 4" },
-  { id: "d4", name: "BS Hương" },
-  { id: "d5", name: "BS Tới 10" },
-  { id: "d6", name: "BS Tới 3" },
-  { id: "d7", name: "BS Tới 1" },
-  { id: "d8", name: "BS Tới" },
-];
+/** One appointment slot, matching the calendar grid. */
+const SLOT_MINUTES = 30;
 
 const schema = z.object({
   patientId: z.string().min(1, "Vui lòng chọn khách hàng"),
@@ -44,6 +37,9 @@ export function AppointmentEditorModal({ open, appointmentId, initialDate, onClo
   const isEdit = Boolean(appointmentId);
   const createMutation = useCreateAppointment();
 
+  const { data: patients } = usePatientOptions();
+  const { data: dentists } = useDentistList();
+
   const { control, handleSubmit, reset, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -63,7 +59,10 @@ export function AppointmentEditorModal({ open, appointmentId, initialDate, onClo
 
   const onSubmit = (data: FormValues) => {
     const startDateTime = `${data.date}T${data.startTime}:00`;
-    const endDateTime = data.endTime ? `${data.date}T${data.endTime}:00` : `${data.date}T${data.startTime}:00`;
+
+    // A slot must end after it starts, so an unset end falls back to one slot long.
+    const endTime = data.endTime || dayjs(startDateTime).add(SLOT_MINUTES, "minute").format("HH:mm");
+    const endDateTime = `${data.date}T${endTime}:00`;
 
     createMutation.mutate(
       {
@@ -123,7 +122,7 @@ export function AppointmentEditorModal({ open, appointmentId, initialDate, onClo
               <SearchSelect
                 value={field.value || undefined}
                 placeholder="Tìm kiếm khách hàng..."
-                options={MOCK_PATIENTS.map((p) => ({
+                options={(patients ?? []).map((p) => ({
                   value: p.id,
                   label: `[${p.code}] - ${p.name.toUpperCase()}`,
                 }))}
@@ -145,7 +144,7 @@ export function AppointmentEditorModal({ open, appointmentId, initialDate, onClo
               <SearchSelect
                 value={field.value || undefined}
                 placeholder="Chọn bác sĩ"
-                options={MOCK_DOCTORS.map((d) => ({ value: d.id, label: d.name }))}
+                options={(dentists ?? []).map((d) => ({ value: d.id, label: d.name }))}
                 onChange={(v) => field.onChange(v ?? "")}
                 status={errors.doctorId ? "error" : ""}
               />

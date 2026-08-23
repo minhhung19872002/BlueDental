@@ -4,6 +4,8 @@ import { SearchOutlined, PlusOutlined } from "@ant-design/icons";
 import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
 
+import { useAppointmentList } from "../api/appointmentQueries";
+
 const SLOT_MINUTES = 30;
 const DAY_START_H = 6;
 const DAY_END_H = 22;
@@ -38,6 +40,31 @@ export function WeekViewCalendar({ currentDate, keyword = "", onKeywordChange, o
   );
 
   const slots = useMemo(() => Array.from({ length: TOTAL_SLOTS }, (_, i) => i), []);
+
+  const { data: appointments } = useAppointmentList({
+    fromDate: weekStart.format("YYYY-MM-DD"),
+    toDate: weekStart.add(6, "day").format("YYYY-MM-DD"),
+    maxResultCount: 500,
+  });
+
+  /** One booking per day column and half-hour slot. */
+  const bookingsByCell = useMemo(() => {
+    const map = new Map<string, string>();
+
+    for (const appointment of appointments?.items ?? []) {
+      const start = dayjs(appointment.startTime);
+      const dayIndex = start.diff(weekStart.startOf("day"), "day");
+      const slotIndex = Math.floor(
+        (start.hour() * 60 + start.minute() - DAY_START_H * 60) / SLOT_MINUTES,
+      );
+
+      if (dayIndex >= 0 && dayIndex < 7 && slotIndex >= 0 && slotIndex < TOTAL_SLOTS) {
+        map.set(`${dayIndex}-${slotIndex}`, appointment.patientName);
+      }
+    }
+
+    return map;
+  }, [appointments, weekStart]);
   const isHourStart = (slotIdx: number) => slotIdx % 2 === 0;
   const today = dayjs();
 
@@ -146,6 +173,9 @@ export function WeekViewCalendar({ currentDate, keyword = "", onKeywordChange, o
                   <div
                     key={slotIdx}
                     onClick={() => onCellClick?.(dayIdx, slotIdx)}
+                    data-testid={
+                      bookingsByCell.has(`${dayIdx}-${slotIdx}`) ? "calendar-booking" : undefined
+                    }
                     style={{
                       height: SLOT_H,
                       borderBottom: isHourStart(slotIdx) ? "1px solid #E5E7EB" : "1px dashed #F3F4F6",

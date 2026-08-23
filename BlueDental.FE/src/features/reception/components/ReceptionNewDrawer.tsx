@@ -4,7 +4,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useCreateReception } from "../api/receptionMutations";
-import { MOCK_PATIENTS } from "../api/receptionApi";
+import { usePatientOptions } from "@/hooks/usePatientOptions";
 import { SearchSelect } from "@/components/SearchSelect";
 import type { RefType } from "../types/reception";
 
@@ -39,6 +39,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
   onClose,
 }) => {
   const createMutation = useCreateReception();
+  const { data: patients } = usePatientOptions();
   const [selectedPhone, setSelectedPhone] = useState<string>("---");
 
   const {
@@ -61,7 +62,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
   });
 
   const handlePatientChange = (patientId: string) => {
-    const patient = MOCK_PATIENTS.find((p) => p.id === patientId);
+    const patient = (patients ?? []).find((p) => p.id === patientId);
     if (patient) {
       setValue("patientName", patient.name, { shouldValidate: true });
       setValue("patientId", patient.id);
@@ -72,6 +73,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
   const onSubmit = (data: FormValues) => {
     createMutation.mutate(
       {
+        patientId: data.patientId,
         patientName: data.patientName,
         phoneNumber: data.phoneNumber ?? "",
         doctorId: data.doctorId,
@@ -115,7 +117,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
       <div className="rn-form">
         {/* Patient select + Tạo Mới */}
         <div className="rn-row">
-          <div className="rn-field rn-field--flex1">
+          <div className="rn-field rn-field--flex1" data-testid="reception-patient">
             <label className="rn-label rn-label--required">Khách hàng</label>
             <Controller
               name="patientId"
@@ -124,7 +126,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
                 <SearchSelect
                   value={field.value || undefined}
                   placeholder="Tìm kiếm khách hàng"
-                  options={MOCK_PATIENTS.map((p) => ({
+                  options={(patients ?? []).map((p) => ({
                     value: p.id,
                     label: `[${p.code}] - ${p.name.toUpperCase()}`,
                   }))}
@@ -155,7 +157,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
         </div>
 
         {/* Doctor select */}
-        <div className="rn-field">
+        <div className="rn-field" data-testid="reception-doctor">
           <label className="rn-label">Bác sĩ điều trị</label>
           <Controller
             name="doctorId"

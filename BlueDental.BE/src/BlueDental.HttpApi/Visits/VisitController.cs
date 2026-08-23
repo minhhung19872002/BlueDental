@@ -17,6 +17,10 @@ public sealed class VisitController(IVisitAppService service) : BlueDentalContro
     public Task<PagedResultDto<VisitDto>> GetListAsync([FromQuery] GetVisitListInput input) =>
         service.GetListAsync(input);
 
+    [HttpGet("stats")]
+    public Task<VisitStatsDto> GetStatsAsync([FromQuery] GetVisitListInput input) =>
+        service.GetStatsAsync(input);
+
     [HttpGet("{id:guid}")]
     public Task<VisitDto> GetAsync(Guid id) => service.GetAsync(id);
 

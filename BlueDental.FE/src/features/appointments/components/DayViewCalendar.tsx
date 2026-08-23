@@ -3,6 +3,9 @@ import { Button, Input, Select } from "antd";
 import { SearchOutlined, LeftOutlined, RightOutlined } from "@ant-design/icons";
 import type { Dayjs } from "dayjs";
 
+import dayjs from "dayjs";
+import { useAppointmentList } from "../api/appointmentQueries";
+
 const SLOT_MINUTES = 30;
 const DAY_START_H = 6;
 const DAY_END_H = 24;
@@ -55,6 +58,29 @@ export function DayViewCalendar({
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const slots = useMemo(() => Array.from({ length: TOTAL_SLOTS }, (_, i) => i), []);
+
+  const { data: appointments } = useAppointmentList({
+    date: currentDate.format("YYYY-MM-DD"),
+    maxResultCount: 200,
+  });
+
+  /** One booking per doctor and half-hour slot, keyed for O(1) lookup per cell. */
+  const bookingsByCell = useMemo(() => {
+    const map = new Map<string, string>();
+
+    for (const appointment of appointments?.items ?? []) {
+      const start = dayjs(appointment.startTime);
+      const slotIndex = Math.floor(
+        (start.hour() * 60 + start.minute() - DAY_START_H * 60) / SLOT_MINUTES,
+      );
+
+      if (slotIndex >= 0 && slotIndex < TOTAL_SLOTS) {
+        map.set(`${appointment.doctorId}-${slotIndex}`, appointment.patientName);
+      }
+    }
+
+    return map;
+  }, [appointments]);
   const isHourStart = (slotIdx: number) => slotIdx % 2 === 0;
   const displayDate = currentDate.format("DD/MM/YYYY");
 
@@ -256,6 +282,9 @@ export function DayViewCalendar({
                   <div
                     key={`cell-${slotIdx}-${doc.id}`}
                     onClick={() => onCellClick?.(doc.id, slotIdx)}
+                    data-testid={
+                      bookingsByCell.has(`${doc.id}-${slotIdx}`) ? "calendar-booking" : undefined
+                    }
                     style={{
                       borderBottom: isHourStart(slotIdx + 1) ? "1px solid #E5E7EB" : "1px dashed #F3F4F6",
                       borderLeft: "1px solid #E5E7EB",
@@ -266,7 +295,25 @@ export function DayViewCalendar({
                     }}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "#EBF3FE"; }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = slotIdx % 4 < 2 ? "#FAFAFA" : "#fff"; }}
-                  />
+                  >
+                    {bookingsByCell.has(`${doc.id}-${slotIdx}`) && (
+                      <div
+                        style={{
+                          margin: 2,
+                          padding: "2px 6px",
+                          borderRadius: 4,
+                          background: "#2671D8",
+                          color: "#fff",
+                          fontSize: 11,
+                          overflow: "hidden",
+                          whiteSpace: "nowrap",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {bookingsByCell.get(`${doc.id}-${slotIdx}`)}
+                      </div>
+                    )}
+                  </div>
                 ))
               )}
             </>

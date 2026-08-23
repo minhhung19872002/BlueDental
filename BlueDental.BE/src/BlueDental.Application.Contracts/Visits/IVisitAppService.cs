@@ -8,6 +8,7 @@ namespace BlueDental.Visits;
 public interface IVisitAppService : IApplicationService
 {
     Task<PagedResultDto<VisitDto>> GetListAsync(GetVisitListInput input);
+    Task<VisitStatsDto> GetStatsAsync(GetVisitListInput input);
     Task<VisitDto> GetAsync(Guid id);
     Task<VisitDto> CreateAsync(CreateVisitDto input);
     Task<VisitDto> UpdateAsync(Guid id, UpdateVisitDto input);

@@ -110,10 +110,20 @@ export function toServerQuery(query: AppointmentListQuery): Record<string, unkno
     patientId: query.patientId,
     dentistId: query.doctorId,
     date: query.date,
+    fromDate: query.fromDate,
+    toDate: query.toDate,
     status: query.status ? CODE_BY_STATUS[query.status] : undefined,
     skipCount: query.skipCount,
     maxResultCount: query.maxResultCount,
   };
+}
+
+/**
+ * The form works in local wall-clock time, but PostgreSQL only accepts a UTC
+ * instant — sending "2026-08-23T09:00:00" made Npgsql refuse the +07:00 offset.
+ */
+function toInstant(value?: string): string | undefined {
+  return value ? dayjs(value).toISOString() : undefined;
 }
 
 export function toCreateRequest(request: CreateAppointmentRequest): Record<string, unknown> {
@@ -121,8 +131,8 @@ export function toCreateRequest(request: CreateAppointmentRequest): Record<strin
     patientId: request.patientId,
     dentistId: request.doctorId,
     branchId: request.branchId ?? DEFAULT_BRANCH_ID,
-    slotStart: request.startTime,
-    slotEnd: request.endTime,
+    slotStart: toInstant(request.startTime),
+    slotEnd: toInstant(request.endTime),
     type: DEFAULT_APPOINTMENT_TYPE,
     chiefComplaint: request.reason,
   };
@@ -130,8 +140,8 @@ export function toCreateRequest(request: CreateAppointmentRequest): Record<strin
 
 export function toUpdateRequest(request: UpdateAppointmentRequest): Record<string, unknown> {
   return {
-    slotStart: request.startTime,
-    slotEnd: request.endTime,
+    slotStart: toInstant(request.startTime),
+    slotEnd: toInstant(request.endTime),
     dentistId: request.doctorId,
     chiefComplaint: request.reason,
   };

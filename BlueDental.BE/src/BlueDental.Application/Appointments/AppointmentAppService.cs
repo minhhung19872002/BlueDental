@@ -35,13 +35,52 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         if (input.BranchId.HasValue) query = query.Where(a => a.BranchId == input.BranchId.Value);
         if (input.Status.HasValue) query = query.Where(a => a.Status == input.Status.Value);
 
+        // The calendar asks for one day or one week; without this the grids were
+        // fed every appointment the clinic has ever had.
+        if (input.Date.HasValue)
+        {
+            var from = ToInstant(input.Date.Value);
+            var to = from.AddDays(1);
+            query = query.Where(a => a.Slot.Start >= from && a.Slot.Start < to);
+        }
+        else
+        {
+            if (input.FromDate.HasValue)
+            {
+                var from = ToInstant(input.FromDate.Value);
+                query = query.Where(a => a.Slot.Start >= from);
+            }
+
+            if (input.ToDate.HasValue)
+            {
+                var to = ToInstant(input.ToDate.Value).AddDays(1);
+                query = query.Where(a => a.Slot.Start < to);
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(input.Filter))
+        {
+            var filter = input.Filter.Trim();
+            query = query.Where(a =>
+                (a.ChiefComplaint != null && a.ChiefComplaint.Contains(filter))
+                || (a.Notes != null && a.Notes.Contains(filter)));
+        }
+
         var totalCount = query.Count();
-        var items = query.Skip(input.SkipCount).Take(input.MaxResultCount).ToList();
+        var items = query
+            .OrderBy(a => a.Slot.Start)
+            .Skip(input.SkipCount)
+            .Take(input.MaxResultCount)
+            .ToList();
 
         return new PagedResultDto<AppointmentDto>(
             totalCount,
             ObjectMapper.Map<System.Collections.Generic.List<Appointment>, System.Collections.Generic.List<AppointmentDto>>(items));
     }
+
+    /// <summary>Slots are stored as UTC instants, so a calendar day starts at UTC midnight.</summary>
+    private static DateTimeOffset ToInstant(DateOnly date) =>
+        new(date.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
 
     [Authorize(BlueDentalAbilityPermissions.Appointment.Read)]
     public async Task<AppointmentDto> GetAsync(Guid id)

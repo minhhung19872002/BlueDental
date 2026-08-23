@@ -25,13 +25,14 @@ interface TabConfig {
   key: ReceptionStatus;
   label: string;
   countKey: "totalCount" | "waitingCount" | "inProgressCount" | "completedCount";
+  testId: string;
 }
 
 const TABS: TabConfig[] = [
-  { key: "All", label: "Tất cả", countKey: "totalCount" },
-  { key: "WaitingForExam", label: "Chờ khám", countKey: "waitingCount" },
-  { key: "InProgress", label: "Đang khám", countKey: "inProgressCount" },
-  { key: "Completed", label: "Hoàn thành", countKey: "completedCount" },
+  { key: "All", label: "Tất cả", countKey: "totalCount", testId: "reception-metric-total" },
+  { key: "WaitingForExam", label: "Chờ khám", countKey: "waitingCount", testId: "reception-metric-waiting" },
+  { key: "InProgress", label: "Đang khám", countKey: "inProgressCount", testId: "reception-metric-in-progress" },
+  { key: "Completed", label: "Hoàn thành", countKey: "completedCount", testId: "reception-metric-completed" },
 ];
 
 interface CounterConfig {
@@ -74,6 +75,7 @@ export const ReceptionStatusTabs: React.FC<ReceptionStatusTabsProps> = ({
                 key={tab.key}
                 type="button"
                 className={`reception-status-pill ${isActive ? "reception-status-pill--active" : ""}`}
+                data-testid={tab.testId}
                 onClick={() => onChange(tab.key)}
               >
                 {tab.label} ({count})

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Table, Tag, Button, Input, Select } from "antd";
 import { SearchOutlined, PlusOutlined } from "@ant-design/icons";
 import { useAppointmentList } from "../api/appointmentQueries";
+import { AppointmentEditorModal } from "../components/AppointmentEditorModal";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { useDebounce } from "@/hooks/useDebounce";
 import { StatusBadge } from "../components/StatusBadge";
@@ -24,6 +25,7 @@ export function AppointmentListPage() {
   const pagination = useTablePagination(20);
   const [keyword, setKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [editorOpen, setEditorOpen] = useState(false);
   const debouncedKeyword = useDebounce(keyword);
 
   const { data, isLoading } = useAppointmentList({
@@ -61,7 +63,7 @@ export function AppointmentListPage() {
               options={[]}
             />
           </div>
-          <Button type="primary" icon={<PlusOutlined />}>Tạo lịch hẹn</Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setEditorOpen(true)}>Tạo lịch hẹn</Button>
         </div>
       </div>
 
@@ -138,6 +140,12 @@ export function AppointmentListPage() {
           ]}
         />
       </div>
+
+      <AppointmentEditorModal
+        open={editorOpen}
+        onClose={() => setEditorOpen(false)}
+        onSuccess={() => setEditorOpen(false)}
+      />
     </div>
   );
 }

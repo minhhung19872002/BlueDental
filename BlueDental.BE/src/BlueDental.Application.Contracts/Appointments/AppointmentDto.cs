@@ -59,4 +59,8 @@ public class GetAppointmentListInput : PagedAndSortedResultRequestDto
     public Guid? BranchId { get; set; }
     public AppointmentStatus? Status { get; set; }
     public DateOnly? Date { get; set; }
+
+    /// <summary>Inclusive range, for the week and month grids.</summary>
+    public DateOnly? FromDate { get; set; }
+    public DateOnly? ToDate { get; set; }
 }
