@@ -6,6 +6,7 @@ import {
   useLaboOrderList,
   useCreateLaboOrder,
   useDeleteLaboOrder,
+  LABO_STATUS,
   LABO_STATUS_CONFIG,
   type LaboStatus,
   type LaboOrderDto,
@@ -121,10 +122,10 @@ function MauLaboView() {
   const [createOpen, setCreateOpen] = useState(false);
 
   const MAU_LABO_FILTER_TABS: { key: LaboStatus | "all"; label: string }[] = [
-    { key: "all",        label: t("Tất Cả Mẫu") },
-    { key: "New",        label: t("Mẫu Chưa Nhận") },
-    { key: "InProgress", label: t("Mẫu Giao Trễ") },
-    { key: "Completed",  label: t("Mẫu Đã Nhận Hàng") },
+    { key: "all",                  label: t("Tất Cả Mẫu") },
+    { key: LABO_STATUS.Sent,       label: t("Mẫu Chưa Nhận") },
+    { key: LABO_STATUS.InProgress, label: t("Mẫu Giao Trễ") },
+    { key: LABO_STATUS.Received,   label: t("Mẫu Đã Nhận Hàng") },
   ];
 
   const { data, isLoading } = useLaboOrderList({

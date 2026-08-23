@@ -90,6 +90,13 @@ public class BlueDentalBranchSeedContributor(
             await userManager.AddToRoleAsync(existing, "admin");
         }
 
+        // The branch claim comes from this property, not the assignment row.
+        if (existing.GetProperty<System.Guid?>(BlueDentalConsts.UserClinicBranchIdPropertyName) is null)
+        {
+            existing.SetProperty(BlueDentalConsts.UserClinicBranchIdPropertyName, SecondBranchId);
+            await userManager.UpdateAsync(existing);
+        }
+
         var alreadyAssigned = await assignmentRepository.AnyAsync(
             a => a.StaffId == existing.Id && a.ClinicBranchId == SecondBranchId);
 

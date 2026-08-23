@@ -166,6 +166,14 @@ public class BlueDentalDemoSeedContributor(
                 await userManager.AddToRoleAsync(user, DentistRole);
             }
 
+            // Without this property the user has no branch claim and every call
+            // they make is refused.
+            if (user.GetProperty<System.Guid?>(BlueDentalConsts.UserClinicBranchIdPropertyName) is null)
+            {
+                user.SetProperty(BlueDentalConsts.UserClinicBranchIdPropertyName, _branchId);
+                await userManager.UpdateAsync(user);
+            }
+
             var assigned = await assignmentRepository.AnyAsync(
                 a => a.StaffId == user.Id && a.ClinicBranchId == _branchId);
 

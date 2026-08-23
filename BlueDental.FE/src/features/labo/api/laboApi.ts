@@ -4,14 +4,24 @@ import type { PagedResult } from "@/types";
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
-export type LaboStatus = "New" | "InProgress" | "Completed" | "Rejected" | "Warranty";
+/** Matches BlueDental.Labo.LaboStatus on the server. */
+export const LABO_STATUS = {
+  Draft: 1,
+  Sent: 2,
+  InProgress: 3,
+  Received: 4,
+  Completed: 5,
+  Rejected: 6,
+} as const;
+export type LaboStatus = (typeof LABO_STATUS)[keyof typeof LABO_STATUS];
 
 export const LABO_STATUS_CONFIG: Record<LaboStatus, { label: string; color: string }> = {
-  New:        { label: "Mới",        color: "blue"    },
-  InProgress: { label: "Đang làm",   color: "orange"  },
-  Completed:  { label: "Hoàn thành", color: "green"   },
-  Rejected:   { label: "Từ chối",    color: "red"     },
-  Warranty:   { label: "Bảo hành",   color: "purple"  },
+  [LABO_STATUS.Draft]:      { label: "Nháp",         color: "default" },
+  [LABO_STATUS.Sent]:       { label: "Đã gửi",       color: "blue"    },
+  [LABO_STATUS.InProgress]: { label: "Đang làm",     color: "orange"  },
+  [LABO_STATUS.Received]:   { label: "Đã nhận hàng", color: "green"   },
+  [LABO_STATUS.Completed]:  { label: "Hoàn tất",     color: "green"   },
+  [LABO_STATUS.Rejected]:   { label: "Từ chối",      color: "red"     },
 };
 
 export interface LaboOrderDto {

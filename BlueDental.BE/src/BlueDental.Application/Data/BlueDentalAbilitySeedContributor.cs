@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Permissions;
+using Volo.Abp.Authorization.Permissions;
 using Volo.Abp.Data;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.PermissionManagement;
@@ -8,15 +9,21 @@ using Volo.Abp.PermissionManagement;
 namespace BlueDental.Data;
 
 /// <summary>
-/// Grants the whole ability catalog to the admin role.
+/// Grants every declared permission to the admin role.
 ///
 /// The reference's <c>clinicAdmin</c> role holds every one of the 83 subjects,
 /// so the equivalent BlueDental role must too — otherwise every screen 403s the
-/// moment the new ability checks are enforced. Roles below clinic admin are
-/// configured by an operator, exactly as on the reference.
+/// moment the checks are enforced. Roles below clinic admin are configured by an
+/// operator, exactly as on the reference.
+///
+/// This asks the permission definitions what exists rather than naming a
+/// catalogue: BlueDental grew a second one (<c>BlueDentalPermissions</c>
+/// alongside the abilities), and a seeder that knew only the first left every
+/// screen forbidden.
 /// </summary>
 public class BlueDentalAbilitySeedContributor(
-    IPermissionDataSeeder permissionDataSeeder) : IDataSeedContributor, ITransientDependency
+    IPermissionDataSeeder permissionDataSeeder,
+    IPermissionDefinitionManager permissionDefinitionManager) : IDataSeedContributor, ITransientDependency
 {
     /// <summary>
     /// ABP's role permission value provider name. The constant itself lives in
@@ -29,10 +36,14 @@ public class BlueDentalAbilitySeedContributor(
 
     public async Task SeedAsync(DataSeedContext context)
     {
-        var permissionNames = BlueDentalAbilities
+        var abilityNames = BlueDentalAbilities
             .All()
-            .Select(pair => BlueDentalAbilities.Permission(pair.Subject, pair.Action))
-            .ToArray();
+            .Select(pair => BlueDentalAbilities.Permission(pair.Subject, pair.Action));
+
+        var definedNames = (await permissionDefinitionManager.GetPermissionsAsync())
+            .Select(definition => definition.Name);
+
+        var permissionNames = abilityNames.Concat(definedNames).Distinct().ToArray();
 
         await permissionDataSeeder.SeedAsync(
             RoleProviderName,

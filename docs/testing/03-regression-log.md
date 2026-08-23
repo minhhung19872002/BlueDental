@@ -42,3 +42,17 @@ Defects found by running the real stack, and what stops them coming back.
 - R-04 only reproduces on the *second* write in a period. Specs that create data
   every run are what catch this class of defect; a fixture that reuses one record
   would not.
+
+## 2026-08-24 — merging origin/main into the design branch
+
+Three defects that only a running browser would have shown. None were type
+errors, so neither branch's typecheck had caught them.
+
+| What broke | Why | Fix |
+|---|---|---|
+| Every screen answered 403 | The merged services authorise against the ability catalogue, but the merge kept only main's permission definition provider, which does not declare it. ABP refuses a permission that was never defined, so no grant could help. | Registered the ability catalogue alongside main's permissions again, and made the seeder grant whatever the definitions declare rather than naming one catalogue. |
+| Every screen then answered `BlueDental:Organizations:0005` | main's resolver takes the clinic from a `ClinicBranchId` claim, which the claims contributor reads off the user's extra properties. The `admin` account had none. | The seeder now sets that property (and the assignment row) for admin, the demo dentists and the branch-two account. |
+| Labo crashed on render | `LABO_STATUS_CONFIG` was keyed by a string union (`"New"`, `"Warranty"`) the server never sends — `LaboStatus` is a numeric enum. `CONFIG[1]` was undefined and reading `.color` threw. Pre-existing on main. | Keyed the config by the server's enum and pointed the filter chips at Sent / InProgress / Received. |
+
+Caught by `e2e/screen-sweep.mjs`, which walks every route and fails on an
+application console error or an empty page.
