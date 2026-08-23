@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import type { PagedResult } from "@/types";
@@ -17,6 +17,7 @@ export const CATALOG_GROUP = {
   Diagnosis: "diagnosis",
   MedicationType: "medication_type",
   ConsultingData: "consulting_data",
+  Supplies: "supplies",
   Source: "source",
   DiseaseHistory: "disease_history",
   Occupation: "occupation",
@@ -75,5 +76,58 @@ export function useCatalogOptions(group: CatalogGroup) {
       }));
     },
     enabled: Boolean(branchId),
+  });
+}
+
+export interface TaxonomyGroupOption {
+  id: string;
+  name: string;
+  itemCount: number;
+}
+
+interface TaxonomyResponse {
+  id: string;
+  name: string;
+  itemCount: number;
+}
+
+/**
+ * Group panel of a catalog. Read + create only — full group management lives on
+ * the Danh mục screen; other features just need to pick or add a group.
+ */
+export function useTaxonomyGroupOptions(group: CatalogGroup) {
+  const branchId = useCurrentBranchId();
+
+  return useQuery({
+    queryKey: [...catalogOptionKeys.group(branchId, group), "taxonomies"] as const,
+    queryFn: async (): Promise<TaxonomyGroupOption[]> => {
+      const page = await api
+        .get<PagedResult<TaxonomyResponse>>("/v1/app/taxonomies", {
+          params: { clinicBranchId: branchId, group, includeCount: true, maxResultCount: 100 },
+        })
+        .then((r) => r.data);
+
+      return page.items.map((t) => ({ id: t.id, name: t.name, itemCount: t.itemCount }));
+    },
+    enabled: Boolean(branchId),
+  });
+}
+
+export function useCreateTaxonomyGroupOption() {
+  const queryClient = useQueryClient();
+  const branchId = useCurrentBranchId();
+
+  return useMutation({
+    mutationFn: (input: { group: CatalogGroup; name: string }) =>
+      api
+        .post<TaxonomyResponse>("/v1/app/taxonomies", {
+          clinicBranchId: branchId,
+          group: input.group,
+          name: input.name,
+        })
+        .then((r) => r.data),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: catalogOptionKeys.all });
+    },
   });
 }

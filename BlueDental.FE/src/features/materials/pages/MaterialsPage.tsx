@@ -1,6 +1,25 @@
-import { useState } from "react";
-import { Button, Input, Table } from "antd";
+import { useEffect, useMemo, useState } from "react";
+import { Button, Input, Modal, Popconfirm, Table, Tag, message } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
+import type { ColumnsType } from "antd/es/table";
+import {
+  SUPPLY_STATUS_CONFIG,
+  useDeleteSupply,
+  useSupplies,
+  useSupplyStats,
+  type SupplyDto,
+  type SupplyStatus,
+} from "../api/suppliesApi";
+import { SupplyModal } from "../components/SupplyModal";
+import { ReceiveStockModal } from "../components/ReceiveStockModal";
+import {
+  CATALOG_GROUP,
+  useCreateTaxonomyGroupOption,
+  useTaxonomyGroupOptions,
+} from "@/hooks/useCatalogOptions";
+import { useCurrentBranchId } from "@/lib/clinicBranch";
+import { extractApiError } from "@/lib/apiError";
+import { formatDate, formatVND } from "@/utils/format";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -17,33 +36,168 @@ const SUB_ROUTES: { key: MaterialsSubRoute; label: string }[] = [
 // ── Sub-views ──────────────────────────────────────────────────────────────
 
 function ClinicMaterialsView() {
-  const [keyword, setKeyword] = useState("");
+  const branchId = useCurrentBranchId();
 
-  const columns = [
+  const [keyword, setKeyword] = useState("");
+  const [groupSearch, setGroupSearch] = useState("");
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<SupplyDto | null>(null);
+  const [supplyModalOpen, setSupplyModalOpen] = useState(false);
+  const [receiveFor, setReceiveFor] = useState<SupplyDto | null>(null);
+  const [groupModalOpen, setGroupModalOpen] = useState(false);
+  const [newGroupName, setNewGroupName] = useState("");
+
+  // The reference drives the left panel from the `supplies` taxonomy group.
+  const { data: groupData, isFetching: groupsFetching } = useTaxonomyGroupOptions(
+    CATALOG_GROUP.Supplies,
+  );
+  const groups = useMemo(() => groupData ?? [], [groupData]);
+  const createGroup = useCreateTaxonomyGroupOption();
+
+  const listParams = {
+    branchId,
+    taxonomyId: selectedGroupId ?? undefined,
+    filter: keyword.trim() || undefined,
+    maxResultCount: 100,
+  };
+  const { data: supplyPage, isLoading } = useSupplies(listParams);
+  const { data: stats } = useSupplyStats({ branchId });
+  const deleteSupply = useDeleteSupply();
+
+  // A group deleted elsewhere must not strand the table on an empty filter.
+  useEffect(() => {
+    if (groupsFetching) return;
+    if (selectedGroupId && !groups.some((g) => g.id === selectedGroupId)) {
+      setSelectedGroupId(null);
+    }
+  }, [groups, groupsFetching, selectedGroupId]);
+
+  const filteredGroups = groups.filter((g) =>
+    g.name.toLowerCase().includes(groupSearch.toLowerCase()),
+  );
+
+  const handleCreateGroup = async () => {
+    const name = newGroupName.trim();
+    if (!name) return;
+
+    try {
+      const created = await createGroup.mutateAsync({
+        group: CATALOG_GROUP.Supplies,
+        name,
+      });
+      setSelectedGroupId(created.id);
+      setGroupModalOpen(false);
+      setNewGroupName("");
+      message.success("Đã thêm nhóm vật tư");
+    } catch (error) {
+      message.error(extractApiError(error));
+    }
+  };
+
+  const columns: ColumnsType<SupplyDto> = [
+    { title: "Tên vật liệu", dataIndex: "name", key: "name", width: 200 },
     {
-      title: "",
-      key: "checkbox",
-      width: 40,
-      render: () => <input type="checkbox" />,
+      title: "Nhóm phân loại",
+      dataIndex: "taxonomyName",
+      key: "taxonomyName",
+      width: 160,
+      render: (value: string | null) => value ?? "—",
     },
-    { title: "Tên vật liệu", dataIndex: "name", key: "name" },
-    { title: "Nhóm phân loại", dataIndex: "category", key: "category" },
-    { title: "Nhập kho", dataIndex: "importDate", key: "importDate" },
-    { title: "Hạn sử dụng", dataIndex: "expiryDate", key: "expiryDate" },
-    { title: "Cảnh báo hết hạn", dataIndex: "expiryWarning", key: "expiryWarning" },
-    { title: "Tồn kho", dataIndex: "stock", key: "stock" },
-    { title: "Trạng thái", dataIndex: "status", key: "status" },
-    { title: "Nhà cung cấp", dataIndex: "supplier", key: "supplier" },
-    { title: "Xuất xứ", dataIndex: "origin", key: "origin" },
-    { title: "Giá nhập", dataIndex: "purchasePrice", key: "purchasePrice" },
-    { title: "Giá bán", dataIndex: "salePrice", key: "salePrice" },
+    {
+      title: "Nhập kho",
+      dataIndex: "stockedAt",
+      key: "stockedAt",
+      width: 120,
+      render: (value: string | null) => (value ? formatDate(value) : "—"),
+    },
+    {
+      title: "Hạn sử dụng",
+      dataIndex: "expiryDate",
+      key: "expiryDate",
+      width: 120,
+      render: (value: string | null) => (value ? formatDate(value) : "—"),
+    },
+    {
+      title: "Cảnh báo hết hạn",
+      dataIndex: "expiryWarningDays",
+      key: "expiryWarningDays",
+      width: 140,
+      render: (days: number) => `${days} ngày`,
+    },
+    {
+      title: "Tồn kho",
+      key: "stock",
+      width: 120,
+      align: "right",
+      render: (_, row) => `${row.quantityOnHand}${row.unit ? ` ${row.unit}` : ""}`,
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "status",
+      key: "status",
+      width: 130,
+      render: (status: SupplyStatus) => {
+        const config = SUPPLY_STATUS_CONFIG[status];
+        return <Tag color={config.color}>{config.label}</Tag>;
+      },
+    },
+    {
+      title: "Nhà cung cấp",
+      dataIndex: "supplier",
+      key: "supplier",
+      width: 160,
+      render: (value: string | null) => value ?? "—",
+    },
+    {
+      title: "Xuất xứ",
+      dataIndex: "origin",
+      key: "origin",
+      width: 120,
+      render: (value: string | null) => value ?? "—",
+    },
+    {
+      title: "Giá nhập",
+      dataIndex: "unitCost",
+      key: "unitCost",
+      width: 130,
+      align: "right",
+      render: (value: number | null) => (value == null ? "—" : `${formatVND(value)} đ`),
+    },
+    {
+      title: "Giá bán",
+      dataIndex: "salePrice",
+      key: "salePrice",
+      width: 130,
+      align: "right",
+      render: (value: number | null) => (value == null ? "—" : `${formatVND(value)} đ`),
+    },
     {
       title: "Thao tác",
       key: "actions",
-      render: () => (
+      width: 240,
+      render: (_, row) => (
         <div style={{ display: "flex", gap: 8 }}>
-          <Button size="small">Chỉnh sửa</Button>
-          <Button size="small" danger>Xoá</Button>
+          <Button size="small" onClick={() => setReceiveFor(row)}>
+            Nhập kho
+          </Button>
+          <Button size="small" onClick={() => { setEditing(row); setSupplyModalOpen(true); }}>
+            Chỉnh sửa
+          </Button>
+          <Popconfirm
+            title="Xoá vật tư này?"
+            okText="Xoá"
+            cancelText="Huỷ"
+            onConfirm={async () => {
+              try {
+                await deleteSupply.mutateAsync(row.id);
+                message.success("Đã xoá vật tư");
+              } catch (error) {
+                message.error(extractApiError(error));
+              }
+            }}
+          >
+            <Button size="small" danger>Xoá</Button>
+          </Popconfirm>
         </div>
       ),
     },
@@ -60,7 +214,7 @@ function ClinicMaterialsView() {
           <div style={{ fontWeight: 600, marginBottom: 4 }}>
             Nhóm vật tư
             <span style={{ fontWeight: 400, color: "#8c8c8c", marginLeft: 6 }}>
-              0 nhóm
+              {groups.length} nhóm
             </span>
           </div>
           <div style={{ fontSize: 12, color: "#8c8c8c", marginBottom: 10 }}>
@@ -69,26 +223,79 @@ function ClinicMaterialsView() {
           <Input
             placeholder="Tìm nhóm vật tư..."
             size="small"
+            value={groupSearch}
+            onChange={(e) => setGroupSearch(e.target.value)}
             style={{ marginBottom: 8 }}
           />
-          <Button type="dashed" block size="small">
+          <Button type="dashed" block size="small" onClick={() => setGroupModalOpen(true)}>
             Thêm Mới
           </Button>
         </div>
-        <div
+
+        <button
+          type="button"
+          onClick={() => setSelectedGroupId(null)}
           style={{
-            color: "#8c8c8c",
-            fontSize: 13,
-            textAlign: "center",
-            paddingTop: 16,
+            width: "100%", textAlign: "left", border: "none", cursor: "pointer",
+            padding: "8px 10px", borderRadius: 6, marginTop: 8,
+            background: selectedGroupId === null ? "#EBF3FE" : "transparent",
+            color: selectedGroupId === null ? "#1E70E6" : "#1B2A41",
+            fontWeight: selectedGroupId === null ? 600 : 400,
           }}
         >
-          Chưa có nhóm vật tư
-        </div>
+          Tất cả nhóm
+        </button>
+
+        {filteredGroups.map((group) => (
+          <button
+            key={group.id}
+            type="button"
+            onClick={() => setSelectedGroupId(group.id)}
+            style={{
+              width: "100%", display: "flex", justifyContent: "space-between",
+              border: "none", cursor: "pointer", padding: "8px 10px", borderRadius: 6,
+              background: selectedGroupId === group.id ? "#EBF3FE" : "transparent",
+              color: selectedGroupId === group.id ? "#1E70E6" : "#1B2A41",
+              fontWeight: selectedGroupId === group.id ? 600 : 400,
+              textAlign: "left",
+            }}
+          >
+            <span>{group.name}</span>
+            <span style={{ fontSize: 12, color: "#9CA3AF" }}>{group.itemCount}</span>
+          </button>
+        ))}
+
+        {groups.length === 0 && !groupsFetching && (
+          <div style={{ color: "#8c8c8c", fontSize: 13, textAlign: "center", paddingTop: 16 }}>
+            Chưa có nhóm vật tư
+          </div>
+        )}
       </div>
 
       {/* Right panel */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
+        <div className="reception-card" style={{ padding: "12px 16px", display: "flex", gap: 24, flexWrap: "wrap" }}>
+          {[
+            { label: "Tổng vật tư", value: stats?.total ?? 0 },
+            { label: "Còn hàng", value: stats?.available ?? 0 },
+            { label: "Sắp hết", value: stats?.lowStock ?? 0 },
+            { label: "Hết hàng", value: stats?.outOfStock ?? 0 },
+            { label: "Sắp hết hạn", value: stats?.expiringSoon ?? 0 },
+            { label: "Hết hạn", value: stats?.expired ?? 0 },
+          ].map((tile) => (
+            <div key={tile.label}>
+              <div style={{ fontSize: 20, fontWeight: 700, color: "#1B2A41" }}>{tile.value}</div>
+              <div style={{ fontSize: 12, color: "#5A6B82" }}>{tile.label}</div>
+            </div>
+          ))}
+          <div style={{ marginLeft: "auto" }}>
+            <div style={{ fontSize: 20, fontWeight: 700, color: "#1B2A41" }}>
+              {formatVND(stats?.stockValue ?? 0)} đ
+            </div>
+            <div style={{ fontSize: 12, color: "#5A6B82" }}>Giá trị tồn kho</div>
+          </div>
+        </div>
+
         <div className="reception-card reception-card--toolbar">
           <div
             style={{
@@ -99,8 +306,12 @@ function ClinicMaterialsView() {
             }}
           >
             <div style={{ display: "flex", gap: 8 }}>
-              <Button type="primary">Thêm vật tư</Button>
-              <Button disabled>Sync data hệ thống</Button>
+              <Button
+                type="primary"
+                onClick={() => { setEditing(null); setSupplyModalOpen(true); }}
+              >
+                Thêm vật tư
+              </Button>
             </div>
             <Input
               prefix={<SearchOutlined />}
@@ -113,22 +324,54 @@ function ClinicMaterialsView() {
           </div>
         </div>
         <div className="reception-card reception-card--content">
-          <Table
+          <Table<SupplyDto>
             columns={columns}
-            dataSource={[]}
+            dataSource={supplyPage?.items ?? []}
+            loading={isLoading}
             rowKey="id"
             scroll={{ x: "max-content" }}
             pagination={{
               pageSize: 20,
               showSizeChanger: true,
               pageSizeOptions: ["5", "10", "20", "25", "50", "100"],
-              showTotal: (total) => `Hiển thị 0 trên ${total}`,
+              showTotal: (total, range) => `Hiển thị ${range[0]}–${range[1]} trên ${total}`,
             }}
             locale={{ emptyText: "Không có dữ liệu" }}
             size="middle"
           />
         </div>
       </div>
+
+      <SupplyModal
+        open={supplyModalOpen}
+        supply={editing}
+        groups={groups.map((g) => ({ id: g.id, name: g.name }))}
+        defaultGroupId={selectedGroupId ?? undefined}
+        onClose={() => { setSupplyModalOpen(false); setEditing(null); }}
+      />
+
+      <ReceiveStockModal
+        open={receiveFor !== null}
+        supply={receiveFor}
+        onClose={() => setReceiveFor(null)}
+      />
+
+      <Modal
+        open={groupModalOpen}
+        title="Thêm nhóm vật tư"
+        okText="Thêm"
+        cancelText="Huỷ"
+        confirmLoading={createGroup.isPending}
+        onOk={handleCreateGroup}
+        onCancel={() => { setGroupModalOpen(false); setNewGroupName(""); }}
+      >
+        <Input
+          placeholder="Tên nhóm"
+          value={newGroupName}
+          onChange={(e) => setNewGroupName(e.target.value)}
+          onPressEnter={handleCreateGroup}
+        />
+      </Modal>
     </div>
   );
 }

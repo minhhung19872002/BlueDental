@@ -84,6 +84,8 @@ public static class BlueDentalDomainErrorCodes
         public const string InsufficientStock = "BlueDental:Inventory:0002";
         public const string DuplicateItemCode = "BlueDental:Inventory:0003";
         public const string InvalidStockMovement = "BlueDental:Inventory:0004";
+        public const string InvalidPrice = "BlueDental:Inventory:0005";
+        public const string InvalidExpiry = "BlueDental:Inventory:0006";
     }
 
     public static class Notifications

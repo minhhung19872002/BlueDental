@@ -21,6 +21,24 @@ public class InventoryItem : FullAuditedAggregateRoot<Guid>
     public Guid BranchId { get; private set; }
     public bool IsActive { get; private set; }
 
+    /// <summary>Nhóm phân loại — a taxonomy group of the <c>supplies</c> catalog.</summary>
+    public Guid? TaxonomyId { get; private set; }
+
+    /// <summary>Nhập kho — when the current stock was received.</summary>
+    public DateOnly? StockedAt { get; private set; }
+
+    /// <summary>Hạn sử dụng.</summary>
+    public DateOnly? ExpiryDate { get; private set; }
+
+    /// <summary>Cảnh báo hết hạn — how many days ahead to warn.</summary>
+    public int ExpiryWarningDays { get; private set; }
+
+    /// <summary>Xuất xứ.</summary>
+    public string? Origin { get; private set; }
+
+    /// <summary>Giá bán (giá nhập is <see cref="UnitCost"/>).</summary>
+    public decimal? SalePrice { get; private set; }
+
     protected InventoryItem() { }
 
     public InventoryItem(
@@ -43,6 +61,112 @@ public class InventoryItem : FullAuditedAggregateRoot<Guid>
         UnitCost = unitCost;
         QuantityOnHand = 0;
         IsActive = true;
+        ExpiryWarningDays = DefaultExpiryWarningDays;
+    }
+
+    /// <summary>Default warning window when none is configured.</summary>
+    public const int DefaultExpiryWarningDays = 30;
+
+    public InventoryItem UpdateCatalogInfo(
+        string name,
+        Guid? taxonomyId,
+        string? supplier,
+        string? origin,
+        string? unit,
+        decimal? unitCost,
+        decimal? salePrice)
+    {
+        Check.NotNullOrWhiteSpace(name, nameof(name));
+
+        if (unitCost is < 0m || salePrice is < 0m)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Inventory.InvalidPrice,
+                "Giá vật tư không được âm.");
+        }
+
+        Name = name;
+        TaxonomyId = taxonomyId;
+        Supplier = supplier;
+        Origin = origin;
+        Unit = unit;
+        UnitCost = unitCost;
+        SalePrice = salePrice;
+        return this;
+    }
+
+    /// <summary>Records a stock receipt with its expiry, as the Nhập kho column shows.</summary>
+    public InventoryItem ReceiveStock(
+        decimal quantity,
+        DateOnly stockedAt,
+        DateOnly? expiryDate = null,
+        int? expiryWarningDays = null)
+    {
+        AddStock(quantity);
+
+        if (expiryDate.HasValue && expiryDate.Value < stockedAt)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Inventory.InvalidExpiry,
+                "Hạn sử dụng phải sau ngày nhập kho.");
+        }
+
+        StockedAt = stockedAt;
+        ExpiryDate = expiryDate;
+
+        if (expiryWarningDays.HasValue)
+        {
+            if (expiryWarningDays.Value < 0)
+            {
+                throw new BusinessException(
+                    BlueDentalDomainErrorCodes.Inventory.InvalidExpiry,
+                    "Số ngày cảnh báo hết hạn không được âm.");
+            }
+
+            ExpiryWarningDays = expiryWarningDays.Value;
+        }
+
+        return this;
+    }
+
+    public InventoryItem SetReorderLevel(decimal reorderLevel)
+    {
+        if (reorderLevel < 0m)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Inventory.InvalidStockMovement,
+                "Mức tồn tối thiểu không được âm.");
+        }
+
+        ReorderLevel = reorderLevel;
+        return this;
+    }
+
+    /// <summary>
+    /// Trạng thái shown in the table. Expiry outranks stock level: an expired
+    /// supply must not read as "còn hàng" just because the shelf is full.
+    /// </summary>
+    public SupplyStatus StatusAsOf(DateOnly today)
+    {
+        if (ExpiryDate.HasValue)
+        {
+            if (ExpiryDate.Value < today)
+            {
+                return SupplyStatus.Expired;
+            }
+
+            if (ExpiryDate.Value.DayNumber - today.DayNumber <= ExpiryWarningDays)
+            {
+                return SupplyStatus.ExpiringSoon;
+            }
+        }
+
+        if (QuantityOnHand <= 0m)
+        {
+            return SupplyStatus.OutOfStock;
+        }
+
+        return NeedsReorder ? SupplyStatus.LowStock : SupplyStatus.Available;
     }
 
     public InventoryItem AddStock(decimal quantity, string? notes = null)

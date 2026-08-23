@@ -255,8 +255,13 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.QuantityOnHand).HasPrecision(18, 3);
             entity.Property(x => x.ReorderLevel).HasPrecision(18, 3);
             entity.Property(x => x.UnitCost).HasPrecision(18, 2);
+            entity.Property(x => x.SalePrice).HasPrecision(18, 2);
+            entity.Property(x => x.Supplier).HasMaxLength(200);
+            entity.Property(x => x.Origin).HasMaxLength(100);
             entity.Ignore(x => x.NeedsReorder);
             entity.HasIndex(x => new { x.BranchId, x.ItemCode }).IsUnique();
+            entity.HasIndex(x => new { x.BranchId, x.TaxonomyId });
+            entity.HasIndex(x => x.ExpiryDate);
         });
     }
 
