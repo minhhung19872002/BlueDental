@@ -1198,6 +1198,8 @@
     "Kỳ báo cáo theo khoảng thời gian đã chọn": "Reporting period follows the range selected below",
     "Vật tư, phân bổ và tồn kho theo phòng ban": "Supplies, allocation and stock by department",
     "Chỉ số theo từng khối chức năng trong ngày": "Today figures for each operating division",
-    "{0} hồ sơ trong chi nhánh": "{0} records in this branch"
+    "{0} hồ sơ trong chi nhánh": "{0} records in this branch",
+    "Công việc đã hoàn thành": "Tasks completed",
+    "{0} quá hạn · {1} đang làm": "{0} overdue · {1} in progress"
   }
 }

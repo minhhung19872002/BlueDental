@@ -30,6 +30,7 @@ import { extractApiError } from "@/lib/apiError";
 import { formatDate } from "@/utils/format";
 import { t } from "@/lib/i18n";
 import { PageHeader } from "@/components/PageHeader";
+import { DivisionStatsGrid } from "../components/DivisionStatsGrid";
 
 /**
  * Built on demand rather than frozen into a module constant: the labels go
@@ -534,6 +535,8 @@ export function OperationsPage() {
         title={t("Quản trị vận hành")}
         subtitle={t("Chỉ số theo từng khối chức năng trong ngày")}
       />
+
+      <DivisionStatsGrid />
 
       {/* Main department tabs */}
       <div className="reception-card" style={{ padding: "0 16px" }}>
