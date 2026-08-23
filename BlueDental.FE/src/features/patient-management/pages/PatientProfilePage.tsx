@@ -23,6 +23,9 @@ import {
   type ToothSelectionDto,
 } from "@/features/treatment-management/api/consultingApi";
 import { ToothSurfaceChart } from "@/features/treatment-management/components/ToothSurfaceChart";
+import { DiagnosisModal } from "@/features/treatment-management/components/DiagnosisModal";
+import { AdviseModal } from "@/features/treatment-management/components/AdviseModal";
+import type { PatientDiagnosisDto } from "@/features/treatment-management/api/consultingApi";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 
 const { Text } = Typography;
@@ -90,6 +93,8 @@ export function PatientProfilePage() {
   // The consulting tab records surfaces, not a per-tooth status, so it keeps its
   // own selection shaped like the API's ToothSelection.
   const [consultingTeeth, setConsultingTeeth] = useState<ToothSelectionDto[]>([]);
+  const [diagnosisModalOpen, setDiagnosisModalOpen] = useState(false);
+  const [adviseFor, setAdviseFor] = useState<PatientDiagnosisDto | null>(null);
 
   const activeTab = searchParams.get("tab") ?? "profile";
   const { data: patient, isLoading } = usePatient(id ?? "");
@@ -294,6 +299,14 @@ export function PatientProfilePage() {
                   <Button size="small" onClick={() => setConsultingTeeth([])}>
                     Bỏ chọn
                   </Button>
+                  <Button
+                    size="small"
+                    type="primary"
+                    disabled={consultingTeeth.length === 0}
+                    onClick={() => setDiagnosisModalOpen(true)}
+                  >
+                    Tạo phiếu chẩn đoán
+                  </Button>
                 </div>
 
                 <ToothSurfaceChart
@@ -338,8 +351,8 @@ export function PatientProfilePage() {
                       key: "actions",
                       width: 110,
                       render: (_, row) => (
-                        <Button type="link" size="small" disabled={row.hasTreatmentService}>
-                          {row.hasTreatmentService ? "Đã tạo DV" : "Tạo Dịch Vụ"}
+                        <Button type="link" size="small" onClick={() => setAdviseFor(row)}>
+                          Tạo Dịch Vụ
                         </Button>
                       ),
                     },
@@ -721,6 +734,23 @@ export function PatientProfilePage() {
         onChange={handleTabChange}
         items={TAB_ITEMS}
         style={{ background: "transparent" }}
+      />
+
+      <DiagnosisModal
+        open={diagnosisModalOpen}
+        patientId={patient.id}
+        teeth={consultingTeeth}
+        onClose={() => setDiagnosisModalOpen(false)}
+        // The teeth are now recorded on the diagnosis, so clear the chart for
+        // the next one instead of leaving a stale selection behind.
+        onCreated={() => setConsultingTeeth([])}
+      />
+
+      <AdviseModal
+        open={adviseFor !== null}
+        patientId={patient.id}
+        diagnosis={adviseFor}
+        onClose={() => setAdviseFor(null)}
       />
     </div>
   );

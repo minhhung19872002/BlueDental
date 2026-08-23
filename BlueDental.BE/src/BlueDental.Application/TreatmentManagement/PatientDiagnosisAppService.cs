@@ -2,12 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Catalogs;
 using BlueDental.TreatmentManagement.Values;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
+using Volo.Abp.Identity;
 
 namespace BlueDental.TreatmentManagement;
 
@@ -18,10 +20,17 @@ namespace BlueDental.TreatmentManagement;
 public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisAppService
 {
     private readonly IRepository<PatientDiagnosis, Guid> _repository;
+    private readonly IRepository<CatalogEntry, Guid> _catalogRepository;
+    private readonly IIdentityUserRepository _userRepository;
 
-    public PatientDiagnosisAppService(IRepository<PatientDiagnosis, Guid> repository)
+    public PatientDiagnosisAppService(
+        IRepository<PatientDiagnosis, Guid> repository,
+        IRepository<CatalogEntry, Guid> catalogRepository,
+        IIdentityUserRepository userRepository)
     {
         _repository = repository;
+        _catalogRepository = catalogRepository;
+        _userRepository = userRepository;
     }
 
     [Authorize(BlueDentalAbilityPermissions.TreatmentDiagnosis.Read)]
@@ -47,13 +56,17 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
             .Take(input.MaxResultCount)
             .ToList();
 
-        return new PagedResultDto<PatientDiagnosisDto>(totalCount, items.Select(MapToDto).ToList());
+        var lookups = await BuildLookupsAsync(items);
+        return new PagedResultDto<PatientDiagnosisDto>(
+            totalCount,
+            items.Select(x => MapToDto(x, lookups)).ToList());
     }
 
     [Authorize(BlueDentalAbilityPermissions.TreatmentDiagnosis.Read)]
     public async Task<PatientDiagnosisDto> GetAsync(Guid id)
     {
-        return MapToDto(await _repository.GetAsync(id));
+        var diagnosis = await _repository.GetAsync(id);
+        return MapToDto(diagnosis, await BuildLookupsAsync([diagnosis]));
     }
 
     [Authorize(BlueDentalAbilityPermissions.TreatmentDiagnosis.Create)]
@@ -73,7 +86,7 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
             input.SecondStaffId);
 
         await _repository.InsertAsync(diagnosis, autoSave: true);
-        return MapToDto(diagnosis);
+        return MapToDto(diagnosis, await BuildLookupsAsync([diagnosis]));
     }
 
     [Authorize(BlueDentalAbilityPermissions.TreatmentDiagnosis.Update)]
@@ -86,7 +99,7 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
         diagnosis.UpdateTeeth(ToToothSelections(input.Teeth));
 
         await _repository.UpdateAsync(diagnosis, autoSave: true);
-        return MapToDto(diagnosis);
+        return MapToDto(diagnosis, await BuildLookupsAsync([diagnosis]));
     }
 
     [Authorize(BlueDentalAbilityPermissions.TreatmentDiagnosis.Update)]
@@ -95,7 +108,7 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
         var diagnosis = await _repository.GetAsync(id);
         diagnosis.MarkTreated();
         await _repository.UpdateAsync(diagnosis, autoSave: true);
-        return MapToDto(diagnosis);
+        return MapToDto(diagnosis, await BuildLookupsAsync([diagnosis]));
     }
 
     [Authorize(BlueDentalAbilityPermissions.TreatmentDiagnosis.Update)]
@@ -104,7 +117,7 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
         var diagnosis = await _repository.GetAsync(id);
         diagnosis.Cancel();
         await _repository.UpdateAsync(diagnosis, autoSave: true);
-        return MapToDto(diagnosis);
+        return MapToDto(diagnosis, await BuildLookupsAsync([diagnosis]));
     }
 
     [Authorize(BlueDentalAbilityPermissions.TreatmentDiagnosis.Delete)]
@@ -144,7 +157,33 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
         }).ToList();
     }
 
-    private static PatientDiagnosisDto MapToDto(PatientDiagnosis entity) => new()
+    /// <summary>Names shown in the consulting table, resolved in one round trip.</summary>
+    private async Task<ConsultingLookups> BuildLookupsAsync(IReadOnlyCollection<PatientDiagnosis> items)
+    {
+        var diagnosisIds = items.Select(x => x.DiagnosisId).Distinct().ToList();
+        var staffIds = items.Select(x => x.StaffId).Distinct().ToList();
+
+        var catalogQuery = await _catalogRepository.GetQueryableAsync();
+        var diagnosisNames = catalogQuery
+            .Where(c => diagnosisIds.Contains(c.Id))
+            .ToDictionary(c => c.Id, c => c.Name);
+
+        var users = staffIds.Count == 0
+            ? []
+            : await _userRepository.GetListByIdsAsync(staffIds);
+
+        return new ConsultingLookups(
+            diagnosisNames,
+            users.ToDictionary(u => u.Id, u => u.Name ?? u.UserName));
+    }
+
+    internal sealed record ConsultingLookups(
+        IReadOnlyDictionary<Guid, string> DiagnosisNames,
+        IReadOnlyDictionary<Guid, string> StaffNames);
+
+    private static PatientDiagnosisDto MapToDto(
+        PatientDiagnosis entity,
+        ConsultingLookups lookups) => new()
     {
         Id = entity.Id,
         PatientId = entity.PatientId,
@@ -157,6 +196,10 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
         Status = entity.Status,
         HasTreatmentService = entity.HasTreatmentService,
         Teeth = ToToothDtos(entity.Teeth),
+        DiagnosisName = lookups.DiagnosisNames.TryGetValue(entity.DiagnosisId, out var diagnosisName)
+            ? diagnosisName
+            : null,
+        StaffName = lookups.StaffNames.TryGetValue(entity.StaffId, out var staffName) ? staffName : null,
         CreationTime = entity.CreationTime,
         CreatorId = entity.CreatorId,
         LastModificationTime = entity.LastModificationTime,
