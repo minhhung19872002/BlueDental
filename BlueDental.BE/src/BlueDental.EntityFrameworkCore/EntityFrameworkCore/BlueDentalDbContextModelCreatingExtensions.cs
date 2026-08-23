@@ -328,6 +328,10 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.RejectionReason).HasMaxLength(500);
             entity.HasIndex(x => x.OrderCode).IsUnique();
             entity.HasIndex(x => new { x.BranchId, x.Status });
+    entity.Property(x => x.Kind).HasConversion<short>();
+            entity.Property(x => x.AttachmentUrl).HasMaxLength(500);
+            entity.Ignore(x => x.IsAwaitingReturn);
+            entity.Ignore(x => x.IsReturned);
         });
     }
 

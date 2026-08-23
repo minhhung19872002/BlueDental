@@ -20,6 +20,45 @@ public class LaboOrderDto : FullAuditedEntityDto<Guid>
     public decimal EstimatedCost { get; set; }
     public string? RejectionReason { get; set; }
     public string? PatientName { get; set; }
+
+    public LaboOrderKind Kind { get; set; }
+    public Guid? SupplierId { get; set; }
+    public Guid? MaterialId { get; set; }
+    public Guid? BiteId { get; set; }
+    public Guid? FinishLineId { get; set; }
+    public Guid? RhythmId { get; set; }
+    public string? AttachmentUrl { get; set; }
+
+    public string? SupplierName { get; set; }
+    public string? MaterialName { get; set; }
+    public string? DentistName { get; set; }
+
+    /// <summary>Mẫu Giao Trễ — derived, see LaboOrder.IsOverdueAsOf.</summary>
+    public bool IsOverdue { get; set; }
+
+    /// <summary>Mẫu Chưa Nhận.</summary>
+    public bool IsAwaitingReturn { get; set; }
+}
+
+/// <summary>The filter chips above the Mẫu Labo table.</summary>
+public enum LaboSampleFilter
+{
+    All = 0,
+    AwaitingReturn = 1,
+    Overdue = 2,
+    Returned = 3
+}
+
+/// <summary>Counters on the patient's Labo tab.</summary>
+public class LaboStatsDto
+{
+    public int Total { get; set; }
+    public int New { get; set; }
+    public int ContinueStage { get; set; }
+    public int Guarantee { get; set; }
+    public int AwaitingReturn { get; set; }
+    public int Overdue { get; set; }
+    public int Returned { get; set; }
 }
 
 public class CreateLaboOrderDto
@@ -32,6 +71,12 @@ public class CreateLaboOrderDto
     public string? WorkDescription { get; set; }
     public DateOnly? DueDate { get; set; }
     public decimal EstimatedCost { get; set; }
+    public LaboOrderKind Kind { get; set; } = LaboOrderKind.New;
+    public Guid? SupplierId { get; set; }
+    public Guid? MaterialId { get; set; }
+    public Guid? BiteId { get; set; }
+    public Guid? FinishLineId { get; set; }
+    public Guid? RhythmId { get; set; }
 }
 
 public class UpdateLaboOrderDto
@@ -46,6 +91,8 @@ public class UpdateLaboOrderDto
 
 public class GetLaboOrderListInput : PagedAndSortedResultRequestDto
 {
+    public LaboSampleFilter? SampleFilter { get; set; }
+    public LaboOrderKind? Kind { get; set; }
     public Guid? BranchId { get; set; }
     public Guid? PatientId { get; set; }
     public LaboStatus? Status { get; set; }

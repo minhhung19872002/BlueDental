@@ -24,7 +24,12 @@ public static class TaxonomyGroupAbilities
         [TaxonomyGroups.MedicalRecordTemplate] = BlueDentalAbilities.Subjects.CatalogTemplate,
         [TaxonomyGroups.Occupation] = BlueDentalAbilities.Subjects.CatalogOccupation,
         // Vật tư lives on its own screen and has its own subject.
-        [TaxonomyGroups.Supplies] = BlueDentalAbilities.Subjects.Materials
+        [TaxonomyGroups.Supplies] = BlueDentalAbilities.Subjects.Materials,
+        [TaxonomyGroups.LaboSupplier] = BlueDentalAbilities.Subjects.LaboSupplier,
+        [TaxonomyGroups.LaboBite] = BlueDentalAbilities.Subjects.LaboBite,
+        [TaxonomyGroups.LaboFinishLine] = BlueDentalAbilities.Subjects.LaboFinishLine,
+        [TaxonomyGroups.LaboRhythm] = BlueDentalAbilities.Subjects.LaboRhythm,
+        [TaxonomyGroups.LaboMaterial] = BlueDentalAbilities.Subjects.LaboMaterial
     };
 
     /// <summary>

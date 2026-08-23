@@ -1,6 +1,22 @@
 import { useState } from "react";
-import { Button, Input, Select, Table } from "antd";
+import { Button, Input, Table, Tag, message } from "antd";
 import { SearchOutlined, DownloadOutlined } from "@ant-design/icons";
+import type { ColumnsType } from "antd/es/table";
+import {
+  LABO_FILTER,
+  LABO_FILTER_LABELS,
+  LABO_STATUS,
+  LABO_STATUS_CONFIG,
+  useLaboOrders,
+  useLaboStats,
+  useReceiveLaboOrder,
+  useSendLaboOrder,
+  type LaboOrderDto,
+  type LaboSampleFilter,
+} from "../api/laboApi";
+import { useCurrentBranchId } from "@/lib/clinicBranch";
+import { extractApiError } from "@/lib/apiError";
+import { formatDate } from "@/utils/format";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -23,35 +39,155 @@ const SUB_ROUTES: { key: LaboSubRoute; label: string }[] = [
   { key: "service-material", label: "Dịch vụ - vật liệu" },
 ];
 
-const MAU_LABO_FILTER_TABS = [
-  { key: "all", label: "Tất Cả Mẫu" },
-  { key: "unreceived", label: "Mẫu Chưa Nhận" },
-  { key: "late", label: "Mẫu Giao Trễ" },
-  { key: "received", label: "Mẫu Đã Nhận Hàng" },
-];
+const MAU_LABO_FILTER_TABS: { key: LaboSampleFilter; label: string }[] = (
+  [LABO_FILTER.All, LABO_FILTER.AwaitingReturn, LABO_FILTER.Overdue, LABO_FILTER.Returned] as LaboSampleFilter[]
+).map((key) => ({ key, label: LABO_FILTER_LABELS[key] }));
 
 // ── Sub-views ──────────────────────────────────────────────────────────────
 
 function MauLaboView() {
-  const [filterTab, setFilterTab] = useState("all");
+  const branchId = useCurrentBranchId();
+  const [sampleFilter, setSampleFilter] = useState<LaboSampleFilter>(LABO_FILTER.All);
   const [keyword, setKeyword] = useState("");
 
-  const columns = [
-    { title: "Nhà cung cấp / Ngày tạo", dataIndex: "supplier", key: "supplier" },
-    { title: "Tên khách hàng", dataIndex: "patientName", key: "patientName" },
-    { title: "Ngày gửi / Tình trạng mẫu", dataIndex: "sendDate", key: "sendDate" },
-    { title: "Ngày giao / Trạng thái Labo", dataIndex: "deliveryDate", key: "deliveryDate" },
-    { title: "Bác sĩ chỉ định", dataIndex: "doctor", key: "doctor" },
-    { title: "Vật liệu", dataIndex: "material", key: "material" },
-    { title: "Răng", dataIndex: "teeth", key: "teeth" },
-    { title: "File phòng khám gửi về", dataIndex: "file", key: "file" },
+  const listParams = {
+    branchId,
+    sampleFilter,
+    filter: keyword.trim() || undefined,
+    maxResultCount: 100,
+  };
+
+  const { data: page, isLoading } = useLaboOrders(listParams);
+  const { data: stats } = useLaboStats({ branchId });
+
+  const sendOrder = useSendLaboOrder();
+  const receiveOrder = useReceiveLaboOrder();
+
+  const run = async (action: Promise<unknown>, successMessage: string) => {
+    try {
+      await action;
+      message.success(successMessage);
+    } catch (error) {
+      message.error(extractApiError(error));
+    }
+  };
+
+  /** Counts for the filter chips, so each one says how much it will show. */
+  const filterCounts: Record<LaboSampleFilter, number> = {
+    [LABO_FILTER.All]: stats?.total ?? 0,
+    [LABO_FILTER.AwaitingReturn]: stats?.awaitingReturn ?? 0,
+    [LABO_FILTER.Overdue]: stats?.overdue ?? 0,
+    [LABO_FILTER.Returned]: stats?.returned ?? 0,
+  };
+
+  const columns: ColumnsType<LaboOrderDto> = [
+    {
+      title: "Nhà cung cấp / Ngày tạo",
+      key: "supplier",
+      width: 200,
+      render: (_, row) => (
+        <>
+          <div>{row.supplierName ?? row.labProviderName}</div>
+          <div style={{ fontSize: 12, color: "#6B7280" }}>{formatDate(row.creationTime)}</div>
+        </>
+      ),
+    },
+    {
+      title: "Tên khách hàng",
+      dataIndex: "patientName",
+      key: "patientName",
+      width: 180,
+      render: (value: string | null) => value ?? "—",
+    },
+    {
+      title: "Ngày gửi / Tình trạng mẫu",
+      key: "sent",
+      width: 190,
+      render: (_, row) => (
+        <>
+          <div>{row.sentAt ? formatDate(row.sentAt) : "Chưa gửi"}</div>
+          <Tag color={row.isAwaitingReturn ? "orange" : row.receivedAt ? "green" : "default"}>
+            {row.receivedAt ? "Đã nhận hàng" : row.isAwaitingReturn ? "Chưa nhận" : "Chưa gửi"}
+          </Tag>
+        </>
+      ),
+    },
+    {
+      title: "Ngày giao / Trạng thái Labo",
+      key: "due",
+      width: 200,
+      render: (_, row) => (
+        <>
+          <div style={{ color: row.isOverdue ? "#EF4444" : undefined }}>
+            {row.dueDate ? formatDate(row.dueDate) : "—"}
+            {row.isOverdue && " (trễ)"}
+          </div>
+          <Tag color={LABO_STATUS_CONFIG[row.status].color}>
+            {LABO_STATUS_CONFIG[row.status].label}
+          </Tag>
+        </>
+      ),
+    },
+    {
+      title: "Bác sĩ chỉ định",
+      dataIndex: "dentistName",
+      key: "dentistName",
+      width: 150,
+      render: (value: string | null) => value ?? "—",
+    },
+    {
+      title: "Vật liệu",
+      dataIndex: "materialName",
+      key: "materialName",
+      width: 150,
+      render: (value: string | null) => value ?? "—",
+    },
+    {
+      title: "Răng",
+      dataIndex: "toothNumbers",
+      key: "toothNumbers",
+      width: 120,
+      render: (value: string | null) => value ?? "—",
+    },
+    {
+      title: "File phòng khám gửi về",
+      dataIndex: "attachmentUrl",
+      key: "attachmentUrl",
+      width: 180,
+      render: (value: string | null) =>
+        value ? (
+          <a href={value} target="_blank" rel="noreferrer">
+            Tệp đính kèm
+          </a>
+        ) : (
+          "—"
+        ),
+    },
     {
       title: "Thao tác",
       key: "actions",
-      render: () => (
-        <Button size="small" type="link">
-          Chi tiết
-        </Button>
+      width: 160,
+      render: (_, row) => (
+        <>
+          {row.status === LABO_STATUS.Draft && (
+            <Button
+              type="link"
+              size="small"
+              onClick={() => run(sendOrder.mutateAsync(row.id), "Đã gửi mẫu cho Labo")}
+            >
+              Gửi mẫu
+            </Button>
+          )}
+          {row.isAwaitingReturn && (
+            <Button
+              type="link"
+              size="small"
+              onClick={() => run(receiveOrder.mutateAsync(row.id), "Đã nhận hàng")}
+            >
+              Nhận hàng
+            </Button>
+          )}
+        </>
       ),
     },
   ];
@@ -64,22 +200,22 @@ function MauLaboView() {
           {MAU_LABO_FILTER_TABS.map((tab) => (
             <button
               key={tab.key}
-              onClick={() => setFilterTab(tab.key)}
+              onClick={() => setSampleFilter(tab.key)}
               style={{
                 padding: "8px 16px",
                 border: "none",
                 borderBottom:
-                  filterTab === tab.key
+                  sampleFilter === tab.key
                     ? "2px solid #1677ff"
                     : "2px solid transparent",
                 background: "none",
-                color: filterTab === tab.key ? "#1677ff" : "#595959",
-                fontWeight: filterTab === tab.key ? 600 : 400,
+                color: sampleFilter === tab.key ? "#1677ff" : "#595959",
+                fontWeight: sampleFilter === tab.key ? 600 : 400,
                 cursor: "pointer",
                 fontSize: 13,
               }}
             >
-              {tab.label}
+              {tab.label} ({filterCounts[tab.key]})
             </button>
           ))}
         </div>
@@ -96,28 +232,20 @@ function MauLaboView() {
             flexWrap: "wrap",
           }}
         >
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
             <Button icon={<DownloadOutlined />}>Xuất Excel</Button>
+            <span style={{ fontSize: 13, color: "#5A6B82" }}>
+              Đơn hàng mới: {stats?.new ?? 0} · Tiếp tục công đoạn: {stats?.continueStage ?? 0} ·
+              Bảo hành: {stats?.guarantee ?? 0}
+            </span>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <Select
-              placeholder="Chọn khách hàng"
-              style={{ width: 180 }}
-              allowClear
-              options={[]}
-            />
-            <Select
-              placeholder="Chọn bác sĩ"
-              style={{ width: 160 }}
-              allowClear
-              options={[]}
-            />
             <Input
               prefix={<SearchOutlined />}
-              placeholder="Tìm kiếm..."
+              placeholder="Tìm mã mẫu hoặc nhà cung cấp..."
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
-              style={{ width: 200 }}
+              style={{ width: 240 }}
               allowClear
             />
           </div>
@@ -126,15 +254,17 @@ function MauLaboView() {
 
       {/* Table */}
       <div className="reception-card reception-card--content">
-        <Table
+        <Table<LaboOrderDto>
           columns={columns}
-          dataSource={[]}
+          dataSource={page?.items ?? []}
+          loading={isLoading}
           rowKey="id"
+          scroll={{ x: "max-content" }}
           pagination={{
             pageSize: 20,
             showSizeChanger: true,
             pageSizeOptions: ["5", "10", "20", "25", "50", "100"],
-            showTotal: (total) => `Hiển thị 0 trên ${total} mẫu labo`,
+            showTotal: (total, range) => `Hiển thị ${range[0]}–${range[1]} trên ${total} mẫu labo`,
           }}
           locale={{ emptyText: "Không có dữ liệu" }}
           size="middle"
