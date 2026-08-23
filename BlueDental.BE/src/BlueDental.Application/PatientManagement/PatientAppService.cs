@@ -5,6 +5,7 @@ using BlueDental.Organizations;
 using BlueDental.PatientManagement.Values;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
+using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
@@ -55,6 +56,7 @@ public class PatientAppService : ApplicationService, IPatientAppService
     public async Task<PatientDto> GetAsync(Guid id)
     {
         var patient = await _repository.GetAsync(id);
+        GuardBranchAccess(patient.BranchId);
         return ObjectMapper.Map<Patient, PatientDto>(patient);
     }
 
@@ -63,7 +65,7 @@ public class PatientAppService : ApplicationService, IPatientAppService
     {
         var branchId = _branchResolver.GetRequiredClinicBranchId();
         var contact = new ContactInfo(input.PhoneNumber, input.Email, null);
-        var patientCode = await GeneratePatientCodeAsync(input.BranchId);
+        var patientCode = await GeneratePatientCodeAsync(branchId);
 
         var patient = Patient.Register(
             GuidGenerator.Create(),
@@ -114,6 +116,7 @@ public class PatientAppService : ApplicationService, IPatientAppService
     public async Task<PatientDto> UpdateAsync(Guid id, UpdatePatientDto input)
     {
         var patient = await _repository.GetAsync(id);
+        GuardBranchAccess(patient.BranchId);
         patient.UpdateDemographics(input.FirstName, input.LastName, input.DateOfBirth, input.Gender);
         var contact = new ContactInfo(input.PhoneNumber, input.Email, null);
         patient.UpdateContact(contact);
@@ -125,7 +128,15 @@ public class PatientAppService : ApplicationService, IPatientAppService
     public async Task DeactivateAsync(Guid id)
     {
         var patient = await _repository.GetAsync(id);
+        GuardBranchAccess(patient.BranchId);
         patient.Deactivate();
         await _repository.UpdateAsync(patient, autoSave: true);
+    }
+
+    private void GuardBranchAccess(Guid entityBranchId)
+    {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
+        if (entityBranchId != branchId)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Organizations.BranchNotAssigned);
     }
 }

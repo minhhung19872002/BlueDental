@@ -6,6 +6,7 @@ import {
 import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
+import { useTranslation } from "react-i18next";
 import {
   CUSTOMER_TARGET,
   CUSTOMER_TARGET_LABELS,
@@ -72,6 +73,7 @@ function VoucherModal({
   voucher: VoucherDto | null;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const [form] = Form.useForm<VoucherFormValues>();
   const branchId = useCurrentBranchId();
   const createVoucher = useCreateVoucher();
@@ -118,7 +120,7 @@ function VoucherModal({
             validTo: validTo.format("YYYY-MM-DD"),
           },
         });
-        message.success("Đã cập nhật voucher");
+        message.success(t("voucher.updateSuccess"));
       } else {
         await createVoucher.mutateAsync({
           clinicBranchId: branchId,
@@ -134,7 +136,7 @@ function VoucherModal({
           validTo: validTo.format("YYYY-MM-DD"),
           usageLimit: values.usageLimit ?? null,
         });
-        message.success("Đã tạo voucher");
+        message.success(t("voucher.createSuccess"));
       }
 
       onClose();
@@ -146,9 +148,9 @@ function VoucherModal({
   return (
     <Modal
       open={open}
-      title={isEdit ? `Sửa voucher ${voucher.code}` : "Tạo voucher"}
-      okText={isEdit ? "Lưu" : "Tạo"}
-      cancelText="Huỷ"
+      title={isEdit ? t("voucher.modalEditTitle", { code: voucher.code }) : t("voucher.modalCreateTitle")}
+      okText={isEdit ? t("voucher.modalOkEdit") : t("voucher.modalOkCreate")}
+      cancelText={t("voucher.modalCancel")}
       confirmLoading={createVoucher.isPending || updateVoucher.isPending}
       onOk={handleSubmit}
       onCancel={onClose}
@@ -160,8 +162,8 @@ function VoucherModal({
           <Col span={10}>
             <Form.Item
               name="code"
-              label="Mã voucher"
-              rules={[{ required: true, message: "Vui lòng nhập mã" }]}
+              label={t("voucher.fieldCode")}
+              rules={[{ required: true, message: t("voucher.fieldCodeRequired") }]}
             >
               {/* The code identifies redemptions, so it is fixed after creation. */}
               <Input disabled={isEdit} placeholder="SUM26" />
@@ -170,8 +172,8 @@ function VoucherModal({
           <Col span={14}>
             <Form.Item
               name="name"
-              label="Tên chương trình"
-              rules={[{ required: true, message: "Vui lòng nhập tên" }]}
+              label={t("voucher.fieldName")}
+              rules={[{ required: true, message: t("voucher.fieldNameRequired") }]}
             >
               <Input placeholder="Khuyến mãi hè" />
             </Form.Item>
@@ -180,12 +182,12 @@ function VoucherModal({
 
         <Row gutter={12}>
           <Col span={12}>
-            <Form.Item name="discountType" label="Kiểu giảm" rules={[{ required: true }]}>
+            <Form.Item name="discountType" label={t("voucher.fieldDiscountType")} rules={[{ required: true }]}>
               <Select
                 disabled={isEdit}
                 options={[
-                  { value: DISCOUNT_TYPE.Percentage, label: "Theo phần trăm (%)" },
-                  { value: DISCOUNT_TYPE.Money, label: "Số tiền cố định (đ)" },
+                  { value: DISCOUNT_TYPE.Percentage, label: t("voucher.discountTypePercent") },
+                  { value: DISCOUNT_TYPE.Money, label: t("voucher.discountTypeMoney") },
                 ]}
               />
             </Form.Item>
@@ -193,12 +195,12 @@ function VoucherModal({
           <Col span={12}>
             <Form.Item
               name="discountValue"
-              label={discountType === DISCOUNT_TYPE.Percentage ? "Mức giảm (%)" : "Mức giảm (đ)"}
+              label={discountType === DISCOUNT_TYPE.Percentage ? t("voucher.fieldDiscountValuePercent") : t("voucher.fieldDiscountValueMoney")}
               rules={[
-                { required: true, message: "Vui lòng nhập mức giảm" },
-                { type: "number", min: 1, message: "Mức giảm phải lớn hơn 0" },
+                { required: true, message: t("voucher.discountValueRequired") },
+                { type: "number", min: 1, message: t("voucher.discountValueMin") },
                 ...(discountType === DISCOUNT_TYPE.Percentage
-                  ? [{ type: "number" as const, max: 100, message: "Phần trăm tối đa là 100" }]
+                  ? [{ type: "number" as const, max: 100, message: t("voucher.discountValueMax") }]
                   : []),
               ]}
             >
@@ -209,15 +211,15 @@ function VoucherModal({
 
         <Row gutter={12}>
           <Col span={12}>
-            <Form.Item name="minOrderAmount" label="Đơn tối thiểu (đ)">
+            <Form.Item name="minOrderAmount" label={t("voucher.fieldMinOrder")}>
               <InputNumber<number> style={{ width: "100%" }} min={0} step={100000} />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item
               name="maxDiscountAmount"
-              label="Giảm tối đa (đ)"
-              tooltip="Chỉ áp dụng cho voucher giảm theo phần trăm"
+              label={t("voucher.fieldMaxDiscount")}
+              tooltip={t("voucher.fieldMaxDiscountTooltip")}
             >
               <InputNumber<number>
                 style={{ width: "100%" }}
@@ -231,7 +233,7 @@ function VoucherModal({
 
         <Row gutter={12}>
           <Col span={12}>
-            <Form.Item name="customerTarget" label="Áp dụng cho" rules={[{ required: true }]}>
+            <Form.Item name="customerTarget" label={t("voucher.fieldTarget")} rules={[{ required: true }]}>
               <Select
                 options={Object.entries(CUSTOMER_TARGET_LABELS).map(([value, label]) => ({
                   value: Number(value) as VoucherCustomerTarget,
@@ -241,22 +243,22 @@ function VoucherModal({
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item name="usageLimit" label="Giới hạn lượt dùng">
+            <Form.Item name="usageLimit" label={t("voucher.fieldUsageLimit")}>
               <InputNumber<number>
                 style={{ width: "100%" }}
                 min={1}
-                placeholder="Bỏ trống = không giới hạn"
+                placeholder={t("voucher.usageLimitPlaceholder")}
                 disabled={isEdit}
               />
             </Form.Item>
           </Col>
         </Row>
 
-        <Form.Item name="validRange" label="Thời hạn" rules={[{ required: true }]}>
+        <Form.Item name="validRange" label={t("voucher.fieldValidity")} rules={[{ required: true }]}>
           <DatePicker.RangePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
         </Form.Item>
 
-        <Form.Item name="description" label="Mô tả">
+        <Form.Item name="description" label={t("voucher.fieldDescription")}>
           <Input.TextArea rows={2} />
         </Form.Item>
       </Form>
@@ -269,6 +271,7 @@ function VoucherModal({
  * a table of promotions with activate / pause controls.
  */
 export function VoucherPage() {
+  const { t } = useTranslation();
   const branchId = useCurrentBranchId();
   const [statusFilter, setStatusFilter] = useState<VoucherStatus | undefined>();
   const [keyword, setKeyword] = useState("");
@@ -293,7 +296,7 @@ export function VoucherPage() {
 
   const columns: ColumnsType<VoucherDto> = [
     {
-      title: "Mã / Tên Voucher",
+      title: t("voucher.colCode"),
       key: "code",
       render: (_, row) => (
         <>
@@ -303,16 +306,16 @@ export function VoucherPage() {
       ),
     },
     {
-      title: "Mức giảm",
+      title: t("voucher.colDiscount"),
       key: "discount",
       width: 160,
       render: (_, row) =>
         row.discountType === DISCOUNT_TYPE.Percentage
-          ? `${row.discountValue}%${row.maxDiscountAmount ? ` (tối đa ${formatVND(row.maxDiscountAmount)} đ)` : ""}`
+          ? `${row.discountValue}%${row.maxDiscountAmount ? ` (${t("voucher.maxDiscount", { amount: formatVND(row.maxDiscountAmount) })})` : ""}`
           : `${formatVND(row.discountValue)} đ`,
     },
     {
-      title: "Điều kiện áp dụng",
+      title: t("voucher.colConditions"),
       key: "conditions",
       width: 200,
       render: (_, row) => (
@@ -320,20 +323,20 @@ export function VoucherPage() {
           <div>{CUSTOMER_TARGET_LABELS[row.customerTarget]}</div>
           {row.minOrderAmount != null && (
             <div style={{ fontSize: 12, color: "#6B7280" }}>
-              Đơn từ {formatVND(row.minOrderAmount)} đ
+              {t("voucher.minOrder", { amount: formatVND(row.minOrderAmount) })}
             </div>
           )}
         </>
       ),
     },
     {
-      title: "Thời hạn",
+      title: t("voucher.colValidity"),
       key: "validity",
       width: 190,
       render: (_, row) => `${formatDate(row.validFrom)} – ${formatDate(row.validTo)}`,
     },
     {
-      title: "Lượt dùng",
+      title: t("voucher.colUsage"),
       key: "usage",
       width: 120,
       render: (_, row) =>
@@ -342,7 +345,7 @@ export function VoucherPage() {
           : `${row.usedCount} / ${row.usageLimit}`,
     },
     {
-      title: "Trạng thái",
+      title: t("voucher.colStatus"),
       dataIndex: "status",
       key: "status",
       width: 140,
@@ -352,7 +355,7 @@ export function VoucherPage() {
       },
     },
     {
-      title: "Thao tác",
+      title: t("voucher.colActions"),
       key: "actions",
       width: 220,
       render: (_, row) => (
@@ -361,31 +364,31 @@ export function VoucherPage() {
             <Button
               type="link"
               size="small"
-              onClick={() => run(activateVoucher.mutateAsync(row.id), "Đã kích hoạt voucher")}
+              onClick={() => run(activateVoucher.mutateAsync(row.id), t("voucher.activateSuccess"))}
             >
-              Kích hoạt
+              {t("voucher.actionActivate")}
             </Button>
           )}
           {row.status === VOUCHER_STATUS.Active && (
             <Button
               type="link"
               size="small"
-              onClick={() => run(pauseVoucher.mutateAsync(row.id), "Đã tạm dừng voucher")}
+              onClick={() => run(pauseVoucher.mutateAsync(row.id), t("voucher.pauseSuccess"))}
             >
-              Tạm dừng
+              {t("voucher.actionPause")}
             </Button>
           )}
           <Button type="link" size="small" onClick={() => { setEditing(row); setModalOpen(true); }}>
-            Sửa
+            {t("voucher.actionEdit")}
           </Button>
           {row.usedCount === 0 && (
             <Popconfirm
-              title="Xoá voucher này?"
-              okText="Xoá"
-              cancelText="Huỷ"
-              onConfirm={() => run(deleteVoucher.mutateAsync(row.id), "Đã xoá voucher")}
+              title={t("voucher.deleteTitle")}
+              okText={t("voucher.deleteOk")}
+              cancelText={t("voucher.deleteCancel")}
+              onConfirm={() => run(deleteVoucher.mutateAsync(row.id), t("voucher.deleteSuccess"))}
             >
-              <Button type="link" size="small" danger>Xoá</Button>
+              <Button type="link" size="small" danger>{t("voucher.deleteOk")}</Button>
             </Popconfirm>
           )}
         </>
@@ -396,24 +399,24 @@ export function VoucherPage() {
   return (
     <div className="reception-page">
       <div className="reception-card" style={{ padding: "16px 20px", marginBottom: 12 }}>
-        <div style={{ fontWeight: 700, fontSize: 16, color: "#1B2A41" }}>Voucher khuyến mãi</div>
+        <div style={{ fontWeight: 700, fontSize: 16, color: "#1B2A41" }}>{t("voucher.pageTitle")}</div>
         <Text style={{ fontSize: 13, color: "#5A6B82" }}>
-          Quản lý các chương trình khuyến mãi cho khách hàng
+          {t("voucher.pageSubtitle")}
         </Text>
       </div>
 
       <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
-        <Col xs={12} md={6}><StatTile value={stats?.total ?? 0} label="Tổng voucher" testId="voucher-stat-total" /></Col>
-        <Col xs={12} md={6}><StatTile value={stats?.active ?? 0} label="Đang hoạt động" testId="voucher-stat-active" /></Col>
-        <Col xs={12} md={6}><StatTile value={stats?.issued ?? 0} label="Đã phát hành" testId="voucher-stat-issued" /></Col>
-        <Col xs={12} md={6}><StatTile value={stats?.expired ?? 0} label="Đã hết hạn" testId="voucher-stat-expired" /></Col>
+        <Col xs={12} md={6}><StatTile value={stats?.total ?? 0} label={t("voucher.statTotal")} testId="voucher-stat-total" /></Col>
+        <Col xs={12} md={6}><StatTile value={stats?.active ?? 0} label={t("voucher.statActive")} testId="voucher-stat-active" /></Col>
+        <Col xs={12} md={6}><StatTile value={stats?.issued ?? 0} label={t("voucher.statIssued")} testId="voucher-stat-issued" /></Col>
+        <Col xs={12} md={6}><StatTile value={stats?.expired ?? 0} label={t("voucher.statExpired")} testId="voucher-stat-expired" /></Col>
       </Row>
 
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <Input
             prefix={<SearchOutlined />}
-            placeholder="Tìm theo mã hoặc tên voucher..."
+            placeholder={t("voucher.searchPlaceholder")}
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             style={{ width: 280 }}
@@ -421,7 +424,7 @@ export function VoucherPage() {
           />
           <Select
             allowClear
-            placeholder="Tất cả trạng thái"
+            placeholder={t("voucher.allStatuses")}
             style={{ width: 180 }}
             value={statusFilter}
             onChange={setStatusFilter}
@@ -436,7 +439,7 @@ export function VoucherPage() {
             style={{ marginLeft: "auto" }}
             onClick={() => { setEditing(null); setModalOpen(true); }}
           >
-            Tạo voucher
+            {t("voucher.createBtn")}
           </Button>
         </div>
       </div>
@@ -452,13 +455,13 @@ export function VoucherPage() {
             emptyText: (
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="Chưa có voucher nào — nhấn “Tạo voucher” để bắt đầu."
+                description={t("voucher.emptyText")}
               />
             ),
           }}
           pagination={{
             pageSize: 20,
-            showTotal: (total, range) => `Hiển thị ${range[0]}–${range[1]} trên ${total}`,
+            showTotal: (total, range) => t("voucher.showRange", { from: range[0], to: range[1], total }),
           }}
         />
       </div>

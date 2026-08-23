@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Alert, Form, Input, Modal, Select, message } from "antd";
+import { useTranslation } from "react-i18next";
 import { useCreateDiagnosis } from "../api/consultingQueries";
 import { formatTeeth, type ToothSelectionDto } from "../api/consultingApi";
 import { CATALOG_GROUP, useCatalogOptions } from "@/hooks/useCatalogOptions";
@@ -30,6 +31,7 @@ export function DiagnosisModal({
   onClose,
   onCreated,
 }: DiagnosisModalProps) {
+  const { t } = useTranslation();
   const [form] = Form.useForm<DiagnosisFormValues>();
   const branchId = useCurrentBranchId();
   const createDiagnosis = useCreateDiagnosis();
@@ -56,7 +58,7 @@ export function DiagnosisModal({
         teeth,
       });
 
-      message.success("Đã tạo phiếu chẩn đoán");
+      message.success(t("treatment.diagnosisCreated"));
       onCreated?.();
       onClose();
     } catch (error) {
@@ -67,9 +69,9 @@ export function DiagnosisModal({
   return (
     <Modal
       open={open}
-      title="Tạo phiếu chẩn đoán"
-      okText="Tạo"
-      cancelText="Huỷ"
+      title={t("treatment.diagnosisModalTitle")}
+      okText={t("treatment.diagnosisModalOk")}
+      cancelText={t("treatment.diagnosisModalCancel")}
       okButtonProps={{ disabled: teeth.length === 0 }}
       confirmLoading={createDiagnosis.isPending}
       onOk={handleSubmit}
@@ -80,31 +82,31 @@ export function DiagnosisModal({
         <Alert
           type="warning"
           showIcon
-          message="Chưa chọn răng"
-          description="Chọn ít nhất một răng hoặc một mặt răng trên sơ đồ trước khi tạo phiếu chẩn đoán."
+          message={t("treatment.diagnosisAlertNoTeeth")}
+          description={t("treatment.diagnosisAlertNoTeethDesc")}
         />
       ) : (
         <Alert
           type="info"
           showIcon
           style={{ marginBottom: 16 }}
-          message={`Răng đã chọn: ${formatTeeth(teeth)}`}
+          message={t("treatment.diagnosisAlertTeethSelected", { teeth: formatTeeth(teeth) })}
         />
       )}
 
       <Form form={form} layout="vertical" requiredMark disabled={teeth.length === 0}>
         <Form.Item
           name="diagnosisId"
-          label="Chẩn đoán"
-          rules={[{ required: true, message: "Vui lòng chọn chẩn đoán" }]}
+          label={t("treatment.diagnosisFieldDiagnosis")}
+          rules={[{ required: true, message: t("treatment.diagnosisDiagnosisRequired") }]}
         >
           <Select
             showSearch
             optionFilterProp="label"
             placeholder={
               (diagnoses?.length ?? 0) === 0
-                ? "Chưa có danh mục chẩn đoán — thêm ở trang Danh mục"
-                : "Chọn chẩn đoán"
+                ? t("treatment.diagnosisDiagnosisEmptyCatalog")
+                : t("treatment.diagnosisDiagnosisPlaceholder")
             }
             options={(diagnoses ?? []).map((d) => ({ value: d.id, label: d.name }))}
           />
@@ -112,29 +114,29 @@ export function DiagnosisModal({
 
         <Form.Item
           name="staffId"
-          label="Bác sĩ chẩn đoán"
-          rules={[{ required: true, message: "Vui lòng chọn bác sĩ" }]}
+          label={t("treatment.diagnosisFieldDoctor")}
+          rules={[{ required: true, message: t("treatment.diagnosisDoctorRequired") }]}
         >
           <Select
             showSearch
             optionFilterProp="label"
-            placeholder="Chọn bác sĩ"
+            placeholder={t("treatment.diagnosisDoctorPlaceholder")}
             options={(dentists ?? []).map((d) => ({ value: d.id, label: d.name }))}
           />
         </Form.Item>
 
-        <Form.Item name="secondStaffId" label="Bác sĩ hỗ trợ">
+        <Form.Item name="secondStaffId" label={t("treatment.diagnosisFieldSecondDoctor")}>
           <Select
             allowClear
             showSearch
             optionFilterProp="label"
-            placeholder="Không bắt buộc"
+            placeholder={t("treatment.diagnosisSecondDoctorPlaceholder")}
             options={(dentists ?? []).map((d) => ({ value: d.id, label: d.name }))}
           />
         </Form.Item>
 
-        <Form.Item name="note" label="Ghi chú">
-          <Input.TextArea rows={3} placeholder="Mô tả tình trạng" />
+        <Form.Item name="note" label={t("treatment.diagnosisFieldNote")}>
+          <Input.TextArea rows={3} placeholder={t("treatment.diagnosisNotePlaceholder")} />
         </Form.Item>
       </Form>
     </Modal>

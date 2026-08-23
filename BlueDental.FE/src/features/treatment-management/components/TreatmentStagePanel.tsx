@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button, Card, Empty, Progress, Space, Table, Tag, Typography, message } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import type { TableColumnsType } from "antd";
+import { useTranslation } from "react-i18next";
 import {
   STAGE_STATUS,
   STAGE_STATUS_CONFIG,
@@ -31,6 +32,7 @@ interface TreatmentStagePanelProps {
  * same list here, grouped by the service line each stage belongs to.
  */
 export function TreatmentStagePanel({ patientId }: TreatmentStagePanelProps) {
+  const { t } = useTranslation();
   const branchId = useCurrentBranchId();
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -58,37 +60,37 @@ export function TreatmentStagePanel({ patientId }: TreatmentStagePanelProps) {
   };
 
   const columns: TableColumnsType<TreatmentStageDto> = [
-    { title: "#", dataIndex: "sequenceNumber", key: "sequenceNumber", width: 50 },
+    { title: t("treatment.colSequence"), dataIndex: "sequenceNumber", key: "sequenceNumber", width: 50 },
     {
-      title: "Dịch vụ",
+      title: t("treatment.colService"),
       dataIndex: "serviceName",
       key: "serviceName",
       width: 180,
       render: (value: string | null) => value ?? "—",
     },
-    { title: "Công đoạn", dataIndex: "name", key: "name" },
+    { title: t("treatment.colStageName"), dataIndex: "name", key: "name" },
     {
-      title: "Răng",
+      title: t("treatment.colTeeth"),
       key: "teeth",
       width: 140,
       render: (_, row) => (row.teeth.length === 0 ? "—" : formatTeeth(row.teeth)),
     },
     {
-      title: "Bác sĩ",
+      title: t("treatment.colDoctor"),
       dataIndex: "staffName",
       key: "staffName",
       width: 140,
       render: (value: string | null) => value ?? "—",
     },
     {
-      title: "Ngày dự kiến",
+      title: t("treatment.colScheduledDate"),
       dataIndex: "scheduledDate",
       key: "scheduledDate",
       width: 120,
       render: (value: string | null) => (value ? formatDate(value) : "—"),
     },
     {
-      title: "Trạng thái",
+      title: t("treatment.colStatus"),
       dataIndex: "status",
       key: "status",
       width: 130,
@@ -98,19 +100,19 @@ export function TreatmentStagePanel({ patientId }: TreatmentStagePanelProps) {
           <Space size={4}>
             <Tag color={config.color}>{config.label}</Tag>
             {row.isImageRequired && row.imageUrls.length === 0 ? (
-              <Tag color="warning">Cần ảnh</Tag>
+              <Tag color="warning">{t("treatment.tagNeedPhoto")}</Tag>
             ) : null}
           </Space>
         );
       },
     },
     {
-      title: "Thao tác",
+      title: t("treatment.colActions"),
       key: "actions",
       width: 190,
       render: (_, row) =>
         row.status === STAGE_STATUS.Completed ? (
-          <Text type="secondary">Đã xong</Text>
+          <Text type="secondary">{t("treatment.stageDone")}</Text>
         ) : (
           <Space size={4}>
             {row.status === STAGE_STATUS.Pending ? (
@@ -119,47 +121,51 @@ export function TreatmentStagePanel({ patientId }: TreatmentStagePanelProps) {
                 type="link"
                 loading={continueStage.isPending}
                 onClick={() =>
-                  run(continueStage.mutateAsync(row.id), "Đã tiếp tục công đoạn")
+                  run(continueStage.mutateAsync(row.id), t("treatment.stageContinued"))
                 }
               >
-                Tiếp tục
+                {t("treatment.stageContinueBtn")}
               </Button>
             ) : null}
             <Button
               size="small"
               type="link"
               loading={completeStage.isPending}
-              onClick={() => run(completeStage.mutateAsync(row.id), "Đã hoàn thành công đoạn")}
+              onClick={() => run(completeStage.mutateAsync(row.id), t("treatment.stageCompleted"))}
             >
-              Hoàn thành
+              {t("treatment.stageCompleteBtn")}
             </Button>
           </Space>
         ),
     },
   ];
 
+  const latestText = latest
+    ? t("treatment.stagePanelLatestValue", {
+        service: latest.serviceName ?? t("treatment.colService"),
+        note: latest.stageNote ?? t("treatment.stagePanelNoLatestNote"),
+      })
+    : t("treatment.stagePanelNoStage");
+
   return (
     <>
       <Card
         size="small"
-        title="Công đoạn điều trị"
+        title={t("treatment.stagePanelTitle")}
         extra={
           <Button size="small" type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
-            Công đoạn
+            {t("treatment.stagePanelAddBtn")}
           </Button>
         }
         style={{ marginTop: 16 }}
       >
         <div style={{ marginBottom: 12 }} data-testid="stage-progress">
           <Text type="secondary" style={{ fontSize: 12 }}>
-            Tiến độ: {completed}/{stages.length} công đoạn
+            {t("treatment.stagePanelProgress", { completed, total: stages.length })}
           </Text>
           <Progress percent={progressPercent} size="small" />
           <Text type="secondary" style={{ fontSize: 12 }}>
-            Công đoạn gần nhất:{" "}
-            {latest
-              ? `${latest.serviceName ?? "Dịch vụ"} — ${latest.stageNote ?? "(không có ghi chú)"}`
-              : "Chưa có công đoạn"}
+            {t("treatment.stagePanelLatest")} {latestText}
           </Text>
         </div>
 
@@ -171,7 +177,7 @@ export function TreatmentStagePanel({ patientId }: TreatmentStagePanelProps) {
           dataSource={stages}
           pagination={false}
           locale={{
-            emptyText: <Empty description="Chưa có công đoạn" image={Empty.PRESENTED_IMAGE_SIMPLE} />,
+            emptyText: <Empty description={t("treatment.stagePanelEmpty")} image={Empty.PRESENTED_IMAGE_SIMPLE} />,
           }}
         />
       </Card>

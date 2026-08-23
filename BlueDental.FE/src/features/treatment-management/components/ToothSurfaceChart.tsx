@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { useTranslation } from "react-i18next";
 import type { ToothSelectionDto } from "../api/consultingApi";
 
 /**
@@ -42,12 +43,12 @@ const SURFACE_SHAPES: Record<ToothSurface, string> = {
   center: `${MID},${MID} ${SIZE - MID},${MID} ${SIZE - MID},${SIZE - MID} ${MID},${SIZE - MID}`,
 };
 
-const SURFACE_LABELS: Record<ToothSurface, string> = {
-  top: "mặt trên",
-  right: "mặt phải",
-  bottom: "mặt dưới",
-  left: "mặt trái",
-  center: "mặt nhai",
+const SURFACE_LABEL_KEYS: Record<ToothSurface, string> = {
+  top: "treatment.toothSurfaceTop",
+  right: "treatment.toothSurfaceRight",
+  bottom: "treatment.toothSurfaceBottom",
+  left: "treatment.toothSurfaceLeft",
+  center: "treatment.toothSurfaceCenter",
 };
 
 function emptyTooth(toothCode: number): ToothSelectionDto {
@@ -82,6 +83,7 @@ function ToothTile({
   onToggleSurface: (surface: ToothSurface) => void;
   onToggleTooth: () => void;
 }) {
+  const { t } = useTranslation();
   const wholeToothSelected = tooth?.selected ?? false;
 
   return (
@@ -100,7 +102,7 @@ function ToothTile({
               style={{ cursor: readOnly ? "default" : "pointer" }}
               onClick={readOnly ? undefined : () => onToggleSurface(surface)}
             >
-              <title>{`Răng ${toothCode} — ${SURFACE_LABELS[surface]}`}</title>
+              <title>{t("treatment.toothAriaLabel", { code: toothCode, surface: t(SURFACE_LABEL_KEYS[surface]) })}</title>
             </polygon>
           );
         })}
@@ -110,7 +112,7 @@ function ToothTile({
         type="button"
         disabled={readOnly}
         onClick={onToggleTooth}
-        title={`Chọn cả răng ${toothCode}`}
+        title={t("treatment.toothSelectAll", { code: toothCode })}
         style={{
           border: "none",
           background: "none",
@@ -170,10 +172,12 @@ export function ToothSurfaceChart({
   readOnly = false,
   style,
 }: ToothSurfaceChartProps) {
+  const { t } = useTranslation();
+
   const update = (toothCode: number, mutate: (tooth: ToothSelectionDto) => ToothSelectionDto) => {
-    const existing = value.find((t) => t.toothCode === toothCode) ?? emptyTooth(toothCode);
+    const existing = value.find((tooth) => tooth.toothCode === toothCode) ?? emptyTooth(toothCode);
     const next = mutate(existing);
-    const rest = value.filter((t) => t.toothCode !== toothCode);
+    const rest = value.filter((tooth) => tooth.toothCode !== toothCode);
 
     onChange(
       isEmpty(next)
@@ -220,13 +224,13 @@ export function ToothSurfaceChart({
       <div style={{ marginTop: 10, display: "flex", gap: 16, fontSize: 11, color: "#6B7280" }}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
           <span style={{ width: 10, height: 10, background: SELECTED_FILL, display: "inline-block", borderRadius: 2 }} />
-          Cả răng
+          {t("treatment.legendWholeToothLabel")}
         </span>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
           <span style={{ width: 10, height: 10, background: SURFACE_FILL, display: "inline-block", borderRadius: 2 }} />
-          Mặt răng
+          {t("treatment.legendSurfaceLabel")}
         </span>
-        <span>Bấm số răng để chọn cả răng, bấm vào mặt để chọn từng mặt.</span>
+        <span>{t("treatment.legendInstruction")}</span>
       </div>
     </div>
   );

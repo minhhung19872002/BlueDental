@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Form, Input, InputNumber, Modal, Select, Switch, message } from "antd";
+import { useTranslation } from "react-i18next";
 import {
   useCreateCatalogEntry,
   useUpdateCatalogEntry,
@@ -48,6 +49,7 @@ export function CatalogEntryModal({
   entityNoun,
   onClose,
 }: CatalogEntryModalProps) {
+  const { t } = useTranslation();
   const [form] = Form.useForm<CatalogEntryFormValues>();
   const branchId = useCurrentBranchId();
   const createEntry = useCreateCatalogEntry();
@@ -95,7 +97,7 @@ export function CatalogEntryModal({
             sortOrder: values.sortOrder,
           },
         });
-        message.success(`Đã cập nhật ${entityNoun.toLowerCase()}`);
+        message.success(t("catalogEntryModal.updateSuccess", { noun: entityNoun.toLowerCase() }));
       } else {
         await createEntry.mutateAsync({
           clinicBranchId: branchId,
@@ -108,7 +110,7 @@ export function CatalogEntryModal({
           isImageRequired: values.isImageRequired,
           sortOrder: values.sortOrder,
         });
-        message.success(`Đã thêm ${entityNoun.toLowerCase()}`);
+        message.success(t("catalogEntryModal.createSuccess", { noun: entityNoun.toLowerCase() }));
       }
 
       onClose();
@@ -120,9 +122,9 @@ export function CatalogEntryModal({
   return (
     <Modal
       open={open}
-      title={`${isEdit ? "Sửa" : "Thêm"} ${entityNoun.toLowerCase()}`}
-      okText={isEdit ? "Lưu" : "Thêm"}
-      cancelText="Huỷ"
+      title={isEdit ? t("catalogEntryModal.editTitle", { noun: entityNoun.toLowerCase() }) : t("catalogEntryModal.createTitle", { noun: entityNoun.toLowerCase() })}
+      okText={isEdit ? t("catalogEntryModal.okTextEdit") : t("catalogEntryModal.okTextCreate")}
+      cancelText={t("catalogEntryModal.cancel")}
       confirmLoading={createEntry.isPending || updateEntry.isPending}
       onOk={handleSubmit}
       onCancel={onClose}
@@ -131,32 +133,32 @@ export function CatalogEntryModal({
       <Form form={form} layout="vertical" requiredMark>
         <Form.Item
           name="taxonomyId"
-          label="Nhóm phân loại"
-          rules={[{ required: true, message: "Vui lòng chọn nhóm" }]}
+          label={t("catalogEntryModal.groupLabel")}
+          rules={[{ required: true, message: t("catalogEntryModal.groupRequired") }]}
         >
           <Select
             options={groups.map((g) => ({ value: g.id, label: g.name }))}
-            placeholder="Chọn nhóm"
+            placeholder={t("catalogEntryModal.groupPlaceholder")}
           />
         </Form.Item>
 
         <Form.Item
           name="name"
           label={entityLabel}
-          rules={[{ required: true, message: `Vui lòng nhập ${entityLabel.toLowerCase()}` }]}
+          rules={[{ required: true, message: t("catalogEntryModal.nameRequired", { label: entityLabel.toLowerCase() }) }]}
         >
-          <Input placeholder={`Nhập ${entityLabel.toLowerCase()}`} />
+          <Input placeholder={t("catalogEntryModal.namePlaceholder", { label: entityLabel.toLowerCase() })} />
         </Form.Item>
 
-        <Form.Item name="code" label="Mã">
-          <Input placeholder="Ví dụ: DT02" />
+        <Form.Item name="code" label={t("catalogEntryModal.codeLabel")}>
+          <Input placeholder={t("catalogEntryModal.codePlaceholder")} />
         </Form.Item>
 
         {priced && (
           <Form.Item
             name="price"
-            label="Giá (đ)"
-            rules={[{ type: "number", min: 0, message: "Giá không được âm" }]}
+            label={t("catalogEntryModal.priceLabel")}
+            rules={[{ type: "number", min: 0, message: t("catalogEntryModal.priceNotNegative") }]}
           >
             <InputNumber<number>
               style={{ width: "100%" }}
@@ -169,27 +171,27 @@ export function CatalogEntryModal({
         )}
 
         {templated && (
-          <Form.Item name="content" label="Nội dung mẫu">
-            <Input.TextArea rows={4} placeholder="Nội dung của mẫu" />
+          <Form.Item name="content" label={t("catalogEntryModal.contentLabel")}>
+            <Input.TextArea rows={4} placeholder={t("catalogEntryModal.contentPlaceholder")} />
           </Form.Item>
         )}
 
-        <Form.Item name="description" label="Mô tả">
+        <Form.Item name="description" label={t("catalogEntryModal.descriptionLabel")}>
           <Input.TextArea rows={2} />
         </Form.Item>
 
-        <Form.Item name="sortOrder" label="Thứ tự hiển thị">
+        <Form.Item name="sortOrder" label={t("catalogEntryModal.sortOrderLabel")}>
           <InputNumber style={{ width: "100%" }} min={0} />
         </Form.Item>
 
         {priced && (
-          <Form.Item name="isImageRequired" label="Bắt buộc đính kèm ảnh" valuePropName="checked">
+          <Form.Item name="isImageRequired" label={t("catalogEntryModal.imageRequiredLabel")} valuePropName="checked">
             <Switch />
           </Form.Item>
         )}
 
         {isEdit && (
-          <Form.Item name="isActive" label="Đang sử dụng" valuePropName="checked">
+          <Form.Item name="isActive" label={t("catalogEntryModal.isActiveLabel")} valuePropName="checked">
             <Switch />
           </Form.Item>
         )}

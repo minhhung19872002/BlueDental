@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Col, Form, Input, InputNumber, Modal, Row, Select, message } from "antd";
+import { useTranslation } from "react-i18next";
 import {
   useCreateSupply,
   useUpdateSupply,
@@ -35,6 +36,7 @@ export function SupplyModal({
   defaultGroupId,
   onClose,
 }: SupplyModalProps) {
+  const { t } = useTranslation();
   const [form] = Form.useForm<SupplyFormValues>();
   const branchId = useCurrentBranchId();
   const createSupply = useCreateSupply();
@@ -76,7 +78,7 @@ export function SupplyModal({
             origin: values.origin,
           },
         });
-        message.success("Đã cập nhật vật tư");
+        message.success(t("supplyModal.updateSuccess"));
       } else {
         await createSupply.mutateAsync({
           branchId,
@@ -90,7 +92,7 @@ export function SupplyModal({
           supplier: values.supplier,
           origin: values.origin,
         });
-        message.success("Đã thêm vật tư");
+        message.success(t("supplyModal.createSuccess"));
       }
 
       onClose();
@@ -110,9 +112,9 @@ export function SupplyModal({
   return (
     <Modal
       open={open}
-      title={isEdit ? `Sửa vật tư ${supply.itemCode}` : "Thêm vật tư"}
-      okText={isEdit ? "Lưu" : "Thêm"}
-      cancelText="Huỷ"
+      title={isEdit ? t("supplyModal.editTitle", { code: supply.itemCode }) : t("supplyModal.createTitle")}
+      okText={isEdit ? t("supplyModal.okTextEdit") : t("supplyModal.okTextCreate")}
+      cancelText={t("supplyModal.cancel")}
       confirmLoading={createSupply.isPending || updateSupply.isPending}
       onOk={handleSubmit}
       onCancel={onClose}
@@ -124,8 +126,8 @@ export function SupplyModal({
           <Col span={10}>
             <Form.Item
               name="itemCode"
-              label="Mã vật tư"
-              rules={[{ required: true, message: "Vui lòng nhập mã" }]}
+              label={t("supplyModal.itemCodeLabel")}
+              rules={[{ required: true, message: t("supplyModal.itemCodeRequired") }]}
             >
               {/* The code is the branch-unique key, so it is fixed after creation. */}
               <Input disabled={isEdit} placeholder="VT001" />
@@ -134,8 +136,8 @@ export function SupplyModal({
           <Col span={14}>
             <Form.Item
               name="name"
-              label="Tên vật liệu"
-              rules={[{ required: true, message: "Vui lòng nhập tên" }]}
+              label={t("supplyModal.nameLabel")}
+              rules={[{ required: true, message: t("supplyModal.nameRequired") }]}
             >
               <Input placeholder="Găng tay y tế" />
             </Form.Item>
@@ -144,29 +146,29 @@ export function SupplyModal({
 
         <Row gutter={12}>
           <Col span={14}>
-            <Form.Item name="taxonomyId" label="Nhóm phân loại">
+            <Form.Item name="taxonomyId" label={t("supplyModal.groupLabel")}>
               <Select
                 allowClear
-                placeholder={groups.length === 0 ? "Chưa có nhóm vật tư" : "Chọn nhóm"}
+                placeholder={groups.length === 0 ? t("supplyModal.noGroupPlaceholder") : t("supplyModal.selectGroupPlaceholder")}
                 options={groups.map((g) => ({ value: g.id, label: g.name }))}
               />
             </Form.Item>
           </Col>
           <Col span={10}>
-            <Form.Item name="unit" label="Đơn vị">
-              <Input placeholder="Hộp / cái" />
+            <Form.Item name="unit" label={t("supplyModal.unitLabel")}>
+              <Input placeholder={t("supplyModal.unitPlaceholder")} />
             </Form.Item>
           </Col>
         </Row>
 
         <Row gutter={12}>
           <Col span={12}>
-            <Form.Item name="unitCost" label="Giá nhập (đ)">
+            <Form.Item name="unitCost" label={t("supplyModal.unitCostLabel")}>
               <InputNumber<number> {...money} />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item name="salePrice" label="Giá bán (đ)">
+            <Form.Item name="salePrice" label={t("supplyModal.salePriceLabel")}>
               <InputNumber<number> {...money} />
             </Form.Item>
           </Col>
@@ -174,12 +176,12 @@ export function SupplyModal({
 
         <Row gutter={12}>
           <Col span={12}>
-            <Form.Item name="supplier" label="Nhà cung cấp">
+            <Form.Item name="supplier" label={t("supplyModal.supplierLabel")}>
               <Input />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item name="origin" label="Xuất xứ">
+            <Form.Item name="origin" label={t("supplyModal.originLabel")}>
               <Input placeholder="Việt Nam" />
             </Form.Item>
           </Col>
@@ -187,9 +189,9 @@ export function SupplyModal({
 
         <Form.Item
           name="reorderLevel"
-          label="Mức tồn tối thiểu"
-          tooltip="Dưới mức này, vật tư hiển thị trạng thái Sắp hết"
-          rules={[{ type: "number", min: 0, message: "Không được âm" }]}
+          label={t("supplyModal.reorderLevelLabel")}
+          tooltip={t("supplyModal.reorderLevelTooltip")}
+          rules={[{ type: "number", min: 0, message: t("supplyModal.notNegative") }]}
         >
           <InputNumber<number> style={{ width: "100%" }} min={0} />
         </Form.Item>

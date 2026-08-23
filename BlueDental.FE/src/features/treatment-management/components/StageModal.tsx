@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Alert, DatePicker, Form, Input, Modal, Select, message } from "antd";
 import dayjs from "dayjs";
+import { useTranslation } from "react-i18next";
 import { useCreateStage } from "../api/stageApi";
 import { usePatientAdvises } from "../api/consultingQueries";
 import { ADVISE_STATUS, type PatientAdviseDto } from "../api/consultingApi";
@@ -27,6 +28,7 @@ interface StageFormValues {
  * consulting line the patient accepted, so only those are offered here.
  */
 export function StageModal({ open, patientId, onClose }: StageModalProps) {
+  const { t } = useTranslation();
   const [form] = Form.useForm<StageFormValues>();
   const branchId = useCurrentBranchId();
   const createStage = useCreateStage();
@@ -62,7 +64,7 @@ export function StageModal({ open, patientId, onClose }: StageModalProps) {
         scheduledDate: values.scheduledDate?.format("YYYY-MM-DD"),
       });
 
-      message.success("Đã thêm công đoạn");
+      message.success(t("treatment.stageCreated"));
       onClose();
     } catch (error) {
       message.error(extractApiError(error));
@@ -72,9 +74,9 @@ export function StageModal({ open, patientId, onClose }: StageModalProps) {
   return (
     <Modal
       open={open}
-      title="Thêm công đoạn"
-      okText="Tạo"
-      cancelText="Huỷ"
+      title={t("treatment.stageModalTitle")}
+      okText={t("treatment.stageModalOk")}
+      cancelText={t("treatment.stageModalCancel")}
       okButtonProps={{ disabled: serviceLines.length === 0 }}
       confirmLoading={createStage.isPending}
       onOk={handleSubmit}
@@ -85,40 +87,40 @@ export function StageModal({ open, patientId, onClose }: StageModalProps) {
         <Alert
           type="info"
           showIcon
-          message="Bệnh nhân chưa có dịch vụ điều trị"
-          description="Công đoạn là một bước của dịch vụ điều trị. Hãy tạo và chốt phiếu tư vấn trước."
+          message={t("treatment.stageNoServices")}
+          description={t("treatment.stageNoServicesDesc")}
         />
       ) : (
         <Form form={form} layout="vertical" requiredMark>
           <Form.Item
             name="treatmentServiceId"
-            label="Dịch vụ điều trị"
-            rules={[{ required: true, message: "Vui lòng chọn dịch vụ" }]}
+            label={t("treatment.stageFieldService")}
+            rules={[{ required: true, message: t("treatment.stageServiceRequired") }]}
           >
             <Select
-              placeholder="Chọn dịch vụ"
+              placeholder={t("treatment.stageServicePlaceholder")}
               options={serviceLines.map((line: PatientAdviseDto) => ({
                 value: line.id,
-                label: `${line.code} — ${line.serviceName ?? "Dịch vụ"}`,
+                label: `${line.code} — ${line.serviceName ?? t("treatment.stageServiceDefault")}`,
               }))}
             />
           </Form.Item>
 
           <Form.Item
             name="name"
-            label="Tên công đoạn"
-            rules={[{ required: true, message: "Vui lòng nhập tên công đoạn" }]}
+            label={t("treatment.stageFieldName")}
+            rules={[{ required: true, message: t("treatment.stageNameRequired") }]}
           >
-            <Input placeholder="Tên công đoạn" maxLength={300} />
+            <Input placeholder={t("treatment.stageNamePlaceholder")} maxLength={300} />
           </Form.Item>
 
           <Form.Item
             name="staffId"
-            label="Bác sĩ thực hiện"
-            rules={[{ required: true, message: "Vui lòng chọn bác sĩ" }]}
+            label={t("treatment.stageFieldDoctor")}
+            rules={[{ required: true, message: t("treatment.stageDoctorRequired") }]}
           >
             <Select
-              placeholder="Chọn bác sĩ"
+              placeholder={t("treatment.stageDoctorPlaceholder")}
               options={(dentists ?? []).map((dentist) => ({
                 value: dentist.id,
                 label: dentist.name,
@@ -126,12 +128,12 @@ export function StageModal({ open, patientId, onClose }: StageModalProps) {
             />
           </Form.Item>
 
-          <Form.Item name="scheduledDate" label="Ngày dự kiến">
+          <Form.Item name="scheduledDate" label={t("treatment.stageFieldScheduledDate")}>
             <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
           </Form.Item>
 
-          <Form.Item name="note" label="Ghi chú">
-            <Input.TextArea rows={3} maxLength={2000} placeholder="Ghi chú công đoạn" />
+          <Form.Item name="note" label={t("treatment.stageFieldNote")}>
+            <Input.TextArea rows={3} maxLength={2000} placeholder={t("treatment.stageNotePlaceholder")} />
           </Form.Item>
         </Form>
       )}

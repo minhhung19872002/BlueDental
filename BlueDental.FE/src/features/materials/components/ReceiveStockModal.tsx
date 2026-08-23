@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { DatePicker, Form, InputNumber, Modal, message } from "antd";
 import dayjs from "dayjs";
+import { useTranslation } from "react-i18next";
 import { useReceiveStock, type SupplyDto } from "../api/suppliesApi";
 import { extractApiError } from "@/lib/apiError";
 
@@ -22,6 +23,7 @@ interface ReceiveFormValues {
  * "Cảnh báo hết hạn" and "Trạng thái" columns.
  */
 export function ReceiveStockModal({ open, supply, onClose }: ReceiveStockModalProps) {
+  const { t } = useTranslation();
   const [form] = Form.useForm<ReceiveFormValues>();
   const receiveStock = useReceiveStock();
 
@@ -52,7 +54,7 @@ export function ReceiveStockModal({ open, supply, onClose }: ReceiveStockModalPr
         },
       });
 
-      message.success("Đã nhập kho");
+      message.success(t("receiveStock.stockedSuccess"));
       onClose();
     } catch (error) {
       message.error(extractApiError(error));
@@ -62,9 +64,9 @@ export function ReceiveStockModal({ open, supply, onClose }: ReceiveStockModalPr
   return (
     <Modal
       open={open}
-      title={supply ? `Nhập kho — ${supply.name}` : "Nhập kho"}
-      okText="Nhập kho"
-      cancelText="Huỷ"
+      title={supply ? t("receiveStock.titleWithName", { name: supply.name }) : t("receiveStock.title")}
+      okText={t("receiveStock.okText")}
+      cancelText={t("receiveStock.cancel")}
       confirmLoading={receiveStock.isPending}
       onOk={handleSubmit}
       onCancel={onClose}
@@ -73,27 +75,27 @@ export function ReceiveStockModal({ open, supply, onClose }: ReceiveStockModalPr
       <Form form={form} layout="vertical" requiredMark>
         <Form.Item
           name="quantity"
-          label="Số lượng nhập"
+          label={t("receiveStock.quantityLabel")}
           rules={[
-            { required: true, message: "Vui lòng nhập số lượng" },
-            { type: "number", min: 1, message: "Số lượng phải lớn hơn 0" },
+            { required: true, message: t("receiveStock.quantityRequired") },
+            { type: "number", min: 1, message: t("receiveStock.quantityMin") },
           ]}
         >
           <InputNumber<number> style={{ width: "100%" }} min={0} />
         </Form.Item>
 
-        <Form.Item name="stockedAt" label="Ngày nhập kho" rules={[{ required: true }]}>
+        <Form.Item name="stockedAt" label={t("receiveStock.stockedAtLabel")} rules={[{ required: true }]}>
           <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
         </Form.Item>
 
-        <Form.Item name="expiryDate" label="Hạn sử dụng">
+        <Form.Item name="expiryDate" label={t("receiveStock.expiryDateLabel")}>
           <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
         </Form.Item>
 
         <Form.Item
           name="expiryWarningDays"
-          label="Cảnh báo trước (ngày)"
-          rules={[{ type: "number", min: 0, message: "Không được âm" }]}
+          label={t("receiveStock.expiryWarningDaysLabel")}
+          rules={[{ type: "number", min: 0, message: t("receiveStock.notNegative") }]}
         >
           <InputNumber<number> style={{ width: "100%" }} min={0} />
         </Form.Item>
