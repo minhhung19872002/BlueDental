@@ -78,6 +78,17 @@ public class InventoryItem : FullAuditedAggregateRoot<Guid>
         return this;
     }
 
+    public InventoryItem Update(string name, string? category, string? unit, decimal reorderLevel, decimal? unitCost)
+    {
+        Check.NotNullOrWhiteSpace(name, nameof(name));
+        Name = name;
+        Category = category;
+        Unit = unit;
+        ReorderLevel = reorderLevel;
+        UnitCost = unitCost;
+        return this;
+    }
+
     public bool NeedsReorder => QuantityOnHand <= ReorderLevel;
 
     public InventoryItem Deactivate() { IsActive = false; return this; }

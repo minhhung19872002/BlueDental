@@ -1,2 +1,1 @@
-﻿// TODO: Implement OrganizationListPage.
-export function OrganizationListPage() { return null; }
+export { OrganizationListPage } from "./OrganizationListPage";

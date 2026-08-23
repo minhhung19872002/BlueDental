@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
@@ -13,7 +14,7 @@ namespace BlueDental.Catalogs;
 /// <summary>
 /// Mục danh mục — the entry table shared by every "Danh mục" sub-route.
 /// </summary>
-[Authorize]
+[Authorize(BlueDentalPermissions.Catalogs.Default)]
 public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppService
 {
     private readonly IRepository<CatalogEntry, Guid> _repository;
@@ -27,6 +28,7 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
         _taxonomyRepository = taxonomyRepository;
     }
 
+    [Authorize(BlueDentalPermissions.Catalogs.View)]
     public async Task<PagedResultDto<CatalogEntryDto>> GetListAsync(GetCatalogEntryListInput input)
     {
         var query = await _repository.GetQueryableAsync();
@@ -57,6 +59,7 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
         return new PagedResultDto<CatalogEntryDto>(totalCount, items.Select(x => MapToDto(x, names)).ToList());
     }
 
+    [Authorize(BlueDentalPermissions.Catalogs.View)]
     public async Task<CatalogEntryDto> GetAsync(Guid id)
     {
         var entry = await _repository.GetAsync(id);
@@ -64,6 +67,7 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
         return MapToDto(entry, names);
     }
 
+    [Authorize(BlueDentalPermissions.Catalogs.Create)]
     public async Task<CatalogEntryDto> CreateAsync(CreateCatalogEntryDto input)
     {
         var taxonomy = await _taxonomyRepository.FindAsync(input.TaxonomyId)
@@ -89,6 +93,7 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
         return MapToDto(entry, new Dictionary<Guid, string> { [taxonomy.Id] = taxonomy.Name });
     }
 
+    [Authorize(BlueDentalPermissions.Catalogs.Edit)]
     public async Task<CatalogEntryDto> UpdateAsync(Guid id, UpdateCatalogEntryDto input)
     {
         var entry = await _repository.GetAsync(id);
@@ -132,6 +137,7 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
         return MapToDto(entry, names);
     }
 
+    [Authorize(BlueDentalPermissions.Catalogs.Delete)]
     public async Task DeleteAsync(Guid id)
     {
         await _repository.DeleteAsync(id, autoSave: true);

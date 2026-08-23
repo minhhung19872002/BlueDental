@@ -6,6 +6,7 @@ namespace BlueDental.TreatmentManagement;
 public class ConsultationRecord : FullAuditedAggregateRoot<Guid>
 {
     public Guid PatientId { get; private set; }
+    public Guid ClinicBranchId { get; private set; }
     public Guid? ProcedureId { get; private set; }
     public string ServiceName { get; private set; } = default!;
     public decimal UnitPrice { get; private set; }
@@ -18,6 +19,7 @@ public class ConsultationRecord : FullAuditedAggregateRoot<Guid>
     public ConsultationRecord(
         Guid id,
         Guid patientId,
+        Guid clinicBranchId,
         string serviceName,
         decimal unitPrice,
         int quantity = 1,
@@ -26,6 +28,7 @@ public class ConsultationRecord : FullAuditedAggregateRoot<Guid>
         : base(id)
     {
         PatientId = patientId;
+        ClinicBranchId = clinicBranchId;
         ProcedureId = procedureId;
         ServiceName = serviceName;
         UnitPrice = unitPrice;

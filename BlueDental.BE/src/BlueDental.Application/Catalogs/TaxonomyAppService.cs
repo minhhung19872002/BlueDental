@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
@@ -13,7 +14,7 @@ namespace BlueDental.Catalogs;
 /// <summary>
 /// Nhóm danh mục — the group panel shared by every "Danh mục" sub-route.
 /// </summary>
-[Authorize]
+[Authorize(BlueDentalPermissions.Catalogs.Default)]
 public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
 {
     private readonly IRepository<Taxonomy, Guid> _repository;
@@ -27,6 +28,7 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
         _entryRepository = entryRepository;
     }
 
+    [Authorize(BlueDentalPermissions.Catalogs.View)]
     public async Task<PagedResultDto<TaxonomyDto>> GetListAsync(GetTaxonomyListInput input)
     {
         var query = await _repository.GetQueryableAsync();
@@ -58,6 +60,7 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
             items.Select(x => MapToDto(x, counts)).ToList());
     }
 
+    [Authorize(BlueDentalPermissions.Catalogs.View)]
     public async Task<TaxonomyDto> GetAsync(Guid id)
     {
         var taxonomy = await _repository.GetAsync(id);
@@ -65,6 +68,7 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
         return MapToDto(taxonomy, counts);
     }
 
+    [Authorize(BlueDentalPermissions.Catalogs.Create)]
     public async Task<TaxonomyDto> CreateAsync(CreateTaxonomyDto input)
     {
         var taxonomy = Taxonomy.Create(
@@ -83,6 +87,7 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
         return MapToDto(taxonomy, new Dictionary<Guid, int>());
     }
 
+    [Authorize(BlueDentalPermissions.Catalogs.Edit)]
     public async Task<TaxonomyDto> UpdateAsync(Guid id, UpdateTaxonomyDto input)
     {
         var taxonomy = await _repository.GetAsync(id);
@@ -98,6 +103,7 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
         return MapToDto(taxonomy, counts);
     }
 
+    [Authorize(BlueDentalPermissions.Catalogs.Delete)]
     public async Task DeleteAsync(Guid id)
     {
         var taxonomy = await _repository.GetAsync(id);

@@ -39,6 +39,23 @@ public class DentalProcedure : FullAuditedAggregateRoot<Guid>
         IsActive = true;
     }
 
+    public DentalProcedure Update(
+        string name,
+        string code,
+        ProcedureCategory category,
+        int estimatedDurationMinutes,
+        decimal basePrice,
+        string? description)
+    {
+        Name = name;
+        Code = code;
+        Category = category;
+        EstimatedDurationMinutes = estimatedDurationMinutes;
+        BasePrice = basePrice;
+        Description = description;
+        return this;
+    }
+
     public DentalProcedure UpdatePrice(decimal newPrice)
     {
         BasePrice = newPrice;

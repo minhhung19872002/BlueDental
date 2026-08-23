@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
@@ -12,7 +13,7 @@ namespace BlueDental.Finance;
 /// <summary>
 /// Danh mục thu chi và danh mục luân chuyển.
 /// </summary>
-[Authorize]
+[Authorize(BlueDentalPermissions.Finance.Default)]
 public class CashflowCategoryAppService : ApplicationService, ICashflowCategoryAppService
 {
     private readonly IRepository<CashflowCategory, Guid> _repository;
@@ -29,6 +30,7 @@ public class CashflowCategoryAppService : ApplicationService, ICashflowCategoryA
         _cashflowRepository = cashflowRepository;
     }
 
+    [Authorize(BlueDentalPermissions.Finance.View)]
     public async Task<PagedResultDto<CashflowCategoryDto>> GetListAsync(GetCashflowCategoryListInput input)
     {
         var query = await _repository.GetQueryableAsync();
@@ -53,11 +55,13 @@ public class CashflowCategoryAppService : ApplicationService, ICashflowCategoryA
         return new PagedResultDto<CashflowCategoryDto>(totalCount, items.Select(MapToDto).ToList());
     }
 
+    [Authorize(BlueDentalPermissions.Finance.View)]
     public async Task<CashflowCategoryDto> GetAsync(Guid id)
     {
         return MapToDto(await _repository.GetAsync(id));
     }
 
+    [Authorize(BlueDentalPermissions.Finance.Manage)]
     public async Task<CashflowCategoryDto> CreateAsync(CreateCashflowCategoryDto input)
     {
         var category = CashflowCategory.Create(
@@ -74,6 +78,7 @@ public class CashflowCategoryAppService : ApplicationService, ICashflowCategoryA
         return MapToDto(category);
     }
 
+    [Authorize(BlueDentalPermissions.Finance.Manage)]
     public async Task<CashflowCategoryDto> UpdateAsync(Guid id, UpdateCashflowCategoryDto input)
     {
         var category = await _repository.GetAsync(id);
@@ -95,6 +100,7 @@ public class CashflowCategoryAppService : ApplicationService, ICashflowCategoryA
         return MapToDto(category);
     }
 
+    [Authorize(BlueDentalPermissions.Finance.Manage)]
     public async Task DeleteAsync(Guid id)
     {
         var category = await _repository.GetAsync(id);

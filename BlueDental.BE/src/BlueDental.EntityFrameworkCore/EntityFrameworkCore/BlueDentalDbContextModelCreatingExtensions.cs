@@ -293,6 +293,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Diagnosis).HasMaxLength(2000);
             entity.Property(x => x.Notes).HasMaxLength(2000);
             entity.HasIndex(x => x.PatientId);
+            entity.HasIndex(x => x.ClinicBranchId);
         });
 
         builder.Entity<ConsultationRecord>(entity =>

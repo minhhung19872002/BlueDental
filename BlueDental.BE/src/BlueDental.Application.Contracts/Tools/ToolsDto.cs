@@ -21,6 +21,7 @@ public class CallAssignmentDto
 
 public class CreateCallAssignmentDto
 {
+    [Required] public Guid BranchId { get; set; }
     [Required] public Guid PatientId { get; set; }
     [Required] public Guid StaffId { get; set; }
     [Required] public string PatientName { get; set; } = string.Empty;
@@ -36,6 +37,7 @@ public class UpdateCallAssignmentStatusDto
 
 public class GetCallAssignmentListInput
 {
+    public Guid? BranchId { get; set; }
     public int? Status { get; set; }
     public Guid? StaffId { get; set; }
     public string? Filter { get; set; }
@@ -62,6 +64,7 @@ public class CallLogDto
 
 public class CreateCallLogDto
 {
+    [Required] public Guid BranchId { get; set; }
     public Guid? PatientId { get; set; }
     public Guid? StaffId { get; set; }
     [Required] public string PatientName { get; set; } = string.Empty;
@@ -75,6 +78,7 @@ public class CreateCallLogDto
 
 public class GetCallLogListInput
 {
+    public Guid? BranchId { get; set; }
     public int? Direction { get; set; }
     public int? Status { get; set; }
     public string? Filter { get; set; }
@@ -98,6 +102,7 @@ public class MessageTemplateDto
 
 public class CreateMessageTemplateDto
 {
+    [Required] public Guid BranchId { get; set; }
     [Required] public string Name { get; set; } = string.Empty;
     [Required] public string Content { get; set; } = string.Empty;
     [Required] public int Channel { get; set; }
@@ -113,6 +118,7 @@ public class UpdateMessageTemplateDto
 
 public class GetMessageTemplateListInput
 {
+    public Guid? BranchId { get; set; }
     public int? Channel { get; set; }
     public string? Filter { get; set; }
     public int MaxResultCount { get; set; } = 20;
@@ -138,6 +144,7 @@ public class MessageLogDto
 
 public class GetMessageLogListInput
 {
+    public Guid? BranchId { get; set; }
     public int? Channel { get; set; }
     public int? Status { get; set; }
     public string? Filter { get; set; }

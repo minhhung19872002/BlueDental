@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
@@ -14,7 +15,7 @@ namespace BlueDental.Finance;
 /// Luân chuyển dòng tiền — deposits, withdrawals and transfers between the
 /// clinic's holdings, plus the balance and overview panels.
 /// </summary>
-[Authorize]
+[Authorize(BlueDentalPermissions.Finance.Default)]
 public class CashManagementAppService : ApplicationService, ICashManagementAppService
 {
     private readonly IRepository<CashflowEntry, Guid> _repository;
@@ -28,6 +29,7 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
         _categoryRepository = categoryRepository;
     }
 
+    [Authorize(BlueDentalPermissions.Finance.View)]
     public async Task<CashBalanceDto> GetBalanceAsync(Guid clinicBranchId)
     {
         var query = await _repository.GetQueryableAsync();
@@ -36,6 +38,7 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
         return BuildBalance(entries);
     }
 
+    [Authorize(BlueDentalPermissions.Finance.View)]
     public async Task<CashflowOverviewDto> GetOverviewAsync(GetCashflowEntryListInput input)
     {
         var query = await BuildQueryAsync(input);
@@ -66,6 +69,7 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
         };
     }
 
+    [Authorize(BlueDentalPermissions.Finance.View)]
     public async Task<PagedResultDto<CashflowEntryDto>> GetEntriesAsync(GetCashflowEntryListInput input)
     {
         var query = await BuildQueryAsync(input);
@@ -85,6 +89,7 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
             items.Select(x => MapToDto(x, categoryNames)).ToList());
     }
 
+    [Authorize(BlueDentalPermissions.Finance.Manage)]
     public async Task<CashflowEntryDto> CreateEntryAsync(CreateCashflowEntryDto input)
     {
         var id = GuidGenerator.Create();
@@ -116,6 +121,7 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
         return MapToDto(entry, new Dictionary<Guid, string>());
     }
 
+    [Authorize(BlueDentalPermissions.Finance.Manage)]
     public async Task DeleteEntryAsync(Guid id)
     {
         await _repository.DeleteAsync(id, autoSave: true);

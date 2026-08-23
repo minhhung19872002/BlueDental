@@ -1,2 +1,1 @@
-﻿// TODO: Implement ReportingPage.
-export function ReportingPage() { return null; }
+export { ReportPage as ReportingPage } from "@/features/report/pages/ReportPage";

@@ -10,14 +10,18 @@ using Volo.Abp.Identity;
 
 namespace BlueDental.TreatmentManagement;
 
-[Authorize(BlueDentalPermissions.Catalogs.Default)]
+[Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Default)]
 public class DiagnosticRecordAppService(
     IRepository<DiagnosticRecord, Guid> repository,
     IIdentityUserRepository userRepository) : ApplicationService, IDiagnosticRecordAppService
 {
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.View)]
     public async Task<PagedResultDto<DiagnosticRecordDto>> GetListAsync(GetDiagnosticRecordListInput input)
     {
         var query = await repository.GetQueryableAsync();
+
+        if (input.ClinicBranchId.HasValue)
+            query = query.Where(d => d.ClinicBranchId == input.ClinicBranchId.Value);
 
         if (input.PatientId.HasValue)
             query = query.Where(d => d.PatientId == input.PatientId.Value);
@@ -45,6 +49,7 @@ public class DiagnosticRecordAppService(
                 Id = d.Id,
                 Code = d.Code,
                 PatientId = d.PatientId,
+                ClinicBranchId = d.ClinicBranchId,
                 DentistId = d.DentistId,
                 DentistName = dentistName,
                 AppointmentId = d.AppointmentId,
@@ -58,6 +63,7 @@ public class DiagnosticRecordAppService(
         return new PagedResultDto<DiagnosticRecordDto>(totalCount, dtos);
     }
 
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Create)]
     public async Task<DiagnosticRecordDto> CreateAsync(CreateDiagnosticRecordDto input)
     {
         var code = $"CD-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..6].ToUpper()}";
@@ -65,6 +71,7 @@ public class DiagnosticRecordAppService(
             GuidGenerator.Create(),
             code,
             input.PatientId,
+            input.ClinicBranchId,
             input.DentistId,
             input.AppointmentId,
             input.TeethNumbers,
@@ -78,6 +85,7 @@ public class DiagnosticRecordAppService(
             Id = entity.Id,
             Code = entity.Code,
             PatientId = entity.PatientId,
+            ClinicBranchId = entity.ClinicBranchId,
             DentistId = entity.DentistId,
             AppointmentId = entity.AppointmentId,
             TeethNumbers = entity.TeethNumbers,
@@ -87,6 +95,7 @@ public class DiagnosticRecordAppService(
         };
     }
 
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Edit)]
     public async Task DeleteAsync(Guid id)
     {
         await repository.DeleteAsync(id);

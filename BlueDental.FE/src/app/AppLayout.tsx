@@ -12,6 +12,7 @@ import {
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/vi";
+import { useTranslation } from "react-i18next";
 import { useMyNotifications, useMarkNotificationRead, useMarkAllNotificationsRead } from "@/features/notifications/api";
 dayjs.extend(relativeTime);
 dayjs.locale("vi");
@@ -39,6 +40,10 @@ import {
   HeartOutlined,
   SafetyCertificateOutlined,
   AuditOutlined,
+  DollarOutlined,
+  ClockCircleOutlined,
+  ControlOutlined,
+  BankOutlined,
 } from "@ant-design/icons";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useMutation } from "@tanstack/react-query";
@@ -49,23 +54,28 @@ interface NavItem {
   key: string;
   icon: React.ReactNode;
   label: string;
+  labelKey?: string;
   external?: boolean;
 }
 
 const MAIN_NAV: NavItem[] = [
-  { key: "/reception", icon: <ScheduleOutlined />, label: "Tiếp nhận" },
-  { key: "/patient", icon: <TeamOutlined />, label: "Danh sách bệnh nhân" },
-  { key: "/calendar", icon: <CalendarOutlined />, label: "Lịch hẹn" },
-  { key: "/cskh-grouping", icon: <CustomerServiceOutlined />, label: "CSKH - Phân nhóm" },
-  { key: "/labo", icon: <ExperimentOutlined />, label: "Labo" },
-  { key: "/operations", icon: <SettingOutlined />, label: "Quản trị vận hành" },
-  { key: "/report", icon: <BarChartOutlined />, label: "Báo cáo" },
-  { key: "/staff", icon: <IdcardOutlined />, label: "Nhân viên" },
-  { key: "/materials", icon: <MedicineBoxOutlined />, label: "Vật tư" },
-  { key: "/taxonomy", icon: <AppstoreOutlined />, label: "Danh mục" },
-  { key: "/tools", icon: <ToolOutlined />, label: "Công cụ" },
-  { key: "/identity", icon: <SafetyCertificateOutlined />, label: "Người dùng & vai trò" },
-  { key: "/audit-logs", icon: <AuditOutlined />, label: "Nhật ký hoạt động" },
+  { key: "/reception", icon: <ScheduleOutlined />, label: "Tiếp nhận", labelKey: "nav.reception" },
+  { key: "/patient", icon: <TeamOutlined />, label: "Danh sách bệnh nhân", labelKey: "nav.patientList" },
+  { key: "/calendar", icon: <CalendarOutlined />, label: "Lịch hẹn", labelKey: "nav.calendar" },
+  { key: "/cskh-grouping", icon: <CustomerServiceOutlined />, label: "CSKH - Phân nhóm", labelKey: "nav.cskh" },
+  { key: "/labo", icon: <ExperimentOutlined />, label: "Labo", labelKey: "nav.labo" },
+  { key: "/operations", icon: <SettingOutlined />, label: "Quản trị vận hành", labelKey: "nav.operations" },
+  { key: "/report", icon: <BarChartOutlined />, label: "Báo cáo", labelKey: "nav.report" },
+  { key: "/staff", icon: <IdcardOutlined />, label: "Nhân viên", labelKey: "nav.staff" },
+  { key: "/timekeeping", icon: <ClockCircleOutlined />, label: "Chấm công", labelKey: "nav.timekeeping" },
+  { key: "/materials", icon: <MedicineBoxOutlined />, label: "Vật tư", labelKey: "nav.materials" },
+  { key: "/billing", icon: <DollarOutlined />, label: "Thanh toán", labelKey: "nav.billing" },
+  { key: "/taxonomy", icon: <AppstoreOutlined />, label: "Danh mục", labelKey: "nav.taxonomy" },
+  { key: "/tools", icon: <ToolOutlined />, label: "Công cụ", labelKey: "nav.tools" },
+  { key: "/settings", icon: <ControlOutlined />, label: "Cài đặt", labelKey: "nav.settings" },
+  { key: "/identity", icon: <SafetyCertificateOutlined />, label: "Người dùng & vai trò", labelKey: "nav.identity" },
+  { key: "/audit-logs", icon: <AuditOutlined />, label: "Nhật ký hoạt động", labelKey: "nav.auditLogs" },
+  { key: "/organizations", icon: <BankOutlined />, label: "Chi nhánh", labelKey: "nav.organizations" },
 ];
 
 const BOTTOM_NAV: NavItem[] = [
@@ -73,6 +83,7 @@ const BOTTOM_NAV: NavItem[] = [
     key: "https://nfcdental.com/",
     icon: <QuestionCircleOutlined />,
     label: "Hướng dẫn & hỗ trợ",
+    labelKey: "nav.help",
     external: true,
   },
 ];
@@ -80,23 +91,23 @@ const BOTTOM_NAV: NavItem[] = [
 const SEARCH_CATEGORIES = [
   {
     icon: <UserOutlined style={{ fontSize: 18, color: brand.muted }} />,
-    title: "Khách hàng",
-    desc: "Tìm theo tên, mã KH, số điện thoại",
+    titleKey: "searchCategory.customer",
+    descKey: "searchCategory.customerDesc",
   },
   {
     icon: <CalendarOutlined style={{ fontSize: 18, color: brand.muted }} />,
-    title: "Lịch hẹn",
-    desc: "Tìm theo tên hoặc SĐT khách hàng",
+    titleKey: "searchCategory.appointment",
+    descKey: "searchCategory.appointmentDesc",
   },
   {
     icon: <HeartOutlined style={{ fontSize: 18, color: brand.muted }} />,
-    title: "CSKH",
-    desc: "Tìm theo khách hàng, nội dung",
+    titleKey: "searchCategory.cskh",
+    descKey: "searchCategory.cskhDesc",
   },
   {
     icon: <IdcardOutlined style={{ fontSize: 18, color: brand.muted }} />,
-    title: "Nhân viên",
-    desc: "Tìm theo tên, email, số điện thoại",
+    titleKey: "searchCategory.staff",
+    descKey: "searchCategory.staffDesc",
   },
 ];
 
@@ -108,6 +119,7 @@ function initialsOf(name: string | undefined): string {
 }
 
 function NotificationBell() {
+  const { t } = useTranslation();
   const { data } = useMyNotifications();
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
@@ -117,20 +129,20 @@ function NotificationBell() {
   const content = (
     <div style={{ width: 320 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", borderBottom: "1px solid #F0F0F0" }}>
-        <span style={{ fontWeight: 600, fontSize: 14 }}>Thông báo</span>
+        <span style={{ fontWeight: 600, fontSize: 14 }}>{t("header.notification")}</span>
         {unreadCount > 0 && (
           <button
             type="button"
             style={{ background: "none", border: "none", color: "#1677ff", cursor: "pointer", fontSize: 12 }}
             onClick={() => markAllRead.mutate()}
           >
-            Đánh dấu tất cả đã đọc
+            {t("header.markAllRead")}
           </button>
         )}
       </div>
       {notifications.length === 0 ? (
         <div style={{ padding: "24px 0", textAlign: "center", color: "#9CA3AF", fontSize: 13 }}>
-          Không có thông báo
+          {t("header.noNotifications")}
         </div>
       ) : (
         <List
@@ -157,7 +169,7 @@ function NotificationBell() {
 
   return (
     <Popover content={content} trigger="click" placement="bottomRight" arrow={false}>
-      <button type="button" className="app-header-icon-btn" aria-label="Thông báo">
+      <button type="button" className="app-header-icon-btn" aria-label={t("header.notification")}>
         <Badge count={unreadCount} size="small" offset={[-2, 2]}>
           <BellOutlined style={{ fontSize: 18 }} />
         </Badge>
@@ -177,16 +189,18 @@ function SidebarNavItem({
   expanded: boolean;
   onClick: () => void;
 }) {
+  const { t } = useTranslation();
+  const label = item.labelKey ? t(item.labelKey) : item.label;
   if (expanded) {
     return (
       <button
         type="button"
-        title={item.label}
+        title={label}
         onClick={onClick}
         className={`sidebar-nav-item sidebar-nav-item--expanded ${active ? "sidebar-nav-item--active" : ""}`}
       >
         <span className="sidebar-nav-icon">{item.icon}</span>
-        <span className="sidebar-nav-label-expanded">{item.label}</span>
+        <span className="sidebar-nav-label-expanded">{label}</span>
       </button>
     );
   }
@@ -194,12 +208,12 @@ function SidebarNavItem({
   return (
     <button
       type="button"
-      title={item.label}
+      title={label}
       onClick={onClick}
       className={`sidebar-nav-item sidebar-nav-item--collapsed ${active ? "sidebar-nav-item--active" : ""}`}
     >
       <span className="sidebar-nav-icon">{item.icon}</span>
-      <span className="sidebar-nav-label-collapsed">{item.label}</span>
+      <span className="sidebar-nav-label-collapsed">{label}</span>
     </button>
   );
 }
@@ -207,7 +221,9 @@ function SidebarNavItem({
 export function AppLayout() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
-  const [currentLang, setCurrentLang] = useState<"vi" | "en">("vi");
+  const { t, i18n } = useTranslation();
+  const currentLang = i18n.language === "en" ? "en" : "vi";
+  const setCurrentLang = (lng: string) => { i18n.changeLanguage(lng); };
   const navigate = useNavigate();
   const location = useLocation();
   const user = useAuthStore((s) => s.user);
@@ -263,20 +279,20 @@ export function AppLayout() {
     {
       key: "profile",
       icon: <UserOutlined />,
-      label: "Thông tin cá nhân",
+      label: t("header.profile"),
       onClick: () => navigate("/account/profile"),
     },
     {
       key: "change-password",
       icon: <KeyOutlined />,
-      label: "Đổi mật khẩu",
+      label: t("header.changePassword"),
       onClick: () => navigate("/account/change-password"),
     },
     { type: "divider" },
     {
       key: "logout",
       icon: <LogoutOutlined />,
-      label: "Đăng xuất",
+      label: t("header.logout"),
       danger: true,
       onClick: () => logoutMutation.mutate(),
     },
@@ -289,10 +305,10 @@ export function AppLayout() {
 
   const branchContent = (
     <div className="app-popover-list">
-      <div className="app-popover-header">Chi nhánh</div>
+      <div className="app-popover-header">{t("header.branch")}</div>
       <button type="button" className="app-popover-item">
         <span className="app-popover-dot" style={{ background: brand.faint }} />
-        <span>Tất cả chi nhánh</span>
+        <span>{t("header.allBranches")}</span>
       </button>
       <button type="button" className="app-popover-item app-popover-item--active">
         <span className="app-popover-dot" style={{ background: "#2BB673" }} />
@@ -303,13 +319,13 @@ export function AppLayout() {
 
   const langContent = (
     <div className="app-popover-list">
-      <div className="app-popover-header">Ngôn ngữ</div>
+      <div className="app-popover-header">{t("header.language")}</div>
       <button type="button" className="app-popover-item" onClick={() => setCurrentLang("vi")}>
-        <span>Tiếng Việt</span>
+        <span>{t("header.vietnamese")}</span>
         {currentLang === "vi" && <CheckOutlined style={{ color: brand.blue, fontSize: 12 }} />}
       </button>
       <button type="button" className="app-popover-item" onClick={() => setCurrentLang("en")}>
-        <span>Tiếng Anh</span>
+        <span>{t("header.english")}</span>
         {currentLang === "en" && <CheckOutlined style={{ color: brand.blue, fontSize: 12 }} />}
       </button>
     </div>
@@ -330,8 +346,8 @@ export function AppLayout() {
           </div>
           {sidebarExpanded && (
             <div className="sidebar-logo-text">
-              <span className="sidebar-logo-name">NFC Dental</span>
-              <span className="sidebar-logo-sub">Phần Mềm Quản Trị Vận Hành</span>
+              <span className="sidebar-logo-name">{t("sidebar.appName")}</span>
+              <span className="sidebar-logo-sub">{t("sidebar.appSubtitle")}</span>
             </div>
           )}
         </div>
@@ -375,7 +391,7 @@ export function AppLayout() {
               type="button"
               className="app-header-toggle"
               onClick={() => setSidebarExpanded((prev) => !prev)}
-              title={sidebarExpanded ? "Thu gọn menu" : "Mở rộng menu"}
+              title={sidebarExpanded ? t("header.collapseSidebar") : t("header.expandSidebar")}
             >
               <svg
                 width="16"
@@ -420,7 +436,7 @@ export function AppLayout() {
             >
               <SearchOutlined style={{ fontSize: 16 }} />
               <span className="app-header-search-text">
-                Tìm kiếm khách hàng, lịch hẹn, nhân viên…
+                {t("header.searchPlaceholder")}
               </span>
               <kbd className="app-header-search-kbd">Ctrl K</kbd>
             </button>
@@ -435,7 +451,7 @@ export function AppLayout() {
 
             <div className="app-header-actions">
               <Popover content={langContent} trigger="click" placement="bottomRight" arrow={false}>
-                <button type="button" className="app-header-icon-btn" aria-label="Ngôn ngữ">
+                <button type="button" className="app-header-icon-btn" aria-label={t("header.language")}>
                   <GlobalOutlined style={{ fontSize: 18 }} />
                 </button>
               </Popover>
@@ -443,7 +459,7 @@ export function AppLayout() {
               <NotificationBell />
 
               <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-                <div className="app-header-user" role="button" tabIndex={0} aria-label="Tài khoản người dùng">
+                <div className="app-header-user" role="button" tabIndex={0} aria-label={t("header.userAccount")}>
                   <Avatar
                     size={32}
                     style={{ backgroundColor: brand.blue, fontSize: 13, fontWeight: 700 }}
@@ -472,24 +488,24 @@ export function AppLayout() {
                 autoFocus
                 size="large"
                 prefix={<SearchOutlined />}
-                placeholder="Tìm kiếm khách hàng, lịch hẹn, nhân viên…"
+                placeholder={t("header.searchPlaceholder")}
                 onPressEnter={() => setSearchOpen(false)}
                 style={{ borderRadius: 12 }}
               />
               <kbd className="app-search-esc" onClick={() => setSearchOpen(false)}>Esc</kbd>
             </div>
             <div className="app-search-categories">
-              <div className="app-search-categories-title">Gợi ý tìm kiếm</div>
+              <div className="app-search-categories-title">{t("header.searchHint")}</div>
               {SEARCH_CATEGORIES.map((cat) => (
-                <div key={cat.title} className="app-search-category-item">
+                <div key={cat.titleKey} className="app-search-category-item">
                   <span className="app-search-category-icon">{cat.icon}</span>
                   <div className="app-search-category-text">
-                    <span className="app-search-category-name">{cat.title}</span>
-                    <span className="app-search-category-desc">{cat.desc}</span>
+                    <span className="app-search-category-name">{t(cat.titleKey)}</span>
+                    <span className="app-search-category-desc">{t(cat.descKey)}</span>
                   </div>
                 </div>
               ))}
-              <div className="app-search-hint">Nhập ít nhất 2 ký tự để tìm kiếm.</div>
+              <div className="app-search-hint">{t("header.searchMinChars")}</div>
             </div>
           </div>
         </div>

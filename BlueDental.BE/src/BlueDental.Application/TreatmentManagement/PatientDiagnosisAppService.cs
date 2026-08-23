@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.TreatmentManagement.Values;
+using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
@@ -13,7 +14,7 @@ namespace BlueDental.TreatmentManagement;
 /// <summary>
 /// Chẩn đoán của bệnh nhân (Diagnosis recorded per patient and tooth).
 /// </summary>
-[Authorize]
+[Authorize(BlueDentalPermissions.TreatmentManagement.Default)]
 public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisAppService
 {
     private readonly IRepository<PatientDiagnosis, Guid> _repository;
@@ -23,6 +24,7 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
         _repository = repository;
     }
 
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.View)]
     public async Task<PagedResultDto<PatientDiagnosisDto>> GetListAsync(GetPatientDiagnosisListInput input)
     {
         var query = await _repository.GetQueryableAsync();
@@ -48,11 +50,13 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
         return new PagedResultDto<PatientDiagnosisDto>(totalCount, items.Select(MapToDto).ToList());
     }
 
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.View)]
     public async Task<PatientDiagnosisDto> GetAsync(Guid id)
     {
         return MapToDto(await _repository.GetAsync(id));
     }
 
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Create)]
     public async Task<PatientDiagnosisDto> CreateAsync(CreatePatientDiagnosisDto input)
     {
         var code = await GenerateCodeAsync(input.ClinicBranchId);
@@ -72,6 +76,7 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
         return MapToDto(diagnosis);
     }
 
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Edit)]
     public async Task<PatientDiagnosisDto> UpdateAsync(Guid id, UpdatePatientDiagnosisDto input)
     {
         var diagnosis = await _repository.GetAsync(id);
@@ -84,6 +89,7 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
         return MapToDto(diagnosis);
     }
 
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Edit)]
     public async Task<PatientDiagnosisDto> MarkTreatedAsync(Guid id)
     {
         var diagnosis = await _repository.GetAsync(id);
@@ -92,6 +98,7 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
         return MapToDto(diagnosis);
     }
 
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Edit)]
     public async Task<PatientDiagnosisDto> CancelAsync(Guid id)
     {
         var diagnosis = await _repository.GetAsync(id);
@@ -100,6 +107,7 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
         return MapToDto(diagnosis);
     }
 
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Edit)]
     public async Task DeleteAsync(Guid id)
     {
         await _repository.DeleteAsync(id, autoSave: true);

@@ -24,6 +24,7 @@ public class InvoiceAppService : ApplicationService, IInvoiceAppService
     public async Task<PagedResultDto<InvoiceDto>> GetListAsync(GetInvoiceListInput input)
     {
         var query = await _repository.GetQueryableAsync();
+        if (input.BranchId.HasValue) query = query.Where(i => i.BranchId == input.BranchId.Value);
         if (input.PatientId.HasValue) query = query.Where(i => i.PatientId == input.PatientId.Value);
         if (input.Status.HasValue) query = query.Where(i => i.Status == input.Status.Value);
 

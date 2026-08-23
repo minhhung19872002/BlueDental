@@ -2,18 +2,34 @@ import { Card, Avatar, Button, Input, Row, Col, Typography, Divider, message } f
 import { UserOutlined, EditOutlined, SaveOutlined } from "@ant-design/icons";
 import { useState } from "react";
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { useUpdateProfile } from "@/features/account/api/accountMutations";
 
 const { Text, Title } = Typography;
 
 export function AccountProfilePage() {
   const user = useAuthStore((s) => s.user);
+  const setAuth = useAuthStore((s) => s.setAuth);
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(user?.name ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
 
+  const updateProfile = useUpdateProfile();
+
   const handleSave = () => {
-    message.success("Cập nhật thông tin thành công!");
-    setEditing(false);
+    if (!user) return;
+    updateProfile.mutate(
+      { name, email },
+      {
+        onSuccess: (data) => {
+          setAuth({ ...user, name: data.name ?? name, email: data.email ?? email });
+          message.success("Cập nhật thông tin thành công!");
+          setEditing(false);
+        },
+        onError: () => {
+          message.error("Cập nhật thất bại. Vui lòng thử lại.");
+        },
+      },
+    );
   };
 
   return (
@@ -60,7 +76,13 @@ export function AccountProfilePage() {
             title="Thông tin cá nhân"
             extra={
               editing ? (
-                <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} style={{ background: "#2671D8" }}>
+                <Button
+                  type="primary"
+                  icon={<SaveOutlined />}
+                  onClick={handleSave}
+                  loading={updateProfile.isPending}
+                  style={{ background: "#2671D8" }}
+                >
                   Lưu thay đổi
                 </Button>
               ) : (

@@ -1,0 +1,38 @@
+import { test, expect } from "@playwright/test";
+import { login } from "./helpers";
+
+test.describe("Route smoke tests", () => {
+  test.beforeEach(async ({ page }) => {
+    await login(page);
+  });
+
+  const routes = [
+    { path: "/reception", marker: /tiếp nhận|reception/i },
+    { path: "/patient", marker: /bệnh nhân|patient/i },
+    { path: "/calendar", marker: /lịch hẹn|appointment/i },
+    { path: "/cskh-grouping", marker: /cskh|chăm sóc/i },
+    { path: "/labo", marker: /labo/i },
+    { path: "/operations", marker: /quản trị|operation/i },
+    { path: "/report", marker: /báo cáo|report/i },
+    { path: "/staff", marker: /nhân viên|staff/i },
+    { path: "/timekeeping", marker: /chấm công|timekeeping/i },
+    { path: "/materials", marker: /vật tư|material/i },
+    { path: "/billing", marker: /thanh toán|billing|hóa đơn/i },
+    { path: "/taxonomy", marker: /danh mục|catalog/i },
+    { path: "/tools", marker: /công cụ|tool/i },
+    { path: "/settings", marker: /cài đặt|setting/i },
+    { path: "/organizations", marker: /chi nhánh|branch/i },
+    { path: "/identity", marker: /người dùng|user|vai trò|role/i },
+    { path: "/audit-logs", marker: /nhật ký|audit/i },
+  ];
+
+  for (const { path, marker } of routes) {
+    test(`${path} loads without error`, async ({ page }) => {
+      await page.goto(path);
+      await page.waitForLoadState("networkidle");
+      const body = page.locator("body");
+      await expect(body).not.toContainText("Unexpected Application Error");
+      await expect(body.getByText(marker).first()).toBeVisible({ timeout: 10000 });
+    });
+  }
+});

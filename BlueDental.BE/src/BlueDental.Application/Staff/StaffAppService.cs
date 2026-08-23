@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
@@ -9,11 +10,12 @@ using Volo.Abp.Identity;
 
 namespace BlueDental.Staff;
 
-[Authorize]
+[Authorize(BlueDentalPermissions.Staff.Default)]
 public class StaffAppService(
     IIdentityUserRepository userRepository,
     IdentityUserManager userManager) : ApplicationService, IStaffAppService
 {
+    [Authorize(BlueDentalPermissions.Staff.View)]
     public async Task<PagedResultDto<StaffDto>> GetListAsync(GetStaffListInput input)
     {
         var users = await userRepository.GetListAsync(
@@ -44,6 +46,7 @@ public class StaffAppService(
         return new PagedResultDto<StaffDto>(totalCount, dtos);
     }
 
+    [Authorize(BlueDentalPermissions.Staff.View)]
     public async Task<StaffDto> GetAsync(Guid id)
     {
         var user = await userRepository.GetAsync(id);

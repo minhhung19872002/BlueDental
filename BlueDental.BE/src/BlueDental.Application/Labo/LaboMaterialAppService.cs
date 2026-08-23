@@ -9,7 +9,7 @@ using Volo.Abp.Domain.Repositories;
 
 namespace BlueDental.Labo;
 
-[Authorize(BlueDentalPermissions.Catalogs.Default)]
+[Authorize(BlueDentalPermissions.LaboOrders.Default)]
 public class LaboMaterialAppService : ApplicationService, ILaboMaterialAppService
 {
     private readonly IRepository<LaboMaterial, Guid> _repository;
@@ -19,6 +19,7 @@ public class LaboMaterialAppService : ApplicationService, ILaboMaterialAppServic
         _repository = repository;
     }
 
+    [Authorize(BlueDentalPermissions.LaboOrders.View)]
     public async Task<PagedResultDto<LaboMaterialDto>> GetListAsync(GetLaboMaterialListInput input)
     {
         var queryable = await _repository.GetQueryableAsync();
@@ -43,6 +44,7 @@ public class LaboMaterialAppService : ApplicationService, ILaboMaterialAppServic
             ObjectMapper.Map<System.Collections.Generic.List<LaboMaterial>, System.Collections.Generic.List<LaboMaterialDto>>(items));
     }
 
+    [Authorize(BlueDentalPermissions.LaboOrders.Create)]
     public async Task<LaboMaterialDto> CreateAsync(CreateLaboMaterialDto input)
     {
         var entity = new LaboMaterial(
@@ -56,6 +58,7 @@ public class LaboMaterialAppService : ApplicationService, ILaboMaterialAppServic
         return ObjectMapper.Map<LaboMaterial, LaboMaterialDto>(entity);
     }
 
+    [Authorize(BlueDentalPermissions.LaboOrders.Edit)]
     public async Task<LaboMaterialDto> UpdateAsync(Guid id, UpdateLaboMaterialDto input)
     {
         var entity = await _repository.GetAsync(id);
@@ -64,6 +67,7 @@ public class LaboMaterialAppService : ApplicationService, ILaboMaterialAppServic
         return ObjectMapper.Map<LaboMaterial, LaboMaterialDto>(entity);
     }
 
+    [Authorize(BlueDentalPermissions.LaboOrders.Edit)]
     public async Task DeleteAsync(Guid id)
     {
         await _repository.DeleteAsync(id);

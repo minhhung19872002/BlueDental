@@ -145,11 +145,20 @@ function ClinicMaterialsView() {
   const [keyword, setKeyword] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItemDto | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
+  const [groupSearch, setGroupSearch] = useState("");
 
   const { data, isLoading } = useInventoryItemList();
   const deleteMutation = useDeleteInventoryItem();
 
-  const filtered = (data?.items ?? []).filter((item) => {
+  const allItems = data?.items ?? [];
+  const categories = [...new Set(allItems.map((i) => i.category).filter(Boolean))] as string[];
+  const filteredCategories = categories.filter((c) =>
+    !groupSearch || c.toLowerCase().includes(groupSearch.toLowerCase()),
+  );
+
+  const filtered = allItems.filter((item) => {
+    if (selectedGroup && item.category !== selectedGroup) return false;
     if (!keyword) return true;
     const kw = keyword.toLowerCase();
     return item.name.toLowerCase().includes(kw) || item.itemCode.toLowerCase().includes(kw) || (item.category ?? "").toLowerCase().includes(kw);
@@ -228,17 +237,64 @@ function ClinicMaterialsView() {
         <div style={{ marginBottom: 8 }}>
           <div style={{ fontWeight: 600, marginBottom: 4 }}>
             Nhóm vật tư
-            <span style={{ fontWeight: 400, color: "#8c8c8c", marginLeft: 6 }}>0 nhóm</span>
+            <span style={{ fontWeight: 400, color: "#8c8c8c", marginLeft: 6 }}>
+              {categories.length} nhóm
+            </span>
           </div>
           <div style={{ fontSize: 12, color: "#8c8c8c", marginBottom: 10 }}>
             Chọn nhóm để xem vật tư
           </div>
-          <Input placeholder="Tìm nhóm vật tư..." size="small" style={{ marginBottom: 8 }} />
-          <Button type="dashed" block size="small">Thêm Mới</Button>
+          <Input
+            placeholder="Tìm nhóm vật tư..."
+            size="small"
+            style={{ marginBottom: 8 }}
+            value={groupSearch}
+            onChange={(e) => setGroupSearch(e.target.value)}
+            allowClear
+          />
         </div>
-        <div style={{ color: "#8c8c8c", fontSize: 13, textAlign: "center", paddingTop: 16 }}>
-          Chưa có nhóm vật tư
-        </div>
+        {filteredCategories.length === 0 ? (
+          <div style={{ color: "#8c8c8c", fontSize: 13, textAlign: "center", paddingTop: 16 }}>
+            Chưa có nhóm vật tư
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <div
+              style={{
+                padding: "6px 10px",
+                borderRadius: 6,
+                cursor: "pointer",
+                fontSize: 13,
+                background: selectedGroup === null ? "#e6f4ff" : "transparent",
+                color: selectedGroup === null ? "#1677ff" : undefined,
+                fontWeight: selectedGroup === null ? 500 : 400,
+              }}
+              onClick={() => setSelectedGroup(null)}
+            >
+              Tất cả ({allItems.length})
+            </div>
+            {filteredCategories.map((cat) => {
+              const count = allItems.filter((i) => i.category === cat).length;
+              return (
+                <div
+                  key={cat}
+                  style={{
+                    padding: "6px 10px",
+                    borderRadius: 6,
+                    cursor: "pointer",
+                    fontSize: 13,
+                    background: selectedGroup === cat ? "#e6f4ff" : "transparent",
+                    color: selectedGroup === cat ? "#1677ff" : undefined,
+                    fontWeight: selectedGroup === cat ? 500 : 400,
+                  }}
+                  onClick={() => setSelectedGroup(cat)}
+                >
+                  {cat} ({count})
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Right panel */}

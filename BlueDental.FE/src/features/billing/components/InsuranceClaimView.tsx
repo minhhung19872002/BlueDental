@@ -1,8 +1,17 @@
-// InsuranceClaimView — displays and submits dental insurance claims.
-// TODO: Integrate with BHYT/insurance provider API.
+import { Button, Card, Empty } from "antd";
 
-import { Empty } from "antd";
+interface Props {
+  patientId: string;
+}
 
-export function InsuranceClaimView() {
-  return <Empty description="Bảo hiểm y tế đang được phát triển." />;
+export function InsuranceClaimView({ patientId: _patientId }: Props) {
+  return (
+    <Card title="Bảo hiểm y tế">
+      <Empty description="Chưa có yêu cầu bảo hiểm nào">
+        <Button type="primary" disabled>
+          Tạo yêu cầu
+        </Button>
+      </Empty>
+    </Card>
+  );
 }

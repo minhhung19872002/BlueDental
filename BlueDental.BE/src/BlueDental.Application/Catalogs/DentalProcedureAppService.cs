@@ -63,7 +63,7 @@ public class DentalProcedureAppService : ApplicationService, IDentalProcedureApp
     public async Task<DentalProcedureDto> UpdateAsync(Guid id, UpdateDentalProcedureDto input)
     {
         var proc = await _repository.GetAsync(id);
-        proc.UpdatePrice(input.BasePrice);
+        proc.Update(input.Name, proc.Code, input.Category, input.EstimatedDurationMinutes, input.BasePrice, input.Description);
         await _repository.UpdateAsync(proc, autoSave: true);
         return ObjectMapper.Map<DentalProcedure, DentalProcedureDto>(proc);
     }

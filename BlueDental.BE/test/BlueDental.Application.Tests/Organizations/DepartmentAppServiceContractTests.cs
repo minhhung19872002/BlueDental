@@ -1,0 +1,92 @@
+using System.Reflection;
+using BlueDental.Organizations;
+using Microsoft.AspNetCore.Authorization;
+using Shouldly;
+using Volo.Abp.Application.Services;
+using Xunit;
+
+namespace BlueDental.Application.Tests.Organizations;
+
+public class DepartmentAppServiceContractTests
+{
+    private readonly Type _serviceType = typeof(DepartmentAppService);
+    private readonly Type _interfaceType = typeof(IDepartmentAppService);
+
+    [Fact]
+    public void DepartmentAppService_Should_Implement_IDepartmentAppService()
+    {
+        _interfaceType.IsAssignableFrom(_serviceType).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void DepartmentAppService_Should_Inherit_ApplicationService()
+    {
+        typeof(ApplicationService).IsAssignableFrom(_serviceType).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void DepartmentAppService_Should_Require_Authorization_At_Class_Level()
+    {
+        _serviceType.GetCustomAttribute<AuthorizeAttribute>().ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void GetListAsync_Should_Exist_On_Interface()
+    {
+        _interfaceType.GetMethod("GetListAsync").ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void GetListAsync_Should_Have_Authorize_Attribute()
+    {
+        _serviceType.GetMethod("GetListAsync")
+            .ShouldNotBeNull()
+            .GetCustomAttribute<AuthorizeAttribute>()
+            .ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void CreateAsync_Should_Exist_On_Interface()
+    {
+        _interfaceType.GetMethod("CreateAsync").ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void CreateAsync_Should_Have_Authorize_Attribute()
+    {
+        _serviceType.GetMethod("CreateAsync")
+            .ShouldNotBeNull()
+            .GetCustomAttribute<AuthorizeAttribute>()
+            .ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void UpdateAsync_Should_Exist_On_Interface()
+    {
+        _interfaceType.GetMethod("UpdateAsync").ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void UpdateAsync_Should_Have_Authorize_Attribute()
+    {
+        _serviceType.GetMethod("UpdateAsync")
+            .ShouldNotBeNull()
+            .GetCustomAttribute<AuthorizeAttribute>()
+            .ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void DeleteAsync_Should_Exist_On_Interface()
+    {
+        _interfaceType.GetMethod("DeleteAsync").ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void DeleteAsync_Should_Have_Authorize_Attribute()
+    {
+        _serviceType.GetMethod("DeleteAsync")
+            .ShouldNotBeNull()
+            .GetCustomAttribute<AuthorizeAttribute>()
+            .ShouldNotBeNull();
+    }
+}

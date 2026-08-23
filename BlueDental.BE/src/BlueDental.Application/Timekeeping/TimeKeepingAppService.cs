@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Timekeeping.Values;
+using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
@@ -14,7 +15,7 @@ namespace BlueDental.Timekeeping;
 /// <summary>
 /// Chấm công / Lịch làm việc.
 /// </summary>
-[Authorize]
+[Authorize(BlueDentalPermissions.Timekeeping.Default)]
 public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
 {
     private readonly IRepository<TimeKeepingRecord, Guid> _repository;
@@ -24,6 +25,7 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
         _repository = repository;
     }
 
+    [Authorize(BlueDentalPermissions.Timekeeping.View)]
     public async Task<PagedResultDto<TimeKeepingRecordDto>> GetListAsync(GetTimeKeepingListInput input)
     {
         var query = await BuildQueryAsync(input);
@@ -39,11 +41,13 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
         return new PagedResultDto<TimeKeepingRecordDto>(totalCount, items.Select(MapToDto).ToList());
     }
 
+    [Authorize(BlueDentalPermissions.Timekeeping.View)]
     public async Task<TimeKeepingRecordDto> GetAsync(Guid id)
     {
         return MapToDto(await _repository.GetAsync(id));
     }
 
+    [Authorize(BlueDentalPermissions.Timekeeping.View)]
     public async Task<TimeKeepingSummaryDto> GetSummaryAsync(Guid clinicBranchId, DateOnly workDate)
     {
         var query = await _repository.GetQueryableAsync();
@@ -63,6 +67,7 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
         };
     }
 
+    [Authorize(BlueDentalPermissions.Timekeeping.Manage)]
     public async Task<TimeKeepingRecordDto> OpenWorkDayAsync(OpenWorkDayDto input)
     {
         var query = await _repository.GetQueryableAsync();
@@ -88,6 +93,7 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
         return MapToDto(record);
     }
 
+    [Authorize(BlueDentalPermissions.Timekeeping.Manage)]
     public async Task<TimeKeepingRecordDto> RegisterWorkingAsync(Guid id)
     {
         var record = await _repository.GetAsync(id);
@@ -96,6 +102,7 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
         return MapToDto(record);
     }
 
+    [Authorize(BlueDentalPermissions.Timekeeping.Manage)]
     public async Task<TimeKeepingRecordDto> RegisterDayOffAsync(Guid id, RegisterDayOffInput input)
     {
         var record = await _repository.GetAsync(id);
@@ -104,6 +111,7 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
         return MapToDto(record);
     }
 
+    [Authorize(BlueDentalPermissions.Timekeeping.Manage)]
     public async Task<TimeKeepingRecordDto> CheckInAsync(Guid id, AttendanceInput input)
     {
         var record = await _repository.GetAsync(id);
@@ -112,6 +120,7 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
         return MapToDto(record);
     }
 
+    [Authorize(BlueDentalPermissions.Timekeeping.Manage)]
     public async Task<TimeKeepingRecordDto> CheckOutAsync(Guid id, AttendanceInput input)
     {
         var record = await _repository.GetAsync(id);
@@ -120,6 +129,7 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
         return MapToDto(record);
     }
 
+    [Authorize(BlueDentalPermissions.Timekeeping.Manage)]
     public async Task<TimeKeepingRecordDto> AddOvertimeAsync(Guid id, AddOvertimeInput input)
     {
         var record = await _repository.GetAsync(id);
@@ -128,6 +138,7 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
         return MapToDto(record);
     }
 
+    [Authorize(BlueDentalPermissions.Timekeeping.Manage)]
     public async Task<int> CloseAbandonedShiftsAsync(Guid clinicBranchId, DateOnly workDate)
     {
         var query = await _repository.GetQueryableAsync();

@@ -5,6 +5,7 @@ namespace BlueDental.Tools;
 
 public class CallAssignment : FullAuditedEntity<Guid>
 {
+    public Guid ClinicBranchId { get; private set; }
     public Guid PatientId { get; private set; }
     public Guid StaffId { get; private set; }
     public string PatientName { get; private set; } = string.Empty;
@@ -16,10 +17,11 @@ public class CallAssignment : FullAuditedEntity<Guid>
     private CallAssignment() { }
 
     public CallAssignment(
-        Guid id, Guid patientId, Guid staffId,
+        Guid id, Guid clinicBranchId, Guid patientId, Guid staffId,
         string patientName, string phoneNumber, string? notes)
         : base(id)
     {
+        ClinicBranchId = clinicBranchId;
         PatientId = patientId;
         StaffId = staffId;
         PatientName = patientName;

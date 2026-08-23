@@ -3,6 +3,7 @@ using BlueDental.Appointments;
 using BlueDental.Billing;
 using BlueDental.Catalogs;
 using BlueDental.CustomerCare;
+using BlueDental.FileManagement;
 using BlueDental.Inventory;
 using BlueDental.Labo;
 using BlueDental.Notifications;
@@ -75,6 +76,10 @@ public class BlueDentalApplicationAutoMapperProfile : Profile
             .ForMember(d => d.Currency, opt => opt.MapFrom(s => s.SubTotal.Currency))
             .ForMember(d => d.PatientName, opt => opt.Ignore());
 
+        CreateMap<InsuranceClaim, InsuranceClaimDto>()
+            .ForMember(d => d.ClaimedAmount, opt => opt.MapFrom(s => s.ClaimedAmount.Amount))
+            .ForMember(d => d.ApprovedAmount, opt => opt.MapFrom(s => s.ApprovedAmount != null ? s.ApprovedAmount.Amount : (decimal?)null));
+
         /* Inventory */
         CreateMap<InventoryItem, InventoryItemDto>();
         CreateMap<MaterialAllocation, MaterialAllocationDto>()
@@ -96,5 +101,8 @@ public class BlueDentalApplicationAutoMapperProfile : Profile
         /* Customer Care */
         CreateMap<CareRecord, CareRecordDto>()
             .ForMember(d => d.PatientName, opt => opt.Ignore());
+
+        /* File Management */
+        CreateMap<FileAttachment, FileAttachmentDto>();
     }
 }

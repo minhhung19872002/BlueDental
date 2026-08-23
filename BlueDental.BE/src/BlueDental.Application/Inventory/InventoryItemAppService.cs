@@ -63,6 +63,7 @@ public class InventoryItemAppService : ApplicationService, IInventoryItemAppServ
     public async Task<InventoryItemDto> UpdateAsync(Guid id, UpdateInventoryItemDto input)
     {
         var item = await _repository.GetAsync(id);
+        item.Update(input.Name, input.Category, input.Unit, input.ReorderLevel, input.UnitCost);
         await _repository.UpdateAsync(item, autoSave: true);
         return ObjectMapper.Map<InventoryItem, InventoryItemDto>(item);
     }

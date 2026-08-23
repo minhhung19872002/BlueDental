@@ -120,6 +120,30 @@ const AuditLogPage = lazy(() =>
   })),
 );
 
+const BillingPage = lazy(() =>
+  import("@/features/billing/pages/BillingPage").then((m) => ({
+    default: m.BillingPage,
+  })),
+);
+
+const TimekeepingPage = lazy(() =>
+  import("@/features/timekeeping/pages/TimekeepingPage").then((m) => ({
+    default: m.TimekeepingPage,
+  })),
+);
+
+const SettingsPage = lazy(() =>
+  import("@/features/settings/pages/SettingsPage").then((m) => ({
+    default: m.SettingsPage,
+  })),
+);
+
+const OrganizationListPage = lazy(() =>
+  import("@/features/organizations/pages/OrganizationListPage").then((m) => ({
+    default: m.OrganizationListPage,
+  })),
+);
+
 function RouteLoading() {
   return (
     <div style={{ minHeight: 200, display: "grid", placeItems: "center" }}>
@@ -285,6 +309,42 @@ const appRoutes: RouteObject[] = [
         element: (
           <S>
             <AuditLogPage />
+          </S>
+        ),
+      },
+      // ── Billing ──
+      {
+        path: "billing",
+        element: (
+          <S>
+            <BillingPage />
+          </S>
+        ),
+      },
+      // ── Timekeeping ──
+      {
+        path: "timekeeping",
+        element: (
+          <S>
+            <TimekeepingPage />
+          </S>
+        ),
+      },
+      // ── Settings ──
+      {
+        path: "settings",
+        element: (
+          <S>
+            <SettingsPage />
+          </S>
+        ),
+      },
+      // ── Organizations ──
+      {
+        path: "organizations",
+        element: (
+          <S>
+            <OrganizationListPage />
           </S>
         ),
       },

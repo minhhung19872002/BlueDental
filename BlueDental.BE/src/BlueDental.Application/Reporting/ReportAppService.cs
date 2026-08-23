@@ -69,7 +69,10 @@ public class ReportAppService : ApplicationService, IReportAppService
     public async Task<RevenueReportDto> GetRevenueReportAsync(ReportQueryDto input)
     {
         var query = await _invoiceRepository.GetQueryableAsync();
+        var fromDate = input.From.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        var toDate = input.To.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
 
+        query = query.Where(i => i.CreationTime >= fromDate && i.CreationTime <= toDate);
         if (input.BranchId.HasValue) query = query.Where(i => i.BranchId == input.BranchId.Value);
 
         var invoices = query.ToList();

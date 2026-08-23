@@ -563,7 +563,18 @@ export function PatientProfilePage() {
       children: (
         <div style={{ padding: "16px 0" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-            <Select placeholder="Giai đoạn điều trị" style={{ width: 220 }} allowClear options={[]} />
+            <Select
+              placeholder="Giai đoạn điều trị"
+              style={{ width: 220 }}
+              allowClear
+              options={[
+                { value: "Draft", label: "Bản nháp" },
+                { value: "PendingApproval", label: "Chờ duyệt" },
+                { value: "Active", label: "Đang điều trị" },
+                { value: "Completed", label: "Hoàn thành" },
+                { value: "Cancelled", label: "Đã hủy" },
+              ]}
+            />
             <Button icon={<UploadOutlined />} style={{ marginLeft: "auto" }}>Tải ảnh</Button>
           </div>
           <div style={{ padding: "60px 0", textAlign: "center", color: "#9CA3AF", border: "1px dashed #E5E7EB", borderRadius: 8 }}>

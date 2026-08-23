@@ -11,7 +11,7 @@ using Volo.Abp.Identity;
 
 namespace BlueDental.Tools;
 
-[Authorize(BlueDentalPermissions.Catalogs.Default)]
+[Authorize(BlueDentalPermissions.Tools.Default)]
 public class ToolsAppService(
     IRepository<CallAssignment, Guid> callAssignmentRepo,
     IRepository<CallLog, Guid> callLogRepo,
@@ -21,10 +21,13 @@ public class ToolsAppService(
 {
     // ── Call Assignment ───────────────────────────────────────────────────
 
+    [Authorize(BlueDentalPermissions.Tools.View)]
     public async Task<PagedResultDto<CallAssignmentDto>> GetCallAssignmentListAsync(GetCallAssignmentListInput input)
     {
         var q = (await callAssignmentRepo.GetQueryableAsync()).AsQueryable();
 
+        if (input.BranchId.HasValue)
+            q = q.Where(x => x.ClinicBranchId == input.BranchId.Value);
         if (input.Status.HasValue)
             q = q.Where(x => (int)x.Status == input.Status.Value);
         if (input.StaffId.HasValue)
@@ -61,10 +64,11 @@ public class ToolsAppService(
         return new PagedResultDto<CallAssignmentDto>(totalCount, dtos);
     }
 
+    [Authorize(BlueDentalPermissions.Tools.Manage)]
     public async Task<CallAssignmentDto> CreateCallAssignmentAsync(CreateCallAssignmentDto input)
     {
         var entity = new CallAssignment(
-            GuidGenerator.Create(), input.PatientId, input.StaffId,
+            GuidGenerator.Create(), input.BranchId, input.PatientId, input.StaffId,
             input.PatientName, input.PhoneNumber, input.Notes);
         await callAssignmentRepo.InsertAsync(entity);
 
@@ -83,6 +87,7 @@ public class ToolsAppService(
         };
     }
 
+    [Authorize(BlueDentalPermissions.Tools.Manage)]
     public async Task<CallAssignmentDto> UpdateCallAssignmentStatusAsync(Guid id, UpdateCallAssignmentStatusDto input)
     {
         var entity = await callAssignmentRepo.GetAsync(id);
@@ -109,15 +114,19 @@ public class ToolsAppService(
         };
     }
 
+    [Authorize(BlueDentalPermissions.Tools.Manage)]
     public async Task DeleteCallAssignmentAsync(Guid id) =>
         await callAssignmentRepo.DeleteAsync(id);
 
     // ── Call Log ──────────────────────────────────────────────────────────
 
+    [Authorize(BlueDentalPermissions.Tools.View)]
     public async Task<PagedResultDto<CallLogDto>> GetCallLogListAsync(GetCallLogListInput input)
     {
         var q = (await callLogRepo.GetQueryableAsync()).AsQueryable();
 
+        if (input.BranchId.HasValue)
+            q = q.Where(x => x.ClinicBranchId == input.BranchId.Value);
         if (input.Direction.HasValue)
             q = q.Where(x => (int)x.Direction == input.Direction.Value);
         if (input.Status.HasValue)
@@ -147,10 +156,11 @@ public class ToolsAppService(
         return new PagedResultDto<CallLogDto>(totalCount, dtos);
     }
 
+    [Authorize(BlueDentalPermissions.Tools.Manage)]
     public async Task<CallLogDto> CreateCallLogAsync(CreateCallLogDto input)
     {
         var entity = new CallLog(
-            GuidGenerator.Create(), input.PatientId, input.StaffId,
+            GuidGenerator.Create(), input.BranchId, input.PatientId, input.StaffId,
             input.PatientName, input.PhoneNumber, input.StaffName,
             input.DurationSeconds, (CallDirection)input.Direction,
             (CallLogStatus)input.Status, input.Notes);
@@ -172,15 +182,19 @@ public class ToolsAppService(
         };
     }
 
+    [Authorize(BlueDentalPermissions.Tools.Manage)]
     public async Task DeleteCallLogAsync(Guid id) =>
         await callLogRepo.DeleteAsync(id);
 
     // ── Message Template ──────────────────────────────────────────────────
 
+    [Authorize(BlueDentalPermissions.Tools.View)]
     public async Task<PagedResultDto<MessageTemplateDto>> GetMessageTemplateListAsync(GetMessageTemplateListInput input)
     {
         var q = (await messageTemplateRepo.GetQueryableAsync()).AsQueryable();
 
+        if (input.BranchId.HasValue)
+            q = q.Where(x => x.ClinicBranchId == input.BranchId.Value);
         if (input.Channel.HasValue)
             q = q.Where(x => (int)x.Channel == input.Channel.Value);
         if (!string.IsNullOrWhiteSpace(input.Filter))
@@ -205,10 +219,11 @@ public class ToolsAppService(
         return new PagedResultDto<MessageTemplateDto>(totalCount, dtos);
     }
 
+    [Authorize(BlueDentalPermissions.Tools.Manage)]
     public async Task<MessageTemplateDto> CreateMessageTemplateAsync(CreateMessageTemplateDto input)
     {
         var entity = new MessageTemplate(
-            GuidGenerator.Create(), input.Name, input.Content,
+            GuidGenerator.Create(), input.BranchId, input.Name, input.Content,
             (MessageChannelType)input.Channel, input.Category);
         await messageTemplateRepo.InsertAsync(entity);
 
@@ -224,6 +239,7 @@ public class ToolsAppService(
         };
     }
 
+    [Authorize(BlueDentalPermissions.Tools.Manage)]
     public async Task<MessageTemplateDto> UpdateMessageTemplateAsync(Guid id, UpdateMessageTemplateDto input)
     {
         var entity = await messageTemplateRepo.GetAsync(id);
@@ -243,15 +259,19 @@ public class ToolsAppService(
         };
     }
 
+    [Authorize(BlueDentalPermissions.Tools.Manage)]
     public async Task DeleteMessageTemplateAsync(Guid id) =>
         await messageTemplateRepo.DeleteAsync(id);
 
     // ── Message Log ───────────────────────────────────────────────────────
 
+    [Authorize(BlueDentalPermissions.Tools.View)]
     public async Task<PagedResultDto<MessageLogDto>> GetMessageLogListAsync(GetMessageLogListInput input)
     {
         var q = (await messageLogRepo.GetQueryableAsync()).AsQueryable();
 
+        if (input.BranchId.HasValue)
+            q = q.Where(x => x.ClinicBranchId == input.BranchId.Value);
         if (input.Channel.HasValue)
             q = q.Where(x => (int)x.Channel == input.Channel.Value);
         if (input.Status.HasValue)

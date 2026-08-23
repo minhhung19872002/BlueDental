@@ -9,7 +9,7 @@ using Volo.Abp.Domain.Repositories;
 
 namespace BlueDental.Inventory;
 
-[Authorize(BlueDentalPermissions.Catalogs.Default)]
+[Authorize(BlueDentalPermissions.Inventory.Default)]
 public class MaterialAllocationAppService : ApplicationService, IMaterialAllocationAppService
 {
     private readonly IRepository<MaterialAllocation, Guid> _repository;
@@ -26,6 +26,7 @@ public class MaterialAllocationAppService : ApplicationService, IMaterialAllocat
         _departmentRepository = departmentRepository;
     }
 
+    [Authorize(BlueDentalPermissions.Inventory.View)]
     public async Task<PagedResultDto<MaterialAllocationDto>> GetListAsync(GetMaterialAllocationListInput input)
     {
         var queryable = await _repository.GetQueryableAsync();
@@ -76,6 +77,7 @@ public class MaterialAllocationAppService : ApplicationService, IMaterialAllocat
         return new PagedResultDto<MaterialAllocationDto>(totalCount, dtos);
     }
 
+    [Authorize(BlueDentalPermissions.Inventory.Manage)]
     public async Task<MaterialAllocationDto> CreateAsync(CreateMaterialAllocationDto input)
     {
         var allocationCode = $"PB-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..6].ToUpper()}";
@@ -94,6 +96,7 @@ public class MaterialAllocationAppService : ApplicationService, IMaterialAllocat
         return ObjectMapper.Map<MaterialAllocation, MaterialAllocationDto>(entity);
     }
 
+    [Authorize(BlueDentalPermissions.Inventory.Manage)]
     public async Task DeleteAsync(Guid id)
     {
         await _repository.DeleteAsync(id);

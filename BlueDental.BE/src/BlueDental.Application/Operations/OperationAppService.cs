@@ -14,6 +14,7 @@ public class OperationAppService(
     IRepository<OperationCategory, Guid> categoryRepo,
     IRepository<OperationArticle, Guid> articleRepo) : ApplicationService, IOperationAppService
 {
+    [Authorize(BlueDentalPermissions.Catalogs.View)]
     public async Task<PagedResultDto<OperationCategoryDto>> GetCategoryListAsync(GetOperationListInput input)
     {
         var query = await categoryRepo.GetQueryableAsync();
@@ -42,6 +43,7 @@ public class OperationAppService(
             }).ToList());
     }
 
+    [Authorize(BlueDentalPermissions.Catalogs.Create)]
     public async Task<OperationCategoryDto> CreateCategoryAsync(CreateOperationCategoryDto input)
     {
         var entity = new OperationCategory(GuidGenerator.Create(), input.Name, input.Department, input.SubTab, input.SortOrder);
@@ -53,8 +55,10 @@ public class OperationAppService(
         };
     }
 
+    [Authorize(BlueDentalPermissions.Catalogs.Delete)]
     public async Task DeleteCategoryAsync(Guid id) => await categoryRepo.DeleteAsync(id);
 
+    [Authorize(BlueDentalPermissions.Catalogs.View)]
     public async Task<PagedResultDto<OperationArticleDto>> GetArticleListAsync(GetOperationListInput input)
     {
         var query = await articleRepo.GetQueryableAsync();
@@ -82,6 +86,7 @@ public class OperationAppService(
             }).ToList());
     }
 
+    [Authorize(BlueDentalPermissions.Catalogs.Create)]
     public async Task<OperationArticleDto> CreateArticleAsync(CreateOperationArticleDto input)
     {
         var entity = new OperationArticle(GuidGenerator.Create(), input.Title, input.CategoryId, input.Department, input.SubTab, input.Content);
@@ -93,6 +98,7 @@ public class OperationAppService(
         };
     }
 
+    [Authorize(BlueDentalPermissions.Catalogs.Edit)]
     public async Task<OperationArticleDto> UpdateArticleAsync(Guid id, UpdateOperationArticleDto input)
     {
         var entity = await articleRepo.GetAsync(id);
@@ -106,5 +112,6 @@ public class OperationAppService(
         };
     }
 
+    [Authorize(BlueDentalPermissions.Catalogs.Delete)]
     public async Task DeleteArticleAsync(Guid id) => await articleRepo.DeleteAsync(id);
 }

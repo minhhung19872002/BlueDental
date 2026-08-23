@@ -9,13 +9,17 @@ using Volo.Abp.Domain.Repositories;
 
 namespace BlueDental.TreatmentManagement;
 
-[Authorize(BlueDentalPermissions.Catalogs.Default)]
+[Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Default)]
 public class ConsultationRecordAppService(
     IRepository<ConsultationRecord, Guid> repository) : ApplicationService, IConsultationRecordAppService
 {
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.View)]
     public async Task<PagedResultDto<ConsultationRecordDto>> GetListAsync(GetConsultationRecordListInput input)
     {
         var query = await repository.GetQueryableAsync();
+
+        if (input.ClinicBranchId.HasValue)
+            query = query.Where(c => c.ClinicBranchId == input.ClinicBranchId.Value);
 
         if (input.PatientId.HasValue)
             query = query.Where(c => c.PatientId == input.PatientId.Value);
@@ -34,6 +38,7 @@ public class ConsultationRecordAppService(
         {
             Id = c.Id,
             PatientId = c.PatientId,
+            ClinicBranchId = c.ClinicBranchId,
             ProcedureId = c.ProcedureId,
             ServiceName = c.ServiceName,
             UnitPrice = c.UnitPrice,
@@ -46,11 +51,13 @@ public class ConsultationRecordAppService(
         return new PagedResultDto<ConsultationRecordDto>(totalCount, dtos);
     }
 
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Create)]
     public async Task<ConsultationRecordDto> CreateAsync(CreateConsultationRecordDto input)
     {
         var entity = new ConsultationRecord(
             GuidGenerator.Create(),
             input.PatientId,
+            input.ClinicBranchId,
             input.ServiceName,
             input.UnitPrice,
             input.Quantity,
@@ -63,6 +70,7 @@ public class ConsultationRecordAppService(
         {
             Id = entity.Id,
             PatientId = entity.PatientId,
+            ClinicBranchId = entity.ClinicBranchId,
             ProcedureId = entity.ProcedureId,
             ServiceName = entity.ServiceName,
             UnitPrice = entity.UnitPrice,
@@ -73,6 +81,7 @@ public class ConsultationRecordAppService(
         };
     }
 
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Edit)]
     public async Task DeleteAsync(Guid id)
     {
         await repository.DeleteAsync(id);

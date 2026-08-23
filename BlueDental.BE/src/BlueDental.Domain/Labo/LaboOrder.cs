@@ -51,6 +51,23 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
         Status = LaboStatus.Draft;
     }
 
+    public LaboOrder Update(
+        string labProviderName, string? toothNumbers, string? workDescription,
+        string? notes, DateOnly? dueDate, decimal estimatedCost)
+    {
+        if (Status != LaboStatus.Draft)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.InvalidTransition,
+                $"Cannot update order in status {Status}. Only Draft orders can be edited.");
+        Check.NotNullOrWhiteSpace(labProviderName, nameof(labProviderName));
+        LabProviderName = labProviderName;
+        ToothNumbers = toothNumbers;
+        WorkDescription = workDescription;
+        Notes = notes;
+        DueDate = dueDate;
+        EstimatedCost = estimatedCost;
+        return this;
+    }
+
     public LaboOrder Send()
     {
         if (Status != LaboStatus.Draft)

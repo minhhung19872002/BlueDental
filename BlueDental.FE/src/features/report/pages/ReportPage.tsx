@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Tabs, Row, Col, Button, Select, Segmented, Spin, Table, Typography, Tag } from "antd";
+import { useStaffList } from "@/features/staff/api/staffQueries";
 import { DownloadOutlined, LeftOutlined, RightOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 import { formatVND } from "@/utils/format";
@@ -133,6 +134,11 @@ export function ReportPage() {
   const { data: summary, isLoading: summaryLoading } = useReportSummary({ startDate, endDate });
   const { data: revenueData } = useRevenueReport({ startDate, endDate });
   const { data: expenseData, isLoading: expenseLoading } = useExpenseReport({ startDate, endDate });
+  const { data: staffData } = useStaffList({ maxResultCount: 100, isActive: true });
+  const doctorOptions = (staffData?.items ?? []).map((s) => ({
+    value: s.id,
+    label: s.name || s.userName,
+  }));
 
   const setActiveTab = (tab: string) => {
     setSearchParams((p) => { p.set("tab", tab); return p; });
@@ -204,7 +210,7 @@ export function ReportPage() {
             <span style={{ minWidth: 130, textAlign: "center", fontWeight: 600, fontSize: 14 }}>{displayDate()}</span>
             <Button type="text" size="small" icon={<RightOutlined />} onClick={() => navigateDate(1)} />
           </div>
-          <Select placeholder="Bác sĩ điều trị" allowClear style={{ minWidth: 180 }} options={[]} />
+          <Select placeholder="Bác sĩ điều trị" allowClear style={{ minWidth: 180 }} options={doctorOptions} />
         </div>
       </div>
 

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
@@ -9,7 +10,7 @@ using Volo.Abp.Domain.Repositories;
 
 namespace BlueDental.Labo;
 
-[Authorize]
+[Authorize(BlueDentalPermissions.LaboOrders.Default)]
 public class LaboAppService : ApplicationService, ILaboAppService
 {
     private readonly IRepository<LaboOrder, Guid> _repository;
@@ -19,6 +20,7 @@ public class LaboAppService : ApplicationService, ILaboAppService
         _repository = repository;
     }
 
+    [Authorize(BlueDentalPermissions.LaboOrders.View)]
     public async Task<PagedResultDto<LaboOrderDto>> GetListAsync(GetLaboOrderListInput input)
     {
         var query = await _repository.GetQueryableAsync();
@@ -44,12 +46,14 @@ public class LaboAppService : ApplicationService, ILaboAppService
             ObjectMapper.Map<List<LaboOrder>, List<LaboOrderDto>>(items));
     }
 
+    [Authorize(BlueDentalPermissions.LaboOrders.View)]
     public async Task<LaboOrderDto> GetAsync(Guid id)
     {
         var order = await _repository.GetAsync(id);
         return ObjectMapper.Map<LaboOrder, LaboOrderDto>(order);
     }
 
+    [Authorize(BlueDentalPermissions.LaboOrders.Create)]
     public async Task<LaboOrderDto> CreateAsync(CreateLaboOrderDto input)
     {
         var code = $"LB{DateTimeOffset.UtcNow:yyyyMMddHHmmss}";
@@ -68,13 +72,17 @@ public class LaboAppService : ApplicationService, ILaboAppService
         return ObjectMapper.Map<LaboOrder, LaboOrderDto>(order);
     }
 
+    [Authorize(BlueDentalPermissions.LaboOrders.Edit)]
     public async Task<LaboOrderDto> UpdateAsync(Guid id, UpdateLaboOrderDto input)
     {
         var order = await _repository.GetAsync(id);
+        order.Update(input.LabProviderName, input.ToothNumbers, input.WorkDescription,
+            input.Notes, input.DueDate, input.EstimatedCost);
         await _repository.UpdateAsync(order, autoSave: true);
         return ObjectMapper.Map<LaboOrder, LaboOrderDto>(order);
     }
 
+    [Authorize(BlueDentalPermissions.LaboOrders.Workflow)]
     public async Task SendAsync(Guid id)
     {
         var order = await _repository.GetAsync(id);
@@ -82,6 +90,7 @@ public class LaboAppService : ApplicationService, ILaboAppService
         await _repository.UpdateAsync(order, autoSave: true);
     }
 
+    [Authorize(BlueDentalPermissions.LaboOrders.Workflow)]
     public async Task ReceiveAsync(Guid id)
     {
         var order = await _repository.GetAsync(id);
@@ -89,6 +98,7 @@ public class LaboAppService : ApplicationService, ILaboAppService
         await _repository.UpdateAsync(order, autoSave: true);
     }
 
+    [Authorize(BlueDentalPermissions.LaboOrders.Workflow)]
     public async Task CompleteAsync(Guid id)
     {
         var order = await _repository.GetAsync(id);
@@ -96,6 +106,7 @@ public class LaboAppService : ApplicationService, ILaboAppService
         await _repository.UpdateAsync(order, autoSave: true);
     }
 
+    [Authorize(BlueDentalPermissions.LaboOrders.Workflow)]
     public async Task RejectAsync(Guid id, string reason)
     {
         var order = await _repository.GetAsync(id);

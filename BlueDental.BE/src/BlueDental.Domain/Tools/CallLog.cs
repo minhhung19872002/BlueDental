@@ -5,6 +5,7 @@ namespace BlueDental.Tools;
 
 public class CallLog : CreationAuditedEntity<Guid>
 {
+    public Guid ClinicBranchId { get; private set; }
     public Guid? PatientId { get; private set; }
     public Guid? StaffId { get; private set; }
     public string PatientName { get; private set; } = string.Empty;
@@ -18,12 +19,13 @@ public class CallLog : CreationAuditedEntity<Guid>
     private CallLog() { }
 
     public CallLog(
-        Guid id, Guid? patientId, Guid? staffId,
+        Guid id, Guid clinicBranchId, Guid? patientId, Guid? staffId,
         string patientName, string phoneNumber, string? staffName,
         int durationSeconds, CallDirection direction,
         CallLogStatus status, string? notes)
         : base(id)
     {
+        ClinicBranchId = clinicBranchId;
         PatientId = patientId;
         StaffId = staffId;
         PatientName = patientName;

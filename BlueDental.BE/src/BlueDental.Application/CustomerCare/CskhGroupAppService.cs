@@ -9,7 +9,7 @@ using Volo.Abp.Domain.Repositories;
 
 namespace BlueDental.CustomerCare;
 
-[Authorize(BlueDentalPermissions.Catalogs.Default)]
+[Authorize(BlueDentalPermissions.CustomerCare.Default)]
 public class CskhGroupAppService : ApplicationService, ICskhGroupAppService
 {
     private readonly IRepository<CskhGroup, Guid> _repository;
@@ -19,7 +19,7 @@ public class CskhGroupAppService : ApplicationService, ICskhGroupAppService
         _repository = repository;
     }
 
-    [Authorize(BlueDentalPermissions.Catalogs.View)]
+    [Authorize(BlueDentalPermissions.CustomerCare.View)]
     public async Task<PagedResultDto<CskhGroupDto>> GetListAsync(GetCskhGroupListInput input)
     {
         var query = await _repository.GetQueryableAsync();
@@ -37,14 +37,14 @@ public class CskhGroupAppService : ApplicationService, ICskhGroupAppService
             ObjectMapper.Map<System.Collections.Generic.List<CskhGroup>, System.Collections.Generic.List<CskhGroupDto>>(items));
     }
 
-    [Authorize(BlueDentalPermissions.Catalogs.View)]
+    [Authorize(BlueDentalPermissions.CustomerCare.View)]
     public async Task<CskhGroupDto> GetAsync(Guid id)
     {
         var entity = await _repository.GetAsync(id);
         return ObjectMapper.Map<CskhGroup, CskhGroupDto>(entity);
     }
 
-    [Authorize(BlueDentalPermissions.Catalogs.Create)]
+    [Authorize(BlueDentalPermissions.CustomerCare.Create)]
     public async Task<CskhGroupDto> CreateAsync(CreateCskhGroupDto input)
     {
         var entity = new CskhGroup(GuidGenerator.Create(), input.Name, input.Criteria, input.Description);
@@ -52,7 +52,7 @@ public class CskhGroupAppService : ApplicationService, ICskhGroupAppService
         return ObjectMapper.Map<CskhGroup, CskhGroupDto>(entity);
     }
 
-    [Authorize(BlueDentalPermissions.Catalogs.Edit)]
+    [Authorize(BlueDentalPermissions.CustomerCare.Manage)]
     public async Task<CskhGroupDto> UpdateAsync(Guid id, UpdateCskhGroupDto input)
     {
         var entity = await _repository.GetAsync(id);
@@ -61,7 +61,7 @@ public class CskhGroupAppService : ApplicationService, ICskhGroupAppService
         return ObjectMapper.Map<CskhGroup, CskhGroupDto>(entity);
     }
 
-    [Authorize(BlueDentalPermissions.Catalogs.Delete)]
+    [Authorize(BlueDentalPermissions.CustomerCare.Manage)]
     public async Task DeleteAsync(Guid id)
     {
         await _repository.DeleteAsync(id, autoSave: true);

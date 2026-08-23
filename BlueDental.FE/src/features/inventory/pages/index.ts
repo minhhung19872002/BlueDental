@@ -1,2 +1,1 @@
-﻿// TODO: Implement InventoryPage.
-export function InventoryPage() { return null; }
+export { MaterialsPage as InventoryPage } from "@/features/materials/pages/MaterialsPage";

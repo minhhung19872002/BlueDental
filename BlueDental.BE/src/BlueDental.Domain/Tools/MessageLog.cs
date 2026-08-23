@@ -5,6 +5,7 @@ namespace BlueDental.Tools;
 
 public class MessageLog : CreationAuditedEntity<Guid>
 {
+    public Guid ClinicBranchId { get; private set; }
     public Guid? PatientId { get; private set; }
     public Guid? TemplateId { get; private set; }
     public string RecipientName { get; private set; } = string.Empty;
@@ -18,13 +19,14 @@ public class MessageLog : CreationAuditedEntity<Guid>
     private MessageLog() { }
 
     public MessageLog(
-        Guid id, Guid? patientId, Guid? templateId,
+        Guid id, Guid clinicBranchId, Guid? patientId, Guid? templateId,
         string recipientName, string recipientPhone,
         string content, MessageChannelType channel,
         MessageSendStatus status, DateTime? sentAt,
         string? errorMessage)
         : base(id)
     {
+        ClinicBranchId = clinicBranchId;
         PatientId = patientId;
         TemplateId = templateId;
         RecipientName = recipientName;

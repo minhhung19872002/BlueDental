@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
@@ -11,7 +12,7 @@ namespace BlueDental.Finance;
 /// <summary>
 /// Quản lý thu chi — receipts and payments with an approval step on expenses.
 /// </summary>
-[Authorize]
+[Authorize(BlueDentalPermissions.Finance.Default)]
 public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
 {
     private readonly IRepository<SalesEntry, Guid> _repository;
@@ -21,6 +22,7 @@ public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
         _repository = repository;
     }
 
+    [Authorize(BlueDentalPermissions.Finance.View)]
     public async Task<PagedResultDto<SalesEntryDto>> GetListAsync(GetSalesEntryListInput input)
     {
         var query = await BuildQueryAsync(input);
@@ -36,6 +38,7 @@ public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
         return new PagedResultDto<SalesEntryDto>(totalCount, items.Select(MapToDto).ToList());
     }
 
+    [Authorize(BlueDentalPermissions.Finance.View)]
     public async Task<SalesStatsDto> GetStatsAsync(GetSalesEntryListInput input)
     {
         var query = await BuildQueryAsync(input);
@@ -63,11 +66,13 @@ public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
         };
     }
 
+    [Authorize(BlueDentalPermissions.Finance.View)]
     public async Task<SalesEntryDto> GetAsync(Guid id)
     {
         return MapToDto(await _repository.GetAsync(id));
     }
 
+    [Authorize(BlueDentalPermissions.Finance.Manage)]
     public async Task<SalesEntryDto> CreateAsync(CreateSalesEntryDto input)
     {
         var code = await GenerateCodeAsync(input.ClinicBranchId, input.Type);
@@ -89,6 +94,7 @@ public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
         return MapToDto(entry);
     }
 
+    [Authorize(BlueDentalPermissions.Finance.Manage)]
     public async Task<SalesEntryDto> UpdateAsync(Guid id, UpdateSalesEntryDto input)
     {
         var entry = await _repository.GetAsync(id);
@@ -105,6 +111,7 @@ public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
         return MapToDto(entry);
     }
 
+    [Authorize(BlueDentalPermissions.Finance.Manage)]
     public async Task<SalesEntryDto> ApproveAsync(Guid id, ApproveSalesEntryInput input)
     {
         var entry = await _repository.GetAsync(id);
@@ -113,6 +120,7 @@ public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
         return MapToDto(entry);
     }
 
+    [Authorize(BlueDentalPermissions.Finance.Manage)]
     public async Task<SalesEntryDto> RejectAsync(Guid id, RejectSalesEntryInput input)
     {
         var entry = await _repository.GetAsync(id);
@@ -121,6 +129,7 @@ public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
         return MapToDto(entry);
     }
 
+    [Authorize(BlueDentalPermissions.Finance.Manage)]
     public async Task DeleteAsync(Guid id)
     {
         await _repository.DeleteAsync(id, autoSave: true);

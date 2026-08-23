@@ -1,2 +1,1 @@
-﻿// TODO: Implement BillingPage.
-export function BillingPage() { return null; }
+export { BillingPage } from "./BillingPage";

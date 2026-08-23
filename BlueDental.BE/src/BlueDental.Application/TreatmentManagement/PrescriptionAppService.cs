@@ -1,12 +1,15 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Permissions;
+using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
 
 namespace BlueDental.TreatmentManagement;
 
+[Authorize(BlueDentalPermissions.TreatmentManagement.Default)]
 public class PrescriptionAppService : ApplicationService, IPrescriptionAppService
 {
     private readonly IRepository<Prescription, Guid> _repository;
@@ -16,6 +19,7 @@ public class PrescriptionAppService : ApplicationService, IPrescriptionAppServic
         _repository = repository;
     }
 
+    [Authorize(BlueDentalPermissions.TreatmentManagement.Prescriptions.View)]
     public async Task<PagedResultDto<PrescriptionDto>> GetListAsync(GetPrescriptionListInput input)
     {
         var query = await _repository.GetQueryableAsync();
@@ -34,6 +38,7 @@ public class PrescriptionAppService : ApplicationService, IPrescriptionAppServic
         return new PagedResultDto<PrescriptionDto>(total, items);
     }
 
+    [Authorize(BlueDentalPermissions.TreatmentManagement.Prescriptions.View)]
     public async Task<PrescriptionDto> GetAsync(Guid id)
     {
         var p = await _repository.GetAsync(id);

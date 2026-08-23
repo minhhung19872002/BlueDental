@@ -6,6 +6,7 @@ namespace BlueDental.TreatmentManagement;
 public class ConsultationRecordDto : EntityDto<Guid>
 {
     public Guid PatientId { get; set; }
+    public Guid ClinicBranchId { get; set; }
     public Guid? ProcedureId { get; set; }
     public string ServiceName { get; set; } = default!;
     public decimal UnitPrice { get; set; }
@@ -18,6 +19,7 @@ public class ConsultationRecordDto : EntityDto<Guid>
 public class CreateConsultationRecordDto
 {
     public Guid PatientId { get; set; }
+    public Guid ClinicBranchId { get; set; }
     public Guid? ProcedureId { get; set; }
     public string ServiceName { get; set; } = default!;
     public decimal UnitPrice { get; set; }
@@ -28,5 +30,6 @@ public class CreateConsultationRecordDto
 public class GetConsultationRecordListInput : PagedAndSortedResultRequestDto
 {
     public Guid? PatientId { get; set; }
+    public Guid? ClinicBranchId { get; set; }
     public string? Filter { get; set; }
 }

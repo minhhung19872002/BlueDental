@@ -10,6 +10,7 @@ import "dayjs/locale/vi";
 import { queryClient } from "./lib/queryClient";
 import { router } from "./app/router";
 import { themeConfig } from "./theme/index";
+import "./lib/i18n";
 import "./styles/index.css";
 
 dayjs.locale("vi");

@@ -28,6 +28,7 @@ public class TreatmentPlanAppService : ApplicationService, ITreatmentPlanAppServ
     public async Task<PagedResultDto<TreatmentPlanDto>> GetListAsync(GetTreatmentPlanListInput input)
     {
         var query = await _repository.GetQueryableAsync();
+        if (input.BranchId.HasValue) query = query.Where(p => p.BranchId == input.BranchId.Value);
         if (input.PatientId.HasValue) query = query.Where(p => p.PatientId == input.PatientId.Value);
         if (input.Status.HasValue) query = query.Where(p => p.Status == input.Status.Value);
 
@@ -66,10 +67,12 @@ public class TreatmentPlanAppService : ApplicationService, ITreatmentPlanAppServ
     public async Task<TreatmentPlanDto> UpdateAsync(Guid id, UpdateTreatmentPlanDto input)
     {
         var plan = await _repository.GetAsync(id);
+        plan.Update(input.Title, input.Description, input.EstimatedCompletionDate);
         await _repository.UpdateAsync(plan, autoSave: true);
         return ObjectMapper.Map<TreatmentPlan, TreatmentPlanDto>(plan);
     }
 
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Edit)]
     public async Task<TreatmentPlanDto> SubmitForApprovalAsync(Guid id)
     {
         var plan = await _repository.GetAsync(id);
@@ -87,6 +90,7 @@ public class TreatmentPlanAppService : ApplicationService, ITreatmentPlanAppServ
         return ObjectMapper.Map<TreatmentPlan, TreatmentPlanDto>(plan);
     }
 
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Edit)]
     public async Task<TreatmentPlanDto> StartAsync(Guid id)
     {
         var plan = await _repository.GetAsync(id);
@@ -95,6 +99,7 @@ public class TreatmentPlanAppService : ApplicationService, ITreatmentPlanAppServ
         return ObjectMapper.Map<TreatmentPlan, TreatmentPlanDto>(plan);
     }
 
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Edit)]
     public async Task<TreatmentPlanDto> CompleteAsync(Guid id)
     {
         var plan = await _repository.GetAsync(id);
@@ -103,6 +108,7 @@ public class TreatmentPlanAppService : ApplicationService, ITreatmentPlanAppServ
         return ObjectMapper.Map<TreatmentPlan, TreatmentPlanDto>(plan);
     }
 
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Edit)]
     public async Task<TreatmentPlanDto> CancelAsync(Guid id)
     {
         var plan = await _repository.GetAsync(id);

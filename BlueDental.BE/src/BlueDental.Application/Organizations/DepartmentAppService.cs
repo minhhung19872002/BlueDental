@@ -9,7 +9,7 @@ using Volo.Abp.Domain.Repositories;
 
 namespace BlueDental.Organizations;
 
-[Authorize(BlueDentalPermissions.Catalogs.Default)]
+[Authorize(BlueDentalPermissions.Organizations.Default)]
 public class DepartmentAppService : ApplicationService, IDepartmentAppService
 {
     private readonly IRepository<Department, Guid> _repository;
@@ -19,6 +19,7 @@ public class DepartmentAppService : ApplicationService, IDepartmentAppService
         _repository = repository;
     }
 
+    [Authorize(BlueDentalPermissions.Organizations.View)]
     public async Task<PagedResultDto<DepartmentDto>> GetListAsync(GetDepartmentListInput input)
     {
         var queryable = await _repository.GetQueryableAsync();
@@ -41,6 +42,7 @@ public class DepartmentAppService : ApplicationService, IDepartmentAppService
             ObjectMapper.Map<System.Collections.Generic.List<Department>, System.Collections.Generic.List<DepartmentDto>>(items));
     }
 
+    [Authorize(BlueDentalPermissions.Organizations.Create)]
     public async Task<DepartmentDto> CreateAsync(CreateDepartmentDto input)
     {
         var entity = new Department(
@@ -52,6 +54,7 @@ public class DepartmentAppService : ApplicationService, IDepartmentAppService
         return ObjectMapper.Map<Department, DepartmentDto>(entity);
     }
 
+    [Authorize(BlueDentalPermissions.Organizations.Edit)]
     public async Task<DepartmentDto> UpdateAsync(Guid id, UpdateDepartmentDto input)
     {
         var entity = await _repository.GetAsync(id);
@@ -60,6 +63,7 @@ public class DepartmentAppService : ApplicationService, IDepartmentAppService
         return ObjectMapper.Map<Department, DepartmentDto>(entity);
     }
 
+    [Authorize(BlueDentalPermissions.Organizations.Delete)]
     public async Task DeleteAsync(Guid id)
     {
         await _repository.DeleteAsync(id);

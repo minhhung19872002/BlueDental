@@ -7,6 +7,7 @@ public class DiagnosticRecord : FullAuditedAggregateRoot<Guid>
 {
     public string Code { get; private set; } = default!;
     public Guid PatientId { get; private set; }
+    public Guid ClinicBranchId { get; private set; }
     public Guid DentistId { get; private set; }
     public Guid? AppointmentId { get; private set; }
     public string? TeethNumbers { get; private set; }
@@ -19,6 +20,7 @@ public class DiagnosticRecord : FullAuditedAggregateRoot<Guid>
         Guid id,
         string code,
         Guid patientId,
+        Guid clinicBranchId,
         Guid dentistId,
         Guid? appointmentId = null,
         string? teethNumbers = null,
@@ -28,6 +30,7 @@ public class DiagnosticRecord : FullAuditedAggregateRoot<Guid>
     {
         Code = code;
         PatientId = patientId;
+        ClinicBranchId = clinicBranchId;
         DentistId = dentistId;
         AppointmentId = appointmentId;
         TeethNumbers = teethNumbers;
