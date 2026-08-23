@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Catalogs;
+using BlueDental.Exporting;
 using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
@@ -129,6 +130,45 @@ public class PrescriptionAppService : ApplicationService, IPrescriptionAppServic
     {
         await LoadAsync(id);
         await _repository.DeleteAsync(id, autoSave: true);
+    }
+
+    [Authorize(BlueDentalAbilityPermissions.Prescription.Export)]
+    public async Task<byte[]> ExportPdfAsync(Guid id)
+    {
+        var prescription = await LoadAsync(id);
+        var dto = (await MapManyAsync([prescription])).Single();
+
+        var document = new ClinicDocument
+        {
+            ClinicName = "BlueDental",
+            Title = "Đơn thuốc",
+            Code = dto.Code,
+            PrintedAt = Clock.Now,
+            SignatureLabel = "Bác sĩ kê đơn",
+            Note = dto.Note,
+            Fields =
+            [
+                new ClinicDocumentField("Bác sĩ", dto.StaffName ?? "—"),
+                new ClinicDocumentField("Chẩn đoán", dto.DiagnosisText ?? "—"),
+                new ClinicDocumentField("Ngày kê", dto.IssuedAt.ToString("dd/MM/yyyy")),
+                new ClinicDocumentField(
+                    "Tái khám",
+                    dto.FollowUpDate?.ToString("dd/MM/yyyy") ?? "—")
+            ],
+            Headers = ["Tên thuốc", "Liều dùng", "Tần suất", "Số ngày", "Số lượng"],
+            Rows = dto.Items
+                .Select(item => new ClinicDocumentRow(
+                [
+                    item.MedicationName,
+                    item.Dosage,
+                    item.Frequency,
+                    item.DurationDays.ToString(),
+                    item.Quantity.ToString()
+                ]))
+                .ToList()
+        };
+
+        return document.ToBytes();
     }
 
     private async Task<Prescription> LoadAsync(Guid id)

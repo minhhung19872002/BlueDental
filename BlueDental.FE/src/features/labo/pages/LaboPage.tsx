@@ -15,6 +15,7 @@ import {
   type LaboSampleFilter,
 } from "../api/laboApi";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
+import { downloadFile } from "@/lib/download";
 import { extractApiError } from "@/lib/apiError";
 import { formatDate } from "@/utils/format";
 
@@ -233,7 +234,12 @@ function MauLaboView() {
           }}
         >
           <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-            <Button icon={<DownloadOutlined />}>Xuất Excel</Button>
+            <Button
+              icon={<DownloadOutlined />}
+              onClick={() => void downloadFile("/v1/app/labo-orders/excel", "labo.xlsx", listParams)}
+            >
+              Xuất Excel
+            </Button>
             <span style={{ fontSize: 13, color: "#5A6B82" }}>
               Đơn hàng mới: {stats?.new ?? 0} · Tiếp tục công đoạn: {stats?.continueStage ?? 0} ·
               Bảo hành: {stats?.guarantee ?? 0}

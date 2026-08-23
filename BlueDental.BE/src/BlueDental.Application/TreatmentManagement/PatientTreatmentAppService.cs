@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Billing;
 using BlueDental.Catalogs;
+using BlueDental.Exporting;
 using BlueDental.Organizations;
 using BlueDental.Permissions;
 using BlueDental.TreatmentManagement.Values;
@@ -160,6 +161,49 @@ public class PatientTreatmentAppService : ApplicationService, IPatientTreatmentA
 
         await _planRepository.UpdateAsync(plan, autoSave: true);
         return (await MapManyAsync([plan])).Single();
+    }
+
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Print)]
+    public async Task<byte[]> ExportPdfAsync(Guid id)
+    {
+        var plan = await LoadAsync(id);
+        var dto = (await MapManyAsync([plan])).Single();
+
+        var rows = dto.Services
+            .Select(line => new ClinicDocumentRow(
+            [
+                line.ServiceName ?? line.Code,
+                line.Quantity.ToString(),
+                $"{line.Price:N0}",
+                $"{line.DiscountAmount:N0}",
+                $"{line.EffectiveAmount:N0}"
+            ]))
+            .ToList();
+
+        rows.Add(new ClinicDocumentRow(
+            ["Tổng cộng", string.Empty, string.Empty, $"{dto.PlanDiscountAmount:N0}", $"{dto.TotalAmount:N0}"],
+            IsTotal: true));
+
+        var document = new ClinicDocument
+        {
+            ClinicName = "BlueDental",
+            Title = "Phiếu điều trị",
+            Code = dto.Code,
+            PrintedAt = Clock.Now,
+            SignatureLabel = "Bác sĩ tiếp nhận",
+            Fields =
+            [
+                new ClinicDocumentField("Bác sĩ tiếp nhận", dto.DentistName ?? "—"),
+                new ClinicDocumentField("Ngày tạo", dto.CreationTime.ToString("dd/MM/yyyy")),
+                new ClinicDocumentField("Tiến độ", $"{dto.ProgressPercent}%"),
+                new ClinicDocumentField("Đã thanh toán", $"{dto.Payment.TotalPaid:N0} đ"),
+                new ClinicDocumentField("Còn lại", $"{dto.Payment.TotalDue:N0} đ")
+            ],
+            Headers = ["Dịch vụ", "Số lượng", "Đơn giá", "Giảm giá", "Thành tiền"],
+            Rows = rows
+        };
+
+        return document.ToBytes();
     }
 
     private async Task<TreatmentPlan> LoadAsync(Guid id)

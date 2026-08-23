@@ -24,6 +24,10 @@ public class BlueDentalApplicationModule : AbpModule
 {
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
+        // QuestPDF refuses to render until a licence is declared; BlueDental uses
+        // the Community one.
+        QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+
         Configure<AbpAutoMapperOptions>(options =>
         {
             options.AddMaps<BlueDentalApplicationModule>();

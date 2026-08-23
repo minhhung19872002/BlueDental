@@ -165,6 +165,9 @@ public interface IPatientTreatmentAppService : IApplicationService
     Task<TreatmentPlanSlipDto> ApplyDiscountAsync(Guid id, ApplyPlanDiscountDto input);
     Task<TreatmentPlanSlipDto> CompleteServiceAsync(Guid id, Guid serviceLineId);
     Task<TreatmentPlanSlipDto> CancelServiceAsync(Guid id, Guid serviceLineId);
+
+    /// <summary>In phiếu điều trị.</summary>
+    Task<byte[]> ExportPdfAsync(Guid id);
 }
 
 /// <summary>

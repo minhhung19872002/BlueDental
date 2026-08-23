@@ -83,4 +83,7 @@ public interface IPrescriptionAppService : IApplicationService
     Task<PrescriptionDto> DispenseAsync(Guid id);
     Task<PrescriptionDto> CancelAsync(Guid id);
     Task DeleteAsync(Guid id);
+
+    /// <summary>In đơn thuốc.</summary>
+    Task<byte[]> ExportPdfAsync(Guid id);
 }

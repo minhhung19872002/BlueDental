@@ -28,4 +28,7 @@ public interface ICustomerCareAppService : IApplicationService
 
     Task<CareRecordDto> MarkZaloSentAsync(Guid id);
     Task CancelAsync(Guid id, string reason);
+
+    /// <summary>"Xuất Excel" on the CSKH screen.</summary>
+    Task<byte[]> ExportAsync(GetCareRecordListInput input);
 }

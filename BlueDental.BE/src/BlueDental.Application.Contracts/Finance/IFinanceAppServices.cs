@@ -18,6 +18,9 @@ public interface ISalesEntryAppService : IApplicationService
     Task<SalesEntryDto> ApproveAsync(Guid id, ApproveSalesEntryInput input);
     Task<SalesEntryDto> RejectAsync(Guid id, RejectSalesEntryInput input);
     Task DeleteAsync(Guid id);
+
+    /// <summary>"Xuất Excel" on the Quản lý thu chi tab.</summary>
+    Task<byte[]> ExportAsync(GetSalesEntryListInput input);
 }
 
 /// <summary>

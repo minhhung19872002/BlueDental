@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using BlueDental.Catalogs;
 using BlueDental.Organizations;
 using BlueDental.PatientManagement;
+using BlueDental.Exporting;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
@@ -21,6 +22,36 @@ namespace BlueDental.Labo;
 [Authorize]
 public class LaboAppService : ApplicationService, ILaboAppService
 {
+    [Authorize]
+    public async Task<byte[]> ExportAsync(GetLaboOrderListInput input)
+    {
+        var page = await GetListAsync(new GetLaboOrderListInput
+        {
+            BranchId = input.BranchId,
+            PatientId = input.PatientId,
+            Status = input.Status,
+            Kind = input.Kind,
+            SampleFilter = input.SampleFilter,
+            MaxResultCount = 1000
+        });
+
+        return ExcelSheet.Build(
+            "Labo",
+            "Mẫu Labo",
+            new List<ExcelColumn<LaboOrderDto>>
+            {
+                new("Mã phiếu", row => row.OrderCode, 18),
+                new("Khách hàng", row => row.PatientName, 26),
+                new("Nhà cung cấp", row => row.LabProviderName, 24),
+                new("Răng", row => row.ToothNumbers, 12),
+                new("Hẹn trả", row => row.DueDate?.ToDateTime(TimeOnly.MinValue), 14),
+                new("Chi phí", row => row.EstimatedCost, 16),
+                new("Trạng thái", row => row.Status.ToString(), 16),
+                new("Trễ hẹn", row => row.IsOverdue ? "Có" : "Không", 12)
+            },
+            page.Items);
+    }
+
     private readonly IRepository<LaboOrder, Guid> _repository;
     private readonly IRepository<Patient, Guid> _patientRepository;
     private readonly IRepository<CatalogEntry, Guid> _catalogRepository;

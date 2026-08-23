@@ -18,7 +18,9 @@ test.describe("Lịch hẹn", () => {
    * real, so each run books its own future day.
    */
   function uniqueDay(): string {
-    const offset = 1 + (Number(runId()) % 500);
+    // A day another run already booked would make even the first booking clash,
+    // so the window is wide enough that a collision practically never happens.
+    const offset = 1 + Math.floor(Math.random() * 5000);
     const day = new Date();
     day.setDate(day.getDate() + offset);
 

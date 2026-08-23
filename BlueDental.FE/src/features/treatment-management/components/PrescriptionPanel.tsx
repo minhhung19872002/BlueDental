@@ -11,7 +11,6 @@ import {
   Space,
   Table,
   Tag,
-  Typography,
   message,
 } from "antd";
 import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
@@ -30,9 +29,8 @@ import { CATALOG_GROUP, useCatalogOptions } from "@/hooks/useCatalogOptions";
 import { useDentistList } from "@/features/staff/api/staffQueries";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { extractApiError } from "@/lib/apiError";
+import { downloadFile } from "@/lib/download";
 import { formatDate } from "@/utils/format";
-
-const { Text } = Typography;
 
 interface PrescriptionPanelProps {
   patientId: string;
@@ -160,31 +158,41 @@ export function PrescriptionPanel({ patientId }: PrescriptionPanelProps) {
     {
       title: "Thao tác",
       key: "actions",
-      width: 150,
-      render: (_, row) =>
-        row.status === PRESCRIPTION_STATUS.Active ? (
-          <Space size={4}>
-            <Button
-              type="link"
-              size="small"
-              loading={dispensePrescription.isPending}
-              onClick={() => run(dispensePrescription.mutateAsync(row.id), "Đã phát thuốc")}
-            >
-              Phát thuốc
-            </Button>
-            <Button
-              type="link"
-              size="small"
-              danger
-              loading={cancelPrescription.isPending}
-              onClick={() => run(cancelPrescription.mutateAsync(row.id), "Đã huỷ đơn thuốc")}
-            >
-              Huỷ
-            </Button>
-          </Space>
-        ) : (
-          <Text type="secondary">—</Text>
-        ),
+      width: 230,
+      render: (_, row) => (
+        <Space size={4}>
+          <Button
+            type="link"
+            size="small"
+            onClick={() =>
+              void downloadFile(`/v1/app/prescriptions/${row.id}/pdf`, `don-thuoc-${row.code}.pdf`)
+            }
+          >
+            In đơn
+          </Button>
+          {row.status === PRESCRIPTION_STATUS.Active ? (
+            <>
+              <Button
+                type="link"
+                size="small"
+                loading={dispensePrescription.isPending}
+                onClick={() => run(dispensePrescription.mutateAsync(row.id), "Đã phát thuốc")}
+              >
+                Phát thuốc
+              </Button>
+              <Button
+                type="link"
+                size="small"
+                danger
+                loading={cancelPrescription.isPending}
+                onClick={() => run(cancelPrescription.mutateAsync(row.id), "Đã huỷ đơn thuốc")}
+              >
+                Huỷ
+              </Button>
+            </>
+          ) : null}
+        </Space>
+      ),
     },
   ];
 
@@ -251,22 +259,22 @@ export function PrescriptionPanel({ patientId }: PrescriptionPanelProps) {
                   <Space key={field.key} align="baseline" style={{ display: "flex", gap: 8 }}>
                     {/* The line carries no label, so the wrapper gives tests a handle. */}
                     <div data-testid="prescription-medicine">
-                    <Form.Item
-                      name={[field.name, "medicationId"]}
-                      rules={[{ required: true, message: "Chọn thuốc" }]}
-                      style={{ width: 220 }}
-                    >
-                      <Select
-                        showSearch
-                        optionFilterProp="label"
-                        placeholder={
-                          (medications?.length ?? 0) === 0
-                            ? "Chưa có danh mục thuốc"
-                            : "Chọn thuốc"
-                        }
-                        options={(medications ?? []).map((m) => ({ value: m.id, label: m.name }))}
-                      />
-                    </Form.Item>
+                      <Form.Item
+                        name={[field.name, "medicationId"]}
+                        rules={[{ required: true, message: "Chọn thuốc" }]}
+                        style={{ width: 220 }}
+                      >
+                        <Select
+                          showSearch
+                          optionFilterProp="label"
+                          placeholder={
+                            (medications?.length ?? 0) === 0
+                              ? "Chưa có danh mục thuốc"
+                              : "Chọn thuốc"
+                          }
+                          options={(medications ?? []).map((m) => ({ value: m.id, label: m.name }))}
+                        />
+                      </Form.Item>
                     </div>
                     <Form.Item name={[field.name, "dosage"]} style={{ width: 110 }}>
                       <Input placeholder="Liều dùng" />
@@ -293,7 +301,12 @@ export function PrescriptionPanel({ patientId }: PrescriptionPanelProps) {
                     )}
                   </Space>
                 ))}
-                <Button type="dashed" block icon={<PlusOutlined />} onClick={() => add({ durationDays: 5, quantity: 10 })}>
+                <Button
+                  type="dashed"
+                  block
+                  icon={<PlusOutlined />}
+                  onClick={() => add({ durationDays: 5, quantity: 10 })}
+                >
                   Thêm thuốc
                 </Button>
               </>

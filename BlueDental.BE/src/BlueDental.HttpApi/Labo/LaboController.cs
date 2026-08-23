@@ -40,6 +40,10 @@ public sealed class LaboController(ILaboAppService service) : BlueDentalControll
     [HttpPost("{id:guid}/complete")]
     public Task CompleteAsync(Guid id) => service.CompleteAsync(id);
 
+    [HttpGet("excel")]
+    public async Task<IActionResult> ExportAsync([FromQuery] GetLaboOrderListInput input) =>
+        Excel(await service.ExportAsync(input), "labo");
+
     [HttpPost("{id:guid}/reject")]
     public Task RejectAsync(Guid id, [FromBody] string reason) => service.RejectAsync(id, reason);
 }

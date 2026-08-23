@@ -37,6 +37,10 @@ public sealed class PatientTreatmentController(IPatientTreatmentAppService servi
     [HttpPost("{id:guid}/services/{serviceLineId:guid}/cancel")]
     public Task<TreatmentPlanSlipDto> CancelServiceAsync(Guid id, Guid serviceLineId) =>
         service.CancelServiceAsync(id, serviceLineId);
+
+    [HttpGet("{id:guid}/pdf")]
+    public async Task<IActionResult> ExportPdfAsync(Guid id) =>
+        Pdf(await service.ExportPdfAsync(id), $"phieu-dieu-tri-{id}");
 }
 
 /// <summary>Thanh toán của bệnh nhân.</summary>
@@ -89,6 +93,10 @@ public sealed class PrescriptionController(IPrescriptionAppService service) : Bl
 
     [HttpPost("{id:guid}/cancel")]
     public Task<PrescriptionDto> CancelAsync(Guid id) => service.CancelAsync(id);
+
+    [HttpGet("{id:guid}/pdf")]
+    public async Task<IActionResult> ExportPdfAsync(Guid id) =>
+        Pdf(await service.ExportPdfAsync(id), $"don-thuoc-{id}");
 
     [HttpDelete("{id:guid}")]
     public Task DeleteAsync(Guid id) => service.DeleteAsync(id);

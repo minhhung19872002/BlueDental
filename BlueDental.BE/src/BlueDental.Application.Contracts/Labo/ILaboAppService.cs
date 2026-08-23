@@ -16,4 +16,7 @@ public interface ILaboAppService : IApplicationService
     Task ReceiveAsync(Guid id);
     Task CompleteAsync(Guid id);
     Task RejectAsync(Guid id, string reason);
+
+    /// <summary>"Xuất Excel" on the Labo screen.</summary>
+    Task<byte[]> ExportAsync(GetLaboOrderListInput input);
 }

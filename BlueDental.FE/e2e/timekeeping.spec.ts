@@ -2,9 +2,14 @@ import { expect, test } from "@playwright/test";
 import { assertRealApiTraffic, login } from "./fixtures/auth";
 
 /** A future date that no earlier run has used, so the board starts empty. */
+/**
+ * Attendance is one record per staff per day, so a run that reuses a day another
+ * run already opened finds it half clocked. The window is wide enough that two
+ * runs practically never land on the same day.
+ */
 function freshWorkDate(): string {
   const date = new Date();
-  date.setDate(date.getDate() + 30 + (Date.now() % 300));
+  date.setDate(date.getDate() + 30 + Math.floor(Math.random() * 5000));
   return date.toISOString().slice(0, 10);
 }
 

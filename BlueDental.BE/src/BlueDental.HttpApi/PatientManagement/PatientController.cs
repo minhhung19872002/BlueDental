@@ -28,6 +28,10 @@ public sealed class PatientController(IPatientAppService service) : BlueDentalCo
     public Task<PatientDto> UpdateAsync(Guid id, [FromBody] UpdatePatientDto input) =>
         service.UpdateAsync(id, input);
 
+    [HttpGet("excel")]
+    public async Task<IActionResult> ExportAsync([FromQuery] GetPatientListInput input) =>
+        Excel(await service.ExportAsync(input), "benh-nhan");
+
     [HttpPost("{id:guid}/deactivate")]
     public Task DeactivateAsync(Guid id) => service.DeactivateAsync(id);
 }

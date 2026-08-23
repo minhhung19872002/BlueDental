@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.PatientManagement.Values;
+using BlueDental.Exporting;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
@@ -13,6 +14,33 @@ namespace BlueDental.PatientManagement;
 [Authorize]
 public class PatientAppService : ApplicationService, IPatientAppService
 {
+    [Authorize]
+    public async Task<byte[]> ExportAsync(GetPatientListInput input)
+    {
+        var page = await GetListAsync(new GetPatientListInput
+        {
+            Filter = input.Filter,
+            Status = input.Status,
+            BranchId = input.BranchId,
+            MaxResultCount = 1000
+        });
+
+        return ExcelSheet.Build(
+            "Benh nhan",
+            "Danh sách bệnh nhân",
+            new List<ExcelColumn<PatientDto>>
+            {
+                new("Mã bệnh nhân", row => row.PatientCode, 18),
+                new("Họ và tên", row => $"{row.LastName} {row.FirstName}".Trim(), 26),
+                new("Ngày sinh", row => row.DateOfBirth.ToDateTime(TimeOnly.MinValue), 14),
+                new("Giới tính", row => row.Gender.ToString(), 12),
+                new("Điện thoại", row => row.PhoneNumber, 16),
+                new("Email", row => row.Email, 26),
+                new("Trạng thái", row => row.Status.ToString(), 14)
+            },
+            page.Items);
+    }
+
     private readonly IRepository<Patient, Guid> _repository;
 
     public PatientAppService(IRepository<Patient, Guid> repository)

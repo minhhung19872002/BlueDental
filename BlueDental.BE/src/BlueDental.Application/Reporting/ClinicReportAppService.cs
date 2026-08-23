@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Billing;
 using BlueDental.Catalogs;
+using BlueDental.Exporting;
 using BlueDental.Finance;
 using BlueDental.Organizations;
 using BlueDental.PatientManagement;
@@ -183,6 +184,67 @@ public class ClinicReportAppService : ApplicationService, IClinicReportAppServic
             Expense = expense,
             Result = totalRevenue - treatmentRefund - expense
         };
+    }
+
+    [Authorize(BlueDentalAbilityPermissions.ReportSales.Export)]
+    public async Task<byte[]> ExportPatientHistoryAsync(ClinicReportQueryDto input)
+    {
+        var rows = await GetPatientHistoryAsync(input);
+
+        return ExcelSheet.Build(
+            "Doanh so",
+            "Doanh số và lượt khách",
+            new List<ExcelColumn<PatientHistoryRowDto>>
+            {
+                new("Ngày", row => row.Date.Date, 14),
+                new("Mã khách hàng", row => row.PatientCode, 16),
+                new("Tên khách hàng", row => row.PatientName, 26),
+                new("Bác sĩ tiếp nhận", row => row.StaffName, 22),
+                new("Dịch vụ điều trị", row => row.ServiceNames, 40),
+                new("Số lượng", row => row.Quantity, 12),
+                new("Thành tiền", row => row.EffectiveAmount, 16),
+                new("Đã thanh toán", row => row.TotalPaid, 16),
+                new("Khách mới", row => row.IsNewPatient ? "Có" : "Không", 12)
+            },
+            rows,
+            PeriodLabel(input));
+    }
+
+    [Authorize(BlueDentalAbilityPermissions.ReportResult.Export)]
+    public async Task<byte[]> ExportBusinessResultAsync(ClinicReportQueryDto input)
+    {
+        var result = await GetBusinessResultAsync(input);
+
+        var rows = new List<(string Category, decimal Amount)>
+        {
+            ("Doanh thu tổng", result.TotalRevenue),
+            ("Thu từ dịch vụ điều trị", result.TreatmentIncome),
+            ("Thu khác", result.OtherIncome),
+            ("Hoàn tiền từ dịch vụ điều trị", -result.TreatmentRefund),
+            ("Chi phí", -result.Expense),
+            ("Kết quả kinh doanh", result.Result)
+        };
+
+        return ExcelSheet.Build(
+            "Ket qua kinh doanh",
+            "Kết quả kinh doanh",
+            new List<ExcelColumn<(string Category, decimal Amount)>>
+            {
+                new("Khoản mục", row => row.Category, 34),
+                new("Số tiền", row => row.Amount, 20)
+            },
+            rows,
+            PeriodLabel(input));
+    }
+
+    private static string PeriodLabel(ClinicReportQueryDto input)
+    {
+        if (!input.FromDate.HasValue && !input.ToDate.HasValue)
+        {
+            return "Toàn bộ thời gian";
+        }
+
+        return $"Từ {input.FromDate:dd/MM/yyyy} đến {input.ToDate:dd/MM/yyyy}";
     }
 
     private static decimal SumBy(IEnumerable<PatientPayment> payments, PaymentMethodKind method) =>

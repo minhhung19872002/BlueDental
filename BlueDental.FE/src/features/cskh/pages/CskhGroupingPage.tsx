@@ -17,6 +17,7 @@ import {
   type CareType as CareTypeCode,
 } from "../api/careApi";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
+import { downloadFile } from "@/lib/download";
 import { extractApiError } from "@/lib/apiError";
 import { formatDate } from "@/utils/format";
 import { Button, Input, Select, Table, Tag, message } from "antd";
@@ -383,7 +384,12 @@ export function CskhGroupingPage() {
       {/* Toolbar row 2 */}
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Button icon={<DownloadOutlined />}>Xuất Excel</Button>
+          <Button
+            icon={<DownloadOutlined />}
+            onClick={() => void downloadFile("/v1/app/care-records/excel", "cskh.xlsx", careParams)}
+          >
+            Xuất Excel
+          </Button>
           <Input
             prefix={<SearchOutlined />}
             placeholder="Tìm kiếm..."

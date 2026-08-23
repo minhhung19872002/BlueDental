@@ -18,6 +18,7 @@ import { ADVISE_STATUS } from "../api/consultingApi";
 import { useDentistList } from "@/features/staff/api/staffQueries";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { extractApiError } from "@/lib/apiError";
+import { downloadFile } from "@/lib/download";
 import { formatDate, formatVND } from "@/utils/format";
 
 const { Text } = Typography;
@@ -205,42 +206,56 @@ export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
     {
       title: "Thao tác",
       key: "actions",
-      width: 170,
+      width: 250,
       fixed: "right",
-      render: (_, row) =>
-        row.status === SERVICE_LINE_STATUS.Done || row.status === SERVICE_LINE_STATUS.Cancelled ? (
-          <Text type="secondary">—</Text>
-        ) : (
-          <Space size={4}>
-            <Button
-              type="link"
-              size="small"
-              loading={completeLine.isPending}
-              onClick={() =>
-                run(
-                  completeLine.mutateAsync({ planId: row.planId, lineId: row.id }),
-                  "Đã hoàn thành dịch vụ",
-                )
-              }
-            >
-              Hoàn thành
-            </Button>
-            <Button
-              type="link"
-              size="small"
-              danger
-              loading={cancelLine.isPending}
-              onClick={() =>
-                run(
-                  cancelLine.mutateAsync({ planId: row.planId, lineId: row.id }),
-                  "Đã huỷ dịch vụ",
-                )
-              }
-            >
-              Huỷ
-            </Button>
-          </Space>
-        ),
+      render: (_, row) => (
+        <Space size={4}>
+          <Button
+            type="link"
+            size="small"
+            onClick={() =>
+              void downloadFile(
+                `/v1/app/patient-treatments/${row.planId}/pdf`,
+                `phieu-dieu-tri-${row.planCode}.pdf`,
+              )
+            }
+          >
+            In phiếu
+          </Button>
+          {row.status === SERVICE_LINE_STATUS.Done ||
+          row.status === SERVICE_LINE_STATUS.Cancelled ? null : (
+            <>
+              <Button
+                type="link"
+                size="small"
+                loading={completeLine.isPending}
+                onClick={() =>
+                  run(
+                    completeLine.mutateAsync({ planId: row.planId, lineId: row.id }),
+                    "Đã hoàn thành dịch vụ",
+                  )
+                }
+              >
+                Hoàn thành
+              </Button>
+              <Button
+                type="link"
+                size="small"
+                danger
+                loading={cancelLine.isPending}
+                onClick={() =>
+                  run(
+                    cancelLine.mutateAsync({ planId: row.planId, lineId: row.id }),
+                    "Đã huỷ dịch vụ",
+                  )
+                }
+              >
+                Huỷ
+              </Button>
+            </>
+          )}
+        </Space>
+      ),
     },
   ];
 
@@ -260,13 +275,28 @@ export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
 
       <Row gutter={12} style={{ marginBottom: 16 }}>
         <Col span={12}>
-          <Card size="small" style={{ borderLeft: "4px solid #2671D8" }} data-testid="plan-active-services">
+          <Card
+            size="small"
+            style={{ borderLeft: "4px solid #2671D8" }}
+            data-testid="plan-active-services"
+          >
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ background: "#2671D8", color: "#fff", borderRadius: 12, padding: "2px 10px", fontWeight: 700, fontSize: 14 }}>
+              <span
+                style={{
+                  background: "#2671D8",
+                  color: "#fff",
+                  borderRadius: 12,
+                  padding: "2px 10px",
+                  fontWeight: 700,
+                  fontSize: 14,
+                }}
+              >
                 {activeServices.length}
               </span>
               <div>
-                <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41" }}>Dịch vụ đang điều trị</div>
+                <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41" }}>
+                  Dịch vụ đang điều trị
+                </div>
                 <div style={{ fontSize: 12, color: "#9CA3AF" }}>
                   {activeServices.length === 0
                     ? "Chưa có dịch vụ đang điều trị"
@@ -277,7 +307,11 @@ export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
           </Card>
         </Col>
         <Col span={12}>
-          <Card size="small" style={{ borderLeft: "4px solid #10B981" }} data-testid="plan-slip-count">
+          <Card
+            size="small"
+            style={{ borderLeft: "4px solid #10B981" }}
+            data-testid="plan-slip-count"
+          >
             <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 4 }}>
               Phiếu điều trị
             </div>
@@ -287,7 +321,10 @@ export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
                   ? "Chưa có phiếu — hãy chốt phiếu tư vấn trước"
                   : `${acceptedCount} dịch vụ đã chốt, sẵn sàng lên kế hoạch`
                 : slips
-                    .map((s) => `${s.code} · ${PLAN_STATUS_CONFIG[s.status].label} · ${s.progressPercent}%`)
+                    .map(
+                      (s) =>
+                        `${s.code} · ${PLAN_STATUS_CONFIG[s.status].label} · ${s.progressPercent}%`,
+                    )
                     .join(" — ")}
             </div>
           </Card>

@@ -88,4 +88,10 @@ public interface IClinicReportAppService : IApplicationService
     Task<PaymentStatSummaryDto> GetPaymentStatAsync(ClinicReportQueryDto input);
     Task<List<PatientHistoryRowDto>> GetPatientHistoryAsync(ClinicReportQueryDto input);
     Task<BusinessResultDto> GetBusinessResultAsync(ClinicReportQueryDto input);
+
+    /// <summary>"Xuất Excel" on the Doanh số tab.</summary>
+    Task<byte[]> ExportPatientHistoryAsync(ClinicReportQueryDto input);
+
+    /// <summary>"Xuất Excel" on the Kết quả kinh doanh tab.</summary>
+    Task<byte[]> ExportBusinessResultAsync(ClinicReportQueryDto input);
 }

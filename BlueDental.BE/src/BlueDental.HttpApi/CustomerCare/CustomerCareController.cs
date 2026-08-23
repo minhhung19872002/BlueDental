@@ -46,6 +46,10 @@ public sealed class CustomerCareController(ICustomerCareAppService service) : Bl
     [HttpPost("{id:guid}/zalo-sent")]
     public Task<CareRecordDto> MarkZaloSentAsync(Guid id) => service.MarkZaloSentAsync(id);
 
+    [HttpGet("excel")]
+    public async Task<IActionResult> ExportAsync([FromQuery] GetCareRecordListInput input) =>
+        Excel(await service.ExportAsync(input), "cskh");
+
     [HttpPost("{id:guid}/cancel")]
     public Task CancelAsync(Guid id, [FromBody] string reason) => service.CancelAsync(id, reason);
 }

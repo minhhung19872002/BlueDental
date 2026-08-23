@@ -24,4 +24,14 @@ public sealed class ClinicReportController(IClinicReportAppService service) : Bl
     [HttpGet("business-result")]
     public Task<BusinessResultDto> GetBusinessResultAsync(
         [FromQuery] ClinicReportQueryDto input) => service.GetBusinessResultAsync(input);
+
+    [HttpGet("patient-history/excel")]
+    public async Task<IActionResult> ExportPatientHistoryAsync(
+        [FromQuery] ClinicReportQueryDto input) =>
+        Excel(await service.ExportPatientHistoryAsync(input), "doanh-so");
+
+    [HttpGet("business-result/excel")]
+    public async Task<IActionResult> ExportBusinessResultAsync(
+        [FromQuery] ClinicReportQueryDto input) =>
+        Excel(await service.ExportBusinessResultAsync(input), "ket-qua-kinh-doanh");
 }

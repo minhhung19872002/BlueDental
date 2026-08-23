@@ -12,4 +12,7 @@ public interface IPatientAppService : IApplicationService
     Task<PatientDto> RegisterAsync(RegisterPatientDto input);
     Task<PatientDto> UpdateAsync(Guid id, UpdatePatientDto input);
     Task DeactivateAsync(Guid id);
+
+    /// <summary>"Xuất file" on the patient list.</summary>
+    Task<byte[]> ExportAsync(GetPatientListInput input);
 }

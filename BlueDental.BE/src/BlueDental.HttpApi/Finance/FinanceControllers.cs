@@ -41,6 +41,10 @@ public sealed class SalesEntryController(ISalesEntryAppService service) : BlueDe
     public Task<SalesEntryDto> RejectAsync(Guid id, [FromBody] RejectSalesEntryInput input) =>
         service.RejectAsync(id, input);
 
+    [HttpGet("excel")]
+    public async Task<IActionResult> ExportAsync([FromQuery] GetSalesEntryListInput input) =>
+        Excel(await service.ExportAsync(input), "thu-chi");
+
     [HttpDelete("{id:guid}")]
     public Task DeleteAsync(Guid id) => service.DeleteAsync(id);
 }

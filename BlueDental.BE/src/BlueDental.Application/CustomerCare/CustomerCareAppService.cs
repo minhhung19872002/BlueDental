@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using BlueDental.Catalogs;
 using BlueDental.Organizations;
 using BlueDental.PatientManagement;
+using BlueDental.Exporting;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
@@ -20,6 +21,36 @@ namespace BlueDental.CustomerCare;
 [Authorize]
 public class CustomerCareAppService : ApplicationService, ICustomerCareAppService
 {
+    [Authorize]
+    public async Task<byte[]> ExportAsync(GetCareRecordListInput input)
+    {
+        // Reusing GetListAsync keeps the export behind the same ability and the
+        // same branch scope as the list it mirrors.
+        var page = await GetListAsync(new GetCareRecordListInput
+        {
+            BranchId = input.BranchId,
+            PatientId = input.PatientId,
+            Type = input.Type,
+            Status = input.Status,
+            MaxResultCount = 1000
+        });
+
+        return ExcelSheet.Build(
+            "CSKH",
+            "Chăm sóc khách hàng",
+            new List<ExcelColumn<CareRecordDto>>
+            {
+                new("Ngày chăm sóc", row => row.DueAt?.DateTime, 16),
+                new("Khách hàng", row => row.PatientName, 26),
+                new("Điện thoại", row => row.PatientPhone, 16),
+                new("Nội dung", row => row.Subject, 40),
+                new("Trạng thái", row => row.Status.ToString(), 16),
+                new("Kết quả", row => row.Outcome.ToString(), 16),
+                new("Nhân viên chăm sóc", row => row.CareStaffName, 22)
+            },
+            page.Items);
+    }
+
     private readonly IRepository<CareRecord, Guid> _repository;
     private readonly IRepository<Patient, Guid> _patientRepository;
     private readonly IRepository<CatalogEntry, Guid> _catalogRepository;

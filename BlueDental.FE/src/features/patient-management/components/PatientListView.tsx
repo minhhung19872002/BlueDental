@@ -17,6 +17,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { formatDate, formatDateTime, formatVND } from "@/utils/format";
 import { SearchSelect } from "@/components/SearchSelect";
 import type { PatientListItem, PatientStatus } from "../types/patient";
+import { downloadFile } from "@/lib/download";
 
 const { Text } = Typography;
 
@@ -321,7 +322,16 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
 
           {/* Right: export + create */}
           <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
-            <Button icon={<ExportOutlined />}>Xuất file</Button>
+            <Button
+              icon={<ExportOutlined />}
+              onClick={() =>
+                void downloadFile("/v1/app/patients/excel", "benh-nhan.xlsx", {
+                  filter: debouncedKeyword || undefined,
+                })
+              }
+            >
+              Xuất file
+            </Button>
             <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>
               Tạo hồ sơ
             </Button>

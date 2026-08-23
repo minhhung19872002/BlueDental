@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Organizations;
+using BlueDental.Exporting;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
@@ -18,6 +19,39 @@ namespace BlueDental.Finance;
 [Authorize]
 public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
 {
+    [Authorize]
+    public async Task<byte[]> ExportAsync(GetSalesEntryListInput input)
+    {
+        // Both income and expense need the ability that guards their own list, so
+        // the export reuses GetListAsync rather than querying around it.
+        var page = await GetListAsync(new GetSalesEntryListInput
+        {
+            ClinicBranchId = input.ClinicBranchId,
+            Type = input.Type,
+            FromDate = input.FromDate,
+            ToDate = input.ToDate,
+            Approved = input.Approved,
+            MaxResultCount = 1000
+        });
+
+        return ExcelSheet.Build(
+            "Thu chi",
+            "Quản lý thu chi",
+            new List<ExcelColumn<SalesEntryDto>>
+            {
+                new("Ngày", row => row.EntryDate, 14),
+                new("Số phiếu", row => row.Code, 16),
+                new("Loại", row => row.Type == SalesEntryType.Income ? "Thu" : "Chi", 10),
+                new("Mục thu chi", row => row.CategoryName, 24),
+                new("Nội dung", row => row.Description, 40),
+                new("Khách hàng", row => row.PatientName, 24),
+                new("Nhân viên", row => row.StaffName, 22),
+                new("Số tiền", row => row.Amount, 18),
+                new("Đã duyệt", row => row.CountsTowardsCashflow ? "Có" : "Chưa", 12)
+            },
+            page.Items);
+    }
+
     private readonly IRepository<SalesEntry, Guid> _repository;
     private readonly IRepository<CashflowCategory, Guid> _categoryRepository;
     private readonly IIdentityUserRepository _userRepository;

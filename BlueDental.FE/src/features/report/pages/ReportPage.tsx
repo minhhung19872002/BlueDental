@@ -5,6 +5,7 @@ import { DownloadOutlined, LeftOutlined, RightOutlined, PlusOutlined } from "@an
 import dayjs, { type Dayjs } from "dayjs";
 import { formatDate, formatVND } from "@/utils/format";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
+import { downloadFile } from "@/lib/download";
 import {
   useBusinessResult,
   usePatientHistory,
@@ -572,6 +573,19 @@ function SalesTab({
           >
             {formatVND(stat?.totalActualReceived ?? 0)} đ
           </span>
+          <Button
+            icon={<DownloadOutlined />}
+            style={{ marginLeft: "auto" }}
+            onClick={() =>
+              void downloadFile(
+                "/v1/app/clinic-reports/patient-history/excel",
+                "doanh-so.xlsx",
+                query,
+              )
+            }
+          >
+            Xuất Excel
+          </Button>
         </div>
       </div>
 
@@ -664,7 +678,19 @@ function BusinessResultTab({ period }: { period: PeriodRange }) {
 
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", alignItems: "center" }}>
-          <Button icon={<DownloadOutlined />} style={{ marginLeft: "auto" }}>Xuất Excel</Button>
+          <Button
+            icon={<DownloadOutlined />}
+            style={{ marginLeft: "auto" }}
+            onClick={() =>
+              void downloadFile(
+                "/v1/app/clinic-reports/business-result/excel",
+                "ket-qua-kinh-doanh.xlsx",
+                { clinicBranchId: branchId, ...period },
+              )
+            }
+          >
+            Xuất Excel
+          </Button>
         </div>
       </div>
 
