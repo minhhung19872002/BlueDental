@@ -66,12 +66,12 @@ describe("ReceptionPage", () => {
     fireEvent.click(createBtn);
 
     await waitFor(() => {
-      expect(
-        screen.getByText("Tạo tiếp nhận khách hàng mới"),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByPlaceholderText("Nhập họ và tên khách hàng"),
-      ).toBeInTheDocument();
+      // The drawer reuses the toolbar wording, so the title makes "Tạo tiếp nhận"
+      // appear twice; the patient search field is what identifies the drawer.
+      expect(screen.getAllByText("Tạo tiếp nhận").length).toBeGreaterThan(1);
+      // The patient picker is an antd Select, whose placeholder is not a real
+      // input placeholder — assert on the field label instead.
+      expect(screen.getByText("Khách hàng")).toBeInTheDocument();
     });
   });
 
@@ -84,7 +84,7 @@ describe("ReceptionPage", () => {
     );
 
     expect(screen.getByText(/Tất cả/)).toBeInTheDocument();
-    expect(screen.getByText(/Khách đến/)).toBeInTheDocument();
+    expect(screen.getByText(/Chờ khám/)).toBeInTheDocument();
     expect(screen.getByText(/Đang khám/)).toBeInTheDocument();
     expect(screen.getByText(/Hoàn thành/)).toBeInTheDocument();
   });

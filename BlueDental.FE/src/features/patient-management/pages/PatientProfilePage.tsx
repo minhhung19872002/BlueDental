@@ -19,10 +19,29 @@ import { usePatientLaboOrders } from "@/features/labo/api/laboApi";
 import { useCareRecordList } from "@/features/cskh/api/careApi";
 import { usePatientDiagnosticRecords } from "@/features/treatment-management/api/diagnosticApi";
 import { usePatientConsultationRecords } from "@/features/treatment-management/api/consultationApi";
+import {
+  usePatientAdviseSummary,
+  usePatientAdvises,
+  usePatientDiagnoses,
+} from "@/features/treatment-management/api/consultingQueries";
+import {
+  ADVISE_STATUS,
+  formatTeeth,
+  type PatientAdviseStatus,
+} from "@/features/treatment-management/api/consultingApi";
+import { useCurrentBranchId } from "@/lib/clinicBranch";
 
 const { Text } = Typography;
 
 const GENDER_LABELS: Record<string, string> = { male: "Nam", female: "Nữ", other: "Khác" };
+
+const ADVISE_STATUS_CONFIG: Record<PatientAdviseStatus, { label: string; color: string }> = {
+  [ADVISE_STATUS.Created]:   { label: "Chờ duyệt",   color: "default" },
+  [ADVISE_STATUS.Accepted]:  { label: "Đã chốt",     color: "blue" },
+  [ADVISE_STATUS.Converted]: { label: "Đã lên KHĐT", color: "green" },
+  [ADVISE_STATUS.Rejected]:  { label: "Từ chối",     color: "red" },
+  [ADVISE_STATUS.Cancelled]: { label: "Đã hủy",      color: "default" },
+};
 
 interface AppointmentRow {
   id: string;
@@ -76,6 +95,15 @@ export function PatientProfilePage() {
   const patientPrescriptions = prescriptions ?? [];
   const patientDiagnostics = diagnosticRecords ?? [];
   const patientConsultations = consultationRecords ?? [];
+
+  const branchId = useCurrentBranchId();
+  const consultingParams = { patientId: id ?? "", clinicBranchId: branchId, maxResultCount: 50 };
+  const { data: diagnosisPage, isLoading: diagnosesLoading } = usePatientDiagnoses(consultingParams);
+  const { data: advisePage, isLoading: advisesLoading } = usePatientAdvises(consultingParams);
+  const { data: adviseSummary } = usePatientAdviseSummary(consultingParams);
+
+  const diagnosisRows = diagnosisPage?.items ?? [];
+  const adviseRows = advisePage?.items ?? [];
 
   const handleTabChange = (key: string) => {
     setSearchParams({ tab: key });
@@ -301,14 +329,37 @@ export function PatientProfilePage() {
                 <Table
                   size="small"
                   rowKey="id"
+                  loading={diagnosesLoading}
                   columns={[
-                    { title: "Số phiếu", dataIndex: "code", width: 120 },
-                    { title: "Bác sĩ chẩn đoán", dataIndex: "dentistName", width: 160 },
-                    { title: "Răng", dataIndex: "teethNumbers" },
-                    { title: "Ghi chú", dataIndex: "notes" },
-                    { title: "Thao tác", key: "actions", width: 80, render: () => <Button type="link" size="small">Tạo Dịch Vụ</Button> },
+                    { title: "Số phiếu", dataIndex: "code", width: 100 },
+                    {
+                      title: "Bác sĩ chẩn đoán",
+                      dataIndex: "staffName",
+                      width: 160,
+                      render: (v: string | null) => v ?? "—",
+                    },
+                    {
+                      title: "Răng",
+                      key: "teeth",
+                      render: (_, row) => formatTeeth(row.teeth),
+                    },
+                    {
+                      title: "Ghi chú",
+                      dataIndex: "note",
+                      render: (v: string | null) => v ?? "—",
+                    },
+                    {
+                      title: "Thao tác",
+                      key: "actions",
+                      width: 110,
+                      render: (_, row) => (
+                        <Button type="link" size="small" disabled={row.hasTreatmentService}>
+                          {row.hasTreatmentService ? "Đã tạo DV" : "Tạo Dịch Vụ"}
+                        </Button>
+                      ),
+                    },
                   ]}
-                  dataSource={patientDiagnostics}
+                  dataSource={diagnosisRows}
                   pagination={false}
                   locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>Chưa có phiếu chẩn đoán</span> }}
                 />
@@ -318,13 +369,33 @@ export function PatientProfilePage() {
                 <Table
                   size="small"
                   rowKey="id"
+                  loading={advisesLoading}
                   columns={[
                     { title: "Ngày", dataIndex: "creationTime", width: 100, render: (v: string) => formatDate(v) },
-                    { title: "Dịch vụ", dataIndex: "serviceName" },
-                    { title: "Đơn giá", dataIndex: "unitPrice", width: 120, align: "right" as const, render: (v: number) => `${formatVND(v ?? 0)} đ` },
-                    { title: "Thành tiền", dataIndex: "totalAmount", width: 120, align: "right" as const, render: (v: number) => `${formatVND(v ?? 0)} đ` },
+                    {
+                      title: "Dịch vụ",
+                      dataIndex: "serviceName",
+                      render: (v: string | null, row: Record<string, unknown>) => v ?? (row.code as string),
+                    },
+                    { title: "SL", dataIndex: "quantity", width: 50, align: "right" as const },
+                    { title: "Đơn giá", dataIndex: "price", width: 110, align: "right" as const, render: (v: number) => `${formatVND(v)} đ` },
+                    {
+                      title: "Thành tiền",
+                      dataIndex: "effectiveAmount",
+                      width: 120,
+                      align: "right" as const,
+                      render: (v: number) => `${formatVND(v)} đ`,
+                    },
+                    {
+                      title: "Trạng thái",
+                      dataIndex: "status",
+                      width: 120,
+                      render: (v: PatientAdviseStatus) => (
+                        <Tag color={ADVISE_STATUS_CONFIG[v].color}>{ADVISE_STATUS_CONFIG[v].label}</Tag>
+                      ),
+                    },
                   ]}
-                  dataSource={patientConsultations}
+                  dataSource={adviseRows}
                   pagination={false}
                   locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>Chưa có phiếu tư vấn</span> }}
                 />
@@ -334,7 +405,14 @@ export function PatientProfilePage() {
                   padding: "10px 0", borderTop: "1px solid #E5E7EB",
                 }}>
                   <Text strong style={{ fontSize: 13 }}>TỔNG KẾ HOẠCH</Text>
-                  <Text style={{ fontSize: 13, color: "#5A6B82" }}>Tổng thành tiền: {formatVND(patientConsultations.reduce((s, c) => s + (c.totalAmount ?? 0), 0))} đ</Text>
+                  <Text style={{ fontSize: 13, color: "#5A6B82" }}>
+                    Tổng thành tiền: {formatVND(adviseSummary?.totalEffectiveAmount ?? 0)} đ
+                  </Text>
+                  {(adviseSummary?.totalDiscountAmount ?? 0) > 0 && (
+                    <Text style={{ fontSize: 13, color: "#5A6B82" }}>
+                      Chiết khấu: {formatVND(adviseSummary?.totalDiscountAmount ?? 0)} đ
+                    </Text>
+                  )}
                   <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
                     <Button size="small">Thêm kế hoạch điều trị</Button>
                     <Button size="small">Tạo báo giá</Button>

@@ -13,6 +13,9 @@ using BlueDental.Organizations;
 using BlueDental.Tools;
 using BlueDental.PatientManagement;
 using BlueDental.PatientManagement.Values;
+using BlueDental.Finance;
+using BlueDental.Promotions;
+using BlueDental.Timekeeping;
 using BlueDental.TreatmentManagement;
 using BlueDental.Visits;
 using Microsoft.EntityFrameworkCore;
@@ -41,6 +44,10 @@ public static class BlueDentalDbContextModelCreatingExtensions
         ConfigureCustomerCare(builder);
         ConfigureOperations(builder);
         ConfigureTools(builder);
+        ConfigureTimekeeping(builder);
+        ConfigureFinance(builder);
+        ConfigurePromotions(builder);
+        ConfigureTaxonomyCatalog(builder);
     }
 
     private static void ConfigureOrganizations(ModelBuilder builder)
@@ -525,6 +532,54 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Criteria).HasMaxLength(1000);
             entity.Property(x => x.Description).HasMaxLength(1000);
         });
+
+        builder.Entity<PatientDiagnosis>(entity =>
+        {
+            entity.ToTable("bd_patient_diagnoses");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Code).HasMaxLength(32).IsRequired();
+            entity.Property(x => x.Note).HasMaxLength(2000);
+            entity.Property(x => x.Status).HasConversion<short>();
+            entity.OwnsMany(x => x.Teeth, t => t.ToJson());
+            entity.Navigation(x => x.Teeth).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.HasIndex(x => new { x.ClinicBranchId, x.Status });
+            entity.HasIndex(x => new { x.PatientId, x.Status });
+            entity.HasIndex(x => x.Code);
+        });
+
+        builder.Entity<PatientAdvise>(entity =>
+        {
+            entity.ToTable("bd_patient_advises");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Code).HasMaxLength(32).IsRequired();
+            entity.Property(x => x.Note).HasMaxLength(2000);
+            entity.Property(x => x.Status).HasConversion<short>();
+            entity.Property(x => x.DiscountType).HasConversion<short>();
+            entity.Property(x => x.OriginalPrice).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.Price).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.DiscountValue).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.VoucherDiscountAmount).HasColumnType("numeric(18,2)");
+            entity.OwnsMany(x => x.Teeth, t => t.ToJson());
+            entity.Navigation(x => x.Teeth).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.PrimitiveCollection(x => x.ImageIds).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.Ignore(x => x.GrossAmount);
+            entity.Ignore(x => x.DiscountAmount);
+            entity.Ignore(x => x.EffectiveAmount);
+            entity.HasIndex(x => new { x.ClinicBranchId, x.Status });
+            entity.HasIndex(x => new { x.PatientId, x.Status });
+            entity.HasIndex(x => x.PatientDiagnosisId);
+            entity.HasIndex(x => x.TreatmentPlanId);
+            entity.HasIndex(x => x.Code);
+        });
+
+        builder.Entity<AdviseGroup>(entity =>
+        {
+            entity.ToTable("bd_advise_groups");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(1000);
+            entity.HasIndex(x => new { x.PatientId, x.SortOrder });
+        });
     }
 
     private static void ConfigureOperations(ModelBuilder builder)
@@ -600,6 +655,143 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Status).HasConversion<short>();
             entity.Property(x => x.ErrorMessage).HasMaxLength(500);
             entity.HasIndex(x => new { x.Channel, x.CreationTime });
+        });
+    }
+
+    private static void ConfigureTimekeeping(ModelBuilder builder)
+    {
+        builder.Entity<TimeKeepingRecord>(entity =>
+        {
+            entity.ToTable("bd_time_keeping_records");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Registration).HasConversion<short>();
+            entity.Property(x => x.Status).HasConversion<short>();
+            entity.Property(x => x.LeaveReason).HasMaxLength(500);
+            entity.Property(x => x.Note).HasMaxLength(1000);
+
+            entity.OwnsOne(x => x.MorningShift, shift =>
+            {
+                shift.Property(s => s.Kind).HasColumnName("MorningKind").HasConversion<short>();
+                shift.Property(s => s.PlannedStart).HasColumnName("MorningPlannedStart");
+                shift.Property(s => s.PlannedEnd).HasColumnName("MorningPlannedEnd");
+                shift.Property(s => s.CheckedInAt).HasColumnName("MorningCheckedInAt");
+                shift.Property(s => s.CheckedOutAt).HasColumnName("MorningCheckedOutAt");
+            });
+            entity.Navigation(x => x.MorningShift).IsRequired();
+
+            entity.OwnsOne(x => x.AfternoonShift, shift =>
+            {
+                shift.Property(s => s.Kind).HasColumnName("AfternoonKind").HasConversion<short>();
+                shift.Property(s => s.PlannedStart).HasColumnName("AfternoonPlannedStart");
+                shift.Property(s => s.PlannedEnd).HasColumnName("AfternoonPlannedEnd");
+                shift.Property(s => s.CheckedInAt).HasColumnName("AfternoonCheckedInAt");
+                shift.Property(s => s.CheckedOutAt).HasColumnName("AfternoonCheckedOutAt");
+            });
+            entity.Navigation(x => x.AfternoonShift).IsRequired();
+
+            entity.Ignore(x => x.HasAnyAttendance);
+            entity.Ignore(x => x.HasOpenShift);
+            entity.Ignore(x => x.TotalWorkedMinutes);
+
+            entity.HasIndex(x => new { x.ClinicBranchId, x.WorkDate, x.StaffId }).IsUnique();
+            entity.HasIndex(x => new { x.ClinicBranchId, x.WorkDate, x.Status });
+        });
+    }
+
+    private static void ConfigureFinance(ModelBuilder builder)
+    {
+        builder.Entity<SalesEntry>(entity =>
+        {
+            entity.ToTable("bd_sales_entries");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Code).HasMaxLength(32).IsRequired();
+            entity.Property(x => x.Type).HasConversion<short>();
+            entity.Property(x => x.Channel).HasConversion<short>();
+            entity.Property(x => x.ApprovalStatus).HasConversion<short>();
+            entity.Property(x => x.Amount).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.Description).HasMaxLength(1000).IsRequired();
+            entity.Property(x => x.RejectionReason).HasMaxLength(500);
+            entity.Ignore(x => x.CountsTowardsCashflow);
+            entity.Ignore(x => x.SignedAmount);
+            entity.HasIndex(x => new { x.ClinicBranchId, x.EntryDate, x.Type });
+            entity.HasIndex(x => new { x.ClinicBranchId, x.ApprovalStatus });
+            entity.HasIndex(x => x.Code).IsUnique();
+        });
+
+        builder.Entity<CashflowCategory>(entity =>
+        {
+            entity.ToTable("bd_cashflow_categories");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Type).HasConversion<short>();
+            entity.Property(x => x.Description).HasMaxLength(500);
+            entity.HasIndex(x => new { x.ClinicBranchId, x.AppliesToTransfers, x.Type });
+        });
+
+        builder.Entity<CashflowEntry>(entity =>
+        {
+            entity.ToTable("bd_cashflow_entries");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.TransactionType).HasConversion<short>();
+            entity.Property(x => x.FromHolding).HasConversion<short>();
+            entity.Property(x => x.ToHolding).HasConversion<short>();
+            entity.Property(x => x.Amount).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.Note).HasMaxLength(1000);
+            entity.HasIndex(x => new { x.ClinicBranchId, x.EntryDate });
+            entity.HasIndex(x => new { x.ClinicBranchId, x.TransactionType });
+        });
+    }
+
+    private static void ConfigurePromotions(ModelBuilder builder)
+    {
+        builder.Entity<Voucher>(entity =>
+        {
+            entity.ToTable("bd_vouchers");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Code).HasMaxLength(32).IsRequired();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(1000);
+            entity.Property(x => x.DiscountType).HasConversion<short>();
+            entity.Property(x => x.CustomerTarget).HasConversion<short>();
+            entity.Property(x => x.Status).HasConversion<short>();
+            entity.Property(x => x.DiscountValue).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.MaxDiscountAmount).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.MinOrderAmount).HasColumnType("numeric(18,2)");
+            entity.Ignore(x => x.RemainingUses);
+            entity.Ignore(x => x.IsExhausted);
+            entity.HasIndex(x => x.Code).IsUnique();
+            entity.HasIndex(x => new { x.Status, x.ValidFrom, x.ValidTo });
+        });
+    }
+
+    private static void ConfigureTaxonomyCatalog(ModelBuilder builder)
+    {
+        builder.Entity<Taxonomy>(entity =>
+        {
+            entity.ToTable("bd_taxonomies");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Group).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Alias).HasMaxLength(200);
+            entity.Property(x => x.Color).HasMaxLength(9);
+            entity.Property(x => x.SubGroup).HasMaxLength(100);
+            entity.Property(x => x.Description).HasMaxLength(1000);
+            entity.Ignore(x => x.IsPriced);
+            entity.Ignore(x => x.IsTemplated);
+            entity.HasIndex(x => new { x.ClinicBranchId, x.Group, x.SortOrder });
+        });
+
+        builder.Entity<CatalogEntry>(entity =>
+        {
+            entity.ToTable("bd_catalog_entries");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Group).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.Name).HasMaxLength(300).IsRequired();
+            entity.Property(x => x.Code).HasMaxLength(64);
+            entity.Property(x => x.Description).HasMaxLength(2000);
+            entity.Property(x => x.Price).HasColumnType("numeric(18,2)");
+            entity.HasIndex(x => new { x.ClinicBranchId, x.Group, x.IsActive });
+            entity.HasIndex(x => new { x.TaxonomyId, x.SortOrder });
         });
     }
 }

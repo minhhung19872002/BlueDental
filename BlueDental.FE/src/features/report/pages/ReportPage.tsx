@@ -6,6 +6,23 @@ import dayjs, { type Dayjs } from "dayjs";
 import { formatVND } from "@/utils/format";
 import { exportToExcel } from "@/utils/exportExcel";
 import { useReportSummary, useRevenueReport, useExpenseReport, type ReportSummaryDto, type RevenueReportDto } from "@/features/reporting/api/index";
+import { useCurrentBranchId } from "@/lib/clinicBranch";
+import {
+  CASH_HOLDING_LABELS,
+  CASH_TRANSACTION_LABELS,
+  PAYMENT_CHANNEL_LABELS,
+  SALES_APPROVAL_STATUS,
+  SALES_ENTRY_TYPE,
+  useCashflowEntries,
+  useCashflowOverview,
+  useSalesEntries,
+  useSalesStats,
+  type CashHolding,
+  type CashTransactionType,
+  type PaymentChannel,
+  type SalesApprovalStatus,
+  type SalesEntryType,
+} from "../api/financeApi";
 
 const { Text } = Typography;
 
@@ -33,20 +50,35 @@ const CASHFLOW_TYPES = [
 ];
 
 const CASHFLOW_COLUMNS = [
-  { title: "Ngày", dataIndex: "date", key: "date", width: 110 },
+  { title: "Ngày", dataIndex: "entryDate", key: "entryDate", width: 110 },
+  { title: "Số phiếu", dataIndex: "code", key: "code", width: 110 },
   { title: "Loại", dataIndex: "type", key: "type", width: 80,
-    render: (v: string) => <Tag color={v === "Thu" ? "green" : "red"}>{v}</Tag> },
-  { title: "Danh mục", dataIndex: "category", key: "category", width: 160 },
+    render: (v: SalesEntryType) => (
+      <Tag color={v === SALES_ENTRY_TYPE.Income ? "green" : "red"}>
+        {v === SALES_ENTRY_TYPE.Income ? "Thu" : "Chi"}
+      </Tag>
+    ) },
+  { title: "Danh mục", dataIndex: "categoryName", key: "categoryName", width: 160,
+    render: (v: string | null) => v ?? "—" },
   { title: "Nội dung", dataIndex: "description", key: "description" },
   { title: "Số tiền", dataIndex: "amount", key: "amount", width: 140, align: "right" as const,
-    render: (v: number, r: { type: string }) => (
-      <Text style={{ color: r.type === "Thu" ? "#10B981" : "#EF4444", fontVariantNumeric: "tabular-nums" }}>
-        {r.type === "Thu" ? "+" : "-"}{formatVND(v ?? 0)} đ
+    render: (v: number, r: { type: SalesEntryType }) => (
+      <Text style={{
+        color: r.type === SALES_ENTRY_TYPE.Income ? "#10B981" : "#EF4444",
+        fontVariantNumeric: "tabular-nums",
+      }}>
+        {r.type === SALES_ENTRY_TYPE.Income ? "+" : "-"}{formatVND(v ?? 0)} đ
       </Text>
     ) },
-  { title: "Phương thức", dataIndex: "method", key: "method", width: 130 },
-  { title: "Người thực hiện", dataIndex: "performer", key: "performer", width: 160 },
-  { title: "Ghi chú", dataIndex: "note", key: "note", width: 140 },
+  { title: "Phương thức", dataIndex: "channel", key: "channel", width: 130,
+    render: (v: PaymentChannel) => PAYMENT_CHANNEL_LABELS[v] },
+  { title: "Người thực hiện", dataIndex: "staffName", key: "staffName", width: 160,
+    render: (v: string | null) => v ?? "—" },
+  { title: "Duyệt", dataIndex: "approvalStatus", key: "approvalStatus", width: 110,
+    render: (v: SalesApprovalStatus) => {
+      const config = APPROVAL_CONFIG[v];
+      return config ? <Tag color={config.color}>{config.label}</Tag> : <Text type="secondary">—</Text>;
+    } },
 ];
 
 const RESULT_COLUMNS = [
@@ -72,6 +104,20 @@ const EXPENSE_COLUMNS = [
   { title: "Đã thanh toán", dataIndex: "paidAmount", key: "paidAmount", width: 130, align: "right" as const, render: (v: number) => <Text style={{ color: "#10B981", fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
 ];
 
+interface PeriodRange {
+  fromDate: string;
+  toDate: string;
+}
+
+/** The toolbar's Ngày/Tuần/Tháng/Năm switch resolved into an inclusive range. */
+function resolvePeriod(currentDate: Dayjs, dateMode: DateMode): PeriodRange {
+  const unit = dateMode === "day" ? "day" : dateMode === "week" ? "week" : dateMode === "month" ? "month" : "year";
+  return {
+    fromDate: currentDate.startOf(unit).format("YYYY-MM-DD"),
+    toDate: currentDate.endOf(unit).format("YYYY-MM-DD"),
+  };
+}
+
 export function ReportPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -79,6 +125,7 @@ export function ReportPage() {
   const dateMode = (searchParams.get("dateMode") as DateMode) ?? "day";
   const currentDate = dayjs(searchParams.get("date") ?? undefined);
   const [subFilter, setSubFilter] = useState("service");
+  const period = resolvePeriod(currentDate, dateMode);
 
   const startDate = currentDate.startOf(dateMode === "day" ? "day" : dateMode === "week" ? "week" : dateMode === "month" ? "month" : "year").format("YYYY-MM-DD");
   const endDate = currentDate.endOf(dateMode === "day" ? "day" : dateMode === "week" ? "week" : dateMode === "month" ? "month" : "year").format("YYYY-MM-DD");
@@ -268,36 +315,42 @@ export function ReportPage() {
         </>
       )}
 
-      {activeTab === "cashflow" && <CashflowTab revenueData={Array.isArray(revenueData) ? revenueData : []} />}
-      {activeTab === "result" && <BusinessResultTab summary={summary} expenseTotal={expenseData?.grandTotalAmount ?? 0} expensePaid={expenseData?.grandPaidAmount ?? 0} />}
-      {activeTab === "cashflow-v2" && <CashflowV2Tab />}
+      {activeTab === "cashflow" && <CashflowTab period={period} />}
+      {activeTab === "result" && <BusinessResultTab />}
+      {activeTab === "cashflow-v2" && <CashflowV2Tab period={period} />}
     </div>
   );
 }
 
-function CashflowTab({ revenueData }: { revenueData: RevenueReportDto[] }) {
+const APPROVAL_CONFIG: Record<SalesApprovalStatus, { label: string; color: string } | null> = {
+  [SALES_APPROVAL_STATUS.NotRequired]: null,
+  [SALES_APPROVAL_STATUS.Pending]: { label: "Chờ duyệt", color: "gold" },
+  [SALES_APPROVAL_STATUS.Approved]: { label: "Đã duyệt", color: "green" },
+  [SALES_APPROVAL_STATUS.Rejected]: { label: "Từ chối", color: "red" },
+};
+
+function CashflowTab({ period }: { period: PeriodRange }) {
+  const branchId = useCurrentBranchId();
   const [typeFilter, setTypeFilter] = useState("all");
 
-  const totalThu = revenueData.reduce((s, r) => s + (r.totalRevenue ?? 0), 0);
-  const summaryCards = [
-    { label: "Tổng thu", value: totalThu, color: "#10B981" },
-    { label: "Tổng chi", value: 0, color: "#EF4444" },
-    { label: "Lợi nhuận ước tính", value: totalThu, color: "#1E70E6" },
-  ];
+  const typeParam: SalesEntryType | undefined =
+    typeFilter === "thu" ? SALES_ENTRY_TYPE.Income
+    : typeFilter === "chi" ? SALES_ENTRY_TYPE.Expense
+    : undefined;
 
-  const tableData = revenueData
-    .filter(() => typeFilter === "all" || typeFilter === "thu")
-    .map((row, i) => ({
-      id: String(i),
-      date: dayjs(row.date).format("DD/MM/YYYY"),
-      type: "Thu",
-      category: "Dịch vụ nha khoa",
-      description: `${row.appointments ?? 0} lịch hẹn — ${row.newPatients ?? 0} BN mới`,
-      amount: row.totalRevenue ?? 0,
-      method: "—",
-      performer: "—",
-      note: "—",
-    }));
+  const baseParams = { clinicBranchId: branchId, ...period };
+  const { data: stats } = useSalesStats(baseParams);
+  const { data: page, isLoading } = useSalesEntries({
+    ...baseParams,
+    type: typeParam,
+    maxResultCount: 100,
+  });
+
+  const summaryCards = [
+    { label: "Tổng thu", value: stats?.totalIncome ?? 0, color: "#10B981" },
+    { label: "Tổng chi", value: stats?.totalExpense ?? 0, color: "#EF4444" },
+    { label: "Lợi nhuận ước tính", value: stats?.net ?? 0, color: "#1E70E6" },
+  ];
 
   return (
     <>
@@ -336,6 +389,15 @@ function CashflowTab({ revenueData }: { revenueData: RevenueReportDto[] }) {
         ))}
       </Row>
 
+      {(stats?.pendingExpenseCount ?? 0) > 0 && (
+        <div className="reception-card" style={{ padding: "10px 16px", marginBottom: 12 }}>
+          <Text style={{ fontSize: 13, color: "#B45309" }}>
+            {stats?.pendingExpenseCount} phiếu chi đang chờ duyệt ({formatVND(stats?.pendingExpense ?? 0)} đ) —
+            chưa được tính vào tổng chi.
+          </Text>
+        </div>
+      )}
+
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", alignItems: "center" }}>
           <Button icon={<DownloadOutlined />} style={{ marginLeft: "auto" }}>Xuất Excel</Button>
@@ -346,8 +408,9 @@ function CashflowTab({ revenueData }: { revenueData: RevenueReportDto[] }) {
         <Table
           size="small"
           rowKey="id"
+          loading={isLoading}
           columns={CASHFLOW_COLUMNS}
-          dataSource={tableData}
+          dataSource={page?.items ?? []}
           pagination={{
             pageSize: 20,
             showTotal: (total, range) => `Hiển thị ${range[0]}–${range[1]} trên ${total} dòng`,
@@ -359,93 +422,86 @@ function CashflowTab({ revenueData }: { revenueData: RevenueReportDto[] }) {
   );
 }
 
-const CF_V2_SECTIONS = [
-  {
-    key: "operating",
-    label: "I. Dòng tiền từ hoạt động kinh doanh",
-    items: [
-      { label: "Thu từ dịch vụ y tế", value: 0 },
-      { label: "Chi phí vật tư, thuốc", value: 0 },
-      { label: "Chi phí nhân sự", value: 0 },
-      { label: "Chi phí quản lý", value: 0 },
-    ],
-  },
-  {
-    key: "investing",
-    label: "II. Dòng tiền từ hoạt động đầu tư",
-    items: [
-      { label: "Mua thiết bị y tế", value: 0 },
-      { label: "Sửa chữa, nâng cấp", value: 0 },
-    ],
-  },
-  {
-    key: "financing",
-    label: "III. Dòng tiền từ hoạt động tài chính",
-    items: [
-      { label: "Vay vốn ngân hàng", value: 0 },
-      { label: "Trả nợ vay", value: 0 },
-    ],
-  },
+const CASHFLOW_ENTRY_COLUMNS = [
+  { title: "Ngày", dataIndex: "entryDate", key: "entryDate", width: 110 },
+  { title: "Loại giao dịch", dataIndex: "transactionType", key: "transactionType", width: 130,
+    render: (v: CashTransactionType) => <Tag>{CASH_TRANSACTION_LABELS[v]}</Tag> },
+  { title: "Hình thức", key: "holding", width: 200,
+    render: (_: unknown, r: { fromHolding: CashHolding | null; toHolding: CashHolding | null }) => {
+      const from = r.fromHolding ? CASH_HOLDING_LABELS[r.fromHolding] : null;
+      const to = r.toHolding ? CASH_HOLDING_LABELS[r.toHolding] : null;
+      if (from && to) return `${from} → ${to}`;
+      return to ?? from ?? "—";
+    } },
+  { title: "Danh mục", dataIndex: "categoryName", key: "categoryName", width: 160,
+    render: (v: string | null) => v ?? "—" },
+  { title: "Số tiền", dataIndex: "amount", key: "amount", width: 140, align: "right" as const,
+    render: (v: number) => <Text style={{ fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
+  { title: "Người tạo", dataIndex: "createdByStaffName", key: "createdByStaffName", width: 160,
+    render: (v: string | null) => v ?? "—" },
+  { title: "Ghi chú", dataIndex: "note", key: "note", render: (v: string | null) => v ?? "—" },
 ];
 
-function CashflowV2Tab() {
+function CashflowV2Tab({ period }: { period: PeriodRange }) {
+  const branchId = useCurrentBranchId();
+  const params = { clinicBranchId: branchId, ...period };
+
+  const { data: overview } = useCashflowOverview(params);
+  const { data: page, isLoading } = useCashflowEntries({ ...params, maxResultCount: 100 });
+
+  // Panel order and wording follow the reference "Luân chuyển dòng tiền V2" tab.
+  const balancePanels = [
+    { label: "Tổng Tiền", value: overview?.balance.total ?? 0, color: "#1B2A41" },
+    { label: "Tổng Tiền Mặt", value: overview?.balance.cash ?? 0, color: "#10B981" },
+    { label: "Tổng Chuyển Khoản", value: overview?.balance.bank ?? 0, color: "#1E70E6" },
+    { label: "Đang Giữ Hộ Khách", value: overview?.balance.customerPrepaid ?? 0, color: "#F59E0B" },
+  ];
+
   return (
     <>
+      <Row gutter={[12, 12]} style={{ margin: "12px 0" }}>
+        {balancePanels.map((panel) => (
+          <Col key={panel.label} xs={24} sm={12} md={6}>
+            <div className="reception-card" style={{ padding: "16px 20px" }}>
+              <div style={{ fontSize: 12, color: "#5A6B82", marginBottom: 4 }}>{panel.label}</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: panel.color, fontVariantNumeric: "tabular-nums" }}>
+                {formatVND(panel.value)} đ
+              </div>
+            </div>
+          </Col>
+        ))}
+      </Row>
+
       <div className="reception-card reception-card--toolbar">
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
-          <Button icon={<DownloadOutlined />}>Xuất Excel</Button>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Text style={{ fontSize: 13, color: "#5A6B82" }}>
+            Nạp: {formatVND(overview?.totalDeposit ?? 0)} đ · Rút: {formatVND(overview?.totalWithdraw ?? 0)} đ ·
+            Luân chuyển: {formatVND(overview?.totalTransfer ?? 0)} đ
+          </Text>
+          <Button icon={<DownloadOutlined />} style={{ marginLeft: "auto" }}>Xuất Excel</Button>
         </div>
       </div>
 
-      {CF_V2_SECTIONS.map((section) => (
-        <div key={section.key} className="reception-card" style={{ marginBottom: 12, padding: "16px" }}>
-          <div style={{ fontWeight: 700, fontSize: 14, color: "#1B2A41", marginBottom: 12 }}>
-            {section.label}
-          </div>
-          {section.items.map((item) => (
-            <div
-              key={item.label}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                padding: "6px 0",
-                borderBottom: "1px solid #F3F4F6",
-                fontSize: 13,
-              }}
-            >
-              <span style={{ color: "#5A6B82" }}>{item.label}</span>
-              <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>
-                {formatVND(item.value)} đ
-              </span>
-            </div>
-          ))}
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, fontWeight: 700 }}>
-            <span>Dòng tiền thuần</span>
-            <span style={{ color: "#1677ff" }}>0 đ</span>
-          </div>
-        </div>
-      ))}
-
-      <div className="reception-card" style={{ padding: "16px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, fontSize: 15 }}>
-          <span style={{ color: "#1B2A41" }}>TỔNG DÒNG TIỀN THUẦN</span>
-          <span style={{ color: "#1677ff" }}>0 đ</span>
-        </div>
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 13, color: "#5A6B82" }}>
-          <span>Số dư đầu kỳ</span>
-          <span>0 đ</span>
-        </div>
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 13, color: "#1B2A41", fontWeight: 600 }}>
-          <span>Số dư cuối kỳ</span>
-          <span>0 đ</span>
-        </div>
+      <div className="reception-card reception-card--content">
+        <Table
+          size="small"
+          rowKey="id"
+          loading={isLoading}
+          columns={CASHFLOW_ENTRY_COLUMNS}
+          dataSource={page?.items ?? []}
+          pagination={{
+            pageSize: 20,
+            showTotal: (total, range) => `Hiển thị ${range[0]}–${range[1]} trên ${total} giao dịch`,
+          }}
+          locale={{ emptyText: "Không có dữ liệu" }}
+        />
       </div>
     </>
   );
 }
 
-function BusinessResultTab({ summary, expenseTotal, expensePaid }: { summary?: ReportSummaryDto; expenseTotal: number; expensePaid: number }) {
-  const revenue = expenseTotal;
+function BusinessResultTab() {
+  const revenue = 0;
   const expense = 0;
   const profit = revenue - expense;
   const margin = revenue > 0 ? Math.round((profit / revenue) * 100) : 0;

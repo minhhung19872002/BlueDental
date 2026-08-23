@@ -1,6 +1,6 @@
 # BlueDental — Progress Report
 
-Cập nhật lần cuối: 2026-08-22 (session 8 — catalog CRUD + report wire)
+Cập nhật lần cuối: 2026-08-23 (merged sessions 6-8)
 
 ---
 

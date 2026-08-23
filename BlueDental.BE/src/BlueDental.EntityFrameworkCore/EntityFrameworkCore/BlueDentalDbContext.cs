@@ -3,12 +3,15 @@ using BlueDental.Billing;
 using BlueDental.Catalogs;
 using BlueDental.CustomerCare;
 using BlueDental.FileManagement;
+using BlueDental.Finance;
 using BlueDental.Inventory;
 using BlueDental.Labo;
 using BlueDental.Notifications;
 using BlueDental.Operations;
 using BlueDental.Organizations;
 using BlueDental.PatientManagement;
+using BlueDental.Promotions;
+using BlueDental.Timekeeping;
 using BlueDental.Tools;
 using BlueDental.TreatmentManagement;
 using BlueDental.Visits;
@@ -61,6 +64,8 @@ public class BlueDentalDbContext :
     public DbSet<MedicalHistoryType> MedicalHistoryTypes { get; set; }
     public DbSet<PrescriptionTemplate> PrescriptionTemplates { get; set; }
     public DbSet<MedicalRecordTemplate> MedicalRecordTemplates { get; set; }
+    public DbSet<Taxonomy> Taxonomies { get; set; }
+    public DbSet<CatalogEntry> CatalogEntries { get; set; }
 
     // Patient Management
     public DbSet<Patient> Patients { get; set; }
@@ -74,6 +79,20 @@ public class BlueDentalDbContext :
     public DbSet<Prescription> Prescriptions { get; set; }
     public DbSet<DiagnosticRecord> DiagnosticRecords { get; set; }
     public DbSet<ConsultationRecord> ConsultationRecords { get; set; }
+    public DbSet<PatientDiagnosis> PatientDiagnoses { get; set; }
+    public DbSet<PatientAdvise> PatientAdvises { get; set; }
+    public DbSet<AdviseGroup> AdviseGroups { get; set; }
+
+    // Timekeeping
+    public DbSet<TimeKeepingRecord> TimeKeepingRecords { get; set; }
+
+    // Finance
+    public DbSet<SalesEntry> SalesEntries { get; set; }
+    public DbSet<CashflowCategory> CashflowCategories { get; set; }
+    public DbSet<CashflowEntry> CashflowEntries { get; set; }
+
+    // Promotions
+    public DbSet<Voucher> Vouchers { get; set; }
 
     // Billing
     public DbSet<Invoice> Invoices { get; set; }
