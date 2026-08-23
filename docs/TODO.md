@@ -1,12 +1,12 @@
-# BlueDental — Master TODO (Audit #9, 23 Aug 2026)
+# BlueDental — Master TODO (Audit #10, 23 Aug 2026)
 
-Current: **FE 87% | BE 100% | Overall 94%**
+Current: **FE 90% | BE 100% | Overall 95%**
 Target: **100%**
 
-> **Audit #9 (23 Aug 2026)**: Verified by independent agents.
-> BE: 100% — 0 errors, 0 warnings. CS8609 fixes confirmed.
-> FE: 87% — Orgs CRUD done, Settings wired, i18n 95% by file count (57/60).
-> Remaining: DentalChartView hard-coded Vietnamese aria-labels, branchId fallback UUID.
+> **Audit #10 (23 Aug 2026)**: Verified by independent agents.
+> BE: 100% — 0 errors, 0 warnings. All claims confirmed.
+> FE: 90% — i18n 97% (58/60), DentalChartView i18n DONE, branchId clean (EMPTY_GUID fallback).
+> Remaining: GeneralSettingsTab localStorage-only (no backend), PatientManagementPage missing useTranslation, router misleading comment.
 
 ---
 
@@ -148,34 +148,45 @@ Target: **100%**
 
 ---
 
-## Remaining Work (Verified Audit #9)
+## Remaining Work (Verified Audit #10)
 
 ### BE — 100% COMPLETE
 - [x] All CS8609 warnings fixed. Build: 0 errors, 0 warnings.
+- [x] ICurrentClinicBranchResolver mandatory on all branch-scoped services
+- [x] Per-method [Authorize] on all services
+- [x] Permission domains correct (Organizations, CustomerCare, LaboOrders)
+- Note: DepartmentAppService intentionally org-wide (no branch scope) — design decision, not defect
 
-### FE — 87% (13% gap to 100%)
+### FE — 90% (10% gap to 100%)
 
-#### i18n (57/60 files done — 3 remaining)
-- [ ] `DentalChartView.tsx` — 4 hard-coded Vietnamese aria-labels: "Răng ${fdi}", "Biểu đồ nha khoa 32 răng", "Hàm trên", "Hàm dưới"
-  - File: `BlueDental.FE/src/features/patient-management/components/DentalChartView.tsx`
+#### i18n (58/60 files done — 2 remaining)
+- [x] `DentalChartView.tsx` — all strings now go through `t()` (verified: `t("patient.dentalChartTooth")`, etc.)
+- [ ] `PatientManagementPage.tsx` — missing `useTranslation` import (delegates to child components, low risk but non-compliant)
 
-#### branchId
-- [~] `useCurrentBranchId()` now reads from auth store (dynamic) — but fallback `DEFAULT_BRANCH_ID = "11111111-..."` is still hard-coded
-  - File: `BlueDental.FE/src/lib/clinicBranch.ts`
-  - Impact: works for single-branch, blocks multi-branch switching
+#### Settings
+- [~] `GeneralSettingsTab` — saves timezone/currency/dateFormat to localStorage only, NOT backend API
+  - File: `BlueDental.FE/src/features/settings/pages/SettingsPage.tsx`
+  - Impact: user preferences lost when switching browsers
+
+#### branchId — CLEAN
+- [x] `useCurrentBranchId()` reads from auth store, fallback is `EMPTY_GUID` (00000000-...) — not a real branch UUID
+- [x] No hard-coded real branch UUIDs anywhere in FE source (grep confirmed)
+
+#### Cosmetic
+- [ ] Router comment `// ── Stubs matching reference routes ──` is misleading — those are real components, not stubs
 
 ### Permanently deferred (not counted toward 100%)
 - External integrations: Stringee (VoIP), SMS gateway, Zalo OA, MISA (accounting)
 
 ---
 
-## Verified Scores (Audit #9 — Independent Agents)
+## Verified Scores (Audit #10 — Independent Agents)
 
 | Phase | Description | Status | Verified Score |
 |-------|-------------|--------|-------|
 | 1 | BE Security Fixes | DONE | 100% BE |
 | 2 | BE Functionality Fixes | DONE | 100% BE |
-| 3 | FE Route Wiring | DONE (Orgs CRUD, Settings real data) | 87% FE |
-| 4 | FE Functionality Fixes | DONE | 87% FE |
-| 5 | i18n Adoption | 95% by file count (57/60) | 87% FE |
-| 6 | Testing & Verification | DONE (BE 0W/0E, FE tsc clean) | — |
+| 3 | FE Route Wiring | DONE — 22/22 routes, all real components | 90% FE |
+| 4 | FE Functionality Fixes | DONE — GeneralSettings localStorage-only | 90% FE |
+| 5 | i18n Adoption | 97% by file count (58/60) | 90% FE |
+| 6 | Testing & Verification | DONE (BE 0E/0W, FE tsc clean) | — |

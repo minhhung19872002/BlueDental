@@ -266,6 +266,8 @@
     "treatmentHistory": "Lịch sử điều trị",
     "noTreatmentHistory": "Chưa có lịch sử điều trị",
     "dentalChart": "Sơ đồ răng",
+    "dentalChartLabel": "Biểu đồ nha khoa 32 răng",
+    "dentalChartTooth": "Răng {{fdi}} — {{status}}",
     "addImage": "Thêm ảnh",
     "catalog": "Danh mục",
     "selectTooth": "Chọn Răng",

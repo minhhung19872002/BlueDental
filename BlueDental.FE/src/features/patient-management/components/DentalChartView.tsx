@@ -3,6 +3,7 @@
 // Tooth numbering follows the FDI two-digit system (11-18, 21-28, 31-38, 41-48).
 
 import type { CSSProperties } from "react";
+import { useTranslation } from "react-i18next";
 
 export type ToothStatus =
   | "healthy"
@@ -63,11 +64,13 @@ function ToothCell({
   status,
   onClick,
   readOnly,
+  ariaLabel,
 }: {
   fdi: number;
   status: ToothStatus;
   onClick?: () => void;
   readOnly?: boolean;
+  ariaLabel: string;
 }) {
   const fill = STATUS_COLORS[status];
   const stroke = STATUS_STROKE[status];
@@ -78,7 +81,7 @@ function ToothCell({
       onClick={readOnly ? undefined : onClick}
       style={{ cursor: readOnly ? "default" : "pointer" }}
       role={readOnly ? undefined : "button"}
-      aria-label={`Răng ${fdi} — ${status}`}
+      aria-label={ariaLabel}
     >
       <rect
         width={TOOTH_W}
@@ -127,6 +130,7 @@ function buildRow(
   fdis: readonly number[],
   teeth: ToothRecord[],
   yOffset: number,
+  toothAriaLabel: (fdi: number, status: string) => string,
   onToothClick?: (fdi: number) => void,
   readOnly?: boolean,
 ) {
@@ -139,6 +143,7 @@ function buildRow(
         <ToothCell
           fdi={fdi}
           status={status}
+          ariaLabel={toothAriaLabel(fdi, status)}
           onClick={() => onToothClick?.(fdi)}
           readOnly={readOnly}
         />
@@ -159,12 +164,16 @@ export function DentalChartView({
   readOnly = false,
   style,
 }: Props) {
+  const { t } = useTranslation();
   const upperY = LABEL_OFFSET;
   const lowerY = upperY + ROW_H + LABEL_OFFSET + 20;
   const totalH = lowerY + ROW_H + LABEL_OFFSET + 8;
 
+  const toothAriaLabel = (fdi: number, status: string) =>
+    t("patient.dentalChartTooth", { fdi, status });
+
   return (
-    <div style={style} aria-label="Biểu đồ nha khoa 32 răng">
+    <div style={style} aria-label={t("patient.dentalChartLabel")}>
       <svg
         viewBox={`0 0 ${TOTAL_W} ${totalH}`}
         width="100%"
@@ -172,10 +181,10 @@ export function DentalChartView({
       >
         {/* Upper jaw */}
         <g transform={`translate(0, ${upperY})`}>
-          {buildRow(UPPER_LEFT, teeth, 0, onToothClick, readOnly)}
+          {buildRow(UPPER_LEFT, teeth, 0, toothAriaLabel, onToothClick, readOnly)}
         </g>
         <g transform={`translate(${HALF_W + DIVIDER}, ${upperY})`}>
-          {buildRow(UPPER_RIGHT, teeth, 0, onToothClick, readOnly)}
+          {buildRow(UPPER_RIGHT, teeth, 0, toothAriaLabel, onToothClick, readOnly)}
         </g>
 
         {/* Center line */}
@@ -191,10 +200,10 @@ export function DentalChartView({
 
         {/* Lower jaw */}
         <g transform={`translate(0, ${lowerY})`}>
-          {buildRow(LOWER_LEFT, teeth, 0, onToothClick, readOnly)}
+          {buildRow(LOWER_LEFT, teeth, 0, toothAriaLabel, onToothClick, readOnly)}
         </g>
         <g transform={`translate(${HALF_W + DIVIDER}, ${lowerY})`}>
-          {buildRow(LOWER_RIGHT, teeth, 0, onToothClick, readOnly)}
+          {buildRow(LOWER_RIGHT, teeth, 0, toothAriaLabel, onToothClick, readOnly)}
         </g>
 
         {/* Jaw labels */}
@@ -206,7 +215,7 @@ export function DentalChartView({
           fill="#8FA8C0"
           fontFamily="Inter, sans-serif"
         >
-          Hàm trên
+          {t("patient.upperJaw")}
         </text>
         <text
           x={TOTAL_W / 2}
@@ -216,7 +225,7 @@ export function DentalChartView({
           fill="#8FA8C0"
           fontFamily="Inter, sans-serif"
         >
-          Hàm dưới
+          {t("patient.lowerJaw")}
         </text>
       </svg>
     </div>

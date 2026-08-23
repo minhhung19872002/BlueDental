@@ -266,6 +266,8 @@
     "treatmentHistory": "Treatment History",
     "noTreatmentHistory": "No treatment history",
     "dentalChart": "Dental Chart",
+    "dentalChartLabel": "32-tooth dental chart",
+    "dentalChartTooth": "Tooth {{fdi}} — {{status}}",
     "addImage": "Add Image",
     "catalog": "Catalog",
     "selectTooth": "Select Tooth",
