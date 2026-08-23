@@ -41,5 +41,6 @@ public class GetTreatmentPlanListInput : PagedAndSortedResultRequestDto
 {
     public string? Filter { get; set; }
     public Guid? PatientId { get; set; }
+    public Guid? BranchId { get; set; }
     public TreatmentPlanStatus? Status { get; set; }
 }

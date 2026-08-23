@@ -131,3 +131,12 @@ export function useVoidInvoice() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["invoices"] }),
   });
 }
+
+export function usePatientInvoices(patientId: string) {
+  return useQuery({
+    queryKey: ["invoices", { patientId }],
+    queryFn: () => billingApi.list({ patientId, maxResultCount: 50 }),
+    enabled: Boolean(patientId),
+    select: (d) => d.items,
+  });
+}

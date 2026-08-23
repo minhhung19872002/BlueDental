@@ -5,22 +5,25 @@ import { formatDate } from "@/utils/format";
 import { brand } from "@/theme/index";
 import { t } from "@/lib/i18n";
 
-const genderLabelsOf = () => ({ male: t("Nam"), female: t("Nữ"), other: t("Khác") });
-
 interface Props {
   patientId: string | null;
   onClose: () => void;
 }
 
 export function PatientDetailDrawer({ patientId, onClose }: Props) {
+  const GENDER_LABELS: Record<string, string> = {
+    male: t("Nam"),
+    female: t("Nữ"),
+    other: t("Khác"),
+  };
   const { data: patient, isLoading } = usePatient(patientId ?? "");
 
   return (
     <Drawer
       open={Boolean(patientId)}
       onClose={onClose}
-      title={patient ? t("Hồ sơ: {0}", patient.fullName) : t("Hồ sơ bệnh nhân")}
-      size={640}
+      title={patient ? `${t("Hồ sơ")}: ${patient.fullName}` : t("Hồ sơ bệnh nhân")}
+      width={640}
     >
       {isLoading && (
         <div style={{ display: "grid", placeItems: "center", minHeight: 200 }}>
@@ -46,7 +49,7 @@ export function PatientDetailDrawer({ patientId, onClose }: Props) {
                 {patient.fullName}
               </div>
               <div style={{ fontSize: 13, color: brand.muted }}>
-                {t("Mã:")} {patient.code} &middot; {patient.age} {t("tuổi")}
+                {t("Mã")}: {patient.code} &middot; {patient.age} {t("tuổi")}
               </div>
             </div>
           </div>
@@ -56,9 +59,9 @@ export function PatientDetailDrawer({ patientId, onClose }: Props) {
               {formatDate(patient.dateOfBirth)}
             </Descriptions.Item>
             <Descriptions.Item label={t("Giới tính")}>
-              {genderLabelsOf()[patient.gender]}
+              {GENDER_LABELS[patient.gender]}
             </Descriptions.Item>
-            <Descriptions.Item label={t("Điện thoại")}>
+            <Descriptions.Item label={t("Số điện thoại")}>
               {patient.phone}
             </Descriptions.Item>
             <Descriptions.Item label="Email">

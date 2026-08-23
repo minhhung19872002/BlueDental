@@ -3,7 +3,7 @@ import { DatePicker, Form, Input, InputNumber, Modal, Select, message } from "an
 import dayjs from "dayjs";
 import {
   PAYMENT_CHANNEL,
-  paymentChannelLabels,
+  PAYMENT_CHANNEL_LABELS,
   SALES_ENTRY_TYPE,
   useCashflowCategories,
   useCreateCashflowCategory,
@@ -35,7 +35,7 @@ interface SalesEntryFormValues {
   entryDate: dayjs.Dayjs;
 }
 
-const CHANNEL_OPTIONS = Object.entries(paymentChannelLabels()).map(([value, label]) => ({
+const CHANNEL_OPTIONS = Object.entries(PAYMENT_CHANNEL_LABELS).map(([value, label]) => ({
   value: Number(value) as PaymentChannel,
   label,
 }));

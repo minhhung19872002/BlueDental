@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
@@ -13,32 +14,33 @@ namespace BlueDental.Finance;
 /// <summary>
 /// Danh mục thu chi và danh mục luân chuyển.
 /// </summary>
-[Authorize]
+[Authorize(BlueDentalPermissions.Finance.Default)]
 public class CashflowCategoryAppService : ApplicationService, ICashflowCategoryAppService
 {
     private readonly IRepository<CashflowCategory, Guid> _repository;
     private readonly IRepository<SalesEntry, Guid> _salesRepository;
     private readonly IRepository<CashflowEntry, Guid> _cashflowRepository;
+    private readonly ICurrentClinicBranchResolver _branchResolver;
 
     public CashflowCategoryAppService(
         IRepository<CashflowCategory, Guid> repository,
         IRepository<SalesEntry, Guid> salesRepository,
-        IRepository<CashflowEntry, Guid> cashflowRepository)
+        IRepository<CashflowEntry, Guid> cashflowRepository,
+        ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
         _salesRepository = salesRepository;
         _cashflowRepository = cashflowRepository;
+        _branchResolver = branchResolver;
     }
 
+    [Authorize(BlueDentalPermissions.Finance.View)]
     public async Task<PagedResultDto<CashflowCategoryDto>> GetListAsync(GetCashflowCategoryListInput input)
     {
-        await AuthorizationService.CheckAsync(
-            PermissionFor(input.AppliesToTransfers ?? false, BlueDentalAbilities.Actions.Read));
-
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
 
-        if (input.ClinicBranchId.HasValue)
-            query = query.Where(x => x.ClinicBranchId == input.ClinicBranchId.Value);
+        query = query.Where(x => x.ClinicBranchId == clinicBranchId);
         if (input.Type.HasValue)
             query = query.Where(x => x.Type == input.Type.Value);
         if (input.AppliesToTransfers.HasValue)
@@ -57,23 +59,19 @@ public class CashflowCategoryAppService : ApplicationService, ICashflowCategoryA
         return new PagedResultDto<CashflowCategoryDto>(totalCount, items.Select(MapToDto).ToList());
     }
 
+    [Authorize(BlueDentalPermissions.Finance.View)]
     public async Task<CashflowCategoryDto> GetAsync(Guid id)
     {
-        var category = await _repository.GetAsync(id);
-        await AuthorizationService.CheckAsync(
-            PermissionFor(category.AppliesToTransfers, BlueDentalAbilities.Actions.Read));
-
-        return MapToDto(category);
+        return MapToDto(await _repository.GetAsync(id));
     }
 
+    [Authorize(BlueDentalPermissions.Finance.Manage)]
     public async Task<CashflowCategoryDto> CreateAsync(CreateCashflowCategoryDto input)
     {
-        await AuthorizationService.CheckAsync(
-            PermissionFor(input.AppliesToTransfers, BlueDentalAbilities.Actions.Create));
-
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
         var category = CashflowCategory.Create(
             GuidGenerator.Create(),
-            input.ClinicBranchId,
+            clinicBranchId,
             input.Name,
             input.Type,
             input.AppliesToTransfers,
@@ -85,11 +83,10 @@ public class CashflowCategoryAppService : ApplicationService, ICashflowCategoryA
         return MapToDto(category);
     }
 
+    [Authorize(BlueDentalPermissions.Finance.Manage)]
     public async Task<CashflowCategoryDto> UpdateAsync(Guid id, UpdateCashflowCategoryDto input)
     {
         var category = await _repository.GetAsync(id);
-        await AuthorizationService.CheckAsync(
-            PermissionFor(category.AppliesToTransfers, BlueDentalAbilities.Actions.Update));
 
         category.Rename(input.Name);
         category.UpdateDescription(input.Description);
@@ -108,11 +105,10 @@ public class CashflowCategoryAppService : ApplicationService, ICashflowCategoryA
         return MapToDto(category);
     }
 
+    [Authorize(BlueDentalPermissions.Finance.Manage)]
     public async Task DeleteAsync(Guid id)
     {
         var category = await _repository.GetAsync(id);
-        await AuthorizationService.CheckAsync(
-            PermissionFor(category.AppliesToTransfers, BlueDentalAbilities.Actions.Delete));
 
         if (category.IsSystem)
         {
@@ -133,17 +129,6 @@ public class CashflowCategoryAppService : ApplicationService, ICashflowCategoryA
 
         await _repository.DeleteAsync(id, autoSave: true);
     }
-
-    /// <summary>
-    /// Cashflow categories and transfer categories are separate subjects on the
-    /// reference (<c>reportCashflowCategory</c> vs <c>reportTransferCategory</c>).
-    /// </summary>
-    private static string PermissionFor(bool appliesToTransfers, string action) =>
-        BlueDentalAbilities.Permission(
-            appliesToTransfers
-                ? BlueDentalAbilities.Subjects.ReportTransferCategory
-                : BlueDentalAbilities.Subjects.ReportCashflowCategory,
-            action);
 
     private static CashflowCategoryDto MapToDto(CashflowCategory entity) => new()
     {

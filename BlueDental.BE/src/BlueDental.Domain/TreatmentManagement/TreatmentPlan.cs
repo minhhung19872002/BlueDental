@@ -308,4 +308,14 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
                 $"Cannot perform '{operation}' on plan with status '{Status}'. Expected '{expected}'.");
         }
     }
+    public TreatmentPlan Update(string title, string? description, DateOnly? estimatedCompletionDate)
+    {
+        EnsureStatus(TreatmentPlanStatus.Draft, nameof(Update));
+        Check.NotNullOrWhiteSpace(title, nameof(title));
+        Title = title;
+        Description = description;
+        EstimatedCompletionDate = estimatedCompletionDate;
+        return this;
+    }
+
 }

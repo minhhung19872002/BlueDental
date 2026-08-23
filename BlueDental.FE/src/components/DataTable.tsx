@@ -30,7 +30,7 @@ export function DataTable<T extends object>({
           pageSizeOptions: [10, 20, 50, 100],
           onChange: onPageChange,
           showTotal: (total: number, range: [number, number]) =>
-            t("Hiển thị {0}-{1}/{2}", range[0], range[1], total),
+            t("Hiển thị {0}–{1} trên {2} dòng", range[0], range[1], total),
           ...pagination,
         };
 

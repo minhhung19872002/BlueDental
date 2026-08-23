@@ -40,26 +40,19 @@ public static class TaxonomyGroups
     /// <summary>Vật tư — used by the Vật tư screen rather than Danh mục.</summary>
     public const string Supplies = "supplies";
 
-    // ── Labo catalogs ────────────────────────────────────────────────────────
-    // The reference serves these from dedicated endpoints (their ability subjects
-    // are laboSupplier / laboBite / laboFinishLine / laboRhythm / laboMaterial),
-    // but those calls were never observed — the Labo catalog pages held no data.
-    // BlueDental serves them through the same taxonomy pattern as every other
-    // catalog; the slugs below are BlueDental's, not the reference's.
-
     /// <summary>Nhà cung cấp Labo.</summary>
     public const string LaboSupplier = "labo_supplier";
 
     /// <summary>Khớp cắn Labo.</summary>
     public const string LaboBite = "labo_bite";
 
-    /// <summary>Đường hoàn tất.</summary>
+    /// <summary>Đường hoàn tất Labo.</summary>
     public const string LaboFinishLine = "labo_finish_line";
 
     /// <summary>Kiểu nhịp Labo.</summary>
     public const string LaboRhythm = "labo_rhythm";
 
-    /// <summary>Dịch vụ - vật liệu Labo.</summary>
+    /// <summary>Vật liệu Labo.</summary>
     public const string LaboMaterial = "labo_material";
 
     public static readonly string[] All =
@@ -82,7 +75,7 @@ public static class TaxonomyGroups
     ];
 
     /// <summary>Groups whose entries are priced.</summary>
-    public static readonly string[] Priced = [CareService, MedicationType, Supplies, LaboMaterial];
+    public static readonly string[] Priced = [CareService, MedicationType, Supplies];
 
     /// <summary>Groups whose entries carry template content.</summary>
     public static readonly string[] Templated = [PrescriptionTemplate, MedicalRecordTemplate];

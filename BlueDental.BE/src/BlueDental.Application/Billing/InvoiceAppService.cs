@@ -8,8 +8,10 @@ using BlueDental.Organizations;
 using BlueDental.PatientManagement;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
+using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
+using Volo.Abp.Domain.Entities;
 using Volo.Abp.Domain.Repositories;
 
 namespace BlueDental.Billing;
@@ -19,28 +21,38 @@ public class InvoiceAppService : ApplicationService, IInvoiceAppService
 {
     private readonly IRepository<Invoice, Guid> _repository;
     private readonly IRepository<Patient, Guid> _patientRepository;
-    private readonly BranchAccessChecker _branchAccess;
+    private readonly ICurrentClinicBranchResolver _branchResolver;
 
     public InvoiceAppService(
         IRepository<Invoice, Guid> repository,
         IRepository<Patient, Guid> patientRepository,
-        BranchAccessChecker branchAccess)
+        ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
         _patientRepository = patientRepository;
-        _branchAccess = branchAccess;
+        _branchResolver = branchResolver;
     }
+
+    /// <summary>Workflow state as the clinic reads it.</summary>
+    private static readonly Dictionary<InvoiceStatus, string> StatusLabels = new()
+    {
+        [InvoiceStatus.Draft] = "Nháp",
+        [InvoiceStatus.Issued] = "Đã phát hành",
+        [InvoiceStatus.PartiallyPaid] = "Thu một phần",
+        [InvoiceStatus.Paid] = "Đã thanh toán",
+        [InvoiceStatus.Overdue] = "Quá hạn",
+        [InvoiceStatus.Voided] = "Đã huỷ",
+        [InvoiceStatus.Refunded] = "Đã hoàn tiền"
+    };
 
     [Authorize(BlueDentalAbilityPermissions.Payment.Read)]
     public async Task<PagedResultDto<InvoiceDto>> GetListAsync(GetInvoiceListInput input)
     {
-        var branchFilter = await _branchAccess.ResolveFilterAsync(input.BranchId);
+        // The branch comes from the signed-in user, never from the request —
+        // that is what closes the IDOR the audit found.
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
-
-        if (branchFilter.Count > 0)
-        {
-            query = query.Where(i => branchFilter.Contains(i.BranchId));
-        }
+        query = query.Where(i => i.BranchId == branchId);
 
         if (input.PatientId.HasValue) query = query.Where(i => i.PatientId == input.PatientId.Value);
         if (input.Status.HasValue) query = query.Where(i => i.Status == input.Status.Value);
@@ -71,7 +83,7 @@ public class InvoiceAppService : ApplicationService, IInvoiceAppService
     public async Task<InvoiceDto> GetAsync(Guid id)
     {
         var invoice = await _repository.GetAsync(id);
-        await _branchAccess.CheckAsync(invoice.BranchId);
+        GuardBranchAccess(invoice);
 
         var dto = ObjectMapper.Map<Invoice, InvoiceDto>(invoice);
         await FillPatientNamesAsync([dto]);
@@ -81,14 +93,14 @@ public class InvoiceAppService : ApplicationService, IInvoiceAppService
     [Authorize(BlueDentalAbilityPermissions.Payment.Create)]
     public async Task<InvoiceDto> CreateAsync(CreateInvoiceDto input)
     {
-        await _branchAccess.CheckAsync(input.BranchId);
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
 
         var invoiceNumber = $"INV-{Clock.Now:yyyyMMdd}-{GuidGenerator.Create().ToString("N")[..6].ToUpper()}";
         var invoice = new Invoice(
             GuidGenerator.Create(),
             invoiceNumber,
             input.PatientId,
-            input.BranchId,
+            branchId,
             new Money(input.SubTotal, input.Currency),
             new Money(input.TaxAmount, input.Currency),
             new Money(input.DiscountAmount, input.Currency),
@@ -103,7 +115,7 @@ public class InvoiceAppService : ApplicationService, IInvoiceAppService
     public async Task<InvoiceDto> IssueAsync(Guid id)
     {
         var invoice = await _repository.GetAsync(id);
-        await _branchAccess.CheckAsync(invoice.BranchId);
+        GuardBranchAccess(invoice);
 
         invoice.Issue();
         await _repository.UpdateAsync(invoice, autoSave: true);
@@ -114,7 +126,7 @@ public class InvoiceAppService : ApplicationService, IInvoiceAppService
     public async Task<InvoiceDto> RecordPaymentAsync(Guid id, RecordPaymentDto input)
     {
         var invoice = await _repository.GetAsync(id);
-        await _branchAccess.CheckAsync(invoice.BranchId);
+        GuardBranchAccess(invoice);
 
         invoice.RecordPayment(new Money(input.Amount, input.Currency), input.Method);
         await _repository.UpdateAsync(invoice, autoSave: true);
@@ -125,24 +137,12 @@ public class InvoiceAppService : ApplicationService, IInvoiceAppService
     public async Task<InvoiceDto> VoidAsync(Guid id, VoidInvoiceDto input)
     {
         var invoice = await _repository.GetAsync(id);
-        await _branchAccess.CheckAsync(invoice.BranchId);
+        GuardBranchAccess(invoice);
 
         invoice.Void(input.Reason);
         await _repository.UpdateAsync(invoice, autoSave: true);
         return ObjectMapper.Map<Invoice, InvoiceDto>(invoice);
     }
-
-    /// <summary>Workflow state as the clinic reads it.</summary>
-    private static readonly Dictionary<InvoiceStatus, string> StatusLabels = new()
-    {
-        [InvoiceStatus.Draft] = "Nháp",
-        [InvoiceStatus.Issued] = "Đã phát hành",
-        [InvoiceStatus.PartiallyPaid] = "Thu một phần",
-        [InvoiceStatus.Paid] = "Đã thanh toán",
-        [InvoiceStatus.Overdue] = "Quá hạn",
-        [InvoiceStatus.Voided] = "Đã huỷ",
-        [InvoiceStatus.Refunded] = "Đã hoàn tiền"
-    };
 
     /// <summary>"Xuất Excel" on the Thanh toán screen.</summary>
     [Authorize(BlueDentalAbilityPermissions.Payment.Read)]
@@ -150,7 +150,6 @@ public class InvoiceAppService : ApplicationService, IInvoiceAppService
     {
         var page = await GetListAsync(new GetInvoiceListInput
         {
-            BranchId = input.BranchId,
             PatientId = input.PatientId,
             Status = input.Status,
             Filter = input.Filter,
@@ -193,5 +192,12 @@ public class InvoiceAppService : ApplicationService, IInvoiceAppService
         {
             dto.PatientName = namesById.TryGetValue(dto.PatientId, out var name) ? name : string.Empty;
         }
+    }
+
+    private void GuardBranchAccess(Invoice entity)
+    {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
+        if (entity.BranchId != branchId)
+            throw new EntityNotFoundException(typeof(Invoice), entity.Id);
     }
 }

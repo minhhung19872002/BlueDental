@@ -1,5 +1,6 @@
 using BlueDental.EntityFrameworkCore;
 using BlueDental.Hubs;
+using BlueDental.Security;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Configuration;
@@ -95,6 +96,31 @@ public class BlueDentalHttpApiHostModule : AbpModule
         Configure<AbpClaimsPrincipalFactoryOptions>(options =>
         {
             options.IsDynamicClaimsEnabled = true;
+            options.Contributors.Add<ClinicBranchClaimsPrincipalContributor>();
+        });
+
+        context.Services.ConfigureApplicationCookie(options =>
+        {
+            options.Events.OnRedirectToLogin = ctx =>
+            {
+                if (ctx.Request.Path.StartsWithSegments("/api"))
+                {
+                    ctx.Response.StatusCode = 401;
+                    return System.Threading.Tasks.Task.CompletedTask;
+                }
+                ctx.Response.Redirect(ctx.RedirectUri);
+                return System.Threading.Tasks.Task.CompletedTask;
+            };
+            options.Events.OnRedirectToAccessDenied = ctx =>
+            {
+                if (ctx.Request.Path.StartsWithSegments("/api"))
+                {
+                    ctx.Response.StatusCode = 403;
+                    return System.Threading.Tasks.Task.CompletedTask;
+                }
+                ctx.Response.Redirect(ctx.RedirectUri);
+                return System.Threading.Tasks.Task.CompletedTask;
+            };
         });
 
         context.Services.ConfigureApplicationCookie(options =>

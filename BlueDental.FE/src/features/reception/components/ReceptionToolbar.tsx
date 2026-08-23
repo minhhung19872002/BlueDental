@@ -31,23 +31,6 @@ interface ReceptionToolbarProps {
   onDateChange?: (date: Dayjs) => void;
 }
 
-/** The value stays the mode key so the label is free to be translated. */
-const viewOptions = (): { value: ViewMode; label: string }[] => [
-  { value: "day", label: t("Ngày") },
-  { value: "week", label: t("Tuần") },
-  { value: "month", label: t("Tháng") },
-];
-
-function formatDateDisplay(date: Dayjs, mode: ViewMode): string {
-  if (mode === "day") return date.format("DD/MM/YYYY");
-  if (mode === "week") {
-    const start = date.startOf("week").format("DD/MM");
-    const end = date.endOf("week").format("DD/MM/YYYY");
-    return `${start} - ${end}`;
-  }
-  return `${t("Tháng")} ${date.format("MM/YYYY")}`;
-}
-
 function stepDate(date: Dayjs, mode: ViewMode, direction: 1 | -1): Dayjs {
   const unit = mode === "day" ? "day" : mode === "week" ? "week" : "month";
   return direction === 1 ? date.add(1, unit) : date.subtract(1, unit);
@@ -64,14 +47,38 @@ export const ReceptionToolbar: React.FC<ReceptionToolbarProps> = ({
 }) => {
   const date = currentDate ?? dayjs();
 
+  const viewModeToLabel = (mode: ViewMode): string => {
+    if (mode === "day") return t("Ngày");
+    if (mode === "week") return t("Tuần");
+    return t("Tháng");
+  };
+
+  const labelToViewMode = (label: string): ViewMode => {
+    if (label === t("Ngày")) return "day";
+    if (label === t("Tuần")) return "week";
+    return "month";
+  };
+
+  const formatDateDisplay = (d: Dayjs, mode: ViewMode): string => {
+    if (mode === "day") return d.format("DD/MM/YYYY");
+    if (mode === "week") {
+      const start = d.startOf("week").format("DD/MM");
+      const end = d.endOf("week").format("DD/MM/YYYY");
+      return `${start} - ${end}`;
+    }
+    return t("Tháng {0}/{1}", d.format("MM"), d.format("YYYY"));
+  };
+
+  const viewOptions = [t("Ngày"), t("Tuần"), t("Tháng")];
+
   return (
     <div className="reception-toolbar">
       {/* Left: time tabs + date nav + search */}
       <div className="reception-toolbar-left">
         <Segmented
-          value={viewMode}
-          onChange={(val) => onViewModeChange?.(val as ViewMode)}
-          options={viewOptions()}
+          value={viewModeToLabel(viewMode)}
+          onChange={(val) => onViewModeChange?.(labelToViewMode(val as string))}
+          options={viewOptions}
           style={{ fontWeight: 600 }}
         />
 
@@ -94,7 +101,7 @@ export const ReceptionToolbar: React.FC<ReceptionToolbarProps> = ({
 
         <Input
           placeholder={t("Tìm bệnh nhân...")}
-          prefix={<SearchOutlined style={{ color: "#98a4b4" }} />}
+          prefix={<SearchOutlined style={{ color: "#94A3B8" }} />}
           value={keyword}
           onChange={(e) => onSearchChange(e.target.value)}
           allowClear

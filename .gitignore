@@ -33,10 +33,21 @@ Thumbs.db
 # Claude / Playwright production artifacts
 reference-private/
 .playwright/
+.playwright-mcp/
 .playwright-profile/
 screenshot-*.png
 screenshot-*.cjs
 extract-full*
+
+# Loose screenshots (comparison artifacts)
+*.png
+!BlueDental.FE/src/**/*.png
+!BlueDental.FE/public/**/*.png
+!docs/**/*.png
+
+# Application logs
+**/Logs/
+**/logs/
 
 # Browser auth
 storage-state*.json

@@ -1,12 +1,15 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Organizations;
 using BlueDental.PatientManagement.Values;
 using BlueDental.Exporting;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
+using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
+using Volo.Abp.Domain.Entities;
 using Volo.Abp.Domain.Repositories;
 
 namespace BlueDental.PatientManagement;
@@ -21,7 +24,6 @@ public class PatientAppService : ApplicationService, IPatientAppService
         {
             Filter = input.Filter,
             Status = input.Status,
-            BranchId = input.BranchId,
             MaxResultCount = 1000
         });
 
@@ -42,16 +44,23 @@ public class PatientAppService : ApplicationService, IPatientAppService
     }
 
     private readonly IRepository<Patient, Guid> _repository;
+    private readonly ICurrentClinicBranchResolver _branchResolver;
 
-    public PatientAppService(IRepository<Patient, Guid> repository)
+    public PatientAppService(
+        IRepository<Patient, Guid> repository,
+        ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
+        _branchResolver = branchResolver;
     }
 
     [Authorize(BlueDentalAbilityPermissions.Patient.Read)]
     public async Task<PagedResultDto<PatientDto>> GetListAsync(GetPatientListInput input)
     {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
+
+        query = query.Where(p => p.BranchId == branchId);
 
         if (!string.IsNullOrWhiteSpace(input.Filter))
         {
@@ -68,7 +77,6 @@ public class PatientAppService : ApplicationService, IPatientAppService
         }
 
         if (input.Status.HasValue) query = query.Where(p => p.Status == input.Status.Value);
-        if (input.BranchId.HasValue) query = query.Where(p => p.BranchId == input.BranchId.Value);
 
         var totalCount = query.Count();
 
@@ -88,14 +96,16 @@ public class PatientAppService : ApplicationService, IPatientAppService
     public async Task<PatientDto> GetAsync(Guid id)
     {
         var patient = await _repository.GetAsync(id);
+        GuardBranchAccess(patient);
         return ObjectMapper.Map<Patient, PatientDto>(patient);
     }
 
     [Authorize(BlueDentalAbilityPermissions.Patient.Create)]
     public async Task<PatientDto> RegisterAsync(RegisterPatientDto input)
     {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
         var contact = new ContactInfo(input.PhoneNumber, input.Email, null);
-        var patientCode = await GeneratePatientCodeAsync(input.BranchId);
+        var patientCode = await GeneratePatientCodeAsync(branchId);
 
         var patient = Patient.Register(
             GuidGenerator.Create(),
@@ -105,7 +115,7 @@ public class PatientAppService : ApplicationService, IPatientAppService
             input.DateOfBirth,
             input.Gender,
             contact,
-            input.BranchId,
+            branchId,
             input.NationalId);
 
         await _repository.InsertAsync(patient, autoSave: true);
@@ -146,6 +156,7 @@ public class PatientAppService : ApplicationService, IPatientAppService
     public async Task<PatientDto> UpdateAsync(Guid id, UpdatePatientDto input)
     {
         var patient = await _repository.GetAsync(id);
+        GuardBranchAccess(patient);
         patient.UpdateDemographics(input.FirstName, input.LastName, input.DateOfBirth, input.Gender);
         var contact = new ContactInfo(input.PhoneNumber, input.Email, null);
         patient.UpdateContact(contact);
@@ -157,7 +168,15 @@ public class PatientAppService : ApplicationService, IPatientAppService
     public async Task DeactivateAsync(Guid id)
     {
         var patient = await _repository.GetAsync(id);
+        GuardBranchAccess(patient);
         patient.Deactivate();
         await _repository.UpdateAsync(patient, autoSave: true);
+    }
+
+    private void GuardBranchAccess(Patient entity)
+    {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
+        if (entity.BranchId != branchId)
+            throw new EntityNotFoundException(typeof(Patient), entity.Id);
     }
 }

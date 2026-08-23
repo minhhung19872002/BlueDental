@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Table, Button, Space, Typography, Tooltip, Segmented, Input } from "antd";
+import { Table, Button, Space, Typography, Tooltip, Segmented, Input, message } from "antd";
 import type { TableColumnsType } from "antd";
 import {
   PlusOutlined,
@@ -12,39 +12,41 @@ import {
 } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 import { usePatientList } from "../api/patientQueries";
+import { patientApi } from "../api/patientApi";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { useDebounce } from "@/hooks/useDebounce";
 import { formatDate, formatDateTime, formatVND } from "@/utils/format";
+import { exportToExcel } from "@/utils/exportExcel";
 import { SearchSelect } from "@/components/SearchSelect";
 import type { PatientListItem, PatientStatus } from "../types/patient";
-import { downloadFile } from "@/lib/download";
 import { t } from "@/lib/i18n";
-import { PageHeader } from "@/components/PageHeader";
 
 const { Text } = Typography;
 
 type ViewMode = "day" | "week" | "month";
 type FilterStatus = "All" | PatientStatus;
 
-const statusConfig = (): Record<PatientStatus, { label: string; color: string; bg: string; text: string }> => ({
-  NoActivity:  { label: t("Chưa phát sinh"), color: "#6f7c90", bg: "#f4f6fa", text: "#41505f" },
-  InTreatment: { label: t("Đang điều trị"),  color: "#1c3566", bg: "#eaf0fa", text: "#1E5BB0" },
-  Completed:   { label: t("Điều trị hoàn tất"), color: "#1f8a63", bg: "#e6f5ef", text: "#1F7A45" },
-});
-
-const filterTabs = (): { key: FilterStatus; label: string }[] => [
-  { key: "All",         label: t("Tất cả") },
-  { key: "Completed",   label: t("Điều trị hoàn tất") },
-  { key: "InTreatment", label: t("Đang điều trị") },
-  { key: "NoActivity",  label: t("Chưa phát sinh") },
-];
-
 interface Props {
   onAdd?: () => void;
   onRowClick?: (patient: PatientListItem) => void;
+  onEdit?: (id: string) => void;
 }
 
-export function PatientListView({ onAdd, onRowClick }: Props) {
+export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
+
+  const STATUS_CONFIG: Record<PatientStatus, { label: string; color: string; bg: string; text: string }> = {
+    NoActivity:  { label: t("Chưa phát sinh"),  color: "#6B7280", bg: "#F3F4F6", text: "#374151" },
+    InTreatment: { label: t("Đang điều trị"), color: "#2671D8", bg: "#EBF3FE", text: "#1E5BB0" },
+    Completed:   { label: t("Điều trị hoàn tất"),   color: "#10B981", bg: "#E6F4EA", text: "#1F7A45" },
+  };
+
+  const FILTER_TABS: { key: FilterStatus; label: string }[] = [
+    { key: "All",         label: t("Tất cả") },
+    { key: "Completed",   label: t("Điều trị hoàn tất") },
+    { key: "InTreatment", label: t("Đang điều trị") },
+    { key: "NoActivity",  label: t("Chưa phát sinh") },
+  ];
+
   const [viewMode, setViewMode] = useState<ViewMode>("day");
   const [currentDate, setCurrentDate] = useState<Dayjs>(dayjs());
   const [keyword, setKeyword] = useState("");
@@ -55,18 +57,52 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
 
   const { data, isLoading } = usePatientList({
     keyword: debouncedKeyword || undefined,
+    status: filterStatus === "All" ? undefined : filterStatus,
+    doctorId: selectedDoctorId,
     skipCount: pagination.skipCount,
     maxResultCount: pagination.maxResultCount,
   });
 
-  // Treatment activity is not a server filter yet, so the tabs narrow what loaded.
-  const rows = (data?.items ?? []).filter(
-    (row) => filterStatus === "All" || row.status === filterStatus,
-  );
+  const [exporting, setExporting] = useState(false);
 
   const navigateDate = (dir: 1 | -1) => {
     const unit = viewMode === "day" ? "day" : viewMode === "week" ? "week" : "month";
     setCurrentDate((d) => d.add(dir, unit));
+  };
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const result = await patientApi.list({
+        keyword: debouncedKeyword || undefined,
+        status: filterStatus === "All" ? undefined : filterStatus,
+        doctorId: selectedDoctorId,
+        maxResultCount: 10000,
+      });
+      exportToExcel(
+        result.items,
+        [
+          { header: t("Mã BN"), key: "code" },
+          { header: t("Họ và tên"), key: "fullName" },
+          { header: t("Ngày sinh"), key: "dateOfBirth", format: (v) => (v ? formatDate(String(v)) : "") },
+          { header: t("Số điện thoại"), key: "phone" },
+          { header: t("Trạng thái"), key: "status", format: (v) => STATUS_CONFIG[v as PatientStatus]?.label ?? String(v) },
+          { header: t("Dịch vụ"), key: "serviceName", format: (v) => String(v ?? "") },
+          { header: t("Bác sĩ"), key: "doctorName", format: (v) => String(v ?? "") },
+          { header: t("Số tiền"), key: "totalAmount", format: (v) => formatVND(Number(v ?? 0)) },
+          { header: t("Thực thu"), key: "collectedAmount", format: (v) => formatVND(Number(v ?? 0)) },
+          { header: t("Công nợ"), key: "debtAmount", format: (v) => formatVND(Number(v ?? 0)) },
+          { header: t("Lịch hẹn gần nhất"), key: "nextAppointmentAt", format: (v) => (v ? formatDateTime(String(v)) : "") },
+          { header: t("Lần khám cuối"), key: "lastVisitAt", format: (v) => (v ? formatDateTime(String(v)) : "") },
+          { header: t("Ngày tạo hồ sơ"), key: "createdAt", format: (v) => formatDate(String(v)) },
+        ],
+        `danh-sach-benh-nhan-${dayjs().format("YYYYMMDD")}`,
+      );
+    } catch {
+      message.error(t("Xuất file thất bại"));
+    } finally {
+      setExporting(false);
+    }
   };
 
   const displayDate = () => {
@@ -86,7 +122,7 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
       key: "createdAt",
       width: 120,
       render: (v: string) => (
-        <Text style={{ fontSize: 13, color: "#41505f" }}>{formatDate(v)}</Text>
+        <Text style={{ fontSize: 13, color: "#374151" }}>{formatDate(v)}</Text>
       ),
     },
     {
@@ -96,12 +132,12 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
       render: (_, record) => (
         <div>
           <div>
-            <Text style={{ color: "#6f7c90", fontFamily: "monospace", fontSize: 12, fontWeight: 600 }}>
+            <Text style={{ color: "#5A6B82", fontFamily: "monospace", fontSize: 12, fontWeight: 600 }}>
               [{record.code}]
             </Text>{" "}
             <Text
               strong
-              style={{ color: "#1c3566", cursor: "pointer" }}
+              style={{ color: "#2671D8", cursor: "pointer" }}
               onClick={(e) => { e.stopPropagation(); onRowClick?.(record); }}
             >
               {record.fullName}
@@ -132,7 +168,7 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
       key: "status",
       width: 150,
       render: (status: PatientStatus) => {
-        const conf = statusConfig()[status] ?? { label: status, bg: "#f4f6fa", text: "#41505f" };
+        const conf = STATUS_CONFIG[status] ?? { label: status, bg: "#F3F4F6", text: "#374151" };
         return (
           <span
             style={{
@@ -156,7 +192,7 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
       key: "serviceName",
       width: 180,
       render: (v: string | null) => (
-        <Text style={{ fontSize: 13, color: "#41505f" }}>{v ?? "—"}</Text>
+        <Text style={{ fontSize: 13, color: "#374151" }}>{v ?? "—"}</Text>
       ),
     },
     {
@@ -191,7 +227,7 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
           style={{
             fontSize: 13,
             fontVariantNumeric: "tabular-nums",
-            color: v > 0 ? "#1f8a63" : "#41505f",
+            color: v > 0 ? "#10B981" : "#374151",
             fontWeight: v > 0 ? 500 : 400,
           }}
         >
@@ -210,7 +246,7 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
           style={{
             fontSize: 13,
             fontVariantNumeric: "tabular-nums",
-            color: v > 0 ? "#ef4d4d" : "#41505f",
+            color: v > 0 ? "#EF4444" : "#374151",
             fontWeight: v > 0 ? 500 : 400,
           }}
         >
@@ -224,7 +260,7 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
       key: "nextAppointmentAt",
       width: 145,
       render: (v: string | null) => (
-        <Text style={{ fontSize: 12, color: v ? "#41505f" : "#98a4b4" }}>
+        <Text style={{ fontSize: 12, color: v ? "#374151" : "#9CA3AF" }}>
           {v ? formatDateTime(v) : "—"}
         </Text>
       ),
@@ -235,7 +271,7 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
       key: "lastVisitAt",
       width: 130,
       render: (v: string | null) => (
-        <Text style={{ fontSize: 12, color: v ? "#41505f" : "#98a4b4" }}>
+        <Text style={{ fontSize: 12, color: v ? "#374151" : "#9CA3AF" }}>
           {v ? formatDateTime(v) : "—"}
         </Text>
       ),
@@ -254,7 +290,7 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
               size="small"
               icon={<EyeOutlined />}
               onClick={(e) => { e.stopPropagation(); onRowClick?.(record); }}
-              style={{ color: "#1c3566" }}
+              style={{ color: "#2671D8" }}
             />
           </Tooltip>
           <Tooltip title={t("Chỉnh sửa")}>
@@ -262,7 +298,8 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
               type="text"
               size="small"
               icon={<EditOutlined />}
-              style={{ color: "#6f7c90" }}
+              style={{ color: "#6B7280" }}
+              onClick={(e) => { e.stopPropagation(); onEdit?.(record.id); }}
             />
           </Tooltip>
         </Space>
@@ -272,11 +309,6 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
 
   return (
     <div className="reception-page">
-      <PageHeader
-        title={t("Danh sách bệnh nhân")}
-        subtitle={t("{0} hồ sơ trong chi nhánh", data?.totalCount ?? 0)}
-      />
-
       {/* Toolbar card */}
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
@@ -304,7 +336,7 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
                 textAlign: "center",
                 fontSize: 14,
                 fontWeight: 500,
-                color: "#101c2c",
+                color: "#1B2A41",
               }}
             >
               {displayDate()}
@@ -319,8 +351,8 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
 
           {/* Center: search */}
           <Input
-            prefix={<SearchOutlined style={{ color: "#98a4b4" }} />}
-            placeholder={t("Tìm kiếm")}
+            prefix={<SearchOutlined style={{ color: "#9CA3AF" }} />}
+            placeholder={t("Tìm kiếm...")}
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             allowClear
@@ -329,16 +361,7 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
 
           {/* Right: export + create */}
           <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
-            <Button
-              icon={<ExportOutlined />}
-              onClick={() =>
-                void downloadFile("/v1/app/patients/excel", "benh-nhan.xlsx", {
-                  filter: debouncedKeyword || undefined,
-                })
-              }
-            >
-              {t("Xuất file")}
-            </Button>
+            <Button icon={<ExportOutlined />} loading={exporting} onClick={handleExport}>{t("Xuất file")}</Button>
             <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>
               {t("Tạo hồ sơ")}
             </Button>
@@ -351,7 +374,7 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           {/* Status tabs */}
           <div className="reception-status-pills">
-            {filterTabs().map((tab) => (
+            {FILTER_TABS.map((tab) => (
               <button
                 key={tab.key}
                 type="button"
@@ -398,7 +421,7 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
         <Table<PatientListItem>
           rowKey="id"
           columns={columns}
-          dataSource={rows}
+          dataSource={data?.items}
           loading={isLoading}
           pagination={pagination.buildConfig(
             data?.totalCount,
@@ -411,9 +434,9 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
           scroll={{ x: 1400 }}
           locale={{
             emptyText: (
-              <div style={{ padding: "40px 0", textAlign: "center", color: "#98a4b4" }}>
+              <div style={{ padding: "40px 0", textAlign: "center", color: "#9CA3AF" }}>
                 <div style={{ fontSize: 32, marginBottom: 8 }}>🦷</div>
-                <div style={{ fontWeight: 500, color: "#6f7c90" }}>{t("Không có bệnh nhân nào")}</div>
+                <div style={{ fontWeight: 500, color: "#6B7280" }}>{t("Không có bệnh nhân nào")}</div>
                 <div style={{ fontSize: 13, marginTop: 4 }}>{t("Thêm hồ sơ bệnh nhân đầu tiên")}</div>
               </div>
             ),

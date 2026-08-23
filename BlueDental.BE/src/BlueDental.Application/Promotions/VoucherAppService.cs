@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
@@ -14,17 +15,21 @@ namespace BlueDental.Promotions;
 /// <summary>
 /// Voucher khuyến mãi.
 /// </summary>
-[Authorize]
+[Authorize(BlueDentalPermissions.Promotions.Default)]
 public class VoucherAppService : ApplicationService, IVoucherAppService
 {
     private readonly IRepository<Voucher, Guid> _repository;
+    private readonly ICurrentClinicBranchResolver _branchResolver;
 
-    public VoucherAppService(IRepository<Voucher, Guid> repository)
+    public VoucherAppService(
+        IRepository<Voucher, Guid> repository,
+        ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
+        _branchResolver = branchResolver;
     }
 
-    [Authorize(BlueDentalAbilityPermissions.Voucher.Read)]
+    [Authorize(BlueDentalPermissions.Promotions.View)]
     public async Task<PagedResultDto<VoucherDto>> GetListAsync(GetVoucherListInput input)
     {
         var query = await BuildQueryAsync(input);
@@ -39,15 +44,13 @@ public class VoucherAppService : ApplicationService, IVoucherAppService
         return new PagedResultDto<VoucherDto>(totalCount, items.Select(MapToDto).ToList());
     }
 
-    [Authorize(BlueDentalAbilityPermissions.Voucher.Read)]
+    [Authorize(BlueDentalPermissions.Promotions.View)]
     public async Task<VoucherStatsDto> GetStatsAsync(Guid? clinicBranchId)
     {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
 
-        if (clinicBranchId.HasValue)
-        {
-            query = query.Where(x => x.ClinicBranchId == clinicBranchId.Value || x.ClinicBranchId == null);
-        }
+        query = query.Where(x => x.ClinicBranchId == branchId || x.ClinicBranchId == null);
 
         var vouchers = query.ToList();
 
@@ -61,23 +64,20 @@ public class VoucherAppService : ApplicationService, IVoucherAppService
         };
     }
 
-    [Authorize(BlueDentalAbilityPermissions.Voucher.Read)]
+    [Authorize(BlueDentalPermissions.Promotions.View)]
     public async Task<VoucherDto> GetAsync(Guid id)
     {
         return MapToDto(await _repository.GetAsync(id));
     }
 
-    [Authorize(BlueDentalAbilityPermissions.Voucher.Read)]
+    [Authorize(BlueDentalPermissions.Promotions.View)]
     public async Task<List<VoucherDto>> GetAvailableAsync(GetAvailableVouchersInput input)
     {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
         var onDate = input.OnDate ?? DateOnly.FromDateTime(Clock.Now);
         var query = await _repository.GetQueryableAsync();
 
-        if (input.ClinicBranchId.HasValue)
-        {
-            query = query.Where(x =>
-                x.ClinicBranchId == input.ClinicBranchId.Value || x.ClinicBranchId == null);
-        }
+        query = query.Where(x => x.ClinicBranchId == branchId || x.ClinicBranchId == null);
 
         return query
             .Where(x => x.Status == VoucherStatus.Active)
@@ -88,9 +88,10 @@ public class VoucherAppService : ApplicationService, IVoucherAppService
             .ToList();
     }
 
-    [Authorize(BlueDentalAbilityPermissions.Voucher.Create)]
+    [Authorize(BlueDentalPermissions.Promotions.Manage)]
     public async Task<VoucherDto> CreateAsync(CreateVoucherDto input)
     {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
         var code = input.Code.Trim().ToUpperInvariant();
         var query = await _repository.GetQueryableAsync();
 
@@ -109,7 +110,7 @@ public class VoucherAppService : ApplicationService, IVoucherAppService
             input.DiscountValue,
             input.ValidFrom,
             input.ValidTo,
-            input.ClinicBranchId,
+            branchId,
             input.MaxDiscountAmount,
             input.MinOrderAmount,
             input.CustomerTarget,
@@ -120,7 +121,7 @@ public class VoucherAppService : ApplicationService, IVoucherAppService
         return MapToDto(voucher);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.Voucher.Update)]
+    [Authorize(BlueDentalPermissions.Promotions.Manage)]
     public async Task<VoucherDto> UpdateAsync(Guid id, UpdateVoucherDto input)
     {
         var voucher = await _repository.GetAsync(id);
@@ -137,7 +138,7 @@ public class VoucherAppService : ApplicationService, IVoucherAppService
         return MapToDto(voucher);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.Voucher.Update)]
+    [Authorize(BlueDentalPermissions.Promotions.Manage)]
     public async Task<VoucherDto> ActivateAsync(Guid id)
     {
         var voucher = await _repository.GetAsync(id);
@@ -146,7 +147,7 @@ public class VoucherAppService : ApplicationService, IVoucherAppService
         return MapToDto(voucher);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.Voucher.Update)]
+    [Authorize(BlueDentalPermissions.Promotions.Manage)]
     public async Task<VoucherDto> PauseAsync(Guid id)
     {
         var voucher = await _repository.GetAsync(id);
@@ -155,7 +156,7 @@ public class VoucherAppService : ApplicationService, IVoucherAppService
         return MapToDto(voucher);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.Voucher.Update)]
+    [Authorize(BlueDentalPermissions.Promotions.Manage)]
     public async Task<VoucherRedemptionResultDto> RedeemAsync(Guid id, RedeemVoucherInput input)
     {
         var voucher = await _repository.GetAsync(id);
@@ -176,7 +177,7 @@ public class VoucherAppService : ApplicationService, IVoucherAppService
         };
     }
 
-    [Authorize(BlueDentalAbilityPermissions.Voucher.Delete)]
+    [Authorize(BlueDentalPermissions.Promotions.Manage)]
     public async Task DeleteAsync(Guid id)
     {
         var voucher = await _repository.GetAsync(id);
@@ -192,7 +193,7 @@ public class VoucherAppService : ApplicationService, IVoucherAppService
     }
 
     /// <summary>Marks vouchers whose validity window has passed as expired.</summary>
-    [Authorize(BlueDentalAbilityPermissions.Voucher.Update)]
+    [Authorize(BlueDentalPermissions.Promotions.Manage)]
     public async Task<int> ExpireOutdatedAsync(DateOnly asOf)
     {
         var query = await _repository.GetQueryableAsync();
@@ -211,11 +212,11 @@ public class VoucherAppService : ApplicationService, IVoucherAppService
 
     private async Task<IQueryable<Voucher>> BuildQueryAsync(GetVoucherListInput input)
     {
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
 
-        if (input.ClinicBranchId.HasValue)
-            query = query.Where(x =>
-                x.ClinicBranchId == input.ClinicBranchId.Value || x.ClinicBranchId == null);
+        // Include global vouchers (null) and branch-specific ones.
+        query = query.Where(x => x.ClinicBranchId == clinicBranchId || x.ClinicBranchId == null);
         if (input.Status.HasValue)
             query = query.Where(x => x.Status == input.Status.Value);
         if (input.CustomerTarget.HasValue)

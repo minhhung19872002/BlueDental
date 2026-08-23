@@ -3,7 +3,7 @@ import { DatePicker, Form, Input, InputNumber, Modal, Select, message } from "an
 import dayjs from "dayjs";
 import {
   CASH_HOLDING,
-  cashHoldingLabels,
+  CASH_HOLDING_LABELS,
   CASH_TRANSACTION_TYPE,
   useCashflowCategories,
   useCreateCashflowEntry,
@@ -30,16 +30,10 @@ interface CashflowFormValues {
   note?: string;
 }
 
-const HOLDING_OPTIONS = Object.entries(cashHoldingLabels()).map(([value, label]) => ({
+const HOLDING_OPTIONS = Object.entries(CASH_HOLDING_LABELS).map(([value, label]) => ({
   value: Number(value) as CashHolding,
   label,
 }));
-
-const titles = (): Record<CashTransactionType, string> => ({
-  [CASH_TRANSACTION_TYPE.Deposit]: t("Nạp tiền"),
-  [CASH_TRANSACTION_TYPE.Withdraw]: t("Rút tiền"),
-  [CASH_TRANSACTION_TYPE.Transfer]: t("Luân chuyển"),
-});
 
 export function CashflowEntryModal({ open, transactionType, onClose }: CashflowEntryModalProps) {
   const [form] = Form.useForm<CashflowFormValues>();
@@ -50,6 +44,12 @@ export function CashflowEntryModal({ open, transactionType, onClose }: CashflowE
 
   const needsFrom = transactionType !== CASH_TRANSACTION_TYPE.Deposit;
   const needsTo = transactionType !== CASH_TRANSACTION_TYPE.Withdraw;
+
+  const TITLES: Record<CashTransactionType, string> = {
+    [CASH_TRANSACTION_TYPE.Deposit]: t("Nạp tiền"),
+    [CASH_TRANSACTION_TYPE.Withdraw]: t("Rút tiền"),
+    [CASH_TRANSACTION_TYPE.Transfer]: t("Luân chuyển"),
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -93,7 +93,7 @@ export function CashflowEntryModal({ open, transactionType, onClose }: CashflowE
         note: values.note,
       });
 
-      message.success(t("Đã ghi nhận giao dịch {0}", titles()[transactionType].toLowerCase()));
+      message.success(t("Đã ghi nhận giao dịch {0}", TITLES[transactionType].toLowerCase()));
       onClose();
     } catch (error) {
       message.error(extractApiError(error));
@@ -103,7 +103,7 @@ export function CashflowEntryModal({ open, transactionType, onClose }: CashflowE
   return (
     <Modal
       open={open}
-      title={titles()[transactionType]}
+      title={TITLES[transactionType]}
       okText={t("Ghi nhận")}
       cancelText={t("Huỷ")}
       confirmLoading={createEntry.isPending}

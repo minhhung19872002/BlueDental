@@ -83,7 +83,7 @@ public class ToothSelection : ComparableValueObject
     public int SurfaceCount =>
         (Top ? 1 : 0) + (Right ? 1 : 0) + (Bottom ? 1 : 0) + (Left ? 1 : 0) + (Center ? 1 : 0);
 
-    protected override IEnumerable<object?> GetAtomicValues()
+    protected override IEnumerable<object> GetAtomicValues()
     {
         yield return ToothCode;
         yield return Selected;

@@ -28,7 +28,7 @@ interface SearchSelectProps {
 export const SearchSelect: React.FC<SearchSelectProps> = ({
   value,
   options,
-  placeholder = t("Tìm kiếm..."),
+  placeholder,
   disabled = false,
   allowClear = false,
   status,
@@ -36,6 +36,7 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
   onChange,
   onSearch,
 }) => {
+  const resolvedPlaceholder = placeholder ?? t("Tìm kiếm...");
   const [open, setOpen] = useState(false);
   const [keyword, setKeyword] = useState("");
   const [dropdownPos, setDropdownPos] = useState<DropdownPos | null>(null);
@@ -156,7 +157,7 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
                 ref={searchRef}
                 className="ss-search-input"
                 value={keyword}
-                placeholder={t("Tìm kiếm")}
+                placeholder={t("Tìm kiếm...")}
                 onChange={handleKeywordChange}
                 onKeyDown={handleKeyDown}
               />
@@ -214,7 +215,7 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
             {selectedOption ? (
               <span className="ss-value--selected">{selectedOption.label}</span>
             ) : (
-              <span className="ss-value--placeholder">{placeholder}</span>
+              <span className="ss-value--placeholder">{resolvedPlaceholder}</span>
             )}
           </span>
 

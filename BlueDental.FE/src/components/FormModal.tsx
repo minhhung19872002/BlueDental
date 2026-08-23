@@ -20,11 +20,12 @@ export function FormModal({
   title,
   onClose,
   onSubmit,
-  submitLabel = t("Lưu"),
+  submitLabel,
   loading = false,
   width = 640,
   children,
 }: Props) {
+  const resolvedSubmitLabel = submitLabel ?? t("Lưu");
   return (
     <Modal
       open={open}
@@ -38,7 +39,7 @@ export function FormModal({
           </Button>
           {onSubmit && (
             <Button type="primary" onClick={onSubmit} loading={loading}>
-              {submitLabel}
+              {resolvedSubmitLabel}
             </Button>
           )}
         </div>

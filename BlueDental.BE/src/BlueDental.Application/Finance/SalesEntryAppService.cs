@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Organizations;
@@ -9,14 +8,13 @@ using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
-using Volo.Abp.Identity;
 
 namespace BlueDental.Finance;
 
 /// <summary>
 /// Quản lý thu chi — receipts and payments with an approval step on expenses.
 /// </summary>
-[Authorize]
+[Authorize(BlueDentalPermissions.Finance.Default)]
 public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
 {
     [Authorize]
@@ -53,25 +51,19 @@ public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
     }
 
     private readonly IRepository<SalesEntry, Guid> _repository;
-    private readonly IRepository<CashflowCategory, Guid> _categoryRepository;
-    private readonly IIdentityUserRepository _userRepository;
-    private readonly BranchAccessChecker _branchAccess;
+    private readonly ICurrentClinicBranchResolver _branchResolver;
 
     public SalesEntryAppService(
         IRepository<SalesEntry, Guid> repository,
-        IRepository<CashflowCategory, Guid> categoryRepository,
-        IIdentityUserRepository userRepository,
-        BranchAccessChecker branchAccess)
+        ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
-        _categoryRepository = categoryRepository;
-        _userRepository = userRepository;
-        _branchAccess = branchAccess;
+        _branchResolver = branchResolver;
     }
 
+    [Authorize(BlueDentalPermissions.Finance.View)]
     public async Task<PagedResultDto<SalesEntryDto>> GetListAsync(GetSalesEntryListInput input)
     {
-        await CheckReadPermissionAsync(input.Type);
         var query = await BuildQueryAsync(input);
 
         var totalCount = query.Count();
@@ -82,16 +74,12 @@ public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
             .Take(input.MaxResultCount)
             .ToList();
 
-        var categoryNames = await GetCategoryNamesAsync(items);
-        var staffNames = await GetStaffNamesAsync(items);
-        return new PagedResultDto<SalesEntryDto>(
-            totalCount,
-            items.Select(x => MapToDto(x, categoryNames, staffNames)).ToList());
+        return new PagedResultDto<SalesEntryDto>(totalCount, items.Select(MapToDto).ToList());
     }
 
+    [Authorize(BlueDentalPermissions.Finance.View)]
     public async Task<SalesStatsDto> GetStatsAsync(GetSalesEntryListInput input)
     {
-        await CheckReadPermissionAsync(input.Type);
         var query = await BuildQueryAsync(input);
         var items = query.ToList();
 
@@ -117,22 +105,21 @@ public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
         };
     }
 
+    [Authorize(BlueDentalPermissions.Finance.View)]
     public async Task<SalesEntryDto> GetAsync(Guid id)
     {
-        var entry = await _repository.GetAsync(id);
-        await CheckReadPermissionAsync(entry.Type);
-        return MapToDto(entry, await GetCategoryNamesAsync([entry]), await GetStaffNamesAsync([entry]));
+        return MapToDto(await _repository.GetAsync(id));
     }
 
+    [Authorize(BlueDentalPermissions.Finance.Manage)]
     public async Task<SalesEntryDto> CreateAsync(CreateSalesEntryDto input)
     {
-        await _branchAccess.CheckAsync(input.ClinicBranchId);
-        await AuthorizationService.CheckAsync(PermissionFor(input.Type, BlueDentalAbilities.Actions.Create));
-        var code = await GenerateCodeAsync(input.ClinicBranchId, input.Type);
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
+        var code = await GenerateCodeAsync(clinicBranchId, input.Type);
 
         var entry = SalesEntry.Record(
             GuidGenerator.Create(),
-            input.ClinicBranchId,
+            clinicBranchId,
             code,
             input.Type,
             input.CategoryId,
@@ -144,14 +131,13 @@ public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
             input.PatientId);
 
         await _repository.InsertAsync(entry, autoSave: true);
-        return MapToDto(entry, await GetCategoryNamesAsync([entry]), await GetStaffNamesAsync([entry]));
+        return MapToDto(entry);
     }
 
+    [Authorize(BlueDentalPermissions.Finance.Manage)]
     public async Task<SalesEntryDto> UpdateAsync(Guid id, UpdateSalesEntryDto input)
     {
         var entry = await _repository.GetAsync(id);
-        await _branchAccess.CheckAsync(entry.ClinicBranchId);
-        await AuthorizationService.CheckAsync(PermissionFor(entry.Type, BlueDentalAbilities.Actions.Update));
 
         entry.UpdateDetails(
             input.CategoryId,
@@ -162,73 +148,39 @@ public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
             input.PatientId);
 
         await _repository.UpdateAsync(entry, autoSave: true);
-        return MapToDto(entry, await GetCategoryNamesAsync([entry]), await GetStaffNamesAsync([entry]));
+        return MapToDto(entry);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.ReportCost.Approve)]
+    [Authorize(BlueDentalPermissions.Finance.Manage)]
     public async Task<SalesEntryDto> ApproveAsync(Guid id, ApproveSalesEntryInput input)
     {
         var entry = await _repository.GetAsync(id);
-        await _branchAccess.CheckAsync(entry.ClinicBranchId);
         entry.Approve(input.StaffId);
         await _repository.UpdateAsync(entry, autoSave: true);
-        return MapToDto(entry, await GetCategoryNamesAsync([entry]), await GetStaffNamesAsync([entry]));
+        return MapToDto(entry);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.ReportCost.Approve)]
+    [Authorize(BlueDentalPermissions.Finance.Manage)]
     public async Task<SalesEntryDto> RejectAsync(Guid id, RejectSalesEntryInput input)
     {
         var entry = await _repository.GetAsync(id);
-        await _branchAccess.CheckAsync(entry.ClinicBranchId);
         entry.Reject(input.StaffId, input.Reason);
         await _repository.UpdateAsync(entry, autoSave: true);
-        return MapToDto(entry, await GetCategoryNamesAsync([entry]), await GetStaffNamesAsync([entry]));
+        return MapToDto(entry);
     }
 
+    [Authorize(BlueDentalPermissions.Finance.Manage)]
     public async Task DeleteAsync(Guid id)
     {
-        var entry = await _repository.GetAsync(id);
-        await _branchAccess.CheckAsync(entry.ClinicBranchId);
-        await AuthorizationService.CheckAsync(PermissionFor(entry.Type, BlueDentalAbilities.Actions.Delete));
         await _repository.DeleteAsync(id, autoSave: true);
-    }
-
-    /// <summary>
-    /// The reference guards receipts with <c>reportIncome</c> and payments with
-    /// <c>reportCost</c>. One endpoint serves both, so the subject is resolved
-    /// from the voucher type.
-    /// </summary>
-    private static string PermissionFor(SalesEntryType type, string action) =>
-        BlueDentalAbilities.Permission(
-            type == SalesEntryType.Income
-                ? BlueDentalAbilities.Subjects.ReportIncome
-                : BlueDentalAbilities.Subjects.ReportCost,
-            action);
-
-    /// <summary>
-    /// A list that is not filtered by type needs both read permissions, since it
-    /// returns receipts and payments together.
-    /// </summary>
-    private async Task CheckReadPermissionAsync(SalesEntryType? type)
-    {
-        if (type.HasValue)
-        {
-            await AuthorizationService.CheckAsync(PermissionFor(type.Value, BlueDentalAbilities.Actions.Read));
-            return;
-        }
-
-        await AuthorizationService.CheckAsync(BlueDentalAbilityPermissions.ReportIncome.Read);
-        await AuthorizationService.CheckAsync(BlueDentalAbilityPermissions.ReportCost.Read);
     }
 
     private async Task<IQueryable<SalesEntry>> BuildQueryAsync(GetSalesEntryListInput input)
     {
-        var branchFilter = await _branchAccess.ResolveFilterAsync(input.ClinicBranchId);
-
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
 
-        if (branchFilter.Count > 0)
-            query = query.Where(x => branchFilter.Contains(x.ClinicBranchId));
+        query = query.Where(x => x.ClinicBranchId == clinicBranchId);
         if (input.Type.HasValue)
             query = query.Where(x => x.Type == input.Type.Value);
         if (input.CategoryId.HasValue)
@@ -268,44 +220,7 @@ public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
         return $"{prefix}{year % 100:D2}-{sequence:D4}";
     }
 
-    private async Task<Dictionary<Guid, string>> GetCategoryNamesAsync(
-        IReadOnlyCollection<SalesEntry> entries)
-    {
-        var ids = entries.Select(x => x.CategoryId).Distinct().ToList();
-
-        if (ids.Count == 0)
-        {
-            return new Dictionary<Guid, string>();
-        }
-
-        var query = await _categoryRepository.GetQueryableAsync();
-        return query
-            .Where(c => ids.Contains(c.Id))
-            .ToDictionary(c => c.Id, c => c.Name);
-    }
-
-    /// <summary>
-    /// "Nhân viên thu" is an identity user, so the name is resolved here rather
-    /// than denormalised onto the voucher.
-    /// </summary>
-    private async Task<Dictionary<Guid, string>> GetStaffNamesAsync(
-        IReadOnlyCollection<SalesEntry> entries)
-    {
-        var ids = entries.Select(x => x.StaffId).Distinct().ToList();
-
-        if (ids.Count == 0)
-        {
-            return new Dictionary<Guid, string>();
-        }
-
-        var users = await _userRepository.GetListByIdsAsync(ids);
-        return users.ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
-    }
-
-    private static SalesEntryDto MapToDto(
-        SalesEntry entity,
-        IReadOnlyDictionary<Guid, string> categoryNames,
-        IReadOnlyDictionary<Guid, string> staffNames) => new()
+    private static SalesEntryDto MapToDto(SalesEntry entity) => new()
     {
         Id = entity.Id,
         ClinicBranchId = entity.ClinicBranchId,
@@ -323,8 +238,6 @@ public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
         ApprovedAt = entity.ApprovedAt,
         RejectionReason = entity.RejectionReason,
         CountsTowardsCashflow = entity.CountsTowardsCashflow,
-        CategoryName = categoryNames.TryGetValue(entity.CategoryId, out var categoryName) ? categoryName : null,
-        StaffName = staffNames.TryGetValue(entity.StaffId, out var staffName) ? staffName : null,
         CreationTime = entity.CreationTime,
         CreatorId = entity.CreatorId,
         LastModificationTime = entity.LastModificationTime,

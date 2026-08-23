@@ -3,6 +3,7 @@ using BlueDental.Appointments;
 using BlueDental.Billing;
 using BlueDental.Catalogs;
 using BlueDental.CustomerCare;
+using BlueDental.FileManagement;
 using BlueDental.Inventory;
 using BlueDental.Labo;
 using BlueDental.Notifications;
@@ -19,11 +20,32 @@ public class BlueDentalApplicationAutoMapperProfile : Profile
     {
         /* Organizations */
         CreateMap<ClinicBranch, ClinicBranchDto>();
+        CreateMap<Department, DepartmentDto>();
 
         /* Catalogs */
         CreateMap<DentalProcedure, DentalProcedureDto>();
         CreateMap<InsurancePlan, InsurancePlanDto>();
         CreateMap<Medication, MedicationDto>();
+        CreateMap<PatientSource, PatientSourceDto>();
+        CreateMap<Occupation, OccupationDto>();
+        CreateMap<PaymentMethodOption, PaymentMethodDto>();
+        CreateMap<PatientTag, PatientTagDto>();
+        CreateMap<Diagnosis, DiagnosisDto>();
+        CreateMap<MedicationType, MedicationTypeDto>();
+        CreateMap<ConsultingData, ConsultingDataDto>();
+        CreateMap<MedicalHistoryType, MedicalHistoryTypeDto>();
+        CreateMap<PrescriptionTemplate, PrescriptionTemplateDto>();
+        CreateMap<MedicalRecordTemplate, MedicalRecordTemplateDto>();
+
+        // Labo catalogs
+        CreateMap<Labo.LaboSupplier, Labo.LaboSupplierDto>();
+        CreateMap<Labo.LaboBiteType, Labo.LaboBiteTypeDto>();
+        CreateMap<Labo.LaboFinishLine, Labo.LaboFinishLineDto>();
+        CreateMap<Labo.LaboRhythmType, Labo.LaboRhythmTypeDto>();
+        CreateMap<Labo.LaboMaterial, Labo.LaboMaterialDto>();
+
+        // Customer Care
+        CreateMap<CustomerCare.CskhGroup, CustomerCare.CskhGroupDto>();
 
         /* Patient Management */
         CreateMap<Patient, PatientDto>()
@@ -55,8 +77,15 @@ public class BlueDentalApplicationAutoMapperProfile : Profile
             .ForMember(d => d.Currency, opt => opt.MapFrom(s => s.SubTotal.Currency))
             .ForMember(d => d.PatientName, opt => opt.Ignore());
 
+        CreateMap<InsuranceClaim, InsuranceClaimDto>()
+            .ForMember(d => d.ClaimedAmount, opt => opt.MapFrom(s => s.ClaimedAmount.Amount))
+            .ForMember(d => d.ApprovedAmount, opt => opt.MapFrom(s => s.ApprovedAmount != null ? s.ApprovedAmount.Amount : (decimal?)null));
+
         /* Inventory */
         CreateMap<InventoryItem, InventoryItemDto>();
+        CreateMap<MaterialAllocation, MaterialAllocationDto>()
+            .ForMember(d => d.InventoryItemName, opt => opt.Ignore())
+            .ForMember(d => d.DepartmentName, opt => opt.Ignore());
 
         /* Notifications */
         CreateMap<Notification, NotificationDto>();
@@ -73,5 +102,8 @@ public class BlueDentalApplicationAutoMapperProfile : Profile
         /* Customer Care */
         CreateMap<CareRecord, CareRecordDto>()
             .ForMember(d => d.PatientName, opt => opt.Ignore());
+
+        /* File Management */
+        CreateMap<FileAttachment, FileAttachmentDto>();
     }
 }

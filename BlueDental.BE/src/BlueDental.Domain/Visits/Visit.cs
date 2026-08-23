@@ -37,6 +37,18 @@ public class Visit : FullAuditedAggregateRoot<Guid>
         Status = VisitStatus.Scheduled;
     }
 
+    public Visit Update(Guid? dentistId, DateTimeOffset? scheduledAt, string? chiefComplaint, string? notes)
+    {
+        if (Status != VisitStatus.Scheduled)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Visits.InvalidTransition,
+                $"Cannot update a visit in status {Status}. Only Scheduled visits can be edited.");
+        if (dentistId.HasValue) DentistId = dentistId;
+        if (scheduledAt.HasValue) ScheduledAt = scheduledAt.Value;
+        ChiefComplaint = chiefComplaint;
+        Notes = notes;
+        return this;
+    }
+
     public Visit CheckIn()
     {
         if (Status != VisitStatus.Scheduled)

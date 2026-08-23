@@ -1,204 +1,222 @@
-import { useEffect, useMemo, useState } from "react";
-import { Button, Input, Modal, Popconfirm, Table, Tag, message } from "antd";
-import { SearchOutlined } from "@ant-design/icons";
+import { useState } from "react";
+import { Button, Input, Table, Modal, Form, InputNumber, Tag, message, Popconfirm, Select } from "antd";
+import { SearchOutlined, PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
-import {
-  supplyStatusConfig,
-  useDeleteSupply,
-  useSupplies,
-  useSupplyStats,
-  type SupplyDto,
-  type SupplyStatus,
-} from "../api/suppliesApi";
-import { SupplyModal } from "../components/SupplyModal";
-import { ReceiveStockModal } from "../components/ReceiveStockModal";
-import {
-  CATALOG_GROUP,
-  useCreateTaxonomyGroupOption,
-  useTaxonomyGroupOptions,
-} from "@/hooks/useCatalogOptions";
-import { useCurrentBranchId } from "@/lib/clinicBranch";
-import { extractApiError } from "@/lib/apiError";
-import { formatDate, formatVND } from "@/utils/format";
+import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
-import { PageHeader } from "@/components/PageHeader";
+import {
+  useInventoryItemList,
+  useCreateInventoryItem,
+  useUpdateInventoryItem,
+  useDeleteInventoryItem,
+  type InventoryItemDto,
+  type UpdateInventoryItemDto,
+} from "../api";
+import {
+  useDepartmentList,
+  useCreateDepartment,
+  useUpdateDepartment,
+  useDeleteDepartment,
+  type DepartmentDto,
+} from "../api/departmentApi";
+import {
+  useAllocationList,
+  useCreateAllocation,
+  useDeleteAllocation,
+  type MaterialAllocationDto,
+} from "../api/allocationApi";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
 type MaterialsSubRoute = "clinic" | "allocation" | "department";
 
-// ── Constants ──────────────────────────────────────────────────────────────
+// ── Create/Edit Modal ─────────────────────────────────────────────────────
 
-const subRoutes = (): { key: MaterialsSubRoute; label: string }[] => [
-  { key: "clinic", label: t("Vật tư phòng khám") },
-  { key: "allocation", label: t("Phân bổ vật tư") },
-  { key: "department", label: t("Phòng ban") },
-];
+interface InventoryModalProps {
+  open: boolean;
+  onClose: () => void;
+  editingItem: InventoryItemDto | null;
+}
 
-// ── Sub-views ──────────────────────────────────────────────────────────────
+function InventoryModal({ open, onClose, editingItem }: InventoryModalProps) {
+  const [form] = Form.useForm();
+  const createMutation = useCreateInventoryItem();
+  const updateMutation = useUpdateInventoryItem();
+  const isEdit = Boolean(editingItem);
+
+  const handleOk = async () => {
+    try {
+      const values = await form.validateFields();
+      if (isEdit && editingItem) {
+        await updateMutation.mutateAsync({
+          id: editingItem.id,
+          data: {
+            name: values.name,
+            category: values.category,
+            unit: values.unit,
+            reorderLevel: values.reorderLevel ?? 0,
+            unitCost: values.unitCost,
+          } as UpdateInventoryItemDto,
+        });
+        message.success(t("Cập nhật vật tư thành công"));
+      } else {
+        await createMutation.mutateAsync({
+          itemCode: values.itemCode,
+          name: values.name,
+          category: values.category,
+          unit: values.unit,
+          reorderLevel: values.reorderLevel ?? 0,
+          unitCost: values.unitCost,
+        });
+        message.success(t("Thêm vật tư thành công"));
+      }
+      form.resetFields();
+      onClose();
+    } catch {
+      // validation handled by antd
+    }
+  };
+
+  return (
+    <Modal
+      title={isEdit ? t("Chỉnh sửa vật tư") : t("Thêm vật tư mới")}
+      open={open}
+      onCancel={() => { form.resetFields(); onClose(); }}
+      onOk={handleOk}
+      confirmLoading={createMutation.isPending || updateMutation.isPending}
+      okText={isEdit ? t("Lưu thay đổi") : t("Thêm vật tư")}
+      cancelText={t("Hủy")}
+      width={500}
+      destroyOnClose
+      afterOpenChange={(visible) => {
+        if (visible && editingItem) {
+          form.setFieldsValue({
+            itemCode: editingItem.itemCode,
+            name: editingItem.name,
+            category: editingItem.category,
+            unit: editingItem.unit,
+            reorderLevel: editingItem.reorderLevel,
+          });
+        }
+      }}
+    >
+      <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
+        {!isEdit && (
+          <Form.Item name="itemCode" label={t("Mã vật tư")} rules={[{ required: true, message: t("Nhập mã vật tư") }]}>
+            <Input placeholder={t("Nhập mã vật tư")} />
+          </Form.Item>
+        )}
+        <Form.Item name="name" label={t("Tên vật tư")} rules={[{ required: true, message: t("Nhập tên vật tư") }]}>
+          <Input placeholder={t("Nhập tên vật tư")} />
+        </Form.Item>
+        <Form.Item name="category" label={t("Nhóm phân loại")}>
+          <Input placeholder={t("Nhóm phân loại")} />
+        </Form.Item>
+        <Form.Item name="unit" label={t("Đơn vị")}>
+          <Input placeholder={t("Đơn vị")} />
+        </Form.Item>
+        <Form.Item name="reorderLevel" label={t("Mức tồn kho tối thiểu")}>
+          <InputNumber<number> min={0} style={{ width: "100%" }} placeholder="0" />
+        </Form.Item>
+        <Form.Item name="unitCost" label={t("Giá nhập (VND)")}>
+          <InputNumber<number>
+            min={0}
+            style={{ width: "100%" }}
+            formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+            parser={(v) => parseFloat((v ?? "0").replace(/,/g, "")) || 0}
+            placeholder="0"
+          />
+        </Form.Item>
+      </Form>
+    </Modal>
+  );
+}
+
+// ── Clinic Materials View ─────────────────────────────────────────────────
 
 function ClinicMaterialsView() {
-  const branchId = useCurrentBranchId();
-
   const [keyword, setKeyword] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<InventoryItemDto | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
   const [groupSearch, setGroupSearch] = useState("");
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
-  const [editing, setEditing] = useState<SupplyDto | null>(null);
-  const [supplyModalOpen, setSupplyModalOpen] = useState(false);
-  const [receiveFor, setReceiveFor] = useState<SupplyDto | null>(null);
-  const [groupModalOpen, setGroupModalOpen] = useState(false);
-  const [newGroupName, setNewGroupName] = useState("");
 
-  // The reference drives the left panel from the `supplies` taxonomy group.
-  const { data: groupData, isFetching: groupsFetching } = useTaxonomyGroupOptions(
-    CATALOG_GROUP.Supplies,
-  );
-  const groups = useMemo(() => groupData ?? [], [groupData]);
-  const createGroup = useCreateTaxonomyGroupOption();
+  const { data, isLoading } = useInventoryItemList();
+  const deleteMutation = useDeleteInventoryItem();
 
-  const listParams = {
-    branchId,
-    taxonomyId: selectedGroupId ?? undefined,
-    filter: keyword.trim() || undefined,
-    maxResultCount: 100,
-  };
-  const { data: supplyPage, isLoading } = useSupplies(listParams);
-  const { data: stats } = useSupplyStats({ branchId });
-  const deleteSupply = useDeleteSupply();
-
-  // A group deleted elsewhere must not strand the table on an empty filter.
-  useEffect(() => {
-    if (groupsFetching) return;
-    if (selectedGroupId && !groups.some((g) => g.id === selectedGroupId)) {
-      setSelectedGroupId(null);
-    }
-  }, [groups, groupsFetching, selectedGroupId]);
-
-  const filteredGroups = groups.filter((g) =>
-    g.name.toLowerCase().includes(groupSearch.toLowerCase()),
+  const allItems = data?.items ?? [];
+  const categories = [...new Set(allItems.map((i) => i.category).filter(Boolean))] as string[];
+  const filteredCategories = categories.filter((c) =>
+    !groupSearch || c.toLowerCase().includes(groupSearch.toLowerCase()),
   );
 
-  const handleCreateGroup = async () => {
-    const name = newGroupName.trim();
-    if (!name) return;
+  const filtered = allItems.filter((item) => {
+    if (selectedGroup && item.category !== selectedGroup) return false;
+    if (!keyword) return true;
+    const kw = keyword.toLowerCase();
+    return item.name.toLowerCase().includes(kw) || item.itemCode.toLowerCase().includes(kw) || (item.category ?? "").toLowerCase().includes(kw);
+  });
 
+  const handleDelete = async (id: string) => {
     try {
-      const created = await createGroup.mutateAsync({
-        group: CATALOG_GROUP.Supplies,
-        name,
-      });
-      setSelectedGroupId(created.id);
-      setGroupModalOpen(false);
-      setNewGroupName("");
-      message.success(t("Đã thêm nhóm vật tư"));
-    } catch (error) {
-      message.error(extractApiError(error));
+      await deleteMutation.mutateAsync(id);
+      message.success(t("Xóa vật tư thành công"));
+    } catch {
+      message.error(t("Xóa thất bại"));
     }
   };
 
-  const columns: ColumnsType<SupplyDto> = [
-    { title: t("Tên vật liệu"), dataIndex: "name", key: "name", width: 200 },
-    {
-      title: t("Nhóm phân loại"),
-      dataIndex: "taxonomyName",
-      key: "taxonomyName",
-      width: 160,
-      render: (value: string | null) => value ?? "—",
-    },
-    {
-      title: t("Nhập kho"),
-      dataIndex: "stockedAt",
-      key: "stockedAt",
-      width: 120,
-      render: (value: string | null) => (value ? formatDate(value) : "—"),
-    },
-    {
-      title: t("Hạn sử dụng"),
-      dataIndex: "expiryDate",
-      key: "expiryDate",
-      width: 120,
-      render: (value: string | null) => (value ? formatDate(value) : "—"),
-    },
-    {
-      title: t("Cảnh báo hết hạn"),
-      dataIndex: "expiryWarningDays",
-      key: "expiryWarningDays",
-      width: 140,
-      render: (days: number) => t("{0} ngày", days),
-    },
+  const columns: ColumnsType<InventoryItemDto> = [
+    { title: t("Mã"), dataIndex: "itemCode", key: "itemCode", width: 90 },
+    { title: t("Tên vật liệu"), dataIndex: "name", key: "name" },
+    { title: t("Nhóm phân loại"), dataIndex: "category", key: "category", render: (v: string) => v ?? "—" },
+    { title: t("Đơn vị"), dataIndex: "unit", key: "unit", render: (v: string) => v ?? "—" },
     {
       title: t("Tồn kho"),
-      key: "stock",
-      width: 120,
+      dataIndex: "quantityOnHand",
+      key: "quantityOnHand",
       align: "right",
-      render: (_, row) => `${row.quantityOnHand}${row.unit ? ` ${row.unit}` : ""}`,
+      render: (v: number, record) => (
+        <span style={{ color: record.needsReorder ? "#ff4d4f" : undefined, fontWeight: record.needsReorder ? 600 : 400 }}>
+          {v}
+        </span>
+      ),
     },
     {
       title: t("Trạng thái"),
-      dataIndex: "status",
+      dataIndex: "needsReorder",
       key: "status",
-      width: 130,
-      render: (status: SupplyStatus) => {
-        const config = supplyStatusConfig()[status];
-        return <Tag color={config.color}>{config.label}</Tag>;
-      },
+      render: (needsReorder: boolean, record) => (
+        <Tag color={!record.isActive ? "default" : needsReorder ? "orange" : "green"}>
+          {!record.isActive ? t("Ngừng") : needsReorder ? t("Sắp hết") : t("Đủ hàng")}
+        </Tag>
+      ),
     },
     {
-      title: t("Nhà cung cấp"),
-      dataIndex: "supplier",
-      key: "supplier",
-      width: 160,
-      render: (value: string | null) => value ?? "—",
-    },
-    {
-      title: t("Xuất xứ"),
-      dataIndex: "origin",
-      key: "origin",
-      width: 120,
-      render: (value: string | null) => value ?? "—",
-    },
-    {
-      title: t("Giá nhập"),
-      dataIndex: "unitCost",
-      key: "unitCost",
-      width: 130,
-      align: "right",
-      render: (value: number | null) => (value == null ? "—" : t("{0} đ", formatVND(value))),
-    },
-    {
-      title: t("Giá bán"),
-      dataIndex: "salePrice",
-      key: "salePrice",
-      width: 130,
-      align: "right",
-      render: (value: number | null) => (value == null ? "—" : t("{0} đ", formatVND(value))),
+      title: t("Cập nhật gần nhất"),
+      dataIndex: "lastModificationTime",
+      key: "updatedAt",
+      render: (v: string) => (v ? dayjs(v).format("DD/MM/YYYY") : "—"),
     },
     {
       title: t("Thao tác"),
       key: "actions",
-      width: 240,
-      render: (_, row) => (
-        <div style={{ display: "flex", gap: 8 }}>
-          <Button size="small" onClick={() => setReceiveFor(row)}>
-            {t("Nhập kho")}
-          </Button>
-          <Button size="small" onClick={() => { setEditing(row); setSupplyModalOpen(true); }}>
-            {t("Chỉnh sửa")}
-          </Button>
+      width: 120,
+      render: (_, record) => (
+        <div style={{ display: "flex", gap: 6 }}>
+          <Button
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => { setEditingItem(record); setModalOpen(true); }}
+          />
           <Popconfirm
-            title={t("Xoá vật tư này?")}
-            okText={t("Xoá")}
-            cancelText={t("Huỷ")}
-            onConfirm={async () => {
-              try {
-                await deleteSupply.mutateAsync(row.id);
-                message.success(t("Đã xoá vật tư"));
-              } catch (error) {
-                message.error(extractApiError(error));
-              }
-            }}
+            title={t("Xác nhận xóa vật tư này?")}
+            onConfirm={() => handleDelete(record.id)}
+            okText={t("Xóa")}
+            cancelText={t("Hủy")}
+            okButtonProps={{ danger: true }}
           >
-            <Button size="small" danger>{t("Xoá")}</Button>
+            <Button size="small" danger icon={<DeleteOutlined />} />
           </Popconfirm>
         </div>
       ),
@@ -208,112 +226,83 @@ function ClinicMaterialsView() {
   return (
     <div style={{ display: "flex", gap: 16 }}>
       {/* Left panel: material groups */}
-      <div
-        className="reception-card"
-        style={{ width: 240, minWidth: 200, padding: 16, flexShrink: 0 }}
-      >
+      <div className="reception-card" style={{ width: 240, minWidth: 200, padding: 16, flexShrink: 0 }}>
         <div style={{ marginBottom: 8 }}>
           <div style={{ fontWeight: 600, marginBottom: 4 }}>
             {t("Nhóm vật tư")}
-            <span style={{ fontWeight: 400, color: "#7d8a9c", marginLeft: 6 }}>
-              {groups.length} {t("nhóm")}
+            <span style={{ fontWeight: 400, color: "#8c8c8c", marginLeft: 6 }}>
+              {t("{0} nhóm", categories.length)}
             </span>
           </div>
-          <div style={{ fontSize: 12, color: "#7d8a9c", marginBottom: 10 }}>
+          <div style={{ fontSize: 12, color: "#8c8c8c", marginBottom: 10 }}>
             {t("Chọn nhóm để xem vật tư")}
           </div>
           <Input
             placeholder={t("Tìm nhóm vật tư...")}
             size="small"
+            style={{ marginBottom: 8 }}
             value={groupSearch}
             onChange={(e) => setGroupSearch(e.target.value)}
-            style={{ marginBottom: 8 }}
+            allowClear
           />
-          <Button type="dashed" block size="small" onClick={() => setGroupModalOpen(true)}>
-            {t("Thêm Mới")}
-          </Button>
         </div>
-
-        <button
-          type="button"
-          onClick={() => setSelectedGroupId(null)}
-          style={{
-            width: "100%", textAlign: "left", border: "none", cursor: "pointer",
-            padding: "8px 10px", borderRadius: 6, marginTop: 8,
-            background: selectedGroupId === null ? "#eaf0fa" : "transparent",
-            color: selectedGroupId === null ? "#1c3566" : "#101c2c",
-            fontWeight: selectedGroupId === null ? 600 : 400,
-          }}
-        >
-          {t("Tất cả nhóm")}
-        </button>
-
-        {filteredGroups.map((group) => (
-          <button
-            key={group.id}
-            type="button"
-            onClick={() => setSelectedGroupId(group.id)}
-            style={{
-              width: "100%", display: "flex", justifyContent: "space-between",
-              border: "none", cursor: "pointer", padding: "8px 10px", borderRadius: 6,
-              background: selectedGroupId === group.id ? "#eaf0fa" : "transparent",
-              color: selectedGroupId === group.id ? "#1c3566" : "#101c2c",
-              fontWeight: selectedGroupId === group.id ? 600 : 400,
-              textAlign: "left",
-            }}
-          >
-            <span>{group.name}</span>
-            <span style={{ fontSize: 12, color: "#98a4b4" }}>{group.itemCount}</span>
-          </button>
-        ))}
-
-        {groups.length === 0 && !groupsFetching && (
-          <div style={{ color: "#7d8a9c", fontSize: 13, textAlign: "center", paddingTop: 16 }}>
+        {filteredCategories.length === 0 ? (
+          <div style={{ color: "#8c8c8c", fontSize: 13, textAlign: "center", paddingTop: 16 }}>
             {t("Chưa có nhóm vật tư")}
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <div
+              style={{
+                padding: "6px 10px",
+                borderRadius: 6,
+                cursor: "pointer",
+                fontSize: 13,
+                background: selectedGroup === null ? "#e6f4ff" : "transparent",
+                color: selectedGroup === null ? "#1677ff" : undefined,
+                fontWeight: selectedGroup === null ? 500 : 400,
+              }}
+              onClick={() => setSelectedGroup(null)}
+            >
+              {t("Tất cả")} ({allItems.length})
+            </div>
+            {filteredCategories.map((cat) => {
+              const count = allItems.filter((i) => i.category === cat).length;
+              return (
+                <div
+                  key={cat}
+                  style={{
+                    padding: "6px 10px",
+                    borderRadius: 6,
+                    cursor: "pointer",
+                    fontSize: 13,
+                    background: selectedGroup === cat ? "#e6f4ff" : "transparent",
+                    color: selectedGroup === cat ? "#1677ff" : undefined,
+                    fontWeight: selectedGroup === cat ? 500 : 400,
+                  }}
+                  onClick={() => setSelectedGroup(cat)}
+                >
+                  {cat} ({count})
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
 
       {/* Right panel */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
-        <div className="reception-card" style={{ padding: "12px 16px", display: "flex", gap: 24, flexWrap: "wrap" }}>
-          {[
-            { label: t("Tổng vật tư"), value: stats?.total ?? 0 },
-            { label: t("Còn hàng"), value: stats?.available ?? 0 },
-            { label: t("Sắp hết"), value: stats?.lowStock ?? 0 },
-            { label: t("Hết hàng"), value: stats?.outOfStock ?? 0 },
-            { label: t("Sắp hết hạn"), value: stats?.expiringSoon ?? 0 },
-            { label: t("Hết hạn"), value: stats?.expired ?? 0 },
-          ].map((tile) => (
-            <div key={tile.label}>
-              <div style={{ fontSize: 20, fontWeight: 700, color: "#101c2c" }}>{tile.value}</div>
-              <div style={{ fontSize: 12, color: "#6f7c90" }}>{tile.label}</div>
-            </div>
-          ))}
-          <div style={{ marginLeft: "auto" }}>
-            <div style={{ fontSize: 20, fontWeight: 700, color: "#101c2c" }}>
-              {formatVND(stats?.stockValue ?? 0)} {t("đ")}
-            </div>
-            <div style={{ fontSize: 12, color: "#6f7c90" }}>{t("Giá trị tồn kho")}</div>
-          </div>
-        </div>
-
         <div className="reception-card reception-card--toolbar">
-          <div
-            style={{
-              display: "flex",
-              gap: 8,
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
+          <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", gap: 8 }}>
               <Button
                 type="primary"
-                onClick={() => { setEditing(null); setSupplyModalOpen(true); }}
+                icon={<PlusOutlined />}
+                onClick={() => { setEditingItem(null); setModalOpen(true); }}
               >
                 {t("Thêm vật tư")}
               </Button>
+              <Button disabled>{t("Sync data hệ thống")}</Button>
             </div>
             <Input
               prefix={<SearchOutlined />}
@@ -326,17 +315,17 @@ function ClinicMaterialsView() {
           </div>
         </div>
         <div className="reception-card reception-card--content">
-          <Table<SupplyDto>
+          <Table
             columns={columns}
-            dataSource={supplyPage?.items ?? []}
-            loading={isLoading}
+            dataSource={filtered}
             rowKey="id"
+            loading={isLoading}
             scroll={{ x: "max-content" }}
             pagination={{
               pageSize: 20,
               showSizeChanger: true,
-              pageSizeOptions: ["5", "10", "20", "25", "50", "100"],
-              showTotal: (total, range) => t("Hiển thị {0}–{1} trên {2}", range[0], range[1], total),
+              pageSizeOptions: ["10", "20", "50", "100"],
+              showTotal: (total) => t("Hiển thị {0} vật tư", total),
             }}
             locale={{ emptyText: t("Không có dữ liệu") }}
             size="middle"
@@ -344,59 +333,69 @@ function ClinicMaterialsView() {
         </div>
       </div>
 
-      <SupplyModal
-        open={supplyModalOpen}
-        supply={editing}
-        groups={groups.map((g) => ({ id: g.id, name: g.name }))}
-        defaultGroupId={selectedGroupId ?? undefined}
-        onClose={() => { setSupplyModalOpen(false); setEditing(null); }}
+      <InventoryModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        editingItem={editingItem}
       />
-
-      <ReceiveStockModal
-        open={receiveFor !== null}
-        supply={receiveFor}
-        onClose={() => setReceiveFor(null)}
-      />
-
-      <Modal
-        open={groupModalOpen}
-        title={t("Thêm nhóm vật tư")}
-        okText={t("Thêm")}
-        cancelText={t("Huỷ")}
-        confirmLoading={createGroup.isPending}
-        onOk={handleCreateGroup}
-        onCancel={() => { setGroupModalOpen(false); setNewGroupName(""); }}
-      >
-        <Input
-          placeholder={t("Tên nhóm")}
-          value={newGroupName}
-          onChange={(e) => setNewGroupName(e.target.value)}
-          onPressEnter={handleCreateGroup}
-        />
-      </Modal>
     </div>
   );
 }
 
+// ── Allocation View ────────────────────────────────────────────────────────
+
 function AllocationView() {
   const [keyword, setKeyword] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [form] = Form.useForm();
 
-  const columns = [
-    { title: t("Thời gian phân bổ"), dataIndex: "allocationTime", key: "allocationTime" },
-    { title: t("Mã phân bổ"), dataIndex: "allocationCode", key: "allocationCode" },
-    { title: t("Vật tư"), dataIndex: "material", key: "material" },
-    { title: t("SL được phân bổ"), dataIndex: "allocatedQty", key: "allocatedQty" },
-    { title: t("SL confirm còn lại"), dataIndex: "confirmedRemaining", key: "confirmedRemaining" },
-    { title: t("Phòng ban"), dataIndex: "department", key: "department" },
-    { title: t("Người thực hiện"), dataIndex: "performer", key: "performer" },
-    { title: t("Ghi chú"), dataIndex: "note", key: "note" },
+  const { data, isLoading } = useAllocationList();
+  const { data: inventoryData } = useInventoryItemList();
+  const { data: deptData } = useDepartmentList();
+  const createMutation = useCreateAllocation();
+  const deleteMutation = useDeleteAllocation();
+
+  const allItems = data?.items ?? [];
+  const filtered = allItems.filter((item) => {
+    if (!keyword) return true;
+    const kw = keyword.toLowerCase();
+    return item.allocationCode.toLowerCase().includes(kw) ||
+      (item.inventoryItemName ?? "").toLowerCase().includes(kw) ||
+      (item.performerName ?? "").toLowerCase().includes(kw);
+  });
+
+  const handleCreate = async () => {
+    try {
+      const values = await form.validateFields();
+      await createMutation.mutateAsync(values);
+      message.success(t("Tạo phiếu phân bổ thành công"));
+      form.resetFields();
+      setModalOpen(false);
+    } catch { /* validation */ }
+  };
+
+  const handleDelete = async (id: string) => {
+    await deleteMutation.mutateAsync(id);
+    message.success(t("Xóa phiếu phân bổ thành công"));
+  };
+
+  const columns: ColumnsType<MaterialAllocationDto> = [
+    { title: t("Thời gian phân bổ"), dataIndex: "allocationTime", key: "allocationTime", width: 160, render: (v: string) => v ? dayjs(v).format("DD/MM/YYYY HH:mm") : "—" },
+    { title: t("Mã phân bổ"), dataIndex: "allocationCode", key: "allocationCode", width: 150 },
+    { title: t("Tên vật liệu"), dataIndex: "inventoryItemName", key: "material", render: (v: string) => v ?? "—" },
+    { title: t("SL được phân bổ"), dataIndex: "allocatedQuantity", key: "allocatedQty", width: 130, align: "right" },
+    { title: t("SL confirm còn lại"), dataIndex: "confirmedRemaining", key: "confirmedRemaining", width: 150, align: "right" },
+    { title: t("Phòng ban"), dataIndex: "departmentName", key: "department", render: (v: string) => v ?? "—" },
+    { title: t("Người thực hiện"), dataIndex: "performerName", key: "performer", render: (v: string) => v ?? "—" },
+    { title: t("Ghi chú"), dataIndex: "note", key: "note", render: (v: string) => v ?? "—" },
     {
       title: t("Thao tác"),
       key: "actions",
-      render: () => (
-        <Button size="small" type="link">
-          {t("Chi tiết")}
-        </Button>
+      width: 80,
+      render: (_, record) => (
+        <Popconfirm title={t("Xác nhận xóa vật tư này?")} onConfirm={() => handleDelete(record.id)} okText={t("Xóa")} cancelText={t("Hủy")} okButtonProps={{ danger: true }}>
+          <Button size="small" danger icon={<DeleteOutlined />} />
+        </Popconfirm>
       ),
     },
   ];
@@ -405,126 +404,156 @@ function AllocationView() {
     <>
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
-          <Input
-            prefix={<SearchOutlined />}
-            placeholder={t("Tìm phiếu phân bổ...")}
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            style={{ width: 280 }}
-            allowClear
-          />
+          <div style={{ display: "flex", gap: 8 }}>
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => { form.resetFields(); setModalOpen(true); }}>{t("Tạo phiếu phân bổ")}</Button>
+            <Input prefix={<SearchOutlined />} placeholder={t("Tìm phiếu phân bổ...")} value={keyword} onChange={(e) => setKeyword(e.target.value)} style={{ width: 280 }} allowClear />
+          </div>
           <Button>{t("Lịch sử kiểm kho")}</Button>
         </div>
       </div>
       <div className="reception-card reception-card--content">
-        <Table
-          columns={columns}
-          dataSource={[]}
-          rowKey="id"
-          pagination={{
-            pageSize: 20,
-            showSizeChanger: true,
-            pageSizeOptions: ["5", "10", "20", "25", "50", "100"],
-            showTotal: (total) => t("Hiển thị 0 trên {0}", total),
-          }}
-          locale={{ emptyText: t("Chưa có phiếu phân bổ") }}
-          size="middle"
-        />
+        <Table columns={columns} dataSource={filtered} rowKey="id" loading={isLoading} pagination={{ pageSize: 20, showTotal: (total) => t("Hiển thị {0} trên {1}", filtered.length, total) }} locale={{ emptyText: t("Chưa có phiếu phân bổ") }} size="middle" scroll={{ x: "max-content" }} />
       </div>
+
+      <Modal title={t("Tạo phiếu phân bổ")} open={modalOpen} onCancel={() => setModalOpen(false)} onOk={handleCreate} confirmLoading={createMutation.isPending} okText={t("Tạo phiếu")} cancelText={t("Hủy")} destroyOnClose>
+        <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
+          <Form.Item name="inventoryItemId" label={t("Tên vật liệu")} rules={[{ required: true, message: t("Chọn vật tư") }]}>
+            <Select placeholder={t("Chọn vật tư...")} showSearch optionFilterProp="label" options={(inventoryData?.items ?? []).map((i) => ({ value: i.id, label: `${i.itemCode} - ${i.name}` }))} />
+          </Form.Item>
+          <Form.Item name="departmentId" label={t("Phòng ban")} rules={[{ required: true, message: t("Chọn phòng ban") }]}>
+            <Select placeholder={t("Chọn phòng ban...")} options={(deptData?.items ?? []).map((d) => ({ value: d.id, label: d.name }))} />
+          </Form.Item>
+          <Form.Item name="allocatedQuantity" label={t("Số lượng phân bổ")} rules={[{ required: true, message: t("Nhập số lượng") }]}>
+            <InputNumber<number> min={0.001} style={{ width: "100%" }} placeholder="0" />
+          </Form.Item>
+          <Form.Item name="performerName" label={t("Người thực hiện")}><Input placeholder={t("Tên người thực hiện...")} /></Form.Item>
+          <Form.Item name="note" label={t("Ghi chú")}><Input.TextArea rows={2} placeholder={t("Ghi chú...")} /></Form.Item>
+        </Form>
+      </Modal>
     </>
   );
 }
 
+// ── Department View ────────────────────────────────────────────────────────
+
 function DepartmentView() {
   const [keyword, setKeyword] = useState("");
+  const [selectedDeptId, setSelectedDeptId] = useState<string | null>(null);
+  const [deptModalOpen, setDeptModalOpen] = useState(false);
+  const [editingDept, setEditingDept] = useState<DepartmentDto | null>(null);
+  const [deptForm] = Form.useForm();
 
-  const rightColumns = [
-    { title: t("Thời gian phân bổ"), dataIndex: "allocationTime", key: "allocationTime" },
-    { title: t("Mã phân bổ"), dataIndex: "allocationCode", key: "allocationCode" },
-    { title: t("Vật tư"), dataIndex: "material", key: "material" },
-    { title: t("SL được phát"), dataIndex: "distributedQty", key: "distributedQty" },
-    { title: t("SL còn lại (đã duyệt)"), dataIndex: "approvedRemaining", key: "approvedRemaining" },
-    { title: t("Kiểm kho"), dataIndex: "inventoryCheck", key: "inventoryCheck" },
-    { title: t("Người thực hiện"), dataIndex: "performer", key: "performer" },
-    { title: t("Ghi chú"), dataIndex: "note", key: "note" },
-    {
-      title: t("Thao tác"),
-      key: "actions",
-      render: () => (
-        <Button size="small" type="link">
-          {t("Chi tiết")}
-        </Button>
-      ),
-    },
+  const { data: deptData, isLoading: deptLoading } = useDepartmentList();
+  const createDept = useCreateDepartment();
+  const updateDept = useUpdateDepartment();
+  const deleteDept = useDeleteDepartment();
+  const { data: allocData, isLoading: allocLoading } = useAllocationList(selectedDeptId ?? undefined);
+
+  const departments = deptData?.items ?? [];
+  const allocations = (allocData?.items ?? []).filter((a) => {
+    if (!keyword) return true;
+    const kw = keyword.toLowerCase();
+    return (a.inventoryItemName ?? "").toLowerCase().includes(kw) || a.allocationCode.toLowerCase().includes(kw);
+  });
+
+  const handleDeptSave = async () => {
+    try {
+      const values = await deptForm.validateFields();
+      if (editingDept) {
+        await updateDept.mutateAsync({ id: editingDept.id, data: values });
+        message.success(t("Cập nhật phòng ban thành công"));
+      } else {
+        await createDept.mutateAsync(values);
+        message.success(t("Tạo phòng ban thành công"));
+      }
+      deptForm.resetFields();
+      setDeptModalOpen(false);
+      setEditingDept(null);
+    } catch { /* validation */ }
+  };
+
+  const handleDeptDelete = async (id: string) => {
+    await deleteDept.mutateAsync(id);
+    if (selectedDeptId === id) setSelectedDeptId(null);
+    message.success(t("Xóa phòng ban thành công"));
+  };
+
+  const rightColumns: ColumnsType<MaterialAllocationDto> = [
+    { title: t("Thời gian phân bổ"), dataIndex: "allocationTime", key: "allocationTime", width: 160, render: (v: string) => v ? dayjs(v).format("DD/MM/YYYY HH:mm") : "—" },
+    { title: t("Mã phân bổ"), dataIndex: "allocationCode", key: "allocationCode", width: 150 },
+    { title: t("Tên vật liệu"), dataIndex: "inventoryItemName", key: "material", render: (v: string) => v ?? "—" },
+    { title: t("SL được phát"), dataIndex: "allocatedQuantity", key: "distributedQty", width: 120, align: "right" },
+    { title: t("SL còn lại (đã duyệt)"), dataIndex: "confirmedRemaining", key: "approvedRemaining", width: 170, align: "right" },
+    { title: t("Người thực hiện"), dataIndex: "performerName", key: "performer", render: (v: string) => v ?? "—" },
+    { title: t("Ghi chú"), dataIndex: "note", key: "note", render: (v: string) => v ?? "—" },
   ];
 
   return (
     <div style={{ display: "flex", gap: 16 }}>
-      {/* Left panel: departments */}
-      <div
-        className="reception-card"
-        style={{ width: 240, minWidth: 200, padding: 16, flexShrink: 0 }}
-      >
+      <div className="reception-card" style={{ width: 240, minWidth: 200, padding: 16, flexShrink: 0 }}>
         <div style={{ fontWeight: 600, marginBottom: 4 }}>
           {t("Phòng ban")}
-          <span style={{ fontWeight: 400, color: "#7d8a9c", marginLeft: 6 }}>
-            {t("0 phòng ban")}
-          </span>
+          <span style={{ fontWeight: 400, color: "#8c8c8c", marginLeft: 6 }}>{t("{0} phòng ban", departments.length)}</span>
         </div>
-        <div style={{ fontSize: 12, color: "#7d8a9c", marginBottom: 10 }}>
+        <div style={{ fontSize: 12, color: "#8c8c8c", marginBottom: 10 }}>
           {t("Chọn phòng ban để xem vật tư đã phát và kiểm kho")}
         </div>
-        <Input
-          placeholder={t("Tìm phòng ban...")}
-          size="small"
-          style={{ marginBottom: 8 }}
-        />
-        <Button type="dashed" block size="small">
-          {t("Tạo phòng ban")}
-        </Button>
-        <div
-          style={{
-            color: "#7d8a9c",
-            fontSize: 13,
-            textAlign: "center",
-            paddingTop: 24,
-          }}
-        >
-          {t("Chưa có phòng ban")}
-        </div>
+        <Button type="dashed" block size="small" style={{ marginBottom: 8 }} onClick={() => { setEditingDept(null); deptForm.resetFields(); setDeptModalOpen(true); }}>{t("Tạo phòng ban")}</Button>
+        {deptLoading ? null : departments.length === 0 ? (
+          <div style={{ color: "#8c8c8c", fontSize: 13, textAlign: "center", paddingTop: 24 }}>{t("Chưa có phòng ban")}</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            {departments.map((d) => (
+              <div
+                key={d.id}
+                onClick={() => setSelectedDeptId(d.id === selectedDeptId ? null : d.id)}
+                style={{
+                  padding: "6px 8px", fontSize: 13, borderRadius: 4, cursor: "pointer",
+                  background: d.id === selectedDeptId ? "#E6F4FF" : "#F9FAFB",
+                  color: d.id === selectedDeptId ? "#1677ff" : "#374151",
+                  fontWeight: d.id === selectedDeptId ? 600 : 400,
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                }}
+              >
+                <span>{d.name}</span>
+                <div style={{ display: "flex", gap: 2 }} onClick={(e) => e.stopPropagation()}>
+                  <Button type="text" size="small" icon={<EditOutlined />} style={{ padding: 0, width: 22, height: 22 }} onClick={() => { setEditingDept(d); deptForm.setFieldsValue(d); setDeptModalOpen(true); }} />
+                  <Popconfirm title={t("Xóa phòng ban?")} onConfirm={() => handleDeptDelete(d.id)} okText={t("Xóa")} cancelText={t("Hủy")} okButtonProps={{ danger: true }}>
+                    <Button type="text" size="small" danger icon={<DeleteOutlined />} style={{ padding: 0, width: 22, height: 22 }} />
+                  </Popconfirm>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-
-      {/* Right panel */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
         <div className="reception-card reception-card--toolbar">
           <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
-            <Input
-              prefix={<SearchOutlined />}
-              placeholder={t("Tìm vật tư...")}
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              style={{ width: 220 }}
-              allowClear
-            />
+            <Input prefix={<SearchOutlined />} placeholder={t("Tìm vật tư...")} value={keyword} onChange={(e) => setKeyword(e.target.value)} style={{ width: 220 }} allowClear />
             <Button>{t("Gộp số lượng vật tư")}</Button>
           </div>
         </div>
         <div className="reception-card reception-card--content">
           <Table
             columns={rightColumns}
-            dataSource={[]}
+            dataSource={selectedDeptId ? allocations : []}
             rowKey="id"
-            pagination={{
-              pageSize: 20,
-              showSizeChanger: true,
-              pageSizeOptions: ["5", "10", "20", "25", "50", "100"],
-              showTotal: (total) => t("Hiển thị 0 trên {0}", total),
-            }}
-            locale={{ emptyText: t("Chọn phòng ban để xem vật tư đã phân bổ") }}
+            loading={allocLoading}
+            pagination={{ pageSize: 20, showTotal: (total) => t("Hiển thị {0}–{1} trên {2} dòng", allocations.length, total, total) }}
+            locale={{ emptyText: selectedDeptId ? t("Chưa có vật tư phân bổ cho phòng ban này") : t("Chọn phòng ban để xem vật tư đã phát và kiểm kho") }}
             size="middle"
+            scroll={{ x: "max-content" }}
           />
         </div>
       </div>
+
+      <Modal title={editingDept ? t("Chỉnh sửa phòng ban") : t("Tạo phòng ban")} open={deptModalOpen} onCancel={() => { setDeptModalOpen(false); setEditingDept(null); deptForm.resetFields(); }} onOk={handleDeptSave} confirmLoading={createDept.isPending || updateDept.isPending} okText={editingDept ? t("Lưu thay đổi") : t("Tạo phòng ban")} cancelText={t("Hủy")} destroyOnClose>
+        <Form form={deptForm} layout="vertical" style={{ marginTop: 16 }}>
+          <Form.Item name="name" label={t("Tên phòng ban")} rules={[{ required: true, message: t("Nhập tên phòng ban") }]}><Input placeholder={t("VD: Phòng khám 1, Phòng lễ tân...")} /></Form.Item>
+          <Form.Item name="description" label={t("Mô tả")}><Input.TextArea rows={2} placeholder={t("Mô tả...")} /></Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 }
@@ -533,6 +562,12 @@ function DepartmentView() {
 
 export function MaterialsPage() {
   const [activeTab, setActiveTab] = useState<MaterialsSubRoute>("clinic");
+
+  const SUB_ROUTES: { key: MaterialsSubRoute; label: string }[] = [
+    { key: "clinic",      label: t("Vật tư phòng khám") },
+    { key: "allocation",  label: t("Phân bổ vật tư") },
+    { key: "department",  label: t("Phòng ban") },
+  ];
 
   const renderContent = () => {
     switch (activeTab) {
@@ -549,27 +584,18 @@ export function MaterialsPage() {
 
   return (
     <div className="reception-page">
-      <PageHeader
-        title={t("Vật tư phòng khám")}
-        subtitle={t("Vật tư, phân bổ và tồn kho theo phòng ban")}
-      />
-
-      {/* Horizontal sub-nav */}
       <div className="reception-card reception-card--tabs">
         <div style={{ display: "flex", gap: 0 }}>
-          {subRoutes().map((tab) => (
+          {SUB_ROUTES.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               style={{
                 padding: "8px 20px",
                 border: "none",
-                borderBottom:
-                  activeTab === tab.key
-                    ? "2px solid #1c3566"
-                    : "2px solid transparent",
+                borderBottom: activeTab === tab.key ? "2px solid #1677ff" : "2px solid transparent",
                 background: "none",
-                color: activeTab === tab.key ? "#1c3566" : "#6f7c90",
+                color: activeTab === tab.key ? "#1677ff" : "#595959",
                 fontWeight: activeTab === tab.key ? 600 : 400,
                 cursor: "pointer",
                 fontSize: 14,
@@ -581,7 +607,6 @@ export function MaterialsPage() {
           ))}
         </div>
       </div>
-
       {renderContent()}
     </div>
   );

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Modal, Form, Input, Select, DatePicker, Row, Col, Button, Radio, Tabs } from "antd";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -6,41 +6,73 @@ import { z } from "zod";
 import dayjs from "dayjs";
 import { useRegisterPatient, useUpdatePatient } from "../api/patientMutations";
 import { extractApiError } from "@/lib/apiError";
-import { useCurrentBranchId } from "@/lib/clinicBranch";
-import type { Patient } from "../types/patient";
-import { splitVietnameseName } from "@/utils/vietnameseName";
+import type { PatientDto } from "../types/patient";
 import { t } from "@/lib/i18n";
+import { GENDER_BY_CODE } from "../api/patientAdapters";
 
-const buildSchema = () =>
-  z.object({
-  fullName: z.string().min(1, t("Vui lòng nhập họ và tên")),
-  phone: z.string().regex(/^\d{8,15}$/, t("Số điện thoại không hợp lệ")),
-  gender: z.enum(["male", "female", "other"]).optional(),
-  dateOfBirth: z.string().min(1, t("Vui lòng chọn ngày sinh")),
-  email: z.string().email(t("Email không hợp lệ")).optional().or(z.literal("")),
-  address: z.string().optional(),
-  notes: z.string().optional(),
-  medicalHistory: z.string().optional(),
-  examReason: z.string().optional(),
-  insuranceNumber: z.string().optional(),
-  province: z.string().optional(),
-  district: z.string().optional(),
-  ward: z.string().optional(),
-});
+/** The translator, so helpers below can take it as a parameter. */
+type Translate = (vietnamese: string, ...params: (string | number)[]) => string;
 
-type FormValues = z.infer<ReturnType<typeof buildSchema>>;
+function createPatientSchema(t: Translate) {
+  return z.object({
+    firstName: z.string().min(1, t("Vui lòng nhập họ")),
+    lastName: z.string().min(1, t("Vui lòng nhập tên")),
+    phone: z.string().regex(/^\d{8,15}$/, t("Số điện thoại không hợp lệ")),
+    gender: z.enum(["male", "female", "other"]).optional(),
+    dateOfBirth: z.string().optional(),
+    email: z.string().email(t("Email không hợp lệ")).optional().or(z.literal("")),
+    address: z.string().optional(),
+    notes: z.string().optional(),
+    medicalHistory: z.string().optional(),
+    examReason: z.string().optional(),
+    insuranceNumber: z.string().optional(),
+    province: z.string().optional(),
+    district: z.string().optional(),
+    ward: z.string().optional(),
+  });
+}
+
+type FormValues = z.infer<ReturnType<typeof createPatientSchema>>;
 
 interface Props {
   open: boolean;
-  patient?: Patient | null;
+  patient?: PatientDto | null;
   onClose: () => void;
   onSuccess?: () => void;
 }
 
 export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props) {
+  const schema = useMemo(() => createPatientSchema(t), [t]);
   const isEdit = Boolean(patient);
-  const branchId = useCurrentBranchId();
   const [infoTab, setInfoTab] = useState("basic");
+  const [sourceType, setSourceType] = useState<string | undefined>();
+
+  const CHANNEL_MAP: Record<string, { value: string; label: string }[]> = {
+    walk_in: [
+      { value: "direct", label: t("Trực tiếp đến") },
+      { value: "appointment_app", label: t("Đặt lịch qua app") },
+      { value: "appointment_web", label: t("Đặt lịch qua website") },
+    ],
+    referral: [
+      { value: "friend", label: t("Bạn bè") },
+      { value: "family", label: t("Người thân") },
+      { value: "doctor", label: t("Bác sĩ giới thiệu") },
+    ],
+    online: [
+      { value: "facebook", label: "Facebook" },
+      { value: "zalo", label: "Zalo" },
+      { value: "google", label: "Google" },
+      { value: "tiktok", label: "TikTok" },
+      { value: "instagram", label: "Instagram" },
+      { value: "youtube", label: "YouTube" },
+    ],
+  };
+
+  const channelOptions = useMemo(
+    () => (sourceType ? CHANNEL_MAP[sourceType] ?? [] : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [sourceType, t],
+  );
 
   const {
     control,
@@ -49,9 +81,10 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
     setError,
     formState: { errors },
   } = useForm<FormValues>({
-    resolver: zodResolver(buildSchema()),
+    resolver: zodResolver(schema),
     defaultValues: {
-      fullName: "",
+      firstName: "",
+      lastName: "",
       phone: "",
       gender: "male",
       dateOfBirth: "",
@@ -70,13 +103,12 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
   useEffect(() => {
     if (open && patient) {
       reset({
-        fullName: [patient.lastName, patient.firstName].filter(Boolean).join(" ").trim(),
-        phone: patient.phone,
-        gender: patient.gender,
+        firstName: patient.firstName,
+        lastName: patient.lastName,
+        phone: patient.phoneNumber ?? "",
+        gender: GENDER_BY_CODE[patient.gender] ?? "other",
         dateOfBirth: patient.dateOfBirth,
         email: patient.email ?? "",
-        address: patient.address ?? "",
-        medicalHistory: patient.medicalHistory ?? "",
       });
     } else if (open && !patient) {
       reset();
@@ -90,16 +122,15 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
 
   const onSubmit = async (values: FormValues) => {
     try {
-      const { firstName, lastName } = splitVietnameseName(values.fullName);
+      // Address and medical history have no home on the register endpoint, and
+      // the branch comes from the signed-in user, so none of them are sent.
       const payload = {
-        firstName,
-        lastName,
+        firstName: values.firstName,
+        lastName: values.lastName,
         phoneNumber: values.phone,
         gender: values.gender ?? "male",
-        dateOfBirth: values.dateOfBirth,
-        email: values.email || undefined,
-        nationalId: values.insuranceNumber || undefined,
-        branchId,
+        dateOfBirth: values.dateOfBirth ?? "",
+        email: values.email,
       };
       if (isEdit && patient) {
         await updateMutation.mutateAsync(payload);
@@ -123,43 +154,28 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
       destroyOnHidden
       styles={{ body: { padding: "20px 24px" } }}
     >
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        noValidate
-        // Enter commits a typed value in antd's DatePicker/Select, and would
-        // otherwise also submit the whole form — producing a duplicate
-        // registration. Submitting stays on the explicit Lưu button.
-        onKeyDown={(event) => {
-          if (event.key === "Enter" && event.target instanceof HTMLInputElement) {
-            event.preventDefault();
-          }
-        }}
-      >
-        {/* antd falls back to its horizontal layout without a Form ancestor;
-            the design puts every label above its field. component={false}
-            supplies that context without emitting a second <form>. */}
-        <Form layout="vertical" component={false}>
+      <form onSubmit={handleSubmit(onSubmit)} noValidate>
         <Row gutter={24}>
           {/* Column 1 — Contact & Source */}
           <Col span={8}>
             <Row gutter={8}>
               <Col span={8}>
-                <Form.Item label={t("Mã KH")}>
+                <Form.Item label={t("Mã")}>
                   <Input placeholder={t("Tự động")} disabled />
                 </Form.Item>
               </Col>
               <Col span={16}>
-                <Form.Item label={t("Họ và tên")} required validateStatus={errors.fullName ? "error" : ""} help={errors.fullName?.message}>
+                <Form.Item label={t("Họ và tên")} required validateStatus={errors.lastName ? "error" : ""} help={errors.lastName?.message}>
                   <Controller
-                    name="fullName"
+                    name="lastName"
                     control={control}
-                    render={({ field }) => <Input {...field} placeholder={"Nguyễn Văn An"} />}
+                    render={({ field }) => <Input {...field} placeholder={t("Nguyễn Văn A")} />}
                   />
                 </Form.Item>
               </Col>
             </Row>
 
-            <Form.Item label={t("Điện thoại")} required validateStatus={errors.phone ? "error" : ""} help={errors.phone?.message}>
+            <Form.Item label={t("Số điện thoại")} required validateStatus={errors.phone ? "error" : ""} help={errors.phone?.message}>
               <Controller
                 name="phone"
                 control={control}
@@ -168,15 +184,28 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
             </Form.Item>
 
             <Form.Item label={t("Chọn loại nguồn đến")}>
-              <Select placeholder={t("Chọn nguồn")} allowClear style={{ width: "100%" }}>
-                <Select.Option value="walk_in">{t("Vãng lai tự tìm đến")}</Select.Option>
-                <Select.Option value="referral">{t("Giới thiệu")}</Select.Option>
-                <Select.Option value="online">Online</Select.Option>
-              </Select>
+              <Select
+                placeholder={t("Chọn nguồn")}
+                allowClear
+                style={{ width: "100%" }}
+                value={sourceType}
+                onChange={(v) => { setSourceType(v); }}
+                options={[
+                  { value: "walk_in", label: t("Vãng lai tự tìm đến") },
+                  { value: "referral", label: t("Giới thiệu") },
+                  { value: "online", label: t("Online") },
+                ]}
+              />
             </Form.Item>
 
             <Form.Item label={t("Kênh kết nối")}>
-              <Select placeholder={t("Chọn kênh")} allowClear disabled style={{ width: "100%" }} />
+              <Select
+                placeholder={sourceType ? t("Chọn kênh") : t("Chọn nguồn đến trước")}
+                allowClear
+                disabled={!sourceType}
+                style={{ width: "100%" }}
+                options={channelOptions}
+              />
             </Form.Item>
 
             <Form.Item label={t("Ngày tạo")}>
@@ -212,7 +241,7 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
                           control={control}
                           render={({ field }) => (
                             <Radio.Group {...field}>
-                              <Radio value="male">Nam</Radio>
+                              <Radio value="male">{t("Nam")}</Radio>
                               <Radio value="female">{t("Nữ")}</Radio>
                               <Radio value="other">{t("Khác")}</Radio>
                             </Radio.Group>
@@ -266,7 +295,7 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
                   key: "history",
                   label: t("Tiểu sử bệnh"),
                   children: (
-                    <Form.Item label={t("Tiểu sử bệnh")}>
+                    <Form.Item label={t("Tiền sử bệnh")}>
                       <Controller
                         name="medicalHistory"
                         control={control}
@@ -366,18 +395,17 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
         </Row>
 
         {errors.root && (
-          <div style={{ color: "#ef4d4d", fontSize: 13, marginBottom: 12 }}>
+          <div style={{ color: "#C62828", fontSize: 13, marginBottom: 12 }}>
             {errors.root.message}
           </div>
         )}
 
-        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", paddingTop: 8, borderTop: "1px solid #e2e8f0" }}>
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", paddingTop: 8, borderTop: "1px solid #E5E7EB" }}>
           <Button onClick={onClose}>{t("Hủy")}</Button>
           <Button type="primary" htmlType="submit" loading={isPending} icon={<span>💾</span>}>
             {isEdit ? t("Lưu thay đổi") : t("Lưu")}
           </Button>
         </div>
-        </Form>
       </form>
     </Modal>
   );

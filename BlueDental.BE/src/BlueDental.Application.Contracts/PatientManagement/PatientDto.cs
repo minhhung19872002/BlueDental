@@ -27,7 +27,6 @@ public class RegisterPatientDto
     public string? PhoneNumber { get; set; }
     public string? Email { get; set; }
     public string? NationalId { get; set; }
-    public Guid BranchId { get; set; }
 }
 
 public class UpdatePatientDto
@@ -44,5 +43,4 @@ public class GetPatientListInput : PagedAndSortedResultRequestDto
 {
     public string? Filter { get; set; }
     public PatientStatus? Status { get; set; }
-    public Guid? BranchId { get; set; }
 }

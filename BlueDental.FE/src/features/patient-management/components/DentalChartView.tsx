@@ -39,12 +39,12 @@ const STATUS_COLORS: Record<ToothStatus, string> = {
 
 const STATUS_STROKE: Record<ToothStatus, string> = {
   healthy: "#90CAF9",
-  treated: "#1c3566",
-  decayed: "#ef4d4d",
+  treated: "#1565C0",
+  decayed: "#C62828",
   missing: "#BDBDBD",
-  implant: "#1f8a63",
+  implant: "#2E7D32",
   crown: "#F57F17",
-  bridge: "#6f63a3",
+  bridge: "#6A1B9A",
 };
 
 // Upper jaw: 18→11 (right to left for display), then 21→28 (left to right)
@@ -64,11 +64,13 @@ function ToothCell({
   status,
   onClick,
   readOnly,
+  ariaLabel,
 }: {
   fdi: number;
   status: ToothStatus;
   onClick?: () => void;
   readOnly?: boolean;
+  ariaLabel: string;
 }) {
   const fill = STATUS_COLORS[status];
   const stroke = STATUS_STROKE[status];
@@ -79,7 +81,7 @@ function ToothCell({
       onClick={readOnly ? undefined : onClick}
       style={{ cursor: readOnly ? "default" : "pointer" }}
       role={readOnly ? undefined : "button"}
-      aria-label={t("Răng {0} — {1}", fdi, status)}
+      aria-label={ariaLabel}
     >
       <rect
         width={TOOTH_W}
@@ -115,7 +117,7 @@ function ToothCell({
         y={TOOTH_H + 13}
         textAnchor="middle"
         fontSize={9}
-        fill="#6f7c90"
+        fill="#5E748E"
         fontFamily="Inter, sans-serif"
       >
         {fdi}
@@ -128,6 +130,7 @@ function buildRow(
   fdis: readonly number[],
   teeth: ToothRecord[],
   yOffset: number,
+  toothAriaLabel: (fdi: number, status: string) => string,
   onToothClick?: (fdi: number) => void,
   readOnly?: boolean,
 ) {
@@ -140,6 +143,7 @@ function buildRow(
         <ToothCell
           fdi={fdi}
           status={status}
+          ariaLabel={toothAriaLabel(fdi, status)}
           onClick={() => onToothClick?.(fdi)}
           readOnly={readOnly}
         />
@@ -164,6 +168,9 @@ export function DentalChartView({
   const lowerY = upperY + ROW_H + LABEL_OFFSET + 20;
   const totalH = lowerY + ROW_H + LABEL_OFFSET + 8;
 
+  const toothAriaLabel = (fdi: number, status: string) =>
+    t("Răng {0} — {1}", fdi, status);
+
   return (
     <div style={style} aria-label={t("Biểu đồ nha khoa 32 răng")}>
       <svg
@@ -173,10 +180,10 @@ export function DentalChartView({
       >
         {/* Upper jaw */}
         <g transform={`translate(0, ${upperY})`}>
-          {buildRow(UPPER_LEFT, teeth, 0, onToothClick, readOnly)}
+          {buildRow(UPPER_LEFT, teeth, 0, toothAriaLabel, onToothClick, readOnly)}
         </g>
         <g transform={`translate(${HALF_W + DIVIDER}, ${upperY})`}>
-          {buildRow(UPPER_RIGHT, teeth, 0, onToothClick, readOnly)}
+          {buildRow(UPPER_RIGHT, teeth, 0, toothAriaLabel, onToothClick, readOnly)}
         </g>
 
         {/* Center line */}
@@ -185,17 +192,17 @@ export function DentalChartView({
           y1={upperY - 4}
           x2={TOTAL_W / 2}
           y2={lowerY + TOOTH_H + 4}
-          stroke="#e2e8f0"
+          stroke="#C5D5E4"
           strokeWidth={1.5}
           strokeDasharray="4,3"
         />
 
         {/* Lower jaw */}
         <g transform={`translate(0, ${lowerY})`}>
-          {buildRow(LOWER_LEFT, teeth, 0, onToothClick, readOnly)}
+          {buildRow(LOWER_LEFT, teeth, 0, toothAriaLabel, onToothClick, readOnly)}
         </g>
         <g transform={`translate(${HALF_W + DIVIDER}, ${lowerY})`}>
-          {buildRow(LOWER_RIGHT, teeth, 0, onToothClick, readOnly)}
+          {buildRow(LOWER_RIGHT, teeth, 0, toothAriaLabel, onToothClick, readOnly)}
         </g>
 
         {/* Jaw labels */}
@@ -204,20 +211,20 @@ export function DentalChartView({
           y={upperY - 8}
           textAnchor="middle"
           fontSize={10}
-          fill="#98a4b4"
+          fill="#8FA8C0"
           fontFamily="Inter, sans-serif"
         >
-          {t("Hàm trên")}
+          {t("Hàm Trên")}
         </text>
         <text
           x={TOTAL_W / 2}
           y={lowerY - 8}
           textAnchor="middle"
           fontSize={10}
-          fill="#98a4b4"
+          fill="#8FA8C0"
           fontFamily="Inter, sans-serif"
         >
-          {t("Hàm dưới")}
+          {t("Hàm Dưới")}
         </text>
       </svg>
     </div>

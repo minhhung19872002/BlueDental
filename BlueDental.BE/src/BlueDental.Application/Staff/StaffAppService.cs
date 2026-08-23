@@ -14,14 +14,14 @@ using Volo.Abp.Domain.Repositories;
 
 namespace BlueDental.Staff;
 
-[Authorize]
+[Authorize(BlueDentalPermissions.Staff.Default)]
 public class StaffAppService(
     IIdentityUserRepository userRepository,
     IdentityUserManager userManager,
     IIdentityRoleRepository roleRepository,
     IRepository<StaffBranchAssignment, Guid> assignmentRepository) : ApplicationService, IStaffAppService
 {
-    [Authorize(BlueDentalAbilityPermissions.Staff.Read)]
+    [Authorize(BlueDentalPermissions.Staff.View)]
     public async Task<PagedResultDto<StaffDto>> GetListAsync(GetStaffListInput input)
     {
         var users = await userRepository.GetListAsync(
@@ -41,7 +41,7 @@ public class StaffAppService(
         return new PagedResultDto<StaffDto>(totalCount, dtos);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.Staff.Read)]
+    [Authorize(BlueDentalPermissions.Staff.View)]
     public async Task<StaffDto> GetAsync(Guid id)
     {
         var user = await userRepository.GetAsync(id);

@@ -65,7 +65,6 @@ export interface RegisterPatientRequest {
   phoneNumber?: string;
   email?: string;
   nationalId?: string;
-  branchId: string;
 }
 
 export type UpdatePatientRequest = Partial<RegisterPatientRequest>;

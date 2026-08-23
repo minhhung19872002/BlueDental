@@ -125,6 +125,36 @@ const ChangePasswordPage = lazy(() =>
   })),
 );
 
+const IdentityAdministrationPage = lazy(() =>
+  import("@/features/identity/pages").then((m) => ({
+    default: m.IdentityAdministrationPage,
+  })),
+);
+
+const AuditLogPage = lazy(() =>
+  import("@/features/audit-logs/pages").then((m) => ({
+    default: m.AuditLogPage,
+  })),
+);
+
+const TimekeepingPage = lazy(() =>
+  import("@/features/timekeeping/pages/TimekeepingPage").then((m) => ({
+    default: m.TimekeepingPage,
+  })),
+);
+
+const SettingsPage = lazy(() =>
+  import("@/features/settings/pages/SettingsPage").then((m) => ({
+    default: m.SettingsPage,
+  })),
+);
+
+const OrganizationListPage = lazy(() =>
+  import("@/features/organizations/pages/OrganizationListPage").then((m) => ({
+    default: m.OrganizationListPage,
+  })),
+);
+
 function RouteLoading() {
   return (
     <div style={{ minHeight: 200, display: "grid", placeItems: "center" }}>
@@ -201,7 +231,7 @@ const appRoutes: RouteObject[] = [
           </S>
         ),
       },
-      // ── Stubs matching reference routes ──
+      // ── Feature routes ──
       {
         path: "cskh-grouping",
         element: (
@@ -299,6 +329,52 @@ const appRoutes: RouteObject[] = [
         element: (
           <S>
             <DashboardPage />
+          </S>
+        ),
+      },
+      // ── Identity Administration ──
+      {
+        path: "identity",
+        element: (
+          <S>
+            <IdentityAdministrationPage />
+          </S>
+        ),
+      },
+      // ── Audit Logs ──
+      {
+        path: "audit-logs",
+        element: (
+          <S>
+            <AuditLogPage />
+          </S>
+        ),
+      },
+      // ── Billing ──
+      // ── Timekeeping ──
+      {
+        path: "timekeeping",
+        element: (
+          <S>
+            <TimekeepingPage />
+          </S>
+        ),
+      },
+      // ── Settings ──
+      {
+        path: "settings",
+        element: (
+          <S>
+            <SettingsPage />
+          </S>
+        ),
+      },
+      // ── Organizations ──
+      {
+        path: "organizations",
+        element: (
+          <S>
+            <OrganizationListPage />
           </S>
         ),
       },

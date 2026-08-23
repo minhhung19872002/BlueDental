@@ -14,6 +14,15 @@ export const DateViewSelector: React.FC = () => {
   const [viewMode, setViewMode] = useState<"day" | "week" | "month">("day");
   const [currentDate, setCurrentDate] = useState(dayjs());
 
+  const dayLabel = t("Ngày");
+  const weekLabel = t("Tuần");
+  const monthLabel = t("Tháng");
+
+  const viewOptions = [dayLabel, weekLabel, monthLabel];
+
+  const segmentedValue =
+    viewMode === "day" ? dayLabel : viewMode === "week" ? weekLabel : monthLabel;
+
   const handlePrev = () => {
     if (viewMode === "day") setCurrentDate(currentDate.subtract(1, "day"));
     else if (viewMode === "week") setCurrentDate(currentDate.subtract(1, "week"));
@@ -33,7 +42,7 @@ export const DateViewSelector: React.FC = () => {
   const formatDateDisplay = () => {
     if (viewMode === "day") {
       const isToday = currentDate.isSame(dayjs(), "day");
-      return `${isToday ? `${t("Hôm nay")} ` : ""}(${currentDate.format("DD/MM/YYYY")})`;
+      return `${isToday ? t("Hôm nay") + " " : ""}(${currentDate.format("DD/MM/YYYY")})`;
     }
     if (viewMode === "week") {
       const start = currentDate.startOf("week").format("DD/MM");
@@ -58,13 +67,13 @@ export const DateViewSelector: React.FC = () => {
       }}
     >
       <Segmented
-        value={viewMode}
-        onChange={(val) => setViewMode(val as "day" | "week" | "month")}
-        options={[
-          { value: "day", label: t("Ngày") },
-          { value: "week", label: t("Tuần") },
-          { value: "month", label: t("Tháng") },
-        ]}
+        value={segmentedValue}
+        onChange={(val) => {
+          if (val === dayLabel) setViewMode("day");
+          else if (val === weekLabel) setViewMode("week");
+          else setViewMode("month");
+        }}
+        options={viewOptions}
         style={{ fontWeight: 600 }}
       />
 
@@ -79,7 +88,7 @@ export const DateViewSelector: React.FC = () => {
         <Button
           size="small"
           onClick={handleToday}
-          style={{ fontWeight: 600, borderRadius: 6, color: "#1c3566" }}
+          style={{ fontWeight: 600, borderRadius: 6, color: "#2671D8" }}
         >
           {t("Hôm nay")}
         </Button>
@@ -92,8 +101,8 @@ export const DateViewSelector: React.FC = () => {
         />
 
         <Space size={6} style={{ marginLeft: 4 }}>
-          <CalendarOutlined style={{ color: "#1c3566", fontSize: 16 }} />
-          <Text strong style={{ color: "#101c2c", fontSize: 14 }}>
+          <CalendarOutlined style={{ color: "#2671D8", fontSize: 16 }} />
+          <Text strong style={{ color: "#0F172A", fontSize: 14 }}>
             {formatDateDisplay()}
           </Text>
         </Space>

@@ -29,3 +29,15 @@ export function usePatient(id: string) {
     enabled: Boolean(id),
   });
 }
+
+/**
+ * The patient exactly as the server sends it. usePatient adapts the row into
+ * the list's view model; the editor binds to the real field names.
+ */
+export function usePatientDto(id: string) {
+  return useQuery({
+    queryKey: [...patientKeys.detail(id), "dto"],
+    queryFn: () => patientApi.get(id),
+    enabled: Boolean(id),
+  });
+}

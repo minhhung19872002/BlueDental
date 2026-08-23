@@ -3,15 +3,16 @@ using BlueDental.Billing;
 using BlueDental.Catalogs;
 using BlueDental.CustomerCare;
 using BlueDental.FileManagement;
+using BlueDental.Finance;
 using BlueDental.Inventory;
 using BlueDental.Labo;
 using BlueDental.Notifications;
 using BlueDental.Operations;
 using BlueDental.Organizations;
 using BlueDental.PatientManagement;
-using BlueDental.Finance;
 using BlueDental.Promotions;
 using BlueDental.Timekeeping;
+using BlueDental.Tools;
 using BlueDental.TreatmentManagement;
 using BlueDental.Visits;
 using Microsoft.EntityFrameworkCore;
@@ -47,12 +48,23 @@ public class BlueDentalDbContext :
 
     // Organizations
     public DbSet<ClinicBranch> ClinicBranches { get; set; }
+    public DbSet<Department> Departments { get; set; }
     public DbSet<StaffBranchAssignment> StaffBranchAssignments { get; set; }
 
     // Catalogs
     public DbSet<DentalProcedure> DentalProcedures { get; set; }
     public DbSet<InsurancePlan> InsurancePlans { get; set; }
     public DbSet<Medication> Medications { get; set; }
+    public DbSet<PatientSource> PatientSources { get; set; }
+    public DbSet<Occupation> Occupations { get; set; }
+    public DbSet<PaymentMethodOption> PaymentMethods { get; set; }
+    public DbSet<PatientTag> PatientTags { get; set; }
+    public DbSet<Diagnosis> Diagnoses { get; set; }
+    public DbSet<MedicationType> MedicationTypes { get; set; }
+    public DbSet<ConsultingData> ConsultingDataItems { get; set; }
+    public DbSet<MedicalHistoryType> MedicalHistoryTypes { get; set; }
+    public DbSet<PrescriptionTemplate> PrescriptionTemplates { get; set; }
+    public DbSet<MedicalRecordTemplate> MedicalRecordTemplates { get; set; }
     public DbSet<Taxonomy> Taxonomies { get; set; }
     public DbSet<CatalogEntry> CatalogEntries { get; set; }
 
@@ -66,19 +78,17 @@ public class BlueDentalDbContext :
     public DbSet<TreatmentPlan> TreatmentPlans { get; set; }
     public DbSet<TreatmentRecord> TreatmentRecords { get; set; }
     public DbSet<Prescription> Prescriptions { get; set; }
-    public DbSet<PrescriptionItem> PrescriptionItems { get; set; }
+    public DbSet<DiagnosticRecord> DiagnosticRecords { get; set; }
+    public DbSet<ConsultationRecord> ConsultationRecords { get; set; }
     public DbSet<PatientDiagnosis> PatientDiagnoses { get; set; }
     public DbSet<TreatmentStage> TreatmentStages { get; set; }
-    public DbSet<TreatmentService> TreatmentServices { get; set; }
-    public DbSet<PatientPayment> PatientPayments { get; set; }
-    public DbSet<PatientImage> PatientImages { get; set; }
     public DbSet<PatientAdvise> PatientAdvises { get; set; }
     public DbSet<AdviseGroup> AdviseGroups { get; set; }
 
     // Timekeeping
     public DbSet<TimeKeepingRecord> TimeKeepingRecords { get; set; }
 
-    // Finance (thu chi, luan chuyen dong tien)
+    // Finance
     public DbSet<SalesEntry> SalesEntries { get; set; }
     public DbSet<CashflowCategory> CashflowCategories { get; set; }
     public DbSet<CashflowEntry> CashflowEntries { get; set; }
@@ -86,16 +96,13 @@ public class BlueDentalDbContext :
     // Promotions
     public DbSet<Voucher> Vouchers { get; set; }
 
-    // Quan tri van hanh
-    public DbSet<OperationsArticle> OperationsArticles { get; set; }
-    public DbSet<OperationsTask> OperationsTasks { get; set; }
-
     // Billing
     public DbSet<Invoice> Invoices { get; set; }
     public DbSet<InsuranceClaim> InsuranceClaims { get; set; }
 
     // Inventory
     public DbSet<InventoryItem> InventoryItems { get; set; }
+    public DbSet<MaterialAllocation> MaterialAllocations { get; set; }
 
     // Notifications
     public DbSet<Notification> Notifications { get; set; }
@@ -108,9 +115,27 @@ public class BlueDentalDbContext :
 
     // Labo
     public DbSet<LaboOrder> LaboOrders { get; set; }
+    public DbSet<LaboSupplier> LaboSuppliers { get; set; }
+    public DbSet<LaboBiteType> LaboBiteTypes { get; set; }
+    public DbSet<LaboFinishLine> LaboFinishLines { get; set; }
+    public DbSet<LaboRhythmType> LaboRhythmTypes { get; set; }
+    public DbSet<LaboMaterial> LaboMaterials { get; set; }
 
     // Customer Care
     public DbSet<CareRecord> CareRecords { get; set; }
+    public DbSet<CskhGroup> CskhGroups { get; set; }
+
+    // Operations
+    public DbSet<OperationCategory> OperationCategories { get; set; }
+    public DbSet<OperationArticle> OperationArticles { get; set; }
+    public DbSet<OperationsArticle> OperationsArticles { get; set; }
+    public DbSet<OperationsTask> OperationsTasks { get; set; }
+
+    // Tools
+    public DbSet<CallAssignment> CallAssignments { get; set; }
+    public DbSet<CallLog> CallLogs { get; set; }
+    public DbSet<MessageTemplate> MessageTemplates { get; set; }
+    public DbSet<MessageLog> MessageLogs { get; set; }
 
     public BlueDentalDbContext(DbContextOptions<BlueDentalDbContext> options)
         : base(options)

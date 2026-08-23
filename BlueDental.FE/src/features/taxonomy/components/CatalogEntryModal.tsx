@@ -121,7 +121,7 @@ export function CatalogEntryModal({
   return (
     <Modal
       open={open}
-      title={`${isEdit ? t("Sửa") : t("Thêm")} ${entityNoun.toLowerCase()}`}
+      title={isEdit ? t("Sửa {0}", entityNoun.toLowerCase()) : t("Thêm {0}", entityNoun.toLowerCase())}
       okText={isEdit ? t("Lưu") : t("Thêm")}
       cancelText={t("Huỷ")}
       confirmLoading={createEntry.isPending || updateEntry.isPending}

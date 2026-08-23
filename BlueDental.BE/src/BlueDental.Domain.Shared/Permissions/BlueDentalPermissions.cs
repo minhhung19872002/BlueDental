@@ -158,6 +158,34 @@ public static class BlueDentalPermissions
         public const string Manage = Default + ".Manage";
     }
 
+    public static class Finance
+    {
+        public const string Default = GroupName + ".Finance";
+        public const string View = Default + ".View";
+        public const string Manage = Default + ".Manage";
+    }
+
+    public static class Promotions
+    {
+        public const string Default = GroupName + ".Promotions";
+        public const string View = Default + ".View";
+        public const string Manage = Default + ".Manage";
+    }
+
+    public static class Timekeeping
+    {
+        public const string Default = GroupName + ".Timekeeping";
+        public const string View = Default + ".View";
+        public const string Manage = Default + ".Manage";
+    }
+
+    public static class Tools
+    {
+        public const string Default = GroupName + ".Tools";
+        public const string View = Default + ".View";
+        public const string Manage = Default + ".Manage";
+    }
+
     public static class SystemAdministration
     {
         public const string Default = GroupName + ".SystemAdmin";

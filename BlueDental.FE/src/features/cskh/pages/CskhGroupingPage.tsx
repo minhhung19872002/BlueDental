@@ -1,37 +1,20 @@
 import { useState } from "react";
-import {
-  CARE_OUTCOME,
-  careOutcomeLabels,
-  CARE_STATUS,
-  careStatusConfig,
-  CARE_TYPE,
-  careTypeLabels,
-  useCareRecords,
-  useCareStats,
-  useFailCare,
-  useMarkCareContacted,
-  useMarkZaloSent,
-  useSucceedCare,
-  type CareOutcome,
-  type CareRecordDto,
-  type CareStatus,
-  type CareType as CareTypeCode,
-} from "../api/careApi";
-import { useCurrentBranchId } from "@/lib/clinicBranch";
-import { downloadFile } from "@/lib/download";
-import { extractApiError } from "@/lib/apiError";
-import { formatDate } from "@/utils/format";
-import { Button, Input, Select, Table, Tag, message } from "antd";
+import { Button, Input, Select, Spin, Table, Tag, Modal, Form, message, Popconfirm } from "antd";
 import {
   SearchOutlined,
   DownloadOutlined,
   LeftOutlined,
   RightOutlined,
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
 } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 import "dayjs/locale/vi";
+import { useCareRecordList } from "../api/careApi";
+import type { CareType as ApiCareType, CareStatus } from "../api/careApi";
+import { useDebounce } from "@/hooks/useDebounce";
 import { t } from "@/lib/i18n";
-import { PageHeader } from "@/components/PageHeader";
 
 dayjs.locale("vi");
 
@@ -45,45 +28,28 @@ type StatusFilter =
   | "failed"
   | "not-cared"
   | "zalo-sent";
+type CareType =
+  | "after-treatment"
+  | "birthday"
+  | "appointment-reminder"
+  | "periodic"
+  | "special";
 
-// ── Constants ──────────────────────────────────────────────────────────────
+// ── Static maps (keys only, labels resolved via t()) ──────────────────────
 
-const topTabs = (): { key: TopTab; label: string }[] => [
-  { key: "care", label: t("Chăm sóc khách hàng") },
-  { key: "grouping", label: t("Phân nhóm CSKH") },
-];
+const CARE_TYPE_MAP: Record<CareType, ApiCareType> = {
+  "after-treatment": "AfterTreatment",
+  "birthday": "Birthday",
+  "appointment-reminder": "AppointmentReminder",
+  "periodic": "Periodic",
+  "special": "Special",
+};
 
-const viewModes = (): { key: ViewMode; label: string }[] => [
-  { key: "day", label: t("Ngày") },
-  { key: "week", label: t("Tuần") },
-  { key: "month", label: t("Tháng") },
-];
-
-const statusFilters = (): { key: StatusFilter; label: string; count: number }[] => [
-  { key: "total", label: t("Tổng khách"), count: 0 },
-  { key: "success", label: t("Thành công"), count: 0 },
-  { key: "failed", label: t("Thất bại"), count: 0 },
-  { key: "not-cared", label: t("Chưa CS"), count: 0 },
-  { key: "zalo-sent", label: t("Đã gửi Zalo"), count: 0 },
-];
-
-const careTypes = (): { key: CareTypeCode; label: string }[] =>
-  (
-    [
-      CARE_TYPE.AfterTreatment,
-      CARE_TYPE.Birthday,
-      CARE_TYPE.AppointmentReminder,
-      CARE_TYPE.Periodic,
-      CARE_TYPE.Special,
-    ] as CareTypeCode[]
-  ).map((key) => ({ key, label: careTypeLabels()[key] }));
-
-/** The counter buttons double as status filters, as they do on the reference. */
-const STATUS_BY_FILTER: Record<string, CareStatus | undefined> = {
-  total: undefined,
-  success: CARE_STATUS.Succeeded,
-  failed: CARE_STATUS.Failed,
-  "not-cared": CARE_STATUS.New,
+const STATUS_MAP: Record<StatusFilter, CareStatus | undefined> = {
+  "total": undefined,
+  "success": "Completed",
+  "failed": "Cancelled",
+  "not-cared": "Pending",
   "zalo-sent": undefined,
 };
 
@@ -94,161 +60,70 @@ export function CskhGroupingPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("day");
   const [currentDate, setCurrentDate] = useState<Dayjs>(dayjs());
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("total");
-  const [careType, setCareType] = useState<CareTypeCode>(CARE_TYPE.AfterTreatment);
+  const [careType, setCareType] = useState<CareType>("after-treatment");
   const [keyword, setKeyword] = useState("");
+  const debouncedKeyword = useDebounce(keyword);
 
-  const branchId = useCurrentBranchId();
-  const markContacted = useMarkCareContacted();
-  const succeedCare = useSucceedCare();
-  const failCare = useFailCare();
-  const markZaloSent = useMarkZaloSent();
+  const TOP_TABS: { key: TopTab; label: string }[] = [
+    { key: "care",     label: t("Chăm sóc khách hàng") },
+    { key: "grouping", label: t("Phân nhóm CSKH") },
+  ];
 
-  // The date navigator bounds the query the same way the reference does.
-  const unit = viewMode === "day" ? "day" : viewMode === "week" ? "week" : "month";
-  const careParams = {
-    branchId,
-    type: careType,
-    status: STATUS_BY_FILTER[statusFilter],
-    fromDate: currentDate.startOf(unit).toISOString(),
-    toDate: currentDate.endOf(unit).toISOString(),
-    filter: keyword.trim() || undefined,
-    maxResultCount: 100,
-  };
+  const VIEW_MODES: { key: ViewMode; label: string }[] = [
+    { key: "day",   label: t("Ngày") },
+    { key: "week",  label: t("Tuần") },
+    { key: "month", label: t("Tháng") },
+  ];
 
-  const { data: careStats } = useCareStats({ ...careParams, status: undefined });
-  const { data: carePage, isLoading: careLoading } = useCareRecords(careParams);
+  const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
+    { key: "total",     label: t("Tổng khách") },
+    { key: "success",   label: t("Thành công") },
+    { key: "failed",    label: t("Thất bại") },
+    { key: "not-cared", label: t("Chưa CS") },
+    { key: "zalo-sent", label: t("Đã gửi Zalo") },
+  ];
 
-  const careRows = (carePage?.items ?? []).filter((row) =>
-    // "Đã gửi Zalo" is a flag, not a status, so it filters client-side.
-    statusFilter === "zalo-sent" ? row.zaloSentAt !== null : true,
-  );
+  const CARE_TYPES: { key: CareType; label: string }[] = [
+    { key: "after-treatment",      label: t("Sau điều trị") },
+    { key: "birthday",             label: t("Chúc mừng sinh nhật") },
+    { key: "appointment-reminder", label: t("Nhắc lịch hẹn") },
+    { key: "periodic",             label: t("CSKH định kì") },
+    { key: "special",              label: t("CSKH đặc biệt") },
+  ];
 
-  const run = async (action: Promise<unknown>, successMessage: string) => {
-    try {
-      await action;
-      message.success(successMessage);
-    } catch (error) {
-      message.error(extractApiError(error));
-    }
-  };
-
-  const careColumns = [
-    {
-      title: t("Ngày chăm sóc"),
-      dataIndex: "dueAt",
-      key: "dueAt",
-      width: 130,
-      render: (value: string | null, row: CareRecordDto) => formatDate(value ?? row.creationTime),
-    },
-    {
-      title: t("Họ và tên"),
-      dataIndex: "patientName",
-      key: "patientName",
-      render: (value: string | null) => value ?? "—",
-    },
-    {
-      title: t("Số điện thoại"),
-      dataIndex: "patientPhone",
-      key: "patientPhone",
-      width: 130,
-      render: (value: string | null) => value ?? "—",
-    },
-    {
-      title: t("Bác sĩ điều trị"),
-      dataIndex: "assignedStaffName",
-      key: "assignedStaffName",
-      width: 150,
-      render: (value: string | null) => value ?? "—",
-    },
-    {
-      title: t("Nhân viên chăm sóc"),
-      dataIndex: "careStaffName",
-      key: "careStaffName",
-      width: 160,
-      render: (value: string | null) => value ?? t("Không có"),
-    },
+  const TABLE_COLUMNS = [
+    { title: t("Ngày chăm sóc"),            dataIndex: "careDate",            key: "careDate" },
+    { title: t("Họ và tên"),         dataIndex: "fullName",            key: "fullName" },
+    { title: t("Số điện thoại"),             dataIndex: "phone",               key: "phone" },
+    { title: t("Bác sĩ điều trị"),      dataIndex: "doctor",              key: "doctor" },
+    { title: t("Lịch hẹn sắp tới"), dataIndex: "upcomingAppointment", key: "upcomingAppointment" },
     {
       title: t("Trạng thái"),
       dataIndex: "status",
       key: "status",
-      width: 140,
-      render: (status: CareStatus) => {
-        const config = careStatusConfig()[status];
-        return <Tag color={config.color}>{config.label}</Tag>;
-      },
+      render: (status: string | undefined) =>
+        status ? <Tag>{status}</Tag> : null,
     },
-    {
-      title: t("Đánh giá"),
-      dataIndex: "outcome",
-      key: "outcome",
-      width: 130,
-      render: (outcome: CareOutcome) => careOutcomeLabels()[outcome],
-    },
+    { title: t("Ghi chú"), dataIndex: "note", key: "note" },
     {
       title: t("Thao tác"),
       key: "actions",
-      width: 240,
-      render: (_: unknown, row: CareRecordDto) => (
-        <>
-          {row.status === CARE_STATUS.New && (
-            <Button
-              type="link"
-              size="small"
-              onClick={() => run(markContacted.mutateAsync(row.id), t("Đã ghi nhận liên hệ"))}
-            >
-              {t("Đã liên hệ")}
-            </Button>
-          )}
-          {(row.status === CARE_STATUS.New || row.status === CARE_STATUS.Contacted) && (
-            <>
-              <Button
-                type="link"
-                size="small"
-                onClick={() =>
-                  run(
-                    succeedCare.mutateAsync({ id: row.id, outcome: CARE_OUTCOME.Good }),
-                    t("Đã ghi nhận chăm sóc thành công"),
-                  )
-                }
-              >
-                {t("Thành công")}
-              </Button>
-              <Button
-                type="link"
-                size="small"
-                danger
-                onClick={() =>
-                  run(
-                    failCare.mutateAsync({ id: row.id, reason: t("Không liên hệ được") }),
-                    t("Đã ghi nhận thất bại"),
-                  )
-                }
-              >
-                {t("Thất bại")}
-              </Button>
-            </>
-          )}
-          {row.zaloSentAt === null && (
-            <Button
-              type="link"
-              size="small"
-              onClick={() => run(markZaloSent.mutateAsync(row.id), t("Đã ghi nhận gửi Zalo"))}
-            >
-              {t("Gửi Zalo")}
-            </Button>
-          )}
-        </>
+      render: () => (
+        <Button size="small" type="link">
+          {t("Chi tiết")}
+        </Button>
       ),
     },
   ];
 
-  const statusCounts: Record<StatusFilter, number> = {
-    total: careStats?.totalPatients ?? 0,
-    success: careStats?.succeeded ?? 0,
-    failed: careStats?.failed ?? 0,
-    "not-cared": careStats?.notCaredYet ?? 0,
-    "zalo-sent": careStats?.zaloSent ?? 0,
-  };
+  const { data: careData, isLoading: careLoading } = useCareRecordList({
+    type: CARE_TYPE_MAP[careType],
+    status: STATUS_MAP[statusFilter],
+    filter: debouncedKeyword || undefined,
+    maxResultCount: 50,
+  });
+
+  const careRecords = careData?.items ?? [];
 
   const handlePrev = () => {
     if (viewMode === "day") setCurrentDate((d) => d.subtract(1, "day"));
@@ -269,24 +144,19 @@ export function CskhGroupingPage() {
 
   return (
     <div className="reception-page">
-      <PageHeader
-        title={t("Chăm sóc khách hàng")}
-        subtitle={t("Phân nhóm nhật ký chăm sóc theo mục đích liên hệ")}
-      />
-
       {/* Top-level tabs */}
       <div className="reception-card reception-card--tabs">
         <div style={{ display: "flex", gap: 0 }}>
-          {topTabs().map((tab) => (
+          {TOP_TABS.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setTopTab(tab.key)}
               style={{
                 padding: "8px 20px",
                 border: "none",
-                borderBottom: topTab === tab.key ? "2px solid #1c3566" : "2px solid transparent",
+                borderBottom: topTab === tab.key ? "2px solid #1677ff" : "2px solid transparent",
                 background: "none",
-                color: topTab === tab.key ? "#1c3566" : "#6f7c90",
+                color: topTab === tab.key ? "#1677ff" : "#595959",
                 fontWeight: topTab === tab.key ? 600 : 400,
                 cursor: "pointer",
                 fontSize: 14,
@@ -303,7 +173,7 @@ export function CskhGroupingPage() {
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {/* View mode buttons */}
           <div style={{ display: "flex", border: "1px solid #d9d9d9", borderRadius: 6, overflow: "hidden" }}>
-            {viewModes().map((vm) => (
+            {VIEW_MODES.map((vm) => (
               <button
                 key={vm.key}
                 onClick={() => setViewMode(vm.key)}
@@ -311,8 +181,8 @@ export function CskhGroupingPage() {
                   padding: "5px 14px",
                   border: "none",
                   borderRight: "1px solid #d9d9d9",
-                  background: viewMode === vm.key ? "#1c3566" : "#fff",
-                  color: viewMode === vm.key ? "#fff" : "#6f7c90",
+                  background: viewMode === vm.key ? "#1677ff" : "#fff",
+                  color: viewMode === vm.key ? "#fff" : "#595959",
                   cursor: "pointer",
                   fontSize: 13,
                   fontWeight: viewMode === vm.key ? 600 : 400,
@@ -344,41 +214,48 @@ export function CskhGroupingPage() {
       {/* Status counter buttons */}
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {statusFilters().map((sf) => (
-            <button
-              key={sf.key}
-              onClick={() => setStatusFilter(sf.key)}
-              style={{
-                padding: "6px 16px",
-                borderRadius: 20,
-                border: "1px solid",
-                borderColor: statusFilter === sf.key ? "#1c3566" : "#d9d9d9",
-                background: statusFilter === sf.key ? "#e6f4ff" : "#fff",
-                color: statusFilter === sf.key ? "#1c3566" : "#6f7c90",
-                cursor: "pointer",
-                fontSize: 13,
-                fontWeight: statusFilter === sf.key ? 600 : 400,
-              }}
-            >
-              {statusCounts[sf.key]} {sf.label}
-            </button>
-          ))}
+          {STATUS_FILTERS.map((sf) => {
+            const count = sf.key === "total" ? (careData?.totalCount ?? 0)
+              : sf.key === "success" ? careRecords.filter(r => r.status === "Completed").length
+              : sf.key === "failed" ? careRecords.filter(r => r.status === "Cancelled").length
+              : sf.key === "not-cared" ? careRecords.filter(r => r.status === "Pending").length
+              : 0;
+            return (
+              <button
+                key={sf.key}
+                onClick={() => setStatusFilter(sf.key)}
+                style={{
+                  padding: "6px 16px",
+                  borderRadius: 20,
+                  border: "1px solid",
+                  borderColor: statusFilter === sf.key ? "#1677ff" : "#d9d9d9",
+                  background: statusFilter === sf.key ? "#e6f4ff" : "#fff",
+                  color: statusFilter === sf.key ? "#1677ff" : "#595959",
+                  cursor: "pointer",
+                  fontSize: 13,
+                  fontWeight: statusFilter === sf.key ? 600 : 400,
+                }}
+              >
+                {count} {sf.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* Care type tabs */}
       <div className="reception-card reception-card--tabs">
         <div style={{ display: "flex", gap: 0, flexWrap: "wrap" }}>
-          {careTypes().map((ct) => (
+          {CARE_TYPES.map((ct) => (
             <button
               key={ct.key}
               onClick={() => setCareType(ct.key)}
               style={{
                 padding: "8px 16px",
                 border: "none",
-                borderBottom: careType === ct.key ? "2px solid #1c3566" : "2px solid transparent",
+                borderBottom: careType === ct.key ? "2px solid #1677ff" : "2px solid transparent",
                 background: "none",
-                color: careType === ct.key ? "#1c3566" : "#6f7c90",
+                color: careType === ct.key ? "#1677ff" : "#595959",
                 fontWeight: careType === ct.key ? 600 : 400,
                 cursor: "pointer",
                 fontSize: 13,
@@ -393,12 +270,7 @@ export function CskhGroupingPage() {
       {/* Toolbar row 2 */}
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Button
-            icon={<DownloadOutlined />}
-            onClick={() => void downloadFile("/v1/app/care-records/excel", "cskh.xlsx", careParams)}
-          >
-            {t("Xuất Excel")}
-          </Button>
+          <Button icon={<DownloadOutlined />}>{t("Xuất Excel")}</Button>
           <Input
             prefix={<SearchOutlined />}
             placeholder={t("Tìm kiếm...")}
@@ -419,20 +291,32 @@ export function CskhGroupingPage() {
       {/* Tab content */}
       {topTab === "care" && (
         <div className="reception-card reception-card--content">
-          <Table
-            columns={careColumns}
-            dataSource={careRows}
-            loading={careLoading}
-            rowKey="id"
-            pagination={{
-              pageSize: 20,
-              showSizeChanger: true,
-              pageSizeOptions: ["5", "10", "20", "25", "50", "100"],
-              showTotal: (total, range) => t("Hiển thị {0}–{1} trên {2} khách", range[0], range[1], total),
-            }}
-            locale={{ emptyText: t("Không có dữ liệu") }}
-            size="middle"
-          />
+          {careLoading ? (
+            <div style={{ textAlign: "center", padding: 48 }}><Spin /></div>
+          ) : (
+            <Table
+              columns={TABLE_COLUMNS}
+              dataSource={careRecords.map((r) => ({
+                id: r.id,
+                careDate: r.dueAt ? dayjs(r.dueAt).format("DD/MM/YYYY") : dayjs(r.creationTime).format("DD/MM/YYYY"),
+                fullName: r.patientName ?? "—",
+                phone: "—",
+                doctor: "—",
+                upcomingAppointment: "—",
+                status: r.status,
+                note: r.description ?? "—",
+              }))}
+              rowKey="id"
+              pagination={{
+                pageSize: 20,
+                showSizeChanger: true,
+                pageSizeOptions: ["10", "20", "50", "100"],
+                showTotal: (total, range) => t("Hiển thị {0}–{1} trên {2} khách", range[0], range[1], total),
+              }}
+              locale={{ emptyText: t("Không có dữ liệu") }}
+              size="middle"
+            />
+          )}
         </div>
       )}
 
@@ -441,52 +325,69 @@ export function CskhGroupingPage() {
   );
 }
 
-interface CskhGroup {
-  id: string;
-  name: string;
-  criteria: string;
-  patientCount: number;
-  status: "active" | "inactive";
-  createdAt: string;
-}
-
-const syntheticGroups = (): CskhGroup[] => [
-  { id: "g1", name: t("Sau điều trị Implant"), criteria: t("Bệnh nhân hoàn thành Implant trong 30 ngày"),        patientCount: 0, status: "active",   createdAt: "20/08/2026" },
-  { id: "g2", name: t("Sinh nhật tháng này"),  criteria: t("Bệnh nhân có sinh nhật trong tháng hiện tại"),       patientCount: 0, status: "active",   createdAt: "01/08/2026" },
-  { id: "g3", name: t("Tái khám định kỳ"),     criteria: t("Bệnh nhân chưa tái khám sau 6 tháng"),               patientCount: 0, status: "active",   createdAt: "15/07/2026" },
-  { id: "g4", name: t("Khách hàng VIP"),       criteria: t("Tổng chi tiêu >= 10.000.000 đ"),                     patientCount: 0, status: "active",   createdAt: "01/06/2026" },
-  { id: "g5", name: t("Nhắc niềng răng"),      criteria: t("Bệnh nhân chỉnh nha chưa đến hẹn điều chỉnh"),      patientCount: 0, status: "inactive", createdAt: "10/05/2026" },
-];
+import {
+  useCskhGroupList,
+  useCreateCskhGroup,
+  useUpdateCskhGroup,
+  useDeleteCskhGroup,
+  type CskhGroupDto,
+} from "../api/cskhGroupApi";
 
 function CskhGroupingPanel() {
   const [keyword, setKeyword] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<CskhGroupDto | null>(null);
+  const [form] = Form.useForm();
 
-  const filtered = syntheticGroups().filter((g) =>
-    g.name.toLowerCase().includes(keyword.toLowerCase()),
+  const { data, isLoading } = useCskhGroupList();
+  const createMutation = useCreateCskhGroup();
+  const updateMutation = useUpdateCskhGroup();
+  const deleteMutation = useDeleteCskhGroup();
+  const isEdit = Boolean(editingItem);
+
+  const filtered = (data?.items ?? []).filter((g) =>
+    !keyword || g.name.toLowerCase().includes(keyword.toLowerCase()),
   );
+
+  const handleOk = async () => {
+    try {
+      const values = await form.validateFields();
+      if (isEdit && editingItem) {
+        await updateMutation.mutateAsync({ id: editingItem.id, data: values });
+        message.success(t("Cập nhật nhóm thành công"));
+      } else {
+        await createMutation.mutateAsync(values);
+        message.success(t("Tạo nhóm thành công"));
+      }
+      form.resetFields(); setEditingItem(null); setModalOpen(false);
+    } catch { /* validation */ }
+  };
+
+  const handleDelete = async (id: string) => {
+    try { await deleteMutation.mutateAsync(id); message.success(t("Xóa thành công")); } catch { message.error(t("Xóa thất bại")); }
+  };
 
   const columns = [
     { title: t("Tên nhóm"), dataIndex: "name", key: "name", width: 220, render: (v: string) => <span style={{ fontWeight: 500 }}>{v}</span> },
-    { title: t("Tiêu chí phân nhóm"), dataIndex: "criteria", key: "criteria" },
-    { title: t("Số khách"), dataIndex: "patientCount", key: "patientCount", width: 100, align: "right" as const },
+    { title: t("Tiêu chí phân nhóm"), dataIndex: "criteria", key: "criteria", render: (v: string) => v ?? "—" },
     {
       title: t("Trạng thái"),
-      dataIndex: "status",
+      dataIndex: "isActive",
       key: "status",
       width: 120,
-      render: (v: string) => (
-        <Tag color={v === "active" ? "green" : "default"}>{v === "active" ? t("Đang dùng") : t("Tạm dừng")}</Tag>
+      render: (v: boolean) => (
+        <Tag color={v ? "green" : "default"}>{v ? t("Đang dùng") : t("Tạm dừng")}</Tag>
       ),
     },
-    { title: t("Ngày tạo"), dataIndex: "createdAt", key: "createdAt", width: 120 },
+    { title: t("Ngày"), dataIndex: "creationTime", key: "createdAt", width: 120, render: (v: string) => v ? dayjs(v).format("DD/MM/YYYY") : "—" },
     {
-      title: t("Thao tác"),
-      key: "actions",
-      width: 140,
-      render: () => (
+      title: t("Thao tác"), key: "actions", width: 140,
+      render: (_: unknown, record: CskhGroupDto) => (
         <div style={{ display: "flex", gap: 6 }}>
-          <Button size="small">{t("Chỉnh sửa")}</Button>
-          <Button size="small" danger>{t("Xóa")}</Button>
+          <Button size="small" icon={<EditOutlined />} onClick={() => { setEditingItem(record); setModalOpen(true); }} />
+          <Popconfirm title={t("Xóa nhóm CSKH?")} onConfirm={() => handleDelete(record.id)} okText={t("Xóa")} cancelText={t("Hủy")} okButtonProps={{ danger: true }}>
+            <Button size="small" danger icon={<DeleteOutlined />} />
+          </Popconfirm>
         </div>
       ),
     },
@@ -496,27 +397,26 @@ function CskhGroupingPanel() {
     <>
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Input
-            prefix={<SearchOutlined />}
-            placeholder={t("Tìm nhóm CSKH...")}
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            style={{ width: 260 }}
-            allowClear
-          />
-          <Button type="primary" style={{ marginLeft: "auto" }}>{t("Tạo nhóm mới")}</Button>
+          <Input prefix={<SearchOutlined />} placeholder={t("Tìm nhóm CSKH...")} value={keyword} onChange={(e) => setKeyword(e.target.value)} style={{ width: 260 }} allowClear />
+          <Button type="primary" icon={<PlusOutlined />} style={{ marginLeft: "auto" }} onClick={() => { setEditingItem(null); form.resetFields(); setModalOpen(true); }}>{t("Tạo nhóm mới")}</Button>
         </div>
       </div>
       <div className="reception-card reception-card--content">
-        <Table<CskhGroup>
-          columns={columns}
-          dataSource={filtered}
-          rowKey="id"
-          size="middle"
+        <Table columns={columns} dataSource={filtered} rowKey="id" size="middle" loading={isLoading}
           pagination={{ pageSize: 20, showTotal: (total) => t("{0} nhóm", total) }}
-          locale={{ emptyText: t("Chưa có nhóm CSKH nào") }}
-        />
+          locale={{ emptyText: t("Chưa có nhóm CSKH nào") }} />
       </div>
+      <Modal title={isEdit ? t("Chỉnh sửa nhóm CSKH") : t("Tạo nhóm CSKH mới")} open={modalOpen}
+        onCancel={() => { form.resetFields(); setEditingItem(null); setModalOpen(false); }}
+        onOk={handleOk} confirmLoading={createMutation.isPending || updateMutation.isPending}
+        okText={isEdit ? t("Lưu") : t("Tạo nhóm")} cancelText={t("Hủy")} width={500} destroyOnClose
+        afterOpenChange={(visible) => { if (visible && editingItem) form.setFieldsValue(editingItem); }}>
+        <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
+          <Form.Item name="name" label={t("Tên nhóm")} rules={[{ required: true, message: t("Nhập tên nhóm") }]}><Input placeholder={t("Nhập tên nhóm")} /></Form.Item>
+          <Form.Item name="criteria" label={t("Tiêu chí phân nhóm")}><Input.TextArea rows={2} placeholder={t("Nhập tiêu chí phân nhóm")} /></Form.Item>
+          <Form.Item name="description" label={t("Mô tả")}><Input.TextArea rows={2} placeholder={t("Mô tả")} /></Form.Item>
+        </Form>
+      </Modal>
     </>
   );
 }

@@ -9,7 +9,6 @@ using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
-using Volo.Abp.Identity;
 
 namespace BlueDental.Finance;
 
@@ -17,38 +16,33 @@ namespace BlueDental.Finance;
 /// Luân chuyển dòng tiền — deposits, withdrawals and transfers between the
 /// clinic's holdings, plus the balance and overview panels.
 /// </summary>
-[Authorize]
+[Authorize(BlueDentalPermissions.Finance.Default)]
 public class CashManagementAppService : ApplicationService, ICashManagementAppService
 {
     private readonly IRepository<CashflowEntry, Guid> _repository;
     private readonly IRepository<CashflowCategory, Guid> _categoryRepository;
-    private readonly IIdentityUserRepository _userRepository;
-    private readonly BranchAccessChecker _branchAccess;
+    private readonly ICurrentClinicBranchResolver _branchResolver;
 
     public CashManagementAppService(
         IRepository<CashflowEntry, Guid> repository,
         IRepository<CashflowCategory, Guid> categoryRepository,
-        IIdentityUserRepository userRepository,
-        BranchAccessChecker branchAccess)
+        ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
         _categoryRepository = categoryRepository;
-        _userRepository = userRepository;
-        _branchAccess = branchAccess;
+        _branchResolver = branchResolver;
     }
 
-    [Authorize(BlueDentalAbilityPermissions.ReportTransfer.Read)]
+    [Authorize(BlueDentalPermissions.Finance.View)]
     public async Task<CashBalanceDto> GetBalanceAsync(Guid clinicBranchId)
     {
-        await _branchAccess.CheckAsync(clinicBranchId);
-
         var query = await _repository.GetQueryableAsync();
         var entries = query.Where(x => x.ClinicBranchId == clinicBranchId).ToList();
 
         return BuildBalance(entries);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.ReportTransfer.Read)]
+    [Authorize(BlueDentalPermissions.Finance.View)]
     public async Task<CashflowOverviewDto> GetOverviewAsync(GetCashflowEntryListInput input)
     {
         var query = await BuildQueryAsync(input);
@@ -79,7 +73,7 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
         };
     }
 
-    [Authorize(BlueDentalAbilityPermissions.ReportTransfer.Read)]
+    [Authorize(BlueDentalPermissions.Finance.View)]
     public async Task<PagedResultDto<CashflowEntryDto>> GetEntriesAsync(GetCashflowEntryListInput input)
     {
         var query = await BuildQueryAsync(input);
@@ -93,41 +87,32 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
             .ToList();
 
         var categoryNames = await GetCategoryNamesAsync(items);
-        var staffNames = await GetStaffNamesAsync(items);
 
         return new PagedResultDto<CashflowEntryDto>(
             totalCount,
-            items.Select(x => MapToDto(x, categoryNames, staffNames)).ToList());
+            items.Select(x => MapToDto(x, categoryNames)).ToList());
     }
 
+    [Authorize(BlueDentalPermissions.Finance.Manage)]
     public async Task<CashflowEntryDto> CreateEntryAsync(CreateCashflowEntryDto input)
     {
-        await _branchAccess.CheckAsync(input.ClinicBranchId);
-
-        // The reference gives each cash operation its own action on reportTransfer.
-        await AuthorizationService.CheckAsync(input.TransactionType switch
-        {
-            CashTransactionType.Deposit => BlueDentalAbilityPermissions.ReportTransfer.Deposit,
-            CashTransactionType.Withdraw => BlueDentalAbilityPermissions.ReportTransfer.Withdraw,
-            _ => BlueDentalAbilityPermissions.ReportTransfer.Transfer
-        });
-
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
         var id = GuidGenerator.Create();
 
         var entry = input.TransactionType switch
         {
             CashTransactionType.Deposit => CashflowEntry.Deposit(
-                id, input.ClinicBranchId,
+                id, clinicBranchId,
                 RequireHolding(input.ToHolding, "toHolding"),
                 input.Amount, input.CreatedByStaffId, input.EntryDate, input.CategoryId, input.Note),
 
             CashTransactionType.Withdraw => CashflowEntry.Withdraw(
-                id, input.ClinicBranchId,
+                id, clinicBranchId,
                 RequireHolding(input.FromHolding, "fromHolding"),
                 input.Amount, input.CreatedByStaffId, input.EntryDate, input.CategoryId, input.Note),
 
             CashTransactionType.Transfer => CashflowEntry.Transfer(
-                id, input.ClinicBranchId,
+                id, clinicBranchId,
                 RequireHolding(input.FromHolding, "fromHolding"),
                 RequireHolding(input.ToHolding, "toHolding"),
                 input.Amount, input.CreatedByStaffId, input.EntryDate, input.CategoryId, input.Note),
@@ -138,10 +123,10 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
         };
 
         await _repository.InsertAsync(entry, autoSave: true);
-        return MapToDto(entry, new Dictionary<Guid, string>(), new Dictionary<Guid, string>());
+        return MapToDto(entry, new Dictionary<Guid, string>());
     }
 
-    [Authorize(BlueDentalAbilityPermissions.ReportTransfer.Delete)]
+    [Authorize(BlueDentalPermissions.Finance.Manage)]
     public async Task DeleteEntryAsync(Guid id)
     {
         await _repository.DeleteAsync(id, autoSave: true);
@@ -149,12 +134,10 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
 
     private async Task<IQueryable<CashflowEntry>> BuildQueryAsync(GetCashflowEntryListInput input)
     {
-        var branchFilter = await _branchAccess.ResolveFilterAsync(input.ClinicBranchId);
-
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
 
-        if (branchFilter.Count > 0)
-            query = query.Where(x => branchFilter.Contains(x.ClinicBranchId));
+        query = query.Where(x => x.ClinicBranchId == clinicBranchId);
         if (input.TransactionType.HasValue)
             query = query.Where(x => x.TransactionType == input.TransactionType.Value);
         if (input.CategoryId.HasValue)
@@ -190,20 +173,6 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
             .ToDictionary(c => c.Id, c => c.Name);
     }
 
-    private async Task<Dictionary<Guid, string>> GetStaffNamesAsync(
-        IReadOnlyCollection<CashflowEntry> entries)
-    {
-        var ids = entries.Select(x => x.CreatedByStaffId).Distinct().ToList();
-
-        if (ids.Count == 0)
-        {
-            return new Dictionary<Guid, string>();
-        }
-
-        var users = await _userRepository.GetListByIdsAsync(ids);
-        return users.ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
-    }
-
     private static CashBalanceDto BuildBalance(IReadOnlyCollection<CashflowEntry> entries)
     {
         var cash = entries.Sum(x => x.EffectOn(CashHolding.Cash));
@@ -229,8 +198,7 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
 
     private static CashflowEntryDto MapToDto(
         CashflowEntry entity,
-        IReadOnlyDictionary<Guid, string> categoryNames,
-        IReadOnlyDictionary<Guid, string> staffNames) => new()
+        IReadOnlyDictionary<Guid, string> categoryNames) => new()
     {
         Id = entity.Id,
         ClinicBranchId = entity.ClinicBranchId,
@@ -243,7 +211,6 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
             ? name
             : null,
         CreatedByStaffId = entity.CreatedByStaffId,
-        CreatedByStaffName = staffNames.TryGetValue(entity.CreatedByStaffId, out var staffName) ? staffName : null,
         EntryDate = entity.EntryDate,
         Note = entity.Note,
         CreationTime = entity.CreationTime,

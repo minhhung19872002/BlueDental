@@ -4,12 +4,14 @@ using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Appointments.Values;
 using BlueDental.Catalogs;
+using BlueDental.Organizations;
 using BlueDental.PatientManagement;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
+using Volo.Abp.Domain.Entities;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Identity;
 
@@ -23,29 +25,33 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     private readonly IRepository<DentalProcedure, Guid> _procedureRepository;
     private readonly IIdentityUserRepository _userRepository;
     private readonly AppointmentConflictChecker _conflictChecker;
+    private readonly ICurrentClinicBranchResolver _branchResolver;
 
     public AppointmentAppService(
         IRepository<Appointment, Guid> repository,
         IRepository<Patient, Guid> patientRepository,
         IRepository<DentalProcedure, Guid> procedureRepository,
         IIdentityUserRepository userRepository,
-        AppointmentConflictChecker conflictChecker)
+        AppointmentConflictChecker conflictChecker,
+        ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
         _patientRepository = patientRepository;
         _procedureRepository = procedureRepository;
         _userRepository = userRepository;
         _conflictChecker = conflictChecker;
+        _branchResolver = branchResolver;
     }
 
     [Authorize(BlueDentalAbilityPermissions.Appointment.Read)]
     public async Task<PagedResultDto<AppointmentDto>> GetListAsync(GetAppointmentListInput input)
     {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
 
+        query = query.Where(a => a.BranchId == branchId);
         if (input.PatientId.HasValue) query = query.Where(a => a.PatientId == input.PatientId.Value);
         if (input.DentistId.HasValue) query = query.Where(a => a.DentistId == input.DentistId.Value);
-        if (input.BranchId.HasValue) query = query.Where(a => a.BranchId == input.BranchId.Value);
         if (input.Status.HasValue) query = query.Where(a => a.Status == input.Status.Value);
 
         // The calendar asks for one day or one week; without this the grids were
@@ -188,12 +194,14 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     public async Task<AppointmentDto> GetAsync(Guid id)
     {
         var appointment = await _repository.GetAsync(id);
+        GuardBranchAccess(appointment);
         return await ToDtoAsync(appointment);
     }
 
     [Authorize(BlueDentalAbilityPermissions.Appointment.Create)]
     public async Task<AppointmentDto> CreateAsync(CreateAppointmentDto input)
     {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
         var slot = new AppointmentSlot(input.SlotStart, input.SlotEnd);
 
         if (await _conflictChecker.HasDentistConflictAsync(input.DentistId, slot))
@@ -214,7 +222,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
             GuidGenerator.Create(),
             input.PatientId,
             input.DentistId,
-            input.BranchId,
+            branchId,
             slot,
             input.Type,
             input.ProcedureId,
@@ -228,6 +236,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     public async Task<AppointmentDto> UpdateAsync(Guid id, UpdateAppointmentDto input)
     {
         var appointment = await _repository.GetAsync(id);
+        GuardBranchAccess(appointment);
         var slot = new AppointmentSlot(input.SlotStart, input.SlotEnd);
         appointment.Reschedule(slot, input.DentistId);
         await _repository.UpdateAsync(appointment, autoSave: true);
@@ -238,6 +247,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     public async Task<AppointmentDto> ConfirmAsync(Guid id)
     {
         var appointment = await _repository.GetAsync(id);
+        GuardBranchAccess(appointment);
         appointment.Confirm();
         await _repository.UpdateAsync(appointment, autoSave: true);
         return await ToDtoAsync(appointment);
@@ -247,6 +257,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     public async Task<AppointmentDto> CancelAsync(Guid id, CancelAppointmentDto input)
     {
         var appointment = await _repository.GetAsync(id);
+        GuardBranchAccess(appointment);
         appointment.Cancel(input.Reason, input.Note);
         await _repository.UpdateAsync(appointment, autoSave: true);
         return await ToDtoAsync(appointment);
@@ -256,6 +267,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     public async Task<AppointmentDto> CheckInAsync(Guid id)
     {
         var appointment = await _repository.GetAsync(id);
+        GuardBranchAccess(appointment);
         appointment.CheckIn();
         await _repository.UpdateAsync(appointment, autoSave: true);
         return await ToDtoAsync(appointment);
@@ -265,6 +277,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     public async Task<AppointmentDto> StartAsync(Guid id)
     {
         var appointment = await _repository.GetAsync(id);
+        GuardBranchAccess(appointment);
         appointment.Start();
         await _repository.UpdateAsync(appointment, autoSave: true);
         return await ToDtoAsync(appointment);
@@ -274,6 +287,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     public async Task<AppointmentDto> CompleteAsync(Guid id, CompleteAppointmentDto input)
     {
         var appointment = await _repository.GetAsync(id);
+        GuardBranchAccess(appointment);
         appointment.Complete(input.Notes);
         await _repository.UpdateAsync(appointment, autoSave: true);
         return await ToDtoAsync(appointment);
@@ -283,8 +297,16 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     public async Task<AppointmentDto> MarkNoShowAsync(Guid id)
     {
         var appointment = await _repository.GetAsync(id);
+        GuardBranchAccess(appointment);
         appointment.MarkNoShow();
         await _repository.UpdateAsync(appointment, autoSave: true);
         return await ToDtoAsync(appointment);
+    }
+
+    private void GuardBranchAccess(Appointment entity)
+    {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
+        if (entity.BranchId != branchId)
+            throw new EntityNotFoundException(typeof(Appointment), entity.Id);
     }
 }

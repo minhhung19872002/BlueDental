@@ -1,11 +1,11 @@
 import React from "react";
 import { SearchSelect } from "@/components/SearchSelect";
+import { t } from "@/lib/i18n";
 import type {
   ReceptionStatus,
   ReceptionMetrics,
   ReceptionCounters,
 } from "../types/reception";
-import { t } from "@/lib/i18n";
 
 interface DoctorOption {
   id: string;
@@ -24,33 +24,30 @@ interface ReceptionStatusTabsProps {
 
 interface TabConfig {
   key: ReceptionStatus;
-  label: string;
   countKey: "totalCount" | "waitingCount" | "inProgressCount" | "completedCount";
-  testId: string;
 }
 
-const tabs = (): TabConfig[] => [
-  { key: "All", label: t("Tất cả"), countKey: "totalCount", testId: "reception-metric-total" },
-  { key: "WaitingForExam", label: t("Chờ khám"), countKey: "waitingCount", testId: "reception-metric-waiting" },
-  { key: "InProgress", label: t("Đang khám"), countKey: "inProgressCount", testId: "reception-metric-in-progress" },
-  { key: "Completed", label: t("Hoàn thành"), countKey: "completedCount", testId: "reception-metric-completed" },
+const TAB_CONFIGS: TabConfig[] = [
+  { key: "All",            countKey: "totalCount" },
+  { key: "WaitingForExam", countKey: "waitingCount" },
+  { key: "InProgress",     countKey: "inProgressCount" },
+  { key: "Completed",      countKey: "completedCount" },
 ];
 
 interface CounterConfig {
   key: keyof ReceptionCounters;
-  label: string;
   borderColor: string;
   bgColor: string;
   textColor: string;
 }
 
-const counterCards = (): CounterConfig[] => [
-  { key: "scheduledCount", label: t("Đã hẹn"),     borderColor: "#1c3566", bgColor: "#eaf0fa", textColor: "#1c3566" },
-  { key: "arrivedCount",   label: t("Đã đến"),     borderColor: "#1f8a63", bgColor: "#e6f5ef", textColor: "#1f8a63" },
-  { key: "cancelledCount", label: t("Huỷ hẹn"),    borderColor: "#ef4d4d", bgColor: "#FCE8E6", textColor: "#ef4d4d" },
-  { key: "lateCount",      label: t("Trễ hẹn"),    borderColor: "#dd9426", bgColor: "#FEF3C7", textColor: "#dd9426" },
-  { key: "temporaryCount", label: t("Lịch tạm"),   borderColor: "#dd9426", bgColor: "#FFEDD5", textColor: "#dd9426" },
-  { key: "convertedCount", label: t("Chuyển đổi"), borderColor: "#3d7fa8", bgColor: "#CFFAFE", textColor: "#3d7fa8" },
+const COUNTER_CONFIGS: CounterConfig[] = [
+  { key: "scheduledCount", borderColor: "#1E70E6", bgColor: "#EBF3FE", textColor: "#1E70E6" },
+  { key: "arrivedCount",   borderColor: "#10B981", bgColor: "#E6F4EA", textColor: "#10B981" },
+  { key: "cancelledCount", borderColor: "#EF4444", bgColor: "#FCE8E6", textColor: "#EF4444" },
+  { key: "lateCount",      borderColor: "#F59E0B", bgColor: "#FEF3C7", textColor: "#F59E0B" },
+  { key: "temporaryCount", borderColor: "#F97316", bgColor: "#FFEDD5", textColor: "#F97316" },
+  { key: "convertedCount", borderColor: "#06B6D4", bgColor: "#CFFAFE", textColor: "#06B6D4" },
 ];
 
 export const ReceptionStatusTabs: React.FC<ReceptionStatusTabsProps> = ({
@@ -63,13 +60,28 @@ export const ReceptionStatusTabs: React.FC<ReceptionStatusTabsProps> = ({
 }) => {
   const counters = metrics?.counters;
 
+  const tabLabel: Record<ReceptionStatus, string> = {
+    All:            t("Tất cả"),
+    WaitingForExam: t("Chờ khám"),
+    InProgress:     t("Đang khám"),
+    Completed:      t("Hoàn thành"),
+  };
+
+  const counterLabel: Record<keyof ReceptionCounters, string> = {
+    scheduledCount: t("Đã hẹn"),
+    arrivedCount:   t("Đã đến"),
+    cancelledCount: t("Huỷ hẹn"),
+    lateCount:      t("Trễ hẹn"),
+    temporaryCount: t("Lịch tạm"),
+    convertedCount: t("Chuyển đổi"),
+  };
+
   return (
-    <>
     <div className="reception-filter-row">
       {/* Left: status pills + doctor filter */}
       <div className="reception-filter-left">
         <div className="reception-status-pills">
-          {tabs().map((tab) => {
+          {TAB_CONFIGS.map((tab) => {
             const count = metrics?.[tab.countKey] ?? 0;
             const isActive = activeTab === tab.key;
             return (
@@ -77,10 +89,9 @@ export const ReceptionStatusTabs: React.FC<ReceptionStatusTabsProps> = ({
                 key={tab.key}
                 type="button"
                 className={`reception-status-pill ${isActive ? "reception-status-pill--active" : ""}`}
-                data-testid={tab.testId}
                 onClick={() => onChange(tab.key)}
               >
-                {tab.label} ({count})
+                {tabLabel[tab.key]} ({count})
               </button>
             );
           })}
@@ -96,24 +107,21 @@ export const ReceptionStatusTabs: React.FC<ReceptionStatusTabsProps> = ({
         />
       </div>
 
+      {/* Right: 6 counter cards */}
+      <div className="reception-counter-cards">
+        {COUNTER_CONFIGS.map((c) => (
+          <div
+            key={c.key}
+            className="reception-counter-card"
+            style={{ borderTopColor: c.borderColor, backgroundColor: c.bgColor, color: c.textColor }}
+          >
+            <span className="reception-counter-value">
+              {counters?.[c.key] ?? 0}
+            </span>
+            <span className="reception-counter-label">{counterLabel[c.key]}</span>
+          </div>
+        ))}
+      </div>
     </div>
-
-    {/* The design gives the six status counters their own full-width row,
-        each card topped with its status colour. */}
-    <div className="reception-counter-cards">
-      {counterCards().map((c) => (
-        <div
-          key={c.key}
-          className="reception-counter-card"
-          style={{ borderTopColor: c.borderColor }}
-        >
-          <span className="reception-counter-value" style={{ color: c.textColor }}>
-            {counters?.[c.key] ?? 0}
-          </span>
-          <span className="reception-counter-label">{c.label}</span>
-        </div>
-      ))}
-    </div>
-    </>
   );
 };

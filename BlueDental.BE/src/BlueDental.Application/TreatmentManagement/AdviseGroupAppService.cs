@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
@@ -13,29 +14,32 @@ namespace BlueDental.TreatmentManagement;
 /// <summary>
 /// Nhóm tư vấn — groups consulting lines into alternative packages.
 /// </summary>
-[Authorize]
+[Authorize(BlueDentalPermissions.TreatmentManagement.Default)]
 public class AdviseGroupAppService : ApplicationService, IAdviseGroupAppService
 {
     private readonly IRepository<AdviseGroup, Guid> _repository;
     private readonly IRepository<PatientAdvise, Guid> _adviseRepository;
+    private readonly ICurrentClinicBranchResolver _branchResolver;
 
     public AdviseGroupAppService(
         IRepository<AdviseGroup, Guid> repository,
-        IRepository<PatientAdvise, Guid> adviseRepository)
+        IRepository<PatientAdvise, Guid> adviseRepository,
+        ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
         _adviseRepository = adviseRepository;
+        _branchResolver = branchResolver;
     }
 
-    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Read)]
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.View)]
     public async Task<PagedResultDto<AdviseGroupDto>> GetListAsync(GetAdviseGroupListInput input)
     {
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
 
+        query = query.Where(x => x.ClinicBranchId == clinicBranchId);
         if (input.PatientId.HasValue)
             query = query.Where(x => x.PatientId == input.PatientId.Value);
-        if (input.ClinicBranchId.HasValue)
-            query = query.Where(x => x.ClinicBranchId == input.ClinicBranchId.Value);
 
         var totalCount = query.Count();
         var items = query
@@ -54,7 +58,7 @@ public class AdviseGroupAppService : ApplicationService, IAdviseGroupAppService
         return new PagedResultDto<AdviseGroupDto>(totalCount, dtos);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Read)]
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.View)]
     public async Task<AdviseGroupDto> GetAsync(Guid id)
     {
         var group = await _repository.GetAsync(id);
@@ -63,13 +67,14 @@ public class AdviseGroupAppService : ApplicationService, IAdviseGroupAppService
         return MapToDto(group, advises);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Create)]
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Create)]
     public async Task<AdviseGroupDto> CreateAsync(CreateAdviseGroupDto input)
     {
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
         var group = AdviseGroup.Create(
             GuidGenerator.Create(),
             input.PatientId,
-            input.ClinicBranchId,
+            clinicBranchId,
             input.Name,
             input.Description,
             input.SortOrder);
@@ -78,7 +83,7 @@ public class AdviseGroupAppService : ApplicationService, IAdviseGroupAppService
         return MapToDto(group, new List<PatientAdvise>());
     }
 
-    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Update)]
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Edit)]
     public async Task<AdviseGroupDto> UpdateAsync(Guid id, UpdateAdviseGroupDto input)
     {
         var group = await _repository.GetAsync(id);
@@ -93,7 +98,7 @@ public class AdviseGroupAppService : ApplicationService, IAdviseGroupAppService
         return MapToDto(group, advises);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Delete)]
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Edit)]
     public async Task DeleteAsync(Guid id)
     {
         // Detach the advises first so they are not orphaned by a dangling group id.

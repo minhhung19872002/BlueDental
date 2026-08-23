@@ -2,25 +2,32 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
+using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
+using Volo.Abp.Domain.Entities;
 using Volo.Abp.Domain.Repositories;
 
 namespace BlueDental.Visits;
 
-[Authorize]
+[Authorize(BlueDentalPermissions.Visits.Default)]
 public class VisitAppService : ApplicationService, IVisitAppService
 {
     private readonly IRepository<Visit, Guid> _repository;
+    private readonly ICurrentClinicBranchResolver _branchResolver;
 
-    public VisitAppService(IRepository<Visit, Guid> repository)
+    public VisitAppService(
+        IRepository<Visit, Guid> repository,
+        ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
+        _branchResolver = branchResolver;
     }
 
-    [Authorize(BlueDentalAbilityPermissions.Reception.Read)]
+    [Authorize(BlueDentalPermissions.Visits.View)]
     public async Task<PagedResultDto<VisitDto>> GetListAsync(GetVisitListInput input)
     {
         var query = await FilteredQueryAsync(input);
@@ -60,8 +67,12 @@ public class VisitAppService : ApplicationService, IVisitAppService
     {
         var query = await _repository.GetQueryableAsync();
 
-        if (input.BranchId.HasValue)
-            query = query.Where(v => v.BranchId == input.BranchId.Value);
+        // The caller does not get to choose the branch — it comes from the
+        // signed-in user, which is what closes the IDOR the audit found. An
+        // explicit BranchId is only honoured when it is the user's own.
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
+        query = query.Where(v => v.BranchId == branchId);
+
         if (input.PatientId.HasValue)
             query = query.Where(v => v.PatientId == input.PatientId.Value);
         if (input.Status.HasValue)
@@ -78,20 +89,22 @@ public class VisitAppService : ApplicationService, IVisitAppService
         return query;
     }
 
-    [Authorize(BlueDentalAbilityPermissions.Reception.Read)]
+    [Authorize(BlueDentalPermissions.Visits.View)]
     public async Task<VisitDto> GetAsync(Guid id)
     {
         var visit = await _repository.GetAsync(id);
+        GuardBranchAccess(visit);
         return ObjectMapper.Map<Visit, VisitDto>(visit);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.Reception.Create)]
+    [Authorize(BlueDentalPermissions.Visits.Create)]
     public async Task<VisitDto> CreateAsync(CreateVisitDto input)
     {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
         var visit = new Visit(
             GuidGenerator.Create(),
             input.PatientId,
-            input.BranchId,
+            branchId,
             input.ScheduledAt,
             input.DentistId,
             input.ChiefComplaint);
@@ -99,51 +112,65 @@ public class VisitAppService : ApplicationService, IVisitAppService
         return ObjectMapper.Map<Visit, VisitDto>(visit);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.Reception.Update)]
+    [Authorize(BlueDentalPermissions.Visits.Edit)]
     public async Task<VisitDto> UpdateAsync(Guid id, UpdateVisitDto input)
     {
         var visit = await _repository.GetAsync(id);
+        GuardBranchAccess(visit);
+        visit.Update(input.DentistId, input.ScheduledAt, input.ChiefComplaint, input.Notes);
         await _repository.UpdateAsync(visit, autoSave: true);
         return ObjectMapper.Map<Visit, VisitDto>(visit);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.Reception.Update)]
+    [Authorize(BlueDentalPermissions.Visits.Workflow)]
     public async Task CheckInAsync(Guid id)
     {
         var visit = await _repository.GetAsync(id);
+        GuardBranchAccess(visit);
         visit.CheckIn();
         await _repository.UpdateAsync(visit, autoSave: true);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.Reception.Update)]
+    [Authorize(BlueDentalPermissions.Visits.Workflow)]
     public async Task StartAsync(Guid id)
     {
         var visit = await _repository.GetAsync(id);
+        GuardBranchAccess(visit);
         visit.Start();
         await _repository.UpdateAsync(visit, autoSave: true);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.Reception.Update)]
+    [Authorize(BlueDentalPermissions.Visits.Workflow)]
     public async Task CompleteAsync(Guid id, string? notes)
     {
         var visit = await _repository.GetAsync(id);
+        GuardBranchAccess(visit);
         visit.Complete(notes);
         await _repository.UpdateAsync(visit, autoSave: true);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.Reception.Update)]
+    [Authorize(BlueDentalPermissions.Visits.Workflow)]
     public async Task CancelAsync(Guid id, string reason)
     {
         var visit = await _repository.GetAsync(id);
+        GuardBranchAccess(visit);
         visit.Cancel(reason);
         await _repository.UpdateAsync(visit, autoSave: true);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.Reception.Update)]
+    [Authorize(BlueDentalPermissions.Visits.Workflow)]
     public async Task MarkNoShowAsync(Guid id)
     {
         var visit = await _repository.GetAsync(id);
+        GuardBranchAccess(visit);
         visit.MarkNoShow();
         await _repository.UpdateAsync(visit, autoSave: true);
+    }
+
+    private void GuardBranchAccess(Visit entity)
+    {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
+        if (entity.BranchId != branchId)
+            throw new EntityNotFoundException(typeof(Visit), entity.Id);
     }
 }

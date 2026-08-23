@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import type { PagedResult } from "@/types";
+import { usePrescriptions } from "./prescriptionApi";
+import { DEFAULT_BRANCH_ID } from "@/lib/clinicBranch";
 
 export interface TreatmentPlanDto {
   id: string;
@@ -54,4 +56,13 @@ export function useCreateTreatmentPlan() {
     mutationFn: (data: CreateTreatmentPlanDto) => treatmentPlanApi.create(data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["treatment-plans"] }),
   });
+}
+
+/**
+ * The patient tab asks for a patient's slips without naming a branch; the list
+ * hook takes one, so this passes the current branch on its behalf.
+ */
+export function usePatientPrescriptions(patientId: string) {
+  const query = usePrescriptions(patientId, DEFAULT_BRANCH_ID);
+  return { ...query, data: query.data?.items };
 }

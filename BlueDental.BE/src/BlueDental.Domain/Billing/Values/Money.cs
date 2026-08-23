@@ -67,7 +67,7 @@ public class Money : ValueObject
 
     public override string ToString() => $"{Amount:F2} {Currency}";
 
-    protected override IEnumerable<object?> GetAtomicValues()
+    protected override IEnumerable<object> GetAtomicValues()
     {
         yield return Amount;
         yield return Currency;

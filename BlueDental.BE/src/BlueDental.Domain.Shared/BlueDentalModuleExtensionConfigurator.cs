@@ -1,3 +1,6 @@
+using Volo.Abp.Identity;
+using Volo.Abp.ObjectExtending;
+using Volo.Abp.ObjectExtending.Modularity;
 using Volo.Abp.Threading;
 
 namespace BlueDental;
@@ -22,6 +25,13 @@ public static class BlueDentalModuleExtensionConfigurator
 
     private static void ConfigureExtraProperties()
     {
-        /* Configure extra (custom) properties of ABP entities. */
+        ObjectExtensionManager.Instance.Modules()
+            .ConfigureIdentity(identity =>
+            {
+                identity.ConfigureUser(user =>
+                {
+                    user.AddOrUpdateProperty<Guid?>(BlueDentalConsts.UserClinicBranchIdPropertyName);
+                });
+            });
     }
 }

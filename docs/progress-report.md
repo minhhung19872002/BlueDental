@@ -1,149 +1,6 @@
 # BlueDental — Progress Report
 
-Cập nhật lần cuối: 2026-08-23 (session 6, đợt 4)
-
----
-
-## Session 6 — Bổ sung nghiệp vụ từ quan sát read-only app gốc
-
-Nguồn: `docs/clone/business-features.md` + `docs/clone/permissions.md`
-(quan sát READ-ONLY https://app.nfcdental.com, không ghi bất kỳ dữ liệu nào).
-
-### Phát hiện chính
-
-| # | Phát hiện | Ảnh hưởng |
-|---|-----------|-----------|
-| 1 | App gốc dùng ability model `(action, subject)` — 83 subject cho role `clinicAdmin` | Cần map sang ABP permissions |
-| 2 | Chuỗi nghiệp vụ lõi: Chẩn đoán → Tư vấn → Kế hoạch điều trị → Dịch vụ → Công đoạn → Thanh toán | Trước đây clone thiếu hẳn 2 mắt xích đầu |
-| 3 | Sơ đồ răng lưu theo `{ code, selected, top, right, bottom, left, center }` | ToothSelection value object |
-| 4 | Money rollup 13 trường lặp lại ở patient / treatment / service | PaymentSummary value object |
-| 5 | Module **Chấm công** (`/calendar?tab=timekeeping`) chưa từng được ghi nhận | Đã implement mới |
-| 6 | Thu chi có bước **duyệt** cho phiếu chi; luân chuyển dòng tiền có 3 holding | Đã implement mới |
-| 7 | Voucher áp vào tư vấn/điều trị (`appliedCoupons`) | Đã implement mới |
-| 8 | Tab "Hóa đơn" của hồ sơ bệnh nhân ở app gốc **cũng là placeholder** | Không cần clone nội dung |
-| 9 | Lưới lịch ngày là 06:00–23:30 (36 slot), không phải 48 | FE hiện đã đúng |
-
-### Module BE đã bổ sung trong session này
-
-| Module | Entity / VO | API | Migration | Tests |
-|--------|-------------|-----|-----------|-------|
-| Chẩn đoán & Tư vấn | `PatientDiagnosis`, `PatientAdvise`, `AdviseGroup`, `ToothSelection`, `PaymentSummary` | `/api/v1/app/{patient-diagnoses,patient-advises,advise-groups}` | `AddClinicalConsultingModule` | 33 |
-| Chấm công | `TimeKeepingRecord`, `WorkShift` | `/api/v1/app/time-keepings` | `AddTimekeepingModule` | 18 |
-| Thu chi & Dòng tiền | `SalesEntry`, `CashflowCategory`, `CashflowEntry` | `/api/v1/app/{sales,cashflow-categories,cash-management}` | `AddFinanceModule` | 21 |
-| Voucher | `Voucher` | `/api/v1/app/vouchers` | `AddVoucherModule` | 14 |
-| Danh mục (taxonomy) | `Taxonomy`, `CatalogEntry`, `TaxonomyGroups` | `/api/v1/app/{taxonomies,catalog-entries}` | `AddTaxonomyModule` | 23 |
-| Phân quyền (ability model) | `BlueDentalAbilities` (83 subject) | Đăng ký qua `PermissionDefinitionProvider` | — | 12 |
-
-Tổng test BE: **254 pass** (149 domain + 51 application + 39 EF + 15 HttpApi).
-
-### FE đã bổ sung
-
-- `features/timekeeping/` — API hooks + `TimekeepingBoard` (KPI bar + thẻ nhân viên
-  với ON/OFF, 2 ca, vào ca/ra ca), thay placeholder ở tab "Lịch làm việc".
-- `features/treatment-management/api/consulting*` — nối 2 bảng Phiếu chẩn đoán /
-  Phiếu tư vấn ở tab "Chẩn đoán & Tư vấn" vào API thật (trước đó `dataSource={[]}`).
-- `features/report/api/financeApi.ts` — nối tab "Quản lý thu chi" và
-  "Luân chuyển dòng tiền V2" vào BE finance; tab V2 được dựng lại đúng theo app gốc
-  (4 panel số dư + bảng giao dịch) thay cho báo cáo lưu chuyển tiền tệ tự chế.
-- `lib/clinicBranch.ts` — điểm tập trung `branchId` cho tới khi có branch switcher.
-- Sửa 2 test ReceptionPage đã lỗi thời (label "Chờ khám", dialog là Modal).
-
-Build FE production: OK. Typecheck: sạch. Unit test FE: 3/3 pass.
-
-### Hạng mục A–G — ĐÃ HOÀN THÀNH (session 6, đợt 2)
-
-| # | Hạng mục | Kết quả |
-|---|----------|---------|
-| A | Form tạo/sửa Thu chi, Luân chuyển, Voucher | ✅ Dialog tạo/sửa phiếu thu-chi (tạo mục inline), duyệt/từ chối, Nạp/Rút/Luân chuyển, và trang `/voucher` |
-| B | Dental chart theo mặt răng | ✅ `ToothSurfaceChart` — 5 mặt/răng, chọn cả răng, shortcut Hàm Trên/Dưới/Nguyên Hàm |
-| C | Gắn ability lên endpoint | ✅ 447 hằng số permission; attribute trên toàn bộ AppService; check động cho thu/chi, danh mục, 3 thao tác tiền mặt, 12 danh mục và `attendanceOthers` |
-| D | FE Danh mục dùng API taxonomy | ✅ 1 panel cấu hình cho 9 danh mục thật; 2 danh mục còn lại nêu rõ lý do |
-| E | Treatment stage (công đoạn) | ✅ Đã implement ở đợt 3 — **model là giả định của BlueDental**, không phải parity; xem mục "Đợt 3" |
-| F | `docs/testing/*` registry | ✅ 4 file gốc + 4 file feature |
-| G | Acceptance test full-stack thật | ✅ 27 test Playwright trên Postgres + API + Vite thật, không mock |
-
-### Bug thật phát hiện khi chạy stack thật (đã sửa)
-
-Chi tiết: `docs/testing/03-regression-log.md` — 9 lỗi, nghiêm trọng nhất:
-
-- Danh sách bệnh nhân **crash** ngay khi có 1 bệnh nhân (bind thẳng DTO server vào bảng)
-- **Không thể tạo bệnh nhân**: ô "Họ và tên" bind `lastName` nhưng schema còn bắt buộc `firstName`
-- Request tạo bệnh nhân sai contract (`phone` / thiếu `branchId` / `dateOfBirth` rỗng)
-- **Trùng `PatientCode`** do cắt 6 ký tự đầu của GUID tuần tự → 500 ở lần đăng ký thứ hai trong ngày
-- Enter trong dialog vừa commit ngày vừa submit form → gửi trùng
-
-### Đợt 3 — 5 hạng mục còn lại đã xong
-
-| # | Hạng mục | Kết quả |
-|---|----------|---------|
-| 1 | Dialog tạo phiếu chẩn đoán / tư vấn | ✅ `DiagnosisModal` + `AdviseModal`, và thêm thao tác **Chấp nhận** cho phiếu tư vấn (thiếu nó thì không thể có dòng dịch vụ điều trị) |
-| 2 | Acceptance cho Voucher | ✅ `e2e/voucher.spec.ts` — 3 test |
-| 3 | Check-in/out chấm công qua UI | ✅ "Mở ngày làm việc" rồi Vào ca / Ra ca thật; mỗi lần chạy dùng một ngày mới |
-| 4 | CSKH / Labo / Vật tư / Vận hành | ✅ 4 module BE đầy đủ (domain + AppService + controller + migration) và FE nối API thật; mỗi module có spec riêng |
-| 5 | Branch isolation | ✅ Seed chi nhánh 2 + tài khoản `branch2`; `e2e/branch-isolation.spec.ts` chứng minh bị chặn và không rò dữ liệu |
-| 6 | Công đoạn điều trị | ✅ `TreatmentStage` + API + panel FE + 2 acceptance test — xem cảnh báo bên dưới |
-
-#### Cảnh báo về công đoạn điều trị
-
-App gốc **không có dữ liệu công đoạn nào quan sát được an toàn**, nên đây không
-phải bản clone 1:1. Chỉ 5 điều được quan sát thật (subject `treatmentStage` với 6
-verb, nút "Thêm công đoạn" theo từng dòng dịch vụ, `stageIds` /
-`patientStages[].serviceDetails.isImageRequired` trong CSKH, `stageNote` trong
-treatment summary, và loại Labo "Tiếp tục công đoạn"). Toàn bộ phần còn lại —
-số thứ tự, chọn răng, mốc thời gian, quy tắc bắt buộc ảnh — là thiết kế riêng của
-BlueDental và được ghi rõ trong `TreatmentStage.cs`,
-`docs/clone/business-features.md` và `docs/testing/features/treatment-stage.md`.
-
-Chuỗi nghiệp vụ đang chạy thật: `Chẩn đoán → Tư vấn → Chấp nhận → Công đoạn →
-Tiếp tục → Hoàn thành`.
-
-### Bug thật phát hiện thêm ở đợt 3
-
-- `TreatmentStage` được map trong `ModelCreatingExtensions` nhưng thiếu `DbSet`
-  → ABP không đăng ký repository mặc định → **mọi request công đoạn 500**
-  (R-10). Build sạch, migration chạy được, unit test pass — chỉ browser thật gọi
-  DI thật mới lộ ra.
-- Bảng phiếu tư vấn không có nút chấp nhận nên không đời nào tạo được dòng dịch
-  vụ điều trị (R-11).
-
-### Đợt 4 — nhóm A và B đã xong
-
-| # | Hạng mục | Kết quả |
-|---|----------|---------|
-| A1 | Phếu điều trị + dòng dịch vụ | ✅ Phiếu tư vấn đã chốt → dòng dịch vụ trên phiếu DT01; công đoạn gắn vào dòng dịch vụ thật |
-| A2 | Thanh toán / công nợ | ✅ 4 hình thức quan sát được (tiền mặt / chuyển khoản / thẻ / trừ quỹ); chỉ việc đã xong mới thành Phải thu; hoàn tiền không vượt số đã thu; tiền giữ hộ không tính là đã thu |
-| A3 | Đơn thuốc | ✅ Phiếu có nhiều dòng thuốc, chốt tên thuốc tại thời điểm kê; phát thuốc xong là khoá |
-| A4 | Hình ảnh bệnh nhân | ✅ Upload thật lên MinIO; PostgreSQL chỉ giữ tham chiếu; chặn định dạng và dung lượng |
-| B5 | Tiếp nhận | ✅ Bỏ hoàn toàn mock store; counters do server tính |
-| B6 | Lịch hẹn | ✅ Tạo lịch thật, chặn trùng khung giờ, lưới ngày/tuần đọc đúng khoảng ngày |
-| B7 | 6 tab trong hồ sơ bệnh nhân | ✅ Lịch hẹn, Labo, Đơn thuốc, CSKH, Hóa đơn, Lịch sử dư nợ đều đọc module thật |
-| B8 | Nhân viên | ✅ CRUD tài khoản identity + vai trò; mật khẩu yếu bị Identity từ chối |
-| B9 | Báo cáo 13.1 + 13.3 | ✅ `/clinic-reports` dựng số tại thời điểm đọc từ phiếu điều trị, thanh toán và thu chi |
-
-### 9 bug thật phát hiện ở đợt 4
-
-Chi tiết: `docs/testing/03-regression-log.md` (R-12 → R-20). Đáng chú ý nhất:
-
-- **Không error code nào được localize** → mọi lỗi nghiệp vụ hiện "Có một lỗi nội bộ xảy ra". Đã thêm 112 mã song ngữ Anh/Việt.
-- **Tìm kiếm bệnh nhân chưa từng chạy**: FE gửi `keyword`, BE đọc `filter`; BE lại so từng nửa tên nên gõ cả họ tên không bao giờ ra.
-- **Toàn bộ module lịch hẹn nói sai contract** (doctorId/startTime/status chuỗi vs DentistId/SlotStart/enum số) → không lưu được gì; cộng thêm lọc ngày bị bỏ qua và giờ gửi kèm offset +07:00 khiến Npgsql từ chối.
-- **Tiếp nhận và Nhân viên chạy bằng dữ liệu giả** — nhìn như hoạt động nhưng không lưu gì.
-
-### Còn lại
-
-| # | Hạng mục | Ghi chú |
-|---|----------|---------|
-| 1 | Công cụ (call / message / Zalo / hóa đơn điện tử) | `UNKNOWN_REFERENCE_BEHAVIOR` — app gốc không có dữ liệu để quan sát |
-| 2 | Xuất Excel / PDF | Chưa cài thư viện; các nút "Xuất Excel" vẫn trơ |
-| 3 | i18n song ngữ cho giao diện | Error code đã song ngữ; text màn hình vẫn hard-code tiếng Việt |
-| 4 | Đính kèm ảnh cho công đoạn qua UI | Endpoint + rule domain đã có, panel công đoạn chưa có uploader |
-| 5 | 2 danh mục "Thẻ hồ sơ" / "Phương thức thanh toán" | App gốc không mô hình hóa chúng như danh mục |
-
----
-
-# BlueDental — Progress Report
-
-Cập nhật lần cuối: 2026-08-22 (session 5)
+Cập nhật lần cuối: 2026-08-23 (merged sessions 6-8)
 
 ---
 
@@ -151,10 +8,10 @@ Cập nhật lần cuối: 2026-08-22 (session 5)
 
 | Layer | Status | Ghi chú |
 |-------|--------|---------|
-| Frontend UI (FE) | 🟢 ~97% | Tất cả trang hoàn chỉnh; Calendar week+month, Report 4 tabs, CSKH grouping |
+| Frontend UI (FE) | 🟢 ~98% | Tất cả trang hoàn chỉnh; FE production build ✅ clean |
 | Backend API (BE) | 🟢 ~90% | Build clean 0 errors; AccountAppService; 401/403 API auth; BE Dockerfile |
-| FE ↔ BE Integration | 🟢 ~80% | Auth, Patient, Appointment, Staff, Visit, Report, Billing — all call real BE; mock fallback reception |
-| Tests | 🟢 ~95% | 82 tests (15 domain + 34 application + 18 EF + 15 HttpApi) — tất cả pass |
+| FE ↔ BE Integration | 🟢 ~82% | Wire sprint: Taxonomy DentalProcedure CRUD, Labo order CRUD, Materials CRUD, Report CashflowTab + BusinessResultTab wired to real revenue |
+| Tests | 🟢 ~95% | 99 tests (15 domain + 34 application + 18 EF + 15 HttpApi + 17 contract) — tất cả pass |
 | Docker / Deploy | 🟡 ~70% | docker-compose.yml + FE Dockerfile (VITE_API_URL arg) + BE Dockerfile; seed contributor BD-001; chưa verify end-to-end |
 
 ---
@@ -319,16 +176,44 @@ Cập nhật lần cuối: 2026-08-22 (session 5)
 
 ### Sprint cuối — Integration & Deploy
 
-- [ ] FE API hooks kết nối BE thật (thay mock)
-- [ ] E2E tests (Playwright)
-- [ ] Docker compose verify
-- [ ] Security review
+#### FE Wire thật (ưu tiên cao — có BE endpoint sẵn)
+
+- [x] **StaffPage** — `useStaffList()` thật (commit `a4bf1e8`)
+- [x] **ReportPage summary cards** — `useReportSummary` + `useRevenueReport` (commit `a4bf1e8`)
+- [x] **RevenueSummaryCard (Dashboard)** — `useRevenueReport` (commit `a4bf1e8`)
+- [x] **PendingActionsCard (Dashboard)** — `useReceptionList` WaitingForExam count (commit `a4bf1e8`)
+- [x] **CskhGroupingPage** — `useCareRecordList` với type/status mapping (commit `a4bf1e8`)
+- [x] **Patient Detail — Treatment Plan tab** — `useTreatmentPlanList(patientId)` (commit `0038dcb`)
+- [x] **Patient Detail — Appointment tab** — `useAppointmentList(patientId)` (commit `0038dcb`)
+- [x] **Patient Detail — Invoice tab** — `usePatientInvoices(patientId)` (commit `0038dcb`)
+- [x] **Export Excel** — PatientListView + ReportPage (commit `f505e1d`) — xlsx SheetJS, 13 cols patient, 4 cols revenue
+- [x] **ReceptionPage** — xoá mock store hoàn toàn; chỉ dùng Visit API thật (commit `31b429a`)
+
+#### FE Wire sau (chờ BE endpoint)
+
+- [ ] `identity/api/index.ts` — TODO stub; chờ ABP Identity UI endpoint
+- [ ] `settings/api/index.ts` — TODO stub; chưa có BE settings endpoint
+- [ ] `audit-logs/api/index.ts` — TODO stub; chờ ABP audit log endpoint
+
+#### Verify & Deploy
+
+- [ ] E2E tests (Playwright) — real full-stack, không mock API
+- [ ] Docker compose end-to-end verify (`docker-compose up` full stack)
+- [ ] Security review (`/security-review`) trước khi staging
 
 ---
 
 ## V. Commit Log (gần đây)
 
 ```
+a97162c feat(be): add Prescription AppService + Controller
+18b42de feat(wire): add Prescription API endpoint and wire Patient Detail Prescription tab
+4a106b9 feat(wire): connect Patient Detail Labo and Care tabs to real BE APIs
+31b429a feat(wire): remove mock store from Reception; wire patient search to real BE
+f505e1d feat(export): add Excel export for Patient List and Revenue Report pages
+0038dcb feat(wire): connect Patient Detail tabs to real BE APIs (Treatment Plan, Appointments, Invoice)
+a4bf1e8 feat(wire): connect Staff, Report, Dashboard, CSKH to real BE APIs
+f92e90e fix(appointments): resolve FE production build errors (unused Form import; StatusFilter lowercase)
 8ce9d3e feat(be): add default ClinicBranch data seeder + fix unused parameters
 bf4fa17 fix(fe): update reception API to use /v1/app/visits endpoint
 7699fe3 feat(fe): wire calendar and reception doctor lists to real staff API

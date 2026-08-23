@@ -2,39 +2,35 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using BlueDental.Timekeeping.Values;
 using BlueDental.Organizations;
+using BlueDental.Timekeeping.Values;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
-using Volo.Abp.Identity;
 
 namespace BlueDental.Timekeeping;
 
 /// <summary>
 /// Chấm công / Lịch làm việc.
 /// </summary>
-[Authorize]
+[Authorize(BlueDentalPermissions.Timekeeping.Default)]
 public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
 {
     private readonly IRepository<TimeKeepingRecord, Guid> _repository;
-    private readonly IIdentityUserRepository _userRepository;
-    private readonly BranchAccessChecker _branchAccess;
+    private readonly ICurrentClinicBranchResolver _branchResolver;
 
     public TimeKeepingAppService(
         IRepository<TimeKeepingRecord, Guid> repository,
-        IIdentityUserRepository userRepository,
-        BranchAccessChecker branchAccess)
+        ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
-        _userRepository = userRepository;
-        _branchAccess = branchAccess;
+        _branchResolver = branchResolver;
     }
 
-    [Authorize(BlueDentalAbilityPermissions.WorkSchedule.Read)]
+    [Authorize(BlueDentalPermissions.Timekeeping.View)]
     public async Task<PagedResultDto<TimeKeepingRecordDto>> GetListAsync(GetTimeKeepingListInput input)
     {
         var query = await BuildQueryAsync(input);
@@ -47,25 +43,18 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
             .Take(input.MaxResultCount)
             .ToList();
 
-        var staff = await GetStaffAsync(items);
-        return new PagedResultDto<TimeKeepingRecordDto>(
-            totalCount,
-            items.Select(x => MapToDto(x, staff)).ToList());
+        return new PagedResultDto<TimeKeepingRecordDto>(totalCount, items.Select(MapToDto).ToList());
     }
 
-    [Authorize(BlueDentalAbilityPermissions.WorkSchedule.Read)]
+    [Authorize(BlueDentalPermissions.Timekeeping.View)]
     public async Task<TimeKeepingRecordDto> GetAsync(Guid id)
     {
-        var record = await _repository.GetAsync(id);
-        await _branchAccess.CheckAsync(record.ClinicBranchId);
-        return MapToDto(record, await GetStaffAsync([record]));
+        return MapToDto(await _repository.GetAsync(id));
     }
 
-    [Authorize(BlueDentalAbilityPermissions.WorkSchedule.Read)]
+    [Authorize(BlueDentalPermissions.Timekeeping.View)]
     public async Task<TimeKeepingSummaryDto> GetSummaryAsync(Guid clinicBranchId, DateOnly workDate)
     {
-        await _branchAccess.CheckAsync(clinicBranchId);
-
         var query = await _repository.GetQueryableAsync();
         var records = query
             .Where(x => x.ClinicBranchId == clinicBranchId && x.WorkDate == workDate)
@@ -83,89 +72,81 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
         };
     }
 
-    [Authorize(BlueDentalAbilityPermissions.WorkSchedule.Update)]
+    [Authorize(BlueDentalPermissions.Timekeeping.Manage)]
     public async Task<TimeKeepingRecordDto> OpenWorkDayAsync(OpenWorkDayDto input)
     {
-        await _branchAccess.CheckAsync(input.ClinicBranchId);
-
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
         var existing = query.FirstOrDefault(x =>
-            x.ClinicBranchId == input.ClinicBranchId &&
+            x.ClinicBranchId == clinicBranchId &&
             x.StaffId == input.StaffId &&
             x.WorkDate == input.WorkDate);
 
         if (existing != null)
         {
-            return MapToDto(existing, await GetStaffAsync([existing]));
+            return MapToDto(existing);
         }
 
         var record = TimeKeepingRecord.OpenDay(
             GuidGenerator.Create(),
             input.StaffId,
-            input.ClinicBranchId,
+            clinicBranchId,
             input.WorkDate,
             BuildShift(WorkShiftKind.Morning, input.MorningStart, input.MorningEnd),
             BuildShift(WorkShiftKind.Afternoon, input.AfternoonStart, input.AfternoonEnd));
 
         await _repository.InsertAsync(record, autoSave: true);
-        return MapToDto(record, await GetStaffAsync([record]));
+        return MapToDto(record);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.WorkSchedule.Update)]
+    [Authorize(BlueDentalPermissions.Timekeeping.Manage)]
     public async Task<TimeKeepingRecordDto> RegisterWorkingAsync(Guid id)
     {
         var record = await _repository.GetAsync(id);
-        await _branchAccess.CheckAsync(record.ClinicBranchId);
         record.RegisterWorking();
         await _repository.UpdateAsync(record, autoSave: true);
-        return MapToDto(record, await GetStaffAsync([record]));
+        return MapToDto(record);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.WorkSchedule.Update)]
+    [Authorize(BlueDentalPermissions.Timekeeping.Manage)]
     public async Task<TimeKeepingRecordDto> RegisterDayOffAsync(Guid id, RegisterDayOffInput input)
     {
         var record = await _repository.GetAsync(id);
-        await _branchAccess.CheckAsync(record.ClinicBranchId);
         record.RegisterDayOff(input.Reason);
         await _repository.UpdateAsync(record, autoSave: true);
-        return MapToDto(record, await GetStaffAsync([record]));
+        return MapToDto(record);
     }
 
+    [Authorize(BlueDentalPermissions.Timekeeping.Manage)]
     public async Task<TimeKeepingRecordDto> CheckInAsync(Guid id, AttendanceInput input)
     {
         var record = await _repository.GetAsync(id);
-        await _branchAccess.CheckAsync(record.ClinicBranchId);
-        await CheckAttendancePermissionAsync(record, input.RecordedByStaffId);
         record.CheckIn(input.Shift, input.At ?? Clock.Now, input.RecordedByStaffId);
         await _repository.UpdateAsync(record, autoSave: true);
-        return MapToDto(record, await GetStaffAsync([record]));
+        return MapToDto(record);
     }
 
+    [Authorize(BlueDentalPermissions.Timekeeping.Manage)]
     public async Task<TimeKeepingRecordDto> CheckOutAsync(Guid id, AttendanceInput input)
     {
         var record = await _repository.GetAsync(id);
-        await _branchAccess.CheckAsync(record.ClinicBranchId);
-        await CheckAttendancePermissionAsync(record, input.RecordedByStaffId);
         record.CheckOut(input.Shift, input.At ?? Clock.Now, input.RecordedByStaffId);
         await _repository.UpdateAsync(record, autoSave: true);
-        return MapToDto(record, await GetStaffAsync([record]));
+        return MapToDto(record);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.WorkSchedule.Update)]
+    [Authorize(BlueDentalPermissions.Timekeeping.Manage)]
     public async Task<TimeKeepingRecordDto> AddOvertimeAsync(Guid id, AddOvertimeInput input)
     {
         var record = await _repository.GetAsync(id);
-        await _branchAccess.CheckAsync(record.ClinicBranchId);
         record.AddOvertime(input.Minutes);
         await _repository.UpdateAsync(record, autoSave: true);
-        return MapToDto(record, await GetStaffAsync([record]));
+        return MapToDto(record);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.WorkSchedule.Update)]
+    [Authorize(BlueDentalPermissions.Timekeeping.Manage)]
     public async Task<int> CloseAbandonedShiftsAsync(Guid clinicBranchId, DateOnly workDate)
     {
-        await _branchAccess.CheckAsync(clinicBranchId);
-
         var query = await _repository.GetQueryableAsync();
         var records = query
             .Where(x => x.ClinicBranchId == clinicBranchId && x.WorkDate == workDate)
@@ -182,28 +163,12 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
         return records.Count;
     }
 
-    /// <summary>
-    /// Clocking yourself in or out needs <c>workSchedule.update</c>; doing it for
-    /// somebody else needs <c>workSchedule.attendanceOthers</c>, exactly as the
-    /// reference splits the two.
-    /// </summary>
-    private async Task CheckAttendancePermissionAsync(TimeKeepingRecord record, Guid? recordedByStaffId)
-    {
-        var isSelf = recordedByStaffId is null || recordedByStaffId == record.StaffId;
-
-        await AuthorizationService.CheckAsync(isSelf
-            ? BlueDentalAbilityPermissions.WorkSchedule.Update
-            : BlueDentalAbilityPermissions.WorkSchedule.AttendanceOthers);
-    }
-
     private async Task<IQueryable<TimeKeepingRecord>> BuildQueryAsync(GetTimeKeepingListInput input)
     {
-        var branchFilter = await _branchAccess.ResolveFilterAsync(input.ClinicBranchId);
-
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
 
-        if (branchFilter.Count > 0)
-            query = query.Where(x => branchFilter.Contains(x.ClinicBranchId));
+        query = query.Where(x => x.ClinicBranchId == clinicBranchId);
         if (input.StaffId.HasValue)
             query = query.Where(x => x.StaffId == input.StaffId.Value);
         if (input.FromDate.HasValue)
@@ -228,32 +193,6 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
         return new WorkShift(kind, start.Value, end.Value);
     }
 
-    /// <summary>
-    /// Staff name and position come from ABP Identity — the attendance record
-    /// only stores the id, so the board resolves them here.
-    /// </summary>
-    private async Task<Dictionary<Guid, (string Name, string? Position)>> GetStaffAsync(
-        IReadOnlyCollection<TimeKeepingRecord> records)
-    {
-        var ids = records.Select(x => x.StaffId).Distinct().ToList();
-
-        if (ids.Count == 0)
-        {
-            return new Dictionary<Guid, (string, string?)>();
-        }
-
-        var users = await _userRepository.GetListByIdsAsync(ids);
-        var result = new Dictionary<Guid, (string Name, string? Position)>();
-
-        foreach (var user in users)
-        {
-            var roles = await _userRepository.GetRoleNamesAsync(user.Id);
-            result[user.Id] = (user.Name ?? user.UserName, roles.FirstOrDefault());
-        }
-
-        return result;
-    }
-
     private static WorkShiftDto MapShift(WorkShift shift) => new()
     {
         Kind = shift.Kind,
@@ -266,9 +205,7 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
         IsOpen = shift.IsOpen
     };
 
-    private static TimeKeepingRecordDto MapToDto(
-        TimeKeepingRecord entity,
-        IReadOnlyDictionary<Guid, (string Name, string? Position)> staff) => new()
+    private static TimeKeepingRecordDto MapToDto(TimeKeepingRecord entity) => new()
     {
         Id = entity.Id,
         StaffId = entity.StaffId,
@@ -283,8 +220,6 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
         LeaveReason = entity.LeaveReason,
         Note = entity.Note,
         RecordedByStaffId = entity.RecordedByStaffId,
-        StaffName = staff.TryGetValue(entity.StaffId, out var info) ? info.Name : null,
-        StaffPosition = staff.TryGetValue(entity.StaffId, out var role) ? role.Position : null,
         CreationTime = entity.CreationTime,
         CreatorId = entity.CreatorId,
         LastModificationTime = entity.LastModificationTime,

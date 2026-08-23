@@ -50,7 +50,7 @@ public class ToothLocation : ValueObject
 
     public override string ToString() => FdiCode;
 
-    protected override IEnumerable<object?> GetAtomicValues()
+    protected override IEnumerable<object> GetAtomicValues()
     {
         yield return Quadrant;
         yield return Position;

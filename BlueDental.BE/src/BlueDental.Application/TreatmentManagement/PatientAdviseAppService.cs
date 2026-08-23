@@ -2,14 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Organizations;
 using BlueDental.Permissions;
-using BlueDental.Catalogs;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
-using Volo.Abp.Identity;
 
 namespace BlueDental.TreatmentManagement;
 
@@ -17,27 +16,24 @@ namespace BlueDental.TreatmentManagement;
 /// Tư vấn dịch vụ cho bệnh nhân — the priced bridge between a diagnosis and a
 /// treatment plan.
 /// </summary>
-[Authorize]
+[Authorize(BlueDentalPermissions.TreatmentManagement.Default)]
 public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppService
 {
     private readonly IRepository<PatientAdvise, Guid> _repository;
     private readonly IRepository<PatientDiagnosis, Guid> _diagnosisRepository;
-    private readonly IRepository<CatalogEntry, Guid> _catalogRepository;
-    private readonly IIdentityUserRepository _userRepository;
+    private readonly ICurrentClinicBranchResolver _branchResolver;
 
     public PatientAdviseAppService(
         IRepository<PatientAdvise, Guid> repository,
         IRepository<PatientDiagnosis, Guid> diagnosisRepository,
-        IRepository<CatalogEntry, Guid> catalogRepository,
-        IIdentityUserRepository userRepository)
+        ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
         _diagnosisRepository = diagnosisRepository;
-        _catalogRepository = catalogRepository;
-        _userRepository = userRepository;
+        _branchResolver = branchResolver;
     }
 
-    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Read)]
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.View)]
     public async Task<PagedResultDto<PatientAdviseDto>> GetListAsync(GetPatientAdviseListInput input)
     {
         var query = await BuildQueryAsync(input);
@@ -50,13 +46,10 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
             .Take(input.MaxResultCount)
             .ToList();
 
-        var lookups = await BuildLookupsAsync(items);
-        return new PagedResultDto<PatientAdviseDto>(
-            totalCount,
-            items.Select(x => MapToDto(x, lookups)).ToList());
+        return new PagedResultDto<PatientAdviseDto>(totalCount, items.Select(MapToDto).ToList());
     }
 
-    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Read)]
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.View)]
     public async Task<PatientAdviseSummaryDto> GetSummaryAsync(GetPatientAdviseListInput input)
     {
         var query = await BuildQueryAsync(input);
@@ -73,16 +66,16 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
         };
     }
 
-    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Read)]
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.View)]
     public async Task<PatientAdviseDto> GetAsync(Guid id)
     {
-        var advise = await _repository.GetAsync(id);
-        return MapToDto(advise, await BuildLookupsAsync([advise]));
+        return MapToDto(await _repository.GetAsync(id));
     }
 
-    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Create)]
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Create)]
     public async Task<PatientAdviseDto> CreateAsync(CreatePatientAdviseDto input)
     {
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
         var diagnosis = await _diagnosisRepository.FindAsync(input.PatientDiagnosisId)
             ?? throw new BusinessException(
                 BlueDentalDomainErrorCodes.TreatmentManagement.PatientDiagnosisNotFound,
@@ -95,12 +88,12 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
                 "The diagnosis does not belong to the given patient.");
         }
 
-        var code = await GenerateCodeAsync(input.ClinicBranchId);
+        var code = await GenerateCodeAsync(clinicBranchId);
 
         var advise = PatientAdvise.Offer(
             GuidGenerator.Create(),
             input.PatientId,
-            input.ClinicBranchId,
+            clinicBranchId,
             input.PatientDiagnosisId,
             input.DiagnosisId,
             input.ServiceId,
@@ -118,10 +111,10 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
             input.AdviseGroupId);
 
         await _repository.InsertAsync(advise, autoSave: true);
-        return MapToDto(advise, await BuildLookupsAsync([advise]));
+        return MapToDto(advise);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Update)]
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Edit)]
     public async Task<PatientAdviseDto> UpdateAsync(Guid id, UpdatePatientAdviseDto input)
     {
         var advise = await _repository.GetAsync(id);
@@ -132,46 +125,46 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
         advise.Reorder(input.SortOrder);
 
         await _repository.UpdateAsync(advise, autoSave: true);
-        return MapToDto(advise, await BuildLookupsAsync([advise]));
+        return MapToDto(advise);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Update)]
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Edit)]
     public async Task<PatientAdviseDto> AcceptAsync(Guid id)
     {
         var advise = await _repository.GetAsync(id);
         advise.Accept();
         await _repository.UpdateAsync(advise, autoSave: true);
-        return MapToDto(advise, await BuildLookupsAsync([advise]));
+        return MapToDto(advise);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Update)]
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Edit)]
     public async Task<PatientAdviseDto> RejectAsync(Guid id)
     {
         var advise = await _repository.GetAsync(id);
         advise.Reject();
         await _repository.UpdateAsync(advise, autoSave: true);
-        return MapToDto(advise, await BuildLookupsAsync([advise]));
+        return MapToDto(advise);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Update)]
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Edit)]
     public async Task<PatientAdviseDto> CancelAsync(Guid id)
     {
         var advise = await _repository.GetAsync(id);
         advise.Cancel();
         await _repository.UpdateAsync(advise, autoSave: true);
-        return MapToDto(advise, await BuildLookupsAsync([advise]));
+        return MapToDto(advise);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.Voucher.Update)]
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Edit)]
     public async Task<PatientAdviseDto> ApplyVoucherAsync(Guid id, decimal voucherDiscountAmount)
     {
         var advise = await _repository.GetAsync(id);
         advise.ApplyVoucher(voucherDiscountAmount);
         await _repository.UpdateAsync(advise, autoSave: true);
-        return MapToDto(advise, await BuildLookupsAsync([advise]));
+        return MapToDto(advise);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Delete)]
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Edit)]
     public async Task DeleteAsync(Guid id)
     {
         await _repository.DeleteAsync(id, autoSave: true);
@@ -179,12 +172,12 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
 
     private async Task<IQueryable<PatientAdvise>> BuildQueryAsync(GetPatientAdviseListInput input)
     {
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
 
+        query = query.Where(x => x.ClinicBranchId == clinicBranchId);
         if (input.PatientId.HasValue)
             query = query.Where(x => x.PatientId == input.PatientId.Value);
-        if (input.ClinicBranchId.HasValue)
-            query = query.Where(x => x.ClinicBranchId == input.ClinicBranchId.Value);
         if (input.PatientDiagnosisId.HasValue)
             query = query.Where(x => x.PatientDiagnosisId == input.PatientDiagnosisId.Value);
         if (input.AdviseGroupId.HasValue)
@@ -206,33 +199,7 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
         return $"TV{year % 100:D2}-{sequence:D4}";
     }
 
-    /// <summary>Service and staff names shown in the consulting table.</summary>
-    private async Task<AdviseLookups> BuildLookupsAsync(IReadOnlyCollection<PatientAdvise> items)
-    {
-        var serviceIds = items.Select(x => x.ServiceId).Distinct().ToList();
-        var staffIds = items.Select(x => x.StaffId).Distinct().ToList();
-
-        var catalogQuery = await _catalogRepository.GetQueryableAsync();
-        var serviceNames = catalogQuery
-            .Where(c => serviceIds.Contains(c.Id))
-            .ToDictionary(c => c.Id, c => c.Name);
-
-        var users = staffIds.Count == 0
-            ? []
-            : await _userRepository.GetListByIdsAsync(staffIds);
-
-        return new AdviseLookups(
-            serviceNames,
-            users.ToDictionary(u => u.Id, u => u.Name ?? u.UserName));
-    }
-
-    internal sealed record AdviseLookups(
-        IReadOnlyDictionary<Guid, string> ServiceNames,
-        IReadOnlyDictionary<Guid, string> StaffNames);
-
-    private static PatientAdviseDto MapToDto(
-        PatientAdvise entity,
-        AdviseLookups lookups) => new()
+    private static PatientAdviseDto MapToDto(PatientAdvise entity) => new()
     {
         Id = entity.Id,
         PatientId = entity.PatientId,
@@ -259,14 +226,14 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
         GrossAmount = entity.GrossAmount,
         DiscountAmount = entity.DiscountAmount,
         EffectiveAmount = entity.EffectiveAmount,
-        ServiceName = lookups.ServiceNames.TryGetValue(entity.ServiceId, out var serviceName)
-            ? serviceName
-            : null,
-        StaffName = lookups.StaffNames.TryGetValue(entity.StaffId, out var staffName) ? staffName : null,
         CreationTime = entity.CreationTime,
         CreatorId = entity.CreatorId,
         LastModificationTime = entity.LastModificationTime,
         LastModifierId = entity.LastModifierId
     };
 
+    internal static PatientAdviseDto ToDto(PatientAdvise entity) => MapToDto(entity);
+
+    internal static List<PatientAdviseDto> ToDtos(IEnumerable<PatientAdvise> entities) =>
+        entities.Select(MapToDto).ToList();
 }

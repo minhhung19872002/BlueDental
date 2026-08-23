@@ -9,7 +9,7 @@ import {
   type PatientStatus,
 } from "../types/patient";
 
-const GENDER_BY_CODE: Record<number, Gender> = {
+export const GENDER_BY_CODE: Record<number, Gender> = {
   [GENDER.Male]: "male",
   [GENDER.Female]: "female",
   [GENDER.Other]: "other",

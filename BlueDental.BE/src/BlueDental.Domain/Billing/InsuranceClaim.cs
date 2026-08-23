@@ -11,6 +11,7 @@ namespace BlueDental.Billing;
 /// </summary>
 public class InsuranceClaim : FullAuditedAggregateRoot<Guid>
 {
+    public Guid BranchId { get; private set; }
     public Guid InvoiceId { get; private set; }
     public Guid PatientId { get; private set; }
     public Guid InsurancePlanId { get; private set; }
@@ -31,9 +32,11 @@ public class InsuranceClaim : FullAuditedAggregateRoot<Guid>
         Guid patientId,
         Guid insurancePlanId,
         string claimReference,
-        Money claimedAmount)
+        Money claimedAmount,
+        Guid branchId)
         : base(id)
     {
+        BranchId = branchId;
         InvoiceId = invoiceId;
         PatientId = patientId;
         InsurancePlanId = insurancePlanId;

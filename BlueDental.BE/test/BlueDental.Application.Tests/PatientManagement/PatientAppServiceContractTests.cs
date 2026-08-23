@@ -49,14 +49,17 @@ public class PatientAppServiceContractTests
         dto.GetProperty("DateOfBirth").ShouldNotBeNull();
         dto.GetProperty("Gender").ShouldNotBeNull();
         dto.GetProperty("PhoneNumber").ShouldNotBeNull();
-        dto.GetProperty("BranchId").ShouldNotBeNull();
+
+        // The branch is taken from the signed-in user, never from the request —
+        // accepting it here is the IDOR the audit closed.
+        dto.GetProperty("BranchId").ShouldBeNull();
     }
 
     [Fact]
-    public void GetPatientListInput_Should_Have_Filter_And_BranchId()
+    public void GetPatientListInput_Should_Filter_Without_Accepting_A_Branch()
     {
         var dto = typeof(GetPatientListInput);
         dto.GetProperty("Filter").ShouldNotBeNull();
-        dto.GetProperty("BranchId").ShouldNotBeNull();
+        dto.GetProperty("BranchId").ShouldBeNull();
     }
 }

@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import type { PagedResult } from "@/types";
 
-import { t } from "@/lib/i18n";
 /** Matches BlueDental.Inventory.SupplyStatus — derived from stock and expiry. */
 export const SUPPLY_STATUS = {
   Available: 1,
@@ -13,13 +12,13 @@ export const SUPPLY_STATUS = {
 } as const;
 export type SupplyStatus = (typeof SUPPLY_STATUS)[keyof typeof SUPPLY_STATUS];
 
-export const supplyStatusConfig = (): Record<SupplyStatus, { label: string; color: string }> => ({
-  [SUPPLY_STATUS.Available]: { label: t("Còn hàng"), color: "green" },
-  [SUPPLY_STATUS.LowStock]: { label: t("Sắp hết"), color: "orange" },
-  [SUPPLY_STATUS.OutOfStock]: { label: t("Hết hàng"), color: "red" },
-  [SUPPLY_STATUS.ExpiringSoon]: { label: t("Sắp hết hạn"), color: "gold" },
-  [SUPPLY_STATUS.Expired]: { label: t("Hết hạn"), color: "red" },
-});
+export const SUPPLY_STATUS_CONFIG: Record<SupplyStatus, { label: string; color: string }> = {
+  [SUPPLY_STATUS.Available]: { label: "Còn hàng", color: "green" },
+  [SUPPLY_STATUS.LowStock]: { label: "Sắp hết", color: "orange" },
+  [SUPPLY_STATUS.OutOfStock]: { label: "Hết hàng", color: "red" },
+  [SUPPLY_STATUS.ExpiringSoon]: { label: "Sắp hết hạn", color: "gold" },
+  [SUPPLY_STATUS.Expired]: { label: "Hết hạn", color: "red" },
+};
 
 export interface SupplyDto {
   id: string;

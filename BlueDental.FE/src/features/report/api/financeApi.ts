@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
+import { t } from "@/lib/i18n";
 import type { PagedResult } from "@/types";
 
-import { t } from "@/lib/i18n";
 /** Matches BlueDental.Finance.SalesEntryType */
 export const SALES_ENTRY_TYPE = { Income: 1, Expense: 2 } as const;
 export type SalesEntryType = (typeof SALES_ENTRY_TYPE)[keyof typeof SALES_ENTRY_TYPE];
@@ -362,3 +362,26 @@ export function useCashflowEntries(params: CashflowQueryInput) {
     queryFn: () => financeApi.cashflowEntries(params),
   });
 }
+
+export const PAYMENT_CHANNEL_LABELS: Record<PaymentChannel, string> = {
+  [PAYMENT_CHANNEL.Cash]: "Tiền mặt",
+  [PAYMENT_CHANNEL.Banking]: "Chuyển khoản",
+  [PAYMENT_CHANNEL.Card]: "Quẹt thẻ",
+  [PAYMENT_CHANNEL.OutstandingDebt]: "Cấn trừ dư nợ",
+};
+
+/** Matches BlueDental.Finance.SalesApprovalStatus */
+
+export const CASH_TRANSACTION_LABELS: Record<CashTransactionType, string> = {
+  [CASH_TRANSACTION_TYPE.Deposit]: "Nạp",
+  [CASH_TRANSACTION_TYPE.Withdraw]: "Rút",
+  [CASH_TRANSACTION_TYPE.Transfer]: "Luân chuyển",
+};
+
+/** Matches BlueDental.Finance.CashHolding */
+
+export const CASH_HOLDING_LABELS: Record<CashHolding, string> = {
+  [CASH_HOLDING.Cash]: "Tiền mặt",
+  [CASH_HOLDING.Bank]: "Chuyển khoản",
+  [CASH_HOLDING.CustomerPrepaid]: "Giữ hộ khách",
+};

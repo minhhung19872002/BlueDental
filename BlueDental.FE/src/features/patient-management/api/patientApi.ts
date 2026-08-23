@@ -13,19 +13,7 @@ const BASE = "/v1/app/patients";
 
 export const patientApi = {
   list: async (params: PatientListQuery): Promise<PagedResult<PatientListItem>> => {
-    // The server contract is GetPatientListInput: the search term is "filter".
-    // The status tabs (Đang điều trị / Điều trị hoàn tất / Chưa phát sinh) are a
-    // treatment-activity notion the API does not derive yet, so they are applied to
-    // the loaded rows instead of being sent — see adaptPatientListItem.
-    const query = {
-      filter: params.keyword,
-      skipCount: params.skipCount,
-      maxResultCount: params.maxResultCount,
-    };
-
-    const page = await api
-      .get<PagedResult<PatientDto>>(BASE, { params: query })
-      .then((r) => r.data);
+    const page = await api.get<PagedResult<PatientDto>>(BASE, { params }).then((r) => r.data);
 
     return {
       totalCount: page.totalCount,

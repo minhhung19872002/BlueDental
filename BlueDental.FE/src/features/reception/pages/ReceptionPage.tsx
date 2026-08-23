@@ -12,14 +12,14 @@ import {
   useReceptionMetrics,
   useReceptionDoctors,
 } from "../api/receptionQueries";
-import { useUpdateReceptionStatus } from "../api/receptionMutations";
+import { useUpdateReceptionStatus, useUpdateReceptionOutcome, useUpdateReceptionDoctor } from "../api/receptionMutations";
+import { t } from "@/lib/i18n";
 import type {
   ReceptionItem,
   ReceptionStatus,
   ReceptionFilter,
   AppointmentOutcome,
 } from "../types/reception";
-import { t } from "@/lib/i18n";
 
 type ViewMode = "day" | "week" | "month";
 
@@ -43,6 +43,8 @@ export const ReceptionPage: React.FC = () => {
   const { data: metrics } = useReceptionMetrics();
   const { data: doctors = [] } = useReceptionDoctors();
   const updateStatusMutation = useUpdateReceptionStatus();
+  const updateOutcomeMutation = useUpdateReceptionOutcome();
+  const updateDoctorMutation = useUpdateReceptionDoctor();
 
   const handleStatusChange = (id: string, newStatus: ReceptionStatus) => {
     updateStatusMutation.mutate(
@@ -62,12 +64,12 @@ export const ReceptionPage: React.FC = () => {
     );
   };
 
-  const handleOutcomeChange = (_id: string, _outcome: AppointmentOutcome) => {
-    // TODO: wire up mutation
+  const handleOutcomeChange = (id: string, outcome: AppointmentOutcome) => {
+    updateOutcomeMutation.mutate({ id, outcome });
   };
 
-  const handleDoctorChange = (_id: string, _doctorId: string) => {
-    // TODO: wire up mutation
+  const handleDoctorChange = (id: string, doctorId: string) => {
+    updateDoctorMutation.mutate({ id, doctorId });
   };
 
   const handleCancel = (id: string) => {
@@ -79,15 +81,6 @@ export const ReceptionPage: React.FC = () => {
 
   return (
     <div className="reception-page">
-      <div className="page-header">
-        <div className="page-header-left">
-          <h1 className="page-header-title">{t("Tiếp nhận")}</h1>
-          <p className="page-header-subtitle">
-            {t("Luồng khách trong ngày {0}", currentDate.format("DD/MM/YYYY"))}
-          </p>
-        </div>
-      </div>
-
       {/* Card 1: toolbar */}
       <div className="reception-card reception-card--toolbar">
         <ReceptionToolbar
@@ -136,7 +129,7 @@ export const ReceptionPage: React.FC = () => {
       <Drawer
         open={!!selectedItem}
         onClose={() => setSelectedItem(null)}
-        size={760}
+        width={760}
         title={selectedItem ? t("Chi tiết tiếp nhận — {0}", selectedItem.voucherCode) : t("Chi tiết tiếp nhận")}
         destroyOnClose
         styles={{ body: { padding: 0 } }}

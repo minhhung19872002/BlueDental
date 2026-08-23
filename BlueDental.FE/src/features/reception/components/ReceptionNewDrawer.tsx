@@ -1,26 +1,31 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Modal, Button, Input, message } from "antd";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useCreateReception } from "../api/receptionMutations";
-import { usePatientOptions } from "@/hooks/usePatientOptions";
+import { usePatientList } from "@/features/patient-management/api/patientQueries";
+import { useDebounce } from "@/hooks/useDebounce";
 import { SearchSelect } from "@/components/SearchSelect";
 import type { RefType } from "../types/reception";
 import { t } from "@/lib/i18n";
 
-const buildSchema = () =>
-  z.object({
-  patientId: z.string().optional(),
-  patientName: z.string().min(1, t("Vui lòng chọn khách hàng")),
-  phoneNumber: z.string().optional(),
-  doctorId: z.string({ error: t("Vui lòng chọn bác sĩ") }).min(1, t("Vui lòng chọn bác sĩ")),
-  appointmentHour: z.string().optional(),
-  appointmentMinute: z.string().optional(),
-  notes: z.string().optional(),
-});
+/** The translator, so helpers below can take it as a parameter. */
+type Translate = (vietnamese: string, ...params: (string | number)[]) => string;
 
-type FormValues = z.infer<ReturnType<typeof buildSchema>>;
+function createSchema(t: Translate) {
+  return z.object({
+    patientId: z.string().optional(),
+    patientName: z.string().min(1, t("Vui lòng chọn khách hàng")),
+    phoneNumber: z.string().optional(),
+    doctorId: z.string().min(1, t("Vui lòng chọn bác sĩ")),
+    appointmentHour: z.string().optional(),
+    appointmentMinute: z.string().optional(),
+    notes: z.string().optional(),
+  });
+}
+
+type FormValues = z.infer<ReturnType<typeof createSchema>>;
 
 interface DoctorOption {
   id: string;
@@ -40,9 +45,16 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
   doctors,
   onClose,
 }) => {
+  const schema = useMemo(() => createSchema(t), [t]);
   const createMutation = useCreateReception();
-  const { data: patients } = usePatientOptions();
   const [selectedPhone, setSelectedPhone] = useState<string>("---");
+  const [patientKeyword, setPatientKeyword] = useState("");
+  const debouncedPatientKeyword = useDebounce(patientKeyword);
+
+  const { data: patientData } = usePatientList({
+    keyword: debouncedPatientKeyword || undefined,
+    maxResultCount: 20,
+  });
 
   const {
     control,
@@ -51,7 +63,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
     setValue,
     formState: { errors },
   } = useForm<FormValues>({
-    resolver: zodResolver(buildSchema()),
+    resolver: zodResolver(schema),
     defaultValues: {
       patientId: undefined,
       patientName: "",
@@ -64,11 +76,11 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
   });
 
   const handlePatientChange = (patientId: string) => {
-    const patient = (patients ?? []).find((p) => p.id === patientId);
+    const patient = patientData?.items.find((p) => p.id === patientId);
     if (patient) {
-      setValue("patientName", patient.name, { shouldValidate: true });
+      setValue("patientName", patient.fullName, { shouldValidate: true });
       setValue("patientId", patient.id);
-      setSelectedPhone(patient.phone);
+      setSelectedPhone(patient.phone ?? "---");
     }
   };
 
@@ -81,7 +93,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
         doctorId: data.doctorId,
         refType: "Self" as RefType,
         notes: data.notes,
-        services: ["Khám tư vấn ban đầu"],
+        services: [t("Khám tư vấn ban đầu")],
       },
       {
         onSuccess: () => {
@@ -119,7 +131,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
       <div className="rn-form">
         {/* Patient select + Tạo Mới */}
         <div className="rn-row">
-          <div className="rn-field rn-field--flex1" data-testid="reception-patient">
+          <div className="rn-field rn-field--flex1">
             <label className="rn-label rn-label--required">{t("Khách hàng")}</label>
             <Controller
               name="patientId"
@@ -128,10 +140,11 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
                 <SearchSelect
                   value={field.value || undefined}
                   placeholder={t("Tìm kiếm khách hàng")}
-                  options={(patients ?? []).map((p) => ({
+                  options={(patientData?.items ?? []).map((p) => ({
                     value: p.id,
-                    label: `[${p.code}] - ${p.name.toUpperCase()}`,
+                    label: `[${p.code}] - ${p.fullName.toUpperCase()}`,
                   }))}
+                  onSearch={setPatientKeyword}
                   onChange={(val) => {
                     field.onChange(val ?? "");
                     if (val) handlePatientChange(val);
@@ -145,7 +158,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
             <span style={{ display: "block", height: 21, marginBottom: 4 }} />
             <Button
               type="primary"
-              style={{ background: "#1c3566", height: 40, fontWeight: 600 }}
+              style={{ background: "#2671D8", height: 40, fontWeight: 600 }}
             >
               {t("Tạo Mới")}
             </Button>
@@ -159,7 +172,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
         </div>
 
         {/* Doctor select */}
-        <div className="rn-field" data-testid="reception-doctor">
+        <div className="rn-field">
           <label className="rn-label">{t("Bác sĩ điều trị")}</label>
           <Controller
             name="doctorId"
@@ -189,7 +202,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
                   {...field}
                   style={{ height: 40 }}
                   suffix={
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#98a4b4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="12" cy="12" r="10"/><path d="M12 6v6h4"/>
                     </svg>
                   }
@@ -231,7 +244,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
             type="primary"
             loading={createMutation.isPending}
             onClick={handleSubmit(onSubmit)}
-            style={{ background: "#1c3566", height: 40, fontWeight: 600, paddingLeft: 20, paddingRight: 20 }}
+            style={{ background: "#2671D8", height: 40, fontWeight: 600, paddingLeft: 20, paddingRight: 20 }}
             icon={
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>

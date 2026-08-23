@@ -15,41 +15,30 @@ namespace BlueDental.Catalogs;
 /// <summary>
 /// Mục danh mục — the entry table shared by every "Danh mục" sub-route.
 /// </summary>
-[Authorize]
+[Authorize(BlueDentalPermissions.Catalogs.Default)]
 public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppService
 {
     private readonly IRepository<CatalogEntry, Guid> _repository;
     private readonly IRepository<Taxonomy, Guid> _taxonomyRepository;
-    private readonly BranchAccessChecker _branchAccess;
+    private readonly ICurrentClinicBranchResolver _branchResolver;
 
     public CatalogEntryAppService(
         IRepository<CatalogEntry, Guid> repository,
         IRepository<Taxonomy, Guid> taxonomyRepository,
-        BranchAccessChecker branchAccess)
+        ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
         _taxonomyRepository = taxonomyRepository;
-        _branchAccess = branchAccess;
+        _branchResolver = branchResolver;
     }
 
+    [Authorize(BlueDentalPermissions.Catalogs.View)]
     public async Task<PagedResultDto<CatalogEntryDto>> GetListAsync(GetCatalogEntryListInput input)
     {
-        if (!string.IsNullOrWhiteSpace(input.Group))
-        {
-            await CheckGroupPermissionAsync(input.Group, BlueDentalAbilities.Actions.Read);
-        }
-        else if (input.TaxonomyId.HasValue)
-        {
-            var taxonomy = await _taxonomyRepository.GetAsync(input.TaxonomyId.Value);
-            await CheckGroupPermissionAsync(taxonomy.Group, BlueDentalAbilities.Actions.Read);
-        }
-
-        var branchFilter = await _branchAccess.ResolveFilterAsync(input.ClinicBranchId);
-
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
 
-        if (branchFilter.Count > 0)
-            query = query.Where(x => branchFilter.Contains(x.ClinicBranchId));
+        query = query.Where(x => x.ClinicBranchId == clinicBranchId);
         if (input.TaxonomyId.HasValue)
             query = query.Where(x => x.TaxonomyId == input.TaxonomyId.Value);
         if (!string.IsNullOrWhiteSpace(input.Group))
@@ -74,28 +63,26 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
         return new PagedResultDto<CatalogEntryDto>(totalCount, items.Select(x => MapToDto(x, names)).ToList());
     }
 
+    [Authorize(BlueDentalPermissions.Catalogs.View)]
     public async Task<CatalogEntryDto> GetAsync(Guid id)
     {
         var entry = await _repository.GetAsync(id);
-        await _branchAccess.CheckAsync(entry.ClinicBranchId);
-        await CheckGroupPermissionAsync(entry.Group, BlueDentalAbilities.Actions.Read);
         var names = await GetTaxonomyNamesAsync([entry]);
         return MapToDto(entry, names);
     }
 
+    [Authorize(BlueDentalPermissions.Catalogs.Create)]
     public async Task<CatalogEntryDto> CreateAsync(CreateCatalogEntryDto input)
     {
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
         var taxonomy = await _taxonomyRepository.FindAsync(input.TaxonomyId)
             ?? throw new BusinessException(
                 BlueDentalDomainErrorCodes.Catalogs.TaxonomyNotFound,
                 $"Taxonomy group {input.TaxonomyId} was not found.");
 
-        await _branchAccess.CheckAsync(input.ClinicBranchId);
-        await CheckGroupPermissionAsync(taxonomy.Group, BlueDentalAbilities.Actions.Create);
-
         var entry = CatalogEntry.Create(
             GuidGenerator.Create(),
-            input.ClinicBranchId,
+            clinicBranchId,
             taxonomy.Id,
             // The group always comes from the taxonomy, never from the client.
             taxonomy.Group,
@@ -111,11 +98,10 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
         return MapToDto(entry, new Dictionary<Guid, string> { [taxonomy.Id] = taxonomy.Name });
     }
 
+    [Authorize(BlueDentalPermissions.Catalogs.Edit)]
     public async Task<CatalogEntryDto> UpdateAsync(Guid id, UpdateCatalogEntryDto input)
     {
         var entry = await _repository.GetAsync(id);
-        await _branchAccess.CheckAsync(entry.ClinicBranchId);
-        await CheckGroupPermissionAsync(entry.Group, BlueDentalAbilities.Actions.Update);
 
         if (entry.TaxonomyId != input.TaxonomyId)
         {
@@ -156,17 +142,11 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
         return MapToDto(entry, names);
     }
 
+    [Authorize(BlueDentalPermissions.Catalogs.Delete)]
     public async Task DeleteAsync(Guid id)
     {
-        var entry = await _repository.GetAsync(id);
-        await _branchAccess.CheckAsync(entry.ClinicBranchId);
-        await CheckGroupPermissionAsync(entry.Group, BlueDentalAbilities.Actions.Delete);
         await _repository.DeleteAsync(id, autoSave: true);
     }
-
-    /// <summary>Each catalog has its own ability subject — see TaxonomyGroupAbilities.</summary>
-    private Task CheckGroupPermissionAsync(string group, string action) =>
-        AuthorizationService.CheckAsync(TaxonomyGroupAbilities.PermissionFor(group, action));
 
     private async Task<Dictionary<Guid, string>> GetTaxonomyNamesAsync(
         IReadOnlyCollection<CatalogEntry> entries)

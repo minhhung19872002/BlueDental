@@ -164,3 +164,12 @@ export const themeConfig: ThemeConfig = {
 export const SIDEBAR_WIDTH = 76;
 export const SIDEBAR_EXPANDED_WIDTH = 236;
 export const HEADER_HEIGHT = 66;
+
+export const statusPalette = {
+  scheduled: { label: "Đã đặt lịch", bg: "#E3F2FD", color: "#1565C0" },
+  confirmed: { label: "Đã xác nhận", bg: "#E8F5E9", color: "#2E7D32" },
+  inProgress: { label: "Đang khám", bg: "#FFF8E1", color: "#E65100" },
+  completed: { label: "Hoàn thành", bg: "#E8F5E9", color: "#2E7D32" },
+  cancelled: { label: "Đã hủy", bg: "#FFEBEE", color: "#C62828" },
+  noShow: { label: "Không đến", bg: "#F3E5F5", color: "#6A1B9A" },
+} as const;

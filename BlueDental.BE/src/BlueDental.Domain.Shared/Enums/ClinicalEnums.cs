@@ -50,11 +50,8 @@ public enum TreatmentServiceStatus
 }
 
 /// <summary>
-/// Lifecycle of a treatment stage (Công đoạn).
-///
-/// The reference exposes exactly six verbs on the <c>treatmentStage</c> subject —
-/// read, create, update, continue, complete, print — and no cancel verb, so a
-/// stage has no cancelled state here either.
+/// Lifecycle of a treatment stage / step (Công đoạn điều trị).
+/// Mirrors the reference application's <c>treatmentStage.status</c>.
 /// </summary>
 public enum TreatmentStageStatus
 {

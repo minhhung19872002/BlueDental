@@ -1,176 +1,130 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import type { PagedResult } from "@/types";
 
-import { t } from "@/lib/i18n";
-/** Matches BlueDental.Labo.LaboStatus. */
-export const LABO_STATUS = {
-  Draft: 1,
-  Sent: 2,
-  InProgress: 3,
-  Received: 4,
-  Completed: 5,
-  Rejected: 6,
-} as const;
-export type LaboStatus = (typeof LABO_STATUS)[keyof typeof LABO_STATUS];
+// ── Types ─────────────────────────────────────────────────────────────────
 
-export const laboStatusConfig = (): Record<LaboStatus, { label: string; color: string }> => ({
-  [LABO_STATUS.Draft]: { label: t("Nháp"), color: "default" },
-  [LABO_STATUS.Sent]: { label: t("Đã gửi"), color: "blue" },
-  [LABO_STATUS.InProgress]: { label: t("Đang làm"), color: "processing" },
-  [LABO_STATUS.Received]: { label: t("Đã nhận hàng"), color: "green" },
-  [LABO_STATUS.Completed]: { label: t("Hoàn tất"), color: "green" },
-  [LABO_STATUS.Rejected]: { label: t("Từ chối"), color: "red" },
-});
+export type LaboStatus = "New" | "InProgress" | "Completed" | "Rejected" | "Warranty";
 
-/** Matches BlueDental.Labo.LaboOrderKind — the patient-tab counters. */
-export const LABO_KIND = { New: 1, ContinueStage: 2, Guarantee: 3 } as const;
-export type LaboOrderKind = (typeof LABO_KIND)[keyof typeof LABO_KIND];
-
-export const laboKindLabels = (): Record<LaboOrderKind, string> => ({
-  [LABO_KIND.New]: t("Đơn hàng mới"),
-  [LABO_KIND.ContinueStage]: t("Tiếp tục công đoạn"),
-  [LABO_KIND.Guarantee]: t("Bảo hành"),
-});
-
-/** Matches BlueDental.Labo.LaboSampleFilter — the chips above the table. */
-export const LABO_FILTER = { All: 0, AwaitingReturn: 1, Overdue: 2, Returned: 3 } as const;
-export type LaboSampleFilter = (typeof LABO_FILTER)[keyof typeof LABO_FILTER];
-
-export const laboFilterLabels = (): Record<LaboSampleFilter, string> => ({
-  [LABO_FILTER.All]: t("Tất Cả Mẫu"),
-  [LABO_FILTER.AwaitingReturn]: t("Mẫu Chưa Nhận"),
-  [LABO_FILTER.Overdue]: t("Mẫu Giao Trễ"),
-  [LABO_FILTER.Returned]: t("Mẫu Đã Nhận Hàng"),
-});
+export const LABO_STATUS_CONFIG: Record<LaboStatus, { label: string; color: string }> = {
+  New:        { label: "Mới",        color: "blue"    },
+  InProgress: { label: "Đang làm",   color: "orange"  },
+  Completed:  { label: "Hoàn thành", color: "green"   },
+  Rejected:   { label: "Từ chối",    color: "red"     },
+  Warranty:   { label: "Bảo hành",   color: "purple"  },
+};
 
 export interface LaboOrderDto {
   id: string;
   orderCode: string;
   patientId: string;
-  branchId: string;
-  dentistId: string | null;
+  patientName?: string;
+  dentistId?: string;
+  dentistName?: string;
   labProviderName: string;
   status: LaboStatus;
-  toothNumbers: string | null;
-  workDescription: string | null;
-  notes: string | null;
-  dueDate: string | null;
-  sentAt: string | null;
-  receivedAt: string | null;
+  toothNumbers?: string;
+  workDescription?: string;
+  notes?: string;
+  dueDate?: string;
+  sentAt?: string;
+  receivedAt?: string;
   estimatedCost: number;
-  rejectionReason: string | null;
-  kind: LaboOrderKind;
-  supplierId: string | null;
-  materialId: string | null;
-  attachmentUrl: string | null;
-  isOverdue: boolean;
-  isAwaitingReturn: boolean;
-  patientName: string | null;
-  supplierName: string | null;
-  materialName: string | null;
-  dentistName: string | null;
+  rejectionReason?: string;
   creationTime: string;
 }
 
-export interface LaboStatsDto {
-  total: number;
-  new: number;
-  continueStage: number;
-  guarantee: number;
-  awaitingReturn: number;
-  overdue: number;
-  returned: number;
-}
-
-export interface LaboListInput {
-  branchId?: string;
-  patientId?: string;
-  status?: LaboStatus;
-  kind?: LaboOrderKind;
-  sampleFilter?: LaboSampleFilter;
-  filter?: string;
-  skipCount?: number;
-  maxResultCount?: number;
-}
-
-export interface CreateLaboOrderInput {
+export interface CreateLaboOrderDto {
   patientId: string;
-  branchId: string;
   dentistId?: string;
   labProviderName: string;
   toothNumbers?: string;
   workDescription?: string;
+  notes?: string;
   dueDate?: string;
   estimatedCost: number;
-  kind: LaboOrderKind;
-  supplierId?: string;
-  materialId?: string;
-  biteId?: string;
-  finishLineId?: string;
-  rhythmId?: string;
 }
 
-const BASE = "/v1/app/labo-orders";
+export interface UpdateLaboOrderDto {
+  labProviderName?: string;
+  toothNumbers?: string;
+  workDescription?: string;
+  notes?: string;
+  dueDate?: string;
+  estimatedCost?: number;
+}
 
-const laboApi = {
-  list: (params: LaboListInput): Promise<PagedResult<LaboOrderDto>> =>
-    api.get<PagedResult<LaboOrderDto>>(BASE, { params }).then((r) => r.data),
+// ── API ───────────────────────────────────────────────────────────────────
 
-  stats: (params: LaboListInput): Promise<LaboStatsDto> =>
-    api.get<LaboStatsDto>(`${BASE}/stats`, { params }).then((r) => r.data),
+export const laboApi = {
+  list: (params: {
+    patientId?: string;
+    status?: LaboStatus;
+    skipCount?: number;
+    maxResultCount?: number;
+  }): Promise<PagedResult<LaboOrderDto>> =>
+    api.get("/v1/app/labo-orders", { params }).then((r) => r.data),
 
-  create: (input: CreateLaboOrderInput): Promise<LaboOrderDto> =>
-    api.post<LaboOrderDto>(BASE, input).then((r) => r.data),
+  get: (id: string): Promise<LaboOrderDto> =>
+    api.get(`/v1/app/labo-orders/${id}`).then((r) => r.data),
 
-  send: (id: string): Promise<void> => api.post(`${BASE}/${id}/send`).then(() => undefined),
-  receive: (id: string): Promise<void> => api.post(`${BASE}/${id}/receive`).then(() => undefined),
-  complete: (id: string): Promise<void> => api.post(`${BASE}/${id}/complete`).then(() => undefined),
+  create: (data: CreateLaboOrderDto): Promise<LaboOrderDto> =>
+    api.post("/v1/app/labo-orders", data).then((r) => r.data),
+
+  update: (id: string, data: UpdateLaboOrderDto): Promise<LaboOrderDto> =>
+    api.put(`/v1/app/labo-orders/${id}`, data).then((r) => r.data),
+
+  delete: (id: string): Promise<void> =>
+    api.delete(`/v1/app/labo-orders/${id}`).then((r) => r.data),
+
+  markReceived: (id: string): Promise<LaboOrderDto> =>
+    api.post(`/v1/app/labo-orders/${id}/receive`).then((r) => r.data),
 };
 
-export const laboKeys = {
-  all: ["labo-orders"] as const,
-  list: (params: LaboListInput) => [...laboKeys.all, "list", params] as const,
-  stats: (params: LaboListInput) => [...laboKeys.all, "stats", params] as const,
-};
+// ── Hooks ─────────────────────────────────────────────────────────────────
 
-export function useLaboOrders(params: LaboListInput) {
+export function usePatientLaboOrders(patientId: string) {
   return useQuery({
-    queryKey: laboKeys.list(params),
+    queryKey: ["labo-orders", { patientId }],
+    queryFn: () => laboApi.list({ patientId, maxResultCount: 50 }),
+    enabled: Boolean(patientId),
+    select: (d) => d.items,
+  });
+}
+
+export function useLaboOrderList(params: {
+  patientId?: string;
+  status?: LaboStatus;
+  skipCount?: number;
+  maxResultCount?: number;
+} = {}) {
+  return useQuery({
+    queryKey: ["labo-orders", params],
     queryFn: () => laboApi.list(params),
   });
 }
 
-export function useLaboStats(params: LaboListInput) {
-  return useQuery({
-    queryKey: laboKeys.stats(params),
-    queryFn: () => laboApi.stats(params),
-  });
-}
-
-function useLaboMutation<TVariables, TData>(fn: (variables: TVariables) => Promise<TData>) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: fn,
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: laboKeys.all });
-    },
-  });
-}
-
 export function useCreateLaboOrder() {
-  return useLaboMutation((input: CreateLaboOrderInput) => laboApi.create(input));
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateLaboOrderDto) => laboApi.create(data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["labo-orders"] }),
+  });
 }
 
-export function useSendLaboOrder() {
-  return useLaboMutation((id: string) => laboApi.send(id));
+export function useUpdateLaboOrder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateLaboOrderDto }) =>
+      laboApi.update(id, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["labo-orders"] }),
+  });
 }
 
-export function useReceiveLaboOrder() {
-  return useLaboMutation((id: string) => laboApi.receive(id));
-}
-
-export function useCompleteLaboOrder() {
-  return useLaboMutation((id: string) => laboApi.complete(id));
+export function useDeleteLaboOrder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => laboApi.delete(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["labo-orders"] }),
+  });
 }

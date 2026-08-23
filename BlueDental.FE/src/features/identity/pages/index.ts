@@ -1,0 +1,1 @@
+export { IdentityAdministrationPage } from "./IdentityAdministrationPage";

@@ -2,46 +2,42 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using BlueDental.Catalogs;
+using BlueDental.Organizations;
 using BlueDental.TreatmentManagement.Values;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
-using Volo.Abp.Identity;
 
 namespace BlueDental.TreatmentManagement;
 
 /// <summary>
 /// Chẩn đoán của bệnh nhân (Diagnosis recorded per patient and tooth).
 /// </summary>
-[Authorize]
+[Authorize(BlueDentalPermissions.TreatmentManagement.Default)]
 public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisAppService
 {
     private readonly IRepository<PatientDiagnosis, Guid> _repository;
-    private readonly IRepository<CatalogEntry, Guid> _catalogRepository;
-    private readonly IIdentityUserRepository _userRepository;
+    private readonly ICurrentClinicBranchResolver _branchResolver;
 
     public PatientDiagnosisAppService(
         IRepository<PatientDiagnosis, Guid> repository,
-        IRepository<CatalogEntry, Guid> catalogRepository,
-        IIdentityUserRepository userRepository)
+        ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
-        _catalogRepository = catalogRepository;
-        _userRepository = userRepository;
+        _branchResolver = branchResolver;
     }
 
-    [Authorize(BlueDentalAbilityPermissions.TreatmentDiagnosis.Read)]
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.View)]
     public async Task<PagedResultDto<PatientDiagnosisDto>> GetListAsync(GetPatientDiagnosisListInput input)
     {
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
 
+        query = query.Where(x => x.ClinicBranchId == clinicBranchId);
         if (input.PatientId.HasValue)
             query = query.Where(x => x.PatientId == input.PatientId.Value);
-        if (input.ClinicBranchId.HasValue)
-            query = query.Where(x => x.ClinicBranchId == input.ClinicBranchId.Value);
         if (input.StaffId.HasValue)
             query = query.Where(x => x.StaffId == input.StaffId.Value);
         if (input.Status.HasValue)
@@ -56,28 +52,25 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
             .Take(input.MaxResultCount)
             .ToList();
 
-        var lookups = await BuildLookupsAsync(items);
-        return new PagedResultDto<PatientDiagnosisDto>(
-            totalCount,
-            items.Select(x => MapToDto(x, lookups)).ToList());
+        return new PagedResultDto<PatientDiagnosisDto>(totalCount, items.Select(MapToDto).ToList());
     }
 
-    [Authorize(BlueDentalAbilityPermissions.TreatmentDiagnosis.Read)]
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.View)]
     public async Task<PatientDiagnosisDto> GetAsync(Guid id)
     {
-        var diagnosis = await _repository.GetAsync(id);
-        return MapToDto(diagnosis, await BuildLookupsAsync([diagnosis]));
+        return MapToDto(await _repository.GetAsync(id));
     }
 
-    [Authorize(BlueDentalAbilityPermissions.TreatmentDiagnosis.Create)]
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Create)]
     public async Task<PatientDiagnosisDto> CreateAsync(CreatePatientDiagnosisDto input)
     {
-        var code = await GenerateCodeAsync(input.ClinicBranchId);
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
+        var code = await GenerateCodeAsync(clinicBranchId);
 
         var diagnosis = PatientDiagnosis.Record(
             GuidGenerator.Create(),
             input.PatientId,
-            input.ClinicBranchId,
+            clinicBranchId,
             input.DiagnosisId,
             input.StaffId,
             code,
@@ -86,10 +79,10 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
             input.SecondStaffId);
 
         await _repository.InsertAsync(diagnosis, autoSave: true);
-        return MapToDto(diagnosis, await BuildLookupsAsync([diagnosis]));
+        return MapToDto(diagnosis);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.TreatmentDiagnosis.Update)]
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Edit)]
     public async Task<PatientDiagnosisDto> UpdateAsync(Guid id, UpdatePatientDiagnosisDto input)
     {
         var diagnosis = await _repository.GetAsync(id);
@@ -99,28 +92,28 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
         diagnosis.UpdateTeeth(ToToothSelections(input.Teeth));
 
         await _repository.UpdateAsync(diagnosis, autoSave: true);
-        return MapToDto(diagnosis, await BuildLookupsAsync([diagnosis]));
+        return MapToDto(diagnosis);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.TreatmentDiagnosis.Update)]
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Edit)]
     public async Task<PatientDiagnosisDto> MarkTreatedAsync(Guid id)
     {
         var diagnosis = await _repository.GetAsync(id);
         diagnosis.MarkTreated();
         await _repository.UpdateAsync(diagnosis, autoSave: true);
-        return MapToDto(diagnosis, await BuildLookupsAsync([diagnosis]));
+        return MapToDto(diagnosis);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.TreatmentDiagnosis.Update)]
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Edit)]
     public async Task<PatientDiagnosisDto> CancelAsync(Guid id)
     {
         var diagnosis = await _repository.GetAsync(id);
         diagnosis.Cancel();
         await _repository.UpdateAsync(diagnosis, autoSave: true);
-        return MapToDto(diagnosis, await BuildLookupsAsync([diagnosis]));
+        return MapToDto(diagnosis);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.TreatmentDiagnosis.Delete)]
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Edit)]
     public async Task DeleteAsync(Guid id)
     {
         await _repository.DeleteAsync(id, autoSave: true);
@@ -157,33 +150,7 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
         }).ToList();
     }
 
-    /// <summary>Names shown in the consulting table, resolved in one round trip.</summary>
-    private async Task<ConsultingLookups> BuildLookupsAsync(IReadOnlyCollection<PatientDiagnosis> items)
-    {
-        var diagnosisIds = items.Select(x => x.DiagnosisId).Distinct().ToList();
-        var staffIds = items.Select(x => x.StaffId).Distinct().ToList();
-
-        var catalogQuery = await _catalogRepository.GetQueryableAsync();
-        var diagnosisNames = catalogQuery
-            .Where(c => diagnosisIds.Contains(c.Id))
-            .ToDictionary(c => c.Id, c => c.Name);
-
-        var users = staffIds.Count == 0
-            ? []
-            : await _userRepository.GetListByIdsAsync(staffIds);
-
-        return new ConsultingLookups(
-            diagnosisNames,
-            users.ToDictionary(u => u.Id, u => u.Name ?? u.UserName));
-    }
-
-    internal sealed record ConsultingLookups(
-        IReadOnlyDictionary<Guid, string> DiagnosisNames,
-        IReadOnlyDictionary<Guid, string> StaffNames);
-
-    private static PatientDiagnosisDto MapToDto(
-        PatientDiagnosis entity,
-        ConsultingLookups lookups) => new()
+    private static PatientDiagnosisDto MapToDto(PatientDiagnosis entity) => new()
     {
         Id = entity.Id,
         PatientId = entity.PatientId,
@@ -196,10 +163,6 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
         Status = entity.Status,
         HasTreatmentService = entity.HasTreatmentService,
         Teeth = ToToothDtos(entity.Teeth),
-        DiagnosisName = lookups.DiagnosisNames.TryGetValue(entity.DiagnosisId, out var diagnosisName)
-            ? diagnosisName
-            : null,
-        StaffName = lookups.StaffNames.TryGetValue(entity.StaffId, out var staffName) ? staffName : null,
         CreationTime = entity.CreationTime,
         CreatorId = entity.CreatorId,
         LastModificationTime = entity.LastModificationTime,

@@ -19,19 +19,20 @@ interface ReceptionTableProps {
   onRowClick?: (item: ReceptionItem) => void;
 }
 
-const refTypeLabels = (): Record<RefType, { label: string; color: string }> => ({
-  Medical: { label: t("Y tế"), color: "purple" },
-  Self: { label: t("Tự đến"), color: "blue" },
-  Referral: { label: t("Giới thiệu"), color: "cyan" },
-  Marketing: { label: "Marketing", color: "geekblue" },
-});
-
 export const ReceptionTable: React.FC<ReceptionTableProps> = ({
   items,
   loading = false,
   onStatusChange,
   onRowClick,
 }) => {
+
+  const refTypeLabels: Record<RefType, { label: string; color: string }> = {
+    Medical:   { label: t("Y tế"),   color: "purple" },
+    Self:      { label: t("Tự đến"),      color: "blue" },
+    Referral:  { label: t("Giới thiệu"),  color: "cyan" },
+    Marketing: { label: t("Marketing"), color: "geekblue" },
+  };
+
   const columns: ColumnsType<ReceptionItem> = [
     {
       title: t("Số phiếu"),
@@ -39,7 +40,7 @@ export const ReceptionTable: React.FC<ReceptionTableProps> = ({
       key: "voucherCode",
       width: 140,
       render: (code: string) => (
-        <Text strong style={{ color: "#1c3566", fontFamily: "monospace" }}>
+        <Text strong style={{ color: "#2671D8", fontFamily: "monospace" }}>
           {code}
         </Text>
       ),
@@ -52,7 +53,7 @@ export const ReceptionTable: React.FC<ReceptionTableProps> = ({
       render: (name: string, record: ReceptionItem) => (
         <div>
           <div>
-            <Text strong style={{ color: "#101c2c" }}>
+            <Text strong style={{ color: "#0F172A" }}>
               {name}
             </Text>{" "}
             {record.patientType === "New" ? (
@@ -99,7 +100,7 @@ export const ReceptionTable: React.FC<ReceptionTableProps> = ({
       key: "refType",
       width: 130,
       render: (refType: RefType) => {
-        const conf = refTypeLabels()[refType] ?? { label: refType, color: "default" };
+        const conf = refTypeLabels[refType] ?? { label: refType, color: "default" };
         return <Tag color={conf.color}>{conf.label}</Tag>;
       },
     },
@@ -154,8 +155,8 @@ export const ReceptionTable: React.FC<ReceptionTableProps> = ({
       width: 140,
       align: "right",
       render: (amt: number) => (
-        <Text strong style={{ color: "#101c2c" }}>
-          {amt.toLocaleString("vi-VN")} {t("đ")}
+        <Text strong style={{ color: "#0F172A" }}>
+          {amt.toLocaleString("vi-VN")} đ
         </Text>
       ),
     },
@@ -200,8 +201,8 @@ export const ReceptionTable: React.FC<ReceptionTableProps> = ({
                   type="primary"
                   onClick={() => onStatusChange(record.id, "InProgress")}
                   style={{
-                    backgroundColor: "#1c3566",
-                    borderColor: "#1c3566",
+                    backgroundColor: "#2671D8",
+                    borderColor: "#2671D8",
                     fontSize: 12,
                   }}
                 >
@@ -217,12 +218,12 @@ export const ReceptionTable: React.FC<ReceptionTableProps> = ({
                   type="primary"
                   onClick={() => onStatusChange(record.id, "Completed")}
                   style={{
-                    backgroundColor: "#1f8a63",
-                    borderColor: "#1f8a63",
+                    backgroundColor: "#10B981",
+                    borderColor: "#10B981",
                     fontSize: 12,
                   }}
                 >
-                  Xong
+                  {t("Xong")}
                 </Button>
               </Tooltip>
             )}
@@ -255,7 +256,7 @@ export const ReceptionTable: React.FC<ReceptionTableProps> = ({
         emptyText: (
           <div style={{ padding: "32px 0", textAlign: "center" }}>
             <div style={{ fontSize: 36, marginBottom: 8 }}>📋</div>
-            <Text strong style={{ color: "#6f7c90", display: "block" }}>
+            <Text strong style={{ color: "#64748B", display: "block" }}>
               {t("Danh sách trống")}
             </Text>
             <Text type="secondary" style={{ fontSize: 13 }}>

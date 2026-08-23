@@ -131,7 +131,7 @@ public class PaymentSummary : ComparableValueObject
             carryOverAmount: carryOverAmount);
     }
 
-    protected override IEnumerable<object?> GetAtomicValues()
+    protected override IEnumerable<object> GetAtomicValues()
     {
         yield return TotalPrice;
         yield return TotalPaid;
@@ -145,6 +145,6 @@ public class PaymentSummary : ComparableValueObject
         yield return OutstandingDebt;
         yield return OutstandingDebtConsumed;
         yield return Prepaid;
-        yield return CarryOverAmount;
+        yield return (object?)CarryOverAmount ?? string.Empty;
     }
 }
