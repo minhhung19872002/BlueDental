@@ -17,14 +17,14 @@ import { TimekeepingBoard } from "@/features/timekeeping/components/TimekeepingB
 type ViewMode = "day" | "week" | "month";
 
 const FALLBACK_DOCTORS: DayViewDoctor[] = [
-  { id: "1", name: "BS Khanh",    appointmentCount: 0 },
-  { id: "2", name: "BS Tiên",     appointmentCount: 0 },
-  { id: "3", name: "BS Hương 4",  appointmentCount: 0 },
-  { id: "4", name: "BS Hương",    appointmentCount: 0 },
-  { id: "5", name: "BS Tới 10",   appointmentCount: 0 },
-  { id: "6", name: "BS Tới 3",    appointmentCount: 0 },
-  { id: "7", name: "BS Tới 1",    appointmentCount: 0 },
-  { id: "8", name: "BS Tới",      appointmentCount: 0 },
+  { id: "1", name: "Dr. A", appointmentCount: 0 },
+  { id: "2", name: "Dr. B", appointmentCount: 0 },
+  { id: "3", name: "Dr. C", appointmentCount: 0 },
+  { id: "4", name: "Dr. D", appointmentCount: 0 },
+  { id: "5", name: "Dr. E", appointmentCount: 0 },
+  { id: "6", name: "Dr. F", appointmentCount: 0 },
+  { id: "7", name: "Dr. G", appointmentCount: 0 },
+  { id: "8", name: "Dr. H", appointmentCount: 0 },
 ];
 
 export function AppointmentCalendarPage() {

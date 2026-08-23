@@ -63,7 +63,7 @@ export function TreatmentRecordForm({ patientId, onSuccess }: Props) {
         <Form.Item
           name="diagnosis"
           label={t("treatment.diagnosis")}
-          rules={[{ required: true, message: "Vui lòng nhập chẩn đoán" }]}
+          rules={[{ required: true, message: t("treatment.diagnosisRequired") }]}
         >
           <Input.TextArea rows={3} placeholder={t("treatment.diagnosisPlaceholder")} allowClear />
         </Form.Item>

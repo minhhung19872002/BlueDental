@@ -36,19 +36,22 @@ interface TaxonomyTab {
   pendingNote?: string;
 }
 
-const TAXONOMY_TABS: TaxonomyTab[] = [
-  { key: "service", label: "Dịch vụ", group: TAXONOMY_GROUP.CareService, entityLabel: "Tên dịch vụ", priced: true },
-  { key: "diagnosis", label: "Chẩn đoán", group: TAXONOMY_GROUP.Diagnosis, entityLabel: "Tên chẩn đoán" },
-  { key: "medicine", label: "Loại thuốc", group: TAXONOMY_GROUP.MedicationType, entityLabel: "Tên loại thuốc", priced: true },
-  { key: "consulting", label: "Dữ liệu tư vấn", group: TAXONOMY_GROUP.ConsultingData, entityLabel: "Tên dữ liệu tư vấn" },
-  { key: "source", label: "Nguồn đến", group: TAXONOMY_GROUP.Source, entityLabel: "Tên nguồn đến" },
-  { key: "history", label: "Lịch sử bệnh", group: TAXONOMY_GROUP.DiseaseHistory, entityLabel: "Tên lịch sử bệnh" },
-  { key: "prescription-template", label: "Đơn thuốc mẫu", group: TAXONOMY_GROUP.PrescriptionTemplate, entityLabel: "Tên đơn thuốc mẫu", templated: true },
-  { key: "medical-record-template", label: "Bệnh án mẫu", group: TAXONOMY_GROUP.MedicalRecordTemplate, entityLabel: "Tên bệnh án mẫu", templated: true },
-  { key: "tags", label: "Thẻ hồ sơ", group: null, entityLabel: "Tên thẻ", pendingNote: "Thẻ hồ sơ dùng danh mục riêng ở app gốc (medical-record/tag) — chưa dựng ở BlueDental." },
-  { key: "payment-method", label: "Phương thức thanh toán", group: null, entityLabel: "Phương thức", pendingNote: "Phương thức thanh toán ở app gốc là tài khoản MoMo/ngân hàng, không phải danh mục — chưa dựng ở BlueDental." },
-  { key: "occupation", label: "Nghề nghiệp", group: TAXONOMY_GROUP.Occupation, entityLabel: "Tên nghề nghiệp" },
-];
+function useTaxonomyTabs(): TaxonomyTab[] {
+  const { t } = useTranslation();
+  return [
+    { key: "service", label: t("taxonomy.tab.service"), group: TAXONOMY_GROUP.CareService, entityLabel: t("taxonomy.entity.service"), priced: true },
+    { key: "diagnosis", label: t("taxonomy.tab.diagnosis"), group: TAXONOMY_GROUP.Diagnosis, entityLabel: t("taxonomy.entity.diagnosis") },
+    { key: "medicine", label: t("taxonomy.tab.medicine"), group: TAXONOMY_GROUP.MedicationType, entityLabel: t("taxonomy.entity.medicine"), priced: true },
+    { key: "consulting", label: t("taxonomy.tab.consulting"), group: TAXONOMY_GROUP.ConsultingData, entityLabel: t("taxonomy.entity.consulting") },
+    { key: "source", label: t("taxonomy.tab.source"), group: TAXONOMY_GROUP.Source, entityLabel: t("taxonomy.entity.source") },
+    { key: "history", label: t("taxonomy.tab.history"), group: TAXONOMY_GROUP.DiseaseHistory, entityLabel: t("taxonomy.entity.history") },
+    { key: "prescription-template", label: t("taxonomy.tab.prescriptionTemplate"), group: TAXONOMY_GROUP.PrescriptionTemplate, entityLabel: t("taxonomy.entity.prescriptionTemplate"), templated: true },
+    { key: "medical-record-template", label: t("taxonomy.tab.medicalRecordTemplate"), group: TAXONOMY_GROUP.MedicalRecordTemplate, entityLabel: t("taxonomy.entity.medicalRecordTemplate"), templated: true },
+    { key: "tags", label: t("taxonomy.tab.tags"), group: null, entityLabel: t("taxonomy.entity.tags"), pendingNote: t("taxonomy.pending.tags") },
+    { key: "payment-method", label: t("taxonomy.tab.paymentMethod"), group: null, entityLabel: t("taxonomy.entity.paymentMethod"), pendingNote: t("taxonomy.pending.paymentMethod") },
+    { key: "occupation", label: t("taxonomy.tab.occupation"), group: TAXONOMY_GROUP.Occupation, entityLabel: t("taxonomy.entity.occupation") },
+  ];
+}
 
 function GroupSidebar({
   groups,
@@ -63,21 +66,22 @@ function GroupSidebar({
   onSelect: (id: string | null) => void;
   onAdd: () => void;
 }) {
+  const { t } = useTranslation();
   const [keyword, setKeyword] = useState("");
   const filtered = groups.filter((g) => g.name.toLowerCase().includes(keyword.toLowerCase()));
 
   return (
     <div style={{ width: 260, flexShrink: 0 }}>
       <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 2 }}>
-        Nhóm phân loại
+        {t("taxonomy.sidebar.title")}
       </div>
       <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 8 }}>
-        {isLoading ? "Đang tải…" : `${groups.length} nhóm`}
+        {isLoading ? t("taxonomy.sidebar.loading") : t("taxonomy.sidebar.groupCount", { count: groups.length })}
       </div>
 
       <Input
         prefix={<SearchOutlined />}
-        placeholder="Tìm nhóm..."
+        placeholder={t("taxonomy.sidebar.searchPlaceholder")}
         value={keyword}
         onChange={(e) => setKeyword(e.target.value)}
         allowClear
@@ -95,7 +99,7 @@ function GroupSidebar({
           fontWeight: selectedId === null ? 600 : 400,
         }}
       >
-        Tất cả nhóm
+        {t("taxonomy.sidebar.allGroups")}
       </button>
 
       {filtered.map((group) => (
@@ -126,13 +130,14 @@ function GroupSidebar({
       ))}
 
       <Button block icon={<PlusOutlined />} onClick={onAdd} style={{ marginTop: 8 }}>
-        Thêm nhóm
+        {t("taxonomy.sidebar.addGroup")}
       </Button>
     </div>
   );
 }
 
 function CatalogPanel({ tab }: { tab: TaxonomyTab }) {
+  const { t } = useTranslation();
   const branchId = useCurrentBranchId();
   const group = tab.group!;
 
@@ -174,7 +179,7 @@ function CatalogPanel({ tab }: { tab: TaxonomyTab }) {
   const columns: ColumnsType<CatalogEntryDto> = [
     { title: tab.entityLabel, dataIndex: "name", key: "name" },
     {
-      title: "Nhóm phân loại",
+      title: t("taxonomy.column.group"),
       dataIndex: "taxonomyName",
       key: "taxonomyName",
       width: 200,
@@ -182,7 +187,7 @@ function CatalogPanel({ tab }: { tab: TaxonomyTab }) {
     },
     ...(tab.priced
       ? [{
-          title: "Giá",
+          title: t("taxonomy.column.price"),
           dataIndex: "price",
           key: "price",
           width: 140,
@@ -191,43 +196,45 @@ function CatalogPanel({ tab }: { tab: TaxonomyTab }) {
         }]
       : []),
     {
-      title: "Trạng thái",
+      title: t("taxonomy.column.status"),
       dataIndex: "isActive",
       key: "isActive",
       width: 120,
       render: (isActive: boolean) =>
-        isActive ? <Tag color="green">Đang dùng</Tag> : <Tag>Ngừng dùng</Tag>,
+        isActive
+          ? <Tag color="green">{t("taxonomy.status.active")}</Tag>
+          : <Tag>{t("taxonomy.status.inactive")}</Tag>,
     },
     {
-      title: "Cập nhật gần nhất",
+      title: t("taxonomy.column.lastUpdated"),
       dataIndex: "lastModificationTime",
       key: "lastModificationTime",
       width: 150,
       render: (value: string | null, row) => formatDate(value ?? row.creationTime),
     },
     {
-      title: "Thao tác",
+      title: t("taxonomy.column.actions"),
       key: "actions",
       width: 140,
       render: (_, row) => (
         <>
           <Button type="link" size="small" onClick={() => { setEditing(row); setEntryModalOpen(true); }}>
-            Sửa
+            {t("taxonomy.action.edit")}
           </Button>
           <Popconfirm
-            title="Xoá mục này?"
-            okText="Xoá"
-            cancelText="Huỷ"
+            title={t("taxonomy.action.deleteConfirm")}
+            okText={t("taxonomy.action.delete")}
+            cancelText={t("taxonomy.action.cancel")}
             onConfirm={async () => {
               try {
                 await deleteEntry.mutateAsync(row.id);
-                message.success("Đã xoá");
+                message.success(t("taxonomy.toast.deleted"));
               } catch (error) {
                 message.error(extractApiError(error));
               }
             }}
           >
-            <Button type="link" size="small" danger>Xoá</Button>
+            <Button type="link" size="small" danger>{t("taxonomy.action.delete")}</Button>
           </Popconfirm>
         </>
       ),
@@ -243,10 +250,10 @@ function CatalogPanel({ tab }: { tab: TaxonomyTab }) {
         group,
         name: newGroupName.trim(),
       });
-      // Select the new group so the next "Thêm mục" lands where the user just
+      // Select the new group so the next "add item" lands where the user just
       // created it, instead of falling back to the first group in the list.
       setSelectedGroupId(created.id);
-      message.success("Đã thêm nhóm");
+      message.success(t("taxonomy.toast.groupAdded"));
       setGroupModalOpen(false);
       setNewGroupName("");
     } catch (error) {
@@ -269,13 +276,13 @@ function CatalogPanel({ tab }: { tab: TaxonomyTab }) {
           <div style={{ fontWeight: 700, fontSize: 16, color: "#1B2A41" }}>
             {currentGroup?.name ?? tab.label}
             <span style={{ fontWeight: 400, color: "#9CA3AF", fontSize: 13, marginLeft: 8 }}>
-              {entryPage?.totalCount ?? 0} bản ghi
+              {t("taxonomy.recordCount", { count: entryPage?.totalCount ?? 0 })}
             </span>
           </div>
           <div style={{ fontSize: 12, color: "#5A6B82", marginBottom: 10 }}>
             {currentGroup
-              ? `Quản lý các mục thuộc nhóm ${currentGroup.name}`
-              : `Tất cả mục của danh mục ${tab.label.toLowerCase()}`}
+              ? t("taxonomy.description.group", { name: currentGroup.name })
+              : t("taxonomy.description.all", { label: tab.label.toLowerCase() })}
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "space-between" }}>
@@ -285,11 +292,11 @@ function CatalogPanel({ tab }: { tab: TaxonomyTab }) {
               disabled={groups.length === 0}
               onClick={() => { setEditing(null); setEntryModalOpen(true); }}
             >
-              Thêm {tab.label.toLowerCase()}
+              {t("taxonomy.action.addItem", { label: tab.label.toLowerCase() })}
             </Button>
             <Input
               prefix={<SearchOutlined />}
-              placeholder={`Tìm theo ${tab.entityLabel.toLowerCase()}...`}
+              placeholder={t("taxonomy.action.searchByLabel", { label: tab.entityLabel.toLowerCase() })}
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               style={{ width: 260 }}
@@ -299,7 +306,7 @@ function CatalogPanel({ tab }: { tab: TaxonomyTab }) {
 
           {groups.length === 0 && !groupsLoading && (
             <div style={{ fontSize: 12, color: "#B45309", marginTop: 8 }}>
-              Cần tạo ít nhất một nhóm phân loại trước khi thêm mục.
+              {t("taxonomy.warning.noGroupYet")}
             </div>
           )}
         </div>
@@ -311,11 +318,11 @@ function CatalogPanel({ tab }: { tab: TaxonomyTab }) {
           columns={columns}
           size="middle"
           locale={{
-            emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Không có dữ liệu" />,
+            emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("taxonomy.empty.noData")} />,
           }}
           pagination={{
             pageSize: 20,
-            showTotal: (total, range) => `Hiển thị ${range[0]}–${range[1]} trên ${total} bản ghi`,
+            showTotal: (total, range) => t("taxonomy.pagination.showRange", { from: range[0], to: range[1], total }),
           }}
         />
       </div>
@@ -334,15 +341,15 @@ function CatalogPanel({ tab }: { tab: TaxonomyTab }) {
 
       <Modal
         open={groupModalOpen}
-        title="Thêm nhóm phân loại"
-        okText="Thêm"
-        cancelText="Huỷ"
+        title={t("taxonomy.modal.addGroupTitle")}
+        okText={t("taxonomy.modal.addGroupOk")}
+        cancelText={t("taxonomy.action.cancel")}
         confirmLoading={createGroup.isPending}
         onOk={handleCreateGroup}
         onCancel={() => { setGroupModalOpen(false); setNewGroupName(""); }}
       >
         <Input
-          placeholder="Tên nhóm"
+          placeholder={t("taxonomy.modal.groupNamePlaceholder")}
           value={newGroupName}
           onChange={(e) => setNewGroupName(e.target.value)}
           onPressEnter={handleCreateGroup}
@@ -353,11 +360,11 @@ function CatalogPanel({ tab }: { tab: TaxonomyTab }) {
 }
 
 export function TaxonomyPage() {
-  // useTranslation kept for future i18n of tab labels
-  useTranslation();
+  const { t } = useTranslation();
+  const tabs = useTaxonomyTabs();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get("tab") ?? "service";
-  const tab = TAXONOMY_TABS.find((t) => t.key === activeTab) ?? TAXONOMY_TABS[0];
+  const tab = tabs.find((tb) => tb.key === activeTab) ?? tabs[0];
 
   return (
     <div className="reception-page">
@@ -366,7 +373,7 @@ export function TaxonomyPage() {
           activeKey={tab.key}
           onChange={(key) => setSearchParams((p) => { p.set("tab", key); return p; })}
           style={{ marginBottom: 0 }}
-          items={TAXONOMY_TABS.map((t) => ({ key: t.key, label: t.label }))}
+          items={tabs.map((tb) => ({ key: tb.key, label: tb.label }))}
         />
       </div>
 
@@ -376,7 +383,7 @@ export function TaxonomyPage() {
         ) : (
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={tab.pendingNote ?? "Chưa có dữ liệu"}
+            description={tab.pendingNote ?? t("taxonomy.empty.noDataYet")}
           />
         )}
       </div>

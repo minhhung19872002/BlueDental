@@ -98,7 +98,7 @@ function StaffModal({ open, editing, onClose }: StaffModalProps) {
           </Form.Item>
         )}
         <Form.Item name="name" label={t("staff.fullName")} rules={[{ required: true, message: t("staff.enterFullName") }]}>
-          <Input placeholder="Nguyễn Văn A" />
+          <Input placeholder={t("staff.namePlaceholder")} />
         </Form.Item>
         <Form.Item name="email" label={t("common.email")} rules={[{ required: true, message: t("staff.enterEmail") }, { type: "email", message: t("staff.invalidEmail") }]}>
           <Input placeholder="email@example.com" />

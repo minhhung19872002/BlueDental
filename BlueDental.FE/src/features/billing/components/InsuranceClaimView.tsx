@@ -222,25 +222,25 @@ export function InsuranceClaimView({ patientId }: Props) {
           <Form.Item
             name="invoiceId"
             label={t("billing.invoiceId")}
-            rules={[{ required: true, message: "Vui lòng nhập mã hóa đơn" }]}
+            rules={[{ required: true, message: t("insuranceClaim.validation.invoiceIdRequired") }]}
           >
-            <Input placeholder="Nhập mã hóa đơn liên quan" />
+            <Input placeholder={t("insuranceClaim.placeholder.invoiceId")} />
           </Form.Item>
 
           <Form.Item
             name="insurancePlanId"
             label={t("billing.insurancePlanId")}
-            rules={[{ required: true, message: "Vui lòng nhập mã gói bảo hiểm" }]}
+            rules={[{ required: true, message: t("insuranceClaim.validation.insurancePlanIdRequired") }]}
           >
-            <Input placeholder="Nhập mã gói bảo hiểm" />
+            <Input placeholder={t("insuranceClaim.placeholder.insurancePlanId")} />
           </Form.Item>
 
           <Form.Item
             name="claimedAmount"
             label={t("billing.claimedAmountVnd")}
             rules={[
-              { required: true, message: "Vui lòng nhập số tiền" },
-              { type: "number", min: 1000, message: "Số tiền phải lớn hơn 1.000 đ" },
+              { required: true, message: t("insuranceClaim.validation.claimedAmountRequired") },
+              { type: "number", min: 1000, message: t("insuranceClaim.validation.claimedAmountMin") },
             ]}
           >
             <InputNumber
@@ -255,7 +255,7 @@ export function InsuranceClaimView({ patientId }: Props) {
 
           <Form.Item name="notes" label={t("common.note")}>
             <Input.TextArea
-              placeholder="Ghi chú thêm (tuỳ chọn)..."
+              placeholder={t("insuranceClaim.placeholder.notes")}
               rows={3}
               maxLength={500}
               showCount

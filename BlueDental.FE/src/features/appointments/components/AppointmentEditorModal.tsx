@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Modal, Button, Input, DatePicker, TimePicker, message } from "antd";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,18 +10,21 @@ import { usePatientList } from "@/features/patient-management/api/patientQueries
 import { useDentistList } from "@/features/staff/api/staffQueries";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 
-const schema = z.object({
-  patientId: z.string().min(1, "Vui lòng chọn khách hàng"),
-  doctorId: z.string().min(1, "Vui lòng chọn bác sĩ"),
-  date: z.string().min(1, "Vui lòng chọn ngày"),
-  startTime: z.string().min(1, "Vui lòng chọn giờ bắt đầu"),
-  endTime: z.string().optional(),
-  reason: z.string().optional(),
-  notes: z.string().optional(),
-});
+function createSchema(t: TFunction) {
+  return z.object({
+    patientId: z.string().min(1, t("appointmentEditor.validation.patientRequired")),
+    doctorId: z.string().min(1, t("appointmentEditor.validation.doctorRequired")),
+    date: z.string().min(1, t("appointmentEditor.validation.dateRequired")),
+    startTime: z.string().min(1, t("appointmentEditor.validation.startTimeRequired")),
+    endTime: z.string().optional(),
+    reason: z.string().optional(),
+    notes: z.string().optional(),
+  });
+}
 
-type FormValues = z.infer<typeof schema>;
+type FormValues = z.infer<ReturnType<typeof createSchema>>;
 
 interface Props {
   open: boolean;
@@ -34,6 +37,7 @@ interface Props {
 
 export function AppointmentEditorModal({ open, appointmentId, initialDate, onClose, onSuccess }: Props) {
   const { t } = useTranslation();
+  const schema = useMemo(() => createSchema(t), [t]);
   const isEdit = Boolean(appointmentId);
   const createMutation = useCreateAppointment();
   const [patientKeyword, setPatientKeyword] = useState("");

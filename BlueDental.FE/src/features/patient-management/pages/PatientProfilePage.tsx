@@ -221,7 +221,7 @@ export function PatientProfilePage() {
                 <div style={{ marginTop: 12 }}>
                   <div style={{ color: "#5A6B82", fontSize: 12, marginBottom: 6 }}>{t("patient.tagLabel")}</div>
                   <Space size={4} wrap>
-                    <Tag color="blue">Chỉnh Nha</Tag>
+                    <Tag color="blue">{t("patient.tagOrthodontics")}</Tag>
                   </Space>
                 </div>
               </Card>

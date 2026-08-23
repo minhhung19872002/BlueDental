@@ -87,6 +87,12 @@ function formatDuration(seconds: number): string {
   return m > 0 ? `${m}p ${s}s` : `${s}s`;
 }
 
+// ── Config status constant ─────────────────────────────────────────────────
+// UNKNOWN_REFERENCE_BEHAVIOR: The exact enum/string value used for the
+// "activated" status in the call/message config API is not confirmed.
+// Using "active" as a placeholder; adjust to match backend contract.
+const CONFIG_STATUS_ACTIVE = "active";
+
 // ── "Gọi thoại" views ─────────────────────────────────────────────────────
 
 function CallConfigView() {
@@ -103,7 +109,11 @@ function CallConfigView() {
       dataIndex: "status",
       key: "status",
       render: (v: string | undefined) =>
-        v ? <Tag color={v === "Đã kích hoạt" ? "green" : "default"}>{v}</Tag> : null,
+        v ? (
+          <Tag color={v === CONFIG_STATUS_ACTIVE ? "green" : "default"}>
+            {v === CONFIG_STATUS_ACTIVE ? t("tools.statusActivated") : t("tools.statusInactive")}
+          </Tag>
+        ) : null,
     },
     {
       title: t("tools.actions"),
@@ -155,7 +165,7 @@ function CallAssignView() {
   const deleteAssignment = useDeleteCallAssignment();
 
   const CALL_STATUS_LABELS: Record<number, string> = {
-    0: "Chưa gọi",
+    0: t("tools.notCalled"),
     1: t("tools.called"),
     2: t("tools.noContact"),
   };
@@ -242,14 +252,14 @@ function CallListView() {
   const deleteLog = useDeleteCallLog();
 
   const CALL_DIRECTION_LABELS: Record<number, string> = {
-    0: "Gọi đến",
-    1: "Gọi đi",
+    0: t("tools.callInbound"),
+    1: t("tools.callOutbound"),
   };
 
   const CALL_LOG_STATUS_LABELS: Record<number, string> = {
-    0: "Đã nghe",
-    1: "Nhỡ",
-    2: "Hộp thư",
+    0: t("tools.callAnswered"),
+    1: t("tools.callMissed"),
+    2: t("tools.callVoicemail"),
   };
 
   const columns = [
@@ -384,20 +394,15 @@ function MessageTemplateView({ channel }: { channel: number }) {
     }
   };
 
-  const MSG_STATUS_LABELS: Record<number, string> = {
-    0: "Đang chờ",
-    1: "Đã gửi",
-    2: "Thất bại",
-    3: "Đã nhận",
-  };
-
   const columns = [
     { title: t("tools.templateName"),   dataIndex: "name",     key: "name" },
     { title: t("tools.content"),         dataIndex: "content",  key: "content",  ellipsis: true },
     { title: t("tools.group"),           dataIndex: "category", key: "category", width: 120, render: (v: string | undefined) => v ?? "—" },
     {
       title: t("tools.templateStatus"), dataIndex: "isActive", key: "isActive", width: 100,
-      render: (v: boolean) => <Tag color={v ? "green" : "default"}>{v ? "Hoạt động" : "Tắt"}</Tag>,
+      render: (v: boolean) => (
+        <Tag color={v ? "green" : "default"}>{v ? t("tools.statusActive") : t("tools.statusOff")}</Tag>
+      ),
     },
     {
       title: t("tools.createdDate"), dataIndex: "creationTime", key: "creationTime", width: 120,
@@ -415,9 +420,6 @@ function MessageTemplateView({ channel }: { channel: number }) {
       ),
     },
   ];
-
-  // suppress unused variable warning
-  void MSG_STATUS_LABELS;
 
   return (
     <>
@@ -485,10 +487,10 @@ function MessageLogView({ channel }: { channel: number }) {
   const logs = data?.items ?? [];
 
   const MSG_STATUS_LABELS: Record<number, string> = {
-    0: "Đang chờ",
-    1: "Đã gửi",
-    2: "Thất bại",
-    3: "Đã nhận",
+    0: t("tools.msgPending"),
+    1: t("tools.msgSent"),
+    2: t("tools.msgFailed"),
+    3: t("tools.msgReceived"),
   };
 
   const columns = [
@@ -556,7 +558,11 @@ function MessageConfigView() {
       dataIndex: "status",
       key: "status",
       render: (v: string | undefined) =>
-        v ? <Tag color={v === "Đã kích hoạt" ? "green" : "default"}>{v}</Tag> : null,
+        v ? (
+          <Tag color={v === CONFIG_STATUS_ACTIVE ? "green" : "default"}>
+            {v === CONFIG_STATUS_ACTIVE ? t("tools.statusActivated") : t("tools.statusInactive")}
+          </Tag>
+        ) : null,
     },
     {
       title: t("tools.actions"),
@@ -673,21 +679,29 @@ function ZaloView() {
 
 interface InvoiceConfig {
   id: string;
-  name: string;
-  branch: string;
-  module: string;
+  nameKey: string;
+  branchKey: string;
+  moduleKey: string;
   provider: string;
   status: string;
 }
 
-const INVOICE_DATA: InvoiceConfig[] = [
-  { id: "1", name: "Quang Vinh", branch: "Chi nhánh Quang Vinh", module: "Hóa đơn", provider: "MISA", status: "Đã kích hoạt" },
-  { id: "2", name: "Thuế Hố Nai", branch: "Chi nhánh Hố Nai",   module: "Hóa đơn", provider: "MISA", status: "Đã kích hoạt" },
+/** Synthetic seed data — status uses CONFIG_STATUS_ACTIVE constant, not a translated label. */
+const INVOICE_SEED: InvoiceConfig[] = [
+  { id: "1", nameKey: "tools.invoiceSeedName1", branchKey: "tools.invoiceSeedBranch1", moduleKey: "tools.invoiceModule", provider: "MISA", status: CONFIG_STATUS_ACTIVE },
+  { id: "2", nameKey: "tools.invoiceSeedName2", branchKey: "tools.invoiceSeedBranch2", moduleKey: "tools.invoiceModule", provider: "MISA", status: CONFIG_STATUS_ACTIVE },
 ];
 
 function InvoiceView() {
   const { t } = useTranslation();
   const [keyword, setKeyword] = useState("");
+
+  const INVOICE_DATA = INVOICE_SEED.map((r) => ({
+    ...r,
+    name: t(r.nameKey),
+    branch: t(r.branchKey),
+    module: t(r.moduleKey),
+  }));
 
   const filtered = INVOICE_DATA.filter(
     (r) => r.name.toLowerCase().includes(keyword.toLowerCase()) || r.branch.toLowerCase().includes(keyword.toLowerCase()),
@@ -702,7 +716,11 @@ function InvoiceView() {
       title: t("tools.status"),
       dataIndex: "status",
       key: "status",
-      render: (v: string) => <Tag color="green">{v}</Tag>,
+      render: (v: string) => (
+        <Tag color={v === CONFIG_STATUS_ACTIVE ? "green" : "default"}>
+          {v === CONFIG_STATUS_ACTIVE ? t("tools.statusActivated") : t("tools.statusInactive")}
+        </Tag>
+      ),
     },
     {
       title: t("tools.actions"),

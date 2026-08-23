@@ -320,7 +320,7 @@ export function ReportPage() {
                 <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 10 }}>{t("report.visitorInfo")}</div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
                   <span style={{ color: "#5A6B82" }}>{t("report.visitors")}</span>
-                  <span style={{ fontWeight: 600 }}>{expenseLoading ? "…" : (expenseData?.totalCount ?? 0)} lượt</span>
+                  <span style={{ fontWeight: 600 }}>{expenseLoading ? "…" : (expenseData?.totalCount ?? 0)} {t("report.visits")}</span>
                 </div>
               </div>
             </Col>
@@ -370,12 +370,14 @@ export function ReportPage() {
   );
 }
 
-const APPROVAL_CONFIG: Record<SalesApprovalStatus, { label: string; color: string } | null> = {
-  [SALES_APPROVAL_STATUS.NotRequired]: null,
-  [SALES_APPROVAL_STATUS.Pending]:  { label: "Chờ duyệt", color: "gold" },
-  [SALES_APPROVAL_STATUS.Approved]: { label: "Đã duyệt",  color: "green" },
-  [SALES_APPROVAL_STATUS.Rejected]: { label: "Từ chối",   color: "red" },
-};
+function buildApprovalConfig(t: TFunction): Record<SalesApprovalStatus, { label: string; color: string } | null> {
+  return {
+    [SALES_APPROVAL_STATUS.NotRequired]: null,
+    [SALES_APPROVAL_STATUS.Pending]:  { label: t("report.approvalPending"),  color: "gold" },
+    [SALES_APPROVAL_STATUS.Approved]: { label: t("report.approvalApproved"), color: "green" },
+    [SALES_APPROVAL_STATUS.Rejected]: { label: t("report.approvalRejected"), color: "red" },
+  };
+}
 
 function CashflowTab({ period }: { period: PeriodRange }) {
   const { t } = useTranslation();
@@ -417,19 +419,19 @@ function CashflowTab({ period }: { period: PeriodRange }) {
     let reason = "";
 
     Modal.confirm({
-      title: `Từ chối phiếu ${row.code}`,
+      title: t("report.rejectVoucherTitle", { code: row.code }),
       content: (
         <Input.TextArea
           rows={3}
-          placeholder="Lý do từ chối"
+          placeholder={t("report.rejectReasonPlaceholder")}
           onChange={(e) => { reason = e.target.value; }}
         />
       ),
-      okText: "Từ chối",
-      cancelText: "Huỷ",
+      okText: t("report.reject"),
+      cancelText: t("common.cancel"),
       onOk: async () => {
         if (!reason.trim()) {
-          message.error("Vui lòng nhập lý do từ chối.");
+          message.error(t("report.rejectReasonRequired"));
           throw new Error("missing reason");
         }
         try {
@@ -455,33 +457,33 @@ function CashflowTab({ period }: { period: PeriodRange }) {
     { label: t("report.estimatedProfit"), value: stats?.net          ?? 0, color: "#1E70E6" },
   ];
 
-  const columns = buildCashflowColumns(t, APPROVAL_CONFIG, (row) => (
+  const columns = buildCashflowColumns(t, buildApprovalConfig(t), (row) => (
     <>
       {row.approvalStatus === SALES_APPROVAL_STATUS.Pending && (
         <>
-          <Button type="link" size="small" onClick={() => handleApprove(row)}>{t("report.approve") ?? "Duyệt"}</Button>
-          <Button type="link" size="small" danger onClick={() => handleReject(row)}>{t("report.reject") ?? "Từ chối"}</Button>
+          <Button type="link" size="small" onClick={() => handleApprove(row)}>{t("report.approve")}</Button>
+          <Button type="link" size="small" danger onClick={() => handleReject(row)}>{t("report.reject")}</Button>
         </>
       )}
       {row.approvalStatus !== SALES_APPROVAL_STATUS.Approved && (
         <>
           <Button type="link" size="small" onClick={() => { setEditing(row); setModalOpen(true); }}>
-            {t("common.edit") ?? "Sửa"}
+            {t("common.edit")}
           </Button>
           <Popconfirm
-            title={t("report.confirmDelete") ?? "Xoá phiếu này?"}
-            okText={t("common.delete") ?? "Xoá"}
-            cancelText={t("common.cancel") ?? "Huỷ"}
+            title={t("report.confirmDelete")}
+            okText={t("common.delete")}
+            cancelText={t("common.cancel")}
             onConfirm={async () => {
               try {
                 await deleteEntry.mutateAsync(row.id);
-                message.success(t("common.deleteSuccess") ?? "Đã xoá phiếu");
+                message.success(t("common.deleteSuccess"));
               } catch (error) {
                 message.error(extractApiError(error));
               }
             }}
           >
-            <Button type="link" size="small" danger>{t("common.delete") ?? "Xoá"}</Button>
+            <Button type="link" size="small" danger>{t("common.delete")}</Button>
           </Popconfirm>
         </>
       )}
@@ -543,7 +545,7 @@ function CashflowTab({ period }: { period: PeriodRange }) {
             icon={<PlusOutlined />}
             onClick={() => { setEditing(null); setModalOpen(true); }}
           >
-            {t("common.addNew") ?? "Thêm mới"}
+            {t("common.addNew")}
           </Button>
           <Button icon={<DownloadOutlined />} style={{ marginLeft: "auto" }}>{t("common.exportExcel")}</Button>
         </div>
@@ -611,13 +613,13 @@ function CashflowV2Tab({ period }: { period: PeriodRange }) {
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <Button type="primary" onClick={() => setCashModal(CASH_TRANSACTION_TYPE.Deposit)}>
-            {t("report.deposit") ?? "Nạp"}
+            {t("report.deposit")}
           </Button>
           <Button onClick={() => setCashModal(CASH_TRANSACTION_TYPE.Withdraw)}>
-            {t("report.withdraw") ?? "Rút"}
+            {t("report.withdraw")}
           </Button>
           <Button onClick={() => setCashModal(CASH_TRANSACTION_TYPE.Transfer)}>
-            {t("report.flowTransfer") ?? "Luân chuyển"}
+            {t("report.flowTransfer")}
           </Button>
           <Text style={{ fontSize: 13, color: "#5A6B82", marginLeft: 12 }}>
             {t("report.deposit")}: {formatVND(overview?.totalDeposit ?? 0)} đ

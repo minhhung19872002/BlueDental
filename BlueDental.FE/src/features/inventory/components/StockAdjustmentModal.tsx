@@ -108,7 +108,7 @@ export function StockAdjustmentModal({ open, onClose, itemId }: Props) {
             <Form.Item
               name="itemId"
               label={t("inventory.material")}
-              rules={[{ required: true, message: "Vui lòng chọn vật tư" }]}
+              rules={[{ required: true, message: t("inventory.selectMaterialRequired") }]}
             >
               <Select
                 showSearch
@@ -126,7 +126,7 @@ export function StockAdjustmentModal({ open, onClose, itemId }: Props) {
           <Form.Item
             name="adjustmentType"
             label={t("inventory.adjustmentType")}
-            rules={[{ required: true, message: "Vui lòng chọn loại điều chỉnh" }]}
+            rules={[{ required: true, message: t("inventory.selectAdjustmentTypeRequired") }]}
           >
             <Select
               placeholder={t("inventory.selectAdjustmentType")}
@@ -138,8 +138,8 @@ export function StockAdjustmentModal({ open, onClose, itemId }: Props) {
             name="quantity"
             label={t("inventory.quantity")}
             rules={[
-              { required: true, message: "Vui lòng nhập số lượng" },
-              { type: "number", min: 1, message: "Số lượng phải lớn hơn 0" },
+              { required: true, message: t("inventory.quantityRequired") },
+              { type: "number", min: 1, message: t("inventory.quantityMinOne") },
             ]}
           >
             <InputNumber
@@ -152,7 +152,7 @@ export function StockAdjustmentModal({ open, onClose, itemId }: Props) {
           <Form.Item
             name="reason"
             label={t("inventory.reason")}
-            rules={[{ required: true, message: "Vui lòng nhập lý do điều chỉnh" }]}
+            rules={[{ required: true, message: t("inventory.reasonRequired") }]}
           >
             <Input.TextArea
               placeholder={t("inventory.reasonPlaceholder")}

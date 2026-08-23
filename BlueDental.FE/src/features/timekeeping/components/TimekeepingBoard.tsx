@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Button, Empty, Input, Spin, Switch, Tag, Tooltip, message } from "antd";
 import type { Dayjs } from "dayjs";
+import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import {
   useCheckIn,
@@ -27,13 +28,15 @@ interface TimekeepingBoardProps {
   currentDate: Dayjs;
 }
 
-const STATUS_CONFIG: Record<AttendanceStatus, { label: string; color: string }> = {
-  [ATTENDANCE_STATUS.NotStarted]: { label: "Chưa vào ca", color: "default" },
-  [ATTENDANCE_STATUS.Working]: { label: "Đang làm việc", color: "processing" },
-  [ATTENDANCE_STATUS.Completed]: { label: "Hoàn thành", color: "success" },
-  [ATTENDANCE_STATUS.Abandoned]: { label: "Nghỉ ngang", color: "error" },
-  [ATTENDANCE_STATUS.OnLeave]: { label: "Nghỉ", color: "warning" },
-};
+function getStatusConfig(t: TFunction): Record<AttendanceStatus, { label: string; color: string }> {
+  return {
+    [ATTENDANCE_STATUS.NotStarted]: { label: t("timekeeping.statusNotStarted"), color: "default" },
+    [ATTENDANCE_STATUS.Working]: { label: t("timekeeping.statusWorking"), color: "processing" },
+    [ATTENDANCE_STATUS.Completed]: { label: t("timekeeping.statusCompleted"), color: "success" },
+    [ATTENDANCE_STATUS.Abandoned]: { label: t("timekeeping.statusAbandoned"), color: "error" },
+    [ATTENDANCE_STATUS.OnLeave]: { label: t("timekeeping.statusOnLeave"), color: "warning" },
+  };
+}
 
 /** "08:00:00" -> "08:00" */
 function formatPlanned(time: string): string {
@@ -126,7 +129,7 @@ function StaffCard({ record }: { record: TimeKeepingRecordDto }) {
   const checkOut = useCheckOut();
 
   const isDayOff = record.registration === WORK_REGISTRATION.DayOff;
-  const status = STATUS_CONFIG[record.status];
+  const status = getStatusConfig(t)[record.status];
 
   const handleRegistrationChange = (checked: boolean) => {
     const mutation = checked ? registerWorking.mutateAsync(record.id) : registerDayOff.mutateAsync({ id: record.id });
@@ -253,7 +256,7 @@ export function TimekeepingBoard({ currentDate }: TimekeepingBoardProps) {
     const staff = staffPage?.items ?? [];
 
     if (staff.length === 0) {
-      message.error("Chưa có nhân viên nào đang làm việc.");
+      message.error(t("timekeeping.noStaffWorking"));
       return;
     }
 
@@ -265,7 +268,7 @@ export function TimekeepingBoard({ currentDate }: TimekeepingBoardProps) {
           workDate,
         });
       }
-      message.success(`Đã mở ngày làm việc cho ${staff.length} nhân viên`);
+      message.success(t("timekeeping.openWorkDaySuccess", { count: staff.length }));
     } catch (error) {
       message.error(extractApiError(error));
     }
@@ -312,7 +315,7 @@ export function TimekeepingBoard({ currentDate }: TimekeepingBoardProps) {
           loading={openWorkDay.isPending}
           onClick={handleOpenWorkDay}
         >
-          Mở ngày làm việc
+          {t("timekeeping.openWorkDay")}
         </Button>
       </div>
 

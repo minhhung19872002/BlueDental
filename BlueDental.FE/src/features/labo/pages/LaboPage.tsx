@@ -89,7 +89,7 @@ function CreateLaboModal({ open, onClose }: { open: boolean; onClose: () => void
           <Input placeholder={t("labo.enterSupplier")} />
         </Form.Item>
         <Form.Item name="toothNumbers" label={t("labo.toothNumber")}>
-          <Input placeholder="VD: 11, 12, 21" />
+          <Input placeholder={t("labo.toothNumberPlaceholder")} />
         </Form.Item>
         <Form.Item name="workDescription" label={t("labo.jobDescription")}>
           <Input.TextArea rows={3} placeholder={t("labo.jobDescription")} />
@@ -607,7 +607,7 @@ function ServiceMaterialView() {
       >
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
           <Form.Item name="name" label={t("labo.materialName")} rules={[{ required: true, message: t("labo.enterMaterialName") }]}><Input placeholder={t("labo.enterMaterialName")} /></Form.Item>
-          <Form.Item name="category" label={t("materials.group")}><Input placeholder="VD: Kim loại, Sứ, Composite..." /></Form.Item>
+          <Form.Item name="category" label={t("materials.group")}><Input placeholder={t("labo.materialCategoryPlaceholder")} /></Form.Item>
           <Form.Item name="supplierId" label={t("labo.supplier")}>
             <Select placeholder={t("labo.selectSupplier")} allowClear options={(suppliers?.items ?? []).map((s) => ({ value: s.id, label: s.name }))} />
           </Form.Item>

@@ -5,28 +5,31 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import dayjs from "dayjs";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { useRegisterPatient, useUpdatePatient } from "../api/patientMutations";
 import { extractApiError } from "@/lib/apiError";
 import type { PatientDto } from "../types/patient";
 
-const schema = z.object({
-  firstName: z.string().min(1, "Vui lòng nhập họ"),
-  lastName: z.string().min(1, "Vui lòng nhập tên"),
-  phone: z.string().regex(/^\d{8,15}$/, "Số điện thoại không hợp lệ"),
-  gender: z.enum(["male", "female", "other"]).optional(),
-  dateOfBirth: z.string().optional(),
-  email: z.string().email("Email không hợp lệ").optional().or(z.literal("")),
-  address: z.string().optional(),
-  notes: z.string().optional(),
-  medicalHistory: z.string().optional(),
-  examReason: z.string().optional(),
-  insuranceNumber: z.string().optional(),
-  province: z.string().optional(),
-  district: z.string().optional(),
-  ward: z.string().optional(),
-});
+function createPatientSchema(t: TFunction) {
+  return z.object({
+    firstName: z.string().min(1, t("patient.firstNameRequired")),
+    lastName: z.string().min(1, t("patient.lastNameRequired")),
+    phone: z.string().regex(/^\d{8,15}$/, t("patient.invalidPhone")),
+    gender: z.enum(["male", "female", "other"]).optional(),
+    dateOfBirth: z.string().optional(),
+    email: z.string().email(t("patient.invalidEmail")).optional().or(z.literal("")),
+    address: z.string().optional(),
+    notes: z.string().optional(),
+    medicalHistory: z.string().optional(),
+    examReason: z.string().optional(),
+    insuranceNumber: z.string().optional(),
+    province: z.string().optional(),
+    district: z.string().optional(),
+    ward: z.string().optional(),
+  });
+}
 
-type FormValues = z.infer<typeof schema>;
+type FormValues = z.infer<ReturnType<typeof createPatientSchema>>;
 
 interface Props {
   open: boolean;
@@ -37,6 +40,7 @@ interface Props {
 
 export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props) {
   const { t } = useTranslation();
+  const schema = useMemo(() => createPatientSchema(t), [t]);
   const isEdit = Boolean(patient);
   const [infoTab, setInfoTab] = useState("basic");
   const [sourceType, setSourceType] = useState<string | undefined>();
@@ -165,7 +169,7 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
                   <Controller
                     name="lastName"
                     control={control}
-                    render={({ field }) => <Input {...field} placeholder="Nguyễn Văn An" />}
+                    render={({ field }) => <Input {...field} placeholder={t("staff.namePlaceholder")} />}
                   />
                 </Form.Item>
               </Col>
@@ -319,7 +323,7 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
             </Form.Item>
 
             <Form.Item label={t("patient.country")}>
-              <Input value="Việt Nam" disabled />
+              <Input value={t("patient.defaultCountry")} disabled />
             </Form.Item>
 
             <Form.Item label={t("patient.streetAddress")}>
@@ -345,9 +349,9 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
                       (option?.label as string ?? "").toLowerCase().includes(input.toLowerCase())
                     }
                     options={[
-                      { value: "HCM", label: "TP. Hồ Chí Minh" },
-                      { value: "HN", label: "Hà Nội" },
-                      { value: "DN", label: "Đà Nẵng" },
+                      { value: "HCM", label: t("patient.provinceHCM") },
+                      { value: "HN", label: t("patient.provinceHanoi") },
+                      { value: "DN", label: t("patient.provinceDanang") },
                     ]}
                   />
                 )}

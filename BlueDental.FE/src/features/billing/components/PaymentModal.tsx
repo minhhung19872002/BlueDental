@@ -116,17 +116,17 @@ export function PaymentModal({ open, onClose, invoiceId }: Props) {
                 name="amount"
                 label={t("billing.paymentAmount")}
                 rules={[
-                  { required: true, message: "Vui lòng nhập số tiền." },
+                  { required: true, message: t("payment.validation.amountRequired") },
                   {
                     type: "number",
                     min: 1,
-                    message: "Số tiền phải lớn hơn 0.",
+                    message: t("payment.validation.amountPositive"),
                   },
                   {
                     validator: (_, value: number) => {
                       if (value > balance) {
                         return Promise.reject(
-                          new Error("Số tiền không được vượt quá số dư còn lại.")
+                          new Error(t("payment.validation.amountExceedsBalance"))
                         );
                       }
                       return Promise.resolve();
@@ -149,7 +149,7 @@ export function PaymentModal({ open, onClose, invoiceId }: Props) {
               <Form.Item
                 name="paymentMethod"
                 label={t("billing.paymentMethod")}
-                rules={[{ required: true, message: "Vui lòng chọn phương thức." }]}
+                rules={[{ required: true, message: t("payment.validation.methodRequired") }]}
               >
                 <Select options={PAYMENT_METHODS} />
               </Form.Item>

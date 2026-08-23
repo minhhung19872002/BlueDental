@@ -414,8 +414,8 @@ function CskhGroupingPanel() {
         okText={isEdit ? t("common.save") : t("cskh.createGroupBtn")} cancelText={t("common.cancel")} width={500} destroyOnClose
         afterOpenChange={(visible) => { if (visible && editingItem) form.setFieldsValue(editingItem); }}>
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
-          <Form.Item name="name" label={t("cskh.groupName")} rules={[{ required: true, message: t("cskh.enterGroupName") }]}><Input placeholder="VD: Sau điều trị Implant..." /></Form.Item>
-          <Form.Item name="criteria" label={t("cskh.groupCriteria")}><Input.TextArea rows={2} placeholder="VD: Bệnh nhân hoàn thành Implant trong 30 ngày..." /></Form.Item>
+          <Form.Item name="name" label={t("cskh.groupName")} rules={[{ required: true, message: t("cskh.enterGroupName") }]}><Input placeholder={t("cskh.groupNamePlaceholder")} /></Form.Item>
+          <Form.Item name="criteria" label={t("cskh.groupCriteria")}><Input.TextArea rows={2} placeholder={t("cskh.groupCriteriaPlaceholder")} /></Form.Item>
           <Form.Item name="description" label={t("common.description")}><Input.TextArea rows={2} placeholder={t("common.description")} /></Form.Item>
         </Form>
       </Modal>

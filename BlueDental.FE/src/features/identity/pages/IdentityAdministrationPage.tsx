@@ -100,20 +100,20 @@ function UserModal({
       }}
     >
       <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
-        <Form.Item name="userName" label={t("identity.username")} rules={[{ required: true, message: "Nhập tên đăng nhập" }]}>
+        <Form.Item name="userName" label={t("identity.username")} rules={[{ required: true, message: t("identity.enterUsername") }]}>
           <Input placeholder="username" disabled={isEdit} />
         </Form.Item>
-        <Form.Item name="name" label={t("identity.fullName")} rules={[{ required: true, message: "Nhập họ tên" }]}>
-          <Input placeholder="Nguyễn Văn A" />
+        <Form.Item name="name" label={t("identity.fullName")} rules={[{ required: true, message: t("identity.enterFullName") }]}>
+          <Input placeholder={t("staff.namePlaceholder")} />
         </Form.Item>
-        <Form.Item name="email" label="Email" rules={[{ required: true, type: "email", message: "Nhập email hợp lệ" }]}>
+        <Form.Item name="email" label="Email" rules={[{ required: true, type: "email", message: t("identity.enterEmail") }]}>
           <Input placeholder="user@example.com" />
         </Form.Item>
         <Form.Item name="phoneNumber" label={t("common.phone")}>
           <Input placeholder="0901234567" />
         </Form.Item>
         {!isEdit && (
-          <Form.Item name="password" label={t("identity.password")} rules={[{ required: true, min: 8, message: "Tối thiểu 8 ký tự" }]}>
+          <Form.Item name="password" label={t("identity.password")} rules={[{ required: true, min: 8, message: t("identity.minPassword") }]}>
             <Input.Password placeholder={t("identity.passwordPlaceholder")} />
           </Form.Item>
         )}
@@ -164,7 +164,7 @@ function RoleModal({ open, onClose }: { open: boolean; onClose: () => void }) {
       destroyOnClose
     >
       <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
-        <Form.Item name="name" label={t("identity.roleName")} rules={[{ required: true, message: "Nhập tên vai trò" }]}>
+        <Form.Item name="name" label={t("identity.roleName")} rules={[{ required: true, message: t("identity.enterRoleName") }]}>
           <Input placeholder="VD: admin, doctor, receptionist" />
         </Form.Item>
         <Form.Item name="isDefault" label={t("identity.isDefault")} valuePropName="checked">

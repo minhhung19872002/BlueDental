@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Modal, Button, Input, message } from "antd";
 import { useTranslation } from "react-i18next";
 import { useForm, Controller } from "react-hook-form";
@@ -9,18 +9,21 @@ import { usePatientList } from "@/features/patient-management/api/patientQueries
 import { useDebounce } from "@/hooks/useDebounce";
 import { SearchSelect } from "@/components/SearchSelect";
 import type { RefType } from "../types/reception";
+import type { TFunction } from "i18next";
 
-const schema = z.object({
-  patientId: z.string().optional(),
-  patientName: z.string().min(1, "Vui lòng chọn khách hàng"),
-  phoneNumber: z.string().optional(),
-  doctorId: z.string({ error: "Vui lòng chọn bác sĩ" }).min(1, "Vui lòng chọn bác sĩ"),
-  appointmentHour: z.string().optional(),
-  appointmentMinute: z.string().optional(),
-  notes: z.string().optional(),
-});
+function createSchema(t: TFunction) {
+  return z.object({
+    patientId: z.string().optional(),
+    patientName: z.string().min(1, t("receptionNew.validation.patientRequired")),
+    phoneNumber: z.string().optional(),
+    doctorId: z.string().min(1, t("receptionNew.validation.doctorRequired")),
+    appointmentHour: z.string().optional(),
+    appointmentMinute: z.string().optional(),
+    notes: z.string().optional(),
+  });
+}
 
-type FormValues = z.infer<typeof schema>;
+type FormValues = z.infer<ReturnType<typeof createSchema>>;
 
 interface DoctorOption {
   id: string;
@@ -41,6 +44,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
   onClose,
 }) => {
   const { t } = useTranslation();
+  const schema = useMemo(() => createSchema(t), [t]);
   const createMutation = useCreateReception();
   const [selectedPhone, setSelectedPhone] = useState<string>("---");
   const [patientKeyword, setPatientKeyword] = useState("");
@@ -88,7 +92,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
         doctorId: data.doctorId,
         refType: "Self" as RefType,
         notes: data.notes,
-        services: ["Khám tư vấn ban đầu"],
+        services: [t("receptionNew.defaultServiceName")],
       },
       {
         onSuccess: () => {
