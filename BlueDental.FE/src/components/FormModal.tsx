@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { Modal, Button } from "antd";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   open: boolean;
@@ -19,11 +20,13 @@ export function FormModal({
   title,
   onClose,
   onSubmit,
-  submitLabel = "Lưu",
+  submitLabel,
   loading = false,
   width = 640,
   children,
 }: Props) {
+  const { t } = useTranslation();
+  const resolvedSubmitLabel = submitLabel ?? t("common.save");
   return (
     <Modal
       open={open}
@@ -33,11 +36,11 @@ export function FormModal({
       footer={
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
           <Button onClick={onClose} disabled={loading}>
-            Hủy
+            {t("common.cancel")}
           </Button>
           {onSubmit && (
             <Button type="primary" onClick={onSubmit} loading={loading}>
-              {submitLabel}
+              {resolvedSubmitLabel}
             </Button>
           )}
         </div>

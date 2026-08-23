@@ -2,6 +2,7 @@
 // Adds consistent scroll, pagination format, and loading skeleton.
 
 import { Table, type TableProps } from "antd";
+import { useTranslation } from "react-i18next";
 
 interface Props<T extends object> extends TableProps<T> {
   totalCount?: number;
@@ -18,6 +19,7 @@ export function DataTable<T extends object>({
   pagination,
   ...rest
 }: Props<T>) {
+  const { t } = useTranslation();
   const paginationConfig =
     pagination === false
       ? false
@@ -29,7 +31,7 @@ export function DataTable<T extends object>({
           pageSizeOptions: [10, 20, 50, 100],
           onChange: onPageChange,
           showTotal: (total: number, range: [number, number]) =>
-            `Hiển thị ${range[0]}-${range[1]}/${total}`,
+            t("common.showRange", { from: range[0], to: range[1], total }),
           ...pagination,
         };
 

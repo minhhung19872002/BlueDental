@@ -1,22 +1,18 @@
 using System;
 using System.Linq;
 using System.Reflection;
-using System.Reflection.Emit;
 using BlueDental.Appointments;
 using BlueDental.Billing;
 using BlueDental.PatientManagement;
+using BlueDental.TreatmentManagement;
 using BlueDental.Visits;
 using Shouldly;
+using Volo.Abp;
 using Volo.Abp.Domain.Entities;
 using Xunit;
 
 namespace BlueDental.Application.Tests.Security;
 
-/// <summary>
-/// Verifies that all GuardBranchAccess methods throw EntityNotFoundException
-/// (HTTP 404) on branch mismatch — never BusinessException (HTTP 422), which
-/// would disclose that an entity exists in another branch.
-/// </summary>
 public class CrossBranchDenialTests
 {
     private static readonly Type[] ServicesWithGuard =
@@ -25,6 +21,8 @@ public class CrossBranchDenialTests
         typeof(PatientAppService),
         typeof(InvoiceAppService),
         typeof(VisitAppService),
+        typeof(InsuranceClaimAppService),
+        typeof(TreatmentPlanAppService),
     ];
 
     [Theory]
@@ -41,7 +39,7 @@ public class CrossBranchDenialTests
 
     [Theory]
     [MemberData(nameof(GetServiceTypes))]
-    public void GuardBranchAccess_Should_Reference_EntityNotFoundException(Type serviceType)
+    public void GuardBranchAccess_Should_Throw_EntityNotFoundException_Not_BusinessException(Type serviceType)
     {
         var method = serviceType.GetMethod(
             "GuardBranchAccess",
@@ -50,35 +48,35 @@ public class CrossBranchDenialTests
         var body = method.GetMethodBody();
         body.ShouldNotBeNull();
 
-        var il = body.GetILAsByteArray();
-        il.ShouldNotBeNull();
-        il.Length.ShouldBeGreaterThan(0);
+        var il = body.GetILAsByteArray()!;
+        var module = method.Module;
 
-        var referencedTypes = method.DeclaringType!.Module
-            .GetTypes()
-            .Where(t => typeof(EntityNotFoundException).IsAssignableFrom(t))
-            .ToList();
+        var referencedCtorTypes = new System.Collections.Generic.List<Type>();
 
-        var constructors = typeof(EntityNotFoundException).GetConstructors();
-        var hasEntityNotFoundRef = false;
-
-        foreach (var ctor in constructors)
+        for (var i = 0; i < il.Length; i++)
         {
+            if (il[i] != 0x73) continue; // OpCodes.Newobj = 0x73
+
+            if (i + 4 >= il.Length) continue;
+            var token = BitConverter.ToInt32(il, i + 1);
+
             try
             {
-                var token = ctor.MetadataToken;
-                hasEntityNotFoundRef = true;
-                break;
+                var member = module.ResolveMember(token);
+                if (member is ConstructorInfo ctor)
+                    referencedCtorTypes.Add(ctor.DeclaringType!);
             }
-            catch
-            {
-                // ignored
-            }
+            catch { }
         }
 
-        hasEntityNotFoundRef.ShouldBeTrue(
-            $"{serviceType.Name}.GuardBranchAccess must use EntityNotFoundException (HTTP 404), " +
-            "not BusinessException (HTTP 422), to prevent entity-existence disclosure across branches");
+        referencedCtorTypes.ShouldContain(
+            t => typeof(EntityNotFoundException).IsAssignableFrom(t),
+            $"{serviceType.Name}.GuardBranchAccess must construct EntityNotFoundException (HTTP 404)");
+
+        referencedCtorTypes.ShouldNotContain(
+            t => typeof(BusinessException).IsAssignableFrom(t),
+            $"{serviceType.Name}.GuardBranchAccess must NOT construct BusinessException (HTTP 422) — " +
+            "that discloses entity existence across branches");
     }
 
     [Theory]
@@ -114,8 +112,8 @@ public class CrossBranchDenialTests
     [Fact]
     public void All_Known_Services_Should_Be_Covered()
     {
-        ServicesWithGuard.Length.ShouldBe(4,
-            "Expected 4 services with GuardBranchAccess (Appointment, Patient, Invoice, Visit). " +
+        ServicesWithGuard.Length.ShouldBe(6,
+            "Expected 6 services with GuardBranchAccess. " +
             "If a new service gets GuardBranchAccess, add it to ServicesWithGuard.");
     }
 

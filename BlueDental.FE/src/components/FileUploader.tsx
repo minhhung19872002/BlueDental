@@ -3,12 +3,14 @@
 
 import { Upload, type UploadProps } from "antd";
 import { InboxOutlined } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
 
 interface Props extends UploadProps {
   hint?: string;
 }
 
 export function FileUploader({ hint, ...uploadProps }: Props) {
+  const { t } = useTranslation();
   return (
     <Upload.Dragger
       {...uploadProps}
@@ -18,7 +20,7 @@ export function FileUploader({ hint, ...uploadProps }: Props) {
         <InboxOutlined />
       </p>
       <p className="ant-upload-text">
-        Kéo thả hoặc nhấp để chọn tệp
+        {t("common.dragDropOrClick")}
       </p>
       {hint && (
         <p className="ant-upload-hint" style={{ fontSize: 12 }}>

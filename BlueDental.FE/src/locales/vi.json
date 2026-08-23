@@ -60,7 +60,10 @@
     "other": "Khác",
     "saveChanges": "Lưu thay đổi",
     "notePlaceholder": "Ghi chú thêm...",
-    "createdDate": "Ngày tạo"
+    "createdDate": "Ngày tạo",
+    "noResults": "Không tìm thấy kết quả",
+    "clear": "Xóa",
+    "dragDropOrClick": "Kéo thả hoặc nhấp để chọn tệp"
   },
   "header": {
     "notification": "Thông báo",

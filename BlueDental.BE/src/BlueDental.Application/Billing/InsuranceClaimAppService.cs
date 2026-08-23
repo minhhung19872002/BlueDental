@@ -2,10 +2,12 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Billing.Values;
+using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
+using Volo.Abp.Domain.Entities;
 using Volo.Abp.Domain.Repositories;
 
 namespace BlueDental.Billing;
@@ -14,16 +16,23 @@ namespace BlueDental.Billing;
 public class InsuranceClaimAppService : ApplicationService, IInsuranceClaimAppService
 {
     private readonly IRepository<InsuranceClaim, Guid> _repository;
+    private readonly ICurrentClinicBranchResolver _branchResolver;
 
-    public InsuranceClaimAppService(IRepository<InsuranceClaim, Guid> repository)
+    public InsuranceClaimAppService(
+        IRepository<InsuranceClaim, Guid> repository,
+        ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
+        _branchResolver = branchResolver;
     }
 
     [Authorize(BlueDentalPermissions.Billing.InsuranceClaims.View)]
     public async Task<PagedResultDto<InsuranceClaimDto>> GetListAsync(GetInsuranceClaimListInput input)
     {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
+
+        query = query.Where(c => c.BranchId == branchId);
 
         if (input.PatientId.HasValue)
             query = query.Where(c => c.PatientId == input.PatientId.Value);
@@ -50,12 +59,14 @@ public class InsuranceClaimAppService : ApplicationService, IInsuranceClaimAppSe
     public async Task<InsuranceClaimDto> GetAsync(Guid id)
     {
         var claim = await _repository.GetAsync(id);
+        GuardBranchAccess(claim);
         return ObjectMapper.Map<InsuranceClaim, InsuranceClaimDto>(claim);
     }
 
     [Authorize(BlueDentalPermissions.Billing.InsuranceClaims.Submit)]
     public async Task<InsuranceClaimDto> CreateAsync(CreateInsuranceClaimDto input)
     {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
         var claimReference = $"IC-{Clock.Now:yyyyMMdd}-{GuidGenerator.Create().ToString("N")[..6].ToUpper()}";
 
         var claim = new InsuranceClaim(
@@ -64,7 +75,8 @@ public class InsuranceClaimAppService : ApplicationService, IInsuranceClaimAppSe
             input.PatientId,
             input.InsurancePlanId,
             claimReference,
-            new Money(input.ClaimedAmount));
+            new Money(input.ClaimedAmount),
+            branchId);
 
         await _repository.InsertAsync(claim, autoSave: true);
         return ObjectMapper.Map<InsuranceClaim, InsuranceClaimDto>(claim);
@@ -74,6 +86,7 @@ public class InsuranceClaimAppService : ApplicationService, IInsuranceClaimAppSe
     public async Task<InsuranceClaimDto> SubmitAsync(Guid id)
     {
         var claim = await _repository.GetAsync(id);
+        GuardBranchAccess(claim);
         claim.Submit();
         await _repository.UpdateAsync(claim, autoSave: true);
         return ObjectMapper.Map<InsuranceClaim, InsuranceClaimDto>(claim);
@@ -83,6 +96,7 @@ public class InsuranceClaimAppService : ApplicationService, IInsuranceClaimAppSe
     public async Task<InsuranceClaimDto> ApproveAsync(Guid id, ApproveInsuranceClaimDto input)
     {
         var claim = await _repository.GetAsync(id);
+        GuardBranchAccess(claim);
         claim.Approve(new Money(input.ApprovedAmount));
         await _repository.UpdateAsync(claim, autoSave: true);
         return ObjectMapper.Map<InsuranceClaim, InsuranceClaimDto>(claim);
@@ -92,6 +106,7 @@ public class InsuranceClaimAppService : ApplicationService, IInsuranceClaimAppSe
     public async Task<InsuranceClaimDto> RejectAsync(Guid id, RejectInsuranceClaimDto input)
     {
         var claim = await _repository.GetAsync(id);
+        GuardBranchAccess(claim);
         claim.Reject(input.Reason);
         await _repository.UpdateAsync(claim, autoSave: true);
         return ObjectMapper.Map<InsuranceClaim, InsuranceClaimDto>(claim);
@@ -101,8 +116,16 @@ public class InsuranceClaimAppService : ApplicationService, IInsuranceClaimAppSe
     public async Task<InsuranceClaimDto> SettleAsync(Guid id)
     {
         var claim = await _repository.GetAsync(id);
+        GuardBranchAccess(claim);
         claim.Settle();
         await _repository.UpdateAsync(claim, autoSave: true);
         return ObjectMapper.Map<InsuranceClaim, InsuranceClaimDto>(claim);
+    }
+
+    private void GuardBranchAccess(InsuranceClaim entity)
+    {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
+        if (entity.BranchId != branchId)
+            throw new EntityNotFoundException(typeof(InsuranceClaim), entity.Id);
     }
 }

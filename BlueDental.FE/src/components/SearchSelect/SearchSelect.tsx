@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
+import { useTranslation } from "react-i18next";
 
 export interface SearchSelectOption {
   value: string;
@@ -27,7 +28,7 @@ interface SearchSelectProps {
 export const SearchSelect: React.FC<SearchSelectProps> = ({
   value,
   options,
-  placeholder = "Tìm kiếm...",
+  placeholder,
   disabled = false,
   allowClear = false,
   status,
@@ -35,6 +36,8 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
   onChange,
   onSearch,
 }) => {
+  const { t } = useTranslation();
+  const resolvedPlaceholder = placeholder ?? t("common.search");
   const [open, setOpen] = useState(false);
   const [keyword, setKeyword] = useState("");
   const [dropdownPos, setDropdownPos] = useState<DropdownPos | null>(null);
@@ -155,14 +158,14 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
                 ref={searchRef}
                 className="ss-search-input"
                 value={keyword}
-                placeholder="Tìm kiếm"
+                placeholder={t("common.search")}
                 onChange={handleKeywordChange}
                 onKeyDown={handleKeyDown}
               />
             </div>
             <div className="ss-options">
               {filtered.length === 0 ? (
-                <div className="ss-empty">Không tìm thấy kết quả</div>
+                <div className="ss-empty">{t("common.noResults")}</div>
               ) : (
                 filtered.map((opt) => (
                   <div
@@ -213,7 +216,7 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
             {selectedOption ? (
               <span className="ss-value--selected">{selectedOption.label}</span>
             ) : (
-              <span className="ss-value--placeholder">{placeholder}</span>
+              <span className="ss-value--placeholder">{resolvedPlaceholder}</span>
             )}
           </span>
 
@@ -221,7 +224,7 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
             <span
               className="ss-icon ss-icon--clear"
               onMouseDown={handleClear}
-              title="Xóa"
+              title={t("common.clear")}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 6 6 18" /><path d="m6 6 12 12" />

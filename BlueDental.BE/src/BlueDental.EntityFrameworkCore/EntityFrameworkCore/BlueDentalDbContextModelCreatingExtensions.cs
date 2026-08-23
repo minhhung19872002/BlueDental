@@ -353,6 +353,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.ToTable("bd_insurance_claims");
             entity.ConfigureByConvention();
             entity.Property(x => x.ClaimReference).HasMaxLength(100).IsRequired();
+            entity.HasIndex(x => x.BranchId);
             entity.Property(x => x.Status).HasConversion<short>();
             entity.Property(x => x.RejectionReason).HasMaxLength(500);
             entity.Property(x => x.Notes).HasMaxLength(1000);

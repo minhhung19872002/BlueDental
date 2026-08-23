@@ -60,7 +60,10 @@
     "other": "Other",
     "saveChanges": "Save Changes",
     "notePlaceholder": "Add a note...",
-    "createdDate": "Created Date"
+    "createdDate": "Created Date",
+    "noResults": "No results found",
+    "clear": "Clear",
+    "dragDropOrClick": "Drag and drop or click to select a file"
   },
   "header": {
     "notification": "Notifications",

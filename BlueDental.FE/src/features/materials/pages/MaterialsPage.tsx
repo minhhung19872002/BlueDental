@@ -544,7 +544,7 @@ function DepartmentView() {
             dataSource={selectedDeptId ? allocations : []}
             rowKey="id"
             loading={allocLoading}
-            pagination={{ pageSize: 20, showTotal: (total) => `Hiển thị ${allocations.length} trên ${total}` }}
+            pagination={{ pageSize: 20, showTotal: (total) => t("common.showRange", { from: allocations.length, to: total, total }) }}
             locale={{ emptyText: selectedDeptId ? t("materials.noDeptAllocations") : t("materials.selectDeptToView") }}
             size="middle"
             scroll={{ x: "max-content" }}
