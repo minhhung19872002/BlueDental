@@ -7,7 +7,7 @@ Only `VERIFIED` means the feature passed **real runtime acceptance** — real
 browser, real API, real PostgreSQL (see `00-test-policy.md`).
 
 Last run: 2026-08-23, stack on `localhost:5173` (Vite) → `localhost:5019` (API)
-→ PostgreSQL 15 in Docker. Acceptance suite: **27 passed**.
+→ PostgreSQL 15 and MinIO in Docker. Acceptance suite: **45 passed**.
 
 | ID | Feature | Status | Acceptance spec | Notes |
 |----|---------|--------|-----------------|-------|
@@ -17,20 +17,25 @@ Last run: 2026-08-23, stack on `localhost:5173` (Vite) → `localhost:5019` (API
 | F-04 | Thu chi (phiếu thu/chi + duyệt) | `VERIFIED` | `e2e/finance.spec.ts` | Pending expense excluded from Tổng chi; approval adds exactly its amount |
 | F-05 | Luân chuyển dòng tiền | `VERIFIED` | `e2e/finance.spec.ts` | Deposit moves Tổng Tiền Mặt by the deposited amount |
 | F-06 | Hồ sơ bệnh nhân (đăng ký + danh sách) | `VERIFIED` | `e2e/patient.spec.ts` | Registered through the UI, persisted, reopened from the list |
-| F-07 | Sơ đồ răng theo mặt (chẩn đoán & tư vấn) | `VERIFIED` | `e2e/patient.spec.ts` | Whole-tooth, whole-jaw and clear all behave; surface text matches the reference wording |
-| F-08 | Voucher khuyến mãi | `VERIFIED` | `e2e/voucher.spec.ts` | Draft → active → paused; stat tile counts the active one; percentage above 100 refused |
-| F-09 | Chẩn đoán & Tư vấn (phiếu chẩn đoán / tư vấn) | `VERIFIED` | `e2e/treatment-stage.spec.ts` | Diagnosis and advise created through the dialogs, then accepted |
-| F-10 | Lịch hẹn (calendar) | `IN_PROGRESS` | — | Day/week/month grids render; appointment creation not verified |
-| F-11 | Tiếp nhận | `IN_PROGRESS` | — | Still falls back to mock data when the API is unavailable |
-| F-12 | CSKH | `VERIFIED` | `e2e/cskh.spec.ts` | Care task Chưa CS → Thành công moves the counters; programme switch re-queries |
-| F-13 | Labo | `VERIFIED` | `e2e/labo.spec.ts` | Overdue sample reads late until returned; Mẫu Chưa Nhận lists only samples still out |
+| F-07 | Sơ đồ răng theo mặt | `VERIFIED` | `e2e/patient.spec.ts` | Whole-tooth, whole-jaw and clear all behave |
+| F-08 | Voucher khuyến mãi | `VERIFIED` | `e2e/voucher.spec.ts` | Draft → active → paused; percentage above 100 refused |
+| F-09 | Chẩn đoán & Tư vấn | `VERIFIED` | `e2e/treatment-stage.spec.ts`, `e2e/treatment-plan.spec.ts` | Diagnosis and advise created, then accepted |
+| F-10 | Lịch hẹn | `VERIFIED` | `e2e/appointment.spec.ts` | Booking stored and listed; double-booking refused; day and week grids query their own range |
+| F-11 | Tiếp nhận | `VERIFIED` | `e2e/reception.spec.ts` | Visit stored through the real API; counters served by `/visits/stats` |
+| F-12 | CSKH | `VERIFIED` | `e2e/cskh.spec.ts` | Care task Chưa CS → Thành công moves the counters |
+| F-13 | Labo | `VERIFIED` | `e2e/labo.spec.ts` | Overdue sample reads late until returned |
 | F-14 | Vật tư | `VERIFIED` | `e2e/materials.spec.ts` | Supply added, stock received, status derived from expiry |
-| F-15 | Quản trị vận hành | `VERIFIED` | `e2e/operations.spec.ts` | Article stays a draft until published; task lifecycle moves the counters; department travels with the query |
+| F-15 | Quản trị vận hành | `VERIFIED` | `e2e/operations.spec.ts` | Article draft → published; task lifecycle; department travels with the query |
 | F-16 | Công cụ (call/message/Zalo/hóa đơn) | `BLOCKED` | — | `UNKNOWN_REFERENCE_BEHAVIOR` — no data on the reference to observe |
-| F-17 | Báo cáo doanh số | `IN_PROGRESS` | — | Tab reads `/reports/revenue`; totals not asserted |
-| F-18 | Kết quả kinh doanh | `NOT_STARTED` | — | Static figures |
-| F-19 | Công đoạn điều trị | `VERIFIED` | `e2e/treatment-stage.spec.ts` | Chưa làm → Đang làm → Hoàn thành, persisted across reload; progress and the "công đoạn gần nhất" card follow the real stages. **Model is BlueDental's assumption** — see the note below |
-| F-20 | Phân tách chi nhánh | `VERIFIED` | `e2e/branch-isolation.spec.ts` | A branch-scoped account is refused another branch and never sees its rows |
+| F-17 | Báo cáo doanh số | `VERIFIED` | `e2e/report.spec.ts` | Ledger and payment split served by `/clinic-reports`; period switch re-queries |
+| F-18 | Kết quả kinh doanh | `VERIFIED` | `e2e/report.spec.ts` | Six rows agree with the cards; result = revenue − refunds − expenses |
+| F-19 | Công đoạn điều trị | `VERIFIED` | `e2e/treatment-stage.spec.ts` | Chưa làm → Đang làm → Hoàn thành, persisted. **Model is BlueDental's assumption** — see below |
+| F-20 | Phân tách chi nhánh | `VERIFIED` | `e2e/branch-isolation.spec.ts` | A branch-scoped account is refused another branch |
+| F-21 | Phiếu điều trị + dòng dịch vụ | `VERIFIED` | `e2e/treatment-plan.spec.ts` | Accepted advise becomes a priced service line on DT01; a line cannot be planned twice |
+| F-22 | Thanh toán bệnh nhân | `VERIFIED` | `e2e/treatment-plan.spec.ts` | Only finished work becomes Phải thu; refund capped at what was collected; prepaid held, not counted as paid |
+| F-23 | Đơn thuốc | `VERIFIED` | `e2e/prescription.spec.ts` | Medicine lines snapshotted; a dispensed slip is frozen |
+| F-24 | Hình ảnh bệnh nhân | `VERIFIED` | `e2e/patient-image.spec.ts` | Real multipart upload to MinIO, bytes fetched back through the API |
+| F-25 | Nhân viên | `VERIFIED` | `e2e/staff.spec.ts` | Account created, edited and deleted; weak password refused by Identity |
 
 ## F-19 note — assumed, not observed
 
@@ -39,18 +44,25 @@ mutating production. What was observed is only: the ability subject
 `treatmentStage` and its six verbs, the per-service "Thêm công đoạn" action,
 `stageIds` / `patientStages[]` on CSKH records, and `stageNote` in the treatment
 summary. Everything else — sequence numbers, tooth selection, timestamps, and the
-rule that an image-required service cannot close a stage without a photo — is
-BlueDental's own design and is documented as such in `TreatmentStage`.
-
-The acceptance spec therefore verifies **BlueDental's** chain end to end, not
-parity with the reference.
+image rule — is BlueDental's own design and is documented as such in
+`TreatmentStage`.
 
 ## Backend regression nets (not acceptance)
 
 | Suite | Count | Last run |
 |-------|-------|----------|
-| `BlueDental.Domain.Tests` | 162 | 2026-08-23 — pass |
+| `BlueDental.Domain.Tests` | 178 | 2026-08-23 — pass |
 | `BlueDental.Application.Tests` | 51 | 2026-08-23 — pass |
 | `BlueDental.EntityFrameworkCore.Tests` | 39 | 2026-08-23 — pass |
 | `BlueDental.HttpApi.Host.Tests` | 15 | 2026-08-23 — pass |
 | `BlueDental.FE` Vitest | 3 | 2026-08-23 — pass |
+
+## Still not covered
+
+- **Công cụ** (F-16): gọi điện / SMS / Zalo / hoá đơn điện tử — the reference had
+  no data to observe.
+- **Xuất Excel / PDF**: no export library is wired; the buttons are inert.
+- **i18n**: the UI is Vietnamese-only. Server error codes are bilingual, the
+  screens are not.
+- Two catalogs ("Thẻ hồ sơ", "Phương thức thanh toán") that the reference does not
+  model as catalogs.

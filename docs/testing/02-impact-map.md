@@ -36,12 +36,25 @@ What to retest when a shared piece changes. Levels are defined in
 | `InventoryItem` / `SuppliesAppService` | 2 | F-14 |
 | `OperationsArticle` / `OperationsTask` / `OperationsAbilities` | 2 | F-15 |
 | `TreatmentStage` domain / `TreatmentStageAppService` | 2 | F-19 |
+| `TreatmentPlan` / `TreatmentService` / `PatientMoneyCalculator` | 3 | F-19, F-21, F-22, F-17, F-18 — the money rollup feeds the reports |
+| `PatientPayment` | 3 | F-22, F-17, F-18 |
+| `Prescription` | 2 | F-23 |
+| `PatientImage` / blob storage | 2 | F-24 |
+| `Visit` / `VisitAppService` | 2 | F-11 |
+| `Appointment` / appointment adapters | 3 | F-10, and the patient Lịch hẹn tab |
+| `StaffAppService` / identity | 3 | F-25, and every screen that picks a dentist |
+| `ClinicReportAppService` | 2 | F-17, F-18 |
+| Localization resources (`en.json` / `vi.json`) | 3 | Every spec that asserts a refusal message |
 
 ## Cross-feature couplings worth remembering
 
 - **Pending expenses**: `SalesEntry.CountsTowardsCashflow` decides whether a
   voucher reaches the totals. Changing it affects F-04 and any report that sums
   vouchers.
+- **The money rollup**: `PaymentSummary` is derived on every read from the slips
+  and the money movements, so a change to `TreatmentPlan.CompletedValue` or to
+  `PatientPayment` moves the patient account, the treatment table and both
+  reports at once.
 - **The clinical chain**: công đoạn hangs off a service line, and a service line is
   an *accepted* `PatientAdvise`, which in turn answers a `PatientDiagnosis`.
   Changing any link breaks F-19 even though nothing in the stage code moved.

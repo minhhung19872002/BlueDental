@@ -1,6 +1,6 @@
 # BlueDental — Progress Report
 
-Cập nhật lần cuối: 2026-08-23 (session 6, đợt 3)
+Cập nhật lần cuối: 2026-08-23 (session 6, đợt 4)
 
 ---
 
@@ -106,15 +106,38 @@ Tiếp tục → Hoàn thành`.
 - Bảng phiếu tư vấn không có nút chấp nhận nên không đời nào tạo được dòng dịch
   vụ điều trị (R-11).
 
+### Đợt 4 — nhóm A và B đã xong
+
+| # | Hạng mục | Kết quả |
+|---|----------|---------|
+| A1 | Phếu điều trị + dòng dịch vụ | ✅ Phiếu tư vấn đã chốt → dòng dịch vụ trên phiếu DT01; công đoạn gắn vào dòng dịch vụ thật |
+| A2 | Thanh toán / công nợ | ✅ 4 hình thức quan sát được (tiền mặt / chuyển khoản / thẻ / trừ quỹ); chỉ việc đã xong mới thành Phải thu; hoàn tiền không vượt số đã thu; tiền giữ hộ không tính là đã thu |
+| A3 | Đơn thuốc | ✅ Phiếu có nhiều dòng thuốc, chốt tên thuốc tại thời điểm kê; phát thuốc xong là khoá |
+| A4 | Hình ảnh bệnh nhân | ✅ Upload thật lên MinIO; PostgreSQL chỉ giữ tham chiếu; chặn định dạng và dung lượng |
+| B5 | Tiếp nhận | ✅ Bỏ hoàn toàn mock store; counters do server tính |
+| B6 | Lịch hẹn | ✅ Tạo lịch thật, chặn trùng khung giờ, lưới ngày/tuần đọc đúng khoảng ngày |
+| B7 | 6 tab trong hồ sơ bệnh nhân | ✅ Lịch hẹn, Labo, Đơn thuốc, CSKH, Hóa đơn, Lịch sử dư nợ đều đọc module thật |
+| B8 | Nhân viên | ✅ CRUD tài khoản identity + vai trò; mật khẩu yếu bị Identity từ chối |
+| B9 | Báo cáo 13.1 + 13.3 | ✅ `/clinic-reports` dựng số tại thời điểm đọc từ phiếu điều trị, thanh toán và thu chi |
+
+### 9 bug thật phát hiện ở đợt 4
+
+Chi tiết: `docs/testing/03-regression-log.md` (R-12 → R-20). Đáng chú ý nhất:
+
+- **Không error code nào được localize** → mọi lỗi nghiệp vụ hiện "Có một lỗi nội bộ xảy ra". Đã thêm 112 mã song ngữ Anh/Việt.
+- **Tìm kiếm bệnh nhân chưa từng chạy**: FE gửi `keyword`, BE đọc `filter`; BE lại so từng nửa tên nên gõ cả họ tên không bao giờ ra.
+- **Toàn bộ module lịch hẹn nói sai contract** (doctorId/startTime/status chuỗi vs DentistId/SlotStart/enum số) → không lưu được gì; cộng thêm lọc ngày bị bỏ qua và giờ gửi kèm offset +07:00 khiến Npgsql từ chối.
+- **Tiếp nhận và Nhân viên chạy bằng dữ liệu giả** — nhìn như hoạt động nhưng không lưu gì.
+
 ### Còn lại
 
 | # | Hạng mục | Ghi chú |
 |---|----------|---------|
-| 1 | Lịch hẹn: tạo/sửa lịch qua UI | Lưới ngày/tuần/tháng đã dựng; chưa có acceptance cho thao tác ghi |
-| 2 | Tiếp nhận | Vẫn còn fallback mock khi API lỗi |
-| 3 | Báo cáo doanh số | Đọc API thật nhưng chưa assert số liệu |
-| 4 | Đính kèm ảnh cho công đoạn qua UI | Endpoint + rule domain đã có, FE chưa có uploader |
-| 5 | Công cụ (call / message / Zalo / hóa đơn điện tử) | `UNKNOWN_REFERENCE_BEHAVIOR` — app gốc không có dữ liệu |
+| 1 | Công cụ (call / message / Zalo / hóa đơn điện tử) | `UNKNOWN_REFERENCE_BEHAVIOR` — app gốc không có dữ liệu để quan sát |
+| 2 | Xuất Excel / PDF | Chưa cài thư viện; các nút "Xuất Excel" vẫn trơ |
+| 3 | i18n song ngữ cho giao diện | Error code đã song ngữ; text màn hình vẫn hard-code tiếng Việt |
+| 4 | Đính kèm ảnh cho công đoạn qua UI | Endpoint + rule domain đã có, panel công đoạn chưa có uploader |
+| 5 | 2 danh mục "Thẻ hồ sơ" / "Phương thức thanh toán" | App gốc không mô hình hóa chúng như danh mục |
 
 ---
 
