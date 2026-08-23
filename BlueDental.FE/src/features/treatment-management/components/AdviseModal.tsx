@@ -1,0 +1,274 @@
+import { useEffect } from "react";
+import { Alert, Col, Form, Input, InputNumber, Modal, Row, Select, Typography, message } from "antd";
+import { useCreateAdvise } from "../api/consultingQueries";
+import {
+  DISCOUNT_TYPE,
+  formatTeeth,
+  type DiscountType,
+  type PatientDiagnosisDto,
+} from "../api/consultingApi";
+import { CATALOG_GROUP, useCatalogOptions } from "@/hooks/useCatalogOptions";
+import { useDentistList } from "@/features/staff/api/staffQueries";
+import { useCurrentBranchId } from "@/lib/clinicBranch";
+import { extractApiError } from "@/lib/apiError";
+import { formatVND } from "@/utils/format";
+
+const { Text } = Typography;
+
+interface AdviseModalProps {
+  open: boolean;
+  patientId: string;
+  /** The diagnosis this advise answers — an advise always hangs off one. */
+  diagnosis: PatientDiagnosisDto | null;
+  onClose: () => void;
+  onCreated?: () => void;
+}
+
+interface AdviseFormValues {
+  serviceId: string;
+  staffId: string;
+  secondStaffId?: string;
+  price: number;
+  quantity: number;
+  discountType: DiscountType;
+  discountValue: number;
+  note?: string;
+}
+
+export function AdviseModal({
+  open,
+  patientId,
+  diagnosis,
+  onClose,
+  onCreated,
+}: AdviseModalProps) {
+  const [form] = Form.useForm<AdviseFormValues>();
+  const branchId = useCurrentBranchId();
+  const createAdvise = useCreateAdvise();
+
+  const { data: services } = useCatalogOptions(CATALOG_GROUP.CareService);
+  const { data: dentists } = useDentistList();
+
+  const serviceId = Form.useWatch("serviceId", form);
+  const price = Form.useWatch("price", form) ?? 0;
+  const quantity = Form.useWatch("quantity", form) ?? 1;
+  const discountType = Form.useWatch("discountType", form) ?? DISCOUNT_TYPE.None;
+  const discountValue = Form.useWatch("discountValue", form) ?? 0;
+
+  const selectedService = services?.find((s) => s.id === serviceId);
+
+  // Mirrors PatientAdvise.EffectiveAmount so the clinician sees what the server
+  // will store, instead of finding out after saving.
+  const gross = price * quantity;
+  const discount =
+    discountType === DISCOUNT_TYPE.Money
+      ? discountValue
+      : discountType === DISCOUNT_TYPE.Percentage
+        ? (gross * discountValue) / 100
+        : 0;
+  const effective = Math.max(gross - discount, 0);
+
+  useEffect(() => {
+    if (!open) return;
+
+    form.setFieldsValue({
+      serviceId: undefined,
+      staffId: diagnosis?.staffId,
+      secondStaffId: diagnosis?.secondStaffId ?? undefined,
+      price: undefined,
+      quantity: 1,
+      discountType: DISCOUNT_TYPE.None,
+      discountValue: 0,
+      note: undefined,
+    });
+  }, [open, diagnosis, form]);
+
+  const handleServiceChange = (value: string) => {
+    // Default to the catalog price; the clinician can still negotiate it.
+    const service = services?.find((s) => s.id === value);
+    form.setFieldValue("price", service?.price ?? 0);
+  };
+
+  const handleSubmit = async () => {
+    const values = await form.validateFields();
+
+    if (!diagnosis) return;
+
+    try {
+      await createAdvise.mutateAsync({
+        patientId,
+        clinicBranchId: branchId,
+        patientDiagnosisId: diagnosis.id,
+        diagnosisId: diagnosis.diagnosisId,
+        serviceId: values.serviceId,
+        staffId: values.staffId,
+        secondStaffId: values.secondStaffId,
+        originalPrice: selectedService?.price ?? values.price,
+        price: values.price,
+        quantity: values.quantity,
+        discountType: values.discountType,
+        discountValue: values.discountType === DISCOUNT_TYPE.None ? 0 : values.discountValue,
+        note: values.note,
+        // An advise inherits the teeth of the diagnosis it answers.
+        teeth: diagnosis.teeth,
+      });
+
+      message.success("Đã tạo phiếu tư vấn");
+      onCreated?.();
+      onClose();
+    } catch (error) {
+      message.error(extractApiError(error));
+    }
+  };
+
+  return (
+    <Modal
+      open={open}
+      title={diagnosis ? `Tạo dịch vụ cho phiếu ${diagnosis.code}` : "Tạo phiếu tư vấn"}
+      okText="Tạo"
+      cancelText="Huỷ"
+      confirmLoading={createAdvise.isPending}
+      onOk={handleSubmit}
+      onCancel={onClose}
+      destroyOnHidden
+      width={560}
+    >
+      {diagnosis && (
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+          message={`${diagnosis.diagnosisName ?? diagnosis.code} — răng ${formatTeeth(diagnosis.teeth)}`}
+        />
+      )}
+
+      <Form form={form} layout="vertical" requiredMark>
+        <Form.Item
+          name="serviceId"
+          label="Dịch vụ"
+          rules={[{ required: true, message: "Vui lòng chọn dịch vụ" }]}
+        >
+          <Select
+            showSearch
+            optionFilterProp="label"
+            placeholder={
+              (services?.length ?? 0) === 0
+                ? "Chưa có danh mục dịch vụ — thêm ở trang Danh mục"
+                : "Chọn dịch vụ"
+            }
+            onChange={handleServiceChange}
+            options={(services ?? []).map((s) => ({
+              value: s.id,
+              label: s.price != null ? `${s.name} — ${formatVND(s.price)} đ` : s.name,
+            }))}
+          />
+        </Form.Item>
+
+        {selectedService?.isImageRequired && (
+          <Alert
+            type="warning"
+            showIcon
+            style={{ marginBottom: 16 }}
+            message="Dịch vụ này yêu cầu đính kèm ảnh trước khi điều trị."
+          />
+        )}
+
+        <Row gutter={12}>
+          <Col span={14}>
+            <Form.Item
+              name="price"
+              label="Đơn giá (đ)"
+              rules={[
+                { required: true, message: "Vui lòng nhập đơn giá" },
+                { type: "number", min: 0, message: "Đơn giá không được âm" },
+              ]}
+            >
+              <InputNumber<number>
+                style={{ width: "100%" }}
+                min={0}
+                step={100000}
+                formatter={(v) => `${v ?? ""}`.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
+                parser={(v) => Number((v ?? "").replace(/\./g, ""))}
+              />
+            </Form.Item>
+          </Col>
+          <Col span={10}>
+            <Form.Item
+              name="quantity"
+              label="Số lượng"
+              rules={[
+                { required: true, message: "Vui lòng nhập số lượng" },
+                { type: "number", min: 1, message: "Số lượng phải lớn hơn 0" },
+              ]}
+            >
+              <InputNumber<number> style={{ width: "100%" }} min={1} />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row gutter={12}>
+          <Col span={14}>
+            <Form.Item name="discountType" label="Chiết khấu">
+              <Select
+                options={[
+                  { value: DISCOUNT_TYPE.None, label: "Không chiết khấu" },
+                  { value: DISCOUNT_TYPE.Money, label: "Số tiền (đ)" },
+                  { value: DISCOUNT_TYPE.Percentage, label: "Phần trăm (%)" },
+                ]}
+                onChange={() => form.setFieldValue("discountValue", 0)}
+              />
+            </Form.Item>
+          </Col>
+          <Col span={10}>
+            <Form.Item
+              name="discountValue"
+              label="Giá trị"
+              rules={[
+                { type: "number", min: 0, message: "Không được âm" },
+                ...(discountType === DISCOUNT_TYPE.Percentage
+                  ? [{ type: "number" as const, max: 100, message: "Tối đa 100%" }]
+                  : []),
+              ]}
+            >
+              <InputNumber<number>
+                style={{ width: "100%" }}
+                min={0}
+                disabled={discountType === DISCOUNT_TYPE.None}
+              />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Form.Item
+          name="staffId"
+          label="Bác sĩ tư vấn"
+          rules={[{ required: true, message: "Vui lòng chọn bác sĩ" }]}
+        >
+          <Select
+            showSearch
+            optionFilterProp="label"
+            options={(dentists ?? []).map((d) => ({ value: d.id, label: d.name }))}
+          />
+        </Form.Item>
+
+        <Form.Item name="note" label="Ghi chú">
+          <Input.TextArea rows={2} />
+        </Form.Item>
+
+        <div
+          style={{
+            borderTop: "1px solid #E5E7EB",
+            paddingTop: 10,
+            display: "flex",
+            justifyContent: "space-between",
+          }}
+        >
+          <Text style={{ color: "#5A6B82" }}>Thành tiền</Text>
+          <Text strong style={{ fontSize: 16, color: "#1B2A41" }}>
+            {formatVND(effective)} đ
+          </Text>
+        </div>
+      </Form>
+    </Modal>
+  );
+}

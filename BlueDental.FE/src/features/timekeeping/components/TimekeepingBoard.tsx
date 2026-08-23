@@ -1,15 +1,18 @@
 import { useMemo, useState } from "react";
-import { Empty, Input, Spin, Switch, Tag, Tooltip, message } from "antd";
+import { Button, Empty, Input, Spin, Switch, Tag, Tooltip, message } from "antd";
 import type { Dayjs } from "dayjs";
 import { useTranslation } from "react-i18next";
 import {
   useCheckIn,
   useCheckOut,
+  useOpenWorkDay,
   useRegisterDayOff,
   useRegisterWorking,
   useTimeKeepingList,
   useTimeKeepingSummary,
 } from "../api/timekeepingQueries";
+import { useStaffList } from "@/features/staff/api/staffQueries";
+import { extractApiError } from "@/lib/apiError";
 import {
   ATTENDANCE_STATUS,
   WORK_REGISTRATION,
@@ -23,6 +26,14 @@ import { useCurrentBranchId } from "@/lib/clinicBranch";
 interface TimekeepingBoardProps {
   currentDate: Dayjs;
 }
+
+const STATUS_CONFIG: Record<AttendanceStatus, { label: string; color: string }> = {
+  [ATTENDANCE_STATUS.NotStarted]: { label: "Chưa vào ca", color: "default" },
+  [ATTENDANCE_STATUS.Working]: { label: "Đang làm việc", color: "processing" },
+  [ATTENDANCE_STATUS.Completed]: { label: "Hoàn thành", color: "success" },
+  [ATTENDANCE_STATUS.Abandoned]: { label: "Nghỉ ngang", color: "error" },
+  [ATTENDANCE_STATUS.OnLeave]: { label: "Nghỉ", color: "warning" },
+};
 
 /** "08:00:00" -> "08:00" */
 function formatPlanned(time: string): string {
@@ -109,14 +120,6 @@ function ShiftRow({
 
 function StaffCard({ record }: { record: TimeKeepingRecordDto }) {
   const { t } = useTranslation();
-  const STATUS_CONFIG: Record<AttendanceStatus, { label: string; color: string }> = {
-    [ATTENDANCE_STATUS.NotStarted]: { label: t("timekeeping.statusNotStarted"), color: "default" },
-    [ATTENDANCE_STATUS.Working]:    { label: t("timekeeping.statusWorking"),    color: "processing" },
-    [ATTENDANCE_STATUS.Completed]:  { label: t("timekeeping.statusCompleted"),  color: "success" },
-    [ATTENDANCE_STATUS.Abandoned]:  { label: t("timekeeping.statusAbandoned"),  color: "error" },
-    [ATTENDANCE_STATUS.OnLeave]:    { label: t("timekeeping.statusOnLeave"),    color: "warning" },
-  };
-
   const registerWorking = useRegisterWorking();
   const registerDayOff = useRegisterDayOff();
   const checkIn = useCheckIn();
@@ -238,6 +241,36 @@ export function TimekeepingBoard({ currentDate }: TimekeepingBoardProps) {
     maxResultCount: 100,
   });
 
+  const { data: staffPage } = useStaffList({ maxResultCount: 100, isActive: true });
+  const openWorkDay = useOpenWorkDay();
+
+  /**
+   * Attendance cards only exist once a work day has been opened for each staff
+   * member. The reference opens the day as part of its own scheduling; here it is
+   * an explicit action so nothing is created behind the user's back.
+   */
+  const handleOpenWorkDay = async () => {
+    const staff = staffPage?.items ?? [];
+
+    if (staff.length === 0) {
+      message.error("Chưa có nhân viên nào đang làm việc.");
+      return;
+    }
+
+    try {
+      for (const member of staff) {
+        await openWorkDay.mutateAsync({
+          staffId: member.id,
+          clinicBranchId: branchId,
+          workDate,
+        });
+      }
+      message.success(`Đã mở ngày làm việc cho ${staff.length} nhân viên`);
+    } catch (error) {
+      message.error(extractApiError(error));
+    }
+  };
+
   const records = useMemo(() => {
     const items = data?.items ?? [];
     if (!keyword.trim()) return items;
@@ -266,13 +299,22 @@ export function TimekeepingBoard({ currentDate }: TimekeepingBoardProps) {
         <StatTile value={formatDuration(summary?.totalOvertimeMinutes ?? 0)} label={t("timekeeping.overtimeHours")} />
       </div>
 
-      <Input.Search
-        allowClear
-        placeholder={t("common.search")}
-        value={keyword}
-        onChange={(e) => setKeyword(e.target.value)}
-        style={{ maxWidth: 320 }}
-      />
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <Input.Search
+          allowClear
+          placeholder={t("common.search")}
+          value={keyword}
+          onChange={(e) => setKeyword(e.target.value)}
+          style={{ maxWidth: 320 }}
+        />
+        <Button
+          type="primary"
+          loading={openWorkDay.isPending}
+          onClick={handleOpenWorkDay}
+        >
+          Mở ngày làm việc
+        </Button>
+      </div>
 
       {isLoading ? (
         <div style={{ padding: 48, textAlign: "center" }}>

@@ -52,6 +52,31 @@ public class LaboAppService : ApplicationService, ILaboAppService
     }
 
     [Authorize(BlueDentalPermissions.LaboOrders.View)]
+    public async Task<LaboStatsDto> GetStatsAsync(GetLaboOrderListInput input)
+    {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
+        var query = await _repository.GetQueryableAsync();
+        query = query.Where(o => o.BranchId == branchId);
+
+        if (input.PatientId.HasValue)
+            query = query.Where(o => o.PatientId == input.PatientId.Value);
+
+        var orders = query.ToList();
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        return new LaboStatsDto
+        {
+            Total = orders.Count,
+            New = orders.Count(o => o.Status == LaboStatus.Draft),
+            ContinueStage = orders.Count(o => o.Status == LaboStatus.InProgress),
+            Guarantee = 0,
+            AwaitingReturn = orders.Count(o => o.Status == LaboStatus.Sent),
+            Overdue = orders.Count(o => o.Status == LaboStatus.Sent && o.DueDate.HasValue && o.DueDate.Value < today),
+            Returned = orders.Count(o => o.Status == LaboStatus.Received || o.Status == LaboStatus.Completed),
+        };
+    }
+
+    [Authorize(BlueDentalPermissions.LaboOrders.View)]
     public async Task<LaboOrderDto> GetAsync(Guid id)
     {
         var order = await _repository.GetAsync(id);

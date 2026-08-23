@@ -17,6 +17,10 @@ public sealed class LaboController(ILaboAppService service) : BlueDentalControll
     public Task<PagedResultDto<LaboOrderDto>> GetListAsync([FromQuery] GetLaboOrderListInput input) =>
         service.GetListAsync(input);
 
+    [HttpGet("stats")]
+    public Task<LaboStatsDto> GetStatsAsync([FromQuery] GetLaboOrderListInput input) =>
+        service.GetStatsAsync(input);
+
     [HttpGet("{id:guid}")]
     public Task<LaboOrderDto> GetAsync(Guid id) => service.GetAsync(id);
 

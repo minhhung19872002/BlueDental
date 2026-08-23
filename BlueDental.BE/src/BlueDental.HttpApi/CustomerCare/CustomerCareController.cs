@@ -8,6 +8,7 @@ using Volo.Abp.Application.Dtos;
 
 namespace BlueDental.CustomerCare;
 
+/// <summary>Chăm sóc khách hàng (CSKH).</summary>
 [RemoteService]
 [Authorize]
 [Route("api/v1/app/care-records")]
@@ -17,18 +18,34 @@ public sealed class CustomerCareController(ICustomerCareAppService service) : Bl
     public Task<PagedResultDto<CareRecordDto>> GetListAsync([FromQuery] GetCareRecordListInput input) =>
         service.GetListAsync(input);
 
+    [HttpGet("stats")]
+    public Task<CareStatsDto> GetStatsAsync([FromQuery] GetCareRecordListInput input) =>
+        service.GetStatsAsync(input);
+
     [HttpGet("{id:guid}")]
     public Task<CareRecordDto> GetAsync(Guid id) => service.GetAsync(id);
 
     [HttpPost]
     public Task<CareRecordDto> CreateAsync([FromBody] CreateCareRecordDto input) => service.CreateAsync(input);
 
-    [HttpPost("{id:guid}/start")]
-    public Task StartAsync(Guid id) => service.StartAsync(id);
+    [HttpPut("{id:guid}")]
+    public Task<CareRecordDto> UpdateAsync(Guid id, [FromBody] UpdateCareRecordDto input) =>
+        service.UpdateAsync(id, input);
 
-    [HttpPost("{id:guid}/complete")]
-    public Task CompleteAsync(Guid id, [FromBody] string resolution) => service.CompleteAsync(id, resolution);
+    [HttpPost("{id:guid}/contacted")]
+    public Task<CareRecordDto> MarkContactedAsync(Guid id) => service.MarkContactedAsync(id);
+
+    [HttpPost("{id:guid}/succeed")]
+    public Task<CareRecordDto> SucceedAsync(Guid id, [FromBody] SucceedCareRecordDto input) =>
+        service.SucceedAsync(id, input);
+
+    [HttpPost("{id:guid}/fail")]
+    public Task<CareRecordDto> FailAsync(Guid id, [FromBody] FailCareRecordDto input) =>
+        service.FailAsync(id, input);
+
+    [HttpPost("{id:guid}/zalo-sent")]
+    public Task<CareRecordDto> MarkZaloSentAsync(Guid id) => service.MarkZaloSentAsync(id);
 
     [HttpPost("{id:guid}/cancel")]
-    public Task CancelAsync(Guid id) => service.CancelAsync(id);
+    public Task CancelAsync(Guid id, [FromBody] string reason) => service.CancelAsync(id, reason);
 }

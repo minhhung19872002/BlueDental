@@ -70,7 +70,8 @@ public class InventoryItemAppService : ApplicationService, IInventoryItemAppServ
     public async Task<InventoryItemDto> UpdateAsync(Guid id, UpdateInventoryItemDto input)
     {
         var item = await _repository.GetAsync(id);
-        item.Update(input.Name, input.Category, input.Unit, input.ReorderLevel, input.UnitCost);
+        item.UpdateCatalogInfo(input.Name, input.TaxonomyId, input.Supplier, input.Origin, input.Unit, input.UnitCost, input.SalePrice);
+        item.SetReorderLevel(input.ReorderLevel);
         await _repository.UpdateAsync(item, autoSave: true);
         return ObjectMapper.Map<InventoryItem, InventoryItemDto>(item);
     }
@@ -89,6 +90,37 @@ public class InventoryItemAppService : ApplicationService, IInventoryItemAppServ
             item.ConsumeStock(input.Quantity);
         }
 
+        await _repository.UpdateAsync(item, autoSave: true);
+        return ObjectMapper.Map<InventoryItem, InventoryItemDto>(item);
+    }
+
+    [Authorize(BlueDentalPermissions.Inventory.View)]
+    public async Task<InventoryStatsDto> GetStatsAsync(GetInventoryItemListInput input)
+    {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
+        var query = await _repository.GetQueryableAsync();
+        query = query.Where(i => i.BranchId == branchId);
+
+        var items = query.ToList();
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        return new InventoryStatsDto
+        {
+            Total = items.Count,
+            Available = items.Count(i => i.StatusAsOf(today) == SupplyStatus.Available),
+            LowStock = items.Count(i => i.StatusAsOf(today) == SupplyStatus.LowStock),
+            OutOfStock = items.Count(i => i.StatusAsOf(today) == SupplyStatus.OutOfStock),
+            ExpiringSoon = items.Count(i => i.StatusAsOf(today) == SupplyStatus.ExpiringSoon),
+            Expired = items.Count(i => i.StatusAsOf(today) == SupplyStatus.Expired),
+            StockValue = items.Sum(i => i.QuantityOnHand * (i.UnitCost ?? 0m)),
+        };
+    }
+
+    [Authorize(BlueDentalPermissions.Inventory.AdjustStock)]
+    public async Task<InventoryItemDto> ReceiveStockAsync(Guid id, ReceiveStockDto input)
+    {
+        var item = await _repository.GetAsync(id);
+        item.ReceiveStock(input.Quantity, input.StockedAt, input.ExpiryDate, input.ExpiryWarningDays);
         await _repository.UpdateAsync(item, autoSave: true);
         return ObjectMapper.Map<InventoryItem, InventoryItemDto>(item);
     }

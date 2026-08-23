@@ -66,6 +66,9 @@ public static class BlueDentalDomainErrorCodes
         public const string PatientDiagnosisNotFound = "BlueDental:Treatment:0014";
         public const string PatientAdviseNotFound = "BlueDental:Treatment:0015";
         public const string AdviseGroupNotFound = "BlueDental:Treatment:0016";
+        public const string InvalidStageSequence = "BlueDental:Treatment:0017";
+        public const string InvalidStageTransition = "BlueDental:Treatment:0018";
+        public const string StageImageRequired = "BlueDental:Treatment:0019";
     }
 
     public static class Billing
@@ -85,6 +88,8 @@ public static class BlueDentalDomainErrorCodes
         public const string InsufficientStock = "BlueDental:Inventory:0002";
         public const string DuplicateItemCode = "BlueDental:Inventory:0003";
         public const string InvalidStockMovement = "BlueDental:Inventory:0004";
+        public const string InvalidPrice = "BlueDental:Inventory:0005";
+        public const string InvalidExpiry = "BlueDental:Inventory:0006";
     }
 
     public static class Notifications
@@ -150,5 +155,13 @@ public static class BlueDentalDomainErrorCodes
     {
         public const string RecordNotFound = "BlueDental:CustomerCare:0001";
         public const string InvalidTransition = "BlueDental:CustomerCare:0002";
+        public const string InvalidSchedule = "BlueDental:CustomerCare:0003";
+        public const string OutcomeRequired = "BlueDental:CustomerCare:0004";
+    }
+
+    public static class Operations
+    {
+        public const string InvalidTaskTransition = "BlueDental:Operations:0001";
+        public const string EmptyArticleContent = "BlueDental:Operations:0002";
     }
 }

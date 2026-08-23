@@ -122,6 +122,30 @@ public class BlueDentalHttpApiHostModule : AbpModule
                 return System.Threading.Tasks.Task.CompletedTask;
             };
         });
+
+        context.Services.ConfigureApplicationCookie(options =>
+        {
+            options.Events.OnRedirectToLogin = ctx =>
+            {
+                if (ctx.Request.Path.StartsWithSegments("/api"))
+                {
+                    ctx.Response.StatusCode = 401;
+                    return System.Threading.Tasks.Task.CompletedTask;
+                }
+                ctx.Response.Redirect(ctx.RedirectUri);
+                return System.Threading.Tasks.Task.CompletedTask;
+            };
+            options.Events.OnRedirectToAccessDenied = ctx =>
+            {
+                if (ctx.Request.Path.StartsWithSegments("/api"))
+                {
+                    ctx.Response.StatusCode = 403;
+                    return System.Threading.Tasks.Task.CompletedTask;
+                }
+                ctx.Response.Redirect(ctx.RedirectUri);
+                return System.Threading.Tasks.Task.CompletedTask;
+            };
+        });
     }
 
     private void ConfigureUrls(IConfiguration configuration)

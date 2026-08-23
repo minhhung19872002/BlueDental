@@ -49,6 +49,7 @@ public class BlueDentalDbContext :
     // Organizations
     public DbSet<ClinicBranch> ClinicBranches { get; set; }
     public DbSet<Department> Departments { get; set; }
+    public DbSet<StaffBranchAssignment> StaffBranchAssignments { get; set; }
 
     // Catalogs
     public DbSet<DentalProcedure> DentalProcedures { get; set; }
@@ -80,6 +81,7 @@ public class BlueDentalDbContext :
     public DbSet<DiagnosticRecord> DiagnosticRecords { get; set; }
     public DbSet<ConsultationRecord> ConsultationRecords { get; set; }
     public DbSet<PatientDiagnosis> PatientDiagnoses { get; set; }
+    public DbSet<TreatmentStage> TreatmentStages { get; set; }
     public DbSet<PatientAdvise> PatientAdvises { get; set; }
     public DbSet<AdviseGroup> AdviseGroups { get; set; }
 
@@ -126,6 +128,8 @@ public class BlueDentalDbContext :
     // Operations
     public DbSet<OperationCategory> OperationCategories { get; set; }
     public DbSet<OperationArticle> OperationArticles { get; set; }
+    public DbSet<OperationsArticle> OperationsArticles { get; set; }
+    public DbSet<OperationsTask> OperationsTasks { get; set; }
 
     // Tools
     public DbSet<CallAssignment> CallAssignments { get; set; }

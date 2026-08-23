@@ -35,7 +35,7 @@
 
   <ItemGroup>
     <PackageReference Include="Volo.Abp.Autofac" Version="$(AbpVersion)" />
-    <ProjectReference Include="..\BlueDental.Application.Contracts\BlueDental.Application.Contracts.csproj" />
+    <ProjectReference Include="..\BlueDental.Application\BlueDental.Application.csproj" />
     <ProjectReference Include="..\BlueDental.EntityFrameworkCore\BlueDental.EntityFrameworkCore.csproj" />
   </ItemGroup>
 

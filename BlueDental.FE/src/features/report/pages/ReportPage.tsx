@@ -1,25 +1,34 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
-import { Tabs, Row, Col, Button, Select, Segmented, Spin, Table, Typography, Tag } from "antd";
+import { Tabs, Row, Col, Button, Select, Segmented, Spin, Table, Typography, Tag, Modal, Input, Popconfirm, message } from "antd";
 import type { TFunction } from "i18next";
 import { useStaffList } from "@/features/staff/api/staffQueries";
-import { DownloadOutlined, LeftOutlined, RightOutlined } from "@ant-design/icons";
+import { DownloadOutlined, LeftOutlined, RightOutlined, PlusOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
-import { formatVND } from "@/utils/format";
+import { formatDate, formatVND } from "@/utils/format";
 import { exportToExcel } from "@/utils/exportExcel";
 import { useReportSummary, useRevenueReport, useExpenseReport } from "../api/reportingApi";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
+import { useAuthStore } from "@/features/auth/store/authStore";
+import { extractApiError } from "@/lib/apiError";
+import { SalesEntryModal } from "../components/SalesEntryModal";
+import { CashflowEntryModal } from "../components/CashflowEntryModal";
 import {
   CASH_HOLDING_LABELS,
   CASH_TRANSACTION_LABELS,
+  CASH_TRANSACTION_TYPE,
   PAYMENT_CHANNEL_LABELS,
   SALES_APPROVAL_STATUS,
   SALES_ENTRY_TYPE,
+  useApproveSalesEntry,
   useCashflowEntries,
   useCashflowOverview,
+  useDeleteSalesEntry,
+  useRejectSalesEntry,
   useSalesEntries,
   useSalesStats,
+  type SalesEntryDto,
   type CashHolding,
   type CashTransactionType,
   type PaymentChannel,
@@ -48,9 +57,10 @@ function resolvePeriod(currentDate: Dayjs, dateMode: DateMode): PeriodRange {
 function buildCashflowColumns(
   t: TFunction,
   approvalConfig: Record<SalesApprovalStatus, { label: string; color: string } | null>,
+  actions?: (row: SalesEntryDto) => React.ReactNode,
 ) {
   return [
-    { title: t("report.date"), dataIndex: "entryDate", key: "entryDate", width: 110 },
+    { title: t("report.date"), dataIndex: "entryDate", key: "entryDate", width: 110, render: (v: string) => formatDate(v) },
     { title: t("report.voucherNumber"), dataIndex: "code", key: "code", width: 110 },
     { title: t("report.type"), dataIndex: "type", key: "type", width: 80,
       render: (v: SalesEntryType) => (
@@ -79,6 +89,9 @@ function buildCashflowColumns(
         const config = approvalConfig[v];
         return config ? <Tag color={config.color}>{config.label}</Tag> : <Text type="secondary">—</Text>;
       } },
+    ...(actions
+      ? [{ title: t("common.actions"), key: "actions", width: 200, render: (_: unknown, row: SalesEntryDto) => actions(row) }]
+      : []),
   ];
 }
 
@@ -111,7 +124,7 @@ function buildExpenseColumns(t: TFunction) {
 
 function buildCashflowEntryColumns(t: TFunction) {
   return [
-    { title: t("report.date"), dataIndex: "entryDate", key: "entryDate", width: 110 },
+    { title: t("report.date"), dataIndex: "entryDate", key: "entryDate", width: 110, render: (v: string) => formatDate(v) },
     { title: t("report.transactionType"), dataIndex: "transactionType", key: "transactionType", width: 130,
       render: (v: CashTransactionType) => <Tag>{CASH_TRANSACTION_LABELS[v]}</Tag> },
     { title: t("report.form"), key: "holding", width: 200,
@@ -357,23 +370,24 @@ export function ReportPage() {
   );
 }
 
+const APPROVAL_CONFIG: Record<SalesApprovalStatus, { label: string; color: string } | null> = {
+  [SALES_APPROVAL_STATUS.NotRequired]: null,
+  [SALES_APPROVAL_STATUS.Pending]:  { label: "Chờ duyệt", color: "gold" },
+  [SALES_APPROVAL_STATUS.Approved]: { label: "Đã duyệt",  color: "green" },
+  [SALES_APPROVAL_STATUS.Rejected]: { label: "Từ chối",   color: "red" },
+};
+
 function CashflowTab({ period }: { period: PeriodRange }) {
   const { t } = useTranslation();
   const branchId = useCurrentBranchId();
+  const currentUserId = useAuthStore((s) => s.user?.id);
   const [typeFilter, setTypeFilter] = useState("all");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState<SalesEntryDto | null>(null);
 
-  const CASHFLOW_TYPES = [
-    { key: "all", label: t("common.all") },
-    { key: "thu", label: t("report.income") },
-    { key: "chi", label: t("report.expense") },
-  ];
-
-  const APPROVAL_CONFIG: Record<SalesApprovalStatus, { label: string; color: string } | null> = {
-    [SALES_APPROVAL_STATUS.NotRequired]: null,
-    [SALES_APPROVAL_STATUS.Pending]:  { label: t("report.pending"),  color: "gold" },
-    [SALES_APPROVAL_STATUS.Approved]: { label: t("report.approved"), color: "green" },
-    [SALES_APPROVAL_STATUS.Rejected]: { label: t("report.rejected"), color: "red" },
-  };
+  const approveEntry = useApproveSalesEntry();
+  const rejectEntry = useRejectSalesEntry();
+  const deleteEntry = useDeleteSalesEntry();
 
   const typeParam: SalesEntryType | undefined =
     typeFilter === "thu" ? SALES_ENTRY_TYPE.Income
@@ -388,13 +402,91 @@ function CashflowTab({ period }: { period: PeriodRange }) {
     maxResultCount: 100,
   });
 
+  const handleApprove = async (row: SalesEntryDto) => {
+    if (!currentUserId) return;
+    try {
+      await approveEntry.mutateAsync({ id: row.id, staffId: currentUserId });
+      message.success(t("report.approved"));
+    } catch (error) {
+      message.error(extractApiError(error));
+    }
+  };
+
+  const handleReject = (row: SalesEntryDto) => {
+    if (!currentUserId) return;
+    let reason = "";
+
+    Modal.confirm({
+      title: `Từ chối phiếu ${row.code}`,
+      content: (
+        <Input.TextArea
+          rows={3}
+          placeholder="Lý do từ chối"
+          onChange={(e) => { reason = e.target.value; }}
+        />
+      ),
+      okText: "Từ chối",
+      cancelText: "Huỷ",
+      onOk: async () => {
+        if (!reason.trim()) {
+          message.error("Vui lòng nhập lý do từ chối.");
+          throw new Error("missing reason");
+        }
+        try {
+          await rejectEntry.mutateAsync({ id: row.id, staffId: currentUserId, reason: reason.trim() });
+          message.success(t("report.rejected"));
+        } catch (error) {
+          message.error(extractApiError(error));
+          throw error;
+        }
+      },
+    });
+  };
+
+  const CASHFLOW_TYPES = [
+    { key: "all", label: t("common.all") },
+    { key: "thu", label: t("report.income") },
+    { key: "chi", label: t("report.expense") },
+  ];
+
   const summaryCards = [
     { label: t("report.totalIncome"),     value: stats?.totalIncome  ?? 0, color: "#10B981" },
     { label: t("report.totalExpense"),    value: stats?.totalExpense ?? 0, color: "#EF4444" },
     { label: t("report.estimatedProfit"), value: stats?.net          ?? 0, color: "#1E70E6" },
   ];
 
-  const cashflowColumns = buildCashflowColumns(t, APPROVAL_CONFIG);
+  const columns = buildCashflowColumns(t, APPROVAL_CONFIG, (row) => (
+    <>
+      {row.approvalStatus === SALES_APPROVAL_STATUS.Pending && (
+        <>
+          <Button type="link" size="small" onClick={() => handleApprove(row)}>{t("report.approve") ?? "Duyệt"}</Button>
+          <Button type="link" size="small" danger onClick={() => handleReject(row)}>{t("report.reject") ?? "Từ chối"}</Button>
+        </>
+      )}
+      {row.approvalStatus !== SALES_APPROVAL_STATUS.Approved && (
+        <>
+          <Button type="link" size="small" onClick={() => { setEditing(row); setModalOpen(true); }}>
+            {t("common.edit") ?? "Sửa"}
+          </Button>
+          <Popconfirm
+            title={t("report.confirmDelete") ?? "Xoá phiếu này?"}
+            okText={t("common.delete") ?? "Xoá"}
+            cancelText={t("common.cancel") ?? "Huỷ"}
+            onConfirm={async () => {
+              try {
+                await deleteEntry.mutateAsync(row.id);
+                message.success(t("common.deleteSuccess") ?? "Đã xoá phiếu");
+              } catch (error) {
+                message.error(extractApiError(error));
+              }
+            }}
+          >
+            <Button type="link" size="small" danger>{t("common.delete") ?? "Xoá"}</Button>
+          </Popconfirm>
+        </>
+      )}
+    </>
+  ));
 
   return (
     <>
@@ -445,7 +537,14 @@ function CashflowTab({ period }: { period: PeriodRange }) {
       )}
 
       <div className="reception-card reception-card--toolbar">
-        <div style={{ display: "flex", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => { setEditing(null); setModalOpen(true); }}
+          >
+            {t("common.addNew") ?? "Thêm mới"}
+          </Button>
           <Button icon={<DownloadOutlined />} style={{ marginLeft: "auto" }}>{t("common.exportExcel")}</Button>
         </div>
       </div>
@@ -455,7 +554,7 @@ function CashflowTab({ period }: { period: PeriodRange }) {
           size="small"
           rowKey="id"
           loading={isLoading}
-          columns={cashflowColumns}
+          columns={columns}
           dataSource={page?.items ?? []}
           pagination={{
             pageSize: 20,
@@ -464,6 +563,13 @@ function CashflowTab({ period }: { period: PeriodRange }) {
           locale={{ emptyText: t("common.noData") }}
         />
       </div>
+
+      <SalesEntryModal
+        open={modalOpen}
+        entry={editing}
+        defaultType={typeFilter === "chi" ? SALES_ENTRY_TYPE.Expense : SALES_ENTRY_TYPE.Income}
+        onClose={() => { setModalOpen(false); setEditing(null); }}
+      />
     </>
   );
 }
@@ -472,6 +578,7 @@ function CashflowV2Tab({ period }: { period: PeriodRange }) {
   const { t } = useTranslation();
   const branchId = useCurrentBranchId();
   const params = { clinicBranchId: branchId, ...period };
+  const [cashModal, setCashModal] = useState<CashTransactionType | null>(null);
 
   const { data: overview } = useCashflowOverview(params);
   const { data: page, isLoading } = useCashflowEntries({ ...params, maxResultCount: 100 });
@@ -480,9 +587,9 @@ function CashflowV2Tab({ period }: { period: PeriodRange }) {
 
   // Panel order and wording follow the reference "Luân chuyển dòng tiền V2" tab.
   const balancePanels = [
-    { label: t("report.totalMoney"),          value: overview?.balance.total          ?? 0, color: "#1B2A41" },
-    { label: t("report.totalCash"),           value: overview?.balance.cash           ?? 0, color: "#10B981" },
-    { label: t("report.totalTransfer"),       value: overview?.balance.bank           ?? 0, color: "#1E70E6" },
+    { label: t("report.totalMoney"),          value: overview?.balance.total           ?? 0, color: "#1B2A41" },
+    { label: t("report.totalCash"),           value: overview?.balance.cash            ?? 0, color: "#10B981" },
+    { label: t("report.totalTransfer"),       value: overview?.balance.bank            ?? 0, color: "#1E70E6" },
     { label: t("report.holdingForCustomer"),  value: overview?.balance.customerPrepaid ?? 0, color: "#F59E0B" },
   ];
 
@@ -502,8 +609,17 @@ function CashflowV2Tab({ period }: { period: PeriodRange }) {
       </Row>
 
       <div className="reception-card reception-card--toolbar">
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Text style={{ fontSize: 13, color: "#5A6B82" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <Button type="primary" onClick={() => setCashModal(CASH_TRANSACTION_TYPE.Deposit)}>
+            {t("report.deposit") ?? "Nạp"}
+          </Button>
+          <Button onClick={() => setCashModal(CASH_TRANSACTION_TYPE.Withdraw)}>
+            {t("report.withdraw") ?? "Rút"}
+          </Button>
+          <Button onClick={() => setCashModal(CASH_TRANSACTION_TYPE.Transfer)}>
+            {t("report.flowTransfer") ?? "Luân chuyển"}
+          </Button>
+          <Text style={{ fontSize: 13, color: "#5A6B82", marginLeft: 12 }}>
             {t("report.deposit")}: {formatVND(overview?.totalDeposit ?? 0)} đ
             {" · "}
             {t("report.withdraw")}: {formatVND(overview?.totalWithdraw ?? 0)} đ
@@ -528,6 +644,14 @@ function CashflowV2Tab({ period }: { period: PeriodRange }) {
           locale={{ emptyText: t("common.noData") }}
         />
       </div>
+
+      {cashModal !== null && (
+        <CashflowEntryModal
+          open
+          transactionType={cashModal}
+          onClose={() => setCashModal(null)}
+        />
+      )}
     </>
   );
 }

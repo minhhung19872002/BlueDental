@@ -11,7 +11,7 @@ using Volo.Abp.Domain.Repositories;
 
 namespace BlueDental.PatientManagement;
 
-[Authorize(BlueDentalPermissions.PatientManagement.Default)]
+[Authorize]
 public class PatientAppService : ApplicationService, IPatientAppService
 {
     private readonly IRepository<Patient, Guid> _repository;
@@ -25,7 +25,7 @@ public class PatientAppService : ApplicationService, IPatientAppService
         _branchResolver = branchResolver;
     }
 
-    [Authorize(BlueDentalPermissions.PatientManagement.Patients.View)]
+    [Authorize(BlueDentalAbilityPermissions.Patient.Read)]
     public async Task<PagedResultDto<PatientDto>> GetListAsync(GetPatientListInput input)
     {
         var branchId = _branchResolver.GetRequiredClinicBranchId();
@@ -51,19 +51,19 @@ public class PatientAppService : ApplicationService, IPatientAppService
             ObjectMapper.Map<System.Collections.Generic.List<Patient>, System.Collections.Generic.List<PatientDto>>(items));
     }
 
-    [Authorize(BlueDentalPermissions.PatientManagement.Patients.View)]
+    [Authorize(BlueDentalAbilityPermissions.Patient.Read)]
     public async Task<PatientDto> GetAsync(Guid id)
     {
         var patient = await _repository.GetAsync(id);
         return ObjectMapper.Map<Patient, PatientDto>(patient);
     }
 
-    [Authorize(BlueDentalPermissions.PatientManagement.Patients.Create)]
+    [Authorize(BlueDentalAbilityPermissions.Patient.Create)]
     public async Task<PatientDto> RegisterAsync(RegisterPatientDto input)
     {
         var branchId = _branchResolver.GetRequiredClinicBranchId();
         var contact = new ContactInfo(input.PhoneNumber, input.Email, null);
-        var patientCode = $"P{Clock.Now:yyyyMMdd}{GuidGenerator.Create().ToString("N")[..6].ToUpper()}";
+        var patientCode = await GeneratePatientCodeAsync(input.BranchId);
 
         var patient = Patient.Register(
             GuidGenerator.Create(),
@@ -80,7 +80,37 @@ public class PatientAppService : ApplicationService, IPatientAppService
         return ObjectMapper.Map<Patient, PatientDto>(patient);
     }
 
-    [Authorize(BlueDentalPermissions.PatientManagement.Patients.Edit)]
+    /// <summary>
+    /// Human-readable patient code, per branch and year — the reference uses the
+    /// same shape (e.g. <c>DH26010</c>).
+    ///
+    /// The previous scheme took six characters of a sequential GUID, which are
+    /// the high-order timestamp bits and barely move: two registrations seconds
+    /// apart produced the same code and hit the unique index.
+    /// </summary>
+    private async Task<string> GeneratePatientCodeAsync(Guid branchId)
+    {
+        var year = Clock.Now.Year;
+        var query = await _repository.GetQueryableAsync();
+
+        var sequence = query.Count(p => p.BranchId == branchId && p.CreationTime.Year == year) + 1;
+        var code = FormatPatientCode(year, sequence);
+
+        // Deleted or imported records can leave gaps and duplicates in the count,
+        // so walk forward until the code is genuinely free.
+        while (query.Any(p => p.PatientCode == code))
+        {
+            sequence++;
+            code = FormatPatientCode(year, sequence);
+        }
+
+        return code;
+    }
+
+    private static string FormatPatientCode(int year, int sequence) =>
+        $"BD{year % 100:D2}{sequence:D4}";
+
+    [Authorize(BlueDentalAbilityPermissions.Patient.Update)]
     public async Task<PatientDto> UpdateAsync(Guid id, UpdatePatientDto input)
     {
         var patient = await _repository.GetAsync(id);
@@ -91,7 +121,7 @@ public class PatientAppService : ApplicationService, IPatientAppService
         return ObjectMapper.Map<Patient, PatientDto>(patient);
     }
 
-    [Authorize(BlueDentalPermissions.PatientManagement.Patients.Delete)]
+    [Authorize(BlueDentalAbilityPermissions.Patient.Update)]
     public async Task DeactivateAsync(Guid id)
     {
         var patient = await _repository.GetAsync(id);

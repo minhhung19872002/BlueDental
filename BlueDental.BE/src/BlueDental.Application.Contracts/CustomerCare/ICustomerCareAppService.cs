@@ -5,12 +5,27 @@ using Volo.Abp.Application.Services;
 
 namespace BlueDental.CustomerCare;
 
+/// <summary>
+/// Chăm sóc khách hàng — reference: <c>/api/v1/customer-care</c> and
+/// <c>/api/v1/customer-care-stats</c>.
+/// </summary>
 public interface ICustomerCareAppService : IApplicationService
 {
     Task<PagedResultDto<CareRecordDto>> GetListAsync(GetCareRecordListInput input);
+    Task<CareStatsDto> GetStatsAsync(GetCareRecordListInput input);
     Task<CareRecordDto> GetAsync(Guid id);
     Task<CareRecordDto> CreateAsync(CreateCareRecordDto input);
-    Task StartAsync(Guid id);
-    Task CompleteAsync(Guid id, string resolution);
-    Task CancelAsync(Guid id);
+    Task<CareRecordDto> UpdateAsync(Guid id, UpdateCareRecordDto input);
+
+    /// <summary>Đã liên hệ khách.</summary>
+    Task<CareRecordDto> MarkContactedAsync(Guid id);
+
+    /// <summary>Thành công, kèm đánh giá.</summary>
+    Task<CareRecordDto> SucceedAsync(Guid id, SucceedCareRecordDto input);
+
+    /// <summary>Thất bại, kèm lý do.</summary>
+    Task<CareRecordDto> FailAsync(Guid id, FailCareRecordDto input);
+
+    Task<CareRecordDto> MarkZaloSentAsync(Guid id);
+    Task CancelAsync(Guid id, string reason);
 }

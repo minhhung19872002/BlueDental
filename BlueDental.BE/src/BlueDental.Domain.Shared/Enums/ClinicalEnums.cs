@@ -48,3 +48,14 @@ public enum TreatmentServiceStatus
     Cancelled = 4,
     Replaced = 5
 }
+
+/// <summary>
+/// Lifecycle of a treatment stage / step (Công đoạn điều trị).
+/// Mirrors the reference application's <c>treatmentStage.status</c>.
+/// </summary>
+public enum TreatmentStageStatus
+{
+    Pending = 1,
+    InProgress = 2,
+    Completed = 3
+}

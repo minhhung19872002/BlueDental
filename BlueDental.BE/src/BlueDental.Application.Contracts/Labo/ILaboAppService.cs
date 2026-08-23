@@ -8,6 +8,7 @@ namespace BlueDental.Labo;
 public interface ILaboAppService : IApplicationService
 {
     Task<PagedResultDto<LaboOrderDto>> GetListAsync(GetLaboOrderListInput input);
+    Task<LaboStatsDto> GetStatsAsync(GetLaboOrderListInput input);
     Task<LaboOrderDto> GetAsync(Guid id);
     Task<LaboOrderDto> CreateAsync(CreateLaboOrderDto input);
     Task<LaboOrderDto> UpdateAsync(Guid id, UpdateLaboOrderDto input);

@@ -89,6 +89,11 @@ const TaxonomyPage = lazy(() =>
     default: m.TaxonomyPage,
   })),
 );
+const VoucherPage = lazy(() =>
+  import("@/features/voucher/pages/VoucherPage").then((m) => ({
+    default: m.VoucherPage,
+  })),
+);
 
 const ToolsPage = lazy(() =>
   import("@/features/tools/pages/ToolsPage").then((m) => ({
@@ -220,7 +225,7 @@ const appRoutes: RouteObject[] = [
           </S>
         ),
       },
-      // ── Stubs matching reference routes ──
+      // ── Feature routes ──
       {
         path: "cskh-grouping",
         element: (
@@ -274,6 +279,16 @@ const appRoutes: RouteObject[] = [
         element: (
           <S>
             <TaxonomyPage />
+          </S>
+        ),
+      },
+      {
+        // Not in the sidebar on the reference either — reached from the patient
+        // screen and by direct link.
+        path: "voucher",
+        element: (
+          <S>
+            <VoucherPage />
           </S>
         ),
       },

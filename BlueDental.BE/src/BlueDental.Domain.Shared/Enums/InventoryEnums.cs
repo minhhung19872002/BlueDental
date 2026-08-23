@@ -11,6 +11,20 @@ public enum StockMovementType
     Damaged = 7
 }
 
+/// <summary>
+/// The "Trạng thái" column of the Vật tư table, derived from stock level and
+/// expiry rather than stored — a supply is out of stock, running low, expiring
+/// soon, expired, or fine.
+/// </summary>
+public enum SupplyStatus
+{
+    Available = 1,
+    LowStock = 2,
+    OutOfStock = 3,
+    ExpiringSoon = 4,
+    Expired = 5
+}
+
 public enum EquipmentStatus
 {
     Operational = 1,

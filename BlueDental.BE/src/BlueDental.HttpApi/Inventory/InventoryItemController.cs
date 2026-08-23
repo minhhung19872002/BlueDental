@@ -17,6 +17,10 @@ public sealed class InventoryItemController(IInventoryItemAppService service) : 
     public Task<PagedResultDto<InventoryItemDto>> GetListAsync(
         [FromQuery] GetInventoryItemListInput input) => service.GetListAsync(input);
 
+    [HttpGet("stats")]
+    public Task<InventoryStatsDto> GetStatsAsync([FromQuery] GetInventoryItemListInput input) =>
+        service.GetStatsAsync(input);
+
     [HttpGet("{id:guid}")]
     public Task<InventoryItemDto> GetAsync(Guid id) => service.GetAsync(id);
 
@@ -27,6 +31,10 @@ public sealed class InventoryItemController(IInventoryItemAppService service) : 
     [HttpPut("{id:guid}")]
     public Task<InventoryItemDto> UpdateAsync(Guid id, [FromBody] UpdateInventoryItemDto input) =>
         service.UpdateAsync(id, input);
+
+    [HttpPost("{id:guid}/receive-stock")]
+    public Task<InventoryItemDto> ReceiveStockAsync(Guid id, [FromBody] ReceiveStockDto input) =>
+        service.ReceiveStockAsync(id, input);
 
     [HttpPost("{id:guid}/adjust-stock")]
     public Task<InventoryItemDto> AdjustStockAsync(Guid id, [FromBody] AdjustStockDto input) =>

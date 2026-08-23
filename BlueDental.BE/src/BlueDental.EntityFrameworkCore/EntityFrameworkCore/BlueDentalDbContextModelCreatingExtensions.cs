@@ -383,8 +383,13 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.QuantityOnHand).HasPrecision(18, 3);
             entity.Property(x => x.ReorderLevel).HasPrecision(18, 3);
             entity.Property(x => x.UnitCost).HasPrecision(18, 2);
+            entity.Property(x => x.SalePrice).HasPrecision(18, 2);
+            entity.Property(x => x.Supplier).HasMaxLength(200);
+            entity.Property(x => x.Origin).HasMaxLength(100);
             entity.Ignore(x => x.NeedsReorder);
             entity.HasIndex(x => new { x.BranchId, x.ItemCode }).IsUnique();
+            entity.HasIndex(x => new { x.BranchId, x.TaxonomyId });
+            entity.HasIndex(x => x.ExpiryDate);
         });
 
         builder.Entity<MaterialAllocation>(entity =>
@@ -521,8 +526,247 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Subject).HasMaxLength(300).IsRequired();
             entity.Property(x => x.Description).HasMaxLength(2000);
             entity.Property(x => x.Resolution).HasMaxLength(2000);
+            entity.Property(x => x.Outcome).HasConversion<short>();
+            entity.PrimitiveCollection(x => x.StageIds).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.Ignore(x => x.IsClosed);
             entity.HasIndex(x => new { x.BranchId, x.Status });
             entity.HasIndex(x => new { x.PatientId, x.Status });
+            entity.HasIndex(x => new { x.BranchId, x.Type, x.DueAt });
+        });
+
+        // Chan doan cua benh nhan
+        builder.Entity<PatientDiagnosis>(entity =>
+        {
+            entity.ToTable("bd_patient_diagnoses");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Code).HasMaxLength(32).IsRequired();
+            entity.Property(x => x.Note).HasMaxLength(2000);
+            entity.Property(x => x.Status).HasConversion<short>();
+            entity.OwnsMany(x => x.Teeth, t => t.ToJson());
+            entity.Navigation(x => x.Teeth).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.HasIndex(x => new { x.ClinicBranchId, x.Status });
+            entity.HasIndex(x => new { x.PatientId, x.Status });
+            entity.HasIndex(x => x.Code);
+        });
+
+        // Tu van dich vu cho benh nhan
+        builder.Entity<PatientAdvise>(entity =>
+        {
+            entity.ToTable("bd_patient_advises");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Code).HasMaxLength(32).IsRequired();
+            entity.Property(x => x.Note).HasMaxLength(2000);
+            entity.Property(x => x.Status).HasConversion<short>();
+            entity.Property(x => x.DiscountType).HasConversion<short>();
+            entity.Property(x => x.OriginalPrice).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.Price).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.DiscountValue).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.VoucherDiscountAmount).HasColumnType("numeric(18,2)");
+            entity.OwnsMany(x => x.Teeth, t => t.ToJson());
+            entity.Navigation(x => x.Teeth).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.PrimitiveCollection(x => x.ImageIds).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.Ignore(x => x.GrossAmount);
+            entity.Ignore(x => x.DiscountAmount);
+            entity.Ignore(x => x.EffectiveAmount);
+            entity.HasIndex(x => new { x.ClinicBranchId, x.Status });
+            entity.HasIndex(x => new { x.PatientId, x.Status });
+            entity.HasIndex(x => x.PatientDiagnosisId);
+            entity.HasIndex(x => x.TreatmentPlanId);
+            entity.HasIndex(x => x.Code);
+        });
+
+        // Cong doan dieu tri
+        builder.Entity<TreatmentStage>(entity =>
+        {
+            entity.ToTable("bd_treatment_stages");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(300).IsRequired();
+            entity.Property(x => x.Note).HasMaxLength(2000);
+            entity.Property(x => x.Status).HasConversion<short>();
+            entity.OwnsMany(x => x.Teeth, t => t.ToJson());
+            entity.Navigation(x => x.Teeth).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.PrimitiveCollection(x => x.ImageUrls).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.HasIndex(x => new { x.TreatmentServiceId, x.SequenceNumber });
+            entity.HasIndex(x => new { x.PatientId, x.Status });
+            entity.HasIndex(x => new { x.ClinicBranchId, x.Status });
+        });
+
+        // Nhom tu van
+        builder.Entity<AdviseGroup>(entity =>
+        {
+            entity.ToTable("bd_advise_groups");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(1000);
+            entity.HasIndex(x => new { x.PatientId, x.SortOrder });
+        });
+
+        // Cham cong / lich lam viec
+        builder.Entity<TimeKeepingRecord>(entity =>
+        {
+            entity.ToTable("bd_time_keeping_records");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Registration).HasConversion<short>();
+            entity.Property(x => x.Status).HasConversion<short>();
+            entity.Property(x => x.LeaveReason).HasMaxLength(500);
+            entity.Property(x => x.Note).HasMaxLength(1000);
+
+            entity.OwnsOne(x => x.MorningShift, shift =>
+            {
+                shift.Property(s => s.Kind).HasColumnName("MorningKind").HasConversion<short>();
+                shift.Property(s => s.PlannedStart).HasColumnName("MorningPlannedStart");
+                shift.Property(s => s.PlannedEnd).HasColumnName("MorningPlannedEnd");
+                shift.Property(s => s.CheckedInAt).HasColumnName("MorningCheckedInAt");
+                shift.Property(s => s.CheckedOutAt).HasColumnName("MorningCheckedOutAt");
+            });
+            entity.Navigation(x => x.MorningShift).IsRequired();
+
+            entity.OwnsOne(x => x.AfternoonShift, shift =>
+            {
+                shift.Property(s => s.Kind).HasColumnName("AfternoonKind").HasConversion<short>();
+                shift.Property(s => s.PlannedStart).HasColumnName("AfternoonPlannedStart");
+                shift.Property(s => s.PlannedEnd).HasColumnName("AfternoonPlannedEnd");
+                shift.Property(s => s.CheckedInAt).HasColumnName("AfternoonCheckedInAt");
+                shift.Property(s => s.CheckedOutAt).HasColumnName("AfternoonCheckedOutAt");
+            });
+            entity.Navigation(x => x.AfternoonShift).IsRequired();
+
+            entity.Ignore(x => x.HasAnyAttendance);
+            entity.Ignore(x => x.HasOpenShift);
+            entity.Ignore(x => x.TotalWorkedMinutes);
+
+            // One attendance record per staff member per day per branch.
+            entity.HasIndex(x => new { x.ClinicBranchId, x.WorkDate, x.StaffId }).IsUnique();
+            entity.HasIndex(x => new { x.ClinicBranchId, x.WorkDate, x.Status });
+        });
+
+        // Phieu thu / phieu chi
+        builder.Entity<SalesEntry>(entity =>
+        {
+            entity.ToTable("bd_sales_entries");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Code).HasMaxLength(32).IsRequired();
+            entity.Property(x => x.Type).HasConversion<short>();
+            entity.Property(x => x.Channel).HasConversion<short>();
+            entity.Property(x => x.ApprovalStatus).HasConversion<short>();
+            entity.Property(x => x.Amount).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.Description).HasMaxLength(1000).IsRequired();
+            entity.Property(x => x.RejectionReason).HasMaxLength(500);
+            entity.Ignore(x => x.CountsTowardsCashflow);
+            entity.Ignore(x => x.SignedAmount);
+            entity.HasIndex(x => new { x.ClinicBranchId, x.EntryDate, x.Type });
+            entity.HasIndex(x => new { x.ClinicBranchId, x.ApprovalStatus });
+            entity.HasIndex(x => x.Code).IsUnique();
+        });
+
+        // Danh muc thu chi / luan chuyen
+        builder.Entity<CashflowCategory>(entity =>
+        {
+            entity.ToTable("bd_cashflow_categories");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Type).HasConversion<short>();
+            entity.Property(x => x.Description).HasMaxLength(500);
+            entity.HasIndex(x => new { x.ClinicBranchId, x.AppliesToTransfers, x.Type });
+        });
+
+        // Luan chuyen dong tien
+        builder.Entity<CashflowEntry>(entity =>
+        {
+            entity.ToTable("bd_cashflow_entries");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.TransactionType).HasConversion<short>();
+            entity.Property(x => x.FromHolding).HasConversion<short>();
+            entity.Property(x => x.ToHolding).HasConversion<short>();
+            entity.Property(x => x.Amount).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.Note).HasMaxLength(1000);
+            entity.HasIndex(x => new { x.ClinicBranchId, x.EntryDate });
+            entity.HasIndex(x => new { x.ClinicBranchId, x.TransactionType });
+        });
+
+        // Voucher khuyen mai
+        builder.Entity<Voucher>(entity =>
+        {
+            entity.ToTable("bd_vouchers");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Code).HasMaxLength(32).IsRequired();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(1000);
+            entity.Property(x => x.DiscountType).HasConversion<short>();
+            entity.Property(x => x.CustomerTarget).HasConversion<short>();
+            entity.Property(x => x.Status).HasConversion<short>();
+            entity.Property(x => x.DiscountValue).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.MaxDiscountAmount).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.MinOrderAmount).HasColumnType("numeric(18,2)");
+            entity.Ignore(x => x.RemainingUses);
+            entity.Ignore(x => x.IsExhausted);
+            entity.HasIndex(x => x.Code).IsUnique();
+            entity.HasIndex(x => new { x.Status, x.ValidFrom, x.ValidTo });
+        });
+
+        // Nhom danh muc
+        builder.Entity<Taxonomy>(entity =>
+        {
+            entity.ToTable("bd_taxonomies");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Group).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Alias).HasMaxLength(200);
+            entity.Property(x => x.Color).HasMaxLength(9);
+            entity.Property(x => x.SubGroup).HasMaxLength(100);
+            entity.Property(x => x.Description).HasMaxLength(1000);
+            entity.Ignore(x => x.IsPriced);
+            entity.Ignore(x => x.IsTemplated);
+            entity.HasIndex(x => new { x.ClinicBranchId, x.Group, x.SortOrder });
+        });
+
+        // Muc danh muc
+        builder.Entity<CatalogEntry>(entity =>
+        {
+            entity.ToTable("bd_catalog_entries");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Group).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.Name).HasMaxLength(300).IsRequired();
+            entity.Property(x => x.Code).HasMaxLength(64);
+            entity.Property(x => x.Description).HasMaxLength(2000);
+            entity.Property(x => x.Price).HasColumnType("numeric(18,2)");
+            entity.HasIndex(x => new { x.ClinicBranchId, x.Group, x.IsActive });
+            entity.HasIndex(x => new { x.TaxonomyId, x.SortOrder });
+        });
+
+        // Phan cong nhan vien theo chi nhanh
+        builder.Entity<StaffBranchAssignment>(entity =>
+        {
+            entity.ToTable("bd_staff_branch_assignments");
+            entity.ConfigureByConvention();
+            entity.HasIndex(x => new { x.StaffId, x.ClinicBranchId }).IsUnique();
+            entity.HasIndex(x => x.ClinicBranchId);
+        });
+
+        // Quan tri van hanh - bai viet
+        builder.Entity<OperationsArticle>(entity =>
+        {
+            entity.ToTable("bd_operations_articles");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Department).HasConversion<short>();
+            entity.Property(x => x.Section).HasConversion<short>();
+            entity.Property(x => x.Title).HasMaxLength(300).IsRequired();
+            entity.Property(x => x.Summary).HasMaxLength(1000);
+            entity.HasIndex(x => new { x.ClinicBranchId, x.Department, x.Section, x.SortOrder });
+        });
+
+        // Quan tri van hanh - cong viec
+        builder.Entity<OperationsTask>(entity =>
+        {
+            entity.ToTable("bd_operations_tasks");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Department).HasConversion<short>();
+            entity.Property(x => x.Status).HasConversion<short>();
+            entity.Property(x => x.Title).HasMaxLength(300).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(2000);
+            entity.Property(x => x.CancellationReason).HasMaxLength(500);
+            entity.HasIndex(x => new { x.ClinicBranchId, x.Department, x.Status });
+            entity.HasIndex(x => x.DueDate);
         });
 
         builder.Entity<CskhGroup>(entity =>
