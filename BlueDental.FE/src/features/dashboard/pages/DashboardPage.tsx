@@ -1,32 +1,97 @@
-import { Col, Row } from "antd";
-import { TodayAppointmentsCard } from "../components/TodayAppointmentsCard";
-import { RevenueSummaryCard } from "../components/RevenueSummaryCard";
-import { PendingActionsCard } from "../components/PendingActionsCard";
+import dayjs from "dayjs";
+import {
+  BarChartOutlined,
+  CalendarOutlined,
+  TeamOutlined,
+  WalletOutlined,
+} from "@ant-design/icons";
+import { usePaymentStat } from "@/features/report/api/clinicReportApi";
+import { useAppointmentList } from "@/features/appointments/api/appointmentQueries";
+import { useCurrentBranchId } from "@/lib/clinicBranch";
+import { formatVND } from "@/utils/format";
+import { brand } from "@/theme/index";
+import { KpiCard } from "../components/KpiCard";
+import { RevenueBarChart } from "../components/RevenueBarChart";
+import { DoctorsOnDutyCard } from "../components/DoctorsOnDutyCard";
+import { LowStockCard } from "../components/LowStockCard";
+import { OngoingReceptionsCard } from "../components/OngoingReceptionsCard";
 import { t } from "@/lib/i18n";
 
 export function DashboardPage() {
+  const today = dayjs().format("YYYY-MM-DD");
+  const branchId = useCurrentBranchId();
+
+  const { data: stat, isLoading: statLoading } = usePaymentStat({
+    clinicBranchId: branchId,
+    fromDate: today,
+    toDate: today,
+  });
+  const { data: appts, isLoading: apptLoading } = useAppointmentList({
+    date: today,
+    maxResultCount: 200,
+  });
+
+  const items = appts?.items ?? [];
+  const awaiting = items.filter(
+    (a) => a.status === "scheduled" || a.status === "confirmed",
+  ).length;
+  const newPatients = stat?.patientVisits ?? 0;
+
   return (
     <div className="page-container">
       <div className="page-header">
         <div className="page-header-left">
-          <h1 className="page-header-title">{t("Bảng điều khiển")}</h1>
+          <h1 className="page-header-title">{t("Tổng quan hôm nay")}</h1>
           <p className="page-header-subtitle">
-            {t("Tổng quan hoạt động phòng khám hôm nay")}
+            {dayjs().format("dddd, DD/MM/YYYY")}
           </p>
         </div>
       </div>
 
-      <Row gutter={[16, 16]}>
-        <Col xs={24} sm={12} lg={8}>
-          <TodayAppointmentsCard />
-        </Col>
-        <Col xs={24} sm={12} lg={8}>
-          <RevenueSummaryCard />
-        </Col>
-        <Col xs={24} sm={12} lg={8}>
-          <PendingActionsCard />
-        </Col>
-      </Row>
+      <div className="kpi-grid">
+        <KpiCard
+          label={t("Doanh số hôm nay")}
+          value={`${formatVND(stat?.totalActualReceived ?? 0)} ₫`}
+          sub={t("Thực thu trong ngày")}
+          icon={<BarChartOutlined />}
+          color={brand.blue}
+          loading={statLoading}
+        />
+        <KpiCard
+          label={t("Lượt khách")}
+          value={newPatients}
+          sub={t("Lượt khám ghi nhận hôm nay")}
+          icon={<TeamOutlined />}
+          color={brand.gold}
+          loading={statLoading}
+        />
+        <KpiCard
+          label={t("Lịch hẹn")}
+          value={appts?.totalCount ?? 0}
+          sub={t("{0} chờ đến", awaiting)}
+          icon={<CalendarOutlined />}
+          color={brand.goldDeep}
+          loading={apptLoading}
+        />
+        <KpiCard
+          label={t("Công nợ tồn")}
+          value={`${formatVND(stat?.totalOutstandingDebt ?? 0)} ₫`}
+          sub={t("Chưa thu trong ngày")}
+          icon={<WalletOutlined />}
+          color={brand.red}
+          loading={statLoading}
+        />
+      </div>
+
+      <div className="dash-split">
+        <RevenueBarChart />
+        <div className="dash-side">
+          <DoctorsOnDutyCard />
+          <LowStockCard />
+        </div>
+      </div>
+
+      <OngoingReceptionsCard />
     </div>
   );
 }

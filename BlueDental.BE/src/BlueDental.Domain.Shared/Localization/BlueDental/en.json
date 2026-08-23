@@ -1157,6 +1157,25 @@
     "Đăng nhập hệ thống": "Sign in",
     "HỒ SƠ BỆNH NHÂN": "PATIENT RECORDS",
     "CHI NHÁNH": "BRANCHES",
-    "UPTIME": "UPTIME"
+    "UPTIME": "UPTIME",
+    "Bác sĩ trực hôm nay": "Dentists on duty today",
+    "Chưa có bác sĩ nào có lịch hôm nay": "No dentist has appointments today",
+    "Chưa thu trong ngày": "Uncollected today",
+    "Công nợ tồn": "Outstanding balance",
+    "Doanh số hôm nay": "Today's sales",
+    "Doanh số {0} ngày gần nhất": "Sales, last {0} days",
+    "Không có lượt tiếp nhận đang diễn ra": "No receptions in progress",
+    "Không có vật tư dưới định mức": "No items below the minimum level",
+    "Lượt khám ghi nhận hôm nay": "Visits recorded today",
+    "Lượt tiếp nhận đang diễn ra": "Receptions in progress",
+    "Thực thu trong ngày": "Actually collected today",
+    "Tài khoản": "Account",
+    "Tổng quan hôm nay": "Today at a glance",
+    "Vật tư dưới định mức": "Items below minimum",
+    "Xem tất cả →": "View all →",
+    "{0} chờ đến": "{0} awaiting arrival",
+    "{0} lịch": "{0} appointments",
+    "Đơn vị: triệu đồng": "In millions of ₫",
+    "Tìm kiếm bệnh nhân, bác sĩ, lý do khám...": "Search patients, dentists, visit reason..."
   }
 }

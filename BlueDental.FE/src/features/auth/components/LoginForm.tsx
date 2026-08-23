@@ -2,7 +2,6 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, Input, Button, Checkbox } from "antd";
-import { LockOutlined, UserOutlined } from "@ant-design/icons";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate, useLocation } from "react-router-dom";
 import { authApi } from "../api";
@@ -71,8 +70,12 @@ export function LoginForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate>
+    <form onSubmit={handleSubmit(onSubmit)} noValidate className="login-fields">
+      {/* The design labels each field above the box and keeps the box itself
+          plain — no icon inside — so the two rows read as one block. */}
       <Form.Item
+        label={t("Tài khoản")}
+        colon={false}
         validateStatus={errors.userNameOrEmailAddress ? "error" : ""}
         help={errors.userNameOrEmailAddress?.message}
       >
@@ -82,7 +85,6 @@ export function LoginForm() {
           render={({ field }) => (
             <Input
               {...field}
-              prefix={<UserOutlined />}
               placeholder={t("Tên đăng nhập hoặc email")}
               size="large"
               autoComplete="username"
@@ -92,6 +94,8 @@ export function LoginForm() {
       </Form.Item>
 
       <Form.Item
+        label={t("Mật khẩu")}
+        colon={false}
         validateStatus={errors.password ? "error" : ""}
         help={errors.password?.message}
       >
@@ -101,7 +105,6 @@ export function LoginForm() {
           render={({ field }) => (
             <Input.Password
               {...field}
-              prefix={<LockOutlined />}
               placeholder={t("Mật khẩu")}
               size="large"
               autoComplete="current-password"
@@ -110,7 +113,7 @@ export function LoginForm() {
         />
       </Form.Item>
 
-      <Form.Item>
+      <Form.Item className="login-remember">
         <Controller
           name="rememberMe"
           control={control}

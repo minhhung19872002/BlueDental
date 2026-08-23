@@ -39,7 +39,8 @@ export function AppointmentListPage() {
     const matchesKeyword =
       !debouncedKeyword ||
       a.patientName?.toLowerCase().includes(debouncedKeyword.toLowerCase()) ||
-      a.doctorName?.toLowerCase().includes(debouncedKeyword.toLowerCase());
+      a.doctorName?.toLowerCase().includes(debouncedKeyword.toLowerCase()) ||
+      a.reason?.toLowerCase().includes(debouncedKeyword.toLowerCase());
     return matchesStatus && matchesKeyword;
   });
 
@@ -51,7 +52,7 @@ export function AppointmentListPage() {
           <div style={{ display: "flex", gap: 8 }}>
             <Input
               prefix={<SearchOutlined />}
-              placeholder={t("Tìm kiếm bệnh nhân, bác sĩ...")}
+              placeholder={t("Tìm kiếm bệnh nhân, bác sĩ, lý do khám...")}
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               style={{ width: 280 }}
