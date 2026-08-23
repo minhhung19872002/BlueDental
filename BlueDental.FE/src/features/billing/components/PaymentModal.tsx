@@ -22,7 +22,7 @@ export function PaymentModal({ open, onClose }: Props) {
       }
     >
       {/* TODO: Implement payment form */}
-      <p style={{ color: "#5E748E" }}>{t("Form thanh toán đang được phát triển.")}</p>
+      <p style={{ color: "#6f7c90" }}>{t("Form thanh toán đang được phát triển.")}</p>
     </Modal>
   );
 }

@@ -39,12 +39,12 @@ interface Props {
 }
 
 const statusFilterButtons = () => [
-  { key: "scheduled",  label: t("Đã hẹn"),      borderColor: "#1E70E6", bgColor: "#EBF3FE", textColor: "#1E70E6" },
-  { key: "arrived",    label: t("Đã đến"),      borderColor: "#10B981", bgColor: "#E6F4EA", textColor: "#10B981" },
-  { key: "cancelled",  label: t("Huỷ hẹn"),     borderColor: "#EF4444", bgColor: "#FCE8E6", textColor: "#EF4444" },
-  { key: "late",       label: t("Trễ hẹn"),     borderColor: "#F59E0B", bgColor: "#FEF3C7", textColor: "#F59E0B" },
-  { key: "temporary",  label: t("Lịch tạm"),    borderColor: "#F97316", bgColor: "#FFEDD5", textColor: "#F97316" },
-  { key: "converted",  label: t("Chuyển đổi"),  borderColor: "#06B6D4", bgColor: "#CFFAFE", textColor: "#06B6D4" },
+  { key: "scheduled",  label: t("Đã hẹn"),      borderColor: "#1c3566", bgColor: "#eaf0fa", textColor: "#1c3566" },
+  { key: "arrived",    label: t("Đã đến"),      borderColor: "#1f8a63", bgColor: "#e6f5ef", textColor: "#1f8a63" },
+  { key: "cancelled",  label: t("Huỷ hẹn"),     borderColor: "#ef4d4d", bgColor: "#FCE8E6", textColor: "#ef4d4d" },
+  { key: "late",       label: t("Trễ hẹn"),     borderColor: "#dd9426", bgColor: "#FEF3C7", textColor: "#dd9426" },
+  { key: "temporary",  label: t("Lịch tạm"),    borderColor: "#dd9426", bgColor: "#FFEDD5", textColor: "#dd9426" },
+  { key: "converted",  label: t("Chuyển đổi"),  borderColor: "#3d7fa8", bgColor: "#CFFAFE", textColor: "#3d7fa8" },
 ];
 
 export function DayViewCalendar({
@@ -94,7 +94,7 @@ export function DayViewCalendar({
           gap: 6,
           padding: "10px 16px",
           background: "#fff",
-          borderBottom: "1px solid #E5E7EB",
+          borderBottom: "1px solid #e2e8f0",
           flexWrap: "wrap",
         }}
       >
@@ -146,12 +146,12 @@ export function DayViewCalendar({
           gap: 8,
           padding: "8px 16px",
           background: "#fff",
-          borderBottom: "1px solid #E5E7EB",
+          borderBottom: "1px solid #e2e8f0",
           flexWrap: "wrap",
         }}
       >
         <Input
-          prefix={<SearchOutlined style={{ color: "#9CA3AF" }} />}
+          prefix={<SearchOutlined style={{ color: "#98a4b4" }} />}
           placeholder={t("Tìm kiếm")}
           value={keyword}
           onChange={(e) => onKeywordChange?.(e.target.value)}
@@ -167,7 +167,7 @@ export function DayViewCalendar({
 
         <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
           <Button size="small">{t("Xuất File")}</Button>
-          <Button type="primary" size="small" style={{ background: "#2671D8" }} onClick={onCreateAppointment}>{t("Tạo lịch hẹn mới")}</Button>
+          <Button type="primary" size="small" style={{ background: "#1c3566" }} onClick={onCreateAppointment}>{t("Tạo lịch hẹn mới")}</Button>
           <Button size="small">{t("Tạo lịch tạm")}</Button>
           <Button size="small">{t("Xem theo giờ")}</Button>
           <Button size="small">{t("Toàn màn hình")}</Button>
@@ -189,12 +189,12 @@ export function DayViewCalendar({
               position: "sticky",
               top: 0,
               zIndex: 10,
-              background: "#F8FAFC",
-              borderBottom: "2px solid #E5E7EB",
-              borderRight: "1px solid #E5E7EB",
+              background: "#fafbfd",
+              borderBottom: "2px solid #e2e8f0",
+              borderRight: "1px solid #e2e8f0",
               padding: "8px 4px",
               fontSize: 11,
-              color: "#9CA3AF",
+              color: "#98a4b4",
               textAlign: "center",
               fontWeight: 600,
             }}
@@ -204,10 +204,10 @@ export function DayViewCalendar({
           {doctors.length === 0 ? (
             <div
               style={{
-                background: "#F8FAFC",
-                borderBottom: "2px solid #E5E7EB",
+                background: "#fafbfd",
+                borderBottom: "2px solid #e2e8f0",
                 padding: "8px",
-                color: "#9CA3AF",
+                color: "#98a4b4",
                 fontSize: 12,
                 textAlign: "center",
               }}
@@ -222,13 +222,13 @@ export function DayViewCalendar({
                   position: "sticky",
                   top: 0,
                   zIndex: 10,
-                  background: "#F8FAFC",
-                  borderBottom: "2px solid #E5E7EB",
-                  borderLeft: "1px solid #E5E7EB",
+                  background: "#fafbfd",
+                  borderBottom: "2px solid #e2e8f0",
+                  borderLeft: "1px solid #e2e8f0",
                   padding: "8px 4px",
                   fontSize: 13,
                   fontWeight: 600,
-                  color: "#1B2A41",
+                  color: "#101c2c",
                   textAlign: "center",
                   whiteSpace: "nowrap",
                   overflow: "hidden",
@@ -237,7 +237,7 @@ export function DayViewCalendar({
               >
                 {doc.name}
                 {doc.appointmentCount !== undefined && (
-                  <span style={{ color: "#6B7280", fontWeight: 400, marginLeft: 4 }}>
+                  <span style={{ color: "#6f7c90", fontWeight: 400, marginLeft: 4 }}>
                     ({doc.appointmentCount})
                   </span>
                 )}
@@ -252,16 +252,16 @@ export function DayViewCalendar({
               <div
                 key={`time-${slotIdx}`}
                 style={{
-                  borderBottom: isHourStart(slotIdx + 1) ? "1px solid #E5E7EB" : "1px dashed #F3F4F6",
-                  borderRight: "1px solid #E5E7EB",
+                  borderBottom: isHourStart(slotIdx + 1) ? "1px solid #e2e8f0" : "1px dashed #f4f6fa",
+                  borderRight: "1px solid #e2e8f0",
                   height: SLOT_H,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   fontSize: 11,
-                  color: isHourStart(slotIdx) ? "#374151" : "#D1D5DB",
+                  color: isHourStart(slotIdx) ? "#41505f" : "#D1D5DB",
                   fontWeight: isHourStart(slotIdx) ? 500 : 400,
-                  background: "#FAFAFA",
+                  background: "#fafbfd",
                 }}
               >
                 {isHourStart(slotIdx) ? slotTime(slotIdx) : ""}
@@ -272,10 +272,10 @@ export function DayViewCalendar({
                 <div
                   key={`empty-${slotIdx}`}
                   style={{
-                    borderBottom: isHourStart(slotIdx + 1) ? "1px solid #E5E7EB" : "1px dashed #F3F4F6",
-                    borderLeft: "1px solid #E5E7EB",
+                    borderBottom: isHourStart(slotIdx + 1) ? "1px solid #e2e8f0" : "1px dashed #f4f6fa",
+                    borderLeft: "1px solid #e2e8f0",
                     height: SLOT_H,
-                    background: slotIdx % 2 === 0 ? "#FAFAFA" : "#fff",
+                    background: slotIdx % 2 === 0 ? "#fafbfd" : "#fff",
                   }}
                 />
               ) : (
@@ -287,15 +287,15 @@ export function DayViewCalendar({
                       bookingsByCell.has(`${doc.id}-${slotIdx}`) ? "calendar-booking" : undefined
                     }
                     style={{
-                      borderBottom: isHourStart(slotIdx + 1) ? "1px solid #E5E7EB" : "1px dashed #F3F4F6",
-                      borderLeft: "1px solid #E5E7EB",
+                      borderBottom: isHourStart(slotIdx + 1) ? "1px solid #e2e8f0" : "1px dashed #f4f6fa",
+                      borderLeft: "1px solid #e2e8f0",
                       height: SLOT_H,
-                      background: slotIdx % 4 < 2 ? "#FAFAFA" : "#fff",
+                      background: slotIdx % 4 < 2 ? "#fafbfd" : "#fff",
                       cursor: "pointer",
                       transition: "background 0.1s",
                     }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "#EBF3FE"; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = slotIdx % 4 < 2 ? "#FAFAFA" : "#fff"; }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "#eaf0fa"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = slotIdx % 4 < 2 ? "#fafbfd" : "#fff"; }}
                   >
                     {bookingsByCell.has(`${doc.id}-${slotIdx}`) && (
                       <div
@@ -303,7 +303,7 @@ export function DayViewCalendar({
                           margin: 2,
                           padding: "2px 6px",
                           borderRadius: 4,
-                          background: "#2671D8",
+                          background: "#1c3566",
                           color: "#fff",
                           fontSize: 11,
                           overflow: "hidden",
@@ -331,13 +331,13 @@ export function DayViewCalendar({
           gap: 12,
           padding: "8px",
           background: "#fff",
-          borderTop: "1px solid #E5E7EB",
+          borderTop: "1px solid #e2e8f0",
         }}
       >
         <Button type="text" size="small" icon={<LeftOutlined />} onClick={() => onDateChange?.(-1)}>
           {t("Ngày trước")}
         </Button>
-        <span style={{ fontWeight: 600, fontSize: 14, color: "#1B2A41" }}>{displayDate}</span>
+        <span style={{ fontWeight: 600, fontSize: 14, color: "#101c2c" }}>{displayDate}</span>
         <Button type="text" size="small" onClick={() => onDateChange?.(1)}>
           {t("Ngày kế tiếp")} <RightOutlined />
         </Button>

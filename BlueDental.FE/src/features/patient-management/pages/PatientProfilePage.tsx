@@ -149,17 +149,17 @@ export function PatientProfilePage() {
                       { label: t("Địa chỉ"), value: patient.address ?? "—" },
                     ].map(({ label, value }) => (
                       <tr key={label}>
-                        <td style={{ color: "#5A6B82", paddingRight: 16, paddingBottom: 4, whiteSpace: "nowrap", verticalAlign: "top" }}>
+                        <td style={{ color: "#6f7c90", paddingRight: 16, paddingBottom: 4, whiteSpace: "nowrap", verticalAlign: "top" }}>
                           {label}
                         </td>
-                        <td style={{ fontWeight: 500, color: "#1B2A41" }}>{value}</td>
+                        <td style={{ fontWeight: 500, color: "#101c2c" }}>{value}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
 
                 <div style={{ marginTop: 12 }}>
-                  <div style={{ color: "#5A6B82", fontSize: 12, marginBottom: 6 }}>{t("Nhãn / Tag")}</div>
+                  <div style={{ color: "#6f7c90", fontSize: 12, marginBottom: 6 }}>{t("Nhãn / Tag")}</div>
                   <Space size={4} wrap>
                     <Tag color="blue">{t("Chỉnh Nha")}</Tag>
                   </Space>
@@ -172,13 +172,13 @@ export function PatientProfilePage() {
               {/* Financial summary */}
               <Row gutter={12} style={{ marginBottom: 16 }}>
                 {[
-                  { label: t("Tổng chi phí"), value: 0, color: "#1B2A41" },
-                  { label: t("Thực thu"), value: 0, color: "#10B981" },
-                  { label: t("Công nợ"), value: 0, color: "#EF4444" },
+                  { label: t("Tổng chi phí"), value: 0, color: "#101c2c" },
+                  { label: t("Thực thu"), value: 0, color: "#1f8a63" },
+                  { label: t("Công nợ"), value: 0, color: "#ef4d4d" },
                 ].map(({ label, value, color }) => (
                   <Col span={8} key={label}>
                     <Card size="small" style={{ textAlign: "center" }}>
-                      <div style={{ fontSize: 12, color: "#5A6B82", marginBottom: 4 }}>{label}</div>
+                      <div style={{ fontSize: 12, color: "#6f7c90", marginBottom: 4 }}>{label}</div>
                       <div style={{ fontSize: 20, fontWeight: 700, color }}>
                         {formatVND(value)}
                         <span style={{ fontSize: 12, fontWeight: 400, marginLeft: 2 }}>{t("đ")}</span>
@@ -212,7 +212,7 @@ export function PatientProfilePage() {
                   ]}
                   dataSource={[]}
                   pagination={false}
-                  locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>{t("Chưa có lịch sử điều trị")}</span> }}
+                  locale={{ emptyText: <span style={{ color: "#98a4b4" }}>{t("Chưa có lịch sử điều trị")}</span> }}
                 />
               </Card>
             </Col>
@@ -268,7 +268,7 @@ export function PatientProfilePage() {
                   style={{ marginTop: 8 }}
                 />
 
-                <div style={{ marginTop: 8, fontSize: 12, color: "#9CA3AF" }}>
+                <div style={{ marginTop: 8, fontSize: 12, color: "#98a4b4" }}>
                   {t("Đã chọn:")} {consultingTeeth.length > 0 ? formatTeeth(consultingTeeth) : t("Chưa chọn răng")}
                 </div>
               </Card>
@@ -312,7 +312,7 @@ export function PatientProfilePage() {
                   ]}
                   dataSource={diagnosisRows}
                   pagination={false}
-                  locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>{t("Chưa có phiếu chẩn đoán")}</span> }}
+                  locale={{ emptyText: <span style={{ color: "#98a4b4" }}>{t("Chưa có phiếu chẩn đoán")}</span> }}
                 />
               </Card>
 
@@ -368,19 +368,19 @@ export function PatientProfilePage() {
                   ]}
                   dataSource={adviseRows}
                   pagination={false}
-                  locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>{t("Chưa có phiếu tư vấn")}</span> }}
+                  locale={{ emptyText: <span style={{ color: "#98a4b4" }}>{t("Chưa có phiếu tư vấn")}</span> }}
                 />
 
                 <div style={{
                   display: "flex", alignItems: "center", gap: 12, marginTop: 12,
-                  padding: "10px 0", borderTop: "1px solid #E5E7EB",
+                  padding: "10px 0", borderTop: "1px solid #e2e8f0",
                 }}>
                   <Text strong style={{ fontSize: 13 }}>{t("TỔNG KẾ HOẠCH")}</Text>
-                  <Text style={{ fontSize: 13, color: "#5A6B82" }}>
+                  <Text style={{ fontSize: 13, color: "#6f7c90" }}>
                     {t("Tổng thành tiền:")} {formatVND(adviseSummary?.totalEffectiveAmount ?? 0)} {t("đ")}
                   </Text>
                   {(adviseSummary?.totalDiscountAmount ?? 0) > 0 && (
-                    <Text style={{ fontSize: 13, color: "#5A6B82" }}>
+                    <Text style={{ fontSize: 13, color: "#6f7c90" }}>
                       {t("Chiết khấu:")} {formatVND(adviseSummary?.totalDiscountAmount ?? 0)} {t("đ")}
                     </Text>
                   )}
@@ -489,12 +489,12 @@ export function PatientProfilePage() {
           size="small"
           icon={<ArrowLeftOutlined />}
           onClick={() => navigate("/patient")}
-          style={{ color: "#2671D8", padding: "0 4px" }}
+          style={{ color: "#1c3566", padding: "0 4px" }}
         >
           {t("Quay lại")}
         </Button>
         <span style={{ color: "#D1D5DB" }}>/</span>
-        <span style={{ color: "#1B2A41", fontWeight: 500 }}>
+        <span style={{ color: "#101c2c", fontWeight: 500 }}>
           [{patient.code}] - {patient.fullName}
         </span>
       </div>

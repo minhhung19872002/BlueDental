@@ -45,12 +45,12 @@ interface CounterConfig {
 }
 
 const counterCards = (): CounterConfig[] => [
-  { key: "scheduledCount", label: t("Đã hẹn"),     borderColor: "#1E70E6", bgColor: "#EBF3FE", textColor: "#1E70E6" },
-  { key: "arrivedCount",   label: t("Đã đến"),     borderColor: "#10B981", bgColor: "#E6F4EA", textColor: "#10B981" },
-  { key: "cancelledCount", label: t("Huỷ hẹn"),    borderColor: "#EF4444", bgColor: "#FCE8E6", textColor: "#EF4444" },
-  { key: "lateCount",      label: t("Trễ hẹn"),    borderColor: "#F59E0B", bgColor: "#FEF3C7", textColor: "#F59E0B" },
-  { key: "temporaryCount", label: t("Lịch tạm"),   borderColor: "#F97316", bgColor: "#FFEDD5", textColor: "#F97316" },
-  { key: "convertedCount", label: t("Chuyển đổi"), borderColor: "#06B6D4", bgColor: "#CFFAFE", textColor: "#06B6D4" },
+  { key: "scheduledCount", label: t("Đã hẹn"),     borderColor: "#1c3566", bgColor: "#eaf0fa", textColor: "#1c3566" },
+  { key: "arrivedCount",   label: t("Đã đến"),     borderColor: "#1f8a63", bgColor: "#e6f5ef", textColor: "#1f8a63" },
+  { key: "cancelledCount", label: t("Huỷ hẹn"),    borderColor: "#ef4d4d", bgColor: "#FCE8E6", textColor: "#ef4d4d" },
+  { key: "lateCount",      label: t("Trễ hẹn"),    borderColor: "#dd9426", bgColor: "#FEF3C7", textColor: "#dd9426" },
+  { key: "temporaryCount", label: t("Lịch tạm"),   borderColor: "#dd9426", bgColor: "#FFEDD5", textColor: "#dd9426" },
+  { key: "convertedCount", label: t("Chuyển đổi"), borderColor: "#3d7fa8", bgColor: "#CFFAFE", textColor: "#3d7fa8" },
 ];
 
 export const ReceptionStatusTabs: React.FC<ReceptionStatusTabsProps> = ({

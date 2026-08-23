@@ -48,15 +48,15 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
   const step2Done = !!item.step2Time;
   const step3Done = !!item.step3Time;
 
-  const STEP_COLORS = ["#2671D8", "#F59E0B", "#10B981"] as const;
+  const STEP_COLORS = ["#1c3566", "#dd9426", "#1f8a63"] as const;
 
   const getStepCircleStyle = (stepIndex: number, done: boolean): React.CSSProperties => ({
     width: 32,
     height: 32,
     borderRadius: "50%",
-    border: done ? "none" : "1px solid #DCE3EE",
+    border: done ? "none" : "1px solid #e2e8f0",
     background: done ? STEP_COLORS[stepIndex] : "#fff",
-    color: done ? "#fff" : "#5A6B82",
+    color: done ? "#fff" : "#6f7c90",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -89,7 +89,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
           step3Done
             ? { background: "#F0FDF4", borderColor: "#BBF7D0" }
             : step1Done && !step2Done
-            ? { background: "#EFF6FF", borderColor: "#BFDBFE" }
+            ? { background: "#eaf0fa", borderColor: "#BFDBFE" }
             : undefined
         }
       >
@@ -179,7 +179,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="m5 12 5 5 9-9"/></svg>
                       ) : "1"}
                     </div>
-                    <div className="rc-step-line" style={{ background: step1Done ? STEP_COLORS[1] : "#DCE3EE" }} />
+                    <div className="rc-step-line" style={{ background: step1Done ? STEP_COLORS[1] : "#e2e8f0" }} />
                   </div>
                   <p className="rc-step-label">{step1Done ? <span style={{ color: STEP_COLORS[0] }}>{t("Đã đến")}</span> : t("Đã đến")}</p>
                   <p className="rc-step-time">{item.step1Time || "--:--"}</p>
@@ -187,13 +187,13 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
                 {/* Step 2 */}
                 <button type="button" disabled className="rc-step">
                   <div className="rc-step-track">
-                    <div className="rc-step-line" style={{ background: step1Done ? STEP_COLORS[1] : "#DCE3EE" }} />
+                    <div className="rc-step-line" style={{ background: step1Done ? STEP_COLORS[1] : "#e2e8f0" }} />
                     <div style={getStepCircleStyle(1, step2Done)}>
                       {step2Done ? (
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="m5 12 5 5 9-9"/></svg>
                       ) : "2"}
                     </div>
-                    <div className="rc-step-line" style={{ background: step2Done ? STEP_COLORS[2] : "#DCE3EE" }} />
+                    <div className="rc-step-line" style={{ background: step2Done ? STEP_COLORS[2] : "#e2e8f0" }} />
                   </div>
                   <p className="rc-step-label">{step2Done ? <span style={{ color: STEP_COLORS[1] }}>{t("Đang khám")}</span> : t("Đang khám")}</p>
                   <p className="rc-step-time">{item.step2Time || "--:--"}</p>
@@ -201,7 +201,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
                 {/* Step 3 */}
                 <button type="button" disabled className="rc-step">
                   <div className="rc-step-track">
-                    <div className="rc-step-line" style={{ background: step2Done ? STEP_COLORS[2] : "#DCE3EE" }} />
+                    <div className="rc-step-line" style={{ background: step2Done ? STEP_COLORS[2] : "#e2e8f0" }} />
                     <div style={getStepCircleStyle(2, step3Done)}>
                       {step3Done ? (
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="m5 12 5 5 9-9"/></svg>
@@ -237,7 +237,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
                     onClick={() => onOutcomeChange?.(item.id, o.key)}
                   >
                     {isSelected ? (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: "#2671D8" }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: "#1c3566" }}>
                         <circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>
                       </svg>
                     ) : (

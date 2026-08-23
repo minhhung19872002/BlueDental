@@ -91,7 +91,7 @@ export function AppointmentCalendarPage() {
         <div
           style={{
             background: "#fff",
-            borderBottom: "1px solid #E5E7EB",
+            borderBottom: "1px solid #e2e8f0",
             paddingLeft: 16,
             display: "flex",
             alignItems: "center",
@@ -117,7 +117,7 @@ export function AppointmentCalendarPage() {
             gap: 12,
             padding: "10px 16px",
             background: "#fff",
-            borderBottom: "1px solid #E5E7EB",
+            borderBottom: "1px solid #e2e8f0",
           }}
         >
           <Segmented
@@ -133,7 +133,7 @@ export function AppointmentCalendarPage() {
 
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
             <Button type="text" size="small" icon={<LeftOutlined />} onClick={() => navigateDate(-1)} />
-            <span style={{ minWidth: 120, textAlign: "center", fontWeight: 600, fontSize: 14, color: "#1B2A41" }}>
+            <span style={{ minWidth: 120, textAlign: "center", fontWeight: 600, fontSize: 14, color: "#101c2c" }}>
               {displayDate()}
             </span>
             <Button type="text" size="small" icon={<RightOutlined />} onClick={() => navigateDate(1)} />

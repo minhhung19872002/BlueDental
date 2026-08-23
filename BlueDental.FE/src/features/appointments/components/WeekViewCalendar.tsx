@@ -72,7 +72,7 @@ export function WeekViewCalendar({ currentDate, keyword = "", onKeywordChange, o
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
       {/* Toolbar */}
-      <div style={{ display: "flex", gap: 8, padding: "10px 16px", borderBottom: "1px solid #E5E7EB", background: "#fff" }}>
+      <div style={{ display: "flex", gap: 8, padding: "10px 16px", borderBottom: "1px solid #e2e8f0", background: "#fff" }}>
         <Input
           prefix={<SearchOutlined />}
           placeholder={t("Tìm bệnh nhân...")}
@@ -90,7 +90,7 @@ export function WeekViewCalendar({ currentDate, keyword = "", onKeywordChange, o
       <div
         style={{
           display: "flex",
-          borderBottom: "2px solid #E5E7EB",
+          borderBottom: "2px solid #e2e8f0",
           background: "#fff",
           position: "sticky",
           top: 0,
@@ -108,22 +108,22 @@ export function WeekViewCalendar({ currentDate, keyword = "", onKeywordChange, o
                 flex: 1,
                 textAlign: "center",
                 padding: "8px 4px",
-                borderLeft: "1px solid #E5E7EB",
-                background: isToday ? "#EBF3FE" : "#fff",
+                borderLeft: "1px solid #e2e8f0",
+                background: isToday ? "#eaf0fa" : "#fff",
               }}
             >
-              <div style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 500 }}>{DAY_LABELS[day.day()]}</div>
+              <div style={{ fontSize: 11, color: "#98a4b4", fontWeight: 500 }}>{DAY_LABELS[day.day()]}</div>
               <div
                 style={{
                   fontSize: 16,
                   fontWeight: 700,
-                  color: isToday ? "#1677ff" : "#1B2A41",
+                  color: isToday ? "#1c3566" : "#101c2c",
                   lineHeight: 1.2,
                 }}
               >
                 {day.format("DD")}
               </div>
-              <div style={{ fontSize: 11, color: "#9CA3AF" }}>{day.format("MM/YYYY")}</div>
+              <div style={{ fontSize: 11, color: "#98a4b4" }}>{day.format("MM/YYYY")}</div>
             </div>
           );
         })}
@@ -133,7 +133,7 @@ export function WeekViewCalendar({ currentDate, keyword = "", onKeywordChange, o
       <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
         <div style={{ display: "flex", minHeight: TOTAL_SLOTS * SLOT_H }}>
           {/* Time column */}
-          <div style={{ width: TIME_COL_W, flexShrink: 0, background: "#F9FAFB", borderRight: "1px solid #E5E7EB" }}>
+          <div style={{ width: TIME_COL_W, flexShrink: 0, background: "#F9FAFB", borderRight: "1px solid #e2e8f0" }}>
             {slots.map((slotIdx) => (
               <div
                 key={slotIdx}
@@ -144,12 +144,12 @@ export function WeekViewCalendar({ currentDate, keyword = "", onKeywordChange, o
                   justifyContent: "flex-end",
                   paddingRight: 6,
                   paddingTop: 2,
-                  borderBottom: isHourStart(slotIdx) ? "1px solid #E5E7EB" : "1px dashed #F3F4F6",
+                  borderBottom: isHourStart(slotIdx) ? "1px solid #e2e8f0" : "1px dashed #f4f6fa",
                   boxSizing: "border-box",
                 }}
               >
                 {isHourStart(slotIdx) && (
-                  <span style={{ fontSize: 10, color: "#9CA3AF", fontVariantNumeric: "tabular-nums" }}>
+                  <span style={{ fontSize: 10, color: "#98a4b4", fontVariantNumeric: "tabular-nums" }}>
                     {slotTime(slotIdx)}
                   </span>
                 )}
@@ -165,7 +165,7 @@ export function WeekViewCalendar({ currentDate, keyword = "", onKeywordChange, o
                 key={dayIdx}
                 style={{
                   flex: 1,
-                  borderLeft: "1px solid #E5E7EB",
+                  borderLeft: "1px solid #e2e8f0",
                   background: isToday ? "#FAFBFF" : "#fff",
                   position: "relative",
                 }}
@@ -179,13 +179,13 @@ export function WeekViewCalendar({ currentDate, keyword = "", onKeywordChange, o
                     }
                     style={{
                       height: SLOT_H,
-                      borderBottom: isHourStart(slotIdx) ? "1px solid #E5E7EB" : "1px dashed #F3F4F6",
+                      borderBottom: isHourStart(slotIdx) ? "1px solid #e2e8f0" : "1px dashed #f4f6fa",
                       cursor: "pointer",
                       transition: "background 0.1s",
                       boxSizing: "border-box",
                     }}
                     onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLDivElement).style.background = "#EBF3FE";
+                      (e.currentTarget as HTMLDivElement).style.background = "#eaf0fa";
                     }}
                     onMouseLeave={(e) => {
                       (e.currentTarget as HTMLDivElement).style.background = "transparent";

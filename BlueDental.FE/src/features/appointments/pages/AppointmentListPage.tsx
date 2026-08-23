@@ -79,9 +79,9 @@ export function AppointmentListPage() {
               style={{
                 padding: "8px 16px",
                 border: "none",
-                borderBottom: statusFilter === tab.key ? "2px solid #1677ff" : "2px solid transparent",
+                borderBottom: statusFilter === tab.key ? "2px solid #1c3566" : "2px solid transparent",
                 background: "none",
-                color: statusFilter === tab.key ? "#1677ff" : "#595959",
+                color: statusFilter === tab.key ? "#1c3566" : "#6f7c90",
                 fontWeight: statusFilter === tab.key ? 600 : 400,
                 cursor: "pointer",
                 fontSize: 13,

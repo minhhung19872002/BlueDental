@@ -258,14 +258,14 @@ export function AdviseModal({
 
         <div
           style={{
-            borderTop: "1px solid #E5E7EB",
+            borderTop: "1px solid #e2e8f0",
             paddingTop: 10,
             display: "flex",
             justifyContent: "space-between",
           }}
         >
-          <Text style={{ color: "#5A6B82" }}>{t("Thành tiền")}</Text>
-          <Text strong style={{ fontSize: 16, color: "#1B2A41" }}>
+          <Text style={{ color: "#6f7c90" }}>{t("Thành tiền")}</Text>
+          <Text strong style={{ fontSize: 16, color: "#101c2c" }}>
             {formatVND(effective)} {t("đ")}
           </Text>
         </div>

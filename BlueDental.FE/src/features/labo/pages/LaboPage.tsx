@@ -90,7 +90,7 @@ function MauLaboView() {
       render: (_, row) => (
         <>
           <div>{row.supplierName ?? row.labProviderName}</div>
-          <div style={{ fontSize: 12, color: "#6B7280" }}>{formatDate(row.creationTime)}</div>
+          <div style={{ fontSize: 12, color: "#6f7c90" }}>{formatDate(row.creationTime)}</div>
         </>
       ),
     },
@@ -120,7 +120,7 @@ function MauLaboView() {
       width: 200,
       render: (_, row) => (
         <>
-          <div style={{ color: row.isOverdue ? "#EF4444" : undefined }}>
+          <div style={{ color: row.isOverdue ? "#ef4d4d" : undefined }}>
             {row.dueDate ? formatDate(row.dueDate) : "—"}
             {row.isOverdue && t(" (trễ)")}
           </div>
@@ -208,10 +208,10 @@ function MauLaboView() {
                 border: "none",
                 borderBottom:
                   sampleFilter === tab.key
-                    ? "2px solid #1677ff"
+                    ? "2px solid #1c3566"
                     : "2px solid transparent",
                 background: "none",
-                color: sampleFilter === tab.key ? "#1677ff" : "#595959",
+                color: sampleFilter === tab.key ? "#1c3566" : "#6f7c90",
                 fontWeight: sampleFilter === tab.key ? 600 : 400,
                 cursor: "pointer",
                 fontSize: 13,
@@ -241,7 +241,7 @@ function MauLaboView() {
             >
               {t("Xuất Excel")}
             </Button>
-            <span style={{ fontSize: 13, color: "#5A6B82" }}>
+            <span style={{ fontSize: 13, color: "#6f7c90" }}>
               {t("Đơn hàng mới:")} {stats?.new ?? 0} {t("· Tiếp tục công đoạn:")} {stats?.continueStage ?? 0} {t("· Bảo hành:")} {stats?.guarantee ?? 0}
             </span>
           </div>
@@ -432,7 +432,7 @@ function ServiceMaterialView() {
         </div>
         <div
           style={{
-            color: "#8c8c8c",
+            color: "#7d8a9c",
             fontSize: 13,
             textAlign: "center",
             paddingTop: 24,
@@ -537,10 +537,10 @@ export function LaboPage() {
                 border: "none",
                 borderBottom:
                   activeTab === tab.key
-                    ? "2px solid #1677ff"
+                    ? "2px solid #1c3566"
                     : "2px solid transparent",
                 background: "none",
-                color: activeTab === tab.key ? "#1677ff" : "#595959",
+                color: activeTab === tab.key ? "#1c3566" : "#6f7c90",
                 fontWeight: activeTab === tab.key ? 600 : 400,
                 cursor: "pointer",
                 fontSize: 13,

@@ -30,7 +30,7 @@ export function MonthViewCalendar({ currentDate, onDayClick, onCreateAppointment
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "auto" }}>
       {/* Header */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", borderBottom: "2px solid #E5E7EB", background: "#F9FAFB" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", borderBottom: "2px solid #e2e8f0", background: "#F9FAFB" }}>
         {DAY_LABELS.map((d) => (
           <div
             key={d}
@@ -39,8 +39,8 @@ export function MonthViewCalendar({ currentDate, onDayClick, onCreateAppointment
               textAlign: "center",
               fontSize: 12,
               fontWeight: 600,
-              color: d === "CN" ? "#EF4444" : "#5A6B82",
-              borderRight: "1px solid #E5E7EB",
+              color: d === "CN" ? "#ef4d4d" : "#6f7c90",
+              borderRight: "1px solid #e2e8f0",
             }}
           >
             {d}
@@ -68,10 +68,10 @@ export function MonthViewCalendar({ currentDate, onDayClick, onCreateAppointment
                 key={di}
                 onClick={() => onDayClick?.(day)}
                 style={{
-                  borderRight: "1px solid #E5E7EB",
-                  borderBottom: "1px solid #E5E7EB",
+                  borderRight: "1px solid #e2e8f0",
+                  borderBottom: "1px solid #e2e8f0",
                   padding: "6px 8px",
-                  background: isToday ? "#EBF3FE" : "#fff",
+                  background: isToday ? "#eaf0fa" : "#fff",
                   cursor: "pointer",
                   transition: "background 0.1s",
                   opacity: isCurrentMonth ? 1 : 0.4,
@@ -91,8 +91,8 @@ export function MonthViewCalendar({ currentDate, onDayClick, onCreateAppointment
                     width: 26,
                     height: 26,
                     borderRadius: "50%",
-                    background: isToday ? "#1677ff" : "transparent",
-                    color: isToday ? "#fff" : isSunday ? "#EF4444" : "#1B2A41",
+                    background: isToday ? "#1c3566" : "transparent",
+                    color: isToday ? "#fff" : isSunday ? "#ef4d4d" : "#101c2c",
                     fontWeight: isToday ? 700 : 400,
                     fontSize: 13,
                   }}

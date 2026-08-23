@@ -56,10 +56,10 @@ function StatTile({
 }) {
   return (
     <div className="reception-card" data-testid={testId} style={{ padding: "16px 20px" }}>
-      <div style={{ fontSize: 22, fontWeight: 700, color: "#1B2A41", fontVariantNumeric: "tabular-nums" }}>
+      <div style={{ fontSize: 22, fontWeight: 700, color: "#101c2c", fontVariantNumeric: "tabular-nums" }}>
         {value}
       </div>
-      <div style={{ fontSize: 12, color: "#5A6B82" }}>{label}</div>
+      <div style={{ fontSize: 12, color: "#6f7c90" }}>{label}</div>
     </div>
   );
 }
@@ -298,8 +298,8 @@ export function VoucherPage() {
       key: "code",
       render: (_, row) => (
         <>
-          <div style={{ fontWeight: 600, color: "#1B2A41" }}>{row.code}</div>
-          <div style={{ fontSize: 12, color: "#6B7280" }}>{row.name}</div>
+          <div style={{ fontWeight: 600, color: "#101c2c" }}>{row.code}</div>
+          <div style={{ fontSize: 12, color: "#6f7c90" }}>{row.name}</div>
         </>
       ),
     },
@@ -320,7 +320,7 @@ export function VoucherPage() {
         <>
           <div>{customerTargetLabels()[row.customerTarget]}</div>
           {row.minOrderAmount != null && (
-            <div style={{ fontSize: 12, color: "#6B7280" }}>
+            <div style={{ fontSize: 12, color: "#6f7c90" }}>
               {t("Đơn từ")} {formatVND(row.minOrderAmount)} {t("đ")}
             </div>
           )}
@@ -397,8 +397,8 @@ export function VoucherPage() {
   return (
     <div className="reception-page">
       <div className="reception-card" style={{ padding: "16px 20px", marginBottom: 12 }}>
-        <div style={{ fontWeight: 700, fontSize: 16, color: "#1B2A41" }}>{t("Voucher khuyến mãi")}</div>
-        <Text style={{ fontSize: 13, color: "#5A6B82" }}>
+        <div style={{ fontWeight: 700, fontSize: 16, color: "#101c2c" }}>{t("Voucher khuyến mãi")}</div>
+        <Text style={{ fontSize: 13, color: "#6f7c90" }}>
           {t("Quản lý các chương trình khuyến mãi cho khách hàng")}
         </Text>
       </div>

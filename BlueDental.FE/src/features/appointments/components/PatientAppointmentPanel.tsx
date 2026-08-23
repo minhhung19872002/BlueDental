@@ -14,10 +14,10 @@ interface PatientAppointmentPanelProps {
 
 /** The counters the reference shows above a patient's appointment list. */
 const counters = (): { status: AppointmentStatus; label: string; color: string; bg: string }[] => [
-  { status: "scheduled", label: t("Đã hẹn"), color: "#1E70E6", bg: "#EBF3FE" },
-  { status: "confirmed", label: t("Đã xác nhận"), color: "#10B981", bg: "#E6F4EA" },
-  { status: "cancelled", label: t("Đã huỷ"), color: "#EF4444", bg: "#FCE8E6" },
-  { status: "noShow", label: t("Trễ hẹn"), color: "#F59E0B", bg: "#FEF3C7" },
+  { status: "scheduled", label: t("Đã hẹn"), color: "#1c3566", bg: "#eaf0fa" },
+  { status: "confirmed", label: t("Đã xác nhận"), color: "#1f8a63", bg: "#e6f5ef" },
+  { status: "cancelled", label: t("Đã huỷ"), color: "#ef4d4d", bg: "#FCE8E6" },
+  { status: "noShow", label: t("Trễ hẹn"), color: "#dd9426", bg: "#FEF3C7" },
 ];
 
 /** Lịch hẹn tab of a patient record. */

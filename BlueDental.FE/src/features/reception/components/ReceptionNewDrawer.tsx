@@ -145,7 +145,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
             <span style={{ display: "block", height: 21, marginBottom: 4 }} />
             <Button
               type="primary"
-              style={{ background: "#2671D8", height: 40, fontWeight: 600 }}
+              style={{ background: "#1c3566", height: 40, fontWeight: 600 }}
             >
               {t("Tạo Mới")}
             </Button>
@@ -189,7 +189,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
                   {...field}
                   style={{ height: 40 }}
                   suffix={
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#98a4b4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="12" cy="12" r="10"/><path d="M12 6v6h4"/>
                     </svg>
                   }
@@ -231,7 +231,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
             type="primary"
             loading={createMutation.isPending}
             onClick={handleSubmit(onSubmit)}
-            style={{ background: "#2671D8", height: 40, fontWeight: 600, paddingLeft: 20, paddingRight: 20 }}
+            style={{ background: "#1c3566", height: 40, fontWeight: 600, paddingLeft: 20, paddingRight: 20 }}
             icon={
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>

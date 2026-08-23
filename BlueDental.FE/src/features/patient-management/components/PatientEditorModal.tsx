@@ -362,12 +362,12 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
         </Row>
 
         {errors.root && (
-          <div style={{ color: "#C62828", fontSize: 13, marginBottom: 12 }}>
+          <div style={{ color: "#ef4d4d", fontSize: 13, marginBottom: 12 }}>
             {errors.root.message}
           </div>
         )}
 
-        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", paddingTop: 8, borderTop: "1px solid #E5E7EB" }}>
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", paddingTop: 8, borderTop: "1px solid #e2e8f0" }}>
           <Button onClick={onClose}>{t("Hủy")}</Button>
           <Button type="primary" htmlType="submit" loading={isPending} icon={<span>💾</span>}>
             {isEdit ? t("Lưu thay đổi") : t("Lưu")}

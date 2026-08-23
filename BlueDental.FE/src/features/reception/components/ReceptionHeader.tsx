@@ -41,7 +41,7 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
               fontSize: 12,
               fontWeight: 700,
               letterSpacing: 1,
-              color: "#64748B",
+              color: "#6f7c90",
               textTransform: "uppercase",
             }}
           >
@@ -49,7 +49,7 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
           </Text>
           <Title
             level={2}
-            style={{ margin: 0, fontWeight: 800, color: "#0F172A", fontSize: 26 }}
+            style={{ margin: 0, fontWeight: 800, color: "#101c2c", fontSize: 26 }}
           >
             {t("Tiếp nhận khách hàng")}
           </Title>
@@ -82,7 +82,7 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "#2671D8",
+                  color: "#1c3566",
                   fontSize: 22,
                 }}
               >
@@ -90,12 +90,12 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
               </div>
               <Statistic
                 title={
-                  <Text style={{ color: "#64748B", fontSize: 13, fontWeight: 600 }}>
+                  <Text style={{ color: "#6f7c90", fontSize: 13, fontWeight: 600 }}>
                     {t("Khách mới")}
                   </Text>
                 }
                 value={metrics?.newPatientsCount ?? 0}
-                valueStyle={{ fontWeight: 800, fontSize: 24, color: "#0F172A" }}
+                valueStyle={{ fontWeight: 800, fontSize: 24, color: "#101c2c" }}
               />
             </Space>
           </Card>
@@ -123,7 +123,7 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "#10B981",
+                  color: "#1f8a63",
                   fontSize: 22,
                 }}
               >
@@ -131,12 +131,12 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
               </div>
               <Statistic
                 title={
-                  <Text style={{ color: "#64748B", fontSize: 13, fontWeight: 600 }}>
+                  <Text style={{ color: "#6f7c90", fontSize: 13, fontWeight: 600 }}>
                     {t("Khách cũ phát sinh")}
                   </Text>
                 }
                 value={metrics?.oldPatientsCount ?? 0}
-                valueStyle={{ fontWeight: 800, fontSize: 24, color: "#0F172A" }}
+                valueStyle={{ fontWeight: 800, fontSize: 24, color: "#101c2c" }}
               />
             </Space>
           </Card>
@@ -164,7 +164,7 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "#F59E0B",
+                  color: "#dd9426",
                   fontSize: 22,
                 }}
               >
@@ -172,12 +172,12 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
               </div>
               <Statistic
                 title={
-                  <Text style={{ color: "#64748B", fontSize: 13, fontWeight: 600 }}>
+                  <Text style={{ color: "#6f7c90", fontSize: 13, fontWeight: 600 }}>
                     {t("Đã hẹn")}
                   </Text>
                 }
                 value={metrics?.scheduledCount ?? 0}
-                valueStyle={{ fontWeight: 800, fontSize: 24, color: "#0F172A" }}
+                valueStyle={{ fontWeight: 800, fontSize: 24, color: "#101c2c" }}
               />
             </Space>
           </Card>
@@ -213,12 +213,12 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
               </div>
               <Statistic
                 title={
-                  <Text style={{ color: "#64748B", fontSize: 13, fontWeight: 600 }}>
+                  <Text style={{ color: "#6f7c90", fontSize: 13, fontWeight: 600 }}>
                     {t("Khách đến")}
                   </Text>
                 }
                 value={metrics?.arrivedCount ?? 0}
-                valueStyle={{ fontWeight: 800, fontSize: 24, color: "#0F172A" }}
+                valueStyle={{ fontWeight: 800, fontSize: 24, color: "#101c2c" }}
               />
             </Space>
           </Card>

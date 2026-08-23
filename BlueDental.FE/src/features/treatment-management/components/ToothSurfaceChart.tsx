@@ -29,10 +29,10 @@ const LOWER_LEFT = [31, 32, 33, 34, 35, 36, 37, 38];
 
 const SIZE = 30;
 const MID = SIZE / 3;
-const SELECTED_FILL = "#1E70E6";
+const SELECTED_FILL = "#1c3566";
 const SURFACE_FILL = "#93C5FD";
 const EMPTY_FILL = "#FFFFFF";
-const STROKE = "#94A3B8";
+const STROKE = "#98a4b4";
 
 /** Polygon points for each surface of a SIZE×SIZE tooth tile. */
 const SURFACE_SHAPES: Record<ToothSurface, string> = {
@@ -119,7 +119,7 @@ function ToothTile({
           fontSize: 11,
           lineHeight: 1.2,
           cursor: readOnly ? "default" : "pointer",
-          color: wholeToothSelected ? SELECTED_FILL : "#6B7280",
+          color: wholeToothSelected ? SELECTED_FILL : "#6f7c90",
           fontWeight: wholeToothSelected ? 700 : 400,
         }}
       >
@@ -207,7 +207,7 @@ export function ToothSurfaceChart({
           onToggleSurface={toggleSurface}
           onToggleTooth={toggleTooth}
         />
-        <div style={{ width: "100%", borderTop: "1px dashed #E5E7EB" }} />
+        <div style={{ width: "100%", borderTop: "1px dashed #e2e8f0" }} />
         <ToothRow
           left={LOWER_RIGHT}
           right={LOWER_LEFT}
@@ -218,7 +218,7 @@ export function ToothSurfaceChart({
         />
       </div>
 
-      <div style={{ marginTop: 10, display: "flex", gap: 16, fontSize: 11, color: "#6B7280" }}>
+      <div style={{ marginTop: 10, display: "flex", gap: 16, fontSize: 11, color: "#6f7c90" }}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
           <span style={{ width: 10, height: 10, background: SELECTED_FILL, display: "inline-block", borderRadius: 2 }} />
           {t("Cả răng")}

@@ -57,8 +57,8 @@ function formatDuration(totalMinutes: number): string {
 function StatTile({ value, label }: { value: string | number; label: string }) {
   return (
     <div style={{ minWidth: 110 }}>
-      <div style={{ fontSize: 22, fontWeight: 700, color: "#1B2A41", lineHeight: 1.2 }}>{value}</div>
-      <div style={{ fontSize: 12, color: "#6B7280" }}>{label}</div>
+      <div style={{ fontSize: 22, fontWeight: 700, color: "#101c2c", lineHeight: 1.2 }}>{value}</div>
+      <div style={{ fontSize: 12, color: "#6f7c90" }}>{label}</div>
     </div>
   );
 }
@@ -89,10 +89,10 @@ function ShiftRow({
         padding: "4px 0",
       }}
     >
-      <span style={{ fontSize: 13, color: "#374151", minWidth: 96 }}>
+      <span style={{ fontSize: 13, color: "#41505f", minWidth: 96 }}>
         {formatPlanned(shift.plannedStart)} - {formatPlanned(shift.plannedEnd)}
       </span>
-      <span style={{ fontSize: 13, color: "#6B7280", minWidth: 84, textAlign: "center" }}>
+      <span style={{ fontSize: 13, color: "#6f7c90", minWidth: 84, textAlign: "center" }}>
         {formatStamp(shift.checkedInAt)} / {formatStamp(shift.checkedOutAt)}
       </span>
       <Tooltip title={disabled ? t("Nhân viên đã đăng ký nghỉ") : undefined}>
@@ -103,8 +103,8 @@ function ShiftRow({
           style={{
             border: "1px solid #D1D5DB",
             borderRadius: 6,
-            background: clickable ? "#fff" : "#F3F4F6",
-            color: clickable ? "#1B2A41" : "#9CA3AF",
+            background: clickable ? "#fff" : "#f4f6fa",
+            color: clickable ? "#101c2c" : "#98a4b4",
             fontSize: 12,
             padding: "2px 10px",
             cursor: clickable ? "pointer" : "not-allowed",
@@ -146,7 +146,7 @@ function StaffCard({ record }: { record: TimeKeepingRecordDto }) {
   return (
     <div
       style={{
-        border: "1px solid #E5E7EB",
+        border: "1px solid #e2e8f0",
         borderRadius: 10,
         padding: 12,
         background: "#fff",
@@ -165,16 +165,16 @@ function StaffCard({ record }: { record: TimeKeepingRecordDto }) {
             onChange={handleRegistrationChange}
           />
           <div>
-            <div style={{ fontWeight: 600, color: "#1B2A41" }}>
+            <div style={{ fontWeight: 600, color: "#101c2c" }}>
               {record.staffName ?? t("Nhân viên")}
             </div>
-            <div style={{ fontSize: 12, color: "#6B7280" }}>
+            <div style={{ fontSize: 12, color: "#6f7c90" }}>
               {t("Vị trí:")} {record.staffPosition ?? t("Nhân viên")}
             </div>
           </div>
         </div>
         <div style={{ textAlign: "right" }}>
-          <div style={{ fontWeight: 600, color: "#1B2A41" }}>
+          <div style={{ fontWeight: 600, color: "#101c2c" }}>
             {formatDuration(record.totalWorkedMinutes)}
           </div>
           <Tag color={status.color} style={{ marginInlineEnd: 0, marginTop: 2 }}>
@@ -183,14 +183,14 @@ function StaffCard({ record }: { record: TimeKeepingRecordDto }) {
         </div>
       </div>
 
-      <div style={{ borderTop: "1px dashed #E5E7EB", paddingTop: 6 }}>
+      <div style={{ borderTop: "1px dashed #e2e8f0", paddingTop: 6 }}>
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
             fontSize: 11,
             fontWeight: 600,
-            color: "#9CA3AF",
+            color: "#98a4b4",
             letterSpacing: 0.4,
           }}
         >
@@ -213,7 +213,7 @@ function StaffCard({ record }: { record: TimeKeepingRecordDto }) {
       </div>
 
       {record.overtimeMinutes > 0 && (
-        <div style={{ fontSize: 12, color: "#6B7280" }}>
+        <div style={{ fontSize: 12, color: "#6f7c90" }}>
           {t("Tăng ca:")} {formatDuration(record.overtimeMinutes)}
         </div>
       )}
@@ -284,7 +284,7 @@ export function TimekeepingBoard({ currentDate }: TimekeepingBoardProps) {
           flexWrap: "wrap",
           padding: "12px 16px",
           background: "#fff",
-          border: "1px solid #E5E7EB",
+          border: "1px solid #e2e8f0",
           borderRadius: 10,
         }}
       >

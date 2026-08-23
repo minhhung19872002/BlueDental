@@ -17,7 +17,7 @@ export function StockAdjustmentModal({ open, onClose }: Props) {
       onCancel={onClose}
       footer={<Button onClick={onClose}>{t("Đóng")}</Button>}
     >
-      <p style={{ color: "#5E748E" }}>{t("Form điều chỉnh kho đang được phát triển.")}</p>
+      <p style={{ color: "#6f7c90" }}>{t("Form điều chỉnh kho đang được phát triển.")}</p>
     </Modal>
   );
 }

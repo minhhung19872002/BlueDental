@@ -68,10 +68,10 @@ function GroupSidebar({
 
   return (
     <div style={{ width: 260, flexShrink: 0 }}>
-      <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 2 }}>
+      <div style={{ fontWeight: 600, fontSize: 13, color: "#101c2c", marginBottom: 2 }}>
         {t("Nhóm phân loại")}
       </div>
-      <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 8 }}>
+      <div style={{ fontSize: 12, color: "#98a4b4", marginBottom: 8 }}>
         {isLoading ? t("Đang tải…") : t("{0} nhóm", groups.length)}
       </div>
 
@@ -90,8 +90,8 @@ function GroupSidebar({
         style={{
           width: "100%", textAlign: "left", border: "none", cursor: "pointer",
           padding: "8px 10px", borderRadius: 6, marginBottom: 4,
-          background: selectedId === null ? "#EBF3FE" : "transparent",
-          color: selectedId === null ? "#1E70E6" : "#1B2A41",
+          background: selectedId === null ? "#eaf0fa" : "transparent",
+          color: selectedId === null ? "#1c3566" : "#101c2c",
           fontWeight: selectedId === null ? 600 : 400,
         }}
       >
@@ -106,8 +106,8 @@ function GroupSidebar({
           style={{
             width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
             border: "none", cursor: "pointer", padding: "8px 10px", borderRadius: 6, marginBottom: 2,
-            background: selectedId === group.id ? "#EBF3FE" : "transparent",
-            color: selectedId === group.id ? "#1E70E6" : "#1B2A41",
+            background: selectedId === group.id ? "#eaf0fa" : "transparent",
+            color: selectedId === group.id ? "#1c3566" : "#101c2c",
             fontWeight: selectedId === group.id ? 600 : 400,
             textAlign: "left",
           }}
@@ -121,7 +121,7 @@ function GroupSidebar({
             )}
             {group.name}
           </span>
-          <span style={{ fontSize: 12, color: "#9CA3AF" }}>{group.itemCount}</span>
+          <span style={{ fontSize: 12, color: "#98a4b4" }}>{group.itemCount}</span>
         </button>
       ))}
 
@@ -266,13 +266,13 @@ function CatalogPanel({ tab }: { tab: TaxonomyTab }) {
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ marginBottom: 12 }}>
-          <div style={{ fontWeight: 700, fontSize: 16, color: "#1B2A41" }}>
+          <div style={{ fontWeight: 700, fontSize: 16, color: "#101c2c" }}>
             {currentGroup?.name ?? tab.label}
-            <span style={{ fontWeight: 400, color: "#9CA3AF", fontSize: 13, marginLeft: 8 }}>
+            <span style={{ fontWeight: 400, color: "#98a4b4", fontSize: 13, marginLeft: 8 }}>
               {entryPage?.totalCount ?? 0} {t("bản ghi")}
             </span>
           </div>
-          <div style={{ fontSize: 12, color: "#5A6B82", marginBottom: 10 }}>
+          <div style={{ fontSize: 12, color: "#6f7c90", marginBottom: 10 }}>
             {currentGroup
               ? t("Quản lý các mục thuộc nhóm {0}", currentGroup.name)
               : t("Tất cả mục của danh mục {0}", tab.label.toLowerCase())}

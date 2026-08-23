@@ -65,7 +65,7 @@ export function AppointmentCalendar({
   }
 
   return (
-    <div style={{ background: "#fff", borderRadius: 14, overflow: "hidden", border: "1px solid #D0DCE8" }}>
+    <div style={{ background: "#fff", borderRadius: 14, overflow: "hidden", border: "1px solid #e2e8f0" }}>
       {/* Week navigation header */}
       <div
         style={{
@@ -73,7 +73,7 @@ export function AppointmentCalendar({
           alignItems: "center",
           justifyContent: "space-between",
           padding: "12px 16px",
-          borderBottom: "1px solid #D0DCE8",
+          borderBottom: "1px solid #e2e8f0",
         }}
       >
         <Button
@@ -94,7 +94,7 @@ export function AppointmentCalendar({
 
       {/* Column headers */}
       <div style={{ display: "grid", gridTemplateColumns: "60px repeat(7, 1fr)" }}>
-        <div style={{ borderRight: "1px solid #E8EFF6" }} />
+        <div style={{ borderRight: "1px solid #eef2f7" }} />
         {days.map((day, i) => {
           const isToday = day.format("YYYY-MM-DD") === today;
           return (
@@ -103,16 +103,16 @@ export function AppointmentCalendar({
               style={{
                 padding: "10px 8px",
                 textAlign: "center",
-                borderRight: "1px solid #E8EFF6",
-                borderBottom: "1px solid #D0DCE8",
-                background: isToday ? "#E3F2FD" : "#F4F7FA",
+                borderRight: "1px solid #eef2f7",
+                borderBottom: "1px solid #e2e8f0",
+                background: isToday ? "#eaf0fa" : "#f4f6fa",
               }}
             >
               <div
                 style={{
                   fontSize: 11,
                   fontWeight: 600,
-                  color: "#5E748E",
+                  color: "#6f7c90",
                   textTransform: "uppercase",
                 }}
               >
@@ -122,7 +122,7 @@ export function AppointmentCalendar({
                 style={{
                   fontSize: 18,
                   fontWeight: 800,
-                  color: isToday ? "#1565C0" : "#1A2744",
+                  color: isToday ? "#1c3566" : "#101c2c",
                 }}
               >
                 {day.format("D")}
@@ -148,14 +148,14 @@ export function AppointmentCalendar({
               key={`label-${slotIndex}`}
               style={{
                 height: SLOT_H,
-                borderRight: "1px solid #E8EFF6",
-                borderBottom: "1px solid #E8EFF6",
+                borderRight: "1px solid #eef2f7",
+                borderBottom: "1px solid #eef2f7",
                 display: "flex",
                 alignItems: "flex-start",
                 justifyContent: "center",
                 paddingTop: 4,
                 fontSize: 10,
-                color: "#8FA8C0",
+                color: "#98a4b4",
                 flexShrink: 0,
               }}
             >
@@ -176,8 +176,8 @@ export function AppointmentCalendar({
                   }
                   style={{
                     height: SLOT_H,
-                    borderRight: "1px solid #E8EFF6",
-                    borderBottom: "1px solid #E8EFF6",
+                    borderRight: "1px solid #eef2f7",
+                    borderBottom: "1px solid #eef2f7",
                     position: "relative",
                     cursor: "pointer",
                     background:

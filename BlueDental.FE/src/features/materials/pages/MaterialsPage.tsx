@@ -214,11 +214,11 @@ function ClinicMaterialsView() {
         <div style={{ marginBottom: 8 }}>
           <div style={{ fontWeight: 600, marginBottom: 4 }}>
             {t("Nhóm vật tư")}
-            <span style={{ fontWeight: 400, color: "#8c8c8c", marginLeft: 6 }}>
+            <span style={{ fontWeight: 400, color: "#7d8a9c", marginLeft: 6 }}>
               {groups.length} {t("nhóm")}
             </span>
           </div>
-          <div style={{ fontSize: 12, color: "#8c8c8c", marginBottom: 10 }}>
+          <div style={{ fontSize: 12, color: "#7d8a9c", marginBottom: 10 }}>
             {t("Chọn nhóm để xem vật tư")}
           </div>
           <Input
@@ -239,8 +239,8 @@ function ClinicMaterialsView() {
           style={{
             width: "100%", textAlign: "left", border: "none", cursor: "pointer",
             padding: "8px 10px", borderRadius: 6, marginTop: 8,
-            background: selectedGroupId === null ? "#EBF3FE" : "transparent",
-            color: selectedGroupId === null ? "#1E70E6" : "#1B2A41",
+            background: selectedGroupId === null ? "#eaf0fa" : "transparent",
+            color: selectedGroupId === null ? "#1c3566" : "#101c2c",
             fontWeight: selectedGroupId === null ? 600 : 400,
           }}
         >
@@ -255,19 +255,19 @@ function ClinicMaterialsView() {
             style={{
               width: "100%", display: "flex", justifyContent: "space-between",
               border: "none", cursor: "pointer", padding: "8px 10px", borderRadius: 6,
-              background: selectedGroupId === group.id ? "#EBF3FE" : "transparent",
-              color: selectedGroupId === group.id ? "#1E70E6" : "#1B2A41",
+              background: selectedGroupId === group.id ? "#eaf0fa" : "transparent",
+              color: selectedGroupId === group.id ? "#1c3566" : "#101c2c",
               fontWeight: selectedGroupId === group.id ? 600 : 400,
               textAlign: "left",
             }}
           >
             <span>{group.name}</span>
-            <span style={{ fontSize: 12, color: "#9CA3AF" }}>{group.itemCount}</span>
+            <span style={{ fontSize: 12, color: "#98a4b4" }}>{group.itemCount}</span>
           </button>
         ))}
 
         {groups.length === 0 && !groupsFetching && (
-          <div style={{ color: "#8c8c8c", fontSize: 13, textAlign: "center", paddingTop: 16 }}>
+          <div style={{ color: "#7d8a9c", fontSize: 13, textAlign: "center", paddingTop: 16 }}>
             {t("Chưa có nhóm vật tư")}
           </div>
         )}
@@ -285,15 +285,15 @@ function ClinicMaterialsView() {
             { label: t("Hết hạn"), value: stats?.expired ?? 0 },
           ].map((tile) => (
             <div key={tile.label}>
-              <div style={{ fontSize: 20, fontWeight: 700, color: "#1B2A41" }}>{tile.value}</div>
-              <div style={{ fontSize: 12, color: "#5A6B82" }}>{tile.label}</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: "#101c2c" }}>{tile.value}</div>
+              <div style={{ fontSize: 12, color: "#6f7c90" }}>{tile.label}</div>
             </div>
           ))}
           <div style={{ marginLeft: "auto" }}>
-            <div style={{ fontSize: 20, fontWeight: 700, color: "#1B2A41" }}>
+            <div style={{ fontSize: 20, fontWeight: 700, color: "#101c2c" }}>
               {formatVND(stats?.stockValue ?? 0)} {t("đ")}
             </div>
-            <div style={{ fontSize: 12, color: "#5A6B82" }}>{t("Giá trị tồn kho")}</div>
+            <div style={{ fontSize: 12, color: "#6f7c90" }}>{t("Giá trị tồn kho")}</div>
           </div>
         </div>
 
@@ -466,11 +466,11 @@ function DepartmentView() {
       >
         <div style={{ fontWeight: 600, marginBottom: 4 }}>
           {t("Phòng ban")}
-          <span style={{ fontWeight: 400, color: "#8c8c8c", marginLeft: 6 }}>
+          <span style={{ fontWeight: 400, color: "#7d8a9c", marginLeft: 6 }}>
             {t("0 phòng ban")}
           </span>
         </div>
-        <div style={{ fontSize: 12, color: "#8c8c8c", marginBottom: 10 }}>
+        <div style={{ fontSize: 12, color: "#7d8a9c", marginBottom: 10 }}>
           {t("Chọn phòng ban để xem vật tư đã phát và kiểm kho")}
         </div>
         <Input
@@ -483,7 +483,7 @@ function DepartmentView() {
         </Button>
         <div
           style={{
-            color: "#8c8c8c",
+            color: "#7d8a9c",
             fontSize: 13,
             textAlign: "center",
             paddingTop: 24,
@@ -560,10 +560,10 @@ export function MaterialsPage() {
                 border: "none",
                 borderBottom:
                   activeTab === tab.key
-                    ? "2px solid #1677ff"
+                    ? "2px solid #1c3566"
                     : "2px solid transparent",
                 background: "none",
-                color: activeTab === tab.key ? "#1677ff" : "#595959",
+                color: activeTab === tab.key ? "#1c3566" : "#6f7c90",
                 fontWeight: activeTab === tab.key ? 600 : 400,
                 cursor: "pointer",
                 fontSize: 14,

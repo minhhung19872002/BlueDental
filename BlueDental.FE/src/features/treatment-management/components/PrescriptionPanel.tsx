@@ -213,7 +213,7 @@ export function PrescriptionPanel({ patientId }: PrescriptionPanelProps) {
           columns={columns}
           dataSource={data?.items ?? []}
           pagination={false}
-          locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>{t("Chưa có đơn thuốc")}</span> }}
+          locale={{ emptyText: <span style={{ color: "#98a4b4" }}>{t("Chưa có đơn thuốc")}</span> }}
         />
       </Card>
 

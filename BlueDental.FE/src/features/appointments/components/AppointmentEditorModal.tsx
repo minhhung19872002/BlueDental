@@ -90,8 +90,8 @@ export function AppointmentEditorModal({ open, appointmentId, initialDate, onClo
   };
 
   const fieldStyle = { marginBottom: 12 };
-  const labelStyle = { fontSize: 13, fontWeight: 500, color: "#374151", display: "block", marginBottom: 4 };
-  const requiredMark = <span style={{ color: "#EF4444", marginLeft: 2 }}>*</span>;
+  const labelStyle = { fontSize: 13, fontWeight: 500, color: "#41505f", display: "block", marginBottom: 4 };
+  const requiredMark = <span style={{ color: "#ef4d4d", marginLeft: 2 }}>*</span>;
 
   return (
     <Modal
@@ -106,7 +106,7 @@ export function AppointmentEditorModal({ open, appointmentId, initialDate, onClo
             type="primary"
             loading={createMutation.isPending}
             onClick={handleSubmit(onSubmit)}
-            style={{ background: "#2671D8" }}
+            style={{ background: "#1c3566" }}
           >
             {isEdit ? t("Cập nhật") : t("Lưu lịch hẹn")}
           </Button>
@@ -133,7 +133,7 @@ export function AppointmentEditorModal({ open, appointmentId, initialDate, onClo
               />
             )}
           />
-          {errors.patientId && <span style={{ color: "#EF4444", fontSize: 12 }}>{errors.patientId.message}</span>}
+          {errors.patientId && <span style={{ color: "#ef4d4d", fontSize: 12 }}>{errors.patientId.message}</span>}
         </div>
 
         {/* Doctor */}
@@ -152,7 +152,7 @@ export function AppointmentEditorModal({ open, appointmentId, initialDate, onClo
               />
             )}
           />
-          {errors.doctorId && <span style={{ color: "#EF4444", fontSize: 12 }}>{errors.doctorId.message}</span>}
+          {errors.doctorId && <span style={{ color: "#ef4d4d", fontSize: 12 }}>{errors.doctorId.message}</span>}
         </div>
 
         {/* Date + Time row */}

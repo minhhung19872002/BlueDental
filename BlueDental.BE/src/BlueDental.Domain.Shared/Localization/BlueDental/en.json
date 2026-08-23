@@ -1149,6 +1149,14 @@
     "Đổi ảnh đại diện": "Change avatar",
     "đ · Luân chuyển:": "₫ · Transfer:",
     "đ · Rút:": "₫ · Withdraw:",
-    "đ) — chưa được tính vào tổng chi.": "₫) — not counted in total expenses."
+    "đ) — chưa được tính vào tổng chi.": "₫) — not counted in total expenses.",
+    "Phần mềm quản trị phòng khám nha khoa": "Dental clinic management software",
+    "Tiếp nhận, lịch hẹn, sơ đồ răng, kế hoạch điều trị, thu chi và vật tư — vận hành đa chi nhánh trên cùng một luồng dữ liệu.": "Reception, appointments, dental charting, treatment plans, cash flow and supplies — run every branch on one stream of data.",
+    "Toàn bộ phòng khám": "Your whole clinic",
+    "trong một màn hình.": "on a single screen.",
+    "Đăng nhập hệ thống": "Sign in",
+    "HỒ SƠ BỆNH NHÂN": "PATIENT RECORDS",
+    "CHI NHÁNH": "BRANCHES",
+    "UPTIME": "UPTIME"
   }
 }

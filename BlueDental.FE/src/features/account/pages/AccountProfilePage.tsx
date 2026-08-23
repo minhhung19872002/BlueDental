@@ -35,14 +35,14 @@ export function AccountProfilePage() {
                 size={96}
                 src={user?.clinicLogoUrl ?? undefined}
                 icon={<UserOutlined />}
-                style={{ marginBottom: 16, background: "#2671D8" }}
+                style={{ marginBottom: 16, background: "#1c3566" }}
               />
               <div>
                 <Title level={5} style={{ marginBottom: 4 }}>{user?.name}</Title>
                 <Text type="secondary">{user?.roles?.[0] ?? "Admin"}</Text>
               </div>
               <div style={{ marginTop: 12 }}>
-                <Text style={{ fontSize: 12, color: "#9CA3AF" }}>{user?.clinicName}</Text>
+                <Text style={{ fontSize: 12, color: "#98a4b4" }}>{user?.clinicName}</Text>
               </div>
               <Button
                 icon={<EditOutlined />}
@@ -61,7 +61,7 @@ export function AccountProfilePage() {
             title={t("Thông tin cá nhân")}
             extra={
               editing ? (
-                <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} style={{ background: "#2671D8" }}>
+                <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} style={{ background: "#1c3566" }}>
                   {t("Lưu thay đổi")}
                 </Button>
               ) : (
@@ -74,7 +74,7 @@ export function AccountProfilePage() {
             <Row gutter={[16, 16]}>
               <Col xs={24} sm={12}>
                 <div style={{ marginBottom: 4 }}>
-                  <Text style={{ fontSize: 12, color: "#5A6B82", fontWeight: 500 }}>{t("Họ và tên")}</Text>
+                  <Text style={{ fontSize: 12, color: "#6f7c90", fontWeight: 500 }}>{t("Họ và tên")}</Text>
                 </div>
                 {editing ? (
                   <Input value={name} onChange={(e) => setName(e.target.value)} style={{ height: 40 }} />
@@ -84,7 +84,7 @@ export function AccountProfilePage() {
               </Col>
               <Col xs={24} sm={12}>
                 <div style={{ marginBottom: 4 }}>
-                  <Text style={{ fontSize: 12, color: "#5A6B82", fontWeight: 500 }}>Email</Text>
+                  <Text style={{ fontSize: 12, color: "#6f7c90", fontWeight: 500 }}>Email</Text>
                 </div>
                 {editing ? (
                   <Input value={email} onChange={(e) => setEmail(e.target.value)} style={{ height: 40 }} />
@@ -94,13 +94,13 @@ export function AccountProfilePage() {
               </Col>
               <Col xs={24} sm={12}>
                 <div style={{ marginBottom: 4 }}>
-                  <Text style={{ fontSize: 12, color: "#5A6B82", fontWeight: 500 }}>{t("Vai trò")}</Text>
+                  <Text style={{ fontSize: 12, color: "#6f7c90", fontWeight: 500 }}>{t("Vai trò")}</Text>
                 </div>
                 <Text>{user?.roles?.[0] ?? "—"}</Text>
               </Col>
               <Col xs={24} sm={12}>
                 <div style={{ marginBottom: 4 }}>
-                  <Text style={{ fontSize: 12, color: "#5A6B82", fontWeight: 500 }}>{t("Chi nhánh")}</Text>
+                  <Text style={{ fontSize: 12, color: "#6f7c90", fontWeight: 500 }}>{t("Chi nhánh")}</Text>
                 </div>
                 <Text>{user?.clinicName ?? "—"}</Text>
               </Col>
@@ -111,9 +111,9 @@ export function AccountProfilePage() {
             <Row gutter={[16, 16]}>
               <Col xs={24} sm={12}>
                 <div style={{ marginBottom: 4 }}>
-                  <Text style={{ fontSize: 12, color: "#5A6B82", fontWeight: 500 }}>{t("ID tài khoản")}</Text>
+                  <Text style={{ fontSize: 12, color: "#6f7c90", fontWeight: 500 }}>{t("ID tài khoản")}</Text>
                 </div>
-                <Text style={{ fontFamily: "monospace", fontSize: 12, color: "#6B7280" }}>{user?.id ?? "—"}</Text>
+                <Text style={{ fontFamily: "monospace", fontSize: 12, color: "#6f7c90" }}>{user?.id ?? "—"}</Text>
               </Col>
             </Row>
           </Card>

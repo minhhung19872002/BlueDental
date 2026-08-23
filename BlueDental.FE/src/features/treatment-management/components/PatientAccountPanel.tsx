@@ -66,12 +66,12 @@ export function PatientAccountPanel({ patientId }: PatientAccountPanelProps) {
   const slips = account?.plans ?? [];
 
   const tiles = [
-    { label: t("Tổng phiếu"), value: account?.payment.totalPrice ?? 0, testId: "acc-total", color: "#1B2A41" },
-    { label: t("Đã thanh toán"), value: account?.payment.totalPaid ?? 0, testId: "acc-paid", color: "#10B981" },
-    { label: t("Hoàn tiền"), value: account?.payment.totalRefund ?? 0, testId: "acc-refund", color: "#F59E0B" },
-    { label: t("Còn lại"), value: account?.payment.totalDue ?? 0, testId: "acc-due", color: "#EF4444" },
-    { label: t("Phải thu"), value: account?.payment.debt ?? 0, testId: "acc-debt", color: "#EF4444" },
-    { label: t("Đang giữ hộ"), value: account?.heldForPatient ?? 0, testId: "acc-held", color: "#2671D8" },
+    { label: t("Tổng phiếu"), value: account?.payment.totalPrice ?? 0, testId: "acc-total", color: "#101c2c" },
+    { label: t("Đã thanh toán"), value: account?.payment.totalPaid ?? 0, testId: "acc-paid", color: "#1f8a63" },
+    { label: t("Hoàn tiền"), value: account?.payment.totalRefund ?? 0, testId: "acc-refund", color: "#dd9426" },
+    { label: t("Còn lại"), value: account?.payment.totalDue ?? 0, testId: "acc-due", color: "#ef4d4d" },
+    { label: t("Phải thu"), value: account?.payment.debt ?? 0, testId: "acc-debt", color: "#ef4d4d" },
+    { label: t("Đang giữ hộ"), value: account?.heldForPatient ?? 0, testId: "acc-held", color: "#1c3566" },
   ];
 
   const handleSubmit = async () => {
@@ -136,7 +136,7 @@ export function PatientAccountPanel({ patientId }: PatientAccountPanelProps) {
       width: 140,
       align: "right",
       render: (value: number, row) => (
-        <Text style={{ color: row.kind === PAYMENT_KIND.Refund ? "#EF4444" : "#10B981" }}>
+        <Text style={{ color: row.kind === PAYMENT_KIND.Refund ? "#ef4d4d" : "#1f8a63" }}>
           {row.kind === PAYMENT_KIND.Refund ? "-" : ""}
           {formatVND(value)} {t("đ")}
         </Text>
@@ -163,7 +163,7 @@ export function PatientAccountPanel({ patientId }: PatientAccountPanelProps) {
         {tiles.map((tile) => (
           <Col key={tile.testId} xs={12} md={8} lg={4}>
             <Card size="small" data-testid={tile.testId}>
-              <div style={{ fontSize: 12, color: "#9CA3AF" }}>{tile.label}</div>
+              <div style={{ fontSize: 12, color: "#98a4b4" }}>{tile.label}</div>
               <div style={{ fontSize: 18, fontWeight: 700, color: tile.color }}>
                 {formatVND(tile.value)} {t("đ")}
               </div>
@@ -180,7 +180,7 @@ export function PatientAccountPanel({ patientId }: PatientAccountPanelProps) {
           columns={columns}
           dataSource={account?.payments ?? []}
           pagination={false}
-          locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>{t("Chưa có giao dịch")}</span> }}
+          locale={{ emptyText: <span style={{ color: "#98a4b4" }}>{t("Chưa có giao dịch")}</span> }}
         />
       </Card>
 

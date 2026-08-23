@@ -39,12 +39,12 @@ const STATUS_COLORS: Record<ToothStatus, string> = {
 
 const STATUS_STROKE: Record<ToothStatus, string> = {
   healthy: "#90CAF9",
-  treated: "#1565C0",
-  decayed: "#C62828",
+  treated: "#1c3566",
+  decayed: "#ef4d4d",
   missing: "#BDBDBD",
-  implant: "#2E7D32",
+  implant: "#1f8a63",
   crown: "#F57F17",
-  bridge: "#6A1B9A",
+  bridge: "#6f63a3",
 };
 
 // Upper jaw: 18→11 (right to left for display), then 21→28 (left to right)
@@ -115,7 +115,7 @@ function ToothCell({
         y={TOOTH_H + 13}
         textAnchor="middle"
         fontSize={9}
-        fill="#5E748E"
+        fill="#6f7c90"
         fontFamily="Inter, sans-serif"
       >
         {fdi}
@@ -185,7 +185,7 @@ export function DentalChartView({
           y1={upperY - 4}
           x2={TOTAL_W / 2}
           y2={lowerY + TOOTH_H + 4}
-          stroke="#C5D5E4"
+          stroke="#e2e8f0"
           strokeWidth={1.5}
           strokeDasharray="4,3"
         />
@@ -204,7 +204,7 @@ export function DentalChartView({
           y={upperY - 8}
           textAnchor="middle"
           fontSize={10}
-          fill="#8FA8C0"
+          fill="#98a4b4"
           fontFamily="Inter, sans-serif"
         >
           {t("Hàm trên")}
@@ -214,7 +214,7 @@ export function DentalChartView({
           y={lowerY - 8}
           textAnchor="middle"
           fontSize={10}
-          fill="#8FA8C0"
+          fill="#98a4b4"
           fontFamily="Inter, sans-serif"
         >
           {t("Hàm dưới")}

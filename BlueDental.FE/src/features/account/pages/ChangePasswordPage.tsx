@@ -51,7 +51,7 @@ export function ChangePasswordPage() {
   };
 
   const fieldStyle = { marginBottom: 16 };
-  const labelStyle = { fontSize: 13, fontWeight: 500 as const, color: "#374151", display: "block" as const, marginBottom: 6 };
+  const labelStyle = { fontSize: 13, fontWeight: 500 as const, color: "#41505f", display: "block" as const, marginBottom: 6 };
 
   return (
     <div className="page-container">
@@ -66,17 +66,17 @@ export function ChangePasswordPage() {
         <Col xs={24} sm={18} md={14} lg={10}>
           <Card>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-              <div style={{ background: "#EBF3FE", borderRadius: "50%", width: 48, height: 48, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <LockOutlined style={{ fontSize: 20, color: "#2671D8" }} />
+              <div style={{ background: "#eaf0fa", borderRadius: "50%", width: 48, height: 48, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <LockOutlined style={{ fontSize: 20, color: "#1c3566" }} />
               </div>
               <div>
-                <div style={{ fontWeight: 600, color: "#1B2A41" }}>{t("Bảo mật tài khoản")}</div>
-                <div style={{ fontSize: 13, color: "#6B7280" }}>{t("Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, số và ký tự đặc biệt")}</div>
+                <div style={{ fontWeight: 600, color: "#101c2c" }}>{t("Bảo mật tài khoản")}</div>
+                <div style={{ fontSize: 13, color: "#6f7c90" }}>{t("Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, số và ký tự đặc biệt")}</div>
               </div>
             </div>
 
             <div style={fieldStyle}>
-              <label style={labelStyle}>{t("Mật khẩu hiện tại")} <span style={{ color: "#EF4444" }}>*</span></label>
+              <label style={labelStyle}>{t("Mật khẩu hiện tại")} <span style={{ color: "#ef4d4d" }}>*</span></label>
               <Controller
                 name="currentPassword"
                 control={control}
@@ -90,11 +90,11 @@ export function ChangePasswordPage() {
                   />
                 )}
               />
-              {errors.currentPassword && <Text style={{ color: "#EF4444", fontSize: 12 }}>{errors.currentPassword.message}</Text>}
+              {errors.currentPassword && <Text style={{ color: "#ef4d4d", fontSize: 12 }}>{errors.currentPassword.message}</Text>}
             </div>
 
             <div style={fieldStyle}>
-              <label style={labelStyle}>{t("Mật khẩu mới")} <span style={{ color: "#EF4444" }}>*</span></label>
+              <label style={labelStyle}>{t("Mật khẩu mới")} <span style={{ color: "#ef4d4d" }}>*</span></label>
               <Controller
                 name="newPassword"
                 control={control}
@@ -108,11 +108,11 @@ export function ChangePasswordPage() {
                   />
                 )}
               />
-              {errors.newPassword && <Text style={{ color: "#EF4444", fontSize: 12 }}>{errors.newPassword.message}</Text>}
+              {errors.newPassword && <Text style={{ color: "#ef4d4d", fontSize: 12 }}>{errors.newPassword.message}</Text>}
             </div>
 
             <div style={fieldStyle}>
-              <label style={labelStyle}>{t("Xác nhận mật khẩu mới")} <span style={{ color: "#EF4444" }}>*</span></label>
+              <label style={labelStyle}>{t("Xác nhận mật khẩu mới")} <span style={{ color: "#ef4d4d" }}>*</span></label>
               <Controller
                 name="confirmPassword"
                 control={control}
@@ -126,7 +126,7 @@ export function ChangePasswordPage() {
                   />
                 )}
               />
-              {errors.confirmPassword && <Text style={{ color: "#EF4444", fontSize: 12 }}>{errors.confirmPassword.message}</Text>}
+              {errors.confirmPassword && <Text style={{ color: "#ef4d4d", fontSize: 12 }}>{errors.confirmPassword.message}</Text>}
             </div>
 
             <Button
@@ -134,7 +134,7 @@ export function ChangePasswordPage() {
               icon={<SaveOutlined />}
               loading={changeMutation.isPending}
               onClick={handleSubmit(onSubmit)}
-              style={{ background: "#2671D8", height: 40, width: "100%", marginTop: 8 }}
+              style={{ background: "#1c3566", height: 40, width: "100%", marginTop: 8 }}
             >
               {t("Cập nhật mật khẩu")}
             </Button>

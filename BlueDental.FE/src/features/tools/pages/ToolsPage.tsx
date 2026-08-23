@@ -56,9 +56,9 @@ function SubTabBar({
             style={{
               padding: "8px 16px",
               border: "none",
-              borderBottom: active === tab.key ? "2px solid #1677ff" : "2px solid transparent",
+              borderBottom: active === tab.key ? "2px solid #1c3566" : "2px solid transparent",
               background: "none",
-              color: active === tab.key ? "#1677ff" : "#595959",
+              color: active === tab.key ? "#1c3566" : "#6f7c90",
               fontWeight: active === tab.key ? 600 : 400,
               cursor: "pointer",
               fontSize: 13,
@@ -76,9 +76,9 @@ function SubTabBar({
 function PlaceholderContent({ label }: { label: string }) {
   return (
     <div className="reception-card reception-card--content">
-      <div style={{ padding: "48px 0", textAlign: "center", color: "#9CA3AF" }}>
+      <div style={{ padding: "48px 0", textAlign: "center", color: "#98a4b4" }}>
         <div style={{ fontSize: 32, marginBottom: 8 }}>🛠️</div>
-        <div style={{ fontWeight: 500, color: "#6B7280" }}>{label}</div>
+        <div style={{ fontWeight: 500, color: "#6f7c90" }}>{label}</div>
         <div style={{ fontSize: 13, marginTop: 4 }}>{t("Nội dung đang được phát triển")}</div>
       </div>
     </div>
@@ -233,14 +233,14 @@ function ZaloConfigView() {
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "48px 0", gap: 16 }}>
         <div style={{
           width: 80, height: 80, borderRadius: "50%",
-          background: "#F3F4F6",
+          background: "#f4f6fa",
           display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 32,
         }}>
           OA
         </div>
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontWeight: 600, fontSize: 16, color: "#1B2A41", marginBottom: 6 }}>
+          <div style={{ fontWeight: 600, fontSize: 16, color: "#101c2c", marginBottom: 6 }}>
             {t("Chưa kết nối Zalo OA")}
           </div>
           <Tag color="default" style={{ marginBottom: 16 }}>{t("Chưa kích hoạt")}</Tag>
@@ -320,9 +320,9 @@ function InvoiceView() {
           style={{
             padding: "8px 16px",
             border: "none",
-            borderBottom: "2px solid #1677ff",
+            borderBottom: "2px solid #1c3566",
             background: "none",
-            color: "#1677ff",
+            color: "#1c3566",
             fontWeight: 600,
             cursor: "default",
             fontSize: 13,
@@ -376,9 +376,9 @@ export function ToolsPage() {
               style={{
                 padding: "8px 20px",
                 border: "none",
-                borderBottom: activeTab === tab.key ? "2px solid #1677ff" : "2px solid transparent",
+                borderBottom: activeTab === tab.key ? "2px solid #1c3566" : "2px solid transparent",
                 background: "none",
-                color: activeTab === tab.key ? "#1677ff" : "#595959",
+                color: activeTab === tab.key ? "#1c3566" : "#6f7c90",
                 fontWeight: activeTab === tab.key ? 600 : 400,
                 cursor: "pointer",
                 fontSize: 14,

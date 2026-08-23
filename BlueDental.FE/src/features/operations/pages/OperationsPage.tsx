@@ -191,11 +191,11 @@ function ArticleSection({
       key: "title",
       render: (_, row) => (
         <>
-          <div style={{ fontWeight: 600, color: "#1B2A41" }}>
+          <div style={{ fontWeight: 600, color: "#101c2c" }}>
             {row.isPinned && <Tag color="gold">Ghim</Tag>}
             {row.title}
           </div>
-          {row.summary && <div style={{ fontSize: 12, color: "#6B7280" }}>{row.summary}</div>}
+          {row.summary && <div style={{ fontSize: 12, color: "#6f7c90" }}>{row.summary}</div>}
         </>
       ),
     },
@@ -260,7 +260,7 @@ function ArticleSection({
   return (
     <>
       <div className="reception-card reception-card--toolbar">
-        <Button type="primary" onClick={() => setCreating(true)} style={{ background: "#2671D8" }}>
+        <Button type="primary" onClick={() => setCreating(true)} style={{ background: "#1c3566" }}>
           {t("Tạo Bài Viết")}
         </Button>
       </div>
@@ -373,7 +373,7 @@ function TaskSection({
       width: 140,
       render: (value: string | null, row) =>
         value ? (
-          <span style={{ color: row.isOverdue ? "#EF4444" : undefined }}>
+          <span style={{ color: row.isOverdue ? "#ef4d4d" : undefined }}>
             {formatDate(value)}
             {row.isOverdue && t(" (quá hạn)")}
           </span>
@@ -439,14 +439,14 @@ function TaskSection({
           { label: t("Quá hạn"), value: stats?.overdue ?? 0, testId: "ops-stat-overdue" },
         ].map((tile) => (
           <div key={tile.label} data-testid={tile.testId}>
-            <div style={{ fontSize: 20, fontWeight: 700, color: "#1B2A41" }}>{tile.value}</div>
-            <div style={{ fontSize: 12, color: "#5A6B82" }}>{tile.label}</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: "#101c2c" }}>{tile.value}</div>
+            <div style={{ fontSize: 12, color: "#6f7c90" }}>{tile.label}</div>
           </div>
         ))}
       </div>
 
       <div className="reception-card reception-card--toolbar">
-        <Button type="primary" onClick={() => setCreating(true)} style={{ background: "#2671D8" }}>
+        <Button type="primary" onClick={() => setCreating(true)} style={{ background: "#1c3566" }}>
           {t("Tạo Công Việc")}
         </Button>
       </div>
@@ -551,9 +551,9 @@ export function OperationsPage() {
                 style={{
                   padding: "8px 16px",
                   border: "none",
-                  borderBottom: activeSubTab === sub.key ? "2px solid #1677ff" : "2px solid transparent",
+                  borderBottom: activeSubTab === sub.key ? "2px solid #1c3566" : "2px solid transparent",
                   background: "none",
-                  color: activeSubTab === sub.key ? "#1677ff" : "#595959",
+                  color: activeSubTab === sub.key ? "#1c3566" : "#6f7c90",
                   fontWeight: activeSubTab === sub.key ? 600 : 400,
                   cursor: "pointer",
                   fontSize: 13,
@@ -569,7 +569,7 @@ export function OperationsPage() {
 
       <div className="reception-card reception-card--toolbar">
         <Input
-          prefix={<SearchOutlined style={{ color: "#9CA3AF" }} />}
+          prefix={<SearchOutlined style={{ color: "#98a4b4" }} />}
           placeholder={t("Tìm kiếm...")}
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}

@@ -79,7 +79,7 @@ export const DateViewSelector: React.FC = () => {
         <Button
           size="small"
           onClick={handleToday}
-          style={{ fontWeight: 600, borderRadius: 6, color: "#2671D8" }}
+          style={{ fontWeight: 600, borderRadius: 6, color: "#1c3566" }}
         >
           {t("Hôm nay")}
         </Button>
@@ -92,8 +92,8 @@ export const DateViewSelector: React.FC = () => {
         />
 
         <Space size={6} style={{ marginLeft: 4 }}>
-          <CalendarOutlined style={{ color: "#2671D8", fontSize: 16 }} />
-          <Text strong style={{ color: "#0F172A", fontSize: 14 }}>
+          <CalendarOutlined style={{ color: "#1c3566", fontSize: 16 }} />
+          <Text strong style={{ color: "#101c2c", fontSize: 14 }}>
             {formatDateDisplay()}
           </Text>
         </Space>

@@ -9,6 +9,7 @@ import { authApi } from "../api";
 import { useAuthStore } from "../store/authStore";
 import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
+import { brand } from "@/theme/index";
 
 const buildLoginSchema = () =>
   z.object({
@@ -123,7 +124,7 @@ export function LoginForm() {
 
       {errors.root && (
         <Form.Item>
-          <span style={{ color: "#C62828", fontSize: 13 }}>
+          <span style={{ color: brand.red, fontSize: 13 }}>
             {errors.root.message}
           </span>
         </Form.Item>
@@ -134,6 +135,7 @@ export function LoginForm() {
         htmlType="submit"
         size="large"
         block
+        className="login-submit"
         loading={loginMutation.isPending}
       >
         {t("Đăng nhập")}

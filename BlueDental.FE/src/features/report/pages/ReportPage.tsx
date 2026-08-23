@@ -79,7 +79,7 @@ function buildCashflowColumns(actions: (row: SalesEntryDto) => React.ReactNode) 
   { title: t("Số tiền"), dataIndex: "amount", key: "amount", width: 140, align: "right" as const,
     render: (v: number, r: { type: SalesEntryType }) => (
       <Text style={{
-        color: r.type === SALES_ENTRY_TYPE.Income ? "#10B981" : "#EF4444",
+        color: r.type === SALES_ENTRY_TYPE.Income ? "#1f8a63" : "#ef4d4d",
         fontVariantNumeric: "tabular-nums",
       }}>
         {r.type === SALES_ENTRY_TYPE.Income ? "+" : "-"}{formatVND(v ?? 0)} {t("đ")}
@@ -298,9 +298,9 @@ function CashflowTab({ period }: { period: PeriodRange }) {
   ));
 
   const summaryCards = [
-    { label: t("Tổng thu"), value: stats?.totalIncome ?? 0, color: "#10B981" },
-    { label: t("Tổng chi"), value: stats?.totalExpense ?? 0, color: "#EF4444" },
-    { label: t("Lợi nhuận ước tính"), value: stats?.net ?? 0, color: "#1E70E6" },
+    { label: t("Tổng thu"), value: stats?.totalIncome ?? 0, color: "#1f8a63" },
+    { label: t("Tổng chi"), value: stats?.totalExpense ?? 0, color: "#ef4d4d" },
+    { label: t("Lợi nhuận ước tính"), value: stats?.net ?? 0, color: "#1c3566" },
   ];
 
   return (
@@ -314,9 +314,9 @@ function CashflowTab({ period }: { period: PeriodRange }) {
               onClick={() => setTypeFilter(f.key)}
               style={{
                 padding: "8px 14px", border: "none",
-                borderBottom: typeFilter === f.key ? "2px solid #1677ff" : "2px solid transparent",
+                borderBottom: typeFilter === f.key ? "2px solid #1c3566" : "2px solid transparent",
                 background: "none",
-                color: typeFilter === f.key ? "#1677ff" : "#595959",
+                color: typeFilter === f.key ? "#1c3566" : "#6f7c90",
                 fontWeight: typeFilter === f.key ? 600 : 400,
                 cursor: "pointer", fontSize: 13, whiteSpace: "nowrap",
               }}
@@ -331,7 +331,7 @@ function CashflowTab({ period }: { period: PeriodRange }) {
         {summaryCards.map((c) => (
           <Col key={c.label} xs={24} sm={8}>
             <div className="reception-card" style={{ padding: "16px 20px" }}>
-              <div style={{ fontSize: 12, color: "#5A6B82", marginBottom: 4 }}>{c.label}</div>
+              <div style={{ fontSize: 12, color: "#6f7c90", marginBottom: 4 }}>{c.label}</div>
               <div style={{ fontSize: 22, fontWeight: 700, color: c.color, fontVariantNumeric: "tabular-nums" }}>
                 {formatVND(c.value)} {t("đ")}
               </div>
@@ -416,10 +416,10 @@ function CashflowV2Tab({ period }: { period: PeriodRange }) {
 
   // Panel order and wording follow the reference "Luân chuyển dòng tiền V2" tab.
   const balancePanels = [
-    { label: t("Tổng Tiền"), value: overview?.balance.total ?? 0, color: "#1B2A41" },
-    { label: t("Tổng Tiền Mặt"), value: overview?.balance.cash ?? 0, color: "#10B981" },
-    { label: t("Tổng Chuyển Khoản"), value: overview?.balance.bank ?? 0, color: "#1E70E6" },
-    { label: t("Đang Giữ Hộ Khách"), value: overview?.balance.customerPrepaid ?? 0, color: "#F59E0B" },
+    { label: t("Tổng Tiền"), value: overview?.balance.total ?? 0, color: "#101c2c" },
+    { label: t("Tổng Tiền Mặt"), value: overview?.balance.cash ?? 0, color: "#1f8a63" },
+    { label: t("Tổng Chuyển Khoản"), value: overview?.balance.bank ?? 0, color: "#1c3566" },
+    { label: t("Đang Giữ Hộ Khách"), value: overview?.balance.customerPrepaid ?? 0, color: "#dd9426" },
   ];
 
   return (
@@ -428,7 +428,7 @@ function CashflowV2Tab({ period }: { period: PeriodRange }) {
         {balancePanels.map((panel) => (
           <Col key={panel.label} xs={24} sm={12} md={6}>
             <div className="reception-card" style={{ padding: "16px 20px" }}>
-              <div style={{ fontSize: 12, color: "#5A6B82", marginBottom: 4 }}>{panel.label}</div>
+              <div style={{ fontSize: 12, color: "#6f7c90", marginBottom: 4 }}>{panel.label}</div>
               <div style={{ fontSize: 22, fontWeight: 700, color: panel.color, fontVariantNumeric: "tabular-nums" }}>
                 {formatVND(panel.value)} {t("đ")}
               </div>
@@ -442,7 +442,7 @@ function CashflowV2Tab({ period }: { period: PeriodRange }) {
           <Button type="primary" onClick={() => setCashModal(CASH_TRANSACTION_TYPE.Deposit)}>{t("Nạp")}</Button>
           <Button onClick={() => setCashModal(CASH_TRANSACTION_TYPE.Withdraw)}>{t("Rút")}</Button>
           <Button onClick={() => setCashModal(CASH_TRANSACTION_TYPE.Transfer)}>{t("Luân chuyển")}</Button>
-          <Text style={{ fontSize: 13, color: "#5A6B82", marginLeft: 12 }}>
+          <Text style={{ fontSize: 13, color: "#6f7c90", marginLeft: 12 }}>
             {t("Nạp:")} {formatVND(overview?.totalDeposit ?? 0)} {t("đ · Rút:")} {formatVND(overview?.totalWithdraw ?? 0)} {t("đ · Luân chuyển:")} {formatVND(overview?.totalTransfer ?? 0)} {t("đ")}
           </Text>
           <Button icon={<DownloadOutlined />} style={{ marginLeft: "auto" }}>{t("Xuất Excel")}</Button>
@@ -548,9 +548,9 @@ function SalesTab({
               style={{
                 padding: "8px 14px",
                 border: "none",
-                borderBottom: subFilter === f.key ? "2px solid #1677ff" : "2px solid transparent",
+                borderBottom: subFilter === f.key ? "2px solid #1c3566" : "2px solid transparent",
                 background: "none",
-                color: subFilter === f.key ? "#1677ff" : "#595959",
+                color: subFilter === f.key ? "#1c3566" : "#6f7c90",
                 fontWeight: subFilter === f.key ? 600 : 400,
                 cursor: "pointer",
                 fontSize: 13,
@@ -565,9 +565,9 @@ function SalesTab({
 
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <span style={{ fontSize: 13, color: "#5A6B82" }}>{t("Doanh số:")}</span>
+          <span style={{ fontSize: 13, color: "#6f7c90" }}>{t("Doanh số:")}</span>
           <span
-            style={{ fontWeight: 700, fontSize: 18, color: "#1B2A41" }}
+            style={{ fontWeight: 700, fontSize: 18, color: "#101c2c" }}
             data-testid="sales-total"
           >
             {formatVND(stat?.totalActualReceived ?? 0)} {t("đ")}
@@ -600,7 +600,7 @@ function SalesTab({
             { title: t("Dịch vụ điều trị"), dataIndex: "serviceNames", key: "serviceNames" },
             { title: t("Số lượng"), dataIndex: "quantity", key: "quantity", width: 90, align: "right" as const },
             { title: t("Thành tiền"), dataIndex: "effectiveAmount", key: "effectiveAmount", width: 130, align: "right" as const, render: (v: number) => <Text style={{ fontVariantNumeric: "tabular-nums" }}>{formatVND(v)} {t("đ")}</Text> },
-            { title: t("Đã thanh toán"), dataIndex: "totalPaid", key: "totalPaid", width: 130, align: "right" as const, render: (v: number) => <Text style={{ color: "#10B981", fontVariantNumeric: "tabular-nums" }}>{formatVND(v)} {t("đ")}</Text> },
+            { title: t("Đã thanh toán"), dataIndex: "totalPaid", key: "totalPaid", width: 130, align: "right" as const, render: (v: number) => <Text style={{ color: "#1f8a63", fontVariantNumeric: "tabular-nums" }}>{formatVND(v)} {t("đ")}</Text> },
           ]}
           dataSource={rows}
           pagination={{ pageSize: 20, showSizeChanger: true }}
@@ -612,7 +612,7 @@ function SalesTab({
         {cards.map((card) => (
           <Col key={card.title} xs={24} sm={12} md={6}>
             <div className="reception-card" style={{ padding: 16 }} data-testid={card.testId}>
-              <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 10 }}>
+              <div style={{ fontWeight: 600, fontSize: 13, color: "#101c2c", marginBottom: 10 }}>
                 {card.title}
               </div>
               {card.metrics.map((m) => (
@@ -620,8 +620,8 @@ function SalesTab({
                   key={m.label}
                   style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}
                 >
-                  <span style={{ color: "#5A6B82" }}>{m.label}</span>
-                  <span style={{ fontWeight: 600, color: "#1B2A41" }}>
+                  <span style={{ color: "#6f7c90" }}>{m.label}</span>
+                  <span style={{ fontWeight: 600, color: "#101c2c" }}>
                     {m.value.toLocaleString("vi-VN")} {m.unit}
                   </span>
                 </div>
@@ -644,10 +644,10 @@ function BusinessResultTab({ period }: { period: PeriodRange }) {
   const margin = revenue === 0 ? 0 : Math.round((profit / revenue) * 100);
 
   const resultSummary = [
-    { label: "Doanh thu", value: revenue, color: "#1E70E6", testId: "result-revenue" },
-    { label: t("Chi phí"), value: expense, color: "#EF4444", testId: "result-expense" },
-    { label: t("Lợi nhuận"), value: profit, color: "#10B981", testId: "result-profit" },
-    { label: t("Tỷ lệ lợi nhuận"), value: `${margin}%`, color: "#F59E0B", testId: "result-margin" },
+    { label: "Doanh thu", value: revenue, color: "#1c3566", testId: "result-revenue" },
+    { label: t("Chi phí"), value: expense, color: "#ef4d4d", testId: "result-expense" },
+    { label: t("Lợi nhuận"), value: profit, color: "#1f8a63", testId: "result-profit" },
+    { label: t("Tỷ lệ lợi nhuận"), value: `${margin}%`, color: "#dd9426", testId: "result-margin" },
   ];
 
   /** The six rows the reference shows on result-stat/summary. */
@@ -666,7 +666,7 @@ function BusinessResultTab({ period }: { period: PeriodRange }) {
         {resultSummary.map((c) => (
           <Col key={c.label} xs={24} sm={12} md={6}>
             <div className="reception-card" style={{ padding: "16px 20px" }} data-testid={c.testId}>
-              <div style={{ fontSize: 12, color: "#5A6B82", marginBottom: 4 }}>{c.label}</div>
+              <div style={{ fontSize: 12, color: "#6f7c90", marginBottom: 4 }}>{c.label}</div>
               <div style={{ fontSize: 22, fontWeight: 700, color: c.color, fontVariantNumeric: "tabular-nums" }}>
                 {typeof c.value === "number" ? t("{0} đ", formatVND(c.value)) : c.value}
               </div>
@@ -709,7 +709,7 @@ function BusinessResultTab({ period }: { period: PeriodRange }) {
                 <Text
                   strong={Math.abs(value) === Math.abs(profit)}
                   style={{
-                    color: value < 0 ? "#EF4444" : "#1B2A41",
+                    color: value < 0 ? "#ef4d4d" : "#101c2c",
                     fontVariantNumeric: "tabular-nums",
                   }}
                 >

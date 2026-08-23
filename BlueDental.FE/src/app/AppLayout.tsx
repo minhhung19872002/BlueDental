@@ -34,7 +34,7 @@ import { useLanguage, useT } from "@/lib/i18n";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useMutation } from "@tanstack/react-query";
 import { authApi } from "@/features/auth/api";
-import { brand } from "@/theme/index";
+import { brand, SIDEBAR_WIDTH, SIDEBAR_EXPANDED_WIDTH } from "@/theme/index";
 
 interface NavItem {
   key: string;
@@ -125,15 +125,17 @@ function SidebarNavItem({
     );
   }
 
+  // Collapsed, the design shows the icon alone — the rail is too narrow for a
+  // label, and a clipped one reads worse than none. The title carries the name.
   return (
     <button
       type="button"
       title={item.label}
+      aria-label={item.label}
       onClick={onClick}
       className={`sidebar-nav-item sidebar-nav-item--collapsed ${active ? "sidebar-nav-item--active" : ""}`}
     >
       <span className="sidebar-nav-icon">{item.icon}</span>
-      <span className="sidebar-nav-label-collapsed">{item.label}</span>
     </button>
   );
 }
@@ -220,7 +222,7 @@ export function AppLayout() {
   const clinicName = user?.clinicName ?? "NHA KHOA ĐỨC HẠNH PREMIUM";
   const clinicLogoUrl = user?.clinicLogoUrl ?? "/logo_app.jpg";
   const clinicTagline = user?.clinicTagline ?? "Kiến Tạo Nụ Cười - Giá Trị Bền Vững";
-  const sidebarWidth = sidebarExpanded ? 248 : 110;
+  const sidebarWidth = sidebarExpanded ? SIDEBAR_EXPANDED_WIDTH : SIDEBAR_WIDTH;
 
   const branchContent = (
     <div className="app-popover-list">
@@ -230,7 +232,7 @@ export function AppLayout() {
         <span>{t("Tất cả chi nhánh")}</span>
       </button>
       <button type="button" className="app-popover-item app-popover-item--active">
-        <span className="app-popover-dot" style={{ background: "#2BB673" }} />
+        <span className="app-popover-dot" style={{ background: "#25a97a" }} />
         <span>{clinicName}</span>
       </button>
     </div>
@@ -251,7 +253,7 @@ export function AppLayout() {
   );
 
   return (
-    <div style={{ minHeight: "100vh", background: "#F6F8FB" }}>
+    <div style={{ minHeight: "100vh", background: "#f4f6fa" }}>
       {/* ── Sidebar ── */}
       <aside className="app-sidebar" style={{ width: sidebarWidth }}>
         {/* Logo area */}
@@ -265,14 +267,15 @@ export function AppLayout() {
           </div>
           {sidebarExpanded && (
             <div className="sidebar-logo-text">
-              <span className="sidebar-logo-name">NFC Dental</span>
-              <span className="sidebar-logo-sub">Phần Mềm Quản Trị Vận Hành</span>
+              <span className="sidebar-logo-name">BlueDental</span>
+              <span className="sidebar-logo-sub">{t("Quản trị vận hành")}</span>
             </div>
           )}
         </div>
 
         {/* Main nav */}
         <nav className="sidebar-nav-main">
+          {sidebarExpanded && <div className="sidebar-nav-section">MENU</div>}
           {mainNav(t).map((item) => (
             <SidebarNavItem
               key={item.key}
@@ -364,7 +367,7 @@ export function AppLayout() {
               <button type="button" className="app-header-branch">
                 <span className="app-header-branch-dot" />
                 <span className="app-header-branch-name">{clinicName}</span>
-                <DownOutlined style={{ fontSize: 14, color: "#5A6B82" }} />
+                <DownOutlined style={{ fontSize: 14, color: "#6f7c90" }} />
               </button>
             </Popover>
 
@@ -389,7 +392,7 @@ export function AppLayout() {
                     {initialsOf(user?.name)}
                   </Avatar>
                   <span className="app-header-user-name">{user?.name ?? "Admin"}</span>
-                  <DownOutlined style={{ fontSize: 14, color: "#5A6B82" }} />
+                  <DownOutlined style={{ fontSize: 14, color: "#6f7c90" }} />
                 </div>
               </Dropdown>
             </div>

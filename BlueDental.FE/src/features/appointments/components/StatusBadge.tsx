@@ -21,8 +21,8 @@ export function StatusBadge({ status }: Props) {
   return (
     <Tag
       style={{
-        background: palette?.bg ?? "#F4F7FA",
-        color: palette?.color ?? "#5E748E",
+        background: palette?.bg ?? "#f4f6fa",
+        color: palette?.color ?? "#6f7c90",
         border: "none",
       }}
     >

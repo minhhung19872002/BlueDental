@@ -95,7 +95,7 @@ export function PatientImagePanel({ patientId }: PatientImagePanelProps) {
                   <Text ellipsis style={{ fontSize: 12, display: "block" }}>
                     {image.fileName}
                   </Text>
-                  <Space size={4} style={{ fontSize: 11, color: "#9CA3AF" }}>
+                  <Space size={4} style={{ fontSize: 11, color: "#98a4b4" }}>
                     <span>{formatDateTime(image.takenAt)}</span>
                     <Popconfirm
                       title={t("Xoá ảnh này?")}
