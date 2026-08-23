@@ -79,6 +79,15 @@ export const ReceptionPage: React.FC = () => {
 
   return (
     <div className="reception-page">
+      <div className="page-header">
+        <div className="page-header-left">
+          <h1 className="page-header-title">{t("Tiếp nhận")}</h1>
+          <p className="page-header-subtitle">
+            {t("Luồng khách trong ngày {0}", currentDate.format("DD/MM/YYYY"))}
+          </p>
+        </div>
+      </div>
+
       {/* Card 1: toolbar */}
       <div className="reception-card reception-card--toolbar">
         <ReceptionToolbar

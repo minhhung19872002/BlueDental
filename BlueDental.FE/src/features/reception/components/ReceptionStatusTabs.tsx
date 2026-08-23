@@ -64,6 +64,7 @@ export const ReceptionStatusTabs: React.FC<ReceptionStatusTabsProps> = ({
   const counters = metrics?.counters;
 
   return (
+    <>
     <div className="reception-filter-row">
       {/* Left: status pills + doctor filter */}
       <div className="reception-filter-left">
@@ -95,21 +96,24 @@ export const ReceptionStatusTabs: React.FC<ReceptionStatusTabsProps> = ({
         />
       </div>
 
-      {/* Right: 6 counter cards */}
-      <div className="reception-counter-cards">
-        {counterCards().map((c) => (
-          <div
-            key={c.key}
-            className="reception-counter-card"
-            style={{ borderTopColor: c.borderColor, backgroundColor: c.bgColor, color: c.textColor }}
-          >
-            <span className="reception-counter-value">
-              {counters?.[c.key] ?? 0}
-            </span>
-            <span className="reception-counter-label">{c.label}</span>
-          </div>
-        ))}
-      </div>
     </div>
+
+    {/* The design gives the six status counters their own full-width row,
+        each card topped with its status colour. */}
+    <div className="reception-counter-cards">
+      {counterCards().map((c) => (
+        <div
+          key={c.key}
+          className="reception-counter-card"
+          style={{ borderTopColor: c.borderColor }}
+        >
+          <span className="reception-counter-value" style={{ color: c.textColor }}>
+            {counters?.[c.key] ?? 0}
+          </span>
+          <span className="reception-counter-label">{c.label}</span>
+        </div>
+      ))}
+    </div>
+    </>
   );
 };

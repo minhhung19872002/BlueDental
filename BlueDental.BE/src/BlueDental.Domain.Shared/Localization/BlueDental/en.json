@@ -1188,6 +1188,7 @@
     "Chưa có chi nhánh": "No branches yet",
     "Chưa có vai trò": "No roles yet",
     "{0} người": "{0} people",
-    "Đã lưu cài đặt phòng khám": "Clinic settings saved"
+    "Đã lưu cài đặt phòng khám": "Clinic settings saved",
+    "Luồng khách trong ngày {0}": "Patient flow on {0}"
   }
 }
