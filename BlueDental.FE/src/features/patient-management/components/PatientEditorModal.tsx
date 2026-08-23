@@ -135,6 +135,10 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
           }
         }}
       >
+        {/* antd falls back to its horizontal layout without a Form ancestor;
+            the design puts every label above its field. component={false}
+            supplies that context without emitting a second <form>. */}
+        <Form layout="vertical" component={false}>
         <Row gutter={24}>
           {/* Column 1 — Contact & Source */}
           <Col span={8}>
@@ -373,6 +377,7 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
             {isEdit ? t("Lưu thay đổi") : t("Lưu")}
           </Button>
         </div>
+        </Form>
       </form>
     </Modal>
   );

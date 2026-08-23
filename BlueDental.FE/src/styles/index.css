@@ -2709,3 +2709,109 @@ body {
   color: var(--bd-dim);
   margin-top: 9px;
 }
+
+/* ── Dialogs (the shell every modal in the design shares) ───────────────── */
+
+@keyframes bd-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The design tints the backdrop navy and blurs what is behind it, rather than
+   using a neutral scrim. */
+.ant-modal-mask,
+.ant-drawer-mask {
+  background: rgba(21, 42, 82, 0.45) !important;
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+.ant-modal .ant-modal-content {
+  border-radius: 18px;
+  padding: 0;
+  overflow: hidden;
+  box-shadow: var(--bd-shadow-modal);
+  animation: bd-pop-in 0.18s ease;
+}
+
+.ant-modal .ant-modal-header {
+  margin: 0;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--bd-line-soft);
+  border-radius: 0;
+}
+
+.ant-modal .ant-modal-title {
+  font-size: 16px;
+  font-weight: 650;
+  color: var(--bd-ink);
+}
+
+.ant-modal .ant-modal-body {
+  padding: 20px;
+}
+
+.ant-modal .ant-modal-footer {
+  margin: 0;
+  padding: 14px 20px;
+  border-top: 1px solid var(--bd-line-soft);
+}
+
+.ant-modal .ant-modal-close {
+  top: 14px;
+  inset-inline-end: 14px;
+}
+
+.ant-drawer .ant-drawer-header {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--bd-line-soft);
+}
+
+.ant-drawer .ant-drawer-body {
+  padding: 20px;
+}
+
+/* Fields inside a dialog: label above, faint fill until focus. */
+.ant-modal .ant-form-item,
+.ant-drawer .ant-form-item {
+  margin-bottom: 12px;
+}
+
+.ant-modal .ant-form-item-label,
+.ant-drawer .ant-form-item-label {
+  padding-bottom: 5px;
+}
+
+.ant-modal .ant-form-item-label > label,
+.ant-drawer .ant-form-item-label > label {
+  height: auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--bd-sub);
+}
+
+.ant-modal .ant-input,
+.ant-modal .ant-input-affix-wrapper,
+.ant-modal .ant-input-number,
+.ant-modal .ant-picker,
+.ant-modal .ant-select .ant-select-selector,
+.ant-drawer .ant-input,
+.ant-drawer .ant-input-affix-wrapper,
+.ant-drawer .ant-input-number,
+.ant-drawer .ant-picker,
+.ant-drawer .ant-select .ant-select-selector {
+  background: var(--bd-bg-soft);
+}
+
+.ant-modal .ant-input:focus,
+.ant-modal .ant-input-affix-wrapper-focused,
+.ant-drawer .ant-input:focus,
+.ant-drawer .ant-input-affix-wrapper-focused {
+  background: #fff;
+}
