@@ -7,13 +7,14 @@ import { Button } from "antd";
 import { LeftOutlined, RightOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import type { Appointment } from "../types/appointment";
+import { t } from "@/lib/i18n";
 
 const SLOT_MINUTES = 30;
 const DAY_START = 8 * 60; // 08:00 in minutes
 const DAY_END = 18 * 60; // 18:00 in minutes
 const SLOTS = (DAY_END - DAY_START) / SLOT_MINUTES;
 
-const DAY_NAMES = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "CN"];
+const dayNames = () => [t("Thứ 2"), t("Thứ 3"), t("Thứ 4"), t("Thứ 5"), t("Thứ 6"), t("Thứ 7"), "CN"];
 
 function formatSlotTime(slotIndex: number): string {
   const totalMinutes = DAY_START + slotIndex * SLOT_MINUTES;
@@ -115,7 +116,7 @@ export function AppointmentCalendar({
                   textTransform: "uppercase",
                 }}
               >
-                {DAY_NAMES[i]}
+                {dayNames()[i]}
               </div>
               <div
                 style={{
@@ -207,7 +208,7 @@ export function AppointmentCalendar({
                         cursor: "pointer",
                         marginBottom: 2,
                       }}
-                      title={`${appt.patientName} — ${appt.reason ?? "Khám định kỳ"}`}
+                      title={`${appt.patientName} — ${appt.reason ?? t("Khám định kỳ")}`}
                     >
                       {appt.patientName}
                     </div>

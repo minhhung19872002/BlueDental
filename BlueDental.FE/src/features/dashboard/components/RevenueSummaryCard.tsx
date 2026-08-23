@@ -3,13 +3,14 @@
 
 import { DollarOutlined } from "@ant-design/icons";
 import { brand } from "@/theme/index";
+import { t } from "@/lib/i18n";
 
 export function RevenueSummaryCard() {
   return (
     <div className="stat-card">
       <div className="stat-card-head">
         <div>
-          <div className="stat-card-label">Doanh thu hôm nay</div>
+          <div className="stat-card-label">{t("Doanh thu hôm nay")}</div>
           <div className="stat-card-value">—</div>
         </div>
         <div
@@ -19,7 +20,7 @@ export function RevenueSummaryCard() {
           <DollarOutlined />
         </div>
       </div>
-      <div className="stat-card-footer">Đang phát triển</div>
+      <div className="stat-card-footer">{t("Đang phát triển")}</div>
     </div>
   );
 }

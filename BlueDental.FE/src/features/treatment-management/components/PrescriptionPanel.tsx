@@ -18,7 +18,7 @@ import type { TableColumnsType } from "antd";
 import dayjs from "dayjs";
 import {
   PRESCRIPTION_STATUS,
-  PRESCRIPTION_STATUS_CONFIG,
+  prescriptionStatusConfig,
   useCancelPrescription,
   useCreatePrescription,
   useDispensePrescription,
@@ -31,6 +31,7 @@ import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { extractApiError } from "@/lib/apiError";
 import { downloadFile } from "@/lib/download";
 import { formatDate } from "@/utils/format";
+import { t } from "@/lib/i18n";
 
 interface PrescriptionPanelProps {
   patientId: string;
@@ -99,7 +100,7 @@ export function PrescriptionPanel({ patientId }: PrescriptionPanelProps) {
         })),
       });
 
-      message.success("Đã tạo đơn thuốc");
+      message.success(t("Đã tạo đơn thuốc"));
       setModalOpen(false);
       form.resetFields();
     } catch (error) {
@@ -108,55 +109,55 @@ export function PrescriptionPanel({ patientId }: PrescriptionPanelProps) {
   };
 
   const columns: TableColumnsType<PrescriptionDto> = [
-    { title: "Mã đơn thuốc", dataIndex: "code", key: "code", width: 130 },
+    { title: t("Mã đơn thuốc"), dataIndex: "code", key: "code", width: 130 },
     {
-      title: "Bác sĩ",
+      title: t("Bác sĩ"),
       dataIndex: "staffName",
       key: "staffName",
       width: 150,
       render: (value: string | null) => value ?? "—",
     },
     {
-      title: "Chẩn đoán",
+      title: t("Chẩn đoán"),
       dataIndex: "diagnosisText",
       key: "diagnosisText",
       render: (value: string | null) => value ?? "—",
     },
     {
-      title: "Thuốc",
+      title: t("Thuốc"),
       key: "items",
       width: 240,
       render: (_, row) =>
         row.items.length === 0
           ? "—"
-          : row.items.map((item) => `${item.medicationName} ×${item.quantity}`).join(", "),
+          : row.items.map((item) => t("{0} ×{1}", item.medicationName, item.quantity)).join(", "),
     },
     {
-      title: "Tái khám",
+      title: t("Tái khám"),
       dataIndex: "followUpDate",
       key: "followUpDate",
       width: 110,
       render: (value: string | null) => (value ? formatDate(value) : "—"),
     },
     {
-      title: "Ngày tạo",
+      title: t("Ngày tạo"),
       dataIndex: "issuedAt",
       key: "issuedAt",
       width: 110,
       render: (value: string) => formatDate(value),
     },
     {
-      title: "Trạng thái",
+      title: t("Trạng thái"),
       dataIndex: "status",
       key: "status",
       width: 110,
       render: (value: PrescriptionDto["status"]) => {
-        const config = PRESCRIPTION_STATUS_CONFIG[value];
+        const config = prescriptionStatusConfig()[value];
         return <Tag color={config.color}>{config.label}</Tag>;
       },
     },
     {
-      title: "Thao tác",
+      title: t("Thao tác"),
       key: "actions",
       width: 230,
       render: (_, row) => (
@@ -168,7 +169,7 @@ export function PrescriptionPanel({ patientId }: PrescriptionPanelProps) {
               void downloadFile(`/v1/app/prescriptions/${row.id}/pdf`, `don-thuoc-${row.code}.pdf`)
             }
           >
-            In đơn
+            {t("In đơn")}
           </Button>
           {row.status === PRESCRIPTION_STATUS.Active ? (
             <>
@@ -176,18 +177,18 @@ export function PrescriptionPanel({ patientId }: PrescriptionPanelProps) {
                 type="link"
                 size="small"
                 loading={dispensePrescription.isPending}
-                onClick={() => run(dispensePrescription.mutateAsync(row.id), "Đã phát thuốc")}
+                onClick={() => run(dispensePrescription.mutateAsync(row.id), t("Đã phát thuốc"))}
               >
-                Phát thuốc
+                {t("Phát thuốc")}
               </Button>
               <Button
                 type="link"
                 size="small"
                 danger
                 loading={cancelPrescription.isPending}
-                onClick={() => run(cancelPrescription.mutateAsync(row.id), "Đã huỷ đơn thuốc")}
+                onClick={() => run(cancelPrescription.mutateAsync(row.id), t("Đã huỷ đơn thuốc"))}
               >
-                Huỷ
+                {t("Huỷ")}
               </Button>
             </>
           ) : null}
@@ -200,7 +201,7 @@ export function PrescriptionPanel({ patientId }: PrescriptionPanelProps) {
     <div>
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
-          Tạo đơn thuốc
+          {t("Tạo đơn thuốc")}
         </Button>
       </div>
 
@@ -212,15 +213,15 @@ export function PrescriptionPanel({ patientId }: PrescriptionPanelProps) {
           columns={columns}
           dataSource={data?.items ?? []}
           pagination={false}
-          locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>Chưa có đơn thuốc</span> }}
+          locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>{t("Chưa có đơn thuốc")}</span> }}
         />
       </Card>
 
       <Modal
         open={modalOpen}
-        title="Tạo đơn thuốc"
-        okText="Tạo"
-        cancelText="Huỷ"
+        title={t("Tạo đơn thuốc")}
+        okText={t("Tạo")}
+        cancelText={t("Huỷ")}
         width={720}
         confirmLoading={createPrescription.isPending}
         onOk={handleSubmit}
@@ -235,20 +236,20 @@ export function PrescriptionPanel({ patientId }: PrescriptionPanelProps) {
         >
           <Form.Item
             name="staffId"
-            label="Bác sĩ kê đơn"
-            rules={[{ required: true, message: "Vui lòng chọn bác sĩ" }]}
+            label={t("Bác sĩ kê đơn")}
+            rules={[{ required: true, message: t("Vui lòng chọn bác sĩ") }]}
           >
             <Select
-              placeholder="Chọn bác sĩ"
+              placeholder={t("Chọn bác sĩ")}
               options={(dentists ?? []).map((d) => ({ value: d.id, label: d.name }))}
             />
           </Form.Item>
 
-          <Form.Item name="diagnosisText" label="Chẩn đoán">
-            <Input placeholder="Chẩn đoán trên đơn" maxLength={500} />
+          <Form.Item name="diagnosisText" label={t("Chẩn đoán")}>
+            <Input placeholder={t("Chẩn đoán trên đơn")} maxLength={500} />
           </Form.Item>
 
-          <Form.Item name="followUpDate" label="Tái khám">
+          <Form.Item name="followUpDate" label={t("Tái khám")}>
             <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
           </Form.Item>
 
@@ -261,7 +262,7 @@ export function PrescriptionPanel({ patientId }: PrescriptionPanelProps) {
                     <div data-testid="prescription-medicine">
                       <Form.Item
                         name={[field.name, "medicationId"]}
-                        rules={[{ required: true, message: "Chọn thuốc" }]}
+                        rules={[{ required: true, message: t("Chọn thuốc") }]}
                         style={{ width: 220 }}
                       >
                         <Select
@@ -269,29 +270,29 @@ export function PrescriptionPanel({ patientId }: PrescriptionPanelProps) {
                           optionFilterProp="label"
                           placeholder={
                             (medications?.length ?? 0) === 0
-                              ? "Chưa có danh mục thuốc"
-                              : "Chọn thuốc"
+                              ? t("Chưa có danh mục thuốc")
+                              : t("Chọn thuốc")
                           }
                           options={(medications ?? []).map((m) => ({ value: m.id, label: m.name }))}
                         />
                       </Form.Item>
                     </div>
                     <Form.Item name={[field.name, "dosage"]} style={{ width: 110 }}>
-                      <Input placeholder="Liều dùng" />
+                      <Input placeholder={t("Liều dùng")} />
                     </Form.Item>
                     <Form.Item name={[field.name, "frequency"]} style={{ width: 120 }}>
-                      <Input placeholder="Tần suất" />
+                      <Input placeholder={t("Tần suất")} />
                     </Form.Item>
                     <Form.Item
                       name={[field.name, "durationDays"]}
-                      rules={[{ required: true, message: "Số ngày" }]}
+                      rules={[{ required: true, message: t("Số ngày") }]}
                       style={{ width: 90 }}
                     >
-                      <InputNumber min={1} placeholder="Ngày" style={{ width: "100%" }} />
+                      <InputNumber min={1} placeholder={t("Ngày")} style={{ width: "100%" }} />
                     </Form.Item>
                     <Form.Item
                       name={[field.name, "quantity"]}
-                      rules={[{ required: true, message: "Số lượng" }]}
+                      rules={[{ required: true, message: t("Số lượng") }]}
                       style={{ width: 90 }}
                     >
                       <InputNumber min={1} placeholder="SL" style={{ width: "100%" }} />
@@ -307,14 +308,14 @@ export function PrescriptionPanel({ patientId }: PrescriptionPanelProps) {
                   icon={<PlusOutlined />}
                   onClick={() => add({ durationDays: 5, quantity: 10 })}
                 >
-                  Thêm thuốc
+                  {t("Thêm thuốc")}
                 </Button>
               </>
             )}
           </Form.List>
 
-          <Form.Item name="note" label="Ghi chú" style={{ marginTop: 16 }}>
-            <Input.TextArea rows={2} maxLength={1000} placeholder="Lời dặn của bác sĩ" />
+          <Form.Item name="note" label={t("Ghi chú")} style={{ marginTop: 16 }}>
+            <Input.TextArea rows={2} maxLength={1000} placeholder={t("Lời dặn của bác sĩ")} />
           </Form.Item>
         </Form>
       </Modal>

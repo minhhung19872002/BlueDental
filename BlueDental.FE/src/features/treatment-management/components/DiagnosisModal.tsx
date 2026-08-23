@@ -6,6 +6,7 @@ import { CATALOG_GROUP, useCatalogOptions } from "@/hooks/useCatalogOptions";
 import { useDentistList } from "@/features/staff/api/staffQueries";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { extractApiError } from "@/lib/apiError";
+import { t } from "@/lib/i18n";
 
 interface DiagnosisModalProps {
   open: boolean;
@@ -56,7 +57,7 @@ export function DiagnosisModal({
         teeth,
       });
 
-      message.success("Đã tạo phiếu chẩn đoán");
+      message.success(t("Đã tạo phiếu chẩn đoán"));
       onCreated?.();
       onClose();
     } catch (error) {
@@ -67,9 +68,9 @@ export function DiagnosisModal({
   return (
     <Modal
       open={open}
-      title="Tạo phiếu chẩn đoán"
-      okText="Tạo"
-      cancelText="Huỷ"
+      title={t("Tạo phiếu chẩn đoán")}
+      okText={t("Tạo")}
+      cancelText={t("Huỷ")}
       okButtonProps={{ disabled: teeth.length === 0 }}
       confirmLoading={createDiagnosis.isPending}
       onOk={handleSubmit}
@@ -80,31 +81,31 @@ export function DiagnosisModal({
         <Alert
           type="warning"
           showIcon
-          message="Chưa chọn răng"
-          description="Chọn ít nhất một răng hoặc một mặt răng trên sơ đồ trước khi tạo phiếu chẩn đoán."
+          message={t("Chưa chọn răng")}
+          description={t("Chọn ít nhất một răng hoặc một mặt răng trên sơ đồ trước khi tạo phiếu chẩn đoán.")}
         />
       ) : (
         <Alert
           type="info"
           showIcon
           style={{ marginBottom: 16 }}
-          message={`Răng đã chọn: ${formatTeeth(teeth)}`}
+          message={t("Răng đã chọn: {0}", formatTeeth(teeth))}
         />
       )}
 
       <Form form={form} layout="vertical" requiredMark disabled={teeth.length === 0}>
         <Form.Item
           name="diagnosisId"
-          label="Chẩn đoán"
-          rules={[{ required: true, message: "Vui lòng chọn chẩn đoán" }]}
+          label={t("Chẩn đoán")}
+          rules={[{ required: true, message: t("Vui lòng chọn chẩn đoán") }]}
         >
           <Select
             showSearch
             optionFilterProp="label"
             placeholder={
               (diagnoses?.length ?? 0) === 0
-                ? "Chưa có danh mục chẩn đoán — thêm ở trang Danh mục"
-                : "Chọn chẩn đoán"
+                ? t("Chưa có danh mục chẩn đoán — thêm ở trang Danh mục")
+                : t("Chọn chẩn đoán")
             }
             options={(diagnoses ?? []).map((d) => ({ value: d.id, label: d.name }))}
           />
@@ -112,29 +113,29 @@ export function DiagnosisModal({
 
         <Form.Item
           name="staffId"
-          label="Bác sĩ chẩn đoán"
-          rules={[{ required: true, message: "Vui lòng chọn bác sĩ" }]}
+          label={t("Bác sĩ chẩn đoán")}
+          rules={[{ required: true, message: t("Vui lòng chọn bác sĩ") }]}
         >
           <Select
             showSearch
             optionFilterProp="label"
-            placeholder="Chọn bác sĩ"
+            placeholder={t("Chọn bác sĩ")}
             options={(dentists ?? []).map((d) => ({ value: d.id, label: d.name }))}
           />
         </Form.Item>
 
-        <Form.Item name="secondStaffId" label="Bác sĩ hỗ trợ">
+        <Form.Item name="secondStaffId" label={t("Bác sĩ hỗ trợ")}>
           <Select
             allowClear
             showSearch
             optionFilterProp="label"
-            placeholder="Không bắt buộc"
+            placeholder={t("Không bắt buộc")}
             options={(dentists ?? []).map((d) => ({ value: d.id, label: d.name }))}
           />
         </Form.Item>
 
-        <Form.Item name="note" label="Ghi chú">
-          <Input.TextArea rows={3} placeholder="Mô tả tình trạng" />
+        <Form.Item name="note" label={t("Ghi chú")}>
+          <Input.TextArea rows={3} placeholder={t("Mô tả tình trạng")} />
         </Form.Item>
       </Form>
     </Modal>

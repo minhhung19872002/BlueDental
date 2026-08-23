@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import type { ToothSelectionDto } from "../api/consultingApi";
+import { t } from "@/lib/i18n";
 
 /**
  * Odontogram that records the reference's tooth primitive:
@@ -42,13 +43,13 @@ const SURFACE_SHAPES: Record<ToothSurface, string> = {
   center: `${MID},${MID} ${SIZE - MID},${MID} ${SIZE - MID},${SIZE - MID} ${MID},${SIZE - MID}`,
 };
 
-const SURFACE_LABELS: Record<ToothSurface, string> = {
-  top: "mặt trên",
-  right: "mặt phải",
-  bottom: "mặt dưới",
-  left: "mặt trái",
-  center: "mặt nhai",
-};
+const surfaceLabels = (): Record<ToothSurface, string> => ({
+  top: t("mặt trên"),
+  right: t("mặt phải"),
+  bottom: t("mặt dưới"),
+  left: t("mặt trái"),
+  center: t("mặt nhai"),
+});
 
 function emptyTooth(toothCode: number): ToothSelectionDto {
   return {
@@ -100,7 +101,7 @@ function ToothTile({
               style={{ cursor: readOnly ? "default" : "pointer" }}
               onClick={readOnly ? undefined : () => onToggleSurface(surface)}
             >
-              <title>{`Răng ${toothCode} — ${SURFACE_LABELS[surface]}`}</title>
+              <title>{t("Răng {0} — {1}", toothCode, surfaceLabels()[surface])}</title>
             </polygon>
           );
         })}
@@ -110,7 +111,7 @@ function ToothTile({
         type="button"
         disabled={readOnly}
         onClick={onToggleTooth}
-        title={`Chọn cả răng ${toothCode}`}
+        title={t("Chọn cả răng {0}", toothCode)}
         style={{
           border: "none",
           background: "none",
@@ -220,13 +221,13 @@ export function ToothSurfaceChart({
       <div style={{ marginTop: 10, display: "flex", gap: 16, fontSize: 11, color: "#6B7280" }}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
           <span style={{ width: 10, height: 10, background: SELECTED_FILL, display: "inline-block", borderRadius: 2 }} />
-          Cả răng
+          {t("Cả răng")}
         </span>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
           <span style={{ width: 10, height: 10, background: SURFACE_FILL, display: "inline-block", borderRadius: 2 }} />
-          Mặt răng
+          {t("Mặt răng")}
         </span>
-        <span>Bấm số răng để chọn cả răng, bấm vào mặt để chọn từng mặt.</span>
+        <span>{t("Bấm số răng để chọn cả răng, bấm vào mặt để chọn từng mặt.")}</span>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import { Card, Avatar, Button, Input, Row, Col, Typography, Divider, message } f
 import { UserOutlined, EditOutlined, SaveOutlined } from "@ant-design/icons";
 import { useState } from "react";
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { t } from "@/lib/i18n";
 
 const { Text, Title } = Typography;
 
@@ -12,7 +13,7 @@ export function AccountProfilePage() {
   const [email, setEmail] = useState(user?.email ?? "");
 
   const handleSave = () => {
-    message.success("Cập nhật thông tin thành công!");
+    message.success(t("Cập nhật thông tin thành công!"));
     setEditing(false);
   };
 
@@ -20,8 +21,8 @@ export function AccountProfilePage() {
     <div className="page-container">
       <div className="page-header">
         <div className="page-header-left">
-          <Title level={4} style={{ margin: 0 }}>Thông tin tài khoản</Title>
-          <Text type="secondary">Quản lý thông tin cá nhân của bạn</Text>
+          <Title level={4} style={{ margin: 0 }}>{t("Thông tin tài khoản")}</Title>
+          <Text type="secondary">{t("Quản lý thông tin cá nhân của bạn")}</Text>
         </div>
       </div>
 
@@ -48,7 +49,7 @@ export function AccountProfilePage() {
                 style={{ marginTop: 16 }}
                 onClick={() => setEditing(true)}
               >
-                Đổi ảnh đại diện
+                {t("Đổi ảnh đại diện")}
               </Button>
             </div>
           </Card>
@@ -57,15 +58,15 @@ export function AccountProfilePage() {
         {/* Profile info card */}
         <Col xs={24} lg={16}>
           <Card
-            title="Thông tin cá nhân"
+            title={t("Thông tin cá nhân")}
             extra={
               editing ? (
                 <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} style={{ background: "#2671D8" }}>
-                  Lưu thay đổi
+                  {t("Lưu thay đổi")}
                 </Button>
               ) : (
                 <Button icon={<EditOutlined />} onClick={() => setEditing(true)}>
-                  Chỉnh sửa
+                  {t("Chỉnh sửa")}
                 </Button>
               )
             }
@@ -73,7 +74,7 @@ export function AccountProfilePage() {
             <Row gutter={[16, 16]}>
               <Col xs={24} sm={12}>
                 <div style={{ marginBottom: 4 }}>
-                  <Text style={{ fontSize: 12, color: "#5A6B82", fontWeight: 500 }}>Họ và tên</Text>
+                  <Text style={{ fontSize: 12, color: "#5A6B82", fontWeight: 500 }}>{t("Họ và tên")}</Text>
                 </div>
                 {editing ? (
                   <Input value={name} onChange={(e) => setName(e.target.value)} style={{ height: 40 }} />
@@ -93,13 +94,13 @@ export function AccountProfilePage() {
               </Col>
               <Col xs={24} sm={12}>
                 <div style={{ marginBottom: 4 }}>
-                  <Text style={{ fontSize: 12, color: "#5A6B82", fontWeight: 500 }}>Vai trò</Text>
+                  <Text style={{ fontSize: 12, color: "#5A6B82", fontWeight: 500 }}>{t("Vai trò")}</Text>
                 </div>
                 <Text>{user?.roles?.[0] ?? "—"}</Text>
               </Col>
               <Col xs={24} sm={12}>
                 <div style={{ marginBottom: 4 }}>
-                  <Text style={{ fontSize: 12, color: "#5A6B82", fontWeight: 500 }}>Chi nhánh</Text>
+                  <Text style={{ fontSize: 12, color: "#5A6B82", fontWeight: 500 }}>{t("Chi nhánh")}</Text>
                 </div>
                 <Text>{user?.clinicName ?? "—"}</Text>
               </Col>
@@ -110,7 +111,7 @@ export function AccountProfilePage() {
             <Row gutter={[16, 16]}>
               <Col xs={24} sm={12}>
                 <div style={{ marginBottom: 4 }}>
-                  <Text style={{ fontSize: 12, color: "#5A6B82", fontWeight: 500 }}>ID tài khoản</Text>
+                  <Text style={{ fontSize: 12, color: "#5A6B82", fontWeight: 500 }}>{t("ID tài khoản")}</Text>
                 </div>
                 <Text style={{ fontFamily: "monospace", fontSize: 12, color: "#6B7280" }}>{user?.id ?? "—"}</Text>
               </Col>

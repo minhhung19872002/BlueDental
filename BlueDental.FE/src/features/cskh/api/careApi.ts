@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
+import { t } from "@/lib/i18n";
 import type { PagedResult } from "@/types";
 
 /** Matches BlueDental.CustomerCare.CareType — the CSKH tabs. */
@@ -12,13 +13,13 @@ export const CARE_TYPE = {
 } as const;
 export type CareType = (typeof CARE_TYPE)[keyof typeof CARE_TYPE];
 
-export const CARE_TYPE_LABELS: Record<CareType, string> = {
-  [CARE_TYPE.AfterTreatment]: "Sau điều trị",
-  [CARE_TYPE.Birthday]: "Chúc mừng sinh nhật",
-  [CARE_TYPE.AppointmentReminder]: "Nhắc lịch hẹn",
-  [CARE_TYPE.Periodic]: "CSKH định kì",
-  [CARE_TYPE.Special]: "CSKH đặc biệt",
-};
+export const careTypeLabels = (): Record<CareType, string> => ({
+  [CARE_TYPE.AfterTreatment]: t("Sau điều trị"),
+  [CARE_TYPE.Birthday]: t("Chúc mừng sinh nhật"),
+  [CARE_TYPE.AppointmentReminder]: t("Nhắc lịch hẹn"),
+  [CARE_TYPE.Periodic]: t("CSKH định kì"),
+  [CARE_TYPE.Special]: t("CSKH đặc biệt"),
+});
 
 /** Matches BlueDental.CustomerCare.CareStatus. */
 export const CARE_STATUS = {
@@ -30,25 +31,25 @@ export const CARE_STATUS = {
 } as const;
 export type CareStatus = (typeof CARE_STATUS)[keyof typeof CARE_STATUS];
 
-export const CARE_STATUS_CONFIG: Record<CareStatus, { label: string; color: string }> = {
-  [CARE_STATUS.New]: { label: "Chưa chăm sóc", color: "default" },
-  [CARE_STATUS.Contacted]: { label: "Đã liên hệ", color: "blue" },
-  [CARE_STATUS.Succeeded]: { label: "Thành công", color: "green" },
-  [CARE_STATUS.Failed]: { label: "Thất bại", color: "red" },
-  [CARE_STATUS.Cancelled]: { label: "Đã huỷ", color: "default" },
-};
+export const careStatusConfig = (): Record<CareStatus, { label: string; color: string }> => ({
+  [CARE_STATUS.New]: { label: t("Chưa chăm sóc"), color: "default" },
+  [CARE_STATUS.Contacted]: { label: t("Đã liên hệ"), color: "blue" },
+  [CARE_STATUS.Succeeded]: { label: t("Thành công"), color: "green" },
+  [CARE_STATUS.Failed]: { label: t("Thất bại"), color: "red" },
+  [CARE_STATUS.Cancelled]: { label: t("Đã huỷ"), color: "default" },
+});
 
 /** Matches BlueDental.CustomerCare.CareOutcome — the "Đánh giá" column. */
 export const CARE_OUTCOME = { NotRated: 0, Good: 1, Fair: 2, Normal: 3, Complaint: 4 } as const;
 export type CareOutcome = (typeof CARE_OUTCOME)[keyof typeof CARE_OUTCOME];
 
-export const CARE_OUTCOME_LABELS: Record<CareOutcome, string> = {
-  [CARE_OUTCOME.NotRated]: "Chưa đánh giá",
-  [CARE_OUTCOME.Good]: "Tốt",
-  [CARE_OUTCOME.Fair]: "Khá",
-  [CARE_OUTCOME.Normal]: "Bình thường",
-  [CARE_OUTCOME.Complaint]: "Khiếu nại",
-};
+export const careOutcomeLabels = (): Record<CareOutcome, string> => ({
+  [CARE_OUTCOME.NotRated]: t("Chưa đánh giá"),
+  [CARE_OUTCOME.Good]: t("Tốt"),
+  [CARE_OUTCOME.Fair]: t("Khá"),
+  [CARE_OUTCOME.Normal]: t("Bình thường"),
+  [CARE_OUTCOME.Complaint]: t("Khiếu nại"),
+});
 
 export interface CareRecordDto {
   id: string;

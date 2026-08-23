@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import type { PagedResult } from "@/types";
 
+import { t } from "@/lib/i18n";
 /** Matches BlueDental.Operations.OperationsDepartment. */
 export const OPERATIONS_DEPARTMENT = {
   Overview: 1,
@@ -36,12 +37,12 @@ export type OperationsSection = (typeof OPERATIONS_SECTION)[keyof typeof OPERATI
 export const TASK_STATUS = { Todo: 1, InProgress: 2, Done: 3, Cancelled: 4 } as const;
 export type OperationsTaskStatus = (typeof TASK_STATUS)[keyof typeof TASK_STATUS];
 
-export const TASK_STATUS_CONFIG: Record<OperationsTaskStatus, { label: string; color: string }> = {
-  [TASK_STATUS.Todo]: { label: "Chưa làm", color: "default" },
-  [TASK_STATUS.InProgress]: { label: "Đang làm", color: "processing" },
-  [TASK_STATUS.Done]: { label: "Hoàn thành", color: "green" },
-  [TASK_STATUS.Cancelled]: { label: "Đã huỷ", color: "red" },
-};
+export const taskStatusConfig = (): Record<OperationsTaskStatus, { label: string; color: string }> => ({
+  [TASK_STATUS.Todo]: { label: t("Chưa làm"), color: "default" },
+  [TASK_STATUS.InProgress]: { label: t("Đang làm"), color: "processing" },
+  [TASK_STATUS.Done]: { label: t("Hoàn thành"), color: "green" },
+  [TASK_STATUS.Cancelled]: { label: t("Đã huỷ"), color: "red" },
+});
 
 export interface OperationsArticleDto {
   id: string;

@@ -4,6 +4,7 @@ import { useAppointmentList } from "../api/appointmentQueries";
 import { StatusBadge } from "./StatusBadge";
 import type { Appointment, AppointmentStatus } from "../types/appointment";
 import { formatDateTime } from "@/utils/format";
+import { t } from "@/lib/i18n";
 
 const { Text } = Typography;
 
@@ -12,11 +13,11 @@ interface PatientAppointmentPanelProps {
 }
 
 /** The counters the reference shows above a patient's appointment list. */
-const COUNTERS: { status: AppointmentStatus; label: string; color: string; bg: string }[] = [
-  { status: "scheduled", label: "Đã hẹn", color: "#1E70E6", bg: "#EBF3FE" },
-  { status: "confirmed", label: "Đã xác nhận", color: "#10B981", bg: "#E6F4EA" },
-  { status: "cancelled", label: "Đã huỷ", color: "#EF4444", bg: "#FCE8E6" },
-  { status: "noShow", label: "Trễ hẹn", color: "#F59E0B", bg: "#FEF3C7" },
+const counters = (): { status: AppointmentStatus; label: string; color: string; bg: string }[] => [
+  { status: "scheduled", label: t("Đã hẹn"), color: "#1E70E6", bg: "#EBF3FE" },
+  { status: "confirmed", label: t("Đã xác nhận"), color: "#10B981", bg: "#E6F4EA" },
+  { status: "cancelled", label: t("Đã huỷ"), color: "#EF4444", bg: "#FCE8E6" },
+  { status: "noShow", label: t("Trễ hẹn"), color: "#F59E0B", bg: "#FEF3C7" },
 ];
 
 /** Lịch hẹn tab of a patient record. */
@@ -27,34 +28,34 @@ export function PatientAppointmentPanel({ patientId }: PatientAppointmentPanelPr
 
   const columns: TableColumnsType<Appointment> = [
     {
-      title: "Thời gian",
+      title: t("Thời gian"),
       dataIndex: "startTime",
       key: "startTime",
       width: 170,
       render: (value: string) => formatDateTime(value),
     },
     {
-      title: "Bác sĩ",
+      title: t("Bác sĩ"),
       dataIndex: "doctorName",
       key: "doctorName",
       width: 160,
       render: (value: string) => value || "—",
     },
     {
-      title: "Nội dung",
+      title: t("Nội dung"),
       dataIndex: "reason",
       key: "reason",
       render: (value: string | null) => value ?? "—",
     },
     {
-      title: "Trạng thái",
+      title: t("Trạng thái"),
       dataIndex: "status",
       key: "status",
       width: 140,
       render: (value: AppointmentStatus) => <StatusBadge status={value} />,
     },
     {
-      title: "Ghi chú",
+      title: t("Ghi chú"),
       dataIndex: "notes",
       key: "notes",
       width: 200,
@@ -68,7 +69,7 @@ export function PatientAppointmentPanel({ patientId }: PatientAppointmentPanelPr
         style={{ display: "flex", gap: 10, marginBottom: 16 }}
         data-testid="patient-appointment-counters"
       >
-        {COUNTERS.map((counter) => (
+        {counters().map((counter) => (
           <div
             key={counter.status}
             style={{
@@ -97,7 +98,7 @@ export function PatientAppointmentPanel({ patientId }: PatientAppointmentPanelPr
           columns={columns}
           dataSource={rows}
           pagination={false}
-          locale={{ emptyText: <Text type="secondary">Chưa có lịch hẹn</Text> }}
+          locale={{ emptyText: <Text type="secondary">{t("Chưa có lịch hẹn")}</Text> }}
         />
       </Card>
     </div>

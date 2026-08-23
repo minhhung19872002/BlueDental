@@ -8,6 +8,7 @@ import {
 } from "../api/taxonomyApi";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { extractApiError } from "@/lib/apiError";
+import { t } from "@/lib/i18n";
 
 interface CatalogEntryModalProps {
   open: boolean;
@@ -95,7 +96,7 @@ export function CatalogEntryModal({
             sortOrder: values.sortOrder,
           },
         });
-        message.success(`Đã cập nhật ${entityNoun.toLowerCase()}`);
+        message.success(t("Đã cập nhật {0}", entityNoun.toLowerCase()));
       } else {
         await createEntry.mutateAsync({
           clinicBranchId: branchId,
@@ -108,7 +109,7 @@ export function CatalogEntryModal({
           isImageRequired: values.isImageRequired,
           sortOrder: values.sortOrder,
         });
-        message.success(`Đã thêm ${entityNoun.toLowerCase()}`);
+        message.success(t("Đã thêm {0}", entityNoun.toLowerCase()));
       }
 
       onClose();
@@ -120,9 +121,9 @@ export function CatalogEntryModal({
   return (
     <Modal
       open={open}
-      title={`${isEdit ? "Sửa" : "Thêm"} ${entityNoun.toLowerCase()}`}
-      okText={isEdit ? "Lưu" : "Thêm"}
-      cancelText="Huỷ"
+      title={`${isEdit ? t("Sửa") : t("Thêm")} ${entityNoun.toLowerCase()}`}
+      okText={isEdit ? t("Lưu") : t("Thêm")}
+      cancelText={t("Huỷ")}
       confirmLoading={createEntry.isPending || updateEntry.isPending}
       onOk={handleSubmit}
       onCancel={onClose}
@@ -131,32 +132,32 @@ export function CatalogEntryModal({
       <Form form={form} layout="vertical" requiredMark>
         <Form.Item
           name="taxonomyId"
-          label="Nhóm phân loại"
-          rules={[{ required: true, message: "Vui lòng chọn nhóm" }]}
+          label={t("Nhóm phân loại")}
+          rules={[{ required: true, message: t("Vui lòng chọn nhóm") }]}
         >
           <Select
             options={groups.map((g) => ({ value: g.id, label: g.name }))}
-            placeholder="Chọn nhóm"
+            placeholder={t("Chọn nhóm")}
           />
         </Form.Item>
 
         <Form.Item
           name="name"
           label={entityLabel}
-          rules={[{ required: true, message: `Vui lòng nhập ${entityLabel.toLowerCase()}` }]}
+          rules={[{ required: true, message: t("Vui lòng nhập {0}", entityLabel.toLowerCase()) }]}
         >
-          <Input placeholder={`Nhập ${entityLabel.toLowerCase()}`} />
+          <Input placeholder={t("Nhập {0}", entityLabel.toLowerCase())} />
         </Form.Item>
 
-        <Form.Item name="code" label="Mã">
-          <Input placeholder="Ví dụ: DT02" />
+        <Form.Item name="code" label={t("Mã")}>
+          <Input placeholder={t("Ví dụ: DT02")} />
         </Form.Item>
 
         {priced && (
           <Form.Item
             name="price"
-            label="Giá (đ)"
-            rules={[{ type: "number", min: 0, message: "Giá không được âm" }]}
+            label={t("Giá (đ)")}
+            rules={[{ type: "number", min: 0, message: t("Giá không được âm") }]}
           >
             <InputNumber<number>
               style={{ width: "100%" }}
@@ -169,27 +170,27 @@ export function CatalogEntryModal({
         )}
 
         {templated && (
-          <Form.Item name="content" label="Nội dung mẫu">
-            <Input.TextArea rows={4} placeholder="Nội dung của mẫu" />
+          <Form.Item name="content" label={t("Nội dung mẫu")}>
+            <Input.TextArea rows={4} placeholder={t("Nội dung của mẫu")} />
           </Form.Item>
         )}
 
-        <Form.Item name="description" label="Mô tả">
+        <Form.Item name="description" label={t("Mô tả")}>
           <Input.TextArea rows={2} />
         </Form.Item>
 
-        <Form.Item name="sortOrder" label="Thứ tự hiển thị">
+        <Form.Item name="sortOrder" label={t("Thứ tự hiển thị")}>
           <InputNumber style={{ width: "100%" }} min={0} />
         </Form.Item>
 
         {priced && (
-          <Form.Item name="isImageRequired" label="Bắt buộc đính kèm ảnh" valuePropName="checked">
+          <Form.Item name="isImageRequired" label={t("Bắt buộc đính kèm ảnh")} valuePropName="checked">
             <Switch />
           </Form.Item>
         )}
 
         {isEdit && (
-          <Form.Item name="isActive" label="Đang sử dụng" valuePropName="checked">
+          <Form.Item name="isActive" label={t("Đang sử dụng")} valuePropName="checked">
             <Switch />
           </Form.Item>
         )}

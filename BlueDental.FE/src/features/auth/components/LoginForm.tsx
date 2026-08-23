@@ -8,14 +8,16 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { authApi } from "../api";
 import { useAuthStore } from "../store/authStore";
 import { extractApiError } from "@/lib/apiError";
+import { t } from "@/lib/i18n";
 
-const loginSchema = z.object({
-  userNameOrEmailAddress: z.string().min(1, "Vui lòng nhập tên đăng nhập"),
-  password: z.string().min(1, "Vui lòng nhập mật khẩu"),
+const buildLoginSchema = () =>
+  z.object({
+  userNameOrEmailAddress: z.string().min(1, t("Vui lòng nhập tên đăng nhập")),
+  password: z.string().min(1, t("Vui lòng nhập mật khẩu")),
   rememberMe: z.boolean().optional(),
 });
 
-type LoginFormValues = z.infer<typeof loginSchema>;
+type LoginFormValues = z.infer<ReturnType<typeof buildLoginSchema>>;
 
 export function LoginForm() {
   const navigate = useNavigate();
@@ -28,7 +30,7 @@ export function LoginForm() {
     setError,
     formState: { errors },
   } = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
+    resolver: zodResolver(buildLoginSchema()),
     defaultValues: { rememberMe: false },
   });
 
@@ -37,7 +39,7 @@ export function LoginForm() {
     onSuccess: async (result) => {
       if (result.result !== 1) {
         setError("root", {
-          message: result.description || "Đăng nhập không thành công",
+          message: result.description || t("Đăng nhập không thành công"),
         });
         return;
       }
@@ -80,7 +82,7 @@ export function LoginForm() {
             <Input
               {...field}
               prefix={<UserOutlined />}
-              placeholder="Tên đăng nhập hoặc email"
+              placeholder={t("Tên đăng nhập hoặc email")}
               size="large"
               autoComplete="username"
             />
@@ -99,7 +101,7 @@ export function LoginForm() {
             <Input.Password
               {...field}
               prefix={<LockOutlined />}
-              placeholder="Mật khẩu"
+              placeholder={t("Mật khẩu")}
               size="large"
               autoComplete="current-password"
             />
@@ -113,7 +115,7 @@ export function LoginForm() {
           control={control}
           render={({ field }) => (
             <Checkbox checked={field.value} onChange={field.onChange}>
-              Ghi nhớ đăng nhập
+              {t("Ghi nhớ đăng nhập")}
             </Checkbox>
           )}
         />
@@ -134,7 +136,7 @@ export function LoginForm() {
         block
         loading={loginMutation.isPending}
       >
-        Đăng nhập
+        {t("Đăng nhập")}
       </Button>
     </form>
   );

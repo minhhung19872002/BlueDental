@@ -2,8 +2,8 @@ import { Card, Table, Tag, Typography } from "antd";
 import type { TableColumnsType } from "antd";
 import {
   PAYMENT_KIND,
-  PAYMENT_KIND_CONFIG,
-  PAYMENT_METHOD_LABELS,
+  paymentKindConfig,
+  paymentMethodLabels,
   usePatientAccount,
   type PatientPaymentDto,
   type PatientPaymentKind,
@@ -11,6 +11,7 @@ import {
 } from "../api/treatmentPlanApi";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { formatDateTime, formatVND } from "@/utils/format";
+import { t } from "@/lib/i18n";
 
 const { Text } = Typography;
 
@@ -44,38 +45,38 @@ export function PatientDebtHistoryPanel({ patientId }: PatientDebtHistoryPanelPr
 
   const columns: TableColumnsType<DebtRow> = [
     {
-      title: "Ngày giao dịch",
+      title: t("Ngày giao dịch"),
       dataIndex: "paidAt",
       key: "paidAt",
       width: 160,
       render: (value: string) => formatDateTime(value),
     },
     {
-      title: "Loại",
+      title: t("Loại"),
       dataIndex: "kind",
       key: "kind",
       width: 120,
       render: (value: PatientPaymentKind) => {
-        const config = PAYMENT_KIND_CONFIG[value];
+        const config = paymentKindConfig()[value];
         return <Tag color={config.color}>{config.label}</Tag>;
       },
     },
     {
-      title: "Hình thức",
+      title: t("Hình thức"),
       dataIndex: "method",
       key: "method",
       width: 130,
-      render: (value: PaymentMethodKind) => PAYMENT_METHOD_LABELS[value],
+      render: (value: PaymentMethodKind) => paymentMethodLabels()[value],
     },
     {
-      title: "Kế hoạch",
+      title: t("Kế hoạch"),
       dataIndex: "treatmentPlanCode",
       key: "treatmentPlanCode",
       width: 100,
       render: (value: string | null) => value ?? "—",
     },
     {
-      title: "Số tiền",
+      title: t("Số tiền"),
       dataIndex: "amount",
       key: "amount",
       width: 140,
@@ -83,20 +84,20 @@ export function PatientDebtHistoryPanel({ patientId }: PatientDebtHistoryPanelPr
       render: (value: number, row) => (
         <Text style={{ color: row.kind === PAYMENT_KIND.Refund ? "#EF4444" : "#10B981" }}>
           {row.kind === PAYMENT_KIND.Refund ? "-" : "+"}
-          {formatVND(value)} đ
+          {formatVND(value)} {t("đ")}
         </Text>
       ),
     },
     {
-      title: "Luỹ kế đã thu",
+      title: t("Luỹ kế đã thu"),
       dataIndex: "runningCollected",
       key: "runningCollected",
       width: 150,
       align: "right",
-      render: (value: number) => `${formatVND(value)} đ`,
+      render: (value: number) => t("{0} đ", formatVND(value)),
     },
     {
-      title: "Nhân viên",
+      title: t("Nhân viên"),
       dataIndex: "staffName",
       key: "staffName",
       width: 150,
@@ -108,8 +109,7 @@ export function PatientDebtHistoryPanel({ patientId }: PatientDebtHistoryPanelPr
     <Card size="small">
       <div style={{ marginBottom: 12 }} data-testid="debt-summary">
         <Text type="secondary" style={{ fontSize: 12 }}>
-          Phải thu hiện tại: <strong>{formatVND(account?.payment.debt ?? 0)} đ</strong> · Còn lại
-          trên phiếu: <strong>{formatVND(account?.payment.totalDue ?? 0)} đ</strong>
+          {t("Phải thu hiện tại:")} <strong>{formatVND(account?.payment.debt ?? 0)} {t("đ")}</strong> {t("· Còn lại trên phiếu:")} <strong>{formatVND(account?.payment.totalDue ?? 0)} {t("đ")}</strong>
         </Text>
       </div>
 
@@ -119,8 +119,8 @@ export function PatientDebtHistoryPanel({ patientId }: PatientDebtHistoryPanelPr
         loading={isLoading}
         columns={columns}
         dataSource={rows}
-        pagination={{ pageSize: 20, showTotal: (total) => `Hiển thị ${rows.length} trên ${total} giao dịch` }}
-        locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>Chưa có lịch sử dư nợ</span> }}
+        pagination={{ pageSize: 20, showTotal: (total) => t("Hiển thị {0} trên {1} giao dịch", rows.length, total) }}
+        locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>{t("Chưa có lịch sử dư nợ")}</span> }}
       />
     </Card>
   );

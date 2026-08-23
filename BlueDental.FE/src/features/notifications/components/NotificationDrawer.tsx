@@ -2,6 +2,7 @@
 // TODO: Connect to createNotificationConnection() from lib/signalr.ts.
 
 import { Drawer, Empty } from "antd";
+import { t } from "@/lib/i18n";
 
 interface Props {
   open: boolean;
@@ -13,11 +14,11 @@ export function NotificationDrawer({ open, onClose }: Props) {
     <Drawer
       open={open}
       onClose={onClose}
-      title="Thông báo"
+      title={t("Thông báo")}
       placement="right"
       width={380}
     >
-      <Empty description="Không có thông báo mới" />
+      <Empty description={t("Không có thông báo mới")} />
     </Drawer>
   );
 }

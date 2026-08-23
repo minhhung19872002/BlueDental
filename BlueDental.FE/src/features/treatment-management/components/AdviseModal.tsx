@@ -12,6 +12,7 @@ import { useDentistList } from "@/features/staff/api/staffQueries";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { extractApiError } from "@/lib/apiError";
 import { formatVND } from "@/utils/format";
+import { t } from "@/lib/i18n";
 
 const { Text } = Typography;
 
@@ -113,7 +114,7 @@ export function AdviseModal({
         teeth: diagnosis.teeth,
       });
 
-      message.success("Đã tạo phiếu tư vấn");
+      message.success(t("Đã tạo phiếu tư vấn"));
       onCreated?.();
       onClose();
     } catch (error) {
@@ -124,9 +125,9 @@ export function AdviseModal({
   return (
     <Modal
       open={open}
-      title={diagnosis ? `Tạo dịch vụ cho phiếu ${diagnosis.code}` : "Tạo phiếu tư vấn"}
-      okText="Tạo"
-      cancelText="Huỷ"
+      title={diagnosis ? t("Tạo dịch vụ cho phiếu {0}", diagnosis.code) : t("Tạo phiếu tư vấn")}
+      okText={t("Tạo")}
+      cancelText={t("Huỷ")}
       confirmLoading={createAdvise.isPending}
       onOk={handleSubmit}
       onCancel={onClose}
@@ -138,28 +139,28 @@ export function AdviseModal({
           type="info"
           showIcon
           style={{ marginBottom: 16 }}
-          message={`${diagnosis.diagnosisName ?? diagnosis.code} — răng ${formatTeeth(diagnosis.teeth)}`}
+          message={t("{0} — răng {1}", diagnosis.diagnosisName ?? diagnosis.code, formatTeeth(diagnosis.teeth))}
         />
       )}
 
       <Form form={form} layout="vertical" requiredMark>
         <Form.Item
           name="serviceId"
-          label="Dịch vụ"
-          rules={[{ required: true, message: "Vui lòng chọn dịch vụ" }]}
+          label={t("Dịch vụ")}
+          rules={[{ required: true, message: t("Vui lòng chọn dịch vụ") }]}
         >
           <Select
             showSearch
             optionFilterProp="label"
             placeholder={
               (services?.length ?? 0) === 0
-                ? "Chưa có danh mục dịch vụ — thêm ở trang Danh mục"
-                : "Chọn dịch vụ"
+                ? t("Chưa có danh mục dịch vụ — thêm ở trang Danh mục")
+                : t("Chọn dịch vụ")
             }
             onChange={handleServiceChange}
             options={(services ?? []).map((s) => ({
               value: s.id,
-              label: s.price != null ? `${s.name} — ${formatVND(s.price)} đ` : s.name,
+              label: s.price != null ? t("{0} — {1} đ", s.name, formatVND(s.price)) : s.name,
             }))}
           />
         </Form.Item>
@@ -169,7 +170,7 @@ export function AdviseModal({
             type="warning"
             showIcon
             style={{ marginBottom: 16 }}
-            message="Dịch vụ này yêu cầu đính kèm ảnh trước khi điều trị."
+            message={t("Dịch vụ này yêu cầu đính kèm ảnh trước khi điều trị.")}
           />
         )}
 
@@ -177,10 +178,10 @@ export function AdviseModal({
           <Col span={14}>
             <Form.Item
               name="price"
-              label="Đơn giá (đ)"
+              label={t("Đơn giá (đ)")}
               rules={[
-                { required: true, message: "Vui lòng nhập đơn giá" },
-                { type: "number", min: 0, message: "Đơn giá không được âm" },
+                { required: true, message: t("Vui lòng nhập đơn giá") },
+                { type: "number", min: 0, message: t("Đơn giá không được âm") },
               ]}
             >
               <InputNumber<number>
@@ -195,10 +196,10 @@ export function AdviseModal({
           <Col span={10}>
             <Form.Item
               name="quantity"
-              label="Số lượng"
+              label={t("Số lượng")}
               rules={[
-                { required: true, message: "Vui lòng nhập số lượng" },
-                { type: "number", min: 1, message: "Số lượng phải lớn hơn 0" },
+                { required: true, message: t("Vui lòng nhập số lượng") },
+                { type: "number", min: 1, message: t("Số lượng phải lớn hơn 0") },
               ]}
             >
               <InputNumber<number> style={{ width: "100%" }} min={1} />
@@ -208,12 +209,12 @@ export function AdviseModal({
 
         <Row gutter={12}>
           <Col span={14}>
-            <Form.Item name="discountType" label="Chiết khấu">
+            <Form.Item name="discountType" label={t("Chiết khấu")}>
               <Select
                 options={[
-                  { value: DISCOUNT_TYPE.None, label: "Không chiết khấu" },
-                  { value: DISCOUNT_TYPE.Money, label: "Số tiền (đ)" },
-                  { value: DISCOUNT_TYPE.Percentage, label: "Phần trăm (%)" },
+                  { value: DISCOUNT_TYPE.None, label: t("Không chiết khấu") },
+                  { value: DISCOUNT_TYPE.Money, label: t("Số tiền (đ)") },
+                  { value: DISCOUNT_TYPE.Percentage, label: t("Phần trăm (%)") },
                 ]}
                 onChange={() => form.setFieldValue("discountValue", 0)}
               />
@@ -222,11 +223,11 @@ export function AdviseModal({
           <Col span={10}>
             <Form.Item
               name="discountValue"
-              label="Giá trị"
+              label={t("Giá trị")}
               rules={[
-                { type: "number", min: 0, message: "Không được âm" },
+                { type: "number", min: 0, message: t("Không được âm") },
                 ...(discountType === DISCOUNT_TYPE.Percentage
-                  ? [{ type: "number" as const, max: 100, message: "Tối đa 100%" }]
+                  ? [{ type: "number" as const, max: 100, message: t("Tối đa 100%") }]
                   : []),
               ]}
             >
@@ -241,8 +242,8 @@ export function AdviseModal({
 
         <Form.Item
           name="staffId"
-          label="Bác sĩ tư vấn"
-          rules={[{ required: true, message: "Vui lòng chọn bác sĩ" }]}
+          label={t("Bác sĩ tư vấn")}
+          rules={[{ required: true, message: t("Vui lòng chọn bác sĩ") }]}
         >
           <Select
             showSearch
@@ -251,7 +252,7 @@ export function AdviseModal({
           />
         </Form.Item>
 
-        <Form.Item name="note" label="Ghi chú">
+        <Form.Item name="note" label={t("Ghi chú")}>
           <Input.TextArea rows={2} />
         </Form.Item>
 
@@ -263,9 +264,9 @@ export function AdviseModal({
             justifyContent: "space-between",
           }}
         >
-          <Text style={{ color: "#5A6B82" }}>Thành tiền</Text>
+          <Text style={{ color: "#5A6B82" }}>{t("Thành tiền")}</Text>
           <Text strong style={{ fontSize: 16, color: "#1B2A41" }}>
-            {formatVND(effective)} đ
+            {formatVND(effective)} {t("đ")}
           </Text>
         </div>
       </Form>

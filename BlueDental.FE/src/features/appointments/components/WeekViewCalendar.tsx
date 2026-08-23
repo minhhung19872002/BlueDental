@@ -5,6 +5,7 @@ import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
 
 import { useAppointmentList } from "../api/appointmentQueries";
+import { t } from "@/lib/i18n";
 
 const SLOT_MINUTES = 30;
 const DAY_START_H = 6;
@@ -74,14 +75,14 @@ export function WeekViewCalendar({ currentDate, keyword = "", onKeywordChange, o
       <div style={{ display: "flex", gap: 8, padding: "10px 16px", borderBottom: "1px solid #E5E7EB", background: "#fff" }}>
         <Input
           prefix={<SearchOutlined />}
-          placeholder="Tìm bệnh nhân..."
+          placeholder={t("Tìm bệnh nhân...")}
           value={keyword}
           onChange={(e) => onKeywordChange?.(e.target.value)}
           style={{ width: 220 }}
           allowClear
         />
         <Button type="primary" icon={<PlusOutlined />} onClick={onCreateAppointment}>
-          Tạo lịch hẹn
+          {t("Tạo lịch hẹn")}
         </Button>
       </div>
 

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Badge, Button } from "antd";
 import { BellOutlined } from "@ant-design/icons";
 import { NotificationDrawer } from "./NotificationDrawer";
+import { t } from "@/lib/i18n";
 
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
@@ -15,7 +16,7 @@ export function NotificationBell() {
           type="text"
           icon={<BellOutlined style={{ fontSize: 18 }} />}
           onClick={() => setOpen(true)}
-          aria-label="Thông báo"
+          aria-label={t("Thông báo")}
         />
       </Badge>
 

@@ -6,6 +6,7 @@ import {
   CalendarOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
+import { t } from "@/lib/i18n";
 
 const { Text } = Typography;
 
@@ -32,14 +33,14 @@ export const DateViewSelector: React.FC = () => {
   const formatDateDisplay = () => {
     if (viewMode === "day") {
       const isToday = currentDate.isSame(dayjs(), "day");
-      return `${isToday ? "Hôm nay " : ""}(${currentDate.format("DD/MM/YYYY")})`;
+      return `${isToday ? `${t("Hôm nay")} ` : ""}(${currentDate.format("DD/MM/YYYY")})`;
     }
     if (viewMode === "week") {
       const start = currentDate.startOf("week").format("DD/MM");
       const end = currentDate.endOf("week").format("DD/MM/YYYY");
-      return `Tuần (${start} - ${end})`;
+      return `${t("Tuần")} (${start} - ${end})`;
     }
-    return `Tháng ${currentDate.format("MM/YYYY")}`;
+    return `${t("Tháng")} ${currentDate.format("MM/YYYY")}`;
   };
 
   return (
@@ -57,13 +58,13 @@ export const DateViewSelector: React.FC = () => {
       }}
     >
       <Segmented
-        value={viewMode === "day" ? "Ngày" : viewMode === "week" ? "Tuần" : "Tháng"}
-        onChange={(val) => {
-          if (val === "Ngày") setViewMode("day");
-          else if (val === "Tuần") setViewMode("week");
-          else setViewMode("month");
-        }}
-        options={["Ngày", "Tuần", "Tháng"]}
+        value={viewMode}
+        onChange={(val) => setViewMode(val as "day" | "week" | "month")}
+        options={[
+          { value: "day", label: t("Ngày") },
+          { value: "week", label: t("Tuần") },
+          { value: "month", label: t("Tháng") },
+        ]}
         style={{ fontWeight: 600 }}
       />
 
@@ -80,7 +81,7 @@ export const DateViewSelector: React.FC = () => {
           onClick={handleToday}
           style={{ fontWeight: 600, borderRadius: 6, color: "#2671D8" }}
         >
-          Hôm nay
+          {t("Hôm nay")}
         </Button>
 
         <Button

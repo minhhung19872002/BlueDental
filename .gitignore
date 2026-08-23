@@ -52,3 +52,6 @@ cookies.json
 # Playwright
 BlueDental.FE/test-results/
 BlueDental.FE/playwright-report/
+
+# Playwright MCP browser artifacts (snapshots, console logs from local testing)
+.playwright-mcp/

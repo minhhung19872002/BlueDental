@@ -2,6 +2,7 @@
 // TODO: Implement rich text editing with auto-save.
 
 import { Typography } from "antd";
+import { t } from "@/lib/i18n";
 
 interface Props {
   history: string | null;
@@ -11,7 +12,7 @@ export function MedicalHistoryPanel({ history }: Props) {
   if (!history) {
     return (
       <Typography.Text type="secondary">
-        Chưa có thông tin tiền sử bệnh.
+        {t("Chưa có thông tin tiền sử bệnh.")}
       </Typography.Text>
     );
   }

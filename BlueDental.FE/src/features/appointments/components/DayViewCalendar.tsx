@@ -5,6 +5,7 @@ import type { Dayjs } from "dayjs";
 
 import dayjs from "dayjs";
 import { useAppointmentList } from "../api/appointmentQueries";
+import { t } from "@/lib/i18n";
 
 const SLOT_MINUTES = 30;
 const DAY_START_H = 6;
@@ -37,13 +38,13 @@ interface Props {
   onCreateAppointment?: () => void;
 }
 
-const STATUS_FILTER_BUTTONS = [
-  { key: "scheduled",  label: "Đã hẹn",      borderColor: "#1E70E6", bgColor: "#EBF3FE", textColor: "#1E70E6" },
-  { key: "arrived",    label: "Đã đến",      borderColor: "#10B981", bgColor: "#E6F4EA", textColor: "#10B981" },
-  { key: "cancelled",  label: "Huỷ hẹn",     borderColor: "#EF4444", bgColor: "#FCE8E6", textColor: "#EF4444" },
-  { key: "late",       label: "Trễ hẹn",     borderColor: "#F59E0B", bgColor: "#FEF3C7", textColor: "#F59E0B" },
-  { key: "temporary",  label: "Lịch tạm",    borderColor: "#F97316", bgColor: "#FFEDD5", textColor: "#F97316" },
-  { key: "converted",  label: "Chuyển đổi",  borderColor: "#06B6D4", bgColor: "#CFFAFE", textColor: "#06B6D4" },
+const statusFilterButtons = () => [
+  { key: "scheduled",  label: t("Đã hẹn"),      borderColor: "#1E70E6", bgColor: "#EBF3FE", textColor: "#1E70E6" },
+  { key: "arrived",    label: t("Đã đến"),      borderColor: "#10B981", bgColor: "#E6F4EA", textColor: "#10B981" },
+  { key: "cancelled",  label: t("Huỷ hẹn"),     borderColor: "#EF4444", bgColor: "#FCE8E6", textColor: "#EF4444" },
+  { key: "late",       label: t("Trễ hẹn"),     borderColor: "#F59E0B", bgColor: "#FEF3C7", textColor: "#F59E0B" },
+  { key: "temporary",  label: t("Lịch tạm"),    borderColor: "#F97316", bgColor: "#FFEDD5", textColor: "#F97316" },
+  { key: "converted",  label: t("Chuyển đổi"),  borderColor: "#06B6D4", bgColor: "#CFFAFE", textColor: "#06B6D4" },
 ];
 
 export function DayViewCalendar({
@@ -97,7 +98,7 @@ export function DayViewCalendar({
           flexWrap: "wrap",
         }}
       >
-        {STATUS_FILTER_BUTTONS.map((btn) => (
+        {statusFilterButtons().map((btn) => (
           <button
             key={btn.key}
             type="button"
@@ -151,25 +152,25 @@ export function DayViewCalendar({
       >
         <Input
           prefix={<SearchOutlined style={{ color: "#9CA3AF" }} />}
-          placeholder="Tìm kiếm"
+          placeholder={t("Tìm kiếm")}
           value={keyword}
           onChange={(e) => onKeywordChange?.(e.target.value)}
           allowClear
           style={{ maxWidth: 200 }}
         />
         <Select
-          placeholder="Chọn bác sĩ"
+          placeholder={t("Chọn bác sĩ")}
           allowClear
           style={{ minWidth: 160 }}
           options={doctors.map((d) => ({ value: d.id, label: d.name }))}
         />
 
         <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-          <Button size="small">Xuất File</Button>
-          <Button type="primary" size="small" style={{ background: "#2671D8" }} onClick={onCreateAppointment}>Tạo lịch hẹn mới</Button>
-          <Button size="small">Tạo lịch tạm</Button>
-          <Button size="small">Xem theo giờ</Button>
-          <Button size="small">Toàn màn hình</Button>
+          <Button size="small">{t("Xuất File")}</Button>
+          <Button type="primary" size="small" style={{ background: "#2671D8" }} onClick={onCreateAppointment}>{t("Tạo lịch hẹn mới")}</Button>
+          <Button size="small">{t("Tạo lịch tạm")}</Button>
+          <Button size="small">{t("Xem theo giờ")}</Button>
+          <Button size="small">{t("Toàn màn hình")}</Button>
         </div>
       </div>
 
@@ -198,7 +199,7 @@ export function DayViewCalendar({
               fontWeight: 600,
             }}
           >
-            Giờ /<br />Nhân viên
+            {t("Giờ /")}<br />{t("Nhân viên")}
           </div>
           {doctors.length === 0 ? (
             <div
@@ -211,7 +212,7 @@ export function DayViewCalendar({
                 textAlign: "center",
               }}
             >
-              Không có bác sĩ
+              {t("Không có bác sĩ")}
             </div>
           ) : (
             doctors.map((doc) => (
@@ -334,11 +335,11 @@ export function DayViewCalendar({
         }}
       >
         <Button type="text" size="small" icon={<LeftOutlined />} onClick={() => onDateChange?.(-1)}>
-          Ngày trước
+          {t("Ngày trước")}
         </Button>
         <span style={{ fontWeight: 600, fontSize: 14, color: "#1B2A41" }}>{displayDate}</span>
         <Button type="text" size="small" onClick={() => onDateChange?.(1)}>
-          Ngày kế tiếp <RightOutlined />
+          {t("Ngày kế tiếp")} <RightOutlined />
         </Button>
       </div>
     </div>

@@ -12,6 +12,14 @@ export const api = axios.create({
   },
 });
 
+/**
+ * The language the API answers in. Server messages (business errors, validation)
+ * follow the language the user picked, so this moves with the UI switch.
+ */
+export function setAcceptLanguage(language: string): void {
+  api.defaults.headers.common["Accept-Language"] = language;
+}
+
 api.interceptors.request.use((config) => {
   if (config.data instanceof FormData) {
     config.headers.set("Content-Type", false);

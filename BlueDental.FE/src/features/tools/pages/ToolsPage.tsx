@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Table, Button, Input, Tag } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
+import { t } from "@/lib/i18n";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -8,29 +9,29 @@ type ToolCategory = "call" | "message" | "zalo-oa" | "invoice";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
-const TOOL_TABS: { key: ToolCategory; label: string }[] = [
-  { key: "call",     label: "Gọi thoại" },
-  { key: "message",  label: "Tin nhắn" },
+const toolTabs = (): { key: ToolCategory; label: string }[] => [
+  { key: "call",     label: t("Gọi thoại") },
+  { key: "message",  label: t("Tin nhắn") },
   { key: "zalo-oa",  label: "Zalo OA" },
-  { key: "invoice",  label: "Hóa đơn" },
+  { key: "invoice",  label: t("Hóa đơn") },
 ];
 
-const CALL_SUB_TABS = [
-  { key: "config",    label: "Cấu Hình" },
-  { key: "assign",    label: "Phân Công Gọi" },
-  { key: "list",      label: "Danh Sách Cuộc Gọi" },
+const callSubTabs = () => [
+  { key: "config",    label: t("Cấu Hình") },
+  { key: "assign",    label: t("Phân Công Gọi") },
+  { key: "list",      label: t("Danh Sách Cuộc Gọi") },
 ];
 
-const MESSAGE_SUB_TABS = [
-  { key: "config",    label: "Cấu Hình" },
-  { key: "templates", label: "Mẫu Tin Nhắn" },
-  { key: "list",      label: "Danh Sách Tin Nhắn" },
+const messageSubTabs = () => [
+  { key: "config",    label: t("Cấu Hình") },
+  { key: "templates", label: t("Mẫu Tin Nhắn") },
+  { key: "list",      label: t("Danh Sách Tin Nhắn") },
 ];
 
-const ZALO_SUB_TABS = [
-  { key: "config",    label: "Cấu Hình" },
-  { key: "templates", label: "Mẫu ZBS" },
-  { key: "list",      label: "Danh sách Tin Nhắn" },
+const zaloSubTabs = () => [
+  { key: "config",    label: t("Cấu Hình") },
+  { key: "templates", label: t("Mẫu ZBS") },
+  { key: "list",      label: t("Danh sách Tin Nhắn") },
 ];
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -78,7 +79,7 @@ function PlaceholderContent({ label }: { label: string }) {
       <div style={{ padding: "48px 0", textAlign: "center", color: "#9CA3AF" }}>
         <div style={{ fontSize: 32, marginBottom: 8 }}>🛠️</div>
         <div style={{ fontWeight: 500, color: "#6B7280" }}>{label}</div>
-        <div style={{ fontSize: 13, marginTop: 4 }}>Nội dung đang được phát triển</div>
+        <div style={{ fontSize: 13, marginTop: 4 }}>{t("Nội dung đang được phát triển")}</div>
       </div>
     </div>
   );
@@ -90,24 +91,24 @@ function CallConfigView() {
   const [keyword, setKeyword] = useState("");
 
   const columns = [
-    { title: "Tên", dataIndex: "name", key: "name" },
-    { title: "Chi nhánh", dataIndex: "branch", key: "branch" },
-    { title: "Loại cài đặt", dataIndex: "settingType", key: "settingType" },
-    { title: "Nhà cung cấp", dataIndex: "provider", key: "provider" },
+    { title: t("Tên"), dataIndex: "name", key: "name" },
+    { title: t("Chi nhánh"), dataIndex: "branch", key: "branch" },
+    { title: t("Loại cài đặt"), dataIndex: "settingType", key: "settingType" },
+    { title: t("Nhà cung cấp"), dataIndex: "provider", key: "provider" },
     {
-      title: "Trạng thái",
+      title: t("Trạng thái"),
       dataIndex: "status",
       key: "status",
       render: (v: string | undefined) =>
         v ? <Tag color={v === "Đã kích hoạt" ? "green" : "default"}>{v}</Tag> : null,
     },
     {
-      title: "Thao tác",
+      title: t("Thao tác"),
       key: "actions",
       render: () => (
         <div style={{ display: "flex", gap: 6 }}>
-          <Button size="small">Chỉnh sửa</Button>
-          <Button size="small" danger>Xoá</Button>
+          <Button size="small">{t("Chỉnh sửa")}</Button>
+          <Button size="small" danger>{t("Xoá")}</Button>
         </div>
       ),
     },
@@ -119,13 +120,13 @@ function CallConfigView() {
         <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
           <Input
             prefix={<SearchOutlined />}
-            placeholder="Tìm kiếm..."
+            placeholder={t("Tìm kiếm...")}
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             style={{ width: 260 }}
             allowClear
           />
-          <Button type="primary">Tạo cấu hình</Button>
+          <Button type="primary">{t("Tạo cấu hình")}</Button>
         </div>
       </div>
       <div className="reception-card reception-card--content">
@@ -134,8 +135,8 @@ function CallConfigView() {
           dataSource={[]}
           rowKey="id"
           size="small"
-          locale={{ emptyText: "Chưa có cấu hình nào" }}
-          pagination={{ pageSize: 20, showTotal: (total) => `Hiển thị 0 trên ${total}` }}
+          locale={{ emptyText: t("Chưa có cấu hình nào") }}
+          pagination={{ pageSize: 20, showTotal: (total) => t("Hiển thị 0 trên {0}", total) }}
         />
       </div>
     </>
@@ -147,10 +148,10 @@ function CallView() {
 
   return (
     <>
-      <SubTabBar tabs={CALL_SUB_TABS} active={sub} onChange={setSub} />
+      <SubTabBar tabs={callSubTabs()} active={sub} onChange={setSub} />
       {sub === "config" && <CallConfigView />}
-      {sub === "assign" && <PlaceholderContent label="Phân Công Gọi" />}
-      {sub === "list" && <PlaceholderContent label="Danh Sách Cuộc Gọi" />}
+      {sub === "assign" && <PlaceholderContent label={t("Phân Công Gọi")} />}
+      {sub === "list" && <PlaceholderContent label={t("Danh Sách Cuộc Gọi")} />}
     </>
   );
 }
@@ -161,22 +162,22 @@ function MessageConfigView() {
   const [keyword, setKeyword] = useState("");
 
   const columns = [
-    { title: "Tên", dataIndex: "name", key: "name" },
-    { title: "Nhà cung cấp", dataIndex: "provider", key: "provider" },
+    { title: t("Tên"), dataIndex: "name", key: "name" },
+    { title: t("Nhà cung cấp"), dataIndex: "provider", key: "provider" },
     {
-      title: "Trạng thái",
+      title: t("Trạng thái"),
       dataIndex: "status",
       key: "status",
       render: (v: string | undefined) =>
         v ? <Tag color={v === "Đã kích hoạt" ? "green" : "default"}>{v}</Tag> : null,
     },
     {
-      title: "Thao tác",
+      title: t("Thao tác"),
       key: "actions",
       render: () => (
         <div style={{ display: "flex", gap: 6 }}>
-          <Button size="small">Chỉnh sửa</Button>
-          <Button size="small" danger>Xoá</Button>
+          <Button size="small">{t("Chỉnh sửa")}</Button>
+          <Button size="small" danger>{t("Xoá")}</Button>
         </div>
       ),
     },
@@ -188,13 +189,13 @@ function MessageConfigView() {
         <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
           <Input
             prefix={<SearchOutlined />}
-            placeholder="Tìm kiếm..."
+            placeholder={t("Tìm kiếm...")}
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             style={{ width: 260 }}
             allowClear
           />
-          <Button type="primary">Tạo cấu hình</Button>
+          <Button type="primary">{t("Tạo cấu hình")}</Button>
         </div>
       </div>
       <div className="reception-card reception-card--content">
@@ -203,8 +204,8 @@ function MessageConfigView() {
           dataSource={[]}
           rowKey="id"
           size="small"
-          locale={{ emptyText: "Chưa có cấu hình nào" }}
-          pagination={{ pageSize: 20, showTotal: (total) => `Hiển thị 0 trên ${total}` }}
+          locale={{ emptyText: t("Chưa có cấu hình nào") }}
+          pagination={{ pageSize: 20, showTotal: (total) => t("Hiển thị 0 trên {0}", total) }}
         />
       </div>
     </>
@@ -216,10 +217,10 @@ function MessageView() {
 
   return (
     <>
-      <SubTabBar tabs={MESSAGE_SUB_TABS} active={sub} onChange={setSub} />
+      <SubTabBar tabs={messageSubTabs()} active={sub} onChange={setSub} />
       {sub === "config" && <MessageConfigView />}
-      {sub === "templates" && <PlaceholderContent label="Mẫu Tin Nhắn" />}
-      {sub === "list" && <PlaceholderContent label="Danh Sách Tin Nhắn" />}
+      {sub === "templates" && <PlaceholderContent label={t("Mẫu Tin Nhắn")} />}
+      {sub === "list" && <PlaceholderContent label={t("Danh Sách Tin Nhắn")} />}
     </>
   );
 }
@@ -240,11 +241,11 @@ function ZaloConfigView() {
         </div>
         <div style={{ textAlign: "center" }}>
           <div style={{ fontWeight: 600, fontSize: 16, color: "#1B2A41", marginBottom: 6 }}>
-            Chưa kết nối Zalo OA
+            {t("Chưa kết nối Zalo OA")}
           </div>
-          <Tag color="default" style={{ marginBottom: 16 }}>Chưa kích hoạt</Tag>
+          <Tag color="default" style={{ marginBottom: 16 }}>{t("Chưa kích hoạt")}</Tag>
           <div>
-            <Button type="primary" disabled>Kết nối Zalo OA</Button>
+            <Button type="primary" disabled>{t("Kết nối Zalo OA")}</Button>
           </div>
         </div>
       </div>
@@ -257,10 +258,10 @@ function ZaloView() {
 
   return (
     <>
-      <SubTabBar tabs={ZALO_SUB_TABS} active={sub} onChange={setSub} />
+      <SubTabBar tabs={zaloSubTabs()} active={sub} onChange={setSub} />
       {sub === "config" && <ZaloConfigView />}
-      {sub === "templates" && <PlaceholderContent label="Mẫu ZBS" />}
-      {sub === "list" && <PlaceholderContent label="Danh sách Tin Nhắn" />}
+      {sub === "templates" && <PlaceholderContent label={t("Mẫu ZBS")} />}
+      {sub === "list" && <PlaceholderContent label={t("Danh sách Tin Nhắn")} />}
     </>
   );
 }
@@ -289,23 +290,23 @@ function InvoiceView() {
   );
 
   const columns = [
-    { title: "Tên", dataIndex: "name", key: "name" },
-    { title: "Tên chi nhánh", dataIndex: "branch", key: "branch" },
-    { title: "Mô đun", dataIndex: "module", key: "module" },
-    { title: "Nhà cung cấp", dataIndex: "provider", key: "provider" },
+    { title: t("Tên"), dataIndex: "name", key: "name" },
+    { title: t("Tên chi nhánh"), dataIndex: "branch", key: "branch" },
+    { title: t("Mô đun"), dataIndex: "module", key: "module" },
+    { title: t("Nhà cung cấp"), dataIndex: "provider", key: "provider" },
     {
-      title: "Trạng thái",
+      title: t("Trạng thái"),
       dataIndex: "status",
       key: "status",
       render: (v: string) => <Tag color="green">{v}</Tag>,
     },
     {
-      title: "Thao tác",
+      title: t("Thao tác"),
       key: "actions",
       render: () => (
         <div style={{ display: "flex", gap: 6 }}>
-          <Button size="small">Chỉnh sửa</Button>
-          <Button size="small" danger>Xoá</Button>
+          <Button size="small">{t("Chỉnh sửa")}</Button>
+          <Button size="small" danger>{t("Xoá")}</Button>
         </div>
       ),
     },
@@ -327,20 +328,20 @@ function InvoiceView() {
             fontSize: 13,
           }}
         >
-          Cấu Hình
+          {t("Cấu Hình")}
         </button>
       </div>
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
           <Input
             prefix={<SearchOutlined />}
-            placeholder="Tìm kiếm..."
+            placeholder={t("Tìm kiếm...")}
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             style={{ width: 260 }}
             allowClear
           />
-          <Button type="primary">Tạo cấu hình</Button>
+          <Button type="primary">{t("Tạo cấu hình")}</Button>
         </div>
       </div>
       <div className="reception-card reception-card--content">
@@ -349,8 +350,8 @@ function InvoiceView() {
           dataSource={filtered}
           rowKey="id"
           size="small"
-          locale={{ emptyText: "Chưa có cấu hình nào" }}
-          pagination={{ pageSize: 20, showTotal: (total) => `Hiển thị 0 trên ${total}` }}
+          locale={{ emptyText: t("Chưa có cấu hình nào") }}
+          pagination={{ pageSize: 20, showTotal: (total) => t("Hiển thị 0 trên {0}", total) }}
         />
       </div>
     </>
@@ -367,7 +368,7 @@ export function ToolsPage() {
       {/* Top tool category tabs */}
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", gap: 0 }}>
-          {TOOL_TABS.map((tab) => (
+          {toolTabs().map((tab) => (
             <button
               key={tab.key}
               type="button"

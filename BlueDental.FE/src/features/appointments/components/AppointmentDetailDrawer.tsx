@@ -6,6 +6,7 @@ import { useAppointment } from "../api/appointmentQueries";
 import { StatusBadge } from "./StatusBadge";
 import { formatDate } from "@/utils/format";
 import dayjs from "dayjs";
+import { t } from "@/lib/i18n";
 
 interface Props {
   appointmentId: string | null;
@@ -21,7 +22,7 @@ export function AppointmentDetailDrawer({ appointmentId, onClose }: Props) {
     <Drawer
       open={Boolean(appointmentId)}
       onClose={onClose}
-      title="Chi tiết lịch hẹn"
+      title={t("Chi tiết lịch hẹn")}
       width={480}
     >
       {isLoading && (
@@ -32,29 +33,29 @@ export function AppointmentDetailDrawer({ appointmentId, onClose }: Props) {
 
       {appointment && (
         <Descriptions column={1} size="small" bordered>
-          <Descriptions.Item label="Bệnh nhân">
+          <Descriptions.Item label={t("Bệnh nhân")}>
             {appointment.patientName}
           </Descriptions.Item>
-          <Descriptions.Item label="Điện thoại">
+          <Descriptions.Item label={t("Điện thoại")}>
             {appointment.patientPhone}
           </Descriptions.Item>
-          <Descriptions.Item label="Bác sĩ">
+          <Descriptions.Item label={t("Bác sĩ")}>
             {appointment.doctorName}
           </Descriptions.Item>
-          <Descriptions.Item label="Ngày khám">
+          <Descriptions.Item label={t("Ngày khám")}>
             {formatDate(appointment.startTime)}
           </Descriptions.Item>
-          <Descriptions.Item label="Giờ khám">
+          <Descriptions.Item label={t("Giờ khám")}>
             {dayjs(appointment.startTime).format("HH:mm")} –{" "}
             {dayjs(appointment.endTime).format("HH:mm")}
           </Descriptions.Item>
-          <Descriptions.Item label="Trạng thái">
+          <Descriptions.Item label={t("Trạng thái")}>
             <StatusBadge status={appointment.status} />
           </Descriptions.Item>
-          <Descriptions.Item label="Lý do khám">
-            {appointment.reason ?? "Khám định kỳ"}
+          <Descriptions.Item label={t("Lý do khám")}>
+            {appointment.reason ?? t("Khám định kỳ")}
           </Descriptions.Item>
-          <Descriptions.Item label="Ghi chú">
+          <Descriptions.Item label={t("Ghi chú")}>
             {appointment.notes ?? "—"}
           </Descriptions.Item>
         </Descriptions>

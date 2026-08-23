@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import type { PagedResult } from "@/types";
 
+import { t } from "@/lib/i18n";
 /** Matches BlueDental.Finance.SalesEntryType */
 export const SALES_ENTRY_TYPE = { Income: 1, Expense: 2 } as const;
 export type SalesEntryType = (typeof SALES_ENTRY_TYPE)[keyof typeof SALES_ENTRY_TYPE];
@@ -15,12 +16,12 @@ export const PAYMENT_CHANNEL = {
 } as const;
 export type PaymentChannel = (typeof PAYMENT_CHANNEL)[keyof typeof PAYMENT_CHANNEL];
 
-export const PAYMENT_CHANNEL_LABELS: Record<PaymentChannel, string> = {
-  [PAYMENT_CHANNEL.Cash]: "Tiền mặt",
-  [PAYMENT_CHANNEL.Banking]: "Chuyển khoản",
-  [PAYMENT_CHANNEL.Card]: "Quẹt thẻ",
-  [PAYMENT_CHANNEL.OutstandingDebt]: "Cấn trừ dư nợ",
-};
+export const paymentChannelLabels = (): Record<PaymentChannel, string> => ({
+  [PAYMENT_CHANNEL.Cash]: t("Tiền mặt"),
+  [PAYMENT_CHANNEL.Banking]: t("Chuyển khoản"),
+  [PAYMENT_CHANNEL.Card]: t("Quẹt thẻ"),
+  [PAYMENT_CHANNEL.OutstandingDebt]: t("Cấn trừ dư nợ"),
+});
 
 /** Matches BlueDental.Finance.SalesApprovalStatus */
 export const SALES_APPROVAL_STATUS = {
@@ -37,21 +38,21 @@ export const CASH_TRANSACTION_TYPE = { Deposit: 1, Withdraw: 2, Transfer: 3 } as
 export type CashTransactionType =
   (typeof CASH_TRANSACTION_TYPE)[keyof typeof CASH_TRANSACTION_TYPE];
 
-export const CASH_TRANSACTION_LABELS: Record<CashTransactionType, string> = {
-  [CASH_TRANSACTION_TYPE.Deposit]: "Nạp",
-  [CASH_TRANSACTION_TYPE.Withdraw]: "Rút",
-  [CASH_TRANSACTION_TYPE.Transfer]: "Luân chuyển",
-};
+export const cashTransactionLabels = (): Record<CashTransactionType, string> => ({
+  [CASH_TRANSACTION_TYPE.Deposit]: t("Nạp"),
+  [CASH_TRANSACTION_TYPE.Withdraw]: t("Rút"),
+  [CASH_TRANSACTION_TYPE.Transfer]: t("Luân chuyển"),
+});
 
 /** Matches BlueDental.Finance.CashHolding */
 export const CASH_HOLDING = { Cash: 1, Bank: 2, CustomerPrepaid: 3 } as const;
 export type CashHolding = (typeof CASH_HOLDING)[keyof typeof CASH_HOLDING];
 
-export const CASH_HOLDING_LABELS: Record<CashHolding, string> = {
-  [CASH_HOLDING.Cash]: "Tiền mặt",
-  [CASH_HOLDING.Bank]: "Chuyển khoản",
-  [CASH_HOLDING.CustomerPrepaid]: "Giữ hộ khách",
-};
+export const cashHoldingLabels = (): Record<CashHolding, string> => ({
+  [CASH_HOLDING.Cash]: t("Tiền mặt"),
+  [CASH_HOLDING.Bank]: t("Chuyển khoản"),
+  [CASH_HOLDING.CustomerPrepaid]: t("Giữ hộ khách"),
+});
 
 export interface SalesEntryDto {
   id: string;

@@ -8,6 +8,7 @@ import {
   FormOutlined,
 } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
+import { t } from "@/lib/i18n";
 
 interface DoctorOption {
   id: string;
@@ -30,19 +31,12 @@ interface ReceptionToolbarProps {
   onDateChange?: (date: Dayjs) => void;
 }
 
-const VIEW_OPTIONS = ["Ngày", "Tuần", "Tháng"] as const;
-
-function viewModeToLabel(mode: ViewMode): string {
-  if (mode === "day") return "Ngày";
-  if (mode === "week") return "Tuần";
-  return "Tháng";
-}
-
-function labelToViewMode(label: string): ViewMode {
-  if (label === "Ngày") return "day";
-  if (label === "Tuần") return "week";
-  return "month";
-}
+/** The value stays the mode key so the label is free to be translated. */
+const viewOptions = (): { value: ViewMode; label: string }[] => [
+  { value: "day", label: t("Ngày") },
+  { value: "week", label: t("Tuần") },
+  { value: "month", label: t("Tháng") },
+];
 
 function formatDateDisplay(date: Dayjs, mode: ViewMode): string {
   if (mode === "day") return date.format("DD/MM/YYYY");
@@ -51,7 +45,7 @@ function formatDateDisplay(date: Dayjs, mode: ViewMode): string {
     const end = date.endOf("week").format("DD/MM/YYYY");
     return `${start} - ${end}`;
   }
-  return `Tháng ${date.format("MM/YYYY")}`;
+  return `${t("Tháng")} ${date.format("MM/YYYY")}`;
 }
 
 function stepDate(date: Dayjs, mode: ViewMode, direction: 1 | -1): Dayjs {
@@ -75,9 +69,9 @@ export const ReceptionToolbar: React.FC<ReceptionToolbarProps> = ({
       {/* Left: time tabs + date nav + search */}
       <div className="reception-toolbar-left">
         <Segmented
-          value={viewModeToLabel(viewMode)}
-          onChange={(val) => onViewModeChange?.(labelToViewMode(val as string))}
-          options={[...VIEW_OPTIONS]}
+          value={viewMode}
+          onChange={(val) => onViewModeChange?.(val as ViewMode)}
+          options={viewOptions()}
           style={{ fontWeight: 600 }}
         />
 
@@ -99,7 +93,7 @@ export const ReceptionToolbar: React.FC<ReceptionToolbarProps> = ({
         </div>
 
         <Input
-          placeholder="Tìm bệnh nhân..."
+          placeholder={t("Tìm bệnh nhân...")}
           prefix={<SearchOutlined style={{ color: "#94A3B8" }} />}
           value={keyword}
           onChange={(e) => onSearchChange(e.target.value)}
@@ -121,7 +115,7 @@ export const ReceptionToolbar: React.FC<ReceptionToolbarProps> = ({
             paddingRight: 16,
           }}
         >
-          Tạo tiếp nhận
+          {t("Tạo tiếp nhận")}
         </Button>
       </div>
     </div>

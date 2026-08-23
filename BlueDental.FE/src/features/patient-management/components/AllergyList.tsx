@@ -3,6 +3,7 @@
 
 import { Tag, Empty } from "antd";
 import { WarningOutlined } from "@ant-design/icons";
+import { t } from "@/lib/i18n";
 
 interface Props {
   allergies: string[];
@@ -10,7 +11,7 @@ interface Props {
 
 export function AllergyList({ allergies }: Props) {
   if (allergies.length === 0) {
-    return <Empty description="Không có dị ứng đã ghi nhận" />;
+    return <Empty description={t("Không có dị ứng đã ghi nhận")} />;
   }
 
   return (

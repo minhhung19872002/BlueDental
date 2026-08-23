@@ -9,16 +9,17 @@ import { StatusBadge } from "../components/StatusBadge";
 import { formatDate } from "@/utils/format";
 import dayjs from "dayjs";
 import type { Appointment } from "../types/appointment";
+import { t } from "@/lib/i18n";
 
 type StatusFilter = "all" | "scheduled" | "confirmed" | "inProgress" | "completed" | "cancelled";
 
-const STATUS_TABS: { key: StatusFilter; label: string }[] = [
-  { key: "all",        label: "Tất cả" },
-  { key: "scheduled",  label: "Đã hẹn" },
-  { key: "confirmed",  label: "Đã xác nhận" },
-  { key: "inProgress", label: "Đang khám" },
-  { key: "completed",  label: "Hoàn thành" },
-  { key: "cancelled",  label: "Đã hủy" },
+const statusTabs = (): { key: StatusFilter; label: string }[] => [
+  { key: "all",        label: t("Tất cả") },
+  { key: "scheduled",  label: t("Đã hẹn") },
+  { key: "confirmed",  label: t("Đã xác nhận") },
+  { key: "inProgress", label: t("Đang khám") },
+  { key: "completed",  label: t("Hoàn thành") },
+  { key: "cancelled",  label: t("Đã hủy") },
 ];
 
 export function AppointmentListPage() {
@@ -50,27 +51,27 @@ export function AppointmentListPage() {
           <div style={{ display: "flex", gap: 8 }}>
             <Input
               prefix={<SearchOutlined />}
-              placeholder="Tìm kiếm bệnh nhân, bác sĩ..."
+              placeholder={t("Tìm kiếm bệnh nhân, bác sĩ...")}
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               style={{ width: 280 }}
               allowClear
             />
             <Select
-              placeholder="Bác sĩ điều trị"
+              placeholder={t("Bác sĩ điều trị")}
               allowClear
               style={{ width: 180 }}
               options={[]}
             />
           </div>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setEditorOpen(true)}>Tạo lịch hẹn</Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setEditorOpen(true)}>{t("Tạo lịch hẹn")}</Button>
         </div>
       </div>
 
       {/* Status filter tabs */}
       <div className="reception-card reception-card--tabs">
         <div style={{ display: "flex", gap: 0 }}>
-          {STATUS_TABS.map((tab) => (
+          {statusTabs().map((tab) => (
             <button
               key={tab.key}
               type="button"
@@ -104,38 +105,38 @@ export function AppointmentListPage() {
           size="middle"
           columns={[
             {
-              title: "Bệnh nhân",
+              title: t("Bệnh nhân"),
               dataIndex: "patientName",
               key: "patientName",
             },
             {
-              title: "Bác sĩ",
+              title: t("Bác sĩ"),
               dataIndex: "doctorName",
               key: "doctorName",
             },
             {
-              title: "Ngày khám",
+              title: t("Ngày khám"),
               key: "startTime",
               render: (_: unknown, record: Appointment) => formatDate(record.startTime),
             },
             {
-              title: "Giờ",
+              title: t("Giờ"),
               key: "time",
               width: 140,
               render: (_: unknown, record: Appointment) =>
                 `${dayjs(record.startTime).format("HH:mm")} – ${dayjs(record.endTime).format("HH:mm")}`,
             },
             {
-              title: "Trạng thái",
+              title: t("Trạng thái"),
               key: "status",
               width: 140,
               render: (_: unknown, record: Appointment) => <StatusBadge status={record.status} />,
             },
             {
-              title: "Lý do",
+              title: t("Lý do"),
               dataIndex: "reason",
               key: "reason",
-              render: (v: string | null) => v ?? <Tag color="default">Định kỳ</Tag>,
+              render: (v: string | null) => v ?? <Tag color="default">{t("Định kỳ")}</Tag>,
             },
           ]}
         />

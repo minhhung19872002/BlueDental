@@ -1,5 +1,6 @@
 import React from "react";
 import { TeamOutlined } from "@ant-design/icons";
+import { t } from "@/lib/i18n";
 
 export const ReceptionEmptyState: React.FC = () => {
   return (
@@ -8,10 +9,10 @@ export const ReceptionEmptyState: React.FC = () => {
         <TeamOutlined />
       </div>
       <h3 className="reception-empty-title">
-        Không có lượt tiếp nhận phù hợp
+        {t("Không có lượt tiếp nhận phù hợp")}
       </h3>
       <p className="reception-empty-desc">
-        Hãy thử đổi bộ lọc hoặc từ khoá tìm kiếm để xem thêm dữ liệu.
+        {t("Hãy thử đổi bộ lọc hoặc từ khoá tìm kiếm để xem thêm dữ liệu.")}
       </p>
     </div>
   );

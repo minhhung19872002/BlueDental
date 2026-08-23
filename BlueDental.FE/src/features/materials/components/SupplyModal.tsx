@@ -7,6 +7,7 @@ import {
 } from "../api/suppliesApi";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { extractApiError } from "@/lib/apiError";
+import { t } from "@/lib/i18n";
 
 interface SupplyModalProps {
   open: boolean;
@@ -76,7 +77,7 @@ export function SupplyModal({
             origin: values.origin,
           },
         });
-        message.success("Đã cập nhật vật tư");
+        message.success(t("Đã cập nhật vật tư"));
       } else {
         await createSupply.mutateAsync({
           branchId,
@@ -90,7 +91,7 @@ export function SupplyModal({
           supplier: values.supplier,
           origin: values.origin,
         });
-        message.success("Đã thêm vật tư");
+        message.success(t("Đã thêm vật tư"));
       }
 
       onClose();
@@ -110,9 +111,9 @@ export function SupplyModal({
   return (
     <Modal
       open={open}
-      title={isEdit ? `Sửa vật tư ${supply.itemCode}` : "Thêm vật tư"}
-      okText={isEdit ? "Lưu" : "Thêm"}
-      cancelText="Huỷ"
+      title={isEdit ? t("Sửa vật tư {0}", supply.itemCode) : t("Thêm vật tư")}
+      okText={isEdit ? t("Lưu") : t("Thêm")}
+      cancelText={t("Huỷ")}
       confirmLoading={createSupply.isPending || updateSupply.isPending}
       onOk={handleSubmit}
       onCancel={onClose}
@@ -124,8 +125,8 @@ export function SupplyModal({
           <Col span={10}>
             <Form.Item
               name="itemCode"
-              label="Mã vật tư"
-              rules={[{ required: true, message: "Vui lòng nhập mã" }]}
+              label={t("Mã vật tư")}
+              rules={[{ required: true, message: t("Vui lòng nhập mã") }]}
             >
               {/* The code is the branch-unique key, so it is fixed after creation. */}
               <Input disabled={isEdit} placeholder="VT001" />
@@ -134,39 +135,39 @@ export function SupplyModal({
           <Col span={14}>
             <Form.Item
               name="name"
-              label="Tên vật liệu"
-              rules={[{ required: true, message: "Vui lòng nhập tên" }]}
+              label={t("Tên vật liệu")}
+              rules={[{ required: true, message: t("Vui lòng nhập tên") }]}
             >
-              <Input placeholder="Găng tay y tế" />
+              <Input placeholder={t("Găng tay y tế")} />
             </Form.Item>
           </Col>
         </Row>
 
         <Row gutter={12}>
           <Col span={14}>
-            <Form.Item name="taxonomyId" label="Nhóm phân loại">
+            <Form.Item name="taxonomyId" label={t("Nhóm phân loại")}>
               <Select
                 allowClear
-                placeholder={groups.length === 0 ? "Chưa có nhóm vật tư" : "Chọn nhóm"}
+                placeholder={groups.length === 0 ? t("Chưa có nhóm vật tư") : t("Chọn nhóm")}
                 options={groups.map((g) => ({ value: g.id, label: g.name }))}
               />
             </Form.Item>
           </Col>
           <Col span={10}>
-            <Form.Item name="unit" label="Đơn vị">
-              <Input placeholder="Hộp / cái" />
+            <Form.Item name="unit" label={t("Đơn vị")}>
+              <Input placeholder={t("Hộp / cái")} />
             </Form.Item>
           </Col>
         </Row>
 
         <Row gutter={12}>
           <Col span={12}>
-            <Form.Item name="unitCost" label="Giá nhập (đ)">
+            <Form.Item name="unitCost" label={t("Giá nhập (đ)")}>
               <InputNumber<number> {...money} />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item name="salePrice" label="Giá bán (đ)">
+            <Form.Item name="salePrice" label={t("Giá bán (đ)")}>
               <InputNumber<number> {...money} />
             </Form.Item>
           </Col>
@@ -174,22 +175,22 @@ export function SupplyModal({
 
         <Row gutter={12}>
           <Col span={12}>
-            <Form.Item name="supplier" label="Nhà cung cấp">
+            <Form.Item name="supplier" label={t("Nhà cung cấp")}>
               <Input />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item name="origin" label="Xuất xứ">
-              <Input placeholder="Việt Nam" />
+            <Form.Item name="origin" label={t("Xuất xứ")}>
+              <Input placeholder={t("Việt Nam")} />
             </Form.Item>
           </Col>
         </Row>
 
         <Form.Item
           name="reorderLevel"
-          label="Mức tồn tối thiểu"
-          tooltip="Dưới mức này, vật tư hiển thị trạng thái Sắp hết"
-          rules={[{ type: "number", min: 0, message: "Không được âm" }]}
+          label={t("Mức tồn tối thiểu")}
+          tooltip={t("Dưới mức này, vật tư hiển thị trạng thái Sắp hết")}
+          rules={[{ type: "number", min: 0, message: t("Không được âm") }]}
         >
           <InputNumber<number> style={{ width: "100%" }} min={0} />
         </Form.Item>

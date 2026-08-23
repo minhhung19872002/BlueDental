@@ -5,6 +5,7 @@ import type {
   ReceptionMetrics,
   ReceptionCounters,
 } from "../types/reception";
+import { t } from "@/lib/i18n";
 
 interface DoctorOption {
   id: string;
@@ -28,11 +29,11 @@ interface TabConfig {
   testId: string;
 }
 
-const TABS: TabConfig[] = [
-  { key: "All", label: "Tất cả", countKey: "totalCount", testId: "reception-metric-total" },
-  { key: "WaitingForExam", label: "Chờ khám", countKey: "waitingCount", testId: "reception-metric-waiting" },
-  { key: "InProgress", label: "Đang khám", countKey: "inProgressCount", testId: "reception-metric-in-progress" },
-  { key: "Completed", label: "Hoàn thành", countKey: "completedCount", testId: "reception-metric-completed" },
+const tabs = (): TabConfig[] => [
+  { key: "All", label: t("Tất cả"), countKey: "totalCount", testId: "reception-metric-total" },
+  { key: "WaitingForExam", label: t("Chờ khám"), countKey: "waitingCount", testId: "reception-metric-waiting" },
+  { key: "InProgress", label: t("Đang khám"), countKey: "inProgressCount", testId: "reception-metric-in-progress" },
+  { key: "Completed", label: t("Hoàn thành"), countKey: "completedCount", testId: "reception-metric-completed" },
 ];
 
 interface CounterConfig {
@@ -43,13 +44,13 @@ interface CounterConfig {
   textColor: string;
 }
 
-const COUNTERS: CounterConfig[] = [
-  { key: "scheduledCount", label: "Đã hẹn",     borderColor: "#1E70E6", bgColor: "#EBF3FE", textColor: "#1E70E6" },
-  { key: "arrivedCount",   label: "Đã đến",     borderColor: "#10B981", bgColor: "#E6F4EA", textColor: "#10B981" },
-  { key: "cancelledCount", label: "Huỷ hẹn",    borderColor: "#EF4444", bgColor: "#FCE8E6", textColor: "#EF4444" },
-  { key: "lateCount",      label: "Trễ hẹn",    borderColor: "#F59E0B", bgColor: "#FEF3C7", textColor: "#F59E0B" },
-  { key: "temporaryCount", label: "Lịch tạm",   borderColor: "#F97316", bgColor: "#FFEDD5", textColor: "#F97316" },
-  { key: "convertedCount", label: "Chuyển đổi", borderColor: "#06B6D4", bgColor: "#CFFAFE", textColor: "#06B6D4" },
+const counterCards = (): CounterConfig[] => [
+  { key: "scheduledCount", label: t("Đã hẹn"),     borderColor: "#1E70E6", bgColor: "#EBF3FE", textColor: "#1E70E6" },
+  { key: "arrivedCount",   label: t("Đã đến"),     borderColor: "#10B981", bgColor: "#E6F4EA", textColor: "#10B981" },
+  { key: "cancelledCount", label: t("Huỷ hẹn"),    borderColor: "#EF4444", bgColor: "#FCE8E6", textColor: "#EF4444" },
+  { key: "lateCount",      label: t("Trễ hẹn"),    borderColor: "#F59E0B", bgColor: "#FEF3C7", textColor: "#F59E0B" },
+  { key: "temporaryCount", label: t("Lịch tạm"),   borderColor: "#F97316", bgColor: "#FFEDD5", textColor: "#F97316" },
+  { key: "convertedCount", label: t("Chuyển đổi"), borderColor: "#06B6D4", bgColor: "#CFFAFE", textColor: "#06B6D4" },
 ];
 
 export const ReceptionStatusTabs: React.FC<ReceptionStatusTabsProps> = ({
@@ -67,7 +68,7 @@ export const ReceptionStatusTabs: React.FC<ReceptionStatusTabsProps> = ({
       {/* Left: status pills + doctor filter */}
       <div className="reception-filter-left">
         <div className="reception-status-pills">
-          {TABS.map((tab) => {
+          {tabs().map((tab) => {
             const count = metrics?.[tab.countKey] ?? 0;
             const isActive = activeTab === tab.key;
             return (
@@ -86,7 +87,7 @@ export const ReceptionStatusTabs: React.FC<ReceptionStatusTabsProps> = ({
 
         <SearchSelect
           value={selectedDoctorId}
-          placeholder="Bác sĩ"
+          placeholder={t("Bác sĩ")}
           allowClear
           options={doctors.map((d) => ({ value: d.id, label: d.name }))}
           onChange={(val) => onDoctorSelect?.(val)}
@@ -96,7 +97,7 @@ export const ReceptionStatusTabs: React.FC<ReceptionStatusTabsProps> = ({
 
       {/* Right: 6 counter cards */}
       <div className="reception-counter-cards">
-        {COUNTERS.map((c) => (
+        {counterCards().map((c) => (
           <div
             key={c.key}
             className="reception-counter-card"

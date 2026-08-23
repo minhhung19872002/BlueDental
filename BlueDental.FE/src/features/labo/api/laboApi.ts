@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import type { PagedResult } from "@/types";
 
+import { t } from "@/lib/i18n";
 /** Matches BlueDental.Labo.LaboStatus. */
 export const LABO_STATUS = {
   Draft: 1,
@@ -13,35 +14,35 @@ export const LABO_STATUS = {
 } as const;
 export type LaboStatus = (typeof LABO_STATUS)[keyof typeof LABO_STATUS];
 
-export const LABO_STATUS_CONFIG: Record<LaboStatus, { label: string; color: string }> = {
-  [LABO_STATUS.Draft]: { label: "Nháp", color: "default" },
-  [LABO_STATUS.Sent]: { label: "Đã gửi", color: "blue" },
-  [LABO_STATUS.InProgress]: { label: "Đang làm", color: "processing" },
-  [LABO_STATUS.Received]: { label: "Đã nhận hàng", color: "green" },
-  [LABO_STATUS.Completed]: { label: "Hoàn tất", color: "green" },
-  [LABO_STATUS.Rejected]: { label: "Từ chối", color: "red" },
-};
+export const laboStatusConfig = (): Record<LaboStatus, { label: string; color: string }> => ({
+  [LABO_STATUS.Draft]: { label: t("Nháp"), color: "default" },
+  [LABO_STATUS.Sent]: { label: t("Đã gửi"), color: "blue" },
+  [LABO_STATUS.InProgress]: { label: t("Đang làm"), color: "processing" },
+  [LABO_STATUS.Received]: { label: t("Đã nhận hàng"), color: "green" },
+  [LABO_STATUS.Completed]: { label: t("Hoàn tất"), color: "green" },
+  [LABO_STATUS.Rejected]: { label: t("Từ chối"), color: "red" },
+});
 
 /** Matches BlueDental.Labo.LaboOrderKind — the patient-tab counters. */
 export const LABO_KIND = { New: 1, ContinueStage: 2, Guarantee: 3 } as const;
 export type LaboOrderKind = (typeof LABO_KIND)[keyof typeof LABO_KIND];
 
-export const LABO_KIND_LABELS: Record<LaboOrderKind, string> = {
-  [LABO_KIND.New]: "Đơn hàng mới",
-  [LABO_KIND.ContinueStage]: "Tiếp tục công đoạn",
-  [LABO_KIND.Guarantee]: "Bảo hành",
-};
+export const laboKindLabels = (): Record<LaboOrderKind, string> => ({
+  [LABO_KIND.New]: t("Đơn hàng mới"),
+  [LABO_KIND.ContinueStage]: t("Tiếp tục công đoạn"),
+  [LABO_KIND.Guarantee]: t("Bảo hành"),
+});
 
 /** Matches BlueDental.Labo.LaboSampleFilter — the chips above the table. */
 export const LABO_FILTER = { All: 0, AwaitingReturn: 1, Overdue: 2, Returned: 3 } as const;
 export type LaboSampleFilter = (typeof LABO_FILTER)[keyof typeof LABO_FILTER];
 
-export const LABO_FILTER_LABELS: Record<LaboSampleFilter, string> = {
-  [LABO_FILTER.All]: "Tất Cả Mẫu",
-  [LABO_FILTER.AwaitingReturn]: "Mẫu Chưa Nhận",
-  [LABO_FILTER.Overdue]: "Mẫu Giao Trễ",
-  [LABO_FILTER.Returned]: "Mẫu Đã Nhận Hàng",
-};
+export const laboFilterLabels = (): Record<LaboSampleFilter, string> => ({
+  [LABO_FILTER.All]: t("Tất Cả Mẫu"),
+  [LABO_FILTER.AwaitingReturn]: t("Mẫu Chưa Nhận"),
+  [LABO_FILTER.Overdue]: t("Mẫu Giao Trễ"),
+  [LABO_FILTER.Returned]: t("Mẫu Đã Nhận Hàng"),
+});
 
 export interface LaboOrderDto {
   id: string;

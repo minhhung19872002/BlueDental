@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { Modal, Button } from "antd";
+import { t } from "@/lib/i18n";
 
 interface Props {
   open: boolean;
@@ -19,7 +20,7 @@ export function FormModal({
   title,
   onClose,
   onSubmit,
-  submitLabel = "Lưu",
+  submitLabel = t("Lưu"),
   loading = false,
   width = 640,
   children,
@@ -33,7 +34,7 @@ export function FormModal({
       footer={
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
           <Button onClick={onClose} disabled={loading}>
-            Hủy
+            {t("Hủy")}
           </Button>
           {onSubmit && (
             <Button type="primary" onClick={onSubmit} loading={loading}>

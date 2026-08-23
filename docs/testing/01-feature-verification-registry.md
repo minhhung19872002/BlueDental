@@ -7,7 +7,7 @@ Only `VERIFIED` means the feature passed **real runtime acceptance** — real
 browser, real API, real PostgreSQL (see `00-test-policy.md`).
 
 Last run: 2026-08-23, stack on `localhost:5173` (Vite) → `localhost:5019` (API)
-→ PostgreSQL 15 and MinIO in Docker. Acceptance suite: **45 passed**.
+→ PostgreSQL 15 and MinIO in Docker. Acceptance suite: **48 passed**.
 
 | ID | Feature | Status | Acceptance spec | Notes |
 |----|---------|--------|-----------------|-------|
@@ -36,6 +36,7 @@ Last run: 2026-08-23, stack on `localhost:5173` (Vite) → `localhost:5019` (API
 | F-23 | Đơn thuốc | `VERIFIED` | `e2e/prescription.spec.ts` | Medicine lines snapshotted; a dispensed slip is frozen |
 | F-24 | Hình ảnh bệnh nhân | `VERIFIED` | `e2e/patient-image.spec.ts` | Real multipart upload to MinIO, bytes fetched back through the API |
 | F-25 | Nhân viên | `VERIFIED` | `e2e/staff.spec.ts` | Account created, edited and deleted; weak password refused by Identity |
+| F-26 | Song ngữ Việt/Anh (i18n) | `VERIFIED` | manual browser sweep, 2026-08-23 | Switch is instant, no reload; 985 keys, 0 untranslated; survives reload via `localStorage`; Zod messages and `Accept-Language` follow the switch |
 
 ## F-19 note — assumed, not observed
 
@@ -62,7 +63,9 @@ image rule — is BlueDental's own design and is documented as such in
 - **Công cụ** (F-16): gọi điện / SMS / Zalo / hoá đơn điện tử — the reference had
   no data to observe.
 - **Xuất Excel / PDF**: no export library is wired; the buttons are inert.
-- **i18n**: the UI is Vietnamese-only. Server error codes are bilingual, the
-  screens are not.
+- **i18n export language**: a PDF or Excel export is still generated in
+  Vietnamese regardless of the UI language.
+- **i18n on the login screen**: the switcher lives in the app header, which only
+  exists after sign-in, so the sign-in page is always Vietnamese.
 - Two catalogs ("Thẻ hồ sơ", "Phương thức thanh toán") that the reference does not
   model as catalogs.

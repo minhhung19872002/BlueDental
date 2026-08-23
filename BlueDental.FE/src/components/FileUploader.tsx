@@ -3,6 +3,7 @@
 
 import { Upload, type UploadProps } from "antd";
 import { InboxOutlined } from "@ant-design/icons";
+import { t } from "@/lib/i18n";
 
 interface Props extends UploadProps {
   hint?: string;
@@ -18,7 +19,7 @@ export function FileUploader({ hint, ...uploadProps }: Props) {
         <InboxOutlined />
       </p>
       <p className="ant-upload-text">
-        Kéo thả hoặc nhấp để chọn tệp
+        {t("Kéo thả hoặc nhấp để chọn tệp")}
       </p>
       {hint && (
         <p className="ant-upload-hint" style={{ fontSize: 12 }}>

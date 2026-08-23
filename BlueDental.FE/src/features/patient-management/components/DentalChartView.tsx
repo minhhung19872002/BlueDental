@@ -3,6 +3,7 @@
 // Tooth numbering follows the FDI two-digit system (11-18, 21-28, 31-38, 41-48).
 
 import type { CSSProperties } from "react";
+import { t } from "@/lib/i18n";
 
 export type ToothStatus =
   | "healthy"
@@ -78,7 +79,7 @@ function ToothCell({
       onClick={readOnly ? undefined : onClick}
       style={{ cursor: readOnly ? "default" : "pointer" }}
       role={readOnly ? undefined : "button"}
-      aria-label={`Răng ${fdi} — ${status}`}
+      aria-label={t("Răng {0} — {1}", fdi, status)}
     >
       <rect
         width={TOOTH_W}
@@ -164,7 +165,7 @@ export function DentalChartView({
   const totalH = lowerY + ROW_H + LABEL_OFFSET + 8;
 
   return (
-    <div style={style} aria-label="Biểu đồ nha khoa 32 răng">
+    <div style={style} aria-label={t("Biểu đồ nha khoa 32 răng")}>
       <svg
         viewBox={`0 0 ${TOTAL_W} ${totalH}`}
         width="100%"
@@ -206,7 +207,7 @@ export function DentalChartView({
           fill="#8FA8C0"
           fontFamily="Inter, sans-serif"
         >
-          Hàm trên
+          {t("Hàm trên")}
         </text>
         <text
           x={TOTAL_W / 2}
@@ -216,7 +217,7 @@ export function DentalChartView({
           fill="#8FA8C0"
           fontFamily="Inter, sans-serif"
         >
-          Hàm dưới
+          {t("Hàm dưới")}
         </text>
       </svg>
     </div>

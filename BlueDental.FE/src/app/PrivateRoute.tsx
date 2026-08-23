@@ -4,6 +4,7 @@ import { Spin } from "antd";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { authApi } from "@/features/auth/api";
+import { t } from "@/lib/i18n";
 
 interface Props {
   children: ReactNode;
@@ -48,7 +49,7 @@ export function PrivateRoute({ children }: Props) {
       <div
         style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}
       >
-        <Spin size="large" tip="Đang xác thực phiên đăng nhập" />
+        <Spin size="large" tip={t("Đang xác thực phiên đăng nhập")} />
       </div>
     );
   }

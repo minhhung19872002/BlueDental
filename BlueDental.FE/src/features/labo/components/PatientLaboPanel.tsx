@@ -1,13 +1,14 @@
 import { Card, Table, Tag, Typography } from "antd";
 import type { TableColumnsType } from "antd";
 import {
-  LABO_KIND_LABELS,
-  LABO_STATUS_CONFIG,
+  laboKindLabels,
+  laboStatusConfig,
   useLaboOrders,
   type LaboOrderDto,
 } from "../api/laboApi";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { formatDate, formatVND } from "@/utils/format";
+import { t } from "@/lib/i18n";
 
 const { Text } = Typography;
 
@@ -23,24 +24,24 @@ export function PatientLaboPanel({ patientId }: PatientLaboPanelProps) {
   const rows = data?.items ?? [];
 
   const columns: TableColumnsType<LaboOrderDto> = [
-    { title: "Mã phiếu", dataIndex: "orderCode", key: "orderCode", width: 130 },
+    { title: t("Mã phiếu"), dataIndex: "orderCode", key: "orderCode", width: 130 },
     {
-      title: "Loại",
+      title: t("Loại"),
       dataIndex: "kind",
       key: "kind",
       width: 150,
-      render: (value: LaboOrderDto["kind"]) => <Tag>{LABO_KIND_LABELS[value]}</Tag>,
+      render: (value: LaboOrderDto["kind"]) => <Tag>{laboKindLabels()[value]}</Tag>,
     },
-    { title: "Nhà cung cấp", dataIndex: "labProviderName", key: "labProviderName", width: 180 },
+    { title: t("Nhà cung cấp"), dataIndex: "labProviderName", key: "labProviderName", width: 180 },
     {
-      title: "Răng",
+      title: t("Răng"),
       dataIndex: "toothNumbers",
       key: "toothNumbers",
       width: 100,
       render: (value: string | null) => value ?? "—",
     },
     {
-      title: "Hẹn trả",
+      title: t("Hẹn trả"),
       dataIndex: "dueDate",
       key: "dueDate",
       width: 110,
@@ -52,24 +53,24 @@ export function PatientLaboPanel({ patientId }: PatientLaboPanelProps) {
         ),
     },
     {
-      title: "Chi phí",
+      title: t("Chi phí"),
       dataIndex: "estimatedCost",
       key: "estimatedCost",
       width: 120,
       align: "right",
-      render: (value: number) => `${formatVND(value ?? 0)} đ`,
+      render: (value: number) => t("{0} đ", formatVND(value ?? 0)),
     },
     {
-      title: "Trạng thái",
+      title: t("Trạng thái"),
       dataIndex: "status",
       key: "status",
       width: 140,
       render: (value: LaboOrderDto["status"], row) => {
-        const config = LABO_STATUS_CONFIG[value];
+        const config = laboStatusConfig()[value];
         return (
           <>
             <Tag color={config.color}>{config.label}</Tag>
-            {row.isOverdue && <Tag color="red">Trễ</Tag>}
+            {row.isOverdue && <Tag color="red">{t("Trễ")}</Tag>}
           </>
         );
       },
@@ -85,7 +86,7 @@ export function PatientLaboPanel({ patientId }: PatientLaboPanelProps) {
         columns={columns}
         dataSource={rows}
         pagination={false}
-        locale={{ emptyText: <Text type="secondary">Chưa có phiếu labo</Text> }}
+        locale={{ emptyText: <Text type="secondary">{t("Chưa có phiếu labo")}</Text> }}
       />
     </Card>
   );

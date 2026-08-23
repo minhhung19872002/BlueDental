@@ -2,7 +2,8 @@
 // TODO: Add drug lookup from catalog, dosage fields, print support.
 
 import { Empty } from "antd";
+import { t } from "@/lib/i18n";
 
 export function PrescriptionForm() {
-  return <Empty description="Form kê đơn thuốc đang được phát triển." />;
+  return <Empty description={t("Form kê đơn thuốc đang được phát triển.")} />;
 }

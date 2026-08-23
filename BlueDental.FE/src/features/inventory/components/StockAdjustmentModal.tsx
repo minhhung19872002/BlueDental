@@ -2,6 +2,7 @@
 // TODO: Implement adjustment form with reason codes and batch tracking.
 
 import { Modal, Button } from "antd";
+import { t } from "@/lib/i18n";
 
 interface Props {
   open: boolean;
@@ -12,11 +13,11 @@ export function StockAdjustmentModal({ open, onClose }: Props) {
   return (
     <Modal
       open={open}
-      title="Điều chỉnh kho"
+      title={t("Điều chỉnh kho")}
       onCancel={onClose}
-      footer={<Button onClick={onClose}>Đóng</Button>}
+      footer={<Button onClick={onClose}>{t("Đóng")}</Button>}
     >
-      <p style={{ color: "#5E748E" }}>Form điều chỉnh kho đang được phát triển.</p>
+      <p style={{ color: "#5E748E" }}>{t("Form điều chỉnh kho đang được phát triển.")}</p>
     </Modal>
   );
 }

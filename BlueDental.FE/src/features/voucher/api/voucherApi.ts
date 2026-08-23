@@ -3,6 +3,7 @@ import { api } from "@/lib/axios";
 import type { PagedResult } from "@/types";
 import { DISCOUNT_TYPE, type DiscountType } from "@/features/treatment-management/api/consultingApi";
 
+import { t } from "@/lib/i18n";
 /** Matches BlueDental.Promotions.VoucherStatus */
 export const VOUCHER_STATUS = {
   Draft: 1,
@@ -12,22 +13,22 @@ export const VOUCHER_STATUS = {
 } as const;
 export type VoucherStatus = (typeof VOUCHER_STATUS)[keyof typeof VOUCHER_STATUS];
 
-export const VOUCHER_STATUS_CONFIG: Record<VoucherStatus, { label: string; color: string }> = {
-  [VOUCHER_STATUS.Draft]: { label: "Nháp", color: "default" },
-  [VOUCHER_STATUS.Active]: { label: "Đang hoạt động", color: "green" },
-  [VOUCHER_STATUS.Paused]: { label: "Tạm dừng", color: "orange" },
-  [VOUCHER_STATUS.Expired]: { label: "Hết hạn", color: "red" },
-};
+export const voucherStatusConfig = (): Record<VoucherStatus, { label: string; color: string }> => ({
+  [VOUCHER_STATUS.Draft]: { label: t("Nháp"), color: "default" },
+  [VOUCHER_STATUS.Active]: { label: t("Đang hoạt động"), color: "green" },
+  [VOUCHER_STATUS.Paused]: { label: t("Tạm dừng"), color: "orange" },
+  [VOUCHER_STATUS.Expired]: { label: t("Hết hạn"), color: "red" },
+});
 
 /** Matches BlueDental.Promotions.VoucherCustomerTarget */
 export const CUSTOMER_TARGET = { All: 0, New: 1, Returning: 2 } as const;
 export type VoucherCustomerTarget = (typeof CUSTOMER_TARGET)[keyof typeof CUSTOMER_TARGET];
 
-export const CUSTOMER_TARGET_LABELS: Record<VoucherCustomerTarget, string> = {
-  [CUSTOMER_TARGET.All]: "Mọi khách",
-  [CUSTOMER_TARGET.New]: "Khách mới",
-  [CUSTOMER_TARGET.Returning]: "Khách cũ",
-};
+export const customerTargetLabels = (): Record<VoucherCustomerTarget, string> => ({
+  [CUSTOMER_TARGET.All]: t("Mọi khách"),
+  [CUSTOMER_TARGET.New]: t("Khách mới"),
+  [CUSTOMER_TARGET.Returning]: t("Khách cũ"),
+});
 
 export { DISCOUNT_TYPE };
 export type { DiscountType };

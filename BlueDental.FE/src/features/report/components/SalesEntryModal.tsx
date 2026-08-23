@@ -3,7 +3,7 @@ import { DatePicker, Form, Input, InputNumber, Modal, Select, message } from "an
 import dayjs from "dayjs";
 import {
   PAYMENT_CHANNEL,
-  PAYMENT_CHANNEL_LABELS,
+  paymentChannelLabels,
   SALES_ENTRY_TYPE,
   useCashflowCategories,
   useCreateCashflowCategory,
@@ -16,6 +16,7 @@ import {
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { extractApiError } from "@/lib/apiError";
+import { t } from "@/lib/i18n";
 
 interface SalesEntryModalProps {
   open: boolean;
@@ -34,7 +35,7 @@ interface SalesEntryFormValues {
   entryDate: dayjs.Dayjs;
 }
 
-const CHANNEL_OPTIONS = Object.entries(PAYMENT_CHANNEL_LABELS).map(([value, label]) => ({
+const CHANNEL_OPTIONS = Object.entries(paymentChannelLabels()).map(([value, label]) => ({
   value: Number(value) as PaymentChannel,
   label,
 }));
@@ -82,7 +83,7 @@ export function SalesEntryModal({ open, entry, defaultType, onClose }: SalesEntr
       });
       form.setFieldValue("categoryId", created.id);
       setNewCategoryName("");
-      message.success("Đã thêm mục thu chi");
+      message.success(t("Đã thêm mục thu chi"));
     } catch (error) {
       message.error(extractApiError(error));
     }
@@ -92,7 +93,7 @@ export function SalesEntryModal({ open, entry, defaultType, onClose }: SalesEntr
     const values = await form.validateFields();
 
     if (!currentUserId) {
-      message.error("Không xác định được người dùng hiện tại.");
+      message.error(t("Không xác định được người dùng hiện tại."));
       return;
     }
 
@@ -110,7 +111,7 @@ export function SalesEntryModal({ open, entry, defaultType, onClose }: SalesEntr
             entryDate,
           },
         });
-        message.success("Đã cập nhật phiếu");
+        message.success(t("Đã cập nhật phiếu"));
       } else {
         await createEntry.mutateAsync({
           clinicBranchId: branchId,
@@ -124,8 +125,8 @@ export function SalesEntryModal({ open, entry, defaultType, onClose }: SalesEntr
         });
         message.success(
           values.type === SALES_ENTRY_TYPE.Expense
-            ? "Đã tạo phiếu chi — đang chờ duyệt"
-            : "Đã tạo phiếu thu",
+            ? t("Đã tạo phiếu chi — đang chờ duyệt")
+            : t("Đã tạo phiếu thu"),
         );
       }
 
@@ -138,21 +139,21 @@ export function SalesEntryModal({ open, entry, defaultType, onClose }: SalesEntr
   return (
     <Modal
       open={open}
-      title={isEdit ? `Sửa phiếu ${entry.code}` : "Tạo phiếu thu chi"}
-      okText={isEdit ? "Lưu" : "Tạo"}
-      cancelText="Huỷ"
+      title={isEdit ? t("Sửa phiếu {0}", entry.code) : t("Tạo phiếu thu chi")}
+      okText={isEdit ? t("Lưu") : t("Tạo")}
+      cancelText={t("Huỷ")}
       confirmLoading={createEntry.isPending || updateEntry.isPending}
       onOk={handleSubmit}
       onCancel={onClose}
       destroyOnHidden
     >
       <Form form={form} layout="vertical" requiredMark>
-        <Form.Item name="type" label="Loại phiếu" rules={[{ required: true }]}>
+        <Form.Item name="type" label={t("Loại phiếu")} rules={[{ required: true }]}>
           <Select
             disabled={isEdit}
             options={[
-              { value: SALES_ENTRY_TYPE.Income, label: "Phiếu thu" },
-              { value: SALES_ENTRY_TYPE.Expense, label: "Phiếu chi (cần duyệt)" },
+              { value: SALES_ENTRY_TYPE.Income, label: t("Phiếu thu") },
+              { value: SALES_ENTRY_TYPE.Expense, label: t("Phiếu chi (cần duyệt)") },
             ]}
             onChange={() => form.setFieldValue("categoryId", undefined)}
           />
@@ -160,18 +161,18 @@ export function SalesEntryModal({ open, entry, defaultType, onClose }: SalesEntr
 
         <Form.Item
           name="categoryId"
-          label="Mục thu chi"
-          rules={[{ required: true, message: "Vui lòng chọn mục" }]}
+          label={t("Mục thu chi")}
+          rules={[{ required: true, message: t("Vui lòng chọn mục") }]}
         >
           <Select
-            placeholder={categories.length === 0 ? "Chưa có mục — thêm bên dưới" : "Chọn mục"}
+            placeholder={categories.length === 0 ? t("Chưa có mục — thêm bên dưới") : t("Chọn mục")}
             options={categories.map((c) => ({ value: c.id, label: c.name }))}
             popupRender={(menu) => (
               <>
                 {menu}
                 <div style={{ display: "flex", gap: 8, padding: 8 }}>
                   <Input
-                    placeholder="Thêm mục mới"
+                    placeholder={t("Thêm mục mới")}
                     value={newCategoryName}
                     onChange={(e) => setNewCategoryName(e.target.value)}
                     onPressEnter={handleAddCategory}
@@ -184,10 +185,10 @@ export function SalesEntryModal({ open, entry, defaultType, onClose }: SalesEntr
 
         <Form.Item
           name="amount"
-          label="Số tiền (đ)"
+          label={t("Số tiền (đ)")}
           rules={[
-            { required: true, message: "Vui lòng nhập số tiền" },
-            { type: "number", min: 1, message: "Số tiền phải lớn hơn 0" },
+            { required: true, message: t("Vui lòng nhập số tiền") },
+            { type: "number", min: 1, message: t("Số tiền phải lớn hơn 0") },
           ]}
         >
           <InputNumber<number>
@@ -199,19 +200,19 @@ export function SalesEntryModal({ open, entry, defaultType, onClose }: SalesEntr
           />
         </Form.Item>
 
-        <Form.Item name="channel" label="Hình thức" rules={[{ required: true }]}>
+        <Form.Item name="channel" label={t("Hình thức")} rules={[{ required: true }]}>
           <Select options={CHANNEL_OPTIONS} />
         </Form.Item>
 
         <Form.Item
           name="description"
-          label="Nội dung"
-          rules={[{ required: true, message: "Vui lòng nhập nội dung" }]}
+          label={t("Nội dung")}
+          rules={[{ required: true, message: t("Vui lòng nhập nội dung") }]}
         >
-          <Input.TextArea rows={2} placeholder="Nội dung thu / chi" />
+          <Input.TextArea rows={2} placeholder={t("Nội dung thu / chi")} />
         </Form.Item>
 
-        <Form.Item name="entryDate" label="Ngày" rules={[{ required: true }]}>
+        <Form.Item name="entryDate" label={t("Ngày")} rules={[{ required: true }]}>
           <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
         </Form.Item>
       </Form>

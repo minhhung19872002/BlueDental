@@ -9,6 +9,7 @@ import {
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { extractApiError } from "@/lib/apiError";
 import { formatDateTime } from "@/utils/format";
+import { t } from "@/lib/i18n";
 
 const { Text } = Typography;
 
@@ -38,7 +39,7 @@ export function PatientImagePanel({ patientId }: PatientImagePanelProps) {
     setUploading(true);
     try {
       await uploadImage.mutateAsync({ patientId, clinicBranchId: branchId, file });
-      message.success("Đã tải ảnh lên");
+      message.success(t("Đã tải ảnh lên"));
     } catch (error) {
       message.error(extractApiError(error));
     } finally {
@@ -68,13 +69,13 @@ export function PatientImagePanel({ patientId }: PatientImagePanelProps) {
           loading={uploading}
           onClick={() => inputRef.current?.click()}
         >
-          Thêm ảnh
+          {t("Thêm ảnh")}
         </Button>
       </div>
 
       <Card size="small" loading={isLoading}>
         {images.length === 0 ? (
-          <Empty description="Chưa có hình ảnh" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          <Empty description={t("Chưa có hình ảnh")} image={Empty.PRESENTED_IMAGE_SIMPLE} />
         ) : (
           <div
             style={{ display: "flex", flexWrap: "wrap", gap: 12 }}
@@ -97,13 +98,13 @@ export function PatientImagePanel({ patientId }: PatientImagePanelProps) {
                   <Space size={4} style={{ fontSize: 11, color: "#9CA3AF" }}>
                     <span>{formatDateTime(image.takenAt)}</span>
                     <Popconfirm
-                      title="Xoá ảnh này?"
-                      okText="Xoá"
-                      cancelText="Huỷ"
+                      title={t("Xoá ảnh này?")}
+                      okText={t("Xoá")}
+                      cancelText={t("Huỷ")}
                       onConfirm={async () => {
                         try {
                           await deleteImage.mutateAsync(image.id);
-                          message.success("Đã xoá ảnh");
+                          message.success(t("Đã xoá ảnh"));
                         } catch (error) {
                           message.error(extractApiError(error));
                         }

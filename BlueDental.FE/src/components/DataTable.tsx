@@ -2,6 +2,7 @@
 // Adds consistent scroll, pagination format, and loading skeleton.
 
 import { Table, type TableProps } from "antd";
+import { t } from "@/lib/i18n";
 
 interface Props<T extends object> extends TableProps<T> {
   totalCount?: number;
@@ -29,7 +30,7 @@ export function DataTable<T extends object>({
           pageSizeOptions: [10, 20, 50, 100],
           onChange: onPageChange,
           showTotal: (total: number, range: [number, number]) =>
-            `Hiển thị ${range[0]}-${range[1]}/${total}`,
+            t("Hiển thị {0}-{1}/{2}", range[0], range[1], total),
           ...pagination,
         };
 

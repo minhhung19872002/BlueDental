@@ -8,6 +8,7 @@ import viVN from "antd/locale/vi_VN";
 import { themeConfig } from "@/theme/index";
 import { describeApiError } from "./apiError";
 import type { ApiErrorInfo } from "./apiError";
+import { t } from "@/lib/i18n";
 
 export interface AntdNotifier {
   message: { error: (config: MessageArgsProps) => unknown };
@@ -46,7 +47,7 @@ function showApiError(info: ApiErrorInfo): void {
   const notifier = currentNotifier();
   if (info.kind === "system") {
     notifier.notification.error({
-      title: "Lỗi hệ thống",
+      title: t("Lỗi hệ thống"),
       description: info.message,
       key: `bluedental-error-${info.message}`,
       duration: 8,

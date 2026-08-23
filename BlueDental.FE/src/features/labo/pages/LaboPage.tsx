@@ -4,9 +4,9 @@ import { SearchOutlined, DownloadOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import {
   LABO_FILTER,
-  LABO_FILTER_LABELS,
+  laboFilterLabels,
   LABO_STATUS,
-  LABO_STATUS_CONFIG,
+  laboStatusConfig,
   useLaboOrders,
   useLaboStats,
   useReceiveLaboOrder,
@@ -18,6 +18,7 @@ import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { downloadFile } from "@/lib/download";
 import { extractApiError } from "@/lib/apiError";
 import { formatDate } from "@/utils/format";
+import { t } from "@/lib/i18n";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -31,18 +32,18 @@ type LaboSubRoute =
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
-const SUB_ROUTES: { key: LaboSubRoute; label: string }[] = [
-  { key: "mau-labo", label: "Mẫu Labo" },
-  { key: "supplier", label: "Nhà cung cấp Labo" },
-  { key: "bite", label: "Khớp cắn Labo" },
-  { key: "finish-line", label: "Đường hoàn tất" },
-  { key: "nhip", label: "Kiểu nhịp Labo" },
-  { key: "service-material", label: "Dịch vụ - vật liệu" },
+const subRoutes = (): { key: LaboSubRoute; label: string }[] => [
+  { key: "mau-labo", label: t("Mẫu Labo") },
+  { key: "supplier", label: t("Nhà cung cấp Labo") },
+  { key: "bite", label: t("Khớp cắn Labo") },
+  { key: "finish-line", label: t("Đường hoàn tất") },
+  { key: "nhip", label: t("Kiểu nhịp Labo") },
+  { key: "service-material", label: t("Dịch vụ - vật liệu") },
 ];
 
 const MAU_LABO_FILTER_TABS: { key: LaboSampleFilter; label: string }[] = (
   [LABO_FILTER.All, LABO_FILTER.AwaitingReturn, LABO_FILTER.Overdue, LABO_FILTER.Returned] as LaboSampleFilter[]
-).map((key) => ({ key, label: LABO_FILTER_LABELS[key] }));
+).map((key) => ({ key, label: laboFilterLabels()[key] }));
 
 // ── Sub-views ──────────────────────────────────────────────────────────────
 
@@ -83,7 +84,7 @@ function MauLaboView() {
 
   const columns: ColumnsType<LaboOrderDto> = [
     {
-      title: "Nhà cung cấp / Ngày tạo",
+      title: t("Nhà cung cấp / Ngày tạo"),
       key: "supplier",
       width: 200,
       render: (_, row) => (
@@ -94,78 +95,78 @@ function MauLaboView() {
       ),
     },
     {
-      title: "Tên khách hàng",
+      title: t("Tên khách hàng"),
       dataIndex: "patientName",
       key: "patientName",
       width: 180,
       render: (value: string | null) => value ?? "—",
     },
     {
-      title: "Ngày gửi / Tình trạng mẫu",
+      title: t("Ngày gửi / Tình trạng mẫu"),
       key: "sent",
       width: 190,
       render: (_, row) => (
         <>
-          <div>{row.sentAt ? formatDate(row.sentAt) : "Chưa gửi"}</div>
+          <div>{row.sentAt ? formatDate(row.sentAt) : t("Chưa gửi")}</div>
           <Tag color={row.isAwaitingReturn ? "orange" : row.receivedAt ? "green" : "default"}>
-            {row.receivedAt ? "Đã nhận hàng" : row.isAwaitingReturn ? "Chưa nhận" : "Chưa gửi"}
+            {row.receivedAt ? t("Đã nhận hàng") : row.isAwaitingReturn ? t("Chưa nhận") : t("Chưa gửi")}
           </Tag>
         </>
       ),
     },
     {
-      title: "Ngày giao / Trạng thái Labo",
+      title: t("Ngày giao / Trạng thái Labo"),
       key: "due",
       width: 200,
       render: (_, row) => (
         <>
           <div style={{ color: row.isOverdue ? "#EF4444" : undefined }}>
             {row.dueDate ? formatDate(row.dueDate) : "—"}
-            {row.isOverdue && " (trễ)"}
+            {row.isOverdue && t(" (trễ)")}
           </div>
-          <Tag color={LABO_STATUS_CONFIG[row.status].color}>
-            {LABO_STATUS_CONFIG[row.status].label}
+          <Tag color={laboStatusConfig()[row.status].color}>
+            {laboStatusConfig()[row.status].label}
           </Tag>
         </>
       ),
     },
     {
-      title: "Bác sĩ chỉ định",
+      title: t("Bác sĩ chỉ định"),
       dataIndex: "dentistName",
       key: "dentistName",
       width: 150,
       render: (value: string | null) => value ?? "—",
     },
     {
-      title: "Vật liệu",
+      title: t("Vật liệu"),
       dataIndex: "materialName",
       key: "materialName",
       width: 150,
       render: (value: string | null) => value ?? "—",
     },
     {
-      title: "Răng",
+      title: t("Răng"),
       dataIndex: "toothNumbers",
       key: "toothNumbers",
       width: 120,
       render: (value: string | null) => value ?? "—",
     },
     {
-      title: "File phòng khám gửi về",
+      title: t("File phòng khám gửi về"),
       dataIndex: "attachmentUrl",
       key: "attachmentUrl",
       width: 180,
       render: (value: string | null) =>
         value ? (
           <a href={value} target="_blank" rel="noreferrer">
-            Tệp đính kèm
+            {t("Tệp đính kèm")}
           </a>
         ) : (
           "—"
         ),
     },
     {
-      title: "Thao tác",
+      title: t("Thao tác"),
       key: "actions",
       width: 160,
       render: (_, row) => (
@@ -174,18 +175,18 @@ function MauLaboView() {
             <Button
               type="link"
               size="small"
-              onClick={() => run(sendOrder.mutateAsync(row.id), "Đã gửi mẫu cho Labo")}
+              onClick={() => run(sendOrder.mutateAsync(row.id), t("Đã gửi mẫu cho Labo"))}
             >
-              Gửi mẫu
+              {t("Gửi mẫu")}
             </Button>
           )}
           {row.isAwaitingReturn && (
             <Button
               type="link"
               size="small"
-              onClick={() => run(receiveOrder.mutateAsync(row.id), "Đã nhận hàng")}
+              onClick={() => run(receiveOrder.mutateAsync(row.id), t("Đã nhận hàng"))}
             >
-              Nhận hàng
+              {t("Nhận hàng")}
             </Button>
           )}
         </>
@@ -238,17 +239,16 @@ function MauLaboView() {
               icon={<DownloadOutlined />}
               onClick={() => void downloadFile("/v1/app/labo-orders/excel", "labo.xlsx", listParams)}
             >
-              Xuất Excel
+              {t("Xuất Excel")}
             </Button>
             <span style={{ fontSize: 13, color: "#5A6B82" }}>
-              Đơn hàng mới: {stats?.new ?? 0} · Tiếp tục công đoạn: {stats?.continueStage ?? 0} ·
-              Bảo hành: {stats?.guarantee ?? 0}
+              {t("Đơn hàng mới:")} {stats?.new ?? 0} {t("· Tiếp tục công đoạn:")} {stats?.continueStage ?? 0} {t("· Bảo hành:")} {stats?.guarantee ?? 0}
             </span>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <Input
               prefix={<SearchOutlined />}
-              placeholder="Tìm mã mẫu hoặc nhà cung cấp..."
+              placeholder={t("Tìm mã mẫu hoặc nhà cung cấp...")}
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               style={{ width: 240 }}
@@ -270,9 +270,9 @@ function MauLaboView() {
             pageSize: 20,
             showSizeChanger: true,
             pageSizeOptions: ["5", "10", "20", "25", "50", "100"],
-            showTotal: (total, range) => `Hiển thị ${range[0]}–${range[1]} trên ${total} mẫu labo`,
+            showTotal: (total, range) => t("Hiển thị {0}–{1} trên {2} mẫu labo", range[0], range[1], total),
           }}
-          locale={{ emptyText: "Không có dữ liệu" }}
+          locale={{ emptyText: t("Không có dữ liệu") }}
           size="middle"
         />
       </div>
@@ -284,18 +284,18 @@ function SupplierView() {
   const [keyword, setKeyword] = useState("");
 
   const columns = [
-    { title: "Tên labo", dataIndex: "name", key: "name" },
-    { title: "Số điện thoại", dataIndex: "phone", key: "phone" },
+    { title: t("Tên labo"), dataIndex: "name", key: "name" },
+    { title: t("Số điện thoại"), dataIndex: "phone", key: "phone" },
     { title: "Email", dataIndex: "email", key: "email" },
-    { title: "Địa chỉ", dataIndex: "address", key: "address" },
-    { title: "Lần cập nhật cuối", dataIndex: "updatedAt", key: "updatedAt" },
+    { title: t("Địa chỉ"), dataIndex: "address", key: "address" },
+    { title: t("Lần cập nhật cuối"), dataIndex: "updatedAt", key: "updatedAt" },
     {
-      title: "Thao tác",
+      title: t("Thao tác"),
       key: "actions",
       render: () => (
         <div style={{ display: "flex", gap: 8 }}>
-          <Button size="small">Chỉnh sửa</Button>
-          <Button size="small" danger>Xoá</Button>
+          <Button size="small">{t("Chỉnh sửa")}</Button>
+          <Button size="small" danger>{t("Xoá")}</Button>
         </div>
       ),
     },
@@ -307,13 +307,13 @@ function SupplierView() {
         <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
           <Input
             prefix={<SearchOutlined />}
-            placeholder="Tìm kiếm Labo..."
+            placeholder={t("Tìm kiếm Labo...")}
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             style={{ width: 280 }}
             allowClear
           />
-          <Button type="primary">Tạo nhà cung cấp</Button>
+          <Button type="primary">{t("Tạo nhà cung cấp")}</Button>
         </div>
       </div>
       <div className="reception-card reception-card--content">
@@ -326,9 +326,9 @@ function SupplierView() {
             showSizeChanger: true,
             pageSizeOptions: ["5", "10", "20", "25", "50", "100"],
             showTotal: (total, range) =>
-              `Hiển thị ${range[0]}–${range[1]} trên ${total} nhà cung cấp`,
+              t("Hiển thị {0}–{1} trên {2} nhà cung cấp", range[0], range[1], total),
           }}
-          locale={{ emptyText: "Không có dữ liệu" }}
+          locale={{ emptyText: t("Không có dữ liệu") }}
           size="middle"
         />
       </div>
@@ -351,14 +351,14 @@ function SimpleCatalogView({
 
   const columns = [
     { title: columnLabel, dataIndex: "name", key: "name" },
-    { title: "Cập nhật gần nhất", dataIndex: "updatedAt", key: "updatedAt" },
+    { title: t("Cập nhật gần nhất"), dataIndex: "updatedAt", key: "updatedAt" },
     {
-      title: "Thao tác",
+      title: t("Thao tác"),
       key: "actions",
       render: () => (
         <div style={{ display: "flex", gap: 8 }}>
-          <Button size="small">Chỉnh sửa</Button>
-          <Button size="small" danger>Xoá</Button>
+          <Button size="small">{t("Chỉnh sửa")}</Button>
+          <Button size="small" danger>{t("Xoá")}</Button>
         </div>
       ),
     },
@@ -389,9 +389,9 @@ function SimpleCatalogView({
             showSizeChanger: true,
             pageSizeOptions: ["5", "10", "20", "25", "50", "100"],
             showTotal: (total, range) =>
-              `Hiển thị ${range[0]}–${range[1]} trên ${total} ${paginationUnit}`,
+              t("Hiển thị {0}–{1} trên {2} {3}", range[0], range[1], total, paginationUnit),
           }}
-          locale={{ emptyText: "Không có dữ liệu" }}
+          locale={{ emptyText: t("Không có dữ liệu") }}
           size="middle"
         />
       </div>
@@ -403,16 +403,16 @@ function ServiceMaterialView() {
   const [keyword, setKeyword] = useState("");
 
   const columns = [
-    { title: "Vật liệu", dataIndex: "name", key: "name" },
-    { title: "Nhóm phân loại", dataIndex: "category", key: "category" },
-    { title: "Cập nhật gần nhất", dataIndex: "updatedAt", key: "updatedAt" },
+    { title: t("Vật liệu"), dataIndex: "name", key: "name" },
+    { title: t("Nhóm phân loại"), dataIndex: "category", key: "category" },
+    { title: t("Cập nhật gần nhất"), dataIndex: "updatedAt", key: "updatedAt" },
     {
-      title: "Thao tác",
+      title: t("Thao tác"),
       key: "actions",
       render: () => (
         <div style={{ display: "flex", gap: 8 }}>
-          <Button size="small">Chỉnh sửa</Button>
-          <Button size="small" danger>Xoá</Button>
+          <Button size="small">{t("Chỉnh sửa")}</Button>
+          <Button size="small" danger>{t("Xoá")}</Button>
         </div>
       ),
     },
@@ -427,7 +427,7 @@ function ServiceMaterialView() {
       >
         <div style={{ marginBottom: 12 }}>
           <Button type="dashed" block>
-            Thêm Mới
+            {t("Thêm Mới")}
           </Button>
         </div>
         <div
@@ -438,7 +438,7 @@ function ServiceMaterialView() {
             paddingTop: 24,
           }}
         >
-          Chưa có nhà cung cấp
+          {t("Chưa có nhà cung cấp")}
         </div>
       </div>
 
@@ -446,10 +446,10 @@ function ServiceMaterialView() {
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
         <div className="reception-card reception-card--toolbar">
           <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
-            <Button type="primary">Tạo vật liệu</Button>
+            <Button type="primary">{t("Tạo vật liệu")}</Button>
             <Input
               prefix={<SearchOutlined />}
-              placeholder="Tìm kiếm..."
+              placeholder={t("Tìm kiếm...")}
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               style={{ width: 220 }}
@@ -467,9 +467,9 @@ function ServiceMaterialView() {
               showSizeChanger: true,
               pageSizeOptions: ["5", "10", "20", "25", "50", "100"],
               showTotal: (total, range) =>
-                `Hiển thị ${range[0]}–${range[1]} trên ${total} vật liệu`,
+                t("Hiển thị {0}–{1} trên {2} vật liệu", range[0], range[1], total),
             }}
-            locale={{ emptyText: "Không có dữ liệu" }}
+            locale={{ emptyText: t("Không có dữ liệu") }}
             size="middle"
           />
         </div>
@@ -492,28 +492,28 @@ export function LaboPage() {
       case "bite":
         return (
           <SimpleCatalogView
-            searchPlaceholder="Tìm kiếm khớp cắn..."
-            createLabel="Tạo khớp cắn"
-            columnLabel="Khớp cắn Labo"
-            paginationUnit="mục"
+            searchPlaceholder={t("Tìm kiếm khớp cắn...")}
+            createLabel={t("Tạo khớp cắn")}
+            columnLabel={t("Khớp cắn Labo")}
+            paginationUnit={t("mục")}
           />
         );
       case "finish-line":
         return (
           <SimpleCatalogView
-            searchPlaceholder="Tìm kiếm đường hoàn tất..."
-            createLabel="Tạo đường hoàn tất"
-            columnLabel="Đường hoàn tất"
-            paginationUnit="mục"
+            searchPlaceholder={t("Tìm kiếm đường hoàn tất...")}
+            createLabel={t("Tạo đường hoàn tất")}
+            columnLabel={t("Đường hoàn tất")}
+            paginationUnit={t("mục")}
           />
         );
       case "nhip":
         return (
           <SimpleCatalogView
-            searchPlaceholder="Tìm kiếm kiểu nhịp..."
-            createLabel="Tạo kiểu nhịp"
-            columnLabel="Kiểu nhịp Labo"
-            paginationUnit="mục"
+            searchPlaceholder={t("Tìm kiếm kiểu nhịp...")}
+            createLabel={t("Tạo kiểu nhịp")}
+            columnLabel={t("Kiểu nhịp Labo")}
+            paginationUnit={t("mục")}
           />
         );
       case "service-material":
@@ -528,7 +528,7 @@ export function LaboPage() {
       {/* Horizontal sub-nav */}
       <div className="reception-card reception-card--tabs">
         <div style={{ display: "flex", gap: 0, flexWrap: "wrap" }}>
-          {SUB_ROUTES.map((tab) => (
+          {subRoutes().map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}

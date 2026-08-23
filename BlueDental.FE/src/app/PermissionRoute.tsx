@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Button, Result } from "antd";
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { t } from "@/lib/i18n";
 
 interface Props {
   permission: string | readonly string[];
@@ -15,11 +16,11 @@ export function PermissionRoute({ permission, children }: Props) {
     return (
       <Result
         status="403"
-        title="Không có quyền truy cập"
-        subTitle="Tài khoản của bạn không được cấp quyền sử dụng chức năng này."
+        title={t("Không có quyền truy cập")}
+        subTitle={t("Tài khoản của bạn không được cấp quyền sử dụng chức năng này.")}
         extra={
           <Button type="primary" href="/">
-            Về trang chủ
+            {t("Về trang chủ")}
           </Button>
         }
       />

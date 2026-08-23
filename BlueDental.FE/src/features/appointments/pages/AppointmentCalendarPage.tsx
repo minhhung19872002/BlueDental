@@ -10,18 +10,21 @@ import { AppointmentEditorModal } from "../components/AppointmentEditorModal";
 import { AppointmentDetailDrawer } from "../components/AppointmentDetailDrawer";
 import { useDentistList } from "@/features/staff/api/staffQueries";
 import { TimekeepingBoard } from "@/features/timekeeping/components/TimekeepingBoard";
+import { t } from "@/lib/i18n";
 
 type ViewMode = "day" | "week" | "month";
 
+// Placeholder names, shown only while the staff API is unreachable. People's
+// names are not UI text, so they stay out of the translation overlay.
 const FALLBACK_DOCTORS: DayViewDoctor[] = [
-  { id: "1", name: "BS Khanh",    appointmentCount: 0 },
-  { id: "2", name: "BS Tiên",     appointmentCount: 0 },
-  { id: "3", name: "BS Hương 4",  appointmentCount: 0 },
-  { id: "4", name: "BS Hương",    appointmentCount: 0 },
-  { id: "5", name: "BS Tới 10",   appointmentCount: 0 },
-  { id: "6", name: "BS Tới 3",    appointmentCount: 0 },
-  { id: "7", name: "BS Tới 1",    appointmentCount: 0 },
-  { id: "8", name: "BS Tới",      appointmentCount: 0 },
+  { id: "1", name: "BS Khanh",   appointmentCount: 0 },
+  { id: "2", name: "BS Tiên",    appointmentCount: 0 },
+  { id: "3", name: "BS Hương 4", appointmentCount: 0 },
+  { id: "4", name: "BS Hương",   appointmentCount: 0 },
+  { id: "5", name: "BS Tới 10",  appointmentCount: 0 },
+  { id: "6", name: "BS Tới 3",   appointmentCount: 0 },
+  { id: "7", name: "BS Tới 1",   appointmentCount: 0 },
+  { id: "8", name: "BS Tới",     appointmentCount: 0 },
 ];
 
 export function AppointmentCalendarPage() {
@@ -100,8 +103,8 @@ export function AppointmentCalendarPage() {
             onChange={setTopTab}
             style={{ marginBottom: 0 }}
             items={[
-              { key: "customer", label: "Lịch hẹn khách hàng" },
-              { key: "work",     label: "Lịch làm việc" },
+              { key: "customer", label: t("Lịch hẹn khách hàng") },
+              { key: "work",     label: t("Lịch làm việc") },
             ]}
           />
         </div>
@@ -121,9 +124,9 @@ export function AppointmentCalendarPage() {
             value={viewMode}
             onChange={(v) => setViewMode(v as ViewMode)}
             options={[
-              { label: "Ngày",  value: "day" },
-              { label: "Tuần",  value: "week" },
-              { label: "Tháng", value: "month" },
+              { label: t("Ngày"),  value: "day" },
+              { label: t("Tuần"),  value: "week" },
+              { label: t("Tháng"), value: "month" },
             ]}
             style={{ fontWeight: 500 }}
           />

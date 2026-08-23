@@ -65,3 +65,18 @@ What to retest when a shared piece changes. Levels are defined in
   Changing any one of them breaks F-07 silently unless all three move together.
 - **Branch scope**: every list endpoint filters by `ClinicBranchId`. A regression
   shows up as "empty screen", not as an error.
+
+- **i18n (`lib/i18n.tsx`)**: every visible string on every screen goes through
+  `t()`, so this is a Level 3 dependency — a change here can blank the whole app
+  (the provider withholds children until the overlay resolves). Two rules the
+  code depends on:
+  - `t()` must never be called at module scope. A module constant is evaluated
+    once, at import time, before the overlay is fetched, and is not re-evaluated
+    when the language changes — so its labels freeze in whatever language loaded
+    first. Label maps are therefore builder functions (`statusConfig()`), not
+    constants.
+  - The English overlay lives in the **backend** resource
+    `BlueDental.Domain.Shared/Localization/BlueDental/en.json` and ships as an
+    embedded resource. Adding a key means rebuilding and restarting the API, not
+    just the frontend — a missing key silently falls back to Vietnamese.
+

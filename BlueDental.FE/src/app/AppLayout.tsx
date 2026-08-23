@@ -30,6 +30,7 @@ import {
   CheckOutlined,
   HeartOutlined,
 } from "@ant-design/icons";
+import { useLanguage, useT } from "@/lib/i18n";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useMutation } from "@tanstack/react-query";
 import { authApi } from "@/features/auth/api";
@@ -42,49 +43,53 @@ interface NavItem {
   external?: boolean;
 }
 
-const MAIN_NAV: NavItem[] = [
-  { key: "/reception", icon: <ScheduleOutlined />, label: "Tiếp nhận" },
-  { key: "/patient", icon: <TeamOutlined />, label: "Danh sách bệnh nhân" },
-  { key: "/calendar", icon: <CalendarOutlined />, label: "Lịch hẹn" },
-  { key: "/cskh-grouping", icon: <CustomerServiceOutlined />, label: "CSKH - Phân nhóm" },
-  { key: "/labo", icon: <ExperimentOutlined />, label: "Labo" },
-  { key: "/operations", icon: <SettingOutlined />, label: "Quản trị vận hành" },
-  { key: "/report", icon: <BarChartOutlined />, label: "Báo cáo" },
-  { key: "/staff", icon: <IdcardOutlined />, label: "Nhân viên" },
-  { key: "/materials", icon: <MedicineBoxOutlined />, label: "Vật tư" },
-  { key: "/taxonomy", icon: <AppstoreOutlined />, label: "Danh mục" },
-  { key: "/tools", icon: <ToolOutlined />, label: "Công cụ" },
+/** Translator type, so the builders below stay readable. */
+type Translate = (vietnamese: string) => string;
+
+// The navigation is built per render: its labels follow the chosen language.
+const mainNav = (t: Translate): NavItem[] => [
+  { key: "/reception", icon: <ScheduleOutlined />, label: t("Tiếp nhận") },
+  { key: "/patient", icon: <TeamOutlined />, label: t("Danh sách bệnh nhân") },
+  { key: "/calendar", icon: <CalendarOutlined />, label: t("Lịch hẹn") },
+  { key: "/cskh-grouping", icon: <CustomerServiceOutlined />, label: t("CSKH - Phân nhóm") },
+  { key: "/labo", icon: <ExperimentOutlined />, label: t("Labo") },
+  { key: "/operations", icon: <SettingOutlined />, label: t("Quản trị vận hành") },
+  { key: "/report", icon: <BarChartOutlined />, label: t("Báo cáo") },
+  { key: "/staff", icon: <IdcardOutlined />, label: t("Nhân viên") },
+  { key: "/materials", icon: <MedicineBoxOutlined />, label: t("Vật tư") },
+  { key: "/taxonomy", icon: <AppstoreOutlined />, label: t("Danh mục") },
+  { key: "/tools", icon: <ToolOutlined />, label: t("Công cụ") },
 ];
 
-const BOTTOM_NAV: NavItem[] = [
+const bottomNav = (t: Translate): NavItem[] => [
   {
     key: "https://nfcdental.com/",
     icon: <QuestionCircleOutlined />,
-    label: "Hướng dẫn & hỗ trợ",
+    label: t("Hướng dẫn & hỗ trợ"),
     external: true,
   },
 ];
 
-const SEARCH_CATEGORIES = [
+const searchCategories = (t: Translate) => [
   {
     icon: <UserOutlined style={{ fontSize: 18, color: brand.muted }} />,
-    title: "Khách hàng",
-    desc: "Tìm theo tên, mã KH, số điện thoại",
+    title: t("Khách hàng"),
+    desc: t("Tìm theo tên, mã KH, số điện thoại"),
   },
   {
     icon: <CalendarOutlined style={{ fontSize: 18, color: brand.muted }} />,
-    title: "Lịch hẹn",
-    desc: "Tìm theo tên hoặc SĐT khách hàng",
+    title: t("Lịch hẹn"),
+    desc: t("Tìm theo tên hoặc SĐT khách hàng"),
   },
   {
     icon: <HeartOutlined style={{ fontSize: 18, color: brand.muted }} />,
-    title: "CSKH",
-    desc: "Tìm theo khách hàng, nội dung",
+    title: t("CSKH"),
+    desc: t("Tìm theo khách hàng, nội dung"),
   },
   {
     icon: <IdcardOutlined style={{ fontSize: 18, color: brand.muted }} />,
-    title: "Nhân viên",
-    desc: "Tìm theo tên, email, số điện thoại",
+    title: t("Nhân viên"),
+    desc: t("Tìm theo tên, email, số điện thoại"),
   },
 ];
 
@@ -136,7 +141,8 @@ function SidebarNavItem({
 export function AppLayout() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
-  const [currentLang, setCurrentLang] = useState<"vi" | "en">("vi");
+  const [language, setLanguage] = useLanguage();
+  const t = useT();
   const navigate = useNavigate();
   const location = useLocation();
   const user = useAuthStore((s) => s.user);
@@ -192,20 +198,20 @@ export function AppLayout() {
     {
       key: "profile",
       icon: <UserOutlined />,
-      label: "Thông tin cá nhân",
+      label: t("Thông tin cá nhân"),
       onClick: () => navigate("/account/profile"),
     },
     {
       key: "change-password",
       icon: <KeyOutlined />,
-      label: "Đổi mật khẩu",
+      label: t("Đổi mật khẩu"),
       onClick: () => navigate("/account/change-password"),
     },
     { type: "divider" },
     {
       key: "logout",
       icon: <LogoutOutlined />,
-      label: "Đăng xuất",
+      label: t("Đăng xuất"),
       danger: true,
       onClick: () => logoutMutation.mutate(),
     },
@@ -218,10 +224,10 @@ export function AppLayout() {
 
   const branchContent = (
     <div className="app-popover-list">
-      <div className="app-popover-header">Chi nhánh</div>
+      <div className="app-popover-header">{t("Chi nhánh")}</div>
       <button type="button" className="app-popover-item">
         <span className="app-popover-dot" style={{ background: brand.faint }} />
-        <span>Tất cả chi nhánh</span>
+        <span>{t("Tất cả chi nhánh")}</span>
       </button>
       <button type="button" className="app-popover-item app-popover-item--active">
         <span className="app-popover-dot" style={{ background: "#2BB673" }} />
@@ -232,14 +238,14 @@ export function AppLayout() {
 
   const langContent = (
     <div className="app-popover-list">
-      <div className="app-popover-header">Ngôn ngữ</div>
-      <button type="button" className="app-popover-item" onClick={() => setCurrentLang("vi")}>
-        <span>Tiếng Việt</span>
-        {currentLang === "vi" && <CheckOutlined style={{ color: brand.blue, fontSize: 12 }} />}
+      <div className="app-popover-header">{t("Ngôn ngữ")}</div>
+      <button type="button" className="app-popover-item" onClick={() => setLanguage("vi")}>
+        <span>{t("Tiếng Việt")}</span>
+        {language === "vi" && <CheckOutlined style={{ color: brand.blue, fontSize: 12 }} />}
       </button>
-      <button type="button" className="app-popover-item" onClick={() => setCurrentLang("en")}>
-        <span>Tiếng Anh</span>
-        {currentLang === "en" && <CheckOutlined style={{ color: brand.blue, fontSize: 12 }} />}
+      <button type="button" className="app-popover-item" onClick={() => setLanguage("en")}>
+        <span>English</span>
+        {language === "en" && <CheckOutlined style={{ color: brand.blue, fontSize: 12 }} />}
       </button>
     </div>
   );
@@ -267,7 +273,7 @@ export function AppLayout() {
 
         {/* Main nav */}
         <nav className="sidebar-nav-main">
-          {MAIN_NAV.map((item) => (
+          {mainNav(t).map((item) => (
             <SidebarNavItem
               key={item.key}
               item={item}
@@ -280,7 +286,7 @@ export function AppLayout() {
 
         {/* Bottom nav */}
         <nav className="sidebar-nav-bottom">
-          {BOTTOM_NAV.map((item) => (
+          {bottomNav(t).map((item) => (
             <SidebarNavItem
               key={item.key}
               item={item}
@@ -304,7 +310,7 @@ export function AppLayout() {
               type="button"
               className="app-header-toggle"
               onClick={() => setSidebarExpanded((prev) => !prev)}
-              title={sidebarExpanded ? "Thu gọn menu" : "Mở rộng menu"}
+              title={sidebarExpanded ? t("Thu gọn menu") : t("Mở rộng menu")}
             >
               <svg
                 width="16"
@@ -349,7 +355,7 @@ export function AppLayout() {
             >
               <SearchOutlined style={{ fontSize: 16 }} />
               <span className="app-header-search-text">
-                Tìm kiếm khách hàng, lịch hẹn, nhân viên…
+                {t("Tìm kiếm khách hàng, lịch hẹn, nhân viên…")}
               </span>
               <kbd className="app-header-search-kbd">Ctrl K</kbd>
             </button>
@@ -364,18 +370,18 @@ export function AppLayout() {
 
             <div className="app-header-actions">
               <Popover content={langContent} trigger="click" placement="bottomRight" arrow={false}>
-                <button type="button" className="app-header-icon-btn" aria-label="Ngôn ngữ">
+                <button type="button" className="app-header-icon-btn" aria-label={t("Ngôn ngữ")}>
                   <GlobalOutlined style={{ fontSize: 18 }} />
                 </button>
               </Popover>
 
-              <button type="button" className="app-header-icon-btn" aria-label="Thông báo">
+              <button type="button" className="app-header-icon-btn" aria-label={t("Thông báo")}>
                 <BellOutlined style={{ fontSize: 18 }} />
                 <span className="app-header-notif-dot" />
               </button>
 
               <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-                <div className="app-header-user" role="button" tabIndex={0} aria-label="Tài khoản người dùng">
+                <div className="app-header-user" role="button" tabIndex={0} aria-label={t("Tài khoản người dùng")}>
                   <Avatar
                     size={32}
                     style={{ backgroundColor: brand.blue, fontSize: 13, fontWeight: 700 }}
@@ -404,15 +410,15 @@ export function AppLayout() {
                 autoFocus
                 size="large"
                 prefix={<SearchOutlined />}
-                placeholder="Tìm kiếm khách hàng, lịch hẹn, nhân viên…"
+                placeholder={t("Tìm kiếm khách hàng, lịch hẹn, nhân viên…")}
                 onPressEnter={() => setSearchOpen(false)}
                 style={{ borderRadius: 12 }}
               />
               <kbd className="app-search-esc" onClick={() => setSearchOpen(false)}>Esc</kbd>
             </div>
             <div className="app-search-categories">
-              <div className="app-search-categories-title">Gợi ý tìm kiếm</div>
-              {SEARCH_CATEGORIES.map((cat) => (
+              <div className="app-search-categories-title">{t("Gợi ý tìm kiếm")}</div>
+              {searchCategories(t).map((cat) => (
                 <div key={cat.title} className="app-search-category-item">
                   <span className="app-search-category-icon">{cat.icon}</span>
                   <div className="app-search-category-text">
@@ -421,7 +427,7 @@ export function AppLayout() {
                   </div>
                 </div>
               ))}
-              <div className="app-search-hint">Nhập ít nhất 2 ký tự để tìm kiếm.</div>
+              <div className="app-search-hint">{t("Nhập ít nhất 2 ký tự để tìm kiếm.")}</div>
             </div>
           </div>
         </div>

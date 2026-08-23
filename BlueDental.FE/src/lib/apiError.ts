@@ -1,4 +1,5 @@
 import axios from "axios";
+import { t } from "@/lib/i18n";
 
 export type ApiErrorKind = "user" | "system" | "network";
 
@@ -22,29 +23,34 @@ interface AbpErrorEnvelope {
   validationErrors?: AbpValidationError[];
 }
 
-const UNKNOWN_MESSAGE = "Đã xảy ra lỗi không xác định. Vui lòng thử lại.";
-const SYSTEM_MESSAGE =
-  "Hệ thống đang gặp sự cố. Vui lòng thử lại sau hoặc liên hệ quản trị viên.";
-const INVALID_INPUT_MESSAGE =
-  "Dữ liệu gửi lên không hợp lệ. Vui lòng kiểm tra lại thông tin đã nhập.";
-const FORBIDDEN_MESSAGE = "Bạn không có quyền thực hiện thao tác này.";
-const OFFLINE_MESSAGE =
-  "Không kết nối được tới máy chủ. Vui lòng kiểm tra đường truyền và thử lại.";
-const TIMEOUT_MESSAGE =
-  "Máy chủ phản hồi quá lâu. Vui lòng thử lại sau ít phút.";
-const CANCELED_MESSAGE = "Yêu cầu đã bị hủy.";
+/**
+ * Rebuilt on each call rather than held in module constants: t() reads the
+ * overlay that is current now, and a constant would freeze the language that
+ * happened to be loaded when this module was first imported.
+ */
+const messages = () => ({
+  unknown: t("Đã xảy ra lỗi không xác định. Vui lòng thử lại."),
+  system: t("Hệ thống đang gặp sự cố. Vui lòng thử lại sau hoặc liên hệ quản trị viên."),
+  invalidInput: t("Dữ liệu gửi lên không hợp lệ. Vui lòng kiểm tra lại thông tin đã nhập."),
+  forbidden: t("Bạn không có quyền thực hiện thao tác này."),
+  offline: t("Không kết nối được tới máy chủ. Vui lòng kiểm tra đường truyền và thử lại."),
+  timeout: t("Máy chủ phản hồi quá lâu. Vui lòng thử lại sau ít phút."),
+  canceled: t("Yêu cầu đã bị hủy."),
+});
 
-const STATUS_FALLBACK_MESSAGES: Readonly<Record<number, string>> = {
-  400: INVALID_INPUT_MESSAGE,
-  401: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
-  403: FORBIDDEN_MESSAGE,
-  404: "Không tìm thấy dữ liệu yêu cầu.",
-  409: "Dữ liệu đã được thay đổi bởi người khác. Vui lòng tải lại trang và thử lại.",
-  413: "Tệp tải lên vượt quá dung lượng cho phép.",
-  422: INVALID_INPUT_MESSAGE,
-  429: "Bạn đã thao tác quá nhiều lần. Vui lòng thử lại sau ít phút.",
-  503: "Hệ thống đang bảo trì. Vui lòng thử lại sau ít phút.",
-};
+const statusFallbackMessages = (
+  m: ReturnType<typeof messages>,
+): Readonly<Record<number, string>> => ({
+  400: m.invalidInput,
+  401: t("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."),
+  403: m.forbidden,
+  404: t("Không tìm thấy dữ liệu yêu cầu."),
+  409: t("Dữ liệu đã được thay đổi bởi người khác. Vui lòng tải lại trang và thử lại."),
+  413: t("Tệp tải lên vượt quá dung lượng cho phép."),
+  422: m.invalidInput,
+  429: t("Bạn đã thao tác quá nhiều lần. Vui lòng thử lại sau ít phút."),
+  503: t("Hệ thống đang bảo trì. Vui lòng thử lại sau ít phút."),
+});
 
 const MAX_MESSAGE_LENGTH = 400;
 
@@ -94,19 +100,21 @@ function pickServerMessage(envelope: AbpErrorEnvelope): string | undefined {
 }
 
 export function describeApiError(error: unknown): ApiErrorInfo {
+  const text = messages();
+
   if (axios.isCancel(error)) {
-    return { message: CANCELED_MESSAGE, kind: "network", canceled: true };
+    return { message: text.canceled, kind: "network", canceled: true };
   }
 
   if (!axios.isAxiosError<unknown>(error)) {
     if (error instanceof Error) {
       return {
-        message: sanitizeServerText(error.message) ?? SYSTEM_MESSAGE,
+        message: sanitizeServerText(error.message) ?? text.system,
         kind: "system",
         canceled: false,
       };
     }
-    return { message: UNKNOWN_MESSAGE, kind: "system", canceled: false };
+    return { message: text.unknown, kind: "system", canceled: false };
   }
 
   const response = error.response;
@@ -114,7 +122,7 @@ export function describeApiError(error: unknown): ApiErrorInfo {
     const isTimeout =
       error.code === "ECONNABORTED" || error.code === "ETIMEDOUT";
     return {
-      message: isTimeout ? TIMEOUT_MESSAGE : OFFLINE_MESSAGE,
+      message: isTimeout ? text.timeout : text.offline,
       kind: "network",
       canceled: false,
     };
@@ -140,8 +148,8 @@ export function describeApiError(error: unknown): ApiErrorInfo {
   }
 
   const fallback =
-    STATUS_FALLBACK_MESSAGES[status] ??
-    (isServerFault ? SYSTEM_MESSAGE : INVALID_INPUT_MESSAGE);
+    statusFallbackMessages(text)[status] ??
+    (isServerFault ? text.system : text.invalidInput);
 
   return {
     message: fallback,

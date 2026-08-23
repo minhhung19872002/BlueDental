@@ -1,5 +1,6 @@
 import type { ThemeConfig } from "antd";
 
+import { t } from "@/lib/i18n";
 export const brand = {
   blue: "#2671D8",
   blueDark: "#1a5bbf",
@@ -28,14 +29,14 @@ export const brand = {
   success: "#2E7D32",
 } as const;
 
-export const statusPalette = {
-  scheduled: { label: "Đã đặt lịch", bg: "#E3F2FD", color: "#1565C0" },
-  confirmed: { label: "Đã xác nhận", bg: "#E8F5E9", color: "#2E7D32" },
-  inProgress: { label: "Đang khám", bg: "#FFF8E1", color: "#E65100" },
-  completed: { label: "Hoàn thành", bg: "#E8F5E9", color: "#2E7D32" },
-  cancelled: { label: "Đã hủy", bg: "#FFEBEE", color: "#C62828" },
-  noShow: { label: "Không đến", bg: "#F3E5F5", color: "#6A1B9A" },
-} as const;
+export const statusPaletteOf = () => ({
+  scheduled: { label: t("Đã đặt lịch"), bg: "#E3F2FD", color: "#1565C0" },
+  confirmed: { label: t("Đã xác nhận"), bg: "#E8F5E9", color: "#2E7D32" },
+  inProgress: { label: t("Đang khám"), bg: "#FFF8E1", color: "#E65100" },
+  completed: { label: t("Hoàn thành"), bg: "#E8F5E9", color: "#2E7D32" },
+  cancelled: { label: t("Đã hủy"), bg: "#FFEBEE", color: "#C62828" },
+  noShow: { label: t("Không đến"), bg: "#F3E5F5", color: "#6A1B9A" },
+});
 
 export const FONT_FAMILY =
   "'Plus Jakarta Sans', 'Google Sans', system-ui, -apple-system, sans-serif";

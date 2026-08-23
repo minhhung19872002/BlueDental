@@ -37,10 +37,11 @@ import { PatientImagePanel } from "../components/PatientImagePanel";
 import type { PatientDiagnosisDto } from "@/features/treatment-management/api/consultingApi";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { extractApiError } from "@/lib/apiError";
+import { t } from "@/lib/i18n";
 
 const { Text } = Typography;
 
-const GENDER_LABELS: Record<string, string> = { male: "Nam", female: "Nữ", other: "Khác" };
+const genderLabelsOf = (): Record<string, string> => ({ male: t("Nam"), female: t("Nữ"), other: t("Khác") });
 
 const UPPER_TEETH = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
 const LOWER_TEETH = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
@@ -61,13 +62,13 @@ function selectWholeJaw(jaw: "upper" | "lower" | "full"): ToothSelectionDto[] {
   }));
 }
 
-const ADVISE_STATUS_CONFIG: Record<PatientAdviseStatus, { label: string; color: string }> = {
-  [ADVISE_STATUS.Created]:   { label: "Chờ duyệt",   color: "default" },
-  [ADVISE_STATUS.Accepted]:  { label: "Đã chốt",     color: "blue" },
-  [ADVISE_STATUS.Converted]: { label: "Đã lên KHĐT", color: "green" },
-  [ADVISE_STATUS.Rejected]:  { label: "Từ chối",     color: "red" },
-  [ADVISE_STATUS.Cancelled]: { label: "Đã hủy",      color: "default" },
-};
+const adviseStatusConfig = (): Record<PatientAdviseStatus, { label: string; color: string }> => ({
+  [ADVISE_STATUS.Created]:   { label: t("Chờ duyệt"),   color: "default" },
+  [ADVISE_STATUS.Accepted]:  { label: t("Đã chốt"),     color: "blue" },
+  [ADVISE_STATUS.Converted]: { label: t("Đã lên KHĐT"), color: "green" },
+  [ADVISE_STATUS.Rejected]:  { label: t("Từ chối"),     color: "red" },
+  [ADVISE_STATUS.Cancelled]: { label: t("Đã hủy"),      color: "default" },
+});
 
 
 export function PatientProfilePage() {
@@ -85,7 +86,7 @@ export function PatientProfilePage() {
   const handleAcceptAdvise = async (adviseId: string) => {
     try {
       await acceptAdvise.mutateAsync(adviseId);
-      message.success("Đã chấp nhận phiếu tư vấn");
+      message.success(t("Đã chấp nhận phiếu tư vấn"));
     } catch (error) {
       message.error(extractApiError(error));
     }
@@ -120,7 +121,7 @@ export function PatientProfilePage() {
   const TAB_ITEMS = [
     {
       key: "profile",
-      label: "Hồ sơ",
+      label: t("Hồ sơ"),
       children: (
         <div style={{ padding: "16px 0" }}>
           <Row gutter={20}>
@@ -129,7 +130,7 @@ export function PatientProfilePage() {
               <Card
                 title={
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <span>Thông tin bệnh nhân</span>
+                    <span>{t("Thông tin bệnh nhân")}</span>
                     <Button type="text" size="small" icon={<EditOutlined />} />
                   </div>
                 }
@@ -139,13 +140,13 @@ export function PatientProfilePage() {
                 <table style={{ width: "100%", borderSpacing: "0 8px", fontSize: 13 }}>
                   <tbody>
                     {[
-                      { label: "Mã bệnh nhân", value: `[${patient.code}]` },
-                      { label: "Họ và tên", value: patient.fullName },
-                      { label: "Ngày sinh", value: formatDate(patient.dateOfBirth) },
-                      { label: "Giới tính", value: GENDER_LABELS[patient.gender] },
-                      { label: "Số điện thoại", value: patient.phone },
+                      { label: t("Mã bệnh nhân"), value: `[${patient.code}]` },
+                      { label: t("Họ và tên"), value: patient.fullName },
+                      { label: t("Ngày sinh"), value: formatDate(patient.dateOfBirth) },
+                      { label: t("Giới tính"), value: genderLabelsOf()[patient.gender] },
+                      { label: t("Số điện thoại"), value: patient.phone },
                       { label: "Email", value: patient.email ?? "—" },
-                      { label: "Địa chỉ", value: patient.address ?? "—" },
+                      { label: t("Địa chỉ"), value: patient.address ?? "—" },
                     ].map(({ label, value }) => (
                       <tr key={label}>
                         <td style={{ color: "#5A6B82", paddingRight: 16, paddingBottom: 4, whiteSpace: "nowrap", verticalAlign: "top" }}>
@@ -158,9 +159,9 @@ export function PatientProfilePage() {
                 </table>
 
                 <div style={{ marginTop: 12 }}>
-                  <div style={{ color: "#5A6B82", fontSize: 12, marginBottom: 6 }}>Nhãn / Tag</div>
+                  <div style={{ color: "#5A6B82", fontSize: 12, marginBottom: 6 }}>{t("Nhãn / Tag")}</div>
                   <Space size={4} wrap>
-                    <Tag color="blue">Chỉnh Nha</Tag>
+                    <Tag color="blue">{t("Chỉnh Nha")}</Tag>
                   </Space>
                 </div>
               </Card>
@@ -171,16 +172,16 @@ export function PatientProfilePage() {
               {/* Financial summary */}
               <Row gutter={12} style={{ marginBottom: 16 }}>
                 {[
-                  { label: "Tổng chi phí", value: 0, color: "#1B2A41" },
-                  { label: "Thực thu", value: 0, color: "#10B981" },
-                  { label: "Công nợ", value: 0, color: "#EF4444" },
+                  { label: t("Tổng chi phí"), value: 0, color: "#1B2A41" },
+                  { label: t("Thực thu"), value: 0, color: "#10B981" },
+                  { label: t("Công nợ"), value: 0, color: "#EF4444" },
                 ].map(({ label, value, color }) => (
                   <Col span={8} key={label}>
                     <Card size="small" style={{ textAlign: "center" }}>
                       <div style={{ fontSize: 12, color: "#5A6B82", marginBottom: 4 }}>{label}</div>
                       <div style={{ fontSize: 20, fontWeight: 700, color }}>
                         {formatVND(value)}
-                        <span style={{ fontSize: 12, fontWeight: 400, marginLeft: 2 }}>đ</span>
+                        <span style={{ fontSize: 12, fontWeight: 400, marginLeft: 2 }}>{t("đ")}</span>
                       </div>
                     </Card>
                   </Col>
@@ -188,21 +189,21 @@ export function PatientProfilePage() {
               </Row>
 
               {/* Treatment history stub */}
-              <Card title="Lịch sử điều trị" size="small">
+              <Card title={t("Lịch sử điều trị")} size="small">
                 <Table
                   size="small"
                   columns={[
-                    { title: "Ngày", dataIndex: "date", width: 110, render: (v) => formatDate(v) },
-                    { title: "Dịch vụ / Thủ thuật", dataIndex: "service" },
-                    { title: "Bác sĩ", dataIndex: "doctor", width: 140 },
+                    { title: t("Ngày"), dataIndex: "date", width: 110, render: (v) => formatDate(v) },
+                    { title: t("Dịch vụ / Thủ thuật"), dataIndex: "service" },
+                    { title: t("Bác sĩ"), dataIndex: "doctor", width: 140 },
                     {
-                      title: "Trạng thái",
+                      title: t("Trạng thái"),
                       dataIndex: "status",
                       width: 130,
                       render: (s: string) => <Tag color="success">{s}</Tag>,
                     },
                     {
-                      title: "Số tiền",
+                      title: t("Số tiền"),
                       dataIndex: "amount",
                       width: 120,
                       align: "right",
@@ -211,7 +212,7 @@ export function PatientProfilePage() {
                   ]}
                   dataSource={[]}
                   pagination={false}
-                  locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>Chưa có lịch sử điều trị</span> }}
+                  locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>{t("Chưa có lịch sử điều trị")}</span> }}
                 />
               </Card>
             </Col>
@@ -221,35 +222,35 @@ export function PatientProfilePage() {
     },
     {
       key: "consulting",
-      label: "Chẩn đoán & Tư vấn",
+      label: t("Chẩn đoán & Tư vấn"),
       children: (
         <div style={{ padding: "16px 0" }}>
           <Row gutter={20}>
             {/* Left: dental chart */}
             <Col xs={24} lg={12}>
               <Card
-                title="Sơ đồ răng"
+                title={t("Sơ đồ răng")}
                 size="small"
                 extra={
                   <Space>
-                    <Button size="small">Thêm ảnh</Button>
-                    <Button size="small">Danh mục</Button>
+                    <Button size="small">{t("Thêm ảnh")}</Button>
+                    <Button size="small">{t("Danh mục")}</Button>
                   </Space>
                 }
                 style={{ marginBottom: 16 }}
               >
                 <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
                   <Button size="small" onClick={() => setConsultingTeeth(selectWholeJaw("upper"))}>
-                    Hàm Trên
+                    {t("Hàm Trên")}
                   </Button>
                   <Button size="small" onClick={() => setConsultingTeeth(selectWholeJaw("lower"))}>
-                    Hàm Dưới
+                    {t("Hàm Dưới")}
                   </Button>
                   <Button size="small" onClick={() => setConsultingTeeth(selectWholeJaw("full"))}>
-                    Nguyên Hàm
+                    {t("Nguyên Hàm")}
                   </Button>
                   <Button size="small" onClick={() => setConsultingTeeth([])}>
-                    Bỏ chọn
+                    {t("Bỏ chọn")}
                   </Button>
                   <Button
                     size="small"
@@ -257,7 +258,7 @@ export function PatientProfilePage() {
                     disabled={consultingTeeth.length === 0}
                     onClick={() => setDiagnosisModalOpen(true)}
                   >
-                    Tạo phiếu chẩn đoán
+                    {t("Tạo phiếu chẩn đoán")}
                   </Button>
                 </div>
 
@@ -268,86 +269,86 @@ export function PatientProfilePage() {
                 />
 
                 <div style={{ marginTop: 8, fontSize: 12, color: "#9CA3AF" }}>
-                  Đã chọn: {consultingTeeth.length > 0 ? formatTeeth(consultingTeeth) : "Chưa chọn răng"}
+                  {t("Đã chọn:")} {consultingTeeth.length > 0 ? formatTeeth(consultingTeeth) : t("Chưa chọn răng")}
                 </div>
               </Card>
             </Col>
 
             {/* Right: diagnosis records */}
             <Col xs={24} lg={12}>
-              <Card title="Phiếu chẩn đoán" size="small" style={{ marginBottom: 16 }}>
+              <Card title={t("Phiếu chẩn đoán")} size="small" style={{ marginBottom: 16 }}>
                 <Table
                   size="small"
                   rowKey="id"
                   loading={diagnosesLoading}
                   columns={[
-                    { title: "Số phiếu", dataIndex: "code", width: 100 },
+                    { title: t("Số phiếu"), dataIndex: "code", width: 100 },
                     {
-                      title: "Bác sĩ chẩn đoán",
+                      title: t("Bác sĩ chẩn đoán"),
                       dataIndex: "staffName",
                       width: 160,
                       render: (v: string | null) => v ?? "—",
                     },
                     {
-                      title: "Răng",
+                      title: t("Răng"),
                       key: "teeth",
                       render: (_, row) => formatTeeth(row.teeth),
                     },
                     {
-                      title: "Ghi chú",
+                      title: t("Ghi chú"),
                       dataIndex: "note",
                       render: (v: string | null) => v ?? "—",
                     },
                     {
-                      title: "Thao tác",
+                      title: t("Thao tác"),
                       key: "actions",
                       width: 110,
                       render: (_, row) => (
                         <Button type="link" size="small" onClick={() => setAdviseFor(row)}>
-                          Tạo Dịch Vụ
+                          {t("Tạo Dịch Vụ")}
                         </Button>
                       ),
                     },
                   ]}
                   dataSource={diagnosisRows}
                   pagination={false}
-                  locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>Chưa có phiếu chẩn đoán</span> }}
+                  locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>{t("Chưa có phiếu chẩn đoán")}</span> }}
                 />
               </Card>
 
-              <Card title="Phiếu tư vấn" size="small">
+              <Card title={t("Phiếu tư vấn")} size="small">
                 <Table
                   size="small"
                   rowKey="id"
                   loading={advisesLoading}
                   columns={[
-                    { title: "Ngày", dataIndex: "creationTime", width: 100, render: (v) => formatDate(v) },
+                    { title: t("Ngày"), dataIndex: "creationTime", width: 100, render: (v) => formatDate(v) },
                     {
-                      title: "Dịch vụ",
+                      title: t("Dịch vụ"),
                       dataIndex: "serviceName",
                       render: (v: string | null, row) => v ?? row.code,
                     },
                     { title: "SL", dataIndex: "quantity", width: 50, align: "right" },
-                    { title: "Đơn giá", dataIndex: "price", width: 110, align: "right", render: (v) => `${formatVND(v)} đ` },
+                    { title: t("Đơn giá"), dataIndex: "price", width: 110, align: "right", render: (v) => t("{0} đ", formatVND(v)) },
                     {
-                      title: "Thành tiền",
+                      title: t("Thành tiền"),
                       dataIndex: "effectiveAmount",
                       width: 120,
                       align: "right",
-                      render: (v) => `${formatVND(v)} đ`,
+                      render: (v) => t("{0} đ", formatVND(v)),
                     },
                     {
-                      title: "Trạng thái",
+                      title: t("Trạng thái"),
                       dataIndex: "status",
                       width: 120,
                       render: (v: PatientAdviseStatus) => (
-                        <Tag color={ADVISE_STATUS_CONFIG[v].color}>{ADVISE_STATUS_CONFIG[v].label}</Tag>
+                        <Tag color={adviseStatusConfig()[v].color}>{adviseStatusConfig()[v].label}</Tag>
                       ),
                     },
                     {
                       // Only an accepted line becomes a treatment service, and only a
                       // treatment service can carry công đoạn.
-                      title: "Thao tác",
+                      title: t("Thao tác"),
                       key: "actions",
                       width: 110,
                       render: (_, row) =>
@@ -358,7 +359,7 @@ export function PatientProfilePage() {
                             loading={acceptAdvise.isPending}
                             onClick={() => handleAcceptAdvise(row.id)}
                           >
-                            Chấp nhận
+                            {t("Chấp nhận")}
                           </Button>
                         ) : (
                           <Text type="secondary">—</Text>
@@ -367,25 +368,25 @@ export function PatientProfilePage() {
                   ]}
                   dataSource={adviseRows}
                   pagination={false}
-                  locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>Chưa có phiếu tư vấn</span> }}
+                  locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>{t("Chưa có phiếu tư vấn")}</span> }}
                 />
 
                 <div style={{
                   display: "flex", alignItems: "center", gap: 12, marginTop: 12,
                   padding: "10px 0", borderTop: "1px solid #E5E7EB",
                 }}>
-                  <Text strong style={{ fontSize: 13 }}>TỔNG KẾ HOẠCH</Text>
+                  <Text strong style={{ fontSize: 13 }}>{t("TỔNG KẾ HOẠCH")}</Text>
                   <Text style={{ fontSize: 13, color: "#5A6B82" }}>
-                    Tổng thành tiền: {formatVND(adviseSummary?.totalEffectiveAmount ?? 0)} đ
+                    {t("Tổng thành tiền:")} {formatVND(adviseSummary?.totalEffectiveAmount ?? 0)} {t("đ")}
                   </Text>
                   {(adviseSummary?.totalDiscountAmount ?? 0) > 0 && (
                     <Text style={{ fontSize: 13, color: "#5A6B82" }}>
-                      Chiết khấu: {formatVND(adviseSummary?.totalDiscountAmount ?? 0)} đ
+                      {t("Chiết khấu:")} {formatVND(adviseSummary?.totalDiscountAmount ?? 0)} {t("đ")}
                     </Text>
                   )}
                   <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-                    <Button size="small">Thêm kế hoạch điều trị</Button>
-                    <Button size="small">Tạo báo giá</Button>
+                    <Button size="small">{t("Thêm kế hoạch điều trị")}</Button>
+                    <Button size="small">{t("Tạo báo giá")}</Button>
                   </div>
                 </div>
               </Card>
@@ -396,7 +397,7 @@ export function PatientProfilePage() {
     },
     {
       key: "treatment-plan",
-      label: "Kế hoạch điều trị",
+      label: t("Kế hoạch điều trị"),
       icon: <FileTextOutlined />,
       children: (
         <div style={{ padding: "16px 0" }}>
@@ -409,7 +410,7 @@ export function PatientProfilePage() {
     },
     {
       key: "appointment",
-      label: "Lịch hẹn",
+      label: t("Lịch hẹn"),
       icon: <CalendarOutlined />,
       children: (
         <div style={{ padding: "16px 0" }}>
@@ -419,7 +420,7 @@ export function PatientProfilePage() {
     },
     {
       key: "image",
-      label: "Hình ảnh",
+      label: t("Hình ảnh"),
       icon: <PictureOutlined />,
       children: (
         <div style={{ padding: "16px 0" }}>
@@ -439,7 +440,7 @@ export function PatientProfilePage() {
     },
     {
       key: "prescription",
-      label: "Đơn thuốc",
+      label: t("Đơn thuốc"),
       icon: <MedicineBoxOutlined />,
       children: (
         <div style={{ padding: "16px 0" }}>
@@ -449,7 +450,7 @@ export function PatientProfilePage() {
     },
     {
       key: "care",
-      label: "Chăm sóc KH",
+      label: t("Chăm sóc KH"),
       icon: <PhoneOutlined />,
       children: (
         <div style={{ padding: "16px 0" }}>
@@ -459,7 +460,7 @@ export function PatientProfilePage() {
     },
     {
       key: "invoice",
-      label: "Hóa đơn",
+      label: t("Hóa đơn"),
       icon: <DollarOutlined />,
       children: (
         <div style={{ padding: "16px 0" }}>
@@ -469,7 +470,7 @@ export function PatientProfilePage() {
     },
     {
       key: "debt-history",
-      label: "Lịch sử dư nợ",
+      label: t("Lịch sử dư nợ"),
       icon: <HistoryOutlined />,
       children: (
         <div style={{ padding: "16px 0" }}>
@@ -490,7 +491,7 @@ export function PatientProfilePage() {
           onClick={() => navigate("/patient")}
           style={{ color: "#2671D8", padding: "0 4px" }}
         >
-          Quay lại
+          {t("Quay lại")}
         </Button>
         <span style={{ color: "#D1D5DB" }}>/</span>
         <span style={{ color: "#1B2A41", fontWeight: 500 }}>

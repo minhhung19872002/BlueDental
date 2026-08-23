@@ -16,6 +16,7 @@ import { CatalogEntryModal } from "../components/CatalogEntryModal";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { extractApiError } from "@/lib/apiError";
 import { formatDate, formatVND } from "@/utils/format";
+import { t } from "@/lib/i18n";
 
 /**
  * Every "Danh mục" sub-route in the reference is the same screen: a group list on
@@ -35,18 +36,18 @@ interface TaxonomyTab {
   pendingNote?: string;
 }
 
-const TAXONOMY_TABS: TaxonomyTab[] = [
-  { key: "service", label: "Dịch vụ", group: TAXONOMY_GROUP.CareService, entityLabel: "Tên dịch vụ", priced: true },
-  { key: "diagnosis", label: "Chẩn đoán", group: TAXONOMY_GROUP.Diagnosis, entityLabel: "Tên chẩn đoán" },
-  { key: "medicine", label: "Loại thuốc", group: TAXONOMY_GROUP.MedicationType, entityLabel: "Tên loại thuốc", priced: true },
-  { key: "consulting", label: "Dữ liệu tư vấn", group: TAXONOMY_GROUP.ConsultingData, entityLabel: "Tên dữ liệu tư vấn" },
-  { key: "source", label: "Nguồn đến", group: TAXONOMY_GROUP.Source, entityLabel: "Tên nguồn đến" },
-  { key: "history", label: "Lịch sử bệnh", group: TAXONOMY_GROUP.DiseaseHistory, entityLabel: "Tên lịch sử bệnh" },
-  { key: "prescription-template", label: "Đơn thuốc mẫu", group: TAXONOMY_GROUP.PrescriptionTemplate, entityLabel: "Tên đơn thuốc mẫu", templated: true },
-  { key: "medical-record-template", label: "Bệnh án mẫu", group: TAXONOMY_GROUP.MedicalRecordTemplate, entityLabel: "Tên bệnh án mẫu", templated: true },
-  { key: "tags", label: "Thẻ hồ sơ", group: null, entityLabel: "Tên thẻ", pendingNote: "Thẻ hồ sơ dùng danh mục riêng ở app gốc (medical-record/tag) — chưa dựng ở BlueDental." },
-  { key: "payment-method", label: "Phương thức thanh toán", group: null, entityLabel: "Phương thức", pendingNote: "Phương thức thanh toán ở app gốc là tài khoản MoMo/ngân hàng, không phải danh mục — chưa dựng ở BlueDental." },
-  { key: "occupation", label: "Nghề nghiệp", group: TAXONOMY_GROUP.Occupation, entityLabel: "Tên nghề nghiệp" },
+const taxonomyTabs = (): TaxonomyTab[] => [
+  { key: "service", label: t("Dịch vụ"), group: TAXONOMY_GROUP.CareService, entityLabel: t("Tên dịch vụ"), priced: true },
+  { key: "diagnosis", label: t("Chẩn đoán"), group: TAXONOMY_GROUP.Diagnosis, entityLabel: t("Tên chẩn đoán") },
+  { key: "medicine", label: t("Loại thuốc"), group: TAXONOMY_GROUP.MedicationType, entityLabel: t("Tên loại thuốc"), priced: true },
+  { key: "consulting", label: t("Dữ liệu tư vấn"), group: TAXONOMY_GROUP.ConsultingData, entityLabel: t("Tên dữ liệu tư vấn") },
+  { key: "source", label: t("Nguồn đến"), group: TAXONOMY_GROUP.Source, entityLabel: t("Tên nguồn đến") },
+  { key: "history", label: t("Lịch sử bệnh"), group: TAXONOMY_GROUP.DiseaseHistory, entityLabel: t("Tên lịch sử bệnh") },
+  { key: "prescription-template", label: t("Đơn thuốc mẫu"), group: TAXONOMY_GROUP.PrescriptionTemplate, entityLabel: t("Tên đơn thuốc mẫu"), templated: true },
+  { key: "medical-record-template", label: t("Bệnh án mẫu"), group: TAXONOMY_GROUP.MedicalRecordTemplate, entityLabel: t("Tên bệnh án mẫu"), templated: true },
+  { key: "tags", label: t("Thẻ hồ sơ"), group: null, entityLabel: t("Tên thẻ"), pendingNote: t("Thẻ hồ sơ dùng danh mục riêng ở app gốc (medical-record/tag) — chưa dựng ở BlueDental.") },
+  { key: "payment-method", label: t("Phương thức thanh toán"), group: null, entityLabel: t("Phương thức"), pendingNote: t("Phương thức thanh toán ở app gốc là tài khoản MoMo/ngân hàng, không phải danh mục — chưa dựng ở BlueDental.") },
+  { key: "occupation", label: t("Nghề nghiệp"), group: TAXONOMY_GROUP.Occupation, entityLabel: t("Tên nghề nghiệp") },
 ];
 
 function GroupSidebar({
@@ -68,15 +69,15 @@ function GroupSidebar({
   return (
     <div style={{ width: 260, flexShrink: 0 }}>
       <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 2 }}>
-        Nhóm phân loại
+        {t("Nhóm phân loại")}
       </div>
       <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 8 }}>
-        {isLoading ? "Đang tải…" : `${groups.length} nhóm`}
+        {isLoading ? t("Đang tải…") : t("{0} nhóm", groups.length)}
       </div>
 
       <Input
         prefix={<SearchOutlined />}
-        placeholder="Tìm nhóm..."
+        placeholder={t("Tìm nhóm...")}
         value={keyword}
         onChange={(e) => setKeyword(e.target.value)}
         allowClear
@@ -94,7 +95,7 @@ function GroupSidebar({
           fontWeight: selectedId === null ? 600 : 400,
         }}
       >
-        Tất cả nhóm
+        {t("Tất cả nhóm")}
       </button>
 
       {filtered.map((group) => (
@@ -125,7 +126,7 @@ function GroupSidebar({
       ))}
 
       <Button block icon={<PlusOutlined />} onClick={onAdd} style={{ marginTop: 8 }}>
-        Thêm nhóm
+        {t("Thêm nhóm")}
       </Button>
     </div>
   );
@@ -173,7 +174,7 @@ function CatalogPanel({ tab }: { tab: TaxonomyTab }) {
   const columns: ColumnsType<CatalogEntryDto> = [
     { title: tab.entityLabel, dataIndex: "name", key: "name" },
     {
-      title: "Nhóm phân loại",
+      title: t("Nhóm phân loại"),
       dataIndex: "taxonomyName",
       key: "taxonomyName",
       width: 200,
@@ -181,52 +182,52 @@ function CatalogPanel({ tab }: { tab: TaxonomyTab }) {
     },
     ...(tab.priced
       ? [{
-          title: "Giá",
+          title: t("Giá"),
           dataIndex: "price",
           key: "price",
           width: 140,
           align: "right" as const,
-          render: (value: number | null) => (value == null ? "—" : `${formatVND(value)} đ`),
+          render: (value: number | null) => (value == null ? "—" : t("{0} đ", formatVND(value))),
         }]
       : []),
     {
-      title: "Trạng thái",
+      title: t("Trạng thái"),
       dataIndex: "isActive",
       key: "isActive",
       width: 120,
       render: (isActive: boolean) =>
-        isActive ? <Tag color="green">Đang dùng</Tag> : <Tag>Ngừng dùng</Tag>,
+        isActive ? <Tag color="green">{t("Đang dùng")}</Tag> : <Tag>{t("Ngừng dùng")}</Tag>,
     },
     {
-      title: "Cập nhật gần nhất",
+      title: t("Cập nhật gần nhất"),
       dataIndex: "lastModificationTime",
       key: "lastModificationTime",
       width: 150,
       render: (value: string | null, row) => formatDate(value ?? row.creationTime),
     },
     {
-      title: "Thao tác",
+      title: t("Thao tác"),
       key: "actions",
       width: 140,
       render: (_, row) => (
         <>
           <Button type="link" size="small" onClick={() => { setEditing(row); setEntryModalOpen(true); }}>
-            Sửa
+            {t("Sửa")}
           </Button>
           <Popconfirm
-            title="Xoá mục này?"
-            okText="Xoá"
-            cancelText="Huỷ"
+            title={t("Xoá mục này?")}
+            okText={t("Xoá")}
+            cancelText={t("Huỷ")}
             onConfirm={async () => {
               try {
                 await deleteEntry.mutateAsync(row.id);
-                message.success("Đã xoá");
+                message.success(t("Đã xoá"));
               } catch (error) {
                 message.error(extractApiError(error));
               }
             }}
           >
-            <Button type="link" size="small" danger>Xoá</Button>
+            <Button type="link" size="small" danger>{t("Xoá")}</Button>
           </Popconfirm>
         </>
       ),
@@ -245,7 +246,7 @@ function CatalogPanel({ tab }: { tab: TaxonomyTab }) {
       // Select the new group so the next "Thêm mục" lands where the user just
       // created it, instead of falling back to the first group in the list.
       setSelectedGroupId(created.id);
-      message.success("Đã thêm nhóm");
+      message.success(t("Đã thêm nhóm"));
       setGroupModalOpen(false);
       setNewGroupName("");
     } catch (error) {
@@ -268,13 +269,13 @@ function CatalogPanel({ tab }: { tab: TaxonomyTab }) {
           <div style={{ fontWeight: 700, fontSize: 16, color: "#1B2A41" }}>
             {currentGroup?.name ?? tab.label}
             <span style={{ fontWeight: 400, color: "#9CA3AF", fontSize: 13, marginLeft: 8 }}>
-              {entryPage?.totalCount ?? 0} bản ghi
+              {entryPage?.totalCount ?? 0} {t("bản ghi")}
             </span>
           </div>
           <div style={{ fontSize: 12, color: "#5A6B82", marginBottom: 10 }}>
             {currentGroup
-              ? `Quản lý các mục thuộc nhóm ${currentGroup.name}`
-              : `Tất cả mục của danh mục ${tab.label.toLowerCase()}`}
+              ? t("Quản lý các mục thuộc nhóm {0}", currentGroup.name)
+              : t("Tất cả mục của danh mục {0}", tab.label.toLowerCase())}
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "space-between" }}>
@@ -284,11 +285,11 @@ function CatalogPanel({ tab }: { tab: TaxonomyTab }) {
               disabled={groups.length === 0}
               onClick={() => { setEditing(null); setEntryModalOpen(true); }}
             >
-              Thêm {tab.label.toLowerCase()}
+              {t("Thêm")} {tab.label.toLowerCase()}
             </Button>
             <Input
               prefix={<SearchOutlined />}
-              placeholder={`Tìm theo ${tab.entityLabel.toLowerCase()}...`}
+              placeholder={t("Tìm theo {0}...", tab.entityLabel.toLowerCase())}
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               style={{ width: 260 }}
@@ -298,7 +299,7 @@ function CatalogPanel({ tab }: { tab: TaxonomyTab }) {
 
           {groups.length === 0 && !groupsLoading && (
             <div style={{ fontSize: 12, color: "#B45309", marginTop: 8 }}>
-              Cần tạo ít nhất một nhóm phân loại trước khi thêm mục.
+              {t("Cần tạo ít nhất một nhóm phân loại trước khi thêm mục.")}
             </div>
           )}
         </div>
@@ -310,11 +311,11 @@ function CatalogPanel({ tab }: { tab: TaxonomyTab }) {
           columns={columns}
           size="middle"
           locale={{
-            emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Không có dữ liệu" />,
+            emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("Không có dữ liệu")} />,
           }}
           pagination={{
             pageSize: 20,
-            showTotal: (total, range) => `Hiển thị ${range[0]}–${range[1]} trên ${total} bản ghi`,
+            showTotal: (total, range) => t("Hiển thị {0}–{1} trên {2} bản ghi", range[0], range[1], total),
           }}
         />
       </div>
@@ -333,15 +334,15 @@ function CatalogPanel({ tab }: { tab: TaxonomyTab }) {
 
       <Modal
         open={groupModalOpen}
-        title="Thêm nhóm phân loại"
-        okText="Thêm"
-        cancelText="Huỷ"
+        title={t("Thêm nhóm phân loại")}
+        okText={t("Thêm")}
+        cancelText={t("Huỷ")}
         confirmLoading={createGroup.isPending}
         onOk={handleCreateGroup}
         onCancel={() => { setGroupModalOpen(false); setNewGroupName(""); }}
       >
         <Input
-          placeholder="Tên nhóm"
+          placeholder={t("Tên nhóm")}
           value={newGroupName}
           onChange={(e) => setNewGroupName(e.target.value)}
           onPressEnter={handleCreateGroup}
@@ -354,7 +355,8 @@ function CatalogPanel({ tab }: { tab: TaxonomyTab }) {
 export function TaxonomyPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get("tab") ?? "service";
-  const tab = TAXONOMY_TABS.find((t) => t.key === activeTab) ?? TAXONOMY_TABS[0];
+  const tabs = taxonomyTabs();
+  const tab = tabs.find((item) => item.key === activeTab) ?? tabs[0];
 
   return (
     <div className="reception-page">
@@ -363,7 +365,7 @@ export function TaxonomyPage() {
           activeKey={tab.key}
           onChange={(key) => setSearchParams((p) => { p.set("tab", key); return p; })}
           style={{ marginBottom: 0 }}
-          items={TAXONOMY_TABS.map((t) => ({ key: t.key, label: t.label }))}
+          items={tabs.map((item) => ({ key: item.key, label: item.label }))}
         />
       </div>
 
@@ -373,7 +375,7 @@ export function TaxonomyPage() {
         ) : (
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={tab.pendingNote ?? "Chưa có dữ liệu"}
+            description={tab.pendingNote ?? t("Chưa có dữ liệu")}
           />
         )}
       </div>

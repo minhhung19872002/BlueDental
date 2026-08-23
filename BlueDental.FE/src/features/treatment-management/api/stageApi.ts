@@ -3,18 +3,19 @@ import { api } from "@/lib/axios";
 import type { PagedResult } from "@/types";
 import type { ToothSelectionDto } from "./consultingApi";
 
+import { t } from "@/lib/i18n";
 /** Matches BlueDental.TreatmentManagement.TreatmentStageStatus. */
 export const STAGE_STATUS = { Pending: 1, InProgress: 2, Completed: 3 } as const;
 export type TreatmentStageStatus = (typeof STAGE_STATUS)[keyof typeof STAGE_STATUS];
 
-export const STAGE_STATUS_CONFIG: Record<
+export const stageStatusConfig = (): Record<
   TreatmentStageStatus,
   { label: string; color: string }
-> = {
-  [STAGE_STATUS.Pending]: { label: "Chưa làm", color: "default" },
-  [STAGE_STATUS.InProgress]: { label: "Đang làm", color: "processing" },
-  [STAGE_STATUS.Completed]: { label: "Hoàn thành", color: "green" },
-};
+> => ({
+  [STAGE_STATUS.Pending]: { label: t("Chưa làm"), color: "default" },
+  [STAGE_STATUS.InProgress]: { label: t("Đang làm"), color: "processing" },
+  [STAGE_STATUS.Completed]: { label: t("Hoàn thành"), color: "green" },
+});
 
 export interface TreatmentStageDto {
   id: string;

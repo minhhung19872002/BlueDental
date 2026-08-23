@@ -3,9 +3,9 @@ import { Button, Card, Col, Row, Space, Table, Tag, Typography, message } from "
 import { PlusOutlined } from "@ant-design/icons";
 import type { TableColumnsType } from "antd";
 import {
-  PLAN_STATUS_CONFIG,
+  planStatusConfig,
   SERVICE_LINE_STATUS,
-  SERVICE_LINE_STATUS_CONFIG,
+  serviceLineStatusConfig,
   useCancelServiceLine,
   useCompleteServiceLine,
   useOpenTreatmentPlan,
@@ -20,6 +20,7 @@ import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { extractApiError } from "@/lib/apiError";
 import { downloadFile } from "@/lib/download";
 import { formatDate, formatVND } from "@/utils/format";
+import { t } from "@/lib/i18n";
 
 const { Text } = Typography;
 
@@ -89,7 +90,7 @@ export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
   const handleOpenPlan = async () => {
     const dentistId = dentists?.[0]?.id;
     if (!dentistId) {
-      message.error("Chưa có bác sĩ để tiếp nhận kế hoạch");
+      message.error(t("Chưa có bác sĩ để tiếp nhận kế hoạch"));
       return;
     }
 
@@ -100,7 +101,7 @@ export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
         clinicBranchId: branchId,
         dentistId,
       });
-      message.success("Đã tạo kế hoạch điều trị");
+      message.success(t("Đã tạo kế hoạch điều trị"));
     } catch (error) {
       message.error(extractApiError(error));
     } finally {
@@ -109,102 +110,102 @@ export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
   };
 
   const columns: TableColumnsType<PlanRow> = [
-    { title: "Số phiếu", dataIndex: "planCode", key: "planCode", width: 90 },
+    { title: t("Số phiếu"), dataIndex: "planCode", key: "planCode", width: 90 },
     {
-      title: "Dịch vụ",
+      title: t("Dịch vụ"),
       dataIndex: "serviceName",
       key: "serviceName",
       width: 200,
       render: (value: string | null, row) => value ?? row.code,
     },
     {
-      title: "Bác sĩ tiếp nhận",
+      title: t("Bác sĩ tiếp nhận"),
       dataIndex: "dentistName",
       key: "dentistName",
       width: 150,
       render: (value: string | null) => value ?? "—",
     },
     {
-      title: "Trạng thái - Tiến độ",
+      title: t("Trạng thái - Tiến độ"),
       key: "status",
       width: 190,
       render: (_, row) => {
-        const config = SERVICE_LINE_STATUS_CONFIG[row.status];
+        const config = serviceLineStatusConfig()[row.status];
         return (
           <Space size={4}>
             <Tag color={config.color}>{config.label}</Tag>
             <Text type="secondary" style={{ fontSize: 12 }}>
-              {row.completedStageCount}/{row.stageCount} công đoạn
+              {row.completedStageCount}/{row.stageCount} {t("công đoạn")}
             </Text>
           </Space>
         );
       },
     },
     {
-      title: "Ngày tạo",
+      title: t("Ngày tạo"),
       dataIndex: "planCreatedAt",
       key: "planCreatedAt",
       width: 110,
       render: (value: string) => formatDate(value),
     },
     {
-      title: "Tổng phiếu",
+      title: t("Tổng phiếu"),
       dataIndex: "grossAmount",
       key: "grossAmount",
       width: 120,
       align: "right",
-      render: (value: number) => `${formatVND(value)} đ`,
+      render: (value: number) => t("{0} đ", formatVND(value)),
     },
     {
-      title: "Giảm giá",
+      title: t("Giảm giá"),
       dataIndex: "discountAmount",
       key: "discountAmount",
       width: 110,
       align: "right",
-      render: (value: number) => `${formatVND(value)} đ`,
+      render: (value: number) => t("{0} đ", formatVND(value)),
     },
     {
-      title: "Thành tiền",
+      title: t("Thành tiền"),
       dataIndex: "effectiveAmount",
       key: "effectiveAmount",
       width: 120,
       align: "right",
-      render: (value: number) => `${formatVND(value)} đ`,
+      render: (value: number) => t("{0} đ", formatVND(value)),
     },
     {
-      title: "Đã trả",
+      title: t("Đã trả"),
       key: "paid",
       width: 120,
       align: "right",
       render: (_, row) => (
-        <Text style={{ color: "#10B981" }}>{formatVND(row.planPayment.totalPaid)} đ</Text>
+        <Text style={{ color: "#10B981" }}>{formatVND(row.planPayment.totalPaid)} {t("đ")}</Text>
       ),
     },
     {
-      title: "Hoàn tiền",
+      title: t("Hoàn tiền"),
       key: "refund",
       width: 110,
       align: "right",
-      render: (_, row) => `${formatVND(row.planPayment.totalRefund)} đ`,
+      render: (_, row) => t("{0} đ", formatVND(row.planPayment.totalRefund)),
     },
     {
-      title: "Còn lại",
+      title: t("Còn lại"),
       key: "due",
       width: 120,
       align: "right",
       render: (_, row) => (
-        <Text style={{ color: "#EF4444" }}>{formatVND(row.planPayment.totalDue)} đ</Text>
+        <Text style={{ color: "#EF4444" }}>{formatVND(row.planPayment.totalDue)} {t("đ")}</Text>
       ),
     },
     {
-      title: "Phải thu",
+      title: t("Phải thu"),
       key: "receivable",
       width: 110,
       align: "right",
-      render: (_, row) => `${formatVND(row.planPayment.debt)} đ`,
+      render: (_, row) => t("{0} đ", formatVND(row.planPayment.debt)),
     },
     {
-      title: "Thao tác",
+      title: t("Thao tác"),
       key: "actions",
       width: 250,
       fixed: "right",
@@ -220,7 +221,7 @@ export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
               )
             }
           >
-            In phiếu
+            {t("In phiếu")}
           </Button>
           {row.status === SERVICE_LINE_STATUS.Done ||
           row.status === SERVICE_LINE_STATUS.Cancelled ? null : (
@@ -232,11 +233,11 @@ export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
                 onClick={() =>
                   run(
                     completeLine.mutateAsync({ planId: row.planId, lineId: row.id }),
-                    "Đã hoàn thành dịch vụ",
+                    t("Đã hoàn thành dịch vụ"),
                   )
                 }
               >
-                Hoàn thành
+                {t("Hoàn thành")}
               </Button>
               <Button
                 type="link"
@@ -246,11 +247,11 @@ export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
                 onClick={() =>
                   run(
                     cancelLine.mutateAsync({ planId: row.planId, lineId: row.id }),
-                    "Đã huỷ dịch vụ",
+                    t("Đã huỷ dịch vụ"),
                   )
                 }
               >
-                Huỷ
+                {t("Huỷ")}
               </Button>
             </>
           )}
@@ -269,7 +270,7 @@ export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
           disabled={acceptedCount === 0}
           onClick={handleOpenPlan}
         >
-          Tạo kế hoạch mới
+          {t("Tạo kế hoạch mới")}
         </Button>
       </div>
 
@@ -295,11 +296,11 @@ export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
               </span>
               <div>
                 <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41" }}>
-                  Dịch vụ đang điều trị
+                  {t("Dịch vụ đang điều trị")}
                 </div>
                 <div style={{ fontSize: 12, color: "#9CA3AF" }}>
                   {activeServices.length === 0
-                    ? "Chưa có dịch vụ đang điều trị"
+                    ? t("Chưa có dịch vụ đang điều trị")
                     : activeServices.map((s) => s.serviceName ?? s.code).join(", ")}
                 </div>
               </div>
@@ -313,17 +314,17 @@ export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
             data-testid="plan-slip-count"
           >
             <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 4 }}>
-              Phiếu điều trị
+              {t("Phiếu điều trị")}
             </div>
             <div style={{ fontSize: 12, color: "#9CA3AF" }}>
               {slips.length === 0
                 ? acceptedCount === 0
-                  ? "Chưa có phiếu — hãy chốt phiếu tư vấn trước"
-                  : `${acceptedCount} dịch vụ đã chốt, sẵn sàng lên kế hoạch`
+                  ? t("Chưa có phiếu — hãy chốt phiếu tư vấn trước")
+                  : t("{0} dịch vụ đã chốt, sẵn sàng lên kế hoạch", acceptedCount)
                 : slips
                     .map(
                       (s) =>
-                        `${s.code} · ${PLAN_STATUS_CONFIG[s.status].label} · ${s.progressPercent}%`,
+                        `${s.code} · ${planStatusConfig()[s.status].label} · ${s.progressPercent}%`,
                     )
                     .join(" — ")}
             </div>
@@ -341,7 +342,7 @@ export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
           pagination={false}
           scroll={{ x: 1500 }}
           locale={{
-            emptyText: <span style={{ color: "#9CA3AF" }}>Chưa có kế hoạch điều trị</span>,
+            emptyText: <span style={{ color: "#9CA3AF" }}>{t("Chưa có kế hoạch điều trị")}</span>,
           }}
         />
       </Card>

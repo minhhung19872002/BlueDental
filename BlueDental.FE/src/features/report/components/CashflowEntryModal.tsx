@@ -3,7 +3,7 @@ import { DatePicker, Form, Input, InputNumber, Modal, Select, message } from "an
 import dayjs from "dayjs";
 import {
   CASH_HOLDING,
-  CASH_HOLDING_LABELS,
+  cashHoldingLabels,
   CASH_TRANSACTION_TYPE,
   useCashflowCategories,
   useCreateCashflowEntry,
@@ -13,6 +13,7 @@ import {
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { extractApiError } from "@/lib/apiError";
+import { t } from "@/lib/i18n";
 
 interface CashflowEntryModalProps {
   open: boolean;
@@ -29,16 +30,16 @@ interface CashflowFormValues {
   note?: string;
 }
 
-const HOLDING_OPTIONS = Object.entries(CASH_HOLDING_LABELS).map(([value, label]) => ({
+const HOLDING_OPTIONS = Object.entries(cashHoldingLabels()).map(([value, label]) => ({
   value: Number(value) as CashHolding,
   label,
 }));
 
-const TITLES: Record<CashTransactionType, string> = {
-  [CASH_TRANSACTION_TYPE.Deposit]: "Nạp tiền",
-  [CASH_TRANSACTION_TYPE.Withdraw]: "Rút tiền",
-  [CASH_TRANSACTION_TYPE.Transfer]: "Luân chuyển",
-};
+const titles = (): Record<CashTransactionType, string> => ({
+  [CASH_TRANSACTION_TYPE.Deposit]: t("Nạp tiền"),
+  [CASH_TRANSACTION_TYPE.Withdraw]: t("Rút tiền"),
+  [CASH_TRANSACTION_TYPE.Transfer]: t("Luân chuyển"),
+});
 
 export function CashflowEntryModal({ open, transactionType, onClose }: CashflowEntryModalProps) {
   const [form] = Form.useForm<CashflowFormValues>();
@@ -67,7 +68,7 @@ export function CashflowEntryModal({ open, transactionType, onClose }: CashflowE
     const values = await form.validateFields();
 
     if (!currentUserId) {
-      message.error("Không xác định được người dùng hiện tại.");
+      message.error(t("Không xác định được người dùng hiện tại."));
       return;
     }
 
@@ -75,7 +76,7 @@ export function CashflowEntryModal({ open, transactionType, onClose }: CashflowE
       transactionType === CASH_TRANSACTION_TYPE.Transfer &&
       values.fromHolding === values.toHolding
     ) {
-      message.error("Nguồn và đích của luân chuyển phải khác nhau.");
+      message.error(t("Nguồn và đích của luân chuyển phải khác nhau."));
       return;
     }
 
@@ -92,7 +93,7 @@ export function CashflowEntryModal({ open, transactionType, onClose }: CashflowE
         note: values.note,
       });
 
-      message.success(`Đã ghi nhận giao dịch ${TITLES[transactionType].toLowerCase()}`);
+      message.success(t("Đã ghi nhận giao dịch {0}", titles()[transactionType].toLowerCase()));
       onClose();
     } catch (error) {
       message.error(extractApiError(error));
@@ -102,9 +103,9 @@ export function CashflowEntryModal({ open, transactionType, onClose }: CashflowE
   return (
     <Modal
       open={open}
-      title={TITLES[transactionType]}
-      okText="Ghi nhận"
-      cancelText="Huỷ"
+      title={titles()[transactionType]}
+      okText={t("Ghi nhận")}
+      cancelText={t("Huỷ")}
       confirmLoading={createEntry.isPending}
       onOk={handleSubmit}
       onCancel={onClose}
@@ -114,8 +115,8 @@ export function CashflowEntryModal({ open, transactionType, onClose }: CashflowE
         {needsFrom && (
           <Form.Item
             name="fromHolding"
-            label="Từ"
-            rules={[{ required: true, message: "Vui lòng chọn nguồn tiền" }]}
+            label={t("Từ")}
+            rules={[{ required: true, message: t("Vui lòng chọn nguồn tiền") }]}
           >
             <Select options={HOLDING_OPTIONS} />
           </Form.Item>
@@ -124,8 +125,8 @@ export function CashflowEntryModal({ open, transactionType, onClose }: CashflowE
         {needsTo && (
           <Form.Item
             name="toHolding"
-            label="Đến"
-            rules={[{ required: true, message: "Vui lòng chọn đích" }]}
+            label={t("Đến")}
+            rules={[{ required: true, message: t("Vui lòng chọn đích") }]}
           >
             <Select options={HOLDING_OPTIONS} />
           </Form.Item>
@@ -133,10 +134,10 @@ export function CashflowEntryModal({ open, transactionType, onClose }: CashflowE
 
         <Form.Item
           name="amount"
-          label="Số tiền (đ)"
+          label={t("Số tiền (đ)")}
           rules={[
-            { required: true, message: "Vui lòng nhập số tiền" },
-            { type: "number", min: 1, message: "Số tiền phải lớn hơn 0" },
+            { required: true, message: t("Vui lòng nhập số tiền") },
+            { type: "number", min: 1, message: t("Số tiền phải lớn hơn 0") },
           ]}
         >
           <InputNumber<number>
@@ -148,19 +149,19 @@ export function CashflowEntryModal({ open, transactionType, onClose }: CashflowE
           />
         </Form.Item>
 
-        <Form.Item name="categoryId" label="Danh mục">
+        <Form.Item name="categoryId" label={t("Danh mục")}>
           <Select
             allowClear
-            placeholder="Không bắt buộc"
+            placeholder={t("Không bắt buộc")}
             options={(categoryPage?.items ?? []).map((c) => ({ value: c.id, label: c.name }))}
           />
         </Form.Item>
 
-        <Form.Item name="entryDate" label="Ngày" rules={[{ required: true }]}>
+        <Form.Item name="entryDate" label={t("Ngày")} rules={[{ required: true }]}>
           <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
         </Form.Item>
 
-        <Form.Item name="note" label="Ghi chú">
+        <Form.Item name="note" label={t("Ghi chú")}>
           <Input.TextArea rows={2} />
         </Form.Item>
       </Form>

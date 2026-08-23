@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { TablePaginationConfig } from "antd";
+import { t } from "@/lib/i18n";
 
 const BASE_PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 const DEFAULT_PAGE_SIZE = 20;
@@ -51,7 +52,7 @@ export function useTablePagination(
       showTotal:
         showTotal ??
         ((totalCount, range) =>
-          `Hiển thị ${range[0]}-${range[1]}/${totalCount}`),
+          t("Hiển thị {0}-{1}/{2}", range[0], range[1], totalCount)),
     }),
   };
 }

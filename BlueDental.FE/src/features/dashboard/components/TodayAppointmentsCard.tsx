@@ -3,6 +3,7 @@ import { CalendarOutlined } from "@ant-design/icons";
 import { useAppointmentList } from "@/features/appointments/api/appointmentQueries";
 import dayjs from "dayjs";
 import { brand } from "@/theme/index";
+import { t } from "@/lib/i18n";
 
 export function TodayAppointmentsCard() {
   const today = dayjs().format("YYYY-MM-DD");
@@ -19,7 +20,7 @@ export function TodayAppointmentsCard() {
     <div className="stat-card">
       <div className="stat-card-head">
         <div>
-          <div className="stat-card-label">Lịch hẹn hôm nay</div>
+          <div className="stat-card-label">{t("Lịch hẹn hôm nay")}</div>
           {isLoading ? (
             <Spin size="small" style={{ marginTop: 8 }} />
           ) : (
@@ -34,7 +35,7 @@ export function TodayAppointmentsCard() {
         </div>
       </div>
       <div className="stat-card-footer">
-        {completed} hoàn thành · {upcoming} sắp đến
+        {completed} {t("hoàn thành ·")} {upcoming} {t("sắp đến")}
       </div>
     </div>
   );

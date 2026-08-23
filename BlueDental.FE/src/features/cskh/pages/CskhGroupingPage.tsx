@@ -1,17 +1,18 @@
 import { useState } from "react";
 import {
   CARE_OUTCOME,
-  CARE_OUTCOME_LABELS,
+  careOutcomeLabels,
   CARE_STATUS,
-  CARE_STATUS_CONFIG,
+  careStatusConfig,
   CARE_TYPE,
-  CARE_TYPE_LABELS,
+  careTypeLabels,
   useCareRecords,
   useCareStats,
   useFailCare,
   useMarkCareContacted,
   useMarkZaloSent,
   useSucceedCare,
+  type CareOutcome,
   type CareRecordDto,
   type CareStatus,
   type CareType as CareTypeCode,
@@ -29,6 +30,7 @@ import {
 } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 import "dayjs/locale/vi";
+import { t } from "@/lib/i18n";
 
 dayjs.locale("vi");
 
@@ -45,34 +47,35 @@ type StatusFilter =
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
-const TOP_TABS: { key: TopTab; label: string }[] = [
-  { key: "care", label: "Chăm sóc khách hàng" },
-  { key: "grouping", label: "Phân nhóm CSKH" },
+const topTabs = (): { key: TopTab; label: string }[] => [
+  { key: "care", label: t("Chăm sóc khách hàng") },
+  { key: "grouping", label: t("Phân nhóm CSKH") },
 ];
 
-const VIEW_MODES: { key: ViewMode; label: string }[] = [
-  { key: "day", label: "Ngày" },
-  { key: "week", label: "Tuần" },
-  { key: "month", label: "Tháng" },
+const viewModes = (): { key: ViewMode; label: string }[] => [
+  { key: "day", label: t("Ngày") },
+  { key: "week", label: t("Tuần") },
+  { key: "month", label: t("Tháng") },
 ];
 
-const STATUS_FILTERS: { key: StatusFilter; label: string; count: number }[] = [
-  { key: "total", label: "Tổng khách", count: 0 },
-  { key: "success", label: "Thành công", count: 0 },
-  { key: "failed", label: "Thất bại", count: 0 },
-  { key: "not-cared", label: "Chưa CS", count: 0 },
-  { key: "zalo-sent", label: "Đã gửi Zalo", count: 0 },
+const statusFilters = (): { key: StatusFilter; label: string; count: number }[] => [
+  { key: "total", label: t("Tổng khách"), count: 0 },
+  { key: "success", label: t("Thành công"), count: 0 },
+  { key: "failed", label: t("Thất bại"), count: 0 },
+  { key: "not-cared", label: t("Chưa CS"), count: 0 },
+  { key: "zalo-sent", label: t("Đã gửi Zalo"), count: 0 },
 ];
 
-const CARE_TYPES: { key: CareTypeCode; label: string }[] = (
-  [
-    CARE_TYPE.AfterTreatment,
-    CARE_TYPE.Birthday,
-    CARE_TYPE.AppointmentReminder,
-    CARE_TYPE.Periodic,
-    CARE_TYPE.Special,
-  ] as CareTypeCode[]
-).map((key) => ({ key, label: CARE_TYPE_LABELS[key] }));
+const careTypes = (): { key: CareTypeCode; label: string }[] =>
+  (
+    [
+      CARE_TYPE.AfterTreatment,
+      CARE_TYPE.Birthday,
+      CARE_TYPE.AppointmentReminder,
+      CARE_TYPE.Periodic,
+      CARE_TYPE.Special,
+    ] as CareTypeCode[]
+  ).map((key) => ({ key, label: careTypeLabels()[key] }));
 
 /** The counter buttons double as status filters, as they do on the reference. */
 const STATUS_BY_FILTER: Record<string, CareStatus | undefined> = {
@@ -130,58 +133,58 @@ export function CskhGroupingPage() {
 
   const careColumns = [
     {
-      title: "Ngày chăm sóc",
+      title: t("Ngày chăm sóc"),
       dataIndex: "dueAt",
       key: "dueAt",
       width: 130,
       render: (value: string | null, row: CareRecordDto) => formatDate(value ?? row.creationTime),
     },
     {
-      title: "Họ và tên",
+      title: t("Họ và tên"),
       dataIndex: "patientName",
       key: "patientName",
       render: (value: string | null) => value ?? "—",
     },
     {
-      title: "Số điện thoại",
+      title: t("Số điện thoại"),
       dataIndex: "patientPhone",
       key: "patientPhone",
       width: 130,
       render: (value: string | null) => value ?? "—",
     },
     {
-      title: "Bác sĩ điều trị",
+      title: t("Bác sĩ điều trị"),
       dataIndex: "assignedStaffName",
       key: "assignedStaffName",
       width: 150,
       render: (value: string | null) => value ?? "—",
     },
     {
-      title: "Nhân viên chăm sóc",
+      title: t("Nhân viên chăm sóc"),
       dataIndex: "careStaffName",
       key: "careStaffName",
       width: 160,
-      render: (value: string | null) => value ?? "Không có",
+      render: (value: string | null) => value ?? t("Không có"),
     },
     {
-      title: "Trạng thái",
+      title: t("Trạng thái"),
       dataIndex: "status",
       key: "status",
       width: 140,
       render: (status: CareStatus) => {
-        const config = CARE_STATUS_CONFIG[status];
+        const config = careStatusConfig()[status];
         return <Tag color={config.color}>{config.label}</Tag>;
       },
     },
     {
-      title: "Đánh giá",
+      title: t("Đánh giá"),
       dataIndex: "outcome",
       key: "outcome",
       width: 130,
-      render: (outcome: keyof typeof CARE_OUTCOME_LABELS) => CARE_OUTCOME_LABELS[outcome],
+      render: (outcome: CareOutcome) => careOutcomeLabels()[outcome],
     },
     {
-      title: "Thao tác",
+      title: t("Thao tác"),
       key: "actions",
       width: 240,
       render: (_: unknown, row: CareRecordDto) => (
@@ -190,9 +193,9 @@ export function CskhGroupingPage() {
             <Button
               type="link"
               size="small"
-              onClick={() => run(markContacted.mutateAsync(row.id), "Đã ghi nhận liên hệ")}
+              onClick={() => run(markContacted.mutateAsync(row.id), t("Đã ghi nhận liên hệ"))}
             >
-              Đã liên hệ
+              {t("Đã liên hệ")}
             </Button>
           )}
           {(row.status === CARE_STATUS.New || row.status === CARE_STATUS.Contacted) && (
@@ -203,11 +206,11 @@ export function CskhGroupingPage() {
                 onClick={() =>
                   run(
                     succeedCare.mutateAsync({ id: row.id, outcome: CARE_OUTCOME.Good }),
-                    "Đã ghi nhận chăm sóc thành công",
+                    t("Đã ghi nhận chăm sóc thành công"),
                   )
                 }
               >
-                Thành công
+                {t("Thành công")}
               </Button>
               <Button
                 type="link"
@@ -215,12 +218,12 @@ export function CskhGroupingPage() {
                 danger
                 onClick={() =>
                   run(
-                    failCare.mutateAsync({ id: row.id, reason: "Không liên hệ được" }),
-                    "Đã ghi nhận thất bại",
+                    failCare.mutateAsync({ id: row.id, reason: t("Không liên hệ được") }),
+                    t("Đã ghi nhận thất bại"),
                   )
                 }
               >
-                Thất bại
+                {t("Thất bại")}
               </Button>
             </>
           )}
@@ -228,9 +231,9 @@ export function CskhGroupingPage() {
             <Button
               type="link"
               size="small"
-              onClick={() => run(markZaloSent.mutateAsync(row.id), "Đã ghi nhận gửi Zalo")}
+              onClick={() => run(markZaloSent.mutateAsync(row.id), t("Đã ghi nhận gửi Zalo"))}
             >
-              Gửi Zalo
+              {t("Gửi Zalo")}
             </Button>
           )}
         </>
@@ -268,7 +271,7 @@ export function CskhGroupingPage() {
       {/* Top-level tabs */}
       <div className="reception-card reception-card--tabs">
         <div style={{ display: "flex", gap: 0 }}>
-          {TOP_TABS.map((tab) => (
+          {topTabs().map((tab) => (
             <button
               key={tab.key}
               onClick={() => setTopTab(tab.key)}
@@ -294,7 +297,7 @@ export function CskhGroupingPage() {
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {/* View mode buttons */}
           <div style={{ display: "flex", border: "1px solid #d9d9d9", borderRadius: 6, overflow: "hidden" }}>
-            {VIEW_MODES.map((vm) => (
+            {viewModes().map((vm) => (
               <button
                 key={vm.key}
                 onClick={() => setViewMode(vm.key)}
@@ -335,7 +338,7 @@ export function CskhGroupingPage() {
       {/* Status counter buttons */}
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {STATUS_FILTERS.map((sf) => (
+          {statusFilters().map((sf) => (
             <button
               key={sf.key}
               onClick={() => setStatusFilter(sf.key)}
@@ -360,7 +363,7 @@ export function CskhGroupingPage() {
       {/* Care type tabs */}
       <div className="reception-card reception-card--tabs">
         <div style={{ display: "flex", gap: 0, flexWrap: "wrap" }}>
-          {CARE_TYPES.map((ct) => (
+          {careTypes().map((ct) => (
             <button
               key={ct.key}
               onClick={() => setCareType(ct.key)}
@@ -388,18 +391,18 @@ export function CskhGroupingPage() {
             icon={<DownloadOutlined />}
             onClick={() => void downloadFile("/v1/app/care-records/excel", "cskh.xlsx", careParams)}
           >
-            Xuất Excel
+            {t("Xuất Excel")}
           </Button>
           <Input
             prefix={<SearchOutlined />}
-            placeholder="Tìm kiếm..."
+            placeholder={t("Tìm kiếm...")}
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             style={{ width: 220 }}
             allowClear
           />
           <Select
-            placeholder="Bác sĩ điều trị"
+            placeholder={t("Bác sĩ điều trị")}
             style={{ width: 180 }}
             allowClear
             options={[]}
@@ -419,9 +422,9 @@ export function CskhGroupingPage() {
               pageSize: 20,
               showSizeChanger: true,
               pageSizeOptions: ["5", "10", "20", "25", "50", "100"],
-              showTotal: (total, range) => `Hiển thị ${range[0]}–${range[1]} trên ${total} khách`,
+              showTotal: (total, range) => t("Hiển thị {0}–{1} trên {2} khách", range[0], range[1], total),
             }}
-            locale={{ emptyText: "Không có dữ liệu" }}
+            locale={{ emptyText: t("Không có dữ liệu") }}
             size="middle"
           />
         </div>
@@ -441,43 +444,43 @@ interface CskhGroup {
   createdAt: string;
 }
 
-const SYNTHETIC_GROUPS: CskhGroup[] = [
-  { id: "g1", name: "Sau điều trị Implant", criteria: "Bệnh nhân hoàn thành Implant trong 30 ngày",        patientCount: 0, status: "active",   createdAt: "20/08/2026" },
-  { id: "g2", name: "Sinh nhật tháng này",  criteria: "Bệnh nhân có sinh nhật trong tháng hiện tại",       patientCount: 0, status: "active",   createdAt: "01/08/2026" },
-  { id: "g3", name: "Tái khám định kỳ",     criteria: "Bệnh nhân chưa tái khám sau 6 tháng",               patientCount: 0, status: "active",   createdAt: "15/07/2026" },
-  { id: "g4", name: "Khách hàng VIP",       criteria: "Tổng chi tiêu >= 10.000.000 đ",                     patientCount: 0, status: "active",   createdAt: "01/06/2026" },
-  { id: "g5", name: "Nhắc niềng răng",      criteria: "Bệnh nhân chỉnh nha chưa đến hẹn điều chỉnh",      patientCount: 0, status: "inactive", createdAt: "10/05/2026" },
+const syntheticGroups = (): CskhGroup[] => [
+  { id: "g1", name: t("Sau điều trị Implant"), criteria: t("Bệnh nhân hoàn thành Implant trong 30 ngày"),        patientCount: 0, status: "active",   createdAt: "20/08/2026" },
+  { id: "g2", name: t("Sinh nhật tháng này"),  criteria: t("Bệnh nhân có sinh nhật trong tháng hiện tại"),       patientCount: 0, status: "active",   createdAt: "01/08/2026" },
+  { id: "g3", name: t("Tái khám định kỳ"),     criteria: t("Bệnh nhân chưa tái khám sau 6 tháng"),               patientCount: 0, status: "active",   createdAt: "15/07/2026" },
+  { id: "g4", name: t("Khách hàng VIP"),       criteria: t("Tổng chi tiêu >= 10.000.000 đ"),                     patientCount: 0, status: "active",   createdAt: "01/06/2026" },
+  { id: "g5", name: t("Nhắc niềng răng"),      criteria: t("Bệnh nhân chỉnh nha chưa đến hẹn điều chỉnh"),      patientCount: 0, status: "inactive", createdAt: "10/05/2026" },
 ];
 
 function CskhGroupingPanel() {
   const [keyword, setKeyword] = useState("");
 
-  const filtered = SYNTHETIC_GROUPS.filter((g) =>
+  const filtered = syntheticGroups().filter((g) =>
     g.name.toLowerCase().includes(keyword.toLowerCase()),
   );
 
   const columns = [
-    { title: "Tên nhóm", dataIndex: "name", key: "name", width: 220, render: (v: string) => <span style={{ fontWeight: 500 }}>{v}</span> },
-    { title: "Tiêu chí phân nhóm", dataIndex: "criteria", key: "criteria" },
-    { title: "Số khách", dataIndex: "patientCount", key: "patientCount", width: 100, align: "right" as const },
+    { title: t("Tên nhóm"), dataIndex: "name", key: "name", width: 220, render: (v: string) => <span style={{ fontWeight: 500 }}>{v}</span> },
+    { title: t("Tiêu chí phân nhóm"), dataIndex: "criteria", key: "criteria" },
+    { title: t("Số khách"), dataIndex: "patientCount", key: "patientCount", width: 100, align: "right" as const },
     {
-      title: "Trạng thái",
+      title: t("Trạng thái"),
       dataIndex: "status",
       key: "status",
       width: 120,
       render: (v: string) => (
-        <Tag color={v === "active" ? "green" : "default"}>{v === "active" ? "Đang dùng" : "Tạm dừng"}</Tag>
+        <Tag color={v === "active" ? "green" : "default"}>{v === "active" ? t("Đang dùng") : t("Tạm dừng")}</Tag>
       ),
     },
-    { title: "Ngày tạo", dataIndex: "createdAt", key: "createdAt", width: 120 },
+    { title: t("Ngày tạo"), dataIndex: "createdAt", key: "createdAt", width: 120 },
     {
-      title: "Thao tác",
+      title: t("Thao tác"),
       key: "actions",
       width: 140,
       render: () => (
         <div style={{ display: "flex", gap: 6 }}>
-          <Button size="small">Chỉnh sửa</Button>
-          <Button size="small" danger>Xóa</Button>
+          <Button size="small">{t("Chỉnh sửa")}</Button>
+          <Button size="small" danger>{t("Xóa")}</Button>
         </div>
       ),
     },
@@ -489,13 +492,13 @@ function CskhGroupingPanel() {
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Input
             prefix={<SearchOutlined />}
-            placeholder="Tìm nhóm CSKH..."
+            placeholder={t("Tìm nhóm CSKH...")}
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             style={{ width: 260 }}
             allowClear
           />
-          <Button type="primary" style={{ marginLeft: "auto" }}>Tạo nhóm mới</Button>
+          <Button type="primary" style={{ marginLeft: "auto" }}>{t("Tạo nhóm mới")}</Button>
         </div>
       </div>
       <div className="reception-card reception-card--content">
@@ -504,8 +507,8 @@ function CskhGroupingPanel() {
           dataSource={filtered}
           rowKey="id"
           size="middle"
-          pagination={{ pageSize: 20, showTotal: (total) => `${total} nhóm` }}
-          locale={{ emptyText: "Chưa có nhóm CSKH nào" }}
+          pagination={{ pageSize: 20, showTotal: (total) => t("{0} nhóm", total) }}
+          locale={{ emptyText: t("Chưa có nhóm CSKH nào") }}
         />
       </div>
     </>

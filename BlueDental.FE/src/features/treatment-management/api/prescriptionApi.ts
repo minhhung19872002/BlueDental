@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import type { PagedResult } from "@/types";
 
+import { t } from "@/lib/i18n";
 /** Matches BlueDental.TreatmentManagement.PrescriptionStatus. */
 export const PRESCRIPTION_STATUS = {
   Active: 1,
@@ -12,15 +13,15 @@ export const PRESCRIPTION_STATUS = {
 export type PrescriptionStatus =
   (typeof PRESCRIPTION_STATUS)[keyof typeof PRESCRIPTION_STATUS];
 
-export const PRESCRIPTION_STATUS_CONFIG: Record<
+export const prescriptionStatusConfig = (): Record<
   PrescriptionStatus,
   { label: string; color: string }
-> = {
-  [PRESCRIPTION_STATUS.Active]: { label: "Chưa phát", color: "processing" },
-  [PRESCRIPTION_STATUS.Dispensed]: { label: "Đã phát", color: "green" },
-  [PRESCRIPTION_STATUS.Expired]: { label: "Hết hạn", color: "default" },
-  [PRESCRIPTION_STATUS.Cancelled]: { label: "Đã huỷ", color: "red" },
-};
+> => ({
+  [PRESCRIPTION_STATUS.Active]: { label: t("Chưa phát"), color: "processing" },
+  [PRESCRIPTION_STATUS.Dispensed]: { label: t("Đã phát"), color: "green" },
+  [PRESCRIPTION_STATUS.Expired]: { label: t("Hết hạn"), color: "default" },
+  [PRESCRIPTION_STATUS.Cancelled]: { label: t("Đã huỷ"), color: "red" },
+});
 
 export interface PrescriptionItemDto {
   id: string;

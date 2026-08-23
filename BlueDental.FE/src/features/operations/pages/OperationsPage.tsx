@@ -7,7 +7,7 @@ import {
   DEPARTMENT_BY_TAB,
   OPERATIONS_SECTION,
   TASK_STATUS,
-  TASK_STATUS_CONFIG,
+  taskStatusConfig,
   useCompleteTask,
   useCreateArticle,
   useCreateTask,
@@ -28,87 +28,93 @@ import {
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { extractApiError } from "@/lib/apiError";
 import { formatDate } from "@/utils/format";
+import { t } from "@/lib/i18n";
 
-const MAIN_TABS = [
+/**
+ * Built on demand rather than frozen into a module constant: the labels go
+ * through t(), and a module constant would capture the language that happened
+ * to be loaded when this file was first imported.
+ */
+const mainTabs = () => [
   {
     key: "overview",
-    label: "Quản trị vận hành",
+    label: t("Quản trị vận hành"),
     subTabs: [
-      { key: "home",        label: "Trang chủ" },
-      { key: "process",     label: "Quy trình" },
-      { key: "task",        label: "Công việc" },
-      { key: "report",      label: "Báo cáo" },
-      { key: "untreated",   label: "Chẩn đoán chưa điều trị" },
-      { key: "prescription",label: "Đơn thuốc" },
+      { key: "home",        label: t("Trang chủ") },
+      { key: "process",     label: t("Quy trình") },
+      { key: "task",        label: t("Công việc") },
+      { key: "report",      label: t("Báo cáo") },
+      { key: "untreated",   label: t("Chẩn đoán chưa điều trị") },
+      { key: "prescription",label: t("Đơn thuốc") },
     ],
   },
   {
     key: "assistant",
-    label: "Khối trợ lý",
+    label: t("Khối trợ lý"),
     subTabs: [
-      { key: "home",    label: "Trang chủ" },
-      { key: "process", label: "Quy trình" },
-      { key: "task",    label: "Công việc" },
+      { key: "home",    label: t("Trang chủ") },
+      { key: "process", label: t("Quy trình") },
+      { key: "task",    label: t("Công việc") },
     ],
   },
   {
     key: "reception",
-    label: "Khối lễ tân",
+    label: t("Khối lễ tân"),
     subTabs: [
-      { key: "home",    label: "Trang chủ" },
-      { key: "process", label: "Quy trình" },
-      { key: "task",    label: "Công việc" },
-      { key: "report",  label: "Báo cáo" },
+      { key: "home",    label: t("Trang chủ") },
+      { key: "process", label: t("Quy trình") },
+      { key: "task",    label: t("Công việc") },
+      { key: "report",  label: t("Báo cáo") },
     ],
   },
   {
     key: "cskh",
-    label: "Khối CSKH",
+    label: t("Khối CSKH"),
     subTabs: [
-      { key: "home",    label: "Trang chủ" },
-      { key: "process", label: "Quy trình" },
-      { key: "task",    label: "Công việc" },
-      { key: "report",  label: "Báo cáo" },
+      { key: "home",    label: t("Trang chủ") },
+      { key: "process", label: t("Quy trình") },
+      { key: "task",    label: t("Công việc") },
+      { key: "report",  label: t("Báo cáo") },
     ],
   },
   {
     key: "marketing",
-    label: "Khối Marketing",
+    label: t("Khối Marketing"),
     subTabs: [
-      { key: "home",    label: "Trang chủ" },
-      { key: "process", label: "Quy trình" },
-      { key: "task",    label: "Công việc" },
-      { key: "report",  label: "Báo cáo" },
+      { key: "home",    label: t("Trang chủ") },
+      { key: "process", label: t("Quy trình") },
+      { key: "task",    label: t("Công việc") },
+      { key: "report",  label: t("Báo cáo") },
     ],
   },
   {
     key: "security",
-    label: "Khối bảo vệ",
+    label: t("Khối bảo vệ"),
     subTabs: [
-      { key: "home",    label: "Trang chủ" },
-      { key: "process", label: "Quy trình" },
-      { key: "task",    label: "Công việc" },
-      { key: "report",  label: "Báo cáo" },
+      { key: "home",    label: t("Trang chủ") },
+      { key: "process", label: t("Quy trình") },
+      { key: "task",    label: t("Công việc") },
+      { key: "report",  label: t("Báo cáo") },
     ],
   },
   {
     key: "treatment",
-    label: "Khối điều trị",
+    label: t("Khối điều trị"),
     subTabs: [
-      { key: "home",    label: "Trang chủ" },
-      { key: "process", label: "Quy trình" },
-      { key: "task",    label: "Công việc" },
-      { key: "report",  label: "Báo cáo" },
+      { key: "home",    label: t("Trang chủ") },
+      { key: "process", label: t("Quy trình") },
+      { key: "task",    label: t("Công việc") },
+      { key: "report",  label: t("Báo cáo") },
     ],
   },
   {
     key: "finance",
-    label: "Khối tài chính",
+    label: t("Khối tài chính"),
     subTabs: [
-      { key: "home",    label: "Trang chủ" },
-      { key: "process", label: "Quy trình" },
-      { key: "task",    label: "Công việc" },
-      { key: "report",  label: "Báo cáo" },
+      { key: "home",    label: t("Trang chủ") },
+      { key: "process", label: t("Quy trình") },
+      { key: "task",    label: t("Công việc") },
+      { key: "report",  label: t("Báo cáo") },
     ],
   },
 ];
@@ -173,7 +179,7 @@ function ArticleSection({
       setCreating(false);
       setTitle("");
       setContent("");
-      message.success("Đã tạo bài viết");
+      message.success(t("Đã tạo bài viết"));
     } catch (error) {
       message.error(extractApiError(error));
     }
@@ -181,7 +187,7 @@ function ArticleSection({
 
   const columns: ColumnsType<OperationsArticleDto> = [
     {
-      title: "Tiêu đề",
+      title: t("Tiêu đề"),
       key: "title",
       render: (_, row) => (
         <>
@@ -194,29 +200,29 @@ function ArticleSection({
       ),
     },
     {
-      title: "Người tạo",
+      title: t("Người tạo"),
       dataIndex: "authorName",
       key: "authorName",
       width: 160,
       render: (value: string | null) => value ?? "—",
     },
     {
-      title: "Ngày tạo",
+      title: t("Ngày tạo"),
       dataIndex: "creationTime",
       key: "creationTime",
       width: 130,
       render: (value: string) => formatDate(value),
     },
     {
-      title: "Trạng thái",
+      title: t("Trạng thái"),
       dataIndex: "isPublished",
       key: "isPublished",
       width: 120,
       render: (isPublished: boolean) =>
-        isPublished ? <Tag color="green">Đã đăng</Tag> : <Tag>Nháp</Tag>,
+        isPublished ? <Tag color="green">{t("Đã đăng")}</Tag> : <Tag>{t("Nháp")}</Tag>,
     },
     {
-      title: "Thao tác",
+      title: t("Thao tác"),
       key: "actions",
       width: 200,
       render: (_, row) => (
@@ -225,26 +231,26 @@ function ArticleSection({
             <Button
               type="link"
               size="small"
-              onClick={() => run(unpublishArticle.mutateAsync(row.id), "Đã gỡ bài viết")}
+              onClick={() => run(unpublishArticle.mutateAsync(row.id), t("Đã gỡ bài viết"))}
             >
-              Gỡ đăng
+              {t("Gỡ đăng")}
             </Button>
           ) : (
             <Button
               type="link"
               size="small"
-              onClick={() => run(publishArticle.mutateAsync(row.id), "Đã đăng bài viết")}
+              onClick={() => run(publishArticle.mutateAsync(row.id), t("Đã đăng bài viết"))}
             >
-              Đăng
+              {t("Đăng")}
             </Button>
           )}
           <Popconfirm
-            title="Xoá bài viết này?"
-            okText="Xoá"
-            cancelText="Huỷ"
-            onConfirm={() => run(deleteArticle.mutateAsync(row.id), "Đã xoá bài viết")}
+            title={t("Xoá bài viết này?")}
+            okText={t("Xoá")}
+            cancelText={t("Huỷ")}
+            onConfirm={() => run(deleteArticle.mutateAsync(row.id), t("Đã xoá bài viết"))}
           >
-            <Button type="link" size="small" danger>Xoá</Button>
+            <Button type="link" size="small" danger>{t("Xoá")}</Button>
           </Popconfirm>
         </>
       ),
@@ -255,7 +261,7 @@ function ArticleSection({
     <>
       <div className="reception-card reception-card--toolbar">
         <Button type="primary" onClick={() => setCreating(true)} style={{ background: "#2671D8" }}>
-          Tạo Bài Viết
+          {t("Tạo Bài Viết")}
         </Button>
       </div>
 
@@ -266,29 +272,29 @@ function ArticleSection({
           loading={isLoading}
           dataSource={data?.items ?? []}
           columns={columns}
-          locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Không có dữ liệu" /> }}
-          pagination={{ pageSize: 20, showTotal: (total) => `${total} bài viết` }}
+          locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("Không có dữ liệu")} /> }}
+          pagination={{ pageSize: 20, showTotal: (total) => t("{0} bài viết", total) }}
         />
       </div>
 
       <Modal
         open={creating}
-        title="Tạo bài viết"
-        okText="Tạo"
-        cancelText="Huỷ"
+        title={t("Tạo bài viết")}
+        okText={t("Tạo")}
+        cancelText={t("Huỷ")}
         confirmLoading={createArticle.isPending}
         onOk={handleCreate}
         onCancel={() => setCreating(false)}
       >
         <Input
-          placeholder="Tiêu đề"
+          placeholder={t("Tiêu đề")}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           style={{ marginBottom: 12 }}
         />
         <Input.TextArea
           rows={5}
-          placeholder="Nội dung — cần có nội dung mới đăng được"
+          placeholder={t("Nội dung — cần có nội dung mới đăng được")}
           value={content}
           onChange={(e) => setContent(e.target.value)}
         />
@@ -345,23 +351,23 @@ function TaskSection({
       setCreating(false);
       setTitle("");
       setDueDate(null);
-      message.success("Đã tạo công việc");
+      message.success(t("Đã tạo công việc"));
     } catch (error) {
       message.error(extractApiError(error));
     }
   };
 
   const columns: ColumnsType<OperationsTaskDto> = [
-    { title: "Công việc", dataIndex: "title", key: "title" },
+    { title: t("Công việc"), dataIndex: "title", key: "title" },
     {
-      title: "Người phụ trách",
+      title: t("Người phụ trách"),
       dataIndex: "assigneeName",
       key: "assigneeName",
       width: 160,
-      render: (value: string | null) => value ?? "Chưa giao",
+      render: (value: string | null) => value ?? t("Chưa giao"),
     },
     {
-      title: "Hạn",
+      title: t("Hạn"),
       dataIndex: "dueDate",
       key: "dueDate",
       width: 140,
@@ -369,23 +375,23 @@ function TaskSection({
         value ? (
           <span style={{ color: row.isOverdue ? "#EF4444" : undefined }}>
             {formatDate(value)}
-            {row.isOverdue && " (quá hạn)"}
+            {row.isOverdue && t(" (quá hạn)")}
           </span>
         ) : (
           "—"
         ),
     },
     {
-      title: "Trạng thái",
+      title: t("Trạng thái"),
       dataIndex: "status",
       key: "status",
       width: 130,
       render: (status: OperationsTaskStatus) => (
-        <Tag color={TASK_STATUS_CONFIG[status].color}>{TASK_STATUS_CONFIG[status].label}</Tag>
+        <Tag color={taskStatusConfig()[status].color}>{taskStatusConfig()[status].label}</Tag>
       ),
     },
     {
-      title: "Thao tác",
+      title: t("Thao tác"),
       key: "actions",
       width: 220,
       render: (_, row) => (
@@ -394,27 +400,27 @@ function TaskSection({
             <Button
               type="link"
               size="small"
-              onClick={() => run(startTask.mutateAsync(row.id), "Đã bắt đầu công việc")}
+              onClick={() => run(startTask.mutateAsync(row.id), t("Đã bắt đầu công việc"))}
             >
-              Bắt đầu
+              {t("Bắt đầu")}
             </Button>
           )}
           {(row.status === TASK_STATUS.Todo || row.status === TASK_STATUS.InProgress) && (
             <Button
               type="link"
               size="small"
-              onClick={() => run(completeTask.mutateAsync(row.id), "Đã hoàn thành công việc")}
+              onClick={() => run(completeTask.mutateAsync(row.id), t("Đã hoàn thành công việc"))}
             >
-              Hoàn thành
+              {t("Hoàn thành")}
             </Button>
           )}
           <Popconfirm
-            title="Xoá công việc này?"
-            okText="Xoá"
-            cancelText="Huỷ"
-            onConfirm={() => run(deleteTask.mutateAsync(row.id), "Đã xoá công việc")}
+            title={t("Xoá công việc này?")}
+            okText={t("Xoá")}
+            cancelText={t("Huỷ")}
+            onConfirm={() => run(deleteTask.mutateAsync(row.id), t("Đã xoá công việc"))}
           >
-            <Button type="link" size="small" danger>Xoá</Button>
+            <Button type="link" size="small" danger>{t("Xoá")}</Button>
           </Popconfirm>
         </>
       ),
@@ -426,11 +432,11 @@ function TaskSection({
       <div className="reception-card" style={{ padding: "12px 16px", display: "flex", gap: 24 }}>
         {/* Test ids because these labels also appear as row action buttons. */}
         {[
-          { label: "Tổng", value: stats?.total ?? 0, testId: "ops-stat-total" },
-          { label: "Chưa làm", value: stats?.todo ?? 0, testId: "ops-stat-todo" },
-          { label: "Đang làm", value: stats?.inProgress ?? 0, testId: "ops-stat-in-progress" },
-          { label: "Hoàn thành", value: stats?.done ?? 0, testId: "ops-stat-done" },
-          { label: "Quá hạn", value: stats?.overdue ?? 0, testId: "ops-stat-overdue" },
+          { label: t("Tổng"), value: stats?.total ?? 0, testId: "ops-stat-total" },
+          { label: t("Chưa làm"), value: stats?.todo ?? 0, testId: "ops-stat-todo" },
+          { label: t("Đang làm"), value: stats?.inProgress ?? 0, testId: "ops-stat-in-progress" },
+          { label: t("Hoàn thành"), value: stats?.done ?? 0, testId: "ops-stat-done" },
+          { label: t("Quá hạn"), value: stats?.overdue ?? 0, testId: "ops-stat-overdue" },
         ].map((tile) => (
           <div key={tile.label} data-testid={tile.testId}>
             <div style={{ fontSize: 20, fontWeight: 700, color: "#1B2A41" }}>{tile.value}</div>
@@ -441,7 +447,7 @@ function TaskSection({
 
       <div className="reception-card reception-card--toolbar">
         <Button type="primary" onClick={() => setCreating(true)} style={{ background: "#2671D8" }}>
-          Tạo Công Việc
+          {t("Tạo Công Việc")}
         </Button>
       </div>
 
@@ -452,22 +458,22 @@ function TaskSection({
           loading={isLoading}
           dataSource={data?.items ?? []}
           columns={columns}
-          locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Không có dữ liệu" /> }}
-          pagination={{ pageSize: 20, showTotal: (total) => `${total} công việc` }}
+          locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("Không có dữ liệu")} /> }}
+          pagination={{ pageSize: 20, showTotal: (total) => t("{0} công việc", total) }}
         />
       </div>
 
       <Modal
         open={creating}
-        title="Tạo công việc"
-        okText="Tạo"
-        cancelText="Huỷ"
+        title={t("Tạo công việc")}
+        okText={t("Tạo")}
+        cancelText={t("Huỷ")}
         confirmLoading={createTask.isPending}
         onOk={handleCreate}
         onCancel={() => setCreating(false)}
       >
         <Input
-          placeholder="Tên công việc"
+          placeholder={t("Tên công việc")}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           style={{ marginBottom: 12 }}
@@ -475,7 +481,7 @@ function TaskSection({
         <DatePicker
           style={{ width: "100%" }}
           format="DD/MM/YYYY"
-          placeholder="Hạn hoàn thành"
+          placeholder={t("Hạn hoàn thành")}
           value={dueDate}
           onChange={setDueDate}
         />
@@ -489,7 +495,8 @@ export function OperationsPage() {
   const [activeSubTabs, setActiveSubTabs] = useState<Record<string, string>>({});
   const [keyword, setKeyword] = useState("");
 
-  const currentTabDef = MAIN_TABS.find((t) => t.key === activeTab)!;
+  const tabs = mainTabs();
+  const currentTabDef = tabs.find((tab) => tab.key === activeTab)!;
   const activeSubTab = activeSubTabs[activeTab] ?? currentTabDef.subTabs[0]?.key ?? "";
   const department = DEPARTMENT_BY_TAB[activeTab];
 
@@ -514,7 +521,7 @@ export function OperationsPage() {
       <div className="reception-card reception-card--content">
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description="Mục này là báo cáo tổng hợp từ các module khác — chưa dựng ở BlueDental."
+          description={t("Mục này là báo cáo tổng hợp từ các module khác — chưa dựng ở BlueDental.")}
         />
       </div>
     );
@@ -528,7 +535,7 @@ export function OperationsPage() {
           activeKey={activeTab}
           onChange={(k) => setActiveTab(k)}
           style={{ marginBottom: 0 }}
-          items={MAIN_TABS.map((t) => ({ key: t.key, label: t.label }))}
+          items={tabs.map((tab) => ({ key: tab.key, label: tab.label }))}
         />
       </div>
 
@@ -563,7 +570,7 @@ export function OperationsPage() {
       <div className="reception-card reception-card--toolbar">
         <Input
           prefix={<SearchOutlined style={{ color: "#9CA3AF" }} />}
-          placeholder="Tìm kiếm..."
+          placeholder={t("Tìm kiếm...")}
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
           allowClear

@@ -8,6 +8,7 @@ import {
 } from "@ant-design/icons";
 import { DateViewSelector } from "./DateViewSelector";
 import type { ReceptionMetrics } from "../types/reception";
+import { t } from "@/lib/i18n";
 
 const { Title, Text } = Typography;
 
@@ -44,13 +45,13 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
               textTransform: "uppercase",
             }}
           >
-            TỔNG QUAN
+            {t("TỔNG QUAN")}
           </Text>
           <Title
             level={2}
             style={{ margin: 0, fontWeight: 800, color: "#0F172A", fontSize: 26 }}
           >
-            Tiếp nhận khách hàng
+            {t("Tiếp nhận khách hàng")}
           </Title>
         </div>
 
@@ -90,7 +91,7 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
               <Statistic
                 title={
                   <Text style={{ color: "#64748B", fontSize: 13, fontWeight: 600 }}>
-                    Khách mới
+                    {t("Khách mới")}
                   </Text>
                 }
                 value={metrics?.newPatientsCount ?? 0}
@@ -131,7 +132,7 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
               <Statistic
                 title={
                   <Text style={{ color: "#64748B", fontSize: 13, fontWeight: 600 }}>
-                    Khách cũ phát sinh
+                    {t("Khách cũ phát sinh")}
                   </Text>
                 }
                 value={metrics?.oldPatientsCount ?? 0}
@@ -172,7 +173,7 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
               <Statistic
                 title={
                   <Text style={{ color: "#64748B", fontSize: 13, fontWeight: 600 }}>
-                    Đã hẹn
+                    {t("Đã hẹn")}
                   </Text>
                 }
                 value={metrics?.scheduledCount ?? 0}
@@ -213,7 +214,7 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
               <Statistic
                 title={
                   <Text style={{ color: "#64748B", fontSize: 13, fontWeight: 600 }}>
-                    Khách đến
+                    {t("Khách đến")}
                   </Text>
                 }
                 value={metrics?.arrivedCount ?? 0}

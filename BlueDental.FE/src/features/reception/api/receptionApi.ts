@@ -1,6 +1,7 @@
 import { api } from "@/lib/axios";
 import { DEFAULT_BRANCH_ID } from "@/lib/clinicBranch";
 import { splitVietnameseName } from "@/utils/vietnameseName";
+import { t } from "@/lib/i18n";
 import type {
   CreateReceptionInput,
   ReceptionFilter,
@@ -84,16 +85,16 @@ function adaptVisit(dto: VisitDto): ReceptionItem {
     id: dto.id,
     voucherCode: `TN-${dto.id.slice(0, 8).toUpperCase()}`,
     patientId: dto.patientId,
-    patientName: dto.patientName ?? "Bệnh nhân",
+    patientName: dto.patientName ?? t("Bệnh nhân"),
     patientPhone: "",
     patientType: "New",
     doctorId: dto.dentistId ?? "",
-    doctorName: dto.dentistName ?? "Chưa phân công",
+    doctorName: dto.dentistName ?? t("Chưa phân công"),
     refType: "Medical",
     status: toReceptionStatus(dto.status),
     totalDue: 0,
     expectedRevenue: 0,
-    services: dto.chiefComplaint ? [dto.chiefComplaint] : ["Khám tư vấn"],
+    services: dto.chiefComplaint ? [dto.chiefComplaint] : [t("Khám tư vấn")],
     notes: dto.notes ?? dto.chiefComplaint ?? undefined,
     arrivalTime: formatTime(dto.checkedInAt ?? dto.scheduledAt),
     createdAt: dto.creationTime,

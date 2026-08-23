@@ -5,6 +5,7 @@ import type {
   AppointmentOutcome,
   AppointmentCounterType,
 } from "../types/reception";
+import { t } from "@/lib/i18n";
 
 interface ReceptionCardProps {
   item: ReceptionItem;
@@ -14,23 +15,23 @@ interface ReceptionCardProps {
   onCancel?: (id: string) => void;
 }
 
-const COUNTER_STATUS_BADGE: Record<
+const counterStatusBadge = (): Record<
   AppointmentCounterType,
   { label: string; bg: string; border: string; color: string }
-> = {
-  Scheduled: { label: "Đã hẹn",     bg: "#DCEBFA", border: "#BFD6F6", color: "#1E5BB0" },
-  Arrived:   { label: "Đã đến",     bg: "#DDF3E7", border: "#BDE8CF", color: "#1F7A45" },
-  Cancelled: { label: "Huỷ hẹn",   bg: "#FBE0E0", border: "#F3BABA", color: "#B93832" },
-  Late:      { label: "Trễ hẹn",   bg: "#FBEBCB", border: "#FBEBCB", color: "#9A680F" },
-  Temporary: { label: "Lịch tạm",  bg: "#F9E3CC", border: "#E8C19B", color: "#B7611F" },
-  Converted: { label: "Chuyển đổi", bg: "#D5ECF7", border: "#AAD7EA", color: "#176F99" },
-};
+> => ({
+  Scheduled: { label: t("Đã hẹn"),     bg: "#DCEBFA", border: "#BFD6F6", color: "#1E5BB0" },
+  Arrived:   { label: t("Đã đến"),     bg: "#DDF3E7", border: "#BDE8CF", color: "#1F7A45" },
+  Cancelled: { label: t("Huỷ hẹn"),   bg: "#FBE0E0", border: "#F3BABA", color: "#B93832" },
+  Late:      { label: t("Trễ hẹn"),   bg: "#FBEBCB", border: "#FBEBCB", color: "#9A680F" },
+  Temporary: { label: t("Lịch tạm"),  bg: "#F9E3CC", border: "#E8C19B", color: "#B7611F" },
+  Converted: { label: t("Chuyển đổi"), bg: "#D5ECF7", border: "#AAD7EA", color: "#176F99" },
+});
 
-const OUTCOMES: { key: AppointmentOutcome; label: string }[] = [
-  { key: "EndTreatment",   label: "Kết thúc điều trị" },
-  { key: "FollowUp",       label: "Đã hẹn tiếp" },
-  { key: "TransferDoctor", label: "Chuyển bác sĩ" },
-  { key: "Revisit",        label: "Hẹn tái khám" },
+const outcomes = (): { key: AppointmentOutcome; label: string }[] => [
+  { key: "EndTreatment",   label: t("Kết thúc điều trị") },
+  { key: "FollowUp",       label: t("Đã hẹn tiếp") },
+  { key: "TransferDoctor", label: t("Chuyển bác sĩ") },
+  { key: "Revisit",        label: t("Hẹn tái khám") },
 ];
 
 export const ReceptionCard: React.FC<ReceptionCardProps> = ({
@@ -40,7 +41,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
   onDoctorChange,
   onCancel,
 }) => {
-  const badge = item.counterStatus ? COUNTER_STATUS_BADGE[item.counterStatus] : null;
+  const badge = item.counterStatus ? counterStatusBadge()[item.counterStatus] : null;
   const selectedOutcome = item.selectedOutcome ?? null;
 
   const step1Done = !!item.step1Time;
@@ -70,7 +71,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
       <button
         type="button"
         className="rc-cancel-btn"
-        aria-label="Hủy lịch"
+        aria-label={t("Hủy lịch")}
         onClick={() => onCancel?.(item.id)}
       >
         {/* calendar-x icon */}
@@ -142,7 +143,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
                     <path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/>
                     <circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>
                   </svg>
-                  <span className="rc-detail-text">{item.patientType === "New" ? "Khách mới" : "Khách cũ"}</span>
+                  <span className="rc-detail-text">{item.patientType === "New" ? t("Khách mới") : t("Khách cũ")}</span>
                 </div>
                 {item.appointmentTime && (
                   <div className="rc-detail-row">
@@ -180,7 +181,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
                     </div>
                     <div className="rc-step-line" style={{ background: step1Done ? STEP_COLORS[1] : "#DCE3EE" }} />
                   </div>
-                  <p className="rc-step-label">{step1Done ? <span style={{ color: STEP_COLORS[0] }}>Đã đến</span> : "Đã đến"}</p>
+                  <p className="rc-step-label">{step1Done ? <span style={{ color: STEP_COLORS[0] }}>{t("Đã đến")}</span> : t("Đã đến")}</p>
                   <p className="rc-step-time">{item.step1Time || "--:--"}</p>
                 </button>
                 {/* Step 2 */}
@@ -194,7 +195,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
                     </div>
                     <div className="rc-step-line" style={{ background: step2Done ? STEP_COLORS[2] : "#DCE3EE" }} />
                   </div>
-                  <p className="rc-step-label">{step2Done ? <span style={{ color: STEP_COLORS[1] }}>Đang khám</span> : "Đang khám"}</p>
+                  <p className="rc-step-label">{step2Done ? <span style={{ color: STEP_COLORS[1] }}>{t("Đang khám")}</span> : t("Đang khám")}</p>
                   <p className="rc-step-time">{item.step2Time || "--:--"}</p>
                 </button>
                 {/* Step 3 */}
@@ -208,7 +209,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
                     </div>
                     <div className="rc-step-line rc-step-line--invisible" />
                   </div>
-                  <p className="rc-step-label">{step3Done ? <span style={{ color: STEP_COLORS[2] }}>Hoàn tất</span> : "Hoàn tất"}</p>
+                  <p className="rc-step-label">{step3Done ? <span style={{ color: STEP_COLORS[2] }}>{t("Hoàn tất")}</span> : t("Hoàn tất")}</p>
                   <p className="rc-step-time">{item.step3Time || "--:--"}</p>
                 </button>
               </div>
@@ -217,7 +218,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
               <div className="rc-doctor-select">
                 <SearchSelect
                   value={item.doctorId || undefined}
-                  placeholder="Chọn bác sĩ"
+                  placeholder={t("Chọn bác sĩ")}
                   options={doctors.map((d) => ({ value: d.id, label: d.name }))}
                   onChange={(val) => val && onDoctorChange?.(item.id, val)}
                 />
@@ -226,7 +227,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
 
             {/* ── Col 3: outcome radio actions ── */}
             <div className="rc-col-actions">
-              {OUTCOMES.map((o) => {
+              {outcomes().map((o) => {
                 const isSelected = selectedOutcome === o.key;
                 return (
                   <button

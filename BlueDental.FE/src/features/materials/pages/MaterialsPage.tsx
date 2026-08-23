@@ -3,7 +3,7 @@ import { Button, Input, Modal, Popconfirm, Table, Tag, message } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import {
-  SUPPLY_STATUS_CONFIG,
+  supplyStatusConfig,
   useDeleteSupply,
   useSupplies,
   useSupplyStats,
@@ -20,6 +20,7 @@ import {
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { extractApiError } from "@/lib/apiError";
 import { formatDate, formatVND } from "@/utils/format";
+import { t } from "@/lib/i18n";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -27,10 +28,10 @@ type MaterialsSubRoute = "clinic" | "allocation" | "department";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
-const SUB_ROUTES: { key: MaterialsSubRoute; label: string }[] = [
-  { key: "clinic", label: "Vật tư phòng khám" },
-  { key: "allocation", label: "Phân bổ vật tư" },
-  { key: "department", label: "Phòng ban" },
+const subRoutes = (): { key: MaterialsSubRoute; label: string }[] => [
+  { key: "clinic", label: t("Vật tư phòng khám") },
+  { key: "allocation", label: t("Phân bổ vật tư") },
+  { key: "department", label: t("Phòng ban") },
 ];
 
 // ── Sub-views ──────────────────────────────────────────────────────────────
@@ -88,115 +89,115 @@ function ClinicMaterialsView() {
       setSelectedGroupId(created.id);
       setGroupModalOpen(false);
       setNewGroupName("");
-      message.success("Đã thêm nhóm vật tư");
+      message.success(t("Đã thêm nhóm vật tư"));
     } catch (error) {
       message.error(extractApiError(error));
     }
   };
 
   const columns: ColumnsType<SupplyDto> = [
-    { title: "Tên vật liệu", dataIndex: "name", key: "name", width: 200 },
+    { title: t("Tên vật liệu"), dataIndex: "name", key: "name", width: 200 },
     {
-      title: "Nhóm phân loại",
+      title: t("Nhóm phân loại"),
       dataIndex: "taxonomyName",
       key: "taxonomyName",
       width: 160,
       render: (value: string | null) => value ?? "—",
     },
     {
-      title: "Nhập kho",
+      title: t("Nhập kho"),
       dataIndex: "stockedAt",
       key: "stockedAt",
       width: 120,
       render: (value: string | null) => (value ? formatDate(value) : "—"),
     },
     {
-      title: "Hạn sử dụng",
+      title: t("Hạn sử dụng"),
       dataIndex: "expiryDate",
       key: "expiryDate",
       width: 120,
       render: (value: string | null) => (value ? formatDate(value) : "—"),
     },
     {
-      title: "Cảnh báo hết hạn",
+      title: t("Cảnh báo hết hạn"),
       dataIndex: "expiryWarningDays",
       key: "expiryWarningDays",
       width: 140,
-      render: (days: number) => `${days} ngày`,
+      render: (days: number) => t("{0} ngày", days),
     },
     {
-      title: "Tồn kho",
+      title: t("Tồn kho"),
       key: "stock",
       width: 120,
       align: "right",
       render: (_, row) => `${row.quantityOnHand}${row.unit ? ` ${row.unit}` : ""}`,
     },
     {
-      title: "Trạng thái",
+      title: t("Trạng thái"),
       dataIndex: "status",
       key: "status",
       width: 130,
       render: (status: SupplyStatus) => {
-        const config = SUPPLY_STATUS_CONFIG[status];
+        const config = supplyStatusConfig()[status];
         return <Tag color={config.color}>{config.label}</Tag>;
       },
     },
     {
-      title: "Nhà cung cấp",
+      title: t("Nhà cung cấp"),
       dataIndex: "supplier",
       key: "supplier",
       width: 160,
       render: (value: string | null) => value ?? "—",
     },
     {
-      title: "Xuất xứ",
+      title: t("Xuất xứ"),
       dataIndex: "origin",
       key: "origin",
       width: 120,
       render: (value: string | null) => value ?? "—",
     },
     {
-      title: "Giá nhập",
+      title: t("Giá nhập"),
       dataIndex: "unitCost",
       key: "unitCost",
       width: 130,
       align: "right",
-      render: (value: number | null) => (value == null ? "—" : `${formatVND(value)} đ`),
+      render: (value: number | null) => (value == null ? "—" : t("{0} đ", formatVND(value))),
     },
     {
-      title: "Giá bán",
+      title: t("Giá bán"),
       dataIndex: "salePrice",
       key: "salePrice",
       width: 130,
       align: "right",
-      render: (value: number | null) => (value == null ? "—" : `${formatVND(value)} đ`),
+      render: (value: number | null) => (value == null ? "—" : t("{0} đ", formatVND(value))),
     },
     {
-      title: "Thao tác",
+      title: t("Thao tác"),
       key: "actions",
       width: 240,
       render: (_, row) => (
         <div style={{ display: "flex", gap: 8 }}>
           <Button size="small" onClick={() => setReceiveFor(row)}>
-            Nhập kho
+            {t("Nhập kho")}
           </Button>
           <Button size="small" onClick={() => { setEditing(row); setSupplyModalOpen(true); }}>
-            Chỉnh sửa
+            {t("Chỉnh sửa")}
           </Button>
           <Popconfirm
-            title="Xoá vật tư này?"
-            okText="Xoá"
-            cancelText="Huỷ"
+            title={t("Xoá vật tư này?")}
+            okText={t("Xoá")}
+            cancelText={t("Huỷ")}
             onConfirm={async () => {
               try {
                 await deleteSupply.mutateAsync(row.id);
-                message.success("Đã xoá vật tư");
+                message.success(t("Đã xoá vật tư"));
               } catch (error) {
                 message.error(extractApiError(error));
               }
             }}
           >
-            <Button size="small" danger>Xoá</Button>
+            <Button size="small" danger>{t("Xoá")}</Button>
           </Popconfirm>
         </div>
       ),
@@ -212,23 +213,23 @@ function ClinicMaterialsView() {
       >
         <div style={{ marginBottom: 8 }}>
           <div style={{ fontWeight: 600, marginBottom: 4 }}>
-            Nhóm vật tư
+            {t("Nhóm vật tư")}
             <span style={{ fontWeight: 400, color: "#8c8c8c", marginLeft: 6 }}>
-              {groups.length} nhóm
+              {groups.length} {t("nhóm")}
             </span>
           </div>
           <div style={{ fontSize: 12, color: "#8c8c8c", marginBottom: 10 }}>
-            Chọn nhóm để xem vật tư
+            {t("Chọn nhóm để xem vật tư")}
           </div>
           <Input
-            placeholder="Tìm nhóm vật tư..."
+            placeholder={t("Tìm nhóm vật tư...")}
             size="small"
             value={groupSearch}
             onChange={(e) => setGroupSearch(e.target.value)}
             style={{ marginBottom: 8 }}
           />
           <Button type="dashed" block size="small" onClick={() => setGroupModalOpen(true)}>
-            Thêm Mới
+            {t("Thêm Mới")}
           </Button>
         </div>
 
@@ -243,7 +244,7 @@ function ClinicMaterialsView() {
             fontWeight: selectedGroupId === null ? 600 : 400,
           }}
         >
-          Tất cả nhóm
+          {t("Tất cả nhóm")}
         </button>
 
         {filteredGroups.map((group) => (
@@ -267,7 +268,7 @@ function ClinicMaterialsView() {
 
         {groups.length === 0 && !groupsFetching && (
           <div style={{ color: "#8c8c8c", fontSize: 13, textAlign: "center", paddingTop: 16 }}>
-            Chưa có nhóm vật tư
+            {t("Chưa có nhóm vật tư")}
           </div>
         )}
       </div>
@@ -276,12 +277,12 @@ function ClinicMaterialsView() {
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
         <div className="reception-card" style={{ padding: "12px 16px", display: "flex", gap: 24, flexWrap: "wrap" }}>
           {[
-            { label: "Tổng vật tư", value: stats?.total ?? 0 },
-            { label: "Còn hàng", value: stats?.available ?? 0 },
-            { label: "Sắp hết", value: stats?.lowStock ?? 0 },
-            { label: "Hết hàng", value: stats?.outOfStock ?? 0 },
-            { label: "Sắp hết hạn", value: stats?.expiringSoon ?? 0 },
-            { label: "Hết hạn", value: stats?.expired ?? 0 },
+            { label: t("Tổng vật tư"), value: stats?.total ?? 0 },
+            { label: t("Còn hàng"), value: stats?.available ?? 0 },
+            { label: t("Sắp hết"), value: stats?.lowStock ?? 0 },
+            { label: t("Hết hàng"), value: stats?.outOfStock ?? 0 },
+            { label: t("Sắp hết hạn"), value: stats?.expiringSoon ?? 0 },
+            { label: t("Hết hạn"), value: stats?.expired ?? 0 },
           ].map((tile) => (
             <div key={tile.label}>
               <div style={{ fontSize: 20, fontWeight: 700, color: "#1B2A41" }}>{tile.value}</div>
@@ -290,9 +291,9 @@ function ClinicMaterialsView() {
           ))}
           <div style={{ marginLeft: "auto" }}>
             <div style={{ fontSize: 20, fontWeight: 700, color: "#1B2A41" }}>
-              {formatVND(stats?.stockValue ?? 0)} đ
+              {formatVND(stats?.stockValue ?? 0)} {t("đ")}
             </div>
-            <div style={{ fontSize: 12, color: "#5A6B82" }}>Giá trị tồn kho</div>
+            <div style={{ fontSize: 12, color: "#5A6B82" }}>{t("Giá trị tồn kho")}</div>
           </div>
         </div>
 
@@ -310,12 +311,12 @@ function ClinicMaterialsView() {
                 type="primary"
                 onClick={() => { setEditing(null); setSupplyModalOpen(true); }}
               >
-                Thêm vật tư
+                {t("Thêm vật tư")}
               </Button>
             </div>
             <Input
               prefix={<SearchOutlined />}
-              placeholder="Tìm kiếm..."
+              placeholder={t("Tìm kiếm...")}
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               style={{ width: 220 }}
@@ -334,9 +335,9 @@ function ClinicMaterialsView() {
               pageSize: 20,
               showSizeChanger: true,
               pageSizeOptions: ["5", "10", "20", "25", "50", "100"],
-              showTotal: (total, range) => `Hiển thị ${range[0]}–${range[1]} trên ${total}`,
+              showTotal: (total, range) => t("Hiển thị {0}–{1} trên {2}", range[0], range[1], total),
             }}
-            locale={{ emptyText: "Không có dữ liệu" }}
+            locale={{ emptyText: t("Không có dữ liệu") }}
             size="middle"
           />
         </div>
@@ -358,15 +359,15 @@ function ClinicMaterialsView() {
 
       <Modal
         open={groupModalOpen}
-        title="Thêm nhóm vật tư"
-        okText="Thêm"
-        cancelText="Huỷ"
+        title={t("Thêm nhóm vật tư")}
+        okText={t("Thêm")}
+        cancelText={t("Huỷ")}
         confirmLoading={createGroup.isPending}
         onOk={handleCreateGroup}
         onCancel={() => { setGroupModalOpen(false); setNewGroupName(""); }}
       >
         <Input
-          placeholder="Tên nhóm"
+          placeholder={t("Tên nhóm")}
           value={newGroupName}
           onChange={(e) => setNewGroupName(e.target.value)}
           onPressEnter={handleCreateGroup}
@@ -380,20 +381,20 @@ function AllocationView() {
   const [keyword, setKeyword] = useState("");
 
   const columns = [
-    { title: "Thời gian phân bổ", dataIndex: "allocationTime", key: "allocationTime" },
-    { title: "Mã phân bổ", dataIndex: "allocationCode", key: "allocationCode" },
-    { title: "Vật tư", dataIndex: "material", key: "material" },
-    { title: "SL được phân bổ", dataIndex: "allocatedQty", key: "allocatedQty" },
-    { title: "SL confirm còn lại", dataIndex: "confirmedRemaining", key: "confirmedRemaining" },
-    { title: "Phòng ban", dataIndex: "department", key: "department" },
-    { title: "Người thực hiện", dataIndex: "performer", key: "performer" },
-    { title: "Ghi chú", dataIndex: "note", key: "note" },
+    { title: t("Thời gian phân bổ"), dataIndex: "allocationTime", key: "allocationTime" },
+    { title: t("Mã phân bổ"), dataIndex: "allocationCode", key: "allocationCode" },
+    { title: t("Vật tư"), dataIndex: "material", key: "material" },
+    { title: t("SL được phân bổ"), dataIndex: "allocatedQty", key: "allocatedQty" },
+    { title: t("SL confirm còn lại"), dataIndex: "confirmedRemaining", key: "confirmedRemaining" },
+    { title: t("Phòng ban"), dataIndex: "department", key: "department" },
+    { title: t("Người thực hiện"), dataIndex: "performer", key: "performer" },
+    { title: t("Ghi chú"), dataIndex: "note", key: "note" },
     {
-      title: "Thao tác",
+      title: t("Thao tác"),
       key: "actions",
       render: () => (
         <Button size="small" type="link">
-          Chi tiết
+          {t("Chi tiết")}
         </Button>
       ),
     },
@@ -405,13 +406,13 @@ function AllocationView() {
         <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
           <Input
             prefix={<SearchOutlined />}
-            placeholder="Tìm phiếu phân bổ..."
+            placeholder={t("Tìm phiếu phân bổ...")}
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             style={{ width: 280 }}
             allowClear
           />
-          <Button>Lịch sử kiểm kho</Button>
+          <Button>{t("Lịch sử kiểm kho")}</Button>
         </div>
       </div>
       <div className="reception-card reception-card--content">
@@ -423,9 +424,9 @@ function AllocationView() {
             pageSize: 20,
             showSizeChanger: true,
             pageSizeOptions: ["5", "10", "20", "25", "50", "100"],
-            showTotal: (total) => `Hiển thị 0 trên ${total}`,
+            showTotal: (total) => t("Hiển thị 0 trên {0}", total),
           }}
-          locale={{ emptyText: "Chưa có phiếu phân bổ" }}
+          locale={{ emptyText: t("Chưa có phiếu phân bổ") }}
           size="middle"
         />
       </div>
@@ -437,20 +438,20 @@ function DepartmentView() {
   const [keyword, setKeyword] = useState("");
 
   const rightColumns = [
-    { title: "Thời gian phân bổ", dataIndex: "allocationTime", key: "allocationTime" },
-    { title: "Mã phân bổ", dataIndex: "allocationCode", key: "allocationCode" },
-    { title: "Vật tư", dataIndex: "material", key: "material" },
-    { title: "SL được phát", dataIndex: "distributedQty", key: "distributedQty" },
-    { title: "SL còn lại (đã duyệt)", dataIndex: "approvedRemaining", key: "approvedRemaining" },
-    { title: "Kiểm kho", dataIndex: "inventoryCheck", key: "inventoryCheck" },
-    { title: "Người thực hiện", dataIndex: "performer", key: "performer" },
-    { title: "Ghi chú", dataIndex: "note", key: "note" },
+    { title: t("Thời gian phân bổ"), dataIndex: "allocationTime", key: "allocationTime" },
+    { title: t("Mã phân bổ"), dataIndex: "allocationCode", key: "allocationCode" },
+    { title: t("Vật tư"), dataIndex: "material", key: "material" },
+    { title: t("SL được phát"), dataIndex: "distributedQty", key: "distributedQty" },
+    { title: t("SL còn lại (đã duyệt)"), dataIndex: "approvedRemaining", key: "approvedRemaining" },
+    { title: t("Kiểm kho"), dataIndex: "inventoryCheck", key: "inventoryCheck" },
+    { title: t("Người thực hiện"), dataIndex: "performer", key: "performer" },
+    { title: t("Ghi chú"), dataIndex: "note", key: "note" },
     {
-      title: "Thao tác",
+      title: t("Thao tác"),
       key: "actions",
       render: () => (
         <Button size="small" type="link">
-          Chi tiết
+          {t("Chi tiết")}
         </Button>
       ),
     },
@@ -464,21 +465,21 @@ function DepartmentView() {
         style={{ width: 240, minWidth: 200, padding: 16, flexShrink: 0 }}
       >
         <div style={{ fontWeight: 600, marginBottom: 4 }}>
-          Phòng ban
+          {t("Phòng ban")}
           <span style={{ fontWeight: 400, color: "#8c8c8c", marginLeft: 6 }}>
-            0 phòng ban
+            {t("0 phòng ban")}
           </span>
         </div>
         <div style={{ fontSize: 12, color: "#8c8c8c", marginBottom: 10 }}>
-          Chọn phòng ban để xem vật tư đã phát và kiểm kho
+          {t("Chọn phòng ban để xem vật tư đã phát và kiểm kho")}
         </div>
         <Input
-          placeholder="Tìm phòng ban..."
+          placeholder={t("Tìm phòng ban...")}
           size="small"
           style={{ marginBottom: 8 }}
         />
         <Button type="dashed" block size="small">
-          Tạo phòng ban
+          {t("Tạo phòng ban")}
         </Button>
         <div
           style={{
@@ -488,7 +489,7 @@ function DepartmentView() {
             paddingTop: 24,
           }}
         >
-          Chưa có phòng ban
+          {t("Chưa có phòng ban")}
         </div>
       </div>
 
@@ -498,13 +499,13 @@ function DepartmentView() {
           <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
             <Input
               prefix={<SearchOutlined />}
-              placeholder="Tìm vật tư..."
+              placeholder={t("Tìm vật tư...")}
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               style={{ width: 220 }}
               allowClear
             />
-            <Button>Gộp số lượng vật tư</Button>
+            <Button>{t("Gộp số lượng vật tư")}</Button>
           </div>
         </div>
         <div className="reception-card reception-card--content">
@@ -516,9 +517,9 @@ function DepartmentView() {
               pageSize: 20,
               showSizeChanger: true,
               pageSizeOptions: ["5", "10", "20", "25", "50", "100"],
-              showTotal: (total) => `Hiển thị 0 trên ${total}`,
+              showTotal: (total) => t("Hiển thị 0 trên {0}", total),
             }}
-            locale={{ emptyText: "Chọn phòng ban để xem vật tư đã phân bổ" }}
+            locale={{ emptyText: t("Chọn phòng ban để xem vật tư đã phân bổ") }}
             size="middle"
           />
         </div>
@@ -550,7 +551,7 @@ export function MaterialsPage() {
       {/* Horizontal sub-nav */}
       <div className="reception-card reception-card--tabs">
         <div style={{ display: "flex", gap: 0 }}>
-          {SUB_ROUTES.map((tab) => (
+          {subRoutes().map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}

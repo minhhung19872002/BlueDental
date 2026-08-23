@@ -8,21 +8,23 @@ import { useCreateAppointment } from "../api/appointmentMutations";
 import { SearchSelect } from "@/components/SearchSelect";
 import { usePatientOptions } from "@/hooks/usePatientOptions";
 import { useDentistList } from "@/features/staff/api/staffQueries";
+import { t } from "@/lib/i18n";
 
 /** One appointment slot, matching the calendar grid. */
 const SLOT_MINUTES = 30;
 
-const schema = z.object({
-  patientId: z.string().min(1, "Vui lòng chọn khách hàng"),
-  doctorId: z.string().min(1, "Vui lòng chọn bác sĩ"),
-  date: z.string().min(1, "Vui lòng chọn ngày"),
-  startTime: z.string().min(1, "Vui lòng chọn giờ bắt đầu"),
+const buildSchema = () =>
+  z.object({
+  patientId: z.string().min(1, t("Vui lòng chọn khách hàng")),
+  doctorId: z.string().min(1, t("Vui lòng chọn bác sĩ")),
+  date: z.string().min(1, t("Vui lòng chọn ngày")),
+  startTime: z.string().min(1, t("Vui lòng chọn giờ bắt đầu")),
   endTime: z.string().optional(),
   reason: z.string().optional(),
   notes: z.string().optional(),
 });
 
-type FormValues = z.infer<typeof schema>;
+type FormValues = z.infer<ReturnType<typeof buildSchema>>;
 
 interface Props {
   open: boolean;
@@ -41,7 +43,7 @@ export function AppointmentEditorModal({ open, appointmentId, initialDate, onClo
   const { data: dentists } = useDentistList();
 
   const { control, handleSubmit, reset, formState: { errors } } = useForm<FormValues>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(buildSchema()),
     defaultValues: {
       patientId: "",
       doctorId: "",
@@ -75,13 +77,13 @@ export function AppointmentEditorModal({ open, appointmentId, initialDate, onClo
       },
       {
         onSuccess: () => {
-          message.success("Tạo lịch hẹn thành công!");
+          message.success(t("Tạo lịch hẹn thành công!"));
           reset();
           onSuccess?.();
           onClose();
         },
         onError: (err) => {
-          message.error((err as Error).message || "Tạo lịch hẹn thất bại");
+          message.error((err as Error).message || t("Tạo lịch hẹn thất bại"));
         },
       },
     );
@@ -94,19 +96,19 @@ export function AppointmentEditorModal({ open, appointmentId, initialDate, onClo
   return (
     <Modal
       open={open}
-      title={isEdit ? "Chỉnh sửa lịch hẹn" : "Tạo lịch hẹn mới"}
+      title={isEdit ? t("Chỉnh sửa lịch hẹn") : t("Tạo lịch hẹn mới")}
       onCancel={onClose}
       width={580}
       footer={
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-          <Button onClick={onClose}>Hủy</Button>
+          <Button onClick={onClose}>{t("Hủy")}</Button>
           <Button
             type="primary"
             loading={createMutation.isPending}
             onClick={handleSubmit(onSubmit)}
             style={{ background: "#2671D8" }}
           >
-            {isEdit ? "Cập nhật" : "Lưu lịch hẹn"}
+            {isEdit ? t("Cập nhật") : t("Lưu lịch hẹn")}
           </Button>
         </div>
       }
@@ -114,14 +116,14 @@ export function AppointmentEditorModal({ open, appointmentId, initialDate, onClo
       <div style={{ paddingTop: 8 }}>
         {/* Patient */}
         <div style={fieldStyle}>
-          <label style={labelStyle}>Khách hàng{requiredMark}</label>
+          <label style={labelStyle}>{t("Khách hàng")}{requiredMark}</label>
           <Controller
             name="patientId"
             control={control}
             render={({ field }) => (
               <SearchSelect
                 value={field.value || undefined}
-                placeholder="Tìm kiếm khách hàng..."
+                placeholder={t("Tìm kiếm khách hàng...")}
                 options={(patients ?? []).map((p) => ({
                   value: p.id,
                   label: `[${p.code}] - ${p.name.toUpperCase()}`,
@@ -136,14 +138,14 @@ export function AppointmentEditorModal({ open, appointmentId, initialDate, onClo
 
         {/* Doctor */}
         <div style={fieldStyle}>
-          <label style={labelStyle}>Bác sĩ{requiredMark}</label>
+          <label style={labelStyle}>{t("Bác sĩ")}{requiredMark}</label>
           <Controller
             name="doctorId"
             control={control}
             render={({ field }) => (
               <SearchSelect
                 value={field.value || undefined}
-                placeholder="Chọn bác sĩ"
+                placeholder={t("Chọn bác sĩ")}
                 options={(dentists ?? []).map((d) => ({ value: d.id, label: d.name }))}
                 onChange={(v) => field.onChange(v ?? "")}
                 status={errors.doctorId ? "error" : ""}
@@ -156,7 +158,7 @@ export function AppointmentEditorModal({ open, appointmentId, initialDate, onClo
         {/* Date + Time row */}
         <div style={{ display: "flex", gap: 12, ...fieldStyle }}>
           <div style={{ flex: 1 }}>
-            <label style={labelStyle}>Ngày hẹn{requiredMark}</label>
+            <label style={labelStyle}>{t("Ngày hẹn")}{requiredMark}</label>
             <Controller
               name="date"
               control={control}
@@ -172,7 +174,7 @@ export function AppointmentEditorModal({ open, appointmentId, initialDate, onClo
             />
           </div>
           <div style={{ flex: 1 }}>
-            <label style={labelStyle}>Giờ bắt đầu{requiredMark}</label>
+            <label style={labelStyle}>{t("Giờ bắt đầu")}{requiredMark}</label>
             <Controller
               name="startTime"
               control={control}
@@ -189,7 +191,7 @@ export function AppointmentEditorModal({ open, appointmentId, initialDate, onClo
             />
           </div>
           <div style={{ flex: 1 }}>
-            <label style={labelStyle}>Giờ kết thúc</label>
+            <label style={labelStyle}>{t("Giờ kết thúc")}</label>
             <Controller
               name="endTime"
               control={control}
@@ -208,24 +210,24 @@ export function AppointmentEditorModal({ open, appointmentId, initialDate, onClo
 
         {/* Reason */}
         <div style={fieldStyle}>
-          <label style={labelStyle}>Lý do khám</label>
+          <label style={labelStyle}>{t("Lý do khám")}</label>
           <Controller
             name="reason"
             control={control}
             render={({ field }) => (
-              <Input {...field} placeholder="Nhập lý do khám" style={{ height: 40 }} />
+              <Input {...field} placeholder={t("Nhập lý do khám")} style={{ height: 40 }} />
             )}
           />
         </div>
 
         {/* Notes */}
         <div style={fieldStyle}>
-          <label style={labelStyle}>Ghi chú</label>
+          <label style={labelStyle}>{t("Ghi chú")}</label>
           <Controller
             name="notes"
             control={control}
             render={({ field }) => (
-              <Input.TextArea {...field} rows={3} placeholder="Nội dung ghi chú" style={{ resize: "none" }} />
+              <Input.TextArea {...field} rows={3} placeholder={t("Nội dung ghi chú")} style={{ resize: "none" }} />
             )}
           />
         </div>

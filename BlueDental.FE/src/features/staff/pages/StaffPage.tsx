@@ -24,15 +24,16 @@ import type { StaffDto } from "../api/staffApi";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { extractApiError } from "@/lib/apiError";
+import { t } from "@/lib/i18n";
 
 const { Text } = Typography;
 
 type StatusFilter = "all" | "working" | "resigned";
 
-const STATUS_TABS: { key: StatusFilter; label: string }[] = [
-  { key: "all", label: "Tất cả" },
-  { key: "working", label: "Đang làm việc" },
-  { key: "resigned", label: "Đã nghỉ" },
+const statusTabs = (): { key: StatusFilter; label: string }[] => [
+  { key: "all", label: t("Tất cả") },
+  { key: "working", label: t("Đang làm việc") },
+  { key: "resigned", label: t("Đã nghỉ") },
 ];
 
 interface StaffFormValues {
@@ -115,7 +116,7 @@ export function StaffPage() {
             branchIds: editing.branchIds,
           },
         });
-        message.success("Đã cập nhật nhân viên");
+        message.success(t("Đã cập nhật nhân viên"));
       } else {
         await createStaff.mutateAsync({
           userName: values.userName,
@@ -126,7 +127,7 @@ export function StaffPage() {
           roleNames: values.roleNames ?? [],
           branchIds: [],
         });
-        message.success("Đã tạo nhân viên");
+        message.success(t("Đã tạo nhân viên"));
       }
 
       setModalOpen(false);
@@ -138,13 +139,13 @@ export function StaffPage() {
 
   const columns: TableColumnsType<StaffDto> = [
     {
-      title: "Họ và tên",
+      title: t("Họ và tên"),
       key: "name",
       render: (_, row) => row.fullName || row.userName,
     },
-    { title: "Tên đăng nhập", dataIndex: "userName", key: "userName", width: 160 },
+    { title: t("Tên đăng nhập"), dataIndex: "userName", key: "userName", width: 160 },
     {
-      title: "Số điện thoại",
+      title: t("Số điện thoại"),
       dataIndex: "phoneNumber",
       key: "phoneNumber",
       width: 140,
@@ -158,7 +159,7 @@ export function StaffPage() {
       render: (value: string | null) => value ?? "—",
     },
     {
-      title: "Vai trò",
+      title: t("Vai trò"),
       dataIndex: "roleNames",
       key: "roleNames",
       width: 200,
@@ -166,38 +167,38 @@ export function StaffPage() {
         values.length === 0 ? "—" : values.map((role) => <Tag key={role}>{role}</Tag>),
     },
     {
-      title: "Trạng thái",
+      title: t("Trạng thái"),
       dataIndex: "isActive",
       key: "isActive",
       width: 130,
       render: (value: boolean) => (
-        <Tag color={value ? "green" : "default"}>{value ? "Đang làm việc" : "Đã nghỉ"}</Tag>
+        <Tag color={value ? "green" : "default"}>{value ? t("Đang làm việc") : t("Đã nghỉ")}</Tag>
       ),
     },
     {
-      title: "Thao tác",
+      title: t("Thao tác"),
       key: "actions",
       width: 170,
       render: (_, row) => (
         <div style={{ display: "flex", gap: 8 }}>
           <Button size="small" onClick={() => openEdit(row)}>
-            Chỉnh sửa
+            {t("Chỉnh sửa")}
           </Button>
           <Popconfirm
-            title="Xoá nhân viên này?"
-            okText="Xoá"
-            cancelText="Huỷ"
+            title={t("Xoá nhân viên này?")}
+            okText={t("Xoá")}
+            cancelText={t("Huỷ")}
             onConfirm={async () => {
               try {
                 await deleteStaff.mutateAsync(row.id);
-                message.success("Đã xoá nhân viên");
+                message.success(t("Đã xoá nhân viên"));
               } catch (error) {
                 message.error(extractApiError(error));
               }
             }}
           >
             <Button size="small" danger>
-              Xoá
+              {t("Xoá")}
             </Button>
           </Popconfirm>
         </div>
@@ -211,21 +212,21 @@ export function StaffPage() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Input
             prefix={<SearchOutlined />}
-            placeholder="Tìm theo tên, email, số điện thoại..."
+            placeholder={t("Tìm theo tên, email, số điện thoại...")}
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             style={{ width: 320 }}
             allowClear
           />
           <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-            Tạo
+            {t("Tạo")}
           </Button>
         </div>
       </div>
 
       <div className="reception-card reception-card--tabs">
         <div style={{ display: "flex", gap: 0 }}>
-          {STATUS_TABS.map((tab) => (
+          {statusTabs().map((tab) => (
             <button
               key={tab.key}
               type="button"
@@ -247,17 +248,17 @@ export function StaffPage() {
           dataSource={rows}
           pagination={pagination.buildConfig(
             data?.totalCount,
-            (total) => `Hiển thị ${rows.length} trên ${total} nhân viên`,
+            (total) => t("Hiển thị {0} trên {1} nhân viên", rows.length, total),
           )}
-          locale={{ emptyText: <Text type="secondary">Chưa có nhân viên</Text> }}
+          locale={{ emptyText: <Text type="secondary">{t("Chưa có nhân viên")}</Text> }}
         />
       </div>
 
       <Modal
         open={modalOpen}
-        title={editing ? "Chỉnh sửa nhân viên" : "Tạo nhân viên"}
-        okText={editing ? "Lưu" : "Tạo"}
-        cancelText="Huỷ"
+        title={editing ? t("Chỉnh sửa nhân viên") : t("Tạo nhân viên")}
+        okText={editing ? t("Lưu") : t("Tạo")}
+        cancelText={t("Huỷ")}
         confirmLoading={createStaff.isPending || updateStaff.isPending}
         onOk={handleSubmit}
         onCancel={() => setModalOpen(false)}
@@ -266,8 +267,8 @@ export function StaffPage() {
         <Form form={form} layout="vertical" requiredMark>
           <Form.Item
             name="userName"
-            label="Tên đăng nhập"
-            rules={[{ required: true, message: "Vui lòng nhập tên đăng nhập" }]}
+            label={t("Tên đăng nhập")}
+            rules={[{ required: true, message: t("Vui lòng nhập tên đăng nhập") }]}
           >
             <Input placeholder="letan01" disabled={Boolean(editing)} />
           </Form.Item>
@@ -275,37 +276,37 @@ export function StaffPage() {
           {!editing && (
             <Form.Item
               name="password"
-              label="Mật khẩu"
-              rules={[{ required: true, message: "Vui lòng nhập mật khẩu" }]}
-              extra="Tối thiểu 8 ký tự, có chữ hoa, số và ký tự đặc biệt."
+              label={t("Mật khẩu")}
+              rules={[{ required: true, message: t("Vui lòng nhập mật khẩu") }]}
+              extra={t("Tối thiểu 8 ký tự, có chữ hoa, số và ký tự đặc biệt.")}
             >
-              <Input.Password placeholder="Mật khẩu đăng nhập" />
+              <Input.Password placeholder={t("Mật khẩu đăng nhập")} />
             </Form.Item>
           )}
 
-          <Form.Item name="name" label="Họ và tên">
-            <Input placeholder="Nguyễn Văn An" />
+          <Form.Item name="name" label={t("Họ và tên")}>
+            <Input placeholder={"Nguyễn Văn An"} />
           </Form.Item>
 
           <Form.Item
             name="email"
             label="Email"
             rules={[
-              { required: true, message: "Vui lòng nhập email" },
-              { type: "email", message: "Email không hợp lệ" },
+              { required: true, message: t("Vui lòng nhập email") },
+              { type: "email", message: t("Email không hợp lệ") },
             ]}
           >
             <Input placeholder="letan01@bluedental.vn" />
           </Form.Item>
 
-          <Form.Item name="phoneNumber" label="Số điện thoại">
+          <Form.Item name="phoneNumber" label={t("Số điện thoại")}>
             <Input placeholder="09xxxxxxxx" />
           </Form.Item>
 
-          <Form.Item name="roleNames" label="Vai trò">
+          <Form.Item name="roleNames" label={t("Vai trò")}>
             <Select
               mode="multiple"
-              placeholder="Chọn vai trò"
+              placeholder={t("Chọn vai trò")}
               options={(roleNames ?? []).map((role) => ({ value: role, label: role }))}
             />
           </Form.Item>

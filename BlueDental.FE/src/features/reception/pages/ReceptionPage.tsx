@@ -19,6 +19,7 @@ import type {
   ReceptionFilter,
   AppointmentOutcome,
 } from "../types/reception";
+import { t } from "@/lib/i18n";
 
 type ViewMode = "day" | "week" | "month";
 
@@ -48,14 +49,14 @@ export const ReceptionPage: React.FC = () => {
       { id, status: newStatus },
       {
         onSuccess: () => {
-          message.success("Cập nhật trạng thái tiếp nhận thành công!");
+          message.success(t("Cập nhật trạng thái tiếp nhận thành công!"));
           // Sync selected item status if detail drawer is open
           if (selectedItem?.id === id) {
             setSelectedItem((prev) => prev ? { ...prev, status: newStatus } : null);
           }
         },
         onError: (err) => {
-          message.error(err.message || "Cập nhật trạng thái thất bại");
+          message.error(err.message || t("Cập nhật trạng thái thất bại"));
         },
       },
     );
@@ -127,7 +128,7 @@ export const ReceptionPage: React.FC = () => {
         open={!!selectedItem}
         onClose={() => setSelectedItem(null)}
         width={760}
-        title={selectedItem ? `Chi tiết tiếp nhận — ${selectedItem.voucherCode}` : "Chi tiết tiếp nhận"}
+        title={selectedItem ? t("Chi tiết tiếp nhận — {0}", selectedItem.voucherCode) : t("Chi tiết tiếp nhận")}
         destroyOnClose
         styles={{ body: { padding: 0 } }}
       >

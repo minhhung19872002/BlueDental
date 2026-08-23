@@ -3,13 +3,14 @@
 
 import { ExclamationCircleOutlined } from "@ant-design/icons";
 import { brand } from "@/theme/index";
+import { t } from "@/lib/i18n";
 
 export function PendingActionsCard() {
   return (
     <div className="stat-card">
       <div className="stat-card-head">
         <div>
-          <div className="stat-card-label">Cần xử lý</div>
+          <div className="stat-card-label">{t("Cần xử lý")}</div>
           <div className="stat-card-value">—</div>
         </div>
         <div
@@ -19,7 +20,7 @@ export function PendingActionsCard() {
           <ExclamationCircleOutlined />
         </div>
       </div>
-      <div className="stat-card-footer">Đang phát triển</div>
+      <div className="stat-card-footer">{t("Đang phát triển")}</div>
     </div>
   );
 }

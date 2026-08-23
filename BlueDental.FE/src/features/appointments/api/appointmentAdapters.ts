@@ -6,8 +6,9 @@ import type {
   CreateAppointmentRequest,
   UpdateAppointmentRequest,
 } from "../types/appointment";
-import { statusPalette } from "@/theme/index";
+import { statusPaletteOf } from "@/theme/index";
 import { DEFAULT_BRANCH_ID } from "@/lib/clinicBranch";
+import { t } from "@/lib/i18n";
 
 /** Exactly what BlueDental.Appointments.AppointmentDto sends. */
 export interface ServerAppointmentDto {
@@ -62,22 +63,22 @@ const CODE_BY_STATUS: Record<AppointmentStatus, number> = {
   noShow: SERVER_STATUS.NoShow,
 };
 
-const STATUS_LABELS: Record<AppointmentStatus, string> = {
-  scheduled: "Đã đặt lịch",
-  confirmed: "Đã xác nhận",
-  inProgress: "Đang khám",
-  completed: "Hoàn thành",
-  cancelled: "Đã hủy",
-  noShow: "Không đến",
-};
+const statusLabels = (): Record<AppointmentStatus, string> => ({
+  scheduled: t("Đã đặt lịch"),
+  confirmed: t("Đã xác nhận"),
+  inProgress: t("Đang khám"),
+  completed: t("Hoàn thành"),
+  cancelled: t("Đã hủy"),
+  noShow: t("Không đến"),
+});
 
 const STATUS_COLORS: Record<AppointmentStatus, string> = {
-  scheduled: statusPalette.scheduled.color,
-  confirmed: statusPalette.confirmed.color,
-  inProgress: statusPalette.inProgress.color,
-  completed: statusPalette.completed.color,
-  cancelled: statusPalette.cancelled.color,
-  noShow: statusPalette.noShow.color,
+  scheduled: statusPaletteOf().scheduled.color,
+  confirmed: statusPaletteOf().confirmed.color,
+  inProgress: statusPaletteOf().inProgress.color,
+  completed: statusPaletteOf().completed.color,
+  cancelled: statusPaletteOf().cancelled.color,
+  noShow: statusPaletteOf().noShow.color,
 };
 
 /** BlueDental.Appointments.AppointmentType — Examination is the everyday one. */
@@ -100,7 +101,7 @@ export function adaptAppointment(dto: ServerAppointmentDto): Appointment {
     notes: dto.notes,
     createdAt: dto.creationTime,
     statusColor: STATUS_COLORS[status],
-    statusLabel: STATUS_LABELS[status],
+    statusLabel: statusLabels()[status],
     durationMinutes: dayjs(dto.slotEnd).diff(dayjs(dto.slotStart), "minute"),
   };
 }

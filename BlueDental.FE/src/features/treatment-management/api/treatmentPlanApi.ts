@@ -3,6 +3,7 @@ import { api } from "@/lib/axios";
 import type { PagedResult } from "@/types";
 import type { DiscountType, ToothSelectionDto } from "./consultingApi";
 
+import { t } from "@/lib/i18n";
 /** Matches BlueDental.TreatmentManagement.TreatmentPlanStatus. */
 export const PLAN_STATUS = {
   Draft: 1,
@@ -14,14 +15,14 @@ export const PLAN_STATUS = {
 } as const;
 export type TreatmentPlanStatus = (typeof PLAN_STATUS)[keyof typeof PLAN_STATUS];
 
-export const PLAN_STATUS_CONFIG: Record<TreatmentPlanStatus, { label: string; color: string }> = {
-  [PLAN_STATUS.Draft]: { label: "Nháp", color: "default" },
-  [PLAN_STATUS.PendingApproval]: { label: "Chờ duyệt", color: "gold" },
-  [PLAN_STATUS.Approved]: { label: "Đã duyệt", color: "blue" },
-  [PLAN_STATUS.InProgress]: { label: "Đang điều trị", color: "processing" },
-  [PLAN_STATUS.Completed]: { label: "Hoàn thành", color: "green" },
-  [PLAN_STATUS.Cancelled]: { label: "Đã huỷ", color: "red" },
-};
+export const planStatusConfig = (): Record<TreatmentPlanStatus, { label: string; color: string }> => ({
+  [PLAN_STATUS.Draft]: { label: t("Nháp"), color: "default" },
+  [PLAN_STATUS.PendingApproval]: { label: t("Chờ duyệt"), color: "gold" },
+  [PLAN_STATUS.Approved]: { label: t("Đã duyệt"), color: "blue" },
+  [PLAN_STATUS.InProgress]: { label: t("Đang điều trị"), color: "processing" },
+  [PLAN_STATUS.Completed]: { label: t("Hoàn thành"), color: "green" },
+  [PLAN_STATUS.Cancelled]: { label: t("Đã huỷ"), color: "red" },
+});
 
 /** Matches BlueDental.TreatmentManagement.TreatmentServiceStatus. */
 export const SERVICE_LINE_STATUS = {
@@ -34,37 +35,37 @@ export const SERVICE_LINE_STATUS = {
 export type TreatmentServiceStatus =
   (typeof SERVICE_LINE_STATUS)[keyof typeof SERVICE_LINE_STATUS];
 
-export const SERVICE_LINE_STATUS_CONFIG: Record<
+export const serviceLineStatusConfig = (): Record<
   TreatmentServiceStatus,
   { label: string; color: string }
-> = {
-  [SERVICE_LINE_STATUS.Created]: { label: "Chưa điều trị", color: "default" },
-  [SERVICE_LINE_STATUS.InProgress]: { label: "Đang điều trị", color: "processing" },
-  [SERVICE_LINE_STATUS.Done]: { label: "Hoàn thành", color: "green" },
-  [SERVICE_LINE_STATUS.Cancelled]: { label: "Đã huỷ", color: "red" },
-  [SERVICE_LINE_STATUS.Replaced]: { label: "Đã thay thế", color: "purple" },
-};
+> => ({
+  [SERVICE_LINE_STATUS.Created]: { label: t("Chưa điều trị"), color: "default" },
+  [SERVICE_LINE_STATUS.InProgress]: { label: t("Đang điều trị"), color: "processing" },
+  [SERVICE_LINE_STATUS.Done]: { label: t("Hoàn thành"), color: "green" },
+  [SERVICE_LINE_STATUS.Cancelled]: { label: t("Đã huỷ"), color: "red" },
+  [SERVICE_LINE_STATUS.Replaced]: { label: t("Đã thay thế"), color: "purple" },
+});
 
 /** Matches BlueDental.Billing.PatientPaymentKind. */
 export const PAYMENT_KIND = { Payment: 1, Refund: 2, Prepaid: 3 } as const;
 export type PatientPaymentKind = (typeof PAYMENT_KIND)[keyof typeof PAYMENT_KIND];
 
-export const PAYMENT_KIND_CONFIG: Record<PatientPaymentKind, { label: string; color: string }> = {
-  [PAYMENT_KIND.Payment]: { label: "Thu tiền", color: "green" },
-  [PAYMENT_KIND.Refund]: { label: "Hoàn tiền", color: "red" },
-  [PAYMENT_KIND.Prepaid]: { label: "Nạp quỹ", color: "blue" },
-};
+export const paymentKindConfig = (): Record<PatientPaymentKind, { label: string; color: string }> => ({
+  [PAYMENT_KIND.Payment]: { label: t("Thu tiền"), color: "green" },
+  [PAYMENT_KIND.Refund]: { label: t("Hoàn tiền"), color: "red" },
+  [PAYMENT_KIND.Prepaid]: { label: t("Nạp quỹ"), color: "blue" },
+});
 
 /** Matches BlueDental.Billing.PaymentMethodKind — the four the reference reports. */
 export const PAYMENT_METHOD = { Cash: 1, Banking: 2, Card: 3, OutstandingDebt: 4 } as const;
 export type PaymentMethodKind = (typeof PAYMENT_METHOD)[keyof typeof PAYMENT_METHOD];
 
-export const PAYMENT_METHOD_LABELS: Record<PaymentMethodKind, string> = {
-  [PAYMENT_METHOD.Cash]: "Tiền mặt",
-  [PAYMENT_METHOD.Banking]: "Chuyển khoản",
-  [PAYMENT_METHOD.Card]: "Quẹt thẻ",
-  [PAYMENT_METHOD.OutstandingDebt]: "Trừ quỹ khách",
-};
+export const paymentMethodLabels = (): Record<PaymentMethodKind, string> => ({
+  [PAYMENT_METHOD.Cash]: t("Tiền mặt"),
+  [PAYMENT_METHOD.Banking]: t("Chuyển khoản"),
+  [PAYMENT_METHOD.Card]: t("Quẹt thẻ"),
+  [PAYMENT_METHOD.OutstandingDebt]: t("Trừ quỹ khách"),
+});
 
 export interface PaymentSummaryDto {
   totalPrice: number;

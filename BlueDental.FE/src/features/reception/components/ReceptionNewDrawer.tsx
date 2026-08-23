@@ -7,18 +7,20 @@ import { useCreateReception } from "../api/receptionMutations";
 import { usePatientOptions } from "@/hooks/usePatientOptions";
 import { SearchSelect } from "@/components/SearchSelect";
 import type { RefType } from "../types/reception";
+import { t } from "@/lib/i18n";
 
-const schema = z.object({
+const buildSchema = () =>
+  z.object({
   patientId: z.string().optional(),
-  patientName: z.string().min(1, "Vui lòng chọn khách hàng"),
+  patientName: z.string().min(1, t("Vui lòng chọn khách hàng")),
   phoneNumber: z.string().optional(),
-  doctorId: z.string({ error: "Vui lòng chọn bác sĩ" }).min(1, "Vui lòng chọn bác sĩ"),
+  doctorId: z.string({ error: t("Vui lòng chọn bác sĩ") }).min(1, t("Vui lòng chọn bác sĩ")),
   appointmentHour: z.string().optional(),
   appointmentMinute: z.string().optional(),
   notes: z.string().optional(),
 });
 
-type FormValues = z.infer<typeof schema>;
+type FormValues = z.infer<ReturnType<typeof buildSchema>>;
 
 interface DoctorOption {
   id: string;
@@ -49,7 +51,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
     setValue,
     formState: { errors },
   } = useForm<FormValues>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(buildSchema()),
     defaultValues: {
       patientId: undefined,
       patientName: "",
@@ -83,13 +85,13 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
       },
       {
         onSuccess: () => {
-          message.success("Tạo tiếp nhận thành công!");
+          message.success(t("Tạo tiếp nhận thành công!"));
           reset();
           setSelectedPhone("---");
           onClose();
         },
         onError: (err) => {
-          message.error(err.message || "Tạo tiếp nhận thất bại");
+          message.error(err.message || t("Tạo tiếp nhận thất bại"));
         },
       },
     );
@@ -103,7 +105,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
 
   return (
     <Modal
-      title="Tạo tiếp nhận"
+      title={t("Tạo tiếp nhận")}
       open={open}
       onCancel={handleClose}
       footer={null}
@@ -118,14 +120,14 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
         {/* Patient select + Tạo Mới */}
         <div className="rn-row">
           <div className="rn-field rn-field--flex1" data-testid="reception-patient">
-            <label className="rn-label rn-label--required">Khách hàng</label>
+            <label className="rn-label rn-label--required">{t("Khách hàng")}</label>
             <Controller
               name="patientId"
               control={control}
               render={({ field }) => (
                 <SearchSelect
                   value={field.value || undefined}
-                  placeholder="Tìm kiếm khách hàng"
+                  placeholder={t("Tìm kiếm khách hàng")}
                   options={(patients ?? []).map((p) => ({
                     value: p.id,
                     label: `[${p.code}] - ${p.name.toUpperCase()}`,
@@ -145,27 +147,27 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
               type="primary"
               style={{ background: "#2671D8", height: 40, fontWeight: 600 }}
             >
-              Tạo Mới
+              {t("Tạo Mới")}
             </Button>
           </div>
         </div>
 
         {/* Phone */}
         <div className="rn-phone-row">
-          <span className="rn-phone-label">Số điện thoại:</span>
+          <span className="rn-phone-label">{t("Số điện thoại:")}</span>
           <span className="rn-phone-value">{selectedPhone}</span>
         </div>
 
         {/* Doctor select */}
         <div className="rn-field" data-testid="reception-doctor">
-          <label className="rn-label">Bác sĩ điều trị</label>
+          <label className="rn-label">{t("Bác sĩ điều trị")}</label>
           <Controller
             name="doctorId"
             control={control}
             render={({ field }) => (
               <SearchSelect
                 value={field.value || undefined}
-                placeholder="Chọn bác sĩ"
+                placeholder={t("Chọn bác sĩ")}
                 options={doctors.map((d) => ({ value: d.id, label: d.name }))}
                 onChange={(val) => field.onChange(val ?? "")}
                 status={errors.doctorId ? "error" : ""}
@@ -178,7 +180,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
         {/* Time row */}
         <div className="rn-time-row">
           <div className="rn-field rn-field--flex1">
-            <label className="rn-label">Giờ hẹn</label>
+            <label className="rn-label">{t("Giờ hẹn")}</label>
             <Controller
               name="appointmentHour"
               control={control}
@@ -196,7 +198,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
             />
           </div>
           <div className="rn-field rn-field--flex1">
-            <label className="rn-label">Phút</label>
+            <label className="rn-label">{t("Phút")}</label>
             <Controller
               name="appointmentMinute"
               control={control}
@@ -216,7 +218,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
               <Input.TextArea
                 {...field}
                 rows={4}
-                placeholder="Nội dung đặt lịch"
+                placeholder={t("Nội dung đặt lịch")}
                 style={{ resize: "none" }}
               />
             )}
@@ -237,7 +239,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
               </svg>
             }
           >
-            Lưu
+            {t("Lưu")}
           </Button>
         </div>
       </div>

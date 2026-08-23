@@ -1,5 +1,6 @@
 import { api } from "@/lib/axios";
 import type { PagedResult } from "@/types";
+import { t } from "@/lib/i18n";
 
 /** Matches BlueDental.TreatmentManagement.PatientDiagnosisStatus */
 export const DIAGNOSIS_STATUS = {
@@ -190,11 +191,11 @@ export function formatTeeth(teeth: ToothSelectionDto[]): string {
   return teeth
     .map((tooth) => {
       const surfaces: string[] = [];
-      if (tooth.top) surfaces.push("trên");
-      if (tooth.bottom) surfaces.push("dưới");
-      if (tooth.left) surfaces.push("trái");
-      if (tooth.right) surfaces.push("phải");
-      if (tooth.center) surfaces.push("giữa");
+      if (tooth.top) surfaces.push(t("trên"));
+      if (tooth.bottom) surfaces.push(t("dưới"));
+      if (tooth.left) surfaces.push(t("trái"));
+      if (tooth.right) surfaces.push(t("phải"));
+      if (tooth.center) surfaces.push(t("giữa"));
 
       return surfaces.length > 0 && !tooth.selected
         ? `${tooth.toothCode} (${surfaces.join(", ")})`

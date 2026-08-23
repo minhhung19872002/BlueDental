@@ -18,23 +18,24 @@ import { formatDate, formatDateTime, formatVND } from "@/utils/format";
 import { SearchSelect } from "@/components/SearchSelect";
 import type { PatientListItem, PatientStatus } from "../types/patient";
 import { downloadFile } from "@/lib/download";
+import { t } from "@/lib/i18n";
 
 const { Text } = Typography;
 
 type ViewMode = "day" | "week" | "month";
 type FilterStatus = "All" | PatientStatus;
 
-const STATUS_CONFIG: Record<PatientStatus, { label: string; color: string; bg: string; text: string }> = {
-  NoActivity:  { label: "Chưa phát sinh", color: "#6B7280", bg: "#F3F4F6", text: "#374151" },
-  InTreatment: { label: "Đang điều trị",  color: "#2671D8", bg: "#EBF3FE", text: "#1E5BB0" },
-  Completed:   { label: "Điều trị hoàn tất", color: "#10B981", bg: "#E6F4EA", text: "#1F7A45" },
-};
+const statusConfig = (): Record<PatientStatus, { label: string; color: string; bg: string; text: string }> => ({
+  NoActivity:  { label: t("Chưa phát sinh"), color: "#6B7280", bg: "#F3F4F6", text: "#374151" },
+  InTreatment: { label: t("Đang điều trị"),  color: "#2671D8", bg: "#EBF3FE", text: "#1E5BB0" },
+  Completed:   { label: t("Điều trị hoàn tất"), color: "#10B981", bg: "#E6F4EA", text: "#1F7A45" },
+});
 
-const FILTER_TABS: { key: FilterStatus; label: string }[] = [
-  { key: "All",         label: "Tất cả" },
-  { key: "Completed",   label: "Điều trị hoàn tất" },
-  { key: "InTreatment", label: "Đang điều trị" },
-  { key: "NoActivity",  label: "Chưa phát sinh" },
+const filterTabs = (): { key: FilterStatus; label: string }[] => [
+  { key: "All",         label: t("Tất cả") },
+  { key: "Completed",   label: t("Điều trị hoàn tất") },
+  { key: "InTreatment", label: t("Đang điều trị") },
+  { key: "NoActivity",  label: t("Chưa phát sinh") },
 ];
 
 interface Props {
@@ -79,7 +80,7 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
 
   const columns: TableColumnsType<PatientListItem> = [
     {
-      title: "Ngày tạo hồ sơ",
+      title: t("Ngày tạo hồ sơ"),
       dataIndex: "createdAt",
       key: "createdAt",
       width: 120,
@@ -88,7 +89,7 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
       ),
     },
     {
-      title: "Họ và tên",
+      title: t("Họ và tên"),
       key: "fullName",
       width: 220,
       render: (_, record) => (
@@ -109,7 +110,7 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
       ),
     },
     {
-      title: "Ngày sinh",
+      title: t("Ngày sinh"),
       dataIndex: "dateOfBirth",
       key: "dateOfBirth",
       width: 110,
@@ -118,19 +119,19 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
       ),
     },
     {
-      title: "Số điện thoại",
+      title: t("Số điện thoại"),
       dataIndex: "phone",
       key: "phone",
       width: 120,
       render: (v: string) => <Text style={{ fontSize: 13 }}>{v}</Text>,
     },
     {
-      title: "Trạng thái",
+      title: t("Trạng thái"),
       dataIndex: "status",
       key: "status",
       width: 150,
       render: (status: PatientStatus) => {
-        const conf = STATUS_CONFIG[status] ?? { label: status, bg: "#F3F4F6", text: "#374151" };
+        const conf = statusConfig()[status] ?? { label: status, bg: "#F3F4F6", text: "#374151" };
         return (
           <span
             style={{
@@ -149,7 +150,7 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
       },
     },
     {
-      title: "Dịch vụ",
+      title: t("Dịch vụ"),
       dataIndex: "serviceName",
       key: "serviceName",
       width: 180,
@@ -158,7 +159,7 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
       ),
     },
     {
-      title: "Bác sĩ",
+      title: t("Bác sĩ"),
       dataIndex: "doctorName",
       key: "doctorName",
       width: 140,
@@ -167,7 +168,7 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
       ),
     },
     {
-      title: "Số tiền",
+      title: t("Số tiền"),
       dataIndex: "totalAmount",
       key: "totalAmount",
       width: 120,
@@ -179,7 +180,7 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
       ),
     },
     {
-      title: "Thực thu",
+      title: t("Thực thu"),
       dataIndex: "collectedAmount",
       key: "collectedAmount",
       width: 120,
@@ -198,7 +199,7 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
       ),
     },
     {
-      title: "Công nợ",
+      title: t("Công nợ"),
       dataIndex: "debtAmount",
       key: "debtAmount",
       width: 120,
@@ -217,7 +218,7 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
       ),
     },
     {
-      title: "Lịch hẹn gần nhất",
+      title: t("Lịch hẹn gần nhất"),
       dataIndex: "nextAppointmentAt",
       key: "nextAppointmentAt",
       width: 145,
@@ -228,7 +229,7 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
       ),
     },
     {
-      title: "Lần khám cuối",
+      title: t("Lần khám cuối"),
       dataIndex: "lastVisitAt",
       key: "lastVisitAt",
       width: 130,
@@ -239,14 +240,14 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
       ),
     },
     {
-      title: "Thao tác",
+      title: t("Thao tác"),
       key: "actions",
       width: 90,
       fixed: "right",
       align: "center",
       render: (_, record) => (
         <Space size={4}>
-          <Tooltip title="Xem hồ sơ">
+          <Tooltip title={t("Xem hồ sơ")}>
             <Button
               type="text"
               size="small"
@@ -255,7 +256,7 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
               style={{ color: "#2671D8" }}
             />
           </Tooltip>
-          <Tooltip title="Chỉnh sửa">
+          <Tooltip title={t("Chỉnh sửa")}>
             <Button
               type="text"
               size="small"
@@ -278,9 +279,9 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
             value={viewMode}
             onChange={(v) => setViewMode(v as ViewMode)}
             options={[
-              { label: "Ngày", value: "day" },
-              { label: "Tuần", value: "week" },
-              { label: "Tháng", value: "month" },
+              { label: t("Ngày"), value: "day" },
+              { label: t("Tuần"), value: "week" },
+              { label: t("Tháng"), value: "month" },
             ]}
             style={{ fontWeight: 500 }}
           />
@@ -313,7 +314,7 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
           {/* Center: search */}
           <Input
             prefix={<SearchOutlined style={{ color: "#9CA3AF" }} />}
-            placeholder="Tìm kiếm"
+            placeholder={t("Tìm kiếm")}
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             allowClear
@@ -330,10 +331,10 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
                 })
               }
             >
-              Xuất file
+              {t("Xuất file")}
             </Button>
             <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>
-              Tạo hồ sơ
+              {t("Tạo hồ sơ")}
             </Button>
           </div>
         </div>
@@ -344,7 +345,7 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           {/* Status tabs */}
           <div className="reception-status-pills">
-            {FILTER_TABS.map((tab) => (
+            {filterTabs().map((tab) => (
               <button
                 key={tab.key}
                 type="button"
@@ -360,7 +361,7 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
           <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
             <SearchSelect
               value={selectedDoctorId}
-              placeholder="Bác sĩ"
+              placeholder={t("Bác sĩ")}
               allowClear
               options={[]}
               onChange={(v) => setSelectedDoctorId(v)}
@@ -368,7 +369,7 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
             />
             <SearchSelect
               value={undefined}
-              placeholder="Phân loại dịch vụ"
+              placeholder={t("Phân loại dịch vụ")}
               allowClear
               options={[]}
               onChange={() => {}}
@@ -376,7 +377,7 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
             />
             <SearchSelect
               value={undefined}
-              placeholder="Phân loại theo Tag"
+              placeholder={t("Phân loại theo Tag")}
               allowClear
               options={[]}
               onChange={() => {}}
@@ -395,7 +396,7 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
           loading={isLoading}
           pagination={pagination.buildConfig(
             data?.totalCount,
-            (total) => `Hiển thị ${Math.min(pagination.skipCount + 1, total)}–${Math.min(pagination.skipCount + pagination.maxResultCount, total)} trên ${total} bệnh nhân`,
+            (total) => t("Hiển thị {0}–{1} trên {2} bệnh nhân", Math.min(pagination.skipCount + 1, total), Math.min(pagination.skipCount + pagination.maxResultCount, total), total),
           )}
           onRow={(record) => ({
             onClick: () => onRowClick?.(record),
@@ -406,8 +407,8 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
             emptyText: (
               <div style={{ padding: "40px 0", textAlign: "center", color: "#9CA3AF" }}>
                 <div style={{ fontSize: 32, marginBottom: 8 }}>🦷</div>
-                <div style={{ fontWeight: 500, color: "#6B7280" }}>Không có bệnh nhân nào</div>
-                <div style={{ fontSize: 13, marginTop: 4 }}>Thêm hồ sơ bệnh nhân đầu tiên</div>
+                <div style={{ fontWeight: 500, color: "#6B7280" }}>{t("Không có bệnh nhân nào")}</div>
+                <div style={{ fontSize: 13, marginTop: 4 }}>{t("Thêm hồ sơ bệnh nhân đầu tiên")}</div>
               </div>
             ),
           }}
