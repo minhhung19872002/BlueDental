@@ -1,191 +1,205 @@
 import { useState } from "react";
-import { Button, Input, Table, Tag } from "antd";
-import { SearchOutlined } from "@ant-design/icons";
+import {
+  Button,
+  Form,
+  Input,
+  Modal,
+  Popconfirm,
+  Select,
+  Table,
+  Tag,
+  Typography,
+  message,
+} from "antd";
+import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
+import type { TableColumnsType } from "antd";
+import {
+  useCreateStaff,
+  useDeleteStaff,
+  useStaffList,
+  useStaffRoleNames,
+  useUpdateStaff,
+} from "../api/staffQueries";
+import type { StaffDto } from "../api/staffApi";
+import { useDebounce } from "@/hooks/useDebounce";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { extractApiError } from "@/lib/apiError";
 
-// ── Types ──────────────────────────────────────────────────────────────────
+const { Text } = Typography;
 
-type StaffStatus = "all" | "working" | "resigned";
+type StatusFilter = "all" | "working" | "resigned";
 
-interface StaffMember {
-  id: string;
-  name: string;
-  phone: string;
-  email: string;
-  role: string;
-  address: string;
-  status: "working" | "resigned";
-}
-
-// ── Synthetic data ─────────────────────────────────────────────────────────
-
-const SYNTHETIC_STAFF: StaffMember[] = [
-  {
-    id: "1",
-    name: "KT Dung",
-    phone: "0773678836",
-    email: "ktdung@bluedental.vn",
-    role: "Kế Toán",
-    address: "—",
-    status: "working",
-  },
-  {
-    id: "2",
-    name: "Bs Tới 2",
-    phone: "—",
-    email: "bstoi2@bluedental.vn",
-    role: "Bác Sĩ Điều Trị",
-    address: "—",
-    status: "working",
-  },
-  {
-    id: "3",
-    name: "Lễ Tân DH",
-    phone: "—",
-    email: "letandh@bluedental.vn",
-    role: "Lễ Tân",
-    address: "—",
-    status: "working",
-  },
-  {
-    id: "4",
-    name: "BS Tới",
-    phone: "—",
-    email: "bstoi@bluedental.vn",
-    role: "Bác Sĩ Điều Trị",
-    address: "—",
-    status: "working",
-  },
-  {
-    id: "5",
-    name: "BS Tới 1",
-    phone: "—",
-    email: "bstoi1@bluedental.vn",
-    role: "Bác Sĩ Điều Trị",
-    address: "—",
-    status: "working",
-  },
-  {
-    id: "6",
-    name: "BS Tới 3",
-    phone: "—",
-    email: "bstoi3@bluedental.vn",
-    role: "Bác Sĩ Điều Trị",
-    address: "—",
-    status: "working",
-  },
-  {
-    id: "7",
-    name: "BS Tới 10",
-    phone: "—",
-    email: "bstoi10@bluedental.vn",
-    role: "Bác Sĩ Điều Trị",
-    address: "—",
-    status: "working",
-  },
-  {
-    id: "8",
-    name: "BS Hương",
-    phone: "—",
-    email: "bshuong@bluedental.vn",
-    role: "Bác Sĩ Điều Trị",
-    address: "—",
-    status: "working",
-  },
-  {
-    id: "9",
-    name: "BS Hương 4",
-    phone: "—",
-    email: "bshuong4@bluedental.vn",
-    role: "Bác Sĩ Điều Trị",
-    address: "—",
-    status: "working",
-  },
-  {
-    id: "10",
-    name: "BS Tiên",
-    phone: "—",
-    email: "bstien@bluedental.vn",
-    role: "Bác Sĩ Điều Trị",
-    address: "—",
-    status: "working",
-  },
-  {
-    id: "11",
-    name: "BS Khanh",
-    phone: "—",
-    email: "bskhanh@bluedental.vn",
-    role: "Bác Sĩ Điều Trị",
-    address: "—",
-    status: "working",
-  },
-];
-
-// ── Constants ──────────────────────────────────────────────────────────────
-
-const STATUS_TABS: { key: StaffStatus; label: string }[] = [
+const STATUS_TABS: { key: StatusFilter; label: string }[] = [
   { key: "all", label: "Tất cả" },
   { key: "working", label: "Đang làm việc" },
   { key: "resigned", label: "Đã nghỉ" },
 ];
 
-// ── Component ──────────────────────────────────────────────────────────────
+interface StaffFormValues {
+  userName: string;
+  password?: string;
+  name?: string;
+  email: string;
+  phoneNumber?: string;
+  roleNames: string[];
+}
 
+/**
+ * Nhân viên.
+ *
+ * Staff are ABP identity users, so creating one means creating an account: the
+ * login name and the initial password belong to the form, and roles decide what
+ * the account may do.
+ */
 export function StaffPage() {
-  const [statusTab, setStatusTab] = useState<StaffStatus>("all");
+  const [form] = Form.useForm<StaffFormValues>();
+  const pagination = useTablePagination(20);
   const [keyword, setKeyword] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [editing, setEditing] = useState<StaffDto | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
-  const filtered = SYNTHETIC_STAFF.filter((s) => {
-    const matchesStatus = statusTab === "all" || s.status === statusTab;
-    const matchesKeyword =
-      keyword.trim() === "" ||
-      s.name.toLowerCase().includes(keyword.toLowerCase()) ||
-      s.email.toLowerCase().includes(keyword.toLowerCase()) ||
-      s.phone.includes(keyword);
-    return matchesStatus && matchesKeyword;
+  const debouncedKeyword = useDebounce(keyword);
+
+  const { data, isLoading } = useStaffList({
+    filter: debouncedKeyword || undefined,
+    skipCount: pagination.skipCount,
+    maxResultCount: pagination.maxResultCount,
   });
+  const { data: roleNames } = useStaffRoleNames();
 
-  const columns = [
+  const createStaff = useCreateStaff();
+  const updateStaff = useUpdateStaff();
+  const deleteStaff = useDeleteStaff();
+
+  // Identity has no "resigned" flag of its own — an inactive account is one.
+  const rows = (data?.items ?? []).filter((staff) =>
+    statusFilter === "all"
+      ? true
+      : statusFilter === "working"
+        ? staff.isActive
+        : !staff.isActive,
+  );
+
+  const openCreate = () => {
+    setEditing(null);
+    form.resetFields();
+    setModalOpen(true);
+  };
+
+  const openEdit = (staff: StaffDto) => {
+    setEditing(staff);
+    form.setFieldsValue({
+      userName: staff.userName,
+      name: staff.fullName || staff.name || "",
+      email: staff.email ?? "",
+      phoneNumber: staff.phoneNumber ?? "",
+      roleNames: staff.roleNames,
+    });
+    setModalOpen(true);
+  };
+
+  const handleSubmit = async () => {
+    const values = await form.validateFields();
+
+    try {
+      if (editing) {
+        await updateStaff.mutateAsync({
+          id: editing.id,
+          data: {
+            name: values.name,
+            email: values.email,
+            phoneNumber: values.phoneNumber,
+            isActive: editing.isActive,
+            roleNames: values.roleNames ?? [],
+            branchIds: editing.branchIds,
+          },
+        });
+        message.success("Đã cập nhật nhân viên");
+      } else {
+        await createStaff.mutateAsync({
+          userName: values.userName,
+          password: values.password!,
+          name: values.name,
+          email: values.email,
+          phoneNumber: values.phoneNumber,
+          roleNames: values.roleNames ?? [],
+          branchIds: [],
+        });
+        message.success("Đã tạo nhân viên");
+      }
+
+      setModalOpen(false);
+      form.resetFields();
+    } catch (error) {
+      message.error(extractApiError(error));
+    }
+  };
+
+  const columns: TableColumnsType<StaffDto> = [
     {
-      title: "Tên",
-      dataIndex: "name",
+      title: "Họ và tên",
       key: "name",
-      render: (name: string, record: StaffMember) => (
-        <div>
-          <div style={{ fontWeight: 500 }}>{name}</div>
-          <div style={{ fontSize: 12, color: "#8c8c8c" }}>{record.role}</div>
-        </div>
-      ),
+      render: (_, row) => row.fullName || row.userName,
     },
+    { title: "Tên đăng nhập", dataIndex: "userName", key: "userName", width: 160 },
     {
       title: "Số điện thoại",
-      dataIndex: "phone",
-      key: "phone",
+      dataIndex: "phoneNumber",
+      key: "phoneNumber",
+      width: 140,
+      render: (value: string | null) => value ?? "—",
     },
     {
       title: "Email",
       dataIndex: "email",
       key: "email",
+      width: 220,
+      render: (value: string | null) => value ?? "—",
     },
     {
-      title: "Phân quyền",
-      dataIndex: "role",
-      key: "role",
-      render: (role: string) => <Tag color="blue">{role}</Tag>,
+      title: "Vai trò",
+      dataIndex: "roleNames",
+      key: "roleNames",
+      width: 200,
+      render: (values: string[]) =>
+        values.length === 0 ? "—" : values.map((role) => <Tag key={role}>{role}</Tag>),
     },
     {
-      title: "Địa chỉ",
-      dataIndex: "address",
-      key: "address",
+      title: "Trạng thái",
+      dataIndex: "isActive",
+      key: "isActive",
+      width: 130,
+      render: (value: boolean) => (
+        <Tag color={value ? "green" : "default"}>{value ? "Đang làm việc" : "Đã nghỉ"}</Tag>
+      ),
     },
     {
       title: "Thao tác",
       key: "actions",
-      render: (_: unknown, _record: StaffMember) => (
+      width: 170,
+      render: (_, row) => (
         <div style={{ display: "flex", gap: 8 }}>
-          <Button size="small">Chỉnh sửa</Button>
-          <Button size="small" danger>
-            Xoá
+          <Button size="small" onClick={() => openEdit(row)}>
+            Chỉnh sửa
           </Button>
+          <Popconfirm
+            title="Xoá nhân viên này?"
+            okText="Xoá"
+            cancelText="Huỷ"
+            onConfirm={async () => {
+              try {
+                await deleteStaff.mutateAsync(row.id);
+                message.success("Đã xoá nhân viên");
+              } catch (error) {
+                message.error(extractApiError(error));
+              }
+            }}
+          >
+            <Button size="small" danger>
+              Xoá
+            </Button>
+          </Popconfirm>
         </div>
       ),
     },
@@ -193,15 +207,8 @@ export function StaffPage() {
 
   return (
     <div className="reception-page">
-      {/* Toolbar */}
       <div className="reception-card reception-card--toolbar">
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Input
             prefix={<SearchOutlined />}
             placeholder="Tìm theo tên, email, số điện thoại..."
@@ -210,30 +217,20 @@ export function StaffPage() {
             style={{ width: 320 }}
             allowClear
           />
-          <Button type="primary">Tạo</Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+            Tạo
+          </Button>
         </div>
       </div>
 
-      {/* Status tabs */}
       <div className="reception-card reception-card--tabs">
         <div style={{ display: "flex", gap: 0 }}>
           {STATUS_TABS.map((tab) => (
             <button
               key={tab.key}
-              onClick={() => setStatusTab(tab.key)}
-              style={{
-                padding: "8px 20px",
-                border: "none",
-                borderBottom:
-                  statusTab === tab.key
-                    ? "2px solid #1677ff"
-                    : "2px solid transparent",
-                background: "none",
-                color: statusTab === tab.key ? "#1677ff" : "#595959",
-                fontWeight: statusTab === tab.key ? 600 : 400,
-                cursor: "pointer",
-                fontSize: 14,
-              }}
+              type="button"
+              className={`reception-status-pill ${statusFilter === tab.key ? "reception-status-pill--active" : ""}`}
+              onClick={() => setStatusFilter(tab.key)}
             >
               {tab.label}
             </button>
@@ -241,23 +238,79 @@ export function StaffPage() {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="reception-card reception-card--content">
-        <Table
-          columns={columns}
-          dataSource={filtered}
+      <div className="reception-card">
+        <Table<StaffDto>
+          size="small"
           rowKey="id"
-          pagination={{
-            pageSize: 20,
-            showSizeChanger: true,
-            pageSizeOptions: ["5", "10", "20", "25", "50", "100"],
-            showTotal: (total, range) =>
-              `Hiển thị ${range[0]}–${range[1]} trên ${total} nhân viên`,
-          }}
-          locale={{ emptyText: "Không có dữ liệu" }}
-          size="middle"
+          loading={isLoading}
+          columns={columns}
+          dataSource={rows}
+          pagination={pagination.buildConfig(
+            data?.totalCount,
+            (total) => `Hiển thị ${rows.length} trên ${total} nhân viên`,
+          )}
+          locale={{ emptyText: <Text type="secondary">Chưa có nhân viên</Text> }}
         />
       </div>
+
+      <Modal
+        open={modalOpen}
+        title={editing ? "Chỉnh sửa nhân viên" : "Tạo nhân viên"}
+        okText={editing ? "Lưu" : "Tạo"}
+        cancelText="Huỷ"
+        confirmLoading={createStaff.isPending || updateStaff.isPending}
+        onOk={handleSubmit}
+        onCancel={() => setModalOpen(false)}
+        destroyOnHidden
+      >
+        <Form form={form} layout="vertical" requiredMark>
+          <Form.Item
+            name="userName"
+            label="Tên đăng nhập"
+            rules={[{ required: true, message: "Vui lòng nhập tên đăng nhập" }]}
+          >
+            <Input placeholder="letan01" disabled={Boolean(editing)} />
+          </Form.Item>
+
+          {!editing && (
+            <Form.Item
+              name="password"
+              label="Mật khẩu"
+              rules={[{ required: true, message: "Vui lòng nhập mật khẩu" }]}
+              extra="Tối thiểu 8 ký tự, có chữ hoa, số và ký tự đặc biệt."
+            >
+              <Input.Password placeholder="Mật khẩu đăng nhập" />
+            </Form.Item>
+          )}
+
+          <Form.Item name="name" label="Họ và tên">
+            <Input placeholder="Nguyễn Văn An" />
+          </Form.Item>
+
+          <Form.Item
+            name="email"
+            label="Email"
+            rules={[
+              { required: true, message: "Vui lòng nhập email" },
+              { type: "email", message: "Email không hợp lệ" },
+            ]}
+          >
+            <Input placeholder="letan01@bluedental.vn" />
+          </Form.Item>
+
+          <Form.Item name="phoneNumber" label="Số điện thoại">
+            <Input placeholder="09xxxxxxxx" />
+          </Form.Item>
+
+          <Form.Item name="roleNames" label="Vai trò">
+            <Select
+              mode="multiple"
+              placeholder="Chọn vai trò"
+              options={(roleNames ?? []).map((role) => ({ value: role, label: role }))}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 }

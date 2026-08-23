@@ -5,6 +5,12 @@ import { DownloadOutlined, LeftOutlined, RightOutlined, PlusOutlined } from "@an
 import dayjs, { type Dayjs } from "dayjs";
 import { formatDate, formatVND } from "@/utils/format";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
+import {
+  useBusinessResult,
+  usePatientHistory,
+  usePaymentStat,
+} from "../api/clinicReportApi";
+import type { PatientHistoryRowDto } from "../api/clinicReportApi";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { extractApiError } from "@/lib/apiError";
 import { SalesEntryModal } from "../components/SalesEntryModal";
@@ -49,13 +55,6 @@ const SUB_FILTERS = [
   { key: "debt",     label: "Dư nợ" },
 ];
 
-const SUMMARY_CARDS = [
-  { title: "Thông tin lượt khách",  metrics: [{ label: "Lượt khách hôm nay", value: 0, unit: "lượt khách" }] },
-  { title: "Thông tin lịch hẹn",    metrics: [{ label: "Lịch hẹn hôm nay",   value: 0, unit: "lịch hẹn" }] },
-  { title: "Thông tin thanh toán",  metrics: [{ label: "Doanh thu hôm nay",   value: 0, unit: "đ" }] },
-  { title: "Thông tin thu chi",     metrics: [{ label: "Thu",                 value: 0, unit: "đ" }, { label: "Chi", value: 0, unit: "đ" }] },
-];
-
 const CASHFLOW_TYPES = [
   { key: "all", label: "Tất cả" },
   { key: "thu", label: "Thu" },
@@ -96,29 +95,6 @@ function buildCashflowColumns(actions: (row: SalesEntryDto) => React.ReactNode) 
   { title: "Thao tác", key: "actions", width: 200, render: (_: unknown, row: SalesEntryDto) => actions(row) },
   ];
 }
-
-const RESULT_COLUMNS = [
-  { title: "Danh mục", dataIndex: "category", key: "category" },
-  { title: "Doanh thu", dataIndex: "revenue", key: "revenue", width: 160, align: "right" as const,
-    render: (v: number) => <Text style={{ fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
-  { title: "Chi phí", dataIndex: "expense", key: "expense", width: 160, align: "right" as const,
-    render: (v: number) => <Text style={{ color: "#EF4444", fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
-  { title: "Lợi nhuận", dataIndex: "profit", key: "profit", width: 160, align: "right" as const,
-    render: (v: number) => <Text style={{ color: "#10B981", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
-  { title: "Tỷ lệ LN (%)", dataIndex: "margin", key: "margin", width: 120, align: "right" as const,
-    render: (v: number) => <Text style={{ color: v >= 0 ? "#10B981" : "#EF4444" }}>{v ?? 0}%</Text> },
-];
-
-const EXPENSE_COLUMNS = [
-  { title: "Ngày", dataIndex: "date", key: "date", width: 110 },
-  { title: "Tên khách hàng", dataIndex: "patientName", key: "patientName", width: 180 },
-  { title: "Nhân sự tư vấn", dataIndex: "counselorName", key: "counselorName", width: 150 },
-  { title: "Bác sĩ tiếp nhận", dataIndex: "doctorName", key: "doctorName", width: 150 },
-  { title: "Dịch vụ điều trị", dataIndex: "serviceName", key: "serviceName" },
-  { title: "Số lượng", dataIndex: "quantity", key: "quantity", width: 90, align: "right" as const },
-  { title: "Thành tiền", dataIndex: "totalAmount", key: "totalAmount", width: 130, align: "right" as const, render: (v: number) => <Text style={{ fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
-  { title: "Đã thanh toán", dataIndex: "paidAmount", key: "paidAmount", width: 130, align: "right" as const, render: (v: number) => <Text style={{ color: "#10B981", fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
-];
 
 interface PeriodRange {
   fromDate: string;
@@ -205,77 +181,10 @@ export function ReportPage() {
 
       {/* Tab content */}
       {activeTab === "expense" && (
-        <>
-          {/* Sub-filter pills */}
-          <div className="reception-card reception-card--tabs">
-            <div style={{ display: "flex", gap: 0 }}>
-              {SUB_FILTERS.map((f) => (
-                <button
-                  key={f.key}
-                  type="button"
-                  onClick={() => setSubFilter(f.key)}
-                  style={{
-                    padding: "8px 14px", border: "none",
-                    borderBottom: subFilter === f.key ? "2px solid #1677ff" : "2px solid transparent",
-                    background: "none",
-                    color: subFilter === f.key ? "#1677ff" : "#595959",
-                    fontWeight: subFilter === f.key ? 600 : 400,
-                    cursor: "pointer", fontSize: 13, whiteSpace: "nowrap",
-                  }}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Quick stats + export */}
-          <div className="reception-card reception-card--toolbar">
-            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-              <span style={{ fontSize: 13, color: "#5A6B82" }}>Doanh số:</span>
-              <span style={{ fontWeight: 700, fontSize: 18, color: "#1B2A41" }}>0 đ</span>
-              <Button icon={<DownloadOutlined />} style={{ marginLeft: "auto" }}>Xuất Excel</Button>
-            </div>
-          </div>
-
-          {/* Table */}
-          <div className="reception-card reception-card--content">
-            <Table
-              size="small"
-              rowKey="id"
-              columns={EXPENSE_COLUMNS}
-              dataSource={[]}
-              pagination={{
-                pageSize: 20,
-                showSizeChanger: true,
-                pageSizeOptions: ["5", "10", "20", "25", "50", "100"],
-                showTotal: (total, range) => `Hiển thị ${range[0]}–${range[1]} trên ${total} dòng`,
-              }}
-              locale={{ emptyText: "Không có dữ liệu" }}
-            />
-          </div>
-
-          {/* Summary cards */}
-          <Row gutter={[12, 12]}>
-            {SUMMARY_CARDS.map((card) => (
-              <Col key={card.title} xs={24} sm={12} md={6}>
-                <div className="reception-card" style={{ padding: 16 }}>
-                  <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 10 }}>{card.title}</div>
-                  {card.metrics.map((m) => (
-                    <div key={m.label} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
-                      <span style={{ color: "#5A6B82" }}>{m.label}</span>
-                      <span style={{ fontWeight: 600, color: "#1B2A41" }}>{m.value.toLocaleString("vi-VN")} {m.unit}</span>
-                    </div>
-                  ))}
-                </div>
-              </Col>
-            ))}
-          </Row>
-        </>
+        <SalesTab period={period} subFilter={subFilter} onSubFilterChange={setSubFilter} />
       )}
-
       {activeTab === "cashflow" && <CashflowTab period={period} />}
-      {activeTab === "result" && <BusinessResultTab />}
+      {activeTab === "result" && <BusinessResultTab period={period} />}
       {activeTab === "cashflow-v2" && <CashflowV2Tab period={period} />}
     </div>
   );
@@ -566,12 +475,176 @@ function CashflowV2Tab({ period }: { period: PeriodRange }) {
   );
 }
 
-function BusinessResultTab() {
+/**
+ * Doanh số và lượt khách.
+ *
+ * Every figure comes from the server; the browser only formats. The sub-filters
+ * narrow the same ledger the reference shows.
+ */
+function SalesTab({
+  period,
+  subFilter,
+  onSubFilterChange,
+}: {
+  period: PeriodRange;
+  subFilter: string;
+  onSubFilterChange: (key: string) => void;
+}) {
+  const branchId = useCurrentBranchId();
+  const query = { clinicBranchId: branchId, ...period };
+
+  const { data: stat } = usePaymentStat(query);
+  const { data: history, isLoading } = usePatientHistory(query);
+
+  const rows = (history ?? []).filter((row) => {
+    if (subFilter === "payment") return row.totalPaid > 0;
+    if (subFilter === "debt") return row.effectiveAmount > row.totalPaid;
+    if (subFilter === "refund") return false; // refunds are not per-slip rows yet
+    return true;
+  });
+
+  const cards = [
+    {
+      title: "Thông tin lượt khách",
+      testId: "sales-visits",
+      metrics: [{ label: "Lượt khách", value: stat?.patientVisits ?? 0, unit: "lượt khách" }],
+    },
+    {
+      title: "Thông tin thanh toán",
+      testId: "sales-paid",
+      metrics: [
+        { label: "Đã thu", value: stat?.totalPaid ?? 0, unit: "đ" },
+        { label: "Hoàn tiền", value: stat?.totalRefund ?? 0, unit: "đ" },
+      ],
+    },
+    {
+      title: "Hình thức thanh toán",
+      testId: "sales-methods",
+      metrics: [
+        { label: "Tiền mặt", value: stat?.byCash ?? 0, unit: "đ" },
+        { label: "Chuyển khoản", value: stat?.byBanking ?? 0, unit: "đ" },
+        { label: "Quẹt thẻ", value: stat?.byCard ?? 0, unit: "đ" },
+      ],
+    },
+    {
+      title: "Thông tin thu chi",
+      testId: "sales-cashflow",
+      metrics: [
+        { label: "Thu khác", value: stat?.totalIncome ?? 0, unit: "đ" },
+        { label: "Chi", value: stat?.totalExpense ?? 0, unit: "đ" },
+      ],
+    },
+  ];
+
+  return (
+    <>
+      <div className="reception-card reception-card--tabs">
+        <div style={{ display: "flex", gap: 0 }}>
+          {SUB_FILTERS.map((f) => (
+            <button
+              key={f.key}
+              type="button"
+              onClick={() => onSubFilterChange(f.key)}
+              style={{
+                padding: "8px 14px",
+                border: "none",
+                borderBottom: subFilter === f.key ? "2px solid #1677ff" : "2px solid transparent",
+                background: "none",
+                color: subFilter === f.key ? "#1677ff" : "#595959",
+                fontWeight: subFilter === f.key ? 600 : 400,
+                cursor: "pointer",
+                fontSize: 13,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="reception-card reception-card--toolbar">
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <span style={{ fontSize: 13, color: "#5A6B82" }}>Doanh số:</span>
+          <span
+            style={{ fontWeight: 700, fontSize: 18, color: "#1B2A41" }}
+            data-testid="sales-total"
+          >
+            {formatVND(stat?.totalActualReceived ?? 0)} đ
+          </span>
+        </div>
+      </div>
+
+      <div className="reception-card reception-card--content">
+        <Table<PatientHistoryRowDto>
+          size="small"
+          rowKey={(row) => `${row.patientId}-${row.date}`}
+          loading={isLoading}
+          columns={[
+            { title: "Ngày", dataIndex: "date", key: "date", width: 110, render: (v: string) => formatDate(v) },
+            { title: "Tên khách hàng", dataIndex: "patientName", key: "patientName", width: 200 },
+            { title: "Bác sĩ tiếp nhận", dataIndex: "staffName", key: "staffName", width: 160, render: (v: string | null) => v ?? "—" },
+            { title: "Dịch vụ điều trị", dataIndex: "serviceNames", key: "serviceNames" },
+            { title: "Số lượng", dataIndex: "quantity", key: "quantity", width: 90, align: "right" as const },
+            { title: "Thành tiền", dataIndex: "effectiveAmount", key: "effectiveAmount", width: 130, align: "right" as const, render: (v: number) => <Text style={{ fontVariantNumeric: "tabular-nums" }}>{formatVND(v)} đ</Text> },
+            { title: "Đã thanh toán", dataIndex: "totalPaid", key: "totalPaid", width: 130, align: "right" as const, render: (v: number) => <Text style={{ color: "#10B981", fontVariantNumeric: "tabular-nums" }}>{formatVND(v)} đ</Text> },
+          ]}
+          dataSource={rows}
+          pagination={{ pageSize: 20, showSizeChanger: true }}
+          locale={{ emptyText: "Không có dữ liệu" }}
+        />
+      </div>
+
+      <Row gutter={[12, 12]}>
+        {cards.map((card) => (
+          <Col key={card.title} xs={24} sm={12} md={6}>
+            <div className="reception-card" style={{ padding: 16 }} data-testid={card.testId}>
+              <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 10 }}>
+                {card.title}
+              </div>
+              {card.metrics.map((m) => (
+                <div
+                  key={m.label}
+                  style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}
+                >
+                  <span style={{ color: "#5A6B82" }}>{m.label}</span>
+                  <span style={{ fontWeight: 600, color: "#1B2A41" }}>
+                    {m.value.toLocaleString("vi-VN")} {m.unit}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </Col>
+        ))}
+      </Row>
+    </>
+  );
+}
+
+function BusinessResultTab({ period }: { period: PeriodRange }) {
+  const branchId = useCurrentBranchId();
+  const { data: result } = useBusinessResult({ clinicBranchId: branchId, ...period });
+
+  const revenue = result?.totalRevenue ?? 0;
+  const expense = result?.expense ?? 0;
+  const profit = result?.result ?? 0;
+  const margin = revenue === 0 ? 0 : Math.round((profit / revenue) * 100);
+
   const resultSummary = [
-    { label: "Doanh thu", value: 0, color: "#1E70E6" },
-    { label: "Chi phí", value: 0, color: "#EF4444" },
-    { label: "Lợi nhuận", value: 0, color: "#10B981" },
-    { label: "Tỷ lệ lợi nhuận", value: "0%", color: "#F59E0B" },
+    { label: "Doanh thu", value: revenue, color: "#1E70E6", testId: "result-revenue" },
+    { label: "Chi phí", value: expense, color: "#EF4444", testId: "result-expense" },
+    { label: "Lợi nhuận", value: profit, color: "#10B981", testId: "result-profit" },
+    { label: "Tỷ lệ lợi nhuận", value: `${margin}%`, color: "#F59E0B", testId: "result-margin" },
+  ];
+
+  /** The six rows the reference shows on result-stat/summary. */
+  const rows = [
+    { category: "Doanh thu tổng", amount: revenue },
+    { category: "Thu từ dịch vụ điều trị", amount: result?.treatmentIncome ?? 0 },
+    { category: "Thu khác", amount: result?.otherIncome ?? 0 },
+    { category: "Hoàn tiền từ dịch vụ điều trị", amount: -(result?.treatmentRefund ?? 0) },
+    { category: "Chi phí", amount: -expense },
+    { category: "Kết quả kinh doanh", amount: profit },
   ];
 
   return (
@@ -579,7 +652,7 @@ function BusinessResultTab() {
       <Row gutter={[12, 12]} style={{ margin: "12px 0" }}>
         {resultSummary.map((c) => (
           <Col key={c.label} xs={24} sm={12} md={6}>
-            <div className="reception-card" style={{ padding: "16px 20px" }}>
+            <div className="reception-card" style={{ padding: "16px 20px" }} data-testid={c.testId}>
               <div style={{ fontSize: 12, color: "#5A6B82", marginBottom: 4 }}>{c.label}</div>
               <div style={{ fontSize: 22, fontWeight: 700, color: c.color, fontVariantNumeric: "tabular-nums" }}>
                 {typeof c.value === "number" ? `${formatVND(c.value)} đ` : c.value}
@@ -599,19 +672,30 @@ function BusinessResultTab() {
         <Table
           size="small"
           rowKey="category"
-          columns={RESULT_COLUMNS}
-          dataSource={[]}
+          columns={[
+            { title: "Khoản mục", dataIndex: "category", key: "category" },
+            {
+              title: "Số tiền",
+              dataIndex: "amount",
+              key: "amount",
+              width: 200,
+              align: "right" as const,
+              render: (value: number) => (
+                <Text
+                  strong={Math.abs(value) === Math.abs(profit)}
+                  style={{
+                    color: value < 0 ? "#EF4444" : "#1B2A41",
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                >
+                  {formatVND(value)} đ
+                </Text>
+              ),
+            },
+          ]}
+          dataSource={rows}
           pagination={false}
           locale={{ emptyText: "Không có dữ liệu" }}
-          summary={() => (
-            <Table.Summary.Row>
-              <Table.Summary.Cell index={0}><Text strong>Tổng</Text></Table.Summary.Cell>
-              <Table.Summary.Cell index={1} align="right"><Text strong style={{ fontVariantNumeric: "tabular-nums" }}>0 đ</Text></Table.Summary.Cell>
-              <Table.Summary.Cell index={2} align="right"><Text strong style={{ color: "#EF4444", fontVariantNumeric: "tabular-nums" }}>0 đ</Text></Table.Summary.Cell>
-              <Table.Summary.Cell index={3} align="right"><Text strong style={{ color: "#10B981", fontVariantNumeric: "tabular-nums" }}>0 đ</Text></Table.Summary.Cell>
-              <Table.Summary.Cell index={4} align="right"><Text strong>0%</Text></Table.Summary.Cell>
-            </Table.Summary.Row>
-          )}
         />
       </div>
     </>

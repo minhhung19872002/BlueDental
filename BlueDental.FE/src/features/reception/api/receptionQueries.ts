@@ -25,7 +25,8 @@ export function useReceptionDoctors() {
 
       return result.items.map((s) => ({
         id: s.id,
-        name: s.name,
+        // Identity may hold no display name, so fall back to the login name.
+        name: s.fullName || s.userName,
         title: s.roleNames[0] ?? "Bác sĩ",
       }));
     },
