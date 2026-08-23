@@ -46,6 +46,7 @@ public class BlueDentalDbContext :
 
     // Organizations
     public DbSet<ClinicBranch> ClinicBranches { get; set; }
+    public DbSet<StaffBranchAssignment> StaffBranchAssignments { get; set; }
 
     // Catalogs
     public DbSet<DentalProcedure> DentalProcedures { get; set; }

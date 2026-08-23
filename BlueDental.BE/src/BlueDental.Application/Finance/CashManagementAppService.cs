@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
@@ -22,20 +23,25 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
     private readonly IRepository<CashflowEntry, Guid> _repository;
     private readonly IRepository<CashflowCategory, Guid> _categoryRepository;
     private readonly IIdentityUserRepository _userRepository;
+    private readonly BranchAccessChecker _branchAccess;
 
     public CashManagementAppService(
         IRepository<CashflowEntry, Guid> repository,
         IRepository<CashflowCategory, Guid> categoryRepository,
-        IIdentityUserRepository userRepository)
+        IIdentityUserRepository userRepository,
+        BranchAccessChecker branchAccess)
     {
         _repository = repository;
         _categoryRepository = categoryRepository;
         _userRepository = userRepository;
+        _branchAccess = branchAccess;
     }
 
     [Authorize(BlueDentalAbilityPermissions.ReportTransfer.Read)]
     public async Task<CashBalanceDto> GetBalanceAsync(Guid clinicBranchId)
     {
+        await _branchAccess.CheckAsync(clinicBranchId);
+
         var query = await _repository.GetQueryableAsync();
         var entries = query.Where(x => x.ClinicBranchId == clinicBranchId).ToList();
 
@@ -96,6 +102,8 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
 
     public async Task<CashflowEntryDto> CreateEntryAsync(CreateCashflowEntryDto input)
     {
+        await _branchAccess.CheckAsync(input.ClinicBranchId);
+
         // The reference gives each cash operation its own action on reportTransfer.
         await AuthorizationService.CheckAsync(input.TransactionType switch
         {
@@ -141,10 +149,12 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
 
     private async Task<IQueryable<CashflowEntry>> BuildQueryAsync(GetCashflowEntryListInput input)
     {
+        var branchFilter = await _branchAccess.ResolveFilterAsync(input.ClinicBranchId);
+
         var query = await _repository.GetQueryableAsync();
 
-        if (input.ClinicBranchId.HasValue)
-            query = query.Where(x => x.ClinicBranchId == input.ClinicBranchId.Value);
+        if (branchFilter.Count > 0)
+            query = query.Where(x => branchFilter.Contains(x.ClinicBranchId));
         if (input.TransactionType.HasValue)
             query = query.Where(x => x.TransactionType == input.TransactionType.Value);
         if (input.CategoryId.HasValue)

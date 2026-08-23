@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Timekeeping.Values;
+using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
@@ -21,13 +22,16 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
 {
     private readonly IRepository<TimeKeepingRecord, Guid> _repository;
     private readonly IIdentityUserRepository _userRepository;
+    private readonly BranchAccessChecker _branchAccess;
 
     public TimeKeepingAppService(
         IRepository<TimeKeepingRecord, Guid> repository,
-        IIdentityUserRepository userRepository)
+        IIdentityUserRepository userRepository,
+        BranchAccessChecker branchAccess)
     {
         _repository = repository;
         _userRepository = userRepository;
+        _branchAccess = branchAccess;
     }
 
     [Authorize(BlueDentalAbilityPermissions.WorkSchedule.Read)]
@@ -53,12 +57,15 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
     public async Task<TimeKeepingRecordDto> GetAsync(Guid id)
     {
         var record = await _repository.GetAsync(id);
+        await _branchAccess.CheckAsync(record.ClinicBranchId);
         return MapToDto(record, await GetStaffAsync([record]));
     }
 
     [Authorize(BlueDentalAbilityPermissions.WorkSchedule.Read)]
     public async Task<TimeKeepingSummaryDto> GetSummaryAsync(Guid clinicBranchId, DateOnly workDate)
     {
+        await _branchAccess.CheckAsync(clinicBranchId);
+
         var query = await _repository.GetQueryableAsync();
         var records = query
             .Where(x => x.ClinicBranchId == clinicBranchId && x.WorkDate == workDate)
@@ -79,6 +86,8 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
     [Authorize(BlueDentalAbilityPermissions.WorkSchedule.Update)]
     public async Task<TimeKeepingRecordDto> OpenWorkDayAsync(OpenWorkDayDto input)
     {
+        await _branchAccess.CheckAsync(input.ClinicBranchId);
+
         var query = await _repository.GetQueryableAsync();
         var existing = query.FirstOrDefault(x =>
             x.ClinicBranchId == input.ClinicBranchId &&
@@ -106,6 +115,7 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
     public async Task<TimeKeepingRecordDto> RegisterWorkingAsync(Guid id)
     {
         var record = await _repository.GetAsync(id);
+        await _branchAccess.CheckAsync(record.ClinicBranchId);
         record.RegisterWorking();
         await _repository.UpdateAsync(record, autoSave: true);
         return MapToDto(record, await GetStaffAsync([record]));
@@ -115,6 +125,7 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
     public async Task<TimeKeepingRecordDto> RegisterDayOffAsync(Guid id, RegisterDayOffInput input)
     {
         var record = await _repository.GetAsync(id);
+        await _branchAccess.CheckAsync(record.ClinicBranchId);
         record.RegisterDayOff(input.Reason);
         await _repository.UpdateAsync(record, autoSave: true);
         return MapToDto(record, await GetStaffAsync([record]));
@@ -123,6 +134,7 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
     public async Task<TimeKeepingRecordDto> CheckInAsync(Guid id, AttendanceInput input)
     {
         var record = await _repository.GetAsync(id);
+        await _branchAccess.CheckAsync(record.ClinicBranchId);
         await CheckAttendancePermissionAsync(record, input.RecordedByStaffId);
         record.CheckIn(input.Shift, input.At ?? Clock.Now, input.RecordedByStaffId);
         await _repository.UpdateAsync(record, autoSave: true);
@@ -132,6 +144,7 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
     public async Task<TimeKeepingRecordDto> CheckOutAsync(Guid id, AttendanceInput input)
     {
         var record = await _repository.GetAsync(id);
+        await _branchAccess.CheckAsync(record.ClinicBranchId);
         await CheckAttendancePermissionAsync(record, input.RecordedByStaffId);
         record.CheckOut(input.Shift, input.At ?? Clock.Now, input.RecordedByStaffId);
         await _repository.UpdateAsync(record, autoSave: true);
@@ -142,6 +155,7 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
     public async Task<TimeKeepingRecordDto> AddOvertimeAsync(Guid id, AddOvertimeInput input)
     {
         var record = await _repository.GetAsync(id);
+        await _branchAccess.CheckAsync(record.ClinicBranchId);
         record.AddOvertime(input.Minutes);
         await _repository.UpdateAsync(record, autoSave: true);
         return MapToDto(record, await GetStaffAsync([record]));
@@ -150,6 +164,8 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
     [Authorize(BlueDentalAbilityPermissions.WorkSchedule.Update)]
     public async Task<int> CloseAbandonedShiftsAsync(Guid clinicBranchId, DateOnly workDate)
     {
+        await _branchAccess.CheckAsync(clinicBranchId);
+
         var query = await _repository.GetQueryableAsync();
         var records = query
             .Where(x => x.ClinicBranchId == clinicBranchId && x.WorkDate == workDate)
@@ -182,10 +198,12 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
 
     private async Task<IQueryable<TimeKeepingRecord>> BuildQueryAsync(GetTimeKeepingListInput input)
     {
+        var branchFilter = await _branchAccess.ResolveFilterAsync(input.ClinicBranchId);
+
         var query = await _repository.GetQueryableAsync();
 
-        if (input.ClinicBranchId.HasValue)
-            query = query.Where(x => x.ClinicBranchId == input.ClinicBranchId.Value);
+        if (branchFilter.Count > 0)
+            query = query.Where(x => branchFilter.Contains(x.ClinicBranchId));
         if (input.StaffId.HasValue)
             query = query.Where(x => x.StaffId == input.StaffId.Value);
         if (input.FromDate.HasValue)

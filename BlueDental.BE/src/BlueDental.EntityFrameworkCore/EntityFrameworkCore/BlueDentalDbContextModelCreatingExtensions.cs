@@ -524,5 +524,14 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => new { x.ClinicBranchId, x.Group, x.IsActive });
             entity.HasIndex(x => new { x.TaxonomyId, x.SortOrder });
         });
+
+        // Phan cong nhan vien theo chi nhanh
+        builder.Entity<StaffBranchAssignment>(entity =>
+        {
+            entity.ToTable("bd_staff_branch_assignments");
+            entity.ConfigureByConvention();
+            entity.HasIndex(x => new { x.StaffId, x.ClinicBranchId }).IsUnique();
+            entity.HasIndex(x => x.ClinicBranchId);
+        });
     }
 }

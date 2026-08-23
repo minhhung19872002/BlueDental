@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
@@ -19,13 +20,16 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
 {
     private readonly IRepository<Taxonomy, Guid> _repository;
     private readonly IRepository<CatalogEntry, Guid> _entryRepository;
+    private readonly BranchAccessChecker _branchAccess;
 
     public TaxonomyAppService(
         IRepository<Taxonomy, Guid> repository,
-        IRepository<CatalogEntry, Guid> entryRepository)
+        IRepository<CatalogEntry, Guid> entryRepository,
+        BranchAccessChecker branchAccess)
     {
         _repository = repository;
         _entryRepository = entryRepository;
+        _branchAccess = branchAccess;
     }
 
     public async Task<PagedResultDto<TaxonomyDto>> GetListAsync(GetTaxonomyListInput input)
@@ -36,10 +40,13 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
                 TaxonomyGroupAbilities.PermissionFor(input.Group, BlueDentalAbilities.Actions.Read));
         }
 
+        // Narrow to the branches this user may see before anything else.
+        var branchFilter = await _branchAccess.ResolveFilterAsync(input.ClinicBranchId);
+
         var query = await _repository.GetQueryableAsync();
 
-        if (input.ClinicBranchId.HasValue)
-            query = query.Where(x => x.ClinicBranchId == input.ClinicBranchId.Value);
+        if (branchFilter.Count > 0)
+            query = query.Where(x => branchFilter.Contains(x.ClinicBranchId));
         if (!string.IsNullOrWhiteSpace(input.Group))
             query = query.Where(x => x.Group == input.Group);
         if (!string.IsNullOrWhiteSpace(input.Filter))
@@ -68,6 +75,7 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
     public async Task<TaxonomyDto> GetAsync(Guid id)
     {
         var taxonomy = await _repository.GetAsync(id);
+        await _branchAccess.CheckAsync(taxonomy.ClinicBranchId);
         await CheckGroupPermissionAsync(taxonomy.Group, BlueDentalAbilities.Actions.Read);
         var counts = await CountEntriesAsync([id]);
         return MapToDto(taxonomy, counts);
@@ -75,6 +83,7 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
 
     public async Task<TaxonomyDto> CreateAsync(CreateTaxonomyDto input)
     {
+        await _branchAccess.CheckAsync(input.ClinicBranchId);
         await CheckGroupPermissionAsync(input.Group, BlueDentalAbilities.Actions.Create);
 
         var taxonomy = Taxonomy.Create(
@@ -96,6 +105,7 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
     public async Task<TaxonomyDto> UpdateAsync(Guid id, UpdateTaxonomyDto input)
     {
         var taxonomy = await _repository.GetAsync(id);
+        await _branchAccess.CheckAsync(taxonomy.ClinicBranchId);
         await CheckGroupPermissionAsync(taxonomy.Group, BlueDentalAbilities.Actions.Update);
 
         taxonomy.Rename(input.Name, input.Alias);
@@ -112,6 +122,7 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
     public async Task DeleteAsync(Guid id)
     {
         var taxonomy = await _repository.GetAsync(id);
+        await _branchAccess.CheckAsync(taxonomy.ClinicBranchId);
         await CheckGroupPermissionAsync(taxonomy.Group, BlueDentalAbilities.Actions.Delete);
 
         if (taxonomy.IsSystem)

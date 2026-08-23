@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
@@ -20,15 +21,18 @@ public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
     private readonly IRepository<SalesEntry, Guid> _repository;
     private readonly IRepository<CashflowCategory, Guid> _categoryRepository;
     private readonly IIdentityUserRepository _userRepository;
+    private readonly BranchAccessChecker _branchAccess;
 
     public SalesEntryAppService(
         IRepository<SalesEntry, Guid> repository,
         IRepository<CashflowCategory, Guid> categoryRepository,
-        IIdentityUserRepository userRepository)
+        IIdentityUserRepository userRepository,
+        BranchAccessChecker branchAccess)
     {
         _repository = repository;
         _categoryRepository = categoryRepository;
         _userRepository = userRepository;
+        _branchAccess = branchAccess;
     }
 
     public async Task<PagedResultDto<SalesEntryDto>> GetListAsync(GetSalesEntryListInput input)
@@ -88,6 +92,7 @@ public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
 
     public async Task<SalesEntryDto> CreateAsync(CreateSalesEntryDto input)
     {
+        await _branchAccess.CheckAsync(input.ClinicBranchId);
         await AuthorizationService.CheckAsync(PermissionFor(input.Type, BlueDentalAbilities.Actions.Create));
         var code = await GenerateCodeAsync(input.ClinicBranchId, input.Type);
 
@@ -111,6 +116,7 @@ public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
     public async Task<SalesEntryDto> UpdateAsync(Guid id, UpdateSalesEntryDto input)
     {
         var entry = await _repository.GetAsync(id);
+        await _branchAccess.CheckAsync(entry.ClinicBranchId);
         await AuthorizationService.CheckAsync(PermissionFor(entry.Type, BlueDentalAbilities.Actions.Update));
 
         entry.UpdateDetails(
@@ -129,6 +135,7 @@ public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
     public async Task<SalesEntryDto> ApproveAsync(Guid id, ApproveSalesEntryInput input)
     {
         var entry = await _repository.GetAsync(id);
+        await _branchAccess.CheckAsync(entry.ClinicBranchId);
         entry.Approve(input.StaffId);
         await _repository.UpdateAsync(entry, autoSave: true);
         return MapToDto(entry, await GetCategoryNamesAsync([entry]), await GetStaffNamesAsync([entry]));
@@ -138,6 +145,7 @@ public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
     public async Task<SalesEntryDto> RejectAsync(Guid id, RejectSalesEntryInput input)
     {
         var entry = await _repository.GetAsync(id);
+        await _branchAccess.CheckAsync(entry.ClinicBranchId);
         entry.Reject(input.StaffId, input.Reason);
         await _repository.UpdateAsync(entry, autoSave: true);
         return MapToDto(entry, await GetCategoryNamesAsync([entry]), await GetStaffNamesAsync([entry]));
@@ -146,6 +154,7 @@ public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
     public async Task DeleteAsync(Guid id)
     {
         var entry = await _repository.GetAsync(id);
+        await _branchAccess.CheckAsync(entry.ClinicBranchId);
         await AuthorizationService.CheckAsync(PermissionFor(entry.Type, BlueDentalAbilities.Actions.Delete));
         await _repository.DeleteAsync(id, autoSave: true);
     }
@@ -180,10 +189,12 @@ public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
 
     private async Task<IQueryable<SalesEntry>> BuildQueryAsync(GetSalesEntryListInput input)
     {
+        var branchFilter = await _branchAccess.ResolveFilterAsync(input.ClinicBranchId);
+
         var query = await _repository.GetQueryableAsync();
 
-        if (input.ClinicBranchId.HasValue)
-            query = query.Where(x => x.ClinicBranchId == input.ClinicBranchId.Value);
+        if (branchFilter.Count > 0)
+            query = query.Where(x => branchFilter.Contains(x.ClinicBranchId));
         if (input.Type.HasValue)
             query = query.Where(x => x.Type == input.Type.Value);
         if (input.CategoryId.HasValue)
