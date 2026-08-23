@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  Button, Spin, Tabs, Tag, Row, Col, Card, Table, Typography, Space, Select,
+  Button, Spin, Tabs, Tag, Row, Col, Card, Table, Typography, Space, Select, message,
   type TableColumnsType,
 } from "antd";
 import {
@@ -12,6 +12,7 @@ import {
 import { usePatient } from "../api/patientQueries";
 import { formatDate, formatDateTime, formatVND } from "@/utils/format";
 import {
+  useAcceptAdvise,
   usePatientAdviseSummary,
   usePatientAdvises,
   usePatientDiagnoses,
@@ -25,8 +26,10 @@ import {
 import { ToothSurfaceChart } from "@/features/treatment-management/components/ToothSurfaceChart";
 import { DiagnosisModal } from "@/features/treatment-management/components/DiagnosisModal";
 import { AdviseModal } from "@/features/treatment-management/components/AdviseModal";
+import { TreatmentStagePanel } from "@/features/treatment-management/components/TreatmentStagePanel";
 import type { PatientDiagnosisDto } from "@/features/treatment-management/api/consultingApi";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
+import { extractApiError } from "@/lib/apiError";
 
 const { Text } = Typography;
 
@@ -95,6 +98,17 @@ export function PatientProfilePage() {
   const [consultingTeeth, setConsultingTeeth] = useState<ToothSelectionDto[]>([]);
   const [diagnosisModalOpen, setDiagnosisModalOpen] = useState(false);
   const [adviseFor, setAdviseFor] = useState<PatientDiagnosisDto | null>(null);
+
+  const acceptAdvise = useAcceptAdvise();
+
+  const handleAcceptAdvise = async (adviseId: string) => {
+    try {
+      await acceptAdvise.mutateAsync(adviseId);
+      message.success("Đã chấp nhận phiếu tư vấn");
+    } catch (error) {
+      message.error(extractApiError(error));
+    }
+  };
 
   const activeTab = searchParams.get("tab") ?? "profile";
   const { data: patient, isLoading } = usePatient(id ?? "");
@@ -392,6 +406,26 @@ export function PatientProfilePage() {
                         <Tag color={ADVISE_STATUS_CONFIG[v].color}>{ADVISE_STATUS_CONFIG[v].label}</Tag>
                       ),
                     },
+                    {
+                      // Only an accepted line becomes a treatment service, and only a
+                      // treatment service can carry công đoạn.
+                      title: "Thao tác",
+                      key: "actions",
+                      width: 110,
+                      render: (_, row) =>
+                        row.status === ADVISE_STATUS.Created ? (
+                          <Button
+                            type="link"
+                            size="small"
+                            loading={acceptAdvise.isPending}
+                            onClick={() => handleAcceptAdvise(row.id)}
+                          >
+                            Chấp nhận
+                          </Button>
+                        ) : (
+                          <Text type="secondary">—</Text>
+                        ),
+                    },
                   ]}
                   dataSource={adviseRows}
                   pagination={false}
@@ -484,6 +518,9 @@ export function PatientProfilePage() {
               locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>Chưa có kế hoạch điều trị</span> }}
             />
           </Card>
+
+          {/* Công đoạn — the steps that make up each service line. */}
+          <TreatmentStagePanel patientId={id ?? ""} />
         </div>
       ),
     },

@@ -1,6 +1,6 @@
 # BlueDental — Progress Report
 
-Cập nhật lần cuối: 2026-08-23 (session 6)
+Cập nhật lần cuối: 2026-08-23 (session 6, đợt 3)
 
 ---
 
@@ -58,9 +58,9 @@ Build FE production: OK. Typecheck: sạch. Unit test FE: 3/3 pass.
 | B | Dental chart theo mặt răng | ✅ `ToothSurfaceChart` — 5 mặt/răng, chọn cả răng, shortcut Hàm Trên/Dưới/Nguyên Hàm |
 | C | Gắn ability lên endpoint | ✅ 447 hằng số permission; attribute trên toàn bộ AppService; check động cho thu/chi, danh mục, 3 thao tác tiền mặt, 12 danh mục và `attendanceOthers` |
 | D | FE Danh mục dùng API taxonomy | ✅ 1 panel cấu hình cho 9 danh mục thật; 2 danh mục còn lại nêu rõ lý do |
-| E | Treatment stage (công đoạn) | ⛔ Vẫn `UNKNOWN_REFERENCE_BEHAVIOR` — app gốc không có dữ liệu để quan sát an toàn |
+| E | Treatment stage (công đoạn) | ✅ Đã implement ở đợt 3 — **model là giả định của BlueDental**, không phải parity; xem mục "Đợt 3" |
 | F | `docs/testing/*` registry | ✅ 4 file gốc + 4 file feature |
-| G | Acceptance test full-stack thật | ✅ 9 test Playwright trên Postgres + API + Vite thật, không mock |
+| G | Acceptance test full-stack thật | ✅ 27 test Playwright trên Postgres + API + Vite thật, không mock |
 
 ### Bug thật phát hiện khi chạy stack thật (đã sửa)
 
@@ -72,15 +72,49 @@ Chi tiết: `docs/testing/03-regression-log.md` — 9 lỗi, nghiêm trọng nh�
 - **Trùng `PatientCode`** do cắt 6 ký tự đầu của GUID tuần tự → 500 ở lần đăng ký thứ hai trong ngày
 - Enter trong dialog vừa commit ngày vừa submit form → gửi trùng
 
+### Đợt 3 — 5 hạng mục còn lại đã xong
+
+| # | Hạng mục | Kết quả |
+|---|----------|---------|
+| 1 | Dialog tạo phiếu chẩn đoán / tư vấn | ✅ `DiagnosisModal` + `AdviseModal`, và thêm thao tác **Chấp nhận** cho phiếu tư vấn (thiếu nó thì không thể có dòng dịch vụ điều trị) |
+| 2 | Acceptance cho Voucher | ✅ `e2e/voucher.spec.ts` — 3 test |
+| 3 | Check-in/out chấm công qua UI | ✅ "Mở ngày làm việc" rồi Vào ca / Ra ca thật; mỗi lần chạy dùng một ngày mới |
+| 4 | CSKH / Labo / Vật tư / Vận hành | ✅ 4 module BE đầy đủ (domain + AppService + controller + migration) và FE nối API thật; mỗi module có spec riêng |
+| 5 | Branch isolation | ✅ Seed chi nhánh 2 + tài khoản `branch2`; `e2e/branch-isolation.spec.ts` chứng minh bị chặn và không rò dữ liệu |
+| 6 | Công đoạn điều trị | ✅ `TreatmentStage` + API + panel FE + 2 acceptance test — xem cảnh báo bên dưới |
+
+#### Cảnh báo về công đoạn điều trị
+
+App gốc **không có dữ liệu công đoạn nào quan sát được an toàn**, nên đây không
+phải bản clone 1:1. Chỉ 5 điều được quan sát thật (subject `treatmentStage` với 6
+verb, nút "Thêm công đoạn" theo từng dòng dịch vụ, `stageIds` /
+`patientStages[].serviceDetails.isImageRequired` trong CSKH, `stageNote` trong
+treatment summary, và loại Labo "Tiếp tục công đoạn"). Toàn bộ phần còn lại —
+số thứ tự, chọn răng, mốc thời gian, quy tắc bắt buộc ảnh — là thiết kế riêng của
+BlueDental và được ghi rõ trong `TreatmentStage.cs`,
+`docs/clone/business-features.md` và `docs/testing/features/treatment-stage.md`.
+
+Chuỗi nghiệp vụ đang chạy thật: `Chẩn đoán → Tư vấn → Chấp nhận → Công đoạn →
+Tiếp tục → Hoàn thành`.
+
+### Bug thật phát hiện thêm ở đợt 3
+
+- `TreatmentStage` được map trong `ModelCreatingExtensions` nhưng thiếu `DbSet`
+  → ABP không đăng ký repository mặc định → **mọi request công đoạn 500**
+  (R-10). Build sạch, migration chạy được, unit test pass — chỉ browser thật gọi
+  DI thật mới lộ ra.
+- Bảng phiếu tư vấn không có nút chấp nhận nên không đời nào tạo được dòng dịch
+  vụ điều trị (R-11).
+
 ### Còn lại
 
 | # | Hạng mục | Ghi chú |
 |---|----------|---------|
-| 1 | Dialog tạo phiếu chẩn đoán / tư vấn | Bảng đã đọc API thật; chưa có form ghi |
-| 2 | Acceptance cho Voucher (tạo + redeem) | Trang chạy thật, chưa có spec |
-| 3 | Check-in/out chấm công qua UI | Cần seed ngày làm việc trước mới có thẻ để thao tác |
-| 4 | CSKH / Labo / Vật tư / Vận hành | Mới ở mức UI |
-| 5 | Branch isolation | Chỉ seed 1 chi nhánh nên chưa kiểm chứng chặn chéo chi nhánh |
+| 1 | Lịch hẹn: tạo/sửa lịch qua UI | Lưới ngày/tuần/tháng đã dựng; chưa có acceptance cho thao tác ghi |
+| 2 | Tiếp nhận | Vẫn còn fallback mock khi API lỗi |
+| 3 | Báo cáo doanh số | Đọc API thật nhưng chưa assert số liệu |
+| 4 | Đính kèm ảnh cho công đoạn qua UI | Endpoint + rule domain đã có, FE chưa có uploader |
+| 5 | Công cụ (call / message / Zalo / hóa đơn điện tử) | `UNKNOWN_REFERENCE_BEHAVIOR` — app gốc không có dữ liệu |
 
 ---
 

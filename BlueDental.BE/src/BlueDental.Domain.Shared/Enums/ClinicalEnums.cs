@@ -48,3 +48,17 @@ public enum TreatmentServiceStatus
     Cancelled = 4,
     Replaced = 5
 }
+
+/// <summary>
+/// Lifecycle of a treatment stage (Công đoạn).
+///
+/// The reference exposes exactly six verbs on the <c>treatmentStage</c> subject —
+/// read, create, update, continue, complete, print — and no cancel verb, so a
+/// stage has no cancelled state here either.
+/// </summary>
+public enum TreatmentStageStatus
+{
+    Pending = 1,
+    InProgress = 2,
+    Completed = 3
+}

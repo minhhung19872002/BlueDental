@@ -21,6 +21,9 @@ appsettings.Development.json
 
 # Logs and temporary files
 *.log
+# Serilog writes runtime request logs here; they carry patient ids.
+BlueDental.BE/src/BlueDental.HttpApi.Host/Logs/
+BlueDental.BE/Logs/
 *.tmp
 *.cache
 Thumbs.db

@@ -212,6 +212,22 @@ Treatment **stages** (công đoạn) are a separate concept — permission
 and CSKH records reference `stageIds`. Stage payload not directly observed ->
 `UNKNOWN_REFERENCE_BEHAVIOR`.
 
+BlueDental implements the concept anyway, from the five facts that *were*
+observed — the six verbs, the per-service "Thêm công đoạn" action, `stageIds` /
+`patientStages[] = { id, serviceId, serviceDetails.isImageRequired }`,
+`summary.recent[].stageNote`, and the Labo "Tiếp tục công đoạn" kind. Everything
+beyond those is BlueDental's own design and is marked as an assumption in
+`BlueDental.Domain/TreatmentManagement/TreatmentStage.cs`:
+
+- a stage is a step of one **service line**, numbered 1..n inside it;
+- `Pending -> InProgress -> Completed`, with **no cancel state** because the
+  reference exposes no cancel verb on this subject;
+- `complete` is reachable straight from `Pending`, because continue and complete
+  are separate abilities and a user may hold only the latter;
+- a service whose catalog entry has `isImageRequired` cannot have its stage
+  completed until an image is attached;
+- progress ("Trạng thái - Tiến độ") is derived from completed stages, never stored.
+
 ---
 
 ## 5. Appointments / Calendar — Lịch hẹn (`/calendar`)
@@ -590,7 +606,7 @@ Clinic identity (logo, name, slogan) is served by `/clinic/detail`.
 | 1 | All POST/PUT/PATCH/DELETE contracts | Mutating — never triggered against production |
 | 2 | Ability sets of non-admin roles | Would require logging in as those roles |
 | 3 | CSKH `type` values other than `afterTreatment` | Tab switch not exercised |
-| 4 | Treatment **stage** payload | No patient with active stages inspected |
+| 4 | Treatment **stage** payload | No patient with active stages inspected. BlueDental implements its own model (see `TreatmentStage`); the shape is an assumption, not observed parity |
 | 5 | Full `status` enum domains (treatment, advise, schedule) | Only values present in data observed |
 | 6 | `actionType` / `walletAction` vocabulary in `/patients/history` | Only one value present |
 | 7 | Operations article/task payloads | No API call fired for those sub-tabs |

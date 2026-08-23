@@ -105,3 +105,46 @@ public sealed class AdviseGroupController(IAdviseGroupAppService service) : Blue
     [HttpDelete("{id:guid}")]
     public Task DeleteAsync(Guid id) => service.DeleteAsync(id);
 }
+
+/// <summary>Công đoạn điều trị.</summary>
+[RemoteService]
+[Authorize]
+[Route("api/v1/app/treatment-stages")]
+public sealed class TreatmentStageController(ITreatmentStageAppService service) : BlueDentalController
+{
+    [HttpGet]
+    public Task<PagedResultDto<TreatmentStageDto>> GetListAsync(
+        [FromQuery] GetTreatmentStageListInput input) => service.GetListAsync(input);
+
+    [HttpGet("progress")]
+    public Task<TreatmentStageProgressDto> GetProgressAsync([FromQuery] Guid treatmentServiceId) =>
+        service.GetProgressAsync(treatmentServiceId);
+
+    [HttpGet("latest")]
+    public Task<LatestTreatmentStageDto?> GetLatestAsync([FromQuery] Guid patientId) =>
+        service.GetLatestAsync(patientId);
+
+    [HttpGet("{id:guid}")]
+    public Task<TreatmentStageDto> GetAsync(Guid id) => service.GetAsync(id);
+
+    [HttpPost]
+    public Task<TreatmentStageDto> CreateAsync([FromBody] CreateTreatmentStageDto input) =>
+        service.CreateAsync(input);
+
+    [HttpPut("{id:guid}")]
+    public Task<TreatmentStageDto> UpdateAsync(Guid id, [FromBody] UpdateTreatmentStageDto input) =>
+        service.UpdateAsync(id, input);
+
+    [HttpPost("{id:guid}/continue")]
+    public Task<TreatmentStageDto> ContinueAsync(Guid id) => service.ContinueAsync(id);
+
+    [HttpPost("{id:guid}/complete")]
+    public Task<TreatmentStageDto> CompleteAsync(Guid id) => service.CompleteAsync(id);
+
+    [HttpPost("{id:guid}/images")]
+    public Task<TreatmentStageDto> AttachImageAsync(Guid id, [FromBody] AttachStageImageDto input) =>
+        service.AttachImageAsync(id, input);
+
+    [HttpDelete("{id:guid}")]
+    public Task DeleteAsync(Guid id) => service.DeleteAsync(id);
+}

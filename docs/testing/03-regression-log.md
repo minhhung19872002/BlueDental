@@ -14,6 +14,8 @@ Defects found by running the real stack, and what stops them coming back.
 | R-06 | Newly created catalog group was not selected, so the next entry landed in the wrong group | Silent mis-filing of catalog data | The "fall back to all groups" effect ran while the group refetch was still in flight and cleared the fresh selection | Select the created group, and only fall back once the list has settled | F-02 |
 | R-07 | Finance tables showed "—" for category and staff | Data existed but was invisible | `SalesEntryDto` / `CashflowEntryDto` never hydrated `categoryName` / staff name | Both app services resolve the names | F-04, F-05 |
 | R-08 | Two `[Authorize]` attributes on one method | Reflection-based contract tests threw `AmbiguousMatchException`; endpoints were double-gated against a legacy permission the admin may not hold | Ability attributes were added on top of the older hand-rolled ones | Consolidated on the ability model | `BlueDental.Application.Tests` |
+| R-10 | Every treatment-stage request 500'd | The whole công đoạn panel was dead on arrival | The entity was mapped in `ModelCreatingExtensions` but had no `DbSet` on the DbContext, so ABP registered no default repository and the app service could not be activated | Added `DbSet<TreatmentStage>` | F-19 |
+| R-11 | An accepted service line could never be produced through the UI | Công đoạn was unreachable: only accepted advises become service lines, and nothing accepted them | The advise table had no action column, though `useAcceptAdvise` already existed | Added the "Chấp nhận" action | F-09, F-19 |
 | R-09 | Stale ReceptionPage tests | Suite was red, so it stopped being run | Assertions still expected "Khách đến" and a dialog title that had changed | Updated to the current UI wording | `BlueDental.FE` Vitest |
 
 ## Notes
@@ -22,6 +24,8 @@ Defects found by running the real stack, and what stops them coming back.
   unit/mocked tests — they only appeared once a browser talked to a real API and
   a real database. That is the reason `00-test-policy.md` refuses to count
   mocked tests as acceptance.
+- R-10 is the same lesson as R-01: the code compiled, the migration applied, and
+  the unit tests passed. Only a browser hitting the real DI container found it.
 - R-04 only reproduces on the *second* write in a period. Specs that create data
   every run are what catch this class of defect; a fixture that reuses one record
   would not.

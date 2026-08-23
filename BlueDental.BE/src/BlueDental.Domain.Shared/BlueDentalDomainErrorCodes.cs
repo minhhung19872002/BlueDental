@@ -65,6 +65,10 @@ public static class BlueDentalDomainErrorCodes
         public const string PatientDiagnosisNotFound = "BlueDental:Treatment:0014";
         public const string PatientAdviseNotFound = "BlueDental:Treatment:0015";
         public const string AdviseGroupNotFound = "BlueDental:Treatment:0016";
+        public const string TreatmentStageNotFound = "BlueDental:Treatment:0017";
+        public const string InvalidStageTransition = "BlueDental:Treatment:0018";
+        public const string StageImageRequired = "BlueDental:Treatment:0019";
+        public const string InvalidStageSequence = "BlueDental:Treatment:0020";
     }
 
     public static class Billing
