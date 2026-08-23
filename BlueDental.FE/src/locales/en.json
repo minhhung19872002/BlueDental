@@ -91,7 +91,110 @@
   "reception": {
     "updateStatusSuccess": "Reception status updated successfully!",
     "updateStatusFailed": "Failed to update status",
-    "detailTitle": "Reception Detail"
+    "detailTitle": "Reception Detail",
+    "detailTitleWithCode": "Reception Detail — {{code}}",
+    "toolbar": {
+      "searchPlaceholder": "Search patient...",
+      "createButton": "New Reception",
+      "monthLabel": "Month {{month}}/{{year}}"
+    },
+    "tabs": {
+      "all": "All",
+      "waitingForExam": "Waiting",
+      "inProgress": "In Progress",
+      "completed": "Completed"
+    },
+    "counters": {
+      "scheduled": "Scheduled",
+      "arrived": "Arrived",
+      "cancelled": "Cancelled",
+      "late": "Late",
+      "temporary": "Temporary",
+      "converted": "Converted"
+    },
+    "doctorFilter": "Doctor",
+    "table": {
+      "voucherCode": "Voucher No.",
+      "patient": "Patient",
+      "doctor": "Receiving Doctor",
+      "adviser": "Counselor",
+      "refSource": "Referral Source",
+      "status": "Status",
+      "services": "Treatment Services",
+      "total": "Total",
+      "actions": "Actions",
+      "patientNew": "New",
+      "patientOld": "Returning",
+      "noAdviser": "Unassigned",
+      "statusWaiting": "Waiting",
+      "statusInProgress": "In Progress",
+      "statusCompleted": "Completed",
+      "actionStartExam": "Move to In Progress",
+      "actionComplete": "End Treatment (Complete)",
+      "actionEditNote": "Edit note",
+      "actionRemoveNote": "Remove note",
+      "tooltipStartExam": "Start exam",
+      "tooltipComplete": "Complete service",
+      "btnReceive": "Receive",
+      "btnDone": "Done",
+      "emptyTitle": "No records",
+      "emptyDesc": "No reception records match the current filter.",
+      "showTotal": "Total {{total}} reception records"
+    },
+    "refType": {
+      "medical": "Medical",
+      "self": "Walk-in",
+      "referral": "Referral",
+      "marketing": "Marketing"
+    },
+    "emptyState": {
+      "title": "No matching receptions",
+      "desc": "Try changing the filter or search keyword to view more data."
+    },
+    "newDrawer": {
+      "title": "New Reception",
+      "customerLabel": "Customer",
+      "searchCustomer": "Search customer",
+      "createNew": "Create New",
+      "phoneLabel": "Phone:",
+      "doctorLabel": "Treating Doctor",
+      "selectDoctor": "Select doctor",
+      "hourLabel": "Hour",
+      "minuteLabel": "Minute",
+      "notesPlaceholder": "Appointment notes",
+      "saveButton": "Save",
+      "createSuccess": "Reception created successfully!",
+      "createFailed": "Failed to create reception",
+      "validationSelectCustomer": "Please select a customer",
+      "validationSelectDoctor": "Please select a doctor"
+    },
+    "card": {
+      "cancelAriaLabel": "Cancel appointment",
+      "badgeScheduled": "Scheduled",
+      "badgeArrived": "Arrived",
+      "badgeCancelled": "Cancelled",
+      "badgeLate": "Late",
+      "badgeTemporary": "Temporary",
+      "badgeConverted": "Converted",
+      "outcomeEndTreatment": "End Treatment",
+      "outcomeFollowUp": "Follow-up Booked",
+      "outcomeTransferDoctor": "Transfer Doctor",
+      "outcomeRevisit": "Book Revisit",
+      "stepArrived": "Arrived",
+      "stepInProgress": "In Progress",
+      "stepDone": "Done",
+      "selectDoctor": "Select doctor",
+      "patientNew": "New patient",
+      "patientOld": "Returning patient"
+    },
+    "header": {
+      "overview": "OVERVIEW",
+      "title": "Patient Reception",
+      "newPatients": "New Patients",
+      "returningPatients": "Returning Patients",
+      "scheduled": "Scheduled",
+      "arrived": "Arrived"
+    }
   },
   "patient": {
     "noActivity": "No Activity",

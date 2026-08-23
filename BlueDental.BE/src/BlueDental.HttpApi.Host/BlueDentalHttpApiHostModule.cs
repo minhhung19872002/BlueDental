@@ -1,5 +1,6 @@
 using BlueDental.EntityFrameworkCore;
 using BlueDental.Hubs;
+using BlueDental.Security;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Configuration;
@@ -95,6 +96,7 @@ public class BlueDentalHttpApiHostModule : AbpModule
         Configure<AbpClaimsPrincipalFactoryOptions>(options =>
         {
             options.IsDynamicClaimsEnabled = true;
+            options.Contributors.Add<ClinicBranchClaimsPrincipalContributor>();
         });
 
         context.Services.ConfigureApplicationCookie(options =>

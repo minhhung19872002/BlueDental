@@ -1,16 +1,20 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Organizations;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Services;
+using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Identity;
 
 namespace BlueDental.Account;
 
 [Authorize]
 public class AccountAppService(
-    IdentityUserManager userManager) : ApplicationService, IAccountAppService
+    IdentityUserManager userManager,
+    ICurrentClinicBranchResolver branchResolver,
+    IRepository<ClinicBranch, Guid> branchRepository) : ApplicationService, IAccountAppService
 {
     public async Task<CurrentUserDto> GetCurrentUserAsync()
     {
@@ -20,14 +24,23 @@ public class AccountAppService(
         var user = await userManager.GetByIdAsync(userId);
         var roles = await userManager.GetRolesAsync(user);
 
+        var clinicId = branchResolver.ClinicBranchId;
+        string? clinicName = null;
+
+        if (clinicId.HasValue)
+        {
+            var branch = await branchRepository.FindAsync(clinicId.Value);
+            clinicName = branch?.Name;
+        }
+
         return new CurrentUserDto
         {
             Id = userId,
             UserName = user.UserName ?? string.Empty,
             Name = user.Name ?? user.UserName ?? string.Empty,
             Email = user.Email,
-            ClinicId = null,
-            ClinicName = null,
+            ClinicId = clinicId,
+            ClinicName = clinicName,
             ClinicLogoUrl = null,
             ClinicTagline = null,
             Roles = roles.ToList(),

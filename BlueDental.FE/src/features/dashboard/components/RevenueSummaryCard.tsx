@@ -1,7 +1,7 @@
 import { Spin } from "antd";
 import { DollarOutlined } from "@ant-design/icons";
 import { brand } from "@/theme/index";
-import { useRevenueReport } from "@/features/reporting/api/index";
+import { useRevenueReport } from "@/features/report/api/reportingApi";
 import { formatVND } from "@/utils/format";
 import dayjs from "dayjs";
 

@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
@@ -13,17 +14,22 @@ namespace BlueDental.Inventory;
 public class InventoryItemAppService : ApplicationService, IInventoryItemAppService
 {
     private readonly IRepository<InventoryItem, Guid> _repository;
+    private readonly ICurrentClinicBranchResolver _branchResolver;
 
-    public InventoryItemAppService(IRepository<InventoryItem, Guid> repository)
+    public InventoryItemAppService(
+        IRepository<InventoryItem, Guid> repository,
+        ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
+        _branchResolver = branchResolver;
     }
 
     [Authorize(BlueDentalPermissions.Inventory.View)]
     public async Task<PagedResultDto<InventoryItemDto>> GetListAsync(GetInventoryItemListInput input)
     {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
-        if (input.BranchId.HasValue) query = query.Where(i => i.BranchId == input.BranchId.Value);
+        query = query.Where(i => i.BranchId == branchId);
         if (input.NeedsReorder.HasValue && input.NeedsReorder.Value)
             query = query.Where(i => i.QuantityOnHand <= i.ReorderLevel);
 
@@ -45,11 +51,12 @@ public class InventoryItemAppService : ApplicationService, IInventoryItemAppServ
     [Authorize(BlueDentalPermissions.Inventory.Manage)]
     public async Task<InventoryItemDto> CreateAsync(CreateInventoryItemDto input)
     {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
         var item = new InventoryItem(
             GuidGenerator.Create(),
             input.ItemCode,
             input.Name,
-            input.BranchId,
+            branchId,
             input.ReorderLevel,
             input.Category,
             input.Unit,

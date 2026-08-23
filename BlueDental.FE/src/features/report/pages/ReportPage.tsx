@@ -6,7 +6,7 @@ import { DownloadOutlined, LeftOutlined, RightOutlined } from "@ant-design/icons
 import dayjs, { type Dayjs } from "dayjs";
 import { formatVND } from "@/utils/format";
 import { exportToExcel } from "@/utils/exportExcel";
-import { useReportSummary, useRevenueReport, useExpenseReport, type ReportSummaryDto, type RevenueReportDto } from "@/features/reporting/api/index";
+import { useReportSummary, useRevenueReport, useExpenseReport, type ReportSummaryDto, type RevenueReportDto } from "../api/reportingApi";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import {
   CASH_HOLDING_LABELS,

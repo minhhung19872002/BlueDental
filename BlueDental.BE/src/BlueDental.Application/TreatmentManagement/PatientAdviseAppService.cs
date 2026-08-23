@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
@@ -20,13 +21,16 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
 {
     private readonly IRepository<PatientAdvise, Guid> _repository;
     private readonly IRepository<PatientDiagnosis, Guid> _diagnosisRepository;
+    private readonly ICurrentClinicBranchResolver _branchResolver;
 
     public PatientAdviseAppService(
         IRepository<PatientAdvise, Guid> repository,
-        IRepository<PatientDiagnosis, Guid> diagnosisRepository)
+        IRepository<PatientDiagnosis, Guid> diagnosisRepository,
+        ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
         _diagnosisRepository = diagnosisRepository;
+        _branchResolver = branchResolver;
     }
 
     [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.View)]
@@ -71,6 +75,7 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
     [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Create)]
     public async Task<PatientAdviseDto> CreateAsync(CreatePatientAdviseDto input)
     {
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
         var diagnosis = await _diagnosisRepository.FindAsync(input.PatientDiagnosisId)
             ?? throw new BusinessException(
                 BlueDentalDomainErrorCodes.TreatmentManagement.PatientDiagnosisNotFound,
@@ -83,12 +88,12 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
                 "The diagnosis does not belong to the given patient.");
         }
 
-        var code = await GenerateCodeAsync(input.ClinicBranchId);
+        var code = await GenerateCodeAsync(clinicBranchId);
 
         var advise = PatientAdvise.Offer(
             GuidGenerator.Create(),
             input.PatientId,
-            input.ClinicBranchId,
+            clinicBranchId,
             input.PatientDiagnosisId,
             input.DiagnosisId,
             input.ServiceId,
@@ -167,12 +172,12 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
 
     private async Task<IQueryable<PatientAdvise>> BuildQueryAsync(GetPatientAdviseListInput input)
     {
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
 
+        query = query.Where(x => x.ClinicBranchId == clinicBranchId);
         if (input.PatientId.HasValue)
             query = query.Where(x => x.PatientId == input.PatientId.Value);
-        if (input.ClinicBranchId.HasValue)
-            query = query.Where(x => x.ClinicBranchId == input.ClinicBranchId.Value);
         if (input.PatientDiagnosisId.HasValue)
             query = query.Where(x => x.PatientDiagnosisId == input.PatientDiagnosisId.Value);
         if (input.AdviseGroupId.HasValue)

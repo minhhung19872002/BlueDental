@@ -1,5 +1,6 @@
 import { Form, Input, Button, message } from "antd";
 import { useCreateDiagnosticRecord } from "../api/diagnosticApi";
+import { useAuthStore } from "@/features/auth/store/authStore";
 
 interface Props {
   patientId: string;
@@ -16,12 +17,13 @@ export function TreatmentRecordForm({ patientId, onSuccess }: Props) {
   const [form] = Form.useForm<FormValues>();
   const [messageApi, contextHolder] = message.useMessage();
   const createMutation = useCreateDiagnosticRecord();
+  const currentUserId = useAuthStore((s) => s.user?.id ?? "");
 
   const handleFinish = (values: FormValues) => {
     createMutation.mutate(
       {
         patientId,
-        dentistId: "",
+        dentistId: currentUserId,
         teethNumbers: values.teethNumbers?.trim() || undefined,
         diagnosis: values.diagnosis?.trim() || undefined,
         notes: values.notes?.trim() || undefined,

@@ -1,5 +1,6 @@
 import React from "react";
 import { Input, Button, Segmented } from "antd";
+import { useTranslation } from "react-i18next";
 import {
   SearchOutlined,
   LeftOutlined,
@@ -30,30 +31,6 @@ interface ReceptionToolbarProps {
   onDateChange?: (date: Dayjs) => void;
 }
 
-const VIEW_OPTIONS = ["Ngày", "Tuần", "Tháng"] as const;
-
-function viewModeToLabel(mode: ViewMode): string {
-  if (mode === "day") return "Ngày";
-  if (mode === "week") return "Tuần";
-  return "Tháng";
-}
-
-function labelToViewMode(label: string): ViewMode {
-  if (label === "Ngày") return "day";
-  if (label === "Tuần") return "week";
-  return "month";
-}
-
-function formatDateDisplay(date: Dayjs, mode: ViewMode): string {
-  if (mode === "day") return date.format("DD/MM/YYYY");
-  if (mode === "week") {
-    const start = date.startOf("week").format("DD/MM");
-    const end = date.endOf("week").format("DD/MM/YYYY");
-    return `${start} - ${end}`;
-  }
-  return `Tháng ${date.format("MM/YYYY")}`;
-}
-
 function stepDate(date: Dayjs, mode: ViewMode, direction: 1 | -1): Dayjs {
   const unit = mode === "day" ? "day" : mode === "week" ? "week" : "month";
   return direction === 1 ? date.add(1, unit) : date.subtract(1, unit);
@@ -68,7 +45,35 @@ export const ReceptionToolbar: React.FC<ReceptionToolbarProps> = ({
   onViewModeChange,
   onDateChange,
 }) => {
+  const { t } = useTranslation();
   const date = currentDate ?? dayjs();
+
+  const viewModeToLabel = (mode: ViewMode): string => {
+    if (mode === "day") return t("common.day");
+    if (mode === "week") return t("common.week");
+    return t("common.month");
+  };
+
+  const labelToViewMode = (label: string): ViewMode => {
+    if (label === t("common.day")) return "day";
+    if (label === t("common.week")) return "week";
+    return "month";
+  };
+
+  const formatDateDisplay = (d: Dayjs, mode: ViewMode): string => {
+    if (mode === "day") return d.format("DD/MM/YYYY");
+    if (mode === "week") {
+      const start = d.startOf("week").format("DD/MM");
+      const end = d.endOf("week").format("DD/MM/YYYY");
+      return `${start} - ${end}`;
+    }
+    return t("reception.toolbar.monthLabel", {
+      month: d.format("MM"),
+      year: d.format("YYYY"),
+    });
+  };
+
+  const viewOptions = [t("common.day"), t("common.week"), t("common.month")];
 
   return (
     <div className="reception-toolbar">
@@ -77,7 +82,7 @@ export const ReceptionToolbar: React.FC<ReceptionToolbarProps> = ({
         <Segmented
           value={viewModeToLabel(viewMode)}
           onChange={(val) => onViewModeChange?.(labelToViewMode(val as string))}
-          options={[...VIEW_OPTIONS]}
+          options={viewOptions}
           style={{ fontWeight: 600 }}
         />
 
@@ -99,7 +104,7 @@ export const ReceptionToolbar: React.FC<ReceptionToolbarProps> = ({
         </div>
 
         <Input
-          placeholder="Tìm bệnh nhân..."
+          placeholder={t("reception.toolbar.searchPlaceholder")}
           prefix={<SearchOutlined style={{ color: "#94A3B8" }} />}
           value={keyword}
           onChange={(e) => onSearchChange(e.target.value)}
@@ -121,7 +126,7 @@ export const ReceptionToolbar: React.FC<ReceptionToolbarProps> = ({
             paddingRight: 16,
           }}
         >
-          Tạo tiếp nhận
+          {t("reception.toolbar.createButton")}
         </Button>
       </div>
     </div>

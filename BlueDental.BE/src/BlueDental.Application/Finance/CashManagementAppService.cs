@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
@@ -20,13 +21,16 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
 {
     private readonly IRepository<CashflowEntry, Guid> _repository;
     private readonly IRepository<CashflowCategory, Guid> _categoryRepository;
+    private readonly ICurrentClinicBranchResolver _branchResolver;
 
     public CashManagementAppService(
         IRepository<CashflowEntry, Guid> repository,
-        IRepository<CashflowCategory, Guid> categoryRepository)
+        IRepository<CashflowCategory, Guid> categoryRepository,
+        ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
         _categoryRepository = categoryRepository;
+        _branchResolver = branchResolver;
     }
 
     [Authorize(BlueDentalPermissions.Finance.View)]
@@ -92,12 +96,13 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
     [Authorize(BlueDentalPermissions.Finance.Manage)]
     public async Task<CashflowEntryDto> CreateEntryAsync(CreateCashflowEntryDto input)
     {
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
         var id = GuidGenerator.Create();
 
         var entry = input.TransactionType switch
         {
             CashTransactionType.Deposit => CashflowEntry.Deposit(
-                id, input.ClinicBranchId,
+                id, clinicBranchId,
                 RequireHolding(input.ToHolding, "toHolding"),
                 input.Amount, input.CreatedByStaffId, input.EntryDate, input.CategoryId, input.Note),
 
@@ -129,10 +134,10 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
 
     private async Task<IQueryable<CashflowEntry>> BuildQueryAsync(GetCashflowEntryListInput input)
     {
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
 
-        if (input.ClinicBranchId.HasValue)
-            query = query.Where(x => x.ClinicBranchId == input.ClinicBranchId.Value);
+        query = query.Where(x => x.ClinicBranchId == clinicBranchId);
         if (input.TransactionType.HasValue)
             query = query.Where(x => x.TransactionType == input.TransactionType.Value);
         if (input.CategoryId.HasValue)

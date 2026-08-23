@@ -1,5 +1,6 @@
 import React from "react";
 import { Table, Tag, Button, Dropdown, Space, Typography, Tooltip } from "antd";
+import { useTranslation } from "react-i18next";
 import {
   MoreOutlined,
   CheckOutlined,
@@ -18,22 +19,24 @@ interface ReceptionTableProps {
   onRowClick?: (item: ReceptionItem) => void;
 }
 
-const REF_TYPE_LABELS: Record<RefType, { label: string; color: string }> = {
-  Medical: { label: "Y tế", color: "purple" },
-  Self: { label: "Tự đến", color: "blue" },
-  Referral: { label: "Giới thiệu", color: "cyan" },
-  Marketing: { label: "Marketing", color: "geekblue" },
-};
-
 export const ReceptionTable: React.FC<ReceptionTableProps> = ({
   items,
   loading = false,
   onStatusChange,
   onRowClick,
 }) => {
+  const { t } = useTranslation();
+
+  const refTypeLabels: Record<RefType, { label: string; color: string }> = {
+    Medical:   { label: t("reception.refType.medical"),   color: "purple" },
+    Self:      { label: t("reception.refType.self"),      color: "blue" },
+    Referral:  { label: t("reception.refType.referral"),  color: "cyan" },
+    Marketing: { label: t("reception.refType.marketing"), color: "geekblue" },
+  };
+
   const columns: ColumnsType<ReceptionItem> = [
     {
-      title: "Số phiếu",
+      title: t("reception.table.voucherCode"),
       dataIndex: "voucherCode",
       key: "voucherCode",
       width: 140,
@@ -44,7 +47,7 @@ export const ReceptionTable: React.FC<ReceptionTableProps> = ({
       ),
     },
     {
-      title: "Bệnh nhân",
+      title: t("reception.table.patient"),
       dataIndex: "patientName",
       key: "patientName",
       width: 220,
@@ -56,11 +59,11 @@ export const ReceptionTable: React.FC<ReceptionTableProps> = ({
             </Text>{" "}
             {record.patientType === "New" ? (
               <Tag color="green" style={{ fontSize: 10, borderRadius: 4 }}>
-                Mới
+                {t("reception.table.patientNew")}
               </Tag>
             ) : (
               <Tag color="default" style={{ fontSize: 10, borderRadius: 4 }}>
-                Cũ
+                {t("reception.table.patientOld")}
               </Tag>
             )}
           </div>
@@ -71,7 +74,7 @@ export const ReceptionTable: React.FC<ReceptionTableProps> = ({
       ),
     },
     {
-      title: "Bác sĩ tiếp nhận",
+      title: t("reception.table.doctor"),
       dataIndex: "doctorName",
       key: "doctorName",
       width: 180,
@@ -82,28 +85,28 @@ export const ReceptionTable: React.FC<ReceptionTableProps> = ({
       ),
     },
     {
-      title: "Nhân sự tư vấn",
+      title: t("reception.table.adviser"),
       dataIndex: "adviseDoctorName",
       key: "adviseDoctorName",
       width: 160,
       render: (advise: string | undefined) => (
         <Text type="secondary" style={{ fontSize: 13 }}>
-          {advise ?? "Chưa phân công"}
+          {advise ?? t("reception.table.noAdviser")}
         </Text>
       ),
     },
     {
-      title: "Nguồn tiếp nhận",
+      title: t("reception.table.refSource"),
       dataIndex: "refType",
       key: "refType",
       width: 130,
       render: (refType: RefType) => {
-        const conf = REF_TYPE_LABELS[refType] ?? { label: refType, color: "default" };
+        const conf = refTypeLabels[refType] ?? { label: refType, color: "default" };
         return <Tag color={conf.color}>{conf.label}</Tag>;
       },
     },
     {
-      title: "Trạng thái",
+      title: t("reception.table.status"),
       dataIndex: "status",
       key: "status",
       width: 140,
@@ -111,21 +114,21 @@ export const ReceptionTable: React.FC<ReceptionTableProps> = ({
         if (status === "WaitingForExam") {
           return (
             <Tag icon={<ClockCircleOutlined />} color="processing">
-              Chờ khám
+              {t("reception.table.statusWaiting")}
             </Tag>
           );
         }
         if (status === "InProgress") {
           return (
             <Tag icon={<SyncOutlined spin />} color="warning">
-              Đang khám
+              {t("reception.table.statusInProgress")}
             </Tag>
           );
         }
         if (status === "Completed") {
           return (
             <Tag icon={<CheckOutlined />} color="success">
-              Hoàn thành
+              {t("reception.table.statusCompleted")}
             </Tag>
           );
         }
@@ -133,7 +136,7 @@ export const ReceptionTable: React.FC<ReceptionTableProps> = ({
       },
     },
     {
-      title: "Dịch vụ điều trị",
+      title: t("reception.table.services"),
       dataIndex: "services",
       key: "services",
       render: (services: string[]) => (
@@ -147,7 +150,7 @@ export const ReceptionTable: React.FC<ReceptionTableProps> = ({
       ),
     },
     {
-      title: "Tổng tiền",
+      title: t("reception.table.total"),
       dataIndex: "totalDue",
       key: "totalDue",
       width: 140,
@@ -159,7 +162,7 @@ export const ReceptionTable: React.FC<ReceptionTableProps> = ({
       ),
     },
     {
-      title: "Thao tác",
+      title: t("reception.table.actions"),
       key: "actions",
       width: 140,
       fixed: "right",
@@ -168,24 +171,24 @@ export const ReceptionTable: React.FC<ReceptionTableProps> = ({
         const menuItems = [
           {
             key: "start",
-            label: "Chuyển sang Đang khám",
+            label: t("reception.table.actionStartExam"),
             disabled: record.status === "InProgress" || record.status === "Completed",
             onClick: () => onStatusChange(record.id, "InProgress"),
           },
           {
             key: "complete",
-            label: "Kết thúc điều trị (Hoàn thành)",
+            label: t("reception.table.actionComplete"),
             disabled: record.status === "Completed",
             onClick: () => onStatusChange(record.id, "Completed"),
           },
           { type: "divider" as const },
           {
             key: "edit-note",
-            label: "Sửa ghi chú",
+            label: t("reception.table.actionEditNote"),
           },
           {
             key: "remove-note",
-            label: "Xoá ghi chú",
+            label: t("reception.table.actionRemoveNote"),
             danger: true,
           },
         ];
@@ -193,7 +196,7 @@ export const ReceptionTable: React.FC<ReceptionTableProps> = ({
         return (
           <Space size={8}>
             {record.status === "WaitingForExam" && (
-              <Tooltip title="Chuyển vào khám">
+              <Tooltip title={t("reception.table.tooltipStartExam")}>
                 <Button
                   size="small"
                   type="primary"
@@ -204,13 +207,13 @@ export const ReceptionTable: React.FC<ReceptionTableProps> = ({
                     fontSize: 12,
                   }}
                 >
-                  Tiếp nhận
+                  {t("reception.table.btnReceive")}
                 </Button>
               </Tooltip>
             )}
 
             {record.status === "InProgress" && (
-              <Tooltip title="Hoàn thành dịch vụ">
+              <Tooltip title={t("reception.table.tooltipComplete")}>
                 <Button
                   size="small"
                   type="primary"
@@ -221,7 +224,7 @@ export const ReceptionTable: React.FC<ReceptionTableProps> = ({
                     fontSize: 12,
                   }}
                 >
-                  Xong
+                  {t("reception.table.btnDone")}
                 </Button>
               </Tooltip>
             )}
@@ -248,17 +251,17 @@ export const ReceptionTable: React.FC<ReceptionTableProps> = ({
       pagination={{
         pageSize: 10,
         showSizeChanger: true,
-        showTotal: (total) => `Tổng số ${total} hồ sơ tiếp nhận`,
+        showTotal: (total) => t("reception.table.showTotal", { total }),
       }}
       locale={{
         emptyText: (
           <div style={{ padding: "32px 0", textAlign: "center" }}>
             <div style={{ fontSize: 36, marginBottom: 8 }}>📋</div>
             <Text strong style={{ color: "#64748B", display: "block" }}>
-              Danh sách trống
+              {t("reception.table.emptyTitle")}
             </Text>
             <Text type="secondary" style={{ fontSize: 13 }}>
-              Không tìm thấy hồ sơ tiếp nhận nào phù hợp với bộ lọc.
+              {t("reception.table.emptyDesc")}
             </Text>
           </div>
         ),

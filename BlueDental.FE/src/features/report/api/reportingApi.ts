@@ -1,3 +1,6 @@
+// reportingApi — hooks for the summary/revenue/expense report endpoints.
+// Moved here from the dead features/reporting/ folder.
+
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 
@@ -62,9 +65,11 @@ export function useExpenseReport(params: { startDate: string; endDate: string })
   return useQuery({
     queryKey: ["report-expense", params],
     queryFn: (): Promise<ExpenseReportResultDto> =>
-      api.get("/v1/app/reports/expense/line-items", {
-        params: { from: params.startDate, to: params.endDate },
-      }).then((r) => r.data),
+      api
+        .get("/v1/app/reports/expense/line-items", {
+          params: { from: params.startDate, to: params.endDate },
+        })
+        .then((r) => r.data),
     enabled: Boolean(params.startDate && params.endDate),
   });
 }

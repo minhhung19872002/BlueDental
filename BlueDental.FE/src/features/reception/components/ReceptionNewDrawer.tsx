@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Modal, Button, Input, message } from "antd";
+import { useTranslation } from "react-i18next";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -11,9 +12,9 @@ import type { RefType } from "../types/reception";
 
 const schema = z.object({
   patientId: z.string().optional(),
-  patientName: z.string().min(1, "Vui lòng chọn khách hàng"),
+  patientName: z.string().min(1, "reception.newDrawer.validationSelectCustomer"),
   phoneNumber: z.string().optional(),
-  doctorId: z.string({ error: "Vui lòng chọn bác sĩ" }).min(1, "Vui lòng chọn bác sĩ"),
+  doctorId: z.string({ error: "reception.newDrawer.validationSelectDoctor" }).min(1, "reception.newDrawer.validationSelectDoctor"),
   appointmentHour: z.string().optional(),
   appointmentMinute: z.string().optional(),
   notes: z.string().optional(),

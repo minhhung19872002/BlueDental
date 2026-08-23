@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Appointments.Values;
+using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
@@ -16,23 +17,27 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
 {
     private readonly IRepository<Appointment, Guid> _repository;
     private readonly AppointmentConflictChecker _conflictChecker;
+    private readonly ICurrentClinicBranchResolver _branchResolver;
 
     public AppointmentAppService(
         IRepository<Appointment, Guid> repository,
-        AppointmentConflictChecker conflictChecker)
+        AppointmentConflictChecker conflictChecker,
+        ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
         _conflictChecker = conflictChecker;
+        _branchResolver = branchResolver;
     }
 
     [Authorize(BlueDentalPermissions.Appointments.View)]
     public async Task<PagedResultDto<AppointmentDto>> GetListAsync(GetAppointmentListInput input)
     {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
 
+        query = query.Where(a => a.BranchId == branchId);
         if (input.PatientId.HasValue) query = query.Where(a => a.PatientId == input.PatientId.Value);
         if (input.DentistId.HasValue) query = query.Where(a => a.DentistId == input.DentistId.Value);
-        if (input.BranchId.HasValue) query = query.Where(a => a.BranchId == input.BranchId.Value);
         if (input.Status.HasValue) query = query.Where(a => a.Status == input.Status.Value);
 
         var totalCount = query.Count();
@@ -53,6 +58,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     [Authorize(BlueDentalPermissions.Appointments.Create)]
     public async Task<AppointmentDto> CreateAsync(CreateAppointmentDto input)
     {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
         var slot = new AppointmentSlot(input.SlotStart, input.SlotEnd);
 
         if (await _conflictChecker.HasDentistConflictAsync(input.DentistId, slot))
@@ -73,7 +79,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
             GuidGenerator.Create(),
             input.PatientId,
             input.DentistId,
-            input.BranchId,
+            branchId,
             slot,
             input.Type,
             input.ProcedureId,

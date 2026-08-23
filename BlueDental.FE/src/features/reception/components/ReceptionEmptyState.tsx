@@ -1,17 +1,20 @@
 import React from "react";
 import { TeamOutlined } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
 
 export const ReceptionEmptyState: React.FC = () => {
+  const { t } = useTranslation();
+
   return (
     <div className="reception-empty">
       <div className="reception-empty-icon">
         <TeamOutlined />
       </div>
       <h3 className="reception-empty-title">
-        Không có lượt tiếp nhận phù hợp
+        {t("reception.emptyState.title")}
       </h3>
       <p className="reception-empty-desc">
-        Hãy thử đổi bộ lọc hoặc từ khoá tìm kiếm để xem thêm dữ liệu.
+        {t("reception.emptyState.desc")}
       </p>
     </div>
   );

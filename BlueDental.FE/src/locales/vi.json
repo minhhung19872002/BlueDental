@@ -91,7 +91,110 @@
   "reception": {
     "updateStatusSuccess": "Cập nhật trạng thái tiếp nhận thành công!",
     "updateStatusFailed": "Cập nhật trạng thái thất bại",
-    "detailTitle": "Chi tiết tiếp nhận"
+    "detailTitle": "Chi tiết tiếp nhận",
+    "detailTitleWithCode": "Chi tiết tiếp nhận — {{code}}",
+    "toolbar": {
+      "searchPlaceholder": "Tìm bệnh nhân...",
+      "createButton": "Tạo tiếp nhận",
+      "monthLabel": "Tháng {{month}}/{{year}}"
+    },
+    "tabs": {
+      "all": "Tất cả",
+      "waitingForExam": "Chờ khám",
+      "inProgress": "Đang khám",
+      "completed": "Hoàn thành"
+    },
+    "counters": {
+      "scheduled": "Đã hẹn",
+      "arrived": "Đã đến",
+      "cancelled": "Huỷ hẹn",
+      "late": "Trễ hẹn",
+      "temporary": "Lịch tạm",
+      "converted": "Chuyển đổi"
+    },
+    "doctorFilter": "Bác sĩ",
+    "table": {
+      "voucherCode": "Số phiếu",
+      "patient": "Bệnh nhân",
+      "doctor": "Bác sĩ tiếp nhận",
+      "adviser": "Nhân sự tư vấn",
+      "refSource": "Nguồn tiếp nhận",
+      "status": "Trạng thái",
+      "services": "Dịch vụ điều trị",
+      "total": "Tổng tiền",
+      "actions": "Thao tác",
+      "patientNew": "Mới",
+      "patientOld": "Cũ",
+      "noAdviser": "Chưa phân công",
+      "statusWaiting": "Chờ khám",
+      "statusInProgress": "Đang khám",
+      "statusCompleted": "Hoàn thành",
+      "actionStartExam": "Chuyển sang Đang khám",
+      "actionComplete": "Kết thúc điều trị (Hoàn thành)",
+      "actionEditNote": "Sửa ghi chú",
+      "actionRemoveNote": "Xoá ghi chú",
+      "tooltipStartExam": "Chuyển vào khám",
+      "tooltipComplete": "Hoàn thành dịch vụ",
+      "btnReceive": "Tiếp nhận",
+      "btnDone": "Xong",
+      "emptyTitle": "Danh sách trống",
+      "emptyDesc": "Không tìm thấy hồ sơ tiếp nhận nào phù hợp với bộ lọc.",
+      "showTotal": "Tổng số {{total}} hồ sơ tiếp nhận"
+    },
+    "refType": {
+      "medical": "Y tế",
+      "self": "Tự đến",
+      "referral": "Giới thiệu",
+      "marketing": "Marketing"
+    },
+    "emptyState": {
+      "title": "Không có lượt tiếp nhận phù hợp",
+      "desc": "Hãy thử đổi bộ lọc hoặc từ khoá tìm kiếm để xem thêm dữ liệu."
+    },
+    "newDrawer": {
+      "title": "Tạo tiếp nhận",
+      "customerLabel": "Khách hàng",
+      "searchCustomer": "Tìm kiếm khách hàng",
+      "createNew": "Tạo Mới",
+      "phoneLabel": "Số điện thoại:",
+      "doctorLabel": "Bác sĩ điều trị",
+      "selectDoctor": "Chọn bác sĩ",
+      "hourLabel": "Giờ hẹn",
+      "minuteLabel": "Phút",
+      "notesPlaceholder": "Nội dung đặt lịch",
+      "saveButton": "Lưu",
+      "createSuccess": "Tạo tiếp nhận thành công!",
+      "createFailed": "Tạo tiếp nhận thất bại",
+      "validationSelectCustomer": "Vui lòng chọn khách hàng",
+      "validationSelectDoctor": "Vui lòng chọn bác sĩ"
+    },
+    "card": {
+      "cancelAriaLabel": "Hủy lịch",
+      "badgeScheduled": "Đã hẹn",
+      "badgeArrived": "Đã đến",
+      "badgeCancelled": "Huỷ hẹn",
+      "badgeLate": "Trễ hẹn",
+      "badgeTemporary": "Lịch tạm",
+      "badgeConverted": "Chuyển đổi",
+      "outcomeEndTreatment": "Kết thúc điều trị",
+      "outcomeFollowUp": "Đã hẹn tiếp",
+      "outcomeTransferDoctor": "Chuyển bác sĩ",
+      "outcomeRevisit": "Hẹn tái khám",
+      "stepArrived": "Đã đến",
+      "stepInProgress": "Đang khám",
+      "stepDone": "Hoàn tất",
+      "selectDoctor": "Chọn bác sĩ",
+      "patientNew": "Khách mới",
+      "patientOld": "Khách cũ"
+    },
+    "header": {
+      "overview": "TỔNG QUAN",
+      "title": "Tiếp nhận khách hàng",
+      "newPatients": "Khách mới",
+      "returningPatients": "Khách cũ phát sinh",
+      "scheduled": "Đã hẹn",
+      "arrived": "Khách đến"
+    }
   },
   "patient": {
     "noActivity": "Chưa phát sinh",

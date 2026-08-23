@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Organizations;
 using BlueDental.PatientManagement.Values;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
@@ -14,16 +15,23 @@ namespace BlueDental.PatientManagement;
 public class PatientAppService : ApplicationService, IPatientAppService
 {
     private readonly IRepository<Patient, Guid> _repository;
+    private readonly ICurrentClinicBranchResolver _branchResolver;
 
-    public PatientAppService(IRepository<Patient, Guid> repository)
+    public PatientAppService(
+        IRepository<Patient, Guid> repository,
+        ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
+        _branchResolver = branchResolver;
     }
 
     [Authorize(BlueDentalPermissions.PatientManagement.Patients.View)]
     public async Task<PagedResultDto<PatientDto>> GetListAsync(GetPatientListInput input)
     {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
+
+        query = query.Where(p => p.BranchId == branchId);
 
         if (!string.IsNullOrWhiteSpace(input.Filter))
         {
@@ -34,7 +42,6 @@ public class PatientAppService : ApplicationService, IPatientAppService
         }
 
         if (input.Status.HasValue) query = query.Where(p => p.Status == input.Status.Value);
-        if (input.BranchId.HasValue) query = query.Where(p => p.BranchId == input.BranchId.Value);
 
         var totalCount = query.Count();
         var items = query.Skip(input.SkipCount).Take(input.MaxResultCount).ToList();
@@ -54,6 +61,7 @@ public class PatientAppService : ApplicationService, IPatientAppService
     [Authorize(BlueDentalPermissions.PatientManagement.Patients.Create)]
     public async Task<PatientDto> RegisterAsync(RegisterPatientDto input)
     {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
         var contact = new ContactInfo(input.PhoneNumber, input.Email, null);
         var patientCode = $"P{Clock.Now:yyyyMMdd}{GuidGenerator.Create().ToString("N")[..6].ToUpper()}";
 
@@ -65,7 +73,7 @@ public class PatientAppService : ApplicationService, IPatientAppService
             input.DateOfBirth,
             input.Gender,
             contact,
-            input.BranchId,
+            branchId,
             input.NationalId);
 
         await _repository.InsertAsync(patient, autoSave: true);

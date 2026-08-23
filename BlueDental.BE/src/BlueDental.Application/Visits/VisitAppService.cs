@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
@@ -14,19 +15,23 @@ namespace BlueDental.Visits;
 public class VisitAppService : ApplicationService, IVisitAppService
 {
     private readonly IRepository<Visit, Guid> _repository;
+    private readonly ICurrentClinicBranchResolver _branchResolver;
 
-    public VisitAppService(IRepository<Visit, Guid> repository)
+    public VisitAppService(
+        IRepository<Visit, Guid> repository,
+        ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
+        _branchResolver = branchResolver;
     }
 
     [Authorize(BlueDentalPermissions.Visits.View)]
     public async Task<PagedResultDto<VisitDto>> GetListAsync(GetVisitListInput input)
     {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
 
-        if (input.BranchId.HasValue)
-            query = query.Where(v => v.BranchId == input.BranchId.Value);
+        query = query.Where(v => v.BranchId == branchId);
         if (input.PatientId.HasValue)
             query = query.Where(v => v.PatientId == input.PatientId.Value);
         if (input.Status.HasValue)
@@ -54,10 +59,11 @@ public class VisitAppService : ApplicationService, IVisitAppService
     [Authorize(BlueDentalPermissions.Visits.Create)]
     public async Task<VisitDto> CreateAsync(CreateVisitDto input)
     {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
         var visit = new Visit(
             GuidGenerator.Create(),
             input.PatientId,
-            input.BranchId,
+            branchId,
             input.ScheduledAt,
             input.DentistId,
             input.ChiefComplaint);

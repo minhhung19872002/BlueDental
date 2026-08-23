@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Billing.Values;
+using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
@@ -14,17 +15,22 @@ namespace BlueDental.Billing;
 public class InvoiceAppService : ApplicationService, IInvoiceAppService
 {
     private readonly IRepository<Invoice, Guid> _repository;
+    private readonly ICurrentClinicBranchResolver _branchResolver;
 
-    public InvoiceAppService(IRepository<Invoice, Guid> repository)
+    public InvoiceAppService(
+        IRepository<Invoice, Guid> repository,
+        ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
+        _branchResolver = branchResolver;
     }
 
     [Authorize(BlueDentalPermissions.Billing.Invoices.View)]
     public async Task<PagedResultDto<InvoiceDto>> GetListAsync(GetInvoiceListInput input)
     {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
-        if (input.BranchId.HasValue) query = query.Where(i => i.BranchId == input.BranchId.Value);
+        query = query.Where(i => i.BranchId == branchId);
         if (input.PatientId.HasValue) query = query.Where(i => i.PatientId == input.PatientId.Value);
         if (input.Status.HasValue) query = query.Where(i => i.Status == input.Status.Value);
 
@@ -46,12 +52,13 @@ public class InvoiceAppService : ApplicationService, IInvoiceAppService
     [Authorize(BlueDentalPermissions.Billing.Invoices.Create)]
     public async Task<InvoiceDto> CreateAsync(CreateInvoiceDto input)
     {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
         var invoiceNumber = $"INV-{Clock.Now:yyyyMMdd}-{GuidGenerator.Create().ToString("N")[..6].ToUpper()}";
         var invoice = new Invoice(
             GuidGenerator.Create(),
             invoiceNumber,
             input.PatientId,
-            input.BranchId,
+            branchId,
             new Money(input.SubTotal, input.Currency),
             new Money(input.TaxAmount, input.Currency),
             new Money(input.DiscountAmount, input.Currency),

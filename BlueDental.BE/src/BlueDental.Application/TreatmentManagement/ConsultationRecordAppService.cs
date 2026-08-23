@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
@@ -11,15 +12,16 @@ namespace BlueDental.TreatmentManagement;
 
 [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Default)]
 public class ConsultationRecordAppService(
-    IRepository<ConsultationRecord, Guid> repository) : ApplicationService, IConsultationRecordAppService
+    IRepository<ConsultationRecord, Guid> repository,
+    ICurrentClinicBranchResolver branchResolver) : ApplicationService, IConsultationRecordAppService
 {
     [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.View)]
     public async Task<PagedResultDto<ConsultationRecordDto>> GetListAsync(GetConsultationRecordListInput input)
     {
+        var clinicBranchId = branchResolver.GetRequiredClinicBranchId();
         var query = await repository.GetQueryableAsync();
 
-        if (input.ClinicBranchId.HasValue)
-            query = query.Where(c => c.ClinicBranchId == input.ClinicBranchId.Value);
+        query = query.Where(c => c.ClinicBranchId == clinicBranchId);
 
         if (input.PatientId.HasValue)
             query = query.Where(c => c.PatientId == input.PatientId.Value);
@@ -54,10 +56,11 @@ public class ConsultationRecordAppService(
     [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Create)]
     public async Task<ConsultationRecordDto> CreateAsync(CreateConsultationRecordDto input)
     {
+        var clinicBranchId = branchResolver.GetRequiredClinicBranchId();
         var entity = new ConsultationRecord(
             GuidGenerator.Create(),
             input.PatientId,
-            input.ClinicBranchId,
+            clinicBranchId,
             input.ServiceName,
             input.UnitPrice,
             input.Quantity,

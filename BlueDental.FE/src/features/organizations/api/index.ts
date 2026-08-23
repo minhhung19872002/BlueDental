@@ -12,12 +12,22 @@ export interface ClinicBranchDto {
   status: string;
 }
 
+export interface DepartmentDto {
+  id: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+}
+
 const organizationApi = {
   listBranches: (): Promise<PagedResult<ClinicBranchDto>> =>
     api.get("/v1/app/clinic-branches", { params: { maxResultCount: 50 } }).then((r) => r.data),
 
   getBranch: (id: string): Promise<ClinicBranchDto> =>
     api.get(`/v1/app/clinic-branches/${id}`).then((r) => r.data),
+
+  listDepartments: (): Promise<PagedResult<DepartmentDto>> =>
+    api.get("/v1/app/departments", { params: { maxResultCount: 50 } }).then((r) => r.data),
 };
 
 export function useClinicBranches() {
@@ -34,6 +44,15 @@ export function useClinicBranch(id: string) {
     queryKey: ["clinic-branches", id],
     queryFn: () => organizationApi.getBranch(id),
     enabled: Boolean(id),
+    staleTime: 10 * 60_000,
+  });
+}
+
+export function useDepartments() {
+  return useQuery({
+    queryKey: ["departments"],
+    queryFn: () => organizationApi.listDepartments(),
+    select: (d) => d.items,
     staleTime: 10 * 60_000,
   });
 }

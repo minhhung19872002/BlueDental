@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Organizations;
 using BlueDental.TreatmentManagement.Values;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
@@ -18,21 +19,25 @@ namespace BlueDental.TreatmentManagement;
 public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisAppService
 {
     private readonly IRepository<PatientDiagnosis, Guid> _repository;
+    private readonly ICurrentClinicBranchResolver _branchResolver;
 
-    public PatientDiagnosisAppService(IRepository<PatientDiagnosis, Guid> repository)
+    public PatientDiagnosisAppService(
+        IRepository<PatientDiagnosis, Guid> repository,
+        ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
+        _branchResolver = branchResolver;
     }
 
     [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.View)]
     public async Task<PagedResultDto<PatientDiagnosisDto>> GetListAsync(GetPatientDiagnosisListInput input)
     {
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
 
+        query = query.Where(x => x.ClinicBranchId == clinicBranchId);
         if (input.PatientId.HasValue)
             query = query.Where(x => x.PatientId == input.PatientId.Value);
-        if (input.ClinicBranchId.HasValue)
-            query = query.Where(x => x.ClinicBranchId == input.ClinicBranchId.Value);
         if (input.StaffId.HasValue)
             query = query.Where(x => x.StaffId == input.StaffId.Value);
         if (input.Status.HasValue)
@@ -59,12 +64,13 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
     [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Create)]
     public async Task<PatientDiagnosisDto> CreateAsync(CreatePatientDiagnosisDto input)
     {
-        var code = await GenerateCodeAsync(input.ClinicBranchId);
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
+        var code = await GenerateCodeAsync(clinicBranchId);
 
         var diagnosis = PatientDiagnosis.Record(
             GuidGenerator.Create(),
             input.PatientId,
-            input.ClinicBranchId,
+            clinicBranchId,
             input.DiagnosisId,
             input.StaffId,
             code,

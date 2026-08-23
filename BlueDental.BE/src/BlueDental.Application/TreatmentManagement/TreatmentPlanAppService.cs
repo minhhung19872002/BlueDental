@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
@@ -15,20 +16,24 @@ public class TreatmentPlanAppService : ApplicationService, ITreatmentPlanAppServ
 {
     private readonly IRepository<TreatmentPlan, Guid> _repository;
     private readonly ICurrentUser _currentUser;
+    private readonly ICurrentClinicBranchResolver _branchResolver;
 
     public TreatmentPlanAppService(
         IRepository<TreatmentPlan, Guid> repository,
-        ICurrentUser currentUser)
+        ICurrentUser currentUser,
+        ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
         _currentUser = currentUser;
+        _branchResolver = branchResolver;
     }
 
     [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.View)]
     public async Task<PagedResultDto<TreatmentPlanDto>> GetListAsync(GetTreatmentPlanListInput input)
     {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
-        if (input.BranchId.HasValue) query = query.Where(p => p.BranchId == input.BranchId.Value);
+        query = query.Where(p => p.BranchId == branchId);
         if (input.PatientId.HasValue) query = query.Where(p => p.PatientId == input.PatientId.Value);
         if (input.Status.HasValue) query = query.Where(p => p.Status == input.Status.Value);
 
@@ -50,11 +55,12 @@ public class TreatmentPlanAppService : ApplicationService, ITreatmentPlanAppServ
     [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Create)]
     public async Task<TreatmentPlanDto> CreateAsync(CreateTreatmentPlanDto input)
     {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
         var plan = new TreatmentPlan(
             GuidGenerator.Create(),
             input.PatientId,
             input.DentistId,
-            input.BranchId,
+            branchId,
             input.Title,
             input.Description,
             input.EstimatedCompletionDate);

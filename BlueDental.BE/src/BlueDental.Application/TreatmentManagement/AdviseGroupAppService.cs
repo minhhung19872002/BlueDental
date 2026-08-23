@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
@@ -18,24 +19,27 @@ public class AdviseGroupAppService : ApplicationService, IAdviseGroupAppService
 {
     private readonly IRepository<AdviseGroup, Guid> _repository;
     private readonly IRepository<PatientAdvise, Guid> _adviseRepository;
+    private readonly ICurrentClinicBranchResolver _branchResolver;
 
     public AdviseGroupAppService(
         IRepository<AdviseGroup, Guid> repository,
-        IRepository<PatientAdvise, Guid> adviseRepository)
+        IRepository<PatientAdvise, Guid> adviseRepository,
+        ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
         _adviseRepository = adviseRepository;
+        _branchResolver = branchResolver;
     }
 
     [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.View)]
     public async Task<PagedResultDto<AdviseGroupDto>> GetListAsync(GetAdviseGroupListInput input)
     {
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
 
+        query = query.Where(x => x.ClinicBranchId == clinicBranchId);
         if (input.PatientId.HasValue)
             query = query.Where(x => x.PatientId == input.PatientId.Value);
-        if (input.ClinicBranchId.HasValue)
-            query = query.Where(x => x.ClinicBranchId == input.ClinicBranchId.Value);
 
         var totalCount = query.Count();
         var items = query
@@ -66,10 +70,11 @@ public class AdviseGroupAppService : ApplicationService, IAdviseGroupAppService
     [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Create)]
     public async Task<AdviseGroupDto> CreateAsync(CreateAdviseGroupDto input)
     {
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
         var group = AdviseGroup.Create(
             GuidGenerator.Create(),
             input.PatientId,
-            input.ClinicBranchId,
+            clinicBranchId,
             input.Name,
             input.Description,
             input.SortOrder);

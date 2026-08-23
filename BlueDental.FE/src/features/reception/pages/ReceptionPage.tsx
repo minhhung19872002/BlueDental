@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { message, Spin, Drawer } from "antd";
+import { useTranslation } from "react-i18next";
 import dayjs, { type Dayjs } from "dayjs";
 import { ReceptionToolbar } from "../components/ReceptionToolbar";
 import { ReceptionStatusTabs } from "../components/ReceptionStatusTabs";
@@ -23,6 +24,7 @@ import type {
 type ViewMode = "day" | "week" | "month";
 
 export const ReceptionPage: React.FC = () => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<ReceptionStatus>("All");
   const [keyword, setKeyword] = useState("");
   const [selectedDoctorId, setSelectedDoctorId] = useState<string | undefined>();
@@ -50,14 +52,14 @@ export const ReceptionPage: React.FC = () => {
       { id, status: newStatus },
       {
         onSuccess: () => {
-          message.success("Cập nhật trạng thái tiếp nhận thành công!");
+          message.success(t("reception.updateStatusSuccess"));
           // Sync selected item status if detail drawer is open
           if (selectedItem?.id === id) {
             setSelectedItem((prev) => prev ? { ...prev, status: newStatus } : null);
           }
         },
         onError: (err) => {
-          message.error(err.message || "Cập nhật trạng thái thất bại");
+          message.error(err.message || t("reception.updateStatusFailed"));
         },
       },
     );
@@ -129,7 +131,7 @@ export const ReceptionPage: React.FC = () => {
         open={!!selectedItem}
         onClose={() => setSelectedItem(null)}
         width={760}
-        title={selectedItem ? `Chi tiết tiếp nhận — ${selectedItem.voucherCode}` : "Chi tiết tiếp nhận"}
+        title={selectedItem ? t("reception.detailTitleWithCode", { code: selectedItem.voucherCode }) : t("reception.detailTitle")}
         destroyOnClose
         styles={{ body: { padding: 0 } }}
       >

@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
@@ -13,15 +14,16 @@ namespace BlueDental.TreatmentManagement;
 [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Default)]
 public class DiagnosticRecordAppService(
     IRepository<DiagnosticRecord, Guid> repository,
-    IIdentityUserRepository userRepository) : ApplicationService, IDiagnosticRecordAppService
+    IIdentityUserRepository userRepository,
+    ICurrentClinicBranchResolver branchResolver) : ApplicationService, IDiagnosticRecordAppService
 {
     [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.View)]
     public async Task<PagedResultDto<DiagnosticRecordDto>> GetListAsync(GetDiagnosticRecordListInput input)
     {
+        var clinicBranchId = branchResolver.GetRequiredClinicBranchId();
         var query = await repository.GetQueryableAsync();
 
-        if (input.ClinicBranchId.HasValue)
-            query = query.Where(d => d.ClinicBranchId == input.ClinicBranchId.Value);
+        query = query.Where(d => d.ClinicBranchId == clinicBranchId);
 
         if (input.PatientId.HasValue)
             query = query.Where(d => d.PatientId == input.PatientId.Value);
@@ -66,12 +68,13 @@ public class DiagnosticRecordAppService(
     [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Create)]
     public async Task<DiagnosticRecordDto> CreateAsync(CreateDiagnosticRecordDto input)
     {
+        var clinicBranchId = branchResolver.GetRequiredClinicBranchId();
         var code = $"CD-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..6].ToUpper()}";
         var entity = new DiagnosticRecord(
             GuidGenerator.Create(),
             code,
             input.PatientId,
-            input.ClinicBranchId,
+            clinicBranchId,
             input.DentistId,
             input.AppointmentId,
             input.TeethNumbers,
