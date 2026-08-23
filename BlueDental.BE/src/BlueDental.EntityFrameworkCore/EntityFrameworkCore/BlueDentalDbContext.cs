@@ -71,6 +71,7 @@ public class BlueDentalDbContext :
     public DbSet<TreatmentStage> TreatmentStages { get; set; }
     public DbSet<TreatmentService> TreatmentServices { get; set; }
     public DbSet<PatientPayment> PatientPayments { get; set; }
+    public DbSet<PatientImage> PatientImages { get; set; }
     public DbSet<PatientAdvise> PatientAdvises { get; set; }
     public DbSet<AdviseGroup> AdviseGroups { get; set; }
 

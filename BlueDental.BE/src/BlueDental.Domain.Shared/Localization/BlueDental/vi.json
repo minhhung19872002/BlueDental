@@ -105,6 +105,9 @@
     "BlueDental:CustomerCare:0001": "Không tìm thấy phiếu chăm sóc.",
     "BlueDental:CustomerCare:0002": "Không thể chuyển trạng thái chăm sóc như vậy.",
     "BlueDental:CustomerCare:0003": "Lịch chăm sóc không hợp lệ.",
-    "BlueDental:CustomerCare:0004": "Chăm sóc thành công phải ghi nhận kết quả."
+    "BlueDental:CustomerCare:0004": "Chăm sóc thành công phải ghi nhận kết quả.",
+    "BlueDental:Patient:0006": "Kích thước ảnh không hợp lệ.",
+    "BlueDental:Patient:0007": "Định dạng ảnh không được hỗ trợ.",
+    "BlueDental:Patient:0008": "Không tìm thấy ảnh."
   }
 }

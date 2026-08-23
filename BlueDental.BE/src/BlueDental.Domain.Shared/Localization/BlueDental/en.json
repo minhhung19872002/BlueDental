@@ -153,6 +153,9 @@
     "BlueDental:CustomerCare:0001": "Care record not found.",
     "BlueDental:CustomerCare:0002": "That care transition is not allowed.",
     "BlueDental:CustomerCare:0003": "That care schedule is not valid.",
-    "BlueDental:CustomerCare:0004": "A successful care call needs an outcome."
+    "BlueDental:CustomerCare:0004": "A successful care call needs an outcome.",
+    "BlueDental:Patient:0006": "That image file size is not accepted.",
+    "BlueDental:Patient:0007": "That image type is not supported.",
+    "BlueDental:Patient:0008": "Image not found."
   }
 }

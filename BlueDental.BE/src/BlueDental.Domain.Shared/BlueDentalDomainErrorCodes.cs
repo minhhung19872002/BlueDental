@@ -35,6 +35,9 @@ public static class BlueDentalDomainErrorCodes
         public const string InvalidContactInfo = "BlueDental:Patient:0003";
         public const string InvalidDateOfBirth = "BlueDental:Patient:0004";
         public const string PatientInactive = "BlueDental:Patient:0005";
+        public const string InvalidImageFile = "BlueDental:Patient:0006";
+        public const string UnsupportedImageType = "BlueDental:Patient:0007";
+        public const string PatientImageNotFound = "BlueDental:Patient:0008";
     }
 
     public static class Appointments

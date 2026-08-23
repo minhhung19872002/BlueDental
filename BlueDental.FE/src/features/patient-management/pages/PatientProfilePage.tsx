@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  Button, Spin, Tabs, Tag, Row, Col, Card, Table, Typography, Space, Select, message,
+  Button, Spin, Tabs, Tag, Row, Col, Card, Table, Typography, Space, message,
 } from "antd";
 import {
   ArrowLeftOutlined, EditOutlined, CalendarOutlined,
   FileTextOutlined, PictureOutlined, MedicineBoxOutlined,
-  PhoneOutlined, DollarOutlined, HistoryOutlined, UploadOutlined,
+  PhoneOutlined, DollarOutlined, HistoryOutlined,
 } from "@ant-design/icons";
 import { usePatient } from "../api/patientQueries";
 import { formatDate, formatVND } from "@/utils/format";
@@ -33,6 +33,7 @@ import { PrescriptionPanel } from "@/features/treatment-management/components/Pr
 import { PatientAppointmentPanel } from "@/features/appointments/components/PatientAppointmentPanel";
 import { PatientLaboPanel } from "@/features/labo/components/PatientLaboPanel";
 import { PatientCarePanel } from "@/features/cskh/components/PatientCarePanel";
+import { PatientImagePanel } from "../components/PatientImagePanel";
 import type { PatientDiagnosisDto } from "@/features/treatment-management/api/consultingApi";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { extractApiError } from "@/lib/apiError";
@@ -422,15 +423,7 @@ export function PatientProfilePage() {
       icon: <PictureOutlined />,
       children: (
         <div style={{ padding: "16px 0" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-            <Select placeholder="Giai đoạn điều trị" style={{ width: 220 }} allowClear options={[]} />
-            <Button icon={<UploadOutlined />} style={{ marginLeft: "auto" }}>Tải ảnh</Button>
-          </div>
-          <div style={{ padding: "60px 0", textAlign: "center", color: "#9CA3AF", border: "1px dashed #E5E7EB", borderRadius: 8 }}>
-            <PictureOutlined style={{ fontSize: 40, marginBottom: 12, color: "#D1D5DB" }} />
-            <div style={{ fontWeight: 500, color: "#6B7280", marginBottom: 4 }}>Không có ảnh trong bộ lọc đã chọn</div>
-            <div style={{ fontSize: 13 }}>Hãy đổi bộ lọc hoặc tải thêm ảnh để tiếp tục.</div>
-          </div>
+          <PatientImagePanel patientId={id ?? ""} />
         </div>
       ),
     },
