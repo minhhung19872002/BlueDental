@@ -31,6 +31,10 @@ public sealed class InvoiceController(IInvoiceAppService service) : BlueDentalCo
     public Task<InvoiceDto> RecordPaymentAsync(Guid id, [FromBody] RecordPaymentDto input) =>
         service.RecordPaymentAsync(id, input);
 
+    [HttpGet("excel")]
+    public async Task<IActionResult> ExportAsync([FromQuery] GetInvoiceListInput input) =>
+        Excel(await service.ExportAsync(input), "hoa-don");
+
     [HttpPost("{id:guid}/void")]
     public Task<InvoiceDto> VoidAsync(Guid id, [FromBody] VoidInvoiceDto input) =>
         service.VoidAsync(id, input);

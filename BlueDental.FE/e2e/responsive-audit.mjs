@@ -24,6 +24,7 @@ const ROUTES = [
   "/calendar/list",
   "/cskh-grouping",
   "/labo",
+  "/billing",
   "/operations",
   "/report",
   "/staff",

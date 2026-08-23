@@ -49,7 +49,7 @@ test.describe("Kế hoạch điều trị", () => {
 
     const diagnosisDialog = page.getByRole("dialog");
     await selectOption(page, diagnosisDialog, "Chẩn đoán");
-    await selectOption(page, diagnosisDialog, "Bác sĩ chẩn đoán", "admin");
+    await selectOption(page, diagnosisDialog, "Bác sĩ chẩn đoán");
     await diagnosisDialog.getByRole("button", { name: "Tạo" }).click();
     await expect(diagnosisDialog).toBeHidden();
 
@@ -57,7 +57,7 @@ test.describe("Kế hoạch điều trị", () => {
     const adviseDialog = page.getByRole("dialog");
     await selectOption(page, adviseDialog, "Dịch vụ");
     await adviseDialog.getByLabel("Đơn giá (đ)", { exact: true }).fill(price);
-    await selectOption(page, adviseDialog, "Bác sĩ tư vấn", "admin");
+    await selectOption(page, adviseDialog, "Bác sĩ tư vấn");
     await adviseDialog.getByRole("button", { name: "Tạo" }).click();
     await expect(adviseDialog).toBeHidden();
 
@@ -121,7 +121,7 @@ test.describe("Kế hoạch điều trị", () => {
     const dialog = page.getByRole("dialog");
     await selectOption(page, dialog, "Kế hoạch điều trị", "DT01");
     await dialog.getByLabel("Số tiền (đ)", { exact: true }).fill("1000000");
-    await selectOption(page, dialog, "Người thu", "admin");
+    await selectOption(page, dialog, "Người thu");
     await dialog.getByRole("button", { name: "Lưu" }).click();
     await expect(dialog).toBeHidden();
 
@@ -152,7 +152,7 @@ test.describe("Kế hoạch điều trị", () => {
     await selectOption(page, dialog, "Loại giao dịch", "Hoàn tiền");
     await selectOption(page, dialog, "Kế hoạch điều trị", "DT01");
     await dialog.getByLabel("Số tiền (đ)", { exact: true }).fill("500000");
-    await selectOption(page, dialog, "Người thu", "admin");
+    await selectOption(page, dialog, "Người thu");
     await dialog.getByRole("button", { name: "Lưu" }).click();
 
     // The server refuses it, and the reason reaches the user in Vietnamese.
@@ -170,7 +170,7 @@ test.describe("Kế hoạch điều trị", () => {
     const dialog = page.getByRole("dialog");
     await selectOption(page, dialog, "Loại giao dịch", "Nạp quỹ");
     await dialog.getByLabel("Số tiền (đ)", { exact: true }).fill("3000000");
-    await selectOption(page, dialog, "Người thu", "admin");
+    await selectOption(page, dialog, "Người thu");
     await dialog.getByRole("button", { name: "Lưu" }).click();
     await expect(dialog).toBeHidden();
 

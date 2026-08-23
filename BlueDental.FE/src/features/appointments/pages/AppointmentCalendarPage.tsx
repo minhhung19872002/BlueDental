@@ -30,7 +30,7 @@ const FALLBACK_DOCTORS: DayViewDoctor[] = [
 export function AppointmentCalendarPage() {
   const { data: dentistData } = useDentistList();
   const doctors: DayViewDoctor[] = dentistData
-    ? dentistData.map((d) => ({ id: d.id, name: d.name, appointmentCount: 0 }))
+    ? dentistData.map((d) => ({ id: d.id, name: d.name }))
     : FALLBACK_DOCTORS;
   // The reference keeps this tab in the URL (/calendar?tab=timekeeping), so a
   // link to the work schedule board is shareable and survives a reload.
@@ -153,6 +153,7 @@ export function AppointmentCalendarPage() {
                   keyword={keyword}
                   onKeywordChange={setKeyword}
                   onCreateAppointment={() => setAddOpen(true)}
+                  onSelectAppointment={setSelectedId}
                 />
               )}
               {viewMode === "week" && (
@@ -162,6 +163,7 @@ export function AppointmentCalendarPage() {
                   keyword={keyword}
                   onKeywordChange={setKeyword}
                   onCreateAppointment={() => setAddOpen(true)}
+                  onSelectAppointment={setSelectedId}
                   onCellClick={(dayIdx, slotIdx) => {
                     setInitialDate(currentDate.startOf("week").add(dayIdx, "day").format("YYYY-MM-DD"));
                     setAddOpen(true);

@@ -55,6 +55,21 @@ test.describe("Lịch hẹn", () => {
     await dialog.getByRole("button", { name: /Lưu lịch hẹn/ }).click();
   }
 
+  /**
+   * The booking lands on a random day years out, so it is never guaranteed to be
+   * on the first page. Searching for it is what proves it was stored — and the
+   * search runs on the server, over every appointment rather than one page.
+   */
+  async function findInList(page: Page, reason: string): Promise<void> {
+    await page
+      .getByPlaceholder("Tìm kiếm bệnh nhân, bác sĩ, lý do khám...")
+      .fill(reason);
+
+    await expect(page.getByRole("row", { name: new RegExp(reason) })).toBeVisible({
+      timeout: 15_000,
+    });
+  }
+
   test("a booking is stored and appears in the list", async ({ page }) => {
     const reason = `Khám E2E ${runId()}`;
 
@@ -65,10 +80,10 @@ test.describe("Lịch hẹn", () => {
     await expect(page.getByRole("dialog")).toBeHidden();
 
     // The list is served by the API, so the row proves it was stored.
-    await expect(page.getByRole("row", { name: new RegExp(reason) })).toBeVisible();
+    await findInList(page, reason);
 
     await page.reload();
-    await expect(page.getByRole("row", { name: new RegExp(reason) })).toBeVisible();
+    await findInList(page, reason);
   });
 
   test("the same dentist cannot be booked twice into one slot", async ({ page }) => {

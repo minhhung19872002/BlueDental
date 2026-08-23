@@ -65,7 +65,7 @@ test.describe("Xuất file", () => {
     // The test writes the slip it prints, so it never depends on leftover data.
     await page.getByRole("button", { name: "Tạo đơn thuốc" }).click();
     const dialog = page.getByRole("dialog");
-    await selectOption(page, dialog, "Bác sĩ kê đơn", "admin");
+    await selectOption(page, dialog, "Bác sĩ kê đơn");
     await dialog.getByLabel("Chẩn đoán", { exact: true }).fill(`In PDF ${runId()}`);
     await pickOption(page, dialog.getByTestId("prescription-medicine").getByRole("combobox"));
     await dialog.getByRole("button", { name: "Tạo", exact: true }).click();

@@ -35,6 +35,7 @@ public class BlueDentalApplicationAutoMapperProfile : Profile
             .ForMember(d => d.SlotStart, opt => opt.MapFrom(s => s.Slot.Start))
             .ForMember(d => d.SlotEnd, opt => opt.MapFrom(s => s.Slot.End))
             .ForMember(d => d.PatientName, opt => opt.Ignore())
+            .ForMember(d => d.PatientPhone, opt => opt.Ignore())
             .ForMember(d => d.DentistName, opt => opt.Ignore())
             .ForMember(d => d.ProcedureName, opt => opt.Ignore());
 

@@ -1,13 +1,17 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Appointments.Values;
+using BlueDental.Catalogs;
+using BlueDental.PatientManagement;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
+using Volo.Abp.Identity;
 
 namespace BlueDental.Appointments;
 
@@ -15,13 +19,22 @@ namespace BlueDental.Appointments;
 public class AppointmentAppService : ApplicationService, IAppointmentAppService
 {
     private readonly IRepository<Appointment, Guid> _repository;
+    private readonly IRepository<Patient, Guid> _patientRepository;
+    private readonly IRepository<DentalProcedure, Guid> _procedureRepository;
+    private readonly IIdentityUserRepository _userRepository;
     private readonly AppointmentConflictChecker _conflictChecker;
 
     public AppointmentAppService(
         IRepository<Appointment, Guid> repository,
+        IRepository<Patient, Guid> patientRepository,
+        IRepository<DentalProcedure, Guid> procedureRepository,
+        IIdentityUserRepository userRepository,
         AppointmentConflictChecker conflictChecker)
     {
         _repository = repository;
+        _patientRepository = patientRepository;
+        _procedureRepository = procedureRepository;
+        _userRepository = userRepository;
         _conflictChecker = conflictChecker;
     }
 
@@ -61,21 +74,110 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         if (!string.IsNullOrWhiteSpace(input.Filter))
         {
             var filter = input.Filter.Trim();
+
+            // The list search box offers "bệnh nhân, bác sĩ, lý do khám", but the
+            // appointment row only holds ids. Matching names has to start from
+            // the people, then narrow the appointments to them — filtering the
+            // fetched page instead would only ever search the page on screen.
+            var patientQuery = await _patientRepository.GetQueryableAsync();
+            var matchedPatients = await AsyncExecuter.ToListAsync(
+                patientQuery
+                    .Where(p => p.FirstName.Contains(filter) || p.LastName.Contains(filter))
+                    .Select(p => p.Id));
+
+            var matchedStaff = (await _userRepository.GetListAsync())
+                .Where(u =>
+                    (u.Name != null && u.Name.Contains(filter, StringComparison.OrdinalIgnoreCase))
+                    || u.UserName.Contains(filter, StringComparison.OrdinalIgnoreCase))
+                .Select(u => u.Id)
+                .ToList();
+
             query = query.Where(a =>
                 (a.ChiefComplaint != null && a.ChiefComplaint.Contains(filter))
-                || (a.Notes != null && a.Notes.Contains(filter)));
+                || (a.Notes != null && a.Notes.Contains(filter))
+                || matchedPatients.Contains(a.PatientId)
+                || matchedStaff.Contains(a.DentistId));
         }
 
-        var totalCount = query.Count();
-        var items = query
-            .OrderBy(a => a.Slot.Start)
-            .Skip(input.SkipCount)
-            .Take(input.MaxResultCount)
+        var totalCount = await AsyncExecuter.CountAsync(query);
+
+        // Chronological, with Id breaking the tie so paging stays stable — two
+        // appointments in the same slot used to be able to swap between pages.
+        var items = await AsyncExecuter.ToListAsync(
+            query
+                .OrderBy(a => a.Slot.Start)
+                .ThenBy(a => a.Id)
+                .Skip(input.SkipCount)
+                .Take(input.MaxResultCount));
+
+        var dtos = ObjectMapper.Map<List<Appointment>, List<AppointmentDto>>(items);
+        await FillNamesAsync(items, dtos);
+
+        return new PagedResultDto<AppointmentDto>(totalCount, dtos);
+    }
+
+    /// <summary>
+    /// An appointment stores ids, but every screen shows names: the calendar
+    /// labels each card with the patient, the reception board groups by dentist.
+    /// Resolved in one read per kind rather than one per row.
+    /// </summary>
+    private async Task FillNamesAsync(
+        IReadOnlyList<Appointment> entities,
+        IReadOnlyList<AppointmentDto> dtos)
+    {
+        if (entities.Count == 0)
+        {
+            return;
+        }
+
+        var patientIds = entities.Select(a => a.PatientId).Distinct().ToList();
+        var dentistIds = entities.Select(a => a.DentistId).Distinct().ToList();
+        var procedureIds = entities
+            .Where(a => a.ProcedureId.HasValue)
+            .Select(a => a.ProcedureId!.Value)
+            .Distinct()
             .ToList();
 
-        return new PagedResultDto<AppointmentDto>(
-            totalCount,
-            ObjectMapper.Map<System.Collections.Generic.List<Appointment>, System.Collections.Generic.List<AppointmentDto>>(items));
+        var patientQuery = await _patientRepository.GetQueryableAsync();
+        var patients = (await AsyncExecuter.ToListAsync(
+                patientQuery.Where(p => patientIds.Contains(p.Id))))
+            .ToDictionary(
+                p => p.Id,
+                p => ((p.LastName + " " + p.FirstName).Trim(), p.Contact.PhoneNumber));
+
+        var users = await _userRepository.GetListByIdsAsync(dentistIds);
+        var dentists = users.ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
+
+        var procedures = new Dictionary<Guid, string>();
+        if (procedureIds.Count > 0)
+        {
+            var procedureQuery = await _procedureRepository.GetQueryableAsync();
+            procedures = (await AsyncExecuter.ToListAsync(
+                    procedureQuery.Where(x => procedureIds.Contains(x.Id))))
+                .ToDictionary(x => x.Id, x => x.Name);
+        }
+
+        for (var i = 0; i < entities.Count; i++)
+        {
+            var entity = entities[i];
+            var dto = dtos[i];
+
+            var patient = patients.GetValueOrDefault(entity.PatientId);
+            dto.PatientName = patient.Item1;
+            dto.PatientPhone = patient.Item2;
+            dto.DentistName = dentists.GetValueOrDefault(entity.DentistId);
+            dto.ProcedureName = entity.ProcedureId.HasValue
+                ? procedures.GetValueOrDefault(entity.ProcedureId.Value)
+                : null;
+        }
+    }
+
+    /// <summary>Maps one appointment, names included.</summary>
+    private async Task<AppointmentDto> ToDtoAsync(Appointment appointment)
+    {
+        var dto = ObjectMapper.Map<Appointment, AppointmentDto>(appointment);
+        await FillNamesAsync([appointment], [dto]);
+        return dto;
     }
 
     /// <summary>Slots are stored as UTC instants, so a calendar day starts at UTC midnight.</summary>
@@ -86,7 +188,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     public async Task<AppointmentDto> GetAsync(Guid id)
     {
         var appointment = await _repository.GetAsync(id);
-        return ObjectMapper.Map<Appointment, AppointmentDto>(appointment);
+        return await ToDtoAsync(appointment);
     }
 
     [Authorize(BlueDentalAbilityPermissions.Appointment.Create)]
@@ -119,7 +221,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
             input.ChiefComplaint);
 
         await _repository.InsertAsync(appointment, autoSave: true);
-        return ObjectMapper.Map<Appointment, AppointmentDto>(appointment);
+        return await ToDtoAsync(appointment);
     }
 
     [Authorize(BlueDentalAbilityPermissions.Appointment.Update)]
@@ -129,7 +231,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         var slot = new AppointmentSlot(input.SlotStart, input.SlotEnd);
         appointment.Reschedule(slot, input.DentistId);
         await _repository.UpdateAsync(appointment, autoSave: true);
-        return ObjectMapper.Map<Appointment, AppointmentDto>(appointment);
+        return await ToDtoAsync(appointment);
     }
 
     [Authorize(BlueDentalAbilityPermissions.Appointment.Update)]
@@ -138,7 +240,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         var appointment = await _repository.GetAsync(id);
         appointment.Confirm();
         await _repository.UpdateAsync(appointment, autoSave: true);
-        return ObjectMapper.Map<Appointment, AppointmentDto>(appointment);
+        return await ToDtoAsync(appointment);
     }
 
     [Authorize(BlueDentalAbilityPermissions.Appointment.Update)]
@@ -147,7 +249,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         var appointment = await _repository.GetAsync(id);
         appointment.Cancel(input.Reason, input.Note);
         await _repository.UpdateAsync(appointment, autoSave: true);
-        return ObjectMapper.Map<Appointment, AppointmentDto>(appointment);
+        return await ToDtoAsync(appointment);
     }
 
     [Authorize(BlueDentalAbilityPermissions.Appointment.Update)]
@@ -156,7 +258,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         var appointment = await _repository.GetAsync(id);
         appointment.CheckIn();
         await _repository.UpdateAsync(appointment, autoSave: true);
-        return ObjectMapper.Map<Appointment, AppointmentDto>(appointment);
+        return await ToDtoAsync(appointment);
     }
 
     [Authorize(BlueDentalAbilityPermissions.Appointment.Update)]
@@ -165,7 +267,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         var appointment = await _repository.GetAsync(id);
         appointment.Start();
         await _repository.UpdateAsync(appointment, autoSave: true);
-        return ObjectMapper.Map<Appointment, AppointmentDto>(appointment);
+        return await ToDtoAsync(appointment);
     }
 
     [Authorize(BlueDentalAbilityPermissions.Appointment.Update)]
@@ -174,7 +276,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         var appointment = await _repository.GetAsync(id);
         appointment.Complete(input.Notes);
         await _repository.UpdateAsync(appointment, autoSave: true);
-        return ObjectMapper.Map<Appointment, AppointmentDto>(appointment);
+        return await ToDtoAsync(appointment);
     }
 
     [Authorize(BlueDentalAbilityPermissions.Appointment.Update)]
@@ -183,6 +285,6 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         var appointment = await _repository.GetAsync(id);
         appointment.MarkNoShow();
         await _repository.UpdateAsync(appointment, autoSave: true);
-        return ObjectMapper.Map<Appointment, AppointmentDto>(appointment);
+        return await ToDtoAsync(appointment);
     }
 }

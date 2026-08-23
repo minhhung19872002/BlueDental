@@ -48,6 +48,8 @@ export interface AppointmentListQuery {
   patientId?: string;
   doctorId?: string;
   status?: AppointmentStatus;
+  /** Free text over patient, dentist, reason and notes — matched server-side. */
+  filter?: string;
   skipCount?: number;
   maxResultCount?: number;
 }

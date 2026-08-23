@@ -1200,6 +1200,27 @@
     "Chỉ số theo từng khối chức năng trong ngày": "Today figures for each operating division",
     "{0} hồ sơ trong chi nhánh": "{0} records in this branch",
     "Công việc đã hoàn thành": "Tasks completed",
-    "{0} quá hạn · {1} đang làm": "{0} overdue · {1} in progress"
+    "{0} quá hạn · {1} đang làm": "{0} overdue · {1} in progress",
+    "Thanh toán & hoá đơn": "Payments & invoices",
+    "Bấm “Thu tiền” để ghi nhận thanh toán từng phiếu": "Click “Collect” to record a payment against an invoice",
+    "Tổng giá trị hoá đơn": "Total invoiced",
+    "Công nợ còn lại": "Outstanding balance",
+    "trên trang này": "on this page",
+    "Tìm theo mã phiếu...": "Search by invoice number...",
+    "Chưa có hoá đơn": "No invoices yet",
+    "Hạn thanh toán": "Due date",
+    "Thu một phần": "Partially paid",
+    "Đã hoàn tiền": "Refunded",
+    "Đã ghi nhận thanh toán": "Payment recorded",
+    "Phiếu": "Invoice",
+    "Không thu quá số còn lại": "Cannot collect more than the balance due",
+    "Vui lòng chọn phương thức": "Please choose a payment method",
+    "Mã tham chiếu": "Reference",
+    "Số giao dịch, mã chuyển khoản...": "Transaction id, transfer reference...",
+    "Thẻ tín dụng": "Credit card",
+    "Thẻ ghi nợ": "Debit card",
+    "Bảo hiểm": "Insurance",
+    "Ví điện tử": "Mobile payment",
+    "Voucher": "Voucher"
   }
 }

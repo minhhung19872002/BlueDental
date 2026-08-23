@@ -29,20 +29,17 @@ export function AppointmentListPage() {
   const [editorOpen, setEditorOpen] = useState(false);
   const debouncedKeyword = useDebounce(keyword);
 
+  // Search and status go to the server. Filtering the fetched page instead meant
+  // a clinic with more than one page of history could never find anything past
+  // the first twenty rows.
   const { data, isLoading } = useAppointmentList({
+    filter: debouncedKeyword || undefined,
+    status: statusFilter === "all" ? undefined : statusFilter,
     skipCount: pagination.skipCount,
     maxResultCount: pagination.maxResultCount,
   });
 
-  const appointments = (data?.items ?? []).filter((a) => {
-    const matchesStatus = statusFilter === "all" || a.status === statusFilter;
-    const matchesKeyword =
-      !debouncedKeyword ||
-      a.patientName?.toLowerCase().includes(debouncedKeyword.toLowerCase()) ||
-      a.doctorName?.toLowerCase().includes(debouncedKeyword.toLowerCase()) ||
-      a.reason?.toLowerCase().includes(debouncedKeyword.toLowerCase());
-    return matchesStatus && matchesKeyword;
-  });
+  const appointments = data?.items ?? [];
 
   return (
     <div className="reception-page">
@@ -54,7 +51,10 @@ export function AppointmentListPage() {
               prefix={<SearchOutlined />}
               placeholder={t("Tìm kiếm bệnh nhân, bác sĩ, lý do khám...")}
               value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
+              onChange={(e) => {
+                setKeyword(e.target.value);
+                pagination.resetToFirstPage();
+              }}
               style={{ width: 280 }}
               allowClear
             />
@@ -76,7 +76,10 @@ export function AppointmentListPage() {
             <button
               key={tab.key}
               type="button"
-              onClick={() => setStatusFilter(tab.key)}
+              onClick={() => {
+                setStatusFilter(tab.key);
+                pagination.resetToFirstPage();
+              }}
               style={{
                 padding: "8px 16px",
                 border: "none",

@@ -42,7 +42,7 @@ test.describe("Công đoạn điều trị", () => {
 
     const diagnosisDialog = page.getByRole("dialog");
     await selectOption(page, diagnosisDialog, "Chẩn đoán");
-    await selectOption(page, diagnosisDialog, "Bác sĩ chẩn đoán", "admin");
+    await selectOption(page, diagnosisDialog, "Bác sĩ chẩn đoán");
     await diagnosisDialog.getByRole("button", { name: "Tạo" }).click();
     await expect(diagnosisDialog).toBeHidden();
 
@@ -50,7 +50,7 @@ test.describe("Công đoạn điều trị", () => {
 
     const adviseDialog = page.getByRole("dialog");
     await selectOption(page, adviseDialog, "Dịch vụ");
-    await selectOption(page, adviseDialog, "Bác sĩ tư vấn", "admin");
+    await selectOption(page, adviseDialog, "Bác sĩ tư vấn");
     await adviseDialog.getByRole("button", { name: "Tạo" }).click();
     await expect(adviseDialog).toBeHidden();
 
@@ -83,7 +83,7 @@ test.describe("Công đoạn điều trị", () => {
     const dialog = page.getByRole("dialog");
     await selectOption(page, dialog, "Dịch vụ điều trị");
     await dialog.getByPlaceholder("Tên công đoạn").fill(stageName);
-    await selectOption(page, dialog, "Bác sĩ thực hiện", "admin");
+    await selectOption(page, dialog, "Bác sĩ thực hiện");
     await dialog.getByRole("button", { name: "Tạo" }).click();
     await expect(dialog).toBeHidden();
 
@@ -127,7 +127,7 @@ test.describe("Công đoạn điều trị", () => {
     const dialog = page.getByRole("dialog");
     await selectOption(page, dialog, "Dịch vụ điều trị");
     await dialog.getByPlaceholder("Tên công đoạn").fill(stageName);
-    await selectOption(page, dialog, "Bác sĩ thực hiện", "admin");
+    await selectOption(page, dialog, "Bác sĩ thực hiện");
     await dialog.getByPlaceholder("Ghi chú công đoạn").fill(note);
     await dialog.getByRole("button", { name: "Tạo" }).click();
     await expect(dialog).toBeHidden();

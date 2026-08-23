@@ -37,7 +37,7 @@ test.describe("Đơn thuốc", () => {
     await page.getByRole("button", { name: "Tạo đơn thuốc" }).click();
     const dialog = page.getByRole("dialog");
 
-    await selectOption(page, dialog, "Bác sĩ kê đơn", "admin");
+    await selectOption(page, dialog, "Bác sĩ kê đơn");
     await dialog.getByLabel("Chẩn đoán", { exact: true }).fill(diagnosis);
 
     // One medicine line, from the Loại thuốc catalog. The line carries no label,
@@ -72,7 +72,7 @@ test.describe("Đơn thuốc", () => {
     await page.getByRole("button", { name: "Tạo đơn thuốc" }).click();
     const dialog = page.getByRole("dialog");
 
-    await selectOption(page, dialog, "Bác sĩ kê đơn", "admin");
+    await selectOption(page, dialog, "Bác sĩ kê đơn");
     await dialog.getByRole("button", { name: "Tạo" }).click();
 
     // The empty medicine line fails validation, so the dialog stays open.

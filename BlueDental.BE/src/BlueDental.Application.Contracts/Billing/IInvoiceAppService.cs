@@ -13,4 +13,7 @@ public interface IInvoiceAppService : IApplicationService
     Task<InvoiceDto> IssueAsync(Guid id);
     Task<InvoiceDto> RecordPaymentAsync(Guid id, RecordPaymentDto input);
     Task<InvoiceDto> VoidAsync(Guid id, VoidInvoiceDto input);
+
+    /// <summary>"Xuất Excel" on the Thanh toán screen.</summary>
+    Task<byte[]> ExportAsync(GetInvoiceListInput input);
 }

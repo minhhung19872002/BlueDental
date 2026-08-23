@@ -66,6 +66,12 @@ const LaboPage = lazy(() =>
   })),
 );
 
+const BillingPage = lazy(() =>
+  import("@/features/billing/pages/BillingPage").then((m) => ({
+    default: m.BillingPage,
+  })),
+);
+
 const MaterialsPage = lazy(() =>
   import("@/features/materials/pages/MaterialsPage").then((m) => ({
     default: m.MaterialsPage,
@@ -209,6 +215,14 @@ const appRoutes: RouteObject[] = [
         element: (
           <S>
             <LaboPage />
+          </S>
+        ),
+      },
+      {
+        path: "billing",
+        element: (
+          <S>
+            <BillingPage />
           </S>
         ),
       },

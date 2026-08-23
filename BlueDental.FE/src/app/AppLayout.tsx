@@ -19,6 +19,7 @@ import {
   TeamOutlined,
   CalendarOutlined,
   CustomerServiceOutlined,
+  DollarOutlined,
   ExperimentOutlined,
   SettingOutlined,
   BarChartOutlined,
@@ -51,6 +52,7 @@ const mainNav = (t: Translate): NavItem[] => [
   { key: "/calendar", icon: <CalendarOutlined />, label: t("Lịch hẹn") },
   { key: "/cskh-grouping", icon: <CustomerServiceOutlined />, label: t("CSKH - Phân nhóm") },
   { key: "/labo", icon: <ExperimentOutlined />, label: t("Labo") },
+  { key: "/billing", icon: <DollarOutlined />, label: t("Thanh toán") },
   { key: "/operations", icon: <SettingOutlined />, label: t("Quản trị vận hành") },
   { key: "/report", icon: <BarChartOutlined />, label: t("Báo cáo") },
   { key: "/staff", icon: <IdcardOutlined />, label: t("Nhân viên") },
@@ -260,7 +262,6 @@ export function AppLayout() {
 
         {/* Main nav */}
         <nav className="sidebar-nav-main">
-          {sidebarExpanded && <div className="sidebar-nav-section">MENU</div>}
           {mainNav(t).map((item) => (
             <SidebarNavItem
               key={item.key}

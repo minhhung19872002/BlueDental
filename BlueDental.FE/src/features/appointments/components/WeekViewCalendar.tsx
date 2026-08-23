@@ -5,6 +5,7 @@ import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
 
 import { useAppointmentList } from "../api/appointmentQueries";
+import type { AppointmentDto, AppointmentStatus } from "../types/appointment";
 import { t } from "@/lib/i18n";
 
 const SLOT_MINUTES = 30;
@@ -30,9 +31,27 @@ interface Props {
   onKeywordChange?: (v: string) => void;
   onCreateAppointment?: () => void;
   onCellClick?: (dayOffset: number, slotIndex: number) => void;
+  onSelectAppointment?: (id: string) => void;
 }
 
-export function WeekViewCalendar({ currentDate, keyword = "", onKeywordChange, onCreateAppointment, onCellClick }: Props) {
+/** Same card colours as the day grid, so a status reads identically in both. */
+const WEEK_CARD_LOOK: Record<AppointmentStatus, { bg: string; border: string; text: string }> = {
+  scheduled:  { bg: "#eaf0fa", border: "#1c3566", text: "#1c3566" },
+  confirmed:  { bg: "#e6f5ef", border: "#1f8a63", text: "#166848" },
+  inProgress: { bg: "#fdf3e2", border: "#dd9426", text: "#9a6412" },
+  completed:  { bg: "#e6f5ef", border: "#25a97a", text: "#166848" },
+  cancelled:  { bg: "#fdeeee", border: "#ef4d4d", text: "#c33" },
+  noShow:     { bg: "#efedf6", border: "#6f63a3", text: "#544a80" },
+};
+
+export function WeekViewCalendar({
+  currentDate,
+  keyword = "",
+  onKeywordChange,
+  onCreateAppointment,
+  onCellClick,
+  onSelectAppointment,
+}: Props) {
   const weekStart = currentDate.startOf("week");
 
   const days = useMemo(
@@ -48,9 +67,9 @@ export function WeekViewCalendar({ currentDate, keyword = "", onKeywordChange, o
     maxResultCount: 500,
   });
 
-  /** One booking per day column and half-hour slot. */
+  /** Bookings per day column and half-hour slot; a slot can hold several. */
   const bookingsByCell = useMemo(() => {
-    const map = new Map<string, string>();
+    const map = new Map<string, AppointmentDto[]>();
 
     for (const appointment of appointments?.items ?? []) {
       const start = dayjs(appointment.startTime);
@@ -59,9 +78,14 @@ export function WeekViewCalendar({ currentDate, keyword = "", onKeywordChange, o
         (start.hour() * 60 + start.minute() - DAY_START_H * 60) / SLOT_MINUTES,
       );
 
-      if (dayIndex >= 0 && dayIndex < 7 && slotIndex >= 0 && slotIndex < TOTAL_SLOTS) {
-        map.set(`${dayIndex}-${slotIndex}`, appointment.patientName);
+      if (dayIndex < 0 || dayIndex >= 7 || slotIndex < 0 || slotIndex >= TOTAL_SLOTS) {
+        continue;
       }
+
+      const key = `${dayIndex}-${slotIndex}`;
+      const bucket = map.get(key);
+      if (bucket) bucket.push(appointment);
+      else map.set(key, [appointment]);
     }
 
     return map;
@@ -183,6 +207,7 @@ export function WeekViewCalendar({ currentDate, keyword = "", onKeywordChange, o
                       cursor: "pointer",
                       transition: "background 0.1s",
                       boxSizing: "border-box",
+                      overflow: "hidden",
                     }}
                     onMouseEnter={(e) => {
                       (e.currentTarget as HTMLDivElement).style.background = "#eaf0fa";
@@ -190,7 +215,88 @@ export function WeekViewCalendar({ currentDate, keyword = "", onKeywordChange, o
                     onMouseLeave={(e) => {
                       (e.currentTarget as HTMLDivElement).style.background = "transparent";
                     }}
-                  />
+                  >
+                    {(() => {
+                      const inSlot = bookingsByCell.get(`${dayIdx}-${slotIdx}`) ?? [];
+                      // The row is one slot tall, so cards share its width rather
+                      // than stacking on top of each other; the tail collapses.
+                      const shown = inSlot.slice(0, 2);
+                      const hidden = inSlot.length - shown.length;
+
+                      if (inSlot.length === 0) return null;
+
+                      return (
+                        <div style={{ display: "flex", alignItems: "stretch", height: "100%" }}>
+                          {shown.map((booking) => {
+                            const look = WEEK_CARD_LOOK[booking.status];
+                            const title =
+                              booking.patientName?.trim() ||
+                              booking.reason?.trim() ||
+                              t("Lịch hẹn");
+
+                            return (
+                              <div
+                                key={booking.id}
+                                role="button"
+                                tabIndex={0}
+                                title={`${dayjs(booking.startTime).format("HH:mm")} · ${title}`}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  onSelectAppointment?.(booking.id);
+                                }}
+                                onKeyDown={(event) => {
+                                  if (event.key === "Enter" || event.key === " ") {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    onSelectAppointment?.(booking.id);
+                                  }
+                                }}
+                                style={{
+                                  flex: 1,
+                                  minWidth: 0,
+                                  margin: "1px 2px",
+                                  padding: "1px 4px",
+                                  borderRadius: 4,
+                                  borderLeft: `3px solid ${look.border}`,
+                                  background: look.bg,
+                                  color: look.text,
+                                  fontSize: 10,
+                                  lineHeight: "12px",
+                                  fontWeight: 600,
+                                  overflow: "hidden",
+                                  whiteSpace: "nowrap",
+                                  textOverflow: "ellipsis",
+                                }}
+                              >
+                                {title}
+                              </div>
+                            );
+                          })}
+                          {hidden > 0 && (
+                            <span
+                              title={inSlot
+                                .slice(2)
+                                .map((b) => b.patientName || t("Lịch hẹn"))
+                                .join(", ")}
+                              style={{
+                                alignSelf: "center",
+                                margin: "0 3px 0 1px",
+                                padding: "0 4px",
+                                borderRadius: 8,
+                                background: "#e2e8f0",
+                                color: "#41505f",
+                                fontSize: 9,
+                                fontWeight: 700,
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              +{hidden}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
                 ))}
               </div>
             );

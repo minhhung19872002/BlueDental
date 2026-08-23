@@ -104,6 +104,18 @@ External link:
 |-------|-------------|
 | /voucher | Vouchers — observed in network prefetch, NOT in sidebar |
 
+## Routes BlueDental adds (not observed on the reference)
+
+| Route | Screen | Where it comes from |
+|-------|--------|---------------------|
+| /billing | Thanh toán & hoá đơn | The Claude Design file `BlueDental.dc.html`, which gives invoices a clinic-wide screen. The reference keeps invoices only under `/patient/:id?tab=invoice`. |
+| /settings | Cài đặt phòng khám | Same design file; reached from the account menu. |
+| /dashboard | Tổng quan | BlueDental's own, kept for internal use. |
+
+These are additions, not clone gaps. Nothing here was inferred from the
+reference, and the reference's own screens are unchanged by them.
+
+
 ## URL Parameter Conventions
 
 | Parameter | Required | Format | Example |

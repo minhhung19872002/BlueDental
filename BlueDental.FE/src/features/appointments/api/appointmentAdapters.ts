@@ -15,6 +15,7 @@ export interface ServerAppointmentDto {
   id: string;
   patientId: string;
   patientName: string;
+  patientPhone: string | null;
   dentistId: string;
   dentistName: string;
   branchId: string;
@@ -91,7 +92,7 @@ export function adaptAppointment(dto: ServerAppointmentDto): Appointment {
     id: dto.id,
     patientId: dto.patientId,
     patientName: dto.patientName,
-    patientPhone: "",
+    patientPhone: dto.patientPhone ?? "",
     doctorId: dto.dentistId,
     doctorName: dto.dentistName,
     startTime: dto.slotStart,
@@ -114,6 +115,7 @@ export function toServerQuery(query: AppointmentListQuery): Record<string, unkno
     fromDate: query.fromDate,
     toDate: query.toDate,
     status: query.status ? CODE_BY_STATUS[query.status] : undefined,
+    filter: query.filter || undefined,
     skipCount: query.skipCount,
     maxResultCount: query.maxResultCount,
   };

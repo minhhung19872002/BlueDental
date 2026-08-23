@@ -7,6 +7,7 @@ public class AppointmentDto : FullAuditedEntityDto<Guid>
 {
     public Guid PatientId { get; set; }
     public string PatientName { get; set; } = default!;
+    public string? PatientPhone { get; set; }
     public Guid DentistId { get; set; }
     public string DentistName { get; set; } = default!;
     public Guid BranchId { get; set; }

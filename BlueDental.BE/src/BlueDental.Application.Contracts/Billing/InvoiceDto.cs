@@ -49,6 +49,7 @@ public class VoidInvoiceDto
 public class GetInvoiceListInput : PagedAndSortedResultRequestDto
 {
     public string? Filter { get; set; }
+    public Guid? BranchId { get; set; }
     public Guid? PatientId { get; set; }
     public InvoiceStatus? Status { get; set; }
 }

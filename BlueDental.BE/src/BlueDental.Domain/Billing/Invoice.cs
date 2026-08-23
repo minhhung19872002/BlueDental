@@ -37,7 +37,8 @@ public class Invoice : FullAuditedAggregateRoot<Guid>
         Money taxAmount,
         Money discountAmount,
         DateTimeOffset dueAt,
-        Guid? appointmentId = null)
+        Guid? appointmentId = null,
+        DateTimeOffset? issuedAt = null)
         : base(id)
     {
         InvoiceNumber = invoiceNumber;
@@ -51,7 +52,8 @@ public class Invoice : FullAuditedAggregateRoot<Guid>
         PaidAmount = Money.Zero(subTotal.Currency);
         DueAt = dueAt;
         Status = InvoiceStatus.Draft;
-        IssuedAt = DateTimeOffset.UtcNow;
+        // Billing often runs after the fact, so a visit's own date can be given.
+        IssuedAt = issuedAt ?? DateTimeOffset.UtcNow;
     }
 
     public Invoice Issue()
