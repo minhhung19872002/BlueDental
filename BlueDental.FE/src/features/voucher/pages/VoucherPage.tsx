@@ -28,6 +28,7 @@ import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { extractApiError } from "@/lib/apiError";
 import { formatDate, formatVND } from "@/utils/format";
 import { t } from "@/lib/i18n";
+import { PageHeader } from "@/components/PageHeader";
 
 const { Text } = Typography;
 
@@ -396,6 +397,11 @@ export function VoucherPage() {
 
   return (
     <div className="reception-page">
+      <PageHeader
+        title={t("Voucher khuyến mãi")}
+        subtitle={t("Voucher mới luôn ở trạng thái Nháp — phải kích hoạt mới dùng được")}
+      />
+
       <div className="reception-card" style={{ padding: "16px 20px", marginBottom: 12 }}>
         <div style={{ fontWeight: 700, fontSize: 16, color: "#101c2c" }}>{t("Voucher khuyến mãi")}</div>
         <Text style={{ fontSize: 13, color: "#6f7c90" }}>

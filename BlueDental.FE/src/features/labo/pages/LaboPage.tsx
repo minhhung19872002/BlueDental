@@ -19,6 +19,7 @@ import { downloadFile } from "@/lib/download";
 import { extractApiError } from "@/lib/apiError";
 import { formatDate } from "@/utils/format";
 import { t } from "@/lib/i18n";
+import { PageHeader } from "@/components/PageHeader";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -525,6 +526,11 @@ export function LaboPage() {
 
   return (
     <div className="reception-page">
+      <PageHeader
+        title={t("Labo")}
+        subtitle={t("Phiếu labo, nhà cung cấp và danh mục kỹ thuật")}
+      />
+
       {/* Horizontal sub-nav */}
       <div className="reception-card reception-card--tabs">
         <div style={{ display: "flex", gap: 0, flexWrap: "wrap" }}>

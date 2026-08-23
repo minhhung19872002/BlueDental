@@ -21,6 +21,7 @@ import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { extractApiError } from "@/lib/apiError";
 import { formatDate, formatVND } from "@/utils/format";
 import { t } from "@/lib/i18n";
+import { PageHeader } from "@/components/PageHeader";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -548,6 +549,11 @@ export function MaterialsPage() {
 
   return (
     <div className="reception-page">
+      <PageHeader
+        title={t("Vật tư phòng khám")}
+        subtitle={t("Vật tư, phân bổ và tồn kho theo phòng ban")}
+      />
+
       {/* Horizontal sub-nav */}
       <div className="reception-card reception-card--tabs">
         <div style={{ display: "flex", gap: 0 }}>

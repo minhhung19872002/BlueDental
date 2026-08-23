@@ -38,6 +38,7 @@ import {
   type SalesEntryType,
 } from "../api/financeApi";
 import { t } from "@/lib/i18n";
+import { PageHeader } from "@/components/PageHeader";
 
 const { Text } = Typography;
 
@@ -149,6 +150,11 @@ export function ReportPage() {
 
   return (
     <div className="reception-page">
+      <PageHeader
+        title={t("Báo cáo")}
+        subtitle={t("Kỳ báo cáo theo khoảng thời gian đã chọn")}
+      />
+
       {/* Main tab bar */}
       <div className="reception-card" style={{ padding: "0 16px" }}>
         <Tabs

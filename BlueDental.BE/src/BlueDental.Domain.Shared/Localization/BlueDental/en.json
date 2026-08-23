@@ -1189,6 +1189,15 @@
     "Chưa có vai trò": "No roles yet",
     "{0} người": "{0} people",
     "Đã lưu cài đặt phòng khám": "Clinic settings saved",
-    "Luồng khách trong ngày {0}": "Patient flow on {0}"
+    "Luồng khách trong ngày {0}": "Patient flow on {0}",
+    "Phiếu labo, nhà cung cấp và danh mục kỹ thuật": "Labo orders, suppliers and the technical catalogs",
+    "Phân nhóm nhật ký chăm sóc theo mục đích liên hệ": "Care log grouped by the reason for contact",
+    "Dữ liệu nền cho dịch vụ, chẩn đoán, thuốc và nguồn khách": "Reference data for services, diagnoses, medication and referral sources",
+    "Tổng đài, tin nhắn, Zalo OA và hoá đơn điện tử": "Call centre, messaging, Zalo OA and e-invoicing",
+    "Voucher mới luôn ở trạng thái Nháp — phải kích hoạt mới dùng được": "A new voucher starts as a draft — it has to be activated before it can be used",
+    "Kỳ báo cáo theo khoảng thời gian đã chọn": "Reporting period follows the range selected below",
+    "Vật tư, phân bổ và tồn kho theo phòng ban": "Supplies, allocation and stock by department",
+    "Chỉ số theo từng khối chức năng trong ngày": "Today figures for each operating division",
+    "{0} hồ sơ trong chi nhánh": "{0} records in this branch"
   }
 }

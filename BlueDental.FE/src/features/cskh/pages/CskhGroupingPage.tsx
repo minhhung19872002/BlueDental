@@ -31,6 +31,7 @@ import {
 import dayjs, { type Dayjs } from "dayjs";
 import "dayjs/locale/vi";
 import { t } from "@/lib/i18n";
+import { PageHeader } from "@/components/PageHeader";
 
 dayjs.locale("vi");
 
@@ -268,6 +269,11 @@ export function CskhGroupingPage() {
 
   return (
     <div className="reception-page">
+      <PageHeader
+        title={t("Chăm sóc khách hàng")}
+        subtitle={t("Phân nhóm nhật ký chăm sóc theo mục đích liên hệ")}
+      />
+
       {/* Top-level tabs */}
       <div className="reception-card reception-card--tabs">
         <div style={{ display: "flex", gap: 0 }}>

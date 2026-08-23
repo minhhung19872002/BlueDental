@@ -19,6 +19,7 @@ import { SearchSelect } from "@/components/SearchSelect";
 import type { PatientListItem, PatientStatus } from "../types/patient";
 import { downloadFile } from "@/lib/download";
 import { t } from "@/lib/i18n";
+import { PageHeader } from "@/components/PageHeader";
 
 const { Text } = Typography;
 
@@ -271,6 +272,11 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
 
   return (
     <div className="reception-page">
+      <PageHeader
+        title={t("Danh sách bệnh nhân")}
+        subtitle={t("{0} hồ sơ trong chi nhánh", data?.totalCount ?? 0)}
+      />
+
       {/* Toolbar card */}
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>

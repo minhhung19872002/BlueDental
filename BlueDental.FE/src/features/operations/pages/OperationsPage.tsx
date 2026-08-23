@@ -29,6 +29,7 @@ import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { extractApiError } from "@/lib/apiError";
 import { formatDate } from "@/utils/format";
 import { t } from "@/lib/i18n";
+import { PageHeader } from "@/components/PageHeader";
 
 /**
  * Built on demand rather than frozen into a module constant: the labels go
@@ -529,6 +530,11 @@ export function OperationsPage() {
 
   return (
     <div className="reception-page">
+      <PageHeader
+        title={t("Quản trị vận hành")}
+        subtitle={t("Chỉ số theo từng khối chức năng trong ngày")}
+      />
+
       {/* Main department tabs */}
       <div className="reception-card" style={{ padding: "0 16px" }}>
         <Tabs
