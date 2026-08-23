@@ -26,7 +26,6 @@ import {
   MedicineBoxOutlined,
   AppstoreOutlined,
   ToolOutlined,
-  QuestionCircleOutlined,
   CheckOutlined,
   HeartOutlined,
 } from "@ant-design/icons";
@@ -40,7 +39,6 @@ interface NavItem {
   key: string;
   icon: React.ReactNode;
   label: string;
-  external?: boolean;
 }
 
 /** Translator type, so the builders below stay readable. */
@@ -59,15 +57,6 @@ const mainNav = (t: Translate): NavItem[] => [
   { key: "/materials", icon: <MedicineBoxOutlined />, label: t("Vật tư") },
   { key: "/taxonomy", icon: <AppstoreOutlined />, label: t("Danh mục") },
   { key: "/tools", icon: <ToolOutlined />, label: t("Công cụ") },
-];
-
-const bottomNav = (t: Translate): NavItem[] => [
-  {
-    key: "https://nfcdental.com/",
-    icon: <QuestionCircleOutlined />,
-    label: t("Hướng dẫn & hỗ trợ"),
-    external: true,
-  },
 ];
 
 const searchCategories = (t: Translate) => [
@@ -177,11 +166,7 @@ export function AppLayout() {
   }, [handleKeyDown]);
 
   const handleNavClick = (item: NavItem) => {
-    if (item.external) {
-      window.open(item.key, "_blank", "noopener");
-    } else {
-      navigate(item.key);
-    }
+    navigate(item.key);
   };
 
   const isActive = (key: string) => {
@@ -287,17 +272,14 @@ export function AppLayout() {
           ))}
         </nav>
 
-        {/* Bottom nav */}
+        {/* Bottom nav — sign out, as the design has it. */}
         <nav className="sidebar-nav-bottom">
-          {bottomNav(t).map((item) => (
-            <SidebarNavItem
-              key={item.key}
-              item={item}
-              active={false}
-              expanded={sidebarExpanded}
-              onClick={() => handleNavClick(item)}
-            />
-          ))}
+          <SidebarNavItem
+            item={{ key: "logout", icon: <LogoutOutlined />, label: t("Đăng xuất") }}
+            active={false}
+            expanded={sidebarExpanded}
+            onClick={() => logoutMutation.mutate()}
+          />
         </nav>
       </aside>
 
