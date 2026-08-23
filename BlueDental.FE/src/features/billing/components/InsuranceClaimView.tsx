@@ -18,6 +18,7 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import { PlusOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
+import { useTranslation } from "react-i18next";
 import { formatVND } from "@/utils/format";
 import {
   usePatientInsuranceClaims,
@@ -28,13 +29,6 @@ import {
 } from "../api/index";
 
 const { Text } = Typography;
-
-const STATUS_CONFIG: Record<InsuranceClaimStatus, { label: string; color: string }> = {
-  Submitted:   { label: "Đã gửi",         color: "blue" },
-  UnderReview: { label: "Đang xem xét",   color: "orange" },
-  Approved:    { label: "Đã duyệt",       color: "green" },
-  Rejected:    { label: "Từ chối",        color: "red" },
-};
 
 interface CreateClaimFormValues {
   invoiceId: string;
@@ -48,6 +42,13 @@ interface Props {
 }
 
 export function InsuranceClaimView({ patientId }: Props) {
+  const { t } = useTranslation();
+  const STATUS_CONFIG: Record<InsuranceClaimStatus, { label: string; color: string }> = {
+    Submitted:   { label: t("billing.statusSubmitted"),   color: "blue" },
+    UnderReview: { label: t("billing.statusUnderReview"), color: "orange" },
+    Approved:    { label: t("billing.statusApproved"),    color: "green" },
+    Rejected:    { label: t("billing.statusRejected"),    color: "red" },
+  };
   const [modalOpen, setModalOpen] = useState(false);
   const [form] = Form.useForm<CreateClaimFormValues>();
   const [messageApi, contextHolder] = message.useMessage();
@@ -66,12 +67,12 @@ export function InsuranceClaimView({ patientId }: Props) {
 
     createMutation.mutate(payload, {
       onSuccess: () => {
-        void messageApi.success("Đã tạo yêu cầu bảo hiểm");
+        void messageApi.success(t("billing.createClaimSuccess"));
         form.resetFields();
         setModalOpen(false);
       },
       onError: () => {
-        void messageApi.error("Không thể tạo yêu cầu bảo hiểm. Vui lòng thử lại.");
+        void messageApi.error(t("billing.createClaimFailed"));
       },
     });
   };
@@ -83,26 +84,26 @@ export function InsuranceClaimView({ patientId }: Props) {
 
   const columns: ColumnsType<InsuranceClaimDto> = [
     {
-      title: "Mã yêu cầu",
+      title: t("billing.claimCode"),
       dataIndex: "claimCode",
       key: "claimCode",
       width: 140,
       render: (code: string) => <Text code>{code}</Text>,
     },
     {
-      title: "Bệnh nhân",
+      title: t("billing.patientName"),
       dataIndex: "patientName",
       key: "patientName",
       width: 180,
     },
     {
-      title: "Gói BH",
+      title: t("billing.insurancePlan"),
       dataIndex: "insurancePlanName",
       key: "insurancePlanName",
       ellipsis: true,
     },
     {
-      title: "Số tiền yêu cầu",
+      title: t("billing.claimedAmount"),
       dataIndex: "claimedAmount",
       key: "claimedAmount",
       width: 150,
@@ -112,7 +113,7 @@ export function InsuranceClaimView({ patientId }: Props) {
       ),
     },
     {
-      title: "Số tiền duyệt",
+      title: t("billing.approvedAmount"),
       dataIndex: "approvedAmount",
       key: "approvedAmount",
       width: 150,
@@ -127,7 +128,7 @@ export function InsuranceClaimView({ patientId }: Props) {
         ),
     },
     {
-      title: "Trạng thái",
+      title: t("common.status"),
       dataIndex: "status",
       key: "status",
       width: 140,
@@ -137,22 +138,22 @@ export function InsuranceClaimView({ patientId }: Props) {
       },
     },
     {
-      title: "Ngày tạo",
+      title: t("billing.issuedDate"),
       dataIndex: "submittedAt",
       key: "submittedAt",
       width: 130,
       render: (v: string) => dayjs(v).format("DD/MM/YYYY"),
     },
     {
-      title: "Thao tác",
+      title: t("common.actions"),
       key: "actions",
       width: 100,
       render: (_: unknown, record: InsuranceClaimDto) => (
         <Space size="small">
           {record.status === "Rejected" && record.rejectionReason && (
-            <Tooltip title={`Lý do từ chối: ${record.rejectionReason}`}>
+            <Tooltip title={t("billing.rejectionReason", { reason: record.rejectionReason })}>
               <Button size="small" danger type="link">
-                Xem lý do
+                {t("billing.viewReason")}
               </Button>
             </Tooltip>
           )}
@@ -165,14 +166,14 @@ export function InsuranceClaimView({ patientId }: Props) {
     <>
       {contextHolder}
       <Card
-        title="Bảo hiểm y tế"
+        title={t("billing.insurance")}
         extra={
           <Button
             type="primary"
             icon={<PlusOutlined />}
             onClick={() => setModalOpen(true)}
           >
-            Tạo yêu cầu BH
+            {t("billing.createClaim")}
           </Button>
         }
       >
@@ -186,19 +187,19 @@ export function InsuranceClaimView({ patientId }: Props) {
             pageSize: 10,
             showSizeChanger: false,
             showTotal: (total, range) =>
-              `Hiển thị ${range[0]}–${range[1]} trên ${total} yêu cầu`,
+              t("billing.showTotalClaims", { from: range[0], to: range[1], total }),
           }}
-          locale={{ emptyText: "Chưa có yêu cầu bảo hiểm nào" }}
+          locale={{ emptyText: t("billing.noClaims") }}
         />
       </Card>
 
       <Modal
         open={modalOpen}
-        title="Tạo yêu cầu bảo hiểm"
+        title={t("billing.createClaimTitle")}
         onCancel={handleCancel}
         footer={[
           <Button key="cancel" onClick={handleCancel}>
-            Hủy
+            {t("common.cancel")}
           </Button>,
           <Button
             key="submit"
@@ -206,7 +207,7 @@ export function InsuranceClaimView({ patientId }: Props) {
             loading={createMutation.isPending}
             onClick={() => form.submit()}
           >
-            Tạo yêu cầu
+            {t("billing.createClaim")}
           </Button>,
         ]}
         width={480}
@@ -220,7 +221,7 @@ export function InsuranceClaimView({ patientId }: Props) {
         >
           <Form.Item
             name="invoiceId"
-            label="Mã hóa đơn"
+            label={t("billing.invoiceId")}
             rules={[{ required: true, message: "Vui lòng nhập mã hóa đơn" }]}
           >
             <Input placeholder="Nhập mã hóa đơn liên quan" />
@@ -228,7 +229,7 @@ export function InsuranceClaimView({ patientId }: Props) {
 
           <Form.Item
             name="insurancePlanId"
-            label="Mã gói bảo hiểm"
+            label={t("billing.insurancePlanId")}
             rules={[{ required: true, message: "Vui lòng nhập mã gói bảo hiểm" }]}
           >
             <Input placeholder="Nhập mã gói bảo hiểm" />
@@ -236,7 +237,7 @@ export function InsuranceClaimView({ patientId }: Props) {
 
           <Form.Item
             name="claimedAmount"
-            label="Số tiền yêu cầu (VND)"
+            label={t("billing.claimedAmountVnd")}
             rules={[
               { required: true, message: "Vui lòng nhập số tiền" },
               { type: "number", min: 1000, message: "Số tiền phải lớn hơn 1.000 đ" },
@@ -252,7 +253,7 @@ export function InsuranceClaimView({ patientId }: Props) {
             />
           </Form.Item>
 
-          <Form.Item name="notes" label="Ghi chú">
+          <Form.Item name="notes" label={t("common.note")}>
             <Input.TextArea
               placeholder="Ghi chú thêm (tuỳ chọn)..."
               rows={3}

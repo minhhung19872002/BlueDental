@@ -1,12 +1,14 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { receptionApi } from "./receptionApi";
 import type { CreateReceptionInput, ReceptionStatus, AppointmentOutcome } from "../types/reception";
+import { useCurrentBranchId } from "@/lib/clinicBranch";
 
 export function useCreateReception() {
   const queryClient = useQueryClient();
+  const branchId = useCurrentBranchId();
 
   return useMutation({
-    mutationFn: (input: CreateReceptionInput) => receptionApi.create(input),
+    mutationFn: (input: CreateReceptionInput) => receptionApi.create({ ...input, branchId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["receptions"] });
       queryClient.invalidateQueries({ queryKey: ["receptionMetrics"] });

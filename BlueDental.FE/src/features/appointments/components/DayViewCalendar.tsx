@@ -3,6 +3,7 @@ import { Button, Input, Select } from "antd";
 import { SearchOutlined, LeftOutlined, RightOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";
+import { useTranslation } from "react-i18next";
 import type { AppointmentDto, AppointmentStatus } from "../types/appointment";
 
 const SLOT_MINUTES = 30;
@@ -30,14 +31,6 @@ const APPT_COLORS: Record<AppointmentStatus, { bg: string; border: string; text:
   noShow:     { bg: "#F3F4F6", border: "#9CA3AF", text: "#9CA3AF" },
 };
 
-const STATUS_FILTER_BUTTONS = [
-  { key: "scheduled",  label: "Đã hẹn",      borderColor: "#1E70E6", bgColor: "#EBF3FE", textColor: "#1E70E6" },
-  { key: "arrived",    label: "Đã đến",      borderColor: "#10B981", bgColor: "#E6F4EA", textColor: "#10B981" },
-  { key: "cancelled",  label: "Huỷ hẹn",     borderColor: "#EF4444", bgColor: "#FCE8E6", textColor: "#EF4444" },
-  { key: "late",       label: "Trễ hẹn",     borderColor: "#F59E0B", bgColor: "#FEF3C7", textColor: "#F59E0B" },
-  { key: "temporary",  label: "Lịch tạm",    borderColor: "#F97316", bgColor: "#FFEDD5", textColor: "#F97316" },
-  { key: "converted",  label: "Chuyển đổi",  borderColor: "#06B6D4", bgColor: "#CFFAFE", textColor: "#06B6D4" },
-];
 
 export interface DayViewDoctor {
   id: string;
@@ -68,6 +61,15 @@ export function DayViewCalendar({
   onKeywordChange,
   onCreateAppointment,
 }: Props) {
+  const { t } = useTranslation();
+  const STATUS_FILTER_BUTTONS = [
+    { key: "scheduled",  label: t("appointment.statusScheduled"),    borderColor: "#1E70E6", bgColor: "#EBF3FE", textColor: "#1E70E6" },
+    { key: "arrived",    label: t("reception.counters.arrived"),      borderColor: "#10B981", bgColor: "#E6F4EA", textColor: "#10B981" },
+    { key: "cancelled",  label: t("reception.counters.cancelled"),    borderColor: "#EF4444", bgColor: "#FCE8E6", textColor: "#EF4444" },
+    { key: "late",       label: t("reception.counters.late"),         borderColor: "#F59E0B", bgColor: "#FEF3C7", textColor: "#F59E0B" },
+    { key: "temporary",  label: t("reception.counters.temporary"),    borderColor: "#F97316", bgColor: "#FFEDD5", textColor: "#F97316" },
+    { key: "converted",  label: t("reception.counters.converted"),    borderColor: "#06B6D4", bgColor: "#CFFAFE", textColor: "#06B6D4" },
+  ];
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const slots = useMemo(() => Array.from({ length: TOTAL_SLOTS }, (_, i) => i), []);
@@ -130,24 +132,24 @@ export function DayViewCalendar({
       <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px", background: "#fff", borderBottom: "1px solid #E5E7EB", flexWrap: "wrap" }}>
         <Input
           prefix={<SearchOutlined style={{ color: "#9CA3AF" }} />}
-          placeholder="Tìm kiếm"
+          placeholder={t("common.search")}
           value={keyword}
           onChange={(e) => onKeywordChange?.(e.target.value)}
           allowClear
           style={{ maxWidth: 200 }}
         />
         <Select
-          placeholder="Chọn bác sĩ"
+          placeholder={t("appointment.selectDoctor")}
           allowClear
           style={{ minWidth: 160 }}
           options={doctors.map((d) => ({ value: d.id, label: d.name }))}
         />
         <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-          <Button size="small">Xuất File</Button>
+          <Button size="small">{t("common.exportExcel")}</Button>
           <Button type="primary" size="small" style={{ background: "#2671D8" }} onClick={onCreateAppointment}>
-            Tạo lịch hẹn mới
+            {t("appointment.createAppointment")}
           </Button>
-          <Button size="small">Tạo lịch tạm</Button>
+          <Button size="small">{t("appointment.createAppointmentTemp")}</Button>
         </div>
       </div>
 
@@ -163,11 +165,11 @@ export function DayViewCalendar({
           >
             {/* Header row */}
             <div style={{ height: HEADER_H, position: "sticky", top: 0, zIndex: 10, background: "#F8FAFC", borderBottom: "2px solid #E5E7EB", borderRight: "1px solid #E5E7EB", padding: "8px 4px", fontSize: 11, color: "#9CA3AF", textAlign: "center", fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              Giờ /<br />BS
+              {t("appointment.headerTimeDoctor").split(" / ")[0]} /<br />{t("appointment.headerTimeDoctor").split(" / ")[1]}
             </div>
             {doctors.length === 0 ? (
               <div style={{ height: HEADER_H, background: "#F8FAFC", borderBottom: "2px solid #E5E7EB", padding: "8px", color: "#9CA3AF", fontSize: 12, textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                Không có bác sĩ
+                {t("appointment.noDoctor")}
               </div>
             ) : (
               doctors.map((doc) => {
@@ -288,9 +290,9 @@ export function DayViewCalendar({
 
       {/* Date nav footer */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, padding: "8px", background: "#fff", borderTop: "1px solid #E5E7EB" }}>
-        <Button type="text" size="small" icon={<LeftOutlined />} onClick={() => onDateChange?.(-1)}>Ngày trước</Button>
+        <Button type="text" size="small" icon={<LeftOutlined />} onClick={() => onDateChange?.(-1)}>{t("appointment.prevDay")}</Button>
         <span style={{ fontWeight: 600, fontSize: 14, color: "#1B2A41" }}>{displayDate}</span>
-        <Button type="text" size="small" onClick={() => onDateChange?.(1)}>Ngày kế tiếp <RightOutlined /></Button>
+        <Button type="text" size="small" onClick={() => onDateChange?.(1)}>{t("appointment.nextDay")} <RightOutlined /></Button>
       </div>
     </div>
   );

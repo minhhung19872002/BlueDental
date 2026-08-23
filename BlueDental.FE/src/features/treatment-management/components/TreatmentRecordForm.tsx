@@ -1,4 +1,5 @@
 import { Form, Input, Button, message } from "antd";
+import { useTranslation } from "react-i18next";
 import { useCreateDiagnosticRecord } from "../api/diagnosticApi";
 import { useAuthStore } from "@/features/auth/store/authStore";
 
@@ -14,6 +15,7 @@ interface FormValues {
 }
 
 export function TreatmentRecordForm({ patientId, onSuccess }: Props) {
+  const { t } = useTranslation();
   const [form] = Form.useForm<FormValues>();
   const [messageApi, contextHolder] = message.useMessage();
   const createMutation = useCreateDiagnosticRecord();
@@ -30,12 +32,12 @@ export function TreatmentRecordForm({ patientId, onSuccess }: Props) {
       },
       {
         onSuccess: () => {
-          void messageApi.success("Đã lưu hồ sơ điều trị");
+          void messageApi.success(t("treatment.saveRecordSuccess"));
           form.resetFields();
           onSuccess?.();
         },
         onError: () => {
-          void messageApi.error("Không thể lưu hồ sơ điều trị. Vui lòng thử lại.");
+          void messageApi.error(t("treatment.saveRecordFailed"));
         },
       },
     );
@@ -52,22 +54,22 @@ export function TreatmentRecordForm({ patientId, onSuccess }: Props) {
       >
         <Form.Item
           name="teethNumbers"
-          label="Số răng"
-          extra="Nhập số răng cách nhau bằng dấu phẩy, ví dụ: 11, 12, 21"
+          label={t("treatment.teethNumbers")}
+          extra={t("treatment.teethNumbersHint")}
         >
           <Input placeholder="11, 12, 21" allowClear />
         </Form.Item>
 
         <Form.Item
           name="diagnosis"
-          label="Chẩn đoán"
+          label={t("treatment.diagnosis")}
           rules={[{ required: true, message: "Vui lòng nhập chẩn đoán" }]}
         >
-          <Input.TextArea rows={3} placeholder="Nhập chẩn đoán..." allowClear />
+          <Input.TextArea rows={3} placeholder={t("treatment.diagnosisPlaceholder")} allowClear />
         </Form.Item>
 
-        <Form.Item name="notes" label="Ghi chú">
-          <Input.TextArea rows={3} placeholder="Ghi chú thêm..." allowClear />
+        <Form.Item name="notes" label={t("common.note")}>
+          <Input.TextArea rows={3} placeholder={t("common.notePlaceholder")} allowClear />
         </Form.Item>
 
         <Form.Item>
@@ -76,7 +78,7 @@ export function TreatmentRecordForm({ patientId, onSuccess }: Props) {
             htmlType="submit"
             loading={createMutation.isPending}
           >
-            Lưu hồ sơ điều trị
+            {t("treatment.saveRecord")}
           </Button>
         </Form.Item>
       </Form>

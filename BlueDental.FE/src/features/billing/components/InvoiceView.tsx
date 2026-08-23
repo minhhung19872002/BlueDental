@@ -1,22 +1,9 @@
 import { Button, Descriptions, Space, Spin, Tag, Typography } from "antd";
 import { PrinterOutlined } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
 import { useInvoice } from "../api";
 
 const { Title, Text } = Typography;
-
-type InvoiceStatus = "draft" | "issued" | "partiallyPaid" | "paid" | "overdue" | "voided";
-
-const STATUS_CONFIG: Record<
-  string,
-  { color: string; label: string }
-> = {
-  draft:         { color: "default", label: "Nháp" },
-  issued:        { color: "blue",    label: "Đã phát hành" },
-  partiallyPaid: { color: "orange",  label: "Thanh toán một phần" },
-  paid:          { color: "green",   label: "Đã thanh toán" },
-  overdue:       { color: "red",     label: "Quá hạn" },
-  voided:        { color: "default", label: "Đã hủy" },
-};
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("vi-VN", {
@@ -34,6 +21,15 @@ interface Props {
 }
 
 export function InvoiceView({ invoiceId }: Props) {
+  const { t } = useTranslation();
+  const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
+    draft:         { color: "default", label: t("billing.statusDraft") },
+    issued:        { color: "blue",    label: t("billing.statusIssued") },
+    partiallyPaid: { color: "orange",  label: t("billing.statusPartiallyPaid") },
+    paid:          { color: "green",   label: t("billing.statusPaid") },
+    overdue:       { color: "red",     label: t("billing.statusOverdue") },
+    voided:        { color: "default", label: t("billing.statusVoided") },
+  };
   const { data: invoice, isLoading, isError } = useInvoice(invoiceId);
 
   if (isLoading) {
@@ -46,7 +42,7 @@ export function InvoiceView({ invoiceId }: Props) {
 
   if (isError || !invoice) {
     return (
-      <Text type="danger">Không thể tải thông tin hóa đơn.</Text>
+      <Text type="danger">{t("billing.loadError")}</Text>
     );
   }
 
@@ -59,7 +55,7 @@ export function InvoiceView({ invoiceId }: Props) {
       <Space style={{ width: "100%", justifyContent: "space-between", marginBottom: 24 }}>
         <Space align="center">
           <Title level={4} style={{ margin: 0 }}>
-            Hóa đơn {invoice.invoiceNumber}
+            {t("billing.invoiceTitle", { number: invoice.invoiceNumber })}
           </Title>
           <Tag color={statusCfg.color}>{statusCfg.label}</Tag>
         </Space>
@@ -67,32 +63,32 @@ export function InvoiceView({ invoiceId }: Props) {
           icon={<PrinterOutlined />}
           onClick={() => window.print()}
         >
-          In hóa đơn
+          {t("billing.printInvoice")}
         </Button>
       </Space>
 
       {/* Patient & dates */}
       <Descriptions bordered column={2} style={{ marginBottom: 24 }}>
-        <Descriptions.Item label="Bệnh nhân" span={2}>
+        <Descriptions.Item label={t("billing.patientName")} span={2}>
           {invoice.patientName}
         </Descriptions.Item>
-        <Descriptions.Item label="Ngày phát hành">
+        <Descriptions.Item label={t("billing.issuedDate")}>
           {formatDate(invoice.issuedDate)}
         </Descriptions.Item>
-        <Descriptions.Item label="Hạn thanh toán">
+        <Descriptions.Item label={t("billing.dueDate")}>
           {invoice.dueDate ? formatDate(invoice.dueDate) : "—"}
         </Descriptions.Item>
       </Descriptions>
 
       {/* Amounts */}
       <Descriptions bordered column={1}>
-        <Descriptions.Item label="Tổng tiền">
+        <Descriptions.Item label={t("billing.totalAmount")}>
           <Text strong>{formatCurrency(invoice.totalAmount)}</Text>
         </Descriptions.Item>
-        <Descriptions.Item label="Đã thanh toán">
+        <Descriptions.Item label={t("billing.paidAmount")}>
           <Text type="success">{formatCurrency(invoice.paidAmount)}</Text>
         </Descriptions.Item>
-        <Descriptions.Item label="Còn lại">
+        <Descriptions.Item label={t("billing.balance")}>
           <Text type={balance > 0 ? "danger" : "secondary"} strong>
             {formatCurrency(balance)}
           </Text>

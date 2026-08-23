@@ -3,6 +3,7 @@ import { Button, Input } from "antd";
 import { SearchOutlined, PlusOutlined } from "@ant-design/icons";
 import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
+import { useTranslation } from "react-i18next";
 import type { AppointmentDto, AppointmentStatus } from "../types/appointment";
 
 const SLOT_MINUTES = 30;
@@ -29,7 +30,6 @@ const APPT_COLORS: Record<AppointmentStatus, { bg: string; border: string; text:
   noShow:     { bg: "#F3F4F6", border: "#9CA3AF", text: "#9CA3AF" },
 };
 
-const DAY_LABELS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 
 interface Props {
   currentDate: Dayjs;
@@ -51,6 +51,11 @@ export function WeekViewCalendar({
   onCellClick,
   onAppointmentClick,
 }: Props) {
+  const { t } = useTranslation();
+  const DAY_LABELS = [
+    t("calendar.sun"), t("calendar.mon"), t("calendar.tue"), t("calendar.wed"),
+    t("calendar.thu"), t("calendar.fri"), t("calendar.sat"),
+  ];
   const weekStart = currentDate.startOf("week");
 
   const days = useMemo(
@@ -79,14 +84,14 @@ export function WeekViewCalendar({
       <div style={{ display: "flex", gap: 8, padding: "10px 16px", borderBottom: "1px solid #E5E7EB", background: "#fff" }}>
         <Input
           prefix={<SearchOutlined />}
-          placeholder="Tìm bệnh nhân..."
+          placeholder={t("appointment.searchPlaceholder")}
           value={keyword}
           onChange={(e) => onKeywordChange?.(e.target.value)}
           style={{ width: 220 }}
           allowClear
         />
         <Button type="primary" icon={<PlusOutlined />} onClick={onCreateAppointment}>
-          Tạo lịch hẹn
+          {t("appointment.createAppointment")}
         </Button>
       </div>
 
@@ -122,7 +127,7 @@ export function WeekViewCalendar({
                 {day.format("DD")}
               </div>
               {dayAppts.length > 0 && (
-                <div style={{ fontSize: 10, color: "#1E70E6", fontWeight: 600 }}>{dayAppts.length} lịch</div>
+                <div style={{ fontSize: 10, color: "#1E70E6", fontWeight: 600 }}>{t("appointment.appointmentCount", { count: dayAppts.length })}</div>
               )}
             </div>
           );

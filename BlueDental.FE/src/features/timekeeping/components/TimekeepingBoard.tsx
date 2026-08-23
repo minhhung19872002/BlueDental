@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Empty, Input, Spin, Switch, Tag, Tooltip, message } from "antd";
 import type { Dayjs } from "dayjs";
+import { useTranslation } from "react-i18next";
 import {
   useCheckIn,
   useCheckOut,
@@ -22,14 +23,6 @@ import { useCurrentBranchId } from "@/lib/clinicBranch";
 interface TimekeepingBoardProps {
   currentDate: Dayjs;
 }
-
-const STATUS_CONFIG: Record<AttendanceStatus, { label: string; color: string }> = {
-  [ATTENDANCE_STATUS.NotStarted]: { label: "Chưa vào ca", color: "default" },
-  [ATTENDANCE_STATUS.Working]: { label: "Đang làm việc", color: "processing" },
-  [ATTENDANCE_STATUS.Completed]: { label: "Hoàn thành", color: "success" },
-  [ATTENDANCE_STATUS.Abandoned]: { label: "Nghỉ ngang", color: "error" },
-  [ATTENDANCE_STATUS.OnLeave]: { label: "Nghỉ", color: "warning" },
-};
 
 /** "08:00:00" -> "08:00" */
 function formatPlanned(time: string): string {
@@ -70,9 +63,10 @@ function ShiftRow({
   onCheckIn: (kind: WorkShiftKind) => void;
   onCheckOut: (kind: WorkShiftKind) => void;
 }) {
+  const { t } = useTranslation();
   const canCheckIn = !shift.checkedInAt;
   const action = canCheckIn ? () => onCheckIn(shift.kind) : () => onCheckOut(shift.kind);
-  const actionLabel = canCheckIn ? "Vào ca" : shift.isOpen ? "Ra ca" : "Đã ra ca";
+  const actionLabel = canCheckIn ? t("timekeeping.checkIn") : shift.isOpen ? t("timekeeping.checkOut") : t("timekeeping.checkedOut");
   const clickable = !disabled && (canCheckIn || shift.isOpen);
 
   return (
@@ -91,7 +85,7 @@ function ShiftRow({
       <span style={{ fontSize: 13, color: "#6B7280", minWidth: 84, textAlign: "center" }}>
         {formatStamp(shift.checkedInAt)} / {formatStamp(shift.checkedOutAt)}
       </span>
-      <Tooltip title={disabled ? "Nhân viên đã đăng ký nghỉ" : undefined}>
+      <Tooltip title={disabled ? t("timekeeping.staffOnLeave") : undefined}>
         <button
           type="button"
           disabled={!clickable}
@@ -114,6 +108,15 @@ function ShiftRow({
 }
 
 function StaffCard({ record }: { record: TimeKeepingRecordDto }) {
+  const { t } = useTranslation();
+  const STATUS_CONFIG: Record<AttendanceStatus, { label: string; color: string }> = {
+    [ATTENDANCE_STATUS.NotStarted]: { label: t("timekeeping.statusNotStarted"), color: "default" },
+    [ATTENDANCE_STATUS.Working]:    { label: t("timekeeping.statusWorking"),    color: "processing" },
+    [ATTENDANCE_STATUS.Completed]:  { label: t("timekeeping.statusCompleted"),  color: "success" },
+    [ATTENDANCE_STATUS.Abandoned]:  { label: t("timekeeping.statusAbandoned"),  color: "error" },
+    [ATTENDANCE_STATUS.OnLeave]:    { label: t("timekeeping.statusOnLeave"),    color: "warning" },
+  };
+
   const registerWorking = useRegisterWorking();
   const registerDayOff = useRegisterDayOff();
   const checkIn = useCheckIn();
@@ -124,19 +127,19 @@ function StaffCard({ record }: { record: TimeKeepingRecordDto }) {
 
   const handleRegistrationChange = (checked: boolean) => {
     const mutation = checked ? registerWorking.mutateAsync(record.id) : registerDayOff.mutateAsync({ id: record.id });
-    void mutation.catch(() => message.error("Không thể đổi đăng ký sau khi đã chấm công."));
+    void mutation.catch(() => message.error(t("timekeeping.registrationChangeFailed")));
   };
 
   const handleCheckIn = (shift: WorkShiftKind) => {
     void checkIn
       .mutateAsync({ id: record.id, input: { shift } })
-      .catch(() => message.error("Không thể vào ca."));
+      .catch(() => message.error(t("timekeeping.checkInFailed")));
   };
 
   const handleCheckOut = (shift: WorkShiftKind) => {
     void checkOut
       .mutateAsync({ id: record.id, input: { shift } })
-      .catch(() => message.error("Không thể ra ca."));
+      .catch(() => message.error(t("timekeeping.checkOutFailed")));
   };
 
   return (
@@ -162,10 +165,10 @@ function StaffCard({ record }: { record: TimeKeepingRecordDto }) {
           />
           <div>
             <div style={{ fontWeight: 600, color: "#1B2A41" }}>
-              {record.staffName ?? "Nhân viên"}
+              {record.staffName ?? t("timekeeping.staff")}
             </div>
             <div style={{ fontSize: 12, color: "#6B7280" }}>
-              Vị trí: {record.staffPosition ?? "Nhân viên"}
+              {t("timekeeping.position")}: {record.staffPosition ?? t("timekeeping.staff")}
             </div>
           </div>
         </div>
@@ -190,8 +193,8 @@ function StaffCard({ record }: { record: TimeKeepingRecordDto }) {
             letterSpacing: 0.4,
           }}
         >
-          <span>LỊCH LÀM VIỆC</span>
-          <span>VÀO CA - RA CA</span>
+          <span>{t("timekeeping.schedule")}</span>
+          <span>{t("timekeeping.checkInOut")}</span>
           <span />
         </div>
         <ShiftRow
@@ -210,7 +213,7 @@ function StaffCard({ record }: { record: TimeKeepingRecordDto }) {
 
       {record.overtimeMinutes > 0 && (
         <div style={{ fontSize: 12, color: "#6B7280" }}>
-          Tăng ca: {formatDuration(record.overtimeMinutes)}
+          {t("timekeeping.overtime")}: {formatDuration(record.overtimeMinutes)}
         </div>
       )}
     </div>
@@ -222,6 +225,7 @@ function StaffCard({ record }: { record: TimeKeepingRecordDto }) {
  * matching the reference layout at /calendar?tab=timekeeping.
  */
 export function TimekeepingBoard({ currentDate }: TimekeepingBoardProps) {
+  const { t } = useTranslation();
   const branchId = useCurrentBranchId();
   const workDate = currentDate.format("YYYY-MM-DD");
   const [keyword, setKeyword] = useState("");
@@ -254,17 +258,17 @@ export function TimekeepingBoard({ currentDate }: TimekeepingBoardProps) {
           borderRadius: 10,
         }}
       >
-        <StatTile value={summary?.totalStaff ?? 0} label="Tổng CBNV" />
-        <StatTile value={summary?.registeredWorking ?? 0} label="Đăng kí làm" />
-        <StatTile value={summary?.registeredDayOff ?? 0} label="Đăng kí nghỉ" />
-        <StatTile value={summary?.currentlyWorking ?? 0} label="Đang làm việc" />
-        <StatTile value={summary?.abandoned ?? 0} label="Nghỉ ngang" />
-        <StatTile value={formatDuration(summary?.totalOvertimeMinutes ?? 0)} label="Giờ tăng ca" />
+        <StatTile value={summary?.totalStaff ?? 0} label={t("timekeeping.totalStaff")} />
+        <StatTile value={summary?.registeredWorking ?? 0} label={t("timekeeping.registeredWorking")} />
+        <StatTile value={summary?.registeredDayOff ?? 0} label={t("timekeeping.registeredDayOff")} />
+        <StatTile value={summary?.currentlyWorking ?? 0} label={t("timekeeping.currentlyWorking")} />
+        <StatTile value={summary?.abandoned ?? 0} label={t("timekeeping.abandoned")} />
+        <StatTile value={formatDuration(summary?.totalOvertimeMinutes ?? 0)} label={t("timekeeping.overtimeHours")} />
       </div>
 
       <Input.Search
         allowClear
-        placeholder="Tìm kiếm"
+        placeholder={t("common.search")}
         value={keyword}
         onChange={(e) => setKeyword(e.target.value)}
         style={{ maxWidth: 320 }}
@@ -275,7 +279,7 @@ export function TimekeepingBoard({ currentDate }: TimekeepingBoardProps) {
           <Spin />
         </div>
       ) : records.length === 0 ? (
-        <Empty description="Chưa có dữ liệu chấm công cho ngày này" />
+        <Empty description={t("timekeeping.noData")} />
       ) : (
         <div
           style={{

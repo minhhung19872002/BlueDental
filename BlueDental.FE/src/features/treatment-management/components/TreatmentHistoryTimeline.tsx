@@ -1,4 +1,5 @@
 import { Timeline, Empty, Spin } from "antd";
+import { useTranslation } from "react-i18next";
 import { usePatientDiagnoses } from "../api/consultingQueries";
 import { usePatientConsultationRecords } from "../api/consultationApi";
 
@@ -19,6 +20,7 @@ function formatDate(value: string): string {
 }
 
 export function TreatmentHistoryTimeline({ patientId }: Props) {
+  const { t } = useTranslation();
   const diagnosesQuery = usePatientDiagnoses({ patientId, maxResultCount: 100 });
   const consultationsQuery = usePatientConsultationRecords(patientId);
 
@@ -37,7 +39,7 @@ export function TreatmentHistoryTimeline({ patientId }: Props) {
   for (const diag of diagnosesQuery.data?.items ?? []) {
     entries.push({
       date: new Date(diag.creationTime),
-      label: diag.diagnosisName ?? "Chẩn đoán",
+      label: diag.diagnosisName ?? t("treatment.diagnosis"),
       description: [
         diag.staffName ? `BS: ${diag.staffName}` : null,
         diag.note ?? null,
@@ -58,7 +60,7 @@ export function TreatmentHistoryTimeline({ patientId }: Props) {
   entries.sort((a, b) => b.date.getTime() - a.date.getTime());
 
   if (entries.length === 0) {
-    return <Empty description="Chưa có lịch sử điều trị" />;
+    return <Empty description={t("treatment.noHistory")} />;
   }
 
   return (

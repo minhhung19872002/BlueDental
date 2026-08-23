@@ -37,12 +37,12 @@ public class ContactInfo : ValueObject
         EmergencyContactPhone = emergencyContactPhone;
     }
 
-    protected override IEnumerable<object?> GetAtomicValues()
+    protected override IEnumerable<object> GetAtomicValues()
     {
-        yield return PhoneNumber;
-        yield return Email;
-        yield return Address;
-        yield return EmergencyContactName;
-        yield return EmergencyContactPhone;
+        yield return PhoneNumber!;
+        yield return Email!;
+        yield return Address!;
+        yield return EmergencyContactName!;
+        yield return EmergencyContactPhone!;
     }
 }

@@ -3,6 +3,7 @@ import { Table, Input, Select, Tag, DatePicker, Space } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
+import { useTranslation } from "react-i18next";
 import { useAuditLogList, type AuditLogDto } from "../api";
 
 const HTTP_METHOD_COLORS: Record<string, string> = {
@@ -16,6 +17,7 @@ const HTTP_METHOD_COLORS: Record<string, string> = {
 const { RangePicker } = DatePicker;
 
 export function AuditLogPage() {
+  const { t } = useTranslation();
   const [userName, setUserName] = useState("");
   const [httpMethod, setHttpMethod] = useState<string | undefined>();
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
@@ -37,21 +39,21 @@ export function AuditLogPage() {
 
   const columns: ColumnsType<AuditLogDto> = [
     {
-      title: "Thời gian",
+      title: t("auditLog.colTime"),
       dataIndex: "executionTime",
       key: "executionTime",
       width: 160,
       render: (v: string) => dayjs(v).format("DD/MM/YYYY HH:mm:ss"),
     },
     {
-      title: "Người dùng",
+      title: t("auditLog.colUser"),
       dataIndex: "userName",
       key: "userName",
       width: 140,
       render: (v: string) => v ?? "—",
     },
     {
-      title: "Phương thức",
+      title: t("auditLog.colMethod"),
       dataIndex: "httpMethod",
       key: "httpMethod",
       width: 100,
@@ -74,7 +76,7 @@ export function AuditLogPage() {
       render: (v: number) => v ? <Tag color={statusColor(v)}>{v}</Tag> : "—",
     },
     {
-      title: "Thời gian xử lý",
+      title: t("auditLog.colDuration"),
       dataIndex: "executionDuration",
       key: "executionDuration",
       width: 130,
@@ -88,11 +90,11 @@ export function AuditLogPage() {
       render: (v: string) => v ?? "—",
     },
     {
-      title: "Lỗi",
+      title: t("auditLog.colError"),
       dataIndex: "exceptions",
       key: "exceptions",
       width: 80,
-      render: (v: string) => v ? <Tag color="red">Có lỗi</Tag> : <Tag color="green">OK</Tag>,
+      render: (v: string) => v ? <Tag color="red">{t("auditLog.hasError")}</Tag> : <Tag color="green">OK</Tag>,
     },
   ];
 
@@ -100,24 +102,24 @@ export function AuditLogPage() {
     <div className="reception-page">
       <div className="reception-card reception-card--toolbar">
         <div style={{ fontWeight: 700, fontSize: 18, color: "#1B2A41", marginBottom: 4 }}>
-          Nhật ký hoạt động
+          {t("auditLog.pageTitle")}
         </div>
         <div style={{ fontSize: 13, color: "#5A6B82" }}>
-          Lịch sử các thao tác trong hệ thống
+          {t("auditLog.pageSubtitle")}
         </div>
       </div>
       <div className="reception-card reception-card--toolbar">
         <Space wrap>
           <Input
             prefix={<SearchOutlined />}
-            placeholder="Tên người dùng..."
+            placeholder={t("auditLog.searchPlaceholder")}
             value={userName}
             onChange={(e) => setUserName(e.target.value)}
             style={{ width: 200 }}
             allowClear
           />
           <Select
-            placeholder="Phương thức HTTP"
+            placeholder={t("auditLog.methodPlaceholder")}
             allowClear
             style={{ width: 160 }}
             value={httpMethod}
@@ -136,8 +138,8 @@ export function AuditLogPage() {
           dataSource={data?.items ?? []}
           columns={columns}
           loading={isLoading}
-          pagination={{ pageSize: 50, showTotal: (total) => `${total} bản ghi` }}
-          locale={{ emptyText: "Không có dữ liệu nhật ký" }}
+          pagination={{ pageSize: 50, showTotal: (total) => t("auditLog.showTotal", { total }) }}
+          locale={{ emptyText: t("auditLog.emptyText") }}
           size="small"
           scroll={{ x: 1100 }}
         />

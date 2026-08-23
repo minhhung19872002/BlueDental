@@ -1,6 +1,7 @@
 // StockAdjustmentModal — records stock-in, stock-out, or adjustment transactions.
 
 import { Modal, Button, Form, Select, Input, InputNumber, message } from "antd";
+import { useTranslation } from "react-i18next";
 import { useAdjustStock, useInventoryList } from "../api/index";
 
 interface Props {
@@ -17,13 +18,15 @@ interface AdjustmentFormValues {
   reason: string;
 }
 
-const ADJUSTMENT_TYPE_OPTIONS = [
-  { value: "stock_in",   label: "Nhập kho" },
-  { value: "stock_out",  label: "Xuất kho" },
-  { value: "inventory",  label: "Kiểm kê" },
-];
-
 export function StockAdjustmentModal({ open, onClose, itemId }: Props) {
+  const { t } = useTranslation();
+
+  const ADJUSTMENT_TYPE_OPTIONS = [
+    { value: "stock_in",  label: t("inventory.stockIn") },
+    { value: "stock_out", label: t("inventory.stockOut") },
+    { value: "inventory", label: t("inventory.stockCount") },
+  ];
+
   const [form] = Form.useForm<AdjustmentFormValues>();
   const [messageApi, contextHolder] = message.useMessage();
 
@@ -34,7 +37,7 @@ export function StockAdjustmentModal({ open, onClose, itemId }: Props) {
 
   const itemOptions = (inventoryPage?.items ?? []).map((item) => ({
     value: item.id,
-    label: `${item.name} (${item.itemCode}) — tồn: ${item.currentStock} ${item.unit}`,
+    label: `${item.name} (${item.itemCode}) — ${t("inventory.stock")}: ${item.currentStock} ${item.unit}`,
   }));
 
   const handleSubmit = async () => {
@@ -55,12 +58,12 @@ export function StockAdjustmentModal({ open, onClose, itemId }: Props) {
       { id: resolvedItemId, adjustment: delta, note: values.reason },
       {
         onSuccess: () => {
-          void messageApi.success("Điều chỉnh kho thành công!");
+          void messageApi.success(t("inventory.adjustSuccess"));
           form.resetFields();
           onClose();
         },
         onError: () => {
-          void messageApi.error("Không thể điều chỉnh kho. Vui lòng thử lại.");
+          void messageApi.error(t("inventory.adjustFailed"));
         },
       },
     );
@@ -76,11 +79,11 @@ export function StockAdjustmentModal({ open, onClose, itemId }: Props) {
       {contextHolder}
       <Modal
         open={open}
-        title="Điều chỉnh kho"
+        title={t("inventory.adjustStock")}
         onCancel={handleCancel}
         footer={[
           <Button key="cancel" onClick={handleCancel}>
-            Hủy
+            {t("common.cancel")}
           </Button>,
           <Button
             key="submit"
@@ -89,7 +92,7 @@ export function StockAdjustmentModal({ open, onClose, itemId }: Props) {
             loading={adjustStock.isPending}
             style={{ background: "#2671D8" }}
           >
-            Lưu điều chỉnh
+            {t("inventory.saveAdjustment")}
           </Button>,
         ]}
         width={520}
@@ -104,12 +107,12 @@ export function StockAdjustmentModal({ open, onClose, itemId }: Props) {
           {!itemId && (
             <Form.Item
               name="itemId"
-              label="Vật tư"
+              label={t("inventory.material")}
               rules={[{ required: true, message: "Vui lòng chọn vật tư" }]}
             >
               <Select
                 showSearch
-                placeholder="Tìm và chọn vật tư..."
+                placeholder={t("inventory.searchMaterial")}
                 loading={inventoryLoading}
                 options={itemOptions}
                 optionFilterProp="label"
@@ -122,18 +125,18 @@ export function StockAdjustmentModal({ open, onClose, itemId }: Props) {
 
           <Form.Item
             name="adjustmentType"
-            label="Loại điều chỉnh"
+            label={t("inventory.adjustmentType")}
             rules={[{ required: true, message: "Vui lòng chọn loại điều chỉnh" }]}
           >
             <Select
-              placeholder="Chọn loại điều chỉnh"
+              placeholder={t("inventory.selectAdjustmentType")}
               options={ADJUSTMENT_TYPE_OPTIONS}
             />
           </Form.Item>
 
           <Form.Item
             name="quantity"
-            label="Số lượng"
+            label={t("inventory.quantity")}
             rules={[
               { required: true, message: "Vui lòng nhập số lượng" },
               { type: "number", min: 1, message: "Số lượng phải lớn hơn 0" },
@@ -148,11 +151,11 @@ export function StockAdjustmentModal({ open, onClose, itemId }: Props) {
 
           <Form.Item
             name="reason"
-            label="Lý do"
+            label={t("inventory.reason")}
             rules={[{ required: true, message: "Vui lòng nhập lý do điều chỉnh" }]}
           >
             <Input.TextArea
-              placeholder="Nhập lý do điều chỉnh..."
+              placeholder={t("inventory.reasonPlaceholder")}
               rows={3}
               showCount
               maxLength={500}

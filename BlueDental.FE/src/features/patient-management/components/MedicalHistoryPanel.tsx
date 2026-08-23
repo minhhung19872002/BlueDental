@@ -2,16 +2,18 @@
 // TODO: Implement rich text editing with auto-save.
 
 import { Typography } from "antd";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   history: string | null;
 }
 
 export function MedicalHistoryPanel({ history }: Props) {
+  const { t } = useTranslation();
   if (!history) {
     return (
       <Typography.Text type="secondary">
-        Chưa có thông tin tiền sử bệnh.
+        {t("treatment.noMedicalHistory")}
       </Typography.Text>
     );
   }

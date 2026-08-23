@@ -1,8 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import type { PagedResult } from "@/types";
-
-const DEFAULT_BRANCH_ID = "00000000-0000-0000-0000-000000000001";
+import { useCurrentBranchId } from "@/lib/clinicBranch";
 
 // ── DTOs ──────────────────────────────────────────────────────────────────
 
@@ -68,22 +67,24 @@ const inventoryApi = {
 // ── Hooks ─────────────────────────────────────────────────────────────────
 
 export function useInventoryItemList(params?: { filter?: string; needsReorder?: boolean }) {
+  const branchId = useCurrentBranchId();
   return useQuery({
-    queryKey: ["inventory-items", params],
+    queryKey: ["inventory-items", branchId, params],
     queryFn: () =>
       inventoryApi.list({
         ...params,
-        branchId: DEFAULT_BRANCH_ID,
+        branchId,
         maxResultCount: 200,
       }),
   });
 }
 
 export function useCreateInventoryItem() {
+  const branchId = useCurrentBranchId();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: Omit<CreateInventoryItemDto, "branchId">) =>
-      inventoryApi.create({ ...data, branchId: DEFAULT_BRANCH_ID }),
+      inventoryApi.create({ ...data, branchId }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["inventory-items"] }),
   });
 }

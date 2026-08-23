@@ -2,7 +2,9 @@
 // TODO: Wire to reporting API and implement with Recharts.
 
 import { Empty } from "antd";
+import { useTranslation } from "react-i18next";
 
 export function PatientStatisticsChart() {
-  return <Empty description="Biểu đồ thống kê bệnh nhân đang được phát triển." />;
+  const { t } = useTranslation();
+  return <Empty description={t("report.patientStatsInDevelopment")} />;
 }

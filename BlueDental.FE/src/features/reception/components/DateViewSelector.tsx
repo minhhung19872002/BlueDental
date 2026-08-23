@@ -6,12 +6,23 @@ import {
   CalendarOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
+import { useTranslation } from "react-i18next";
 
 const { Text } = Typography;
 
 export const DateViewSelector: React.FC = () => {
+  const { t } = useTranslation();
   const [viewMode, setViewMode] = useState<"day" | "week" | "month">("day");
   const [currentDate, setCurrentDate] = useState(dayjs());
+
+  const dayLabel = t("dateView.day");
+  const weekLabel = t("dateView.week");
+  const monthLabel = t("dateView.month");
+
+  const viewOptions = [dayLabel, weekLabel, monthLabel];
+
+  const segmentedValue =
+    viewMode === "day" ? dayLabel : viewMode === "week" ? weekLabel : monthLabel;
 
   const handlePrev = () => {
     if (viewMode === "day") setCurrentDate(currentDate.subtract(1, "day"));
@@ -32,14 +43,14 @@ export const DateViewSelector: React.FC = () => {
   const formatDateDisplay = () => {
     if (viewMode === "day") {
       const isToday = currentDate.isSame(dayjs(), "day");
-      return `${isToday ? "Hôm nay " : ""}(${currentDate.format("DD/MM/YYYY")})`;
+      return `${isToday ? t("dateView.today") + " " : ""}(${currentDate.format("DD/MM/YYYY")})`;
     }
     if (viewMode === "week") {
       const start = currentDate.startOf("week").format("DD/MM");
       const end = currentDate.endOf("week").format("DD/MM/YYYY");
-      return `Tuần (${start} - ${end})`;
+      return `${t("dateView.week")} (${start} - ${end})`;
     }
-    return `Tháng ${currentDate.format("MM/YYYY")}`;
+    return `${t("dateView.month")} ${currentDate.format("MM/YYYY")}`;
   };
 
   return (
@@ -57,13 +68,13 @@ export const DateViewSelector: React.FC = () => {
       }}
     >
       <Segmented
-        value={viewMode === "day" ? "Ngày" : viewMode === "week" ? "Tuần" : "Tháng"}
+        value={segmentedValue}
         onChange={(val) => {
-          if (val === "Ngày") setViewMode("day");
-          else if (val === "Tuần") setViewMode("week");
+          if (val === dayLabel) setViewMode("day");
+          else if (val === weekLabel) setViewMode("week");
           else setViewMode("month");
         }}
-        options={["Ngày", "Tuần", "Tháng"]}
+        options={viewOptions}
         style={{ fontWeight: 600 }}
       />
 
@@ -80,7 +91,7 @@ export const DateViewSelector: React.FC = () => {
           onClick={handleToday}
           style={{ fontWeight: 600, borderRadius: 6, color: "#2671D8" }}
         >
-          Hôm nay
+          {t("dateView.today")}
         </Button>
 
         <Button

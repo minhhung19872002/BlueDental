@@ -4,13 +4,6 @@ using Volo.Abp.Domain.Values;
 
 namespace BlueDental.Values;
 
-/// <summary>
-/// Value object base that actually compares by value.
-///
-/// ABP's <see cref="ValueObject"/> declares <c>GetAtomicValues()</c> but does not
-/// override <see cref="object.Equals(object)"/>, so plain subclasses still compare
-/// by reference. Deriving from this class restores the DDD semantics.
-/// </summary>
 public abstract class ComparableValueObject : ValueObject
 {
     public override bool Equals(object? obj)

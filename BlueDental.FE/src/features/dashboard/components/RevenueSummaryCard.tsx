@@ -1,11 +1,13 @@
 import { Spin } from "antd";
 import { DollarOutlined } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
 import { brand } from "@/theme/index";
 import { useRevenueReport } from "@/features/report/api/reportingApi";
 import { formatVND } from "@/utils/format";
 import dayjs from "dayjs";
 
 export function RevenueSummaryCard() {
+  const { t } = useTranslation();
   const today = dayjs().format("YYYY-MM-DD");
   const { data, isLoading } = useRevenueReport({ startDate: today, endDate: today });
 
@@ -17,7 +19,7 @@ export function RevenueSummaryCard() {
     <div className="stat-card">
       <div className="stat-card-head">
         <div>
-          <div className="stat-card-label">Doanh thu hôm nay</div>
+          <div className="stat-card-label">{t("dashboard.todayRevenue")}</div>
           {isLoading ? (
             <Spin size="small" style={{ marginTop: 8 }} />
           ) : (
@@ -28,7 +30,7 @@ export function RevenueSummaryCard() {
           <DollarOutlined />
         </div>
       </div>
-      <div className="stat-card-footer">Tổng doanh thu trong ngày</div>
+      <div className="stat-card-footer">{t("dashboard.todayRevenueSubtitle")}</div>
     </div>
   );
 }

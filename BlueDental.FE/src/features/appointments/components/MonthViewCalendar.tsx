@@ -1,9 +1,9 @@
 import { useMemo } from "react";
 import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
+import { useTranslation } from "react-i18next";
 import type { AppointmentDto } from "../types/appointment";
 
-const DAY_LABELS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 
 const STATUS_DOT_COLOR: Record<string, string> = {
   scheduled:  "#1677ff",
@@ -23,6 +23,11 @@ interface Props {
 }
 
 export function MonthViewCalendar({ currentDate, appointments = [], onDayClick, onAppointmentClick: _onAppointmentClick, onCreateAppointment: _onCreateAppointment }: Props) {
+  const { t } = useTranslation();
+  const DAY_LABELS = [
+    t("calendar.sun"), t("calendar.mon"), t("calendar.tue"), t("calendar.wed"),
+    t("calendar.thu"), t("calendar.fri"), t("calendar.sat"),
+  ];
   const monthStart = currentDate.startOf("month");
   const monthEnd = currentDate.endOf("month");
   const calStart = monthStart.startOf("week");

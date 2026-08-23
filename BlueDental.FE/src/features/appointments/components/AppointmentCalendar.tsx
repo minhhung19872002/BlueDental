@@ -6,14 +6,13 @@ import { useMemo } from "react";
 import { Button } from "antd";
 import { LeftOutlined, RightOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
+import { useTranslation } from "react-i18next";
 import type { Appointment } from "../types/appointment";
 
 const SLOT_MINUTES = 30;
 const DAY_START = 8 * 60; // 08:00 in minutes
 const DAY_END = 18 * 60; // 18:00 in minutes
 const SLOTS = (DAY_END - DAY_START) / SLOT_MINUTES;
-
-const DAY_NAMES = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "CN"];
 
 function formatSlotTime(slotIndex: number): string {
   const totalMinutes = DAY_START + slotIndex * SLOT_MINUTES;
@@ -39,6 +38,11 @@ export function AppointmentCalendar({
   onSlotClick,
   onAppointmentClick,
 }: Props) {
+  const { t } = useTranslation();
+  const DAY_NAMES = [
+    t("calendar.mon"), t("calendar.tue"), t("calendar.wed"),
+    t("calendar.thu"), t("calendar.fri"), t("calendar.sat"), t("calendar.sun"),
+  ];
   const days = useMemo(
     () => Array.from({ length: 7 }, (_, i) => weekStart.add(i, "day")),
     [weekStart],
@@ -207,7 +211,7 @@ export function AppointmentCalendar({
                         cursor: "pointer",
                         marginBottom: 2,
                       }}
-                      title={`${appt.patientName} — ${appt.reason ?? "Khám định kỳ"}`}
+                      title={`${appt.patientName} — ${appt.reason ?? t("appointment.reasonPeriodic")}`}
                     >
                       {appt.patientName}
                     </div>

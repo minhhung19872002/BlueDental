@@ -1,10 +1,12 @@
 import { Spin } from "antd";
 import { CalendarOutlined } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
 import { useAppointmentList } from "@/features/appointments/api/appointmentQueries";
 import dayjs from "dayjs";
 import { brand } from "@/theme/index";
 
 export function TodayAppointmentsCard() {
+  const { t } = useTranslation();
   const today = dayjs().format("YYYY-MM-DD");
   const { data, isLoading } = useAppointmentList({
     date: today,
@@ -19,7 +21,7 @@ export function TodayAppointmentsCard() {
     <div className="stat-card">
       <div className="stat-card-head">
         <div>
-          <div className="stat-card-label">Lịch hẹn hôm nay</div>
+          <div className="stat-card-label">{t("dashboard.todayAppointments")}</div>
           {isLoading ? (
             <Spin size="small" style={{ marginTop: 8 }} />
           ) : (
@@ -34,7 +36,7 @@ export function TodayAppointmentsCard() {
         </div>
       </div>
       <div className="stat-card-footer">
-        {completed} hoàn thành · {upcoming} sắp đến
+        {t("dashboard.appointmentsCompleted", { count: completed })} · {t("dashboard.appointmentsUpcoming", { count: upcoming })}
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import { useConfirmAppointment, useCancelAppointment } from "../api/appointmentM
 import { StatusBadge } from "./StatusBadge";
 import { formatDate } from "@/utils/format";
 import dayjs from "dayjs";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   appointmentId: string | null;
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export function AppointmentDetailDrawer({ appointmentId, onClose }: Props) {
+  const { t } = useTranslation();
   const { data: appointment, isLoading } = useAppointment(appointmentId ?? "");
   const confirmMutation = useConfirmAppointment();
   const cancelMutation = useCancelAppointment();
@@ -22,20 +24,20 @@ export function AppointmentDetailDrawer({ appointmentId, onClose }: Props) {
   const handleConfirm = async () => {
     if (!appointmentId) return;
     await confirmMutation.mutateAsync(appointmentId);
-    message.success("Đã xác nhận lịch hẹn");
+    message.success(t("appointment.confirmSuccess"));
   };
 
   const handleCancel = async () => {
     if (!appointmentId) return;
     await cancelMutation.mutateAsync(appointmentId);
-    message.success("Đã hủy lịch hẹn");
+    message.success(t("appointment.cancelSuccess"));
   };
 
   return (
     <Drawer
       open={Boolean(appointmentId)}
       onClose={onClose}
-      title="Chi tiết lịch hẹn"
+      title={t("appointment.detailTitle")}
       width={480}
       extra={
         appointment && (
@@ -48,14 +50,14 @@ export function AppointmentDetailDrawer({ appointmentId, onClose }: Props) {
                 loading={confirmMutation.isPending}
                 onClick={handleConfirm}
               >
-                Xác nhận
+                {t("appointment.confirmBtn")}
               </Button>
             )}
             {canCancel && (
               <Popconfirm
-                title="Hủy lịch hẹn này?"
-                okText="Hủy lịch"
-                cancelText="Không"
+                title={t("appointment.cancelConfirm")}
+                okText={t("appointment.cancelOk")}
+                cancelText={t("appointment.cancelNo")}
                 okButtonProps={{ danger: true }}
                 onConfirm={handleCancel}
               >
@@ -65,7 +67,7 @@ export function AppointmentDetailDrawer({ appointmentId, onClose }: Props) {
                   size="small"
                   loading={cancelMutation.isPending}
                 >
-                  Hủy lịch
+                  {t("appointment.cancelBtn")}
                 </Button>
               </Popconfirm>
             )}
@@ -81,29 +83,29 @@ export function AppointmentDetailDrawer({ appointmentId, onClose }: Props) {
 
       {appointment && (
         <Descriptions column={1} size="small" bordered>
-          <Descriptions.Item label="Bệnh nhân">
+          <Descriptions.Item label={t("appointment.colPatient")}>
             {appointment.patientName}
           </Descriptions.Item>
-          <Descriptions.Item label="Điện thoại">
+          <Descriptions.Item label={t("common.phone")}>
             {appointment.patientPhone}
           </Descriptions.Item>
-          <Descriptions.Item label="Bác sĩ">
+          <Descriptions.Item label={t("appointment.colDoctor")}>
             {appointment.doctorName}
           </Descriptions.Item>
-          <Descriptions.Item label="Ngày khám">
+          <Descriptions.Item label={t("appointment.colDate")}>
             {formatDate(appointment.startTime)}
           </Descriptions.Item>
-          <Descriptions.Item label="Giờ khám">
+          <Descriptions.Item label={t("appointment.colTime")}>
             {dayjs(appointment.startTime).format("HH:mm")} –{" "}
             {dayjs(appointment.endTime).format("HH:mm")}
           </Descriptions.Item>
-          <Descriptions.Item label="Trạng thái">
+          <Descriptions.Item label={t("common.status")}>
             <StatusBadge status={appointment.status} />
           </Descriptions.Item>
-          <Descriptions.Item label="Lý do khám">
-            {appointment.reason ?? "Khám định kỳ"}
+          <Descriptions.Item label={t("appointment.colReason")}>
+            {appointment.reason ?? t("appointment.reasonPeriodic")}
           </Descriptions.Item>
-          <Descriptions.Item label="Ghi chú">
+          <Descriptions.Item label={t("common.note")}>
             {appointment.notes ?? "—"}
           </Descriptions.Item>
         </Descriptions>

@@ -80,11 +80,11 @@ export const receptionApi = {
     };
   },
 
-  async create(input: CreateReceptionInput): Promise<ReceptionItem> {
+  async create(input: CreateReceptionInput & { branchId: string }): Promise<ReceptionItem> {
     const res = await api.post("/v1/app/visits", {
-      patientId: input.patientId ?? "00000000-0000-0000-0000-000000000001",
+      patientId: input.patientId ?? null,
       dentistId: input.doctorId,
-      branchId: "00000000-0000-0000-0000-000000000001",
+      branchId: input.branchId,
       scheduledAt: new Date().toISOString(),
       chiefComplaint: input.notes,
     });

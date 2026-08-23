@@ -4,6 +4,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import dayjs from "dayjs";
+import { useTranslation } from "react-i18next";
 import { useRegisterPatient, useUpdatePatient } from "../api/patientMutations";
 import { extractApiError } from "@/lib/apiError";
 import type { PatientDto } from "../types/patient";
@@ -34,35 +35,37 @@ interface Props {
   onSuccess?: () => void;
 }
 
-const CHANNEL_MAP: Record<string, { value: string; label: string }[]> = {
-  walk_in: [
-    { value: "direct", label: "Trực tiếp đến" },
-    { value: "appointment_app", label: "Đặt lịch qua app" },
-    { value: "appointment_web", label: "Đặt lịch qua website" },
-  ],
-  referral: [
-    { value: "friend", label: "Bạn bè" },
-    { value: "family", label: "Người thân" },
-    { value: "doctor", label: "Bác sĩ giới thiệu" },
-  ],
-  online: [
-    { value: "facebook", label: "Facebook" },
-    { value: "zalo", label: "Zalo" },
-    { value: "google", label: "Google" },
-    { value: "tiktok", label: "TikTok" },
-    { value: "instagram", label: "Instagram" },
-    { value: "youtube", label: "YouTube" },
-  ],
-};
-
 export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props) {
+  const { t } = useTranslation();
   const isEdit = Boolean(patient);
   const [infoTab, setInfoTab] = useState("basic");
   const [sourceType, setSourceType] = useState<string | undefined>();
 
+  const CHANNEL_MAP: Record<string, { value: string; label: string }[]> = {
+    walk_in: [
+      { value: "direct", label: t("patient.channelDirect") },
+      { value: "appointment_app", label: t("patient.channelApp") },
+      { value: "appointment_web", label: t("patient.channelWeb") },
+    ],
+    referral: [
+      { value: "friend", label: t("patient.channelFriend") },
+      { value: "family", label: t("patient.channelFamily") },
+      { value: "doctor", label: t("patient.channelDoctor") },
+    ],
+    online: [
+      { value: "facebook", label: "Facebook" },
+      { value: "zalo", label: "Zalo" },
+      { value: "google", label: "Google" },
+      { value: "tiktok", label: "TikTok" },
+      { value: "instagram", label: "Instagram" },
+      { value: "youtube", label: "YouTube" },
+    ],
+  };
+
   const channelOptions = useMemo(
     () => (sourceType ? CHANNEL_MAP[sourceType] ?? [] : []),
-    [sourceType],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [sourceType, t],
   );
 
   const {
@@ -140,7 +143,7 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
   return (
     <Modal
       open={open}
-      title={isEdit ? "Chỉnh sửa thông tin bệnh nhân" : "Tạo hồ sơ bệnh nhân"}
+      title={isEdit ? t("patient.editTitle") : t("patient.createTitle")}
       onCancel={onClose}
       footer={null}
       width={1100}
@@ -153,12 +156,12 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
           <Col span={8}>
             <Row gutter={8}>
               <Col span={8}>
-                <Form.Item label="Mã KH">
-                  <Input placeholder="Tự động" disabled />
+                <Form.Item label={t("patient.code")}>
+                  <Input placeholder={t("patient.codeAuto")} disabled />
                 </Form.Item>
               </Col>
               <Col span={16}>
-                <Form.Item label="Họ và tên" required validateStatus={errors.lastName ? "error" : ""} help={errors.lastName?.message}>
+                <Form.Item label={t("patient.fullName")} required validateStatus={errors.lastName ? "error" : ""} help={errors.lastName?.message}>
                   <Controller
                     name="lastName"
                     control={control}
@@ -168,7 +171,7 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
               </Col>
             </Row>
 
-            <Form.Item label="Điện thoại" required validateStatus={errors.phone ? "error" : ""} help={errors.phone?.message}>
+            <Form.Item label={t("common.phone")} required validateStatus={errors.phone ? "error" : ""} help={errors.phone?.message}>
               <Controller
                 name="phone"
                 control={control}
@@ -176,24 +179,24 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
               />
             </Form.Item>
 
-            <Form.Item label="Chọn loại nguồn đến">
+            <Form.Item label={t("patient.sourceType")}>
               <Select
-                placeholder="Chọn nguồn"
+                placeholder={t("patient.selectSource")}
                 allowClear
                 style={{ width: "100%" }}
                 value={sourceType}
                 onChange={(v) => { setSourceType(v); }}
                 options={[
-                  { value: "walk_in", label: "Vãng lai tự tìm đến" },
-                  { value: "referral", label: "Giới thiệu" },
-                  { value: "online", label: "Online" },
+                  { value: "walk_in", label: t("patient.sourceWalkIn") },
+                  { value: "referral", label: t("patient.sourceReferral") },
+                  { value: "online", label: t("patient.sourceOnline") },
                 ]}
               />
             </Form.Item>
 
-            <Form.Item label="Kênh kết nối">
+            <Form.Item label={t("patient.channel")}>
               <Select
-                placeholder={sourceType ? "Chọn kênh" : "Chọn nguồn đến trước"}
+                placeholder={sourceType ? t("patient.selectChannel") : t("patient.selectSourceFirst")}
                 allowClear
                 disabled={!sourceType}
                 style={{ width: "100%" }}
@@ -201,16 +204,16 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
               />
             </Form.Item>
 
-            <Form.Item label="Ngày tạo">
+            <Form.Item label={t("common.createdDate")}>
               <Input value={dayjs().format("DD/MM/YYYY")} disabled />
             </Form.Item>
 
-            <Form.Item label="Lý do đến khám">
+            <Form.Item label={t("patient.examReason")}>
               <Controller
                 name="examReason"
                 control={control}
                 render={({ field }) => (
-                  <Input.TextArea {...field} rows={3} placeholder="Lý do khám bệnh..." maxLength={1000} />
+                  <Input.TextArea {...field} rows={3} placeholder={t("patient.examReasonPlaceholder")} maxLength={1000} />
                 )}
               />
             </Form.Item>
@@ -225,24 +228,24 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
               items={[
                 {
                   key: "basic",
-                  label: "Thông tin cơ bản",
+                  label: t("patient.tabBasic"),
                   children: (
                     <>
-                      <Form.Item label="Giới tính" validateStatus={errors.gender ? "error" : ""}>
+                      <Form.Item label={t("patient.gender")} validateStatus={errors.gender ? "error" : ""}>
                         <Controller
                           name="gender"
                           control={control}
                           render={({ field }) => (
                             <Radio.Group {...field}>
-                              <Radio value="male">Nam</Radio>
-                              <Radio value="female">Nữ</Radio>
-                              <Radio value="other">Khác</Radio>
+                              <Radio value="male">{t("patient.genderMale")}</Radio>
+                              <Radio value="female">{t("patient.genderFemale")}</Radio>
+                              <Radio value="other">{t("patient.genderOther")}</Radio>
                             </Radio.Group>
                           )}
                         />
                       </Form.Item>
 
-                      <Form.Item label="Ngày sinh">
+                      <Form.Item label={t("patient.dateOfBirth")}>
                         <Controller
                           name="dateOfBirth"
                           control={control}
@@ -266,19 +269,19 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
                         />
                       </Form.Item>
 
-                      <Form.Item label="Ghi chú">
+                      <Form.Item label={t("common.note")}>
                         <Controller
                           name="notes"
                           control={control}
                           render={({ field }) => (
-                            <Input.TextArea {...field} rows={3} placeholder="Ghi chú thêm..." />
+                            <Input.TextArea {...field} rows={3} placeholder={t("common.notePlaceholder")} />
                           )}
                         />
                       </Form.Item>
 
-                      <Form.Item label="Nghề nghiệp">
-                        <Select placeholder="Chọn nghề nghiệp" allowClear style={{ width: "100%" }}>
-                          <Select.Option value="other">Khác</Select.Option>
+                      <Form.Item label={t("patient.occupation")}>
+                        <Select placeholder={t("patient.selectOccupation")} allowClear style={{ width: "100%" }}>
+                          <Select.Option value="other">{t("common.other")}</Select.Option>
                         </Select>
                       </Form.Item>
                     </>
@@ -286,14 +289,14 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
                 },
                 {
                   key: "history",
-                  label: "Tiểu sử bệnh",
+                  label: t("patient.tabHistory"),
                   children: (
-                    <Form.Item label="Tiểu sử bệnh">
+                    <Form.Item label={t("patient.medicalHistory")}>
                       <Controller
                         name="medicalHistory"
                         control={control}
                         render={({ field }) => (
-                          <Input.TextArea {...field} rows={8} placeholder="Ghi nhận tiền sử bệnh..." />
+                          <Input.TextArea {...field} rows={8} placeholder={t("patient.medicalHistoryPlaceholder")} />
                         )}
                       />
                     </Form.Item>
@@ -305,29 +308,29 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
 
           {/* Column 3 — Insurance & Address */}
           <Col span={8}>
-            <Form.Item label="Số thẻ BHYT">
+            <Form.Item label={t("patient.insuranceNumber")}>
               <Controller
                 name="insuranceNumber"
                 control={control}
                 render={({ field }) => (
-                  <Input {...field} placeholder="Số thẻ bảo hiểm y tế" minLength={10} maxLength={15} />
+                  <Input {...field} placeholder={t("patient.insuranceNumberPlaceholder")} minLength={10} maxLength={15} />
                 )}
               />
             </Form.Item>
 
-            <Form.Item label="Quốc gia">
+            <Form.Item label={t("patient.country")}>
               <Input value="Việt Nam" disabled />
             </Form.Item>
 
-            <Form.Item label="Số nhà / Đường">
+            <Form.Item label={t("patient.streetAddress")}>
               <Controller
                 name="address"
                 control={control}
-                render={({ field }) => <Input {...field} placeholder="Địa chỉ..." />}
+                render={({ field }) => <Input {...field} placeholder={t("patient.addressPlaceholder")} />}
               />
             </Form.Item>
 
-            <Form.Item label="Tỉnh / Thành phố">
+            <Form.Item label={t("patient.province")}>
               <Controller
                 name="province"
                 control={control}
@@ -336,7 +339,7 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
                     {...field}
                     showSearch
                     allowClear
-                    placeholder="Chọn tỉnh / thành"
+                    placeholder={t("patient.selectProvince")}
                     style={{ width: "100%" }}
                     filterOption={(input, option) =>
                       (option?.label as string ?? "").toLowerCase().includes(input.toLowerCase())
@@ -351,7 +354,7 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
               />
             </Form.Item>
 
-            <Form.Item label="Quận / Huyện">
+            <Form.Item label={t("patient.district")}>
               <Controller
                 name="district"
                 control={control}
@@ -360,7 +363,7 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
                     {...field}
                     showSearch
                     allowClear
-                    placeholder="Chọn quận / huyện"
+                    placeholder={t("patient.selectDistrict")}
                     style={{ width: "100%" }}
                     options={[]}
                   />
@@ -368,7 +371,7 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
               />
             </Form.Item>
 
-            <Form.Item label="Xã / Phường">
+            <Form.Item label={t("patient.ward")}>
               <Controller
                 name="ward"
                 control={control}
@@ -377,7 +380,7 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
                     {...field}
                     showSearch
                     allowClear
-                    placeholder="Chọn xã / phường"
+                    placeholder={t("patient.selectWard")}
                     style={{ width: "100%" }}
                     options={[]}
                   />
@@ -394,9 +397,9 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
         )}
 
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", paddingTop: 8, borderTop: "1px solid #E5E7EB" }}>
-          <Button onClick={onClose}>Hủy</Button>
+          <Button onClick={onClose}>{t("common.cancel")}</Button>
           <Button type="primary" htmlType="submit" loading={isPending} icon={<span>💾</span>}>
-            {isEdit ? "Lưu thay đổi" : "Lưu"}
+            {isEdit ? t("common.saveChanges") : t("common.save")}
           </Button>
         </div>
       </form>

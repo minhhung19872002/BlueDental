@@ -10,15 +10,10 @@ import {
   Spin,
   Typography,
 } from "antd";
+import { useTranslation } from "react-i18next";
 import { useInvoice, useRecordPayment, type RecordPaymentRequest } from "../api";
 
 const { Text } = Typography;
-
-const PAYMENT_METHODS: { value: string; label: string }[] = [
-  { value: "Cash",     label: "Tiền mặt" },
-  { value: "Transfer", label: "Chuyển khoản" },
-  { value: "Card",     label: "Thẻ" },
-];
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("vi-VN", {
@@ -40,6 +35,12 @@ interface FormValues {
 }
 
 export function PaymentModal({ open, onClose, invoiceId }: Props) {
+  const { t } = useTranslation();
+  const PAYMENT_METHODS: { value: string; label: string }[] = [
+    { value: "Cash",     label: t("billing.paymentCash") },
+    { value: "Transfer", label: t("billing.paymentTransfer") },
+    { value: "Card",     label: t("billing.paymentCard") },
+  ];
   const [form] = Form.useForm<FormValues>();
   const [messageApi, contextHolder] = message.useMessage();
 
@@ -70,11 +71,11 @@ export function PaymentModal({ open, onClose, invoiceId }: Props) {
       { id: invoiceId, data: payload },
       {
         onSuccess: () => {
-          messageApi.success("Ghi nhận thanh toán thành công.");
+          messageApi.success(t("billing.paymentSuccess"));
           handleClose();
         },
         onError: () => {
-          messageApi.error("Ghi nhận thanh toán thất bại. Vui lòng thử lại.");
+          messageApi.error(t("billing.paymentFailed"));
         },
       }
     );
@@ -85,7 +86,7 @@ export function PaymentModal({ open, onClose, invoiceId }: Props) {
       {contextHolder}
       <Modal
         open={open}
-        title="Ghi nhận thanh toán"
+        title={t("billing.recordPayment")}
         onCancel={handleClose}
         footer={null}
         destroyOnClose
@@ -98,7 +99,7 @@ export function PaymentModal({ open, onClose, invoiceId }: Props) {
           <>
             {invoice && (
               <div style={{ marginBottom: 16 }}>
-                <Text type="secondary">Còn lại cần thanh toán: </Text>
+                <Text type="secondary">{t("billing.remainingBalance")}: </Text>
                 <Text strong type={balance > 0 ? "danger" : "success"}>
                   {formatCurrency(balance)}
                 </Text>
@@ -113,7 +114,7 @@ export function PaymentModal({ open, onClose, invoiceId }: Props) {
             >
               <Form.Item
                 name="amount"
-                label="Số tiền thanh toán"
+                label={t("billing.paymentAmount")}
                 rules={[
                   { required: true, message: "Vui lòng nhập số tiền." },
                   {
@@ -147,22 +148,22 @@ export function PaymentModal({ open, onClose, invoiceId }: Props) {
 
               <Form.Item
                 name="paymentMethod"
-                label="Phương thức thanh toán"
+                label={t("billing.paymentMethod")}
                 rules={[{ required: true, message: "Vui lòng chọn phương thức." }]}
               >
                 <Select options={PAYMENT_METHODS} />
               </Form.Item>
 
-              <Form.Item name="note" label="Ghi chú (tuỳ chọn)">
-                <Input.TextArea rows={3} placeholder="Nhập ghi chú nếu cần..." />
+              <Form.Item name="note" label={t("billing.noteOptional")}>
+                <Input.TextArea rows={3} placeholder={t("billing.notePlaceholder")} />
               </Form.Item>
 
               <Form.Item style={{ marginBottom: 0, textAlign: "right" }}>
                 <Button style={{ marginRight: 8 }} onClick={handleClose}>
-                  Huỷ
+                  {t("common.cancel")}
                 </Button>
                 <Button type="primary" htmlType="submit" loading={isPending}>
-                  Xác nhận thanh toán
+                  {t("billing.confirmPayment")}
                 </Button>
               </Form.Item>
             </Form>

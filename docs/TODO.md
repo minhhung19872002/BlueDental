@@ -1,13 +1,12 @@
-# BlueDental — Master TODO (Audit #7, 23 Aug 2026)
+# BlueDental — Master TODO (Audit #9, 23 Aug 2026)
 
-Current: **FE 98% | BE 100% | Overall 99%**
+Current: **FE 87% | BE 100% | Overall 94%**
 Target: **100%**
 
-> **Audit #7 (23 Aug 2026)**: All items from Audit #6 addressed.
-> BE: ICurrentClinicBranchResolver created, all 23+ services use mandatory branch enforcement.
-> FE: All stub pages wired, InsuranceClaimView implemented, StockAdjustmentModal wired,
-> dead reporting/ folder deleted, TreatmentRecordForm dentistId fixed, i18n adopted in ALL feature pages.
-> Both builds pass: `dotnet build` 0 errors, `npx tsc --noEmit` 0 errors.
+> **Audit #9 (23 Aug 2026)**: Verified by independent agents.
+> BE: 100% — 0 errors, 0 warnings. CS8609 fixes confirmed.
+> FE: 87% — Orgs CRUD done, Settings wired, i18n 95% by file count (57/60).
+> Remaining: DentalChartView hard-coded Vietnamese aria-labels, branchId fallback UUID.
 
 ---
 
@@ -149,26 +148,34 @@ Target: **100%**
 
 ---
 
-## Remaining Work
+## Remaining Work (Verified Audit #9)
 
-### FE (~2% gap to 100%)
-1. [ ] Complete `IdentityAdministrationPage` i18n (ABP Identity module — uses ABP's own localization)
-2. [ ] Complete `AuditLogPage` i18n (ABP Audit Log module — uses ABP's own localization)
+### BE — 100% COMPLETE
+- [x] All CS8609 warnings fixed. Build: 0 errors, 0 warnings.
 
-These are ABP built-in module pages and may not need custom i18n — they use ABP's localization system.
+### FE — 87% (13% gap to 100%)
+
+#### i18n (57/60 files done — 3 remaining)
+- [ ] `DentalChartView.tsx` — 4 hard-coded Vietnamese aria-labels: "Răng ${fdi}", "Biểu đồ nha khoa 32 răng", "Hàm trên", "Hàm dưới"
+  - File: `BlueDental.FE/src/features/patient-management/components/DentalChartView.tsx`
+
+#### branchId
+- [~] `useCurrentBranchId()` now reads from auth store (dynamic) — but fallback `DEFAULT_BRANCH_ID = "11111111-..."` is still hard-coded
+  - File: `BlueDental.FE/src/lib/clinicBranch.ts`
+  - Impact: works for single-branch, blocks multi-branch switching
 
 ### Permanently deferred (not counted toward 100%)
 - External integrations: Stringee (VoIP), SMS gateway, Zalo OA, MISA (accounting)
 
 ---
 
-## Estimated Impact per Phase
+## Verified Scores (Audit #9 — Independent Agents)
 
-| Phase | Description | Status | Score |
+| Phase | Description | Status | Verified Score |
 |-------|-------------|--------|-------|
 | 1 | BE Security Fixes | DONE | 100% BE |
 | 2 | BE Functionality Fixes | DONE | 100% BE |
-| 3 | FE Route Wiring | DONE | 98% FE |
-| 4 | FE Functionality Fixes | DONE | 98% FE |
-| 5 | i18n Infrastructure + Adoption | DONE | 98% FE |
-| 6 | Testing & Verification | DONE | — |
+| 3 | FE Route Wiring | DONE (Orgs CRUD, Settings real data) | 87% FE |
+| 4 | FE Functionality Fixes | DONE | 87% FE |
+| 5 | i18n Adoption | 95% by file count (57/60) | 87% FE |
+| 6 | Testing & Verification | DONE (BE 0W/0E, FE tsc clean) | — |

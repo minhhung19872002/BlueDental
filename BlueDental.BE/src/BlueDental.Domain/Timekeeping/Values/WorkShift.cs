@@ -115,12 +115,12 @@ public class WorkShift : ComparableValueObject
     public WorkShift Reschedule(TimeOnly plannedStart, TimeOnly plannedEnd)
         => new(Kind, plannedStart, plannedEnd, CheckedInAt, CheckedOutAt);
 
-    protected override IEnumerable<object?> GetAtomicValues()
+    protected override IEnumerable<object> GetAtomicValues()
     {
         yield return Kind;
         yield return PlannedStart;
         yield return PlannedEnd;
-        yield return CheckedInAt;
-        yield return CheckedOutAt;
+        yield return (object?)CheckedInAt ?? string.Empty;
+        yield return (object?)CheckedOutAt ?? string.Empty;
     }
 }

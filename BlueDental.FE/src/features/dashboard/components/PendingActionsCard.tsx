@@ -1,9 +1,11 @@
 import { Spin } from "antd";
 import { ExclamationCircleOutlined } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
 import { brand } from "@/theme/index";
 import { useReceptionList } from "@/features/reception/api/receptionQueries";
 
 export function PendingActionsCard() {
+  const { t } = useTranslation();
   const { data, isLoading } = useReceptionList({ status: "WaitingForExam" });
 
   const waitingCount = data?.total ?? 0;
@@ -12,7 +14,7 @@ export function PendingActionsCard() {
     <div className="stat-card">
       <div className="stat-card-head">
         <div>
-          <div className="stat-card-label">Đang chờ khám</div>
+          <div className="stat-card-label">{t("dashboard.pendingExam")}</div>
           {isLoading ? (
             <Spin size="small" style={{ marginTop: 8 }} />
           ) : (
@@ -23,7 +25,7 @@ export function PendingActionsCard() {
           <ExclamationCircleOutlined />
         </div>
       </div>
-      <div className="stat-card-footer">Bệnh nhân chờ tiếp nhận hôm nay</div>
+      <div className="stat-card-footer">{t("dashboard.pendingExamSubtitle")}</div>
     </div>
   );
 }

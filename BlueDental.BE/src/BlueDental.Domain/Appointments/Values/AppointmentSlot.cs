@@ -43,7 +43,7 @@ public class AppointmentSlot : ValueObject
     public override string ToString() =>
         $"{Start:yyyy-MM-dd HH:mm} – {End:HH:mm} ({DurationMinutes} min)";
 
-    protected override IEnumerable<object?> GetAtomicValues()
+    protected override IEnumerable<object> GetAtomicValues()
     {
         yield return Start;
         yield return End;

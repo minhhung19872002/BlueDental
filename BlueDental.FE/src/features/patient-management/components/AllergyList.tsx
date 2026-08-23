@@ -3,14 +3,16 @@
 
 import { Tag, Empty } from "antd";
 import { WarningOutlined } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   allergies: string[];
 }
 
 export function AllergyList({ allergies }: Props) {
+  const { t } = useTranslation();
   if (allergies.length === 0) {
-    return <Empty description="Không có dị ứng đã ghi nhận" />;
+    return <Empty description={t("treatment.noAllergies")} />;
   }
 
   return (
