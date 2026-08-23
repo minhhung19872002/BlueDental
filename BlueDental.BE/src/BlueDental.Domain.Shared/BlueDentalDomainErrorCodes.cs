@@ -107,6 +107,14 @@ public static class BlueDentalDomainErrorCodes
         public const string DuplicateOrderCode = "BlueDental:Labo:0003";
     }
 
+    public static class Operations
+    {
+        public const string ArticleNotFound = "BlueDental:Operations:0001";
+        public const string EmptyArticleContent = "BlueDental:Operations:0002";
+        public const string TaskNotFound = "BlueDental:Operations:0003";
+        public const string InvalidTaskTransition = "BlueDental:Operations:0004";
+    }
+
     public static class Promotions
     {
         public const string VoucherNotFound = "BlueDental:Promotions:0001";

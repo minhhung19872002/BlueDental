@@ -6,6 +6,7 @@ using BlueDental.FileManagement;
 using BlueDental.Inventory;
 using BlueDental.Labo;
 using BlueDental.Notifications;
+using BlueDental.Operations;
 using BlueDental.Organizations;
 using BlueDental.PatientManagement;
 using BlueDental.Finance;
@@ -79,6 +80,10 @@ public class BlueDentalDbContext :
 
     // Promotions
     public DbSet<Voucher> Vouchers { get; set; }
+
+    // Quan tri van hanh
+    public DbSet<OperationsArticle> OperationsArticles { get; set; }
+    public DbSet<OperationsTask> OperationsTasks { get; set; }
 
     // Billing
     public DbSet<Invoice> Invoices { get; set; }

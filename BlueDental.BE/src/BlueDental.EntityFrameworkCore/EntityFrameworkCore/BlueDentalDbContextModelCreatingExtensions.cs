@@ -8,6 +8,7 @@ using BlueDental.FileManagement;
 using BlueDental.Inventory;
 using BlueDental.Labo;
 using BlueDental.Notifications;
+using BlueDental.Operations;
 using BlueDental.Organizations;
 using BlueDental.PatientManagement;
 using BlueDental.PatientManagement.Values;
@@ -545,6 +546,32 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.ConfigureByConvention();
             entity.HasIndex(x => new { x.StaffId, x.ClinicBranchId }).IsUnique();
             entity.HasIndex(x => x.ClinicBranchId);
+        });
+
+        // Quan tri van hanh - bai viet
+        builder.Entity<OperationsArticle>(entity =>
+        {
+            entity.ToTable("bd_operations_articles");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Department).HasConversion<short>();
+            entity.Property(x => x.Section).HasConversion<short>();
+            entity.Property(x => x.Title).HasMaxLength(300).IsRequired();
+            entity.Property(x => x.Summary).HasMaxLength(1000);
+            entity.HasIndex(x => new { x.ClinicBranchId, x.Department, x.Section, x.SortOrder });
+        });
+
+        // Quan tri van hanh - cong viec
+        builder.Entity<OperationsTask>(entity =>
+        {
+            entity.ToTable("bd_operations_tasks");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Department).HasConversion<short>();
+            entity.Property(x => x.Status).HasConversion<short>();
+            entity.Property(x => x.Title).HasMaxLength(300).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(2000);
+            entity.Property(x => x.CancellationReason).HasMaxLength(500);
+            entity.HasIndex(x => new { x.ClinicBranchId, x.Department, x.Status });
+            entity.HasIndex(x => x.DueDate);
         });
     }
 }
