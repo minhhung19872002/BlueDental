@@ -1179,6 +1179,15 @@
     "Tìm kiếm bệnh nhân, bác sĩ, lý do khám...": "Search patients, dentists, visit reason...",
     "Nhân sự & lịch làm việc": "Staff & work schedule",
     "Bấm vào ngày để bật/tắt ca trực trong tuần": "Tap a day to turn that shift on or off for the week",
-    "Chưa gán vai trò": "No role assigned"
+    "Chưa gán vai trò": "No role assigned",
+    "Cài đặt phòng khám": "Clinic settings",
+    "Thông tin thương hiệu, chi nhánh và phân quyền": "Branding, branches and permissions",
+    "Thông tin chung": "General information",
+    "Tên phòng khám": "Clinic name",
+    "Phân quyền": "Permissions",
+    "Chưa có chi nhánh": "No branches yet",
+    "Chưa có vai trò": "No roles yet",
+    "{0} người": "{0} people",
+    "Đã lưu cài đặt phòng khám": "Clinic settings saved"
   }
 }

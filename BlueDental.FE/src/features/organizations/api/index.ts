@@ -1,6 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import type { PagedResult } from "@/types";
+
+export interface UpdateClinicBranchInput {
+  name: string;
+  address?: string;
+  phoneNumber?: string;
+  email?: string;
+}
 
 export interface ClinicBranchDto {
   id: string;
@@ -18,6 +25,9 @@ const organizationApi = {
 
   getBranch: (id: string): Promise<ClinicBranchDto> =>
     api.get(`/v1/app/clinic-branches/${id}`).then((r) => r.data),
+
+  updateBranch: (id: string, input: UpdateClinicBranchInput): Promise<ClinicBranchDto> =>
+    api.put(`/v1/app/clinic-branches/${id}`, input).then((r) => r.data),
 };
 
 export function useClinicBranches() {
@@ -35,5 +45,16 @@ export function useClinicBranch(id: string) {
     queryFn: () => organizationApi.getBranch(id),
     enabled: Boolean(id),
     staleTime: 10 * 60_000,
+  });
+}
+
+export function useUpdateClinicBranch() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdateClinicBranchInput }) =>
+      organizationApi.updateBranch(id, input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["clinic-branches"] });
+    },
   });
 }

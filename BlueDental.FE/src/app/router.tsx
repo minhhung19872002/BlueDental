@@ -95,6 +95,12 @@ const VoucherPage = lazy(() =>
   })),
 );
 
+const ClinicSettingsPage = lazy(() =>
+  import("@/features/organizations/pages/ClinicSettingsPage").then((m) => ({
+    default: m.ClinicSettingsPage,
+  })),
+);
+
 const ToolsPage = lazy(() =>
   import("@/features/tools/pages/ToolsPage").then((m) => ({
     default: m.ToolsPage,
@@ -243,6 +249,15 @@ const appRoutes: RouteObject[] = [
         element: (
           <S>
             <TaxonomyPage />
+          </S>
+        ),
+      },
+      {
+        // Reached from the account menu; the design gives it its own screen.
+        path: "settings",
+        element: (
+          <S>
+            <ClinicSettingsPage />
           </S>
         ),
       },

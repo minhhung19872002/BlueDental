@@ -2568,3 +2568,79 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Clinic settings (ported from the design's Cài đặt screen) ──────────── */
+
+.settings-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  align-items: start;
+}
+
+.settings-side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.settings-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.settings-branch {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--bd-bg);
+}
+
+.settings-branch:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.settings-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--bd-green-bright);
+}
+
+.settings-roles {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.settings-role {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12.5px;
+}
+
+.settings-role-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  color: var(--bd-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-role-count {
+  font-weight: 700;
+  color: var(--bd-primary);
+}
+
+@media (max-width: 900px) {
+  .settings-split {
+    grid-template-columns: 1fr;
+  }
+}
