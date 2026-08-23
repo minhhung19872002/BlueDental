@@ -1,4 +1,5 @@
 import { Table, Tag, Tabs } from "antd";
+import { useTranslation } from "react-i18next";
 import type { ColumnsType } from "antd/es/table";
 import { useClinicBranches, useDepartments, type ClinicBranchDto, type DepartmentDto } from "../api";
 
@@ -7,45 +8,46 @@ const BRANCH_STATUS_COLOR: Record<string, string> = {
   Inactive: "default",
 };
 
-const BRANCH_STATUS_LABEL: Record<string, string> = {
-  Active:   "Hoạt động",
-  Inactive: "Ngừng hoạt động",
+const BRANCH_STATUS_KEY: Record<string, string> = {
+  Active:   "common.active",
+  Inactive: "common.inactive",
 };
 
 function BranchTable() {
+  const { t } = useTranslation();
   const { data, isLoading } = useClinicBranches();
 
   const columns: ColumnsType<ClinicBranchDto> = [
     {
-      title: "Mã",
+      title: t("organizations.branchCode"),
       dataIndex: "code",
       key: "code",
       width: 120,
     },
     {
-      title: "Tên chi nhánh",
+      title: t("organizations.branchName"),
       dataIndex: "name",
       key: "name",
     },
     {
-      title: "Địa chỉ",
+      title: t("organizations.address"),
       dataIndex: "address",
       key: "address",
       render: (v?: string) => v ?? "—",
     },
     {
-      title: "SĐT",
+      title: t("common.phone"),
       dataIndex: "phoneNumber",
       key: "phoneNumber",
       render: (v?: string) => v ?? "—",
     },
     {
-      title: "Trạng thái",
+      title: t("common.status"),
       dataIndex: "status",
       key: "status",
       render: (v: string) => (
         <Tag color={BRANCH_STATUS_COLOR[v] ?? "default"}>
-          {BRANCH_STATUS_LABEL[v] ?? v}
+          {BRANCH_STATUS_KEY[v] ? t(BRANCH_STATUS_KEY[v]) : v}
         </Tag>
       ),
     },
@@ -59,32 +61,33 @@ function BranchTable() {
       loading={isLoading}
       pagination={{ pageSize: 10 }}
       size="middle"
-      locale={{ emptyText: "Chưa có chi nhánh nào" }}
+      locale={{ emptyText: t("organizations.noBranches") }}
     />
   );
 }
 
 function DepartmentTable() {
+  const { t } = useTranslation();
   const { data, isLoading } = useDepartments();
 
   const columns: ColumnsType<DepartmentDto> = [
     {
-      title: "Tên phòng ban",
+      title: t("organizations.deptName"),
       dataIndex: "name",
       key: "name",
     },
     {
-      title: "Mô tả",
+      title: t("common.description"),
       dataIndex: "description",
       key: "description",
       render: (v?: string) => v ?? "—",
     },
     {
-      title: "Trạng thái",
+      title: t("common.status"),
       dataIndex: "isActive",
       key: "isActive",
       render: (v: boolean) => (
-        <Tag color={v ? "green" : "default"}>{v ? "Hoạt động" : "Ngừng hoạt động"}</Tag>
+        <Tag color={v ? "green" : "default"}>{v ? t("common.active") : t("common.inactive")}</Tag>
       ),
     },
   ];
@@ -97,16 +100,17 @@ function DepartmentTable() {
       loading={isLoading}
       pagination={{ pageSize: 10 }}
       size="middle"
-      locale={{ emptyText: "Chưa có phòng ban nào" }}
+      locale={{ emptyText: t("organizations.noDepartments") }}
     />
   );
 }
 
 export function OrganizationListPage() {
+  const { t } = useTranslation();
   const tabItems = [
     {
       key: "branches",
-      label: "Chi nhánh",
+      label: t("organizations.branches"),
       children: (
         <div style={{ paddingTop: 16 }}>
           <BranchTable />
@@ -115,7 +119,7 @@ export function OrganizationListPage() {
     },
     {
       key: "departments",
-      label: "Phòng ban",
+      label: t("organizations.departments"),
       children: (
         <div style={{ paddingTop: 16 }}>
           <DepartmentTable />
@@ -136,7 +140,7 @@ export function OrganizationListPage() {
         }}
       >
         <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1B2A41" }}>
-          Chi nhánh & Phòng ban
+          {t("organizations.title")}
         </h2>
       </div>
 

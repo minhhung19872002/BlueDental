@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
@@ -19,22 +20,25 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
 {
     private readonly IRepository<Taxonomy, Guid> _repository;
     private readonly IRepository<CatalogEntry, Guid> _entryRepository;
+    private readonly ICurrentClinicBranchResolver _branchResolver;
 
     public TaxonomyAppService(
         IRepository<Taxonomy, Guid> repository,
-        IRepository<CatalogEntry, Guid> entryRepository)
+        IRepository<CatalogEntry, Guid> entryRepository,
+        ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
         _entryRepository = entryRepository;
+        _branchResolver = branchResolver;
     }
 
     [Authorize(BlueDentalPermissions.Catalogs.View)]
     public async Task<PagedResultDto<TaxonomyDto>> GetListAsync(GetTaxonomyListInput input)
     {
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
 
-        if (input.ClinicBranchId.HasValue)
-            query = query.Where(x => x.ClinicBranchId == input.ClinicBranchId.Value);
+        query = query.Where(x => x.ClinicBranchId == clinicBranchId);
         if (!string.IsNullOrWhiteSpace(input.Group))
             query = query.Where(x => x.Group == input.Group);
         if (!string.IsNullOrWhiteSpace(input.Filter))
@@ -71,9 +75,10 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
     [Authorize(BlueDentalPermissions.Catalogs.Create)]
     public async Task<TaxonomyDto> CreateAsync(CreateTaxonomyDto input)
     {
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
         var taxonomy = Taxonomy.Create(
             GuidGenerator.Create(),
-            input.ClinicBranchId,
+            clinicBranchId,
             input.Group,
             input.Name,
             input.Alias,

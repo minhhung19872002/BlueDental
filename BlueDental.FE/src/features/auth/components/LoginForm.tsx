@@ -5,19 +5,21 @@ import { Form, Input, Button, Checkbox } from "antd";
 import { LockOutlined, UserOutlined } from "@ant-design/icons";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { authApi } from "../api";
 import { useAuthStore } from "../store/authStore";
 import { extractApiError } from "@/lib/apiError";
 
 const loginSchema = z.object({
-  userNameOrEmailAddress: z.string().min(1, "Vui lòng nhập tên đăng nhập"),
-  password: z.string().min(1, "Vui lòng nhập mật khẩu"),
+  userNameOrEmailAddress: z.string().min(1, "required_username"),
+  password: z.string().min(1, "required_password"),
   rememberMe: z.boolean().optional(),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const setAuth = useAuthStore((s) => s.setAuth);
@@ -37,7 +39,7 @@ export function LoginForm() {
     onSuccess: async (result) => {
       if (result.result !== 1) {
         setError("root", {
-          message: result.description || "Đăng nhập không thành công",
+          message: result.description || t("auth.loginFailed"),
         });
         return;
       }
@@ -67,11 +69,19 @@ export function LoginForm() {
     loginMutation.mutate(values);
   };
 
+  const usernameError = errors.userNameOrEmailAddress?.message === "required_username"
+    ? t("auth.usernameRequired")
+    : errors.userNameOrEmailAddress?.message;
+
+  const passwordError = errors.password?.message === "required_password"
+    ? t("auth.passwordRequired")
+    : errors.password?.message;
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate>
       <Form.Item
         validateStatus={errors.userNameOrEmailAddress ? "error" : ""}
-        help={errors.userNameOrEmailAddress?.message}
+        help={usernameError}
       >
         <Controller
           name="userNameOrEmailAddress"
@@ -80,7 +90,7 @@ export function LoginForm() {
             <Input
               {...field}
               prefix={<UserOutlined />}
-              placeholder="Tên đăng nhập hoặc email"
+              placeholder={t("auth.usernamePlaceholder")}
               size="large"
               autoComplete="username"
             />
@@ -90,7 +100,7 @@ export function LoginForm() {
 
       <Form.Item
         validateStatus={errors.password ? "error" : ""}
-        help={errors.password?.message}
+        help={passwordError}
       >
         <Controller
           name="password"
@@ -99,7 +109,7 @@ export function LoginForm() {
             <Input.Password
               {...field}
               prefix={<LockOutlined />}
-              placeholder="Mật khẩu"
+              placeholder={t("auth.passwordPlaceholder")}
               size="large"
               autoComplete="current-password"
             />
@@ -113,7 +123,7 @@ export function LoginForm() {
           control={control}
           render={({ field }) => (
             <Checkbox checked={field.value} onChange={field.onChange}>
-              Ghi nhớ đăng nhập
+              {t("auth.rememberMe")}
             </Checkbox>
           )}
         />
@@ -134,7 +144,7 @@ export function LoginForm() {
         block
         loading={loginMutation.isPending}
       >
-        Đăng nhập
+        {t("auth.loginBtn")}
       </Button>
     </form>
   );

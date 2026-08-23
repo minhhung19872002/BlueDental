@@ -11,6 +11,7 @@ import {
   RightOutlined,
 } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
+import { useTranslation } from "react-i18next";
 import { usePatientList } from "../api/patientQueries";
 import { patientApi } from "../api/patientApi";
 import { useTablePagination } from "@/hooks/useTablePagination";
@@ -25,19 +26,6 @@ const { Text } = Typography;
 type ViewMode = "day" | "week" | "month";
 type FilterStatus = "All" | PatientStatus;
 
-const STATUS_CONFIG: Record<PatientStatus, { label: string; color: string; bg: string; text: string }> = {
-  NoActivity:  { label: "Chưa phát sinh", color: "#6B7280", bg: "#F3F4F6", text: "#374151" },
-  InTreatment: { label: "Đang điều trị",  color: "#2671D8", bg: "#EBF3FE", text: "#1E5BB0" },
-  Completed:   { label: "Điều trị hoàn tất", color: "#10B981", bg: "#E6F4EA", text: "#1F7A45" },
-};
-
-const FILTER_TABS: { key: FilterStatus; label: string }[] = [
-  { key: "All",         label: "Tất cả" },
-  { key: "Completed",   label: "Điều trị hoàn tất" },
-  { key: "InTreatment", label: "Đang điều trị" },
-  { key: "NoActivity",  label: "Chưa phát sinh" },
-];
-
 interface Props {
   onAdd?: () => void;
   onRowClick?: (patient: PatientListItem) => void;
@@ -45,6 +33,21 @@ interface Props {
 }
 
 export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
+  const { t } = useTranslation();
+
+  const STATUS_CONFIG: Record<PatientStatus, { label: string; color: string; bg: string; text: string }> = {
+    NoActivity:  { label: t("patient.noActivity"),  color: "#6B7280", bg: "#F3F4F6", text: "#374151" },
+    InTreatment: { label: t("patient.inTreatment"), color: "#2671D8", bg: "#EBF3FE", text: "#1E5BB0" },
+    Completed:   { label: t("patient.completed"),   color: "#10B981", bg: "#E6F4EA", text: "#1F7A45" },
+  };
+
+  const FILTER_TABS: { key: FilterStatus; label: string }[] = [
+    { key: "All",         label: t("patient.allPatients") },
+    { key: "Completed",   label: t("patient.completed") },
+    { key: "InTreatment", label: t("patient.inTreatment") },
+    { key: "NoActivity",  label: t("patient.noActivity") },
+  ];
+
   const [viewMode, setViewMode] = useState<ViewMode>("day");
   const [currentDate, setCurrentDate] = useState<Dayjs>(dayjs());
   const [keyword, setKeyword] = useState("");
@@ -80,24 +83,24 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
       exportToExcel(
         result.items,
         [
-          { header: "Mã BN", key: "code" },
-          { header: "Họ và tên", key: "fullName" },
-          { header: "Ngày sinh", key: "dateOfBirth", format: (v) => (v ? formatDate(String(v)) : "") },
-          { header: "Số điện thoại", key: "phone" },
-          { header: "Trạng thái", key: "status", format: (v) => STATUS_CONFIG[v as PatientStatus]?.label ?? String(v) },
-          { header: "Dịch vụ", key: "serviceName", format: (v) => String(v ?? "") },
-          { header: "Bác sĩ", key: "doctorName", format: (v) => String(v ?? "") },
-          { header: "Số tiền", key: "totalAmount", format: (v) => formatVND(Number(v ?? 0)) },
-          { header: "Thực thu", key: "collectedAmount", format: (v) => formatVND(Number(v ?? 0)) },
-          { header: "Công nợ", key: "debtAmount", format: (v) => formatVND(Number(v ?? 0)) },
-          { header: "Lịch hẹn gần nhất", key: "nextAppointmentAt", format: (v) => (v ? formatDateTime(String(v)) : "") },
-          { header: "Lần khám cuối", key: "lastVisitAt", format: (v) => (v ? formatDateTime(String(v)) : "") },
-          { header: "Ngày tạo hồ sơ", key: "createdAt", format: (v) => formatDate(String(v)) },
+          { header: t("patient.patientCode"), key: "code" },
+          { header: t("patient.fullName"), key: "fullName" },
+          { header: t("patient.dob"), key: "dateOfBirth", format: (v) => (v ? formatDate(String(v)) : "") },
+          { header: t("common.phone"), key: "phone" },
+          { header: t("common.status"), key: "status", format: (v) => STATUS_CONFIG[v as PatientStatus]?.label ?? String(v) },
+          { header: t("patient.service"), key: "serviceName", format: (v) => String(v ?? "") },
+          { header: t("patient.doctor"), key: "doctorName", format: (v) => String(v ?? "") },
+          { header: t("patient.amount"), key: "totalAmount", format: (v) => formatVND(Number(v ?? 0)) },
+          { header: t("patient.paid"), key: "collectedAmount", format: (v) => formatVND(Number(v ?? 0)) },
+          { header: t("patient.debt"), key: "debtAmount", format: (v) => formatVND(Number(v ?? 0)) },
+          { header: t("patient.nextAppointment"), key: "nextAppointmentAt", format: (v) => (v ? formatDateTime(String(v)) : "") },
+          { header: t("patient.lastVisit"), key: "lastVisitAt", format: (v) => (v ? formatDateTime(String(v)) : "") },
+          { header: t("patient.dateCreated"), key: "createdAt", format: (v) => formatDate(String(v)) },
         ],
         `danh-sach-benh-nhan-${dayjs().format("YYYYMMDD")}`,
       );
     } catch {
-      message.error("Xuất file thất bại");
+      message.error(t("patient.exportFailed"));
     } finally {
       setExporting(false);
     }
@@ -115,7 +118,7 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
 
   const columns: TableColumnsType<PatientListItem> = [
     {
-      title: "Ngày tạo hồ sơ",
+      title: t("patient.dateCreated"),
       dataIndex: "createdAt",
       key: "createdAt",
       width: 120,
@@ -124,7 +127,7 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
       ),
     },
     {
-      title: "Họ và tên",
+      title: t("patient.fullName"),
       key: "fullName",
       width: 220,
       render: (_, record) => (
@@ -145,7 +148,7 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
       ),
     },
     {
-      title: "Ngày sinh",
+      title: t("patient.dob"),
       dataIndex: "dateOfBirth",
       key: "dateOfBirth",
       width: 110,
@@ -154,14 +157,14 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
       ),
     },
     {
-      title: "Số điện thoại",
+      title: t("common.phone"),
       dataIndex: "phone",
       key: "phone",
       width: 120,
       render: (v: string) => <Text style={{ fontSize: 13 }}>{v}</Text>,
     },
     {
-      title: "Trạng thái",
+      title: t("common.status"),
       dataIndex: "status",
       key: "status",
       width: 150,
@@ -185,7 +188,7 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
       },
     },
     {
-      title: "Dịch vụ",
+      title: t("patient.service"),
       dataIndex: "serviceName",
       key: "serviceName",
       width: 180,
@@ -194,7 +197,7 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
       ),
     },
     {
-      title: "Bác sĩ",
+      title: t("patient.doctor"),
       dataIndex: "doctorName",
       key: "doctorName",
       width: 140,
@@ -203,7 +206,7 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
       ),
     },
     {
-      title: "Số tiền",
+      title: t("patient.amount"),
       dataIndex: "totalAmount",
       key: "totalAmount",
       width: 120,
@@ -215,7 +218,7 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
       ),
     },
     {
-      title: "Thực thu",
+      title: t("patient.paid"),
       dataIndex: "collectedAmount",
       key: "collectedAmount",
       width: 120,
@@ -234,7 +237,7 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
       ),
     },
     {
-      title: "Công nợ",
+      title: t("patient.debt"),
       dataIndex: "debtAmount",
       key: "debtAmount",
       width: 120,
@@ -253,7 +256,7 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
       ),
     },
     {
-      title: "Lịch hẹn gần nhất",
+      title: t("patient.nextAppointment"),
       dataIndex: "nextAppointmentAt",
       key: "nextAppointmentAt",
       width: 145,
@@ -264,7 +267,7 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
       ),
     },
     {
-      title: "Lần khám cuối",
+      title: t("patient.lastVisit"),
       dataIndex: "lastVisitAt",
       key: "lastVisitAt",
       width: 130,
@@ -275,14 +278,14 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
       ),
     },
     {
-      title: "Thao tác",
+      title: t("common.actions"),
       key: "actions",
       width: 90,
       fixed: "right",
       align: "center",
       render: (_, record) => (
         <Space size={4}>
-          <Tooltip title="Xem hồ sơ">
+          <Tooltip title={t("patient.viewProfile")}>
             <Button
               type="text"
               size="small"
@@ -291,7 +294,7 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
               style={{ color: "#2671D8" }}
             />
           </Tooltip>
-          <Tooltip title="Chỉnh sửa">
+          <Tooltip title={t("common.edit")}>
             <Button
               type="text"
               size="small"
@@ -315,9 +318,9 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
             value={viewMode}
             onChange={(v) => setViewMode(v as ViewMode)}
             options={[
-              { label: "Ngày", value: "day" },
-              { label: "Tuần", value: "week" },
-              { label: "Tháng", value: "month" },
+              { label: t("common.day"), value: "day" },
+              { label: t("common.week"), value: "week" },
+              { label: t("common.month"), value: "month" },
             ]}
             style={{ fontWeight: 500 }}
           />
@@ -350,7 +353,7 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
           {/* Center: search */}
           <Input
             prefix={<SearchOutlined style={{ color: "#9CA3AF" }} />}
-            placeholder="Tìm kiếm"
+            placeholder={t("common.search")}
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             allowClear
@@ -359,9 +362,9 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
 
           {/* Right: export + create */}
           <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
-            <Button icon={<ExportOutlined />} loading={exporting} onClick={handleExport}>Xuất file</Button>
+            <Button icon={<ExportOutlined />} loading={exporting} onClick={handleExport}>{t("patient.exportFile")}</Button>
             <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>
-              Tạo hồ sơ
+              {t("patient.createPatient")}
             </Button>
           </div>
         </div>
@@ -388,7 +391,7 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
           <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
             <SearchSelect
               value={selectedDoctorId}
-              placeholder="Bác sĩ"
+              placeholder={t("patient.doctorFilter")}
               allowClear
               options={[]}
               onChange={(v) => setSelectedDoctorId(v)}
@@ -396,7 +399,7 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
             />
             <SearchSelect
               value={undefined}
-              placeholder="Phân loại dịch vụ"
+              placeholder={t("patient.serviceFilter")}
               allowClear
               options={[]}
               onChange={() => {}}
@@ -404,7 +407,7 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
             />
             <SearchSelect
               value={undefined}
-              placeholder="Phân loại theo Tag"
+              placeholder={t("patient.tagFilter")}
               allowClear
               options={[]}
               onChange={() => {}}
@@ -423,7 +426,11 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
           loading={isLoading}
           pagination={pagination.buildConfig(
             data?.totalCount,
-            (total) => `Hiển thị ${Math.min(pagination.skipCount + 1, total)}–${Math.min(pagination.skipCount + pagination.maxResultCount, total)} trên ${total} bệnh nhân`,
+            (total) => t("patient.showRange", {
+              from: Math.min(pagination.skipCount + 1, total),
+              to: Math.min(pagination.skipCount + pagination.maxResultCount, total),
+              total,
+            }),
           )}
           onRow={(record) => ({
             onClick: () => onRowClick?.(record),
@@ -434,8 +441,8 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
             emptyText: (
               <div style={{ padding: "40px 0", textAlign: "center", color: "#9CA3AF" }}>
                 <div style={{ fontSize: 32, marginBottom: 8 }}>🦷</div>
-                <div style={{ fontWeight: 500, color: "#6B7280" }}>Không có bệnh nhân nào</div>
-                <div style={{ fontSize: 13, marginTop: 4 }}>Thêm hồ sơ bệnh nhân đầu tiên</div>
+                <div style={{ fontWeight: 500, color: "#6B7280" }}>{t("patient.noPatients")}</div>
+                <div style={{ fontSize: 13, marginTop: 4 }}>{t("patient.addFirstPatient")}</div>
               </div>
             ),
           }}

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
@@ -14,19 +15,23 @@ namespace BlueDental.Labo;
 public class LaboAppService : ApplicationService, ILaboAppService
 {
     private readonly IRepository<LaboOrder, Guid> _repository;
+    private readonly ICurrentClinicBranchResolver _branchResolver;
 
-    public LaboAppService(IRepository<LaboOrder, Guid> repository)
+    public LaboAppService(
+        IRepository<LaboOrder, Guid> repository,
+        ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
+        _branchResolver = branchResolver;
     }
 
     [Authorize(BlueDentalPermissions.LaboOrders.View)]
     public async Task<PagedResultDto<LaboOrderDto>> GetListAsync(GetLaboOrderListInput input)
     {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
 
-        if (input.BranchId.HasValue)
-            query = query.Where(o => o.BranchId == input.BranchId.Value);
+        query = query.Where(o => o.BranchId == branchId);
         if (input.PatientId.HasValue)
             query = query.Where(o => o.PatientId == input.PatientId.Value);
         if (input.Status.HasValue)
@@ -56,12 +61,13 @@ public class LaboAppService : ApplicationService, ILaboAppService
     [Authorize(BlueDentalPermissions.LaboOrders.Create)]
     public async Task<LaboOrderDto> CreateAsync(CreateLaboOrderDto input)
     {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
         var code = $"LB{DateTimeOffset.UtcNow:yyyyMMddHHmmss}";
         var order = new LaboOrder(
             GuidGenerator.Create(),
             code,
             input.PatientId,
-            input.BranchId,
+            branchId,
             input.LabProviderName,
             input.EstimatedCost,
             input.DentistId,

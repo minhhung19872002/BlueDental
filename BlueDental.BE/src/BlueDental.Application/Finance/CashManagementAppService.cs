@@ -107,12 +107,12 @@ public class CashManagementAppService : ApplicationService, ICashManagementAppSe
                 input.Amount, input.CreatedByStaffId, input.EntryDate, input.CategoryId, input.Note),
 
             CashTransactionType.Withdraw => CashflowEntry.Withdraw(
-                id, input.ClinicBranchId,
+                id, clinicBranchId,
                 RequireHolding(input.FromHolding, "fromHolding"),
                 input.Amount, input.CreatedByStaffId, input.EntryDate, input.CategoryId, input.Note),
 
             CashTransactionType.Transfer => CashflowEntry.Transfer(
-                id, input.ClinicBranchId,
+                id, clinicBranchId,
                 RequireHolding(input.FromHolding, "fromHolding"),
                 RequireHolding(input.ToHolding, "toHolding"),
                 input.Amount, input.CreatedByStaffId, input.EntryDate, input.CategoryId, input.Note),

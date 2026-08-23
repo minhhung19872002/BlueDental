@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
@@ -17,17 +18,18 @@ public class ToolsAppService(
     IRepository<CallLog, Guid> callLogRepo,
     IRepository<MessageTemplate, Guid> messageTemplateRepo,
     IRepository<MessageLog, Guid> messageLogRepo,
-    IIdentityUserRepository userRepo) : ApplicationService, IToolsAppService
+    IIdentityUserRepository userRepo,
+    ICurrentClinicBranchResolver branchResolver) : ApplicationService, IToolsAppService
 {
     // ── Call Assignment ───────────────────────────────────────────────────
 
     [Authorize(BlueDentalPermissions.Tools.View)]
     public async Task<PagedResultDto<CallAssignmentDto>> GetCallAssignmentListAsync(GetCallAssignmentListInput input)
     {
+        var branchId = branchResolver.GetRequiredClinicBranchId();
         var q = (await callAssignmentRepo.GetQueryableAsync()).AsQueryable();
 
-        if (input.BranchId.HasValue)
-            q = q.Where(x => x.ClinicBranchId == input.BranchId.Value);
+        q = q.Where(x => x.ClinicBranchId == branchId);
         if (input.Status.HasValue)
             q = q.Where(x => (int)x.Status == input.Status.Value);
         if (input.StaffId.HasValue)
@@ -67,8 +69,9 @@ public class ToolsAppService(
     [Authorize(BlueDentalPermissions.Tools.Manage)]
     public async Task<CallAssignmentDto> CreateCallAssignmentAsync(CreateCallAssignmentDto input)
     {
+        var branchId = branchResolver.GetRequiredClinicBranchId();
         var entity = new CallAssignment(
-            GuidGenerator.Create(), input.BranchId, input.PatientId, input.StaffId,
+            GuidGenerator.Create(), branchId, input.PatientId, input.StaffId,
             input.PatientName, input.PhoneNumber, input.Notes);
         await callAssignmentRepo.InsertAsync(entity);
 
@@ -123,10 +126,10 @@ public class ToolsAppService(
     [Authorize(BlueDentalPermissions.Tools.View)]
     public async Task<PagedResultDto<CallLogDto>> GetCallLogListAsync(GetCallLogListInput input)
     {
+        var branchId = branchResolver.GetRequiredClinicBranchId();
         var q = (await callLogRepo.GetQueryableAsync()).AsQueryable();
 
-        if (input.BranchId.HasValue)
-            q = q.Where(x => x.ClinicBranchId == input.BranchId.Value);
+        q = q.Where(x => x.ClinicBranchId == branchId);
         if (input.Direction.HasValue)
             q = q.Where(x => (int)x.Direction == input.Direction.Value);
         if (input.Status.HasValue)
@@ -159,8 +162,9 @@ public class ToolsAppService(
     [Authorize(BlueDentalPermissions.Tools.Manage)]
     public async Task<CallLogDto> CreateCallLogAsync(CreateCallLogDto input)
     {
+        var branchId = branchResolver.GetRequiredClinicBranchId();
         var entity = new CallLog(
-            GuidGenerator.Create(), input.BranchId, input.PatientId, input.StaffId,
+            GuidGenerator.Create(), branchId, input.PatientId, input.StaffId,
             input.PatientName, input.PhoneNumber, input.StaffName,
             input.DurationSeconds, (CallDirection)input.Direction,
             (CallLogStatus)input.Status, input.Notes);
@@ -191,10 +195,10 @@ public class ToolsAppService(
     [Authorize(BlueDentalPermissions.Tools.View)]
     public async Task<PagedResultDto<MessageTemplateDto>> GetMessageTemplateListAsync(GetMessageTemplateListInput input)
     {
+        var branchId = branchResolver.GetRequiredClinicBranchId();
         var q = (await messageTemplateRepo.GetQueryableAsync()).AsQueryable();
 
-        if (input.BranchId.HasValue)
-            q = q.Where(x => x.ClinicBranchId == input.BranchId.Value);
+        q = q.Where(x => x.ClinicBranchId == branchId);
         if (input.Channel.HasValue)
             q = q.Where(x => (int)x.Channel == input.Channel.Value);
         if (!string.IsNullOrWhiteSpace(input.Filter))
@@ -222,8 +226,9 @@ public class ToolsAppService(
     [Authorize(BlueDentalPermissions.Tools.Manage)]
     public async Task<MessageTemplateDto> CreateMessageTemplateAsync(CreateMessageTemplateDto input)
     {
+        var branchId = branchResolver.GetRequiredClinicBranchId();
         var entity = new MessageTemplate(
-            GuidGenerator.Create(), input.BranchId, input.Name, input.Content,
+            GuidGenerator.Create(), branchId, input.Name, input.Content,
             (MessageChannelType)input.Channel, input.Category);
         await messageTemplateRepo.InsertAsync(entity);
 
@@ -268,10 +273,10 @@ public class ToolsAppService(
     [Authorize(BlueDentalPermissions.Tools.View)]
     public async Task<PagedResultDto<MessageLogDto>> GetMessageLogListAsync(GetMessageLogListInput input)
     {
+        var branchId = branchResolver.GetRequiredClinicBranchId();
         var q = (await messageLogRepo.GetQueryableAsync()).AsQueryable();
 
-        if (input.BranchId.HasValue)
-            q = q.Where(x => x.ClinicBranchId == input.BranchId.Value);
+        q = q.Where(x => x.ClinicBranchId == branchId);
         if (input.Channel.HasValue)
             q = q.Where(x => (int)x.Channel == input.Channel.Value);
         if (input.Status.HasValue)

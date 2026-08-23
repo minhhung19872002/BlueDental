@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button, Table, Tag, Tabs, Space, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useInvoiceList, type InvoiceDto } from "../api";
@@ -17,13 +18,13 @@ const STATUS_COLOR: Record<string, string> = {
   voided:        "default",
 };
 
-const STATUS_LABEL: Record<string, string> = {
-  draft:         "Nháp",
-  issued:        "Đã phát hành",
-  partiallyPaid: "Thanh toán một phần",
-  paid:          "Đã thanh toán",
-  overdue:       "Quá hạn",
-  voided:        "Đã hủy",
+const STATUS_LABEL_KEY: Record<string, string> = {
+  draft:         "billing.statusDraft",
+  issued:        "billing.statusIssued",
+  partiallyPaid: "billing.statusPartiallyPaid",
+  paid:          "billing.statusPaid",
+  overdue:       "billing.statusOverdue",
+  voided:        "billing.statusVoided",
 };
 
 function formatCurrency(amount: number): string {
@@ -38,13 +39,14 @@ function formatDate(dateStr: string): string {
 }
 
 function InvoiceListPanel() {
+  const { t } = useTranslation();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const { data, isLoading } = useInvoiceList({ maxResultCount: 50 });
 
   const columns: ColumnsType<InvoiceDto> = [
     {
-      title: "Số hóa đơn",
+      title: t("billing.invoiceNumber"),
       dataIndex: "invoiceNumber",
       key: "invoiceNumber",
       render: (val: string, row: InvoiceDto) => (
@@ -54,43 +56,43 @@ function InvoiceListPanel() {
       ),
     },
     {
-      title: "Bệnh nhân",
+      title: t("billing.patientName"),
       dataIndex: "patientName",
       key: "patientName",
     },
     {
-      title: "Ngày phát hành",
+      title: t("billing.issuedDate"),
       dataIndex: "issuedDate",
       key: "issuedDate",
       render: (v: string) => formatDate(v),
     },
     {
-      title: "Tổng tiền",
+      title: t("billing.totalAmount"),
       dataIndex: "totalAmount",
       key: "totalAmount",
       render: (v: number) => <Text strong>{formatCurrency(v)}</Text>,
     },
     {
-      title: "Đã thanh toán",
+      title: t("billing.paidAmount"),
       dataIndex: "paidAmount",
       key: "paidAmount",
       render: (v: number) => <Text type="success">{formatCurrency(v)}</Text>,
     },
     {
-      title: "Trạng thái",
+      title: t("common.status"),
       dataIndex: "status",
       key: "status",
       render: (v: string) => (
-        <Tag color={STATUS_COLOR[v] ?? "default"}>{STATUS_LABEL[v] ?? v}</Tag>
+        <Tag color={STATUS_COLOR[v] ?? "default"}>{STATUS_LABEL_KEY[v] ? t(STATUS_LABEL_KEY[v]) : v}</Tag>
       ),
     },
     {
-      title: "Thao tác",
+      title: t("common.actions"),
       key: "actions",
       render: (_: unknown, row: InvoiceDto) => (
         <Space>
           <Button size="small" onClick={() => setSelectedId(row.id)}>
-            Xem
+            {t("billing.view")}
           </Button>
           {row.status !== "paid" && row.status !== "voided" && (
             <Button
@@ -101,7 +103,7 @@ function InvoiceListPanel() {
                 setPaymentOpen(true);
               }}
             >
-              Thanh toán
+              {t("billing.pay")}
             </Button>
           )}
         </Space>
@@ -113,7 +115,7 @@ function InvoiceListPanel() {
     return (
       <div>
         <Button style={{ marginBottom: 16 }} onClick={() => setSelectedId(null)}>
-          ← Quay lại danh sách
+          {t("billing.backToList")}
         </Button>
         <InvoiceView invoiceId={selectedId} />
         <div style={{ marginTop: 16, textAlign: "right" }}>
@@ -121,7 +123,7 @@ function InvoiceListPanel() {
             type="primary"
             onClick={() => setPaymentOpen(true)}
           >
-            Ghi nhận thanh toán
+            {t("billing.recordPayment")}
           </Button>
         </div>
         <PaymentModal
@@ -142,7 +144,7 @@ function InvoiceListPanel() {
         loading={isLoading}
         pagination={{ pageSize: 10 }}
         size="middle"
-        locale={{ emptyText: "Chưa có hóa đơn nào" }}
+        locale={{ emptyText: t("billing.noInvoices") }}
       />
       {selectedId && (
         <PaymentModal
@@ -159,10 +161,11 @@ function InvoiceListPanel() {
 }
 
 export function BillingPage() {
+  const { t } = useTranslation();
   const tabItems = [
     {
       key: "invoices",
-      label: "Hóa đơn",
+      label: t("billing.invoices"),
       children: (
         <div style={{ paddingTop: 16 }}>
           <InvoiceListPanel />
@@ -171,7 +174,7 @@ export function BillingPage() {
     },
     {
       key: "insurance",
-      label: "Bảo hiểm",
+      label: t("billing.insurance"),
       children: (
         <div style={{ paddingTop: 16 }}>
           <InsuranceClaimView patientId="" />
@@ -192,7 +195,7 @@ export function BillingPage() {
         }}
       >
         <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1B2A41" }}>
-          Thanh toán & Hóa đơn
+          {t("billing.title")}
         </h2>
       </div>
 

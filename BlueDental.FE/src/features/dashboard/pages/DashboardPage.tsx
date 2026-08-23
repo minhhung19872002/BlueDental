@@ -1,16 +1,19 @@
 import { Col, Row } from "antd";
+import { useTranslation } from "react-i18next";
 import { TodayAppointmentsCard } from "../components/TodayAppointmentsCard";
 import { RevenueSummaryCard } from "../components/RevenueSummaryCard";
 import { PendingActionsCard } from "../components/PendingActionsCard";
 
 export function DashboardPage() {
+  const { t } = useTranslation();
+
   return (
     <div className="page-container">
       <div className="page-header">
         <div className="page-header-left">
-          <h1 className="page-header-title">Bảng điều khiển</h1>
+          <h1 className="page-header-title">{t("dashboard.title")}</h1>
           <p className="page-header-subtitle">
-            Tổng quan hoạt động phòng khám hôm nay
+            {t("dashboard.subtitle")}
           </p>
         </div>
       </div>

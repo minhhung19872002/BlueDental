@@ -9,6 +9,7 @@ import {
   EditOutlined,
   DeleteOutlined,
 } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
 import dayjs, { type Dayjs } from "dayjs";
 import "dayjs/locale/vi";
 import { useCareRecordList } from "../api/careApi";
@@ -34,83 +35,7 @@ type CareType =
   | "periodic"
   | "special";
 
-// ── Constants ──────────────────────────────────────────────────────────────
-
-const TOP_TABS: { key: TopTab; label: string }[] = [
-  { key: "care", label: "Chăm sóc khách hàng" },
-  { key: "grouping", label: "Phân nhóm CSKH" },
-];
-
-const VIEW_MODES: { key: ViewMode; label: string }[] = [
-  { key: "day", label: "Ngày" },
-  { key: "week", label: "Tuần" },
-  { key: "month", label: "Tháng" },
-];
-
-const STATUS_FILTERS: { key: StatusFilter; label: string; count: number }[] = [
-  { key: "total", label: "Tổng khách", count: 0 },
-  { key: "success", label: "Thành công", count: 0 },
-  { key: "failed", label: "Thất bại", count: 0 },
-  { key: "not-cared", label: "Chưa CS", count: 0 },
-  { key: "zalo-sent", label: "Đã gửi Zalo", count: 0 },
-];
-
-const CARE_TYPES: { key: CareType; label: string }[] = [
-  { key: "after-treatment", label: "Sau điều trị" },
-  { key: "birthday", label: "Chúc mừng sinh nhật" },
-  { key: "appointment-reminder", label: "Nhắc lịch hẹn" },
-  { key: "periodic", label: "CSKH định kì" },
-  { key: "special", label: "CSKH đặc biệt" },
-];
-
-const TABLE_COLUMNS = [
-  {
-    title: "Ngày chăm sóc",
-    dataIndex: "careDate",
-    key: "careDate",
-  },
-  {
-    title: "Họ và tên",
-    dataIndex: "fullName",
-    key: "fullName",
-  },
-  {
-    title: "Số điện thoại",
-    dataIndex: "phone",
-    key: "phone",
-  },
-  {
-    title: "Bác sĩ điều trị",
-    dataIndex: "doctor",
-    key: "doctor",
-  },
-  {
-    title: "Lịch hẹn sắp tới",
-    dataIndex: "upcomingAppointment",
-    key: "upcomingAppointment",
-  },
-  {
-    title: "Trạng thái",
-    dataIndex: "status",
-    key: "status",
-    render: (status: string | undefined) =>
-      status ? <Tag>{status}</Tag> : null,
-  },
-  {
-    title: "Ghi chú",
-    dataIndex: "note",
-    key: "note",
-  },
-  {
-    title: "Thao tác",
-    key: "actions",
-    render: () => (
-      <Button size="small" type="link">
-        Chi tiết
-      </Button>
-    ),
-  },
-];
+// ── Static maps (keys only, labels resolved via t()) ──────────────────────
 
 const CARE_TYPE_MAP: Record<CareType, ApiCareType> = {
   "after-treatment": "AfterTreatment",
@@ -131,6 +56,7 @@ const STATUS_MAP: Record<StatusFilter, CareStatus | undefined> = {
 // ── Component ──────────────────────────────────────────────────────────────
 
 export function CskhGroupingPage() {
+  const { t } = useTranslation();
   const [topTab, setTopTab] = useState<TopTab>("care");
   const [viewMode, setViewMode] = useState<ViewMode>("day");
   const [currentDate, setCurrentDate] = useState<Dayjs>(dayjs());
@@ -138,6 +64,58 @@ export function CskhGroupingPage() {
   const [careType, setCareType] = useState<CareType>("after-treatment");
   const [keyword, setKeyword] = useState("");
   const debouncedKeyword = useDebounce(keyword);
+
+  const TOP_TABS: { key: TopTab; label: string }[] = [
+    { key: "care",     label: t("cskh.customerCare") },
+    { key: "grouping", label: t("cskh.grouping") },
+  ];
+
+  const VIEW_MODES: { key: ViewMode; label: string }[] = [
+    { key: "day",   label: t("common.day") },
+    { key: "week",  label: t("common.week") },
+    { key: "month", label: t("common.month") },
+  ];
+
+  const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
+    { key: "total",     label: t("cskh.totalCustomers") },
+    { key: "success",   label: t("cskh.success") },
+    { key: "failed",    label: t("cskh.failed") },
+    { key: "not-cared", label: t("cskh.notCared") },
+    { key: "zalo-sent", label: t("cskh.sentZalo") },
+  ];
+
+  const CARE_TYPES: { key: CareType; label: string }[] = [
+    { key: "after-treatment",      label: t("cskh.afterTreatment") },
+    { key: "birthday",             label: t("cskh.birthday") },
+    { key: "appointment-reminder", label: t("cskh.appointmentReminder") },
+    { key: "periodic",             label: t("cskh.periodic") },
+    { key: "special",              label: t("cskh.special") },
+  ];
+
+  const TABLE_COLUMNS = [
+    { title: t("cskh.careDate"),            dataIndex: "careDate",            key: "careDate" },
+    { title: t("patient.fullName"),         dataIndex: "fullName",            key: "fullName" },
+    { title: t("common.phone"),             dataIndex: "phone",               key: "phone" },
+    { title: t("cskh.treatingDoctor"),      dataIndex: "doctor",              key: "doctor" },
+    { title: t("cskh.upcomingAppointment"), dataIndex: "upcomingAppointment", key: "upcomingAppointment" },
+    {
+      title: t("common.status"),
+      dataIndex: "status",
+      key: "status",
+      render: (status: string | undefined) =>
+        status ? <Tag>{status}</Tag> : null,
+    },
+    { title: t("common.note"), dataIndex: "note", key: "note" },
+    {
+      title: t("common.actions"),
+      key: "actions",
+      render: () => (
+        <Button size="small" type="link">
+          {t("cskh.detail")}
+        </Button>
+      ),
+    },
+  ];
 
   const { data: careData, isLoading: careLoading } = useCareRecordList({
     type: CARE_TYPE_MAP[careType],
@@ -293,17 +271,17 @@ export function CskhGroupingPage() {
       {/* Toolbar row 2 */}
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Button icon={<DownloadOutlined />}>Xuất Excel</Button>
+          <Button icon={<DownloadOutlined />}>{t("common.exportExcel")}</Button>
           <Input
             prefix={<SearchOutlined />}
-            placeholder="Tìm kiếm..."
+            placeholder={t("common.search")}
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             style={{ width: 220 }}
             allowClear
           />
           <Select
-            placeholder="Bác sĩ điều trị"
+            placeholder={t("cskh.doctorFilter")}
             style={{ width: 180 }}
             allowClear
             options={[]}
@@ -334,9 +312,9 @@ export function CskhGroupingPage() {
                 pageSize: 20,
                 showSizeChanger: true,
                 pageSizeOptions: ["10", "20", "50", "100"],
-                showTotal: (total, range) => `Hiển thị ${range[0]}–${range[1]} trên ${total} khách`,
+                showTotal: (total, range) => t("cskh.showRange", { from: range[0], to: range[1], total }),
               }}
-              locale={{ emptyText: "Không có dữ liệu" }}
+              locale={{ emptyText: t("common.noData") }}
               size="middle"
             />
           )}
@@ -357,6 +335,7 @@ import {
 } from "../api/cskhGroupApi";
 
 function CskhGroupingPanel() {
+  const { t } = useTranslation();
   const [keyword, setKeyword] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<CskhGroupDto | null>(null);
@@ -377,38 +356,38 @@ function CskhGroupingPanel() {
       const values = await form.validateFields();
       if (isEdit && editingItem) {
         await updateMutation.mutateAsync({ id: editingItem.id, data: values });
-        message.success("Cập nhật nhóm thành công");
+        message.success(t("cskh.updateGroupSuccess"));
       } else {
         await createMutation.mutateAsync(values);
-        message.success("Tạo nhóm thành công");
+        message.success(t("cskh.createGroupSuccess"));
       }
       form.resetFields(); setEditingItem(null); setModalOpen(false);
     } catch { /* validation */ }
   };
 
   const handleDelete = async (id: string) => {
-    try { await deleteMutation.mutateAsync(id); message.success("Xóa thành công"); } catch { message.error("Xóa thất bại"); }
+    try { await deleteMutation.mutateAsync(id); message.success(t("common.deleteSuccess")); } catch { message.error(t("common.deleteFailed")); }
   };
 
   const columns = [
-    { title: "Tên nhóm", dataIndex: "name", key: "name", width: 220, render: (v: string) => <span style={{ fontWeight: 500 }}>{v}</span> },
-    { title: "Tiêu chí phân nhóm", dataIndex: "criteria", key: "criteria", render: (v: string) => v ?? "—" },
+    { title: t("cskh.groupName"), dataIndex: "name", key: "name", width: 220, render: (v: string) => <span style={{ fontWeight: 500 }}>{v}</span> },
+    { title: t("cskh.groupCriteria"), dataIndex: "criteria", key: "criteria", render: (v: string) => v ?? "—" },
     {
-      title: "Trạng thái",
+      title: t("common.status"),
       dataIndex: "isActive",
       key: "status",
       width: 120,
       render: (v: boolean) => (
-        <Tag color={v ? "green" : "default"}>{v ? "Đang dùng" : "Tạm dừng"}</Tag>
+        <Tag color={v ? "green" : "default"}>{v ? t("cskh.using") : t("cskh.paused")}</Tag>
       ),
     },
-    { title: "Ngày tạo", dataIndex: "creationTime", key: "createdAt", width: 120, render: (v: string) => v ? dayjs(v).format("DD/MM/YYYY") : "—" },
+    { title: t("common.day"), dataIndex: "creationTime", key: "createdAt", width: 120, render: (v: string) => v ? dayjs(v).format("DD/MM/YYYY") : "—" },
     {
-      title: "Thao tác", key: "actions", width: 140,
+      title: t("common.actions"), key: "actions", width: 140,
       render: (_: unknown, record: CskhGroupDto) => (
         <div style={{ display: "flex", gap: 6 }}>
           <Button size="small" icon={<EditOutlined />} onClick={() => { setEditingItem(record); setModalOpen(true); }} />
-          <Popconfirm title="Xóa nhóm CSKH?" onConfirm={() => handleDelete(record.id)} okText="Xóa" cancelText="Hủy" okButtonProps={{ danger: true }}>
+          <Popconfirm title={t("cskh.confirmDeleteGroup")} onConfirm={() => handleDelete(record.id)} okText={t("common.delete")} cancelText={t("common.cancel")} okButtonProps={{ danger: true }}>
             <Button size="small" danger icon={<DeleteOutlined />} />
           </Popconfirm>
         </div>
@@ -420,24 +399,24 @@ function CskhGroupingPanel() {
     <>
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Input prefix={<SearchOutlined />} placeholder="Tìm nhóm CSKH..." value={keyword} onChange={(e) => setKeyword(e.target.value)} style={{ width: 260 }} allowClear />
-          <Button type="primary" icon={<PlusOutlined />} style={{ marginLeft: "auto" }} onClick={() => { setEditingItem(null); form.resetFields(); setModalOpen(true); }}>Tạo nhóm mới</Button>
+          <Input prefix={<SearchOutlined />} placeholder={t("cskh.searchGroup")} value={keyword} onChange={(e) => setKeyword(e.target.value)} style={{ width: 260 }} allowClear />
+          <Button type="primary" icon={<PlusOutlined />} style={{ marginLeft: "auto" }} onClick={() => { setEditingItem(null); form.resetFields(); setModalOpen(true); }}>{t("cskh.createGroup")}</Button>
         </div>
       </div>
       <div className="reception-card reception-card--content">
         <Table columns={columns} dataSource={filtered} rowKey="id" size="middle" loading={isLoading}
-          pagination={{ pageSize: 20, showTotal: (total) => `${total} nhóm` }}
-          locale={{ emptyText: "Chưa có nhóm CSKH nào" }} />
+          pagination={{ pageSize: 20, showTotal: (total) => t("cskh.groupCount", { total }) }}
+          locale={{ emptyText: t("cskh.noGroups") }} />
       </div>
-      <Modal title={isEdit ? "Chỉnh sửa nhóm CSKH" : "Tạo nhóm CSKH mới"} open={modalOpen}
+      <Modal title={isEdit ? t("cskh.editGroupTitle") : t("cskh.createGroupTitle")} open={modalOpen}
         onCancel={() => { form.resetFields(); setEditingItem(null); setModalOpen(false); }}
         onOk={handleOk} confirmLoading={createMutation.isPending || updateMutation.isPending}
-        okText={isEdit ? "Lưu" : "Tạo nhóm"} cancelText="Hủy" width={500} destroyOnClose
+        okText={isEdit ? t("common.save") : t("cskh.createGroupBtn")} cancelText={t("common.cancel")} width={500} destroyOnClose
         afterOpenChange={(visible) => { if (visible && editingItem) form.setFieldsValue(editingItem); }}>
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
-          <Form.Item name="name" label="Tên nhóm" rules={[{ required: true, message: "Nhập tên nhóm" }]}><Input placeholder="VD: Sau điều trị Implant..." /></Form.Item>
-          <Form.Item name="criteria" label="Tiêu chí phân nhóm"><Input.TextArea rows={2} placeholder="VD: Bệnh nhân hoàn thành Implant trong 30 ngày..." /></Form.Item>
-          <Form.Item name="description" label="Mô tả"><Input.TextArea rows={2} placeholder="Mô tả thêm..." /></Form.Item>
+          <Form.Item name="name" label={t("cskh.groupName")} rules={[{ required: true, message: t("cskh.enterGroupName") }]}><Input placeholder="VD: Sau điều trị Implant..." /></Form.Item>
+          <Form.Item name="criteria" label={t("cskh.groupCriteria")}><Input.TextArea rows={2} placeholder="VD: Bệnh nhân hoàn thành Implant trong 30 ngày..." /></Form.Item>
+          <Form.Item name="description" label={t("common.description")}><Input.TextArea rows={2} placeholder={t("common.description")} /></Form.Item>
         </Form>
       </Modal>
     </>

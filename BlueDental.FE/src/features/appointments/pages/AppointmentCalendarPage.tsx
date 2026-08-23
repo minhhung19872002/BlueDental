@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button, Tabs, Segmented } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 import { LeftOutlined, RightOutlined, UnorderedListOutlined } from "@ant-design/icons";
@@ -27,6 +28,7 @@ const FALLBACK_DOCTORS: DayViewDoctor[] = [
 ];
 
 export function AppointmentCalendarPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { data: dentistData } = useDentistList();
   const doctors: DayViewDoctor[] = dentistData
@@ -94,8 +96,8 @@ export function AppointmentCalendarPage() {
             onChange={setTopTab}
             style={{ marginBottom: 0 }}
             items={[
-              { key: "customer", label: "Lịch hẹn khách hàng" },
-              { key: "work",     label: "Lịch làm việc" },
+              { key: "customer", label: t("calendar.customerAppointments") },
+              { key: "work",     label: t("calendar.workSchedule") },
             ]}
           />
         </div>
@@ -115,9 +117,9 @@ export function AppointmentCalendarPage() {
             value={viewMode}
             onChange={(v) => setViewMode(v as ViewMode)}
             options={[
-              { label: "Ngày",  value: "day" },
-              { label: "Tuần",  value: "week" },
-              { label: "Tháng", value: "month" },
+              { label: t("common.day"),   value: "day" },
+              { label: t("common.week"),  value: "week" },
+              { label: t("common.month"), value: "month" },
             ]}
             style={{ fontWeight: 500 }}
           />
@@ -125,9 +127,9 @@ export function AppointmentCalendarPage() {
           <Button
             icon={<UnorderedListOutlined />}
             onClick={() => navigate("/calendar/list")}
-            title="Xem danh sách lịch hẹn"
+            title={t("calendar.listViewTooltip")}
           >
-            Danh sách
+            {t("calendar.listView")}
           </Button>
 
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>

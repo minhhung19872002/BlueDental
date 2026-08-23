@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Organizations;
 using BlueDental.Timekeeping.Values;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
@@ -19,10 +20,14 @@ namespace BlueDental.Timekeeping;
 public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
 {
     private readonly IRepository<TimeKeepingRecord, Guid> _repository;
+    private readonly ICurrentClinicBranchResolver _branchResolver;
 
-    public TimeKeepingAppService(IRepository<TimeKeepingRecord, Guid> repository)
+    public TimeKeepingAppService(
+        IRepository<TimeKeepingRecord, Guid> repository,
+        ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
+        _branchResolver = branchResolver;
     }
 
     [Authorize(BlueDentalPermissions.Timekeeping.View)]
@@ -70,9 +75,10 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
     [Authorize(BlueDentalPermissions.Timekeeping.Manage)]
     public async Task<TimeKeepingRecordDto> OpenWorkDayAsync(OpenWorkDayDto input)
     {
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
         var existing = query.FirstOrDefault(x =>
-            x.ClinicBranchId == input.ClinicBranchId &&
+            x.ClinicBranchId == clinicBranchId &&
             x.StaffId == input.StaffId &&
             x.WorkDate == input.WorkDate);
 
@@ -84,7 +90,7 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
         var record = TimeKeepingRecord.OpenDay(
             GuidGenerator.Create(),
             input.StaffId,
-            input.ClinicBranchId,
+            clinicBranchId,
             input.WorkDate,
             BuildShift(WorkShiftKind.Morning, input.MorningStart, input.MorningEnd),
             BuildShift(WorkShiftKind.Afternoon, input.AfternoonStart, input.AfternoonEnd));
@@ -159,10 +165,10 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
 
     private async Task<IQueryable<TimeKeepingRecord>> BuildQueryAsync(GetTimeKeepingListInput input)
     {
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
 
-        if (input.ClinicBranchId.HasValue)
-            query = query.Where(x => x.ClinicBranchId == input.ClinicBranchId.Value);
+        query = query.Where(x => x.ClinicBranchId == clinicBranchId);
         if (input.StaffId.HasValue)
             query = query.Where(x => x.StaffId == input.StaffId.Value);
         if (input.FromDate.HasValue)

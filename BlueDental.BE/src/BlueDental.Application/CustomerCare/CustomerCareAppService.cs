@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
@@ -14,19 +15,23 @@ namespace BlueDental.CustomerCare;
 public class CustomerCareAppService : ApplicationService, ICustomerCareAppService
 {
     private readonly IRepository<CareRecord, Guid> _repository;
+    private readonly ICurrentClinicBranchResolver _branchResolver;
 
-    public CustomerCareAppService(IRepository<CareRecord, Guid> repository)
+    public CustomerCareAppService(
+        IRepository<CareRecord, Guid> repository,
+        ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
+        _branchResolver = branchResolver;
     }
 
     [Authorize(BlueDentalPermissions.CustomerCare.View)]
     public async Task<PagedResultDto<CareRecordDto>> GetListAsync(GetCareRecordListInput input)
     {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
 
-        if (input.BranchId.HasValue)
-            query = query.Where(r => r.BranchId == input.BranchId.Value);
+        query = query.Where(r => r.BranchId == branchId);
         if (input.PatientId.HasValue)
             query = query.Where(r => r.PatientId == input.PatientId.Value);
         if (input.Status.HasValue)
@@ -56,10 +61,11 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
     [Authorize(BlueDentalPermissions.CustomerCare.Create)]
     public async Task<CareRecordDto> CreateAsync(CreateCareRecordDto input)
     {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
         var record = new CareRecord(
             GuidGenerator.Create(),
             input.PatientId,
-            input.BranchId,
+            branchId,
             input.Type,
             input.Subject,
             input.AssignedStaffId,

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button, Input, Table, Modal, Form, InputNumber, Tag, message, Popconfirm, Select } from "antd";
 import { SearchOutlined, PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
@@ -29,14 +30,6 @@ import {
 
 type MaterialsSubRoute = "clinic" | "allocation" | "department";
 
-// ── Constants ──────────────────────────────────────────────────────────────
-
-const SUB_ROUTES: { key: MaterialsSubRoute; label: string }[] = [
-  { key: "clinic",     label: "Vật tư phòng khám" },
-  { key: "allocation", label: "Phân bổ vật tư" },
-  { key: "department", label: "Phòng ban" },
-];
-
 // ── Create/Edit Modal ─────────────────────────────────────────────────────
 
 interface InventoryModalProps {
@@ -46,6 +39,7 @@ interface InventoryModalProps {
 }
 
 function InventoryModal({ open, onClose, editingItem }: InventoryModalProps) {
+  const { t } = useTranslation();
   const [form] = Form.useForm();
   const createMutation = useCreateInventoryItem();
   const updateMutation = useUpdateInventoryItem();
@@ -65,7 +59,7 @@ function InventoryModal({ open, onClose, editingItem }: InventoryModalProps) {
             unitCost: values.unitCost,
           } as UpdateInventoryItemDto,
         });
-        message.success("Cập nhật vật tư thành công");
+        message.success(t("materials.updateSuccess"));
       } else {
         await createMutation.mutateAsync({
           itemCode: values.itemCode,
@@ -75,7 +69,7 @@ function InventoryModal({ open, onClose, editingItem }: InventoryModalProps) {
           reorderLevel: values.reorderLevel ?? 0,
           unitCost: values.unitCost,
         });
-        message.success("Thêm vật tư thành công");
+        message.success(t("materials.createSuccess"));
       }
       form.resetFields();
       onClose();
@@ -86,13 +80,13 @@ function InventoryModal({ open, onClose, editingItem }: InventoryModalProps) {
 
   return (
     <Modal
-      title={isEdit ? "Chỉnh sửa vật tư" : "Thêm vật tư mới"}
+      title={isEdit ? t("materials.editTitle") : t("materials.createTitle")}
       open={open}
       onCancel={() => { form.resetFields(); onClose(); }}
       onOk={handleOk}
       confirmLoading={createMutation.isPending || updateMutation.isPending}
-      okText={isEdit ? "Lưu thay đổi" : "Thêm vật tư"}
-      cancelText="Hủy"
+      okText={isEdit ? t("materials.saveChanges") : t("materials.addMaterial")}
+      cancelText={t("common.cancel")}
       width={500}
       destroyOnClose
       afterOpenChange={(visible) => {
@@ -109,23 +103,23 @@ function InventoryModal({ open, onClose, editingItem }: InventoryModalProps) {
     >
       <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
         {!isEdit && (
-          <Form.Item name="itemCode" label="Mã vật tư" rules={[{ required: true, message: "Nhập mã vật tư" }]}>
-            <Input placeholder="VD: VT001" />
+          <Form.Item name="itemCode" label={t("materials.materialCode")} rules={[{ required: true, message: t("materials.enterCode") }]}>
+            <Input placeholder={t("materials.enterCode")} />
           </Form.Item>
         )}
-        <Form.Item name="name" label="Tên vật tư" rules={[{ required: true, message: "Nhập tên vật tư" }]}>
-          <Input placeholder="Nhập tên vật tư..." />
+        <Form.Item name="name" label={t("materials.materialNameLabel")} rules={[{ required: true, message: t("materials.enterName") }]}>
+          <Input placeholder={t("materials.enterName")} />
         </Form.Item>
-        <Form.Item name="category" label="Nhóm phân loại">
-          <Input placeholder="VD: Dụng cụ nha khoa, Vật liệu nhổ..." />
+        <Form.Item name="category" label={t("materials.group")}>
+          <Input placeholder={t("materials.group")} />
         </Form.Item>
-        <Form.Item name="unit" label="Đơn vị">
-          <Input placeholder="VD: Cái, Hộp, Gói..." />
+        <Form.Item name="unit" label={t("materials.unit")}>
+          <Input placeholder={t("materials.unit")} />
         </Form.Item>
-        <Form.Item name="reorderLevel" label="Mức tồn kho tối thiểu">
+        <Form.Item name="reorderLevel" label={t("materials.minReorder")}>
           <InputNumber<number> min={0} style={{ width: "100%" }} placeholder="0" />
         </Form.Item>
-        <Form.Item name="unitCost" label="Giá nhập (VND)">
+        <Form.Item name="unitCost" label={t("materials.importPrice")}>
           <InputNumber<number>
             min={0}
             style={{ width: "100%" }}
@@ -142,6 +136,7 @@ function InventoryModal({ open, onClose, editingItem }: InventoryModalProps) {
 // ── Clinic Materials View ─────────────────────────────────────────────────
 
 function ClinicMaterialsView() {
+  const { t } = useTranslation();
   const [keyword, setKeyword] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItemDto | null>(null);
@@ -167,19 +162,19 @@ function ClinicMaterialsView() {
   const handleDelete = async (id: string) => {
     try {
       await deleteMutation.mutateAsync(id);
-      message.success("Xóa vật tư thành công");
+      message.success(t("materials.deleteSuccess"));
     } catch {
-      message.error("Xóa thất bại");
+      message.error(t("common.deleteFailed"));
     }
   };
 
   const columns: ColumnsType<InventoryItemDto> = [
-    { title: "Mã", dataIndex: "itemCode", key: "itemCode", width: 90 },
-    { title: "Tên vật liệu", dataIndex: "name", key: "name" },
-    { title: "Nhóm phân loại", dataIndex: "category", key: "category", render: (v: string) => v ?? "—" },
-    { title: "Đơn vị", dataIndex: "unit", key: "unit", render: (v: string) => v ?? "—" },
+    { title: t("materials.code"), dataIndex: "itemCode", key: "itemCode", width: 90 },
+    { title: t("materials.materialName"), dataIndex: "name", key: "name" },
+    { title: t("materials.group"), dataIndex: "category", key: "category", render: (v: string) => v ?? "—" },
+    { title: t("materials.unit"), dataIndex: "unit", key: "unit", render: (v: string) => v ?? "—" },
     {
-      title: "Tồn kho",
+      title: t("materials.stock"),
       dataIndex: "quantityOnHand",
       key: "quantityOnHand",
       align: "right",
@@ -190,23 +185,23 @@ function ClinicMaterialsView() {
       ),
     },
     {
-      title: "Trạng thái",
+      title: t("common.status"),
       dataIndex: "needsReorder",
       key: "status",
       render: (needsReorder: boolean, record) => (
         <Tag color={!record.isActive ? "default" : needsReorder ? "orange" : "green"}>
-          {!record.isActive ? "Ngừng" : needsReorder ? "Sắp hết" : "Đủ hàng"}
+          {!record.isActive ? t("materials.stopped") : needsReorder ? t("materials.lowStock") : t("materials.inStock")}
         </Tag>
       ),
     },
     {
-      title: "Cập nhật gần nhất",
+      title: t("common.lastUpdated"),
       dataIndex: "lastModificationTime",
       key: "updatedAt",
       render: (v: string) => (v ? dayjs(v).format("DD/MM/YYYY") : "—"),
     },
     {
-      title: "Thao tác",
+      title: t("common.actions"),
       key: "actions",
       width: 120,
       render: (_, record) => (
@@ -217,10 +212,10 @@ function ClinicMaterialsView() {
             onClick={() => { setEditingItem(record); setModalOpen(true); }}
           />
           <Popconfirm
-            title="Xác nhận xóa vật tư này?"
+            title={t("materials.confirmDelete")}
             onConfirm={() => handleDelete(record.id)}
-            okText="Xóa"
-            cancelText="Hủy"
+            okText={t("common.delete")}
+            cancelText={t("common.cancel")}
             okButtonProps={{ danger: true }}
           >
             <Button size="small" danger icon={<DeleteOutlined />} />
@@ -236,16 +231,16 @@ function ClinicMaterialsView() {
       <div className="reception-card" style={{ width: 240, minWidth: 200, padding: 16, flexShrink: 0 }}>
         <div style={{ marginBottom: 8 }}>
           <div style={{ fontWeight: 600, marginBottom: 4 }}>
-            Nhóm vật tư
+            {t("materials.materialGroups")}
             <span style={{ fontWeight: 400, color: "#8c8c8c", marginLeft: 6 }}>
-              {categories.length} nhóm
+              {t("materials.groupCount", { count: categories.length })}
             </span>
           </div>
           <div style={{ fontSize: 12, color: "#8c8c8c", marginBottom: 10 }}>
-            Chọn nhóm để xem vật tư
+            {t("materials.selectGroup")}
           </div>
           <Input
-            placeholder="Tìm nhóm vật tư..."
+            placeholder={t("materials.searchGroup")}
             size="small"
             style={{ marginBottom: 8 }}
             value={groupSearch}
@@ -255,7 +250,7 @@ function ClinicMaterialsView() {
         </div>
         {filteredCategories.length === 0 ? (
           <div style={{ color: "#8c8c8c", fontSize: 13, textAlign: "center", paddingTop: 16 }}>
-            Chưa có nhóm vật tư
+            {t("materials.noGroups")}
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -271,7 +266,7 @@ function ClinicMaterialsView() {
               }}
               onClick={() => setSelectedGroup(null)}
             >
-              Tất cả ({allItems.length})
+              {t("common.all")} ({allItems.length})
             </div>
             {filteredCategories.map((cat) => {
               const count = allItems.filter((i) => i.category === cat).length;
@@ -307,13 +302,13 @@ function ClinicMaterialsView() {
                 icon={<PlusOutlined />}
                 onClick={() => { setEditingItem(null); setModalOpen(true); }}
               >
-                Thêm vật tư
+                {t("materials.addMaterial")}
               </Button>
-              <Button disabled>Sync data hệ thống</Button>
+              <Button disabled>{t("materials.syncData")}</Button>
             </div>
             <Input
               prefix={<SearchOutlined />}
-              placeholder="Tìm kiếm..."
+              placeholder={t("common.search")}
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               style={{ width: 220 }}
@@ -332,9 +327,9 @@ function ClinicMaterialsView() {
               pageSize: 20,
               showSizeChanger: true,
               pageSizeOptions: ["10", "20", "50", "100"],
-              showTotal: (total) => `Hiển thị ${total} vật tư`,
+              showTotal: (total) => t("materials.showMaterialCount", { total }),
             }}
-            locale={{ emptyText: "Không có dữ liệu" }}
+            locale={{ emptyText: t("common.noData") }}
             size="middle"
           />
         </div>
@@ -352,6 +347,7 @@ function ClinicMaterialsView() {
 // ── Allocation View ────────────────────────────────────────────────────────
 
 function AllocationView() {
+  const { t } = useTranslation();
   const [keyword, setKeyword] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [form] = Form.useForm();
@@ -375,7 +371,7 @@ function AllocationView() {
     try {
       const values = await form.validateFields();
       await createMutation.mutateAsync(values);
-      message.success("Tạo phiếu phân bổ thành công");
+      message.success(t("materials.allocationCreateSuccess"));
       form.resetFields();
       setModalOpen(false);
     } catch { /* validation */ }
@@ -383,24 +379,24 @@ function AllocationView() {
 
   const handleDelete = async (id: string) => {
     await deleteMutation.mutateAsync(id);
-    message.success("Xóa phiếu phân bổ thành công");
+    message.success(t("materials.allocationDeleteSuccess"));
   };
 
   const columns: ColumnsType<MaterialAllocationDto> = [
-    { title: "Thời gian phân bổ", dataIndex: "allocationTime", key: "allocationTime", width: 160, render: (v: string) => v ? dayjs(v).format("DD/MM/YYYY HH:mm") : "—" },
-    { title: "Mã phân bổ", dataIndex: "allocationCode", key: "allocationCode", width: 150 },
-    { title: "Vật tư", dataIndex: "inventoryItemName", key: "material", render: (v: string) => v ?? "—" },
-    { title: "SL được phân bổ", dataIndex: "allocatedQuantity", key: "allocatedQty", width: 130, align: "right" },
-    { title: "SL confirm còn lại", dataIndex: "confirmedRemaining", key: "confirmedRemaining", width: 150, align: "right" },
-    { title: "Phòng ban", dataIndex: "departmentName", key: "department", render: (v: string) => v ?? "—" },
-    { title: "Người thực hiện", dataIndex: "performerName", key: "performer", render: (v: string) => v ?? "—" },
-    { title: "Ghi chú", dataIndex: "note", key: "note", render: (v: string) => v ?? "—" },
+    { title: t("materials.allocationTime"), dataIndex: "allocationTime", key: "allocationTime", width: 160, render: (v: string) => v ? dayjs(v).format("DD/MM/YYYY HH:mm") : "—" },
+    { title: t("materials.allocationCode"), dataIndex: "allocationCode", key: "allocationCode", width: 150 },
+    { title: t("materials.materialName"), dataIndex: "inventoryItemName", key: "material", render: (v: string) => v ?? "—" },
+    { title: t("materials.allocatedQty"), dataIndex: "allocatedQuantity", key: "allocatedQty", width: 130, align: "right" },
+    { title: t("materials.confirmedRemaining"), dataIndex: "confirmedRemaining", key: "confirmedRemaining", width: 150, align: "right" },
+    { title: t("materials.department"), dataIndex: "departmentName", key: "department", render: (v: string) => v ?? "—" },
+    { title: t("materials.performer"), dataIndex: "performerName", key: "performer", render: (v: string) => v ?? "—" },
+    { title: t("materials.note"), dataIndex: "note", key: "note", render: (v: string) => v ?? "—" },
     {
-      title: "Thao tác",
+      title: t("common.actions"),
       key: "actions",
       width: 80,
       render: (_, record) => (
-        <Popconfirm title="Xác nhận xóa?" onConfirm={() => handleDelete(record.id)} okText="Xóa" cancelText="Hủy" okButtonProps={{ danger: true }}>
+        <Popconfirm title={t("materials.confirmDelete")} onConfirm={() => handleDelete(record.id)} okText={t("common.delete")} cancelText={t("common.cancel")} okButtonProps={{ danger: true }}>
           <Button size="small" danger icon={<DeleteOutlined />} />
         </Popconfirm>
       ),
@@ -412,29 +408,29 @@ function AllocationView() {
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
           <div style={{ display: "flex", gap: 8 }}>
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => { form.resetFields(); setModalOpen(true); }}>Tạo phiếu phân bổ</Button>
-            <Input prefix={<SearchOutlined />} placeholder="Tìm phiếu phân bổ..." value={keyword} onChange={(e) => setKeyword(e.target.value)} style={{ width: 280 }} allowClear />
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => { form.resetFields(); setModalOpen(true); }}>{t("materials.createAllocation")}</Button>
+            <Input prefix={<SearchOutlined />} placeholder={t("materials.searchAllocation")} value={keyword} onChange={(e) => setKeyword(e.target.value)} style={{ width: 280 }} allowClear />
           </div>
-          <Button>Lịch sử kiểm kho</Button>
+          <Button>{t("materials.inventoryHistory")}</Button>
         </div>
       </div>
       <div className="reception-card reception-card--content">
-        <Table columns={columns} dataSource={filtered} rowKey="id" loading={isLoading} pagination={{ pageSize: 20, showTotal: (total) => `Hiển thị ${filtered.length} trên ${total}` }} locale={{ emptyText: "Chưa có phiếu phân bổ" }} size="middle" scroll={{ x: "max-content" }} />
+        <Table columns={columns} dataSource={filtered} rowKey="id" loading={isLoading} pagination={{ pageSize: 20, showTotal: (total) => t("materials.showRange", { from: filtered.length, total }) }} locale={{ emptyText: t("materials.noAllocations") }} size="middle" scroll={{ x: "max-content" }} />
       </div>
 
-      <Modal title="Tạo phiếu phân bổ" open={modalOpen} onCancel={() => setModalOpen(false)} onOk={handleCreate} confirmLoading={createMutation.isPending} okText="Tạo phiếu" cancelText="Hủy" destroyOnClose>
+      <Modal title={t("materials.createAllocation")} open={modalOpen} onCancel={() => setModalOpen(false)} onOk={handleCreate} confirmLoading={createMutation.isPending} okText={t("materials.createAllocationBtn")} cancelText={t("common.cancel")} destroyOnClose>
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
-          <Form.Item name="inventoryItemId" label="Vật tư" rules={[{ required: true, message: "Chọn vật tư" }]}>
-            <Select placeholder="Chọn vật tư..." showSearch optionFilterProp="label" options={(inventoryData?.items ?? []).map((i) => ({ value: i.id, label: `${i.itemCode} - ${i.name}` }))} />
+          <Form.Item name="inventoryItemId" label={t("materials.materialName")} rules={[{ required: true, message: t("materials.selectMaterial") }]}>
+            <Select placeholder={t("materials.selectMaterialPlaceholder")} showSearch optionFilterProp="label" options={(inventoryData?.items ?? []).map((i) => ({ value: i.id, label: `${i.itemCode} - ${i.name}` }))} />
           </Form.Item>
-          <Form.Item name="departmentId" label="Phòng ban" rules={[{ required: true, message: "Chọn phòng ban" }]}>
-            <Select placeholder="Chọn phòng ban..." options={(deptData?.items ?? []).map((d) => ({ value: d.id, label: d.name }))} />
+          <Form.Item name="departmentId" label={t("materials.department")} rules={[{ required: true, message: t("materials.selectDepartment") }]}>
+            <Select placeholder={t("materials.selectDepartmentPlaceholder")} options={(deptData?.items ?? []).map((d) => ({ value: d.id, label: d.name }))} />
           </Form.Item>
-          <Form.Item name="allocatedQuantity" label="Số lượng phân bổ" rules={[{ required: true, message: "Nhập số lượng" }]}>
+          <Form.Item name="allocatedQuantity" label={t("materials.allocatedQtyLabel")} rules={[{ required: true, message: t("materials.enterQty") }]}>
             <InputNumber<number> min={0.001} style={{ width: "100%" }} placeholder="0" />
           </Form.Item>
-          <Form.Item name="performerName" label="Người thực hiện"><Input placeholder="Tên người thực hiện..." /></Form.Item>
-          <Form.Item name="note" label="Ghi chú"><Input.TextArea rows={2} placeholder="Ghi chú..." /></Form.Item>
+          <Form.Item name="performerName" label={t("materials.performer")}><Input placeholder={t("materials.performerPlaceholder")} /></Form.Item>
+          <Form.Item name="note" label={t("materials.note")}><Input.TextArea rows={2} placeholder={t("materials.notePlaceholder")} /></Form.Item>
         </Form>
       </Modal>
     </>
@@ -444,6 +440,7 @@ function AllocationView() {
 // ── Department View ────────────────────────────────────────────────────────
 
 function DepartmentView() {
+  const { t } = useTranslation();
   const [keyword, setKeyword] = useState("");
   const [selectedDeptId, setSelectedDeptId] = useState<string | null>(null);
   const [deptModalOpen, setDeptModalOpen] = useState(false);
@@ -468,10 +465,10 @@ function DepartmentView() {
       const values = await deptForm.validateFields();
       if (editingDept) {
         await updateDept.mutateAsync({ id: editingDept.id, data: values });
-        message.success("Cập nhật phòng ban thành công");
+        message.success(t("materials.deptUpdateSuccess"));
       } else {
         await createDept.mutateAsync(values);
-        message.success("Tạo phòng ban thành công");
+        message.success(t("materials.deptCreateSuccess"));
       }
       deptForm.resetFields();
       setDeptModalOpen(false);
@@ -482,32 +479,32 @@ function DepartmentView() {
   const handleDeptDelete = async (id: string) => {
     await deleteDept.mutateAsync(id);
     if (selectedDeptId === id) setSelectedDeptId(null);
-    message.success("Xóa phòng ban thành công");
+    message.success(t("materials.deptDeleteSuccess"));
   };
 
   const rightColumns: ColumnsType<MaterialAllocationDto> = [
-    { title: "Thời gian phân bổ", dataIndex: "allocationTime", key: "allocationTime", width: 160, render: (v: string) => v ? dayjs(v).format("DD/MM/YYYY HH:mm") : "—" },
-    { title: "Mã phân bổ", dataIndex: "allocationCode", key: "allocationCode", width: 150 },
-    { title: "Vật tư", dataIndex: "inventoryItemName", key: "material", render: (v: string) => v ?? "—" },
-    { title: "SL được phát", dataIndex: "allocatedQuantity", key: "distributedQty", width: 120, align: "right" },
-    { title: "SL còn lại (đã duyệt)", dataIndex: "confirmedRemaining", key: "approvedRemaining", width: 170, align: "right" },
-    { title: "Người thực hiện", dataIndex: "performerName", key: "performer", render: (v: string) => v ?? "—" },
-    { title: "Ghi chú", dataIndex: "note", key: "note", render: (v: string) => v ?? "—" },
+    { title: t("materials.allocationTime"), dataIndex: "allocationTime", key: "allocationTime", width: 160, render: (v: string) => v ? dayjs(v).format("DD/MM/YYYY HH:mm") : "—" },
+    { title: t("materials.allocationCode"), dataIndex: "allocationCode", key: "allocationCode", width: 150 },
+    { title: t("materials.materialName"), dataIndex: "inventoryItemName", key: "material", render: (v: string) => v ?? "—" },
+    { title: t("materials.distributedQty"), dataIndex: "allocatedQuantity", key: "distributedQty", width: 120, align: "right" },
+    { title: t("materials.approvedRemaining"), dataIndex: "confirmedRemaining", key: "approvedRemaining", width: 170, align: "right" },
+    { title: t("materials.performer"), dataIndex: "performerName", key: "performer", render: (v: string) => v ?? "—" },
+    { title: t("materials.note"), dataIndex: "note", key: "note", render: (v: string) => v ?? "—" },
   ];
 
   return (
     <div style={{ display: "flex", gap: 16 }}>
       <div className="reception-card" style={{ width: 240, minWidth: 200, padding: 16, flexShrink: 0 }}>
         <div style={{ fontWeight: 600, marginBottom: 4 }}>
-          Phòng ban
-          <span style={{ fontWeight: 400, color: "#8c8c8c", marginLeft: 6 }}>{departments.length} phòng ban</span>
+          {t("materials.departments")}
+          <span style={{ fontWeight: 400, color: "#8c8c8c", marginLeft: 6 }}>{t("materials.deptCount", { count: departments.length })}</span>
         </div>
         <div style={{ fontSize: 12, color: "#8c8c8c", marginBottom: 10 }}>
-          Chọn phòng ban để xem vật tư đã phát và kiểm kho
+          {t("materials.selectDeptPrompt")}
         </div>
-        <Button type="dashed" block size="small" style={{ marginBottom: 8 }} onClick={() => { setEditingDept(null); deptForm.resetFields(); setDeptModalOpen(true); }}>Tạo phòng ban</Button>
+        <Button type="dashed" block size="small" style={{ marginBottom: 8 }} onClick={() => { setEditingDept(null); deptForm.resetFields(); setDeptModalOpen(true); }}>{t("materials.createDept")}</Button>
         {deptLoading ? null : departments.length === 0 ? (
-          <div style={{ color: "#8c8c8c", fontSize: 13, textAlign: "center", paddingTop: 24 }}>Chưa có phòng ban</div>
+          <div style={{ color: "#8c8c8c", fontSize: 13, textAlign: "center", paddingTop: 24 }}>{t("materials.noDepts")}</div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             {departments.map((d) => (
@@ -525,7 +522,7 @@ function DepartmentView() {
                 <span>{d.name}</span>
                 <div style={{ display: "flex", gap: 2 }} onClick={(e) => e.stopPropagation()}>
                   <Button type="text" size="small" icon={<EditOutlined />} style={{ padding: 0, width: 22, height: 22 }} onClick={() => { setEditingDept(d); deptForm.setFieldsValue(d); setDeptModalOpen(true); }} />
-                  <Popconfirm title="Xóa phòng ban?" onConfirm={() => handleDeptDelete(d.id)} okText="Xóa" cancelText="Hủy" okButtonProps={{ danger: true }}>
+                  <Popconfirm title={t("materials.confirmDeleteDept")} onConfirm={() => handleDeptDelete(d.id)} okText={t("common.delete")} cancelText={t("common.cancel")} okButtonProps={{ danger: true }}>
                     <Button type="text" size="small" danger icon={<DeleteOutlined />} style={{ padding: 0, width: 22, height: 22 }} />
                   </Popconfirm>
                 </div>
@@ -537,8 +534,8 @@ function DepartmentView() {
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
         <div className="reception-card reception-card--toolbar">
           <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
-            <Input prefix={<SearchOutlined />} placeholder="Tìm vật tư..." value={keyword} onChange={(e) => setKeyword(e.target.value)} style={{ width: 220 }} allowClear />
-            <Button>Gộp số lượng vật tư</Button>
+            <Input prefix={<SearchOutlined />} placeholder={t("materials.searchMaterial")} value={keyword} onChange={(e) => setKeyword(e.target.value)} style={{ width: 220 }} allowClear />
+            <Button>{t("materials.mergeMaterialQty")}</Button>
           </div>
         </div>
         <div className="reception-card reception-card--content">
@@ -548,17 +545,17 @@ function DepartmentView() {
             rowKey="id"
             loading={allocLoading}
             pagination={{ pageSize: 20, showTotal: (total) => `Hiển thị ${allocations.length} trên ${total}` }}
-            locale={{ emptyText: selectedDeptId ? "Chưa có vật tư phân bổ cho phòng ban này" : "Chọn phòng ban để xem vật tư đã phân bổ" }}
+            locale={{ emptyText: selectedDeptId ? t("materials.noDeptAllocations") : t("materials.selectDeptToView") }}
             size="middle"
             scroll={{ x: "max-content" }}
           />
         </div>
       </div>
 
-      <Modal title={editingDept ? "Chỉnh sửa phòng ban" : "Tạo phòng ban"} open={deptModalOpen} onCancel={() => { setDeptModalOpen(false); setEditingDept(null); deptForm.resetFields(); }} onOk={handleDeptSave} confirmLoading={createDept.isPending || updateDept.isPending} okText={editingDept ? "Lưu" : "Tạo"} cancelText="Hủy" destroyOnClose>
+      <Modal title={editingDept ? t("materials.editDeptTitle") : t("materials.createDeptTitle")} open={deptModalOpen} onCancel={() => { setDeptModalOpen(false); setEditingDept(null); deptForm.resetFields(); }} onOk={handleDeptSave} confirmLoading={createDept.isPending || updateDept.isPending} okText={editingDept ? t("materials.saveChanges") : t("materials.createDept")} cancelText={t("common.cancel")} destroyOnClose>
         <Form form={deptForm} layout="vertical" style={{ marginTop: 16 }}>
-          <Form.Item name="name" label="Tên phòng ban" rules={[{ required: true, message: "Nhập tên phòng ban" }]}><Input placeholder="VD: Phòng khám 1, Phòng lễ tân..." /></Form.Item>
-          <Form.Item name="description" label="Mô tả"><Input.TextArea rows={2} placeholder="Mô tả..." /></Form.Item>
+          <Form.Item name="name" label={t("materials.deptName")} rules={[{ required: true, message: t("materials.enterDeptName") }]}><Input placeholder={t("materials.deptNamePlaceholder")} /></Form.Item>
+          <Form.Item name="description" label={t("materials.description")}><Input.TextArea rows={2} placeholder={t("materials.descriptionPlaceholder")} /></Form.Item>
         </Form>
       </Modal>
     </div>
@@ -568,7 +565,14 @@ function DepartmentView() {
 // ── Main component ─────────────────────────────────────────────────────────
 
 export function MaterialsPage() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<MaterialsSubRoute>("clinic");
+
+  const SUB_ROUTES: { key: MaterialsSubRoute; label: string }[] = [
+    { key: "clinic",      label: t("materials.tabClinicMaterials") },
+    { key: "allocation",  label: t("materials.tabAllocation") },
+    { key: "department",  label: t("materials.tabDepartments") },
+  ];
 
   const renderContent = () => {
     switch (activeTab) {

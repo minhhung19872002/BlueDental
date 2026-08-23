@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Table, Button, Input, Tag, Empty, Popconfirm, Modal, message } from "antd";
 import { SearchOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
 import dayjs from "dayjs";
 import {
   useCallAssignments, useCreateCallAssignment, useUpdateCallAssignmentStatus, useDeleteCallAssignment,
@@ -15,55 +16,30 @@ import {
 
 type ToolCategory = "call" | "message" | "zalo-oa" | "invoice";
 
-// ── Constants ──────────────────────────────────────────────────────────────
+// ── Status maps (numeric keys, labels via t()) ─────────────────────────────
 
-const TOOL_TABS: { key: ToolCategory; label: string }[] = [
-  { key: "call",     label: "Gọi thoại" },
-  { key: "message",  label: "Tin nhắn" },
-  { key: "zalo-oa",  label: "Zalo OA" },
-  { key: "invoice",  label: "Hóa đơn" },
-];
-
-const CALL_SUB_TABS = [
-  { key: "config",    label: "Cấu Hình" },
-  { key: "assign",    label: "Phân Công Gọi" },
-  { key: "list",      label: "Danh Sách Cuộc Gọi" },
-];
-
-const MESSAGE_SUB_TABS = [
-  { key: "config",    label: "Cấu Hình" },
-  { key: "templates", label: "Mẫu Tin Nhắn" },
-  { key: "list",      label: "Danh Sách Tin Nhắn" },
-];
-
-const ZALO_SUB_TABS = [
-  { key: "config",    label: "Cấu Hình" },
-  { key: "templates", label: "Mẫu ZBS" },
-  { key: "list",      label: "Danh sách Tin Nhắn" },
-];
-
-const CALL_STATUS_MAP: Record<number, { label: string; color: string }> = {
-  0: { label: "Chưa gọi", color: "default" },
-  1: { label: "Đã gọi", color: "green" },
-  2: { label: "Không liên lạc được", color: "red" },
+const CALL_STATUS_COLORS: Record<number, string> = {
+  0: "default",
+  1: "green",
+  2: "red",
 };
 
-const CALL_DIRECTION_MAP: Record<number, string> = {
-  0: "Gọi đến",
-  1: "Gọi đi",
+const CALL_DIRECTION_COLOR: Record<number, string> = {
+  0: "cyan",
+  1: "blue",
 };
 
-const CALL_LOG_STATUS_MAP: Record<number, { label: string; color: string }> = {
-  0: { label: "Đã nghe", color: "green" },
-  1: { label: "Nhỡ", color: "red" },
-  2: { label: "Hộp thư", color: "default" },
+const CALL_LOG_STATUS_COLORS: Record<number, string> = {
+  0: "green",
+  1: "red",
+  2: "default",
 };
 
-const MSG_STATUS_MAP: Record<number, { label: string; color: string }> = {
-  0: { label: "Đang chờ", color: "default" },
-  1: { label: "Đã gửi", color: "green" },
-  2: { label: "Thất bại", color: "red" },
-  3: { label: "Đã nhận", color: "blue" },
+const MSG_STATUS_COLORS: Record<number, string> = {
+  0: "default",
+  1: "green",
+  2: "red",
+  3: "blue",
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -114,27 +90,28 @@ function formatDuration(seconds: number): string {
 // ── "Gọi thoại" views ─────────────────────────────────────────────────────
 
 function CallConfigView() {
+  const { t } = useTranslation();
   const [keyword, setKeyword] = useState("");
 
   const columns = [
-    { title: "Tên", dataIndex: "name", key: "name" },
-    { title: "Chi nhánh", dataIndex: "branch", key: "branch" },
-    { title: "Loại cài đặt", dataIndex: "settingType", key: "settingType" },
-    { title: "Nhà cung cấp", dataIndex: "provider", key: "provider" },
+    { title: t("tools.name"),        dataIndex: "name",        key: "name" },
+    { title: t("tools.branch"),      dataIndex: "branch",      key: "branch" },
+    { title: t("tools.settingType"), dataIndex: "settingType", key: "settingType" },
+    { title: t("tools.provider"),    dataIndex: "provider",    key: "provider" },
     {
-      title: "Trạng thái",
+      title: t("tools.status"),
       dataIndex: "status",
       key: "status",
       render: (v: string | undefined) =>
         v ? <Tag color={v === "Đã kích hoạt" ? "green" : "default"}>{v}</Tag> : null,
     },
     {
-      title: "Thao tác",
+      title: t("tools.actions"),
       key: "actions",
       render: () => (
         <div style={{ display: "flex", gap: 6 }}>
-          <Button size="small">Chỉnh sửa</Button>
-          <Button size="small" danger>Xoá</Button>
+          <Button size="small">{t("tools.edit")}</Button>
+          <Button size="small" danger>{t("tools.delete")}</Button>
         </div>
       ),
     },
@@ -146,13 +123,13 @@ function CallConfigView() {
         <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
           <Input
             prefix={<SearchOutlined />}
-            placeholder="Tìm kiếm..."
+            placeholder={t("tools.search")}
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             style={{ width: 260 }}
             allowClear
           />
-          <Button type="primary">Tạo cấu hình</Button>
+          <Button type="primary">{t("tools.createConfig")}</Button>
         </div>
       </div>
       <div className="reception-card reception-card--content">
@@ -161,8 +138,8 @@ function CallConfigView() {
           dataSource={[]}
           rowKey="id"
           size="small"
-          locale={{ emptyText: "Chưa có cấu hình nào" }}
-          pagination={{ pageSize: 20, showTotal: (total) => `Hiển thị 0 trên ${total}` }}
+          locale={{ emptyText: t("tools.noConfig") }}
+          pagination={{ pageSize: 20, showTotal: (total) => `0 / ${total}` }}
         />
       </div>
     </>
@@ -170,49 +147,57 @@ function CallConfigView() {
 }
 
 function CallAssignView() {
+  const { t } = useTranslation();
   const [keyword, setKeyword] = useState("");
   const { data, isLoading } = useCallAssignments({ filter: keyword || undefined });
   const assignments = data?.items ?? [];
   const updateStatus = useUpdateCallAssignmentStatus();
   const deleteAssignment = useDeleteCallAssignment();
 
+  const CALL_STATUS_LABELS: Record<number, string> = {
+    0: "Chưa gọi",
+    1: t("tools.called"),
+    2: t("tools.noContact"),
+  };
+
   const columns = [
-    { title: "Bệnh nhân", dataIndex: "patientName", key: "patientName" },
-    { title: "Số điện thoại", dataIndex: "phoneNumber", key: "phoneNumber", width: 130 },
-    { title: "Nhân viên", dataIndex: "staffName", key: "staffName" },
+    { title: t("tools.patient"),   dataIndex: "patientName",  key: "patientName" },
+    { title: t("tools.phone"),     dataIndex: "phoneNumber",  key: "phoneNumber",  width: 130 },
+    { title: t("tools.staff"),     dataIndex: "staffName",    key: "staffName" },
     {
-      title: "Trạng thái", dataIndex: "status", key: "status", width: 150,
+      title: t("tools.status"), dataIndex: "status", key: "status", width: 150,
       render: (v: number) => {
-        const s = CALL_STATUS_MAP[v] ?? { label: "—", color: "default" };
-        return <Tag color={s.color}>{s.label}</Tag>;
+        const label = CALL_STATUS_LABELS[v] ?? "—";
+        const color = CALL_STATUS_COLORS[v] ?? "default";
+        return <Tag color={color}>{label}</Tag>;
       },
     },
     {
-      title: "Ngày gọi", dataIndex: "calledAt", key: "calledAt", width: 140,
+      title: t("tools.calledAt"), dataIndex: "calledAt", key: "calledAt", width: 140,
       render: (v: string | undefined) => v ? dayjs(v).format("DD/MM/YYYY HH:mm") : "—",
     },
-    { title: "Ghi chú", dataIndex: "notes", key: "notes", ellipsis: true },
+    { title: t("tools.notes"),     dataIndex: "notes",        key: "notes",        ellipsis: true },
     {
-      title: "Ngày tạo", dataIndex: "creationTime", key: "creationTime", width: 120,
+      title: t("tools.createdAt"), dataIndex: "creationTime", key: "creationTime", width: 120,
       render: (v: string) => dayjs(v).format("DD/MM/YYYY"),
     },
     {
-      title: "Thao tác", key: "actions", width: 200,
+      title: t("tools.actions"), key: "actions", width: 200,
       render: (_: unknown, record: CallAssignmentDto) => (
         <div style={{ display: "flex", gap: 4 }}>
           {record.status === 0 && (
             <>
               <Button size="small" type="primary"
                 onClick={() => updateStatus.mutate({ id: record.id, status: 1 })}>
-                Đã gọi
+                {t("tools.called")}
               </Button>
               <Button size="small"
                 onClick={() => updateStatus.mutate({ id: record.id, status: 2 })}>
-                K.liên lạc
+                {t("tools.noContact")}
               </Button>
             </>
           )}
-          <Popconfirm title="Xoá phân công?" onConfirm={() => deleteAssignment.mutate(record.id)}>
+          <Popconfirm title={t("tools.deleteAssign")} onConfirm={() => deleteAssignment.mutate(record.id)}>
             <Button size="small" danger icon={<DeleteOutlined />} />
           </Popconfirm>
         </div>
@@ -226,7 +211,7 @@ function CallAssignView() {
         <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
           <Input
             prefix={<SearchOutlined />}
-            placeholder="Tìm kiếm bệnh nhân..."
+            placeholder={t("tools.searchPatient")}
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             style={{ width: 260 }}
@@ -241,8 +226,8 @@ function CallAssignView() {
           rowKey="id"
           size="small"
           loading={isLoading}
-          locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Chưa có phân công gọi nào" /> }}
-          pagination={{ pageSize: 20, showTotal: (total) => `${total} phân công` }}
+          locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("tools.noCallAssign")} /> }}
+          pagination={{ pageSize: 20, showTotal: (total) => t("tools.totalAssigns", { total }) }}
         />
       </div>
     </>
@@ -250,39 +235,52 @@ function CallAssignView() {
 }
 
 function CallListView() {
+  const { t } = useTranslation();
   const [keyword, setKeyword] = useState("");
   const { data, isLoading } = useCallLogs({ filter: keyword || undefined });
   const callLogs = data?.items ?? [];
   const deleteLog = useDeleteCallLog();
 
+  const CALL_DIRECTION_LABELS: Record<number, string> = {
+    0: "Gọi đến",
+    1: "Gọi đi",
+  };
+
+  const CALL_LOG_STATUS_LABELS: Record<number, string> = {
+    0: "Đã nghe",
+    1: "Nhỡ",
+    2: "Hộp thư",
+  };
+
   const columns = [
     {
-      title: "Thời gian", dataIndex: "creationTime", key: "creationTime", width: 140,
+      title: t("tools.time"), dataIndex: "creationTime", key: "creationTime", width: 140,
       render: (v: string) => dayjs(v).format("DD/MM/YYYY HH:mm"),
     },
-    { title: "Bệnh nhân", dataIndex: "patientName", key: "patientName" },
-    { title: "Số điện thoại", dataIndex: "phoneNumber", key: "phoneNumber", width: 130 },
-    { title: "Nhân viên", dataIndex: "staffName", key: "staffName" },
+    { title: t("tools.patient"),   dataIndex: "patientName", key: "patientName" },
+    { title: t("tools.phone"),     dataIndex: "phoneNumber", key: "phoneNumber", width: 130 },
+    { title: t("tools.staff"),     dataIndex: "staffName",   key: "staffName" },
     {
-      title: "Chiều", dataIndex: "direction", key: "direction", width: 90,
-      render: (v: number) => <Tag color={v === 1 ? "blue" : "cyan"}>{CALL_DIRECTION_MAP[v] ?? "—"}</Tag>,
+      title: t("tools.direction"), dataIndex: "direction", key: "direction", width: 90,
+      render: (v: number) => <Tag color={CALL_DIRECTION_COLOR[v] ?? "default"}>{CALL_DIRECTION_LABELS[v] ?? "—"}</Tag>,
     },
     {
-      title: "Trạng thái", dataIndex: "status", key: "status", width: 100,
+      title: t("tools.callStatus"), dataIndex: "status", key: "status", width: 100,
       render: (v: number) => {
-        const s = CALL_LOG_STATUS_MAP[v] ?? { label: "—", color: "default" };
-        return <Tag color={s.color}>{s.label}</Tag>;
+        const label = CALL_LOG_STATUS_LABELS[v] ?? "—";
+        const color = CALL_LOG_STATUS_COLORS[v] ?? "default";
+        return <Tag color={color}>{label}</Tag>;
       },
     },
     {
-      title: "Thời lượng", dataIndex: "durationSeconds", key: "durationSeconds", width: 100,
+      title: t("tools.duration"), dataIndex: "durationSeconds", key: "durationSeconds", width: 100,
       render: (v: number) => formatDuration(v),
     },
-    { title: "Ghi chú", dataIndex: "notes", key: "notes", ellipsis: true },
+    { title: t("tools.notes"), dataIndex: "notes", key: "notes", ellipsis: true },
     {
       title: "", key: "actions", width: 50,
       render: (_: unknown, record: CallLogDto) => (
-        <Popconfirm title="Xoá?" onConfirm={() => deleteLog.mutate(record.id)}>
+        <Popconfirm title={t("tools.deleteCall")} onConfirm={() => deleteLog.mutate(record.id)}>
           <Button size="small" type="text" danger icon={<DeleteOutlined />} />
         </Popconfirm>
       ),
@@ -295,7 +293,7 @@ function CallListView() {
         <div style={{ display: "flex", gap: 8 }}>
           <Input
             prefix={<SearchOutlined />}
-            placeholder="Tìm kiếm..."
+            placeholder={t("tools.search")}
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             style={{ width: 260 }}
@@ -310,8 +308,8 @@ function CallListView() {
           rowKey="id"
           size="small"
           loading={isLoading}
-          locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Chưa có cuộc gọi nào" /> }}
-          pagination={{ pageSize: 20, showTotal: (total) => `${total} cuộc gọi` }}
+          locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("tools.noCallLogs")} /> }}
+          pagination={{ pageSize: 20, showTotal: (total) => t("tools.totalCalls", { total }) }}
         />
       </div>
     </>
@@ -319,7 +317,14 @@ function CallListView() {
 }
 
 function CallView() {
+  const { t } = useTranslation();
   const [sub, setSub] = useState("config");
+
+  const CALL_SUB_TABS = [
+    { key: "config", label: t("tools.config") },
+    { key: "assign", label: t("tools.callAssign") },
+    { key: "list",   label: t("tools.callList") },
+  ];
 
   return (
     <>
@@ -334,6 +339,7 @@ function CallView() {
 // ── Message Template View ────────────────────────────────────────────────
 
 function MessageTemplateView({ channel }: { channel: number }) {
+  const { t } = useTranslation();
   const [keyword, setKeyword] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MessageTemplateDto | null>(null);
@@ -368,40 +374,50 @@ function MessageTemplateView({ channel }: { channel: number }) {
     if (editingItem) {
       updateTemplate.mutate(
         { id: editingItem.id, data: { name: name.trim(), content: content.trim(), category: category.trim() || undefined } },
-        { onSuccess: () => { setModalOpen(false); message.success("Đã cập nhật mẫu"); } },
+        { onSuccess: () => { setModalOpen(false); message.success(t("tools.templateUpdated")); } },
       );
     } else {
       createTemplate.mutate(
         { name: name.trim(), content: content.trim(), channel, category: category.trim() || undefined },
-        { onSuccess: () => { setModalOpen(false); message.success("Đã tạo mẫu"); } },
+        { onSuccess: () => { setModalOpen(false); message.success(t("tools.templateCreated")); } },
       );
     }
   };
 
+  const MSG_STATUS_LABELS: Record<number, string> = {
+    0: "Đang chờ",
+    1: "Đã gửi",
+    2: "Thất bại",
+    3: "Đã nhận",
+  };
+
   const columns = [
-    { title: "Tên mẫu", dataIndex: "name", key: "name" },
-    { title: "Nội dung", dataIndex: "content", key: "content", ellipsis: true },
-    { title: "Nhóm", dataIndex: "category", key: "category", width: 120, render: (v: string | undefined) => v ?? "—" },
+    { title: t("tools.templateName"),   dataIndex: "name",     key: "name" },
+    { title: t("tools.content"),         dataIndex: "content",  key: "content",  ellipsis: true },
+    { title: t("tools.group"),           dataIndex: "category", key: "category", width: 120, render: (v: string | undefined) => v ?? "—" },
     {
-      title: "Trạng thái", dataIndex: "isActive", key: "isActive", width: 100,
+      title: t("tools.templateStatus"), dataIndex: "isActive", key: "isActive", width: 100,
       render: (v: boolean) => <Tag color={v ? "green" : "default"}>{v ? "Hoạt động" : "Tắt"}</Tag>,
     },
     {
-      title: "Ngày tạo", dataIndex: "creationTime", key: "creationTime", width: 120,
+      title: t("tools.createdDate"), dataIndex: "creationTime", key: "creationTime", width: 120,
       render: (v: string) => dayjs(v).format("DD/MM/YYYY"),
     },
     {
-      title: "Thao tác", key: "actions", width: 140,
+      title: t("tools.actions"), key: "actions", width: 140,
       render: (_: unknown, record: MessageTemplateDto) => (
         <div style={{ display: "flex", gap: 6 }}>
-          <Button size="small" onClick={() => openEdit(record)}>Sửa</Button>
-          <Popconfirm title="Xoá mẫu?" onConfirm={() => deleteTemplate.mutate(record.id)}>
-            <Button size="small" danger>Xoá</Button>
+          <Button size="small" onClick={() => openEdit(record)}>{t("common.edit")}</Button>
+          <Popconfirm title={t("tools.deleteTemplate")} onConfirm={() => deleteTemplate.mutate(record.id)}>
+            <Button size="small" danger>{t("common.delete")}</Button>
           </Popconfirm>
         </div>
       ),
     },
   ];
+
+  // suppress unused variable warning
+  void MSG_STATUS_LABELS;
 
   return (
     <>
@@ -409,13 +425,13 @@ function MessageTemplateView({ channel }: { channel: number }) {
         <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
           <Input
             prefix={<SearchOutlined />}
-            placeholder="Tìm kiếm mẫu..."
+            placeholder={t("tools.search")}
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             style={{ width: 260 }}
             allowClear
           />
-          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Tạo mẫu</Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>{t("tools.createTemplateBtn")}</Button>
         </div>
       </div>
       <div className="reception-card reception-card--content">
@@ -425,13 +441,13 @@ function MessageTemplateView({ channel }: { channel: number }) {
           rowKey="id"
           size="small"
           loading={isLoading}
-          locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Chưa có mẫu nào" /> }}
-          pagination={{ pageSize: 20, showTotal: (total) => `${total} mẫu` }}
+          locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("tools.noTemplates")} /> }}
+          pagination={{ pageSize: 20, showTotal: (total) => t("tools.totalTemplates", { total }) }}
         />
       </div>
 
       <Modal
-        title={editingItem ? "Sửa mẫu tin nhắn" : "Tạo mẫu tin nhắn"}
+        title={editingItem ? t("tools.editTemplate") : t("tools.createTemplate")}
         open={modalOpen}
         onOk={handleSave}
         onCancel={() => setModalOpen(false)}
@@ -439,18 +455,18 @@ function MessageTemplateView({ channel }: { channel: number }) {
       >
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <Input
-            placeholder="Tên mẫu"
+            placeholder={t("tools.templateNamePlaceholder")}
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
           <Input.TextArea
-            placeholder="Nội dung mẫu (hỗ trợ biến: {patientName}, {appointmentDate}...)"
+            placeholder={t("tools.contentPlaceholder")}
             value={content}
             onChange={(e) => setContent(e.target.value)}
             rows={4}
           />
           <Input
-            placeholder="Nhóm (tuỳ chọn)"
+            placeholder={t("tools.groupPlaceholder")}
             value={category}
             onChange={(e) => setCategory(e.target.value)}
           />
@@ -463,27 +479,36 @@ function MessageTemplateView({ channel }: { channel: number }) {
 // ── Message Log View ─────────────────────────────────────────────────────
 
 function MessageLogView({ channel }: { channel: number }) {
+  const { t } = useTranslation();
   const [keyword, setKeyword] = useState("");
   const { data, isLoading } = useMessageLogs(channel, { filter: keyword || undefined });
   const logs = data?.items ?? [];
 
+  const MSG_STATUS_LABELS: Record<number, string> = {
+    0: "Đang chờ",
+    1: "Đã gửi",
+    2: "Thất bại",
+    3: "Đã nhận",
+  };
+
   const columns = [
     {
-      title: "Thời gian", dataIndex: "creationTime", key: "creationTime", width: 140,
+      title: t("tools.time"), dataIndex: "creationTime", key: "creationTime", width: 140,
       render: (v: string) => dayjs(v).format("DD/MM/YYYY HH:mm"),
     },
-    { title: "Người nhận", dataIndex: "recipientName", key: "recipientName" },
-    { title: "Số điện thoại", dataIndex: "recipientPhone", key: "recipientPhone", width: 130 },
-    { title: "Nội dung", dataIndex: "content", key: "content", ellipsis: true },
+    { title: t("tools.recipient"),  dataIndex: "recipientName",  key: "recipientName" },
+    { title: t("tools.phone"),      dataIndex: "recipientPhone", key: "recipientPhone", width: 130 },
+    { title: t("tools.content"),    dataIndex: "content",        key: "content",        ellipsis: true },
     {
-      title: "Trạng thái", dataIndex: "status", key: "status", width: 100,
+      title: t("tools.status"), dataIndex: "status", key: "status", width: 100,
       render: (v: number) => {
-        const s = MSG_STATUS_MAP[v] ?? { label: "—", color: "default" };
-        return <Tag color={s.color}>{s.label}</Tag>;
+        const label = MSG_STATUS_LABELS[v] ?? "—";
+        const color = MSG_STATUS_COLORS[v] ?? "default";
+        return <Tag color={color}>{label}</Tag>;
       },
     },
     {
-      title: "Gửi lúc", dataIndex: "sentAt", key: "sentAt", width: 140,
+      title: t("tools.sentAt"), dataIndex: "sentAt", key: "sentAt", width: 140,
       render: (v: string | undefined) => v ? dayjs(v).format("DD/MM/YYYY HH:mm") : "—",
     },
   ];
@@ -494,7 +519,7 @@ function MessageLogView({ channel }: { channel: number }) {
         <div style={{ display: "flex", gap: 8 }}>
           <Input
             prefix={<SearchOutlined />}
-            placeholder="Tìm kiếm..."
+            placeholder={t("tools.search")}
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             style={{ width: 260 }}
@@ -509,8 +534,8 @@ function MessageLogView({ channel }: { channel: number }) {
           rowKey="id"
           size="small"
           loading={isLoading}
-          locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Chưa có tin nhắn nào" /> }}
-          pagination={{ pageSize: 20, showTotal: (total) => `${total} tin nhắn` }}
+          locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("tools.noMessages")} /> }}
+          pagination={{ pageSize: 20, showTotal: (total) => t("tools.totalMessages", { total }) }}
         />
       </div>
     </>
@@ -520,25 +545,26 @@ function MessageLogView({ channel }: { channel: number }) {
 // ── "Tin nhắn" views ──────────────────────────────────────────────────────
 
 function MessageConfigView() {
+  const { t } = useTranslation();
   const [keyword, setKeyword] = useState("");
 
   const columns = [
-    { title: "Tên", dataIndex: "name", key: "name" },
-    { title: "Nhà cung cấp", dataIndex: "provider", key: "provider" },
+    { title: t("tools.name"),     dataIndex: "name",     key: "name" },
+    { title: t("tools.provider"), dataIndex: "provider", key: "provider" },
     {
-      title: "Trạng thái",
+      title: t("tools.status"),
       dataIndex: "status",
       key: "status",
       render: (v: string | undefined) =>
         v ? <Tag color={v === "Đã kích hoạt" ? "green" : "default"}>{v}</Tag> : null,
     },
     {
-      title: "Thao tác",
+      title: t("tools.actions"),
       key: "actions",
       render: () => (
         <div style={{ display: "flex", gap: 6 }}>
-          <Button size="small">Chỉnh sửa</Button>
-          <Button size="small" danger>Xoá</Button>
+          <Button size="small">{t("tools.edit")}</Button>
+          <Button size="small" danger>{t("tools.delete")}</Button>
         </div>
       ),
     },
@@ -550,13 +576,13 @@ function MessageConfigView() {
         <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
           <Input
             prefix={<SearchOutlined />}
-            placeholder="Tìm kiếm..."
+            placeholder={t("tools.search")}
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             style={{ width: 260 }}
             allowClear
           />
-          <Button type="primary">Tạo cấu hình</Button>
+          <Button type="primary">{t("tools.createConfig")}</Button>
         </div>
       </div>
       <div className="reception-card reception-card--content">
@@ -565,8 +591,8 @@ function MessageConfigView() {
           dataSource={[]}
           rowKey="id"
           size="small"
-          locale={{ emptyText: "Chưa có cấu hình nào" }}
-          pagination={{ pageSize: 20, showTotal: (total) => `Hiển thị 0 trên ${total}` }}
+          locale={{ emptyText: t("tools.noConfig") }}
+          pagination={{ pageSize: 20, showTotal: (total) => `0 / ${total}` }}
         />
       </div>
     </>
@@ -574,7 +600,14 @@ function MessageConfigView() {
 }
 
 function MessageView() {
+  const { t } = useTranslation();
   const [sub, setSub] = useState("config");
+
+  const MESSAGE_SUB_TABS = [
+    { key: "config",    label: t("tools.config") },
+    { key: "templates", label: t("tools.templates") },
+    { key: "list",      label: t("tools.messageList") },
+  ];
 
   return (
     <>
@@ -589,6 +622,8 @@ function MessageView() {
 // ── "Zalo OA" views ───────────────────────────────────────────────────────
 
 function ZaloConfigView() {
+  const { t } = useTranslation();
+
   return (
     <div className="reception-card reception-card--content">
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "48px 0", gap: 16 }}>
@@ -602,11 +637,11 @@ function ZaloConfigView() {
         </div>
         <div style={{ textAlign: "center" }}>
           <div style={{ fontWeight: 600, fontSize: 16, color: "#1B2A41", marginBottom: 6 }}>
-            Chưa kết nối Zalo OA
+            {t("tools.zaloNotConnected")}
           </div>
-          <Tag color="default" style={{ marginBottom: 16 }}>Chưa kích hoạt</Tag>
+          <Tag color="default" style={{ marginBottom: 16 }}>{t("tools.zaloNotActivated")}</Tag>
           <div>
-            <Button type="primary" disabled>Kết nối Zalo OA</Button>
+            <Button type="primary" disabled>{t("tools.connectZalo")}</Button>
           </div>
         </div>
       </div>
@@ -615,7 +650,14 @@ function ZaloConfigView() {
 }
 
 function ZaloView() {
+  const { t } = useTranslation();
   const [sub, setSub] = useState("config");
+
+  const ZALO_SUB_TABS = [
+    { key: "config",    label: t("tools.config") },
+    { key: "templates", label: t("tools.zaloTemplates") },
+    { key: "list",      label: t("tools.zaloMessageList") },
+  ];
 
   return (
     <>
@@ -640,10 +682,11 @@ interface InvoiceConfig {
 
 const INVOICE_DATA: InvoiceConfig[] = [
   { id: "1", name: "Quang Vinh", branch: "Chi nhánh Quang Vinh", module: "Hóa đơn", provider: "MISA", status: "Đã kích hoạt" },
-  { id: "2", name: "Thuế Hố Nai", branch: "Chi nhánh Hố Nai", module: "Hóa đơn", provider: "MISA", status: "Đã kích hoạt" },
+  { id: "2", name: "Thuế Hố Nai", branch: "Chi nhánh Hố Nai",   module: "Hóa đơn", provider: "MISA", status: "Đã kích hoạt" },
 ];
 
 function InvoiceView() {
+  const { t } = useTranslation();
   const [keyword, setKeyword] = useState("");
 
   const filtered = INVOICE_DATA.filter(
@@ -651,23 +694,23 @@ function InvoiceView() {
   );
 
   const columns = [
-    { title: "Tên", dataIndex: "name", key: "name" },
-    { title: "Tên chi nhánh", dataIndex: "branch", key: "branch" },
-    { title: "Mô đun", dataIndex: "module", key: "module" },
-    { title: "Nhà cung cấp", dataIndex: "provider", key: "provider" },
+    { title: t("tools.name"),       dataIndex: "name",     key: "name" },
+    { title: t("tools.branchName"), dataIndex: "branch",   key: "branch" },
+    { title: t("tools.module"),     dataIndex: "module",   key: "module" },
+    { title: t("tools.provider"),   dataIndex: "provider", key: "provider" },
     {
-      title: "Trạng thái",
+      title: t("tools.status"),
       dataIndex: "status",
       key: "status",
       render: (v: string) => <Tag color="green">{v}</Tag>,
     },
     {
-      title: "Thao tác",
+      title: t("tools.actions"),
       key: "actions",
       render: () => (
         <div style={{ display: "flex", gap: 6 }}>
-          <Button size="small">Chỉnh sửa</Button>
-          <Button size="small" danger>Xoá</Button>
+          <Button size="small">{t("tools.edit")}</Button>
+          <Button size="small" danger>{t("tools.delete")}</Button>
         </div>
       ),
     },
@@ -689,20 +732,20 @@ function InvoiceView() {
             fontSize: 13,
           }}
         >
-          Cấu Hình
+          {t("tools.invoiceConfig")}
         </button>
       </div>
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
           <Input
             prefix={<SearchOutlined />}
-            placeholder="Tìm kiếm..."
+            placeholder={t("tools.search")}
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             style={{ width: 260 }}
             allowClear
           />
-          <Button type="primary">Tạo cấu hình</Button>
+          <Button type="primary">{t("tools.createConfig")}</Button>
         </div>
       </div>
       <div className="reception-card reception-card--content">
@@ -711,8 +754,8 @@ function InvoiceView() {
           dataSource={filtered}
           rowKey="id"
           size="small"
-          locale={{ emptyText: "Chưa có cấu hình nào" }}
-          pagination={{ pageSize: 20, showTotal: (total) => `Hiển thị 0 trên ${total}` }}
+          locale={{ emptyText: t("tools.noConfig") }}
+          pagination={{ pageSize: 20, showTotal: (total) => `0 / ${total}` }}
         />
       </div>
     </>
@@ -722,7 +765,15 @@ function InvoiceView() {
 // ── Main component ─────────────────────────────────────────────────────────
 
 export function ToolsPage() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<ToolCategory>("call");
+
+  const TOOL_TABS: { key: ToolCategory; label: string }[] = [
+    { key: "call",     label: t("tools.voiceCall") },
+    { key: "message",  label: t("tools.message") },
+    { key: "zalo-oa",  label: t("tools.zaloOA") },
+    { key: "invoice",  label: t("tools.invoice") },
+  ];
 
   return (
     <div className="reception-page">

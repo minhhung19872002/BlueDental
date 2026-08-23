@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button, Input, Select, Table, Tag, Modal, Form, InputNumber, DatePicker, message, Popconfirm } from "antd";
 import { SearchOutlined, DownloadOutlined, PlusOutlined, DeleteOutlined, EditOutlined } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
 import dayjs from "dayjs";
 import {
   useLaboOrderList,
@@ -34,27 +35,10 @@ type LaboSubRoute =
   | "nhip"
   | "service-material";
 
-// ── Constants ──────────────────────────────────────────────────────────────
-
-const SUB_ROUTES: { key: LaboSubRoute; label: string }[] = [
-  { key: "mau-labo",          label: "Mẫu Labo" },
-  { key: "supplier",          label: "Nhà cung cấp Labo" },
-  { key: "bite",              label: "Khớp cắn Labo" },
-  { key: "finish-line",       label: "Đường hoàn tất" },
-  { key: "nhip",              label: "Kiểu nhịp Labo" },
-  { key: "service-material",  label: "Dịch vụ - vật liệu" },
-];
-
-const MAU_LABO_FILTER_TABS: { key: LaboStatus | "all"; label: string }[] = [
-  { key: "all",       label: "Tất Cả Mẫu" },
-  { key: "New",       label: "Mẫu Chưa Nhận" },
-  { key: "InProgress",label: "Mẫu Giao Trễ" },
-  { key: "Completed", label: "Mẫu Đã Nhận Hàng" },
-];
-
 // ── Create Labo Order Modal ────────────────────────────────────────────────
 
 function CreateLaboModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t } = useTranslation();
   const [form] = Form.useForm<CreateLaboOrderDto>();
   const [patientKeyword, setPatientKeyword] = useState("");
   const debouncedPatientKeyword = useDebounce(patientKeyword, 300);
@@ -68,7 +52,7 @@ function CreateLaboModal({ open, onClose }: { open: boolean; onClose: () => void
         ...values,
         dueDate: values.dueDate ? dayjs(values.dueDate as unknown as dayjs.Dayjs).toISOString() : undefined,
       });
-      message.success("Tạo mẫu Labo thành công");
+      message.success(t("labo.createSuccess"));
       form.resetFields();
       onClose();
     } catch {
@@ -78,39 +62,39 @@ function CreateLaboModal({ open, onClose }: { open: boolean; onClose: () => void
 
   return (
     <Modal
-      title="Tạo mẫu Labo mới"
+      title={t("labo.createSampleTitle")}
       open={open}
       onCancel={() => { form.resetFields(); onClose(); }}
       onOk={handleOk}
       confirmLoading={createMutation.isPending}
-      okText="Tạo mẫu Labo"
-      cancelText="Hủy"
+      okText={t("labo.createSample")}
+      cancelText={t("common.cancel")}
       width={540}
       destroyOnClose
     >
       <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
-        <Form.Item name="patientId" label="Khách hàng" rules={[{ required: true, message: "Chọn khách hàng" }]}>
+        <Form.Item name="patientId" label={t("labo.customer")} rules={[{ required: true, message: t("labo.selectCustomer") }]}>
           <Select
             showSearch
             filterOption={false}
             onSearch={setPatientKeyword}
-            placeholder="Tìm khách hàng..."
+            placeholder={t("labo.searchCustomer")}
             options={(patientData?.items ?? []).map((p) => ({
               value: p.id,
               label: `${p.fullName} — ${p.phone ?? p.code}`,
             }))}
           />
         </Form.Item>
-        <Form.Item name="labProviderName" label="Nhà cung cấp Labo" rules={[{ required: true, message: "Nhập tên nhà cung cấp" }]}>
-          <Input placeholder="Tên nhà cung cấp Labo..." />
+        <Form.Item name="labProviderName" label={t("labo.supplierName")} rules={[{ required: true, message: t("labo.enterSupplier") }]}>
+          <Input placeholder={t("labo.enterSupplier")} />
         </Form.Item>
-        <Form.Item name="toothNumbers" label="Số răng">
+        <Form.Item name="toothNumbers" label={t("labo.toothNumber")}>
           <Input placeholder="VD: 11, 12, 21" />
         </Form.Item>
-        <Form.Item name="workDescription" label="Mô tả công việc">
-          <Input.TextArea rows={3} placeholder="Mô tả chi tiết công việc..." />
+        <Form.Item name="workDescription" label={t("labo.jobDescription")}>
+          <Input.TextArea rows={3} placeholder={t("labo.jobDescription")} />
         </Form.Item>
-        <Form.Item name="estimatedCost" label="Chi phí ước tính (VND)" rules={[{ required: true, message: "Nhập chi phí" }]}>
+        <Form.Item name="estimatedCost" label={t("labo.estimatedCost")} rules={[{ required: true, message: t("labo.enterCost") }]}>
           <InputNumber<number>
             min={0}
             style={{ width: "100%" }}
@@ -119,11 +103,11 @@ function CreateLaboModal({ open, onClose }: { open: boolean; onClose: () => void
             placeholder="0"
           />
         </Form.Item>
-        <Form.Item name="dueDate" label="Ngày giao dự kiến">
+        <Form.Item name="dueDate" label={t("labo.expectedDelivery")}>
           <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
         </Form.Item>
-        <Form.Item name="notes" label="Ghi chú">
-          <Input.TextArea rows={2} placeholder="Ghi chú thêm..." />
+        <Form.Item name="notes" label={t("common.note")}>
+          <Input.TextArea rows={2} placeholder={t("common.note")} />
         </Form.Item>
       </Form>
     </Modal>
@@ -133,9 +117,17 @@ function CreateLaboModal({ open, onClose }: { open: boolean; onClose: () => void
 // ── Mẫu Labo View ─────────────────────────────────────────────────────────
 
 function MauLaboView() {
+  const { t } = useTranslation();
   const [filterTab, setFilterTab] = useState<LaboStatus | "all">("all");
   const [keyword, setKeyword] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
+
+  const MAU_LABO_FILTER_TABS: { key: LaboStatus | "all"; label: string }[] = [
+    { key: "all",        label: t("labo.allSamples") },
+    { key: "New",        label: t("labo.notReceived") },
+    { key: "InProgress", label: t("labo.lateDelivery") },
+    { key: "Completed",  label: t("labo.received") },
+  ];
 
   const { data, isLoading } = useLaboOrderList({
     status: filterTab === "all" ? undefined : filterTab,
@@ -156,15 +148,15 @@ function MauLaboView() {
   const handleDelete = async (id: string) => {
     try {
       await deleteMutation.mutateAsync(id);
-      message.success("Xóa mẫu Labo thành công");
+      message.success(t("labo.deleteSuccess"));
     } catch {
-      message.error("Xóa thất bại");
+      message.error(t("common.deleteFailed"));
     }
   };
 
   const columns = [
     {
-      title: "Mã / Ngày tạo",
+      title: t("labo.codeDate"),
       dataIndex: "orderCode",
       key: "orderCode",
       render: (code: string, record: LaboOrderDto) => (
@@ -175,18 +167,18 @@ function MauLaboView() {
       ),
     },
     {
-      title: "Nhà cung cấp",
+      title: t("labo.supplier"),
       dataIndex: "labProviderName",
       key: "labProviderName",
     },
     {
-      title: "Khách hàng",
+      title: t("labo.customer"),
       dataIndex: "patientName",
       key: "patientName",
       render: (v: string) => v ?? "—",
     },
     {
-      title: "Ngày giao / Trạng thái",
+      title: t("labo.deliveryStatus"),
       key: "delivery",
       render: (_: unknown, record: LaboOrderDto) => {
         const cfg = LABO_STATUS_CONFIG[record.status];
@@ -199,33 +191,33 @@ function MauLaboView() {
       },
     },
     {
-      title: "Bác sĩ chỉ định",
+      title: t("labo.assignedDoctor"),
       dataIndex: "dentistName",
       key: "dentistName",
       render: (v: string) => v ?? "—",
     },
     {
-      title: "Răng",
+      title: t("labo.teeth"),
       dataIndex: "toothNumbers",
       key: "toothNumbers",
       render: (v: string) => v ?? "—",
     },
     {
-      title: "Chi phí",
+      title: t("labo.cost"),
       dataIndex: "estimatedCost",
       key: "estimatedCost",
       align: "right" as const,
       render: (v: number) => `${v.toLocaleString("vi-VN")} ₫`,
     },
     {
-      title: "Thao tác",
+      title: t("common.actions"),
       key: "actions",
       render: (_: unknown, record: LaboOrderDto) => (
         <Popconfirm
-          title="Xóa mẫu Labo này?"
+          title={t("labo.confirmDelete")}
           onConfirm={() => handleDelete(record.id)}
-          okText="Xóa"
-          cancelText="Hủy"
+          okText={t("common.delete")}
+          cancelText={t("common.cancel")}
           okButtonProps={{ danger: true }}
         >
           <Button size="small" danger icon={<DeleteOutlined />} />
@@ -265,15 +257,15 @@ function MauLaboView() {
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "space-between", flexWrap: "wrap" }}>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <Button icon={<DownloadOutlined />}>Xuất Excel</Button>
+            <Button icon={<DownloadOutlined />}>{t("common.exportExcel")}</Button>
             <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
-              Tạo mẫu Labo
+              {t("labo.createSample")}
             </Button>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <Input
               prefix={<SearchOutlined />}
-              placeholder="Tìm theo mã, bệnh nhân..."
+              placeholder={t("labo.searchSample")}
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               style={{ width: 220 }}
@@ -294,9 +286,9 @@ function MauLaboView() {
             pageSize: 20,
             showSizeChanger: true,
             pageSizeOptions: ["10", "20", "50", "100"],
-            showTotal: (total) => `Hiển thị ${total} mẫu labo`,
+            showTotal: (total) => t("labo.showTotal", { total }),
           }}
-          locale={{ emptyText: "Không có dữ liệu" }}
+          locale={{ emptyText: t("common.noData") }}
           size="middle"
         />
       </div>
@@ -309,6 +301,7 @@ function MauLaboView() {
 // ── Supplier View ──────────────────────────────────────────────────────────
 
 function SupplierView() {
+  const { t } = useTranslation();
   const [keyword, setKeyword] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<LaboSupplierDto | null>(null);
@@ -329,10 +322,10 @@ function SupplierView() {
       const values = await form.validateFields();
       if (isEdit && editingItem) {
         await updateMutation.mutateAsync({ id: editingItem.id, data: values });
-        message.success("Cập nhật nhà cung cấp thành công");
+        message.success(t("labo.updateSupplierSuccess"));
       } else {
         await createMutation.mutateAsync(values);
-        message.success("Tạo nhà cung cấp thành công");
+        message.success(t("labo.createSupplierSuccess"));
       }
       form.resetFields();
       setEditingItem(null);
@@ -341,21 +334,21 @@ function SupplierView() {
   };
 
   const handleDelete = async (id: string) => {
-    try { await deleteMutation.mutateAsync(id); message.success("Xóa thành công"); } catch { message.error("Xóa thất bại"); }
+    try { await deleteMutation.mutateAsync(id); message.success(t("common.deleteSuccess")); } catch { message.error(t("common.deleteFailed")); }
   };
 
   const columns: ColumnsType<LaboSupplierDto> = [
-    { title: "Tên labo", dataIndex: "name", key: "name" },
-    { title: "Số điện thoại", dataIndex: "phone", key: "phone", render: (v: string) => v ?? "—" },
-    { title: "Email", dataIndex: "email", key: "email", render: (v: string) => v ?? "—" },
-    { title: "Địa chỉ", dataIndex: "address", key: "address", render: (v: string) => v ?? "—" },
-    { title: "Lần cập nhật cuối", dataIndex: "lastModificationTime", key: "updatedAt", render: (v: string) => v ? dayjs(v).format("DD/MM/YYYY") : "—" },
+    { title: t("labo.supplierNameLabel"), dataIndex: "name", key: "name" },
+    { title: t("labo.supplierPhone"), dataIndex: "phone", key: "phone", render: (v: string) => v ?? "—" },
+    { title: t("labo.supplierEmail"), dataIndex: "email", key: "email", render: (v: string) => v ?? "—" },
+    { title: t("labo.supplierAddress"), dataIndex: "address", key: "address", render: (v: string) => v ?? "—" },
+    { title: t("common.lastUpdated"), dataIndex: "lastModificationTime", key: "updatedAt", render: (v: string) => v ? dayjs(v).format("DD/MM/YYYY") : "—" },
     {
-      title: "Thao tác", key: "actions", width: 120,
+      title: t("common.actions"), key: "actions", width: 120,
       render: (_, record) => (
         <div style={{ display: "flex", gap: 6 }}>
           <Button size="small" icon={<EditOutlined />} onClick={() => { setEditingItem(record); setModalOpen(true); }} />
-          <Popconfirm title="Xóa nhà cung cấp?" onConfirm={() => handleDelete(record.id)} okText="Xóa" cancelText="Hủy" okButtonProps={{ danger: true }}>
+          <Popconfirm title={t("labo.confirmDeleteSupplier")} onConfirm={() => handleDelete(record.id)} okText={t("common.delete")} cancelText={t("common.cancel")} okButtonProps={{ danger: true }}>
             <Button size="small" danger icon={<DeleteOutlined />} />
           </Popconfirm>
         </div>
@@ -367,25 +360,25 @@ function SupplierView() {
     <>
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
-          <Input prefix={<SearchOutlined />} placeholder="Tìm kiếm Labo..." value={keyword} onChange={(e) => setKeyword(e.target.value)} style={{ width: 280 }} allowClear />
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingItem(null); form.resetFields(); setModalOpen(true); }}>Tạo nhà cung cấp</Button>
+          <Input prefix={<SearchOutlined />} placeholder={t("labo.searchSupplier")} value={keyword} onChange={(e) => setKeyword(e.target.value)} style={{ width: 280 }} allowClear />
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingItem(null); form.resetFields(); setModalOpen(true); }}>{t("labo.createSupplier")}</Button>
         </div>
       </div>
       <div className="reception-card reception-card--content">
         <Table columns={columns} dataSource={filtered} rowKey="id" loading={isLoading}
-          pagination={{ pageSize: 20, showTotal: (total) => `${total} nhà cung cấp` }}
-          locale={{ emptyText: "Không có dữ liệu" }} size="middle" />
+          pagination={{ pageSize: 20, showTotal: (total) => t("labo.supplierCount", { total }) }}
+          locale={{ emptyText: t("common.noData") }} size="middle" />
       </div>
-      <Modal title={isEdit ? "Chỉnh sửa nhà cung cấp" : "Thêm nhà cung cấp"} open={modalOpen}
+      <Modal title={isEdit ? t("labo.editSupplierTitle") : t("labo.addSupplierTitle")} open={modalOpen}
         onCancel={() => { form.resetFields(); setEditingItem(null); setModalOpen(false); }}
         onOk={handleOk} confirmLoading={createMutation.isPending || updateMutation.isPending}
-        okText={isEdit ? "Lưu thay đổi" : "Tạo mới"} cancelText="Hủy" width={480} destroyOnClose
+        okText={isEdit ? t("common.save") : t("common.create")} cancelText={t("common.cancel")} width={480} destroyOnClose
         afterOpenChange={(visible) => { if (visible && editingItem) form.setFieldsValue(editingItem); }}>
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
-          <Form.Item name="name" label="Tên nhà cung cấp" rules={[{ required: true, message: "Nhập tên" }]}><Input placeholder="Tên..." /></Form.Item>
-          <Form.Item name="phone" label="Số điện thoại"><Input placeholder="Số điện thoại..." /></Form.Item>
-          <Form.Item name="email" label="Email"><Input placeholder="Email..." /></Form.Item>
-          <Form.Item name="address" label="Địa chỉ"><Input.TextArea rows={2} placeholder="Địa chỉ..." /></Form.Item>
+          <Form.Item name="name" label={t("labo.supplierNameLabel")} rules={[{ required: true, message: t("labo.enterSupplierName") }]}><Input placeholder={t("labo.enterSupplierName")} /></Form.Item>
+          <Form.Item name="phone" label={t("labo.supplierPhone")}><Input placeholder={t("labo.supplierPhone")} /></Form.Item>
+          <Form.Item name="email" label={t("labo.supplierEmail")}><Input placeholder={t("labo.supplierEmail")} /></Form.Item>
+          <Form.Item name="address" label={t("labo.supplierAddress")}><Input.TextArea rows={2} placeholder={t("labo.supplierAddress")} /></Form.Item>
         </Form>
       </Modal>
     </>
@@ -401,7 +394,7 @@ interface LaboCatalogItem {
 }
 
 interface LaboCrudConfig {
-  label: string;
+  labelKey: string;
   useList: () => { data: { items: LaboCatalogItem[] } | undefined; isLoading: boolean };
   useCreate: () => { mutateAsync: (data: { name: string; description?: string }) => Promise<unknown>; isPending: boolean };
   useUpdate: () => { mutateAsync: (data: { id: string; data: { name: string; description?: string } }) => Promise<unknown>; isPending: boolean };
@@ -410,21 +403,21 @@ interface LaboCrudConfig {
 
 const LABO_CRUD_CONFIGS: Record<string, LaboCrudConfig> = {
   bite: {
-    label: "Khớp cắn Labo",
+    labelKey: "labo.bite",
     useList: useLaboBiteTypeList as LaboCrudConfig["useList"],
     useCreate: useCreateLaboBiteType as LaboCrudConfig["useCreate"],
     useUpdate: useUpdateLaboBiteType as LaboCrudConfig["useUpdate"],
     useDelete: useDeleteLaboBiteType as LaboCrudConfig["useDelete"],
   },
   "finish-line": {
-    label: "Đường hoàn tất",
+    labelKey: "labo.finishLine",
     useList: useLaboFinishLineList as LaboCrudConfig["useList"],
     useCreate: useCreateLaboFinishLine as LaboCrudConfig["useCreate"],
     useUpdate: useUpdateLaboFinishLine as LaboCrudConfig["useUpdate"],
     useDelete: useDeleteLaboFinishLine as LaboCrudConfig["useDelete"],
   },
   nhip: {
-    label: "Kiểu nhịp Labo",
+    labelKey: "labo.bridgeType",
     useList: useLaboRhythmTypeList as LaboCrudConfig["useList"],
     useCreate: useCreateLaboRhythmType as LaboCrudConfig["useCreate"],
     useUpdate: useUpdateLaboRhythmType as LaboCrudConfig["useUpdate"],
@@ -433,6 +426,8 @@ const LABO_CRUD_CONFIGS: Record<string, LaboCrudConfig> = {
 };
 
 function LaboCrudView({ config }: { config: LaboCrudConfig }) {
+  const { t } = useTranslation();
+  const label = t(config.labelKey);
   const [keyword, setKeyword] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<LaboCatalogItem | null>(null);
@@ -453,28 +448,28 @@ function LaboCrudView({ config }: { config: LaboCrudConfig }) {
       const values = await form.validateFields();
       if (isEdit && editingItem) {
         await updateMutation.mutateAsync({ id: editingItem.id, data: values });
-        message.success("Cập nhật thành công");
+        message.success(t("common.updateSuccess"));
       } else {
         await createMutation.mutateAsync(values);
-        message.success("Tạo thành công");
+        message.success(t("common.createSuccess"));
       }
       form.resetFields(); setEditingItem(null); setModalOpen(false);
     } catch { /* validation */ }
   };
 
   const handleDelete = async (id: string) => {
-    try { await deleteMutation.mutateAsync(id); message.success("Xóa thành công"); } catch { message.error("Xóa thất bại"); }
+    try { await deleteMutation.mutateAsync(id); message.success(t("common.deleteSuccess")); } catch { message.error(t("common.deleteFailed")); }
   };
 
   const columns: ColumnsType<LaboCatalogItem> = [
-    { title: config.label, dataIndex: "name", key: "name" },
-    { title: "Cập nhật gần nhất", dataIndex: "lastModificationTime", key: "updatedAt", render: (v: string) => v ? dayjs(v).format("DD/MM/YYYY") : "—" },
+    { title: label, dataIndex: "name", key: "name" },
+    { title: t("common.lastUpdated"), dataIndex: "lastModificationTime", key: "updatedAt", render: (v: string) => v ? dayjs(v).format("DD/MM/YYYY") : "—" },
     {
-      title: "Thao tác", key: "actions", width: 120,
+      title: t("common.actions"), key: "actions", width: 120,
       render: (_, record) => (
         <div style={{ display: "flex", gap: 6 }}>
           <Button size="small" icon={<EditOutlined />} onClick={() => { setEditingItem(record); setModalOpen(true); }} />
-          <Popconfirm title="Xác nhận xóa?" onConfirm={() => handleDelete(record.id)} okText="Xóa" cancelText="Hủy" okButtonProps={{ danger: true }}>
+          <Popconfirm title={t("common.confirm")} onConfirm={() => handleDelete(record.id)} okText={t("common.delete")} cancelText={t("common.cancel")} okButtonProps={{ danger: true }}>
             <Button size="small" danger icon={<DeleteOutlined />} />
           </Popconfirm>
         </div>
@@ -486,23 +481,23 @@ function LaboCrudView({ config }: { config: LaboCrudConfig }) {
     <>
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
-          <Input prefix={<SearchOutlined />} placeholder={`Tìm kiếm ${config.label.toLowerCase()}...`} value={keyword} onChange={(e) => setKeyword(e.target.value)} style={{ width: 280 }} allowClear />
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingItem(null); form.resetFields(); setModalOpen(true); }}>Tạo {config.label.toLowerCase()}</Button>
+          <Input prefix={<SearchOutlined />} placeholder={`${t("common.search")} ${label.toLowerCase()}...`} value={keyword} onChange={(e) => setKeyword(e.target.value)} style={{ width: 280 }} allowClear />
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingItem(null); form.resetFields(); setModalOpen(true); }}>{t("common.create")} {label.toLowerCase()}</Button>
         </div>
       </div>
       <div className="reception-card reception-card--content">
         <Table columns={columns} dataSource={items} rowKey="id" loading={isLoading}
-          pagination={{ pageSize: 20, showTotal: (total) => `${total} mục` }}
-          locale={{ emptyText: "Không có dữ liệu" }} size="middle" />
+          pagination={{ pageSize: 20, showTotal: (total) => t("labo.itemCount", { total }) }}
+          locale={{ emptyText: t("common.noData") }} size="middle" />
       </div>
-      <Modal title={isEdit ? `Chỉnh sửa ${config.label.toLowerCase()}` : `Thêm ${config.label.toLowerCase()}`} open={modalOpen}
+      <Modal title={isEdit ? `${t("common.edit")} ${label.toLowerCase()}` : `${t("common.create")} ${label.toLowerCase()}`} open={modalOpen}
         onCancel={() => { form.resetFields(); setEditingItem(null); setModalOpen(false); }}
         onOk={handleOk} confirmLoading={createMutation.isPending || updateMutation.isPending}
-        okText={isEdit ? "Lưu" : "Tạo mới"} cancelText="Hủy" width={420} destroyOnClose
+        okText={isEdit ? t("common.save") : t("common.create")} cancelText={t("common.cancel")} width={420} destroyOnClose
         afterOpenChange={(visible) => { if (visible && editingItem) form.setFieldsValue(editingItem); }}>
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
-          <Form.Item name="name" label={config.label} rules={[{ required: true, message: `Nhập ${config.label.toLowerCase()}` }]}><Input placeholder={`Nhập ${config.label.toLowerCase()}...`} /></Form.Item>
-          <Form.Item name="description" label="Mô tả"><Input.TextArea rows={2} placeholder="Mô tả..." /></Form.Item>
+          <Form.Item name="name" label={label} rules={[{ required: true, message: `${t("common.create")} ${label.toLowerCase()}` }]}><Input placeholder={`${t("common.create")} ${label.toLowerCase()}...`} /></Form.Item>
+          <Form.Item name="description" label={t("common.description")}><Input.TextArea rows={2} placeholder={t("common.description")} /></Form.Item>
         </Form>
       </Modal>
     </>
@@ -510,6 +505,7 @@ function LaboCrudView({ config }: { config: LaboCrudConfig }) {
 }
 
 function ServiceMaterialView() {
+  const { t } = useTranslation();
   const [keyword, setKeyword] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<LaboMaterialDto | null>(null);
@@ -534,10 +530,10 @@ function ServiceMaterialView() {
       const values = await form.validateFields();
       if (editingItem) {
         await updateMutation.mutateAsync({ id: editingItem.id, data: values });
-        message.success("Cập nhật vật liệu thành công");
+        message.success(t("labo.updateMaterialSuccess"));
       } else {
         await createMutation.mutateAsync(values);
-        message.success("Thêm vật liệu thành công");
+        message.success(t("labo.createMaterialSuccess"));
       }
       form.resetFields();
       setModalOpen(false);
@@ -547,22 +543,22 @@ function ServiceMaterialView() {
 
   const handleDelete = async (id: string) => {
     await deleteMutation.mutateAsync(id);
-    message.success("Xóa vật liệu thành công");
+    message.success(t("labo.deleteMaterialSuccess"));
   };
 
   const columns: ColumnsType<LaboMaterialDto> = [
-    { title: "Vật liệu", dataIndex: "name", key: "name" },
-    { title: "Nhóm phân loại", dataIndex: "category", key: "category", render: (v: string) => v ?? "—" },
-    { title: "Nhà cung cấp", key: "supplier", render: (_, r) => r.supplierId ? supplierMap.get(r.supplierId) ?? "—" : "—" },
-    { title: "Cập nhật gần nhất", dataIndex: "lastModificationTime", key: "updatedAt", render: (v: string) => v ? dayjs(v).format("DD/MM/YYYY") : "—" },
+    { title: t("labo.materialName"), dataIndex: "name", key: "name" },
+    { title: t("materials.group"), dataIndex: "category", key: "category", render: (v: string) => v ?? "—" },
+    { title: t("labo.supplier"), key: "supplier", render: (_, r) => r.supplierId ? supplierMap.get(r.supplierId) ?? "—" : "—" },
+    { title: t("common.lastUpdated"), dataIndex: "lastModificationTime", key: "updatedAt", render: (v: string) => v ? dayjs(v).format("DD/MM/YYYY") : "—" },
     {
-      title: "Thao tác",
+      title: t("common.actions"),
       key: "actions",
       width: 120,
       render: (_, record) => (
         <div style={{ display: "flex", gap: 6 }}>
           <Button size="small" icon={<EditOutlined />} onClick={() => { setEditingItem(record); form.setFieldsValue(record); setModalOpen(true); }} />
-          <Popconfirm title="Xác nhận xóa?" onConfirm={() => handleDelete(record.id)} okText="Xóa" cancelText="Hủy" okButtonProps={{ danger: true }}>
+          <Popconfirm title={t("common.confirm")} onConfirm={() => handleDelete(record.id)} okText={t("common.delete")} cancelText={t("common.cancel")} okButtonProps={{ danger: true }}>
             <Button size="small" danger icon={<DeleteOutlined />} />
           </Popconfirm>
         </div>
@@ -574,11 +570,11 @@ function ServiceMaterialView() {
     <div style={{ display: "flex", gap: 16 }}>
       <div className="reception-card" style={{ width: 240, minWidth: 200, padding: 16, flexShrink: 0 }}>
         <div style={{ fontWeight: 600, marginBottom: 8 }}>
-          Nhà cung cấp
-          <span style={{ fontWeight: 400, color: "#8c8c8c", marginLeft: 6 }}>{(suppliers?.items ?? []).length} NCC</span>
+          {t("labo.supplierSidebar")}
+          <span style={{ fontWeight: 400, color: "#8c8c8c", marginLeft: 6 }}>{t("labo.supplierSidebarCount", { count: (suppliers?.items ?? []).length })}</span>
         </div>
         {(suppliers?.items ?? []).length === 0 ? (
-          <div style={{ color: "#8c8c8c", fontSize: 13, textAlign: "center", paddingTop: 24 }}>Chưa có nhà cung cấp</div>
+          <div style={{ color: "#8c8c8c", fontSize: 13, textAlign: "center", paddingTop: 24 }}>{t("labo.noSuppliers")}</div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {(suppliers?.items ?? []).map((s) => (
@@ -590,32 +586,32 @@ function ServiceMaterialView() {
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
         <div className="reception-card reception-card--toolbar">
           <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingItem(null); form.resetFields(); setModalOpen(true); }}>Tạo vật liệu</Button>
-            <Input prefix={<SearchOutlined />} placeholder="Tìm kiếm..." value={keyword} onChange={(e) => setKeyword(e.target.value)} style={{ width: 220 }} allowClear />
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingItem(null); form.resetFields(); setModalOpen(true); }}>{t("labo.createMaterial")}</Button>
+            <Input prefix={<SearchOutlined />} placeholder={t("common.search")} value={keyword} onChange={(e) => setKeyword(e.target.value)} style={{ width: 220 }} allowClear />
           </div>
         </div>
         <div className="reception-card reception-card--content">
-          <Table columns={columns} dataSource={items} rowKey="id" loading={isLoading} pagination={{ pageSize: 20, showTotal: (total) => `${total} vật liệu` }} locale={{ emptyText: "Không có dữ liệu" }} size="middle" />
+          <Table columns={columns} dataSource={items} rowKey="id" loading={isLoading} pagination={{ pageSize: 20, showTotal: (total) => t("labo.materialCount", { total }) }} locale={{ emptyText: t("common.noData") }} size="middle" />
         </div>
       </div>
 
       <Modal
-        title={editingItem ? "Chỉnh sửa vật liệu" : "Thêm vật liệu Labo"}
+        title={editingItem ? t("labo.editMaterialTitle") : t("labo.addMaterialTitle")}
         open={modalOpen}
         onCancel={() => { setModalOpen(false); setEditingItem(null); form.resetFields(); }}
         onOk={handleOk}
         confirmLoading={createMutation.isPending || updateMutation.isPending}
-        okText={editingItem ? "Lưu" : "Thêm"}
-        cancelText="Hủy"
+        okText={editingItem ? t("common.save") : t("common.create")}
+        cancelText={t("common.cancel")}
         destroyOnClose
       >
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
-          <Form.Item name="name" label="Tên vật liệu" rules={[{ required: true, message: "Nhập tên vật liệu" }]}><Input placeholder="Nhập tên..." /></Form.Item>
-          <Form.Item name="category" label="Nhóm phân loại"><Input placeholder="VD: Kim loại, Sứ, Composite..." /></Form.Item>
-          <Form.Item name="supplierId" label="Nhà cung cấp">
-            <Select placeholder="Chọn nhà cung cấp" allowClear options={(suppliers?.items ?? []).map((s) => ({ value: s.id, label: s.name }))} />
+          <Form.Item name="name" label={t("labo.materialName")} rules={[{ required: true, message: t("labo.enterMaterialName") }]}><Input placeholder={t("labo.enterMaterialName")} /></Form.Item>
+          <Form.Item name="category" label={t("materials.group")}><Input placeholder="VD: Kim loại, Sứ, Composite..." /></Form.Item>
+          <Form.Item name="supplierId" label={t("labo.supplier")}>
+            <Select placeholder={t("labo.selectSupplier")} allowClear options={(suppliers?.items ?? []).map((s) => ({ value: s.id, label: s.name }))} />
           </Form.Item>
-          <Form.Item name="description" label="Mô tả"><Input.TextArea rows={2} placeholder="Mô tả..." /></Form.Item>
+          <Form.Item name="description" label={t("common.description")}><Input.TextArea rows={2} placeholder={t("common.description")} /></Form.Item>
         </Form>
       </Modal>
     </div>
@@ -625,7 +621,17 @@ function ServiceMaterialView() {
 // ── Main component ─────────────────────────────────────────────────────────
 
 export function LaboPage() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<LaboSubRoute>("mau-labo");
+
+  const SUB_ROUTES: { key: LaboSubRoute; label: string }[] = [
+    { key: "mau-labo",          label: t("labo.samples") },
+    { key: "supplier",          label: t("labo.suppliers") },
+    { key: "bite",              label: t("labo.bite") },
+    { key: "finish-line",       label: t("labo.finishLine") },
+    { key: "nhip",              label: t("labo.bridgeType") },
+    { key: "service-material",  label: t("labo.serviceMaterial") },
+  ];
 
   const renderContent = () => {
     switch (activeTab) {

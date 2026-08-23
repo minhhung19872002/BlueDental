@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
@@ -16,10 +17,14 @@ namespace BlueDental.Finance;
 public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
 {
     private readonly IRepository<SalesEntry, Guid> _repository;
+    private readonly ICurrentClinicBranchResolver _branchResolver;
 
-    public SalesEntryAppService(IRepository<SalesEntry, Guid> repository)
+    public SalesEntryAppService(
+        IRepository<SalesEntry, Guid> repository,
+        ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
+        _branchResolver = branchResolver;
     }
 
     [Authorize(BlueDentalPermissions.Finance.View)]
@@ -75,11 +80,12 @@ public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
     [Authorize(BlueDentalPermissions.Finance.Manage)]
     public async Task<SalesEntryDto> CreateAsync(CreateSalesEntryDto input)
     {
-        var code = await GenerateCodeAsync(input.ClinicBranchId, input.Type);
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
+        var code = await GenerateCodeAsync(clinicBranchId, input.Type);
 
         var entry = SalesEntry.Record(
             GuidGenerator.Create(),
-            input.ClinicBranchId,
+            clinicBranchId,
             code,
             input.Type,
             input.CategoryId,
@@ -137,10 +143,10 @@ public class SalesEntryAppService : ApplicationService, ISalesEntryAppService
 
     private async Task<IQueryable<SalesEntry>> BuildQueryAsync(GetSalesEntryListInput input)
     {
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
 
-        if (input.ClinicBranchId.HasValue)
-            query = query.Where(x => x.ClinicBranchId == input.ClinicBranchId.Value);
+        query = query.Where(x => x.ClinicBranchId == clinicBranchId);
         if (input.Type.HasValue)
             query = query.Where(x => x.Type == input.Type.Value);
         if (input.CategoryId.HasValue)

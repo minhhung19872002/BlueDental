@@ -1,5 +1,6 @@
 import React from "react";
 import { Card, Row, Col, Typography, Statistic, Space } from "antd";
+import { useTranslation } from "react-i18next";
 import {
   UserAddOutlined,
   UsergroupAddOutlined,
@@ -20,6 +21,8 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
   metrics,
   loading = false,
 }) => {
+  const { t } = useTranslation();
+
   return (
     <div style={{ marginBottom: 20 }}>
       {/* Top Title & Date Control Row */}
@@ -44,13 +47,13 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
               textTransform: "uppercase",
             }}
           >
-            TỔNG QUAN
+            {t("reception.header.overview")}
           </Text>
           <Title
             level={2}
             style={{ margin: 0, fontWeight: 800, color: "#0F172A", fontSize: 26 }}
           >
-            Tiếp nhận khách hàng
+            {t("reception.header.title")}
           </Title>
         </div>
 
@@ -90,7 +93,7 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
               <Statistic
                 title={
                   <Text style={{ color: "#64748B", fontSize: 13, fontWeight: 600 }}>
-                    Khách mới
+                    {t("reception.header.newPatients")}
                   </Text>
                 }
                 value={metrics?.newPatientsCount ?? 0}
@@ -131,7 +134,7 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
               <Statistic
                 title={
                   <Text style={{ color: "#64748B", fontSize: 13, fontWeight: 600 }}>
-                    Khách cũ phát sinh
+                    {t("reception.header.returningPatients")}
                   </Text>
                 }
                 value={metrics?.oldPatientsCount ?? 0}
@@ -172,7 +175,7 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
               <Statistic
                 title={
                   <Text style={{ color: "#64748B", fontSize: 13, fontWeight: 600 }}>
-                    Đã hẹn
+                    {t("reception.header.scheduled")}
                   </Text>
                 }
                 value={metrics?.scheduledCount ?? 0}
@@ -213,7 +216,7 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
               <Statistic
                 title={
                   <Text style={{ color: "#64748B", fontSize: 13, fontWeight: 600 }}>
-                    Khách đến
+                    {t("reception.header.arrived")}
                   </Text>
                 }
                 value={metrics?.arrivedCount ?? 0}

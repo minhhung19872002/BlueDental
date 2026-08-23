@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Table, Tag, Button, Input, Popconfirm, message } from "antd";
 import { SearchOutlined, PlusOutlined, CalendarOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
@@ -16,17 +17,19 @@ import type { Appointment, AppointmentStatus } from "../types/appointment";
 
 type StatusFilter = "all" | AppointmentStatus;
 
-const STATUS_TABS: { key: StatusFilter; label: string }[] = [
-  { key: "all",        label: "Tất cả" },
-  { key: "scheduled",  label: "Đã hẹn" },
-  { key: "confirmed",  label: "Đã xác nhận" },
-  { key: "inProgress", label: "Đang khám" },
-  { key: "completed",  label: "Hoàn thành" },
-  { key: "cancelled",  label: "Đã hủy" },
-];
-
 export function AppointmentListPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
+
+  const STATUS_TABS: { key: StatusFilter; label: string }[] = [
+    { key: "all",        label: t("common.all") },
+    { key: "scheduled",  label: t("appointment.statusScheduled") },
+    { key: "confirmed",  label: t("appointment.statusConfirmed") },
+    { key: "inProgress", label: t("appointment.statusInProgress") },
+    { key: "completed",  label: t("appointment.statusCompleted") },
+    { key: "cancelled",  label: t("appointment.statusCancelled") },
+  ];
+
   const pagination = useTablePagination(20);
   const [keyword, setKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -53,12 +56,12 @@ export function AppointmentListPage() {
 
   const handleConfirm = async (id: string) => {
     await confirmMutation.mutateAsync(id);
-    message.success("Đã xác nhận lịch hẹn");
+    message.success(t("appointment.confirmSuccess"));
   };
 
   const handleCancel = async (id: string) => {
     await cancelMutation.mutateAsync(id);
-    message.success("Đã hủy lịch hẹn");
+    message.success(t("appointment.cancelSuccess"));
   };
 
   return (
@@ -67,7 +70,7 @@ export function AppointmentListPage() {
         <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "space-between" }}>
           <Input
             prefix={<SearchOutlined />}
-            placeholder="Tìm kiếm bệnh nhân, bác sĩ..."
+            placeholder={t("appointment.searchPlaceholder")}
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             style={{ width: 280 }}
@@ -75,10 +78,10 @@ export function AppointmentListPage() {
           />
           <div style={{ display: "flex", gap: 8 }}>
             <Button icon={<CalendarOutlined />} onClick={() => navigate("/calendar")}>
-              Lịch hẹn
+              {t("nav.calendar")}
             </Button>
             <Button type="primary" icon={<PlusOutlined />} onClick={() => setAddOpen(true)}>
-              Tạo lịch hẹn
+              {t("appointment.createAppointment")}
             </Button>
           </div>
         </div>
@@ -123,43 +126,43 @@ export function AppointmentListPage() {
           })}
           columns={[
             {
-              title: "Bệnh nhân",
+              title: t("patient.fullName"),
               dataIndex: "patientName",
               key: "patientName",
               render: (v: string) => <span style={{ fontWeight: 500 }}>{v}</span>,
             },
             {
-              title: "Bác sĩ",
+              title: t("patient.doctor"),
               dataIndex: "doctorName",
               key: "doctorName",
             },
             {
-              title: "Ngày khám",
+              title: t("appointment.examDate"),
               key: "startTime",
               width: 110,
               render: (_: unknown, record: Appointment) => formatDate(record.startTime),
             },
             {
-              title: "Giờ",
+              title: t("appointment.time"),
               key: "time",
               width: 130,
               render: (_: unknown, record: Appointment) =>
                 `${dayjs(record.startTime).format("HH:mm")} – ${dayjs(record.endTime).format("HH:mm")}`,
             },
             {
-              title: "Trạng thái",
+              title: t("common.status"),
               key: "status",
               width: 130,
               render: (_: unknown, record: Appointment) => <StatusBadge status={record.status} />,
             },
             {
-              title: "Lý do",
+              title: t("appointment.reason"),
               dataIndex: "reason",
               key: "reason",
-              render: (v: string | null) => v ?? <Tag color="default">Định kỳ</Tag>,
+              render: (v: string | null) => v ?? <Tag color="default">{t("appointment.periodic")}</Tag>,
             },
             {
-              title: "Thao tác",
+              title: t("common.actions"),
               key: "actions",
               width: 160,
               render: (_: unknown, record: Appointment) => (
@@ -171,18 +174,18 @@ export function AppointmentListPage() {
                       loading={confirmMutation.isPending}
                       onClick={() => handleConfirm(record.id)}
                     >
-                      Xác nhận
+                      {t("common.confirm")}
                     </Button>
                   )}
                   {record.status !== "completed" && record.status !== "cancelled" && (
                     <Popconfirm
-                      title="Hủy lịch hẹn này?"
-                      okText="Hủy"
-                      cancelText="Không"
+                      title={t("appointment.cancelConfirmTitle")}
+                      okText={t("common.cancel")}
+                      cancelText={t("appointment.no")}
                       okButtonProps={{ danger: true }}
                       onConfirm={() => handleCancel(record.id)}
                     >
-                      <Button size="small" danger loading={cancelMutation.isPending}>Hủy</Button>
+                      <Button size="small" danger loading={cancelMutation.isPending}>{t("common.cancel")}</Button>
                     </Popconfirm>
                   )}
                 </div>

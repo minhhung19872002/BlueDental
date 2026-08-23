@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
@@ -19,22 +20,25 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
 {
     private readonly IRepository<CatalogEntry, Guid> _repository;
     private readonly IRepository<Taxonomy, Guid> _taxonomyRepository;
+    private readonly ICurrentClinicBranchResolver _branchResolver;
 
     public CatalogEntryAppService(
         IRepository<CatalogEntry, Guid> repository,
-        IRepository<Taxonomy, Guid> taxonomyRepository)
+        IRepository<Taxonomy, Guid> taxonomyRepository,
+        ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
         _taxonomyRepository = taxonomyRepository;
+        _branchResolver = branchResolver;
     }
 
     [Authorize(BlueDentalPermissions.Catalogs.View)]
     public async Task<PagedResultDto<CatalogEntryDto>> GetListAsync(GetCatalogEntryListInput input)
     {
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
 
-        if (input.ClinicBranchId.HasValue)
-            query = query.Where(x => x.ClinicBranchId == input.ClinicBranchId.Value);
+        query = query.Where(x => x.ClinicBranchId == clinicBranchId);
         if (input.TaxonomyId.HasValue)
             query = query.Where(x => x.TaxonomyId == input.TaxonomyId.Value);
         if (!string.IsNullOrWhiteSpace(input.Group))
@@ -70,6 +74,7 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
     [Authorize(BlueDentalPermissions.Catalogs.Create)]
     public async Task<CatalogEntryDto> CreateAsync(CreateCatalogEntryDto input)
     {
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
         var taxonomy = await _taxonomyRepository.FindAsync(input.TaxonomyId)
             ?? throw new BusinessException(
                 BlueDentalDomainErrorCodes.Catalogs.TaxonomyNotFound,
@@ -77,7 +82,7 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
 
         var entry = CatalogEntry.Create(
             GuidGenerator.Create(),
-            input.ClinicBranchId,
+            clinicBranchId,
             taxonomy.Id,
             // The group always comes from the taxonomy, never from the client.
             taxonomy.Group,

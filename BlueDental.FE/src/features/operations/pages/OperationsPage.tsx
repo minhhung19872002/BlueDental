@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Table, Empty, Tabs, Button, Input, Modal, Popconfirm, message } from "antd";
 import { SearchOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
 import dayjs from "dayjs";
 import {
   useOperationCategories, useCreateOperationCategory, useDeleteOperationCategory,
@@ -8,91 +9,98 @@ import {
   type OperationCategoryDto, type OperationArticleDto,
 } from "../api/operationApi";
 
-const MAIN_TABS = [
+interface MainTabDef {
+  key: string;
+  labelKey: string;
+  subTabs: { key: string; labelKey: string }[];
+}
+
+const MAIN_TAB_DEFS: MainTabDef[] = [
   {
     key: "overview",
-    label: "Quản trị vận hành",
+    labelKey: "operations.management",
     subTabs: [
-      { key: "home",        label: "Trang chủ" },
-      { key: "process",     label: "Quy trình" },
-      { key: "task",        label: "Công việc" },
-      { key: "report",      label: "Báo cáo" },
-      { key: "untreated",   label: "Chẩn đoán chưa điều trị" },
-      { key: "prescription",label: "Đơn thuốc" },
+      { key: "home",         labelKey: "operations.home" },
+      { key: "process",      labelKey: "operations.process" },
+      { key: "task",         labelKey: "operations.tasks" },
+      { key: "report",       labelKey: "operations.reports" },
+      { key: "untreated",    labelKey: "operations.undiagnosed" },
+      { key: "prescription", labelKey: "operations.prescription" },
     ],
   },
   {
     key: "assistant",
-    label: "Khối trợ lý",
+    labelKey: "operations.assistant",
     subTabs: [
-      { key: "home",    label: "Trang chủ" },
-      { key: "process", label: "Quy trình" },
-      { key: "task",    label: "Công việc" },
+      { key: "home",    labelKey: "operations.home" },
+      { key: "process", labelKey: "operations.process" },
+      { key: "task",    labelKey: "operations.tasks" },
     ],
   },
   {
     key: "reception",
-    label: "Khối lễ tân",
+    labelKey: "operations.receptionist",
     subTabs: [
-      { key: "home",    label: "Trang chủ" },
-      { key: "process", label: "Quy trình" },
-      { key: "task",    label: "Công việc" },
-      { key: "report",  label: "Báo cáo" },
+      { key: "home",    labelKey: "operations.home" },
+      { key: "process", labelKey: "operations.process" },
+      { key: "task",    labelKey: "operations.tasks" },
+      { key: "report",  labelKey: "operations.reports" },
     ],
   },
   {
     key: "cskh",
-    label: "Khối CSKH",
+    labelKey: "operations.cskhDept",
     subTabs: [
-      { key: "home",    label: "Trang chủ" },
-      { key: "process", label: "Quy trình" },
-      { key: "task",    label: "Công việc" },
-      { key: "report",  label: "Báo cáo" },
+      { key: "home",    labelKey: "operations.home" },
+      { key: "process", labelKey: "operations.process" },
+      { key: "task",    labelKey: "operations.tasks" },
+      { key: "report",  labelKey: "operations.reports" },
     ],
   },
   {
     key: "marketing",
-    label: "Khối Marketing",
+    labelKey: "operations.marketing",
     subTabs: [
-      { key: "home",    label: "Trang chủ" },
-      { key: "process", label: "Quy trình" },
-      { key: "task",    label: "Công việc" },
-      { key: "report",  label: "Báo cáo" },
+      { key: "home",    labelKey: "operations.home" },
+      { key: "process", labelKey: "operations.process" },
+      { key: "task",    labelKey: "operations.tasks" },
+      { key: "report",  labelKey: "operations.reports" },
     ],
   },
   {
     key: "security",
-    label: "Khối bảo vệ",
+    labelKey: "operations.security",
     subTabs: [
-      { key: "home",    label: "Trang chủ" },
-      { key: "process", label: "Quy trình" },
-      { key: "task",    label: "Công việc" },
-      { key: "report",  label: "Báo cáo" },
+      { key: "home",    labelKey: "operations.home" },
+      { key: "process", labelKey: "operations.process" },
+      { key: "task",    labelKey: "operations.tasks" },
+      { key: "report",  labelKey: "operations.reports" },
     ],
   },
   {
     key: "treatment",
-    label: "Khối điều trị",
+    labelKey: "operations.treatment",
     subTabs: [
-      { key: "home",    label: "Trang chủ" },
-      { key: "process", label: "Quy trình" },
-      { key: "task",    label: "Công việc" },
-      { key: "report",  label: "Báo cáo" },
+      { key: "home",    labelKey: "operations.home" },
+      { key: "process", labelKey: "operations.process" },
+      { key: "task",    labelKey: "operations.tasks" },
+      { key: "report",  labelKey: "operations.reports" },
     ],
   },
   {
     key: "finance",
-    label: "Khối tài chính",
+    labelKey: "operations.finance",
     subTabs: [
-      { key: "home",    label: "Trang chủ" },
-      { key: "process", label: "Quy trình" },
-      { key: "task",    label: "Công việc" },
-      { key: "report",  label: "Báo cáo" },
+      { key: "home",    labelKey: "operations.home" },
+      { key: "process", labelKey: "operations.process" },
+      { key: "task",    labelKey: "operations.tasks" },
+      { key: "report",  labelKey: "operations.reports" },
     ],
   },
 ];
 
 export function OperationsPage() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("overview");
   const [activeSubTabs, setActiveSubTabs] = useState<Record<string, string>>({});
   const [keyword, setKeyword] = useState("");
@@ -103,7 +111,7 @@ export function OperationsPage() {
   const [articleTitle, setArticleTitle] = useState("");
   const [editingArticle, setEditingArticle] = useState<OperationArticleDto | null>(null);
 
-  const currentTabDef = MAIN_TABS.find((t) => t.key === activeTab)!;
+  const currentTabDef = MAIN_TAB_DEFS.find((t) => t.key === activeTab)!;
   const activeSubTab = activeSubTabs[activeTab] ?? currentTabDef.subTabs[0]?.key ?? "";
 
   const setSubTab = (sub: string) => {
@@ -129,7 +137,7 @@ export function OperationsPage() {
     if (!categoryName.trim()) return;
     createCategory.mutate(
       { name: categoryName.trim(), department: activeTab, subTab: activeSubTab },
-      { onSuccess: () => { setCategoryModalOpen(false); setCategoryName(""); message.success("Đã tạo mục"); } },
+      { onSuccess: () => { setCategoryModalOpen(false); setCategoryName(""); message.success(t("operations.itemCreated")); } },
     );
   };
 
@@ -138,14 +146,14 @@ export function OperationsPage() {
     if (editingArticle) {
       updateArticle.mutate(
         { id: editingArticle.id, data: { title: articleTitle.trim() } },
-        { onSuccess: () => { setArticleModalOpen(false); setArticleTitle(""); setEditingArticle(null); message.success("Đã cập nhật"); } },
+        { onSuccess: () => { setArticleModalOpen(false); setArticleTitle(""); setEditingArticle(null); message.success(t("operations.articleUpdated")); } },
       );
     } else {
       const catId = selectedCategoryId ?? categories[0]?.id;
-      if (!catId) { message.warning("Vui lòng tạo mục trước"); return; }
+      if (!catId) { message.warning(t("operations.createItemFirst")); return; }
       createArticle.mutate(
         { title: articleTitle.trim(), categoryId: catId, department: activeTab, subTab: activeSubTab },
-        { onSuccess: () => { setArticleModalOpen(false); setArticleTitle(""); message.success("Đã tạo bài viết"); } },
+        { onSuccess: () => { setArticleModalOpen(false); setArticleTitle(""); message.success(t("operations.articleCreated")); } },
       );
     }
   };
@@ -157,7 +165,7 @@ export function OperationsPage() {
           activeKey={activeTab}
           onChange={(k) => { setActiveTab(k); setSelectedCategoryId(undefined); }}
           style={{ marginBottom: 0 }}
-          items={MAIN_TABS.map((t) => ({ key: t.key, label: t.label }))}
+          items={MAIN_TAB_DEFS.map((tab) => ({ key: tab.key, label: t(tab.labelKey) }))}
         />
       </div>
 
@@ -178,7 +186,7 @@ export function OperationsPage() {
                   cursor: "pointer", fontSize: 13, whiteSpace: "nowrap",
                 }}
               >
-                {sub.label}
+                {t(sub.labelKey)}
               </button>
             ))}
           </div>
@@ -188,15 +196,15 @@ export function OperationsPage() {
       <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
         <div className="reception-card" style={{ width: 220, minWidth: 180, flexShrink: 0, padding: 12 }}>
           <Button type="dashed" block icon={<PlusOutlined />} style={{ marginBottom: 10 }} onClick={() => setCategoryModalOpen(true)}>
-            Thêm Mới
+            {t("operations.addNew")}
           </Button>
           {categories.length === 0 ? (
             <div style={{ color: "#9CA3AF", fontSize: 13, textAlign: "center", paddingTop: 20 }}>
-              Chưa có mục nào
+              {t("operations.noItems")}
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              {categories.map((cat) => (
+              {categories.map((cat: OperationCategoryDto) => (
                 <div
                   key={cat.id}
                   style={{
@@ -209,7 +217,7 @@ export function OperationsPage() {
                   onClick={() => setSelectedCategoryId(selectedCategoryId === cat.id ? undefined : cat.id)}
                 >
                   <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cat.name}</span>
-                  <Popconfirm title="Xoá mục này?" onConfirm={() => deleteCategory.mutate(cat.id)}>
+                  <Popconfirm title={t("operations.confirmDeleteItem")} onConfirm={() => deleteCategory.mutate(cat.id)}>
                     <Button type="text" size="small" danger icon={<DeleteOutlined />} style={{ flexShrink: 0 }} />
                   </Popconfirm>
                 </div>
@@ -222,11 +230,11 @@ export function OperationsPage() {
           <div className="reception-card reception-card--toolbar">
             <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "space-between" }}>
               <Button type="primary" style={{ background: "#2671D8" }} onClick={() => { setEditingArticle(null); setArticleTitle(""); setArticleModalOpen(true); }}>
-                Tạo Bài Viết
+                {t("operations.createArticle")}
               </Button>
               <Input
                 prefix={<SearchOutlined style={{ color: "#9CA3AF" }} />}
-                placeholder="Tìm kiếm..."
+                placeholder={t("common.search")}
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 allowClear
@@ -241,39 +249,39 @@ export function OperationsPage() {
               loading={articlesLoading}
               dataSource={articles}
               columns={[
-                { title: "Tiêu đề", dataIndex: "title", key: "title" },
-                { title: "Ngày tạo", dataIndex: "creationTime", key: "creationTime", width: 130,
+                { title: t("operations.title"), dataIndex: "title", key: "title" },
+                { title: t("operations.createdDate"), dataIndex: "creationTime", key: "creationTime", width: 130,
                   render: (v: string) => dayjs(v).format("DD/MM/YYYY") },
-                { title: "Ngày cập nhật", dataIndex: "lastModificationTime", key: "lastModificationTime", width: 150,
+                { title: t("operations.updatedDate"), dataIndex: "lastModificationTime", key: "lastModificationTime", width: 150,
                   render: (v: string) => v ? dayjs(v).format("DD/MM/YYYY HH:mm") : "—" },
                 {
-                  title: "Thao tác", key: "actions", width: 120,
+                  title: t("common.actions"), key: "actions", width: 120,
                   render: (_: unknown, record: OperationArticleDto) => (
                     <div style={{ display: "flex", gap: 6 }}>
-                      <Button size="small" onClick={() => { setEditingArticle(record); setArticleTitle(record.title); setArticleModalOpen(true); }}>Sửa</Button>
-                      <Popconfirm title="Xoá bài viết?" onConfirm={() => deleteArticle.mutate(record.id)}>
-                        <Button size="small" danger>Xoá</Button>
+                      <Button size="small" onClick={() => { setEditingArticle(record); setArticleTitle(record.title); setArticleModalOpen(true); }}>{t("operations.editBtn")}</Button>
+                      <Popconfirm title={t("operations.confirmDeleteArticle")} onConfirm={() => deleteArticle.mutate(record.id)}>
+                        <Button size="small" danger>{t("operations.deleteBtn")}</Button>
                       </Popconfirm>
                     </div>
                   ),
                 },
               ]}
-              locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Không có dữ liệu" /> }}
-              pagination={{ pageSize: 20, showTotal: (total) => `${total} bài viết` }}
+              locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("common.noData")} /> }}
+              pagination={{ pageSize: 20, showTotal: (total) => t("operations.articleCount", { total }) }}
             />
           </div>
         </div>
       </div>
 
       <Modal
-        title="Thêm mục mới"
+        title={t("operations.addItemTitle")}
         open={categoryModalOpen}
         onOk={handleCreateCategory}
         onCancel={() => { setCategoryModalOpen(false); setCategoryName(""); }}
         confirmLoading={createCategory.isPending}
       >
         <Input
-          placeholder="Tên mục"
+          placeholder={t("operations.itemNamePlaceholder")}
           value={categoryName}
           onChange={(e) => setCategoryName(e.target.value)}
           onPressEnter={handleCreateCategory}
@@ -281,14 +289,14 @@ export function OperationsPage() {
       </Modal>
 
       <Modal
-        title={editingArticle ? "Sửa bài viết" : "Tạo bài viết mới"}
+        title={editingArticle ? t("operations.editArticleTitle") : t("operations.createArticleTitle")}
         open={articleModalOpen}
         onOk={handleCreateOrUpdateArticle}
         onCancel={() => { setArticleModalOpen(false); setArticleTitle(""); setEditingArticle(null); }}
         confirmLoading={createArticle.isPending || updateArticle.isPending}
       >
         <Input
-          placeholder="Tiêu đề bài viết"
+          placeholder={t("operations.articleTitlePlaceholder")}
           value={articleTitle}
           onChange={(e) => setArticleTitle(e.target.value)}
           onPressEnter={handleCreateOrUpdateArticle}

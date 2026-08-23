@@ -4,26 +4,39 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { authApi } from "@/features/auth/api";
 
 const { Title, Text } = Typography;
 
 const schema = z.object({
-  currentPassword: z.string().min(1, "Vui lòng nhập mật khẩu hiện tại"),
+  currentPassword: z.string().min(1, "required_current"),
   newPassword: z.string()
-    .min(8, "Mật khẩu phải có ít nhất 8 ký tự")
-    .regex(/[A-Z]/, "Cần ít nhất 1 ký tự hoa")
-    .regex(/[0-9]/, "Cần ít nhất 1 chữ số")
-    .regex(/[^A-Za-z0-9]/, "Cần ít nhất 1 ký tự đặc biệt"),
-  confirmPassword: z.string().min(1, "Vui lòng xác nhận mật khẩu"),
+    .min(8, "min_length")
+    .regex(/[A-Z]/, "need_upper")
+    .regex(/[0-9]/, "need_digit")
+    .regex(/[^A-Za-z0-9]/, "need_special"),
+  confirmPassword: z.string().min(1, "required_confirm"),
 }).refine((d) => d.newPassword === d.confirmPassword, {
-  message: "Mật khẩu xác nhận không khớp",
+  message: "mismatch",
   path: ["confirmPassword"],
 });
 
 type FormValues = z.infer<typeof schema>;
 
+const ERROR_KEY_MAP: Record<string, string> = {
+  required_current: "account.currentPasswordRequired",
+  min_length:       "account.minPassword",
+  need_upper:       "account.needUppercase",
+  need_digit:       "account.needDigit",
+  need_special:     "account.needSpecial",
+  required_confirm: "account.confirmPasswordRequired",
+  mismatch:         "account.passwordMismatch",
+};
+
 export function ChangePasswordPage() {
+  const { t } = useTranslation();
+
   const { control, handleSubmit, reset, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { currentPassword: "", newPassword: "", confirmPassword: "" },
@@ -33,11 +46,11 @@ export function ChangePasswordPage() {
     mutationFn: (data: { currentPassword: string; newPassword: string }) =>
       authApi.changePassword(data),
     onSuccess: () => {
-      message.success("Đổi mật khẩu thành công!");
+      message.success(t("account.changePasswordSuccess"));
       reset();
     },
     onError: () => {
-      message.error("Mật khẩu hiện tại không đúng");
+      message.error(t("account.changePasswordFailed"));
     },
   });
 
@@ -48,6 +61,11 @@ export function ChangePasswordPage() {
     });
   };
 
+  const resolveError = (msg: string | undefined): string | undefined => {
+    if (!msg) return undefined;
+    return ERROR_KEY_MAP[msg] ? t(ERROR_KEY_MAP[msg]) : msg;
+  };
+
   const fieldStyle = { marginBottom: 16 };
   const labelStyle = { fontSize: 13, fontWeight: 500 as const, color: "#374151", display: "block" as const, marginBottom: 6 };
 
@@ -55,8 +73,8 @@ export function ChangePasswordPage() {
     <div className="page-container">
       <div className="page-header">
         <div className="page-header-left">
-          <Title level={4} style={{ margin: 0 }}>Đổi mật khẩu</Title>
-          <Text type="secondary">Cập nhật mật khẩu để bảo vệ tài khoản của bạn</Text>
+          <Title level={4} style={{ margin: 0 }}>{t("account.changePasswordTitle")}</Title>
+          <Text type="secondary">{t("account.changePasswordSubtitle")}</Text>
         </div>
       </div>
 
@@ -68,63 +86,63 @@ export function ChangePasswordPage() {
                 <LockOutlined style={{ fontSize: 20, color: "#2671D8" }} />
               </div>
               <div>
-                <div style={{ fontWeight: 600, color: "#1B2A41" }}>Bảo mật tài khoản</div>
-                <div style={{ fontSize: 13, color: "#6B7280" }}>Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, số và ký tự đặc biệt</div>
+                <div style={{ fontWeight: 600, color: "#1B2A41" }}>{t("account.accountSecurity")}</div>
+                <div style={{ fontSize: 13, color: "#6B7280" }}>{t("account.passwordHint")}</div>
               </div>
             </div>
 
             <div style={fieldStyle}>
-              <label style={labelStyle}>Mật khẩu hiện tại <span style={{ color: "#EF4444" }}>*</span></label>
+              <label style={labelStyle}>{t("account.currentPassword")} <span style={{ color: "#EF4444" }}>*</span></label>
               <Controller
                 name="currentPassword"
                 control={control}
                 render={({ field }) => (
                   <Input.Password
                     {...field}
-                    placeholder="Nhập mật khẩu hiện tại"
+                    placeholder={t("account.currentPasswordPlaceholder")}
                     style={{ height: 40 }}
                     status={errors.currentPassword ? "error" : ""}
                     autoComplete="current-password"
                   />
                 )}
               />
-              {errors.currentPassword && <Text style={{ color: "#EF4444", fontSize: 12 }}>{errors.currentPassword.message}</Text>}
+              {errors.currentPassword && <Text style={{ color: "#EF4444", fontSize: 12 }}>{resolveError(errors.currentPassword.message)}</Text>}
             </div>
 
             <div style={fieldStyle}>
-              <label style={labelStyle}>Mật khẩu mới <span style={{ color: "#EF4444" }}>*</span></label>
+              <label style={labelStyle}>{t("account.newPassword")} <span style={{ color: "#EF4444" }}>*</span></label>
               <Controller
                 name="newPassword"
                 control={control}
                 render={({ field }) => (
                   <Input.Password
                     {...field}
-                    placeholder="Nhập mật khẩu mới"
+                    placeholder={t("account.newPasswordPlaceholder")}
                     style={{ height: 40 }}
                     status={errors.newPassword ? "error" : ""}
                     autoComplete="new-password"
                   />
                 )}
               />
-              {errors.newPassword && <Text style={{ color: "#EF4444", fontSize: 12 }}>{errors.newPassword.message}</Text>}
+              {errors.newPassword && <Text style={{ color: "#EF4444", fontSize: 12 }}>{resolveError(errors.newPassword.message)}</Text>}
             </div>
 
             <div style={fieldStyle}>
-              <label style={labelStyle}>Xác nhận mật khẩu mới <span style={{ color: "#EF4444" }}>*</span></label>
+              <label style={labelStyle}>{t("account.confirmPassword")} <span style={{ color: "#EF4444" }}>*</span></label>
               <Controller
                 name="confirmPassword"
                 control={control}
                 render={({ field }) => (
                   <Input.Password
                     {...field}
-                    placeholder="Nhập lại mật khẩu mới"
+                    placeholder={t("account.confirmPasswordPlaceholder")}
                     style={{ height: 40 }}
                     status={errors.confirmPassword ? "error" : ""}
                     autoComplete="new-password"
                   />
                 )}
               />
-              {errors.confirmPassword && <Text style={{ color: "#EF4444", fontSize: 12 }}>{errors.confirmPassword.message}</Text>}
+              {errors.confirmPassword && <Text style={{ color: "#EF4444", fontSize: 12 }}>{resolveError(errors.confirmPassword.message)}</Text>}
             </div>
 
             <Button
@@ -134,7 +152,7 @@ export function ChangePasswordPage() {
               onClick={handleSubmit(onSubmit)}
               style={{ background: "#2671D8", height: 40, width: "100%", marginTop: 8 }}
             >
-              Cập nhật mật khẩu
+              {t("account.updatePasswordBtn")}
             </Button>
           </Card>
         </Col>

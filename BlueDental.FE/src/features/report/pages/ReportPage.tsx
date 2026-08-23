@@ -1,12 +1,14 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 import { Tabs, Row, Col, Button, Select, Segmented, Spin, Table, Typography, Tag } from "antd";
+import type { TFunction } from "i18next";
 import { useStaffList } from "@/features/staff/api/staffQueries";
 import { DownloadOutlined, LeftOutlined, RightOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 import { formatVND } from "@/utils/format";
 import { exportToExcel } from "@/utils/exportExcel";
-import { useReportSummary, useRevenueReport, useExpenseReport, type ReportSummaryDto, type RevenueReportDto } from "../api/reportingApi";
+import { useReportSummary, useRevenueReport, useExpenseReport } from "../api/reportingApi";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import {
   CASH_HOLDING_LABELS,
@@ -29,88 +31,12 @@ const { Text } = Typography;
 
 type DateMode = "day" | "week" | "month" | "year";
 
-const REPORT_TABS = [
-  { key: "expense",    label: "Doanh số và lượt khách" },
-  { key: "cashflow",   label: "Quản lý thu chi" },
-  { key: "result",     label: "Kết quả kinh doanh" },
-  { key: "cashflow-v2",label: "Luân chuyển dòng tiền V2" },
-];
-
-const SUB_FILTERS = [
-  { key: "service",  label: "Khách hàng phát sinh dịch vụ" },
-  { key: "payment",  label: "Thanh toán" },
-  { key: "refund",   label: "Hoàn tiền" },
-  { key: "debt",     label: "Dư nợ" },
-];
-
-
-const CASHFLOW_TYPES = [
-  { key: "all", label: "Tất cả" },
-  { key: "thu", label: "Thu" },
-  { key: "chi", label: "Chi" },
-];
-
-const CASHFLOW_COLUMNS = [
-  { title: "Ngày", dataIndex: "entryDate", key: "entryDate", width: 110 },
-  { title: "Số phiếu", dataIndex: "code", key: "code", width: 110 },
-  { title: "Loại", dataIndex: "type", key: "type", width: 80,
-    render: (v: SalesEntryType) => (
-      <Tag color={v === SALES_ENTRY_TYPE.Income ? "green" : "red"}>
-        {v === SALES_ENTRY_TYPE.Income ? "Thu" : "Chi"}
-      </Tag>
-    ) },
-  { title: "Danh mục", dataIndex: "categoryName", key: "categoryName", width: 160,
-    render: (v: string | null) => v ?? "—" },
-  { title: "Nội dung", dataIndex: "description", key: "description" },
-  { title: "Số tiền", dataIndex: "amount", key: "amount", width: 140, align: "right" as const,
-    render: (v: number, r: { type: SalesEntryType }) => (
-      <Text style={{
-        color: r.type === SALES_ENTRY_TYPE.Income ? "#10B981" : "#EF4444",
-        fontVariantNumeric: "tabular-nums",
-      }}>
-        {r.type === SALES_ENTRY_TYPE.Income ? "+" : "-"}{formatVND(v ?? 0)} đ
-      </Text>
-    ) },
-  { title: "Phương thức", dataIndex: "channel", key: "channel", width: 130,
-    render: (v: PaymentChannel) => PAYMENT_CHANNEL_LABELS[v] },
-  { title: "Người thực hiện", dataIndex: "staffName", key: "staffName", width: 160,
-    render: (v: string | null) => v ?? "—" },
-  { title: "Duyệt", dataIndex: "approvalStatus", key: "approvalStatus", width: 110,
-    render: (v: SalesApprovalStatus) => {
-      const config = APPROVAL_CONFIG[v];
-      return config ? <Tag color={config.color}>{config.label}</Tag> : <Text type="secondary">—</Text>;
-    } },
-];
-
-const RESULT_COLUMNS = [
-  { title: "Danh mục", dataIndex: "category", key: "category" },
-  { title: "Doanh thu", dataIndex: "revenue", key: "revenue", width: 160, align: "right" as const,
-    render: (v: number) => <Text style={{ fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
-  { title: "Chi phí", dataIndex: "expense", key: "expense", width: 160, align: "right" as const,
-    render: (v: number) => <Text style={{ color: "#EF4444", fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
-  { title: "Lợi nhuận", dataIndex: "profit", key: "profit", width: 160, align: "right" as const,
-    render: (v: number) => <Text style={{ color: "#10B981", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
-  { title: "Tỷ lệ LN (%)", dataIndex: "margin", key: "margin", width: 120, align: "right" as const,
-    render: (v: number) => <Text style={{ color: v >= 0 ? "#10B981" : "#EF4444" }}>{v ?? 0}%</Text> },
-];
-
-const EXPENSE_COLUMNS = [
-  { title: "Ngày", dataIndex: "date", key: "date", width: 110 },
-  { title: "Tên khách hàng", dataIndex: "patientName", key: "patientName", width: 180 },
-  { title: "Nhân sự tư vấn", dataIndex: "counselorName", key: "counselorName", width: 150 },
-  { title: "Bác sĩ tiếp nhận", dataIndex: "doctorName", key: "doctorName", width: 150 },
-  { title: "Dịch vụ điều trị", dataIndex: "serviceName", key: "serviceName" },
-  { title: "Số lượng", dataIndex: "quantity", key: "quantity", width: 90, align: "right" as const },
-  { title: "Thành tiền", dataIndex: "totalAmount", key: "totalAmount", width: 130, align: "right" as const, render: (v: number) => <Text style={{ fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
-  { title: "Đã thanh toán", dataIndex: "paidAmount", key: "paidAmount", width: 130, align: "right" as const, render: (v: number) => <Text style={{ color: "#10B981", fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
-];
-
 interface PeriodRange {
   fromDate: string;
   toDate: string;
 }
 
-/** The toolbar's Ngày/Tuần/Tháng/Năm switch resolved into an inclusive range. */
+/** The toolbar's Day/Week/Month/Year switch resolved into an inclusive range. */
 function resolvePeriod(currentDate: Dayjs, dateMode: DateMode): PeriodRange {
   const unit = dateMode === "day" ? "day" : dateMode === "week" ? "week" : dateMode === "month" ? "month" : "year";
   return {
@@ -119,7 +45,94 @@ function resolvePeriod(currentDate: Dayjs, dateMode: DateMode): PeriodRange {
   };
 }
 
+function buildCashflowColumns(
+  t: TFunction,
+  approvalConfig: Record<SalesApprovalStatus, { label: string; color: string } | null>,
+) {
+  return [
+    { title: t("report.date"), dataIndex: "entryDate", key: "entryDate", width: 110 },
+    { title: t("report.voucherNumber"), dataIndex: "code", key: "code", width: 110 },
+    { title: t("report.type"), dataIndex: "type", key: "type", width: 80,
+      render: (v: SalesEntryType) => (
+        <Tag color={v === SALES_ENTRY_TYPE.Income ? "green" : "red"}>
+          {v === SALES_ENTRY_TYPE.Income ? t("report.income") : t("report.expense")}
+        </Tag>
+      ) },
+    { title: t("report.category"), dataIndex: "categoryName", key: "categoryName", width: 160,
+      render: (v: string | null) => v ?? "—" },
+    { title: t("report.content"), dataIndex: "description", key: "description" },
+    { title: t("report.totalAmount"), dataIndex: "amount", key: "amount", width: 140, align: "right" as const,
+      render: (v: number, r: { type: SalesEntryType }) => (
+        <Text style={{
+          color: r.type === SALES_ENTRY_TYPE.Income ? "#10B981" : "#EF4444",
+          fontVariantNumeric: "tabular-nums",
+        }}>
+          {r.type === SALES_ENTRY_TYPE.Income ? "+" : "-"}{formatVND(v ?? 0)} đ
+        </Text>
+      ) },
+    { title: t("report.method"), dataIndex: "channel", key: "channel", width: 130,
+      render: (v: PaymentChannel) => PAYMENT_CHANNEL_LABELS[v] },
+    { title: t("report.performer"), dataIndex: "staffName", key: "staffName", width: 160,
+      render: (v: string | null) => v ?? "—" },
+    { title: t("report.approval"), dataIndex: "approvalStatus", key: "approvalStatus", width: 110,
+      render: (v: SalesApprovalStatus) => {
+        const config = approvalConfig[v];
+        return config ? <Tag color={config.color}>{config.label}</Tag> : <Text type="secondary">—</Text>;
+      } },
+  ];
+}
+
+function buildResultColumns(t: TFunction) {
+  return [
+    { title: t("report.category"), dataIndex: "category", key: "category" },
+    { title: t("report.revenueLabel"), dataIndex: "revenue", key: "revenue", width: 160, align: "right" as const,
+      render: (v: number) => <Text style={{ fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
+    { title: t("report.cost"), dataIndex: "expense", key: "expense", width: 160, align: "right" as const,
+      render: (v: number) => <Text style={{ color: "#EF4444", fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
+    { title: t("report.profit"), dataIndex: "profit", key: "profit", width: 160, align: "right" as const,
+      render: (v: number) => <Text style={{ color: "#10B981", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
+    { title: t("report.profitRate"), dataIndex: "margin", key: "margin", width: 120, align: "right" as const,
+      render: (v: number) => <Text style={{ color: v >= 0 ? "#10B981" : "#EF4444" }}>{v ?? 0}%</Text> },
+  ];
+}
+
+function buildExpenseColumns(t: TFunction) {
+  return [
+    { title: t("report.date"), dataIndex: "date", key: "date", width: 110 },
+    { title: t("report.customerName"), dataIndex: "patientName", key: "patientName", width: 180 },
+    { title: t("report.counselor"), dataIndex: "counselorName", key: "counselorName", width: 150 },
+    { title: t("report.receivingDoctor"), dataIndex: "doctorName", key: "doctorName", width: 150 },
+    { title: t("report.treatmentService"), dataIndex: "serviceName", key: "serviceName" },
+    { title: t("report.quantity"), dataIndex: "quantity", key: "quantity", width: 90, align: "right" as const },
+    { title: t("report.totalAmount"), dataIndex: "totalAmount", key: "totalAmount", width: 130, align: "right" as const, render: (v: number) => <Text style={{ fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
+    { title: t("report.paidAmount"), dataIndex: "paidAmount", key: "paidAmount", width: 130, align: "right" as const, render: (v: number) => <Text style={{ color: "#10B981", fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
+  ];
+}
+
+function buildCashflowEntryColumns(t: TFunction) {
+  return [
+    { title: t("report.date"), dataIndex: "entryDate", key: "entryDate", width: 110 },
+    { title: t("report.transactionType"), dataIndex: "transactionType", key: "transactionType", width: 130,
+      render: (v: CashTransactionType) => <Tag>{CASH_TRANSACTION_LABELS[v]}</Tag> },
+    { title: t("report.form"), key: "holding", width: 200,
+      render: (_: unknown, r: { fromHolding: CashHolding | null; toHolding: CashHolding | null }) => {
+        const from = r.fromHolding ? CASH_HOLDING_LABELS[r.fromHolding] : null;
+        const to = r.toHolding ? CASH_HOLDING_LABELS[r.toHolding] : null;
+        if (from && to) return `${from} → ${to}`;
+        return to ?? from ?? "—";
+      } },
+    { title: t("report.category"), dataIndex: "categoryName", key: "categoryName", width: 160,
+      render: (v: string | null) => v ?? "—" },
+    { title: t("report.totalAmount"), dataIndex: "amount", key: "amount", width: 140, align: "right" as const,
+      render: (v: number) => <Text style={{ fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
+    { title: t("report.creator"), dataIndex: "createdByStaffName", key: "createdByStaffName", width: 160,
+      render: (v: string | null) => v ?? "—" },
+    { title: t("common.note"), dataIndex: "note", key: "note", render: (v: string | null) => v ?? "—" },
+  ];
+}
+
 export function ReportPage() {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const activeTab = searchParams.get("tab") ?? "expense";
@@ -127,6 +140,20 @@ export function ReportPage() {
   const currentDate = dayjs(searchParams.get("date") ?? undefined);
   const [subFilter, setSubFilter] = useState("service");
   const period = resolvePeriod(currentDate, dateMode);
+
+  const REPORT_TABS = [
+    { key: "expense",     label: t("report.revenueAndVisits") },
+    { key: "cashflow",    label: t("report.expenseManagement") },
+    { key: "result",      label: t("report.businessResult") },
+    { key: "cashflow-v2", label: t("report.cashflowV2") },
+  ];
+
+  const SUB_FILTERS = [
+    { key: "service",  label: t("report.serviceExpense") },
+    { key: "payment",  label: t("report.payment") },
+    { key: "refund",   label: t("report.refund") },
+    { key: "debt",     label: t("report.balance") },
+  ];
 
   const startDate = currentDate.startOf(dateMode === "day" ? "day" : dateMode === "week" ? "week" : dateMode === "month" ? "month" : "year").format("YYYY-MM-DD");
   const endDate = currentDate.endOf(dateMode === "day" ? "day" : dateMode === "week" ? "week" : dateMode === "month" ? "month" : "year").format("YYYY-MM-DD");
@@ -139,6 +166,8 @@ export function ReportPage() {
     value: s.id,
     label: s.name || s.userName,
   }));
+
+  const expenseColumns = buildExpenseColumns(t);
 
   const setActiveTab = (tab: string) => {
     setSearchParams((p) => { p.set("tab", tab); return p; });
@@ -164,10 +193,10 @@ export function ReportPage() {
     exportToExcel(
       revenueData,
       [
-        { header: "Ngày", key: "date" },
-        { header: "Doanh thu", key: "totalRevenue", format: (v) => formatVND(Number(v ?? 0)) },
-        { header: "Bệnh nhân mới", key: "newPatients", format: (v) => String(v ?? 0) },
-        { header: "Lịch hẹn", key: "appointments", format: (v) => String(v ?? 0) },
+        { header: t("report.date"), key: "date" },
+        { header: t("report.revenueLabel"), key: "totalRevenue", format: (v) => formatVND(Number(v ?? 0)) },
+        { header: t("report.newPatients"), key: "newPatients", format: (v) => String(v ?? 0) },
+        { header: t("calendar.customerAppointments"), key: "appointments", format: (v) => String(v ?? 0) },
       ],
       `bao-cao-doanh-so-${dayjs().format("YYYYMMDD")}`,
     );
@@ -188,7 +217,7 @@ export function ReportPage() {
           activeKey={activeTab}
           onChange={setActiveTab}
           style={{ marginBottom: 0 }}
-          items={REPORT_TABS.map((t) => ({ key: t.key, label: t.label }))}
+          items={REPORT_TABS.map((tab) => ({ key: tab.key, label: tab.label }))}
         />
       </div>
 
@@ -199,10 +228,10 @@ export function ReportPage() {
             value={dateMode}
             onChange={(v) => setDateMode(v as DateMode)}
             options={[
-              { label: "Ngày",  value: "day" },
-              { label: "Tuần",  value: "week" },
-              { label: "Tháng", value: "month" },
-              { label: "Năm",   value: "year" },
+              { label: t("common.day"),   value: "day" },
+              { label: t("common.week"),  value: "week" },
+              { label: t("common.month"), value: "month" },
+              { label: t("common.year"),  value: "year" },
             ]}
           />
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -210,7 +239,7 @@ export function ReportPage() {
             <span style={{ minWidth: 130, textAlign: "center", fontWeight: 600, fontSize: 14 }}>{displayDate()}</span>
             <Button type="text" size="small" icon={<RightOutlined />} onClick={() => navigateDate(1)} />
           </div>
-          <Select placeholder="Bác sĩ điều trị" allowClear style={{ minWidth: 180 }} options={doctorOptions} />
+          <Select placeholder={t("report.doctorFilter")} allowClear style={{ minWidth: 180 }} options={doctorOptions} />
         </div>
       </div>
 
@@ -243,13 +272,13 @@ export function ReportPage() {
           {/* Quick stats + export */}
           <div className="reception-card reception-card--toolbar">
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-              <span style={{ fontSize: 13, color: "#5A6B82" }}>Doanh số:</span>
+              <span style={{ fontSize: 13, color: "#5A6B82" }}>{t("report.revenue")}</span>
               {expenseLoading ? <Spin size="small" /> : (
                 <span style={{ fontWeight: 700, fontSize: 18, color: "#1B2A41" }}>
                   {formatVND(expenseData?.grandTotalAmount ?? 0)} đ
                 </span>
               )}
-              <Button icon={<DownloadOutlined />} style={{ marginLeft: "auto" }} onClick={handleExportRevenue}>Xuất Excel</Button>
+              <Button icon={<DownloadOutlined />} style={{ marginLeft: "auto" }} onClick={handleExportRevenue}>{t("common.exportExcel")}</Button>
             </div>
           </div>
 
@@ -258,16 +287,16 @@ export function ReportPage() {
             <Table
               size="small"
               rowKey="id"
-              columns={EXPENSE_COLUMNS}
+              columns={expenseColumns}
               dataSource={expenseData?.items ?? []}
               loading={expenseLoading}
               pagination={{
                 pageSize: 20,
                 showSizeChanger: true,
                 pageSizeOptions: ["5", "10", "20", "25", "50", "100"],
-                showTotal: (total, range) => `Hiển thị ${range[0]}–${range[1]} trên ${total} dòng`,
+                showTotal: (total, range) => t("common.showRange", { from: range[0], to: range[1], total }),
               }}
-              locale={{ emptyText: "Không có dữ liệu" }}
+              locale={{ emptyText: t("common.noData") }}
             />
           </div>
 
@@ -275,27 +304,27 @@ export function ReportPage() {
           <Row gutter={[12, 12]}>
             <Col xs={24} sm={12} md={6}>
               <div className="reception-card" style={{ padding: 16 }}>
-                <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 10 }}>Thông tin lượt khách</div>
+                <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 10 }}>{t("report.visitorInfo")}</div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                  <span style={{ color: "#5A6B82" }}>Lượt khách</span>
+                  <span style={{ color: "#5A6B82" }}>{t("report.visitors")}</span>
                   <span style={{ fontWeight: 600 }}>{expenseLoading ? "…" : (expenseData?.totalCount ?? 0)} lượt</span>
                 </div>
               </div>
             </Col>
             <Col xs={24} sm={12} md={6}>
               <div className="reception-card" style={{ padding: 16 }}>
-                <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 10 }}>Thông tin lịch hẹn</div>
+                <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 10 }}>{t("report.appointmentInfo")}</div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                  <span style={{ color: "#5A6B82" }}>Lịch hẹn</span>
-                  <span style={{ fontWeight: 600 }}>{summaryLoading ? "…" : (summary?.totalAppointments ?? 0)} lịch hẹn</span>
+                  <span style={{ color: "#5A6B82" }}>{t("calendar.customerAppointments")}</span>
+                  <span style={{ fontWeight: 600 }}>{summaryLoading ? "…" : (summary?.totalAppointments ?? 0)}</span>
                 </div>
               </div>
             </Col>
             <Col xs={24} sm={12} md={6}>
               <div className="reception-card" style={{ padding: 16 }}>
-                <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 10 }}>Thông tin thanh toán</div>
+                <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 10 }}>{t("report.paymentInfo")}</div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                  <span style={{ color: "#5A6B82" }}>Doanh thu</span>
+                  <span style={{ color: "#5A6B82" }}>{t("report.revenueLabel")}</span>
                   <span style={{ fontWeight: 600, color: "#10B981" }}>
                     {expenseLoading ? "…" : formatVND(expenseData?.grandTotalAmount ?? 0)} đ
                   </span>
@@ -304,9 +333,9 @@ export function ReportPage() {
             </Col>
             <Col xs={24} sm={12} md={6}>
               <div className="reception-card" style={{ padding: 16 }}>
-                <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 10 }}>TB doanh thu / KH</div>
+                <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 10 }}>{t("report.avgRevenuePerCustomer")}</div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                  <span style={{ color: "#5A6B82" }}>Trung bình</span>
+                  <span style={{ color: "#5A6B82" }}>{t("report.average")}</span>
                   <span style={{ fontWeight: 600 }}>
                     {expenseLoading ? "…" : formatVND(
                       (expenseData?.totalCount ?? 0) > 0
@@ -328,16 +357,23 @@ export function ReportPage() {
   );
 }
 
-const APPROVAL_CONFIG: Record<SalesApprovalStatus, { label: string; color: string } | null> = {
-  [SALES_APPROVAL_STATUS.NotRequired]: null,
-  [SALES_APPROVAL_STATUS.Pending]: { label: "Chờ duyệt", color: "gold" },
-  [SALES_APPROVAL_STATUS.Approved]: { label: "Đã duyệt", color: "green" },
-  [SALES_APPROVAL_STATUS.Rejected]: { label: "Từ chối", color: "red" },
-};
-
 function CashflowTab({ period }: { period: PeriodRange }) {
+  const { t } = useTranslation();
   const branchId = useCurrentBranchId();
   const [typeFilter, setTypeFilter] = useState("all");
+
+  const CASHFLOW_TYPES = [
+    { key: "all", label: t("common.all") },
+    { key: "thu", label: t("report.income") },
+    { key: "chi", label: t("report.expense") },
+  ];
+
+  const APPROVAL_CONFIG: Record<SalesApprovalStatus, { label: string; color: string } | null> = {
+    [SALES_APPROVAL_STATUS.NotRequired]: null,
+    [SALES_APPROVAL_STATUS.Pending]:  { label: t("report.pending"),  color: "gold" },
+    [SALES_APPROVAL_STATUS.Approved]: { label: t("report.approved"), color: "green" },
+    [SALES_APPROVAL_STATUS.Rejected]: { label: t("report.rejected"), color: "red" },
+  };
 
   const typeParam: SalesEntryType | undefined =
     typeFilter === "thu" ? SALES_ENTRY_TYPE.Income
@@ -353,10 +389,12 @@ function CashflowTab({ period }: { period: PeriodRange }) {
   });
 
   const summaryCards = [
-    { label: "Tổng thu", value: stats?.totalIncome ?? 0, color: "#10B981" },
-    { label: "Tổng chi", value: stats?.totalExpense ?? 0, color: "#EF4444" },
-    { label: "Lợi nhuận ước tính", value: stats?.net ?? 0, color: "#1E70E6" },
+    { label: t("report.totalIncome"),     value: stats?.totalIncome  ?? 0, color: "#10B981" },
+    { label: t("report.totalExpense"),    value: stats?.totalExpense ?? 0, color: "#EF4444" },
+    { label: t("report.estimatedProfit"), value: stats?.net          ?? 0, color: "#1E70E6" },
   ];
+
+  const cashflowColumns = buildCashflowColumns(t, APPROVAL_CONFIG);
 
   return (
     <>
@@ -398,15 +436,17 @@ function CashflowTab({ period }: { period: PeriodRange }) {
       {(stats?.pendingExpenseCount ?? 0) > 0 && (
         <div className="reception-card" style={{ padding: "10px 16px", marginBottom: 12 }}>
           <Text style={{ fontSize: 13, color: "#B45309" }}>
-            {stats?.pendingExpenseCount} phiếu chi đang chờ duyệt ({formatVND(stats?.pendingExpense ?? 0)} đ) —
-            chưa được tính vào tổng chi.
+            {t("report.pendingVouchers", {
+              count: stats?.pendingExpenseCount,
+              amount: formatVND(stats?.pendingExpense ?? 0),
+            })}
           </Text>
         </div>
       )}
 
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", alignItems: "center" }}>
-          <Button icon={<DownloadOutlined />} style={{ marginLeft: "auto" }}>Xuất Excel</Button>
+          <Button icon={<DownloadOutlined />} style={{ marginLeft: "auto" }}>{t("common.exportExcel")}</Button>
         </div>
       </div>
 
@@ -415,52 +455,35 @@ function CashflowTab({ period }: { period: PeriodRange }) {
           size="small"
           rowKey="id"
           loading={isLoading}
-          columns={CASHFLOW_COLUMNS}
+          columns={cashflowColumns}
           dataSource={page?.items ?? []}
           pagination={{
             pageSize: 20,
-            showTotal: (total, range) => `Hiển thị ${range[0]}–${range[1]} trên ${total} dòng`,
+            showTotal: (total, range) => t("common.showRange", { from: range[0], to: range[1], total }),
           }}
-          locale={{ emptyText: "Không có dữ liệu" }}
+          locale={{ emptyText: t("common.noData") }}
         />
       </div>
     </>
   );
 }
 
-const CASHFLOW_ENTRY_COLUMNS = [
-  { title: "Ngày", dataIndex: "entryDate", key: "entryDate", width: 110 },
-  { title: "Loại giao dịch", dataIndex: "transactionType", key: "transactionType", width: 130,
-    render: (v: CashTransactionType) => <Tag>{CASH_TRANSACTION_LABELS[v]}</Tag> },
-  { title: "Hình thức", key: "holding", width: 200,
-    render: (_: unknown, r: { fromHolding: CashHolding | null; toHolding: CashHolding | null }) => {
-      const from = r.fromHolding ? CASH_HOLDING_LABELS[r.fromHolding] : null;
-      const to = r.toHolding ? CASH_HOLDING_LABELS[r.toHolding] : null;
-      if (from && to) return `${from} → ${to}`;
-      return to ?? from ?? "—";
-    } },
-  { title: "Danh mục", dataIndex: "categoryName", key: "categoryName", width: 160,
-    render: (v: string | null) => v ?? "—" },
-  { title: "Số tiền", dataIndex: "amount", key: "amount", width: 140, align: "right" as const,
-    render: (v: number) => <Text style={{ fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
-  { title: "Người tạo", dataIndex: "createdByStaffName", key: "createdByStaffName", width: 160,
-    render: (v: string | null) => v ?? "—" },
-  { title: "Ghi chú", dataIndex: "note", key: "note", render: (v: string | null) => v ?? "—" },
-];
-
 function CashflowV2Tab({ period }: { period: PeriodRange }) {
+  const { t } = useTranslation();
   const branchId = useCurrentBranchId();
   const params = { clinicBranchId: branchId, ...period };
 
   const { data: overview } = useCashflowOverview(params);
   const { data: page, isLoading } = useCashflowEntries({ ...params, maxResultCount: 100 });
 
+  const cashflowEntryColumns = buildCashflowEntryColumns(t);
+
   // Panel order and wording follow the reference "Luân chuyển dòng tiền V2" tab.
   const balancePanels = [
-    { label: "Tổng Tiền", value: overview?.balance.total ?? 0, color: "#1B2A41" },
-    { label: "Tổng Tiền Mặt", value: overview?.balance.cash ?? 0, color: "#10B981" },
-    { label: "Tổng Chuyển Khoản", value: overview?.balance.bank ?? 0, color: "#1E70E6" },
-    { label: "Đang Giữ Hộ Khách", value: overview?.balance.customerPrepaid ?? 0, color: "#F59E0B" },
+    { label: t("report.totalMoney"),          value: overview?.balance.total          ?? 0, color: "#1B2A41" },
+    { label: t("report.totalCash"),           value: overview?.balance.cash           ?? 0, color: "#10B981" },
+    { label: t("report.totalTransfer"),       value: overview?.balance.bank           ?? 0, color: "#1E70E6" },
+    { label: t("report.holdingForCustomer"),  value: overview?.balance.customerPrepaid ?? 0, color: "#F59E0B" },
   ];
 
   return (
@@ -481,10 +504,13 @@ function CashflowV2Tab({ period }: { period: PeriodRange }) {
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Text style={{ fontSize: 13, color: "#5A6B82" }}>
-            Nạp: {formatVND(overview?.totalDeposit ?? 0)} đ · Rút: {formatVND(overview?.totalWithdraw ?? 0)} đ ·
-            Luân chuyển: {formatVND(overview?.totalTransfer ?? 0)} đ
+            {t("report.deposit")}: {formatVND(overview?.totalDeposit ?? 0)} đ
+            {" · "}
+            {t("report.withdraw")}: {formatVND(overview?.totalWithdraw ?? 0)} đ
+            {" · "}
+            {t("report.flowTransfer")}: {formatVND(overview?.totalTransfer ?? 0)} đ
           </Text>
-          <Button icon={<DownloadOutlined />} style={{ marginLeft: "auto" }}>Xuất Excel</Button>
+          <Button icon={<DownloadOutlined />} style={{ marginLeft: "auto" }}>{t("common.exportExcel")}</Button>
         </div>
       </div>
 
@@ -493,13 +519,13 @@ function CashflowV2Tab({ period }: { period: PeriodRange }) {
           size="small"
           rowKey="id"
           loading={isLoading}
-          columns={CASHFLOW_ENTRY_COLUMNS}
+          columns={cashflowEntryColumns}
           dataSource={page?.items ?? []}
           pagination={{
             pageSize: 20,
-            showTotal: (total, range) => `Hiển thị ${range[0]}–${range[1]} trên ${total} giao dịch`,
+            showTotal: (total, range) => t("report.showRangeTransactions", { from: range[0], to: range[1], total }),
           }}
-          locale={{ emptyText: "Không có dữ liệu" }}
+          locale={{ emptyText: t("common.noData") }}
         />
       </div>
     </>
@@ -507,19 +533,23 @@ function CashflowV2Tab({ period }: { period: PeriodRange }) {
 }
 
 function BusinessResultTab() {
+  const { t } = useTranslation();
   const revenue = 0;
   const expense = 0;
   const profit = revenue - expense;
   const margin = revenue > 0 ? Math.round((profit / revenue) * 100) : 0;
+
+  const resultColumns = buildResultColumns(t);
+
   const resultSummary = [
-    { label: "Doanh thu", value: revenue, color: "#1E70E6" },
-    { label: "Chi phí", value: expense, color: "#EF4444" },
-    { label: "Lợi nhuận", value: profit, color: "#10B981" },
-    { label: "Tỷ lệ lợi nhuận", value: `${margin}%`, color: "#F59E0B" },
+    { label: t("report.revenueLabel"),    value: revenue, color: "#1E70E6" },
+    { label: t("report.cost"),            value: expense, color: "#EF4444" },
+    { label: t("report.profit"),          value: profit,  color: "#10B981" },
+    { label: t("report.profitRateLabel"), value: `${margin}%`, color: "#F59E0B" },
   ];
 
   const resultData = [
-    { category: "Dịch vụ nha khoa", revenue, expense: 0, profit: revenue, margin: revenue > 0 ? 100 : 0 },
+    { category: t("report.dentalService"), revenue, expense: 0, profit: revenue, margin: revenue > 0 ? 100 : 0 },
   ];
 
   return (
@@ -539,7 +569,7 @@ function BusinessResultTab() {
 
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", alignItems: "center" }}>
-          <Button icon={<DownloadOutlined />} style={{ marginLeft: "auto" }}>Xuất Excel</Button>
+          <Button icon={<DownloadOutlined />} style={{ marginLeft: "auto" }}>{t("common.exportExcel")}</Button>
         </div>
       </div>
 
@@ -547,13 +577,13 @@ function BusinessResultTab() {
         <Table
           size="small"
           rowKey="category"
-          columns={RESULT_COLUMNS}
+          columns={resultColumns}
           dataSource={resultData}
           pagination={false}
-          locale={{ emptyText: "Không có dữ liệu" }}
+          locale={{ emptyText: t("common.noData") }}
           summary={() => (
             <Table.Summary.Row>
-              <Table.Summary.Cell index={0}><Text strong>Tổng</Text></Table.Summary.Cell>
+              <Table.Summary.Cell index={0}><Text strong>{t("common.total")}</Text></Table.Summary.Cell>
               <Table.Summary.Cell index={1} align="right"><Text strong style={{ fontVariantNumeric: "tabular-nums" }}>{formatVND(revenue)} đ</Text></Table.Summary.Cell>
               <Table.Summary.Cell index={2} align="right"><Text strong style={{ color: "#EF4444", fontVariantNumeric: "tabular-nums" }}>{formatVND(expense)} đ</Text></Table.Summary.Cell>
               <Table.Summary.Cell index={3} align="right"><Text strong style={{ color: "#10B981", fontVariantNumeric: "tabular-nums" }}>{formatVND(profit)} đ</Text></Table.Summary.Cell>

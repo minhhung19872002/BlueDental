@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
@@ -19,24 +20,27 @@ public class CashflowCategoryAppService : ApplicationService, ICashflowCategoryA
     private readonly IRepository<CashflowCategory, Guid> _repository;
     private readonly IRepository<SalesEntry, Guid> _salesRepository;
     private readonly IRepository<CashflowEntry, Guid> _cashflowRepository;
+    private readonly ICurrentClinicBranchResolver _branchResolver;
 
     public CashflowCategoryAppService(
         IRepository<CashflowCategory, Guid> repository,
         IRepository<SalesEntry, Guid> salesRepository,
-        IRepository<CashflowEntry, Guid> cashflowRepository)
+        IRepository<CashflowEntry, Guid> cashflowRepository,
+        ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
         _salesRepository = salesRepository;
         _cashflowRepository = cashflowRepository;
+        _branchResolver = branchResolver;
     }
 
     [Authorize(BlueDentalPermissions.Finance.View)]
     public async Task<PagedResultDto<CashflowCategoryDto>> GetListAsync(GetCashflowCategoryListInput input)
     {
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
 
-        if (input.ClinicBranchId.HasValue)
-            query = query.Where(x => x.ClinicBranchId == input.ClinicBranchId.Value);
+        query = query.Where(x => x.ClinicBranchId == clinicBranchId);
         if (input.Type.HasValue)
             query = query.Where(x => x.Type == input.Type.Value);
         if (input.AppliesToTransfers.HasValue)
@@ -64,9 +68,10 @@ public class CashflowCategoryAppService : ApplicationService, ICashflowCategoryA
     [Authorize(BlueDentalPermissions.Finance.Manage)]
     public async Task<CashflowCategoryDto> CreateAsync(CreateCashflowCategoryDto input)
     {
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
         var category = CashflowCategory.Create(
             GuidGenerator.Create(),
-            input.ClinicBranchId,
+            clinicBranchId,
             input.Name,
             input.Type,
             input.AppliesToTransfers,

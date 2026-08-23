@@ -1,12 +1,14 @@
 import { Card, Avatar, Button, Input, Row, Col, Typography, Divider, message } from "antd";
 import { UserOutlined, EditOutlined, SaveOutlined } from "@ant-design/icons";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useUpdateProfile } from "@/features/account/api/accountMutations";
 
 const { Text, Title } = Typography;
 
 export function AccountProfilePage() {
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const setAuth = useAuthStore((s) => s.setAuth);
   const [editing, setEditing] = useState(false);
@@ -22,11 +24,11 @@ export function AccountProfilePage() {
       {
         onSuccess: (data) => {
           setAuth({ ...user, name: data.name ?? name, email: data.email ?? email });
-          message.success("Cập nhật thông tin thành công!");
+          message.success(t("account.updateSuccess"));
           setEditing(false);
         },
         onError: () => {
-          message.error("Cập nhật thất bại. Vui lòng thử lại.");
+          message.error(t("account.updateFailed"));
         },
       },
     );
@@ -36,8 +38,8 @@ export function AccountProfilePage() {
     <div className="page-container">
       <div className="page-header">
         <div className="page-header-left">
-          <Title level={4} style={{ margin: 0 }}>Thông tin tài khoản</Title>
-          <Text type="secondary">Quản lý thông tin cá nhân của bạn</Text>
+          <Title level={4} style={{ margin: 0 }}>{t("account.profileTitle")}</Title>
+          <Text type="secondary">{t("account.profileSubtitle")}</Text>
         </div>
       </div>
 
@@ -64,7 +66,7 @@ export function AccountProfilePage() {
                 style={{ marginTop: 16 }}
                 onClick={() => setEditing(true)}
               >
-                Đổi ảnh đại diện
+                {t("account.changeAvatar")}
               </Button>
             </div>
           </Card>
@@ -73,7 +75,7 @@ export function AccountProfilePage() {
         {/* Profile info card */}
         <Col xs={24} lg={16}>
           <Card
-            title="Thông tin cá nhân"
+            title={t("account.personalInfo")}
             extra={
               editing ? (
                 <Button
@@ -83,11 +85,11 @@ export function AccountProfilePage() {
                   loading={updateProfile.isPending}
                   style={{ background: "#2671D8" }}
                 >
-                  Lưu thay đổi
+                  {t("account.saveChanges")}
                 </Button>
               ) : (
                 <Button icon={<EditOutlined />} onClick={() => setEditing(true)}>
-                  Chỉnh sửa
+                  {t("account.edit")}
                 </Button>
               )
             }
@@ -95,7 +97,7 @@ export function AccountProfilePage() {
             <Row gutter={[16, 16]}>
               <Col xs={24} sm={12}>
                 <div style={{ marginBottom: 4 }}>
-                  <Text style={{ fontSize: 12, color: "#5A6B82", fontWeight: 500 }}>Họ và tên</Text>
+                  <Text style={{ fontSize: 12, color: "#5A6B82", fontWeight: 500 }}>{t("account.fullName")}</Text>
                 </div>
                 {editing ? (
                   <Input value={name} onChange={(e) => setName(e.target.value)} style={{ height: 40 }} />
@@ -105,7 +107,7 @@ export function AccountProfilePage() {
               </Col>
               <Col xs={24} sm={12}>
                 <div style={{ marginBottom: 4 }}>
-                  <Text style={{ fontSize: 12, color: "#5A6B82", fontWeight: 500 }}>Email</Text>
+                  <Text style={{ fontSize: 12, color: "#5A6B82", fontWeight: 500 }}>{t("account.email")}</Text>
                 </div>
                 {editing ? (
                   <Input value={email} onChange={(e) => setEmail(e.target.value)} style={{ height: 40 }} />
@@ -115,13 +117,13 @@ export function AccountProfilePage() {
               </Col>
               <Col xs={24} sm={12}>
                 <div style={{ marginBottom: 4 }}>
-                  <Text style={{ fontSize: 12, color: "#5A6B82", fontWeight: 500 }}>Vai trò</Text>
+                  <Text style={{ fontSize: 12, color: "#5A6B82", fontWeight: 500 }}>{t("account.role")}</Text>
                 </div>
                 <Text>{user?.roles?.[0] ?? "—"}</Text>
               </Col>
               <Col xs={24} sm={12}>
                 <div style={{ marginBottom: 4 }}>
-                  <Text style={{ fontSize: 12, color: "#5A6B82", fontWeight: 500 }}>Chi nhánh</Text>
+                  <Text style={{ fontSize: 12, color: "#5A6B82", fontWeight: 500 }}>{t("account.branch")}</Text>
                 </div>
                 <Text>{user?.clinicName ?? "—"}</Text>
               </Col>
@@ -132,7 +134,7 @@ export function AccountProfilePage() {
             <Row gutter={[16, 16]}>
               <Col xs={24} sm={12}>
                 <div style={{ marginBottom: 4 }}>
-                  <Text style={{ fontSize: 12, color: "#5A6B82", fontWeight: 500 }}>ID tài khoản</Text>
+                  <Text style={{ fontSize: 12, color: "#5A6B82", fontWeight: 500 }}>{t("account.accountId")}</Text>
                 </div>
                 <Text style={{ fontFamily: "monospace", fontSize: 12, color: "#6B7280" }}>{user?.id ?? "—"}</Text>
               </Col>

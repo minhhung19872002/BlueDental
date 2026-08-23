@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using BlueDental.Appointments;
 using BlueDental.Billing;
 using BlueDental.Catalogs;
+using BlueDental.Organizations;
 using BlueDental.PatientManagement;
 using BlueDental.Permissions;
 using BlueDental.TreatmentManagement;
@@ -24,6 +25,7 @@ public class ReportAppService : ApplicationService, IReportAppService
     private readonly IRepository<Patient, Guid> _patientRepository;
     private readonly IRepository<DentalProcedure, Guid> _procedureRepository;
     private readonly IIdentityUserRepository _userRepository;
+    private readonly ICurrentClinicBranchResolver _branchResolver;
 
     public ReportAppService(
         IRepository<Appointment, Guid> appointmentRepository,
@@ -31,7 +33,8 @@ public class ReportAppService : ApplicationService, IReportAppService
         IRepository<TreatmentRecord, Guid> treatmentRecordRepository,
         IRepository<Patient, Guid> patientRepository,
         IRepository<DentalProcedure, Guid> procedureRepository,
-        IIdentityUserRepository userRepository)
+        IIdentityUserRepository userRepository,
+        ICurrentClinicBranchResolver branchResolver)
     {
         _appointmentRepository = appointmentRepository;
         _invoiceRepository = invoiceRepository;
@@ -39,17 +42,18 @@ public class ReportAppService : ApplicationService, IReportAppService
         _patientRepository = patientRepository;
         _procedureRepository = procedureRepository;
         _userRepository = userRepository;
+        _branchResolver = branchResolver;
     }
 
     public async Task<AppointmentSummaryReportDto> GetAppointmentSummaryAsync(ReportQueryDto input)
     {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _appointmentRepository.GetQueryableAsync();
         var fromDate = input.From.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
         var toDate = input.To.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
 
         query = query.Where(a => a.Slot.Start >= fromDate && a.Slot.Start <= toDate);
-
-        if (input.BranchId.HasValue) query = query.Where(a => a.BranchId == input.BranchId.Value);
+        query = query.Where(a => a.BranchId == branchId);
 
         var total = query.Count();
         var completed = query.Count(a => a.Status == AppointmentStatus.Completed);
@@ -68,12 +72,13 @@ public class ReportAppService : ApplicationService, IReportAppService
 
     public async Task<RevenueReportDto> GetRevenueReportAsync(ReportQueryDto input)
     {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _invoiceRepository.GetQueryableAsync();
         var fromDate = input.From.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
         var toDate = input.To.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
 
         query = query.Where(i => i.CreationTime >= fromDate && i.CreationTime <= toDate);
-        if (input.BranchId.HasValue) query = query.Where(i => i.BranchId == input.BranchId.Value);
+        query = query.Where(i => i.BranchId == branchId);
 
         var invoices = query.ToList();
 
