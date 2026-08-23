@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
+import { selectOption } from "./fixtures/antd";
 
 /**
  * Feature: Công đoạn điều trị.
@@ -18,10 +19,6 @@ test.describe("Công đoạn điều trị", () => {
    * antd keeps a closed Select's dropdown mounted, so the option must be picked
    * from the dropdown that is actually open.
    */
-  async function pickFirstOption(page: Page, name?: string): Promise<void> {
-    const options = page.locator(".ant-select-dropdown:visible").locator(".ant-select-item-option");
-    await (name ? options.filter({ hasText: name }).first() : options.first()).click();
-  }
 
   /** Opens the first patient in the list and returns their profile URL. */
   async function openFirstPatient(page: Page): Promise<string> {
@@ -44,20 +41,16 @@ test.describe("Công đoạn điều trị", () => {
     await page.getByRole("button", { name: "Tạo phiếu chẩn đoán" }).click();
 
     const diagnosisDialog = page.getByRole("dialog");
-    await diagnosisDialog.getByLabel("Chẩn đoán", { exact: true }).click();
-    await pickFirstOption(page);
-    await diagnosisDialog.getByLabel("Bác sĩ chẩn đoán", { exact: true }).click();
-    await pickFirstOption(page, "admin");
+    await selectOption(page, diagnosisDialog, "Chẩn đoán");
+    await selectOption(page, diagnosisDialog, "Bác sĩ chẩn đoán", "admin");
     await diagnosisDialog.getByRole("button", { name: "Tạo" }).click();
     await expect(diagnosisDialog).toBeHidden();
 
     await page.getByRole("button", { name: "Tạo Dịch Vụ" }).first().click();
 
     const adviseDialog = page.getByRole("dialog");
-    await adviseDialog.getByLabel("Dịch vụ", { exact: true }).click();
-    await pickFirstOption(page);
-    await adviseDialog.getByLabel("Bác sĩ tư vấn", { exact: true }).click();
-    await pickFirstOption(page, "admin");
+    await selectOption(page, adviseDialog, "Dịch vụ");
+    await selectOption(page, adviseDialog, "Bác sĩ tư vấn", "admin");
     await adviseDialog.getByRole("button", { name: "Tạo" }).click();
     await expect(adviseDialog).toBeHidden();
 
@@ -66,22 +59,31 @@ test.describe("Công đoạn điều trị", () => {
     await expect(page.getByText("Đã chốt").first()).toBeVisible();
   }
 
+  /** Turns the accepted lines into a real treatment slip with service lines. */
+  async function openTreatmentPlan(page: Page): Promise<void> {
+    // The tab fires both queries at once, so the listeners go up before the click.
+    const plans = assertRealApiTraffic(page, "/api/v1/app/patient-treatments");
+    const stages = assertRealApiTraffic(page, "/api/v1/app/treatment-stages");
+
+    await page.getByRole("tab", { name: "Kế hoạch điều trị" }).click();
+    await Promise.all([plans, stages]);
+
+    await page.getByRole("button", { name: "Tạo kế hoạch mới" }).click();
+    await expect(page.getByTestId("plan-slip-count")).toContainText("DT");
+  }
+
   test("a stage runs Chưa làm → Đang làm → Hoàn thành and persists", async ({ page }) => {
     const stageName = `Công đoạn E2E ${runId()}`;
 
     const profileUrl = await openFirstPatient(page);
     await createAcceptedServiceLine(page);
-
-    await page.getByRole("tab", { name: "Kế hoạch điều trị" }).click();
-    await assertRealApiTraffic(page, "/api/v1/app/treatment-stages");
+    await openTreatmentPlan(page);
 
     await page.getByRole("button", { name: "Công đoạn" }).click();
     const dialog = page.getByRole("dialog");
-    await dialog.getByLabel("Dịch vụ điều trị", { exact: true }).click();
-    await pickFirstOption(page);
+    await selectOption(page, dialog, "Dịch vụ điều trị");
     await dialog.getByPlaceholder("Tên công đoạn").fill(stageName);
-    await dialog.getByLabel("Bác sĩ thực hiện", { exact: true }).click();
-    await pickFirstOption(page, "admin");
+    await selectOption(page, dialog, "Bác sĩ thực hiện", "admin");
     await dialog.getByRole("button", { name: "Tạo" }).click();
     await expect(dialog).toBeHidden();
 
@@ -110,9 +112,7 @@ test.describe("Công đoạn điều trị", () => {
 
     await openFirstPatient(page);
     await createAcceptedServiceLine(page);
-
-    await page.getByRole("tab", { name: "Kế hoạch điều trị" }).click();
-    await assertRealApiTraffic(page, "/api/v1/app/treatment-stages");
+    await openTreatmentPlan(page);
 
     const progress = page.getByTestId("stage-progress");
     const readCompleted = async () => {
@@ -125,11 +125,9 @@ test.describe("Công đoạn điều trị", () => {
 
     await page.getByRole("button", { name: "Công đoạn" }).click();
     const dialog = page.getByRole("dialog");
-    await dialog.getByLabel("Dịch vụ điều trị", { exact: true }).click();
-    await pickFirstOption(page);
+    await selectOption(page, dialog, "Dịch vụ điều trị");
     await dialog.getByPlaceholder("Tên công đoạn").fill(stageName);
-    await dialog.getByLabel("Bác sĩ thực hiện", { exact: true }).click();
-    await pickFirstOption(page, "admin");
+    await selectOption(page, dialog, "Bác sĩ thực hiện", "admin");
     await dialog.getByPlaceholder("Ghi chú công đoạn").fill(note);
     await dialog.getByRole("button", { name: "Tạo" }).click();
     await expect(dialog).toBeHidden();

@@ -24,17 +24,20 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
 {
     private readonly IRepository<TreatmentStage, Guid> _repository;
     private readonly IRepository<CatalogEntry, Guid> _catalogRepository;
+    private readonly IRepository<TreatmentPlan, Guid> _planRepository;
     private readonly IIdentityUserRepository _userRepository;
     private readonly BranchAccessChecker _branchAccess;
 
     public TreatmentStageAppService(
         IRepository<TreatmentStage, Guid> repository,
         IRepository<CatalogEntry, Guid> catalogRepository,
+        IRepository<TreatmentPlan, Guid> planRepository,
         IIdentityUserRepository userRepository,
         BranchAccessChecker branchAccess)
     {
         _repository = repository;
         _catalogRepository = catalogRepository;
+        _planRepository = planRepository;
         _userRepository = userRepository;
         _branchAccess = branchAccess;
     }
@@ -164,6 +167,8 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         var stage = await LoadAsync(id);
         stage.Continue();
         await _repository.UpdateAsync(stage, autoSave: true);
+
+        await MoveServiceLineAsync(stage);
         return MapToDto(stage, await BuildLookupsAsync([stage]));
     }
 
@@ -173,6 +178,8 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         var stage = await LoadAsync(id);
         stage.Complete();
         await _repository.UpdateAsync(stage, autoSave: true);
+
+        await MoveServiceLineAsync(stage);
         return MapToDto(stage, await BuildLookupsAsync([stage]));
     }
 
@@ -190,6 +197,50 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
     {
         await LoadAsync(id);
         await _repository.DeleteAsync(id, autoSave: true);
+    }
+
+    /// <summary>
+    /// Keeps the service line in step with its công đoạn: the line starts as soon as
+    /// any stage is under way, and finishes only once every stage of that line has.
+    ///
+    /// ASSUMED — the reference shows a per-line "Trạng thái - Tiến độ" but never
+    /// revealed what advances it.
+    /// </summary>
+    private async Task MoveServiceLineAsync(TreatmentStage stage)
+    {
+        if (!stage.TreatmentId.HasValue)
+        {
+            return;
+        }
+
+        var query = await _planRepository.WithDetailsAsync(x => x.Services);
+        var plan = query.FirstOrDefault(x => x.Id == stage.TreatmentId.Value);
+
+        var line = plan?.Services.FirstOrDefault(s => s.Id == stage.TreatmentServiceId);
+        if (plan == null || line == null || line.Status == TreatmentServiceStatus.Cancelled)
+        {
+            return;
+        }
+
+        var stageQuery = await _repository.GetQueryableAsync();
+        var siblings = stageQuery.Where(x => x.TreatmentServiceId == line.Id).ToList();
+
+        if (line.Status == TreatmentServiceStatus.Done)
+        {
+            return;
+        }
+
+        if (siblings.Count > 0 && siblings.TrueForAll(x => x.Status == TreatmentStageStatus.Completed))
+        {
+            line.Complete();
+            plan.CloseIfAllServicesDone();
+        }
+        else
+        {
+            line.Start();
+        }
+
+        await _planRepository.UpdateAsync(plan, autoSave: true);
     }
 
     private async Task<TreatmentStage> LoadAsync(Guid id)

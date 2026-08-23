@@ -27,17 +27,29 @@ public class PatientAppService : ApplicationService, IPatientAppService
 
         if (!string.IsNullOrWhiteSpace(input.Filter))
         {
+            // The UI shows and searches one full name ("họ tên"), so the concatenation
+            // has to match too — matching the halves alone never finds a typed full name.
+            var filter = input.Filter.Trim();
+
             query = query.Where(p =>
-                p.FirstName.Contains(input.Filter)
-                || p.LastName.Contains(input.Filter)
-                || p.PatientCode.Contains(input.Filter));
+                p.FirstName.Contains(filter)
+                || p.LastName.Contains(filter)
+                || (p.LastName + " " + p.FirstName).Contains(filter)
+                || p.PatientCode.Contains(filter)
+                || (p.Contact.PhoneNumber != null && p.Contact.PhoneNumber.Contains(filter)));
         }
 
         if (input.Status.HasValue) query = query.Where(p => p.Status == input.Status.Value);
         if (input.BranchId.HasValue) query = query.Where(p => p.BranchId == input.BranchId.Value);
 
         var totalCount = query.Count();
-        var items = query.Skip(input.SkipCount).Take(input.MaxResultCount).ToList();
+
+        // Newest first: a receptionist looks for the record they just created.
+        var items = query
+            .OrderByDescending(p => p.CreationTime)
+            .Skip(input.SkipCount)
+            .Take(input.MaxResultCount)
+            .ToList();
 
         return new PagedResultDto<PatientDto>(
             totalCount,

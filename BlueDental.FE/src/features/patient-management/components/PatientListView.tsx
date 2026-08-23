@@ -52,11 +52,14 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
 
   const { data, isLoading } = usePatientList({
     keyword: debouncedKeyword || undefined,
-    status: filterStatus === "All" ? undefined : filterStatus,
-    doctorId: selectedDoctorId,
     skipCount: pagination.skipCount,
     maxResultCount: pagination.maxResultCount,
   });
+
+  // Treatment activity is not a server filter yet, so the tabs narrow what loaded.
+  const rows = (data?.items ?? []).filter(
+    (row) => filterStatus === "All" || row.status === filterStatus,
+  );
 
   const navigateDate = (dir: 1 | -1) => {
     const unit = viewMode === "day" ? "day" : viewMode === "week" ? "week" : "month";
@@ -378,7 +381,7 @@ export function PatientListView({ onAdd, onRowClick }: Props) {
         <Table<PatientListItem>
           rowKey="id"
           columns={columns}
-          dataSource={data?.items}
+          dataSource={rows}
           loading={isLoading}
           pagination={pagination.buildConfig(
             data?.totalCount,

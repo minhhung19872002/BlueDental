@@ -27,6 +27,9 @@ import { ToothSurfaceChart } from "@/features/treatment-management/components/To
 import { DiagnosisModal } from "@/features/treatment-management/components/DiagnosisModal";
 import { AdviseModal } from "@/features/treatment-management/components/AdviseModal";
 import { TreatmentStagePanel } from "@/features/treatment-management/components/TreatmentStagePanel";
+import { TreatmentPlanPanel } from "@/features/treatment-management/components/TreatmentPlanPanel";
+import { PatientAccountPanel } from "@/features/treatment-management/components/PatientAccountPanel";
+import { PatientDebtHistoryPanel } from "@/features/treatment-management/components/PatientDebtHistoryPanel";
 import type { PatientDiagnosisDto } from "@/features/treatment-management/api/consultingApi";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { extractApiError } from "@/lib/apiError";
@@ -462,62 +465,7 @@ export function PatientProfilePage() {
       icon: <FileTextOutlined />,
       children: (
         <div style={{ padding: "16px 0" }}>
-          {/* Toolbar */}
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 16 }}>
-            <Button icon={<PlusOutlined />}>Tạo kế hoạch mới</Button>
-            <Button>Xem tất cả dịch vụ</Button>
-          </div>
-
-          {/* Summary cards */}
-          <Row gutter={12} style={{ marginBottom: 16 }}>
-            <Col span={12}>
-              <Card size="small" style={{ borderLeft: "4px solid #2671D8" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ background: "#2671D8", color: "#fff", borderRadius: 12, padding: "2px 10px", fontWeight: 700, fontSize: 14 }}>0</span>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41" }}>Dịch vụ đang điều trị</div>
-                    <div style={{ fontSize: 12, color: "#9CA3AF" }}>Chưa có dịch vụ đang điều trị</div>
-                  </div>
-                </div>
-              </Card>
-            </Col>
-            <Col span={12}>
-              <Card size="small" style={{ borderLeft: "4px solid #10B981" }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 4 }}>Dịch vụ có công đoạn gần nhất</div>
-                  <div style={{ fontSize: 12, color: "#9CA3AF" }}>Chưa có công đoạn</div>
-                </div>
-              </Card>
-            </Col>
-          </Row>
-
-          {/* Treatment plan table */}
-          <Card size="small">
-            <Table
-              size="small"
-              rowKey="id"
-              columns={[
-                { title: "Thêm công đoạn", key: "addStep", width: 120, render: () => <Button size="small" type="link">+ Công đoạn</Button> },
-                { title: "Số phiếu", dataIndex: "code", key: "code", width: 80, render: (v: string) => <Button type="link" size="small">{v}</Button> },
-                { title: "Dịch vụ", dataIndex: "serviceName", key: "serviceName", width: 200 },
-                { title: "Bác sĩ tiếp nhận", dataIndex: "doctorName", key: "doctorName", width: 140 },
-                { title: "Trạng thái", dataIndex: "status", key: "status", width: 140, render: (v: string) => v ? <Tag color="processing">{v}</Tag> : null },
-                { title: "Ngày tạo", dataIndex: "createdAt", key: "createdAt", width: 110, render: (v: string) => v ? formatDate(v) : "—" },
-                { title: "Tổng phiếu", dataIndex: "totalAmount", key: "totalAmount", width: 120, align: "right", render: (v: number) => `${formatVND(v ?? 0)} đ` },
-                { title: "Giảm giá", dataIndex: "discountAmount", key: "discountAmount", width: 110, align: "right", render: (v: number) => `${formatVND(v ?? 0)} đ` },
-                { title: "Thành tiền", dataIndex: "finalAmount", key: "finalAmount", width: 120, align: "right", render: (v: number) => `${formatVND(v ?? 0)} đ` },
-                { title: "Đã trả", dataIndex: "paidAmount", key: "paidAmount", width: 110, align: "right", render: (v: number) => <Text style={{ color: "#10B981" }}>{formatVND(v ?? 0)} đ</Text> },
-                { title: "Hoàn tiền", dataIndex: "refundedAmount", key: "refundedAmount", width: 100, align: "right", render: (v: number) => `${formatVND(v ?? 0)} đ` },
-                { title: "Còn lại", dataIndex: "remainingAmount", key: "remainingAmount", width: 120, align: "right", render: (v: number) => <Text style={{ color: "#EF4444" }}>{formatVND(v ?? 0)} đ</Text> },
-                { title: "Phải thu", dataIndex: "toCollect", key: "toCollect", width: 110, align: "right", render: (v: number) => `${formatVND(v ?? 0)} đ` },
-                { title: "Thao tác", key: "actions", width: 80, fixed: "right", render: () => <Space size={4}><Button type="text" size="small" icon={<EditOutlined />} /></Space> },
-              ]}
-              dataSource={[]}
-              pagination={{ pageSize: 20, showTotal: (total) => `Hiển thị 0 trên ${total} kế hoạch` }}
-              scroll={{ x: 1400 }}
-              locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>Chưa có kế hoạch điều trị</span> }}
-            />
-          </Card>
+          <TreatmentPlanPanel patientId={id ?? ""} />
 
           {/* Công đoạn — the steps that make up each service line. */}
           <TreatmentStagePanel patientId={id ?? ""} />
@@ -715,9 +663,8 @@ export function PatientProfilePage() {
       label: "Hóa đơn",
       icon: <DollarOutlined />,
       children: (
-        <div style={{ padding: "48px 0", textAlign: "center", color: "#9CA3AF" }}>
-          <div style={{ fontSize: 32, marginBottom: 8 }}>📄</div>
-          <Text type="secondary">Nội dung đang được hoàn thiện</Text>
+        <div style={{ padding: "16px 0" }}>
+          <PatientAccountPanel patientId={id ?? ""} />
         </div>
       ),
     },
@@ -727,20 +674,7 @@ export function PatientProfilePage() {
       icon: <HistoryOutlined />,
       children: (
         <div style={{ padding: "16px 0" }}>
-          <Table
-            size="small"
-            rowKey="id"
-            columns={[
-              { title: "Ngày giao dịch", dataIndex: "transactionDate", key: "transactionDate", width: 160, render: (v: string) => v ? formatDateTime(v) : "—" },
-              { title: "Loại", dataIndex: "type", key: "type", width: 140 },
-              { title: "Số tiền", dataIndex: "amount", key: "amount", width: 140, align: "right", render: (v: number) => <Text style={{ fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
-              { title: "Nhân viên", dataIndex: "staffName", key: "staffName", width: 160 },
-              { title: "Ghi chú", dataIndex: "notes", key: "notes" },
-            ]}
-            dataSource={[]}
-            pagination={{ pageSize: 20, showTotal: (total) => `Hiển thị 0 trên ${total} giao dịch` }}
-            locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>Chưa có lịch sử dư nợ</span> }}
-          />
+          <PatientDebtHistoryPanel patientId={id ?? ""} />
         </div>
       ),
     },

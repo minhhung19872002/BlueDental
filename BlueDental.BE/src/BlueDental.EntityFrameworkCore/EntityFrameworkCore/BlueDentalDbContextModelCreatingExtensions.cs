@@ -152,6 +152,20 @@ public static class BlueDentalDbContextModelCreatingExtensions
     {
         builder.Entity<TreatmentPlan>(entity =>
         {
+            entity.Property(x => x.Code).HasMaxLength(32);
+            entity.Property(x => x.DiscountType).HasConversion<short>();
+            entity.Property(x => x.DiscountValue).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.VoucherDiscountAmount).HasColumnType("numeric(18,2)");
+            entity.HasMany(x => x.Services)
+                .WithOne()
+                .HasForeignKey(x => x.TreatmentPlanId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Navigation(x => x.Services).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.Ignore(x => x.ServicesTotal);
+            entity.Ignore(x => x.PlanDiscountAmount);
+            entity.Ignore(x => x.TotalAmount);
+            entity.Ignore(x => x.CompletedValue);
+            entity.Ignore(x => x.ProgressPercent);
             entity.ToTable("bd_treatment_plans");
             entity.ConfigureByConvention();
             entity.Property(x => x.Title).HasMaxLength(300).IsRequired();
@@ -394,6 +408,44 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => x.PatientDiagnosisId);
             entity.HasIndex(x => x.TreatmentPlanId);
             entity.HasIndex(x => x.Code);
+        });
+
+        // Dong dich vu cua phieu dieu tri
+        builder.Entity<TreatmentService>(entity =>
+        {
+            entity.ToTable("bd_treatment_services");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Code).HasMaxLength(32).IsRequired();
+            entity.Property(x => x.Status).HasConversion<short>();
+            entity.Property(x => x.DiscountType).HasConversion<short>();
+            entity.Property(x => x.Price).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.DiscountValue).HasColumnType("numeric(18,2)");
+            entity.OwnsMany(x => x.Teeth, t => t.ToJson());
+            entity.Navigation(x => x.Teeth).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.Ignore(x => x.GrossAmount);
+            entity.Ignore(x => x.DiscountAmount);
+            entity.Ignore(x => x.EffectiveAmount);
+            entity.Ignore(x => x.CountedAmount);
+            entity.Ignore(x => x.IsCompleted);
+            entity.HasIndex(x => new { x.TreatmentPlanId, x.Code });
+            entity.HasIndex(x => x.SourceAdviseId);
+            entity.HasIndex(x => new { x.PatientId, x.Status });
+        });
+
+        // Thanh toan / hoan tien cua benh nhan
+        builder.Entity<PatientPayment>(entity =>
+        {
+            entity.ToTable("bd_patient_payments");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Code).HasMaxLength(32).IsRequired();
+            entity.Property(x => x.Note).HasMaxLength(1000);
+            entity.Property(x => x.Kind).HasConversion<short>();
+            entity.Property(x => x.Method).HasConversion<short>();
+            entity.Property(x => x.Amount).HasColumnType("numeric(18,2)");
+            entity.Ignore(x => x.SignedAmount);
+            entity.HasIndex(x => new { x.PatientId, x.PaidAt });
+            entity.HasIndex(x => x.TreatmentPlanId);
+            entity.HasIndex(x => new { x.ClinicBranchId, x.PaidAt });
         });
 
         // Cong doan dieu tri
