@@ -337,8 +337,12 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Subject).HasMaxLength(300).IsRequired();
             entity.Property(x => x.Description).HasMaxLength(2000);
             entity.Property(x => x.Resolution).HasMaxLength(2000);
+            entity.Property(x => x.Outcome).HasConversion<short>();
+            entity.PrimitiveCollection(x => x.StageIds).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.Ignore(x => x.IsClosed);
             entity.HasIndex(x => new { x.BranchId, x.Status });
             entity.HasIndex(x => new { x.PatientId, x.Status });
+            entity.HasIndex(x => new { x.BranchId, x.Type, x.DueAt });
         });
 
         // Chan doan cua benh nhan

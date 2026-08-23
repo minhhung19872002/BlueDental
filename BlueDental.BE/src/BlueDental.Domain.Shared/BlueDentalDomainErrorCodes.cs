@@ -149,5 +149,7 @@ public static class BlueDentalDomainErrorCodes
     {
         public const string RecordNotFound = "BlueDental:CustomerCare:0001";
         public const string InvalidTransition = "BlueDental:CustomerCare:0002";
+        public const string InvalidSchedule = "BlueDental:CustomerCare:0003";
+        public const string OutcomeRequired = "BlueDental:CustomerCare:0004";
     }
 }
