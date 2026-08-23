@@ -17,7 +17,7 @@ export function LoginPage() {
     <div className="login-page">
       <aside className="login-aside">
         <div className="login-brand">
-          <img src="/logo_app.jpg" alt="BlueDental" className="login-brand-mark" />
+          <img src="/logo.png" alt="BlueDental" className="login-brand-mark" />
           <div>
             <div className="login-brand-name">BlueDental</div>
             <div className="login-brand-sub">

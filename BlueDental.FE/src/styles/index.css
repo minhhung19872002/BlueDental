@@ -146,16 +146,17 @@ button {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
+  background: transparent;
   border: 1.5px solid rgba(253, 191, 79, 0.45);
   overflow: hidden;
   min-width: 36px;
+  padding: 3px;
 }
 
 .sidebar-logo-img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .sidebar-logo-text {
@@ -377,7 +378,8 @@ button {
 .app-header-clinic-logo-img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  padding: 3px;
   flex-shrink: 0;
 }
 
@@ -919,7 +921,8 @@ button {
   width: 46px;
   height: 46px;
   border-radius: 50%;
-  object-fit: cover;
+  object-fit: contain;
+  padding: 4px;
   border: 1.5px solid rgba(253, 191, 79, 0.5);
   flex: 0 0 auto;
 }

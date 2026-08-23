@@ -205,7 +205,7 @@ export function AppLayout() {
   ];
 
   const clinicName = user?.clinicName ?? "NHA KHOA ĐỨC HẠNH PREMIUM";
-  const clinicLogoUrl = user?.clinicLogoUrl ?? "/logo_app.jpg";
+  const clinicLogoUrl = user?.clinicLogoUrl ?? "/logo.png";
   const clinicTagline = user?.clinicTagline ?? "Kiến Tạo Nụ Cười - Giá Trị Bền Vững";
   const sidebarWidth = sidebarExpanded ? SIDEBAR_EXPANDED_WIDTH : SIDEBAR_WIDTH;
 
