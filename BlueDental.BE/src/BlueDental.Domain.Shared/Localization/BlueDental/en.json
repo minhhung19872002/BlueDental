@@ -1176,6 +1176,9 @@
     "{0} chờ đến": "{0} awaiting arrival",
     "{0} lịch": "{0} appointments",
     "Đơn vị: triệu đồng": "In millions of ₫",
-    "Tìm kiếm bệnh nhân, bác sĩ, lý do khám...": "Search patients, dentists, visit reason..."
+    "Tìm kiếm bệnh nhân, bác sĩ, lý do khám...": "Search patients, dentists, visit reason...",
+    "Nhân sự & lịch làm việc": "Staff & work schedule",
+    "Bấm vào ngày để bật/tắt ca trực trong tuần": "Tap a day to turn that shift on or off for the week",
+    "Chưa gán vai trò": "No role assigned"
   }
 }

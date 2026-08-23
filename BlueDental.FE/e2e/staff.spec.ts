@@ -30,26 +30,32 @@ test.describe("Nhân viên", () => {
     await dialog.getByRole("button", { name: "Tạo", exact: true }).click();
     await expect(dialog).toBeHidden();
 
-    const row = page.getByRole("row", { name: new RegExp(userName) });
-    await expect(row).toBeVisible();
-    await expect(row).toContainText("Đang làm việc");
+    // Staff are cards on the roster screen, one per account.
+    const cardFor = () => page.locator(".staff-card").filter({ hasText: fullName });
+    await expect(cardFor()).toBeVisible();
+    await expect(cardFor()).toContainText("Đang làm việc");
 
-    // Editing goes back through the API, so the new value survives a reload.
-    await row.getByRole("button", { name: "Chỉnh sửa" }).click();
+    // Editing goes back through the API. The card shows identity, not the
+    // phone, so the saved value is read back through the form it was typed
+    // into — which proves the server kept it, not just that a cell repainted.
+    await cardFor().getByRole("button", { name: "Chỉnh sửa" }).click();
     await dialog.getByLabel("Số điện thoại").fill("0912345678");
     await dialog.getByRole("button", { name: "Lưu" }).click();
     await expect(dialog).toBeHidden();
 
     await page.reload();
-    await expect(page.getByRole("row", { name: new RegExp(userName) })).toContainText("0912345678");
+    await cardFor().getByRole("button", { name: "Chỉnh sửa" }).click();
+    await expect(dialog.getByLabel("Số điện thoại")).toHaveValue("0912345678");
+    await dialog.getByRole("button", { name: "Huỷ" }).click();
+    await expect(dialog).toBeHidden();
 
     // Deleting really removes the account.
-    await page.getByRole("row", { name: new RegExp(userName) }).getByRole("button", { name: "Xoá" }).click();
+    await cardFor().getByRole("button", { name: "Xoá" }).click();
     await page.getByRole("tooltip").getByRole("button", { name: "Xoá" }).click();
 
-    await expect(page.getByRole("row", { name: new RegExp(userName) })).toHaveCount(0);
+    await expect(cardFor()).toHaveCount(0);
     await page.reload();
-    await expect(page.getByRole("row", { name: new RegExp(userName) })).toHaveCount(0);
+    await expect(cardFor()).toHaveCount(0);
   });
 
   test("a weak password is refused by the server", async ({ page }) => {

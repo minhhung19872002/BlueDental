@@ -4,15 +4,12 @@ import {
   Form,
   Input,
   Modal,
-  Popconfirm,
   Select,
-  Table,
-  Tag,
-  Typography,
+  Empty,
+  Spin,
   message,
 } from "antd";
 import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
-import type { TableColumnsType } from "antd";
 import {
   useCreateStaff,
   useDeleteStaff,
@@ -21,12 +18,14 @@ import {
   useUpdateStaff,
 } from "../api/staffQueries";
 import type { StaffDto } from "../api/staffApi";
+import { StaffRosterCard, accentFor } from "../components/StaffRosterCard";
+import { useWeekRoster, weekStartOf } from "../api/rosterQueries";
+import { useCurrentBranchId } from "@/lib/clinicBranch";
+import dayjs from "dayjs";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
-
-const { Text } = Typography;
 
 type StatusFilter = "all" | "working" | "resigned";
 
@@ -72,6 +71,18 @@ export function StaffPage() {
   const createStaff = useCreateStaff();
   const updateStaff = useUpdateStaff();
   const deleteStaff = useDeleteStaff();
+
+  const branchId = useCurrentBranchId();
+  const { daysFor } = useWeekRoster(branchId, weekStartOf(dayjs()));
+
+  const handleDelete = async (staff: StaffDto) => {
+    try {
+      await deleteStaff.mutateAsync(staff.id);
+      message.success(t("Đã xoá nhân viên"));
+    } catch (error) {
+      message.error(extractApiError(error));
+    }
+  };
 
   // Identity has no "resigned" flag of its own — an inactive account is one.
   const rows = (data?.items ?? []).filter((staff) =>
@@ -137,77 +148,17 @@ export function StaffPage() {
     }
   };
 
-  const columns: TableColumnsType<StaffDto> = [
-    {
-      title: t("Họ và tên"),
-      key: "name",
-      render: (_, row) => row.fullName || row.userName,
-    },
-    { title: t("Tên đăng nhập"), dataIndex: "userName", key: "userName", width: 160 },
-    {
-      title: t("Số điện thoại"),
-      dataIndex: "phoneNumber",
-      key: "phoneNumber",
-      width: 140,
-      render: (value: string | null) => value ?? "—",
-    },
-    {
-      title: "Email",
-      dataIndex: "email",
-      key: "email",
-      width: 220,
-      render: (value: string | null) => value ?? "—",
-    },
-    {
-      title: t("Vai trò"),
-      dataIndex: "roleNames",
-      key: "roleNames",
-      width: 200,
-      render: (values: string[]) =>
-        values.length === 0 ? "—" : values.map((role) => <Tag key={role}>{role}</Tag>),
-    },
-    {
-      title: t("Trạng thái"),
-      dataIndex: "isActive",
-      key: "isActive",
-      width: 130,
-      render: (value: boolean) => (
-        <Tag color={value ? "green" : "default"}>{value ? t("Đang làm việc") : t("Đã nghỉ")}</Tag>
-      ),
-    },
-    {
-      title: t("Thao tác"),
-      key: "actions",
-      width: 170,
-      render: (_, row) => (
-        <div style={{ display: "flex", gap: 8 }}>
-          <Button size="small" onClick={() => openEdit(row)}>
-            {t("Chỉnh sửa")}
-          </Button>
-          <Popconfirm
-            title={t("Xoá nhân viên này?")}
-            okText={t("Xoá")}
-            cancelText={t("Huỷ")}
-            onConfirm={async () => {
-              try {
-                await deleteStaff.mutateAsync(row.id);
-                message.success(t("Đã xoá nhân viên"));
-              } catch (error) {
-                message.error(extractApiError(error));
-              }
-            }}
-          >
-            <Button size="small" danger>
-              {t("Xoá")}
-            </Button>
-          </Popconfirm>
-        </div>
-      ),
-    },
-  ];
-
   return (
     <div className="reception-page">
+      <div className="page-header">
+        <div className="page-header-left">
+          <h1 className="page-header-title">{t("Nhân sự & lịch làm việc")}</h1>
+          <p className="page-header-subtitle">
+            {t("Bấm vào ngày để bật/tắt ca trực trong tuần")}
+          </p>
+        </div>
+      </div>
+
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Input
@@ -239,20 +190,29 @@ export function StaffPage() {
         </div>
       </div>
 
-      <div className="reception-card">
-        <Table<StaffDto>
-          size="small"
-          rowKey="id"
-          loading={isLoading}
-          columns={columns}
-          dataSource={rows}
-          pagination={pagination.buildConfig(
-            data?.totalCount,
-            (total) => t("Hiển thị {0} trên {1} nhân viên", rows.length, total),
-          )}
-          locale={{ emptyText: <Text type="secondary">{t("Chưa có nhân viên")}</Text> }}
-        />
-      </div>
+      {isLoading ? (
+        <div className="page-card">
+          <Spin />
+        </div>
+      ) : rows.length === 0 ? (
+        <div className="page-card">
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("Chưa có nhân viên")} />
+        </div>
+      ) : (
+        <div className="staff-grid">
+          {rows.map((staff, i) => (
+            <StaffRosterCard
+              key={staff.id}
+              staff={staff}
+              accent={accentFor(i)}
+              days={daysFor(staff.id)}
+              clinicBranchId={branchId}
+              onEdit={() => openEdit(staff)}
+              onDelete={() => void handleDelete(staff)}
+            />
+          ))}
+        </div>
+      )}
 
       <Modal
         open={modalOpen}
