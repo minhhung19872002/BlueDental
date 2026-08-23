@@ -44,7 +44,16 @@ export function AppointmentCalendarPage() {
     });
   };
   const [viewMode, setViewMode] = useState<ViewMode>("day");
-  const [currentDate, setCurrentDate] = useState<Dayjs>(dayjs());
+
+  // The date lives in the URL too, so a day (or a work-schedule board) can be
+  // linked to and survives a reload.
+  const currentDate = dayjs(searchParams.get("date") ?? undefined);
+  const setCurrentDate = (updater: (d: Dayjs) => Dayjs) => {
+    setSearchParams((params) => {
+      params.set("date", updater(dayjs(params.get("date") ?? undefined)).format("YYYY-MM-DD"));
+      return params;
+    });
+  };
   const [keyword, setKeyword] = useState("");
   const [addOpen, setAddOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -161,7 +170,7 @@ export function AppointmentCalendarPage() {
                 <MonthViewCalendar
                   currentDate={currentDate}
                   onDayClick={(day) => {
-                    setCurrentDate(day);
+                    setCurrentDate(() => day);
                     setViewMode("day");
                   }}
                 />

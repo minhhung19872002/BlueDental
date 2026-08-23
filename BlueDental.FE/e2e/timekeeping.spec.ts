@@ -1,6 +1,13 @@
 import { expect, test } from "@playwright/test";
 import { assertRealApiTraffic, login } from "./fixtures/auth";
 
+/** A future date that no earlier run has used, so the board starts empty. */
+function freshWorkDate(): string {
+  const date = new Date();
+  date.setDate(date.getDate() + 30 + (Date.now() % 300));
+  return date.toISOString().slice(0, 10);
+}
+
 /**
  * Feature: Lịch làm việc / chấm công.
  */
@@ -36,5 +43,32 @@ test.describe("Chấm công", () => {
       "aria-selected",
       "true",
     );
+  });
+
+  test("opens the work day, then clocks a shift in and out", async ({ page }) => {
+    // Attendance is one record per staff per day, so each run takes its own day
+    // rather than fighting whatever state today is already in.
+    const workDate = freshWorkDate();
+
+    await page.goto(`/calendar?tab=timekeeping&date=${workDate}`);
+    await assertRealApiTraffic(page, "/api/v1/app/time-keepings/summary");
+
+    // Attendance cards only exist once the day has been opened for the staff.
+    await page.getByRole("button", { name: "Mở ngày làm việc" }).click();
+
+    const card = page.locator("text=LỊCH LÀM VIỆC").first();
+    await expect(card).toBeVisible();
+    await expect(page.getByText("Chưa vào ca").first()).toBeVisible();
+
+    await page.getByRole("button", { name: "Vào ca" }).first().click();
+    await expect(page.getByText("Đang làm việc").first()).toBeVisible();
+
+    await page.getByRole("button", { name: "Ra ca" }).first().click();
+    await expect(page.getByText("Hoàn thành").first()).toBeVisible();
+    await expect(page.getByRole("button", { name: "Đã ra ca" }).first()).toBeVisible();
+
+    // The attendance is server state, not component state.
+    await page.goto(`/calendar?tab=timekeeping&date=${workDate}`);
+    await expect(page.getByRole("button", { name: "Đã ra ca" }).first()).toBeVisible();
   });
 });

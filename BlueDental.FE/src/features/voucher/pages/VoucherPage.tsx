@@ -43,9 +43,18 @@ interface VoucherFormValues {
   usageLimit?: number | null;
 }
 
-function StatTile({ value, label }: { value: number; label: string }) {
+function StatTile({
+  value,
+  label,
+  testId,
+}: {
+  value: number;
+  label: string;
+  /** Stable hook for tests — the labels also appear as status tags in the table. */
+  testId: string;
+}) {
   return (
-    <div className="reception-card" style={{ padding: "16px 20px" }}>
+    <div className="reception-card" data-testid={testId} style={{ padding: "16px 20px" }}>
       <div style={{ fontSize: 22, fontWeight: 700, color: "#1B2A41", fontVariantNumeric: "tabular-nums" }}>
         {value}
       </div>
@@ -394,10 +403,10 @@ export function VoucherPage() {
       </div>
 
       <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
-        <Col xs={12} md={6}><StatTile value={stats?.total ?? 0} label="Tổng voucher" /></Col>
-        <Col xs={12} md={6}><StatTile value={stats?.active ?? 0} label="Đang hoạt động" /></Col>
-        <Col xs={12} md={6}><StatTile value={stats?.issued ?? 0} label="Đã phát hành" /></Col>
-        <Col xs={12} md={6}><StatTile value={stats?.expired ?? 0} label="Đã hết hạn" /></Col>
+        <Col xs={12} md={6}><StatTile value={stats?.total ?? 0} label="Tổng voucher" testId="voucher-stat-total" /></Col>
+        <Col xs={12} md={6}><StatTile value={stats?.active ?? 0} label="Đang hoạt động" testId="voucher-stat-active" /></Col>
+        <Col xs={12} md={6}><StatTile value={stats?.issued ?? 0} label="Đã phát hành" testId="voucher-stat-issued" /></Col>
+        <Col xs={12} md={6}><StatTile value={stats?.expired ?? 0} label="Đã hết hạn" testId="voucher-stat-expired" /></Col>
       </Row>
 
       <div className="reception-card reception-card--toolbar">

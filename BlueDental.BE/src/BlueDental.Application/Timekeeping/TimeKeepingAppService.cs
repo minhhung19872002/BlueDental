@@ -9,6 +9,7 @@ using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
+using Volo.Abp.Identity;
 
 namespace BlueDental.Timekeeping;
 
@@ -19,10 +20,14 @@ namespace BlueDental.Timekeeping;
 public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
 {
     private readonly IRepository<TimeKeepingRecord, Guid> _repository;
+    private readonly IIdentityUserRepository _userRepository;
 
-    public TimeKeepingAppService(IRepository<TimeKeepingRecord, Guid> repository)
+    public TimeKeepingAppService(
+        IRepository<TimeKeepingRecord, Guid> repository,
+        IIdentityUserRepository userRepository)
     {
         _repository = repository;
+        _userRepository = userRepository;
     }
 
     [Authorize(BlueDentalAbilityPermissions.WorkSchedule.Read)]
@@ -38,13 +43,17 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
             .Take(input.MaxResultCount)
             .ToList();
 
-        return new PagedResultDto<TimeKeepingRecordDto>(totalCount, items.Select(MapToDto).ToList());
+        var staff = await GetStaffAsync(items);
+        return new PagedResultDto<TimeKeepingRecordDto>(
+            totalCount,
+            items.Select(x => MapToDto(x, staff)).ToList());
     }
 
     [Authorize(BlueDentalAbilityPermissions.WorkSchedule.Read)]
     public async Task<TimeKeepingRecordDto> GetAsync(Guid id)
     {
-        return MapToDto(await _repository.GetAsync(id));
+        var record = await _repository.GetAsync(id);
+        return MapToDto(record, await GetStaffAsync([record]));
     }
 
     [Authorize(BlueDentalAbilityPermissions.WorkSchedule.Read)]
@@ -78,7 +87,7 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
 
         if (existing != null)
         {
-            return MapToDto(existing);
+            return MapToDto(existing, await GetStaffAsync([existing]));
         }
 
         var record = TimeKeepingRecord.OpenDay(
@@ -90,7 +99,7 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
             BuildShift(WorkShiftKind.Afternoon, input.AfternoonStart, input.AfternoonEnd));
 
         await _repository.InsertAsync(record, autoSave: true);
-        return MapToDto(record);
+        return MapToDto(record, await GetStaffAsync([record]));
     }
 
     [Authorize(BlueDentalAbilityPermissions.WorkSchedule.Update)]
@@ -99,7 +108,7 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
         var record = await _repository.GetAsync(id);
         record.RegisterWorking();
         await _repository.UpdateAsync(record, autoSave: true);
-        return MapToDto(record);
+        return MapToDto(record, await GetStaffAsync([record]));
     }
 
     [Authorize(BlueDentalAbilityPermissions.WorkSchedule.Update)]
@@ -108,7 +117,7 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
         var record = await _repository.GetAsync(id);
         record.RegisterDayOff(input.Reason);
         await _repository.UpdateAsync(record, autoSave: true);
-        return MapToDto(record);
+        return MapToDto(record, await GetStaffAsync([record]));
     }
 
     public async Task<TimeKeepingRecordDto> CheckInAsync(Guid id, AttendanceInput input)
@@ -117,7 +126,7 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
         await CheckAttendancePermissionAsync(record, input.RecordedByStaffId);
         record.CheckIn(input.Shift, input.At ?? Clock.Now, input.RecordedByStaffId);
         await _repository.UpdateAsync(record, autoSave: true);
-        return MapToDto(record);
+        return MapToDto(record, await GetStaffAsync([record]));
     }
 
     public async Task<TimeKeepingRecordDto> CheckOutAsync(Guid id, AttendanceInput input)
@@ -126,7 +135,7 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
         await CheckAttendancePermissionAsync(record, input.RecordedByStaffId);
         record.CheckOut(input.Shift, input.At ?? Clock.Now, input.RecordedByStaffId);
         await _repository.UpdateAsync(record, autoSave: true);
-        return MapToDto(record);
+        return MapToDto(record, await GetStaffAsync([record]));
     }
 
     [Authorize(BlueDentalAbilityPermissions.WorkSchedule.Update)]
@@ -135,7 +144,7 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
         var record = await _repository.GetAsync(id);
         record.AddOvertime(input.Minutes);
         await _repository.UpdateAsync(record, autoSave: true);
-        return MapToDto(record);
+        return MapToDto(record, await GetStaffAsync([record]));
     }
 
     [Authorize(BlueDentalAbilityPermissions.WorkSchedule.Update)]
@@ -201,6 +210,32 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
         return new WorkShift(kind, start.Value, end.Value);
     }
 
+    /// <summary>
+    /// Staff name and position come from ABP Identity — the attendance record
+    /// only stores the id, so the board resolves them here.
+    /// </summary>
+    private async Task<Dictionary<Guid, (string Name, string? Position)>> GetStaffAsync(
+        IReadOnlyCollection<TimeKeepingRecord> records)
+    {
+        var ids = records.Select(x => x.StaffId).Distinct().ToList();
+
+        if (ids.Count == 0)
+        {
+            return new Dictionary<Guid, (string, string?)>();
+        }
+
+        var users = await _userRepository.GetListByIdsAsync(ids);
+        var result = new Dictionary<Guid, (string Name, string? Position)>();
+
+        foreach (var user in users)
+        {
+            var roles = await _userRepository.GetRoleNamesAsync(user.Id);
+            result[user.Id] = (user.Name ?? user.UserName, roles.FirstOrDefault());
+        }
+
+        return result;
+    }
+
     private static WorkShiftDto MapShift(WorkShift shift) => new()
     {
         Kind = shift.Kind,
@@ -213,7 +248,9 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
         IsOpen = shift.IsOpen
     };
 
-    private static TimeKeepingRecordDto MapToDto(TimeKeepingRecord entity) => new()
+    private static TimeKeepingRecordDto MapToDto(
+        TimeKeepingRecord entity,
+        IReadOnlyDictionary<Guid, (string Name, string? Position)> staff) => new()
     {
         Id = entity.Id,
         StaffId = entity.StaffId,
@@ -228,6 +265,8 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
         LeaveReason = entity.LeaveReason,
         Note = entity.Note,
         RecordedByStaffId = entity.RecordedByStaffId,
+        StaffName = staff.TryGetValue(entity.StaffId, out var info) ? info.Name : null,
+        StaffPosition = staff.TryGetValue(entity.StaffId, out var role) ? role.Position : null,
         CreationTime = entity.CreationTime,
         CreatorId = entity.CreatorId,
         LastModificationTime = entity.LastModificationTime,
