@@ -36,18 +36,22 @@ const TAB_CONFIGS: TabConfig[] = [
 
 interface CounterConfig {
   key: keyof ReceptionCounters;
-  borderColor: string;
-  bgColor: string;
-  textColor: string;
+  /** Token driving the card's top band and its number. */
+  colorVar: string;
 }
 
+/**
+ * The design colours each counter by status and carries that one colour into
+ * both the top band and the number. The values are the brand tokens rather
+ * than the Tailwind-ish hexes that were inlined here before.
+ */
 const COUNTER_CONFIGS: CounterConfig[] = [
-  { key: "scheduledCount", borderColor: "#1E70E6", bgColor: "#EBF3FE", textColor: "#1E70E6" },
-  { key: "arrivedCount",   borderColor: "#10B981", bgColor: "#E6F4EA", textColor: "#10B981" },
-  { key: "cancelledCount", borderColor: "#EF4444", bgColor: "#FCE8E6", textColor: "#EF4444" },
-  { key: "lateCount",      borderColor: "#F59E0B", bgColor: "#FEF3C7", textColor: "#F59E0B" },
-  { key: "temporaryCount", borderColor: "#F97316", bgColor: "#FFEDD5", textColor: "#F97316" },
-  { key: "convertedCount", borderColor: "#06B6D4", bgColor: "#CFFAFE", textColor: "#06B6D4" },
+  { key: "scheduledCount", colorVar: "var(--bd-blue)" },
+  { key: "arrivedCount",   colorVar: "var(--bd-green-bright)" },
+  { key: "cancelledCount", colorVar: "var(--bd-red)" },
+  { key: "lateCount",      colorVar: "var(--bd-gold-deep)" },
+  { key: "temporaryCount", colorVar: "var(--bd-purple)" },
+  { key: "convertedCount", colorVar: "var(--bd-teal)" },
 ];
 
 export const ReceptionStatusTabs: React.FC<ReceptionStatusTabsProps> = ({
@@ -114,7 +118,7 @@ export const ReceptionStatusTabs: React.FC<ReceptionStatusTabsProps> = ({
           <div
             key={c.key}
             className="reception-counter-card"
-            style={{ borderColor: c.borderColor, backgroundColor: c.bgColor, color: c.textColor }}
+            style={{ "--counter-color": c.colorVar } as React.CSSProperties}
           >
             <span className="reception-counter-value">
               {counters?.[c.key] ?? 0}

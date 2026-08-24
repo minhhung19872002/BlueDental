@@ -1424,46 +1424,42 @@ button {
 }
 
 .reception-counter-cards {
-  display: flex;
-  gap: 8px;
-  flex: 1;
+  /* The design gives the counters their own full-width line under the pills.
+     As a flex child of .reception-filter-row they would otherwise shrink to
+     min-content and auto-fit would collapse to a single column. */
+  flex: 1 1 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
   min-width: 0;
-  justify-content: flex-end;
 }
 
-@media (max-width: 1280px) {
-  .reception-counter-cards {
-    flex-basis: 100%;
-    justify-content: flex-start;
-  }
-}
-
+/* The design's counter: a white card topped by a 3px band in the status
+   colour, its number large and in that same colour, the label muted below. */
 .reception-counter-card {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 6px 12px;
-  border: 1px solid;
-  border-radius: 10px;
-  text-align: center;
+  padding: 14px 16px;
+  background: #ffffff;
+  border: 1px solid var(--bd-border);
+  border-top: 3px solid var(--counter-color);
+  border-radius: 14px;
   line-height: 1.2;
-  min-width: 74px;
-  flex: 0 0 auto;
 }
 
 .reception-counter-value {
-  font-size: 16px;
+  font-size: 26px;
   font-weight: 700;
+  letter-spacing: -0.8px;
   line-height: 1.2;
+  color: var(--counter-color);
 }
 
 .reception-counter-label {
-  font-size: 11px;
-  font-weight: 500;
-  margin-top: 1px;
-  color: inherit;
-  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 400;
+  margin-top: 2px;
+  color: var(--bd-muted);
 }
 
 .reception-card--toolbar {

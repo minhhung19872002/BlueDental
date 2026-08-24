@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { message, Spin } from "antd";
+import { Button, message, Spin } from "antd";
+import { DownloadOutlined, FormOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 import { ReceptionToolbar } from "../components/ReceptionToolbar";
 import { ReceptionStatusTabs } from "../components/ReceptionStatusTabs";
@@ -14,6 +15,8 @@ import {
 import { useUpdateReceptionStatus, useUpdateReceptionOutcome, useUpdateReceptionDoctor } from "../api/receptionMutations";
 import { t } from "@/lib/i18n";
 import { PageHeader } from "@/components/PageHeader";
+import { exportToExcel } from "@/utils/exportExcel";
+import { formatVND } from "@/utils/format";
 import type {
   ReceptionStatus,
   ReceptionFilter,
@@ -72,11 +75,55 @@ export const ReceptionPage: React.FC = () => {
 
   const items = listData?.items ?? [];
 
+  // The design's "Xuất file" writes the rows currently on screen, so the
+  // export follows whatever tab, date, doctor and search are in effect.
+  const handleExport = () => {
+    exportToExcel(
+      items,
+      [
+        { header: t("Giờ"), key: "arrivalTime" },
+        { header: t("Khách hàng"), key: "patientName" },
+        { header: t("Số điện thoại"), key: "patientPhone" },
+        {
+          header: t("Dịch vụ"),
+          key: "services",
+          format: (v) => (Array.isArray(v) ? v.join(", ") : ""),
+        },
+        { header: t("Bác sĩ"), key: "doctorName" },
+        { header: t("Trạng thái"), key: "status" },
+        {
+          header: t("Còn phải thu"),
+          key: "totalDue",
+          format: (v) => formatVND(Number(v ?? 0)),
+        },
+      ],
+      `tiep-nhan-${currentDate.format("YYYY-MM-DD")}`,
+    );
+  };
+
   return (
     <div className="reception-page">
       <PageHeader
         title={t("Tiếp nhận")}
-        subtitle={t("Luồng khách trong ngày")}
+        subtitle={t("Luồng khách trong ngày {0}", currentDate.format("DD/MM/YYYY"))}
+        actions={
+          <>
+            <Button
+              icon={<DownloadOutlined />}
+              disabled={items.length === 0}
+              onClick={handleExport}
+            >
+              {t("Xuất file")}
+            </Button>
+            <Button
+              type="primary"
+              icon={<FormOutlined />}
+              onClick={() => setDrawerOpen(true)}
+            >
+              {t("Tạo tiếp nhận")}
+            </Button>
+          </>
+        }
       />
 
       {/* Card 1: toolbar */}
@@ -87,7 +134,6 @@ export const ReceptionPage: React.FC = () => {
           currentDate={currentDate}
           onSearchChange={setKeyword}
           onDoctorSelect={setSelectedDoctorId}
-          onCreateClick={() => setDrawerOpen(true)}
           onViewModeChange={setViewMode}
           onDateChange={setCurrentDate}
         />
