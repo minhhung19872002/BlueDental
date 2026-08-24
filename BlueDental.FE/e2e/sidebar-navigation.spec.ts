@@ -10,6 +10,8 @@ test.describe("Sidebar navigation", () => {
     const sidebar = page.locator(".app-sidebar");
     await expect(sidebar).toBeVisible();
 
+    // The rail opens collapsed and carries its names on aria-label, so the
+    // accessible name is what to assert — it holds collapsed or expanded.
     const navLabels = [
       "Tiếp nhận",
       "Danh sách bệnh nhân",

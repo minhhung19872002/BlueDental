@@ -13,6 +13,7 @@ import { extractApiError } from "@/lib/apiError";
 import { SalesEntryModal } from "../components/SalesEntryModal";
 import { CashflowEntryModal } from "../components/CashflowEntryModal";
 import { t } from "@/lib/i18n";
+import { PageHeader } from "@/components/PageHeader";
 
 /** The translator, so helpers below can take it as a parameter. */
 type Translate = (vietnamese: string, ...params: (string | number)[]) => string;
@@ -225,6 +226,11 @@ export function ReportPage() {
 
   return (
     <div className="reception-page">
+      <PageHeader
+        title={t("Báo cáo")}
+        subtitle={t("Kỳ báo cáo theo khoảng thời gian đã chọn")}
+      />
+
       {/* Main tab bar */}
       <div className="reception-card" style={{ padding: "0 16px" }}>
         <Tabs

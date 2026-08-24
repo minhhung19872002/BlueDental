@@ -41,6 +41,20 @@ interface Props {
   onSuccess?: () => void;
 }
 
+/**
+ * Vietnamese names read family-first: every word but the last belongs to the
+ * family and middle part, and the last word is the given name.
+ */
+function familyName(fullName: string): string {
+  const words = fullName.trim().split(/\s+/).filter(Boolean);
+  return words.length > 1 ? words.slice(0, -1).join(" ") : (words[0] ?? "");
+}
+
+function givenName(fullName: string): string {
+  const words = fullName.trim().split(/\s+/).filter(Boolean);
+  return words.length > 1 ? words[words.length - 1] : "";
+}
+
 export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props) {
   const schema = useMemo(() => createPatientSchema(t), [t]);
   const isEdit = Boolean(patient);
@@ -104,7 +118,7 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
     if (open && patient) {
       reset({
         firstName: patient.firstName,
-        lastName: patient.lastName,
+        lastName: [patient.lastName, patient.firstName].filter(Boolean).join(" ").trim(),
         phone: patient.phoneNumber ?? "",
         gender: GENDER_BY_CODE[patient.gender] ?? "other",
         dateOfBirth: patient.dateOfBirth,

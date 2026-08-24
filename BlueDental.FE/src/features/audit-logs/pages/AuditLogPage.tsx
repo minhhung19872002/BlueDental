@@ -5,6 +5,7 @@ import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import { useAuditLogList, type AuditLogDto } from "../api";
 import { t } from "@/lib/i18n";
+import { PageHeader } from "@/components/PageHeader";
 
 const HTTP_METHOD_COLORS: Record<string, string> = {
   GET: "blue",
@@ -99,6 +100,11 @@ export function AuditLogPage() {
 
   return (
     <div className="reception-page">
+      <PageHeader
+        title={t("Nhật ký hệ thống")}
+        subtitle={t("Lịch sử thao tác trên toàn hệ thống")}
+      />
+
       <div className="reception-card reception-card--toolbar">
         <div style={{ fontWeight: 700, fontSize: 18, color: "#1B2A41", marginBottom: 4 }}>
           {t("Nhật ký hoạt động")}

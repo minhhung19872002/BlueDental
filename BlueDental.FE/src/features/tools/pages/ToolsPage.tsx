@@ -3,6 +3,7 @@ import { Table, Button, Input, Tag, Empty, Popconfirm, Modal, message } from "an
 import { SearchOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
+import { PageHeader } from "@/components/PageHeader";
 import {
   useCallAssignments, useUpdateCallAssignmentStatus, useDeleteCallAssignment,
   useCallLogs, useDeleteCallLog,
@@ -55,6 +56,11 @@ function SubTabBar({
 }) {
   return (
     <div className="reception-card reception-card--tabs">
+      <PageHeader
+        title={t("Công cụ")}
+        subtitle={t("Tổng đài, tin nhắn, Zalo OA và hoá đơn điện tử")}
+      />
+
       <div style={{ display: "flex", gap: 0 }}>
         {tabs.map((tab) => (
           <button
@@ -678,8 +684,8 @@ interface InvoiceConfig {
 
 /** Synthetic seed data — status uses CONFIG_STATUS_ACTIVE constant, not a translated label. */
 const INVOICE_SEED: InvoiceConfig[] = [
-  { id: "1", nameKey: "tools.invoiceSeedName1", branchKey: "tools.invoiceSeedBranch1", moduleKey: "tools.invoiceModule", provider: "MISA", status: CONFIG_STATUS_ACTIVE },
-  { id: "2", nameKey: "tools.invoiceSeedName2", branchKey: "tools.invoiceSeedBranch2", moduleKey: "tools.invoiceModule", provider: "MISA", status: CONFIG_STATUS_ACTIVE },
+  { id: "1", nameKey: "Quang Vinh", branchKey: "Chi nhánh Quang Vinh", moduleKey: "Hóa đơn", provider: "MISA", status: CONFIG_STATUS_ACTIVE },
+  { id: "2", nameKey: "Thuế Hố Nai", branchKey: "Chi nhánh Hố Nai", moduleKey: "Hóa đơn", provider: "MISA", status: CONFIG_STATUS_ACTIVE },
 ];
 
 function InvoiceView() {

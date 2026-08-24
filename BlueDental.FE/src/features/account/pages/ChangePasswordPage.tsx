@@ -25,13 +25,13 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 const ERROR_KEY_MAP: Record<string, string> = {
-  required_current: "account.currentPasswordRequired",
-  min_length:       "account.minPassword",
-  need_upper:       "account.needUppercase",
-  need_digit:       "account.needDigit",
-  need_special:     "account.needSpecial",
-  required_confirm: "account.confirmPasswordRequired",
-  mismatch:         "account.passwordMismatch",
+  required_current: "Vui lòng nhập mật khẩu hiện tại",
+  min_length:       "Mật khẩu phải có ít nhất 8 ký tự",
+  need_upper:       "Mật khẩu phải có ít nhất một chữ hoa",
+  need_digit:       "Mật khẩu phải có ít nhất một chữ số",
+  need_special:     "Mật khẩu phải có ít nhất một ký tự đặc biệt",
+  required_confirm: "Vui lòng nhập lại mật khẩu mới",
+  mismatch:         "Mật khẩu nhập lại không khớp",
 };
 
 export function ChangePasswordPage() {

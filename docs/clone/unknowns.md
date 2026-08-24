@@ -319,3 +319,28 @@ SỐ PHIẾU | BỆNH NHÂN | BÁC SĨ TIẾP NHẬN | NHÂN SỰ TƯ VẤN | NG
 Patient column shows name + [Mới/Cũ] badge + phone number on second line.
 Action buttons: "Tiếp nhận" (blue, for Chờ khám), "Xong" (green, for Đang khám), ⋮ (all rows).
 See: docs/clone/pages/reception.md
+
+## Tiếp nhận — header row of the reception table is 256px tall
+
+Status: OPEN, cosmetic. The screen works; there is a blank band above and below
+the column titles.
+
+What was established:
+
+- The header cell's own content is small: cloning the same `<th>` into a
+  detached table renders it at **23px**.
+- Inside the real table it is **256px**, and so is every other `<th>` in the row.
+- The `<table>` computes to 722px while thead(natural) + tbody = ~490px. Forcing
+  `table { height: 1px }` does not shrink it, so the height is not inherited
+  from an ancestor being stretched.
+- It is not our stylesheet: disabling `styles/index.css` entirely makes the row
+  **taller** (287px), not shorter.
+- Unaffected by: `tr { height }`, `th { height/padding/line-height/display }`,
+  `tbody { height: 100% }`, the Table's inline `style`, or the card's
+  `min-height`.
+- Other screens using the same antd Table (e.g. Thanh toán) render a normal
+  header, so it is specific to this table's configuration rather than global.
+
+Next thing to try: bisect `ReceptionTable`'s nine column definitions — the
+difference from a working table is most likely in one of them (`render`,
+`width`, or `ellipsis`), not in CSS.

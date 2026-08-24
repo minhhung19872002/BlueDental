@@ -17,6 +17,7 @@ import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { extractApiError } from "@/lib/apiError";
 import { formatDate, formatVND } from "@/utils/format";
 import { t } from "@/lib/i18n";
+import { PageHeader } from "@/components/PageHeader";
 
 /**
  * Every "Danh mục" sub-route in the reference is the same screen: a group list on
@@ -364,6 +365,11 @@ export function TaxonomyPage() {
 
   return (
     <div className="reception-page">
+      <PageHeader
+        title={t("Danh mục")}
+        subtitle={t("Dữ liệu nền cho dịch vụ, chẩn đoán, thuốc và nguồn khách")}
+      />
+
       <div className="reception-card reception-card--toolbar">
         <Tabs
           activeKey={tab.key}

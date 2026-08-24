@@ -1668,6 +1668,11 @@
     "Time": "Time",
     "Xác nhận huỷ lịch hẹn": "Cancel this appointment?",
     "STT": "No",
-    "Vắng mặt": "No Show"
+    "Vắng mặt": "No Show",
+    "Mật khẩu phải có ít nhất một chữ hoa": "Password must contain an uppercase letter",
+    "Mật khẩu phải có ít nhất một chữ số": "Password must contain a digit",
+    "Mật khẩu phải có ít nhất một ký tự đặc biệt": "Password must contain a special character",
+    "Vui lòng nhập lại mật khẩu mới": "Please re-enter the new password",
+    "Mật khẩu nhập lại không khớp": "The passwords do not match"
   }
 }

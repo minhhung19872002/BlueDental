@@ -22,11 +22,9 @@ test.describe("Bệnh nhân", () => {
     await dialog.getByPlaceholder("Nguyễn Văn A").fill(fullName);
     await dialog.getByPlaceholder("09xxxxxxxx").fill("0900000002");
 
-    // antd DatePicker: type the date, then blur by clicking another field.
     const dob = dialog.locator(".ant-picker-input input").first();
     await dob.click();
     await dob.pressSequentially("15/06/1990", { delay: 20 });
-    // Clicking another field commits the date and closes the picker panel.
     await dialog.getByPlaceholder("09xxxxxxxx").click();
 
     await dialog.getByRole("button", { name: /Lưu/ }).click();

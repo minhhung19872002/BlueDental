@@ -3,6 +3,7 @@ import { Table, Empty, Tabs, Button, Input, Modal, Popconfirm, message } from "a
 import { SearchOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
+import { PageHeader } from "@/components/PageHeader";
 import {
   useOperationCategories, useCreateOperationCategory, useDeleteOperationCategory,
   useOperationArticles, useCreateOperationArticle, useUpdateOperationArticle, useDeleteOperationArticle,
@@ -18,83 +19,83 @@ interface MainTabDef {
 const MAIN_TAB_DEFS: MainTabDef[] = [
   {
     key: "overview",
-    labelKey: "operations.management",
+    labelKey: "Quản trị vận hành",
     subTabs: [
-      { key: "home",         labelKey: "operations.home" },
-      { key: "process",      labelKey: "operations.process" },
-      { key: "task",         labelKey: "operations.tasks" },
-      { key: "report",       labelKey: "operations.reports" },
-      { key: "untreated",    labelKey: "operations.undiagnosed" },
-      { key: "prescription", labelKey: "operations.prescription" },
+      { key: "home",         labelKey: "Trang chủ" },
+      { key: "process",      labelKey: "Quy trình" },
+      { key: "task",         labelKey: "Công việc" },
+      { key: "report",       labelKey: "Báo cáo" },
+      { key: "untreated",    labelKey: "Chẩn đoán chưa điều trị" },
+      { key: "prescription", labelKey: "Đơn thuốc" },
     ],
   },
   {
     key: "assistant",
-    labelKey: "operations.assistant",
+    labelKey: "Khối trợ lý",
     subTabs: [
-      { key: "home",    labelKey: "operations.home" },
-      { key: "process", labelKey: "operations.process" },
-      { key: "task",    labelKey: "operations.tasks" },
+      { key: "home",    labelKey: "Trang chủ" },
+      { key: "process", labelKey: "Quy trình" },
+      { key: "task",    labelKey: "Công việc" },
     ],
   },
   {
     key: "reception",
-    labelKey: "operations.receptionist",
+    labelKey: "Khối lễ tân",
     subTabs: [
-      { key: "home",    labelKey: "operations.home" },
-      { key: "process", labelKey: "operations.process" },
-      { key: "task",    labelKey: "operations.tasks" },
-      { key: "report",  labelKey: "operations.reports" },
+      { key: "home",    labelKey: "Trang chủ" },
+      { key: "process", labelKey: "Quy trình" },
+      { key: "task",    labelKey: "Công việc" },
+      { key: "report",  labelKey: "Báo cáo" },
     ],
   },
   {
     key: "cskh",
-    labelKey: "operations.cskhDept",
+    labelKey: "Khối CSKH",
     subTabs: [
-      { key: "home",    labelKey: "operations.home" },
-      { key: "process", labelKey: "operations.process" },
-      { key: "task",    labelKey: "operations.tasks" },
-      { key: "report",  labelKey: "operations.reports" },
+      { key: "home",    labelKey: "Trang chủ" },
+      { key: "process", labelKey: "Quy trình" },
+      { key: "task",    labelKey: "Công việc" },
+      { key: "report",  labelKey: "Báo cáo" },
     ],
   },
   {
     key: "marketing",
-    labelKey: "operations.marketing",
+    labelKey: "Khối Marketing",
     subTabs: [
-      { key: "home",    labelKey: "operations.home" },
-      { key: "process", labelKey: "operations.process" },
-      { key: "task",    labelKey: "operations.tasks" },
-      { key: "report",  labelKey: "operations.reports" },
+      { key: "home",    labelKey: "Trang chủ" },
+      { key: "process", labelKey: "Quy trình" },
+      { key: "task",    labelKey: "Công việc" },
+      { key: "report",  labelKey: "Báo cáo" },
     ],
   },
   {
     key: "security",
-    labelKey: "operations.security",
+    labelKey: "Khối bảo vệ",
     subTabs: [
-      { key: "home",    labelKey: "operations.home" },
-      { key: "process", labelKey: "operations.process" },
-      { key: "task",    labelKey: "operations.tasks" },
-      { key: "report",  labelKey: "operations.reports" },
+      { key: "home",    labelKey: "Trang chủ" },
+      { key: "process", labelKey: "Quy trình" },
+      { key: "task",    labelKey: "Công việc" },
+      { key: "report",  labelKey: "Báo cáo" },
     ],
   },
   {
     key: "treatment",
-    labelKey: "operations.treatment",
+    labelKey: "Khối điều trị",
     subTabs: [
-      { key: "home",    labelKey: "operations.home" },
-      { key: "process", labelKey: "operations.process" },
-      { key: "task",    labelKey: "operations.tasks" },
-      { key: "report",  labelKey: "operations.reports" },
+      { key: "home",    labelKey: "Trang chủ" },
+      { key: "process", labelKey: "Quy trình" },
+      { key: "task",    labelKey: "Công việc" },
+      { key: "report",  labelKey: "Báo cáo" },
     ],
   },
   {
     key: "finance",
-    labelKey: "operations.finance",
+    labelKey: "Khối tài chính",
     subTabs: [
-      { key: "home",    labelKey: "operations.home" },
-      { key: "process", labelKey: "operations.process" },
-      { key: "task",    labelKey: "operations.tasks" },
-      { key: "report",  labelKey: "operations.reports" },
+      { key: "home",    labelKey: "Trang chủ" },
+      { key: "process", labelKey: "Quy trình" },
+      { key: "task",    labelKey: "Công việc" },
+      { key: "report",  labelKey: "Báo cáo" },
     ],
   },
 ];
@@ -159,6 +160,11 @@ export function OperationsPage() {
 
   return (
     <div className="reception-page">
+      <PageHeader
+        title={t("Quản trị vận hành")}
+        subtitle={t("Chỉ số theo từng khối chức năng trong ngày")}
+      />
+
       <div className="reception-card" style={{ padding: "0 16px" }}>
         <Tabs
           activeKey={activeTab}

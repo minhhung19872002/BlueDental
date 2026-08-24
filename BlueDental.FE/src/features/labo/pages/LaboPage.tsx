@@ -25,6 +25,7 @@ import { usePatientList } from "@/features/patient-management/api/patientQueries
 import { useDebounce } from "@/hooks/useDebounce";
 import type { ColumnsType } from "antd/es/table";
 import { t } from "@/lib/i18n";
+import { PageHeader } from "@/components/PageHeader";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -401,21 +402,21 @@ interface LaboCrudConfig {
 
 const LABO_CRUD_CONFIGS: Record<string, LaboCrudConfig> = {
   bite: {
-    labelKey: "labo.bite",
+    labelKey: "Khớp cắn Labo",
     useList: useLaboBiteTypeList as LaboCrudConfig["useList"],
     useCreate: useCreateLaboBiteType as LaboCrudConfig["useCreate"],
     useUpdate: useUpdateLaboBiteType as LaboCrudConfig["useUpdate"],
     useDelete: useDeleteLaboBiteType as LaboCrudConfig["useDelete"],
   },
   "finish-line": {
-    labelKey: "labo.finishLine",
+    labelKey: "Đường hoàn tất",
     useList: useLaboFinishLineList as LaboCrudConfig["useList"],
     useCreate: useCreateLaboFinishLine as LaboCrudConfig["useCreate"],
     useUpdate: useUpdateLaboFinishLine as LaboCrudConfig["useUpdate"],
     useDelete: useDeleteLaboFinishLine as LaboCrudConfig["useDelete"],
   },
   nhip: {
-    labelKey: "labo.bridgeType",
+    labelKey: "Kiểu nhịp Labo",
     useList: useLaboRhythmTypeList as LaboCrudConfig["useList"],
     useCreate: useCreateLaboRhythmType as LaboCrudConfig["useCreate"],
     useUpdate: useUpdateLaboRhythmType as LaboCrudConfig["useUpdate"],
@@ -647,6 +648,11 @@ export function LaboPage() {
 
   return (
     <div className="reception-page">
+      <PageHeader
+        title={t("Labo")}
+        subtitle={t("Phiếu labo, nhà cung cấp và danh mục kỹ thuật")}
+      />
+
       <div className="reception-card reception-card--tabs">
         <div style={{ display: "flex", gap: 0, flexWrap: "wrap" }}>
           {SUB_ROUTES.map((tab) => (

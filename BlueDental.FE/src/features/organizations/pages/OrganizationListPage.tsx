@@ -3,6 +3,7 @@ import { Button, Form, Input, Modal, Popconfirm, Space, Table, Tag, Tabs, messag
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { t } from "@/lib/i18n";
+import { PageHeader } from "@/components/PageHeader";
 import {
   useClinicBranches,
   useCreateBranch,
@@ -26,8 +27,8 @@ const BRANCH_STATUS_COLOR: Record<string, string> = {
 };
 
 const BRANCH_STATUS_KEY: Record<string, string> = {
-  Active: "common.active",
-  Inactive: "common.inactive",
+  Active: "Đang hoạt động",
+  Inactive: "Ngừng hoạt động",
 };
 
 function BranchTable() {
@@ -136,6 +137,11 @@ function BranchTable() {
 
   return (
     <>
+      <PageHeader
+        title={t("Chi nhánh")}
+        subtitle={t("Danh sách cơ sở của phòng khám")}
+      />
+
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
           {t("Thêm chi nhánh")}

@@ -55,9 +55,11 @@ export function LoginForm() {
         roles: user.roles,
         permissions: user.permissions,
       });
+      // Tiếp nhận is where the app opens — the router's index redirects there
+      // too, so signing in should not land somewhere else.
       const from =
         (location.state as { from?: { pathname?: string } })?.from?.pathname ??
-        "/dashboard";
+        "/reception";
       navigate(from, { replace: true });
     },
     onError: (error) => {
@@ -71,6 +73,9 @@ export function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="login-fields">
+      {/* Form.Item needs an antd Form above it to lay labels out vertically;
+          component={false} supplies that context without nesting a form. */}
+      <Form layout="vertical" requiredMark={false} component={false}>
       {/* The design labels each field above the box and keeps the box itself
           plain — no icon inside — so the two rows read as one block. */}
       <Form.Item
@@ -127,7 +132,8 @@ export function LoginForm() {
 
       {errors.root && (
         <Form.Item>
-          <span style={{ color: brand.red, fontSize: 13 }}>
+          {/* role="alert" so the failure is announced, not just coloured. */}
+          <span role="alert" style={{ color: brand.red, fontSize: 13 }}>
             {errors.root.message}
           </span>
         </Form.Item>
@@ -143,6 +149,7 @@ export function LoginForm() {
       >
         {t("Đăng nhập")}
       </Button>
+      </Form>
     </form>
   );
 }

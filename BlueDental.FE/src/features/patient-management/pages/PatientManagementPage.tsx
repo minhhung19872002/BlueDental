@@ -4,6 +4,8 @@ import { PatientListView } from "../components/PatientListView";
 import { PatientEditorModal } from "../components/PatientEditorModal";
 import { usePatientDto } from "../api/patientQueries";
 import type { PatientListItem } from "../types/patient";
+import { PageHeader } from "@/components/PageHeader";
+import { t } from "@/lib/i18n";
 
 function EditPatientModal({ patientId, onClose }: { patientId: string; onClose: () => void }) {
   const { data: patient, isLoading } = usePatientDto(patientId);
@@ -29,6 +31,11 @@ export function PatientManagementPage() {
 
   return (
     <>
+      <PageHeader
+        title={t("Danh sách bệnh nhân")}
+        subtitle={t("Hồ sơ khách hàng của phòng khám")}
+      />
+
       <PatientListView
         onAdd={() => setAddOpen(true)}
         onRowClick={handleRowClick}
