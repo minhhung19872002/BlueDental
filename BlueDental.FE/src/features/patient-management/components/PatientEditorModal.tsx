@@ -15,7 +15,7 @@ type Translate = (vietnamese: string, ...params: (string | number)[]) => string;
 
 function createPatientSchema(t: Translate) {
   return z.object({
-    firstName: z.string().optional().default(""),
+    firstName: z.string().optional(),
     lastName: z.string().min(1, t("Vui lòng nhập họ và tên")),
     phone: z.string().regex(/^\d{8,15}$/, t("Số điện thoại không hợp lệ")),
     gender: z.enum(["male", "female", "other"]).optional(),
@@ -41,19 +41,6 @@ interface Props {
   onSuccess?: () => void;
 }
 
-/**
- * Vietnamese names read family-first: every word but the last belongs to the
- * family and middle part, and the last word is the given name.
- */
-function familyName(fullName: string): string {
-  const words = fullName.trim().split(/\s+/).filter(Boolean);
-  return words.length > 1 ? words.slice(0, -1).join(" ") : (words[0] ?? "");
-}
-
-function givenName(fullName: string): string {
-  const words = fullName.trim().split(/\s+/).filter(Boolean);
-  return words.length > 1 ? words[words.length - 1] : "";
-}
 
 export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props) {
   const schema = useMemo(() => createPatientSchema(t), [t]);
