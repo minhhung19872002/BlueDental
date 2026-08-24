@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { login } from "./helpers";
+import { login } from "./fixtures/auth";
 
 test.describe("Route smoke tests", () => {
   test.beforeEach(async ({ page }) => {
@@ -13,13 +13,13 @@ test.describe("Route smoke tests", () => {
     { path: "/cskh-grouping", marker: /cskh|chăm sóc/i },
     { path: "/labo", marker: /labo/i },
     { path: "/operations", marker: /quản trị|operation/i },
-    { path: "/report", marker: /báo cáo|report/i },
+    { path: "/report", marker: /doanh số|lượt khách|quản lý thu chi/i },
     { path: "/staff", marker: /nhân viên|staff/i },
     { path: "/timekeeping", marker: /chấm công|timekeeping/i },
     { path: "/materials", marker: /vật tư|material/i },
     { path: "/billing", marker: /thanh toán|billing|hóa đơn/i },
     { path: "/taxonomy", marker: /danh mục|catalog/i },
-    { path: "/tools", marker: /công cụ|tool/i },
+    { path: "/tools", marker: /tổng đài|tin nhắn|zalo oa/i },
     { path: "/settings", marker: /cài đặt|setting/i },
     { path: "/organizations", marker: /chi nhánh|branch/i },
     { path: "/identity", marker: /người dùng|user|vai trò|role/i },

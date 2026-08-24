@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { login } from "./helpers";
+import { login } from "./fixtures/auth";
 
 test.describe("Sidebar navigation", () => {
   test.beforeEach(async ({ page }) => {
@@ -11,21 +11,21 @@ test.describe("Sidebar navigation", () => {
     await expect(sidebar).toBeVisible();
 
     const navLabels = [
-      /tiếp nhận|reception/i,
-      /bệnh nhân|patient/i,
-      /lịch hẹn|appointment/i,
-      /báo cáo|report/i,
-      /nhân viên|staff/i,
-      /vật tư|material/i,
+      "Tiếp nhận",
+      "Danh sách bệnh nhân",
+      "Lịch hẹn",
+      "Báo cáo",
+      "Nhân viên",
+      "Vật tư",
     ];
 
     for (const label of navLabels) {
-      await expect(sidebar.getByText(label).first()).toBeVisible();
+      await expect(sidebar.locator(`.sidebar-nav-item[aria-label="${label}"]`)).toBeVisible();
     }
   });
 
   test("clicking sidebar item navigates to correct route", async ({ page }) => {
-    await page.locator(".sidebar-nav-item").filter({ hasText: /báo cáo|report/i }).first().click();
+    await page.locator(".sidebar-nav-item[aria-label='Báo cáo']").click();
     await expect(page).toHaveURL(/\/report/);
   });
 

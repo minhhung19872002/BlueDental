@@ -88,6 +88,7 @@ export const ReceptionStatusTabs: React.FC<ReceptionStatusTabsProps> = ({
               <button
                 key={tab.key}
                 type="button"
+                data-testid={`reception-metric-${tab.key}`}
                 className={`reception-status-pill ${isActive ? "reception-status-pill--active" : ""}`}
                 onClick={() => onChange(tab.key)}
               >

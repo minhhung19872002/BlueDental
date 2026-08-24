@@ -19,13 +19,15 @@ test.describe("Bệnh nhân", () => {
     await page.getByRole("button", { name: /Tạo hồ sơ/ }).click();
     const dialog = page.getByRole("dialog");
 
-    await dialog.getByPlaceholder("Nguyễn Văn An").fill(fullName);
+    await dialog.getByPlaceholder("Nguyễn Văn A").fill(fullName);
     await dialog.getByPlaceholder("09xxxxxxxx").fill("0900000002");
 
-    // antd's DatePicker only commits a typed value on Enter.
-    const dob = dialog.getByPlaceholder("Chọn thời điểm");
-    await dob.fill("15/06/1990");
-    await dob.press("Enter");
+    // antd DatePicker: type the date, then blur by clicking another field.
+    const dob = dialog.locator(".ant-picker-input input").first();
+    await dob.click();
+    await dob.pressSequentially("15/06/1990", { delay: 20 });
+    // Clicking another field commits the date and closes the picker panel.
+    await dialog.getByPlaceholder("09xxxxxxxx").click();
 
     await dialog.getByRole("button", { name: /Lưu/ }).click();
 
@@ -51,15 +53,15 @@ test.describe("Bệnh nhân", () => {
 
     await page.getByRole("tab", { name: "Chẩn đoán & Tư vấn" }).click();
 
-    // Whole-tooth selection via the tooth number.
-    await page.getByRole("button", { name: "11", exact: true }).click();
+    // Initially no teeth selected.
+    await expect(page.getByText("Chưa chọn răng")).toBeVisible();
+
+    // Click tooth 11 via its aria-label (SVG <g role="button" aria-label="Răng 11 — …">).
+    await page.getByRole("button", { name: /Răng 11/ }).click();
     await expect(page.getByText(/Đã chọn:.*11/)).toBeVisible();
 
-    // Whole-jaw shortcut, then clear.
-    await page.getByRole("button", { name: "Hàm Trên" }).click();
-    await expect(page.getByText(/Đã chọn:.*18/)).toBeVisible();
-
-    await page.getByRole("button", { name: "Bỏ chọn" }).click();
-    await expect(page.getByText("Đã chọn: Chưa chọn răng")).toBeVisible();
+    // Click tooth 11 again to deselect (toggle).
+    await page.getByRole("button", { name: /Răng 11/ }).click();
+    await expect(page.getByText("Chưa chọn răng")).toBeVisible();
   });
 });

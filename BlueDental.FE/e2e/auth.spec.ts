@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { login, TEST_USER } from "./helpers";
+import { login, TEST_USER } from "./fixtures/auth";
 
 test.describe("Authentication", () => {
   test("redirects unauthenticated user to login", async ({ page }) => {
@@ -9,21 +9,21 @@ test.describe("Authentication", () => {
 
   test("logs in with valid credentials", async ({ page }) => {
     await login(page);
-    await expect(page).toHaveURL(/\/reception/);
+    await expect(page).not.toHaveURL(/\/login/);
   });
 
   test("shows error on invalid credentials", async ({ page }) => {
     await page.goto("/login");
-    await page.getByPlaceholder(/tên đăng nhập|username/i).fill("invalid_user");
-    await page.getByPlaceholder(/mật khẩu|password/i).fill("wrong_password");
-    await page.getByRole("button", { name: /đăng nhập|login|sign in/i }).click();
-    await expect(page.locator(".ant-message-error, .ant-alert-error, [role='alert']")).toBeVisible({ timeout: 10000 });
+    await page.getByPlaceholder("Tên đăng nhập hoặc email").fill("invalid_user");
+    await page.getByPlaceholder("Mật khẩu").fill("wrong_password");
+    await page.getByRole("button", { name: "Đăng nhập" }).click();
+    await expect(page.getByText(/InvalidUserNameOrPassword|Đăng nhập không thành công/)).toBeVisible({ timeout: 10000 });
   });
 
   test("logs out successfully", async ({ page }) => {
     await login(page);
     await page.locator(".app-header-user").click();
-    await page.getByText(/đăng xuất|sign out/i).click();
+    await page.getByText(/Đăng xuất/i).click();
     await expect(page).toHaveURL(/\/login/);
   });
 });

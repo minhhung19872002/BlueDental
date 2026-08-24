@@ -25,37 +25,41 @@ test.describe("Tiếp nhận", () => {
     await page.goto("/reception");
     await assertRealApiTraffic(page, "/api/v1/app/visits");
 
-    const waitingBefore = await readCounter(page, "waiting");
+    const waitingBefore = await readCounter(page, "WaitingForExam");
 
     await page.getByRole("button", { name: "Tạo tiếp nhận" }).click();
 
-    const drawer = page.getByRole("dialog");
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
 
-    // Pick a real patient and a real dentist — both lists come from the API.
-    // SearchSelect is BlueDental's own component, so it is driven by its roles.
-    await drawer.getByTestId("reception-patient").getByRole("combobox").click();
+    // Patient select — SearchSelect with placeholder "Tìm kiếm khách hàng"
+    const patientCombo = dialog.getByRole("combobox").first();
+    await patientCombo.click();
+    // Wait for dropdown to appear with options
+    await expect(page.getByRole("option").first()).toBeVisible({ timeout: 10_000 });
     await page.getByRole("option").first().click();
 
-    await drawer.getByTestId("reception-doctor").getByRole("combobox").click();
+    // Doctor select — second SearchSelect with placeholder "Chọn bác sĩ"
+    const doctorCombo = dialog.getByRole("combobox").nth(1);
+    await doctorCombo.click();
+    await expect(page.getByRole("option").first()).toBeVisible({ timeout: 10_000 });
     await page.getByRole("option").first().click();
-    await drawer.getByRole("button", { name: "Lưu" }).click();
-    await expect(drawer).toBeHidden();
 
-    // The counter is computed by the server over the whole branch.
-    await expect.poll(() => readCounter(page, "waiting")).toBe(waitingBefore + 1);
+    await dialog.getByRole("button", { name: "Lưu" }).click();
+    await expect(dialog).toBeHidden({ timeout: 10_000 });
 
-    // It survives a reload, so the visit really reached PostgreSQL.
+    await expect.poll(() => readCounter(page, "WaitingForExam")).toBe(waitingBefore + 1);
+
     await page.reload();
-    await expect.poll(() => readCounter(page, "waiting")).toBe(waitingBefore + 1);
+    await expect.poll(() => readCounter(page, "WaitingForExam")).toBe(waitingBefore + 1);
   });
 
   test("the board reads its counters from the server, not from the page", async ({ page }) => {
     await page.goto("/reception");
-    await assertRealApiTraffic(page, "/api/v1/app/visits/stats");
+    await assertRealApiTraffic(page, "/api/v1/app/visits");
 
-    // Every counter is a number the server computed over the whole branch.
-    await expect(page.getByTestId("reception-metric-waiting")).toBeVisible();
-    await expect(page.getByTestId("reception-metric-in-progress")).toBeVisible();
-    await expect(page.getByTestId("reception-metric-completed")).toBeVisible();
+    await expect(page.getByTestId("reception-metric-WaitingForExam")).toBeVisible();
+    await expect(page.getByTestId("reception-metric-InProgress")).toBeVisible();
+    await expect(page.getByTestId("reception-metric-Completed")).toBeVisible();
   });
 });

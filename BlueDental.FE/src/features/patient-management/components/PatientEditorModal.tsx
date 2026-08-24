@@ -15,8 +15,8 @@ type Translate = (vietnamese: string, ...params: (string | number)[]) => string;
 
 function createPatientSchema(t: Translate) {
   return z.object({
-    firstName: z.string().min(1, t("Vui lòng nhập họ")),
-    lastName: z.string().min(1, t("Vui lòng nhập tên")),
+    firstName: z.string().optional().default(""),
+    lastName: z.string().min(1, t("Vui lòng nhập họ và tên")),
     phone: z.string().regex(/^\d{8,15}$/, t("Số điện thoại không hợp lệ")),
     gender: z.enum(["male", "female", "other"]).optional(),
     dateOfBirth: z.string().optional(),
@@ -122,11 +122,15 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
 
   const onSubmit = async (values: FormValues) => {
     try {
-      // Address and medical history have no home on the register endpoint, and
-      // the branch comes from the signed-in user, so none of them are sent.
+      // The form shows a single "Họ và tên" field bound to lastName. Split into
+      // firstName (given name, last word) and lastName (family name, remaining).
+      const nameParts = values.lastName.trim().split(/\s+/);
+      const derivedFirstName = values.firstName || (nameParts.length > 1 ? nameParts.pop()! : "");
+      const derivedLastName = nameParts.join(" ") || values.lastName.trim();
+
       const payload = {
-        firstName: values.firstName,
-        lastName: values.lastName,
+        firstName: derivedFirstName,
+        lastName: derivedLastName,
         phoneNumber: values.phone,
         gender: values.gender ?? "male",
         dateOfBirth: values.dateOfBirth ?? "",
