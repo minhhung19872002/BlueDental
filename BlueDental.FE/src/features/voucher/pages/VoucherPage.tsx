@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   Button, Col, DatePicker, Empty, Form, Input, InputNumber, Modal, Popconfirm,
-  Row, Select, Table, Tag, Typography, message,
+  Row, Select, Table, Tag, message,
 } from "antd";
 import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
@@ -30,7 +30,6 @@ import { formatDate, formatVND } from "@/utils/format";
 import { t } from "@/lib/i18n";
 import { PageHeader } from "@/components/PageHeader";
 
-const { Text } = Typography;
 
 interface VoucherFormValues {
   code: string;
@@ -401,13 +400,6 @@ export function VoucherPage() {
         title={t("Voucher khuyến mãi")}
         subtitle={t("Voucher mới luôn ở trạng thái Nháp — phải kích hoạt mới dùng được")}
       />
-
-      <div className="reception-card" style={{ padding: "16px 20px", marginBottom: 12 }}>
-        <div style={{ fontWeight: 700, fontSize: 16, color: "#101c2c" }}>{t("Voucher khuyến mãi")}</div>
-        <Text style={{ fontSize: 13, color: "#6f7c90" }}>
-          {t("Quản lý các chương trình khuyến mãi cho khách hàng")}
-        </Text>
-      </div>
 
       <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
         <Col xs={12} md={6}><StatTile value={stats?.total ?? 0} label={t("Tổng voucher")} testId="voucher-stat-total" /></Col>

@@ -1134,17 +1134,31 @@ button {
   cursor: default;
 }
 
+/* The design's header strip: 11.5px small caps on #fafbfd. Its rows carry
+   20px of padding at the card's edge and a 12px gap between columns, so a
+   table cell takes half that gap on each side and the outer cells make up the
+   edge. That keeps the design's rhythm without widening every column. */
 .ant-table-wrapper .ant-table-thead > tr > th {
   background: var(--bd-bg-head);
   color: var(--bd-muted);
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  padding: 12px 14px;
+  padding: 13px 6px;
   height: auto;
   border-bottom: 1px solid var(--bd-line-soft);
   min-width: 100px;
+}
+
+.ant-table-wrapper .ant-table-thead > tr > th:first-child,
+.ant-table-wrapper .ant-table-tbody > tr > td:first-child {
+  padding-left: 20px;
+}
+
+.ant-table-wrapper .ant-table-thead > tr > th:last-child,
+.ant-table-wrapper .ant-table-tbody > tr > td:last-child {
+  padding-right: 20px;
 }
 
 .ant-table-wrapper .ant-table-thead > tr > th.ant-table-cell-fix-right {
@@ -1156,11 +1170,16 @@ button {
 }
 
 .ant-table-wrapper .ant-table-tbody > tr > td {
-  font-size: 12.5px;
-  padding: 11px 14px;
+  font-size: 13px;
+  padding: 13px 6px;
   height: auto;
   border-bottom: 1px solid var(--bd-bg);
   color: var(--bd-sub);
+}
+
+/* The design washes the row under the cursor. */
+.ant-table-wrapper .ant-table-tbody > tr:hover > td {
+  background: var(--bd-bg-soft);
 }
 
 .ant-table-wrapper .ant-table-tbody > tr:last-child > td {
