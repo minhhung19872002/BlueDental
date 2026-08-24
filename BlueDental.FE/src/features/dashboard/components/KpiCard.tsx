@@ -1,4 +1,4 @@
-import { Loader2 } from "lucide-react";
+import { Spin } from "antd";
 import type { ReactNode } from "react";
 
 interface KpiCardProps {
@@ -25,7 +25,7 @@ export function KpiCard({ label, value, sub, icon, color, loading }: KpiCardProp
         </span>
       </div>
       {loading ? (
-        <Loader2 className="size-4 animate-spin text-primary mt-3" />
+        <Spin size="small" style={{ marginTop: 12 }} />
       ) : (
         <div className="kpi-card-value">{value}</div>
       )}

@@ -1,29 +1,16 @@
 import React from "react";
+import { Table, Tag, Button, Dropdown, Space, Typography, Tooltip } from "antd";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  MoreHorizontal,
-  Check,
-  Clock,
-  RefreshCw,
-  Loader2,
-} from "lucide-react";
+  MoreOutlined,
+  CheckOutlined,
+  ClockCircleOutlined,
+  SyncOutlined,
+} from "@ant-design/icons";
+import type { ColumnsType } from "antd/es/table";
 import type { ReceptionItem, ReceptionStatus, RefType } from "../types/reception";
 import { t } from "@/lib/i18n";
+
+const { Text } = Typography;
 
 interface ReceptionTableProps {
   items: ReceptionItem[];
@@ -32,189 +19,260 @@ interface ReceptionTableProps {
   onRowClick?: (item: ReceptionItem) => void;
 }
 
-const refTypeLabels: Record<RefType, { label: string; className: string }> = {
-  Medical:   { label: "Y tế",      className: "bg-purple-100 text-purple-700" },
-  Self:      { label: "Tự đến",    className: "bg-blue-100 text-blue-700" },
-  Referral:  { label: "Giới thiệu", className: "bg-cyan-100 text-cyan-700" },
-  Marketing: { label: "Marketing", className: "bg-indigo-100 text-indigo-700" },
-};
-
 export const ReceptionTable: React.FC<ReceptionTableProps> = ({
   items,
   loading = false,
   onStatusChange,
   onRowClick,
 }) => {
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+
+  const refTypeLabels: Record<RefType, { label: string; color: string }> = {
+    Medical:   { label: t("Y tế"),   color: "purple" },
+    Self:      { label: t("Tự đến"),      color: "blue" },
+    Referral:  { label: t("Giới thiệu"),  color: "cyan" },
+    Marketing: { label: t("Marketing"), color: "geekblue" },
+  };
+
+  const columns: ColumnsType<ReceptionItem> = [
+    {
+      title: t("Số phiếu"),
+      dataIndex: "voucherCode",
+      key: "voucherCode",
+      width: 140,
+      render: (code: string) => (
+        <Text strong style={{ color: "#2671D8", fontFamily: "monospace" }}>
+          {code}
+        </Text>
+      ),
+    },
+    {
+      title: t("Bệnh nhân"),
+      dataIndex: "patientName",
+      key: "patientName",
+      width: 220,
+      render: (name: string, record: ReceptionItem) => (
+        <div>
+          <div>
+            <Text strong style={{ color: "#0F172A" }}>
+              {name}
+            </Text>{" "}
+            {record.patientType === "New" ? (
+              <Tag color="green" style={{ fontSize: 10, borderRadius: 4 }}>
+                {t("Mới")}
+              </Tag>
+            ) : (
+              <Tag color="default" style={{ fontSize: 10, borderRadius: 4 }}>
+                {t("Cũ")}
+              </Tag>
+            )}
+          </div>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {record.patientPhone}
+          </Text>
+        </div>
+      ),
+    },
+    {
+      title: t("Bác sĩ tiếp nhận"),
+      dataIndex: "doctorName",
+      key: "doctorName",
+      width: 180,
+      render: (doc: string) => (
+        <Text style={{ fontWeight: 500, color: "#334155" }}>
+          {doc}
+        </Text>
+      ),
+    },
+    {
+      title: t("Nhân sự tư vấn"),
+      dataIndex: "adviseDoctorName",
+      key: "adviseDoctorName",
+      width: 160,
+      render: (advise: string | undefined) => (
+        <Text type="secondary" style={{ fontSize: 13 }}>
+          {advise ?? t("Chưa phân công")}
+        </Text>
+      ),
+    },
+    {
+      title: t("Nguồn tiếp nhận"),
+      dataIndex: "refType",
+      key: "refType",
+      width: 130,
+      render: (refType: RefType) => {
+        const conf = refTypeLabels[refType] ?? { label: refType, color: "default" };
+        return <Tag color={conf.color}>{conf.label}</Tag>;
+      },
+    },
+    {
+      title: t("Trạng thái"),
+      dataIndex: "status",
+      key: "status",
+      width: 140,
+      render: (status: ReceptionStatus) => {
+        if (status === "WaitingForExam") {
+          return (
+            <Tag icon={<ClockCircleOutlined />} color="processing">
+              {t("Chờ khám")}
+            </Tag>
+          );
+        }
+        if (status === "InProgress") {
+          return (
+            <Tag icon={<SyncOutlined spin />} color="warning">
+              {t("Đang khám")}
+            </Tag>
+          );
+        }
+        if (status === "Completed") {
+          return (
+            <Tag icon={<CheckOutlined />} color="success">
+              {t("Hoàn thành")}
+            </Tag>
+          );
+        }
+        return <Tag color="default">{status}</Tag>;
+      },
+    },
+    {
+      title: t("Dịch vụ điều trị"),
+      dataIndex: "services",
+      key: "services",
+      width: 200,
+      render: (services: string[]) => (
+        <Space size={[0, 4]} wrap>
+          {services.map((s, idx) => (
+            <Tag key={idx} style={{ borderRadius: 12, fontSize: 12 }}>
+              {s}
+            </Tag>
+          ))}
+        </Space>
+      ),
+    },
+    {
+      title: t("Tổng tiền"),
+      dataIndex: "totalDue",
+      key: "totalDue",
+      width: 140,
+      align: "right",
+      render: (amt: number) => (
+        <Text strong style={{ color: "#0F172A" }}>
+          {amt.toLocaleString("vi-VN")} đ
+        </Text>
+      ),
+    },
+    {
+      title: t("Thao tác"),
+      key: "actions",
+      width: 140,
+      fixed: "right",
+      align: "center",
+      render: (_, record: ReceptionItem) => {
+        const menuItems = [
+          {
+            key: "start",
+            label: t("Chuyển sang Đang khám"),
+            disabled: record.status === "InProgress" || record.status === "Completed",
+            onClick: () => onStatusChange(record.id, "InProgress"),
+          },
+          {
+            key: "complete",
+            label: t("Kết thúc điều trị (Hoàn thành)"),
+            disabled: record.status === "Completed",
+            onClick: () => onStatusChange(record.id, "Completed"),
+          },
+          { type: "divider" as const },
+          {
+            key: "edit-note",
+            label: t("Sửa ghi chú"),
+          },
+          {
+            key: "remove-note",
+            label: t("Xoá ghi chú"),
+            danger: true,
+          },
+        ];
+
+        return (
+          <Space size={8}>
+            {record.status === "WaitingForExam" && (
+              <Tooltip title={t("Chuyển vào khám")}>
+                <Button
+                  size="small"
+                  type="primary"
+                  onClick={() => onStatusChange(record.id, "InProgress")}
+                  style={{
+                    backgroundColor: "#2671D8",
+                    borderColor: "#2671D8",
+                    fontSize: 12,
+                  }}
+                >
+                  {t("Tiếp nhận")}
+                </Button>
+              </Tooltip>
+            )}
+
+            {record.status === "InProgress" && (
+              <Tooltip title={t("Hoàn thành dịch vụ")}>
+                <Button
+                  size="small"
+                  type="primary"
+                  onClick={() => onStatusChange(record.id, "Completed")}
+                  style={{
+                    backgroundColor: "#10B981",
+                    borderColor: "#10B981",
+                    fontSize: 12,
+                  }}
+                >
+                  {t("Xong")}
+                </Button>
+              </Tooltip>
+            )}
+
+            <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
+              <Button type="text" icon={<MoreOutlined />} size="small" />
+            </Dropdown>
+          </Space>
+        );
+      },
+    },
+  ];
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-border bg-white shadow-sm">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-36">{t("Số phiếu")}</TableHead>
-            <TableHead className="w-56">{t("Bệnh nhân")}</TableHead>
-            <TableHead className="w-44">{t("Bác sĩ tiếp nhận")}</TableHead>
-            <TableHead className="w-40">{t("Nhân sự tư vấn")}</TableHead>
-            <TableHead className="w-32">{t("Nguồn tiếp nhận")}</TableHead>
-            <TableHead className="w-36">{t("Trạng thái")}</TableHead>
-            <TableHead className="w-48">{t("Dịch vụ điều trị")}</TableHead>
-            <TableHead className="w-36 text-right">{t("Tổng tiền")}</TableHead>
-            <TableHead className="w-36 text-center">{t("Thao tác")}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {items.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={9} className="py-12 text-center">
-                <div className="text-3xl mb-2">📋</div>
-                <p className="font-semibold text-muted-foreground">{t("Danh sách trống")}</p>
-                <p className="text-sm text-muted-foreground">{t("Không tìm thấy hồ sơ tiếp nhận nào phù hợp với bộ lọc.")}</p>
-              </TableCell>
-            </TableRow>
-          ) : (
-            items.map((record) => (
-              <TableRow
-                key={record.id}
-                onClick={() => onRowClick?.(record)}
-                className={onRowClick ? "cursor-pointer" : undefined}
-              >
-                {/* Số phiếu */}
-                <TableCell>
-                  <span className="font-semibold font-mono text-[#2671D8]">{record.voucherCode}</span>
-                </TableCell>
-
-                {/* Bệnh nhân */}
-                <TableCell>
-                  <div className="flex items-center gap-1 flex-wrap">
-                    <span className="font-semibold text-[#0F172A]">{record.patientName}</span>
-                    {record.patientType === "New" ? (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-700">{t("Mới")}</span>
-                    ) : (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">{t("Cũ")}</span>
-                    )}
-                  </div>
-                  <div className="text-xs text-muted-foreground">{record.patientPhone}</div>
-                </TableCell>
-
-                {/* Bác sĩ tiếp nhận */}
-                <TableCell>
-                  <span className="font-medium text-[#334155]">{record.doctorName}</span>
-                </TableCell>
-
-                {/* Nhân sự tư vấn */}
-                <TableCell>
-                  <span className="text-sm text-muted-foreground">{record.adviseDoctorName ?? t("Chưa phân công")}</span>
-                </TableCell>
-
-                {/* Nguồn tiếp nhận */}
-                <TableCell>
-                  {(() => {
-                    const conf = refTypeLabels[record.refType as RefType] ?? { label: record.refType, className: "bg-gray-100 text-gray-600" };
-                    return (
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${conf.className}`}>
-                        {conf.label}
-                      </span>
-                    );
-                  })()}
-                </TableCell>
-
-                {/* Trạng thái */}
-                <TableCell>
-                  {record.status === "WaitingForExam" && (
-                    <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">
-                      <Clock size={12} /> {t("Chờ khám")}
-                    </span>
-                  )}
-                  {record.status === "InProgress" && (
-                    <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 font-medium">
-                      <RefreshCw size={12} /> {t("Đang khám")}
-                    </span>
-                  )}
-                  {record.status === "Completed" && (
-                    <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">
-                      <Check size={12} /> {t("Hoàn thành")}
-                    </span>
-                  )}
-                  {!["WaitingForExam", "InProgress", "Completed"].includes(record.status) && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{record.status}</span>
-                  )}
-                </TableCell>
-
-                {/* Dịch vụ điều trị */}
-                <TableCell>
-                  <div className="flex flex-wrap gap-1">
-                    {(record.services ?? []).map((s: string, idx: number) => (
-                      <span key={idx} className="text-xs px-2 py-0.5 rounded-full border border-border bg-gray-50">{s}</span>
-                    ))}
-                  </div>
-                </TableCell>
-
-                {/* Tổng tiền */}
-                <TableCell className="text-right">
-                  <span className="font-semibold text-[#0F172A]">{record.totalDue.toLocaleString("vi-VN")} đ</span>
-                </TableCell>
-
-                {/* Thao tác */}
-                <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                  <div className="flex items-center justify-center gap-1">
-                    {record.status === "WaitingForExam" && (
-                      <Button
-                        size="sm"
-                        className="h-7 text-xs bg-[#2671D8] hover:bg-[#1c5bb8]"
-                        title={t("Chuyển vào khám")}
-                        onClick={() => onStatusChange(record.id, "InProgress")}
-                      >
-                        {t("Tiếp nhận")}
-                      </Button>
-                    )}
-                    {record.status === "InProgress" && (
-                      <Button
-                        size="sm"
-                        className="h-7 text-xs bg-[#10B981] hover:bg-[#0e9f72]"
-                        title={t("Hoàn thành dịch vụ")}
-                        onClick={() => onStatusChange(record.id, "Completed")}
-                      >
-                        {t("Xong")}
-                      </Button>
-                    )}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                          <MoreHorizontal size={14} />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          disabled={record.status === "InProgress" || record.status === "Completed"}
-                          onClick={() => onStatusChange(record.id, "InProgress")}
-                        >
-                          {t("Chuyển sang Đang khám")}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          disabled={record.status === "Completed"}
-                          onClick={() => onStatusChange(record.id, "Completed")}
-                        >
-                          {t("Kết thúc điều trị (Hoàn thành)")}
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem>{t("Sửa ghi chú")}</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">{t("Xoá ghi chú")}</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </div>
+    <Table<ReceptionItem>
+      columns={columns}
+      dataSource={items}
+      rowKey="id"
+      loading={loading}
+      onRow={(record) => ({
+        onClick: () => onRowClick?.(record),
+        style: onRowClick ? { cursor: "pointer" } : undefined,
+      })}
+      pagination={{
+        pageSize: 10,
+        showSizeChanger: true,
+        showTotal: (total) => t("Tổng số {0} hồ sơ tiếp nhận", total),
+      }}
+      locale={{
+        emptyText: (
+          <div style={{ padding: "32px 0", textAlign: "center" }}>
+            <div style={{ fontSize: 36, marginBottom: 8 }}>📋</div>
+            <Text strong style={{ color: "#64748B", display: "block" }}>
+              {t("Danh sách trống")}
+            </Text>
+            <Text type="secondary" style={{ fontSize: 13 }}>
+              {t("Không tìm thấy hồ sơ tiếp nhận nào phù hợp với bộ lọc.")}
+            </Text>
+          </div>
+        ),
+      }}
+      scroll={{ x: 1400 }}
+      style={{
+        background: "#FFFFFF",
+        borderRadius: 16,
+        overflow: "hidden",
+        boxShadow: "0 4px 20px rgba(15, 23, 42, 0.04)",
+      }}
+    />
   );
 };

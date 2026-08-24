@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { message, Spin } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 import { ReceptionToolbar } from "../components/ReceptionToolbar";
 import { ReceptionStatusTabs } from "../components/ReceptionStatusTabs";
@@ -50,10 +49,10 @@ export const ReceptionPage: React.FC = () => {
       { id, status: newStatus },
       {
         onSuccess: () => {
-          toast.success(t("Cập nhật trạng thái tiếp nhận thành công!"));
+          message.success(t("Cập nhật trạng thái tiếp nhận thành công!"));
         },
         onError: (err) => {
-          toast.error(err.message || t("Cập nhật trạng thái thất bại"));
+          message.error(err.message || t("Cập nhật trạng thái thất bại"));
         },
       },
     );
@@ -110,7 +109,7 @@ export const ReceptionPage: React.FC = () => {
       <div className="reception-card-grid-wrapper">
         {listLoading ? (
           <div className="reception-loading">
-            <Loader2 className="size-8 animate-spin text-muted-foreground" />
+            <Spin size="large" />
           </div>
         ) : items.length === 0 ? (
           <ReceptionEmptyState />

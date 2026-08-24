@@ -1,25 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { DatePickerInput } from "@/components/ui/date-picker-input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { toast } from "sonner";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { DatePicker, Form, Input, InputNumber, Modal, Select, message } from "antd";
 import dayjs from "dayjs";
 import {
   PAYMENT_CHANNEL,
@@ -47,24 +27,24 @@ interface SalesEntryModalProps {
 }
 
 interface SalesEntryFormValues {
-  type: string;
+  type: SalesEntryType;
   categoryId: string;
-  amount: string;
-  channel: string;
+  amount: number;
+  channel: PaymentChannel;
   description: string;
-  entryDate: string;
+  entryDate: dayjs.Dayjs;
 }
 
 const CHANNEL_OPTIONS = Object.entries(PAYMENT_CHANNEL_LABELS).map(([value, label]) => ({
-  value: String(value),
+  value: Number(value) as PaymentChannel,
   label,
 }));
 
 export function SalesEntryModal({ open, entry, defaultType, onClose }: SalesEntryModalProps) {
+  const [form] = Form.useForm<SalesEntryFormValues>();
   const branchId = useCurrentBranchId();
   const currentUserId = useAuthStore((s) => s.user?.id);
   const [newCategoryName, setNewCategoryName] = useState("");
-  const [showAddCategory, setShowAddCategory] = useState(false);
 
   const createEntry = useCreateSalesEntry();
   const updateEntry = useUpdateSalesEntry();
@@ -72,71 +52,52 @@ export function SalesEntryModal({ open, entry, defaultType, onClose }: SalesEntr
 
   const { data: categoryPage } = useCashflowCategories(branchId, false);
   const isEdit = entry !== null;
-
-  const schema = z.object({
-    type: z.string().min(1),
-    categoryId: z.string().min(1, t("Vui lòng chọn mục")),
-    amount: z.string().min(1, t("Vui lòng nhập số tiền")),
-    channel: z.string().min(1),
-    description: z.string().min(1, t("Vui lòng nhập nội dung")),
-    entryDate: z.string().min(1, t("Vui lòng chọn ngày")),
-  });
-
-  const { control, handleSubmit, watch, reset, formState: { errors } } = useForm<SalesEntryFormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: {
-      type: String(entry?.type ?? defaultType),
-      categoryId: entry?.categoryId ?? "",
-      amount: entry?.amount ? String(entry.amount) : "",
-      channel: String(entry?.channel ?? PAYMENT_CHANNEL.Cash),
-      description: entry?.description ?? "",
-      entryDate: dayjs(entry?.entryDate ?? undefined).format("YYYY-MM-DD"),
-    },
-  });
-
-  const watchedType = watch("type");
+  const type = Form.useWatch("type", form) ?? entry?.type ?? defaultType;
 
   // Income and expense keep separate category lists, as on the reference.
-  const categories = (categoryPage?.items ?? []).filter((c) => String(c.type) === watchedType);
+  const categories = (categoryPage?.items ?? []).filter((c) => c.type === type);
 
   useEffect(() => {
     if (!open) return;
-    reset({
-      type: String(entry?.type ?? defaultType),
-      categoryId: entry?.categoryId ?? "",
-      amount: entry?.amount ? String(entry.amount) : "",
-      channel: String(entry?.channel ?? PAYMENT_CHANNEL.Cash),
+
+    form.setFieldsValue({
+      type: entry?.type ?? defaultType,
+      categoryId: entry?.categoryId ?? undefined,
+      amount: entry?.amount ?? undefined,
+      channel: entry?.channel ?? PAYMENT_CHANNEL.Cash,
       description: entry?.description ?? "",
-      entryDate: dayjs(entry?.entryDate ?? undefined).format("YYYY-MM-DD"),
+      entryDate: dayjs(entry?.entryDate ?? undefined),
     });
-    setShowAddCategory(false);
-    setNewCategoryName("");
-  }, [open, entry, defaultType, reset]);
+  }, [open, entry, defaultType, form]);
 
   const handleAddCategory = async () => {
     const name = newCategoryName.trim();
     if (!name) return;
 
     try {
-      await createCategory.mutateAsync({
+      const created = await createCategory.mutateAsync({
         clinicBranchId: branchId,
         name,
-        type: Number(watchedType) as SalesEntryType,
+        type,
         appliesToTransfers: false,
       });
+      form.setFieldValue("categoryId", created.id);
       setNewCategoryName("");
-      setShowAddCategory(false);
-      toast.success(t("Đã thêm mục thu chi"));
+      message.success(t("Đã thêm mục thu chi"));
     } catch (error) {
-      toast.error(extractApiError(error));
+      message.error(extractApiError(error));
     }
   };
 
-  const onSubmit = async (values: SalesEntryFormValues) => {
+  const handleSubmit = async () => {
+    const values = await form.validateFields();
+
     if (!currentUserId) {
-      toast.error(t("Không xác định được người dùng hiện tại."));
+      message.error(t("Không xác định được người dùng hiện tại."));
       return;
     }
+
+    const entryDate = values.entryDate.format("YYYY-MM-DD");
 
     try {
       if (isEdit) {
@@ -144,26 +105,26 @@ export function SalesEntryModal({ open, entry, defaultType, onClose }: SalesEntr
           id: entry.id,
           input: {
             categoryId: values.categoryId,
-            amount: Number(values.amount),
-            channel: Number(values.channel) as PaymentChannel,
+            amount: values.amount,
+            channel: values.channel,
             description: values.description,
-            entryDate: values.entryDate,
+            entryDate,
           },
         });
-        toast.success(t("Đã cập nhật phiếu"));
+        message.success(t("Đã cập nhật phiếu"));
       } else {
         await createEntry.mutateAsync({
           clinicBranchId: branchId,
-          type: Number(values.type) as SalesEntryType,
+          type: values.type,
           categoryId: values.categoryId,
           staffId: currentUserId,
-          amount: Number(values.amount),
-          channel: Number(values.channel) as PaymentChannel,
+          amount: values.amount,
+          channel: values.channel,
           description: values.description,
-          entryDate: values.entryDate,
+          entryDate,
         });
-        toast.success(
-          Number(values.type) === SALES_ENTRY_TYPE.Expense
+        message.success(
+          values.type === SALES_ENTRY_TYPE.Expense
             ? t("Đã tạo phiếu chi — đang chờ duyệt")
             : t("Đã tạo phiếu thu"),
         );
@@ -171,160 +132,90 @@ export function SalesEntryModal({ open, entry, defaultType, onClose }: SalesEntr
 
       onClose();
     } catch (error) {
-      toast.error(extractApiError(error));
+      message.error(extractApiError(error));
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>
-            {isEdit ? t("Sửa phiếu {0}", entry.code) : t("Tạo phiếu thu chi")}
-          </DialogTitle>
-        </DialogHeader>
+    <Modal
+      open={open}
+      title={isEdit ? t("Sửa phiếu {0}", entry.code) : t("Tạo phiếu thu chi")}
+      okText={isEdit ? t("Lưu") : t("Tạo")}
+      cancelText={t("Huỷ")}
+      confirmLoading={createEntry.isPending || updateEntry.isPending}
+      onOk={handleSubmit}
+      onCancel={onClose}
+      destroyOnHidden
+    >
+      <Form form={form} layout="vertical" requiredMark>
+        <Form.Item name="type" label={t("Loại phiếu")} rules={[{ required: true }]}>
+          <Select
+            disabled={isEdit}
+            options={[
+              { value: SALES_ENTRY_TYPE.Income, label: t("Phiếu thu") },
+              { value: SALES_ENTRY_TYPE.Expense, label: t("Phiếu chi (cần duyệt)") },
+            ]}
+            onChange={() => form.setFieldValue("categoryId", undefined)}
+          />
+        </Form.Item>
 
-        <div className="space-y-4 mt-2">
-          <div className="space-y-1">
-            <label className="text-sm font-medium">{t("Loại phiếu")} <span className="text-destructive">*</span></label>
-            <Controller
-              name="type"
-              control={control}
-              render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange} disabled={isEdit}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={String(SALES_ENTRY_TYPE.Income)}>{t("Phiếu thu")}</SelectItem>
-                    <SelectItem value={String(SALES_ENTRY_TYPE.Expense)}>{t("Phiếu chi (cần duyệt)")}</SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-sm font-medium">{t("Mục thu chi")} <span className="text-destructive">*</span></label>
-            <Controller
-              name="categoryId"
-              control={control}
-              render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger className={errors.categoryId ? "border-destructive" : ""}>
-                    <SelectValue placeholder={categories.length === 0 ? t("Chưa có mục — thêm bên dưới") : t("Chọn mục")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-            {errors.categoryId && <p className="text-xs text-destructive">{errors.categoryId.message}</p>}
-            <button
-              type="button"
-              className="text-xs text-primary underline"
-              onClick={() => setShowAddCategory((v) => !v)}
-            >
-              {showAddCategory ? t("Ẩn") : t("+ Thêm mục mới")}
-            </button>
-            {showAddCategory && (
-              <div className="flex gap-2 mt-1">
-                <Input
-                  placeholder={t("Thêm mục mới")}
-                  value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") void handleAddCategory(); }}
-                />
-                <Button type="button" size="sm" onClick={() => void handleAddCategory()}>{t("Thêm")}</Button>
-              </div>
+        <Form.Item
+          name="categoryId"
+          label={t("Mục thu chi")}
+          rules={[{ required: true, message: t("Vui lòng chọn mục") }]}
+        >
+          <Select
+            placeholder={categories.length === 0 ? t("Chưa có mục — thêm bên dưới") : t("Chọn mục")}
+            options={categories.map((c) => ({ value: c.id, label: c.name }))}
+            popupRender={(menu) => (
+              <>
+                {menu}
+                <div style={{ display: "flex", gap: 8, padding: 8 }}>
+                  <Input
+                    placeholder={t("Thêm mục mới")}
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    onPressEnter={handleAddCategory}
+                  />
+                </div>
+              </>
             )}
-          </div>
+          />
+        </Form.Item>
 
-          <div className="space-y-1">
-            <label className="text-sm font-medium">{t("Số tiền (đ)")} <span className="text-destructive">*</span></label>
-            <Controller
-              name="amount"
-              control={control}
-              render={({ field }) => (
-                <Input
-                  type="number"
-                  min={1}
-                  step={10000}
-                  {...field}
-                  className={errors.amount ? "border-destructive" : ""}
-                />
-              )}
-            />
-            {errors.amount && <p className="text-xs text-destructive">{errors.amount.message}</p>}
-          </div>
+        <Form.Item
+          name="amount"
+          label={t("Số tiền (đ)")}
+          rules={[
+            { required: true, message: t("Vui lòng nhập số tiền") },
+            { type: "number", min: 1, message: t("Số tiền phải lớn hơn 0") },
+          ]}
+        >
+          <InputNumber<number>
+            style={{ width: "100%" }}
+            min={0}
+            step={10000}
+            formatter={(v) => `${v ?? ""}`.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
+            parser={(v) => Number((v ?? "").replace(/\./g, ""))}
+          />
+        </Form.Item>
 
-          <div className="space-y-1">
-            <label className="text-sm font-medium">{t("Hình thức")} <span className="text-destructive">*</span></label>
-            <Controller
-              name="channel"
-              control={control}
-              render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CHANNEL_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-          </div>
+        <Form.Item name="channel" label={t("Hình thức")} rules={[{ required: true }]}>
+          <Select options={CHANNEL_OPTIONS} />
+        </Form.Item>
 
-          <div className="space-y-1">
-            <label className="text-sm font-medium">{t("Nội dung")} <span className="text-destructive">*</span></label>
-            <Controller
-              name="description"
-              control={control}
-              render={({ field }) => (
-                <textarea
-                  {...field}
-                  rows={2}
-                  placeholder={t("Nội dung thu / chi")}
-                  className={`w-full rounded-md border px-3 py-2 text-sm ${errors.description ? "border-destructive" : "border-input"}`}
-                />
-              )}
-            />
-            {errors.description && <p className="text-xs text-destructive">{errors.description.message}</p>}
-          </div>
+        <Form.Item
+          name="description"
+          label={t("Nội dung")}
+          rules={[{ required: true, message: t("Vui lòng nhập nội dung") }]}
+        >
+          <Input.TextArea rows={2} placeholder={t("Nội dung thu / chi")} />
+        </Form.Item>
 
-          <div className="space-y-1">
-            <label className="text-sm font-medium">{t("Ngày")} <span className="text-destructive">*</span></label>
-            <Controller
-              name="entryDate"
-              control={control}
-              render={({ field }) => (
-                <DatePickerInput
-                  value={field.value}
-                  onChange={(v) => field.onChange(v)}
-                  className={errors.entryDate ? "border-destructive" : ""}
-                />
-              )}
-            />
-            {errors.entryDate && <p className="text-xs text-destructive">{errors.entryDate.message}</p>}
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>{t("Huỷ")}</Button>
-          <Button
-            disabled={createEntry.isPending || updateEntry.isPending}
-            onClick={handleSubmit(onSubmit)}
-          >
-            {isEdit ? t("Lưu") : t("Tạo")}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <Form.Item name="entryDate" label={t("Ngày")} rules={[{ required: true }]}>
+          <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+        </Form.Item>
+      </Form>
+    </Modal>
   );
 }

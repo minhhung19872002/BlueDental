@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "antd";
 
 interface Props {
   icon?: string;
@@ -26,7 +26,11 @@ export function EmptyState({
         <div className="empty-state-description">{description}</div>
       )}
       {actionLabel && onAction && (
-        <Button onClick={onAction} className="mt-4">
+        <Button
+          type="primary"
+          onClick={onAction}
+          style={{ marginTop: 16 }}
+        >
           {actionLabel}
         </Button>
       )}

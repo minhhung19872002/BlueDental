@@ -1,62 +1,7 @@
-@import "tailwindcss";
-
 /* ==========================================================================
    BlueDental — Dental Clinic Management System
    Token colors kept in sync with src/theme/index.ts (export `brand`).
    ========================================================================== */
-
-/* ── Tailwind v4: register shadcn/ui color tokens via @theme ── */
-@theme inline {
-  --color-background: hsl(0 0% 100%);
-  --color-foreground: hsl(210 28% 12%);
-  --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(210 28% 12%);
-  --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: hsl(210 28% 12%);
-  --color-primary: hsl(218 51% 25%);
-  --color-primary-foreground: hsl(0 0% 100%);
-  --color-secondary: hsl(220 14% 96%);
-  --color-secondary-foreground: hsl(210 28% 12%);
-  --color-muted: hsl(220 14% 96%);
-  --color-muted-foreground: hsl(215 10% 50%);
-  --color-accent: hsl(220 14% 96%);
-  --color-accent-foreground: hsl(210 28% 12%);
-  --color-destructive: hsl(1 84% 62%);
-  --color-destructive-foreground: hsl(0 0% 100%);
-  --color-border: hsl(220 13% 91%);
-  --color-input: hsl(220 13% 91%);
-  --color-ring: hsl(218 51% 25%);
-  --color-chart-1: hsl(218 51% 25%);
-  --color-chart-2: hsl(155 63% 33%);
-  --color-chart-3: hsl(38 96% 58%);
-  --color-chart-4: hsl(1 84% 62%);
-  --color-chart-5: hsl(263 25% 51%);
-  --color-sidebar-background: hsl(222 59% 20%);
-  --color-sidebar-foreground: hsl(0 0% 100%);
-  --color-sidebar-primary: hsl(218 51% 25%);
-  --color-sidebar-primary-foreground: hsl(0 0% 100%);
-  --color-sidebar-accent: hsl(222 59% 25%);
-  --color-sidebar-accent-foreground: hsl(0 0% 100%);
-  --color-sidebar-border: hsl(222 40% 30%);
-  --color-sidebar-ring: hsl(218 51% 25%);
-  --radius: 0.625rem;
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --animate-accordion-down: accordion-down 0.2s ease-out;
-  --animate-accordion-up: accordion-up 0.2s ease-out;
-}
-
-@keyframes accordion-down {
-  from { height: 0; }
-  to { height: var(--radix-accordion-content-height); }
-}
-
-@keyframes accordion-up {
-  from { height: var(--radix-accordion-content-height); }
-  to { height: 0; }
-}
 
 :root {
   --bd-font: "Google Sans", "Be Vietnam Pro", system-ui, -apple-system, sans-serif;
@@ -1077,24 +1022,41 @@ button {
 }
 
 /* The design's sign-in button sweeps navy into gold. */
-.login-submit {
-  height: 48px !important;
-  border: 0 !important;
-  border-radius: 11px !important;
-  background: linear-gradient(120deg, #1c3566, #fdbf4f) !important;
-  font-size: 14.5px !important;
-  font-weight: 600 !important;
-  box-shadow: 0 10px 24px -12px rgba(28, 53, 102, 0.9) !important;
+.login-submit.ant-btn-primary {
+  height: 48px;
+  border: 0;
+  border-radius: 11px;
+  background: linear-gradient(120deg, #1c3566, #fdbf4f);
+  font-size: 14.5px;
+  font-weight: 600;
+  box-shadow: 0 10px 24px -12px rgba(28, 53, 102, 0.9);
   margin-top: 4px;
 }
 
-.login-submit:not(:disabled):hover {
-  background: linear-gradient(120deg, #1c3566, #fdbf4f) !important;
+.login-submit.ant-btn-primary:not(:disabled):hover {
+  background: linear-gradient(120deg, #1c3566, #fdbf4f);
   filter: brightness(1.06);
 }
 
-/* Login form fields */
-.login-form input {
+/* Login fields: label above, plain 46px box on a faint fill until focused. */
+.login-fields .ant-form-item {
+  margin-bottom: 14px;
+}
+
+.login-fields .ant-form-item .ant-form-item-label {
+  padding-bottom: 6px;
+  line-height: 1.2;
+}
+
+.login-fields .ant-form-item .ant-form-item-label > label {
+  height: auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--bd-sub);
+}
+
+.login-form .ant-input-affix-wrapper,
+.login-form .ant-input {
   height: 46px;
   padding: 0 14px;
   border-radius: 11px;
@@ -1102,9 +1064,20 @@ button {
   font-size: 14px;
 }
 
-.login-form input:focus {
+.login-form .ant-input-affix-wrapper > .ant-input {
+  height: auto;
+  padding: 0;
+  background: transparent;
+}
+
+.login-form .ant-input-affix-wrapper:focus-within,
+.login-form .ant-input:focus {
   background: #fff;
   border-color: var(--bd-primary);
+}
+
+.login-remember.ant-form-item {
+  margin-bottom: 4px;
 }
 
 @media (max-width: 900px) {
@@ -1115,6 +1088,230 @@ button {
   .login-aside {
     display: none;
   }
+}
+
+/* ── AntD overrides ── */
+
+.ant-table-wrapper .ant-table-content {
+  overflow-x: auto;
+}
+
+/* Grab to scroll — only when table has horizontal overflow */
+.ant-table-content.has-horizontal-scroll,
+.ant-table-body.has-horizontal-scroll {
+  cursor: grab;
+}
+
+.ant-table-content.is-grabbing,
+.ant-table-body.is-grabbing {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.has-horizontal-scroll button,
+.has-horizontal-scroll a,
+.has-horizontal-scroll input,
+.has-horizontal-scroll .ant-checkbox,
+.has-horizontal-scroll .ant-switch,
+.has-horizontal-scroll .ant-select,
+.has-horizontal-scroll .ant-dropdown-trigger,
+.has-horizontal-scroll .ant-btn,
+.has-horizontal-scroll .ant-tag {
+  cursor: pointer;
+}
+
+.has-horizontal-scroll .ant-table-cell-fix-left,
+.has-horizontal-scroll .ant-table-cell-fix-right {
+  cursor: default;
+}
+
+.ant-table-wrapper .ant-table-thead > tr > th {
+  background: var(--bd-bg-head);
+  color: var(--bd-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding: 12px 14px;
+  height: auto;
+  border-bottom: 1px solid var(--bd-line-soft);
+  min-width: 100px;
+}
+
+.ant-table-wrapper .ant-table-thead > tr > th.ant-table-cell-fix-right {
+  min-width: unset;
+}
+
+.ant-table-wrapper .ant-table-thead > tr > th::before {
+  display: none !important;
+}
+
+.ant-table-wrapper .ant-table-tbody > tr > td {
+  font-size: 12.5px;
+  padding: 11px 14px;
+  height: auto;
+  border-bottom: 1px solid var(--bd-bg);
+  color: var(--bd-sub);
+}
+
+.ant-table-wrapper .ant-table-tbody > tr:last-child > td {
+  border-bottom: none;
+}
+
+.ant-tag {
+  border: none;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  padding: 2px 10px;
+  margin-inline-end: 6px;
+}
+
+.ant-btn {
+  border-radius: var(--bd-radius-control);
+  font-weight: 600;
+}
+
+
+.ant-input,
+.ant-input-affix-wrapper,
+.ant-select .ant-select-selector,
+.ant-picker {
+  border-radius: var(--bd-radius-control);
+  border-color: var(--bd-line);
+}
+
+.ant-input::placeholder,
+.ant-input-affix-wrapper input::placeholder {
+  color: var(--bd-dim);
+}
+
+/* ── Segmented — global 40px wrapper / 29px items / primary active ── */
+.ant-segmented {
+  height: 40px;
+  padding: 4px;
+  background: var(--bd-bg);
+  border: 1px solid var(--bd-line);
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.ant-segmented .ant-segmented-item {
+  height: 29px;
+  min-height: 29px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--bd-muted);
+  padding: 0 14px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ant-segmented .ant-segmented-item-label {
+  min-height: unset;
+  line-height: 1;
+  padding: 0;
+}
+
+.ant-segmented .ant-segmented-item-selected {
+  background: var(--bd-blue);
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(28, 53, 102, 0.3);
+}
+
+.ant-segmented .ant-segmented-item:hover:not(.ant-segmented-item-selected) {
+  color: var(--bd-ink);
+}
+
+.ant-segmented .ant-segmented-thumb {
+  background: var(--bd-blue);
+  border-radius: 7px;
+  height: 29px;
+}
+
+.ant-modal .ant-modal-body {
+  max-height: calc(100vh - 190px);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.ant-modal .ant-modal-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--bd-ink);
+}
+
+.ant-drawer .ant-drawer-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--bd-ink);
+  letter-spacing: -0.2px;
+}
+
+.ant-table-wrapper .ant-table-pagination.ant-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 6px;
+  background: #fff;
+  padding: 12px 16px;
+  margin: 0 !important;
+  border-top: 1px solid #f0f0f0;
+  border-radius: 0 0 16px 16px;
+}
+
+.ant-table-wrapper .ant-table-pagination .ant-pagination-total-text {
+  order: -2;
+}
+
+.ant-table-wrapper .ant-table-pagination .ant-pagination-item {
+  background: #fff;
+  border-color: #d9d9d9;
+  min-width: 32px;
+  height: 32px;
+  line-height: 32px;
+}
+
+.ant-table-wrapper .ant-table-pagination .ant-pagination-item-active {
+  background: var(--bd-blue, #2671D8);
+  border-color: var(--bd-blue, #2671D8);
+}
+
+.ant-table-wrapper .ant-table-pagination .ant-pagination-item-active a {
+  color: #fff;
+}
+
+.ant-table-wrapper .ant-table-pagination .ant-pagination-item,
+.ant-table-wrapper .ant-table-pagination .ant-pagination-prev,
+.ant-table-wrapper .ant-table-pagination .ant-pagination-next,
+.ant-table-wrapper .ant-table-pagination .ant-pagination-jump-prev,
+.ant-table-wrapper .ant-table-pagination .ant-pagination-jump-next {
+  margin-inline-end: 0;
+}
+
+.ant-table-wrapper .ant-table-pagination .ant-pagination-prev,
+.ant-table-wrapper .ant-table-pagination .ant-pagination-next {
+  min-width: 32px;
+  height: 32px;
+  line-height: 32px;
+}
+
+.ant-table-wrapper .ant-table-pagination .ant-pagination-prev .ant-pagination-item-link,
+.ant-table-wrapper .ant-table-pagination .ant-pagination-next .ant-pagination-item-link {
+  background: #fff;
+  border-color: #d9d9d9;
+}
+
+.ant-table-wrapper .ant-table-pagination .ant-pagination-options {
+  order: -1;
+  margin-inline-start: 0;
+  margin-inline-end: auto;
 }
 
 /* ── Reception page ── */
@@ -1271,14 +1468,6 @@ button {
 .reception-card--content {
   padding: 16px;
   min-height: 120px;
-}
-
-/* ── Patient table card — table fills edge-to-edge ── */
-.patient-table-card {
-  padding: 0;
-  min-height: 120px;
-  overflow: hidden;
-  gap: 0;
 }
 
 .reception-loading {
@@ -2365,7 +2554,10 @@ button {
   }
 
   /* Wide tables scroll inside their own card rather than the page. */
-  table { overflow-x: auto; }
+  .ant-table-wrapper .ant-table-content,
+  .ant-table-wrapper .ant-table-body {
+    overflow-x: auto;
+  }
 }
 
 @media (max-width: 460px) {
@@ -2418,310 +2610,6 @@ button {
   .app-header {
     padding: 0 10px;
     gap: 8px;
-  }
-}
-
-/* ── Patient Editor Modal ── */
-
-/* Patient editor dialog uses shadcn Dialog */
-.patient-editor-modal [data-slot="dialog-title"] {
-  font-size: 20px;
-  font-weight: 700;
-  color: #1F2937;
-}
-
-.patient-editor-modal [data-slot="dialog-content"] {
-  border-radius: 12px;
-  overflow: hidden;
-  max-width: 900px;
-}
-
-.patient-editor-body {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 20px;
-}
-
-.patient-editor-col {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-/* Floating label field */
-.floating-field {
-  margin-bottom: 14px;
-}
-
-.floating-field-wrapper {
-  position: relative;
-}
-
-.floating-field-wrapper input,
-.floating-field-wrapper select,
-.floating-field-wrapper [data-slot="select-trigger"] {
-  padding-top: 18px;
-  padding-bottom: 4px;
-  height: 48px;
-  font-size: 14px;
-  border-radius: 8px;
-  border-color: #E5E7EB;
-}
-
-.floating-field-wrapper input:hover,
-.floating-field-wrapper select:hover,
-.floating-field-wrapper [data-slot="select-trigger"]:hover {
-  border-color: #9CA3AF;
-}
-
-.floating-field-wrapper input:focus,
-.floating-field-wrapper [data-slot="select-trigger"]:focus {
-  border-color: #2671D8;
-  box-shadow: 0 0 0 2px rgba(38, 113, 216, 0.1);
-}
-
-.floating-field-wrapper textarea {
-  height: auto;
-  padding-top: 22px;
-  min-height: 48px;
-}
-
-/* Icon prefix for floating field */
-.floating-field-icon {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 1;
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-}
-
-.floating-field-icon + input,
-.floating-field-icon + [data-slot="select-trigger"] {
-  padding-left: 34px !important;
-}
-
-.floating-field-label--with-icon {
-  left: 34px;
-}
-
-.floating-field-label {
-  position: absolute;
-  top: 4px;
-  left: 12px;
-  font-size: 11px;
-  color: #9CA3AF;
-  pointer-events: none;
-  z-index: 1;
-  line-height: 16px;
-}
-
-.floating-field-required {
-  color: #EF4444;
-  margin-left: 2px;
-}
-
-.floating-field--error input,
-.floating-field--error [data-slot="select-trigger"] {
-  border-color: #EF4444;
-}
-
-.floating-field-error {
-  font-size: 12px;
-  color: #EF4444;
-  margin-top: 4px;
-}
-
-/* Patient code field */
-.patient-code-field {
-  display: flex;
-  align-items: center;
-  border: 1px solid #E5E7EB;
-  border-radius: 8px;
-  height: 48px;
-  padding: 0 12px;
-  padding-top: 14px;
-  background: #fff;
-}
-
-.patient-code-field input {
-  border: none;
-  box-shadow: none;
-  padding: 0;
-  height: auto;
-  font-size: 14px;
-}
-
-.patient-code-prefix {
-  color: #9CA3AF;
-  font-size: 14px;
-  white-space: nowrap;
-}
-
-/* IN HOA checkbox */
-.patient-uppercase-check {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: #374151;
-  margin-top: -8px;
-  margin-bottom: 10px;
-  cursor: pointer;
-}
-
-.patient-uppercase-check input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  accent-color: #2671D8;
-  cursor: pointer;
-  border-radius: 3px;
-}
-
-/* Source row with + button */
-.patient-source-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-}
-
-.patient-source-row .floating-field {
-  flex: 1;
-}
-
-.patient-source-add-btn {
-  margin-top: 6px;
-  flex-shrink: 0;
-  width: 36px !important;
-  height: 36px !important;
-  min-width: 36px !important;
-  font-size: 16px;
-  background: #1c3566 !important;
-  border-color: #1c3566 !important;
-}
-
-/* Tabs */
-.patient-editor-tabs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.patient-editor-tab {
-  padding: 6px 18px;
-  border-radius: 20px;
-  border: 1px solid #D1D5DB;
-  background: #fff;
-  font-size: 13px;
-  font-weight: 500;
-  color: #6B7280;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.patient-editor-tab:hover {
-  border-color: #2671D8;
-  color: #2671D8;
-}
-
-.patient-editor-tab--active {
-  background: #1c3566;
-  border-color: #1c3566;
-  color: #fff;
-}
-
-.patient-editor-tab--active:hover {
-  background: #1c3566;
-  border-color: #1c3566;
-  color: #fff;
-}
-
-.patient-editor-tab-content {
-  display: flex;
-  flex-direction: column;
-}
-
-.patient-editor-field-group {
-  margin-bottom: 16px;
-}
-
-.patient-editor-field-label {
-  display: block;
-  font-size: 13px;
-  color: #6B7280;
-  margin-bottom: 6px;
-}
-
-/* Medical History (Tiểu sử bệnh) */
-.medical-history-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 12px;
-  letter-spacing: 0.02em;
-}
-
-/* Medical history accordion uses shadcn Accordion */
-.medical-history-collapse {
-  background: transparent;
-  border: none;
-}
-
-.medical-history-collapse [data-slot="accordion-item"] {
-  border: 1px solid #E5E7EB;
-  border-radius: 8px;
-  margin-bottom: 8px;
-  overflow: hidden;
-}
-.medical-history-collapse [data-slot="accordion-trigger"] {
-  padding: 10px 16px;
-  background: #FAFBFC;
-}
-
-.medical-history-collapse [data-slot="accordion-content"] {
-  border-top: 1px solid #E5E7EB;
-  padding: 12px 16px;
-}
-
-.medical-history-items label {
-  font-size: 14px;
-  color: #374151;
-}
-
-.medical-history-no-items {
-  padding: 10px 16px;
-  border: 1px solid #E5E7EB;
-  border-radius: 8px;
-  margin-bottom: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #374151;
-  background: #FAFBFC;
-  cursor: default;
-}
-
-/* Footer */
-.patient-editor-footer {
-  display: flex;
-  justify-content: flex-end;
-  padding-top: 16px;
-  margin-top: 4px;
-  border-top: 1px solid #F3F4F6;
-}
-
-.patient-editor-footer [data-slot="button"] {
-  height: 40px;
-  padding: 0 28px;
-  font-size: 14px;
-  font-weight: 500;
-  border-radius: 8px;
-}
-
-@media (max-width: 900px) {
-  .patient-editor-body {
-    grid-template-columns: 1fr;
   }
 }
 
@@ -2985,24 +2873,97 @@ body {
   }
 }
 
-/* The design tints the backdrop navy and blurs what is behind it. */
-[data-slot="dialog-overlay"],
-[data-slot="sheet-overlay"] {
+/* The design tints the backdrop navy and blurs what is behind it, rather than
+   using a neutral scrim. */
+.ant-modal-mask,
+.ant-drawer-mask {
   background: rgba(21, 42, 82, 0.45) !important;
   backdrop-filter: blur(3px);
   -webkit-backdrop-filter: blur(3px);
 }
 
-[data-slot="dialog-content"] {
+.ant-modal .ant-modal-content {
   border-radius: 18px;
+  padding: 0;
+  overflow: hidden;
   box-shadow: var(--bd-shadow-modal);
+  animation: bd-pop-in 0.18s ease;
 }
 
-[data-slot="dialog-title"],
-[data-slot="sheet-title"] {
+.ant-modal .ant-modal-header {
+  margin: 0;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--bd-line-soft);
+  border-radius: 0;
+}
+
+.ant-modal .ant-modal-title {
   font-size: 16px;
   font-weight: 650;
   color: var(--bd-ink);
+}
+
+.ant-modal .ant-modal-body {
+  padding: 20px;
+}
+
+.ant-modal .ant-modal-footer {
+  margin: 0;
+  padding: 14px 20px;
+  border-top: 1px solid var(--bd-line-soft);
+}
+
+.ant-modal .ant-modal-close {
+  top: 14px;
+  inset-inline-end: 14px;
+}
+
+.ant-drawer .ant-drawer-header {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--bd-line-soft);
+}
+
+.ant-drawer .ant-drawer-body {
+  padding: 20px;
+}
+
+/* Fields inside a dialog: label above, faint fill until focus. */
+.ant-modal .ant-form-item,
+.ant-drawer .ant-form-item {
+  margin-bottom: 12px;
+}
+
+.ant-modal .ant-form-item-label,
+.ant-drawer .ant-form-item-label {
+  padding-bottom: 5px;
+}
+
+.ant-modal .ant-form-item-label > label,
+.ant-drawer .ant-form-item-label > label {
+  height: auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--bd-sub);
+}
+
+.ant-modal .ant-input,
+.ant-modal .ant-input-affix-wrapper,
+.ant-modal .ant-input-number,
+.ant-modal .ant-picker,
+.ant-modal .ant-select .ant-select-selector,
+.ant-drawer .ant-input,
+.ant-drawer .ant-input-affix-wrapper,
+.ant-drawer .ant-input-number,
+.ant-drawer .ant-picker,
+.ant-drawer .ant-select .ant-select-selector {
+  background: var(--bd-bg-soft);
+}
+
+.ant-modal .ant-input:focus,
+.ant-modal .ant-input-affix-wrapper-focused,
+.ant-drawer .ant-input:focus,
+.ant-drawer .ant-input-affix-wrapper-focused {
+  background: #fff;
 }
 
 /* ── Thanh toán & hoá đơn ── */

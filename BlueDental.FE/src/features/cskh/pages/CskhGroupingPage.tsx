@@ -1,49 +1,21 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button, Input, Select, Spin, Table, Tag, Modal, Form, message, Popconfirm } from "antd";
 import {
-  Select,
-  SelectContent,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogFooter,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Loader2, Search, Download, Plus, Pencil, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+  SearchOutlined,
+  DownloadOutlined,
+  LeftOutlined,
+  RightOutlined,
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+} from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 import "dayjs/locale/vi";
 import { useCareRecordList } from "../api/careApi";
 import type { CareType as ApiCareType, CareStatus } from "../api/careApi";
 import { useDebounce } from "@/hooks/useDebounce";
-import { DateNavigator } from "@/components/DateNavigator";
-import { SegmentedControl } from "@/components/ui/segmented-control";
 import { t } from "@/lib/i18n";
 import { PageHeader } from "@/components/PageHeader";
-import { useForm } from "react-hook-form";
 
 dayjs.locale("vi");
 
@@ -120,6 +92,31 @@ export function CskhGroupingPage() {
     { key: "special",              label: t("CSKH đặc biệt") },
   ];
 
+  const TABLE_COLUMNS = [
+    { title: t("Ngày chăm sóc"),            dataIndex: "careDate",            key: "careDate" },
+    { title: t("Họ và tên"),         dataIndex: "fullName",            key: "fullName" },
+    { title: t("Số điện thoại"),             dataIndex: "phone",               key: "phone" },
+    { title: t("Bác sĩ điều trị"),      dataIndex: "doctor",              key: "doctor" },
+    { title: t("Lịch hẹn sắp tới"), dataIndex: "upcomingAppointment", key: "upcomingAppointment" },
+    {
+      title: t("Trạng thái"),
+      dataIndex: "status",
+      key: "status",
+      render: (status: string | undefined) =>
+        status ? <Tag>{status}</Tag> : null,
+    },
+    { title: t("Ghi chú"), dataIndex: "note", key: "note" },
+    {
+      title: t("Thao tác"),
+      key: "actions",
+      render: () => (
+        <Button size="small" type="link">
+          {t("Chi tiết")}
+        </Button>
+      ),
+    },
+  ];
+
   const { data: careData, isLoading: careLoading } = useCareRecordList({
     type: CARE_TYPE_MAP[careType],
     status: STATUS_MAP[statusFilter],
@@ -128,6 +125,23 @@ export function CskhGroupingPage() {
   });
 
   const careRecords = careData?.items ?? [];
+
+  const handlePrev = () => {
+    if (viewMode === "day") setCurrentDate((d) => d.subtract(1, "day"));
+    else if (viewMode === "week") setCurrentDate((d) => d.subtract(1, "week"));
+    else setCurrentDate((d) => d.subtract(1, "month"));
+  };
+
+  const handleNext = () => {
+    if (viewMode === "day") setCurrentDate((d) => d.add(1, "day"));
+    else if (viewMode === "week") setCurrentDate((d) => d.add(1, "week"));
+    else setCurrentDate((d) => d.add(1, "month"));
+  };
+
+  const formattedDate =
+    viewMode === "month"
+      ? currentDate.format("MM/YYYY")
+      : currentDate.format("DD/MM/YYYY");
 
   return (
     <div className="reception-page">
@@ -163,16 +177,43 @@ export function CskhGroupingPage() {
       {/* Toolbar row 1: date navigation */}
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <SegmentedControl
-            options={VIEW_MODES}
-            value={viewMode}
-            onChange={setViewMode}
-          />
-          <DateNavigator
-            value={currentDate}
-            mode={viewMode}
-            onChange={setCurrentDate}
-          />
+          {/* View mode buttons */}
+          <div style={{ display: "flex", border: "1px solid #d9d9d9", borderRadius: 6, overflow: "hidden" }}>
+            {VIEW_MODES.map((vm) => (
+              <button
+                key={vm.key}
+                onClick={() => setViewMode(vm.key)}
+                style={{
+                  padding: "5px 14px",
+                  border: "none",
+                  borderRight: "1px solid #d9d9d9",
+                  background: viewMode === vm.key ? "#1677ff" : "#fff",
+                  color: viewMode === vm.key ? "#fff" : "#595959",
+                  cursor: "pointer",
+                  fontSize: 13,
+                  fontWeight: viewMode === vm.key ? 600 : 400,
+                }}
+              >
+                {vm.label}
+              </button>
+            ))}
+          </div>
+          {/* Date navigator */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Button
+              icon={<LeftOutlined />}
+              size="small"
+              onClick={handlePrev}
+            />
+            <span style={{ minWidth: 90, textAlign: "center", fontWeight: 500 }}>
+              {formattedDate}
+            </span>
+            <Button
+              icon={<RightOutlined />}
+              size="small"
+              onClick={handleNext}
+            />
+          </div>
         </div>
       </div>
 
@@ -235,27 +276,21 @@ export function CskhGroupingPage() {
       {/* Toolbar row 2 */}
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Button variant="outline">
-            <Download size={14} className="mr-1.5" />
-            {t("Xuất Excel")}
-          </Button>
-          <div className="relative">
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder={t("Tìm kiếm...")}
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              className="pl-8 w-56"
-            />
-          </div>
-          <Select>
-            <SelectTrigger className="w-44">
-              <SelectValue placeholder={t("Bác sĩ điều trị")} />
-            </SelectTrigger>
-            <SelectContent>
-              {/* options */}
-            </SelectContent>
-          </Select>
+          <Button icon={<DownloadOutlined />}>{t("Xuất Excel")}</Button>
+          <Input
+            prefix={<SearchOutlined />}
+            placeholder={t("Tìm kiếm...")}
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            style={{ width: 220 }}
+            allowClear
+          />
+          <Select
+            placeholder={t("Bác sĩ điều trị")}
+            style={{ width: 180 }}
+            allowClear
+            options={[]}
+          />
         </div>
       </div>
 
@@ -263,54 +298,30 @@ export function CskhGroupingPage() {
       {topTab === "care" && (
         <div className="reception-card reception-card--content">
           {careLoading ? (
-            <div style={{ textAlign: "center", padding: 48 }}>
-              <Loader2 className="size-6 animate-spin mx-auto text-muted-foreground" />
-            </div>
+            <div style={{ textAlign: "center", padding: 48 }}><Spin /></div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("Ngày chăm sóc")}</TableHead>
-                    <TableHead>{t("Họ và tên")}</TableHead>
-                    <TableHead>{t("Số điện thoại")}</TableHead>
-                    <TableHead>{t("Bác sĩ điều trị")}</TableHead>
-                    <TableHead>{t("Lịch hẹn sắp tới")}</TableHead>
-                    <TableHead>{t("Trạng thái")}</TableHead>
-                    <TableHead>{t("Ghi chú")}</TableHead>
-                    <TableHead>{t("Thao tác")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {careRecords.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                        {t("Không có dữ liệu")}
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    careRecords.map((r) => (
-                      <TableRow key={r.id}>
-                        <TableCell>{r.dueAt ? dayjs(r.dueAt).format("DD/MM/YYYY") : dayjs(r.creationTime).format("DD/MM/YYYY")}</TableCell>
-                        <TableCell>{r.patientName ?? "—"}</TableCell>
-                        <TableCell>—</TableCell>
-                        <TableCell>—</TableCell>
-                        <TableCell>—</TableCell>
-                        <TableCell>
-                          {r.status ? (
-                            <span className="text-xs px-2 py-0.5 rounded bg-muted">{r.status}</span>
-                          ) : null}
-                        </TableCell>
-                        <TableCell>{r.description ?? "—"}</TableCell>
-                        <TableCell>
-                          <Button variant="ghost" size="sm" className="h-7 text-xs">{t("Chi tiết")}</Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+            <Table
+              columns={TABLE_COLUMNS}
+              dataSource={careRecords.map((r) => ({
+                id: r.id,
+                careDate: r.dueAt ? dayjs(r.dueAt).format("DD/MM/YYYY") : dayjs(r.creationTime).format("DD/MM/YYYY"),
+                fullName: r.patientName ?? "—",
+                phone: "—",
+                doctor: "—",
+                upcomingAppointment: "—",
+                status: r.status,
+                note: r.description ?? "—",
+              }))}
+              rowKey="id"
+              pagination={{
+                pageSize: 20,
+                showSizeChanger: true,
+                pageSizeOptions: ["10", "20", "50", "100"],
+                showTotal: (total, range) => t("Hiển thị {0}–{1} trên {2} khách", range[0], range[1], total),
+              }}
+              locale={{ emptyText: t("Không có dữ liệu") }}
+              size="middle"
+            />
           )}
         </div>
       )}
@@ -328,18 +339,11 @@ import {
   type CskhGroupDto,
 } from "../api/cskhGroupApi";
 
-interface GroupFormValues {
-  name: string;
-  criteria?: string;
-  description?: string;
-}
-
 function CskhGroupingPanel() {
   const [keyword, setKeyword] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<CskhGroupDto | null>(null);
-
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<GroupFormValues>();
+  const [form] = Form.useForm();
 
   const { data, isLoading } = useCskhGroupList();
   const createMutation = useCreateCskhGroup();
@@ -351,174 +355,74 @@ function CskhGroupingPanel() {
     !keyword || g.name.toLowerCase().includes(keyword.toLowerCase()),
   );
 
-  const openCreate = () => {
-    setEditingItem(null);
-    reset({ name: "", criteria: "", description: "" });
-    setModalOpen(true);
+  const handleOk = async () => {
+    try {
+      const values = await form.validateFields();
+      if (isEdit && editingItem) {
+        await updateMutation.mutateAsync({ id: editingItem.id, data: values });
+        message.success(t("Cập nhật nhóm thành công"));
+      } else {
+        await createMutation.mutateAsync(values);
+        message.success(t("Tạo nhóm thành công"));
+      }
+      form.resetFields(); setEditingItem(null); setModalOpen(false);
+    } catch { /* validation */ }
   };
-
-  const openEdit = (item: CskhGroupDto) => {
-    setEditingItem(item);
-    reset({ name: item.name, criteria: item.criteria ?? "", description: item.description ?? "" });
-    setModalOpen(true);
-  };
-
-  const onSubmit = handleSubmit(async (values) => {
-    if (isEdit && editingItem) {
-      await updateMutation.mutateAsync({ id: editingItem.id, data: values });
-      toast.success(t("Cập nhật nhóm thành công"));
-    } else {
-      await createMutation.mutateAsync(values);
-      toast.success(t("Tạo nhóm thành công"));
-    }
-    reset();
-    setEditingItem(null);
-    setModalOpen(false);
-  });
 
   const handleDelete = async (id: string) => {
-    try {
-      await deleteMutation.mutateAsync(id);
-      toast.success(t("Xóa thành công"));
-    } catch {
-      toast.error(t("Xóa thất bại"));
-    }
+    try { await deleteMutation.mutateAsync(id); message.success(t("Xóa thành công")); } catch { message.error(t("Xóa thất bại")); }
   };
+
+  const columns = [
+    { title: t("Tên nhóm"), dataIndex: "name", key: "name", width: 220, render: (v: string) => <span style={{ fontWeight: 500 }}>{v}</span> },
+    { title: t("Tiêu chí phân nhóm"), dataIndex: "criteria", key: "criteria", render: (v: string) => v ?? "—" },
+    {
+      title: t("Trạng thái"),
+      dataIndex: "isActive",
+      key: "status",
+      width: 120,
+      render: (v: boolean) => (
+        <Tag color={v ? "green" : "default"}>{v ? t("Đang dùng") : t("Tạm dừng")}</Tag>
+      ),
+    },
+    { title: t("Ngày"), dataIndex: "creationTime", key: "createdAt", width: 120, render: (v: string) => v ? dayjs(v).format("DD/MM/YYYY") : "—" },
+    {
+      title: t("Thao tác"), key: "actions", width: 140,
+      render: (_: unknown, record: CskhGroupDto) => (
+        <div style={{ display: "flex", gap: 6 }}>
+          <Button size="small" icon={<EditOutlined />} onClick={() => { setEditingItem(record); setModalOpen(true); }} />
+          <Popconfirm title={t("Xóa nhóm CSKH?")} onConfirm={() => handleDelete(record.id)} okText={t("Xóa")} cancelText={t("Hủy")} okButtonProps={{ danger: true }}>
+            <Button size="small" danger icon={<DeleteOutlined />} />
+          </Popconfirm>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <>
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div className="relative">
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder={t("Tìm nhóm CSKH...")}
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              className="pl-8 w-64"
-            />
-          </div>
-          <Button className="ml-auto" onClick={openCreate}>
-            <Plus size={14} className="mr-1.5" />
-            {t("Tạo nhóm mới")}
-          </Button>
+          <Input prefix={<SearchOutlined />} placeholder={t("Tìm nhóm CSKH...")} value={keyword} onChange={(e) => setKeyword(e.target.value)} style={{ width: 260 }} allowClear />
+          <Button type="primary" icon={<PlusOutlined />} style={{ marginLeft: "auto" }} onClick={() => { setEditingItem(null); form.resetFields(); setModalOpen(true); }}>{t("Tạo nhóm mới")}</Button>
         </div>
       </div>
-
       <div className="reception-card reception-card--content">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-56">{t("Tên nhóm")}</TableHead>
-                <TableHead>{t("Tiêu chí phân nhóm")}</TableHead>
-                <TableHead className="w-28">{t("Trạng thái")}</TableHead>
-                <TableHead className="w-28">{t("Ngày")}</TableHead>
-                <TableHead className="w-36">{t("Thao tác")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
-                    <Loader2 className="size-5 animate-spin mx-auto text-muted-foreground" />
-                  </TableCell>
-                </TableRow>
-              ) : filtered.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                    {t("Chưa có nhóm CSKH nào")}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filtered.map((g) => (
-                  <TableRow key={g.id}>
-                    <TableCell><span className="font-medium">{g.name}</span></TableCell>
-                    <TableCell>{g.criteria ?? "—"}</TableCell>
-                    <TableCell>
-                      <span className={`text-xs px-2 py-0.5 rounded font-medium ${g.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
-                        {g.isActive ? t("Đang dùng") : t("Tạm dừng")}
-                      </span>
-                    </TableCell>
-                    <TableCell>{g.creationTime ? dayjs(g.creationTime).format("DD/MM/YYYY") : "—"}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1.5">
-                        <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => openEdit(g)}>
-                          <Pencil size={14} />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="destructive" size="sm" className="h-7 w-7 p-0">
-                              <Trash2 size={14} />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>{t("Xóa nhóm CSKH?")}</AlertDialogTitle>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>{t("Hủy")}</AlertDialogCancel>
-                              <AlertDialogAction
-                                className="bg-destructive hover:bg-destructive/90"
-                                onClick={() => handleDelete(g.id)}
-                              >
-                                {t("Xóa")}
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+        <Table columns={columns} dataSource={filtered} rowKey="id" size="middle" loading={isLoading}
+          pagination={{ pageSize: 20, showTotal: (total) => t("{0} nhóm", total) }}
+          locale={{ emptyText: t("Chưa có nhóm CSKH nào") }} />
       </div>
-
-      <Dialog open={modalOpen} onOpenChange={(open) => { if (!open) { reset(); setEditingItem(null); setModalOpen(false); } }}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{isEdit ? t("Chỉnh sửa nhóm CSKH") : t("Tạo nhóm CSKH mới")}</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={onSubmit} className="space-y-4 mt-2">
-            <div>
-              <label className="text-sm font-medium mb-1.5 block">{t("Tên nhóm")} <span className="text-destructive">*</span></label>
-              <Input
-                placeholder={t("Nhập tên nhóm")}
-                {...register("name", { required: t("Nhập tên nhóm") })}
-              />
-              {errors.name && <p className="text-xs text-destructive mt-1">{errors.name.message}</p>}
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-1.5 block">{t("Tiêu chí phân nhóm")}</label>
-              <textarea
-                rows={2}
-                placeholder={t("Nhập tiêu chí phân nhóm")}
-                {...register("criteria")}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-1.5 block">{t("Mô tả")}</label>
-              <textarea
-                rows={2}
-                placeholder={t("Mô tả")}
-                {...register("description")}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => { reset(); setEditingItem(null); setModalOpen(false); }}>{t("Hủy")}</Button>
-              <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
-                {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="size-4 animate-spin mr-2" />}
-                {isEdit ? t("Lưu") : t("Tạo nhóm")}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <Modal title={isEdit ? t("Chỉnh sửa nhóm CSKH") : t("Tạo nhóm CSKH mới")} open={modalOpen}
+        onCancel={() => { form.resetFields(); setEditingItem(null); setModalOpen(false); }}
+        onOk={handleOk} confirmLoading={createMutation.isPending || updateMutation.isPending}
+        okText={isEdit ? t("Lưu") : t("Tạo nhóm")} cancelText={t("Hủy")} width={500} destroyOnClose
+        afterOpenChange={(visible) => { if (visible && editingItem) form.setFieldsValue(editingItem); }}>
+        <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
+          <Form.Item name="name" label={t("Tên nhóm")} rules={[{ required: true, message: t("Nhập tên nhóm") }]}><Input placeholder={t("Nhập tên nhóm")} /></Form.Item>
+          <Form.Item name="criteria" label={t("Tiêu chí phân nhóm")}><Input.TextArea rows={2} placeholder={t("Nhập tiêu chí phân nhóm")} /></Form.Item>
+          <Form.Item name="description" label={t("Mô tả")}><Input.TextArea rows={2} placeholder={t("Mô tả")} /></Form.Item>
+        </Form>
+      </Modal>
     </>
   );
 }

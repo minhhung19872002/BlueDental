@@ -1,24 +1,6 @@
 import { useEffect } from "react";
-import { useForm, Controller } from "react-hook-form";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { DatePickerInput } from "@/components/ui/date-picker-input";
-import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { Alert, DatePicker, Form, Input, Modal, Select, message } from "antd";
+import dayjs from "dayjs";
 import { useCreateStage } from "../api/stageApi";
 import {
   SERVICE_LINE_STATUS,
@@ -42,7 +24,7 @@ interface StageFormValues {
   name: string;
   staffId: string;
   note?: string;
-  scheduledDate?: string;
+  scheduledDate?: dayjs.Dayjs;
 }
 
 /** A service line and the slip it belongs to, flattened for the picker. */
@@ -58,9 +40,7 @@ interface ServiceLineOption {
  * lines that are still open are offered.
  */
 export function StageModal({ open, patientId, onClose }: StageModalProps) {
-  const { control, handleSubmit, reset } = useForm<StageFormValues>({
-    defaultValues: { serviceLineId: "", name: "", staffId: "", note: "", scheduledDate: "" },
-  });
+  const [form] = Form.useForm<StageFormValues>();
   const branchId = useCurrentBranchId();
   const createStage = useCreateStage();
 
@@ -85,10 +65,11 @@ export function StageModal({ open, patientId, onClose }: StageModalProps) {
 
   useEffect(() => {
     if (!open) return;
-    reset();
-  }, [open, reset]);
+    form.resetFields();
+  }, [open, form]);
 
-  const onSubmit = async (values: StageFormValues) => {
+  const handleSubmit = async () => {
+    const values = await form.validateFields();
     const line = serviceLines.find((item) => item.id === values.serviceLineId);
     if (!line) return;
 
@@ -102,123 +83,79 @@ export function StageModal({ open, patientId, onClose }: StageModalProps) {
         name: values.name,
         note: values.note,
         staffId: values.staffId,
-        scheduledDate: values.scheduledDate || undefined,
+        scheduledDate: values.scheduledDate?.format("YYYY-MM-DD"),
       });
 
-      toast.success(t("Đã thêm công đoạn"));
+      message.success(t("Đã thêm công đoạn"));
       onClose();
     } catch (error) {
-      toast.error(extractApiError(error));
+      message.error(extractApiError(error));
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t("Thêm công đoạn")}</DialogTitle>
-        </DialogHeader>
+    <Modal
+      open={open}
+      title={t("Thêm công đoạn")}
+      okText={t("Tạo")}
+      cancelText={t("Huỷ")}
+      okButtonProps={{ disabled: serviceLines.length === 0 }}
+      confirmLoading={createStage.isPending}
+      onOk={handleSubmit}
+      onCancel={onClose}
+      destroyOnHidden
+    >
+      {serviceLines.length === 0 ? (
+        <Alert
+          type="info"
+          showIcon
+          message={t("Chưa có dịch vụ điều trị đang mở")}
+          description={t("Công đoạn là một bước của dịch vụ trong kế hoạch điều trị. Hãy chốt phiếu tư vấn rồi tạo kế hoạch điều trị trước.")}
+        />
+      ) : (
+        <Form form={form} layout="vertical" requiredMark>
+          <Form.Item
+            name="serviceLineId"
+            label={t("Dịch vụ điều trị")}
+            rules={[{ required: true, message: t("Vui lòng chọn dịch vụ") }]}
+          >
+            <Select
+              placeholder={t("Chọn dịch vụ")}
+              options={serviceLines.map((line) => ({ value: line.id, label: line.label }))}
+            />
+          </Form.Item>
 
-        {serviceLines.length === 0 ? (
-          <div className="border rounded-md p-4 bg-blue-50 text-blue-700 text-sm">
-            <div className="font-medium mb-1">{t("Chưa có dịch vụ điều trị đang mở")}</div>
-            <div className="text-xs text-blue-600">
-              {t("Công đoạn là một bước của dịch vụ trong kế hoạch điều trị. Hãy chốt phiếu tư vấn rồi tạo kế hoạch điều trị trước.")}
-            </div>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">{t("Dịch vụ điều trị")} <span className="text-destructive">*</span></label>
-              <Controller
-                name="serviceLineId"
-                control={control}
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("Chọn dịch vụ")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {serviceLines.map((line) => (
-                        <SelectItem key={line.id} value={line.id}>{line.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </div>
+          <Form.Item
+            name="name"
+            label={t("Tên công đoạn")}
+            rules={[{ required: true, message: t("Vui lòng nhập tên công đoạn") }]}
+          >
+            <Input placeholder={t("Tên công đoạn")} maxLength={300} />
+          </Form.Item>
 
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">{t("Tên công đoạn")} <span className="text-destructive">*</span></label>
-              <Controller
-                name="name"
-                control={control}
-                render={({ field }) => (
-                  <Input {...field} placeholder={t("Tên công đoạn")} maxLength={300} />
-                )}
-              />
-            </div>
+          <Form.Item
+            name="staffId"
+            label={t("Bác sĩ thực hiện")}
+            rules={[{ required: true, message: t("Vui lòng chọn bác sĩ") }]}
+          >
+            <Select
+              placeholder={t("Chọn bác sĩ")}
+              options={(dentists ?? []).map((dentist) => ({
+                value: dentist.id,
+                label: dentist.name,
+              }))}
+            />
+          </Form.Item>
 
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">{t("Bác sĩ thực hiện")} <span className="text-destructive">*</span></label>
-              <Controller
-                name="staffId"
-                control={control}
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("Chọn bác sĩ")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(dentists ?? []).map((dentist) => (
-                        <SelectItem key={dentist.id} value={dentist.id}>{dentist.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </div>
+          <Form.Item name="scheduledDate" label={t("Ngày dự kiến")}>
+            <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+          </Form.Item>
 
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">{t("Ngày dự kiến")}</label>
-              <Controller
-                name="scheduledDate"
-                control={control}
-                render={({ field }) => (
-                  <DatePickerInput value={field.value} onChange={(v) => field.onChange(v)} />
-                )}
-              />
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">{t("Ghi chú")}</label>
-              <Controller
-                name="note"
-                control={control}
-                render={({ field }) => (
-                  <textarea
-                    {...field}
-                    rows={3}
-                    maxLength={2000}
-                    placeholder={t("Ghi chú công đoạn")}
-                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  />
-                )}
-              />
-            </div>
-
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={onClose}>
-                {t("Huỷ")}
-              </Button>
-              <Button type="submit" disabled={serviceLines.length === 0 || createStage.isPending}>
-                {createStage.isPending && <Loader2 className="size-4 animate-spin mr-2" />}
-                {t("Tạo")}
-              </Button>
-            </DialogFooter>
-          </form>
-        )}
-      </DialogContent>
-    </Dialog>
+          <Form.Item name="note" label={t("Ghi chú")}>
+            <Input.TextArea rows={3} maxLength={2000} placeholder={t("Ghi chú công đoạn")} />
+          </Form.Item>
+        </Form>
+      )}
+    </Modal>
   );
 }

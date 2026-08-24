@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Search, Plus, Trash2 } from "lucide-react";
+import { Table, Button, Input, Tag, Empty, Popconfirm, Modal, message } from "antd";
+import { SearchOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
-import { toast } from "sonner";
 import { t } from "@/lib/i18n";
 import { PageHeader } from "@/components/PageHeader";
 import {
@@ -12,77 +12,38 @@ import {
   type CallAssignmentDto, type CallLogDto,
   type MessageTemplateDto, type MessageLogDto,
 } from "../api/toolsApi";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
 type ToolCategory = "call" | "message" | "zalo-oa" | "invoice";
 
-// ── Status badge colors ─────────────────────────────────────────────────────
+// ── Status maps (numeric keys, labels via t()) ─────────────────────────────
 
-const CALL_STATUS_STYLES: Record<number, { bg: string; color: string }> = {
-  0: { bg: "#f3f4f6", color: "#374151" },
-  1: { bg: "#dcfce7", color: "#15803d" },
-  2: { bg: "#fee2e2", color: "#b91c1c" },
+const CALL_STATUS_COLORS: Record<number, string> = {
+  0: "default",
+  1: "green",
+  2: "red",
 };
 
-const CALL_DIRECTION_STYLES: Record<number, { bg: string; color: string }> = {
-  0: { bg: "#cffafe", color: "#0e7490" },
-  1: { bg: "#dbeafe", color: "#1d4ed8" },
+const CALL_DIRECTION_COLOR: Record<number, string> = {
+  0: "cyan",
+  1: "blue",
 };
 
-const CALL_LOG_STATUS_STYLES: Record<number, { bg: string; color: string }> = {
-  0: { bg: "#dcfce7", color: "#15803d" },
-  1: { bg: "#fee2e2", color: "#b91c1c" },
-  2: { bg: "#f3f4f6", color: "#374151" },
+const CALL_LOG_STATUS_COLORS: Record<number, string> = {
+  0: "green",
+  1: "red",
+  2: "default",
 };
 
-const MSG_STATUS_STYLES: Record<number, { bg: string; color: string }> = {
-  0: { bg: "#f3f4f6", color: "#374151" },
-  1: { bg: "#dcfce7", color: "#15803d" },
-  2: { bg: "#fee2e2", color: "#b91c1c" },
-  3: { bg: "#dbeafe", color: "#1d4ed8" },
+const MSG_STATUS_COLORS: Record<number, string> = {
+  0: "default",
+  1: "green",
+  2: "red",
+  3: "blue",
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-
-function StatusBadge({ style, label }: { style: { bg: string; color: string }; label: string }) {
-  return (
-    <span
-      className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
-      style={{ background: style.bg, color: style.color }}
-    >
-      {label}
-    </span>
-  );
-}
 
 function SubTabBar({
   tabs,
@@ -132,6 +93,7 @@ function formatDuration(seconds: number): string {
   return m > 0 ? `${m}p ${s}s` : `${s}s`;
 }
 
+// ── Config status constant ─────────────────────────────────────────────────
 // UNKNOWN_REFERENCE_BEHAVIOR: The exact enum/string value used for the
 // "activated" status in the call/message config API is not confirmed.
 // Using "active" as a placeholder; adjust to match backend contract.
@@ -142,24 +104,58 @@ const CONFIG_STATUS_ACTIVE = "active";
 function CallConfigView() {
   const [keyword, setKeyword] = useState("");
 
+  const columns = [
+    { title: t("Tên"),        dataIndex: "name",        key: "name" },
+    { title: t("Chi nhánh"),      dataIndex: "branch",      key: "branch" },
+    { title: t("Loại cấu hình"), dataIndex: "settingType", key: "settingType" },
+    { title: t("Nhà cung cấp"),    dataIndex: "provider",    key: "provider" },
+    {
+      title: t("Trạng thái"),
+      dataIndex: "status",
+      key: "status",
+      render: (v: string | undefined) =>
+        v ? (
+          <Tag color={v === CONFIG_STATUS_ACTIVE ? "green" : "default"}>
+            {v === CONFIG_STATUS_ACTIVE ? t("Đã kích hoạt") : t("Chưa kích hoạt")}
+          </Tag>
+        ) : null,
+    },
+    {
+      title: t("Thao tác"),
+      key: "actions",
+      render: () => (
+        <div style={{ display: "flex", gap: 6 }}>
+          <Button size="small">{t("Chỉnh sửa")}</Button>
+          <Button size="small" danger>{t("Xoá")}</Button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <>
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
-          <div className="relative">
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              className="pl-8 w-64"
-              placeholder={t("Tìm kiếm")}
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-            />
-          </div>
-          <Button>{t("Tạo cấu hình")}</Button>
+          <Input
+            prefix={<SearchOutlined />}
+            placeholder={t("Tìm kiếm")}
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            style={{ width: 260 }}
+            allowClear
+          />
+          <Button type="primary">{t("Tạo cấu hình")}</Button>
         </div>
       </div>
       <div className="reception-card reception-card--content">
-        <div className="py-8 text-center text-muted-foreground">{t("Chưa có cấu hình nào")}</div>
+        <Table
+          columns={columns}
+          dataSource={[]}
+          rowKey="id"
+          size="small"
+          locale={{ emptyText: t("Chưa có cấu hình nào") }}
+          pagination={{ pageSize: 20, showTotal: (total) => `0 / ${total}` }}
+        />
       </div>
     </>
   );
@@ -178,89 +174,75 @@ function CallAssignView() {
     2: t("Không liên hệ được"),
   };
 
+  const columns = [
+    { title: t("Khách hàng"),   dataIndex: "patientName",  key: "patientName" },
+    { title: t("Số điện thoại"),     dataIndex: "phoneNumber",  key: "phoneNumber",  width: 130 },
+    { title: t("Nhân viên"),     dataIndex: "staffName",    key: "staffName" },
+    {
+      title: t("Trạng thái"), dataIndex: "status", key: "status", width: 150,
+      render: (v: number) => {
+        const label = CALL_STATUS_LABELS[v] ?? "—";
+        const color = CALL_STATUS_COLORS[v] ?? "default";
+        return <Tag color={color}>{label}</Tag>;
+      },
+    },
+    {
+      title: t("Thời điểm gọi"), dataIndex: "calledAt", key: "calledAt", width: 140,
+      render: (v: string | undefined) => v ? dayjs(v).format("DD/MM/YYYY HH:mm") : "—",
+    },
+    { title: t("Ghi chú"),     dataIndex: "notes",        key: "notes",        ellipsis: true },
+    {
+      title: t("Thời điểm tạo"), dataIndex: "creationTime", key: "creationTime", width: 120,
+      render: (v: string) => dayjs(v).format("DD/MM/YYYY"),
+    },
+    {
+      title: t("Thao tác"), key: "actions", width: 200,
+      render: (_: unknown, record: CallAssignmentDto) => (
+        <div style={{ display: "flex", gap: 4 }}>
+          {record.status === 0 && (
+            <>
+              <Button size="small" type="primary"
+                onClick={() => updateStatus.mutate({ id: record.id, status: 1 })}>
+                {t("Đã gọi")}
+              </Button>
+              <Button size="small"
+                onClick={() => updateStatus.mutate({ id: record.id, status: 2 })}>
+                {t("Không liên hệ được")}
+              </Button>
+            </>
+          )}
+          <Popconfirm title={t("Xoá phân công?")} onConfirm={() => deleteAssignment.mutate(record.id)}>
+            <Button size="small" danger icon={<DeleteOutlined />} />
+          </Popconfirm>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <>
       <div className="reception-card reception-card--toolbar">
-        <div className="relative">
-          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
           <Input
-            className="pl-8 w-64"
+            prefix={<SearchOutlined />}
             placeholder={t("Tìm kiếm bệnh nhân...")}
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
+            style={{ width: 260 }}
+            allowClear
           />
         </div>
       </div>
-      <div className="reception-card reception-card--content overflow-x-auto">
-        {isLoading ? (
-          <div className="py-8 text-center text-muted-foreground">{t("Đang tải...")}</div>
-        ) : assignments.length === 0 ? (
-          <div className="py-8 text-center text-muted-foreground">{t("Chưa có phân công cuộc gọi")}</div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("Khách hàng")}</TableHead>
-                <TableHead className="w-32">{t("Số điện thoại")}</TableHead>
-                <TableHead>{t("Nhân viên")}</TableHead>
-                <TableHead className="w-36">{t("Trạng thái")}</TableHead>
-                <TableHead className="w-36">{t("Thời điểm gọi")}</TableHead>
-                <TableHead>{t("Ghi chú")}</TableHead>
-                <TableHead className="w-28">{t("Thời điểm tạo")}</TableHead>
-                <TableHead className="w-48">{t("Thao tác")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {assignments.map((record: CallAssignmentDto) => (
-                <TableRow key={record.id}>
-                  <TableCell>{record.patientName}</TableCell>
-                  <TableCell>{record.phoneNumber}</TableCell>
-                  <TableCell>{record.staffName}</TableCell>
-                  <TableCell>
-                    <StatusBadge
-                      style={CALL_STATUS_STYLES[record.status] ?? CALL_STATUS_STYLES[0]}
-                      label={CALL_STATUS_LABELS[record.status] ?? "—"}
-                    />
-                  </TableCell>
-                  <TableCell>{record.calledAt ? dayjs(record.calledAt).format("DD/MM/YYYY HH:mm") : "—"}</TableCell>
-                  <TableCell className="max-w-xs truncate">{record.notes}</TableCell>
-                  <TableCell>{dayjs(record.creationTime).format("DD/MM/YYYY")}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      {record.status === 0 && (
-                        <>
-                          <Button size="sm" onClick={() => updateStatus.mutate({ id: record.id, status: 1 })}>
-                            {t("Đã gọi")}
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => updateStatus.mutate({ id: record.id, status: 2 })}>
-                            {t("Không liên hệ được")}
-                          </Button>
-                        </>
-                      )}
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button size="sm" variant="destructive"><Trash2 size={14} /></Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>{t("Xoá phân công?")}</AlertDialogTitle>
-                            <AlertDialogDescription>{record.patientName}</AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>{t("Huỷ")}</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => deleteAssignment.mutate(record.id)}>
-                              {t("Xoá")}
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
+      <div className="reception-card reception-card--content">
+        <Table<CallAssignmentDto>
+          columns={columns}
+          dataSource={assignments}
+          rowKey="id"
+          size="small"
+          loading={isLoading}
+          locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("Chưa có phân công cuộc gọi")} /> }}
+          pagination={{ pageSize: 20, showTotal: (total) => t("Tổng phân công: {0}", total) }}
+        />
       </div>
     </>
   );
@@ -283,86 +265,65 @@ function CallListView() {
     2: t("Hộp thư"),
   };
 
+  const columns = [
+    {
+      title: t("Thời gian"), dataIndex: "creationTime", key: "creationTime", width: 140,
+      render: (v: string) => dayjs(v).format("DD/MM/YYYY HH:mm"),
+    },
+    { title: t("Khách hàng"),   dataIndex: "patientName", key: "patientName" },
+    { title: t("Số điện thoại"),     dataIndex: "phoneNumber", key: "phoneNumber", width: 130 },
+    { title: t("Nhân viên"),     dataIndex: "staffName",   key: "staffName" },
+    {
+      title: t("Chiều gọi"), dataIndex: "direction", key: "direction", width: 90,
+      render: (v: number) => <Tag color={CALL_DIRECTION_COLOR[v] ?? "default"}>{CALL_DIRECTION_LABELS[v] ?? "—"}</Tag>,
+    },
+    {
+      title: t("Trạng thái cuộc gọi"), dataIndex: "status", key: "status", width: 100,
+      render: (v: number) => {
+        const label = CALL_LOG_STATUS_LABELS[v] ?? "—";
+        const color = CALL_LOG_STATUS_COLORS[v] ?? "default";
+        return <Tag color={color}>{label}</Tag>;
+      },
+    },
+    {
+      title: t("Thời lượng"), dataIndex: "durationSeconds", key: "durationSeconds", width: 100,
+      render: (v: number) => formatDuration(v),
+    },
+    { title: t("Ghi chú"), dataIndex: "notes", key: "notes", ellipsis: true },
+    {
+      title: "", key: "actions", width: 50,
+      render: (_: unknown, record: CallLogDto) => (
+        <Popconfirm title={t("Xoá cuộc gọi")} onConfirm={() => deleteLog.mutate(record.id)}>
+          <Button size="small" type="text" danger icon={<DeleteOutlined />} />
+        </Popconfirm>
+      ),
+    },
+  ];
+
   return (
     <>
       <div className="reception-card reception-card--toolbar">
-        <div className="relative">
-          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <div style={{ display: "flex", gap: 8 }}>
           <Input
-            className="pl-8 w-64"
+            prefix={<SearchOutlined />}
             placeholder={t("Tìm kiếm")}
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
+            style={{ width: 260 }}
+            allowClear
           />
         </div>
       </div>
-      <div className="reception-card reception-card--content overflow-x-auto">
-        {isLoading ? (
-          <div className="py-8 text-center text-muted-foreground">{t("Đang tải...")}</div>
-        ) : callLogs.length === 0 ? (
-          <div className="py-8 text-center text-muted-foreground">{t("Chưa có cuộc gọi nào")}</div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-36">{t("Thời gian")}</TableHead>
-                <TableHead>{t("Khách hàng")}</TableHead>
-                <TableHead className="w-32">{t("Số điện thoại")}</TableHead>
-                <TableHead>{t("Nhân viên")}</TableHead>
-                <TableHead className="w-24">{t("Chiều gọi")}</TableHead>
-                <TableHead className="w-28">{t("Trạng thái cuộc gọi")}</TableHead>
-                <TableHead className="w-24">{t("Thời lượng")}</TableHead>
-                <TableHead>{t("Ghi chú")}</TableHead>
-                <TableHead className="w-12"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {callLogs.map((record: CallLogDto) => (
-                <TableRow key={record.id}>
-                  <TableCell>{dayjs(record.creationTime).format("DD/MM/YYYY HH:mm")}</TableCell>
-                  <TableCell>{record.patientName}</TableCell>
-                  <TableCell>{record.phoneNumber}</TableCell>
-                  <TableCell>{record.staffName}</TableCell>
-                  <TableCell>
-                    <StatusBadge
-                      style={CALL_DIRECTION_STYLES[record.direction] ?? CALL_DIRECTION_STYLES[0]}
-                      label={CALL_DIRECTION_LABELS[record.direction] ?? "—"}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge
-                      style={CALL_LOG_STATUS_STYLES[record.status] ?? CALL_LOG_STATUS_STYLES[0]}
-                      label={CALL_LOG_STATUS_LABELS[record.status] ?? "—"}
-                    />
-                  </TableCell>
-                  <TableCell>{formatDuration(record.durationSeconds)}</TableCell>
-                  <TableCell className="max-w-xs truncate">{record.notes}</TableCell>
-                  <TableCell>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button size="sm" variant="ghost" className="text-destructive">
-                          <Trash2 size={14} />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>{t("Xoá cuộc gọi")}</AlertDialogTitle>
-                          <AlertDialogDescription>{record.patientName}</AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>{t("Huỷ")}</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => deleteLog.mutate(record.id)}>
-                            {t("Xoá")}
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
+      <div className="reception-card reception-card--content">
+        <Table<CallLogDto>
+          columns={columns}
+          dataSource={callLogs}
+          rowKey="id"
+          size="small"
+          loading={isLoading}
+          locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("Chưa có cuộc gọi nào")} /> }}
+          pagination={{ pageSize: 20, showTotal: (total) => t("Tổng cuộc gọi: {0}", total) }}
+        />
       </div>
     </>
   );
@@ -424,118 +385,96 @@ function MessageTemplateView({ channel }: { channel: number }) {
     if (editingItem) {
       updateTemplate.mutate(
         { id: editingItem.id, data: { name: name.trim(), content: content.trim(), category: category.trim() || undefined } },
-        { onSuccess: () => { setModalOpen(false); toast.success(t("Đã cập nhật mẫu tin")); } },
+        { onSuccess: () => { setModalOpen(false); message.success(t("Đã cập nhật mẫu tin")); } },
       );
     } else {
       createTemplate.mutate(
         { name: name.trim(), content: content.trim(), channel, category: category.trim() || undefined },
-        { onSuccess: () => { setModalOpen(false); toast.success(t("Đã tạo mẫu tin")); } },
+        { onSuccess: () => { setModalOpen(false); message.success(t("Đã tạo mẫu tin")); } },
       );
     }
   };
+
+  const columns = [
+    { title: t("Tên mẫu"),   dataIndex: "name",     key: "name" },
+    { title: t("Nội dung"),         dataIndex: "content",  key: "content",  ellipsis: true },
+    { title: t("Nhóm"),           dataIndex: "category", key: "category", width: 120, render: (v: string | undefined) => v ?? "—" },
+    {
+      title: t("Trạng thái"), dataIndex: "isActive", key: "isActive", width: 100,
+      render: (v: boolean) => (
+        <Tag color={v ? "green" : "default"}>{v ? t("Hoạt động") : t("Tắt")}</Tag>
+      ),
+    },
+    {
+      title: t("Ngày tạo"), dataIndex: "creationTime", key: "creationTime", width: 120,
+      render: (v: string) => dayjs(v).format("DD/MM/YYYY"),
+    },
+    {
+      title: t("Thao tác"), key: "actions", width: 140,
+      render: (_: unknown, record: MessageTemplateDto) => (
+        <div style={{ display: "flex", gap: 6 }}>
+          <Button size="small" onClick={() => openEdit(record)}>{t("Chỉnh sửa")}</Button>
+          <Popconfirm title={t("Xoá mẫu?")} onConfirm={() => deleteTemplate.mutate(record.id)}>
+            <Button size="small" danger>{t("Xóa")}</Button>
+          </Popconfirm>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <>
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
-          <div className="relative">
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              className="pl-8 w-64"
-              placeholder={t("Tìm kiếm")}
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-            />
-          </div>
-          <Button onClick={openCreate}>
-            <Plus size={14} className="mr-1" />
-            {t("Tạo mẫu tin")}
-          </Button>
+          <Input
+            prefix={<SearchOutlined />}
+            placeholder={t("Tìm kiếm")}
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            style={{ width: 260 }}
+            allowClear
+          />
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>{t("Tạo mẫu tin")}</Button>
         </div>
       </div>
-      <div className="reception-card reception-card--content overflow-x-auto">
-        {isLoading ? (
-          <div className="py-8 text-center text-muted-foreground">{t("Đang tải...")}</div>
-        ) : templates.length === 0 ? (
-          <div className="py-8 text-center text-muted-foreground">{t("Chưa có mẫu nào")}</div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("Tên mẫu")}</TableHead>
-                <TableHead>{t("Nội dung")}</TableHead>
-                <TableHead className="w-28">{t("Nhóm")}</TableHead>
-                <TableHead className="w-24">{t("Trạng thái")}</TableHead>
-                <TableHead className="w-28">{t("Ngày tạo")}</TableHead>
-                <TableHead className="w-36">{t("Thao tác")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {templates.map((record: MessageTemplateDto) => (
-                <TableRow key={record.id}>
-                  <TableCell>{record.name}</TableCell>
-                  <TableCell className="max-w-xs truncate">{record.content}</TableCell>
-                  <TableCell>{record.category ?? "—"}</TableCell>
-                  <TableCell>
-                    <StatusBadge
-                      style={record.isActive ? { bg: "#dcfce7", color: "#15803d" } : { bg: "#f3f4f6", color: "#374151" }}
-                      label={record.isActive ? t("Hoạt động") : t("Tắt")}
-                    />
-                  </TableCell>
-                  <TableCell>{dayjs(record.creationTime).format("DD/MM/YYYY")}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button size="sm" variant="outline" onClick={() => openEdit(record)}>{t("Chỉnh sửa")}</Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button size="sm" variant="destructive">{t("Xóa")}</Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>{t("Xoá mẫu?")}</AlertDialogTitle>
-                            <AlertDialogDescription>{record.name}</AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>{t("Huỷ")}</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => deleteTemplate.mutate(record.id)}>
-                              {t("Xoá")}
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
+      <div className="reception-card reception-card--content">
+        <Table<MessageTemplateDto>
+          columns={columns}
+          dataSource={templates}
+          rowKey="id"
+          size="small"
+          loading={isLoading}
+          locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("Chưa có mẫu nào")} /> }}
+          pagination={{ pageSize: 20, showTotal: (total) => t("Tổng mẫu tin: {0}", total) }}
+        />
       </div>
 
-      <Dialog open={modalOpen} onOpenChange={(o) => { if (!o) setModalOpen(false); }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingItem ? t("Sửa mẫu tin nhắn") : t("Tạo mẫu")}</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col gap-3">
-            <Input placeholder={t("Tên mẫu")} value={name} onChange={(e) => setName(e.target.value)} />
-            <textarea
-              className="w-full min-h-24 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              placeholder={t("Nhập nội dung")}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              rows={4}
-            />
-            <Input placeholder={t("Chọn nhóm")} value={category} onChange={(e) => setCategory(e.target.value)} />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setModalOpen(false)}>{t("Huỷ")}</Button>
-            <Button onClick={handleSave} disabled={createTemplate.isPending || updateTemplate.isPending}>
-              {t("Lưu")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <Modal
+        title={editingItem ? t("Sửa mẫu tin nhắn") : t("Tạo mẫu")}
+        open={modalOpen}
+        onOk={handleSave}
+        onCancel={() => setModalOpen(false)}
+        confirmLoading={createTemplate.isPending || updateTemplate.isPending}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <Input
+            placeholder={t("Tên mẫu")}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <Input.TextArea
+            placeholder={t("Nhập nội dung")}
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            rows={4}
+          />
+          <Input
+            placeholder={t("Chọn nhóm")}
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+          />
+        </div>
+      </Modal>
     </>
   );
 }
@@ -554,55 +493,52 @@ function MessageLogView({ channel }: { channel: number }) {
     3: t("Đã nhận"),
   };
 
+  const columns = [
+    {
+      title: t("Thời gian"), dataIndex: "creationTime", key: "creationTime", width: 140,
+      render: (v: string) => dayjs(v).format("DD/MM/YYYY HH:mm"),
+    },
+    { title: t("Người nhận"),  dataIndex: "recipientName",  key: "recipientName" },
+    { title: t("Số điện thoại"),      dataIndex: "recipientPhone", key: "recipientPhone", width: 130 },
+    { title: t("Nội dung"),    dataIndex: "content",        key: "content",        ellipsis: true },
+    {
+      title: t("Trạng thái"), dataIndex: "status", key: "status", width: 100,
+      render: (v: number) => {
+        const label = MSG_STATUS_LABELS[v] ?? "—";
+        const color = MSG_STATUS_COLORS[v] ?? "default";
+        return <Tag color={color}>{label}</Tag>;
+      },
+    },
+    {
+      title: t("Thời điểm gửi"), dataIndex: "sentAt", key: "sentAt", width: 140,
+      render: (v: string | undefined) => v ? dayjs(v).format("DD/MM/YYYY HH:mm") : "—",
+    },
+  ];
+
   return (
     <>
       <div className="reception-card reception-card--toolbar">
-        <div className="relative">
-          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <div style={{ display: "flex", gap: 8 }}>
           <Input
-            className="pl-8 w-64"
+            prefix={<SearchOutlined />}
             placeholder={t("Tìm kiếm")}
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
+            style={{ width: 260 }}
+            allowClear
           />
         </div>
       </div>
-      <div className="reception-card reception-card--content overflow-x-auto">
-        {isLoading ? (
-          <div className="py-8 text-center text-muted-foreground">{t("Đang tải...")}</div>
-        ) : logs.length === 0 ? (
-          <div className="py-8 text-center text-muted-foreground">{t("Chưa có tin nhắn nào")}</div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-36">{t("Thời gian")}</TableHead>
-                <TableHead>{t("Người nhận")}</TableHead>
-                <TableHead className="w-32">{t("Số điện thoại")}</TableHead>
-                <TableHead>{t("Nội dung")}</TableHead>
-                <TableHead className="w-24">{t("Trạng thái")}</TableHead>
-                <TableHead className="w-36">{t("Thời điểm gửi")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {logs.map((record: MessageLogDto) => (
-                <TableRow key={record.id}>
-                  <TableCell>{dayjs(record.creationTime).format("DD/MM/YYYY HH:mm")}</TableCell>
-                  <TableCell>{record.recipientName}</TableCell>
-                  <TableCell>{record.recipientPhone}</TableCell>
-                  <TableCell className="max-w-xs truncate">{record.content}</TableCell>
-                  <TableCell>
-                    <StatusBadge
-                      style={MSG_STATUS_STYLES[record.status] ?? MSG_STATUS_STYLES[0]}
-                      label={MSG_STATUS_LABELS[record.status] ?? "—"}
-                    />
-                  </TableCell>
-                  <TableCell>{record.sentAt ? dayjs(record.sentAt).format("DD/MM/YYYY HH:mm") : "—"}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
+      <div className="reception-card reception-card--content">
+        <Table<MessageLogDto>
+          columns={columns}
+          dataSource={logs}
+          rowKey="id"
+          size="small"
+          loading={isLoading}
+          locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("Chưa có tin nhắn nào")} /> }}
+          pagination={{ pageSize: 20, showTotal: (total) => t("Tổng tin nhắn: {0}", total) }}
+        />
       </div>
     </>
   );
@@ -613,24 +549,56 @@ function MessageLogView({ channel }: { channel: number }) {
 function MessageConfigView() {
   const [keyword, setKeyword] = useState("");
 
+  const columns = [
+    { title: t("Tên"),     dataIndex: "name",     key: "name" },
+    { title: t("Nhà cung cấp"), dataIndex: "provider", key: "provider" },
+    {
+      title: t("Trạng thái"),
+      dataIndex: "status",
+      key: "status",
+      render: (v: string | undefined) =>
+        v ? (
+          <Tag color={v === CONFIG_STATUS_ACTIVE ? "green" : "default"}>
+            {v === CONFIG_STATUS_ACTIVE ? t("Đã kích hoạt") : t("Chưa kích hoạt")}
+          </Tag>
+        ) : null,
+    },
+    {
+      title: t("Thao tác"),
+      key: "actions",
+      render: () => (
+        <div style={{ display: "flex", gap: 6 }}>
+          <Button size="small">{t("Chỉnh sửa")}</Button>
+          <Button size="small" danger>{t("Xoá")}</Button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <>
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
-          <div className="relative">
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              className="pl-8 w-64"
-              placeholder={t("Tìm kiếm")}
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-            />
-          </div>
-          <Button>{t("Tạo cấu hình")}</Button>
+          <Input
+            prefix={<SearchOutlined />}
+            placeholder={t("Tìm kiếm")}
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            style={{ width: 260 }}
+            allowClear
+          />
+          <Button type="primary">{t("Tạo cấu hình")}</Button>
         </div>
       </div>
       <div className="reception-card reception-card--content">
-        <div className="py-8 text-center text-muted-foreground">{t("Chưa có cấu hình nào")}</div>
+        <Table
+          columns={columns}
+          dataSource={[]}
+          rowKey="id"
+          size="small"
+          locale={{ emptyText: t("Chưa có cấu hình nào") }}
+          pagination={{ pageSize: 20, showTotal: (total) => `0 / ${total}` }}
+        />
       </div>
     </>
   );
@@ -658,6 +626,7 @@ function MessageView() {
 // ── "Zalo OA" views ───────────────────────────────────────────────────────
 
 function ZaloConfigView() {
+
   return (
     <div className="reception-card reception-card--content">
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "48px 0", gap: 16 }}>
@@ -673,14 +642,9 @@ function ZaloConfigView() {
           <div style={{ fontWeight: 600, fontSize: 16, color: "#1B2A41", marginBottom: 6 }}>
             {t("Chưa kết nối Zalo OA")}
           </div>
-          <span
-            className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600 mb-4"
-            style={{ marginBottom: 16, display: "inline-flex" }}
-          >
-            {t("Chưa kích hoạt")}
-          </span>
+          <Tag color="default" style={{ marginBottom: 16 }}>{t("Chưa kích hoạt")}</Tag>
           <div>
-            <Button disabled>{t("Kết nối Zalo OA")}</Button>
+            <Button type="primary" disabled>{t("Kết nối Zalo OA")}</Button>
           </div>
         </div>
       </div>
@@ -738,6 +702,33 @@ function InvoiceView() {
     (r) => r.name.toLowerCase().includes(keyword.toLowerCase()) || r.branch.toLowerCase().includes(keyword.toLowerCase()),
   );
 
+  const columns = [
+    { title: t("Tên"),       dataIndex: "name",     key: "name" },
+    { title: t("Tên chi nhánh"), dataIndex: "branch",   key: "branch" },
+    { title: t("Phân hệ"),     dataIndex: "module",   key: "module" },
+    { title: t("Nhà cung cấp"),   dataIndex: "provider", key: "provider" },
+    {
+      title: t("Trạng thái"),
+      dataIndex: "status",
+      key: "status",
+      render: (v: string) => (
+        <Tag color={v === CONFIG_STATUS_ACTIVE ? "green" : "default"}>
+          {v === CONFIG_STATUS_ACTIVE ? t("Đã kích hoạt") : t("Chưa kích hoạt")}
+        </Tag>
+      ),
+    },
+    {
+      title: t("Thao tác"),
+      key: "actions",
+      render: () => (
+        <div style={{ display: "flex", gap: 6 }}>
+          <Button size="small">{t("Chỉnh sửa")}</Button>
+          <Button size="small" danger>{t("Xoá")}</Button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <>
       <div className="reception-card reception-card--tabs">
@@ -759,57 +750,26 @@ function InvoiceView() {
       </div>
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
-          <div className="relative">
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              className="pl-8 w-64"
-              placeholder={t("Tìm kiếm")}
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-            />
-          </div>
-          <Button>{t("Tạo cấu hình")}</Button>
+          <Input
+            prefix={<SearchOutlined />}
+            placeholder={t("Tìm kiếm")}
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            style={{ width: 260 }}
+            allowClear
+          />
+          <Button type="primary">{t("Tạo cấu hình")}</Button>
         </div>
       </div>
       <div className="reception-card reception-card--content">
-        {filtered.length === 0 ? (
-          <div className="py-8 text-center text-muted-foreground">{t("Chưa có cấu hình nào")}</div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("Tên")}</TableHead>
-                <TableHead>{t("Tên chi nhánh")}</TableHead>
-                <TableHead>{t("Phân hệ")}</TableHead>
-                <TableHead>{t("Nhà cung cấp")}</TableHead>
-                <TableHead className="w-28">{t("Trạng thái")}</TableHead>
-                <TableHead className="w-36">{t("Thao tác")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell>{r.name}</TableCell>
-                  <TableCell>{r.branch}</TableCell>
-                  <TableCell>{r.module}</TableCell>
-                  <TableCell>{r.provider}</TableCell>
-                  <TableCell>
-                    <StatusBadge
-                      style={r.status === CONFIG_STATUS_ACTIVE ? { bg: "#dcfce7", color: "#15803d" } : { bg: "#f3f4f6", color: "#374151" }}
-                      label={r.status === CONFIG_STATUS_ACTIVE ? t("Đã kích hoạt") : t("Chưa kích hoạt")}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button size="sm" variant="outline">{t("Chỉnh sửa")}</Button>
-                      <Button size="sm" variant="destructive">{t("Xoá")}</Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
+        <Table
+          columns={columns}
+          dataSource={filtered}
+          rowKey="id"
+          size="small"
+          locale={{ emptyText: t("Chưa có cấu hình nào") }}
+          pagination={{ pageSize: 20, showTotal: (total) => `0 / ${total}` }}
+        />
       </div>
     </>
   );

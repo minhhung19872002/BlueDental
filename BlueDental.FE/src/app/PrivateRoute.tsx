@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { Spin } from "antd";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { authApi } from "@/features/auth/api";
@@ -49,10 +49,7 @@ export function PrivateRoute({ children }: Props) {
       <div
         style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}
       >
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="size-8 animate-spin text-primary" />
-          <span className="text-sm text-muted-foreground">{t("Đang xác thực phiên đăng nhập")}</span>
-        </div>
+        <Spin size="large" description={t("Đang xác thực phiên đăng nhập")} />
       </div>
     );
   }

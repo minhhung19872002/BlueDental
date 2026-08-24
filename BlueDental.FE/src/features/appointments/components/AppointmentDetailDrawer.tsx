@@ -1,8 +1,7 @@
 // AppointmentDetailDrawer — Shows appointment details in a side drawer.
 // TODO: Add quick-action buttons (confirm, cancel, mark as no-show).
 
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Loader2 } from "lucide-react";
+import { Drawer, Descriptions, Spin } from "antd";
 import { useAppointment } from "../api/appointmentQueries";
 import { StatusBadge } from "./StatusBadge";
 import { formatDate } from "@/utils/format";
@@ -20,49 +19,47 @@ export function AppointmentDetailDrawer({ appointmentId, onClose }: Props) {
   );
 
   return (
-    <Sheet open={Boolean(appointmentId)} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <SheetContent style={{ width: 480 }}>
-        <SheetHeader>
-          <SheetTitle>{t("Chi tiết lịch hẹn")}</SheetTitle>
-        </SheetHeader>
+    <Drawer
+      open={Boolean(appointmentId)}
+      onClose={onClose}
+      title={t("Chi tiết lịch hẹn")}
+      size={480}
+    >
+      {isLoading && (
+        <div style={{ display: "grid", placeItems: "center", minHeight: 200 }}>
+          <Spin />
+        </div>
+      )}
 
-        {isLoading && (
-          <div style={{ display: "grid", placeItems: "center", minHeight: 200 }}>
-            <Loader2 className="size-5 animate-spin text-primary" />
-          </div>
-        )}
-
-        {appointment && (
-          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm mt-4">
-            <dt className="font-medium text-muted-foreground">{t("Bệnh nhân")}</dt>
-            <dd>{appointment.patientName}</dd>
-
-            <dt className="font-medium text-muted-foreground">{t("Điện thoại")}</dt>
-            <dd>{appointment.patientPhone}</dd>
-
-            <dt className="font-medium text-muted-foreground">{t("Bác sĩ")}</dt>
-            <dd>{appointment.doctorName}</dd>
-
-            <dt className="font-medium text-muted-foreground">{t("Ngày khám")}</dt>
-            <dd>{formatDate(appointment.startTime)}</dd>
-
-            <dt className="font-medium text-muted-foreground">{t("Giờ khám")}</dt>
-            <dd>
-              {dayjs(appointment.startTime).format("HH:mm")} –{" "}
-              {dayjs(appointment.endTime).format("HH:mm")}
-            </dd>
-
-            <dt className="font-medium text-muted-foreground">{t("Trạng thái")}</dt>
-            <dd><StatusBadge status={appointment.status} /></dd>
-
-            <dt className="font-medium text-muted-foreground">{t("Lý do khám")}</dt>
-            <dd>{appointment.reason ?? t("Khám định kỳ")}</dd>
-
-            <dt className="font-medium text-muted-foreground">{t("Ghi chú")}</dt>
-            <dd>{appointment.notes ?? "—"}</dd>
-          </dl>
-        )}
-      </SheetContent>
-    </Sheet>
+      {appointment && (
+        <Descriptions column={1} size="small" bordered>
+          <Descriptions.Item label={t("Bệnh nhân")}>
+            {appointment.patientName}
+          </Descriptions.Item>
+          <Descriptions.Item label={t("Điện thoại")}>
+            {appointment.patientPhone}
+          </Descriptions.Item>
+          <Descriptions.Item label={t("Bác sĩ")}>
+            {appointment.doctorName}
+          </Descriptions.Item>
+          <Descriptions.Item label={t("Ngày khám")}>
+            {formatDate(appointment.startTime)}
+          </Descriptions.Item>
+          <Descriptions.Item label={t("Giờ khám")}>
+            {dayjs(appointment.startTime).format("HH:mm")} –{" "}
+            {dayjs(appointment.endTime).format("HH:mm")}
+          </Descriptions.Item>
+          <Descriptions.Item label={t("Trạng thái")}>
+            <StatusBadge status={appointment.status} />
+          </Descriptions.Item>
+          <Descriptions.Item label={t("Lý do khám")}>
+            {appointment.reason ?? t("Khám định kỳ")}
+          </Descriptions.Item>
+          <Descriptions.Item label={t("Ghi chú")}>
+            {appointment.notes ?? "—"}
+          </Descriptions.Item>
+        </Descriptions>
+      )}
+    </Drawer>
   );
 }

@@ -1,4 +1,4 @@
-import { Loader2 } from "lucide-react";
+import { Empty, Spin } from "antd";
 import dayjs from "dayjs";
 import { useAppointmentList } from "@/features/appointments/api/appointmentQueries";
 import { brand } from "@/theme/index";
@@ -34,11 +34,12 @@ export function DoctorsOnDutyCard() {
         {t("Bác sĩ trực hôm nay")}
       </div>
       {isLoading ? (
-        <Loader2 className="size-4 animate-spin text-primary" />
+        <Spin size="small" />
       ) : doctors.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-6 text-muted-foreground text-sm gap-2">
-          <p>{t("Chưa có bác sĩ nào có lịch hôm nay")}</p>
-        </div>
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description={t("Chưa có bác sĩ nào có lịch hôm nay")}
+        />
       ) : (
         <div className="dash-list">
           {doctors.map((doc, i) => {

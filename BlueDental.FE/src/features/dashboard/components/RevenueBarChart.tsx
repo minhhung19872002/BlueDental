@@ -1,4 +1,4 @@
-import { Loader2 } from "lucide-react";
+import { Spin } from "antd";
 import { useRevenueSeries, REVENUE_DAYS } from "../api/dashboardQueries";
 import { brand } from "@/theme/index";
 import { t } from "@/lib/i18n";
@@ -23,7 +23,7 @@ export function RevenueBarChart() {
 
       {isLoading ? (
         <div className="dash-chart-loading">
-          <Loader2 className="size-6 animate-spin text-primary" />
+          <Spin />
         </div>
       ) : (
         <div className="dash-chart">

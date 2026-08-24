@@ -1,41 +1,33 @@
 import { useState, useEffect, useCallback } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
-  User,
-  LogOut,
-  Bell,
-  Search,
-  CalendarCheck,
-  Users,
-  Calendar,
-  DollarSign,
-  Settings,
-  BarChart3,
-  IdCard,
-  Pill,
-  LayoutGrid,
-  Wrench,
-  Check,
-  KeyRound,
-  ChevronDown,
-  Globe,
-  Headphones,
-  FlaskConical,
-} from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  DropdownMenuLabel,
-} from "@/components/ui/dropdown-menu";
-import {
+  Avatar,
+  Dropdown,
   Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  type MenuProps,
+} from "antd";
+import {
+  UserOutlined,
+  LogoutOutlined,
+  KeyOutlined,
+  DownOutlined,
+  BellOutlined,
+  GlobalOutlined,
+  SearchOutlined,
+  ScheduleOutlined,
+  TeamOutlined,
+  CalendarOutlined,
+  CustomerServiceOutlined,
+  DollarOutlined,
+  ExperimentOutlined,
+  SettingOutlined,
+  BarChartOutlined,
+  IdcardOutlined,
+  MedicineBoxOutlined,
+  AppstoreOutlined,
+  ToolOutlined,
+  CheckOutlined,
+} from "@ant-design/icons";
 import { useLanguage, useT } from "@/lib/i18n";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useMutation } from "@tanstack/react-query";
@@ -49,21 +41,23 @@ interface NavItem {
   label: string;
 }
 
+/** Translator type, so the builders below stay readable. */
 type Translate = (vietnamese: string) => string;
 
+// The navigation is built per render: its labels follow the chosen language.
 const mainNav = (t: Translate): NavItem[] => [
-  { key: "/reception", icon: <CalendarCheck className="size-4" />, label: t("Tiếp nhận") },
-  { key: "/patient", icon: <Users className="size-4" />, label: t("Danh sách bệnh nhân") },
-  { key: "/calendar", icon: <Calendar className="size-4" />, label: t("Lịch hẹn") },
-  { key: "/cskh-grouping", icon: <Headphones className="size-4" />, label: t("CSKH - Phân nhóm") },
-  { key: "/labo", icon: <FlaskConical className="size-4" />, label: t("Labo") },
-  { key: "/billing", icon: <DollarSign className="size-4" />, label: t("Thanh toán") },
-  { key: "/operations", icon: <Settings className="size-4" />, label: t("Quản trị vận hành") },
-  { key: "/report", icon: <BarChart3 className="size-4" />, label: t("Báo cáo") },
-  { key: "/staff", icon: <IdCard className="size-4" />, label: t("Nhân viên") },
-  { key: "/materials", icon: <Pill className="size-4" />, label: t("Vật tư") },
-  { key: "/taxonomy", icon: <LayoutGrid className="size-4" />, label: t("Danh mục") },
-  { key: "/tools", icon: <Wrench className="size-4" />, label: t("Công cụ") },
+  { key: "/reception", icon: <ScheduleOutlined />, label: t("Tiếp nhận") },
+  { key: "/patient", icon: <TeamOutlined />, label: t("Danh sách bệnh nhân") },
+  { key: "/calendar", icon: <CalendarOutlined />, label: t("Lịch hẹn") },
+  { key: "/cskh-grouping", icon: <CustomerServiceOutlined />, label: t("CSKH - Phân nhóm") },
+  { key: "/labo", icon: <ExperimentOutlined />, label: t("Labo") },
+  { key: "/billing", icon: <DollarOutlined />, label: t("Thanh toán") },
+  { key: "/operations", icon: <SettingOutlined />, label: t("Quản trị vận hành") },
+  { key: "/report", icon: <BarChartOutlined />, label: t("Báo cáo") },
+  { key: "/staff", icon: <IdcardOutlined />, label: t("Nhân viên") },
+  { key: "/materials", icon: <MedicineBoxOutlined />, label: t("Vật tư") },
+  { key: "/taxonomy", icon: <AppstoreOutlined />, label: t("Danh mục") },
+  { key: "/tools", icon: <ToolOutlined />, label: t("Công cụ") },
 ];
 
 function initialsOf(name: string | undefined): string {
@@ -98,6 +92,8 @@ function SidebarNavItem({
     );
   }
 
+  // Collapsed, the design shows the icon alone — the rail is too narrow for a
+  // label, and a clipped one reads worse than none. The title carries the name.
   return (
     <button
       type="button"
@@ -156,15 +152,74 @@ export function AppLayout() {
     return location.pathname.startsWith(key);
   };
 
+  const userMenuItems: MenuProps["items"] = [
+    {
+      key: "user-info",
+      label: user?.clinicName ?? "BlueDental",
+      disabled: true,
+      style: { color: "rgba(0,0,0,0.45)", fontSize: 12 },
+    },
+    { type: "divider" },
+    {
+      key: "profile",
+      icon: <UserOutlined />,
+      label: t("Thông tin cá nhân"),
+      onClick: () => navigate("/account/profile"),
+    },
+    {
+      key: "change-password",
+      icon: <KeyOutlined />,
+      label: t("Đổi mật khẩu"),
+      onClick: () => navigate("/account/change-password"),
+    },
+    { type: "divider" },
+    {
+      key: "logout",
+      icon: <LogoutOutlined />,
+      label: t("Đăng xuất"),
+      danger: true,
+      onClick: () => logoutMutation.mutate(),
+    },
+  ];
+
   const clinicName = user?.clinicName ?? "NHA KHOA ĐỨC HẠNH PREMIUM";
   const clinicLogoUrl = user?.clinicLogoUrl ?? "/logo.png";
   const clinicTagline = user?.clinicTagline ?? "Kiến Tạo Nụ Cười - Giá Trị Bền Vững";
   const sidebarWidth = sidebarExpanded ? SIDEBAR_EXPANDED_WIDTH : SIDEBAR_WIDTH;
 
+  const branchContent = (
+    <div className="app-popover-list">
+      <div className="app-popover-header">{t("Chi nhánh")}</div>
+      <button type="button" className="app-popover-item">
+        <span className="app-popover-dot" style={{ background: brand.faint }} />
+        <span>{t("Tất cả chi nhánh")}</span>
+      </button>
+      <button type="button" className="app-popover-item app-popover-item--active">
+        <span className="app-popover-dot" style={{ background: "#25a97a" }} />
+        <span>{clinicName}</span>
+      </button>
+    </div>
+  );
+
+  const langContent = (
+    <div className="app-popover-list">
+      <div className="app-popover-header">{t("Ngôn ngữ")}</div>
+      <button type="button" className="app-popover-item" onClick={() => setLanguage("vi")}>
+        <span>{t("Tiếng Việt")}</span>
+        {language === "vi" && <CheckOutlined style={{ color: brand.blue, fontSize: 12 }} />}
+      </button>
+      <button type="button" className="app-popover-item" onClick={() => setLanguage("en")}>
+        <span>English</span>
+        {language === "en" && <CheckOutlined style={{ color: brand.blue, fontSize: 12 }} />}
+      </button>
+    </div>
+  );
+
   return (
     <div style={{ minHeight: "100vh", background: "#f4f6fa" }}>
       {/* ── Sidebar ── */}
       <aside className="app-sidebar" style={{ width: sidebarWidth }}>
+        {/* Logo area */}
         <div className={`sidebar-logo-area ${!sidebarExpanded ? "sidebar-logo-area--collapsed" : ""}`}>
           <div className="sidebar-logo-img-wrap">
             <img
@@ -181,6 +236,7 @@ export function AppLayout() {
           )}
         </div>
 
+        {/* Main nav */}
         <nav className="sidebar-nav-main">
           {mainNav(t).map((item) => (
             <SidebarNavItem
@@ -193,9 +249,10 @@ export function AppLayout() {
           ))}
         </nav>
 
+        {/* Bottom nav — sign out, as the design has it. */}
         <nav className="sidebar-nav-bottom">
           <SidebarNavItem
-            item={{ key: "logout", icon: <LogOut className="size-4" />, label: t("Đăng xuất") }}
+            item={{ key: "logout", icon: <LogoutOutlined />, label: t("Đăng xuất") }}
             active={false}
             expanded={sidebarExpanded}
             onClick={() => logoutMutation.mutate()}
@@ -258,102 +315,45 @@ export function AppLayout() {
               className="app-header-search"
               onClick={() => setSearchOpen(true)}
             >
-              <Search size={16} />
+              <SearchOutlined style={{ fontSize: 16 }} />
               <span className="app-header-search-text">
                 {t("Tìm kiếm khách hàng, lịch hẹn, nhân viên…")}
               </span>
               <kbd className="app-header-search-kbd">Ctrl K</kbd>
             </button>
 
-            <Popover>
-              <PopoverTrigger asChild>
-                <button type="button" className="app-header-branch">
-                  <span className="app-header-branch-dot" />
-                  <span className="app-header-branch-name">{clinicName}</span>
-                  <ChevronDown size={14} color="#6f7c90" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent align="end" className="w-64 p-0">
-                <div className="app-popover-list">
-                  <div className="app-popover-header">{t("Chi nhánh")}</div>
-                  <button type="button" className="app-popover-item">
-                    <span className="app-popover-dot" style={{ background: brand.faint }} />
-                    <span>{t("Tất cả chi nhánh")}</span>
-                  </button>
-                  <button type="button" className="app-popover-item app-popover-item--active">
-                    <span className="app-popover-dot" style={{ background: "#25a97a" }} />
-                    <span>{clinicName}</span>
-                  </button>
-                </div>
-              </PopoverContent>
+            <Popover content={branchContent} trigger="click" placement="bottomRight" arrow={false}>
+              <button type="button" className="app-header-branch">
+                <span className="app-header-branch-dot" />
+                <span className="app-header-branch-name">{clinicName}</span>
+                <DownOutlined style={{ fontSize: 14, color: "#6f7c90" }} />
+              </button>
             </Popover>
 
             <div className="app-header-actions">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button type="button" className="app-header-icon-btn" aria-label={t("Ngôn ngữ")}>
-                    <Globe size={18} />
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent align="end" className="w-48 p-0">
-                  <div className="app-popover-list">
-                    <div className="app-popover-header">{t("Ngôn ngữ")}</div>
-                    <button type="button" className="app-popover-item" onClick={() => setLanguage("vi")}>
-                      <span>{t("Tiếng Việt")}</span>
-                      {language === "vi" && <Check size={12} color={brand.blue} />}
-                    </button>
-                    <button type="button" className="app-popover-item" onClick={() => setLanguage("en")}>
-                      <span>English</span>
-                      {language === "en" && <Check size={12} color={brand.blue} />}
-                    </button>
-                  </div>
-                </PopoverContent>
+              <Popover content={langContent} trigger="click" placement="bottomRight" arrow={false}>
+                <button type="button" className="app-header-icon-btn" aria-label={t("Ngôn ngữ")}>
+                  <GlobalOutlined style={{ fontSize: 18 }} />
+                </button>
               </Popover>
 
               <button type="button" className="app-header-icon-btn" aria-label={t("Thông báo")}>
-                <Bell size={18} />
+                <BellOutlined style={{ fontSize: 18 }} />
                 <span className="app-header-notif-dot" />
               </button>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <div className="app-header-user" role="button" tabIndex={0} aria-label={t("Tài khoản người dùng")}>
-                    <Avatar className="size-8">
-                      <AvatarImage src={undefined} />
-                      <AvatarFallback
-                        className="text-xs font-bold text-white"
-                        style={{ backgroundColor: brand.blue }}
-                      >
-                        {initialsOf(user?.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="app-header-user-name">{user?.name ?? "Admin"}</span>
-                    <ChevronDown size={14} color="#6f7c90" />
-                  </div>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52">
-                  <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
-                    {user?.clinicName ?? "BlueDental"}
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => navigate("/account/profile")}>
-                    <User className="size-4" />
-                    {t("Thông tin cá nhân")}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/account/change-password")}>
-                    <KeyRound className="size-4" />
-                    {t("Đổi mật khẩu")}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    className="text-destructive focus:text-destructive"
-                    onClick={() => logoutMutation.mutate()}
+              <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
+                <div className="app-header-user" role="button" tabIndex={0} aria-label={t("Tài khoản người dùng")}>
+                  <Avatar
+                    size={32}
+                    style={{ backgroundColor: brand.blue, fontSize: 13, fontWeight: 700 }}
                   >
-                    <LogOut className="size-4" />
-                    {t("Đăng xuất")}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    {initialsOf(user?.name)}
+                  </Avatar>
+                  <span className="app-header-user-name">{user?.name ?? "Admin"}</span>
+                  <DownOutlined style={{ fontSize: 14, color: "#6f7c90" }} />
+                </div>
+              </Dropdown>
             </div>
           </div>
         </header>

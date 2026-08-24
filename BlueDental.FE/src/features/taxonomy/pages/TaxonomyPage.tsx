@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Plus, Search } from "lucide-react";
-import { toast } from "sonner";
+import { Button, Empty, Input, Modal, Popconfirm, Table, Tabs, Tag, message } from "antd";
+import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
+import type { ColumnsType } from "antd/es/table";
 import {
   TAXONOMY_GROUP,
   useCatalogEntries,
@@ -17,35 +18,6 @@ import { extractApiError } from "@/lib/apiError";
 import { formatDate, formatVND } from "@/utils/format";
 import { t } from "@/lib/i18n";
 import { PageHeader } from "@/components/PageHeader";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 
 /**
  * Every "Danh mục" sub-route in the reference is the same screen: a group list on
@@ -106,15 +78,14 @@ function GroupSidebar({
         {isLoading ? t("Đang tải…") : t("{0} nhóm", groups.length)}
       </div>
 
-      <div className="relative mb-2">
-        <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          className="pl-8"
-          placeholder={t("Tìm nhóm...")}
-          value={keyword}
-          onChange={(e) => setKeyword(e.target.value)}
-        />
-      </div>
+      <Input
+        prefix={<SearchOutlined />}
+        placeholder={t("Tìm nhóm...")}
+        value={keyword}
+        onChange={(e) => setKeyword(e.target.value)}
+        allowClear
+        style={{ marginBottom: 8 }}
+      />
 
       <button
         type="button"
@@ -157,8 +128,7 @@ function GroupSidebar({
         </button>
       ))}
 
-      <Button variant="outline" className="w-full mt-2" onClick={onAdd}>
-        <Plus size={14} className="mr-1" />
+      <Button block icon={<PlusOutlined />} onClick={onAdd} style={{ marginTop: 8 }}>
         {t("Thêm nhóm")}
       </Button>
     </div>
@@ -190,15 +160,84 @@ function CatalogPanel({ tab }: { tab: TaxonomyTab }) {
   const createGroup = useCreateTaxonomyGroup();
   const deleteEntry = useDeleteCatalogEntry();
 
+  // Selecting a group that then disappears (deleted elsewhere) would show an
+  // empty table with no way back, so fall back to "all groups" — but only once
+  // the list has settled, otherwise this races a freshly created group whose
+  // refetch is still in flight and clears the selection we just made.
   useEffect(() => {
     if (groupsFetching) return;
+
     if (selectedGroupId && !groups.some((g) => g.id === selectedGroupId)) {
       setSelectedGroupId(null);
     }
   }, [groups, groupsFetching, selectedGroupId]);
 
   const currentGroup = groups.find((g) => g.id === selectedGroupId);
-  const entries: CatalogEntryDto[] = entryPage?.items ?? [];
+
+  const columns: ColumnsType<CatalogEntryDto> = [
+    { title: tab.entityLabel, dataIndex: "name", key: "name" },
+    {
+      title: t("Nhóm phân loại"),
+      dataIndex: "taxonomyName",
+      key: "taxonomyName",
+      width: 200,
+      render: (value: string | null) => value ?? "—",
+    },
+    ...(tab.priced
+      ? [{
+          title: t("Giá"),
+          dataIndex: "price",
+          key: "price",
+          width: 140,
+          align: "right" as const,
+          render: (value: number | null) => (value == null ? "—" : `${formatVND(value)} đ`),
+        }]
+      : []),
+    {
+      title: t("Trạng thái"),
+      dataIndex: "isActive",
+      key: "isActive",
+      width: 120,
+      render: (isActive: boolean) =>
+        isActive
+          ? <Tag color="green">{t("Đang dùng")}</Tag>
+          : <Tag>{t("Ngừng dùng")}</Tag>,
+    },
+    {
+      title: t("Cập nhật gần nhất"),
+      dataIndex: "lastModificationTime",
+      key: "lastModificationTime",
+      width: 150,
+      render: (value: string | null, row) => formatDate(value ?? row.creationTime),
+    },
+    {
+      title: t("Thao tác"),
+      key: "actions",
+      width: 140,
+      render: (_, row) => (
+        <>
+          <Button type="link" size="small" onClick={() => { setEditing(row); setEntryModalOpen(true); }}>
+            {t("Sửa")}
+          </Button>
+          <Popconfirm
+            title={t("Xoá mục này?")}
+            okText={t("Xoá")}
+            cancelText={t("Huỷ")}
+            onConfirm={async () => {
+              try {
+                await deleteEntry.mutateAsync(row.id);
+                message.success(t("Đã xoá"));
+              } catch (error) {
+                message.error(extractApiError(error));
+              }
+            }}
+          >
+            <Button type="link" size="small" danger>{t("Xoá")}</Button>
+          </Popconfirm>
+        </>
+      ),
+    },
+  ];
 
   const handleCreateGroup = async () => {
     if (!newGroupName.trim()) return;
@@ -209,12 +248,14 @@ function CatalogPanel({ tab }: { tab: TaxonomyTab }) {
         group,
         name: newGroupName.trim(),
       });
+      // Select the new group so the next "add item" lands where the user just
+      // created it, instead of falling back to the first group in the list.
       setSelectedGroupId(created.id);
-      toast.success(t("Đã thêm nhóm"));
+      message.success(t("Đã thêm nhóm"));
       setGroupModalOpen(false);
       setNewGroupName("");
     } catch (error) {
-      toast.error(extractApiError(error));
+      message.error(extractApiError(error));
     }
   };
 
@@ -244,21 +285,21 @@ function CatalogPanel({ tab }: { tab: TaxonomyTab }) {
 
           <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "space-between" }}>
             <Button
+              type="primary"
+              icon={<PlusOutlined />}
               disabled={groups.length === 0}
               onClick={() => { setEditing(null); setEntryModalOpen(true); }}
             >
-              <Plus size={14} className="mr-1" />
               {t("Thêm {0}", tab.label.toLowerCase())}
             </Button>
-            <div className="relative">
-              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                className="pl-8 w-64"
-                placeholder={t("Tìm theo {0}...", tab.entityLabel.toLowerCase())}
-                value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
-              />
-            </div>
+            <Input
+              prefix={<SearchOutlined />}
+              placeholder={t("Tìm theo {0}...", tab.entityLabel.toLowerCase())}
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              style={{ width: 260 }}
+              allowClear
+            />
           </div>
 
           {groups.length === 0 && !groupsLoading && (
@@ -268,89 +309,20 @@ function CatalogPanel({ tab }: { tab: TaxonomyTab }) {
           )}
         </div>
 
-        {entriesLoading ? (
-          <div className="py-8 text-center text-muted-foreground">{t("Đang tải...")}</div>
-        ) : entries.length === 0 ? (
-          <div className="py-8 text-center text-muted-foreground">{t("Không có dữ liệu")}</div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{tab.entityLabel}</TableHead>
-                <TableHead className="w-48">{t("Nhóm phân loại")}</TableHead>
-                {tab.priced && <TableHead className="w-36 text-right">{t("Giá")}</TableHead>}
-                <TableHead className="w-28">{t("Trạng thái")}</TableHead>
-                <TableHead className="w-36">{t("Cập nhật gần nhất")}</TableHead>
-                <TableHead className="w-36">{t("Thao tác")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {entries.map((row) => (
-                <TableRow key={row.id}>
-                  <TableCell>{row.name}</TableCell>
-                  <TableCell>{row.taxonomyName ?? "—"}</TableCell>
-                  {tab.priced && (
-                    <TableCell className="text-right">
-                      {row.price == null ? "—" : `${formatVND(row.price)} đ`}
-                    </TableCell>
-                  )}
-                  <TableCell>
-                    {row.isActive ? (
-                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700">
-                        {t("Đang dùng")}
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600">
-                        {t("Ngừng dùng")}
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell>{formatDate(row.lastModificationTime ?? row.creationTime)}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="link"
-                        size="sm"
-                        className="h-auto p-0"
-                        onClick={() => { setEditing(row); setEntryModalOpen(true); }}
-                      >
-                        {t("Sửa")}
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="link" size="sm" className="h-auto p-0 text-destructive">
-                            {t("Xoá")}
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>{t("Xoá mục này?")}</AlertDialogTitle>
-                            <AlertDialogDescription>{row.name}</AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>{t("Huỷ")}</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={async () => {
-                                try {
-                                  await deleteEntry.mutateAsync(row.id);
-                                  toast.success(t("Đã xoá"));
-                                } catch (error) {
-                                  toast.error(extractApiError(error));
-                                }
-                              }}
-                            >
-                              {t("Xoá")}
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
+        <Table<CatalogEntryDto>
+          rowKey="id"
+          loading={entriesLoading}
+          dataSource={entryPage?.items ?? []}
+          columns={columns}
+          size="middle"
+          locale={{
+            emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("Không có dữ liệu")} />,
+          }}
+          pagination={{
+            pageSize: 20,
+            showTotal: (total, range) => t("Hiển thị {0}–{1} trên {2} bản ghi", range[0], range[1], total),
+          }}
+        />
       </div>
 
       <CatalogEntryModal
@@ -365,27 +337,22 @@ function CatalogPanel({ tab }: { tab: TaxonomyTab }) {
         onClose={() => { setEntryModalOpen(false); setEditing(null); }}
       />
 
-      <Dialog open={groupModalOpen} onOpenChange={(o) => { if (!o) { setGroupModalOpen(false); setNewGroupName(""); } }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t("Thêm nhóm phân loại")}</DialogTitle>
-          </DialogHeader>
-          <Input
-            placeholder={t("Tên nhóm")}
-            value={newGroupName}
-            onChange={(e) => setNewGroupName(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") void handleCreateGroup(); }}
-          />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setGroupModalOpen(false); setNewGroupName(""); }}>
-              {t("Huỷ")}
-            </Button>
-            <Button onClick={() => void handleCreateGroup()} disabled={createGroup.isPending}>
-              {t("Thêm")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <Modal
+        open={groupModalOpen}
+        title={t("Thêm nhóm phân loại")}
+        okText={t("Thêm")}
+        cancelText={t("Huỷ")}
+        confirmLoading={createGroup.isPending}
+        onOk={handleCreateGroup}
+        onCancel={() => { setGroupModalOpen(false); setNewGroupName(""); }}
+      >
+        <Input
+          placeholder={t("Tên nhóm")}
+          value={newGroupName}
+          onChange={(e) => setNewGroupName(e.target.value)}
+          onPressEnter={handleCreateGroup}
+        />
+      </Modal>
     </div>
   );
 }
@@ -405,24 +372,21 @@ export function TaxonomyPage() {
 
       <div className="reception-card reception-card--toolbar">
         <Tabs
-          value={tab.key}
-          onValueChange={(key) => setSearchParams((p) => { p.set("tab", key); return p; })}
-        >
-          <TabsList className="flex flex-wrap h-auto gap-1">
-            {tabs.map((tb) => (
-              <TabsTrigger key={tb.key} value={tb.key}>{tb.label}</TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+          activeKey={tab.key}
+          onChange={(key) => setSearchParams((p) => { p.set("tab", key); return p; })}
+          style={{ marginBottom: 0 }}
+          items={tabs.map((tb) => ({ key: tb.key, label: tb.label }))}
+        />
       </div>
 
       <div className="reception-card reception-card--content">
         {tab.group ? (
           <CatalogPanel key={tab.key} tab={tab} />
         ) : (
-          <div className="py-8 text-center text-muted-foreground">
-            {tab.pendingNote ?? t("Chưa có dữ liệu")}
-          </div>
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description={tab.pendingNote ?? t("Chưa có dữ liệu")}
+          />
         )}
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { Loader2 } from "lucide-react";
+import { Empty, Spin } from "antd";
 import { useNavigate } from "react-router-dom";
 import { useReceptionList } from "@/features/reception/api/receptionQueries";
 import type { ReceptionStatus } from "@/features/reception/types/reception";
@@ -37,13 +37,14 @@ export function OngoingReceptionsCard() {
 
       {isLoading ? (
         <div className="dash-panel-body">
-          <Loader2 className="size-4 animate-spin text-primary" />
+          <Spin size="small" />
         </div>
       ) : rows.length === 0 ? (
         <div className="dash-panel-body">
-          <div className="flex flex-col items-center justify-center py-6 text-muted-foreground text-sm gap-2">
-            <p>{t("Không có lượt tiếp nhận đang diễn ra")}</p>
-          </div>
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description={t("Không có lượt tiếp nhận đang diễn ra")}
+          />
         </div>
       ) : (
         <div>

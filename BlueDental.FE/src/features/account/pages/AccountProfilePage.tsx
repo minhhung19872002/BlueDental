@@ -1,14 +1,11 @@
+import { Card, Avatar, Button, Input, Row, Col, Typography, Divider, message } from "antd";
+import { UserOutlined, EditOutlined, SaveOutlined } from "@ant-design/icons";
 import { useState } from "react";
-import { Pencil, Save, Loader2 } from "lucide-react";
-import { toast } from "sonner";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useUpdateProfile } from "@/features/account/api/accountMutations";
 import { t } from "@/lib/i18n";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
+
+const { Text, Title } = Typography;
 
 export function AccountProfilePage() {
   const user = useAuthStore((s) => s.user);
@@ -26,11 +23,11 @@ export function AccountProfilePage() {
       {
         onSuccess: (data) => {
           setAuth({ ...user, name: data.name ?? name, email: data.email ?? email });
-          toast.success(t("Cập nhật thông tin thành công!"));
+          message.success(t("Cập nhật thông tin thành công!"));
           setEditing(false);
         },
         onError: () => {
-          toast.error(t("Cập nhật thất bại. Vui lòng thử lại."));
+          message.error(t("Cập nhật thất bại. Vui lòng thử lại."));
         },
       },
     );
@@ -40,84 +37,110 @@ export function AccountProfilePage() {
     <div className="page-container">
       <div className="page-header">
         <div className="page-header-left">
-          <h4 className="text-lg font-semibold">{t("Thông tin tài khoản")}</h4>
-          <p className="text-sm text-muted-foreground">{t("Quản lý thông tin cá nhân của bạn")}</p>
+          <Title level={4} style={{ margin: 0 }}>{t("Thông tin tài khoản")}</Title>
+          <Text type="secondary">{t("Quản lý thông tin cá nhân của bạn")}</Text>
         </div>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_2fr]">
+      <Row gutter={[20, 20]}>
         {/* Avatar card */}
-        <Card>
-          <CardContent className="flex flex-col items-center py-8">
-            <Avatar className="mb-4 size-24">
-              <AvatarImage src={user?.clinicLogoUrl ?? undefined} />
-              <AvatarFallback className="bg-primary text-xl font-bold text-white">
-                {(user?.name ?? "BD").slice(0, 2).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <h5 className="mb-1 font-semibold">{user?.name}</h5>
-            <p className="text-sm text-muted-foreground">{user?.roles?.[0] ?? "Admin"}</p>
-            <p className="mt-2 text-xs text-muted-foreground">{user?.clinicName}</p>
-            <Button variant="outline" size="sm" className="mt-4" onClick={() => setEditing(true)}>
-              <Pencil className="size-4" />
-              {t("Đổi ảnh đại diện")}
-            </Button>
-          </CardContent>
-        </Card>
+        <Col xs={24} lg={8}>
+          <Card>
+            <div style={{ textAlign: "center", padding: "24px 0" }}>
+              <Avatar
+                size={96}
+                src={user?.clinicLogoUrl ?? undefined}
+                icon={<UserOutlined />}
+                style={{ marginBottom: 16, background: "#2671D8" }}
+              />
+              <div>
+                <Title level={5} style={{ marginBottom: 4 }}>{user?.name}</Title>
+                <Text type="secondary">{user?.roles?.[0] ?? "Admin"}</Text>
+              </div>
+              <div style={{ marginTop: 12 }}>
+                <Text style={{ fontSize: 12, color: "#9CA3AF" }}>{user?.clinicName}</Text>
+              </div>
+              <Button
+                icon={<EditOutlined />}
+                style={{ marginTop: 16 }}
+                onClick={() => setEditing(true)}
+              >
+                {t("Đổi ảnh đại diện")}
+              </Button>
+            </div>
+          </Card>
+        </Col>
 
         {/* Profile info card */}
-        <Card>
-          <CardHeader className="flex-row items-center justify-between">
-            <CardTitle className="text-base">{t("Thông tin cá nhân")}</CardTitle>
-            {editing ? (
-              <Button size="sm" onClick={handleSave} disabled={updateProfile.isPending}>
-                {updateProfile.isPending ? <Loader2 className="animate-spin" /> : <Save className="size-4" />}
-                {t("Lưu thay đổi")}
-              </Button>
-            ) : (
-              <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
-                <Pencil className="size-4" />
-                {t("Chỉnh sửa")}
-              </Button>
-            )}
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <p className="mb-1 text-xs font-medium text-muted-foreground">{t("Họ và tên")}</p>
+        <Col xs={24} lg={16}>
+          <Card
+            title={t("Thông tin cá nhân")}
+            extra={
+              editing ? (
+                <Button
+                  type="primary"
+                  icon={<SaveOutlined />}
+                  onClick={handleSave}
+                  loading={updateProfile.isPending}
+                  style={{ background: "#2671D8" }}
+                >
+                  {t("Lưu thay đổi")}
+                </Button>
+              ) : (
+                <Button icon={<EditOutlined />} onClick={() => setEditing(true)}>
+                  {t("Chỉnh sửa")}
+                </Button>
+              )
+            }
+          >
+            <Row gutter={[16, 16]}>
+              <Col xs={24} sm={12}>
+                <div style={{ marginBottom: 4 }}>
+                  <Text style={{ fontSize: 12, color: "#5A6B82", fontWeight: 500 }}>{t("Họ và tên")}</Text>
+                </div>
                 {editing ? (
-                  <Input value={name} onChange={(e) => setName(e.target.value)} className="h-10" />
+                  <Input value={name} onChange={(e) => setName(e.target.value)} style={{ height: 40 }} />
                 ) : (
-                  <p className="font-medium">{user?.name ?? "—"}</p>
+                  <Text strong>{user?.name ?? "—"}</Text>
                 )}
-              </div>
-              <div>
-                <p className="mb-1 text-xs font-medium text-muted-foreground">{t("Email")}</p>
+              </Col>
+              <Col xs={24} sm={12}>
+                <div style={{ marginBottom: 4 }}>
+                  <Text style={{ fontSize: 12, color: "#5A6B82", fontWeight: 500 }}>{t("Email")}</Text>
+                </div>
                 {editing ? (
-                  <Input value={email} onChange={(e) => setEmail(e.target.value)} className="h-10" />
+                  <Input value={email} onChange={(e) => setEmail(e.target.value)} style={{ height: 40 }} />
                 ) : (
-                  <p>{user?.email ?? "—"}</p>
+                  <Text>{user?.email ?? "—"}</Text>
                 )}
-              </div>
-              <div>
-                <p className="mb-1 text-xs font-medium text-muted-foreground">{t("Vai trò")}</p>
-                <p>{user?.roles?.[0] ?? "—"}</p>
-              </div>
-              <div>
-                <p className="mb-1 text-xs font-medium text-muted-foreground">{t("Chi nhánh")}</p>
-                <p>{user?.clinicName ?? "—"}</p>
-              </div>
-            </div>
+              </Col>
+              <Col xs={24} sm={12}>
+                <div style={{ marginBottom: 4 }}>
+                  <Text style={{ fontSize: 12, color: "#5A6B82", fontWeight: 500 }}>{t("Vai trò")}</Text>
+                </div>
+                <Text>{user?.roles?.[0] ?? "—"}</Text>
+              </Col>
+              <Col xs={24} sm={12}>
+                <div style={{ marginBottom: 4 }}>
+                  <Text style={{ fontSize: 12, color: "#5A6B82", fontWeight: 500 }}>{t("Chi nhánh")}</Text>
+                </div>
+                <Text>{user?.clinicName ?? "—"}</Text>
+              </Col>
+            </Row>
 
-            <Separator className="my-4" />
+            <Divider />
 
-            <div>
-              <p className="mb-1 text-xs font-medium text-muted-foreground">{t("ID tài khoản")}</p>
-              <p className="font-mono text-xs text-muted-foreground">{user?.id ?? "—"}</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            <Row gutter={[16, 16]}>
+              <Col xs={24} sm={12}>
+                <div style={{ marginBottom: 4 }}>
+                  <Text style={{ fontSize: 12, color: "#5A6B82", fontWeight: 500 }}>{t("ID tài khoản")}</Text>
+                </div>
+                <Text style={{ fontFamily: "monospace", fontSize: 12, color: "#6B7280" }}>{user?.id ?? "—"}</Text>
+              </Col>
+            </Row>
+          </Card>
+        </Col>
+      </Row>
     </div>
   );
 }

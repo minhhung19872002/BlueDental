@@ -1,17 +1,12 @@
+import { Card, Table, Typography } from "antd";
+import type { TableColumnsType } from "antd";
 import { useAppointmentList } from "../api/appointmentQueries";
 import { StatusBadge } from "./StatusBadge";
 import type { Appointment, AppointmentStatus } from "../types/appointment";
 import { formatDateTime } from "@/utils/format";
 import { t } from "@/lib/i18n";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Card, CardContent } from "@/components/ui/card";
+
+const { Text } = Typography;
 
 interface PatientAppointmentPanelProps {
   patientId: string;
@@ -30,6 +25,43 @@ export function PatientAppointmentPanel({ patientId }: PatientAppointmentPanelPr
   const { data, isLoading } = useAppointmentList({ patientId, maxResultCount: 50 });
 
   const rows = data?.items ?? [];
+
+  const columns: TableColumnsType<Appointment> = [
+    {
+      title: t("Thời gian"),
+      dataIndex: "startTime",
+      key: "startTime",
+      width: 170,
+      render: (value: string) => formatDateTime(value),
+    },
+    {
+      title: t("Bác sĩ"),
+      dataIndex: "doctorName",
+      key: "doctorName",
+      width: 160,
+      render: (value: string) => value || "—",
+    },
+    {
+      title: t("Nội dung"),
+      dataIndex: "reason",
+      key: "reason",
+      render: (value: string | null) => value ?? "—",
+    },
+    {
+      title: t("Trạng thái"),
+      dataIndex: "status",
+      key: "status",
+      width: 140,
+      render: (value: AppointmentStatus) => <StatusBadge status={value} />,
+    },
+    {
+      title: t("Ghi chú"),
+      dataIndex: "notes",
+      key: "notes",
+      width: 200,
+      render: (value: string | null) => value ?? "—",
+    },
+  ];
 
   return (
     <div>
@@ -58,39 +90,16 @@ export function PatientAppointmentPanel({ patientId }: PatientAppointmentPanelPr
         ))}
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="py-8 text-center text-muted-foreground">{t("Đang tải...")}</div>
-          ) : rows.length === 0 ? (
-            <div className="py-8 text-center text-muted-foreground">{t("Chưa có lịch hẹn")}</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-44">{t("Thời gian")}</TableHead>
-                    <TableHead className="w-40">{t("Bác sĩ")}</TableHead>
-                    <TableHead>{t("Nội dung")}</TableHead>
-                    <TableHead className="w-36">{t("Trạng thái")}</TableHead>
-                    <TableHead className="w-48">{t("Ghi chú")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((row: Appointment) => (
-                    <TableRow key={row.id}>
-                      <TableCell>{formatDateTime(row.startTime)}</TableCell>
-                      <TableCell>{row.doctorName || "—"}</TableCell>
-                      <TableCell>{row.reason ?? "—"}</TableCell>
-                      <TableCell><StatusBadge status={row.status} /></TableCell>
-                      <TableCell>{row.notes ?? "—"}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
+      <Card size="small">
+        <Table<Appointment>
+          size="small"
+          rowKey="id"
+          loading={isLoading}
+          columns={columns}
+          dataSource={rows}
+          pagination={false}
+          locale={{ emptyText: <Text type="secondary">{t("Chưa có lịch hẹn")}</Text> }}
+        />
       </Card>
     </div>
   );

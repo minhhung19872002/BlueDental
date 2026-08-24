@@ -1,9 +1,7 @@
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Form, Input, Button, Checkbox } from "antd";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate, useLocation } from "react-router-dom";
 import { authApi } from "../api";
@@ -11,8 +9,6 @@ import { useAuthStore } from "../store/authStore";
 import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
 import { brand } from "@/theme/index";
-import { useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
 
 const buildLoginSchema = () =>
   z.object({
@@ -27,7 +23,6 @@ export function LoginForm() {
   const navigate = useNavigate();
   const location = useLocation();
   const setAuth = useAuthStore((s) => s.setAuth);
-  const [showPassword, setShowPassword] = useState(false);
 
   const {
     control,
@@ -78,99 +73,83 @@ export function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="login-fields">
-      {/* Username field */}
-      <div className="flex flex-col gap-1">
-        <label className="text-sm font-medium" htmlFor="userNameOrEmailAddress">
-          {t("Tài khoản")}
-        </label>
+      {/* Form.Item needs an antd Form above it to lay labels out vertically;
+          component={false} supplies that context without nesting a form. */}
+      <Form layout="vertical" requiredMark={false} component={false}>
+      {/* The design labels each field above the box and keeps the box itself
+          plain — no icon inside — so the two rows read as one block. */}
+      <Form.Item
+        label={t("Tài khoản")}
+        colon={false}
+        validateStatus={errors.userNameOrEmailAddress ? "error" : ""}
+        help={errors.userNameOrEmailAddress?.message}
+      >
         <Controller
           name="userNameOrEmailAddress"
           control={control}
           render={({ field }) => (
             <Input
               {...field}
-              id="userNameOrEmailAddress"
               placeholder={t("Tên đăng nhập hoặc email")}
+              size="large"
               autoComplete="username"
-              className={errors.userNameOrEmailAddress ? "border-destructive" : ""}
             />
           )}
         />
-        {errors.userNameOrEmailAddress && (
-          <p className="text-xs text-destructive">{errors.userNameOrEmailAddress.message}</p>
-        )}
-      </div>
+      </Form.Item>
 
-      {/* Password field */}
-      <div className="flex flex-col gap-1 mt-3">
-        <label className="text-sm font-medium" htmlFor="password">
-          {t("Mật khẩu")}
-        </label>
+      <Form.Item
+        label={t("Mật khẩu")}
+        colon={false}
+        validateStatus={errors.password ? "error" : ""}
+        help={errors.password?.message}
+      >
         <Controller
           name="password"
           control={control}
           render={({ field }) => (
-            <div className="relative">
-              <Input
-                {...field}
-                id="password"
-                type={showPassword ? "text" : "password"}
-                placeholder={t("Mật khẩu")}
-                autoComplete="current-password"
-                className={errors.password ? "border-destructive pr-10" : "pr-10"}
-              />
-              <button
-                type="button"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                onClick={() => setShowPassword((v) => !v)}
-                tabIndex={-1}
-                aria-label={showPassword ? t("Ẩn mật khẩu") : t("Hiện mật khẩu")}
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
+            <Input.Password
+              {...field}
+              placeholder={t("Mật khẩu")}
+              size="large"
+              autoComplete="current-password"
+            />
           )}
         />
-        {errors.password && (
-          <p className="text-xs text-destructive">{errors.password.message}</p>
-        )}
-      </div>
+      </Form.Item>
 
-      {/* Remember me */}
-      <div className="login-remember flex items-center gap-2 mt-3">
+      <Form.Item className="login-remember">
         <Controller
           name="rememberMe"
           control={control}
           render={({ field }) => (
-            <Checkbox
-              id="rememberMe"
-              checked={field.value}
-              onCheckedChange={field.onChange}
-            />
+            <Checkbox checked={field.value} onChange={field.onChange}>
+              {t("Ghi nhớ đăng nhập")}
+            </Checkbox>
           )}
         />
-        <label htmlFor="rememberMe" className="text-sm cursor-pointer select-none">
-          {t("Ghi nhớ đăng nhập")}
-        </label>
-      </div>
+      </Form.Item>
 
       {errors.root && (
-        <div className="mt-3">
+        <Form.Item>
           {/* role="alert" so the failure is announced, not just coloured. */}
           <span role="alert" style={{ color: brand.red, fontSize: 13 }}>
             {errors.root.message}
           </span>
-        </div>
+        </Form.Item>
       )}
 
       <Button
-        type="submit"
-        size="lg"
-        className="w-full mt-4 login-submit"
-        disabled={loginMutation.isPending}
+        type="primary"
+        htmlType="submit"
+        size="large"
+        block
+        className="login-submit"
+        loading={loginMutation.isPending}
       >
-        {loginMutation.isPending ? t("Đang đăng nhập...") : t("Đăng nhập")}
+        {t("Đăng nhập")}
       </Button>
+      </Form>
     </form>
   );
 }

@@ -1,7 +1,7 @@
 // RevenueSummaryCard — shows today's collected revenue.
 // TODO: Wire to billing API when available.
 
-import { DollarSign } from "lucide-react";
+import { DollarOutlined } from "@ant-design/icons";
 import { brand } from "@/theme/index";
 import { t } from "@/lib/i18n";
 
@@ -17,7 +17,7 @@ export function RevenueSummaryCard() {
           className="stat-card-icon"
           style={{ background: "#E8F5E9", color: brand.green }}
         >
-          <DollarSign className="size-4" />
+          <DollarOutlined />
         </div>
       </div>
       <div className="stat-card-footer">{t("Đang phát triển")}</div>

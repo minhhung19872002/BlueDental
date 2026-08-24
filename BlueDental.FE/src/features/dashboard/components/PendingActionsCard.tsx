@@ -1,7 +1,7 @@
 // PendingActionsCard — shows items requiring attention (unpaid invoices, follow-ups, etc.)
 // TODO: Wire to respective APIs when available.
 
-import { AlertCircle } from "lucide-react";
+import { ExclamationCircleOutlined } from "@ant-design/icons";
 import { brand } from "@/theme/index";
 import { t } from "@/lib/i18n";
 
@@ -17,7 +17,7 @@ export function PendingActionsCard() {
           className="stat-card-icon"
           style={{ background: "#FFF3E0", color: brand.amber }}
         >
-          <AlertCircle className="size-4" />
+          <ExclamationCircleOutlined />
         </div>
       </div>
       <div className="stat-card-footer">{t("Đang phát triển")}</div>

@@ -1,7 +1,7 @@
 import { Suspense, lazy } from "react";
 import type { RouteObject } from "react-router-dom";
 import { createBrowserRouter, Navigate } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { Spin } from "antd";
 import { AppLayout } from "./AppLayout";
 import { PrivateRoute } from "./PrivateRoute";
 import { RouteErrorBoundary } from "./RouteErrorBoundary";
@@ -158,7 +158,7 @@ const OrganizationListPage = lazy(() =>
 function RouteLoading() {
   return (
     <div style={{ minHeight: 200, display: "grid", placeItems: "center" }}>
-      <Loader2 className="size-8 animate-spin text-primary" />
+      <Spin size="large" />
     </div>
   );
 }

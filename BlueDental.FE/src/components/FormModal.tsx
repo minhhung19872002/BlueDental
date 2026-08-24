@@ -1,14 +1,8 @@
+// FormModal — standard modal wrapper for forms with consistent footer.
+
 import type { ReactNode } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { Modal, Button } from "antd";
 import { t } from "@/lib/i18n";
-import { Loader2 } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -33,28 +27,26 @@ export function FormModal({
 }: Props) {
   const resolvedSubmitLabel = submitLabel ?? t("Lưu");
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent
-        className="gap-0 p-0"
-        style={{ maxWidth: width }}
-        onInteractOutside={(e) => e.preventDefault()}
-      >
-        <DialogHeader className="border-b px-6 py-4">
-          <DialogTitle>{title}</DialogTitle>
-        </DialogHeader>
-        <div className="px-6 py-4">{children}</div>
-        <DialogFooter className="border-t px-6 py-4">
-          <Button variant="outline" onClick={onClose} disabled={loading}>
+    <Modal
+      open={open}
+      title={title}
+      onCancel={onClose}
+      width={width}
+      footer={
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+          <Button onClick={onClose} disabled={loading}>
             {t("Hủy")}
           </Button>
           {onSubmit && (
-            <Button onClick={onSubmit} disabled={loading}>
-              {loading && <Loader2 className="animate-spin" />}
+            <Button type="primary" onClick={onSubmit} loading={loading}>
               {resolvedSubmitLabel}
             </Button>
           )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      }
+      destroyOnHidden
+    >
+      {children}
+    </Modal>
   );
 }

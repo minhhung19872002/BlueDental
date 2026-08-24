@@ -1,6 +1,15 @@
 import { useState } from "react";
-import { Plus, Search, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import {
+  Button,
+  Form,
+  Input,
+  Modal,
+  Select,
+  Empty,
+  Spin,
+  message,
+} from "antd";
+import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import {
   useCreateStaff,
   useDeleteStaff,
@@ -17,22 +26,6 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 type StatusFilter = "all" | "working" | "resigned";
 
@@ -44,10 +37,10 @@ const statusTabs = (): { key: StatusFilter; label: string }[] => [
 
 interface StaffFormValues {
   userName: string;
-  password: string;
-  name: string;
+  password?: string;
+  name?: string;
   email: string;
-  phoneNumber: string;
+  phoneNumber?: string;
   roleNames: string[];
 }
 
@@ -59,12 +52,12 @@ interface StaffFormValues {
  * the account may do.
  */
 export function StaffPage() {
+  const [form] = Form.useForm<StaffFormValues>();
   const pagination = useTablePagination(20);
   const [keyword, setKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [editing, setEditing] = useState<StaffDto | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState<StaffFormValues>({ userName: "", password: "", name: "", email: "", phoneNumber: "", roleNames: [] });
 
   const debouncedKeyword = useDebounce(keyword);
 
@@ -85,9 +78,9 @@ export function StaffPage() {
   const handleDelete = async (staff: StaffDto) => {
     try {
       await deleteStaff.mutateAsync(staff.id);
-      toast.success(t("Đã xoá nhân viên"));
+      message.success(t("Đã xoá nhân viên"));
     } catch (error) {
-      toast.error(extractApiError(error));
+      message.error(extractApiError(error));
     }
   };
 
@@ -102,15 +95,14 @@ export function StaffPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ userName: "", password: "", name: "", email: "", phoneNumber: "", roleNames: [] });
+    form.resetFields();
     setModalOpen(true);
   };
 
   const openEdit = (staff: StaffDto) => {
     setEditing(staff);
-    setForm({
+    form.setFieldsValue({
       userName: staff.userName,
-      password: "",
       name: staff.fullName || staff.name || "",
       email: staff.email ?? "",
       phoneNumber: staff.phoneNumber ?? "",
@@ -119,41 +111,40 @@ export function StaffPage() {
     setModalOpen(true);
   };
 
-  const setField = <K extends keyof StaffFormValues>(key: K, value: StaffFormValues[K]) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  };
-
   const handleSubmit = async () => {
+    const values = await form.validateFields();
+
     try {
       if (editing) {
         await updateStaff.mutateAsync({
           id: editing.id,
           data: {
-            name: form.name,
-            email: form.email,
-            phoneNumber: form.phoneNumber,
+            name: values.name,
+            email: values.email,
+            phoneNumber: values.phoneNumber,
             isActive: editing.isActive,
-            roleNames: form.roleNames,
+            roleNames: values.roleNames ?? [],
             branchIds: editing.branchIds,
           },
         });
-        toast.success(t("Đã cập nhật nhân viên"));
+        message.success(t("Đã cập nhật nhân viên"));
       } else {
         await createStaff.mutateAsync({
-          userName: form.userName,
-          password: form.password,
-          name: form.name,
-          email: form.email,
-          phoneNumber: form.phoneNumber,
-          roleNames: form.roleNames,
+          userName: values.userName,
+          password: values.password!,
+          name: values.name,
+          email: values.email,
+          phoneNumber: values.phoneNumber,
+          roleNames: values.roleNames ?? [],
           branchIds: [],
         });
-        toast.success(t("Đã tạo nhân viên"));
+        message.success(t("Đã tạo nhân viên"));
       }
 
       setModalOpen(false);
+      form.resetFields();
     } catch (error) {
-      toast.error(extractApiError(error));
+      message.error(extractApiError(error));
     }
   };
 
@@ -170,17 +161,15 @@ export function StaffPage() {
 
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div className="relative">
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              className="pl-8 w-80"
-              placeholder={t("Tìm theo tên, email, số điện thoại...")}
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-            />
-          </div>
-          <Button onClick={openCreate}>
-            <Plus size={14} className="mr-1" />
+          <Input
+            prefix={<SearchOutlined />}
+            placeholder={t("Tìm theo tên, email, số điện thoại...")}
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            style={{ width: 320 }}
+            allowClear
+          />
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
             {t("Tạo")}
           </Button>
         </div>
@@ -202,12 +191,12 @@ export function StaffPage() {
       </div>
 
       {isLoading ? (
-        <div className="page-card flex items-center justify-center py-8">
-          <Loader2 className="size-5 animate-spin" />
+        <div className="page-card">
+          <Spin />
         </div>
       ) : rows.length === 0 ? (
-        <div className="page-card py-8 text-center text-muted-foreground">
-          {t("Chưa có nhân viên")}
+        <div className="page-card">
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("Chưa có nhân viên")} />
         </div>
       ) : (
         <div className="staff-grid">
@@ -225,99 +214,64 @@ export function StaffPage() {
         </div>
       )}
 
-      <Dialog open={modalOpen} onOpenChange={(o) => { if (!o) setModalOpen(false); }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editing ? t("Chỉnh sửa nhân viên") : t("Tạo nhân viên")}</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col gap-4">
-            <div>
-              <label className="text-sm font-medium mb-1 block">
-                {t("Tên đăng nhập")} <span className="text-destructive">*</span>
-              </label>
-              <Input
-                placeholder="letan01"
-                value={form.userName}
-                onChange={(e) => setField("userName", e.target.value)}
-                disabled={Boolean(editing)}
-              />
-            </div>
+      <Modal
+        open={modalOpen}
+        title={editing ? t("Chỉnh sửa nhân viên") : t("Tạo nhân viên")}
+        okText={editing ? t("Lưu") : t("Tạo")}
+        cancelText={t("Huỷ")}
+        confirmLoading={createStaff.isPending || updateStaff.isPending}
+        onOk={handleSubmit}
+        onCancel={() => setModalOpen(false)}
+        destroyOnHidden
+      >
+        <Form form={form} layout="vertical" requiredMark>
+          <Form.Item
+            name="userName"
+            label={t("Tên đăng nhập")}
+            rules={[{ required: true, message: t("Vui lòng nhập tên đăng nhập") }]}
+          >
+            <Input placeholder="letan01" disabled={Boolean(editing)} />
+          </Form.Item>
 
-            {!editing && (
-              <div>
-                <label className="text-sm font-medium mb-1 block">
-                  {t("Mật khẩu")} <span className="text-destructive">*</span>
-                </label>
-                <Input
-                  type="password"
-                  placeholder={t("Mật khẩu đăng nhập")}
-                  value={form.password}
-                  onChange={(e) => setField("password", e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  {t("Tối thiểu 8 ký tự, có chữ hoa, số và ký tự đặc biệt.")}
-                </p>
-              </div>
-            )}
+          {!editing && (
+            <Form.Item
+              name="password"
+              label={t("Mật khẩu")}
+              rules={[{ required: true, message: t("Vui lòng nhập mật khẩu") }]}
+              extra={t("Tối thiểu 8 ký tự, có chữ hoa, số và ký tự đặc biệt.")}
+            >
+              <Input.Password placeholder={t("Mật khẩu đăng nhập")} />
+            </Form.Item>
+          )}
 
-            <div>
-              <label className="text-sm font-medium mb-1 block">{t("Họ và tên")}</label>
-              <Input
-                placeholder="Nguyễn Văn An"
-                value={form.name}
-                onChange={(e) => setField("name", e.target.value)}
-              />
-            </div>
+          <Form.Item name="name" label={t("Họ và tên")}>
+            <Input placeholder={"Nguyễn Văn An"} />
+          </Form.Item>
 
-            <div>
-              <label className="text-sm font-medium mb-1 block">
-                Email <span className="text-destructive">*</span>
-              </label>
-              <Input
-                type="email"
-                placeholder="letan01@bluedental.vn"
-                value={form.email}
-                onChange={(e) => setField("email", e.target.value)}
-              />
-            </div>
+          <Form.Item
+            name="email"
+            label="Email"
+            rules={[
+              { required: true, message: t("Vui lòng nhập email") },
+              { type: "email", message: t("Email không hợp lệ") },
+            ]}
+          >
+            <Input placeholder="letan01@bluedental.vn" />
+          </Form.Item>
 
-            <div>
-              <label className="text-sm font-medium mb-1 block">{t("Số điện thoại")}</label>
-              <Input
-                placeholder="09xxxxxxxx"
-                value={form.phoneNumber}
-                onChange={(e) => setField("phoneNumber", e.target.value)}
-              />
-            </div>
+          <Form.Item name="phoneNumber" label={t("Số điện thoại")}>
+            <Input placeholder="09xxxxxxxx" />
+          </Form.Item>
 
-            <div>
-              <label className="text-sm font-medium mb-1 block">{t("Vai trò")}</label>
-              <Select
-                value={form.roleNames[0] ?? ""}
-                onValueChange={(v) => setField("roleNames", v ? [v] : [])}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t("Chọn vai trò")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {(roleNames ?? []).map((role) => (
-                    <SelectItem key={role} value={role}>{role}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground mt-1">
-                {t("Hiện tại chỉ chọn được 1 vai trò. Nhiều vai trò sẽ được hỗ trợ sau.")}
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setModalOpen(false)}>{t("Huỷ")}</Button>
-            <Button onClick={() => void handleSubmit()} disabled={createStaff.isPending || updateStaff.isPending}>
-              {editing ? t("Lưu") : t("Tạo")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <Form.Item name="roleNames" label={t("Vai trò")}>
+            <Select
+              mode="multiple"
+              placeholder={t("Chọn vai trò")}
+              options={(roleNames ?? []).map((role) => ({ value: role, label: role }))}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 }

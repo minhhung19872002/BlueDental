@@ -1,9 +1,5 @@
 import { useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { Button, Empty, Input, Spin, Switch, Tag, Tooltip, message } from "antd";
 import type { Dayjs } from "dayjs";
 import {
   useCheckIn,
@@ -34,21 +30,13 @@ interface TimekeepingBoardProps {
   currentDate: Dayjs;
 }
 
-const STATUS_COLOR_MAP: Record<AttendanceStatus, string> = {
-  [ATTENDANCE_STATUS.NotStarted]: "#6B7280",
-  [ATTENDANCE_STATUS.Working]: "#2563EB",
-  [ATTENDANCE_STATUS.Completed]: "#16A34A",
-  [ATTENDANCE_STATUS.Abandoned]: "#DC2626",
-  [ATTENDANCE_STATUS.OnLeave]: "#D97706",
-};
-
 function getStatusConfig(t: Translate): Record<AttendanceStatus, { label: string; color: string }> {
   return {
-    [ATTENDANCE_STATUS.NotStarted]: { label: t("Chưa vào ca"), color: STATUS_COLOR_MAP[ATTENDANCE_STATUS.NotStarted] },
-    [ATTENDANCE_STATUS.Working]: { label: t("Đang làm việc"), color: STATUS_COLOR_MAP[ATTENDANCE_STATUS.Working] },
-    [ATTENDANCE_STATUS.Completed]: { label: t("Hoàn thành"), color: STATUS_COLOR_MAP[ATTENDANCE_STATUS.Completed] },
-    [ATTENDANCE_STATUS.Abandoned]: { label: t("Nghỉ ngang"), color: STATUS_COLOR_MAP[ATTENDANCE_STATUS.Abandoned] },
-    [ATTENDANCE_STATUS.OnLeave]: { label: t("Nghỉ"), color: STATUS_COLOR_MAP[ATTENDANCE_STATUS.OnLeave] },
+    [ATTENDANCE_STATUS.NotStarted]: { label: t("Chưa vào ca"), color: "default" },
+    [ATTENDANCE_STATUS.Working]: { label: t("Đang làm việc"), color: "processing" },
+    [ATTENDANCE_STATUS.Completed]: { label: t("Hoàn thành"), color: "success" },
+    [ATTENDANCE_STATUS.Abandoned]: { label: t("Nghỉ ngang"), color: "error" },
+    [ATTENDANCE_STATUS.OnLeave]: { label: t("Nghỉ"), color: "warning" },
   };
 }
 
@@ -112,23 +100,24 @@ function ShiftRow({
       <span style={{ fontSize: 13, color: "#6B7280", minWidth: 84, textAlign: "center" }}>
         {formatStamp(shift.checkedInAt)} / {formatStamp(shift.checkedOutAt)}
       </span>
-      <button
-        type="button"
-        title={disabled ? t("Nhân viên đã đăng ký nghỉ") : undefined}
-        disabled={!clickable}
-        onClick={clickable ? action : undefined}
-        style={{
-          border: "1px solid #D1D5DB",
-          borderRadius: 6,
-          background: clickable ? "#fff" : "#F3F4F6",
-          color: clickable ? "#1B2A41" : "#9CA3AF",
-          fontSize: 12,
-          padding: "2px 10px",
-          cursor: clickable ? "pointer" : "not-allowed",
-        }}
-      >
-        {actionLabel}
-      </button>
+      <Tooltip title={disabled ? t("Nhân viên đã đăng ký nghỉ") : undefined}>
+        <button
+          type="button"
+          disabled={!clickable}
+          onClick={clickable ? action : undefined}
+          style={{
+            border: "1px solid #D1D5DB",
+            borderRadius: 6,
+            background: clickable ? "#fff" : "#F3F4F6",
+            color: clickable ? "#1B2A41" : "#9CA3AF",
+            fontSize: 12,
+            padding: "2px 10px",
+            cursor: clickable ? "pointer" : "not-allowed",
+          }}
+        >
+          {actionLabel}
+        </button>
+      </Tooltip>
     </div>
   );
 }
@@ -144,19 +133,19 @@ function StaffCard({ record }: { record: TimeKeepingRecordDto }) {
 
   const handleRegistrationChange = (checked: boolean) => {
     const mutation = checked ? registerWorking.mutateAsync(record.id) : registerDayOff.mutateAsync({ id: record.id });
-    void mutation.catch(() => toast.error(t("Không thể đổi đăng ký sau khi đã chấm công.")));
+    void mutation.catch(() => message.error(t("Không thể đổi đăng ký sau khi đã chấm công.")));
   };
 
   const handleCheckIn = (shift: WorkShiftKind) => {
     void checkIn
       .mutateAsync({ id: record.id, input: { shift } })
-      .catch(() => toast.error(t("Không thể vào ca.")));
+      .catch(() => message.error(t("Không thể vào ca.")));
   };
 
   const handleCheckOut = (shift: WorkShiftKind) => {
     void checkOut
       .mutateAsync({ id: record.id, input: { shift } })
-      .catch(() => toast.error(t("Không thể ra ca.")));
+      .catch(() => message.error(t("Không thể ra ca.")));
   };
 
   return (
@@ -174,8 +163,11 @@ function StaffCard({ record }: { record: TimeKeepingRecordDto }) {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Switch
+            size="small"
             checked={record.registration === WORK_REGISTRATION.Working}
-            onCheckedChange={handleRegistrationChange}
+            checkedChildren="ON"
+            unCheckedChildren="OFF"
+            onChange={handleRegistrationChange}
           />
           <div>
             <div style={{ fontWeight: 600, color: "#1B2A41" }}>
@@ -190,20 +182,9 @@ function StaffCard({ record }: { record: TimeKeepingRecordDto }) {
           <div style={{ fontWeight: 600, color: "#1B2A41" }}>
             {formatDuration(record.totalWorkedMinutes)}
           </div>
-          <span
-            style={{
-              display: "inline-block",
-              marginTop: 2,
-              padding: "2px 8px",
-              borderRadius: 4,
-              background: `${status.color}18`,
-              color: status.color,
-              fontSize: 12,
-              fontWeight: 500,
-            }}
-          >
+          <Tag color={status.color} style={{ marginInlineEnd: 0, marginTop: 2 }}>
             {status.label}
-          </span>
+          </Tag>
         </div>
       </div>
 
@@ -274,7 +255,7 @@ export function TimekeepingBoard({ currentDate }: TimekeepingBoardProps) {
     const staff = staffPage?.items ?? [];
 
     if (staff.length === 0) {
-      toast.error(t("Chưa có nhân viên nào đang làm việc."));
+      message.error(t("Chưa có nhân viên nào đang làm việc."));
       return;
     }
 
@@ -286,9 +267,9 @@ export function TimekeepingBoard({ currentDate }: TimekeepingBoardProps) {
           workDate,
         });
       }
-      toast.success(t("Đã mở ngày làm việc cho {0} nhân viên", staff.length));
+      message.success(t("Đã mở ngày làm việc cho {0} nhân viên", staff.length));
     } catch (error) {
-      toast.error(extractApiError(error));
+      message.error(extractApiError(error));
     }
   };
 
@@ -321,29 +302,28 @@ export function TimekeepingBoard({ currentDate }: TimekeepingBoardProps) {
       </div>
 
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        <Input
+        <Input.Search
+          allowClear
           placeholder={t("Tìm kiếm...")}
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
-          className="max-w-xs"
+          style={{ maxWidth: 320 }}
         />
         <Button
-          disabled={openWorkDay.isPending}
-          onClick={() => void handleOpenWorkDay()}
+          type="primary"
+          loading={openWorkDay.isPending}
+          onClick={handleOpenWorkDay}
         >
-          {openWorkDay.isPending ? <Loader2 className="size-4 animate-spin mr-1" /> : null}
           {t("Mở ngày làm việc")}
         </Button>
       </div>
 
       {isLoading ? (
         <div style={{ padding: 48, textAlign: "center" }}>
-          <Loader2 className="size-5 animate-spin text-primary mx-auto" />
+          <Spin />
         </div>
       ) : records.length === 0 ? (
-        <div className="py-8 text-center text-muted-foreground">
-          {t("Chưa có dữ liệu chấm công cho ngày này")}
-        </div>
+        <Empty description={t("Chưa có dữ liệu chấm công cho ngày này")} />
       ) : (
         <div
           style={{

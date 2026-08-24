@@ -1,7 +1,6 @@
-import { Button } from "@/components/ui/button";
+import { Button, Result, Space } from "antd";
 import { isRouteErrorResponse, useRouteError } from "react-router-dom";
 import { t } from "@/lib/i18n";
-import { AlertCircle, FileQuestion, ServerCrash } from "lucide-react";
 
 const NOT_FOUND_STATUS = 404;
 
@@ -15,52 +14,42 @@ export function RouteErrorBoundary() {
   console.error("[BlueDental] Lỗi điều hướng:", error);
 
   const recoveryActions = (
-    <div className="flex gap-2 justify-center">
-      <Button onClick={reloadPage}>
+    <Space>
+      <Button type="primary" onClick={reloadPage}>
         {t("Tải lại trang")}
       </Button>
-      <Button variant="outline" asChild>
-        <a href="/">{t("Về trang chủ")}</a>
-      </Button>
-    </div>
+      <Button href="/">{t("Về trang chủ")}</Button>
+    </Space>
   );
 
   if (isRouteErrorResponse(error) && error.status === NOT_FOUND_STATUS) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center px-4">
-        <FileQuestion className="size-16 text-muted-foreground" />
-        <h1 className="text-2xl font-semibold">404</h1>
-        <p className="text-xl font-medium">{t("Không tìm thấy trang")}</p>
-        <p className="text-sm text-muted-foreground max-w-sm">
-          {t("Trang bạn tìm kiếm không tồn tại hoặc đã bị di chuyển.")}
-        </p>
-        {recoveryActions}
-      </div>
+      <Result
+        status="404"
+        title={t("Không tìm thấy trang")}
+        subTitle={t("Trang bạn tìm kiếm không tồn tại hoặc đã bị di chuyển.")}
+        extra={recoveryActions}
+      />
     );
   }
 
   if (isRouteErrorResponse(error)) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center px-4">
-        <AlertCircle className="size-16 text-destructive" />
-        <p className="text-xl font-medium">{t("Không mở được trang")}</p>
-        <p className="text-sm text-muted-foreground max-w-sm">
-          {t("Máy chủ từ chối yêu cầu (mã lỗi {0}). Vui lòng tải lại trang.", error.status)}
-        </p>
-        {recoveryActions}
-      </div>
+      <Result
+        status="error"
+        title={t("Không mở được trang")}
+        subTitle={t("Máy chủ từ chối yêu cầu (mã lỗi {0}). Vui lòng tải lại trang.", error.status)}
+        extra={recoveryActions}
+      />
     );
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center px-4">
-      <ServerCrash className="size-16 text-destructive" />
-      <h1 className="text-2xl font-semibold">500</h1>
-      <p className="text-xl font-medium">{t("Đã xảy ra lỗi ngoài dự kiến")}</p>
-      <p className="text-sm text-muted-foreground max-w-sm">
-        {t("Hệ thống không hiển thị được nội dung của trang này. Vui lòng tải lại trang.")}
-      </p>
-      {recoveryActions}
-    </div>
+    <Result
+      status="500"
+      title={t("Đã xảy ra lỗi ngoài dự kiến")}
+      subTitle={t("Hệ thống không hiển thị được nội dung của trang này. Vui lòng tải lại trang.")}
+      extra={recoveryActions}
+    />
   );
 }

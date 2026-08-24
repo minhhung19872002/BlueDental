@@ -1,14 +1,6 @@
 import { Fragment, useMemo, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Button, Input, Select } from "antd";
+import { SearchOutlined, LeftOutlined, RightOutlined } from "@ant-design/icons";
 import type { Dayjs } from "dayjs";
 
 import dayjs from "dayjs";
@@ -241,33 +233,29 @@ export function DayViewCalendar({
           flexWrap: "wrap",
         }}
       >
-        <div className="relative">
-          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" style={{ color: "#98a4b4" }} />
-          <Input
-            placeholder={t("Tìm kiếm")}
-            value={keyword}
-            onChange={(e) => onKeywordChange?.(e.target.value)}
-            className="pl-8 max-w-52"
-          />
-        </div>
-        <Select value={dentistFilter ?? ""} onValueChange={(v) => setDentistFilter(v || undefined)}>
-          <SelectTrigger className="min-w-40">
-            <SelectValue placeholder={t("Chọn bác sĩ")} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">{t("Tất cả bác sĩ")}</SelectItem>
-            {doctors.map((d) => (
-              <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Input
+          prefix={<SearchOutlined style={{ color: "#98a4b4" }} />}
+          placeholder={t("Tìm kiếm")}
+          value={keyword}
+          onChange={(e) => onKeywordChange?.(e.target.value)}
+          allowClear
+          style={{ maxWidth: 200 }}
+        />
+        <Select
+          placeholder={t("Chọn bác sĩ")}
+          allowClear
+          value={dentistFilter}
+          onChange={setDentistFilter}
+          style={{ minWidth: 160 }}
+          options={doctors.map((d) => ({ value: d.id, label: d.name }))}
+        />
 
         <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-          <Button variant="outline" size="sm">{t("Xuất File")}</Button>
-          <Button size="sm" className="bg-[#1c3566] hover:bg-[#15294f]" onClick={onCreateAppointment}>{t("Tạo lịch hẹn mới")}</Button>
-          <Button variant="outline" size="sm">{t("Tạo lịch tạm")}</Button>
-          <Button variant="outline" size="sm">{t("Xem theo giờ")}</Button>
-          <Button variant="outline" size="sm">{t("Toàn màn hình")}</Button>
+          <Button size="small">{t("Xuất File")}</Button>
+          <Button type="primary" size="small" style={{ background: "#1c3566" }} onClick={onCreateAppointment}>{t("Tạo lịch hẹn mới")}</Button>
+          <Button size="small">{t("Tạo lịch tạm")}</Button>
+          <Button size="small">{t("Xem theo giờ")}</Button>
+          <Button size="small">{t("Toàn màn hình")}</Button>
         </div>
       </div>
 
@@ -459,13 +447,12 @@ export function DayViewCalendar({
           borderTop: "1px solid #e2e8f0",
         }}
       >
-        <Button variant="ghost" size="sm" onClick={() => onDateChange?.(-1)}>
-          <ChevronLeft size={14} className="mr-1" />
+        <Button type="text" size="small" icon={<LeftOutlined />} onClick={() => onDateChange?.(-1)}>
           {t("Ngày trước")}
         </Button>
         <span style={{ fontWeight: 600, fontSize: 14, color: "#101c2c" }}>{displayDate}</span>
-        <Button variant="ghost" size="sm" onClick={() => onDateChange?.(1)}>
-          {t("Ngày kế tiếp")} <ChevronRight size={14} className="ml-1" />
+        <Button type="text" size="small" onClick={() => onDateChange?.(1)}>
+          {t("Ngày kế tiếp")} <RightOutlined />
         </Button>
       </div>
     </div>

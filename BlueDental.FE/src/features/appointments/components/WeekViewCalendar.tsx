@@ -1,7 +1,6 @@
 import { useMemo } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Search, Plus } from "lucide-react";
+import { Button, Input } from "antd";
+import { SearchOutlined, PlusOutlined } from "@ant-design/icons";
 import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
 
@@ -98,17 +97,15 @@ export function WeekViewCalendar({
     <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
       {/* Toolbar */}
       <div style={{ display: "flex", gap: 8, padding: "10px 16px", borderBottom: "1px solid #e2e8f0", background: "#fff" }}>
-        <div className="relative">
-          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder={t("Tìm bệnh nhân...")}
-            value={keyword}
-            onChange={(e) => onKeywordChange?.(e.target.value)}
-            className="pl-8 w-56"
-          />
-        </div>
-        <Button onClick={onCreateAppointment}>
-          <Plus size={14} className="mr-1.5" />
+        <Input
+          prefix={<SearchOutlined />}
+          placeholder={t("Tìm bệnh nhân...")}
+          value={keyword}
+          onChange={(e) => onKeywordChange?.(e.target.value)}
+          style={{ width: 220 }}
+          allowClear
+        />
+        <Button type="primary" icon={<PlusOutlined />} onClick={onCreateAppointment}>
           {t("Tạo lịch hẹn")}
         </Button>
       </div>

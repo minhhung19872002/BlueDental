@@ -1,4 +1,4 @@
-import { toast } from "sonner";
+import { Button, Popconfirm, Tag, message } from "antd";
 import {
   useOpenWorkDay,
   useRegisterDayOff,
@@ -10,18 +10,6 @@ import type { RosterDay } from "../api/rosterQueries";
 import { extractApiError } from "@/lib/apiError";
 import { brand } from "@/theme/index";
 import { t } from "@/lib/i18n";
-import { Button } from "@/components/ui/button";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 
 /** Rotating accents, so cards next to each other stay distinguishable. */
 const ACCENTS = [brand.blue, brand.goldDeep, brand.green, brand.purple, brand.teal, brand.pink];
@@ -81,7 +69,7 @@ export function StaffRosterCard({
         })) as TimeKeepingRecordDto);
       await registerWorking.mutateAsync(record.id);
     } catch (error) {
-      toast.error(extractApiError(error));
+      message.error(extractApiError(error));
     }
   };
 
@@ -97,12 +85,9 @@ export function StaffRosterCard({
             {staff.roleNames.length > 0 ? staff.roleNames.join(", ") : t("Chưa gán vai trò")}
           </span>
         </span>
-        <span
-          className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
-          style={staff.isActive ? { background: "#dcfce7", color: "#15803d" } : { background: "#f3f4f6", color: "#374151" }}
-        >
+        <Tag color={staff.isActive ? "green" : "default"}>
           {staff.isActive ? t("Đang làm việc") : t("Đã nghỉ")}
-        </span>
+        </Tag>
       </div>
 
       <div className="staff-card-days">
@@ -127,28 +112,19 @@ export function StaffRosterCard({
       </div>
 
       <div className="staff-card-actions">
-        <Button size="sm" variant="outline" onClick={onEdit}>
+        <Button size="small" onClick={onEdit}>
           {t("Chỉnh sửa")}
         </Button>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button size="sm" variant="destructive">
-              {t("Xoá")}
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{t("Xoá nhân viên này?")}</AlertDialogTitle>
-              <AlertDialogDescription>
-                {staff.fullName || staff.userName}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>{t("Huỷ")}</AlertDialogCancel>
-              <AlertDialogAction onClick={onDelete}>{t("Xoá")}</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <Popconfirm
+          title={t("Xoá nhân viên này?")}
+          okText={t("Xoá")}
+          cancelText={t("Huỷ")}
+          onConfirm={onDelete}
+        >
+          <Button size="small" danger>
+            {t("Xoá")}
+          </Button>
+        </Popconfirm>
       </div>
     </div>
   );

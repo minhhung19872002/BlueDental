@@ -1,17 +1,64 @@
-import { toast } from "sonner";
+import {
+  ConfigProvider,
+  message as staticMessage,
+  notification as staticNotification,
+} from "antd";
+import type { MessageArgsProps, NotificationArgsProps } from "antd";
+import viVN from "antd/locale/vi_VN";
+import { themeConfig } from "@/theme/index";
 import { describeApiError } from "./apiError";
 import type { ApiErrorInfo } from "./apiError";
 import { t } from "@/lib/i18n";
 
+export interface AntdNotifier {
+  message: { error: (config: MessageArgsProps) => unknown };
+  notification: { error: (config: NotificationArgsProps) => void };
+}
+
+ConfigProvider.config({
+  holderRender: (children) => (
+    <ConfigProvider locale={viVN} theme={themeConfig}>
+      {children}
+    </ConfigProvider>
+  ),
+});
+
+const staticNotifier: AntdNotifier = {
+  message: staticMessage,
+  notification: staticNotification,
+};
+
+let boundNotifier: AntdNotifier | undefined;
+
+export function bindAntdNotifier(notifier: AntdNotifier): () => void {
+  boundNotifier = notifier;
+  return () => {
+    if (boundNotifier === notifier) {
+      boundNotifier = undefined;
+    }
+  };
+}
+
+function currentNotifier(): AntdNotifier {
+  return boundNotifier ?? staticNotifier;
+}
+
 function showApiError(info: ApiErrorInfo): void {
+  const notifier = currentNotifier();
   if (info.kind === "system") {
-    toast.error(t("Lỗi hệ thống"), {
+    notifier.notification.error({
+      title: t("Lỗi hệ thống"),
       description: info.message,
-      duration: 8000,
+      key: `bluedental-error-${info.message}`,
+      duration: 8,
     });
     return;
   }
-  toast.error(info.message, { duration: 5000 });
+  void notifier.message.error({
+    content: info.message,
+    key: `bluedental-error-${info.message}`,
+    duration: 5,
+  });
 }
 
 export function logApiError(error: unknown, context?: string): void {
@@ -26,12 +73,4 @@ export function notifyApiError(error: unknown): void {
   if (info.canceled) return;
   if (info.status === 401) return;
   showApiError(info);
-}
-
-export function notifySuccess(msg: string): void {
-  toast.success(msg);
-}
-
-export function notifyError(msg: string): void {
-  toast.error(msg);
 }

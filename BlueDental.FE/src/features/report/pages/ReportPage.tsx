@@ -1,36 +1,8 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { Tabs, Row, Col, Button, Select, Segmented, Spin, Table, Typography, Tag, Modal, Input, Popconfirm, message } from "antd";
 import { useStaffList } from "@/features/staff/api/staffQueries";
-import { Download, Plus } from "lucide-react";
+import { DownloadOutlined, LeftOutlined, RightOutlined, PlusOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 import { formatDate, formatVND } from "@/utils/format";
 import { exportToExcel } from "@/utils/exportExcel";
@@ -40,8 +12,6 @@ import { useAuthStore } from "@/features/auth/store/authStore";
 import { extractApiError } from "@/lib/apiError";
 import { SalesEntryModal } from "../components/SalesEntryModal";
 import { CashflowEntryModal } from "../components/CashflowEntryModal";
-import { DateNavigator } from "@/components/DateNavigator";
-import { SegmentedControl } from "@/components/ui/segmented-control";
 import { t } from "@/lib/i18n";
 import { PageHeader } from "@/components/PageHeader";
 
@@ -69,6 +39,8 @@ import {
   type SalesEntryType,
 } from "../api/financeApi";
 
+const { Text } = Typography;
+
 type DateMode = "day" | "week" | "month" | "year";
 
 interface PeriodRange {
@@ -85,168 +57,93 @@ function resolvePeriod(currentDate: Dayjs, dateMode: DateMode): PeriodRange {
   };
 }
 
-// ── Generic simple table renderer ──────────────────────────────────────────
-
-interface ColDef {
-  title: string;
-  key: string;
-  dataIndex?: string;
-  width?: number;
-  align?: "left" | "right" | "center";
-  render?: (value: unknown, row: Record<string, unknown>) => React.ReactNode;
-}
-
-function SimpleTable({ columns, dataSource, loading, emptyText, footer }: {
-  columns: ColDef[];
-  // Callers pass DTO arrays, and a DTO has no index signature so it is not
-  // assignable to Record<string, unknown>. The column lookup below is dynamic
-  // regardless, so the widening happens once here rather than at each call site.
-  dataSource: readonly object[];
-  loading?: boolean;
-  emptyText?: string;
-  footer?: React.ReactNode;
-}) {
-  return (
-    <div className="overflow-x-auto">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            {columns.map((col) => (
-              <TableHead
-                key={col.key}
-                style={{ width: col.width, textAlign: col.align ?? "left" }}
-              >
-                {col.title}
-              </TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {loading ? (
-            <TableRow>
-              <TableCell colSpan={columns.length} className="py-10 text-center">
-                <Loader2 className="size-5 animate-spin mx-auto text-muted-foreground" />
-              </TableCell>
-            </TableRow>
-          ) : dataSource.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={columns.length} className="py-10 text-center text-muted-foreground">
-                {emptyText ?? t("Không có dữ liệu")}
-              </TableCell>
-            </TableRow>
-          ) : (
-            dataSource.map((rawRow, i) => {
-              const row = rawRow as Record<string, unknown>;
-              return (
-                <TableRow key={(row.id as string) ?? i}>
-                  {columns.map((col) => {
-                    const value = col.dataIndex ? row[col.dataIndex] : undefined;
-                    return (
-                      <TableCell key={col.key} style={{ textAlign: col.align ?? "left" }}>
-                        {col.render ? col.render(value, row) : String(value ?? "")}
-                      </TableCell>
-                    );
-                  })}
-                </TableRow>
-              );
-            })
-          )}
-          {footer}
-        </TableBody>
-      </Table>
-    </div>
-  );
-}
-
 function buildCashflowColumns(
   t: Translate,
   approvalConfig: Record<SalesApprovalStatus, { label: string; color: string } | null>,
   actions?: (row: SalesEntryDto) => React.ReactNode,
-): ColDef[] {
+) {
   return [
-    { title: t("Ngày"), key: "entryDate", dataIndex: "entryDate", width: 110, render: (v) => formatDate(v as string) },
-    { title: t("Số phiếu"), key: "code", dataIndex: "code", width: 110 },
-    { title: t("Loại"), key: "type", dataIndex: "type", width: 80,
-      render: (v) => (
-        <span className={`text-xs px-2 py-0.5 rounded font-medium ${v === SALES_ENTRY_TYPE.Income ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+    { title: t("Ngày"), dataIndex: "entryDate", key: "entryDate", width: 110, render: (v: string) => formatDate(v) },
+    { title: t("Số phiếu"), dataIndex: "code", key: "code", width: 110 },
+    { title: t("Loại"), dataIndex: "type", key: "type", width: 80,
+      render: (v: SalesEntryType) => (
+        <Tag color={v === SALES_ENTRY_TYPE.Income ? "green" : "red"}>
           {v === SALES_ENTRY_TYPE.Income ? t("Thu") : t("Chi")}
-        </span>
+        </Tag>
       ) },
-    { title: t("Danh mục"), key: "categoryName", dataIndex: "categoryName", width: 160,
-      render: (v) => (v as string | null) ?? "—" },
-    { title: t("Nội dung"), key: "description", dataIndex: "description" },
-    { title: t("Thành tiền"), key: "amount", dataIndex: "amount", width: 140, align: "right",
-      render: (v, r) => (
-        <span style={{
-          color: (r as { type: SalesEntryType }).type === SALES_ENTRY_TYPE.Income ? "#10B981" : "#EF4444",
+    { title: t("Danh mục"), dataIndex: "categoryName", key: "categoryName", width: 160,
+      render: (v: string | null) => v ?? "—" },
+    { title: t("Nội dung"), dataIndex: "description", key: "description" },
+    { title: t("Thành tiền"), dataIndex: "amount", key: "amount", width: 140, align: "right" as const,
+      render: (v: number, r: { type: SalesEntryType }) => (
+        <Text style={{
+          color: r.type === SALES_ENTRY_TYPE.Income ? "#10B981" : "#EF4444",
           fontVariantNumeric: "tabular-nums",
         }}>
-          {(r as { type: SalesEntryType }).type === SALES_ENTRY_TYPE.Income ? "+" : "-"}{formatVND((v as number) ?? 0)} đ
-        </span>
+          {r.type === SALES_ENTRY_TYPE.Income ? "+" : "-"}{formatVND(v ?? 0)} đ
+        </Text>
       ) },
-    { title: t("Phương thức"), key: "channel", dataIndex: "channel", width: 130,
-      render: (v) => PAYMENT_CHANNEL_LABELS[v as PaymentChannel] },
-    { title: t("Người thực hiện"), key: "staffName", dataIndex: "staffName", width: 160,
-      render: (v) => (v as string | null) ?? "—" },
-    { title: t("Duyệt"), key: "approvalStatus", dataIndex: "approvalStatus", width: 110,
-      render: (v) => {
-        const config = approvalConfig[v as SalesApprovalStatus];
-        return config ? (
-          <span className={`text-xs px-2 py-0.5 rounded font-medium`} style={{ background: `${config.color}22`, color: config.color }}>{config.label}</span>
-        ) : <span className="text-muted-foreground text-sm">—</span>;
+    { title: t("Phương thức"), dataIndex: "channel", key: "channel", width: 130,
+      render: (v: PaymentChannel) => PAYMENT_CHANNEL_LABELS[v] },
+    { title: t("Người thực hiện"), dataIndex: "staffName", key: "staffName", width: 160,
+      render: (v: string | null) => v ?? "—" },
+    { title: t("Duyệt"), dataIndex: "approvalStatus", key: "approvalStatus", width: 110,
+      render: (v: SalesApprovalStatus) => {
+        const config = approvalConfig[v];
+        return config ? <Tag color={config.color}>{config.label}</Tag> : <Text type="secondary">—</Text>;
       } },
     ...(actions
-      ? [{ title: t("Thao tác"), key: "actions", width: 200, render: (_: unknown, row: Record<string, unknown>) => actions(row as unknown as SalesEntryDto) }]
+      ? [{ title: t("Thao tác"), key: "actions", width: 200, render: (_: unknown, row: SalesEntryDto) => actions(row) }]
       : []),
   ];
 }
 
-function buildResultColumns(t: Translate): ColDef[] {
+function buildResultColumns(t: Translate) {
   return [
-    { title: t("Danh mục"), key: "category", dataIndex: "category" },
-    { title: t("Doanh thu"), key: "revenue", dataIndex: "revenue", width: 160, align: "right",
-      render: (v) => <span style={{ fontVariantNumeric: "tabular-nums" }}>{formatVND((v as number) ?? 0)} đ</span> },
-    { title: t("Chi phí"), key: "expense", dataIndex: "expense", width: 160, align: "right",
-      render: (v) => <span style={{ color: "#EF4444", fontVariantNumeric: "tabular-nums" }}>{formatVND((v as number) ?? 0)} đ</span> },
-    { title: t("Lợi nhuận"), key: "profit", dataIndex: "profit", width: 160, align: "right",
-      render: (v) => <span style={{ color: "#10B981", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{formatVND((v as number) ?? 0)} đ</span> },
-    { title: t("Tỷ lệ LN (%)"), key: "margin", dataIndex: "margin", width: 120, align: "right",
-      render: (v) => <span style={{ color: (v as number) >= 0 ? "#10B981" : "#EF4444" }}>{(v as number) ?? 0}%</span> },
+    { title: t("Danh mục"), dataIndex: "category", key: "category" },
+    { title: t("Doanh thu"), dataIndex: "revenue", key: "revenue", width: 160, align: "right" as const,
+      render: (v: number) => <Text style={{ fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
+    { title: t("Chi phí"), dataIndex: "expense", key: "expense", width: 160, align: "right" as const,
+      render: (v: number) => <Text style={{ color: "#EF4444", fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
+    { title: t("Lợi nhuận"), dataIndex: "profit", key: "profit", width: 160, align: "right" as const,
+      render: (v: number) => <Text style={{ color: "#10B981", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
+    { title: t("Tỷ lệ LN (%)"), dataIndex: "margin", key: "margin", width: 120, align: "right" as const,
+      render: (v: number) => <Text style={{ color: v >= 0 ? "#10B981" : "#EF4444" }}>{v ?? 0}%</Text> },
   ];
 }
 
-function buildExpenseColumns(t: Translate): ColDef[] {
+function buildExpenseColumns(t: Translate) {
   return [
-    { title: t("Ngày"), key: "date", dataIndex: "date", width: 110 },
-    { title: t("Tên khách hàng"), key: "patientName", dataIndex: "patientName", width: 180 },
-    { title: t("Nhân sự tư vấn"), key: "counselorName", dataIndex: "counselorName", width: 150 },
-    { title: t("Bác sĩ tiếp nhận"), key: "doctorName", dataIndex: "doctorName", width: 150 },
-    { title: t("Dịch vụ điều trị"), key: "serviceName", dataIndex: "serviceName" },
-    { title: t("Số lượng"), key: "quantity", dataIndex: "quantity", width: 90, align: "right" },
-    { title: t("Thành tiền"), key: "totalAmount", dataIndex: "totalAmount", width: 130, align: "right", render: (v) => <span style={{ fontVariantNumeric: "tabular-nums" }}>{formatVND((v as number) ?? 0)} đ</span> },
-    { title: t("Đã thanh toán"), key: "paidAmount", dataIndex: "paidAmount", width: 130, align: "right", render: (v) => <span style={{ color: "#10B981", fontVariantNumeric: "tabular-nums" }}>{formatVND((v as number) ?? 0)} đ</span> },
+    { title: t("Ngày"), dataIndex: "date", key: "date", width: 110 },
+    { title: t("Tên khách hàng"), dataIndex: "patientName", key: "patientName", width: 180 },
+    { title: t("Nhân sự tư vấn"), dataIndex: "counselorName", key: "counselorName", width: 150 },
+    { title: t("Bác sĩ tiếp nhận"), dataIndex: "doctorName", key: "doctorName", width: 150 },
+    { title: t("Dịch vụ điều trị"), dataIndex: "serviceName", key: "serviceName" },
+    { title: t("Số lượng"), dataIndex: "quantity", key: "quantity", width: 90, align: "right" as const },
+    { title: t("Thành tiền"), dataIndex: "totalAmount", key: "totalAmount", width: 130, align: "right" as const, render: (v: number) => <Text style={{ fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
+    { title: t("Đã thanh toán"), dataIndex: "paidAmount", key: "paidAmount", width: 130, align: "right" as const, render: (v: number) => <Text style={{ color: "#10B981", fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
   ];
 }
 
-function buildCashflowEntryColumns(t: Translate): ColDef[] {
+function buildCashflowEntryColumns(t: Translate) {
   return [
-    { title: t("Ngày"), key: "entryDate", dataIndex: "entryDate", width: 110, render: (v) => formatDate(v as string) },
-    { title: t("Loại giao dịch"), key: "transactionType", dataIndex: "transactionType", width: 130,
-      render: (v) => <span className="text-xs px-2 py-0.5 rounded bg-muted">{CASH_TRANSACTION_LABELS[v as CashTransactionType]}</span> },
+    { title: t("Ngày"), dataIndex: "entryDate", key: "entryDate", width: 110, render: (v: string) => formatDate(v) },
+    { title: t("Loại giao dịch"), dataIndex: "transactionType", key: "transactionType", width: 130,
+      render: (v: CashTransactionType) => <Tag>{CASH_TRANSACTION_LABELS[v]}</Tag> },
     { title: t("Hình thức"), key: "holding", width: 200,
-      render: (_, r) => {
-        const from = (r as { fromHolding: CashHolding | null }).fromHolding ? CASH_HOLDING_LABELS[(r as { fromHolding: CashHolding }).fromHolding] : null;
-        const to = (r as { toHolding: CashHolding | null }).toHolding ? CASH_HOLDING_LABELS[(r as { toHolding: CashHolding }).toHolding] : null;
+      render: (_: unknown, r: { fromHolding: CashHolding | null; toHolding: CashHolding | null }) => {
+        const from = r.fromHolding ? CASH_HOLDING_LABELS[r.fromHolding] : null;
+        const to = r.toHolding ? CASH_HOLDING_LABELS[r.toHolding] : null;
         if (from && to) return `${from} → ${to}`;
         return to ?? from ?? "—";
       } },
-    { title: t("Danh mục"), key: "categoryName", dataIndex: "categoryName", width: 160,
-      render: (v) => (v as string | null) ?? "—" },
-    { title: t("Thành tiền"), key: "amount", dataIndex: "amount", width: 140, align: "right",
-      render: (v) => <span style={{ fontVariantNumeric: "tabular-nums" }}>{formatVND((v as number) ?? 0)} đ</span> },
-    { title: t("Người tạo"), key: "createdByStaffName", dataIndex: "createdByStaffName", width: 160,
-      render: (v) => (v as string | null) ?? "—" },
-    { title: t("Ghi chú"), key: "note", dataIndex: "note", render: (v) => (v as string | null) ?? "—" },
+    { title: t("Danh mục"), dataIndex: "categoryName", key: "categoryName", width: 160,
+      render: (v: string | null) => v ?? "—" },
+    { title: t("Thành tiền"), dataIndex: "amount", key: "amount", width: 140, align: "right" as const,
+      render: (v: number) => <Text style={{ fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
+    { title: t("Người tạo"), dataIndex: "createdByStaffName", key: "createdByStaffName", width: 160,
+      render: (v: string | null) => v ?? "—" },
+    { title: t("Ghi chú"), dataIndex: "note", key: "note", render: (v: string | null) => v ?? "—" },
   ];
 }
 
@@ -301,6 +198,11 @@ export function ReportPage() {
     });
   };
 
+  const navigateDate = (dir: 1 | -1) => {
+    const unit = dateMode === "day" ? "day" : dateMode === "week" ? "week" : dateMode === "month" ? "month" : "year";
+    setCurrentDate((d) => d.add(dir, unit));
+  };
+
   const handleExportRevenue = () => {
     if (!Array.isArray(revenueData) || revenueData.length === 0) return;
     exportToExcel(
@@ -315,6 +217,13 @@ export function ReportPage() {
     );
   };
 
+  const displayDate = () => {
+    if (dateMode === "day") return currentDate.format("DD/MM/YYYY");
+    if (dateMode === "week") return `${currentDate.startOf("week").format("DD/MM")} – ${currentDate.endOf("week").format("DD/MM/YYYY")}`;
+    if (dateMode === "month") return currentDate.format("MM/YYYY");
+    return currentDate.format("YYYY");
+  };
+
   return (
     <div className="reception-page">
       <PageHeader
@@ -324,55 +233,33 @@ export function ReportPage() {
 
       {/* Main tab bar */}
       <div className="reception-card" style={{ padding: "0 16px" }}>
-        <div style={{ display: "flex", gap: 0 }}>
-          {REPORT_TABS.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setActiveTab(tab.key)}
-              style={{
-                padding: "10px 16px", border: "none",
-                borderBottom: activeTab === tab.key ? "2px solid #1677ff" : "2px solid transparent",
-                background: "none",
-                color: activeTab === tab.key ? "#1677ff" : "#595959",
-                fontWeight: activeTab === tab.key ? 600 : 400,
-                cursor: "pointer", fontSize: 14, whiteSpace: "nowrap",
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        <Tabs
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          style={{ marginBottom: 0 }}
+          items={REPORT_TABS.map((tab) => ({ key: tab.key, label: tab.label }))}
+        />
       </div>
 
       {/* Shared toolbar */}
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          <SegmentedControl
-            options={[
-              { key: "day" as DateMode, label: t("Ngày") },
-              { key: "week" as DateMode, label: t("Tuần") },
-              { key: "month" as DateMode, label: t("Tháng") },
-              { key: "year" as DateMode, label: t("Năm") },
-            ]}
+          <Segmented
             value={dateMode}
-            onChange={setDateMode}
+            onChange={(v) => setDateMode(v as DateMode)}
+            options={[
+              { label: t("Ngày"),   value: "day" },
+              { label: t("Tuần"),  value: "week" },
+              { label: t("Tháng"), value: "month" },
+              { label: t("Năm"),  value: "year" },
+            ]}
           />
-          <DateNavigator
-            value={currentDate}
-            mode={dateMode}
-            onChange={(d) => setCurrentDate(() => d)}
-          />
-          <Select>
-            <SelectTrigger className="min-w-44">
-              <SelectValue placeholder={t("Bác sĩ điều trị")} />
-            </SelectTrigger>
-            <SelectContent>
-              {doctorOptions.map((o) => (
-                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <Button type="text" size="small" icon={<LeftOutlined />} onClick={() => navigateDate(-1)} />
+            <span style={{ minWidth: 130, textAlign: "center", fontWeight: 600, fontSize: 14 }}>{displayDate()}</span>
+            <Button type="text" size="small" icon={<RightOutlined />} onClick={() => navigateDate(1)} />
+          </div>
+          <Select placeholder={t("Bác sĩ điều trị")} allowClear style={{ minWidth: 180 }} options={doctorOptions} />
         </div>
       </div>
 
@@ -406,67 +293,80 @@ export function ReportPage() {
           <div className="reception-card reception-card--toolbar">
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
               <span style={{ fontSize: 13, color: "#5A6B82" }}>{t("Doanh số:")}</span>
-              {expenseLoading ? <Loader2 className="size-4 animate-spin" /> : (
+              {expenseLoading ? <Spin size="small" /> : (
                 <span style={{ fontWeight: 700, fontSize: 18, color: "#1B2A41" }}>
                   {formatVND(expenseData?.grandTotalAmount ?? 0)} đ
                 </span>
               )}
-              <Button variant="outline" className="ml-auto" onClick={handleExportRevenue}>
-                <Download size={14} className="mr-1.5" />
-                {t("Xuất Excel")}
-              </Button>
+              <Button icon={<DownloadOutlined />} style={{ marginLeft: "auto" }} onClick={handleExportRevenue}>{t("Xuất Excel")}</Button>
             </div>
           </div>
 
           {/* Table */}
           <div className="reception-card reception-card--content">
-            <SimpleTable
+            <Table
+              size="small"
+              rowKey="id"
               columns={expenseColumns}
               dataSource={expenseData?.items ?? []}
               loading={expenseLoading}
-              emptyText={t("Không có dữ liệu")}
+              pagination={{
+                pageSize: 20,
+                showSizeChanger: true,
+                pageSizeOptions: ["5", "10", "20", "25", "50", "100"],
+                showTotal: (total, range) => t("Hiển thị {0}–{1} trên {2} dòng", range[0], range[1], total),
+              }}
+              locale={{ emptyText: t("Không có dữ liệu") }}
             />
           </div>
 
           {/* Summary cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="reception-card" style={{ padding: 16 }}>
-              <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 10 }}>{t("Thông tin lượt khách")}</div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                <span style={{ color: "#5A6B82" }}>{t("Lượt khách")}</span>
-                <span style={{ fontWeight: 600 }}>{expenseLoading ? "…" : (expenseData?.totalCount ?? 0)} {t("lượt")}</span>
+          <Row gutter={[12, 12]}>
+            <Col xs={24} sm={12} md={6}>
+              <div className="reception-card" style={{ padding: 16 }}>
+                <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 10 }}>{t("Thông tin lượt khách")}</div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                  <span style={{ color: "#5A6B82" }}>{t("Lượt khách")}</span>
+                  <span style={{ fontWeight: 600 }}>{expenseLoading ? "…" : (expenseData?.totalCount ?? 0)} {t("lượt")}</span>
+                </div>
               </div>
-            </div>
-            <div className="reception-card" style={{ padding: 16 }}>
-              <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 10 }}>{t("Thông tin lịch hẹn")}</div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                <span style={{ color: "#5A6B82" }}>{t("Lịch hẹn khách hàng")}</span>
-                <span style={{ fontWeight: 600 }}>{summaryLoading ? "…" : (summary?.totalAppointments ?? 0)}</span>
+            </Col>
+            <Col xs={24} sm={12} md={6}>
+              <div className="reception-card" style={{ padding: 16 }}>
+                <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 10 }}>{t("Thông tin lịch hẹn")}</div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                  <span style={{ color: "#5A6B82" }}>{t("Lịch hẹn khách hàng")}</span>
+                  <span style={{ fontWeight: 600 }}>{summaryLoading ? "…" : (summary?.totalAppointments ?? 0)}</span>
+                </div>
               </div>
-            </div>
-            <div className="reception-card" style={{ padding: 16 }}>
-              <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 10 }}>{t("Thông tin thanh toán")}</div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                <span style={{ color: "#5A6B82" }}>{t("Doanh thu")}</span>
-                <span style={{ fontWeight: 600, color: "#10B981" }}>
-                  {expenseLoading ? "…" : formatVND(expenseData?.grandTotalAmount ?? 0)} đ
-                </span>
+            </Col>
+            <Col xs={24} sm={12} md={6}>
+              <div className="reception-card" style={{ padding: 16 }}>
+                <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 10 }}>{t("Thông tin thanh toán")}</div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                  <span style={{ color: "#5A6B82" }}>{t("Doanh thu")}</span>
+                  <span style={{ fontWeight: 600, color: "#10B981" }}>
+                    {expenseLoading ? "…" : formatVND(expenseData?.grandTotalAmount ?? 0)} đ
+                  </span>
+                </div>
               </div>
-            </div>
-            <div className="reception-card" style={{ padding: 16 }}>
-              <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 10 }}>{t("TB doanh thu / KH")}</div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                <span style={{ color: "#5A6B82" }}>{t("Trung bình")}</span>
-                <span style={{ fontWeight: 600 }}>
-                  {expenseLoading ? "…" : formatVND(
-                    (expenseData?.totalCount ?? 0) > 0
-                      ? (expenseData?.grandTotalAmount ?? 0) / (expenseData?.totalCount ?? 1)
-                      : 0
-                  )} đ
-                </span>
+            </Col>
+            <Col xs={24} sm={12} md={6}>
+              <div className="reception-card" style={{ padding: 16 }}>
+                <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 10 }}>{t("TB doanh thu / KH")}</div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                  <span style={{ color: "#5A6B82" }}>{t("Trung bình")}</span>
+                  <span style={{ fontWeight: 600 }}>
+                    {expenseLoading ? "…" : formatVND(
+                      (expenseData?.totalCount ?? 0) > 0
+                        ? (expenseData?.grandTotalAmount ?? 0) / (expenseData?.totalCount ?? 1)
+                        : 0
+                    )} đ
+                  </span>
+                </div>
               </div>
-            </div>
-          </div>
+            </Col>
+          </Row>
         </>
       )}
 
@@ -480,7 +380,7 @@ export function ReportPage() {
 function buildApprovalConfig(t: Translate): Record<SalesApprovalStatus, { label: string; color: string } | null> {
   return {
     [SALES_APPROVAL_STATUS.NotRequired]: null,
-    [SALES_APPROVAL_STATUS.Pending]:  { label: t("Chờ duyệt"),  color: "goldenrod" },
+    [SALES_APPROVAL_STATUS.Pending]:  { label: t("Chờ duyệt"),  color: "gold" },
     [SALES_APPROVAL_STATUS.Approved]: { label: t("Đã duyệt"), color: "green" },
     [SALES_APPROVAL_STATUS.Rejected]: { label: t("Từ chối"), color: "red" },
   };
@@ -492,8 +392,6 @@ function CashflowTab({ period }: { period: PeriodRange }) {
   const [typeFilter, setTypeFilter] = useState("all");
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<SalesEntryDto | null>(null);
-  const [rejectRow, setRejectRow] = useState<SalesEntryDto | null>(null);
-  const [rejectReason, setRejectReason] = useState("");
 
   const approveEntry = useApproveSalesEntry();
   const rejectEntry = useRejectSalesEntry();
@@ -516,26 +414,41 @@ function CashflowTab({ period }: { period: PeriodRange }) {
     if (!currentUserId) return;
     try {
       await approveEntry.mutateAsync({ id: row.id, staffId: currentUserId });
-      toast.success(t("Đã duyệt"));
+      message.success(t("Đã duyệt"));
     } catch (error) {
-      toast.error(extractApiError(error));
+      message.error(extractApiError(error));
     }
   };
 
-  const handleRejectConfirm = async () => {
-    if (!rejectRow || !currentUserId) return;
-    if (!rejectReason.trim()) {
-      toast.error(t("Vui lòng nhập lý do từ chối."));
-      return;
-    }
-    try {
-      await rejectEntry.mutateAsync({ id: rejectRow.id, staffId: currentUserId, reason: rejectReason.trim() });
-      toast.success(t("Từ chối"));
-      setRejectRow(null);
-      setRejectReason("");
-    } catch (error) {
-      toast.error(extractApiError(error));
-    }
+  const handleReject = (row: SalesEntryDto) => {
+    if (!currentUserId) return;
+    let reason = "";
+
+    Modal.confirm({
+      title: t("Từ chối phiếu {0}", row.code),
+      content: (
+        <Input.TextArea
+          rows={3}
+          placeholder={t("Lý do từ chối")}
+          onChange={(e) => { reason = e.target.value; }}
+        />
+      ),
+      okText: t("Từ chối"),
+      cancelText: t("Hủy"),
+      onOk: async () => {
+        if (!reason.trim()) {
+          message.error(t("Vui lòng nhập lý do từ chối."));
+          throw new Error("missing reason");
+        }
+        try {
+          await rejectEntry.mutateAsync({ id: row.id, staffId: currentUserId, reason: reason.trim() });
+          message.success(t("Từ chối"));
+        } catch (error) {
+          message.error(extractApiError(error));
+          throw error;
+        }
+      },
+    });
   };
 
   const CASHFLOW_TYPES = [
@@ -551,69 +464,36 @@ function CashflowTab({ period }: { period: PeriodRange }) {
   ];
 
   const columns = buildCashflowColumns(t, buildApprovalConfig(t), (row) => (
-    <div className="flex items-center gap-1 flex-wrap">
+    <>
       {row.approvalStatus === SALES_APPROVAL_STATUS.Pending && (
         <>
-          <Button variant="ghost" size="sm" className="h-7 text-xs text-blue-600 hover:text-blue-700" onClick={() => handleApprove(row)}>{t("Duyệt")}</Button>
-          <AlertDialog open={rejectRow?.id === row.id} onOpenChange={(open) => { if (!open) { setRejectRow(null); setRejectReason(""); } }}>
-            <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive hover:text-destructive" onClick={() => setRejectRow(row)}>{t("Từ chối")}</Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{t("Từ chối phiếu {0}", row.code)}</AlertDialogTitle>
-                <AlertDialogDescription>
-                  <textarea
-                    rows={3}
-                    placeholder={t("Lý do từ chối")}
-                    value={rejectReason}
-                    onChange={(e) => setRejectReason(e.target.value)}
-                    className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  />
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>{t("Hủy")}</AlertDialogCancel>
-                <AlertDialogAction onClick={handleRejectConfirm}>{t("Từ chối")}</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <Button type="link" size="small" onClick={() => handleApprove(row)}>{t("Duyệt")}</Button>
+          <Button type="link" size="small" danger onClick={() => handleReject(row)}>{t("Từ chối")}</Button>
         </>
       )}
       {row.approvalStatus !== SALES_APPROVAL_STATUS.Approved && (
         <>
-          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setEditing(row); setModalOpen(true); }}>
+          <Button type="link" size="small" onClick={() => { setEditing(row); setModalOpen(true); }}>
             {t("Chỉnh sửa")}
           </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive hover:text-destructive">{t("Xóa")}</Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{t("Xoá phiếu này?")}</AlertDialogTitle>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>{t("Hủy")}</AlertDialogCancel>
-                <AlertDialogAction
-                  className="bg-destructive hover:bg-destructive/90"
-                  onClick={async () => {
-                    try {
-                      await deleteEntry.mutateAsync(row.id);
-                      toast.success(t("Xóa thành công"));
-                    } catch (error) {
-                      toast.error(extractApiError(error));
-                    }
-                  }}
-                >
-                  {t("Xóa")}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <Popconfirm
+            title={t("Xoá phiếu này?")}
+            okText={t("Xóa")}
+            cancelText={t("Hủy")}
+            onConfirm={async () => {
+              try {
+                await deleteEntry.mutateAsync(row.id);
+                message.success(t("Xóa thành công"));
+              } catch (error) {
+                message.error(extractApiError(error));
+              }
+            }}
+          >
+            <Button type="link" size="small" danger>{t("Xóa")}</Button>
+          </Popconfirm>
         </>
       )}
-    </div>
+    </>
   ));
 
   return (
@@ -640,44 +520,52 @@ function CashflowTab({ period }: { period: PeriodRange }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 my-3">
+      <Row gutter={[12, 12]} style={{ margin: "12px 0" }}>
         {summaryCards.map((c) => (
-          <div key={c.label} className="reception-card" style={{ padding: "16px 20px" }}>
-            <div style={{ fontSize: 12, color: "#5A6B82", marginBottom: 4 }}>{c.label}</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: c.color, fontVariantNumeric: "tabular-nums" }}>
-              {formatVND(c.value)} đ
+          <Col key={c.label} xs={24} sm={8}>
+            <div className="reception-card" style={{ padding: "16px 20px" }}>
+              <div style={{ fontSize: 12, color: "#5A6B82", marginBottom: 4 }}>{c.label}</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: c.color, fontVariantNumeric: "tabular-nums" }}>
+                {formatVND(c.value)} đ
+              </div>
             </div>
-          </div>
+          </Col>
         ))}
-      </div>
+      </Row>
 
       {(stats?.pendingExpenseCount ?? 0) > 0 && (
         <div className="reception-card" style={{ padding: "10px 16px", marginBottom: 12 }}>
-          <span style={{ fontSize: 13, color: "#B45309" }}>
+          <Text style={{ fontSize: 13, color: "#B45309" }}>
             {t("{0} phiếu chi đang chờ duyệt ({1} đ) — chưa được tính vào tổng chi.", stats?.pendingExpenseCount ?? 0, formatVND(stats?.pendingExpense ?? 0))}
-          </span>
+          </Text>
         </div>
       )}
 
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Button onClick={() => { setEditing(null); setModalOpen(true); }}>
-            <Plus size={14} className="mr-1.5" />
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => { setEditing(null); setModalOpen(true); }}
+          >
             {t("Thêm mới")}
           </Button>
-          <Button variant="outline" className="ml-auto">
-            <Download size={14} className="mr-1.5" />
-            {t("Xuất Excel")}
-          </Button>
+          <Button icon={<DownloadOutlined />} style={{ marginLeft: "auto" }}>{t("Xuất Excel")}</Button>
         </div>
       </div>
 
       <div className="reception-card reception-card--content">
-        <SimpleTable
+        <Table
+          size="small"
+          rowKey="id"
+          loading={isLoading}
           columns={columns}
           dataSource={page?.items ?? []}
-          loading={isLoading}
-          emptyText={t("Không có dữ liệu")}
+          pagination={{
+            pageSize: 20,
+            showTotal: (total, range) => t("Hiển thị {0}–{1} trên {2} dòng", range[0], range[1], total),
+          }}
+          locale={{ emptyText: t("Không có dữ liệu") }}
         />
       </div>
 
@@ -711,48 +599,53 @@ function CashflowV2Tab({ period }: { period: PeriodRange }) {
 
   return (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 my-3">
+      <Row gutter={[12, 12]} style={{ margin: "12px 0" }}>
         {balancePanels.map((panel) => (
-          <div key={panel.label} className="reception-card" style={{ padding: "16px 20px" }}>
-            <div style={{ fontSize: 12, color: "#5A6B82", marginBottom: 4 }}>{panel.label}</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: panel.color, fontVariantNumeric: "tabular-nums" }}>
-              {formatVND(panel.value)} đ
+          <Col key={panel.label} xs={24} sm={12} md={6}>
+            <div className="reception-card" style={{ padding: "16px 20px" }}>
+              <div style={{ fontSize: 12, color: "#5A6B82", marginBottom: 4 }}>{panel.label}</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: panel.color, fontVariantNumeric: "tabular-nums" }}>
+                {formatVND(panel.value)} đ
+              </div>
             </div>
-          </div>
+          </Col>
         ))}
-      </div>
+      </Row>
 
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <Button onClick={() => setCashModal(CASH_TRANSACTION_TYPE.Deposit)}>
+          <Button type="primary" onClick={() => setCashModal(CASH_TRANSACTION_TYPE.Deposit)}>
             {t("Nạp")}
           </Button>
-          <Button variant="outline" onClick={() => setCashModal(CASH_TRANSACTION_TYPE.Withdraw)}>
+          <Button onClick={() => setCashModal(CASH_TRANSACTION_TYPE.Withdraw)}>
             {t("Rút")}
           </Button>
-          <Button variant="outline" onClick={() => setCashModal(CASH_TRANSACTION_TYPE.Transfer)}>
+          <Button onClick={() => setCashModal(CASH_TRANSACTION_TYPE.Transfer)}>
             {t("Luân chuyển")}
           </Button>
-          <span style={{ fontSize: 13, color: "#5A6B82", marginLeft: 12 }}>
+          <Text style={{ fontSize: 13, color: "#5A6B82", marginLeft: 12 }}>
             {t("Nạp")}: {formatVND(overview?.totalDeposit ?? 0)} đ
             {" · "}
             {t("Rút")}: {formatVND(overview?.totalWithdraw ?? 0)} đ
             {" · "}
             {t("Luân chuyển")}: {formatVND(overview?.totalTransfer ?? 0)} đ
-          </span>
-          <Button variant="outline" className="ml-auto">
-            <Download size={14} className="mr-1.5" />
-            {t("Xuất Excel")}
-          </Button>
+          </Text>
+          <Button icon={<DownloadOutlined />} style={{ marginLeft: "auto" }}>{t("Xuất Excel")}</Button>
         </div>
       </div>
 
       <div className="reception-card reception-card--content">
-        <SimpleTable
+        <Table
+          size="small"
+          rowKey="id"
+          loading={isLoading}
           columns={cashflowEntryColumns}
           dataSource={page?.items ?? []}
-          loading={isLoading}
-          emptyText={t("Không có dữ liệu")}
+          pagination={{
+            pageSize: 20,
+            showTotal: (total, range) => t("Hiển thị {0}–{1} trên {2} giao dịch", range[0], range[1], total),
+          }}
+          locale={{ emptyText: t("Không có dữ liệu") }}
         />
       </div>
 
@@ -788,40 +681,42 @@ function BusinessResultTab() {
 
   return (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 my-3">
+      <Row gutter={[12, 12]} style={{ margin: "12px 0" }}>
         {resultSummary.map((c) => (
-          <div key={c.label} className="reception-card" style={{ padding: "16px 20px" }}>
-            <div style={{ fontSize: 12, color: "#5A6B82", marginBottom: 4 }}>{c.label}</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: c.color, fontVariantNumeric: "tabular-nums" }}>
-              {typeof c.value === "number" ? `${formatVND(c.value)} đ` : c.value}
+          <Col key={c.label} xs={24} sm={12} md={6}>
+            <div className="reception-card" style={{ padding: "16px 20px" }}>
+              <div style={{ fontSize: 12, color: "#5A6B82", marginBottom: 4 }}>{c.label}</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: c.color, fontVariantNumeric: "tabular-nums" }}>
+                {typeof c.value === "number" ? `${formatVND(c.value)} đ` : c.value}
+              </div>
             </div>
-          </div>
+          </Col>
         ))}
-      </div>
+      </Row>
 
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", alignItems: "center" }}>
-          <Button variant="outline" className="ml-auto">
-            <Download size={14} className="mr-1.5" />
-            {t("Xuất Excel")}
-          </Button>
+          <Button icon={<DownloadOutlined />} style={{ marginLeft: "auto" }}>{t("Xuất Excel")}</Button>
         </div>
       </div>
 
       <div className="reception-card reception-card--content">
-        <SimpleTable
+        <Table
+          size="small"
+          rowKey="category"
           columns={resultColumns}
           dataSource={resultData}
-          emptyText={t("Không có dữ liệu")}
-          footer={
-            <TableRow className="font-bold bg-muted/50">
-              <TableCell>{t("Tổng")}</TableCell>
-              <TableCell className="text-right" style={{ fontVariantNumeric: "tabular-nums" }}>{formatVND(revenue)} đ</TableCell>
-              <TableCell className="text-right" style={{ color: "#EF4444", fontVariantNumeric: "tabular-nums" }}>{formatVND(expense)} đ</TableCell>
-              <TableCell className="text-right" style={{ color: "#10B981", fontVariantNumeric: "tabular-nums" }}>{formatVND(profit)} đ</TableCell>
-              <TableCell className="text-right">{margin}%</TableCell>
-            </TableRow>
-          }
+          pagination={false}
+          locale={{ emptyText: t("Không có dữ liệu") }}
+          summary={() => (
+            <Table.Summary.Row>
+              <Table.Summary.Cell index={0}><Text strong>{t("Tổng")}</Text></Table.Summary.Cell>
+              <Table.Summary.Cell index={1} align="right"><Text strong style={{ fontVariantNumeric: "tabular-nums" }}>{formatVND(revenue)} đ</Text></Table.Summary.Cell>
+              <Table.Summary.Cell index={2} align="right"><Text strong style={{ color: "#EF4444", fontVariantNumeric: "tabular-nums" }}>{formatVND(expense)} đ</Text></Table.Summary.Cell>
+              <Table.Summary.Cell index={3} align="right"><Text strong style={{ color: "#10B981", fontVariantNumeric: "tabular-nums" }}>{formatVND(profit)} đ</Text></Table.Summary.Cell>
+              <Table.Summary.Cell index={4} align="right"><Text strong>{margin}%</Text></Table.Summary.Cell>
+            </Table.Summary.Row>
+          )}
         />
       </div>
     </>
