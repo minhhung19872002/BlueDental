@@ -2990,6 +2990,28 @@ body {
   background: #fff;
 }
 
+/* The design's dialog fields stand 42px tall, where Ant Design's default is
+   32px. Textareas keep their own height. */
+.ant-modal .ant-input:not(textarea),
+.ant-modal .ant-input-affix-wrapper,
+.ant-modal .ant-input-number,
+.ant-modal .ant-input-number-input,
+.ant-modal .ant-picker,
+.ant-modal .ant-select-single .ant-select-selector,
+.ant-drawer .ant-input:not(textarea),
+.ant-drawer .ant-input-affix-wrapper,
+.ant-drawer .ant-input-number,
+.ant-drawer .ant-input-number-input,
+.ant-drawer .ant-picker,
+.ant-drawer .ant-select-single .ant-select-selector {
+  height: 42px;
+}
+
+.ant-modal .ant-select-single,
+.ant-drawer .ant-select-single {
+  height: 42px;
+}
+
 /* ── Thanh toán & hoá đơn ── */
 
 .billing-kpis {
