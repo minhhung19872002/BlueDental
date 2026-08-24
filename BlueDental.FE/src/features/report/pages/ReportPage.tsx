@@ -5,7 +5,7 @@ import { useStaffList } from "@/features/staff/api/staffQueries";
 import { DownloadOutlined, LeftOutlined, RightOutlined, PlusOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 import { formatDate, formatVND } from "@/utils/format";
-import { exportToExcel } from "@/utils/exportExcel";
+import { exportToExcel, exportTableToExcel } from "@/utils/exportExcel";
 import { useReportSummary, useRevenueReport, useExpenseReport } from "../api/reportingApi";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { useAuthStore } from "@/features/auth/store/authStore";
@@ -156,6 +156,14 @@ export function ReportPage() {
   const [subFilter, setSubFilter] = useState("service");
   const period = resolvePeriod(currentDate, dateMode);
 
+  // The design names the period being viewed rather than describing the idea
+  // of one: "Kỳ báo cáo: tháng 08/2026 · toàn chi nhánh".
+  const periodLabel =
+    dateMode === "day"   ? t("ngày {0}", currentDate.format("DD/MM/YYYY"))
+    : dateMode === "week"  ? t("tuần {0}", currentDate.format("WW/YYYY"))
+    : dateMode === "month" ? t("tháng {0}", currentDate.format("MM/YYYY"))
+    : t("năm {0}", currentDate.format("YYYY"));
+
   const REPORT_TABS = [
     { key: "expense",     label: t("Doanh số và lượt khách") },
     { key: "cashflow",    label: t("Quản lý thu chi") },
@@ -228,7 +236,7 @@ export function ReportPage() {
     <div className="reception-page">
       <PageHeader
         title={t("Báo cáo")}
-        subtitle={t("Kỳ báo cáo theo khoảng thời gian đã chọn")}
+        subtitle={t("Kỳ báo cáo: {0} · toàn chi nhánh", periodLabel)}
       />
 
       {/* Main tab bar */}
@@ -550,7 +558,13 @@ function CashflowTab({ period }: { period: PeriodRange }) {
           >
             {t("Thêm mới")}
           </Button>
-          <Button icon={<DownloadOutlined />} style={{ marginLeft: "auto" }}>{t("Xuất Excel")}</Button>
+          <Button
+            icon={<DownloadOutlined />}
+            style={{ marginLeft: "auto" }}
+            onClick={() => exportTableToExcel(page?.items ?? [], columns, "quan-ly-thu-chi")}
+          >
+            {t("Xuất Excel")}
+          </Button>
         </div>
       </div>
 
@@ -630,7 +644,13 @@ function CashflowV2Tab({ period }: { period: PeriodRange }) {
             {" · "}
             {t("Luân chuyển")}: {formatVND(overview?.totalTransfer ?? 0)} đ
           </Text>
-          <Button icon={<DownloadOutlined />} style={{ marginLeft: "auto" }}>{t("Xuất Excel")}</Button>
+          <Button
+            icon={<DownloadOutlined />}
+            style={{ marginLeft: "auto" }}
+            onClick={() => exportTableToExcel(page?.items ?? [], cashflowEntryColumns, "luan-chuyen-dong-tien")}
+          >
+            {t("Xuất Excel")}
+          </Button>
         </div>
       </div>
 
@@ -696,7 +716,13 @@ function BusinessResultTab() {
 
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", alignItems: "center" }}>
-          <Button icon={<DownloadOutlined />} style={{ marginLeft: "auto" }}>{t("Xuất Excel")}</Button>
+          <Button
+            icon={<DownloadOutlined />}
+            style={{ marginLeft: "auto" }}
+            onClick={() => exportTableToExcel(resultData, resultColumns, "ket-qua-kinh-doanh")}
+          >
+            {t("Xuất Excel")}
+          </Button>
         </div>
       </div>
 

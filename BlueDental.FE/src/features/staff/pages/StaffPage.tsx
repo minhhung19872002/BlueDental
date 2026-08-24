@@ -25,6 +25,7 @@ import dayjs from "dayjs";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { extractApiError } from "@/lib/apiError";
+import { PageHeader } from "@/components/PageHeader";
 import { t } from "@/lib/i18n";
 
 type StatusFilter = "all" | "working" | "resigned";
@@ -150,14 +151,10 @@ export function StaffPage() {
 
   return (
     <div className="reception-page">
-      <div className="page-header">
-        <div className="page-header-left">
-          <h1 className="page-header-title">{t("Nhân sự & lịch làm việc")}</h1>
-          <p className="page-header-subtitle">
-            {t("Bấm vào ngày để bật/tắt ca trực trong tuần")}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title={t("Nhân sự & lịch làm việc")}
+        subtitle={t("Bấm vào ngày để bật/tắt ca trực trong tuần")}
+      />
 
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
