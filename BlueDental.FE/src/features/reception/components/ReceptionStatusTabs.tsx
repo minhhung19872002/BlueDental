@@ -104,7 +104,7 @@ export const ReceptionStatusTabs: React.FC<ReceptionStatusTabsProps> = ({
           allowClear
           options={doctors.map((d) => ({ value: d.id, label: d.name }))}
           onChange={(val) => onDoctorSelect?.(val)}
-          style={{ width: 180 }}
+          style={{ width: 160 }}
         />
       </div>
 
@@ -114,7 +114,7 @@ export const ReceptionStatusTabs: React.FC<ReceptionStatusTabsProps> = ({
           <div
             key={c.key}
             className="reception-counter-card"
-            style={{ borderTopColor: c.borderColor, backgroundColor: c.bgColor, color: c.textColor }}
+            style={{ borderColor: c.borderColor, backgroundColor: c.bgColor, color: c.textColor }}
           >
             <span className="reception-counter-value">
               {counters?.[c.key] ?? 0}

@@ -43,7 +43,7 @@ export const statusPaletteOf = () => ({
 });
 
 export const FONT_FAMILY =
-  "'Be Vietnam Pro', system-ui, -apple-system, sans-serif";
+  "'Google Sans', 'Be Vietnam Pro', system-ui, -apple-system, sans-serif";
 
 export const themeConfig: ThemeConfig = {
   token: {
@@ -57,6 +57,7 @@ export const themeConfig: ThemeConfig = {
     colorTextBase: brand.ink,
     colorBorder: brand.line,
     colorBorderSecondary: brand.border,
+    controlHeight: 40,
     borderRadius: 10,
     fontFamily: FONT_FAMILY,
     colorBgLayout: brand.bg,
@@ -108,8 +109,8 @@ export const themeConfig: ThemeConfig = {
       primaryShadow: "0 8px 18px -10px rgba(28,53,102,.9)",
       defaultShadow: "none",
       borderRadius: 10,
-      controlHeight: 38,
-      controlHeightLG: 44,
+      controlHeight: 40,
+      controlHeightLG: 46,
       defaultBorderColor: brand.line,
       defaultColor: brand.body,
     },
@@ -118,13 +119,13 @@ export const themeConfig: ThemeConfig = {
       activeBorderColor: brand.blue,
       hoverBorderColor: brand.blue,
       borderRadius: 10,
-      controlHeight: 38,
-      controlHeightLG: 46,
+      controlHeight: 40,
+      controlHeightLG: 48,
       colorBgContainer: "#ffffff",
     },
     Select: {
       borderRadius: 10,
-      controlHeight: 38,
+      controlHeight: 40,
       optionSelectedBg: brand.bluePale,
     },
     Modal: {
@@ -149,9 +150,11 @@ export const themeConfig: ThemeConfig = {
       titleFontSize: 13,
     },
     Segmented: {
-      itemSelectedBg: "#ffffff",
-      itemSelectedColor: brand.ink,
+      itemSelectedBg: brand.blue,
+      itemSelectedColor: "#ffffff",
+      itemColor: brand.muted,
       trackBg: brand.bg,
+      trackPadding: 4,
       borderRadius: 10,
     },
     Pagination: {

@@ -1,0 +1,288 @@
+.date-navigator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  position: relative;
+  height: 40px;
+  border: 1px solid var(--bd-line);
+  border-radius: 10px;
+  background: #ffffff;
+  flex-shrink: 0;
+}
+
+/* ── Arrow buttons ── */
+.date-navigator-arrow.ant-btn {
+  border: none;
+  background: none;
+  box-shadow: none;
+  width: 34px;
+  height: 38px;
+  min-width: 34px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--bd-muted);
+  border-radius: 0;
+  flex-shrink: 0;
+}
+
+.date-navigator-arrow.ant-btn:first-child {
+  border-radius: 10px 0 0 10px;
+}
+
+.date-navigator-arrow.ant-btn:last-of-type {
+  border-radius: 0 10px 10px 0;
+}
+
+.date-navigator .date-navigator-arrow.ant-btn.ant-btn-default:hover,
+.date-navigator .date-navigator-arrow.ant-btn.ant-btn-default:focus,
+.date-navigator .date-navigator-arrow.ant-btn.ant-btn-default:active {
+  color: var(--bd-ink) !important;
+  background: #f9f7f5 !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.date-navigator-arrow .anticon {
+  font-size: 12px;
+}
+
+/* ── Clickable date display ── */
+.date-navigator-display-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  height: 100%;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.date-navigator-display-wrapper:hover {
+  background: #f9f7f5;
+}
+
+.date-navigator-icon {
+  font-size: 14px;
+  color: var(--bd-muted);
+}
+
+.date-navigator-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--bd-ink);
+  font-family: var(--bd-font);
+}
+
+/* ── Dropdown container ── */
+.date-nav-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 1050;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08),
+              0 3px 6px -4px rgba(0, 0, 0, 0.12),
+              0 9px 28px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* ── Panel ── */
+.date-nav-panel {
+  width: 280px;
+  padding: 16px;
+  font-family: var(--bd-font);
+}
+
+/* Header: < Tháng Tám 2026 > */
+.date-nav-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.date-nav-panel-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+  color: var(--bd-muted);
+  font-size: 12px;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.date-nav-panel-nav:hover {
+  background: #f5f5f5;
+  color: var(--bd-ink);
+}
+
+.date-nav-panel-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--bd-ink);
+}
+
+/* ── Weekday header ── */
+.date-nav-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 4px;
+}
+
+.date-nav-weekday {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--bd-muted);
+  padding: 6px 0;
+}
+
+/* ── Day grid ── */
+.date-nav-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  row-gap: 2px;
+}
+
+.date-nav-day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  border: none;
+  background: none;
+  font-size: 13px;
+  color: var(--bd-ink);
+  cursor: pointer;
+  border-radius: 50%;
+  font-family: var(--bd-font);
+  transition: background 0.12s;
+  padding: 0;
+}
+
+.date-nav-day:hover {
+  background: #f0f0f0;
+}
+
+.date-nav-day.outside {
+  color: #ccc;
+}
+
+.date-nav-day.today {
+  font-weight: 700;
+  color: var(--bd-blue);
+}
+
+.date-nav-day.selected {
+  background: var(--bd-blue);
+  color: #fff;
+  font-weight: 600;
+}
+
+.date-nav-day.selected:hover {
+  background: var(--bd-blue);
+}
+
+/* ── Week mode: row highlight ── */
+.date-nav-day.week-selected {
+  background: var(--bd-blue);
+  color: #fff;
+  font-weight: 600;
+  border-radius: 0;
+}
+
+.date-nav-day.week-selected.week-start {
+  border-radius: 50% 0 0 50%;
+}
+
+.date-nav-day.week-selected.week-end {
+  border-radius: 0 50% 50% 0;
+}
+
+.date-nav-day.week-selected:hover {
+  background: var(--bd-blue);
+}
+
+/* Week hover: light blue row */
+.date-nav-day.week-hovered {
+  background: rgba(59, 130, 246, 0.08);
+  border-radius: 0;
+}
+
+.date-nav-day.week-hovered.week-start {
+  border-radius: 50% 0 0 50%;
+}
+
+.date-nav-day.week-hovered.week-end {
+  border-radius: 0 50% 50% 0;
+}
+
+.date-nav-day.week-hovered.day-hovered {
+  background: rgba(59, 130, 246, 0.18);
+  font-weight: 600;
+}
+
+/* ── Footer ── */
+.date-nav-panel-footer {
+  margin-top: 8px;
+  border-top: 1px solid var(--bd-line);
+  padding-top: 8px;
+}
+
+.date-nav-reset {
+  display: block;
+  width: 100%;
+  padding: 6px 0;
+  border: 1px solid var(--bd-line);
+  border-radius: 6px;
+  background: #fff;
+  font-size: 13px;
+  color: var(--bd-ink);
+  cursor: pointer;
+  font-family: var(--bd-font);
+  transition: background 0.15s;
+  text-align: center;
+}
+
+.date-nav-reset:hover {
+  background: #f5f5f5;
+}
+
+/* ── Month grid (for month mode picker) ── */
+.date-nav-month-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.date-nav-month-cell {
+  padding: 10px 4px;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--bd-ink);
+  cursor: pointer;
+  font-family: var(--bd-font);
+  transition: background 0.15s;
+  text-align: center;
+}
+
+.date-nav-month-cell:hover {
+  background: #f5f5f5;
+}
+
+.date-nav-month-cell.active {
+  background: var(--bd-blue);
+  color: #ffffff;
+  font-weight: 600;
+}
