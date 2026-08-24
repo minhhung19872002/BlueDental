@@ -821,7 +821,527 @@ public class AppointmentRepository : EfCoreRepository<BlueDentalDbContext, Appoi
 
 ---
 
-## 16. Không được làm
+## 16. Frontend Clean Code Rules (Senior-Level)
+
+### 16.1 Component Size & Responsibility
+
+Mỗi component file tối đa **150 dòng** (không tính import/type). Nếu vượt quá:
+- Tách sub-components ra file riêng trong cùng folder
+- Tách logic ra custom hook
+- Tách render sections ra compound components
+
+```tsx
+// SAI — God component 400+ dòng
+function AppointmentPage() {
+  // 50 dòng state + hooks
+  // 100 dòng handlers
+  // 250 dòng JSX với nested conditions
+}
+
+// ĐÚNG — Container mỏng + tách rời
+function AppointmentPage() {
+  const workflow = useAppointmentWorkflow();
+  return (
+    <PageLayout title={t("Lịch hẹn")}>
+      <AppointmentToolbar filters={workflow.filters} />
+      <AppointmentCalendar data={workflow.appointments} />
+      <AppointmentDetailDrawer selected={workflow.selected} />
+    </PageLayout>
+  );
+}
+```
+
+---
+
+### 16.2 Hoist Static Data ra Module Scope
+
+Config maps, label records, style maps mà **không phụ thuộc props/state** PHẢI đặt ngoài component body. Nếu phụ thuộc `t()` (i18n), dùng factory function hoặc `useMemo`.
+
+```tsx
+// SAI — tạo lại mỗi render
+function StatusBadge({ status }: Props) {
+  const colors = {
+    Scheduled: 'bg-blue-100 text-blue-700',
+    Completed: 'bg-green-100 text-green-700',
+  };
+  return <span className={colors[status]}>{status}</span>;
+}
+
+// ĐÚNG — module-level constant
+const STATUS_STYLES: Record<AppointmentStatus, string> = {
+  Scheduled: 'bg-blue-100 text-blue-700',
+  Completed: 'bg-green-100 text-green-700',
+} as const;
+
+function StatusBadge({ status }: Props) {
+  return <span className={STATUS_STYLES[status]}>{status}</span>;
+}
+
+// ĐÚNG — i18n-dependent thì dùng hook
+function useStatusLabels() {
+  const t = useT();
+  return useMemo(() => ({
+    Scheduled: t('Đã lên lịch'),
+    Completed: t('Hoàn thành'),
+  }), [t]);
+}
+```
+
+---
+
+### 16.3 Không Dùng Inline Style Objects
+
+Dùng Tailwind classes thay vì `style={{}}`. Khi cần dynamic value, dùng CSS custom properties hoặc Tailwind arbitrary values.
+
+```tsx
+// SAI
+<div style={{ backgroundColor: color, borderRadius: 8, padding: '12px 16px' }}>
+
+// ĐÚNG — Tailwind classes
+<div className="rounded-lg px-4 py-3" style={{ '--status-color': color } as React.CSSProperties}>
+
+// ĐÚNG — Tailwind arbitrary value cho dynamic
+<div className={cn('rounded-lg px-4 py-3', `bg-[${color}]`)}>
+```
+
+**Ngoại lệ duy nhất**: dynamic CSS không thể biểu diễn bằng class (animation transforms, canvas positions). Khi đó dùng CSS custom property, không inline trực tiếp.
+
+---
+
+### 16.4 Props Interface Rules
+
+- **Discriminated unions** cho component có nhiều variant, không boolean flags
+- Tối đa **7 props** cho leaf component, **10 props** cho container
+- Nếu nhiều hơn → tách thành compound component hoặc gom vào config object
+
+```tsx
+// SAI — boolean flag hell
+interface ButtonProps {
+  isPrimary?: boolean;
+  isSecondary?: boolean;
+  isDanger?: boolean;
+  isLoading?: boolean;
+  isDisabled?: boolean;
+  isOutline?: boolean;
+  isGhost?: boolean;
+}
+
+// ĐÚNG — discriminated union + minimal flags
+interface ButtonProps {
+  variant: 'primary' | 'secondary' | 'danger' | 'ghost' | 'outline';
+  size?: 'sm' | 'md' | 'lg';
+  loading?: boolean;
+  disabled?: boolean;
+  children: React.ReactNode;
+  onClick?: () => void;
+}
+```
+
+---
+
+### 16.5 Event Handler Naming Convention
+
+- Handler props: `onAction` (ví dụ `onClick`, `onSubmit`, `onPatientSelect`)
+- Handler implementations: `handleAction` (ví dụ `handleClick`, `handleSubmit`)
+- **Không** dùng anonymous arrow trong JSX cho logic phức tạp (> 1 expression)
+
+```tsx
+// SAI
+<Button onClick={() => {
+  setLoading(true);
+  api.delete(id).then(() => { refetch(); toast.success('Đã xóa'); });
+}}>
+
+// ĐÚNG
+const handleDelete = useCallback(async () => {
+  setLoading(true);
+  await api.delete(id);
+  refetch();
+  toast.success(t('Đã xóa'));
+}, [id, refetch, t]);
+
+<Button onClick={handleDelete}>
+```
+
+---
+
+### 16.6 Conditional Rendering Patterns
+
+Dùng early return thay vì nested ternary. Tách branch phức tạp ra component riêng.
+
+```tsx
+// SAI — nested ternary hell
+return (
+  <div>
+    {isLoading ? <Spinner /> : error ? <ErrorView error={error} /> :
+      data?.length === 0 ? <EmptyState /> : <DataTable data={data} />}
+  </div>
+);
+
+// ĐÚNG — early return + clear flow
+if (isLoading) return <Spinner />;
+if (error) return <ErrorView error={error} />;
+if (!data?.length) return <EmptyState message={t('Không có dữ liệu')} />;
+return <DataTable data={data} />;
+```
+
+---
+
+### 16.7 Custom Hook Rules (Nâng cao)
+
+**Single Responsibility**: 1 hook = 1 concern. Không tạo hook "thần" (god hook) chứa tất cả logic của page.
+
+```tsx
+// SAI — god hook
+function usePatientPage() {
+  // fetching + filtering + sorting + pagination + modal state + form logic + permissions
+  return { /* 30 fields */ };
+}
+
+// ĐÚNG — composable hooks
+function usePatientFilters() { /* filter state + handlers */ }
+function usePatientList(filters: PatientFilter) { /* TanStack Query */ }
+function usePatientFormModal() { /* modal open/close + form state */ }
+
+// Container compose chúng
+function PatientPage() {
+  const filters = usePatientFilters();
+  const { data, isLoading } = usePatientList(filters.current);
+  const modal = usePatientFormModal();
+  // ...
+}
+```
+
+**Return type rules**:
+- Trả về `{}` object (có tên rõ ràng), **không** trả về array/tuple trừ `[value, setter]` đơn giản
+- Mỗi field trong return phải có tên tự giải thích — không `data1`, `handler2`
+
+---
+
+### 16.8 Error Boundary & Error Handling
+
+- Mỗi route-level page PHẢI được wrap bởi `ErrorBoundary`
+- API errors hiển thị qua TanStack Query `isError` + component `ErrorView`
+- **Không** swallow error bằng empty catch
+
+```tsx
+// ĐÚNG — Route level error boundary
+<Route
+  path="/appointments"
+  element={
+    <ErrorBoundary fallback={<ErrorFallback />}>
+      <AppointmentPage />
+    </ErrorBoundary>
+  }
+/>
+
+// ĐÚNG — Query error handling
+function PatientList() {
+  const { data, isLoading, error } = usePatientList(filters);
+  if (error) return <ErrorView error={error} onRetry={refetch} />;
+  // ...
+}
+
+// SAI — swallow silently
+try { await api.delete(id); } catch (e) { /* nothing */ }
+
+// ĐÚNG — handle or propagate
+try {
+  await api.delete(id);
+} catch (e) {
+  toast.error(extractApiError(e, t('Không thể xóa')));
+}
+```
+
+---
+
+### 16.9 Performance Patterns
+
+**Memoization rules** — chỉ dùng khi thật sự cần:
+
+```tsx
+// KHÔNG cần memo — primitive props, light component
+<StatusBadge status={appointment.status} />
+
+// CẦN useMemo — expensive computation
+const chartData = useMemo(
+  () => buildDentalChartData(treatments, toothStatuses),
+  [treatments, toothStatuses]
+);
+
+// CẦN useCallback — handler truyền vào memoized child hoặc dependency array
+const handleSelect = useCallback((id: string) => {
+  setSelectedId(id);
+}, []);
+
+// CẦN React.memo — list item render nhiều lần
+const AppointmentCard = React.memo(function AppointmentCard({ appointment, onSelect }: Props) {
+  // ...
+});
+```
+
+**Virtualization**: List > 50 items PHẢI dùng virtualized rendering (`@tanstack/react-virtual`).
+
+**Code splitting**: Mỗi route-level page phải lazy load:
+```tsx
+const AppointmentPage = lazy(() => import('@/features/appointments/pages/AppointmentPage'));
+```
+
+---
+
+### 16.10 Import Order & File Organization
+
+```tsx
+// 1. React / framework
+import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+// 2. Third-party libraries
+import { useQuery } from '@tanstack/react-query';
+import { z } from 'zod';
+
+// 3. Shared components / hooks / utils (@ alias)
+import { DataTable } from '@/components/DataTable';
+import { useDebounce } from '@/hooks/useDebounce';
+
+// 4. Feature-local imports (relative)
+import { usePatientList } from '../api/patientQueries';
+import { PatientCard } from './PatientCard';
+import type { PatientViewModel } from '../types';
+```
+
+**File naming**:
+- Components: `PascalCase.tsx` (ví dụ `PatientCard.tsx`)
+- Hooks: `camelCase.ts` bắt đầu `use` (ví dụ `usePatientList.ts`)
+- Utils/helpers: `camelCase.ts` (ví dụ `formatCurrency.ts`)
+- Types: `camelCase.ts` hoặc đặt trong `types/index.ts` của feature
+- Constants: `SCREAMING_SNAKE_CASE` cho values, `camelCase.ts` cho files
+
+---
+
+### 16.11 Type Safety Rules
+
+```tsx
+// SAI — loose typing
+function handleResponse(data: any) { ... }
+const config = {} as Record<string, any>;
+type Props = { data: object };
+
+// ĐÚNG — explicit types
+function handleResponse(data: PatientDto) { ... }
+const config: AppConfig = { theme: 'light', locale: 'vi' };
+type Props = { data: PatientViewModel };
+
+// SAI — type assertion để bypass
+const patient = response as unknown as Patient;
+
+// ĐÚNG — runtime validation ở boundary
+const patient = patientSchema.parse(response);
+```
+
+**Rules**:
+- KHÔNG dùng `any` — dùng `unknown` + type guard nếu type không rõ
+- KHÔNG dùng `as` type assertion trừ khi chứng minh được type safety (ví dụ CSS custom properties)
+- Prefer `interface` cho component props, `type` cho unions/intersections
+- Generic khi cần reuse: `DataTable<T>`, `FormModal<TValues>`
+- Discriminated union cho state machines:
+
+```tsx
+type QueryState<T> =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'error'; error: Error }
+  | { status: 'success'; data: T };
+```
+
+---
+
+### 16.12 Composition Over Configuration
+
+Ưu tiên React composition (children, render props) hơn config objects hoặc prop flags.
+
+```tsx
+// SAI — config-driven, rigid
+<DataTable
+  showSearch
+  showPagination
+  showExport
+  searchPlaceholder="Tìm kiếm..."
+  exportFormat="xlsx"
+  columns={columns}
+  data={data}
+/>
+
+// ĐÚNG — composable, flexible
+<DataTable data={data} columns={columns}>
+  <DataTable.Toolbar>
+    <DataTable.Search placeholder={t('Tìm kiếm...')} />
+    <DataTable.Export format="xlsx" />
+  </DataTable.Toolbar>
+  <DataTable.Pagination />
+</DataTable>
+```
+
+---
+
+### 16.13 Dependency Direction (Import Rules)
+
+```
+pages/ → components/ → (nothing feature-local)
+pages/ → api/hooks
+pages/ → hooks/
+
+components/ ← KHÔNG import từ pages/
+api/ ← KHÔNG import từ components/ hoặc pages/
+hooks/ ← có thể import từ api/ nhưng KHÔNG import từ components/
+```
+
+- **Feature folders KHÔNG import chéo** — nếu 2 features cần share, move lên `src/components/` hoặc `src/hooks/`
+- **Adapter functions (api/) KHÔNG import runtime singletons** — nhận dependency qua params
+
+```tsx
+// SAI — adapter coupled to singleton
+import { DEFAULT_BRANCH_ID } from '@/lib/clinicBranch';
+function adaptAppointment(dto: AppointmentDto) {
+  return { ...dto, branchId: dto.branchId ?? DEFAULT_BRANCH_ID };
+}
+
+// ĐÚNG — pure function, dependency injected
+function adaptAppointment(dto: AppointmentDto, fallbackBranchId: string) {
+  return { ...dto, branchId: dto.branchId ?? fallbackBranchId };
+}
+```
+
+---
+
+### 16.14 Zustand Store Rules
+
+- 1 store = 1 concern (auth store, UI store, branch store). **Không** gom tất cả vào 1 global store
+- Store chỉ chứa **client-side state** — server state thuộc về TanStack Query
+- Selector phải narrow — select đúng field cần, không select toàn bộ store
+
+```tsx
+// SAI — re-render toàn bộ khi bất kỳ field nào thay đổi
+const store = useAuthStore();
+const { user, token, permissions, clinicBranch } = store;
+
+// ĐÚNG — narrow selector, chỉ re-render khi field thay đổi
+const user = useAuthStore((s) => s.user);
+const clinicBranchId = useAuthStore((s) => s.clinicBranchId);
+```
+
+- **Không** lưu derived state trong store — derive trong component hoặc hook:
+
+```tsx
+// SAI
+const useAuthStore = create((set) => ({
+  user: null,
+  isAdmin: false, // derived từ user.role
+  setUser: (user) => set({ user, isAdmin: user.role === 'admin' }),
+}));
+
+// ĐÚNG
+const isAdmin = useAuthStore((s) => s.user?.role === 'admin');
+```
+
+---
+
+### 16.15 Form Pattern Standards
+
+- Zod schema là source of truth cho validation
+- Schema định nghĩa trong file riêng hoặc cùng type file, **không** inline trong component
+- `defaultValues` PHẢI match Zod schema — dùng `z.infer<typeof schema>` cho type
+
+```tsx
+// Schema file
+const patientFormSchema = z.object({
+  firstName: z.string().min(1, 'Tên không được trống'),
+  lastName: z.string().min(1, 'Họ không được trống'),
+  phone: z.string().regex(/^0\d{9}$/, 'Số điện thoại không hợp lệ'),
+  email: z.string().email('Email không hợp lệ').optional().or(z.literal('')),
+});
+
+type PatientFormValues = z.infer<typeof patientFormSchema>;
+
+// Component
+function PatientForm({ onSubmit, initialData }: Props) {
+  const form = useForm<PatientFormValues>({
+    resolver: zodResolver(patientFormSchema),
+    defaultValues: initialData ?? { firstName: '', lastName: '', phone: '', email: '' },
+  });
+  // ...
+}
+```
+
+---
+
+### 16.16 CSS / Tailwind Rules
+
+- **Không** mix CSS modules + Tailwind + inline styles trong cùng 1 component
+- Dùng `cn()` (clsx + twMerge) cho conditional classes
+- Responsive: mobile-first (`base` → `sm:` → `md:` → `lg:`)
+- Tailwind arbitrary values `[]` chỉ dùng khi design token không có sẵn — ưu tiên extend `tailwind.config`
+- Animations: dùng Tailwind `animate-*` hoặc CSS keyframes trong global CSS, **không** inline `transition` style objects
+
+```tsx
+// ĐÚNG — cn() cho conditional
+<div className={cn(
+  'rounded-lg border p-4',
+  isActive && 'border-primary bg-primary/5',
+  isError && 'border-destructive bg-destructive/5',
+)}>
+
+// SAI — string concatenation
+<div className={'rounded-lg border p-4 ' + (isActive ? 'border-primary' : '')}>
+```
+
+---
+
+### 16.17 Testing Component Contracts
+
+Khi viết component tests (Vitest + Testing Library), test **behavior** không test **implementation**.
+
+```tsx
+// SAI — test implementation details
+expect(wrapper.find('.internal-class')).toHaveLength(1);
+expect(component.state.isOpen).toBe(true);
+
+// ĐÚNG — test user behavior
+await user.click(screen.getByRole('button', { name: /xác nhận/i }));
+expect(screen.getByText(/đã xác nhận/i)).toBeInTheDocument();
+expect(onConfirm).toHaveBeenCalledWith(appointmentId);
+```
+
+**Query priority** (Testing Library): `getByRole` > `getByLabelText` > `getByText` > `getByTestId`. Chỉ dùng `data-testid` khi không có accessible selector nào khác.
+
+---
+
+### 16.18 Button Loading & Disabled State
+
+Mọi button gọi API (submit form, delete, confirm) PHẢI:
+- **Disabled** khi đang gọi API — tránh user click nhiều lần
+- **Loading indicator** — hiển thị spinner (Loader2 animate-spin) thay icon mặc định khi đang loading
+- Toast thông báo chỉ hiện **sau khi** API trả về kết quả, không hiện trước
+
+```tsx
+// ĐÚNG
+<Button onClick={handleSubmit} disabled={loading}>
+  {loading ? <Loader2 className="mr-1.5 size-4 animate-spin" /> : <Save className="mr-1.5 size-4" />}
+  {t("Lưu")}
+</Button>
+
+// SAI — không disable, không loading
+<Button onClick={handleSubmit}>
+  <Save className="mr-1.5 size-4" />
+  {t("Lưu")}
+</Button>
+```
+
+Áp dụng cho: form submit, delete confirm, status change, và mọi action button gọi API.
+
+---
+
+## 17. Không được làm
 
 - KHÔNG commit secrets, credentials, connection strings vào git
 - KHÔNG dùng `any` trong TypeScript

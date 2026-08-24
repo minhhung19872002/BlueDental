@@ -1,77 +1,64 @@
 import { useState } from "react";
-import { Plus, Search, Loader2 } from "lucide-react";
+import { Plus, Search, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import {
+  staffKeys,
   useCreateStaff,
   useDeleteStaff,
   useStaffList,
   useStaffRoleNames,
   useUpdateStaff,
 } from "../api/staffQueries";
-import type { StaffDto } from "../api/staffApi";
-import { StaffRosterCard, accentFor } from "../components/StaffRosterCard";
-import { useWeekRoster, weekStartOf } from "../api/rosterQueries";
-import { useCurrentBranchId } from "@/lib/clinicBranch";
-import dayjs from "dayjs";
+import { staffApi, type StaffDto } from "../api/staffApi";
 import { useDebounce } from "@/hooks/useDebounce";
-import { useTablePagination } from "@/hooks/useTablePagination";
 import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { DataTable, type DataTableColumn } from "@/components/DataTable";
+import { StaffEditorModal, type StaffFormValues } from "../components/StaffEditorModal";
+import { useClinicBranches } from "@/features/organizations/api";
 
 type StatusFilter = "all" | "working" | "resigned";
 
-const statusTabs = (): { key: StatusFilter; label: string }[] => [
-  { key: "all", label: t("Tất cả") },
-  { key: "working", label: t("Đang làm việc") },
-  { key: "resigned", label: t("Đã nghỉ") },
+const STATUS_TABS: { key: StatusFilter; label: () => string }[] = [
+  { key: "all", label: () => t("Tất cả") },
+  { key: "working", label: () => t("Đang làm việc") },
+  { key: "resigned", label: () => t("Đã nghỉ") },
 ];
 
-interface StaffFormValues {
-  userName: string;
-  password: string;
-  name: string;
-  email: string;
-  phoneNumber: string;
-  roleNames: string[];
-}
-
-/**
- * Nhân viên.
- *
- * Staff are ABP identity users, so creating one means creating an account: the
- * login name and the initial password belong to the form, and roles decide what
- * the account may do.
- */
 export function StaffPage() {
-  const pagination = useTablePagination(20);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [keyword, setKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [editing, setEditing] = useState<StaffDto | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState<StaffFormValues>({ userName: "", password: "", name: "", email: "", phoneNumber: "", roleNames: [] });
+  const [deleteTarget, setDeleteTarget] = useState<StaffDto | null>(null);
 
+  const queryClient = useQueryClient();
   const debouncedKeyword = useDebounce(keyword);
 
   const { data, isLoading } = useStaffList({
     filter: debouncedKeyword || undefined,
-    skipCount: pagination.skipCount,
-    maxResultCount: pagination.maxResultCount,
+    skipCount: (page - 1) * pageSize,
+    maxResultCount: pageSize,
   });
   const { data: roleNames } = useStaffRoleNames();
 
@@ -79,19 +66,6 @@ export function StaffPage() {
   const updateStaff = useUpdateStaff();
   const deleteStaff = useDeleteStaff();
 
-  const branchId = useCurrentBranchId();
-  const { daysFor } = useWeekRoster(branchId, weekStartOf(dayjs()));
-
-  const handleDelete = async (staff: StaffDto) => {
-    try {
-      await deleteStaff.mutateAsync(staff.id);
-      toast.success(t("Đã xoá nhân viên"));
-    } catch (error) {
-      toast.error(extractApiError(error));
-    }
-  };
-
-  // Identity has no "resigned" flag of its own — an inactive account is one.
   const rows = (data?.items ?? []).filter((staff) =>
     statusFilter === "all"
       ? true
@@ -102,222 +76,268 @@ export function StaffPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ userName: "", password: "", name: "", email: "", phoneNumber: "", roleNames: [] });
     setModalOpen(true);
   };
 
   const openEdit = (staff: StaffDto) => {
     setEditing(staff);
-    setForm({
-      userName: staff.userName,
-      password: "",
-      name: staff.fullName || staff.name || "",
-      email: staff.email ?? "",
-      phoneNumber: staff.phoneNumber ?? "",
-      roleNames: staff.roleNames,
-    });
     setModalOpen(true);
   };
 
-  const setField = <K extends keyof StaffFormValues>(key: K, value: StaffFormValues[K]) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteStaff.mutateAsync(deleteTarget.id);
+      toast.success(t("Đã xoá nhân viên"));
+    } catch (error) {
+      toast.error(extractApiError(error));
+    } finally {
+      setDeleteTarget(null);
+    }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (values: StaffFormValues, avatarFile?: File | null | undefined) => {
+    const extraFields = {
+      address: values.address || undefined,
+      provinceId: values.provinceId || undefined,
+      wardId: values.wardId || undefined,
+      isDentist: values.isDentist,
+      isAssistant: values.isAssistant,
+      isHygienist: values.isHygienist,
+      morningStartTime: values.morningStartTime || undefined,
+      morningEndTime: values.morningEndTime || undefined,
+      afternoonStartTime: values.afternoonStartTime || undefined,
+      afternoonEndTime: values.afternoonEndTime || undefined,
+    };
+
     try {
+      let staffId: string;
       if (editing) {
         await updateStaff.mutateAsync({
           id: editing.id,
           data: {
-            name: form.name,
-            email: form.email,
-            phoneNumber: form.phoneNumber,
-            isActive: editing.isActive,
-            roleNames: form.roleNames,
-            branchIds: editing.branchIds,
+            name: values.name,
+            email: values.email,
+            phoneNumber: values.phoneNumber || undefined,
+            isActive: values.isActive,
+            roleNames: values.roleNames,
+            branchIds: values.branchIds,
+            ...extraFields,
           },
         });
-        toast.success(t("Đã cập nhật nhân viên"));
+        staffId = editing.id;
       } else {
-        await createStaff.mutateAsync({
-          userName: form.userName,
-          password: form.password,
-          name: form.name,
-          email: form.email,
-          phoneNumber: form.phoneNumber,
-          roleNames: form.roleNames,
-          branchIds: [],
+        const result = await createStaff.mutateAsync({
+          userName: values.email.split("@")[0],
+          password: values.password,
+          name: values.name,
+          email: values.email,
+          phoneNumber: values.phoneNumber || undefined,
+          roleNames: values.roleNames,
+          branchIds: values.branchIds,
+          ...extraFields,
         });
-        toast.success(t("Đã tạo nhân viên"));
+        staffId = result.id;
       }
 
       setModalOpen(false);
+      toast.success(editing ? t("Đã cập nhật nhân viên") : t("Đã tạo nhân viên"));
+
+      if (avatarFile instanceof File) {
+        staffApi.uploadAvatar(staffId, avatarFile).then(
+          () => void queryClient.invalidateQueries({ queryKey: staffKeys.all }),
+          (err) => toast.error(extractApiError(err, t("Tải ảnh đại diện thất bại"))),
+        );
+      } else if (avatarFile === null && editing?.avatarUrl) {
+        staffApi.deleteAvatar(staffId).then(
+          () => void queryClient.invalidateQueries({ queryKey: staffKeys.all }),
+          (err) => toast.error(extractApiError(err, t("Xóa ảnh đại diện thất bại"))),
+        );
+      }
     } catch (error) {
       toast.error(extractApiError(error));
     }
   };
 
-  return (
-    <div className="reception-page">
-      <div className="page-header">
-        <div className="page-header-left">
-          <h1 className="page-header-title">{t("Nhân sự & lịch làm việc")}</h1>
-          <p className="page-header-subtitle">
-            {t("Bấm vào ngày để bật/tắt ca trực trong tuần")}
-          </p>
-        </div>
-      </div>
+  const { data: branches } = useClinicBranches();
+  const branchOptions = (branches ?? []).map((b) => ({ value: b.id, label: b.name }));
 
-      <div className="reception-card reception-card--toolbar">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div className="relative">
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+  const columns: DataTableColumn<StaffDto>[] = [
+    {
+      key: "fullName",
+      title: t("Tên"),
+      width: 240,
+      render: (_, record) => (
+        <span className="text-[13px] text-[#374151]">
+          {record.fullName || record.userName}
+        </span>
+      ),
+    },
+    {
+      key: "phoneNumber",
+      title: t("Số điện thoại"),
+      dataIndex: "phoneNumber",
+      width: 180,
+      render: (v) => (
+        <span className="text-[13px] text-[#374151]">{(v as string) || "—"}</span>
+      ),
+    },
+    {
+      key: "email",
+      title: "Email",
+      dataIndex: "email",
+      width: 280,
+      render: (v) => (
+        <span className="text-[13px] text-[#374151]">{(v as string) || "—"}</span>
+      ),
+    },
+    {
+      key: "roleNames",
+      title: t("Phân quyền"),
+      dataIndex: "roleNames",
+      width: 200,
+      render: (v) => (
+        <span className="text-[13px] text-[#374151]">
+          {(v as string[])?.length > 0 ? (v as string[]).join(", ") : "—"}
+        </span>
+      ),
+    },
+    {
+      key: "address",
+      title: t("Địa chỉ"),
+      width: 350,
+      render: (_, record) => (
+        <span className={`text-[13px] ${record.address ? "text-[#374151]" : "text-[#9CA3AF]"}`}>
+          {record.address || "—"}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      title: t("Thao tác"),
+      width: 110,
+      align: "center",
+      render: (_, record) => (
+        <div className="flex items-center justify-center gap-1">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex size-8 items-center justify-center rounded-md text-[#6B7280] transition-colors hover:bg-[#F3F4F6] hover:text-[#374151]"
+                onClick={(e) => { e.stopPropagation(); openEdit(record); }}
+              >
+                <Pencil className="size-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>{t("Chỉnh sửa")}</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex size-8 items-center justify-center rounded-md text-[#EF4444] transition-colors hover:bg-red-50 hover:text-[#DC2626]"
+                onClick={(e) => { e.stopPropagation(); setDeleteTarget(record); }}
+              >
+                <Trash2 className="size-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>{t("Xoá")}</TooltipContent>
+          </Tooltip>
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Toolbar: search + create button */}
+      <div className="rounded-2xl border border-[var(--bd-border)] bg-white px-4 py-2.5 shadow-[var(--bd-shadow-card)]">
+        <div className="flex items-center justify-between gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#9CA3AF]" />
             <Input
-              className="pl-8 w-80"
+              className="pl-9"
               placeholder={t("Tìm theo tên, email, số điện thoại...")}
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
             />
           </div>
           <Button onClick={openCreate}>
-            <Plus size={14} className="mr-1" />
+            <Plus className="mr-1 size-4" />
             {t("Tạo")}
           </Button>
         </div>
       </div>
 
-      <div className="reception-card reception-card--tabs">
-        <div style={{ display: "flex", gap: 0 }}>
-          {statusTabs().map((tab) => (
+      {/* Status filter tabs */}
+      <div>
+        <div className="reception-status-pills w-fit bg-white!">
+          {STATUS_TABS.map((tab) => (
             <button
               key={tab.key}
               type="button"
               className={`reception-status-pill ${statusFilter === tab.key ? "reception-status-pill--active" : ""}`}
               onClick={() => setStatusFilter(tab.key)}
             >
-              {tab.label}
+              {tab.label()}
             </button>
           ))}
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="page-card flex items-center justify-center py-8">
-          <Loader2 className="size-5 animate-spin" />
-        </div>
-      ) : rows.length === 0 ? (
-        <div className="page-card py-8 text-center text-muted-foreground">
-          {t("Chưa có nhân viên")}
-        </div>
-      ) : (
-        <div className="staff-grid">
-          {rows.map((staff, i) => (
-            <StaffRosterCard
-              key={staff.id}
-              staff={staff}
-              accent={accentFor(i)}
-              days={daysFor(staff.id)}
-              clinicBranchId={branchId}
-              onEdit={() => openEdit(staff)}
-              onDelete={() => void handleDelete(staff)}
-            />
-          ))}
-        </div>
-      )}
+      {/* Table */}
+      <div className="overflow-hidden rounded-2xl border border-[var(--bd-border)] bg-white shadow-[var(--bd-shadow-card)]">
+        <DataTable<StaffDto>
+          columns={columns}
+          dataSource={rows}
+          rowKey="id"
+          loading={isLoading}
+          emptyText={t("Chưa có nhân viên")}
+          pagination={{
+            current: page,
+            pageSize,
+            total: data?.totalCount ?? 0,
+            showSizeChanger: true,
+            pageSizeOptions: [10, 20, 50, 100],
+            itemLabel: t("nhân viên"),
+            onChange: (p, ps) => {
+              if (ps !== pageSize) {
+                setPageSize(ps);
+                setPage(1);
+              } else {
+                setPage(p);
+              }
+            },
+          }}
+        />
+      </div>
 
-      <Dialog open={modalOpen} onOpenChange={(o) => { if (!o) setModalOpen(false); }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editing ? t("Chỉnh sửa nhân viên") : t("Tạo nhân viên")}</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col gap-4">
-            <div>
-              <label className="text-sm font-medium mb-1 block">
-                {t("Tên đăng nhập")} <span className="text-destructive">*</span>
-              </label>
-              <Input
-                placeholder="letan01"
-                value={form.userName}
-                onChange={(e) => setField("userName", e.target.value)}
-                disabled={Boolean(editing)}
-              />
-            </div>
+      <StaffEditorModal
+        open={modalOpen}
+        staff={editing}
+        roleNames={roleNames ?? []}
+        branchOptions={branchOptions}
+        loading={createStaff.isPending || updateStaff.isPending}
+        onSubmit={(v, avatar) => void handleSubmit(v, avatar)}
+        onClose={() => setModalOpen(false)}
+      />
 
-            {!editing && (
-              <div>
-                <label className="text-sm font-medium mb-1 block">
-                  {t("Mật khẩu")} <span className="text-destructive">*</span>
-                </label>
-                <Input
-                  type="password"
-                  placeholder={t("Mật khẩu đăng nhập")}
-                  value={form.password}
-                  onChange={(e) => setField("password", e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  {t("Tối thiểu 8 ký tự, có chữ hoa, số và ký tự đặc biệt.")}
-                </p>
-              </div>
-            )}
-
-            <div>
-              <label className="text-sm font-medium mb-1 block">{t("Họ và tên")}</label>
-              <Input
-                placeholder="Nguyễn Văn An"
-                value={form.name}
-                onChange={(e) => setField("name", e.target.value)}
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium mb-1 block">
-                Email <span className="text-destructive">*</span>
-              </label>
-              <Input
-                type="email"
-                placeholder="letan01@bluedental.vn"
-                value={form.email}
-                onChange={(e) => setField("email", e.target.value)}
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium mb-1 block">{t("Số điện thoại")}</label>
-              <Input
-                placeholder="09xxxxxxxx"
-                value={form.phoneNumber}
-                onChange={(e) => setField("phoneNumber", e.target.value)}
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium mb-1 block">{t("Vai trò")}</label>
-              <Select
-                value={form.roleNames[0] ?? ""}
-                onValueChange={(v) => setField("roleNames", v ? [v] : [])}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t("Chọn vai trò")} />
-                </SelectTrigger>
-                <SelectContent>
-                  {(roleNames ?? []).map((role) => (
-                    <SelectItem key={role} value={role}>{role}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground mt-1">
-                {t("Hiện tại chỉ chọn được 1 vai trò. Nhiều vai trò sẽ được hỗ trợ sau.")}
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setModalOpen(false)}>{t("Huỷ")}</Button>
-            <Button onClick={() => void handleSubmit()} disabled={createStaff.isPending || updateStaff.isPending}>
-              {editing ? t("Lưu") : t("Tạo")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("Xoá nhân viên này?")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget?.fullName || deleteTarget?.userName}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("Huỷ")}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void handleDelete()}>
+              {t("Xoá")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

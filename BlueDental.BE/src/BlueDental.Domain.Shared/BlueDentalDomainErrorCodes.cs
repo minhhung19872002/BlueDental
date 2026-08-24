@@ -167,4 +167,14 @@ public static class BlueDentalDomainErrorCodes
         public const string InvalidTaskTransition = "BlueDental:Operations:0001";
         public const string EmptyArticleContent = "BlueDental:Operations:0002";
     }
+
+    public static class Staff
+    {
+        public const string InvalidPhoneNumber = "BlueDental:Staff:0001";
+        public const string InvalidTimeFormat = "BlueDental:Staff:0002";
+        public const string AvatarFileRequired = "BlueDental:Staff:0003";
+        public const string UnsupportedAvatarType = "BlueDental:Staff:0004";
+        public const string AvatarTooLarge = "BlueDental:Staff:0005";
+        public const string AvatarNotFound = "BlueDental:Staff:0006";
+    }
 }

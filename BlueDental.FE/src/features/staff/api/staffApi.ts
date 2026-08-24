@@ -11,8 +11,19 @@ export interface StaffDto {
   phoneNumber: string | null;
   isActive: boolean;
   roleNames: string[];
-  /** Empty means the staff member is clinic-wide, not limited to a branch. */
   branchIds: string[];
+  address: string | null;
+  provinceId: string | null;
+  districtId: string | null;
+  wardId: string | null;
+  isDentist: boolean;
+  isAssistant: boolean;
+  isHygienist: boolean;
+  morningStartTime: string | null;
+  morningEndTime: string | null;
+  afternoonStartTime: string | null;
+  afternoonEndTime: string | null;
+  avatarUrl: string | null;
 }
 
 export interface GetStaffListInput {
@@ -32,6 +43,17 @@ export interface CreateStaffInput {
   phoneNumber?: string;
   roleNames: string[];
   branchIds: string[];
+  address?: string;
+  provinceId?: string;
+  districtId?: string;
+  wardId?: string;
+  isDentist?: boolean;
+  isAssistant?: boolean;
+  isHygienist?: boolean;
+  morningStartTime?: string;
+  morningEndTime?: string;
+  afternoonStartTime?: string;
+  afternoonEndTime?: string;
 }
 
 export interface UpdateStaffInput {
@@ -42,6 +64,17 @@ export interface UpdateStaffInput {
   isActive: boolean;
   roleNames: string[];
   branchIds: string[];
+  address?: string;
+  provinceId?: string;
+  districtId?: string;
+  wardId?: string;
+  isDentist?: boolean;
+  isAssistant?: boolean;
+  isHygienist?: boolean;
+  morningStartTime?: string;
+  morningEndTime?: string;
+  afternoonStartTime?: string;
+  afternoonEndTime?: string;
 }
 
 const BASE = "/v1/app/staff";
@@ -63,4 +96,17 @@ export const staffApi = {
     api.put<StaffDto>(`${BASE}/${id}`, input).then((r) => r.data),
 
   remove: (id: string): Promise<void> => api.delete(`${BASE}/${id}`).then(() => undefined),
+
+  uploadAvatar: (id: string, file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return api
+      .post<{ url: string }>(`${BASE}/${id}/avatar`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      })
+      .then((r) => r.data.url);
+  },
+
+  deleteAvatar: (id: string): Promise<void> =>
+    api.delete(`${BASE}/${id}/avatar`).then(() => undefined),
 };

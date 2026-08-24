@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using BlueDental.Controllers;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
+using Volo.Abp.Content;
 
 namespace BlueDental.Staff;
 
@@ -33,4 +35,19 @@ public sealed class StaffController(IStaffAppService service) : BlueDentalContro
 
     [HttpDelete("{id:guid}")]
     public Task DeleteAsync(Guid id) => service.DeleteAsync(id);
+
+    [HttpPost("{id:guid}/avatar")]
+    public Task<AvatarResultDto> UploadAvatarAsync(Guid id, [FromForm] IFormFile file) =>
+        service.UploadAvatarAsync(id, new RemoteStreamContent(
+            file.OpenReadStream(), file.FileName, file.ContentType, file.Length));
+
+    [HttpDelete("{id:guid}/avatar")]
+    public Task DeleteAvatarAsync(Guid id) => service.DeleteAvatarAsync(id);
+
+    [HttpGet("{id:guid}/avatar")]
+    public async Task<IActionResult> GetAvatarAsync(Guid id)
+    {
+        var stream = await service.GetAvatarContentAsync(id);
+        return File(stream, "image/jpeg");
+    }
 }

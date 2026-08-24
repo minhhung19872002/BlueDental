@@ -219,12 +219,50 @@ See: docs/clone/pages/report.md
 
 ---
 
+PARTIALLY RESOLVED — 2026-08-24
+Page: /staff
+Control: Staff list page — table layout, search, status tabs, pagination, create/edit modal
+Status: PARTIALLY RESOLVED — table layout, modal form observed from user-provided screenshots.
+11 fields now supported via ABP ExtraProperties (no migration needed). Avatar upload still pending.
+
+---
+
 UNKNOWN_REFERENCE_BEHAVIOR
 Page: /staff
-Control: Entire page
-Reason: Page not yet navigated to. Route confirmed (HTTP 200) but content unknown.
-Action taken: NONE
-See: docs/clone/pages/staff.md
+Control: "Tải ảnh lên" — Staff avatar upload in create/edit modal
+Reason: Backend does not support avatar storage for staff. Upload behavior (file format, size limits, crop) unknown.
+Action taken: NONE — placeholder rendered in FE modal, non-functional
+
+---
+
+RESOLVED — 2026-08-24
+Page: /staff
+Control: "Tỉnh/ Thành phố", "Quận/ Huyện", "Xã/ Phường" dropdowns in create/edit modal
+Status: RESOLVED — fields stored via ABP ExtraProperties (provinceId, districtId, wardId).
+Province/district/ward data source API not yet implemented — dropdowns render empty.
+
+---
+
+RESOLVED — 2026-08-24
+Page: /staff
+Control: "Địa chỉ" text input in create/edit modal
+Status: RESOLVED — field stored via ABP ExtraProperties. Table column shows real value.
+
+---
+
+RESOLVED — 2026-08-24
+Page: /staff
+Control: "Bác sĩ", "Phụ tá", "Y sĩ" checkboxes in create/edit modal
+Status: RESOLVED — boolean fields stored via ABP ExtraProperties (isDentist, isAssistant, isHygienist).
+How these map to roles/permissions in reference is still unknown.
+
+---
+
+RESOLVED — 2026-08-24
+Page: /staff
+Control: Working hours (4 time fields) in create/edit modal
+Status: RESOLVED — morningStartTime, morningEndTime, afternoonStartTime, afternoonEndTime stored via ABP ExtraProperties.
+HH:mm format validated on both FE (Zod) and BE (regex). Defaults: 08:00, 12:00, 13:00, 17:00.
 
 ---
 

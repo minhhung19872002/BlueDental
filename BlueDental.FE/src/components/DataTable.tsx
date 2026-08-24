@@ -38,12 +38,14 @@ interface PaginationConfig {
   showSizeChanger?: boolean;
   pageSizeOptions?: number[];
   onChange: (page: number, pageSize: number) => void;
+  /** Override "dòng" in "Hiển thị X–Y trên Z {label}" */
+  itemLabel?: string;
 }
 
 interface Props<T> {
   columns: DataTableColumn<T>[];
   dataSource: T[];
-  rowKey?: keyof T & string | ((record: T) => string);
+  rowKey?: (keyof T & string) | ((record: T) => string);
   loading?: boolean;
   pagination?: PaginationConfig | false;
   onRow?: (record: T, index: number) => { onClick?: () => void; className?: string };
@@ -74,9 +76,13 @@ export function DataTable<T>({
   className,
   emptyText,
 }: Props<T>) {
-  const totalPages = pagination ? Math.max(1, Math.ceil(pagination.total / pagination.pageSize)) : 1;
+  const totalPages = pagination
+    ? Math.max(1, Math.ceil(pagination.total / pagination.pageSize))
+    : 1;
   const rangeStart = pagination ? (pagination.current - 1) * pagination.pageSize + 1 : 0;
-  const rangeEnd = pagination ? Math.min(pagination.current * pagination.pageSize, pagination.total) : 0;
+  const rangeEnd = pagination
+    ? Math.min(pagination.current * pagination.pageSize, pagination.total)
+    : 0;
 
   return (
     <div className={cn("w-full", className)}>
@@ -92,8 +98,14 @@ export function DataTable<T>({
               {columns.map((col) => (
                 <TableHead
                   key={col.key}
-                  className={cn(col.align === "center" && "text-center", col.align === "right" && "text-right")}
-                  style={{ width: col.width, minWidth: typeof col.width === "number" ? col.width : undefined }}
+                  className={cn(
+                    col.align === "center" && "text-center",
+                    col.align === "right" && "text-right",
+                  )}
+                  style={{
+                    width: col.width,
+                    minWidth: typeof col.width === "number" ? col.width : undefined,
+                  }}
                 >
                   {col.title}
                 </TableHead>
@@ -103,7 +115,10 @@ export function DataTable<T>({
           <TableBody>
             {dataSource.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center text-muted-foreground"
+                >
                   {emptyText ?? t("Không có dữ liệu")}
                 </TableCell>
               </TableRow>
@@ -139,18 +154,16 @@ export function DataTable<T>({
       </div>
 
       {pagination && pagination.total > 0 && (
-        <div className="flex items-center justify-between border-t px-4 py-3 text-sm text-muted-foreground">
-          <span>
-            {t("Hiển thị {0}–{1} trên {2} dòng", rangeStart, rangeEnd, pagination.total)}
-          </span>
-          <div className="flex items-center gap-2">
+        <div className="flex items-start md:items-center justify-between border-t px-4 py-3 text-sm text-muted-foreground">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-3">
             {pagination.showSizeChanger && (
               <Select
                 value={String(pagination.pageSize)}
                 onValueChange={(v) => pagination.onChange(1, Number(v))}
               >
-                <SelectTrigger className="h-8 w-[70px]">
+                <SelectTrigger className="h-8 w-auto gap-1.5 px-2.5 text-xs">
                   <SelectValue />
+                  <span className="text-muted-foreground">/ {t("trang")}</span>
                 </SelectTrigger>
                 <SelectContent>
                   {(pagination.pageSizeOptions ?? [10, 20, 50, 100]).map((size) => (
@@ -161,24 +174,47 @@ export function DataTable<T>({
                 </SelectContent>
               </Select>
             )}
+            <span className="text-xs">
+              {t(
+                "Hiển thị {0}–{1} trên {2} {3}",
+                rangeStart,
+                rangeEnd,
+                pagination.total,
+                pagination.itemLabel ?? t("dòng"),
+              )}
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
             <Button
               variant="outline"
-              size="icon-xs"
+              size="sm"
+              className="h-8 px-3 text-xs"
               disabled={pagination.current <= 1}
               onClick={() => pagination.onChange(pagination.current - 1, pagination.pageSize)}
             >
-              <ChevronLeft className="size-4" />
+              <ChevronLeft className="mr-0.5 size-3.5" />
+              {t("Trước")}
             </Button>
-            <span className="min-w-[60px] text-center text-xs">
-              {pagination.current} / {totalPages}
-            </span>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+              <Button
+                key={p}
+                variant={p === pagination.current ? "default" : "outline"}
+                size="icon-xs"
+                className="size-8 text-xs"
+                onClick={() => pagination.onChange(p, pagination.pageSize)}
+              >
+                {p}
+              </Button>
+            ))}
             <Button
               variant="outline"
-              size="icon-xs"
+              size="sm"
+              className="h-8 px-3 text-xs"
               disabled={pagination.current >= totalPages}
               onClick={() => pagination.onChange(pagination.current + 1, pagination.pageSize)}
             >
-              <ChevronRight className="size-4" />
+              {t("Sau")}
+              <ChevronRight className="ml-0.5 size-3.5" />
             </Button>
           </div>
         </div>

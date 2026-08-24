@@ -1,12 +1,16 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp;
 using Volo.Abp.Application.Services;
+using Volo.Abp.BlobStoring;
+using Volo.Abp.Content;
 using BlueDental.Organizations;
 using Microsoft.AspNetCore.Identity;
 using Volo.Abp.Identity;
@@ -19,8 +23,17 @@ public class StaffAppService(
     IIdentityUserRepository userRepository,
     IdentityUserManager userManager,
     IIdentityRoleRepository roleRepository,
-    IRepository<StaffBranchAssignment, Guid> assignmentRepository) : ApplicationService, IStaffAppService
+    IRepository<StaffBranchAssignment, Guid> assignmentRepository,
+    IBlobContainer blobContainer) : ApplicationService, IStaffAppService
 {
+    private const long MaxAvatarBytes = 5 * 1024 * 1024; // 5 MB
+    private static readonly HashSet<string> AllowedContentTypes = ["image/png", "image/jpeg", "image/webp"];
+    // Vietnamese mobile number: starts with 0, exactly 10 digits.
+    private static readonly Regex PhoneRegex = new(@"^0\d{9}$", RegexOptions.Compiled);
+
+    // "HH:mm" — 00:00 to 23:59.
+    private static readonly Regex TimeRegex = new(@"^([01]\d|2[0-3]):[0-5]\d$", RegexOptions.Compiled);
+
     [Authorize(BlueDentalPermissions.Staff.View)]
     public async Task<PagedResultDto<StaffDto>> GetListAsync(GetStaffListInput input)
     {
@@ -58,6 +71,9 @@ public class StaffAppService(
     [Authorize(BlueDentalAbilityPermissions.Staff.Create)]
     public async Task<StaffDto> CreateAsync(CreateStaffDto input)
     {
+        ValidateExtendedFields(input.PhoneNumber, input.MorningStartTime, input.MorningEndTime,
+            input.AfternoonStartTime, input.AfternoonEndTime);
+
         var user = new Volo.Abp.Identity.IdentityUser(GuidGenerator.Create(), input.UserName, input.Email)
         {
             Name = input.Name,
@@ -68,6 +84,11 @@ public class StaffAppService(
         {
             user.SetPhoneNumber(input.PhoneNumber, confirmed: false);
         }
+
+        SetExtraProperties(user, input.Address, input.ProvinceId, input.DistrictId, input.WardId,
+            input.IsDentist, input.IsAssistant, input.IsHygienist,
+            input.MorningStartTime, input.MorningEndTime,
+            input.AfternoonStartTime, input.AfternoonEndTime);
 
         (await userManager.CreateAsync(user, input.Password)).CheckErrors();
 
@@ -83,6 +104,9 @@ public class StaffAppService(
     [Authorize(BlueDentalAbilityPermissions.Staff.Update)]
     public async Task<StaffDto> UpdateAsync(Guid id, UpdateStaffDto input)
     {
+        ValidateExtendedFields(input.PhoneNumber, input.MorningStartTime, input.MorningEndTime,
+            input.AfternoonStartTime, input.AfternoonEndTime);
+
         var user = await userRepository.GetAsync(id);
 
         user.Name = input.Name;
@@ -90,6 +114,11 @@ public class StaffAppService(
         user.SetIsActive(input.IsActive);
         (await userManager.SetEmailAsync(user, input.Email)).CheckErrors();
         (await userManager.SetPhoneNumberAsync(user, input.PhoneNumber)).CheckErrors();
+
+        SetExtraProperties(user, input.Address, input.ProvinceId, input.DistrictId, input.WardId,
+            input.IsDentist, input.IsAssistant, input.IsHygienist,
+            input.MorningStartTime, input.MorningEndTime,
+            input.AfternoonStartTime, input.AfternoonEndTime);
 
         // Roles are replaced wholesale: the form shows the full set, not a delta.
         var current = await userManager.GetRolesAsync(user);
@@ -120,6 +149,143 @@ public class StaffAppService(
         // Leaving the assignments behind would silently re-scope a recreated user.
         await ReplaceBranchAssignmentsAsync(id, []);
         (await userManager.DeleteAsync(user)).CheckErrors();
+    }
+
+    [Authorize(BlueDentalAbilityPermissions.Staff.Update)]
+    public async Task<AvatarResultDto> UploadAvatarAsync(Guid id, RemoteStreamContent file)
+    {
+        if (file == null)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Staff.AvatarFileRequired, "No file uploaded.");
+
+        var contentType = file.ContentType ?? string.Empty;
+        if (!AllowedContentTypes.Contains(contentType))
+            throw new BusinessException(BlueDentalDomainErrorCodes.Staff.UnsupportedAvatarType, "Only PNG, JPEG, and WebP images are allowed.");
+
+        var user = await userRepository.GetAsync(id);
+
+        using var buffer = new MemoryStream();
+        await file.GetStream().CopyToAsync(buffer);
+
+        if (buffer.Length > MaxAvatarBytes)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Staff.AvatarTooLarge, "Avatar file must be 5 MB or smaller.");
+
+        var ext = contentType switch
+        {
+            "image/png" => ".png",
+            "image/webp" => ".webp",
+            _ => ".jpg",
+        };
+
+        // Delete previous avatar blob if exists
+        var previousBlob = user.ExtraProperties.GetOrDefault("AvatarBlobName") as string;
+        if (!previousBlob.IsNullOrWhiteSpace())
+        {
+            await blobContainer.DeleteAsync(previousBlob!);
+        }
+
+        var blobName = $"staff/avatars/{id}{ext}";
+        buffer.Position = 0;
+        await blobContainer.SaveAsync(blobName, buffer, overrideExisting: true);
+
+        user.ExtraProperties["AvatarBlobName"] = blobName;
+        (await userManager.UpdateAsync(user)).CheckErrors();
+
+        var url = $"/api/v1/app/staff/{id}/avatar";
+        return new AvatarResultDto { Url = url };
+    }
+
+    [Authorize(BlueDentalAbilityPermissions.Staff.Update)]
+    public async Task DeleteAvatarAsync(Guid id)
+    {
+        var user = await userRepository.GetAsync(id);
+        var blobName = user.ExtraProperties.GetOrDefault("AvatarBlobName") as string;
+
+        if (!blobName.IsNullOrWhiteSpace())
+        {
+            await blobContainer.DeleteAsync(blobName!);
+            user.ExtraProperties["AvatarBlobName"] = null;
+            (await userManager.UpdateAsync(user)).CheckErrors();
+        }
+    }
+
+    [Authorize(BlueDentalAbilityPermissions.Staff.Read)]
+    public async Task<Stream> GetAvatarContentAsync(Guid id)
+    {
+        var user = await userRepository.GetAsync(id);
+        var blobName = user.ExtraProperties.GetOrDefault("AvatarBlobName") as string;
+
+        if (blobName.IsNullOrWhiteSpace())
+            throw new BusinessException(BlueDentalDomainErrorCodes.Staff.AvatarNotFound, "No avatar found.");
+
+        return await blobContainer.GetAsync(blobName!);
+    }
+
+    // ─── Private helpers ──────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Validates the subset of input fields that have format constraints.
+    /// Phone and time fields are optional; when supplied they must match their
+    /// respective formats.
+    /// </summary>
+    private static void ValidateExtendedFields(
+        string? phoneNumber,
+        string? morningStartTime,
+        string? morningEndTime,
+        string? afternoonStartTime,
+        string? afternoonEndTime)
+    {
+        if (!phoneNumber.IsNullOrWhiteSpace() && !PhoneRegex.IsMatch(phoneNumber!))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Staff.InvalidPhoneNumber)
+                .WithData("phoneNumber", phoneNumber);
+        }
+
+        foreach (var (label, value) in new[]
+        {
+            ("morningStartTime",   morningStartTime),
+            ("morningEndTime",     morningEndTime),
+            ("afternoonStartTime", afternoonStartTime),
+            ("afternoonEndTime",   afternoonEndTime),
+        })
+        {
+            if (!value.IsNullOrWhiteSpace() && !TimeRegex.IsMatch(value!))
+            {
+                throw new BusinessException(BlueDentalDomainErrorCodes.Staff.InvalidTimeFormat)
+                    .WithData("field", label)
+                    .WithData("value", value);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Writes all 11 extended-profile fields as ExtraProperties on the IdentityUser.
+    /// Null/empty strings are stored as null so reads can use a clean null-check.
+    /// </summary>
+    private static void SetExtraProperties(
+        Volo.Abp.Identity.IdentityUser user,
+        string? address,
+        string? provinceId,
+        string? districtId,
+        string? wardId,
+        bool isDentist,
+        bool isAssistant,
+        bool isHygienist,
+        string? morningStartTime,
+        string? morningEndTime,
+        string? afternoonStartTime,
+        string? afternoonEndTime)
+    {
+        user.ExtraProperties["Address"]           = address.IsNullOrWhiteSpace() ? null : address;
+        user.ExtraProperties["ProvinceId"]        = provinceId.IsNullOrWhiteSpace() ? null : provinceId;
+        user.ExtraProperties["DistrictId"]        = districtId.IsNullOrWhiteSpace() ? null : districtId;
+        user.ExtraProperties["WardId"]            = wardId.IsNullOrWhiteSpace() ? null : wardId;
+        user.ExtraProperties["IsDentist"]         = isDentist;
+        user.ExtraProperties["IsAssistant"]       = isAssistant;
+        user.ExtraProperties["IsHygienist"]       = isHygienist;
+        user.ExtraProperties["MorningStartTime"]  = morningStartTime.IsNullOrWhiteSpace() ? null : morningStartTime;
+        user.ExtraProperties["MorningEndTime"]    = morningEndTime.IsNullOrWhiteSpace() ? null : morningEndTime;
+        user.ExtraProperties["AfternoonStartTime"] = afternoonStartTime.IsNullOrWhiteSpace() ? null : afternoonStartTime;
+        user.ExtraProperties["AfternoonEndTime"]  = afternoonEndTime.IsNullOrWhiteSpace() ? null : afternoonEndTime;
     }
 
     private async Task ReplaceBranchAssignmentsAsync(Guid staffId, List<Guid> branchIds)
@@ -153,7 +319,23 @@ public class StaffAppService(
             PhoneNumber = user.PhoneNumber,
             IsActive = user.IsActive,
             RoleNames = roles.ToList(),
-            BranchIds = assignments.Select(a => a.ClinicBranchId).ToList()
+            BranchIds = assignments.Select(a => a.ClinicBranchId).ToList(),
+
+            // Extended profile — read back from ExtraProperties
+            Address            = user.ExtraProperties.GetOrDefault("Address") as string,
+            ProvinceId         = user.ExtraProperties.GetOrDefault("ProvinceId") as string,
+            DistrictId         = user.ExtraProperties.GetOrDefault("DistrictId") as string,
+            WardId             = user.ExtraProperties.GetOrDefault("WardId") as string,
+            IsDentist          = user.ExtraProperties.GetOrDefault("IsDentist") is true,
+            IsAssistant        = user.ExtraProperties.GetOrDefault("IsAssistant") is true,
+            IsHygienist        = user.ExtraProperties.GetOrDefault("IsHygienist") is true,
+            MorningStartTime   = user.ExtraProperties.GetOrDefault("MorningStartTime") as string,
+            MorningEndTime     = user.ExtraProperties.GetOrDefault("MorningEndTime") as string,
+            AfternoonStartTime = user.ExtraProperties.GetOrDefault("AfternoonStartTime") as string,
+            AfternoonEndTime   = user.ExtraProperties.GetOrDefault("AfternoonEndTime") as string,
+            AvatarUrl          = (user.ExtraProperties.GetOrDefault("AvatarBlobName") as string) is not null
+                                     ? $"/api/v1/app/staff/{user.Id}/avatar"
+                                     : null,
         };
     }
 }
