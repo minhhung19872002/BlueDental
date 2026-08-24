@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { User, Pencil, Save, Loader2 } from "lucide-react";
+import { Pencil, Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useUpdateProfile } from "@/features/account/api/accountMutations";

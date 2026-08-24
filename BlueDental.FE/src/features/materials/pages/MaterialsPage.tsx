@@ -58,7 +58,6 @@ import {
   useAllocationList,
   useCreateAllocation,
   useDeleteAllocation,
-  type MaterialAllocationDto,
 } from "../api/allocationApi";
 
 // ── Types ──────────────────────────────────────────────────────────────────

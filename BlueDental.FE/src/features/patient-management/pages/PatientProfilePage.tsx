@@ -46,14 +46,6 @@ import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 
 
-interface AppointmentRow {
-  id: string;
-  date: string;
-  doctorName: string;
-  content: string;
-  notes: string;
-  status: string;
-}
 
 
 
@@ -776,20 +768,22 @@ export function PatientProfilePage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    patientPrescriptions.map((rx) => (
-                      <TableRow key={rx.id}>
-                        <TableCell className="text-xs">{rx.medicationName || "—"}</TableCell>
-                        <TableCell className="text-xs">{rx.dosage}</TableCell>
-                        <TableCell className="text-xs">{rx.frequency}</TableCell>
-                        <TableCell className="text-xs text-right">{rx.durationDays}</TableCell>
-                        <TableCell className="text-xs">{rx.instructions || "—"}</TableCell>
-                        <TableCell className="text-xs">{rx.status}</TableCell>
-                        <TableCell className="text-xs">{rx.issuedAt ? formatDate(rx.issuedAt) : "—"}</TableCell>
-                        <TableCell>
-                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Pencil size={14} /></Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
+                    patientPrescriptions.flatMap((rx) =>
+                      rx.items.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell className="text-xs">{item.medicationName || "—"}</TableCell>
+                          <TableCell className="text-xs">{item.dosage}</TableCell>
+                          <TableCell className="text-xs">{item.frequency}</TableCell>
+                          <TableCell className="text-xs text-right">{item.durationDays}</TableCell>
+                          <TableCell className="text-xs">{item.instructions || "—"}</TableCell>
+                          <TableCell className="text-xs">{rx.status}</TableCell>
+                          <TableCell className="text-xs">{rx.issuedAt ? formatDate(rx.issuedAt) : "—"}</TableCell>
+                          <TableCell>
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0"><Pencil size={14} /></Button>
+                          </TableCell>
+                        </TableRow>
+                      )),
+                    )
                   )}
                 </TableBody>
               </Table>
@@ -890,7 +884,7 @@ export function PatientProfilePage() {
                     patientInvoices.map((inv) => (
                       <TableRow key={inv.id}>
                         <TableCell className="text-xs">{inv.invoiceNumber}</TableCell>
-                        <TableCell className="text-xs">{inv.issuedDate ? formatDate(inv.issuedDate) : "—"}</TableCell>
+                        <TableCell className="text-xs">{inv.issuedAt ? formatDate(inv.issuedAt) : "—"}</TableCell>
                         <TableCell className="text-xs text-right" style={{ fontVariantNumeric: "tabular-nums" }}>
                           {formatVND(inv.totalAmount ?? 0)} đ
                         </TableCell>
@@ -901,8 +895,8 @@ export function PatientProfilePage() {
                           <span
                             className="inline-block px-2 py-0.5 rounded text-xs font-medium"
                             style={{
-                              background: inv.status === "Paid" ? "#D1FAE5" : inv.status === "Draft" ? "#F3F4F6" : "#FEF3C7",
-                              color: inv.status === "Paid" ? "#065F46" : inv.status === "Draft" ? "#374151" : "#92400E",
+                              background: inv.status === INVOICE_STATUS.Paid ? "#D1FAE5" : inv.status === INVOICE_STATUS.Draft ? "#F3F4F6" : "#FEF3C7",
+                              color: inv.status === INVOICE_STATUS.Paid ? "#065F46" : inv.status === INVOICE_STATUS.Draft ? "#374151" : "#92400E",
                             }}
                           >
                             {inv.status}

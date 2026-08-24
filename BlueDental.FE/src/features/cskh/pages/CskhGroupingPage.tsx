@@ -4,7 +4,6 @@ import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
-  SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -40,7 +39,7 @@ import "dayjs/locale/vi";
 import { useCareRecordList } from "../api/careApi";
 import type { CareType as ApiCareType, CareStatus } from "../api/careApi";
 import { useDebounce } from "@/hooks/useDebounce";
-import { DateNavigator, type DateNavigatorMode } from "@/components/DateNavigator";
+import { DateNavigator } from "@/components/DateNavigator";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { t } from "@/lib/i18n";
 import { PageHeader } from "@/components/PageHeader";

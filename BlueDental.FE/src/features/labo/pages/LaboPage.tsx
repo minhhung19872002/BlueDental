@@ -44,7 +44,6 @@ import {
   LABO_STATUS,
   LABO_STATUS_CONFIG,
   type LaboStatus,
-  type LaboOrderDto,
   type CreateLaboOrderDto,
 } from "../api/laboApi";
 import {

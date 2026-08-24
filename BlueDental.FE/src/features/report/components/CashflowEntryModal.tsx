@@ -42,12 +42,16 @@ interface CashflowEntryModalProps {
 }
 
 interface CashflowFormValues {
-  fromHolding: string;
-  toHolding: string;
+  // The schema below builds these two conditionally on transactionType, so the
+  // type zodResolver infers always admits undefined. Declaring them required
+  // here made the resolver unassignable to useForm's expected type. onSubmit
+  // already guards both behind needsFrom / needsTo.
+  fromHolding: string | undefined;
+  toHolding: string | undefined;
   amount: string;
-  categoryId: string;
+  categoryId?: string;
   entryDate: string;
-  note: string;
+  note?: string;
 }
 
 const HOLDING_OPTIONS = Object.entries(CASH_HOLDING_LABELS).map(([value, label]) => ({

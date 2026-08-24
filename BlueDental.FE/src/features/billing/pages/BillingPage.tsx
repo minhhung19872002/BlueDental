@@ -93,7 +93,7 @@ export function BillingPage() {
     <div className="page-container">
       <PageHeader
         title={t("Thanh toán & hoá đơn")}
-        subtitle={t("Bấm "Thu tiền" để ghi nhận thanh toán từng phiếu")}
+        subtitle={t('Bấm "Thu tiền" để ghi nhận thanh toán từng phiếu')}
         actions={
           <Button variant="outline" onClick={() => void handleExport()}>
             <ExternalLink size={14} className="mr-1" />

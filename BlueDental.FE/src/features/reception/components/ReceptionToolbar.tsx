@@ -10,7 +10,10 @@ import { DateNavigator, type DateNavigatorMode } from "@/components/DateNavigato
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { t } from "@/lib/i18n";
 
-type ViewMode = DateNavigatorMode;
+// The segmented control below offers only these three, so "year" can never
+// reach onViewModeChange. Widening it to DateNavigatorMode made the prop
+// unassignable from the page's own day|week|month state.
+type ViewMode = Exclude<DateNavigatorMode, "year">;
 
 interface ReceptionToolbarProps {
   keyword?: string;

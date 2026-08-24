@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -28,7 +27,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useStaffList } from "@/features/staff/api/staffQueries";
@@ -100,7 +98,10 @@ interface ColDef {
 
 function SimpleTable({ columns, dataSource, loading, emptyText, footer }: {
   columns: ColDef[];
-  dataSource: Record<string, unknown>[];
+  // Callers pass DTO arrays, and a DTO has no index signature so it is not
+  // assignable to Record<string, unknown>. The column lookup below is dynamic
+  // regardless, so the widening happens once here rather than at each call site.
+  dataSource: readonly object[];
   loading?: boolean;
   emptyText?: string;
   footer?: React.ReactNode;
@@ -134,18 +135,21 @@ function SimpleTable({ columns, dataSource, loading, emptyText, footer }: {
               </TableCell>
             </TableRow>
           ) : (
-            dataSource.map((row, i) => (
-              <TableRow key={(row.id as string) ?? i}>
-                {columns.map((col) => {
-                  const value = col.dataIndex ? row[col.dataIndex] : undefined;
-                  return (
-                    <TableCell key={col.key} style={{ textAlign: col.align ?? "left" }}>
-                      {col.render ? col.render(value, row) : String(value ?? "")}
-                    </TableCell>
-                  );
-                })}
-              </TableRow>
-            ))
+            dataSource.map((rawRow, i) => {
+              const row = rawRow as Record<string, unknown>;
+              return (
+                <TableRow key={(row.id as string) ?? i}>
+                  {columns.map((col) => {
+                    const value = col.dataIndex ? row[col.dataIndex] : undefined;
+                    return (
+                      <TableCell key={col.key} style={{ textAlign: col.align ?? "left" }}>
+                        {col.render ? col.render(value, row) : String(value ?? "")}
+                      </TableCell>
+                    );
+                  })}
+                </TableRow>
+              );
+            })
           )}
           {footer}
         </TableBody>
@@ -418,7 +422,7 @@ export function ReportPage() {
           <div className="reception-card reception-card--content">
             <SimpleTable
               columns={expenseColumns}
-              dataSource={(expenseData?.items ?? []) as Record<string, unknown>[]}
+              dataSource={expenseData?.items ?? []}
               loading={expenseLoading}
               emptyText={t("Không có dữ liệu")}
             />
@@ -671,7 +675,7 @@ function CashflowTab({ period }: { period: PeriodRange }) {
       <div className="reception-card reception-card--content">
         <SimpleTable
           columns={columns}
-          dataSource={(page?.items ?? []) as Record<string, unknown>[]}
+          dataSource={page?.items ?? []}
           loading={isLoading}
           emptyText={t("Không có dữ liệu")}
         />
@@ -746,7 +750,7 @@ function CashflowV2Tab({ period }: { period: PeriodRange }) {
       <div className="reception-card reception-card--content">
         <SimpleTable
           columns={cashflowEntryColumns}
-          dataSource={(page?.items ?? []) as Record<string, unknown>[]}
+          dataSource={page?.items ?? []}
           loading={isLoading}
           emptyText={t("Không có dữ liệu")}
         />
@@ -807,7 +811,7 @@ function BusinessResultTab() {
       <div className="reception-card reception-card--content">
         <SimpleTable
           columns={resultColumns}
-          dataSource={resultData as Record<string, unknown>[]}
+          dataSource={resultData}
           emptyText={t("Không có dữ liệu")}
           footer={
             <TableRow className="font-bold bg-muted/50">
