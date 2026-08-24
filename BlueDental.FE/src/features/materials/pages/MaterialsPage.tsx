@@ -564,6 +564,11 @@ function DepartmentView() {
 export function MaterialsPage() {
   const [activeTab, setActiveTab] = useState<MaterialsSubRoute>("clinic");
 
+  // The design's subtitle counts what needs restocking rather than describing
+  // the tabs, so the number is the first thing read on this screen.
+  const { data: lowStock } = useInventoryItemList({ needsReorder: true });
+  const lowStockCount = lowStock?.items?.length ?? 0;
+
   const SUB_ROUTES: { key: MaterialsSubRoute; label: string }[] = [
     { key: "clinic",      label: t("Vật tư phòng khám") },
     { key: "allocation",  label: t("Phân bổ vật tư") },
@@ -587,7 +592,7 @@ export function MaterialsPage() {
     <div className="reception-page">
       <PageHeader
         title={t("Vật tư phòng khám")}
-        subtitle={t("Vật tư, phân bổ và tồn kho theo phòng ban")}
+        subtitle={t("{0} mặt hàng dưới định mức cần nhập thêm", lowStockCount)}
       />
 
       <div className="reception-card reception-card--tabs">
