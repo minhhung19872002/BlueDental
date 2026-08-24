@@ -65,6 +65,26 @@ public class BlueDentalDemoSeedContributor(
         ("bs.minh", "BS. Vũ Nhật Minh")
     ];
 
+    /// <summary>Extra staff (non-dentist) for a fuller staff list.</summary>
+    private static readonly (string UserName, string Name, string Phone, string Address, bool IsDentist, bool IsAssistant, bool IsHygienist)[] ExtraStaff =
+    [
+        ("lt.huong",   "Nguyễn Thu Hương",    "0901234567", "123 Nguyễn Trãi, Q.1, TP.HCM",        false, false, false),
+        ("pt.linh",    "Trần Thùy Linh",      "0912345678", "45 Lê Lợi, Q.3, TP.HCM",              false, true,  false),
+        ("ys.trang",   "Phạm Thanh Trang",    "0923456789", "78 Hai Bà Trưng, Q.1, TP.HCM",        false, false, true),
+        ("lt.mai",     "Lê Ngọc Mai",         "0934567890", "90 Võ Văn Tần, Q.3, TP.HCM",          false, true,  false),
+        ("nv.tuan",    "Hoàng Văn Tuấn",      "0945678901", "12 Điện Biên Phủ, Bình Thạnh",        false, false, false),
+        ("pt.nga",     "Vũ Thị Nga",          "0956789012", "56 Cách Mạng Tháng 8, Q.10, TP.HCM",  false, false, true),
+        ("ys.hang",    "Đỗ Thị Hằng",         "0967890123", "34 Phan Đăng Lưu, Phú Nhuận",         false, false, true),
+        ("nv.duc",     "Bùi Minh Đức",        "0978901234", "67 Nguyễn Huệ, Q.1, TP.HCM",          false, false, false),
+        ("lt.thao",    "Ngô Phương Thảo",     "0989012345", "22 Trần Hưng Đạo, Q.5, TP.HCM",       false, true,  false),
+        ("bs.long",    "BS. Đinh Thành Long",  "0990123456", "88 Lý Tự Trọng, Q.1, TP.HCM",        true,  false, false),
+        ("lt.van",     "Trịnh Thị Vân",       "0911223344", "15 Pasteur, Q.3, TP.HCM",              false, false, false),
+        ("pt.son",     "Lý Hoàng Sơn",        "0922334455", "200 Nguyễn Văn Cừ, Q.5, TP.HCM",      false, true,  false),
+        ("ys.loan",    "Phan Thị Loan",        "0933445566", "8 Trường Sa, Phú Nhuận",               false, false, true),
+        ("nv.hieu",    "Đặng Trung Hiếu",     "0944556677", "101 Lê Văn Sỹ, Q.3, TP.HCM",          false, false, false),
+        ("bs.phuong",  "BS. Mai Anh Phương",   "0955667788", "55 Nam Kỳ Khởi Nghĩa, Q.1, TP.HCM",  true,  false, false),
+    ];
+
     private static readonly string[] Complaints =
     [
         "Đau răng hàm dưới",
@@ -114,6 +134,7 @@ public class BlueDentalDemoSeedContributor(
         }
 
         var dentistIds = await EnsureDentistsAsync();
+        await EnsureExtraStaffAsync();
         await SeedAppointmentsAsync(patients, dentistIds);
         await SeedInvoicesAsync();
     }
@@ -188,6 +209,92 @@ public class BlueDentalDemoSeedContributor(
         }
 
         return ids;
+    }
+
+    private static readonly string[] DentistAddresses =
+    [
+        "10 Nguyễn Du, Q.1, TP.HCM",
+        "25 Lý Thường Kiệt, Q.10, TP.HCM",
+        "42 Trần Phú, Q.5, TP.HCM",
+        "7 Phạm Ngọc Thạch, Q.3, TP.HCM",
+        "99 Hoàng Văn Thụ, Tân Bình"
+    ];
+
+    private static readonly string[] DentistPhones =
+    [
+        "0911111111", "0922222222", "0933333333", "0944444444", "0955555555"
+    ];
+
+    private async Task EnsureExtraStaffAsync()
+    {
+        // Set ExtraProperties on existing dentists
+        for (var i = 0; i < Dentists.Length; i++)
+        {
+            var user = await userManager.FindByNameAsync(Dentists[i].UserName);
+            if (user is null) continue;
+
+            if (user.ExtraProperties.GetOrDefault("IsDentist") is not true)
+            {
+                user.ExtraProperties["IsDentist"] = true;
+                user.ExtraProperties["IsAssistant"] = false;
+                user.ExtraProperties["IsHygienist"] = false;
+                user.ExtraProperties["Address"] = DentistAddresses[i];
+                user.ExtraProperties["MorningStartTime"] = "08:00";
+                user.ExtraProperties["MorningEndTime"] = "12:00";
+                user.ExtraProperties["AfternoonStartTime"] = "13:00";
+                user.ExtraProperties["AfternoonEndTime"] = "17:00";
+                user.SetPhoneNumber(DentistPhones[i], confirmed: false);
+                await userManager.UpdateAsync(user);
+            }
+        }
+
+        // Create extra staff
+        foreach (var (userName, name, phone, address, isDentist, isAssistant, isHygienist) in ExtraStaff)
+        {
+            var user = await userManager.FindByNameAsync(userName);
+            if (user is not null) continue;
+
+            user = new IdentityUser(
+                guidGenerator.Create(),
+                userName,
+                userName + "@bluedental.local")
+            {
+                Name = name
+            };
+
+            user.SetPhoneNumber(phone, confirmed: false);
+            user.ExtraProperties["Address"] = address;
+            user.ExtraProperties["IsDentist"] = isDentist;
+            user.ExtraProperties["IsAssistant"] = isAssistant;
+            user.ExtraProperties["IsHygienist"] = isHygienist;
+            user.ExtraProperties["MorningStartTime"] = "08:00";
+            user.ExtraProperties["MorningEndTime"] = "12:00";
+            user.ExtraProperties["AfternoonStartTime"] = "13:30";
+            user.ExtraProperties["AfternoonEndTime"] = "17:30";
+
+            var created = await userManager.CreateAsync(user, "Staff@123456");
+            if (!created.Succeeded) continue;
+
+            await userManager.AddToRoleAsync(user, "admin");
+
+            if (isDentist)
+            {
+                if (await roleManager.FindByNameAsync(DentistRole) is not null)
+                {
+                    await userManager.AddToRoleAsync(user, DentistRole);
+                }
+            }
+
+            var assigned = await assignmentRepository.AnyAsync(
+                a => a.StaffId == user.Id && a.ClinicBranchId == _branchId);
+
+            if (!assigned)
+            {
+                await assignmentRepository.InsertAsync(
+                    StaffBranchAssignment.Assign(guidGenerator.Create(), user.Id, _branchId, isPrimary: true),
+                    autoSave: true);
+            }
+        }
     }
 
     private async Task<List<Appointment>> SeedAppointmentsAsync(
