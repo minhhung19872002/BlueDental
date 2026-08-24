@@ -27,6 +27,7 @@
     "antd": "^6.5.2",
     "axios": "^1.18.1",
     "dayjs": "^1.11.21",
+    "lucide-react": "^1.33.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-hook-form": "^7.82.0",

@@ -172,6 +172,7 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
                     role="option"
                     aria-selected={opt.value === value}
                     className={`ss-option${opt.value === value ? " ss-option--selected" : ""}`}
+                    title={opt.label}
                     onMouseDown={(e) => {
                       e.preventDefault();
                       handleSelect(opt);

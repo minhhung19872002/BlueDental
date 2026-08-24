@@ -138,6 +138,7 @@ export const ReceptionTable: React.FC<ReceptionTableProps> = ({
       title: t("Dịch vụ điều trị"),
       dataIndex: "services",
       key: "services",
+      width: 200,
       render: (services: string[]) => (
         <Space size={[0, 4]} wrap>
           {services.map((s, idx) => (
@@ -265,7 +266,7 @@ export const ReceptionTable: React.FC<ReceptionTableProps> = ({
           </div>
         ),
       }}
-      scroll={{ x: 1100 }}
+      scroll={{ x: 1400 }}
       style={{
         background: "#FFFFFF",
         borderRadius: 16,
