@@ -38,7 +38,7 @@ type Translate = (vietnamese: string, ...params: (string | number)[]) => string;
 
 function createPatientSchema(t: Translate) {
   return z.object({
-    firstName: z.string().optional().default(""),
+    firstName: z.string().optional(),
     lastName: z.string().min(1, t("Vui lòng nhập họ và tên")),
     phone: z.string().regex(/^\d{8,15}$/, t("Số điện thoại không hợp lệ")),
     gender: z.enum(["male", "female", "other"]).optional(),
