@@ -2,13 +2,16 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button, Tabs, Segmented } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
-import { LeftOutlined, RightOutlined } from "@ant-design/icons";
+import { LeftOutlined, RightOutlined, DownloadOutlined, PlusOutlined } from "@ant-design/icons";
+import { PageHeader } from "@/components/PageHeader";
 import { DayViewCalendar, type DayViewDoctor } from "../components/DayViewCalendar";
 import { WeekViewCalendar } from "../components/WeekViewCalendar";
 import { MonthViewCalendar } from "../components/MonthViewCalendar";
 import { AppointmentEditorModal } from "../components/AppointmentEditorModal";
 import { AppointmentDetailDrawer } from "../components/AppointmentDetailDrawer";
 import { useDentistList } from "@/features/staff/api/staffQueries";
+import { useAppointmentList } from "../api/appointmentQueries";
+import { exportToExcel } from "@/utils/exportExcel";
 import { TimekeepingBoard } from "@/features/timekeeping/components/TimekeepingBoard";
 import { t } from "@/lib/i18n";
 
@@ -62,6 +65,35 @@ export function AppointmentCalendarPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [initialDate, setInitialDate] = useState<string | undefined>();
 
+  // The design's "Xuất file" writes the day being viewed.
+  const { data: dayAppointments } = useAppointmentList({
+    date: currentDate.format("YYYY-MM-DD"),
+    maxResultCount: 500,
+  });
+
+  const handleExport = () => {
+    exportToExcel(
+      dayAppointments?.items ?? [],
+      [
+        { header: t("Bệnh nhân"), key: "patientName" },
+        { header: t("Bác sĩ"), key: "doctorName" },
+        {
+          header: t("Bắt đầu"),
+          key: "startTime",
+          format: (v) => (v ? dayjs(String(v)).format("DD/MM/YYYY HH:mm") : ""),
+        },
+        {
+          header: t("Kết thúc"),
+          key: "endTime",
+          format: (v) => (v ? dayjs(String(v)).format("HH:mm") : ""),
+        },
+        { header: t("Trạng thái"), key: "status" },
+        { header: t("Lý do"), key: "reason" },
+      ],
+      `lich-hen-${currentDate.format("YYYY-MM-DD")}`,
+    );
+  };
+
   const navigateDate = (dir: -1 | 1) => {
     const unit = viewMode === "day" ? "day" : viewMode === "week" ? "week" : "month";
     setCurrentDate((d) => d.add(dir, unit));
@@ -86,18 +118,26 @@ export function AppointmentCalendarPage() {
 
   return (
     <>
-      <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <div className="reception-page">
+        <PageHeader
+          title={t("Lịch hẹn khách hàng")}
+          subtitle={t(
+            "Kéo thẻ hẹn sang ô khác để đổi bác sĩ hoặc giờ · bấm ô trống để tạo mới",
+          )}
+          actions={
+            <>
+              <Button icon={<DownloadOutlined />} onClick={handleExport}>
+                {t("Xuất file")}
+              </Button>
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => setAddOpen(true)}>
+                {t("Tạo lịch hẹn mới")}
+              </Button>
+            </>
+          }
+        />
+
         {/* Top-level tabs */}
-        <div
-          style={{
-            background: "#fff",
-            borderBottom: "1px solid #e2e8f0",
-            paddingLeft: 16,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
+        <div className="reception-card reception-card--tabs">
           <Tabs
             activeKey={topTab}
             onChange={setTopTab}
@@ -109,17 +149,9 @@ export function AppointmentCalendarPage() {
           />
         </div>
 
-        {/* Toolbar row 1: view mode + date nav */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            padding: "10px 16px",
-            background: "#fff",
-            borderBottom: "1px solid #e2e8f0",
-          }}
-        >
+        {/* Toolbar: view mode + date nav */}
+        <div className="reception-card reception-card--toolbar">
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <Segmented
             value={viewMode}
             onChange={(v) => setViewMode(v as ViewMode)}
@@ -137,11 +169,12 @@ export function AppointmentCalendarPage() {
               {displayDate()}
             </span>
             <Button type="text" size="small" icon={<RightOutlined />} onClick={() => navigateDate(1)} />
+            </div>
           </div>
         </div>
 
         {/* Calendar grid — switches by viewMode */}
-        <div style={{ flex: 1, overflow: "auto", background: "#fff" }}>
+        <div className="reception-card calendar-grid-card">
           {topTab === "customer" ? (
             <>
               {viewMode === "day" && (
@@ -152,7 +185,6 @@ export function AppointmentCalendarPage() {
                   onCellClick={handleCellClick}
                   keyword={keyword}
                   onKeywordChange={setKeyword}
-                  onCreateAppointment={() => setAddOpen(true)}
                   onSelectAppointment={setSelectedId}
                 />
               )}

@@ -36,7 +36,6 @@ interface Props {
   onCellClick?: (doctorId: string, slotIndex: number) => void;
   keyword?: string;
   onKeywordChange?: (v: string) => void;
-  onCreateAppointment?: () => void;
   onSelectAppointment?: (id: string) => void;
 }
 
@@ -80,7 +79,6 @@ export function DayViewCalendar({
   onCellClick,
   keyword = "",
   onKeywordChange,
-  onCreateAppointment,
   onSelectAppointment,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -249,14 +247,6 @@ export function DayViewCalendar({
           style={{ minWidth: 160 }}
           options={doctors.map((d) => ({ value: d.id, label: d.name }))}
         />
-
-        <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-          <Button size="small">{t("Xuất File")}</Button>
-          <Button type="primary" size="small" style={{ background: "#1c3566" }} onClick={onCreateAppointment}>{t("Tạo lịch hẹn mới")}</Button>
-          <Button size="small">{t("Tạo lịch tạm")}</Button>
-          <Button size="small">{t("Xem theo giờ")}</Button>
-          <Button size="small">{t("Toàn màn hình")}</Button>
-        </div>
       </div>
 
       {/* Calendar grid */}
@@ -264,7 +254,10 @@ export function DayViewCalendar({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: `${TIME_COL_W}px repeat(${Math.max(doctors.length, 1)}, ${DOCTOR_COL_W}px)`,
+            // The design stretches the doctor columns across the card rather
+            // than pinning them to a fixed width and leaving the rest blank.
+            // minmax keeps them readable once a branch has many dentists.
+            gridTemplateColumns: `${TIME_COL_W}px repeat(${Math.max(doctors.length, 1)}, minmax(${DOCTOR_COL_W}px, 1fr))`,
             minWidth: TIME_COL_W + doctors.length * DOCTOR_COL_W,
           }}
         >

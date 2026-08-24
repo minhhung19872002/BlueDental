@@ -3136,3 +3136,17 @@ body {
 }
 
 
+
+/* ── Calendar grid card ─────────────────────────────────────────────────── */
+
+/* The design wraps the day/week grid in a rounded card and lets the grid
+   itself scroll, rather than letting it run edge to edge under the header. */
+.calendar-grid-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.calendar-grid-card > * {
+  max-height: 620px;
+  overflow: auto;
+}

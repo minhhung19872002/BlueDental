@@ -19,6 +19,7 @@ import { formatDate, formatDateTime, formatVND } from "@/utils/format";
 import { exportToExcel } from "@/utils/exportExcel";
 import { SearchSelect } from "@/components/SearchSelect";
 import type { PatientListItem, PatientStatus } from "../types/patient";
+import { PageHeader } from "@/components/PageHeader";
 import { t } from "@/lib/i18n";
 
 const { Text } = Typography;
@@ -309,6 +310,21 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
 
   return (
     <div className="reception-page">
+      <PageHeader
+        title={t("Danh sách bệnh nhân")}
+        subtitle={t("{0} hồ sơ khách hàng của phòng khám", data?.totalCount ?? 0)}
+        actions={
+          <>
+            <Button icon={<ExportOutlined />} loading={exporting} onClick={handleExport}>
+              {t("Xuất file")}
+            </Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>
+              {t("Tạo hồ sơ")}
+            </Button>
+          </>
+        }
+      />
+
       {/* Toolbar card */}
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
@@ -358,14 +374,6 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
             allowClear
             style={{ maxWidth: 240, flex: "1 1 200px" }}
           />
-
-          {/* Right: export + create */}
-          <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
-            <Button icon={<ExportOutlined />} loading={exporting} onClick={handleExport}>{t("Xuất file")}</Button>
-            <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>
-              {t("Tạo hồ sơ")}
-            </Button>
-          </div>
         </div>
       </div>
 
