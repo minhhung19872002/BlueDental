@@ -10,22 +10,28 @@ test.describe("Sidebar navigation", () => {
     const sidebar = page.locator(".app-sidebar");
     await expect(sidebar).toBeVisible();
 
+    // The rail opens collapsed and carries its names on aria-label, so the
+    // accessible name is what to assert — it holds collapsed or expanded.
     const navLabels = [
       /tiếp nhận|reception/i,
       /bệnh nhân|patient/i,
       /lịch hẹn|appointment/i,
       /báo cáo|report/i,
       /nhân viên|staff/i,
-      /vật tư|material/i,
+      /vật tư|suppl|material/i,
     ];
 
     for (const label of navLabels) {
-      await expect(sidebar.getByText(label).first()).toBeVisible();
+      await expect(sidebar.getByRole("button", { name: label }).first()).toBeVisible();
     }
   });
 
   test("clicking sidebar item navigates to correct route", async ({ page }) => {
-    await page.locator(".sidebar-nav-item").filter({ hasText: /báo cáo|report/i }).first().click();
+    await page
+      .locator(".app-sidebar")
+      .getByRole("button", { name: /báo cáo|report/i })
+      .first()
+      .click();
     await expect(page).toHaveURL(/\/report/);
   });
 

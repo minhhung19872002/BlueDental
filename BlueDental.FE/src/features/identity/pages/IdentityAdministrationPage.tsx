@@ -4,6 +4,7 @@ import { SearchOutlined, PlusOutlined, EditOutlined, DeleteOutlined, UserOutline
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
+import { PageHeader } from "@/components/PageHeader";
 import {
   useIdentityUserList,
   useIdentityRoleList,
@@ -373,6 +374,11 @@ function RolesTab() {
 export function IdentityAdministrationPage() {
   return (
     <div className="reception-page">
+      <PageHeader
+        title={t("Người dùng & vai trò")}
+        subtitle={t("Tài khoản đăng nhập và phân quyền")}
+      />
+
       <div className="reception-card reception-card--toolbar">
         <div style={{ fontWeight: 700, fontSize: 18, color: "#1B2A41", marginBottom: 4 }}>
           {t("Quản trị người dùng & vai trò")}

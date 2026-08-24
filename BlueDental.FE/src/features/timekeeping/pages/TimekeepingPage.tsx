@@ -3,12 +3,18 @@ import { DatePicker } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 import { TimekeepingBoard } from "../components/TimekeepingBoard";
 import { t } from "@/lib/i18n";
+import { PageHeader } from "@/components/PageHeader";
 
 export function TimekeepingPage() {
   const [currentDate, setCurrentDate] = useState<Dayjs>(dayjs());
 
   return (
     <div>
+      <PageHeader
+        title={t("Chấm công")}
+        subtitle={t("Lịch làm việc và ca trực theo tuần")}
+      />
+
       <div
         style={{
           background: "#fff",

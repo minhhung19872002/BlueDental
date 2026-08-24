@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { EditOutlined, UserOutlined } from "@ant-design/icons";
 import { useClinicInfo, useUpdateClinicInfo, type UpdateClinicInfoDto } from "../api";
 import { t, useLanguage, type Language } from "@/lib/i18n";
+import { PageHeader } from "@/components/PageHeader";
 
 const { Title, Text, Link } = Typography;
 
@@ -235,6 +236,11 @@ export function SettingsPage() {
 
   return (
     <div>
+      <PageHeader
+        title={t("Cài đặt")}
+        subtitle={t("Tuỳ chọn hiển thị và cấu hình chung")}
+      />
+
       <div
         style={{
           background: "#fff",

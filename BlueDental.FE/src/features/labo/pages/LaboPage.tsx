@@ -25,6 +25,7 @@ import { usePatientList } from "@/features/patient-management/api/patientQueries
 import { useDebounce } from "@/hooks/useDebounce";
 import type { ColumnsType } from "antd/es/table";
 import { t } from "@/lib/i18n";
+import { PageHeader } from "@/components/PageHeader";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -647,6 +648,11 @@ export function LaboPage() {
 
   return (
     <div className="reception-page">
+      <PageHeader
+        title={t("Labo")}
+        subtitle={t("Phiếu labo, nhà cung cấp và danh mục kỹ thuật")}
+      />
+
       <div className="reception-card reception-card--tabs">
         <div style={{ display: "flex", gap: 0, flexWrap: "wrap" }}>
           {SUB_ROUTES.map((tab) => (

@@ -3,6 +3,7 @@ import { Table, Button, Input, Tag, Empty, Popconfirm, Modal, message } from "an
 import { SearchOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
+import { PageHeader } from "@/components/PageHeader";
 import {
   useCallAssignments, useUpdateCallAssignmentStatus, useDeleteCallAssignment,
   useCallLogs, useDeleteCallLog,
@@ -55,6 +56,11 @@ function SubTabBar({
 }) {
   return (
     <div className="reception-card reception-card--tabs">
+      <PageHeader
+        title={t("Công cụ")}
+        subtitle={t("Tổng đài, tin nhắn, Zalo OA và hoá đơn điện tử")}
+      />
+
       <div style={{ display: "flex", gap: 0 }}>
         {tabs.map((tab) => (
           <button

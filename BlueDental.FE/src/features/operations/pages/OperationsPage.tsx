@@ -3,6 +3,7 @@ import { Table, Empty, Tabs, Button, Input, Modal, Popconfirm, message } from "a
 import { SearchOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
+import { PageHeader } from "@/components/PageHeader";
 import {
   useOperationCategories, useCreateOperationCategory, useDeleteOperationCategory,
   useOperationArticles, useCreateOperationArticle, useUpdateOperationArticle, useDeleteOperationArticle,
@@ -159,6 +160,11 @@ export function OperationsPage() {
 
   return (
     <div className="reception-page">
+      <PageHeader
+        title={t("Quản trị vận hành")}
+        subtitle={t("Chỉ số theo từng khối chức năng trong ngày")}
+      />
+
       <div className="reception-card" style={{ padding: "0 16px" }}>
         <Tabs
           activeKey={activeTab}

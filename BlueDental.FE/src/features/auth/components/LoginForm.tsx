@@ -132,7 +132,8 @@ export function LoginForm() {
 
       {errors.root && (
         <Form.Item>
-          <span style={{ color: brand.red, fontSize: 13 }}>
+          {/* role="alert" so the failure is announced, not just coloured. */}
+          <span role="alert" style={{ color: brand.red, fontSize: 13 }}>
             {errors.root.message}
           </span>
         </Form.Item>

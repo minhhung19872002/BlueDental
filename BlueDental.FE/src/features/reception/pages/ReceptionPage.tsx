@@ -14,6 +14,7 @@ import {
 } from "../api/receptionQueries";
 import { useUpdateReceptionStatus, useUpdateReceptionOutcome, useUpdateReceptionDoctor } from "../api/receptionMutations";
 import { t } from "@/lib/i18n";
+import { PageHeader } from "@/components/PageHeader";
 import type {
   ReceptionItem,
   ReceptionStatus,
@@ -81,6 +82,11 @@ export const ReceptionPage: React.FC = () => {
 
   return (
     <div className="reception-page">
+      <PageHeader
+        title={t("Tiếp nhận")}
+        subtitle={t("Luồng khách trong ngày")}
+      />
+
       {/* Card 1: toolbar */}
       <div className="reception-card reception-card--toolbar">
         <ReceptionToolbar
