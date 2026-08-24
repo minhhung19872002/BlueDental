@@ -33,20 +33,44 @@ jobs:
     timeout-minutes: 30
 
     steps:
+      # Without this the run dies inside ssh with "no argument after keyword
+      # hostname", which says nothing about the actual cause.
+      - name: Check deploy secrets are set
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          missing=()
+          for name in SSH_HOST SSH_USER SSH_PRIVATE_KEY SSH_KNOWN_HOSTS; do
+            [[ -n "${!name}" ]] || missing+=("$name")
+          done
+          if (( ${#missing[@]} )); then
+            echo "::error::Missing repository secrets: ${missing[*]} -- see docs/cicd-setup.md step 3."
+            exit 1
+          fi
+
       - name: Configure SSH
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
         run: |
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
           install -m 600 /dev/null ~/.ssh/id_deploy
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_deploy
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_deploy
           # Pinned host key: without this, StrictHostKeyChecking would have to
           # be off, which would accept any MITM host key.
-          echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
           cat >> ~/.ssh/config <<EOF
           Host deploy-target
-            HostName ${{ secrets.SSH_HOST }}
-            Port ${{ secrets.SSH_PORT || '22' }}
-            User ${{ secrets.SSH_USER }}
+            HostName $SSH_HOST
+            Port ${SSH_PORT:-22}
+            User $SSH_USER
             IdentityFile ~/.ssh/id_deploy
             IdentitiesOnly yes
             StrictHostKeyChecking yes
