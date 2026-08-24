@@ -3149,3 +3149,208 @@ body {
   max-height: 620px;
   overflow: auto;
 }
+
+/* ── Design grid table ──────────────────────────────────────────────────────
+   BlueDental.dc.html draws every list the same way: a rounded card, a tinted
+   header strip of small uppercase labels, and rows laid out on a CSS grid so
+   the columns line up without table markup. Values below are the design's.  */
+
+.dg {
+  background: #ffffff;
+  border: 1px solid var(--bd-border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.dg-scroll {
+  overflow-x: auto;
+}
+
+.dg-head,
+.dg-row {
+  display: grid;
+  gap: 12px;
+  align-items: center;
+  padding: 13px 20px;
+}
+
+.dg-head {
+  background: var(--bd-bg-head);
+  border-bottom: 1px solid var(--bd-line-soft);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--bd-muted);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.dg-row {
+  border-bottom: 1px solid var(--bd-bg);
+  font-size: 13px;
+  transition: background 0.12s ease;
+}
+
+.dg-row:last-child {
+  border-bottom: 0;
+}
+
+.dg-row:hover {
+  background: var(--bd-bg-soft);
+}
+
+/* A cell that must not push the grid wider than its column. */
+.dg-cell {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--bd-sub);
+}
+
+/* The leading identifier of a row — a ticket code, an invoice number. */
+.dg-key {
+  font-weight: 700;
+  color: var(--bd-blue);
+}
+
+/* Two-line cell: a name over a quieter code or note. */
+.dg-name {
+  display: block;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dg-sub {
+  display: block;
+  font-size: 11px;
+  color: var(--bd-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Status pill, coloured by --pill-color. */
+.dg-pill {
+  justify-self: start;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  color: var(--pill-color, var(--bd-sub));
+  background: color-mix(in srgb, var(--pill-color, var(--bd-muted)) 14%, #ffffff);
+  white-space: nowrap;
+}
+
+/* Row-level action button. */
+.dg-action {
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--bd-line);
+  background: #ffffff;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--bd-blue);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.dg-action:hover {
+  border-color: var(--bd-blue);
+  background: #f2f6fd;
+}
+
+.dg-empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--bd-muted);
+  font-size: 13px;
+}
+
+/* ── Reception: the two columns the design's own artboard does not draw ──── */
+
+.rec-steps {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.rec-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.rec-step-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--bd-line);
+  background: #ffffff;
+  color: var(--bd-muted);
+  font-size: 11px;
+  font-weight: 600;
+  display: grid;
+  place-items: center;
+}
+
+.rec-step-dot--done {
+  border-color: var(--bd-green-bright);
+  background: var(--bd-green-bright);
+  color: #ffffff;
+}
+
+.rec-step-time {
+  font-size: 10px;
+  color: var(--bd-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.rec-outcomes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.rec-outcome {
+  border: 1px solid var(--bd-line);
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 3px 9px;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--bd-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.rec-outcome:hover {
+  border-color: var(--bd-blue);
+  color: var(--bd-blue);
+}
+
+.rec-outcome--on {
+  border-color: var(--bd-blue);
+  background: var(--bd-blue-pale);
+  color: var(--bd-blue);
+  font-weight: 600;
+}
+
+.rec-cancel {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  padding: 0;
+  color: var(--bd-muted);
+}
+
+.rec-cancel:hover {
+  border-color: var(--bd-red);
+  color: var(--bd-red);
+  background: #fdeeee;
+}

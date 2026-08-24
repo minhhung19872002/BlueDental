@@ -4,7 +4,7 @@ import { DownloadOutlined, FormOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 import { ReceptionToolbar } from "../components/ReceptionToolbar";
 import { ReceptionStatusTabs } from "../components/ReceptionStatusTabs";
-import { ReceptionCard } from "../components/ReceptionCard";
+import { ReceptionGrid } from "../components/ReceptionGrid";
 import { ReceptionEmptyState } from "../components/ReceptionEmptyState";
 import { ReceptionNewDrawer } from "../components/ReceptionNewDrawer";
 import {
@@ -151,7 +151,7 @@ export const ReceptionPage: React.FC = () => {
         />
       </div>
 
-      {/* Card 3: card grid */}
+      {/* Card 3: the list, as the design draws its lists */}
       <div className="reception-card-grid-wrapper">
         {listLoading ? (
           <div className="reception-loading">
@@ -160,18 +160,13 @@ export const ReceptionPage: React.FC = () => {
         ) : items.length === 0 ? (
           <ReceptionEmptyState />
         ) : (
-          <div className="reception-card-grid">
-            {items.map((item) => (
-              <ReceptionCard
-                key={item.id}
-                item={item}
-                doctors={doctors}
-                onOutcomeChange={handleOutcomeChange}
-                onDoctorChange={handleDoctorChange}
-                onCancel={handleCancel}
-              />
-            ))}
-          </div>
+          <ReceptionGrid
+            items={items}
+            doctors={doctors}
+            onOutcomeChange={handleOutcomeChange}
+            onDoctorChange={handleDoctorChange}
+            onCancel={handleCancel}
+          />
         )}
       </div>
 
