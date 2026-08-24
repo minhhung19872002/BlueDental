@@ -162,7 +162,7 @@ function MauLaboView() {
       render: (code: string, record: LaboOrderDto) => (
         <div>
           <div style={{ fontWeight: 600 }}>{code}</div>
-          <div style={{ fontSize: 12, color: "#8c8c8c" }}>{dayjs(record.creationTime).format("DD/MM/YYYY")}</div>
+          <div style={{ fontSize: 12, color: "var(--bd-muted)" }}>{dayjs(record.creationTime).format("DD/MM/YYYY")}</div>
         </div>
       ),
     },
@@ -239,9 +239,9 @@ function MauLaboView() {
                 padding: "8px 16px",
                 border: "none",
                 borderBottom:
-                  filterTab === tab.key ? "2px solid #1677ff" : "2px solid transparent",
+                  filterTab === tab.key ? "2px solid var(--bd-blue)" : "2px solid transparent",
                 background: "none",
-                color: filterTab === tab.key ? "#1677ff" : "#595959",
+                color: filterTab === tab.key ? "var(--bd-blue)" : "var(--bd-muted)",
                 fontWeight: filterTab === tab.key ? 600 : 400,
                 cursor: "pointer",
                 fontSize: 13,
@@ -568,10 +568,10 @@ function ServiceMaterialView() {
       <div className="reception-card" style={{ width: 240, minWidth: 200, padding: 16, flexShrink: 0 }}>
         <div style={{ fontWeight: 600, marginBottom: 8 }}>
           {t("Nhà cung cấp")}
-          <span style={{ fontWeight: 400, color: "#8c8c8c", marginLeft: 6 }}>{t("{0} NCC", (suppliers?.items ?? []).length)}</span>
+          <span style={{ fontWeight: 400, color: "var(--bd-muted)", marginLeft: 6 }}>{t("{0} NCC", (suppliers?.items ?? []).length)}</span>
         </div>
         {(suppliers?.items ?? []).length === 0 ? (
-          <div style={{ color: "#8c8c8c", fontSize: 13, textAlign: "center", paddingTop: 24 }}>{t("Chưa có nhà cung cấp")}</div>
+          <div style={{ color: "var(--bd-muted)", fontSize: 13, textAlign: "center", paddingTop: 24 }}>{t("Chưa có nhà cung cấp")}</div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {(suppliers?.items ?? []).map((s) => (
@@ -662,9 +662,9 @@ export function LaboPage() {
               style={{
                 padding: "8px 18px",
                 border: "none",
-                borderBottom: activeTab === tab.key ? "2px solid #1677ff" : "2px solid transparent",
+                borderBottom: activeTab === tab.key ? "2px solid var(--bd-blue)" : "2px solid transparent",
                 background: "none",
-                color: activeTab === tab.key ? "#1677ff" : "#595959",
+                color: activeTab === tab.key ? "var(--bd-blue)" : "var(--bd-muted)",
                 fontWeight: activeTab === tab.key ? 600 : 400,
                 cursor: "pointer",
                 fontSize: 13,

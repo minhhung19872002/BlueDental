@@ -186,11 +186,11 @@ function PermissionsTab() {
       <Text type="secondary">{t("Quản lý tài khoản người dùng và vai trò được thực hiện qua module Identity.")}</Text>
       <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <UserOutlined style={{ color: "#1677ff" }} />
+          <UserOutlined style={{ color: "var(--bd-blue)" }} />
           <Link onClick={() => navigate("/identity/users")}>{t("Quản lý người dùng")}</Link>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <UserOutlined style={{ color: "#1677ff" }} />
+          <UserOutlined style={{ color: "var(--bd-blue)" }} />
           <Link onClick={() => navigate("/identity/roles")}>{t("Quản lý vai trò & quyền")}</Link>
         </div>
       </div>

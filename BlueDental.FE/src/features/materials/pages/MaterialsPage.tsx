@@ -231,11 +231,11 @@ function ClinicMaterialsView() {
         <div style={{ marginBottom: 8 }}>
           <div style={{ fontWeight: 600, marginBottom: 4 }}>
             {t("Nhóm vật tư")}
-            <span style={{ fontWeight: 400, color: "#8c8c8c", marginLeft: 6 }}>
+            <span style={{ fontWeight: 400, color: "var(--bd-muted)", marginLeft: 6 }}>
               {t("{0} nhóm", categories.length)}
             </span>
           </div>
-          <div style={{ fontSize: 12, color: "#8c8c8c", marginBottom: 10 }}>
+          <div style={{ fontSize: 12, color: "var(--bd-muted)", marginBottom: 10 }}>
             {t("Chọn nhóm để xem vật tư")}
           </div>
           <Input
@@ -248,7 +248,7 @@ function ClinicMaterialsView() {
           />
         </div>
         {filteredCategories.length === 0 ? (
-          <div style={{ color: "#8c8c8c", fontSize: 13, textAlign: "center", paddingTop: 16 }}>
+          <div style={{ color: "var(--bd-muted)", fontSize: 13, textAlign: "center", paddingTop: 16 }}>
             {t("Chưa có nhóm vật tư")}
           </div>
         ) : (
@@ -259,8 +259,8 @@ function ClinicMaterialsView() {
                 borderRadius: 6,
                 cursor: "pointer",
                 fontSize: 13,
-                background: selectedGroup === null ? "#e6f4ff" : "transparent",
-                color: selectedGroup === null ? "#1677ff" : undefined,
+                background: selectedGroup === null ? "var(--bd-blue-pale)" : "transparent",
+                color: selectedGroup === null ? "var(--bd-blue)" : undefined,
                 fontWeight: selectedGroup === null ? 500 : 400,
               }}
               onClick={() => setSelectedGroup(null)}
@@ -277,8 +277,8 @@ function ClinicMaterialsView() {
                     borderRadius: 6,
                     cursor: "pointer",
                     fontSize: 13,
-                    background: selectedGroup === cat ? "#e6f4ff" : "transparent",
-                    color: selectedGroup === cat ? "#1677ff" : undefined,
+                    background: selectedGroup === cat ? "var(--bd-blue-pale)" : "transparent",
+                    color: selectedGroup === cat ? "var(--bd-blue)" : undefined,
                     fontWeight: selectedGroup === cat ? 500 : 400,
                   }}
                   onClick={() => setSelectedGroup(cat)}
@@ -493,14 +493,14 @@ function DepartmentView() {
       <div className="reception-card" style={{ width: 240, minWidth: 200, padding: 16, flexShrink: 0 }}>
         <div style={{ fontWeight: 600, marginBottom: 4 }}>
           {t("Phòng ban")}
-          <span style={{ fontWeight: 400, color: "#8c8c8c", marginLeft: 6 }}>{t("{0} phòng ban", departments.length)}</span>
+          <span style={{ fontWeight: 400, color: "var(--bd-muted)", marginLeft: 6 }}>{t("{0} phòng ban", departments.length)}</span>
         </div>
-        <div style={{ fontSize: 12, color: "#8c8c8c", marginBottom: 10 }}>
+        <div style={{ fontSize: 12, color: "var(--bd-muted)", marginBottom: 10 }}>
           {t("Chọn phòng ban để xem vật tư đã phát và kiểm kho")}
         </div>
         <Button type="dashed" block size="small" style={{ marginBottom: 8 }} onClick={() => { setEditingDept(null); deptForm.resetFields(); setDeptModalOpen(true); }}>{t("Tạo phòng ban")}</Button>
         {deptLoading ? null : departments.length === 0 ? (
-          <div style={{ color: "#8c8c8c", fontSize: 13, textAlign: "center", paddingTop: 24 }}>{t("Chưa có phòng ban")}</div>
+          <div style={{ color: "var(--bd-muted)", fontSize: 13, textAlign: "center", paddingTop: 24 }}>{t("Chưa có phòng ban")}</div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             {departments.map((d) => (
@@ -509,8 +509,8 @@ function DepartmentView() {
                 onClick={() => setSelectedDeptId(d.id === selectedDeptId ? null : d.id)}
                 style={{
                   padding: "6px 8px", fontSize: 13, borderRadius: 4, cursor: "pointer",
-                  background: d.id === selectedDeptId ? "#E6F4FF" : "#F9FAFB",
-                  color: d.id === selectedDeptId ? "#1677ff" : "#374151",
+                  background: d.id === selectedDeptId ? "var(--bd-blue-pale)" : "#F9FAFB",
+                  color: d.id === selectedDeptId ? "var(--bd-blue)" : "#374151",
                   fontWeight: d.id === selectedDeptId ? 600 : 400,
                   display: "flex", justifyContent: "space-between", alignItems: "center",
                 }}
@@ -603,9 +603,9 @@ export function MaterialsPage() {
               style={{
                 padding: "8px 20px",
                 border: "none",
-                borderBottom: activeTab === tab.key ? "2px solid #1677ff" : "2px solid transparent",
+                borderBottom: activeTab === tab.key ? "2px solid var(--bd-blue)" : "2px solid transparent",
                 background: "none",
-                color: activeTab === tab.key ? "#1677ff" : "#595959",
+                color: activeTab === tab.key ? "var(--bd-blue)" : "var(--bd-muted)",
                 fontWeight: activeTab === tab.key ? 600 : 400,
                 cursor: "pointer",
                 fontSize: 14,

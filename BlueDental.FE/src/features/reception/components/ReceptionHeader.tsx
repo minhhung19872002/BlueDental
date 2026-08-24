@@ -83,7 +83,7 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "#2671D8",
+                  color: "var(--bd-blue)",
                   fontSize: 22,
                 }}
               >

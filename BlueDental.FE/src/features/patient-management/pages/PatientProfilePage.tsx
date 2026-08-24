@@ -65,7 +65,7 @@ export function PatientProfilePage() {
   };
 
   const APPOINTMENT_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-    Scheduled:  { label: t("Đã hẹn"),  color: "#2671D8" },
+    Scheduled:  { label: t("Đã hẹn"),  color: "var(--bd-blue)" },
     Confirmed:  { label: t("Đã xác nhận"),  color: "#3B82F6" },
     CheckedIn:  { label: t("Đã đến"),  color: "#10B981" },
     InProgress: { label: t("Đang khám"), color: "#F97316" },
@@ -75,7 +75,7 @@ export function PatientProfilePage() {
   };
 
   const APPOINTMENT_COUNTER_CARDS = [
-    { key: "scheduled", label: t("Đã hẹn"), borderColor: "#1E70E6", bgColor: "#EBF3FE", textColor: "#1E70E6" },
+    { key: "scheduled", label: t("Đã hẹn"), borderColor: "var(--bd-blue)", bgColor: "#EBF3FE", textColor: "var(--bd-blue)" },
     { key: "arrived",   label: t("Đã đến"),   borderColor: "#10B981", bgColor: "#E6F4EA", textColor: "#10B981" },
     { key: "cancelled", label: t("Đã huỷ"), borderColor: "#EF4444", bgColor: "#FCE8E6", textColor: "#EF4444" },
     { key: "late",      label: t("Trễ hẹn"),      borderColor: "#F59E0B", bgColor: "#FEF3C7", textColor: "#F59E0B" },
@@ -424,9 +424,9 @@ export function PatientProfilePage() {
           {/* Summary cards */}
           <Row gutter={12} style={{ marginBottom: 16 }}>
             <Col span={12}>
-              <Card size="small" style={{ borderLeft: "4px solid #2671D8" }}>
+              <Card size="small" style={{ borderLeft: "4px solid var(--bd-blue)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ background: "#2671D8", color: "#fff", borderRadius: 12, padding: "2px 10px", fontWeight: 700, fontSize: 14 }}>0</span>
+                  <span style={{ background: "var(--bd-blue)", color: "#fff", borderRadius: 12, padding: "2px 10px", fontWeight: 700, fontSize: 14 }}>0</span>
                   <div>
                     <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41" }}>{t("Dịch vụ đang điều trị")}</div>
                     <div style={{ fontSize: 12, color: "#9CA3AF" }}>{t("Chưa có dịch vụ đang điều trị")}</div>
@@ -593,7 +593,7 @@ export function PatientProfilePage() {
                 {c.label}
               </button>
             ))}
-            <Button type="primary" icon={<PlusOutlined />} style={{ marginLeft: "auto", background: "#2671D8" }}>
+            <Button type="primary" icon={<PlusOutlined />} style={{ marginLeft: "auto", background: "var(--bd-blue)" }}>
               {t("Tạo phiếu Labo")}
             </Button>
           </div>
@@ -638,7 +638,7 @@ export function PatientProfilePage() {
       children: (
         <div style={{ padding: "16px 0" }}>
           <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
-            <Button type="primary" icon={<PlusOutlined />} style={{ background: "#2671D8" }}>{t("Tạo đơn thuốc")}</Button>
+            <Button type="primary" icon={<PlusOutlined />} style={{ background: "var(--bd-blue)" }}>{t("Tạo đơn thuốc")}</Button>
           </div>
           <Table
             size="small"
@@ -796,7 +796,7 @@ export function PatientProfilePage() {
           size="small"
           icon={<ArrowLeftOutlined />}
           onClick={() => navigate("/patient")}
-          style={{ color: "#2671D8", padding: "0 4px" }}
+          style={{ color: "var(--bd-blue)", padding: "0 4px" }}
         >
           {t("Quay lại")}
         </Button>

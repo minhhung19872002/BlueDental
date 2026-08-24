@@ -250,7 +250,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
             type="primary"
             loading={createMutation.isPending}
             onClick={handleSubmit(onSubmit)}
-            style={{ background: "#2671D8", height: 40, fontWeight: 600, paddingLeft: 20, paddingRight: 20 }}
+            style={{ background: "var(--bd-blue)", height: 40, fontWeight: 600, paddingLeft: 20, paddingRight: 20 }}
             icon={
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>

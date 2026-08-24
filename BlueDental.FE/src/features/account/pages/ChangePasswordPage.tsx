@@ -82,7 +82,7 @@ export function ChangePasswordPage() {
           <Card>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
               <div style={{ background: "#EBF3FE", borderRadius: "50%", width: 48, height: 48, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <LockOutlined style={{ fontSize: 20, color: "#2671D8" }} />
+                <LockOutlined style={{ fontSize: 20, color: "var(--bd-blue)" }} />
               </div>
               <div>
                 <div style={{ fontWeight: 600, color: "#1B2A41" }}>{t("Bảo mật tài khoản")}</div>
@@ -149,7 +149,7 @@ export function ChangePasswordPage() {
               icon={<SaveOutlined />}
               loading={changeMutation.isPending}
               onClick={handleSubmit(onSubmit)}
-              style={{ background: "#2671D8", height: 40, width: "100%", marginTop: 8 }}
+              style={{ background: "var(--bd-blue)", height: 40, width: "100%", marginTop: 8 }}
             >
               {t("Cập nhật mật khẩu")}
             </Button>

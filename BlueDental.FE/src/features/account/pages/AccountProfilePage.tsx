@@ -51,7 +51,7 @@ export function AccountProfilePage() {
                 size={96}
                 src={user?.clinicLogoUrl ?? undefined}
                 icon={<UserOutlined />}
-                style={{ marginBottom: 16, background: "#2671D8" }}
+                style={{ marginBottom: 16, background: "var(--bd-blue)" }}
               />
               <div>
                 <Title level={5} style={{ marginBottom: 4 }}>{user?.name}</Title>
@@ -82,7 +82,7 @@ export function AccountProfilePage() {
                   icon={<SaveOutlined />}
                   onClick={handleSave}
                   loading={updateProfile.isPending}
-                  style={{ background: "#2671D8" }}
+                  style={{ background: "var(--bd-blue)" }}
                 >
                   {t("Lưu thay đổi")}
                 </Button>

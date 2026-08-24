@@ -151,9 +151,9 @@ export function CskhGroupingPage() {
               style={{
                 padding: "8px 20px",
                 border: "none",
-                borderBottom: topTab === tab.key ? "2px solid #1677ff" : "2px solid transparent",
+                borderBottom: topTab === tab.key ? "2px solid var(--bd-blue)" : "2px solid transparent",
                 background: "none",
-                color: topTab === tab.key ? "#1677ff" : "#595959",
+                color: topTab === tab.key ? "var(--bd-blue)" : "var(--bd-muted)",
                 fontWeight: topTab === tab.key ? 600 : 400,
                 cursor: "pointer",
                 fontSize: 14,
@@ -169,7 +169,7 @@ export function CskhGroupingPage() {
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {/* View mode buttons */}
-          <div style={{ display: "flex", border: "1px solid #d9d9d9", borderRadius: 6, overflow: "hidden" }}>
+          <div style={{ display: "flex", border: "1px solid var(--bd-line)", borderRadius: 6, overflow: "hidden" }}>
             {VIEW_MODES.map((vm) => (
               <button
                 key={vm.key}
@@ -177,9 +177,9 @@ export function CskhGroupingPage() {
                 style={{
                   padding: "5px 14px",
                   border: "none",
-                  borderRight: "1px solid #d9d9d9",
-                  background: viewMode === vm.key ? "#1677ff" : "#fff",
-                  color: viewMode === vm.key ? "#fff" : "#595959",
+                  borderRight: "1px solid var(--bd-line)",
+                  background: viewMode === vm.key ? "var(--bd-blue)" : "#fff",
+                  color: viewMode === vm.key ? "#fff" : "var(--bd-muted)",
                   cursor: "pointer",
                   fontSize: 13,
                   fontWeight: viewMode === vm.key ? 600 : 400,
@@ -225,9 +225,9 @@ export function CskhGroupingPage() {
                   padding: "6px 16px",
                   borderRadius: 20,
                   border: "1px solid",
-                  borderColor: statusFilter === sf.key ? "#1677ff" : "#d9d9d9",
-                  background: statusFilter === sf.key ? "#e6f4ff" : "#fff",
-                  color: statusFilter === sf.key ? "#1677ff" : "#595959",
+                  borderColor: statusFilter === sf.key ? "var(--bd-blue)" : "var(--bd-line)",
+                  background: statusFilter === sf.key ? "var(--bd-blue-pale)" : "#fff",
+                  color: statusFilter === sf.key ? "var(--bd-blue)" : "var(--bd-muted)",
                   cursor: "pointer",
                   fontSize: 13,
                   fontWeight: statusFilter === sf.key ? 600 : 400,
@@ -250,9 +250,9 @@ export function CskhGroupingPage() {
               style={{
                 padding: "8px 16px",
                 border: "none",
-                borderBottom: careType === ct.key ? "2px solid #1677ff" : "2px solid transparent",
+                borderBottom: careType === ct.key ? "2px solid var(--bd-blue)" : "2px solid transparent",
                 background: "none",
-                color: careType === ct.key ? "#1677ff" : "#595959",
+                color: careType === ct.key ? "var(--bd-blue)" : "var(--bd-muted)",
                 fontWeight: careType === ct.key ? 600 : 400,
                 cursor: "pointer",
                 fontSize: 13,

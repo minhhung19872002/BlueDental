@@ -94,7 +94,7 @@ function GroupSidebar({
           width: "100%", textAlign: "left", border: "none", cursor: "pointer",
           padding: "8px 10px", borderRadius: 6, marginBottom: 4,
           background: selectedId === null ? "#EBF3FE" : "transparent",
-          color: selectedId === null ? "#1E70E6" : "#1B2A41",
+          color: selectedId === null ? "var(--bd-blue)" : "#1B2A41",
           fontWeight: selectedId === null ? 600 : 400,
         }}
       >
@@ -110,7 +110,7 @@ function GroupSidebar({
             width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
             border: "none", cursor: "pointer", padding: "8px 10px", borderRadius: 6, marginBottom: 2,
             background: selectedId === group.id ? "#EBF3FE" : "transparent",
-            color: selectedId === group.id ? "#1E70E6" : "#1B2A41",
+            color: selectedId === group.id ? "var(--bd-blue)" : "#1B2A41",
             fontWeight: selectedId === group.id ? 600 : 400,
             textAlign: "left",
           }}

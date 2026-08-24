@@ -184,9 +184,9 @@ export function OperationsPage() {
                 onClick={() => setSubTab(sub.key)}
                 style={{
                   padding: "8px 16px", border: "none",
-                  borderBottom: activeSubTab === sub.key ? "2px solid #1677ff" : "2px solid transparent",
+                  borderBottom: activeSubTab === sub.key ? "2px solid var(--bd-blue)" : "2px solid transparent",
                   background: "none",
-                  color: activeSubTab === sub.key ? "#1677ff" : "#595959",
+                  color: activeSubTab === sub.key ? "var(--bd-blue)" : "var(--bd-muted)",
                   fontWeight: activeSubTab === sub.key ? 600 : 400,
                   cursor: "pointer", fontSize: 13, whiteSpace: "nowrap",
                 }}
@@ -216,7 +216,7 @@ export function OperationsPage() {
                     display: "flex", alignItems: "center", justifyContent: "space-between",
                     padding: "6px 8px", borderRadius: 6, cursor: "pointer",
                     background: selectedCategoryId === cat.id ? "#EBF3FE" : "transparent",
-                    color: selectedCategoryId === cat.id ? "#1E70E6" : "#374151",
+                    color: selectedCategoryId === cat.id ? "var(--bd-blue)" : "#374151",
                     fontWeight: selectedCategoryId === cat.id ? 600 : 400, fontSize: 13,
                   }}
                   onClick={() => setSelectedCategoryId(selectedCategoryId === cat.id ? undefined : cat.id)}
@@ -234,7 +234,7 @@ export function OperationsPage() {
         <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 0 }}>
           <div className="reception-card reception-card--toolbar">
             <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "space-between" }}>
-              <Button type="primary" style={{ background: "#2671D8" }} onClick={() => { setEditingArticle(null); setArticleTitle(""); setArticleModalOpen(true); }}>
+              <Button type="primary" style={{ background: "var(--bd-blue)" }} onClick={() => { setEditingArticle(null); setArticleTitle(""); setArticleModalOpen(true); }}>
                 {t("Tạo Bài Viết")}
               </Button>
               <Input

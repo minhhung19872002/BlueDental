@@ -37,7 +37,7 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
 
   const STATUS_CONFIG: Record<PatientStatus, { label: string; color: string; bg: string; text: string }> = {
     NoActivity:  { label: t("Chưa phát sinh"),  color: "#6B7280", bg: "#F3F4F6", text: "#374151" },
-    InTreatment: { label: t("Đang điều trị"), color: "#2671D8", bg: "#EBF3FE", text: "#1E5BB0" },
+    InTreatment: { label: t("Đang điều trị"), color: "var(--bd-blue)", bg: "#EBF3FE", text: "#1E5BB0" },
     Completed:   { label: t("Điều trị hoàn tất"),   color: "#10B981", bg: "#E6F4EA", text: "#1F7A45" },
   };
 
@@ -138,7 +138,7 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
             </Text>{" "}
             <Text
               strong
-              style={{ color: "#2671D8", cursor: "pointer" }}
+              style={{ color: "var(--bd-blue)", cursor: "pointer" }}
               onClick={(e) => { e.stopPropagation(); onRowClick?.(record); }}
             >
               {record.fullName}
@@ -291,7 +291,7 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
               size="small"
               icon={<EyeOutlined />}
               onClick={(e) => { e.stopPropagation(); onRowClick?.(record); }}
-              style={{ color: "#2671D8" }}
+              style={{ color: "var(--bd-blue)" }}
             />
           </Tooltip>
           <Tooltip title={t("Chỉnh sửa")}>

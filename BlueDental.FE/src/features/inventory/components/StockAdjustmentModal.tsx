@@ -89,7 +89,7 @@ export function StockAdjustmentModal({ open, onClose, itemId }: Props) {
             type="primary"
             onClick={handleSubmit}
             loading={adjustStock.isPending}
-            style={{ background: "#2671D8" }}
+            style={{ background: "var(--bd-blue)" }}
           >
             {t("Lưu điều chỉnh")}
           </Button>,

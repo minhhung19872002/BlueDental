@@ -65,9 +65,9 @@ function SubTabBar({
             style={{
               padding: "8px 16px",
               border: "none",
-              borderBottom: active === tab.key ? "2px solid #1677ff" : "2px solid transparent",
+              borderBottom: active === tab.key ? "2px solid var(--bd-blue)" : "2px solid transparent",
               background: "none",
-              color: active === tab.key ? "#1677ff" : "#595959",
+              color: active === tab.key ? "var(--bd-blue)" : "var(--bd-muted)",
               fontWeight: active === tab.key ? 600 : 400,
               cursor: "pointer",
               fontSize: 13,
@@ -608,9 +608,9 @@ export function ToolsPage() {
               style={{
                 padding: "8px 20px",
                 border: "none",
-                borderBottom: activeTab === tab.key ? "2px solid #1677ff" : "2px solid transparent",
+                borderBottom: activeTab === tab.key ? "2px solid var(--bd-blue)" : "2px solid transparent",
                 background: "none",
-                color: activeTab === tab.key ? "#1677ff" : "#595959",
+                color: activeTab === tab.key ? "var(--bd-blue)" : "var(--bd-muted)",
                 fontWeight: activeTab === tab.key ? 600 : 400,
                 cursor: "pointer",
                 fontSize: 14,

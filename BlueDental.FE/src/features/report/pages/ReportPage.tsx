@@ -284,9 +284,9 @@ export function ReportPage() {
                   onClick={() => setSubFilter(f.key)}
                   style={{
                     padding: "8px 14px", border: "none",
-                    borderBottom: subFilter === f.key ? "2px solid #1677ff" : "2px solid transparent",
+                    borderBottom: subFilter === f.key ? "2px solid var(--bd-blue)" : "2px solid transparent",
                     background: "none",
-                    color: subFilter === f.key ? "#1677ff" : "#595959",
+                    color: subFilter === f.key ? "var(--bd-blue)" : "var(--bd-muted)",
                     fontWeight: subFilter === f.key ? 600 : 400,
                     cursor: "pointer", fontSize: 13, whiteSpace: "nowrap",
                   }}
@@ -468,7 +468,7 @@ function CashflowTab({ period }: { period: PeriodRange }) {
   const summaryCards = [
     { label: t("Tổng thu"),     value: stats?.totalIncome  ?? 0, color: "#10B981" },
     { label: t("Tổng chi"),    value: stats?.totalExpense ?? 0, color: "#EF4444" },
-    { label: t("Lợi nhuận ước tính"), value: stats?.net          ?? 0, color: "#1E70E6" },
+    { label: t("Lợi nhuận ước tính"), value: stats?.net          ?? 0, color: "var(--bd-blue)" },
   ];
 
   const columns = buildCashflowColumns(t, buildApprovalConfig(t), (row) => (
@@ -515,9 +515,9 @@ function CashflowTab({ period }: { period: PeriodRange }) {
               onClick={() => setTypeFilter(f.key)}
               style={{
                 padding: "8px 14px", border: "none",
-                borderBottom: typeFilter === f.key ? "2px solid #1677ff" : "2px solid transparent",
+                borderBottom: typeFilter === f.key ? "2px solid var(--bd-blue)" : "2px solid transparent",
                 background: "none",
-                color: typeFilter === f.key ? "#1677ff" : "#595959",
+                color: typeFilter === f.key ? "var(--bd-blue)" : "var(--bd-muted)",
                 fontWeight: typeFilter === f.key ? 600 : 400,
                 cursor: "pointer", fontSize: 13, whiteSpace: "nowrap",
               }}
@@ -607,7 +607,7 @@ function CashflowV2Tab({ period }: { period: PeriodRange }) {
   const balancePanels = [
     { label: t("Tổng Tiền"),          value: overview?.balance.total           ?? 0, color: "#1B2A41" },
     { label: t("Tổng Tiền Mặt"),           value: overview?.balance.cash            ?? 0, color: "#10B981" },
-    { label: t("Tổng Chuyển Khoản"),       value: overview?.balance.bank            ?? 0, color: "#1E70E6" },
+    { label: t("Tổng Chuyển Khoản"),       value: overview?.balance.bank            ?? 0, color: "var(--bd-blue)" },
     { label: t("Đang Giữ Hộ Khách"),  value: overview?.balance.customerPrepaid ?? 0, color: "#F59E0B" },
   ];
 
@@ -689,7 +689,7 @@ function BusinessResultTab() {
   const resultColumns = buildResultColumns(t);
 
   const resultSummary = [
-    { label: t("Doanh thu"),    value: revenue, color: "#1E70E6" },
+    { label: t("Doanh thu"),    value: revenue, color: "var(--bd-blue)" },
     { label: t("Chi phí"),            value: expense, color: "#EF4444" },
     { label: t("Lợi nhuận"),          value: profit,  color: "#10B981" },
     { label: t("Tỷ lệ lợi nhuận"), value: `${margin}%`, color: "#F59E0B" },
