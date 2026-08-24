@@ -109,7 +109,9 @@ function SidebarNavItem({
 
 export function AppLayout() {
   const [searchOpen, setSearchOpen] = useState(false);
-  const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  // The design opens with the rail expanded and its labels showing; collapsing
+  // is the deliberate act, not the starting point.
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
   const [language, setLanguage] = useLanguage();
   const t = useT();
   const navigate = useNavigate();
@@ -238,6 +240,7 @@ export function AppLayout() {
 
         {/* Main nav */}
         <nav className="sidebar-nav-main">
+          {sidebarExpanded && <div className="sidebar-nav-heading">{t("MENU")}</div>}
           {mainNav(t).map((item) => (
             <SidebarNavItem
               key={item.key}
