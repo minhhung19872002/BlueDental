@@ -1,5 +1,5 @@
-import { Spin } from "antd";
-import { CalendarOutlined } from "@ant-design/icons";
+import { Loader2 } from "lucide-react";
+import { Calendar } from "lucide-react";
 import { useAppointmentList } from "@/features/appointments/api/appointmentQueries";
 import dayjs from "dayjs";
 import { brand } from "@/theme/index";
@@ -22,7 +22,7 @@ export function TodayAppointmentsCard() {
         <div>
           <div className="stat-card-label">{t("Lịch hẹn hôm nay")}</div>
           {isLoading ? (
-            <Spin size="small" style={{ marginTop: 8 }} />
+            <Loader2 className="size-4 animate-spin text-primary mt-2" />
           ) : (
             <div className="stat-card-value">{total}</div>
           )}
@@ -31,7 +31,7 @@ export function TodayAppointmentsCard() {
           className="stat-card-icon"
           style={{ background: brand.bluePale, color: brand.blue }}
         >
-          <CalendarOutlined />
+          <Calendar className="size-4" />
         </div>
       </div>
       <div className="stat-card-footer">

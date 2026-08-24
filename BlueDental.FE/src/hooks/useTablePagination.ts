@@ -1,9 +1,23 @@
-import { useState } from "react";
-import type { TablePaginationConfig } from "antd";
+import { createElement, useState, type ReactNode } from "react";
 import { t } from "@/lib/i18n";
 
 const BASE_PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 const DEFAULT_PAGE_SIZE = 20;
+
+export interface TablePaginationConfig {
+  current: number;
+  pageSize: number;
+  total: number;
+  showSizeChanger: boolean;
+  pageSizeOptions: number[];
+  onChange: (page: number, pageSize: number) => void;
+  showTotal?: (total: number, range: [number, number]) => string;
+  itemRender?: (
+    current: number,
+    type: "prev" | "next" | "page" | "jump-prev" | "jump-next",
+    originalElement: ReactNode,
+  ) => ReactNode;
+}
 
 export interface TablePagination {
   page: number;
@@ -53,6 +67,13 @@ export function useTablePagination(
         showTotal ??
         ((totalCount, range) =>
           t("Hiển thị {0}-{1}/{2}", range[0], range[1], totalCount)),
+      itemRender: (_current, type, originalElement) => {
+        if (type === "prev")
+          return createElement("span", { className: "pagination-text-btn" }, `< ${t("Trước")}`);
+        if (type === "next")
+          return createElement("span", { className: "pagination-text-btn" }, `${t("Sau")} >`);
+        return originalElement;
+      },
     }),
   };
 }

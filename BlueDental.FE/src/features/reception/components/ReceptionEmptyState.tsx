@@ -1,5 +1,5 @@
 import React from "react";
-import { TeamOutlined } from "@ant-design/icons";
+import { Users } from "lucide-react";
 import { t } from "@/lib/i18n";
 
 export const ReceptionEmptyState: React.FC = () => {
@@ -7,7 +7,7 @@ export const ReceptionEmptyState: React.FC = () => {
   return (
     <div className="reception-empty">
       <div className="reception-empty-icon">
-        <TeamOutlined />
+        <Users size={32} />
       </div>
       <h3 className="reception-empty-title">
         {t("Không có lượt tiếp nhận phù hợp")}

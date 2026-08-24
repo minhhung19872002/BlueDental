@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { Button, Empty, Input, Select, Spin, Table, Tag, message } from "antd";
-import { ExportOutlined, SearchOutlined } from "@ant-design/icons";
-import type { TableColumnsType } from "antd";
+import { ExternalLink, Loader2, Search } from "lucide-react";
+import { toast } from "sonner";
 import {
   INVOICE_STATUS,
   invoiceStatusConfig,
@@ -19,6 +18,23 @@ import { extractApiError } from "@/lib/apiError";
 import { formatDate, formatVND } from "@/utils/format";
 import { brand } from "@/theme/index";
 import { t } from "@/lib/i18n";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 /** An invoice that is still owed money and may still be collected against. */
 function isCollectable(row: InvoiceDto): boolean {
@@ -69,111 +85,18 @@ export function BillingPage() {
         filter: debouncedSearch || undefined,
       });
     } catch (error) {
-      message.error(extractApiError(error));
+      toast.error(extractApiError(error));
     }
   };
-
-  const columns: TableColumnsType<InvoiceDto> = [
-    {
-      title: t("Mã phiếu"),
-      dataIndex: "invoiceNumber",
-      key: "invoiceNumber",
-      width: 150,
-      render: (value: string) => (
-        <strong style={{ color: brand.blue }}>{value}</strong>
-      ),
-    },
-    {
-      title: t("Khách hàng"),
-      dataIndex: "patientName",
-      key: "patientName",
-      render: (value: string) => value || "—",
-    },
-    {
-      title: t("Ngày"),
-      dataIndex: "issuedAt",
-      key: "issuedAt",
-      width: 110,
-      render: (value: string) => formatDate(value),
-    },
-    {
-      title: t("Tổng tiền"),
-      dataIndex: "totalAmount",
-      key: "totalAmount",
-      width: 130,
-      align: "right",
-      render: (value: number) => <strong>{formatVND(value)}</strong>,
-    },
-    {
-      title: t("Đã thu"),
-      dataIndex: "paidAmount",
-      key: "paidAmount",
-      width: 130,
-      align: "right",
-      render: (value: number) => (
-        <span style={{ color: brand.green, fontWeight: 600 }}>
-          {formatVND(value)}
-        </span>
-      ),
-    },
-    {
-      title: t("Còn lại"),
-      dataIndex: "balanceDue",
-      key: "balanceDue",
-      width: 130,
-      align: "right",
-      render: (value: number) => (
-        <span style={{ color: value > 0 ? brand.red : brand.faint, fontWeight: 600 }}>
-          {formatVND(value)}
-        </span>
-      ),
-    },
-    {
-      title: t("Trạng thái"),
-      dataIndex: "status",
-      key: "status",
-      width: 140,
-      render: (value: InvoiceStatus) => {
-        const look = statusLook[value];
-        return (
-          <Tag
-            style={{
-              color: look.color,
-              background: `${look.color}16`,
-              border: "none",
-              fontWeight: 600,
-            }}
-          >
-            {look.label}
-          </Tag>
-        );
-      },
-    },
-    {
-      title: t("Thao tác"),
-      key: "actions",
-      width: 158,
-      fixed: "right",
-      render: (_: unknown, row) => (
-        <Button
-          size="small"
-          type="primary"
-          disabled={!isCollectable(row)}
-          onClick={() => setPaying(row)}
-        >
-          {t("Thu tiền")}
-        </Button>
-      ),
-    },
-  ];
 
   return (
     <div className="page-container">
       <PageHeader
         title={t("Thanh toán & hoá đơn")}
-        subtitle={t("Bấm “Thu tiền” để ghi nhận thanh toán từng phiếu")}
+        subtitle={t("Bấm "Thu tiền" để ghi nhận thanh toán từng phiếu")}
         actions={
-          <Button icon={<ExportOutlined />} onClick={() => void handleExport()}>
+          <Button variant="outline" onClick={() => void handleExport()}>
+            <ExternalLink size={14} className="mr-1" />
             {t("Xuất Excel")}
           </Button>
         }
@@ -202,55 +125,105 @@ export function BillingPage() {
       </div>
 
       <div className="page-card billing-toolbar">
-        <Input
-          allowClear
-          prefix={<SearchOutlined style={{ color: brand.faint }} />}
-          placeholder={t("Tìm theo mã phiếu...")}
-          value={search}
-          onChange={(event) => {
-            setSearch(event.target.value);
-            pagination.resetToFirstPage();
-          }}
-          style={{ maxWidth: 280 }}
-        />
+        <div className="relative">
+          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="pl-8 max-w-[280px]"
+            placeholder={t("Tìm theo mã phiếu...")}
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              pagination.resetToFirstPage();
+            }}
+          />
+        </div>
         <Select
-          allowClear
-          placeholder={t("Trạng thái")}
-          value={statusFilter}
-          onChange={(value: InvoiceStatus | undefined) => {
-            setStatusFilter(value);
+          value={statusFilter !== undefined ? String(statusFilter) : ""}
+          onValueChange={(v) => {
+            setStatusFilter(v ? (Number(v) as InvoiceStatus) : undefined);
             pagination.resetToFirstPage();
           }}
-          style={{ minWidth: 190 }}
-          options={Object.entries(statusLook).map(([value, look]) => ({
-            value: Number(value) as InvoiceStatus,
-            label: look.label,
-          }))}
-        />
+        >
+          <SelectTrigger className="min-w-[190px]">
+            <SelectValue placeholder={t("Trạng thái")} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">{t("Tất cả")}</SelectItem>
+            {Object.entries(statusLook).map(([value, look]) => (
+              <SelectItem key={value} value={value}>{look.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="page-card billing-table-card">
         {isLoading ? (
-          <div className="billing-loading">
-            <Spin />
+          <div className="billing-loading flex items-center justify-center py-8">
+            <Loader2 className="size-5 animate-spin" />
           </div>
+        ) : rows.length === 0 ? (
+          <div className="py-8 text-center text-muted-foreground">{t("Chưa có hoá đơn")}</div>
         ) : (
-          <Table<InvoiceDto>
-            size="small"
-            rowKey="id"
-            columns={columns}
-            dataSource={rows}
-            scroll={{ x: 1120 }}
-            pagination={pagination.buildConfig(data?.totalCount)}
-            locale={{
-              emptyText: (
-                <Empty
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description={t("Chưa có hoá đơn")}
-                />
-              ),
-            }}
-          />
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-36">{t("Mã phiếu")}</TableHead>
+                  <TableHead>{t("Khách hàng")}</TableHead>
+                  <TableHead className="w-28">{t("Ngày")}</TableHead>
+                  <TableHead className="w-32 text-right">{t("Tổng tiền")}</TableHead>
+                  <TableHead className="w-32 text-right">{t("Đã thu")}</TableHead>
+                  <TableHead className="w-32 text-right">{t("Còn lại")}</TableHead>
+                  <TableHead className="w-36">{t("Trạng thái")}</TableHead>
+                  <TableHead className="w-40">{t("Thao tác")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((row) => {
+                  const look = statusLook[row.status];
+                  return (
+                    <TableRow key={row.id}>
+                      <TableCell>
+                        <strong style={{ color: brand.blue }}>{row.invoiceNumber}</strong>
+                      </TableCell>
+                      <TableCell>{row.patientName || "—"}</TableCell>
+                      <TableCell>{formatDate(row.issuedAt)}</TableCell>
+                      <TableCell className="text-right">
+                        <strong>{formatVND(row.totalAmount)}</strong>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span style={{ color: brand.green, fontWeight: 600 }}>
+                          {formatVND(row.paidAmount)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span style={{ color: row.balanceDue > 0 ? brand.red : brand.faint, fontWeight: 600 }}>
+                          {formatVND(row.balanceDue)}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span
+                          className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold"
+                          style={{ color: look.color, background: `${look.color}16` }}
+                        >
+                          {look.label}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          size="sm"
+                          disabled={!isCollectable(row)}
+                          onClick={() => setPaying(row)}
+                        >
+                          {t("Thu tiền")}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
 

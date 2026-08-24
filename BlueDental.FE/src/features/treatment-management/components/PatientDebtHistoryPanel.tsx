@@ -1,5 +1,13 @@
-import { Card, Table, Tag, Typography } from "antd";
-import type { TableColumnsType } from "antd";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Loader2 } from "lucide-react";
 import {
   PAYMENT_KIND,
   paymentKindConfig,
@@ -12,8 +20,6 @@ import {
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { formatDateTime, formatVND } from "@/utils/format";
 import { t } from "@/lib/i18n";
-
-const { Text } = Typography;
 
 interface PatientDebtHistoryPanelProps {
   patientId: string;
@@ -43,85 +49,74 @@ export function PatientDebtHistoryPanel({ patientId }: PatientDebtHistoryPanelPr
   });
   const rows = rowsOldestFirst.reverse();
 
-  const columns: TableColumnsType<DebtRow> = [
-    {
-      title: t("Ngày giao dịch"),
-      dataIndex: "paidAt",
-      key: "paidAt",
-      width: 160,
-      render: (value: string) => formatDateTime(value),
-    },
-    {
-      title: t("Loại"),
-      dataIndex: "kind",
-      key: "kind",
-      width: 120,
-      render: (value: PatientPaymentKind) => {
-        const config = paymentKindConfig()[value];
-        return <Tag color={config.color}>{config.label}</Tag>;
-      },
-    },
-    {
-      title: t("Hình thức"),
-      dataIndex: "method",
-      key: "method",
-      width: 130,
-      render: (value: PaymentMethodKind) => paymentMethodLabels()[value],
-    },
-    {
-      title: t("Kế hoạch"),
-      dataIndex: "treatmentPlanCode",
-      key: "treatmentPlanCode",
-      width: 100,
-      render: (value: string | null) => value ?? "—",
-    },
-    {
-      title: t("Số tiền"),
-      dataIndex: "amount",
-      key: "amount",
-      width: 140,
-      align: "right",
-      render: (value: number, row) => (
-        <Text style={{ color: row.kind === PAYMENT_KIND.Refund ? "#ef4d4d" : "#1f8a63" }}>
-          {row.kind === PAYMENT_KIND.Refund ? "-" : "+"}
-          {formatVND(value)} {t("đ")}
-        </Text>
-      ),
-    },
-    {
-      title: t("Luỹ kế đã thu"),
-      dataIndex: "runningCollected",
-      key: "runningCollected",
-      width: 150,
-      align: "right",
-      render: (value: number) => t("{0} đ", formatVND(value)),
-    },
-    {
-      title: t("Nhân viên"),
-      dataIndex: "staffName",
-      key: "staffName",
-      width: 150,
-      render: (value: string | null) => value ?? "—",
-    },
-  ];
-
   return (
-    <Card size="small">
-      <div style={{ marginBottom: 12 }} data-testid="debt-summary">
-        <Text type="secondary" style={{ fontSize: 12 }}>
-          {t("Phải thu hiện tại:")} <strong>{formatVND(account?.payment.debt ?? 0)} {t("đ")}</strong> {t("· Còn lại trên phiếu:")} <strong>{formatVND(account?.payment.totalDue ?? 0)} {t("đ")}</strong>
-        </Text>
-      </div>
+    <Card>
+      <CardContent className="p-3">
+        <div className="mb-3 text-xs text-muted-foreground" data-testid="debt-summary">
+          {t("Phải thu hiện tại:")}{" "}
+          <strong>{formatVND(account?.payment.debt ?? 0)} {t("đ")}</strong>{" "}
+          {t("· Còn lại trên phiếu:")}{" "}
+          <strong>{formatVND(account?.payment.totalDue ?? 0)} {t("đ")}</strong>
+        </div>
 
-      <Table<DebtRow>
-        size="small"
-        rowKey="id"
-        loading={isLoading}
-        columns={columns}
-        dataSource={rows}
-        pagination={{ pageSize: 20, showTotal: (total) => t("Hiển thị {0} trên {1} giao dịch", rows.length, total) }}
-        locale={{ emptyText: <span style={{ color: "#98a4b4" }}>{t("Chưa có lịch sử dư nợ")}</span> }}
-      />
+        {isLoading ? (
+          <div className="grid place-items-center py-8">
+            <Loader2 className="size-5 animate-spin" />
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead style={{ width: 160 }}>{t("Ngày giao dịch")}</TableHead>
+                  <TableHead style={{ width: 120 }}>{t("Loại")}</TableHead>
+                  <TableHead style={{ width: 130 }}>{t("Hình thức")}</TableHead>
+                  <TableHead style={{ width: 100 }}>{t("Kế hoạch")}</TableHead>
+                  <TableHead style={{ width: 140 }} className="text-right">{t("Số tiền")}</TableHead>
+                  <TableHead style={{ width: 150 }} className="text-right">{t("Luỹ kế đã thu")}</TableHead>
+                  <TableHead style={{ width: 150 }}>{t("Nhân viên")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      {t("Chưa có lịch sử dư nợ")}
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  rows.map((row) => {
+                    const kindConfig = paymentKindConfig()[row.kind as PatientPaymentKind];
+                    const isRefund = row.kind === PAYMENT_KIND.Refund;
+                    return (
+                      <TableRow key={row.id}>
+                        <TableCell className="text-xs">{formatDateTime(row.paidAt)}</TableCell>
+                        <TableCell>
+                          <span
+                            className="inline-block px-2 py-0.5 rounded text-xs font-medium"
+                            style={{ background: kindConfig.color + "22", color: kindConfig.color }}
+                          >
+                            {kindConfig.label}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-xs">{paymentMethodLabels()[row.method as PaymentMethodKind]}</TableCell>
+                        <TableCell className="text-xs">{row.treatmentPlanCode ?? "—"}</TableCell>
+                        <TableCell className="text-right text-xs" style={{ color: isRefund ? "#ef4d4d" : "#1f8a63" }}>
+                          {isRefund ? "-" : "+"}{formatVND(row.amount)} {t("đ")}
+                        </TableCell>
+                        <TableCell className="text-right text-xs">
+                          {t("{0} đ", formatVND(row.runningCollected))}
+                        </TableCell>
+                        <TableCell className="text-xs">{row.staffName ?? "—"}</TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
     </Card>
   );
 }

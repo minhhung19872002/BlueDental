@@ -1,4 +1,4 @@
-import { Empty, Spin } from "antd";
+import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { SUPPLY_STATUS, useSupplies } from "@/features/materials/api/suppliesApi";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
@@ -27,12 +27,11 @@ export function LowStockCard() {
       </div>
 
       {isLoading ? (
-        <Spin size="small" />
+        <Loader2 className="size-4 animate-spin text-primary" />
       ) : rows.length === 0 ? (
-        <Empty
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description={t("Không có vật tư dưới định mức")}
-        />
+        <div className="flex flex-col items-center justify-center py-6 text-muted-foreground text-sm gap-2">
+          <p>{t("Không có vật tư dưới định mức")}</p>
+        </div>
       ) : (
         <div className="dash-list">
           {rows.map((item) => (

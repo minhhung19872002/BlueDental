@@ -1,21 +1,33 @@
 import { useState } from "react";
+import { useForm, Controller, useFieldArray } from "react-hook-form";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
-  Button,
-  Card,
-  DatePicker,
-  Form,
-  Input,
-  InputNumber,
-  Modal,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   Select,
-  Space,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { DatePickerInput } from "@/components/ui/date-picker-input";
+import {
   Table,
-  Tag,
-  message,
-} from "antd";
-import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
-import type { TableColumnsType } from "antd";
-import dayjs from "dayjs";
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Loader2, MinusCircle, Plus } from "lucide-react";
+import { toast } from "sonner";
 import {
   PRESCRIPTION_STATUS,
   prescriptionStatusConfig,
@@ -37,18 +49,20 @@ interface PrescriptionPanelProps {
   patientId: string;
 }
 
+interface PrescriptionItemFormValues {
+  medicationId: string;
+  dosage: string;
+  frequency: string;
+  durationDays: string;
+  quantity: string;
+}
+
 interface PrescriptionFormValues {
   staffId: string;
   diagnosisText?: string;
-  followUpDate?: dayjs.Dayjs;
+  followUpDate?: string;
   note?: string;
-  items: {
-    medicationId: string;
-    dosage: string;
-    frequency: string;
-    durationDays: number;
-    quantity: number;
-  }[];
+  items: PrescriptionItemFormValues[];
 }
 
 /**
@@ -60,7 +74,6 @@ interface PrescriptionFormValues {
  */
 export function PrescriptionPanel({ patientId }: PrescriptionPanelProps) {
   const branchId = useCurrentBranchId();
-  const [form] = Form.useForm<PrescriptionFormValues>();
   const [modalOpen, setModalOpen] = useState(false);
 
   const { data, isLoading } = usePrescriptions(patientId, branchId);
@@ -71,254 +84,319 @@ export function PrescriptionPanel({ patientId }: PrescriptionPanelProps) {
   const dispensePrescription = useDispensePrescription();
   const cancelPrescription = useCancelPrescription();
 
+  const { control, handleSubmit, reset } = useForm<PrescriptionFormValues>({
+    defaultValues: {
+      items: [{ medicationId: "", dosage: "", frequency: "", durationDays: "5", quantity: "10" }],
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({ control, name: "items" });
+
   const run = async (action: Promise<unknown>, success: string) => {
     try {
       await action;
-      message.success(success);
+      toast.success(success);
     } catch (error) {
-      message.error(extractApiError(error));
+      toast.error(extractApiError(error));
     }
   };
 
-  const handleSubmit = async () => {
-    const values = await form.validateFields();
-
+  const onSubmit = async (values: PrescriptionFormValues) => {
     try {
       await createPrescription.mutateAsync({
         patientId,
         clinicBranchId: branchId,
         staffId: values.staffId,
         diagnosisText: values.diagnosisText,
-        followUpDate: values.followUpDate?.format("YYYY-MM-DD"),
+        followUpDate: values.followUpDate,
         note: values.note,
         items: values.items.map((item) => ({
           medicationId: item.medicationId,
           dosage: item.dosage,
           frequency: item.frequency,
-          durationDays: item.durationDays,
-          quantity: item.quantity,
+          durationDays: Number(item.durationDays),
+          quantity: Number(item.quantity),
         })),
       });
 
-      message.success(t("Đã tạo đơn thuốc"));
+      toast.success(t("Đã tạo đơn thuốc"));
       setModalOpen(false);
-      form.resetFields();
+      reset();
     } catch (error) {
-      message.error(extractApiError(error));
+      toast.error(extractApiError(error));
     }
   };
 
-  const columns: TableColumnsType<PrescriptionDto> = [
-    { title: t("Mã đơn thuốc"), dataIndex: "code", key: "code", width: 130 },
-    {
-      title: t("Bác sĩ"),
-      dataIndex: "staffName",
-      key: "staffName",
-      width: 150,
-      render: (value: string | null) => value ?? "—",
-    },
-    {
-      title: t("Chẩn đoán"),
-      dataIndex: "diagnosisText",
-      key: "diagnosisText",
-      render: (value: string | null) => value ?? "—",
-    },
-    {
-      title: t("Thuốc"),
-      key: "items",
-      width: 240,
-      render: (_, row) =>
-        row.items.length === 0
-          ? "—"
-          : row.items.map((item) => t("{0} ×{1}", item.medicationName, item.quantity)).join(", "),
-    },
-    {
-      title: t("Tái khám"),
-      dataIndex: "followUpDate",
-      key: "followUpDate",
-      width: 110,
-      render: (value: string | null) => (value ? formatDate(value) : "—"),
-    },
-    {
-      title: t("Ngày tạo"),
-      dataIndex: "issuedAt",
-      key: "issuedAt",
-      width: 110,
-      render: (value: string) => formatDate(value),
-    },
-    {
-      title: t("Trạng thái"),
-      dataIndex: "status",
-      key: "status",
-      width: 110,
-      render: (value: PrescriptionDto["status"]) => {
-        const config = prescriptionStatusConfig()[value];
-        return <Tag color={config.color}>{config.label}</Tag>;
-      },
-    },
-    {
-      title: t("Thao tác"),
-      key: "actions",
-      width: 230,
-      render: (_, row) => (
-        <Space size={4}>
-          <Button
-            type="link"
-            size="small"
-            onClick={() =>
-              void downloadFile(`/v1/app/prescriptions/${row.id}/pdf`, `don-thuoc-${row.code}.pdf`)
-            }
-          >
-            {t("In đơn")}
-          </Button>
-          {row.status === PRESCRIPTION_STATUS.Active ? (
-            <>
-              <Button
-                type="link"
-                size="small"
-                loading={dispensePrescription.isPending}
-                onClick={() => run(dispensePrescription.mutateAsync(row.id), t("Đã phát thuốc"))}
-              >
-                {t("Phát thuốc")}
-              </Button>
-              <Button
-                type="link"
-                size="small"
-                danger
-                loading={cancelPrescription.isPending}
-                onClick={() => run(cancelPrescription.mutateAsync(row.id), t("Đã huỷ đơn thuốc"))}
-              >
-                {t("Huỷ")}
-              </Button>
-            </>
-          ) : null}
-        </Space>
-      ),
-    },
-  ];
+  const statusConfig = prescriptionStatusConfig();
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
+      <div className="flex justify-end mb-4">
+        <Button onClick={() => setModalOpen(true)}>
+          <Plus size={14} className="mr-2" />
           {t("Tạo đơn thuốc")}
         </Button>
       </div>
 
-      <Card size="small">
-        <Table<PrescriptionDto>
-          size="small"
-          rowKey="id"
-          loading={isLoading}
-          columns={columns}
-          dataSource={data?.items ?? []}
-          pagination={false}
-          locale={{ emptyText: <span style={{ color: "#98a4b4" }}>{t("Chưa có đơn thuốc")}</span> }}
-        />
+      <Card>
+        <CardContent className="p-3">
+          {isLoading ? (
+            <div className="grid place-items-center py-8">
+              <Loader2 className="size-5 animate-spin" />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead style={{ width: 130 }}>{t("Mã đơn thuốc")}</TableHead>
+                    <TableHead style={{ width: 150 }}>{t("Bác sĩ")}</TableHead>
+                    <TableHead>{t("Chẩn đoán")}</TableHead>
+                    <TableHead style={{ width: 240 }}>{t("Thuốc")}</TableHead>
+                    <TableHead style={{ width: 110 }}>{t("Tái khám")}</TableHead>
+                    <TableHead style={{ width: 110 }}>{t("Ngày tạo")}</TableHead>
+                    <TableHead style={{ width: 110 }}>{t("Trạng thái")}</TableHead>
+                    <TableHead style={{ width: 230 }}>{t("Thao tác")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(data?.items ?? []).length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8" style={{ color: "#98a4b4" }}>
+                        {t("Chưa có đơn thuốc")}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    (data?.items ?? []).map((row: PrescriptionDto) => {
+                      const sConfig = statusConfig[row.status];
+                      return (
+                        <TableRow key={row.id}>
+                          <TableCell className="text-xs">{row.code}</TableCell>
+                          <TableCell className="text-xs">{row.staffName ?? "—"}</TableCell>
+                          <TableCell className="text-xs">{row.diagnosisText ?? "—"}</TableCell>
+                          <TableCell className="text-xs">
+                            {row.items.length === 0
+                              ? "—"
+                              : row.items.map((item) => t("{0} ×{1}", item.medicationName, item.quantity)).join(", ")}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {row.followUpDate ? formatDate(row.followUpDate) : "—"}
+                          </TableCell>
+                          <TableCell className="text-xs">{formatDate(row.issuedAt)}</TableCell>
+                          <TableCell>
+                            <span
+                              className="inline-block px-2 py-0.5 rounded text-xs font-medium"
+                              style={{ background: sConfig.color + "22", color: sConfig.color }}
+                            >
+                              {sConfig.label}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-xs h-7 px-2"
+                                onClick={() =>
+                                  void downloadFile(
+                                    `/v1/app/prescriptions/${row.id}/pdf`,
+                                    `don-thuoc-${row.code}.pdf`,
+                                  )
+                                }
+                              >
+                                {t("In đơn")}
+                              </Button>
+                              {row.status === PRESCRIPTION_STATUS.Active ? (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-xs h-7 px-2"
+                                    disabled={dispensePrescription.isPending}
+                                    onClick={() =>
+                                      run(dispensePrescription.mutateAsync(row.id), t("Đã phát thuốc"))
+                                    }
+                                  >
+                                    {t("Phát thuốc")}
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-xs h-7 px-2 text-destructive hover:text-destructive"
+                                    disabled={cancelPrescription.isPending}
+                                    onClick={() =>
+                                      run(cancelPrescription.mutateAsync(row.id), t("Đã huỷ đơn thuốc"))
+                                    }
+                                  >
+                                    {t("Huỷ")}
+                                  </Button>
+                                </>
+                              ) : null}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
       </Card>
 
-      <Modal
-        open={modalOpen}
-        title={t("Tạo đơn thuốc")}
-        okText={t("Tạo")}
-        cancelText={t("Huỷ")}
-        width={720}
-        confirmLoading={createPrescription.isPending}
-        onOk={handleSubmit}
-        onCancel={() => setModalOpen(false)}
-        destroyOnHidden
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          requiredMark
-          initialValues={{ items: [{ durationDays: 5, quantity: 10 }] }}
-        >
-          <Form.Item
-            name="staffId"
-            label={t("Bác sĩ kê đơn")}
-            rules={[{ required: true, message: t("Vui lòng chọn bác sĩ") }]}
-          >
-            <Select
-              placeholder={t("Chọn bác sĩ")}
-              options={(dentists ?? []).map((d) => ({ value: d.id, label: d.name }))}
-            />
-          </Form.Item>
+      <Dialog open={modalOpen} onOpenChange={(open) => { if (!open) { setModalOpen(false); reset(); } }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{t("Tạo đơn thuốc")}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium">{t("Bác sĩ kê đơn")} <span className="text-destructive">*</span></label>
+              <Controller
+                name="staffId"
+                control={control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={t("Chọn bác sĩ")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(dentists ?? []).map((d) => (
+                        <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
 
-          <Form.Item name="diagnosisText" label={t("Chẩn đoán")}>
-            <Input placeholder={t("Chẩn đoán trên đơn")} maxLength={500} />
-          </Form.Item>
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium">{t("Chẩn đoán")}</label>
+              <Controller
+                name="diagnosisText"
+                control={control}
+                render={({ field }) => (
+                  <Input {...field} placeholder={t("Chẩn đoán trên đơn")} maxLength={500} />
+                )}
+              />
+            </div>
 
-          <Form.Item name="followUpDate" label={t("Tái khám")}>
-            <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
-          </Form.Item>
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium">{t("Tái khám")}</label>
+              <Controller
+                name="followUpDate"
+                control={control}
+                render={({ field }) => (
+                  <DatePickerInput value={field.value} onChange={(v) => field.onChange(v)} />
+                )}
+              />
+            </div>
 
-          <Form.List name="items">
-            {(fields, { add, remove }) => (
-              <>
-                {fields.map((field) => (
-                  <Space key={field.key} align="baseline" style={{ display: "flex", gap: 8 }}>
-                    {/* The line carries no label, so the wrapper gives tests a handle. */}
-                    <div data-testid="prescription-medicine">
-                      <Form.Item
-                        name={[field.name, "medicationId"]}
-                        rules={[{ required: true, message: t("Chọn thuốc") }]}
-                        style={{ width: 220 }}
-                      >
-                        <Select
-                          showSearch
-                          optionFilterProp="label"
-                          placeholder={
-                            (medications?.length ?? 0) === 0
-                              ? t("Chưa có danh mục thuốc")
-                              : t("Chọn thuốc")
-                          }
-                          options={(medications ?? []).map((m) => ({ value: m.id, label: m.name }))}
-                        />
-                      </Form.Item>
-                    </div>
-                    <Form.Item name={[field.name, "dosage"]} style={{ width: 110 }}>
-                      <Input placeholder={t("Liều dùng")} />
-                    </Form.Item>
-                    <Form.Item name={[field.name, "frequency"]} style={{ width: 120 }}>
-                      <Input placeholder={t("Tần suất")} />
-                    </Form.Item>
-                    <Form.Item
-                      name={[field.name, "durationDays"]}
-                      rules={[{ required: true, message: t("Số ngày") }]}
-                      style={{ width: 90 }}
-                    >
-                      <InputNumber min={1} placeholder={t("Ngày")} style={{ width: "100%" }} />
-                    </Form.Item>
-                    <Form.Item
-                      name={[field.name, "quantity"]}
-                      rules={[{ required: true, message: t("Số lượng") }]}
-                      style={{ width: 90 }}
-                    >
-                      <InputNumber min={1} placeholder="SL" style={{ width: "100%" }} />
-                    </Form.Item>
-                    {fields.length > 1 && (
-                      <MinusCircleOutlined onClick={() => remove(field.name)} />
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium">{t("Thuốc")}</label>
+              {fields.map((field, index) => (
+                <div key={field.id} className="flex items-center gap-2" data-testid="prescription-medicine">
+                  <div style={{ width: 220 }}>
+                    <Controller
+                      name={`items.${index}.medicationId`}
+                      control={control}
+                      render={({ field: f }) => (
+                        <Select value={f.value} onValueChange={f.onChange}>
+                          <SelectTrigger>
+                            <SelectValue
+                              placeholder={
+                                (medications?.length ?? 0) === 0
+                                  ? t("Chưa có danh mục thuốc")
+                                  : t("Chọn thuốc")
+                              }
+                            />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(medications ?? []).map((m) => (
+                              <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                  </div>
+                  <Controller
+                    name={`items.${index}.dosage`}
+                    control={control}
+                    render={({ field: f }) => (
+                      <Input {...f} placeholder={t("Liều dùng")} style={{ width: 110 }} />
                     )}
-                  </Space>
-                ))}
-                <Button
-                  type="dashed"
-                  block
-                  icon={<PlusOutlined />}
-                  onClick={() => add({ durationDays: 5, quantity: 10 })}
-                >
-                  {t("Thêm thuốc")}
-                </Button>
-              </>
-            )}
-          </Form.List>
+                  />
+                  <Controller
+                    name={`items.${index}.frequency`}
+                    control={control}
+                    render={({ field: f }) => (
+                      <Input {...f} placeholder={t("Tần suất")} style={{ width: 120 }} />
+                    )}
+                  />
+                  <Controller
+                    name={`items.${index}.durationDays`}
+                    control={control}
+                    render={({ field: f }) => (
+                      <Input {...f} type="number" min={1} placeholder={t("Ngày")} style={{ width: 90 }} />
+                    )}
+                  />
+                  <Controller
+                    name={`items.${index}.quantity`}
+                    control={control}
+                    render={({ field: f }) => (
+                      <Input {...f} type="number" min={1} placeholder="SL" style={{ width: 90 }} />
+                    )}
+                  />
+                  {fields.length > 1 && (
+                    <MinusCircle
+                      size={16}
+                      className="cursor-pointer text-muted-foreground hover:text-destructive shrink-0"
+                      onClick={() => remove(index)}
+                    />
+                  )}
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => append({ medicationId: "", dosage: "", frequency: "", durationDays: "5", quantity: "10" })}
+              >
+                <Plus size={14} className="mr-2" />
+                {t("Thêm thuốc")}
+              </Button>
+            </div>
 
-          <Form.Item name="note" label={t("Ghi chú")} style={{ marginTop: 16 }}>
-            <Input.TextArea rows={2} maxLength={1000} placeholder={t("Lời dặn của bác sĩ")} />
-          </Form.Item>
-        </Form>
-      </Modal>
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium">{t("Ghi chú")}</label>
+              <Controller
+                name="note"
+                control={control}
+                render={({ field }) => (
+                  <textarea
+                    {...field}
+                    rows={2}
+                    maxLength={1000}
+                    placeholder={t("Lời dặn của bác sĩ")}
+                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                )}
+              />
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => { setModalOpen(false); reset(); }}>
+                {t("Huỷ")}
+              </Button>
+              <Button type="submit" disabled={createPrescription.isPending}>
+                {createPrescription.isPending && <Loader2 className="size-4 animate-spin mr-2" />}
+                {t("Tạo")}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

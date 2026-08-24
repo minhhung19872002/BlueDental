@@ -1,8 +1,42 @@
 import { useState } from "react";
-import { Button, Input, Table, Modal, Form, InputNumber, Tag, message, Popconfirm, Select } from "antd";
-import { SearchOutlined, PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
-import type { ColumnsType } from "antd/es/table";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogFooter,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Loader2, Search, Plus, Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import dayjs from "dayjs";
+import { useForm, Controller } from "react-hook-form";
 import { t } from "@/lib/i18n";
 import { PageHeader } from "@/components/PageHeader";
 import {
@@ -33,6 +67,15 @@ type MaterialsSubRoute = "clinic" | "allocation" | "department";
 
 // ── Create/Edit Modal ─────────────────────────────────────────────────────
 
+interface InventoryFormValues {
+  itemCode?: string;
+  name: string;
+  category?: string;
+  unit?: string;
+  reorderLevel?: number;
+  unitCost?: number;
+}
+
 interface InventoryModalProps {
   open: boolean;
   onClose: () => void;
@@ -40,96 +83,92 @@ interface InventoryModalProps {
 }
 
 function InventoryModal({ open, onClose, editingItem }: InventoryModalProps) {
-  const [form] = Form.useForm();
   const createMutation = useCreateInventoryItem();
   const updateMutation = useUpdateInventoryItem();
   const isEdit = Boolean(editingItem);
 
-  const handleOk = async () => {
-    try {
-      const values = await form.validateFields();
-      if (isEdit && editingItem) {
-        await updateMutation.mutateAsync({
-          id: editingItem.id,
-          data: {
-            name: values.name,
-            category: values.category,
-            unit: values.unit,
-            reorderLevel: values.reorderLevel ?? 0,
-            unitCost: values.unitCost,
-          } as UpdateInventoryItemDto,
-        });
-        message.success(t("Cập nhật vật tư thành công"));
-      } else {
-        await createMutation.mutateAsync({
-          itemCode: values.itemCode,
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<InventoryFormValues>({
+    defaultValues: editingItem ? {
+      name: editingItem.name,
+      category: editingItem.category ?? "",
+      unit: editingItem.unit ?? "",
+      reorderLevel: editingItem.reorderLevel,
+    } : {},
+  });
+
+  const onSubmit = handleSubmit(async (values) => {
+    if (isEdit && editingItem) {
+      await updateMutation.mutateAsync({
+        id: editingItem.id,
+        data: {
           name: values.name,
           category: values.category,
           unit: values.unit,
           reorderLevel: values.reorderLevel ?? 0,
           unitCost: values.unitCost,
-        });
-        message.success(t("Thêm vật tư thành công"));
-      }
-      form.resetFields();
-      onClose();
-    } catch {
-      // validation handled by antd
+        } as UpdateInventoryItemDto,
+      });
+      toast.success(t("Cập nhật vật tư thành công"));
+    } else {
+      await createMutation.mutateAsync({
+        itemCode: values.itemCode ?? "",
+        name: values.name,
+        category: values.category,
+        unit: values.unit,
+        reorderLevel: values.reorderLevel ?? 0,
+        unitCost: values.unitCost,
+      });
+      toast.success(t("Thêm vật tư thành công"));
     }
-  };
+    reset();
+    onClose();
+  });
 
   return (
-    <Modal
-      title={isEdit ? t("Chỉnh sửa vật tư") : t("Thêm vật tư mới")}
-      open={open}
-      onCancel={() => { form.resetFields(); onClose(); }}
-      onOk={handleOk}
-      confirmLoading={createMutation.isPending || updateMutation.isPending}
-      okText={isEdit ? t("Lưu thay đổi") : t("Thêm vật tư")}
-      cancelText={t("Hủy")}
-      width={500}
-      destroyOnClose
-      afterOpenChange={(visible) => {
-        if (visible && editingItem) {
-          form.setFieldsValue({
-            itemCode: editingItem.itemCode,
-            name: editingItem.name,
-            category: editingItem.category,
-            unit: editingItem.unit,
-            reorderLevel: editingItem.reorderLevel,
-          });
-        }
-      }}
-    >
-      <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
-        {!isEdit && (
-          <Form.Item name="itemCode" label={t("Mã vật tư")} rules={[{ required: true, message: t("Nhập mã vật tư") }]}>
-            <Input placeholder={t("Nhập mã vật tư")} />
-          </Form.Item>
-        )}
-        <Form.Item name="name" label={t("Tên vật tư")} rules={[{ required: true, message: t("Nhập tên vật tư") }]}>
-          <Input placeholder={t("Nhập tên vật tư")} />
-        </Form.Item>
-        <Form.Item name="category" label={t("Nhóm phân loại")}>
-          <Input placeholder={t("Nhóm phân loại")} />
-        </Form.Item>
-        <Form.Item name="unit" label={t("Đơn vị")}>
-          <Input placeholder={t("Đơn vị")} />
-        </Form.Item>
-        <Form.Item name="reorderLevel" label={t("Mức tồn kho tối thiểu")}>
-          <InputNumber<number> min={0} style={{ width: "100%" }} placeholder="0" />
-        </Form.Item>
-        <Form.Item name="unitCost" label={t("Giá nhập (VND)")}>
-          <InputNumber<number>
-            min={0}
-            style={{ width: "100%" }}
-            formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-            parser={(v) => parseFloat((v ?? "0").replace(/,/g, "")) || 0}
-            placeholder="0"
-          />
-        </Form.Item>
-      </Form>
-    </Modal>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) { reset(); onClose(); } }}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? t("Chỉnh sửa vật tư") : t("Thêm vật tư mới")}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={onSubmit} className="space-y-3 mt-2">
+          {!isEdit && (
+            <div>
+              <label className="text-sm font-medium mb-1 block">{t("Mã vật tư")} <span className="text-destructive">*</span></label>
+              <Input placeholder={t("Nhập mã vật tư")} {...register("itemCode", { required: t("Nhập mã vật tư") })} />
+              {errors.itemCode && <p className="text-xs text-destructive mt-1">{errors.itemCode.message}</p>}
+            </div>
+          )}
+          <div>
+            <label className="text-sm font-medium mb-1 block">{t("Tên vật tư")} <span className="text-destructive">*</span></label>
+            <Input placeholder={t("Nhập tên vật tư")} {...register("name", { required: t("Nhập tên vật tư") })} defaultValue={editingItem?.name} />
+            {errors.name && <p className="text-xs text-destructive mt-1">{errors.name.message}</p>}
+          </div>
+          <div>
+            <label className="text-sm font-medium mb-1 block">{t("Nhóm phân loại")}</label>
+            <Input placeholder={t("Nhóm phân loại")} {...register("category")} defaultValue={editingItem?.category ?? ""} />
+          </div>
+          <div>
+            <label className="text-sm font-medium mb-1 block">{t("Đơn vị")}</label>
+            <Input placeholder={t("Đơn vị")} {...register("unit")} defaultValue={editingItem?.unit ?? ""} />
+          </div>
+          <div>
+            <label className="text-sm font-medium mb-1 block">{t("Mức tồn kho tối thiểu")}</label>
+            <Input type="number" min={0} placeholder="0" {...register("reorderLevel", { valueAsNumber: true })} defaultValue={editingItem?.reorderLevel} />
+          </div>
+          <div>
+            <label className="text-sm font-medium mb-1 block">{t("Giá nhập (VND)")}</label>
+            <Input type="number" min={0} placeholder="0" {...register("unitCost", { valueAsNumber: true })} />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => { reset(); onClose(); }}>{t("Hủy")}</Button>
+            <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
+              {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="size-4 animate-spin mr-2" />}
+              {isEdit ? t("Lưu thay đổi") : t("Thêm vật tư")}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -161,68 +200,11 @@ function ClinicMaterialsView() {
   const handleDelete = async (id: string) => {
     try {
       await deleteMutation.mutateAsync(id);
-      message.success(t("Xóa vật tư thành công"));
+      toast.success(t("Xóa vật tư thành công"));
     } catch {
-      message.error(t("Xóa thất bại"));
+      toast.error(t("Xóa thất bại"));
     }
   };
-
-  const columns: ColumnsType<InventoryItemDto> = [
-    { title: t("Mã"), dataIndex: "itemCode", key: "itemCode", width: 90 },
-    { title: t("Tên vật liệu"), dataIndex: "name", key: "name" },
-    { title: t("Nhóm phân loại"), dataIndex: "category", key: "category", render: (v: string) => v ?? "—" },
-    { title: t("Đơn vị"), dataIndex: "unit", key: "unit", render: (v: string) => v ?? "—" },
-    {
-      title: t("Tồn kho"),
-      dataIndex: "quantityOnHand",
-      key: "quantityOnHand",
-      align: "right",
-      render: (v: number, record) => (
-        <span style={{ color: record.needsReorder ? "#ff4d4f" : undefined, fontWeight: record.needsReorder ? 600 : 400 }}>
-          {v}
-        </span>
-      ),
-    },
-    {
-      title: t("Trạng thái"),
-      dataIndex: "needsReorder",
-      key: "status",
-      render: (needsReorder: boolean, record) => (
-        <Tag color={!record.isActive ? "default" : needsReorder ? "orange" : "green"}>
-          {!record.isActive ? t("Ngừng") : needsReorder ? t("Sắp hết") : t("Đủ hàng")}
-        </Tag>
-      ),
-    },
-    {
-      title: t("Cập nhật gần nhất"),
-      dataIndex: "lastModificationTime",
-      key: "updatedAt",
-      render: (v: string) => (v ? dayjs(v).format("DD/MM/YYYY") : "—"),
-    },
-    {
-      title: t("Thao tác"),
-      key: "actions",
-      width: 120,
-      render: (_, record) => (
-        <div style={{ display: "flex", gap: 6 }}>
-          <Button
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => { setEditingItem(record); setModalOpen(true); }}
-          />
-          <Popconfirm
-            title={t("Xác nhận xóa vật tư này?")}
-            onConfirm={() => handleDelete(record.id)}
-            okText={t("Xóa")}
-            cancelText={t("Hủy")}
-            okButtonProps={{ danger: true }}
-          >
-            <Button size="small" danger icon={<DeleteOutlined />} />
-          </Popconfirm>
-        </div>
-      ),
-    },
-  ];
 
   return (
     <div style={{ display: "flex", gap: 16 }}>
@@ -231,58 +213,30 @@ function ClinicMaterialsView() {
         <div style={{ marginBottom: 8 }}>
           <div style={{ fontWeight: 600, marginBottom: 4 }}>
             {t("Nhóm vật tư")}
-            <span style={{ fontWeight: 400, color: "#8c8c8c", marginLeft: 6 }}>
-              {t("{0} nhóm", categories.length)}
-            </span>
+            <span style={{ fontWeight: 400, color: "#8c8c8c", marginLeft: 6 }}>{t("{0} nhóm", categories.length)}</span>
           </div>
-          <div style={{ fontSize: 12, color: "#8c8c8c", marginBottom: 10 }}>
-            {t("Chọn nhóm để xem vật tư")}
-          </div>
+          <div style={{ fontSize: 12, color: "#8c8c8c", marginBottom: 10 }}>{t("Chọn nhóm để xem vật tư")}</div>
           <Input
             placeholder={t("Tìm nhóm vật tư...")}
-            size="small"
-            style={{ marginBottom: 8 }}
+            className="h-7 text-sm mb-2"
             value={groupSearch}
             onChange={(e) => setGroupSearch(e.target.value)}
-            allowClear
           />
         </div>
         {filteredCategories.length === 0 ? (
-          <div style={{ color: "#8c8c8c", fontSize: 13, textAlign: "center", paddingTop: 16 }}>
-            {t("Chưa có nhóm vật tư")}
-          </div>
+          <div style={{ color: "#8c8c8c", fontSize: 13, textAlign: "center", paddingTop: 16 }}>{t("Chưa có nhóm vật tư")}</div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <div
-              style={{
-                padding: "6px 10px",
-                borderRadius: 6,
-                cursor: "pointer",
-                fontSize: 13,
-                background: selectedGroup === null ? "#e6f4ff" : "transparent",
-                color: selectedGroup === null ? "#1677ff" : undefined,
-                fontWeight: selectedGroup === null ? 500 : 400,
-              }}
-              onClick={() => setSelectedGroup(null)}
-            >
+            <div style={{ padding: "6px 10px", borderRadius: 6, cursor: "pointer", fontSize: 13, background: selectedGroup === null ? "#e6f4ff" : "transparent", color: selectedGroup === null ? "#1677ff" : undefined, fontWeight: selectedGroup === null ? 500 : 400 }}
+              onClick={() => setSelectedGroup(null)}>
               {t("Tất cả")} ({allItems.length})
             </div>
             {filteredCategories.map((cat) => {
               const count = allItems.filter((i) => i.category === cat).length;
               return (
-                <div
-                  key={cat}
-                  style={{
-                    padding: "6px 10px",
-                    borderRadius: 6,
-                    cursor: "pointer",
-                    fontSize: 13,
-                    background: selectedGroup === cat ? "#e6f4ff" : "transparent",
-                    color: selectedGroup === cat ? "#1677ff" : undefined,
-                    fontWeight: selectedGroup === cat ? 500 : 400,
-                  }}
-                  onClick={() => setSelectedGroup(cat)}
-                >
+                <div key={cat}
+                  style={{ padding: "6px 10px", borderRadius: 6, cursor: "pointer", fontSize: 13, background: selectedGroup === cat ? "#e6f4ff" : "transparent", color: selectedGroup === cat ? "#1677ff" : undefined, fontWeight: selectedGroup === cat ? 500 : 400 }}
+                  onClick={() => setSelectedGroup(cat)}>
                   {cat} ({count})
                 </div>
               );
@@ -296,59 +250,90 @@ function ClinicMaterialsView() {
         <div className="reception-card reception-card--toolbar">
           <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", gap: 8 }}>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => { setEditingItem(null); setModalOpen(true); }}
-              >
-                {t("Thêm vật tư")}
-              </Button>
-              <Button disabled>{t("Sync data hệ thống")}</Button>
+              <Button onClick={() => { setEditingItem(null); setModalOpen(true); }}><Plus size={14} className="mr-1.5" />{t("Thêm vật tư")}</Button>
+              <Button variant="outline" disabled>{t("Sync data hệ thống")}</Button>
             </div>
-            <Input
-              prefix={<SearchOutlined />}
-              placeholder={t("Tìm kiếm...")}
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              style={{ width: 220 }}
-              allowClear
-            />
+            <div className="relative">
+              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input placeholder={t("Tìm kiếm...")} value={keyword} onChange={(e) => setKeyword(e.target.value)} className="pl-8 w-56" />
+            </div>
           </div>
         </div>
-        <div className="reception-card reception-card--content">
-          <Table
-            columns={columns}
-            dataSource={filtered}
-            rowKey="id"
-            loading={isLoading}
-            scroll={{ x: "max-content" }}
-            pagination={{
-              pageSize: 20,
-              showSizeChanger: true,
-              pageSizeOptions: ["10", "20", "50", "100"],
-              showTotal: (total) => t("Hiển thị {0} vật tư", total),
-            }}
-            locale={{ emptyText: t("Không có dữ liệu") }}
-            size="middle"
-          />
+        <div className="reception-card reception-card--content overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-24">{t("Mã")}</TableHead>
+                <TableHead>{t("Tên vật liệu")}</TableHead>
+                <TableHead>{t("Nhóm phân loại")}</TableHead>
+                <TableHead>{t("Đơn vị")}</TableHead>
+                <TableHead className="text-right">{t("Tồn kho")}</TableHead>
+                <TableHead>{t("Trạng thái")}</TableHead>
+                <TableHead>{t("Cập nhật gần nhất")}</TableHead>
+                <TableHead className="w-28">{t("Thao tác")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow><TableCell colSpan={8} className="text-center py-8"><Loader2 className="size-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
+              ) : filtered.length === 0 ? (
+                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">{t("Không có dữ liệu")}</TableCell></TableRow>
+              ) : filtered.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell>{item.itemCode}</TableCell>
+                  <TableCell className="font-medium">{item.name}</TableCell>
+                  <TableCell>{item.category ?? "—"}</TableCell>
+                  <TableCell>{item.unit ?? "—"}</TableCell>
+                  <TableCell className="text-right">
+                    <span style={{ color: item.needsReorder ? "#ff4d4f" : undefined, fontWeight: item.needsReorder ? 600 : 400 }}>{item.quantityOnHand}</span>
+                  </TableCell>
+                  <TableCell>
+                    <span className={`text-xs px-2 py-0.5 rounded font-medium ${!item.isActive ? "bg-gray-100 text-gray-500" : item.needsReorder ? "bg-orange-100 text-orange-600" : "bg-green-100 text-green-700"}`}>
+                      {!item.isActive ? t("Ngừng") : item.needsReorder ? t("Sắp hết") : t("Đủ hàng")}
+                    </span>
+                  </TableCell>
+                  <TableCell>{item.lastModificationTime ? dayjs(item.lastModificationTime).format("DD/MM/YYYY") : "—"}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-1.5">
+                      <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditingItem(item); setModalOpen(true); }}><Pencil size={14} /></Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild><Button variant="destructive" size="sm" className="h-7 w-7 p-0"><Trash2 size={14} /></Button></AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader><AlertDialogTitle>{t("Xác nhận xóa vật tư này?")}</AlertDialogTitle></AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>{t("Hủy")}</AlertDialogCancel>
+                            <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => handleDelete(item.id)}>{t("Xóa")}</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       </div>
 
-      <InventoryModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        editingItem={editingItem}
-      />
+      <InventoryModal open={modalOpen} onClose={() => { setModalOpen(false); setEditingItem(null); }} editingItem={editingItem} />
     </div>
   );
 }
 
 // ── Allocation View ────────────────────────────────────────────────────────
 
+interface AllocationFormValues {
+  inventoryItemId: string;
+  departmentId: string;
+  allocatedQuantity: number;
+  performerName?: string;
+  note?: string;
+}
+
 function AllocationView() {
   const [keyword, setKeyword] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
-  const [form] = Form.useForm();
+  const { register, handleSubmit, control, reset, formState: { errors } } = useForm<AllocationFormValues>();
 
   const { data, isLoading } = useAllocationList();
   const { data: inventoryData } = useInventoryItemList();
@@ -365,84 +350,148 @@ function AllocationView() {
       (item.performerName ?? "").toLowerCase().includes(kw);
   });
 
-  const handleCreate = async () => {
-    try {
-      const values = await form.validateFields();
-      await createMutation.mutateAsync(values);
-      message.success(t("Tạo phiếu phân bổ thành công"));
-      form.resetFields();
-      setModalOpen(false);
-    } catch { /* validation */ }
-  };
+  const onSubmit = handleSubmit(async (values) => {
+    await createMutation.mutateAsync(values);
+    toast.success(t("Tạo phiếu phân bổ thành công"));
+    reset();
+    setModalOpen(false);
+  });
 
   const handleDelete = async (id: string) => {
     await deleteMutation.mutateAsync(id);
-    message.success(t("Xóa phiếu phân bổ thành công"));
+    toast.success(t("Xóa phiếu phân bổ thành công"));
   };
-
-  const columns: ColumnsType<MaterialAllocationDto> = [
-    { title: t("Thời gian phân bổ"), dataIndex: "allocationTime", key: "allocationTime", width: 160, render: (v: string) => v ? dayjs(v).format("DD/MM/YYYY HH:mm") : "—" },
-    { title: t("Mã phân bổ"), dataIndex: "allocationCode", key: "allocationCode", width: 150 },
-    { title: t("Tên vật liệu"), dataIndex: "inventoryItemName", key: "material", render: (v: string) => v ?? "—" },
-    { title: t("SL được phân bổ"), dataIndex: "allocatedQuantity", key: "allocatedQty", width: 130, align: "right" },
-    { title: t("SL confirm còn lại"), dataIndex: "confirmedRemaining", key: "confirmedRemaining", width: 150, align: "right" },
-    { title: t("Phòng ban"), dataIndex: "departmentName", key: "department", render: (v: string) => v ?? "—" },
-    { title: t("Người thực hiện"), dataIndex: "performerName", key: "performer", render: (v: string) => v ?? "—" },
-    { title: t("Ghi chú"), dataIndex: "note", key: "note", render: (v: string) => v ?? "—" },
-    {
-      title: t("Thao tác"),
-      key: "actions",
-      width: 80,
-      render: (_, record) => (
-        <Popconfirm title={t("Xác nhận xóa vật tư này?")} onConfirm={() => handleDelete(record.id)} okText={t("Xóa")} cancelText={t("Hủy")} okButtonProps={{ danger: true }}>
-          <Button size="small" danger icon={<DeleteOutlined />} />
-        </Popconfirm>
-      ),
-    },
-  ];
 
   return (
     <>
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
           <div style={{ display: "flex", gap: 8 }}>
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => { form.resetFields(); setModalOpen(true); }}>{t("Tạo phiếu phân bổ")}</Button>
-            <Input prefix={<SearchOutlined />} placeholder={t("Tìm phiếu phân bổ...")} value={keyword} onChange={(e) => setKeyword(e.target.value)} style={{ width: 280 }} allowClear />
+            <Button onClick={() => { reset(); setModalOpen(true); }}><Plus size={14} className="mr-1.5" />{t("Tạo phiếu phân bổ")}</Button>
+            <div className="relative">
+              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input placeholder={t("Tìm phiếu phân bổ...")} value={keyword} onChange={(e) => setKeyword(e.target.value)} className="pl-8 w-72" />
+            </div>
           </div>
-          <Button>{t("Lịch sử kiểm kho")}</Button>
+          <Button variant="outline">{t("Lịch sử kiểm kho")}</Button>
         </div>
       </div>
-      <div className="reception-card reception-card--content">
-        <Table columns={columns} dataSource={filtered} rowKey="id" loading={isLoading} pagination={{ pageSize: 20, showTotal: (total) => t("Hiển thị {0} trên {1}", filtered.length, total) }} locale={{ emptyText: t("Chưa có phiếu phân bổ") }} size="middle" scroll={{ x: "max-content" }} />
+      <div className="reception-card reception-card--content overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-40">{t("Thời gian phân bổ")}</TableHead>
+              <TableHead className="w-36">{t("Mã phân bổ")}</TableHead>
+              <TableHead>{t("Tên vật liệu")}</TableHead>
+              <TableHead className="text-right w-32">{t("SL được phân bổ")}</TableHead>
+              <TableHead className="text-right w-36">{t("SL confirm còn lại")}</TableHead>
+              <TableHead>{t("Phòng ban")}</TableHead>
+              <TableHead>{t("Người thực hiện")}</TableHead>
+              <TableHead>{t("Ghi chú")}</TableHead>
+              <TableHead className="w-20">{t("Thao tác")}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow><TableCell colSpan={9} className="text-center py-8"><Loader2 className="size-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
+            ) : filtered.length === 0 ? (
+              <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">{t("Chưa có phiếu phân bổ")}</TableCell></TableRow>
+            ) : filtered.map((item) => (
+              <TableRow key={item.id}>
+                <TableCell>{item.allocationTime ? dayjs(item.allocationTime).format("DD/MM/YYYY HH:mm") : "—"}</TableCell>
+                <TableCell>{item.allocationCode}</TableCell>
+                <TableCell>{item.inventoryItemName ?? "—"}</TableCell>
+                <TableCell className="text-right">{item.allocatedQuantity}</TableCell>
+                <TableCell className="text-right">{item.confirmedRemaining}</TableCell>
+                <TableCell>{item.departmentName ?? "—"}</TableCell>
+                <TableCell>{item.performerName ?? "—"}</TableCell>
+                <TableCell>{item.note ?? "—"}</TableCell>
+                <TableCell>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild><Button variant="destructive" size="sm" className="h-7 w-7 p-0"><Trash2 size={14} /></Button></AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader><AlertDialogTitle>{t("Xác nhận xóa vật tư này?")}</AlertDialogTitle></AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>{t("Hủy")}</AlertDialogCancel>
+                        <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => handleDelete(item.id)}>{t("Xóa")}</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
 
-      <Modal title={t("Tạo phiếu phân bổ")} open={modalOpen} onCancel={() => setModalOpen(false)} onOk={handleCreate} confirmLoading={createMutation.isPending} okText={t("Tạo phiếu")} cancelText={t("Hủy")} destroyOnClose>
-        <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
-          <Form.Item name="inventoryItemId" label={t("Tên vật liệu")} rules={[{ required: true, message: t("Chọn vật tư") }]}>
-            <Select placeholder={t("Chọn vật tư...")} showSearch optionFilterProp="label" options={(inventoryData?.items ?? []).map((i) => ({ value: i.id, label: `${i.itemCode} - ${i.name}` }))} />
-          </Form.Item>
-          <Form.Item name="departmentId" label={t("Phòng ban")} rules={[{ required: true, message: t("Chọn phòng ban") }]}>
-            <Select placeholder={t("Chọn phòng ban...")} options={(deptData?.items ?? []).map((d) => ({ value: d.id, label: d.name }))} />
-          </Form.Item>
-          <Form.Item name="allocatedQuantity" label={t("Số lượng phân bổ")} rules={[{ required: true, message: t("Nhập số lượng") }]}>
-            <InputNumber<number> min={0.001} style={{ width: "100%" }} placeholder="0" />
-          </Form.Item>
-          <Form.Item name="performerName" label={t("Người thực hiện")}><Input placeholder={t("Tên người thực hiện...")} /></Form.Item>
-          <Form.Item name="note" label={t("Ghi chú")}><Input.TextArea rows={2} placeholder={t("Ghi chú...")} /></Form.Item>
-        </Form>
-      </Modal>
+      <Dialog open={modalOpen} onOpenChange={(o) => { if (!o) { reset(); setModalOpen(false); } }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{t("Tạo phiếu phân bổ")}</DialogTitle></DialogHeader>
+          <form onSubmit={onSubmit} className="space-y-3 mt-2">
+            <div>
+              <label className="text-sm font-medium mb-1 block">{t("Tên vật liệu")} <span className="text-destructive">*</span></label>
+              <Controller control={control} name="inventoryItemId" rules={{ required: t("Chọn vật tư") }}
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                    <SelectTrigger><SelectValue placeholder={t("Chọn vật tư...")} /></SelectTrigger>
+                    <SelectContent>
+                      {(inventoryData?.items ?? []).map((i) => <SelectItem key={i.id} value={i.id}>{i.itemCode} - {i.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                )} />
+              {errors.inventoryItemId && <p className="text-xs text-destructive mt-1">{errors.inventoryItemId.message}</p>}
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">{t("Phòng ban")} <span className="text-destructive">*</span></label>
+              <Controller control={control} name="departmentId" rules={{ required: t("Chọn phòng ban") }}
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                    <SelectTrigger><SelectValue placeholder={t("Chọn phòng ban...")} /></SelectTrigger>
+                    <SelectContent>
+                      {(deptData?.items ?? []).map((d) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                )} />
+              {errors.departmentId && <p className="text-xs text-destructive mt-1">{errors.departmentId.message}</p>}
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">{t("Số lượng phân bổ")} <span className="text-destructive">*</span></label>
+              <Input type="number" min={0.001} step={0.001} placeholder="0" {...register("allocatedQuantity", { required: t("Nhập số lượng"), valueAsNumber: true })} />
+              {errors.allocatedQuantity && <p className="text-xs text-destructive mt-1">{errors.allocatedQuantity.message}</p>}
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">{t("Người thực hiện")}</label>
+              <Input placeholder={t("Tên người thực hiện...")} {...register("performerName")} />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">{t("Ghi chú")}</label>
+              <textarea rows={2} placeholder={t("Ghi chú...")} {...register("note")}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => { reset(); setModalOpen(false); }}>{t("Hủy")}</Button>
+              <Button type="submit" disabled={createMutation.isPending}>
+                {createMutation.isPending && <Loader2 className="size-4 animate-spin mr-2" />}
+                {t("Tạo phiếu")}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
 
 // ── Department View ────────────────────────────────────────────────────────
 
+interface DeptFormValues { name: string; description?: string; }
+
 function DepartmentView() {
   const [keyword, setKeyword] = useState("");
   const [selectedDeptId, setSelectedDeptId] = useState<string | null>(null);
   const [deptModalOpen, setDeptModalOpen] = useState(false);
   const [editingDept, setEditingDept] = useState<DepartmentDto | null>(null);
-  const [deptForm] = Form.useForm();
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<DeptFormValues>();
 
   const { data: deptData, isLoading: deptLoading } = useDepartmentList();
   const createDept = useCreateDepartment();
@@ -457,37 +506,25 @@ function DepartmentView() {
     return (a.inventoryItemName ?? "").toLowerCase().includes(kw) || a.allocationCode.toLowerCase().includes(kw);
   });
 
-  const handleDeptSave = async () => {
-    try {
-      const values = await deptForm.validateFields();
-      if (editingDept) {
-        await updateDept.mutateAsync({ id: editingDept.id, data: values });
-        message.success(t("Cập nhật phòng ban thành công"));
-      } else {
-        await createDept.mutateAsync(values);
-        message.success(t("Tạo phòng ban thành công"));
-      }
-      deptForm.resetFields();
-      setDeptModalOpen(false);
-      setEditingDept(null);
-    } catch { /* validation */ }
-  };
+  const openCreate = () => { setEditingDept(null); reset({ name: "", description: "" }); setDeptModalOpen(true); };
+  const openEdit = (d: DepartmentDto) => { setEditingDept(d); reset({ name: d.name, description: d.description ?? "" }); setDeptModalOpen(true); };
+
+  const onSubmit = handleSubmit(async (values) => {
+    if (editingDept) {
+      await updateDept.mutateAsync({ id: editingDept.id, data: values });
+      toast.success(t("Cập nhật phòng ban thành công"));
+    } else {
+      await createDept.mutateAsync(values);
+      toast.success(t("Tạo phòng ban thành công"));
+    }
+    reset(); setDeptModalOpen(false); setEditingDept(null);
+  });
 
   const handleDeptDelete = async (id: string) => {
     await deleteDept.mutateAsync(id);
     if (selectedDeptId === id) setSelectedDeptId(null);
-    message.success(t("Xóa phòng ban thành công"));
+    toast.success(t("Xóa phòng ban thành công"));
   };
-
-  const rightColumns: ColumnsType<MaterialAllocationDto> = [
-    { title: t("Thời gian phân bổ"), dataIndex: "allocationTime", key: "allocationTime", width: 160, render: (v: string) => v ? dayjs(v).format("DD/MM/YYYY HH:mm") : "—" },
-    { title: t("Mã phân bổ"), dataIndex: "allocationCode", key: "allocationCode", width: 150 },
-    { title: t("Tên vật liệu"), dataIndex: "inventoryItemName", key: "material", render: (v: string) => v ?? "—" },
-    { title: t("SL được phát"), dataIndex: "allocatedQuantity", key: "distributedQty", width: 120, align: "right" },
-    { title: t("SL còn lại (đã duyệt)"), dataIndex: "confirmedRemaining", key: "approvedRemaining", width: 170, align: "right" },
-    { title: t("Người thực hiện"), dataIndex: "performerName", key: "performer", render: (v: string) => v ?? "—" },
-    { title: t("Ghi chú"), dataIndex: "note", key: "note", render: (v: string) => v ?? "—" },
-  ];
 
   return (
     <div style={{ display: "flex", gap: 16 }}>
@@ -496,32 +533,30 @@ function DepartmentView() {
           {t("Phòng ban")}
           <span style={{ fontWeight: 400, color: "#8c8c8c", marginLeft: 6 }}>{t("{0} phòng ban", departments.length)}</span>
         </div>
-        <div style={{ fontSize: 12, color: "#8c8c8c", marginBottom: 10 }}>
-          {t("Chọn phòng ban để xem vật tư đã phát và kiểm kho")}
-        </div>
-        <Button type="dashed" block size="small" style={{ marginBottom: 8 }} onClick={() => { setEditingDept(null); deptForm.resetFields(); setDeptModalOpen(true); }}>{t("Tạo phòng ban")}</Button>
+        <div style={{ fontSize: 12, color: "#8c8c8c", marginBottom: 10 }}>{t("Chọn phòng ban để xem vật tư đã phát và kiểm kho")}</div>
+        <Button variant="outline" className="w-full h-7 text-sm mb-2" onClick={openCreate}><Plus size={12} className="mr-1" />{t("Tạo phòng ban")}</Button>
         {deptLoading ? null : departments.length === 0 ? (
           <div style={{ color: "#8c8c8c", fontSize: 13, textAlign: "center", paddingTop: 24 }}>{t("Chưa có phòng ban")}</div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             {departments.map((d) => (
-              <div
-                key={d.id}
-                onClick={() => setSelectedDeptId(d.id === selectedDeptId ? null : d.id)}
-                style={{
-                  padding: "6px 8px", fontSize: 13, borderRadius: 4, cursor: "pointer",
-                  background: d.id === selectedDeptId ? "#E6F4FF" : "#F9FAFB",
-                  color: d.id === selectedDeptId ? "#1677ff" : "#374151",
-                  fontWeight: d.id === selectedDeptId ? 600 : 400,
-                  display: "flex", justifyContent: "space-between", alignItems: "center",
-                }}
-              >
+              <div key={d.id} onClick={() => setSelectedDeptId(d.id === selectedDeptId ? null : d.id)}
+                style={{ padding: "6px 8px", fontSize: 13, borderRadius: 4, cursor: "pointer", background: d.id === selectedDeptId ? "#E6F4FF" : "#F9FAFB", color: d.id === selectedDeptId ? "#1677ff" : "#374151", fontWeight: d.id === selectedDeptId ? 600 : 400, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span>{d.name}</span>
                 <div style={{ display: "flex", gap: 2 }} onClick={(e) => e.stopPropagation()}>
-                  <Button type="text" size="small" icon={<EditOutlined />} style={{ padding: 0, width: 22, height: 22 }} onClick={() => { setEditingDept(d); deptForm.setFieldsValue(d); setDeptModalOpen(true); }} />
-                  <Popconfirm title={t("Xóa phòng ban?")} onConfirm={() => handleDeptDelete(d.id)} okText={t("Xóa")} cancelText={t("Hủy")} okButtonProps={{ danger: true }}>
-                    <Button type="text" size="small" danger icon={<DeleteOutlined />} style={{ padding: 0, width: 22, height: 22 }} />
-                  </Popconfirm>
+                  <Button variant="ghost" size="sm" className="p-0 h-5 w-5" onClick={() => openEdit(d)}><Pencil size={12} /></Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="sm" className="p-0 h-5 w-5 text-destructive"><Trash2 size={12} /></Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader><AlertDialogTitle>{t("Xóa phòng ban?")}</AlertDialogTitle></AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>{t("Hủy")}</AlertDialogCancel>
+                        <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => handleDeptDelete(d.id)}>{t("Xóa")}</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </div>
             ))}
@@ -531,30 +566,73 @@ function DepartmentView() {
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
         <div className="reception-card reception-card--toolbar">
           <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
-            <Input prefix={<SearchOutlined />} placeholder={t("Tìm vật tư...")} value={keyword} onChange={(e) => setKeyword(e.target.value)} style={{ width: 220 }} allowClear />
-            <Button>{t("Gộp số lượng vật tư")}</Button>
+            <div className="relative">
+              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input placeholder={t("Tìm vật tư...")} value={keyword} onChange={(e) => setKeyword(e.target.value)} className="pl-8 w-56" />
+            </div>
+            <Button variant="outline">{t("Gộp số lượng vật tư")}</Button>
           </div>
         </div>
-        <div className="reception-card reception-card--content">
-          <Table
-            columns={rightColumns}
-            dataSource={selectedDeptId ? allocations : []}
-            rowKey="id"
-            loading={allocLoading}
-            pagination={{ pageSize: 20, showTotal: (total) => t("Hiển thị {0}–{1} trên {2} dòng", allocations.length, total, total) }}
-            locale={{ emptyText: selectedDeptId ? t("Chưa có vật tư phân bổ cho phòng ban này") : t("Chọn phòng ban để xem vật tư đã phát và kiểm kho") }}
-            size="middle"
-            scroll={{ x: "max-content" }}
-          />
+        <div className="reception-card reception-card--content overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-40">{t("Thời gian phân bổ")}</TableHead>
+                <TableHead className="w-36">{t("Mã phân bổ")}</TableHead>
+                <TableHead>{t("Tên vật liệu")}</TableHead>
+                <TableHead className="text-right w-28">{t("SL được phát")}</TableHead>
+                <TableHead className="text-right w-40">{t("SL còn lại (đã duyệt)")}</TableHead>
+                <TableHead>{t("Người thực hiện")}</TableHead>
+                <TableHead>{t("Ghi chú")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {allocLoading ? (
+                <TableRow><TableCell colSpan={7} className="text-center py-8"><Loader2 className="size-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
+              ) : !selectedDeptId ? (
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">{t("Chọn phòng ban để xem vật tư đã phát và kiểm kho")}</TableCell></TableRow>
+              ) : allocations.length === 0 ? (
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">{t("Chưa có vật tư phân bổ cho phòng ban này")}</TableCell></TableRow>
+              ) : allocations.map((a) => (
+                <TableRow key={a.id}>
+                  <TableCell>{a.allocationTime ? dayjs(a.allocationTime).format("DD/MM/YYYY HH:mm") : "—"}</TableCell>
+                  <TableCell>{a.allocationCode}</TableCell>
+                  <TableCell>{a.inventoryItemName ?? "—"}</TableCell>
+                  <TableCell className="text-right">{a.allocatedQuantity}</TableCell>
+                  <TableCell className="text-right">{a.confirmedRemaining}</TableCell>
+                  <TableCell>{a.performerName ?? "—"}</TableCell>
+                  <TableCell>{a.note ?? "—"}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       </div>
 
-      <Modal title={editingDept ? t("Chỉnh sửa phòng ban") : t("Tạo phòng ban")} open={deptModalOpen} onCancel={() => { setDeptModalOpen(false); setEditingDept(null); deptForm.resetFields(); }} onOk={handleDeptSave} confirmLoading={createDept.isPending || updateDept.isPending} okText={editingDept ? t("Lưu thay đổi") : t("Tạo phòng ban")} cancelText={t("Hủy")} destroyOnClose>
-        <Form form={deptForm} layout="vertical" style={{ marginTop: 16 }}>
-          <Form.Item name="name" label={t("Tên phòng ban")} rules={[{ required: true, message: t("Nhập tên phòng ban") }]}><Input placeholder={t("VD: Phòng khám 1, Phòng lễ tân...")} /></Form.Item>
-          <Form.Item name="description" label={t("Mô tả")}><Input.TextArea rows={2} placeholder={t("Mô tả...")} /></Form.Item>
-        </Form>
-      </Modal>
+      <Dialog open={deptModalOpen} onOpenChange={(o) => { if (!o) { reset(); setDeptModalOpen(false); setEditingDept(null); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>{editingDept ? t("Chỉnh sửa phòng ban") : t("Tạo phòng ban")}</DialogTitle></DialogHeader>
+          <form onSubmit={onSubmit} className="space-y-3 mt-2">
+            <div>
+              <label className="text-sm font-medium mb-1 block">{t("Tên phòng ban")} <span className="text-destructive">*</span></label>
+              <Input placeholder="VD: Phòng khám 1, Phòng lễ tân..." {...register("name", { required: t("Nhập tên phòng ban") })} />
+              {errors.name && <p className="text-xs text-destructive mt-1">{errors.name.message}</p>}
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">{t("Mô tả")}</label>
+              <textarea rows={2} placeholder={t("Mô tả...")} {...register("description")}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => { reset(); setDeptModalOpen(false); setEditingDept(null); }}>{t("Hủy")}</Button>
+              <Button type="submit" disabled={createDept.isPending || updateDept.isPending}>
+                {(createDept.isPending || updateDept.isPending) && <Loader2 className="size-4 animate-spin mr-2" />}
+                {editingDept ? t("Lưu thay đổi") : t("Tạo phòng ban")}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -565,49 +643,28 @@ export function MaterialsPage() {
   const [activeTab, setActiveTab] = useState<MaterialsSubRoute>("clinic");
 
   const SUB_ROUTES: { key: MaterialsSubRoute; label: string }[] = [
-    { key: "clinic",      label: t("Vật tư phòng khám") },
-    { key: "allocation",  label: t("Phân bổ vật tư") },
-    { key: "department",  label: t("Phòng ban") },
+    { key: "clinic",     label: t("Vật tư phòng khám") },
+    { key: "allocation", label: t("Phân bổ vật tư") },
+    { key: "department", label: t("Phòng ban") },
   ];
 
   const renderContent = () => {
     switch (activeTab) {
-      case "clinic":
-        return <ClinicMaterialsView />;
-      case "allocation":
-        return <AllocationView />;
-      case "department":
-        return <DepartmentView />;
-      default:
-        return null;
+      case "clinic":     return <ClinicMaterialsView />;
+      case "allocation": return <AllocationView />;
+      case "department": return <DepartmentView />;
+      default:           return null;
     }
   };
 
   return (
     <div className="reception-page">
-      <PageHeader
-        title={t("Vật tư phòng khám")}
-        subtitle={t("Vật tư, phân bổ và tồn kho theo phòng ban")}
-      />
-
+      <PageHeader title={t("Vật tư phòng khám")} subtitle={t("Vật tư, phân bổ và tồn kho theo phòng ban")} />
       <div className="reception-card reception-card--tabs">
         <div style={{ display: "flex", gap: 0 }}>
           {SUB_ROUTES.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              style={{
-                padding: "8px 20px",
-                border: "none",
-                borderBottom: activeTab === tab.key ? "2px solid #1677ff" : "2px solid transparent",
-                background: "none",
-                color: activeTab === tab.key ? "#1677ff" : "#595959",
-                fontWeight: activeTab === tab.key ? 600 : 400,
-                cursor: "pointer",
-                fontSize: 14,
-                whiteSpace: "nowrap",
-              }}
-            >
+            <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+              style={{ padding: "8px 20px", border: "none", borderBottom: activeTab === tab.key ? "2px solid #1677ff" : "2px solid transparent", background: "none", color: activeTab === tab.key ? "#1677ff" : "#595959", fontWeight: activeTab === tab.key ? 600 : 400, cursor: "pointer", fontSize: 14, whiteSpace: "nowrap" }}>
               {tab.label}
             </button>
           ))}

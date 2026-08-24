@@ -1,102 +1,64 @@
 import { useState } from "react";
-import { Table, Input, Select, Tag, DatePicker, Space } from "antd";
-import { SearchOutlined } from "@ant-design/icons";
-import type { ColumnsType } from "antd/es/table";
+import { Search } from "lucide-react";
 import dayjs from "dayjs";
 import { useAuditLogList, type AuditLogDto } from "../api";
 import { t } from "@/lib/i18n";
 import { PageHeader } from "@/components/PageHeader";
+import { Input } from "@/components/ui/input";
+import { DatePickerInput } from "@/components/ui/date-picker-input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
-const HTTP_METHOD_COLORS: Record<string, string> = {
-  GET: "blue",
-  POST: "green",
-  PUT: "orange",
-  PATCH: "cyan",
-  DELETE: "red",
+const HTTP_METHOD_BG: Record<string, string> = {
+  GET: "#dbeafe",
+  POST: "#dcfce7",
+  PUT: "#ffedd5",
+  PATCH: "#cffafe",
+  DELETE: "#fee2e2",
+};
+const HTTP_METHOD_COLOR: Record<string, string> = {
+  GET: "#1d4ed8",
+  POST: "#15803d",
+  PUT: "#c2410c",
+  PATCH: "#0e7490",
+  DELETE: "#b91c1c",
 };
 
-const { RangePicker } = DatePicker;
+function statusColors(code?: number): { bg: string; color: string } {
+  if (!code) return { bg: "#f3f4f6", color: "#374151" };
+  if (code < 300) return { bg: "#dcfce7", color: "#15803d" };
+  if (code < 400) return { bg: "#dbeafe", color: "#1d4ed8" };
+  if (code < 500) return { bg: "#ffedd5", color: "#c2410c" };
+  return { bg: "#fee2e2", color: "#b91c1c" };
+}
 
 export function AuditLogPage() {
   const [userName, setUserName] = useState("");
   const [httpMethod, setHttpMethod] = useState<string | undefined>();
-  const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   const { data, isLoading } = useAuditLogList({
     userName: userName || undefined,
     httpMethod: httpMethod || undefined,
-    startTime: dateRange?.[0]?.toISOString(),
-    endTime: dateRange?.[1]?.toISOString(),
+    startTime: startDate ? dayjs(startDate).toISOString() : undefined,
+    endTime: endDate ? dayjs(endDate).toISOString() : undefined,
   });
 
-  const statusColor = (code?: number) => {
-    if (!code) return "default";
-    if (code < 300) return "green";
-    if (code < 400) return "blue";
-    if (code < 500) return "orange";
-    return "red";
-  };
-
-  const columns: ColumnsType<AuditLogDto> = [
-    {
-      title: t("Thời gian"),
-      dataIndex: "executionTime",
-      key: "executionTime",
-      width: 160,
-      render: (v: string) => dayjs(v).format("DD/MM/YYYY HH:mm:ss"),
-    },
-    {
-      title: t("Người dùng"),
-      dataIndex: "userName",
-      key: "userName",
-      width: 140,
-      render: (v: string) => v ?? "—",
-    },
-    {
-      title: t("Phương thức"),
-      dataIndex: "httpMethod",
-      key: "httpMethod",
-      width: 100,
-      render: (v: string) => v ? <Tag color={HTTP_METHOD_COLORS[v] ?? "default"}>{v}</Tag> : "—",
-    },
-    {
-      title: "URL",
-      dataIndex: "url",
-      key: "url",
-      ellipsis: true,
-      render: (v: string) => (
-        <span style={{ fontFamily: "monospace", fontSize: 12 }}>{v ?? "—"}</span>
-      ),
-    },
-    {
-      title: "HTTP Status",
-      dataIndex: "httpStatusCode",
-      key: "httpStatusCode",
-      width: 110,
-      render: (v: number) => v ? <Tag color={statusColor(v)}>{v}</Tag> : "—",
-    },
-    {
-      title: t("Thời gian xử lý"),
-      dataIndex: "executionDuration",
-      key: "executionDuration",
-      width: 130,
-      render: (v: number) => `${v} ms`,
-    },
-    {
-      title: "IP",
-      dataIndex: "clientIpAddress",
-      key: "clientIpAddress",
-      width: 130,
-      render: (v: string) => v ?? "—",
-    },
-    {
-      title: t("Lỗi"),
-      dataIndex: "exceptions",
-      key: "exceptions",
-      width: 80,
-      render: (v: string) => v ? <Tag color="red">{t("Có lỗi")}</Tag> : <Tag color="green">OK</Tag>,
-    },
-  ];
+  const rows: AuditLogDto[] = data?.items ?? [];
 
   return (
     <div className="reception-page">
@@ -113,41 +75,116 @@ export function AuditLogPage() {
           {t("Lịch sử các thao tác trong hệ thống")}
         </div>
       </div>
+
       <div className="reception-card reception-card--toolbar">
-        <Space wrap>
-          <Input
-            prefix={<SearchOutlined />}
-            placeholder={t("Tên người dùng...")}
-            value={userName}
-            onChange={(e) => setUserName(e.target.value)}
-            style={{ width: 200 }}
-            allowClear
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative">
+            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder={t("Tên người dùng...")}
+              value={userName}
+              onChange={(e) => setUserName(e.target.value)}
+              className="pl-8 w-48"
+            />
+          </div>
+          <Select value={httpMethod ?? ""} onValueChange={(v) => setHttpMethod(v || undefined)}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder={t("Phương thức HTTP")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">{t("Tất cả")}</SelectItem>
+              {["GET", "POST", "PUT", "PATCH", "DELETE"].map((m) => (
+                <SelectItem key={m} value={m}>{m}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <DatePickerInput
+            value={startDate}
+            onChange={setStartDate}
+            className="w-40"
+            placeholder="Từ ngày"
           />
-          <Select
-            placeholder={t("Phương thức HTTP")}
-            allowClear
-            style={{ width: 160 }}
-            value={httpMethod}
-            onChange={setHttpMethod}
-            options={["GET", "POST", "PUT", "PATCH", "DELETE"].map((m) => ({ value: m, label: m }))}
+          <DatePickerInput
+            value={endDate}
+            onChange={setEndDate}
+            className="w-40"
+            placeholder="Đến ngày"
           />
-          <RangePicker
-            format="DD/MM/YYYY"
-            onChange={(vals) => setDateRange(vals as [dayjs.Dayjs | null, dayjs.Dayjs | null] | null)}
-          />
-        </Space>
+        </div>
       </div>
-      <div className="reception-card reception-card--content">
-        <Table<AuditLogDto>
-          rowKey="id"
-          dataSource={data?.items ?? []}
-          columns={columns}
-          loading={isLoading}
-          pagination={{ pageSize: 50, showTotal: (total) => t("{0} bản ghi", total) }}
-          locale={{ emptyText: t("Không có dữ liệu nhật ký") }}
-          size="small"
-          scroll={{ x: 1100 }}
-        />
+
+      <div className="reception-card reception-card--content overflow-x-auto">
+        {isLoading ? (
+          <div className="py-8 text-center text-muted-foreground">{t("Đang tải...")}</div>
+        ) : rows.length === 0 ? (
+          <div className="py-8 text-center text-muted-foreground">{t("Không có dữ liệu nhật ký")}</div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-40">{t("Thời gian")}</TableHead>
+                <TableHead className="w-36">{t("Người dùng")}</TableHead>
+                <TableHead className="w-24">{t("Phương thức")}</TableHead>
+                <TableHead>URL</TableHead>
+                <TableHead className="w-28">HTTP Status</TableHead>
+                <TableHead className="w-32">{t("Thời gian xử lý")}</TableHead>
+                <TableHead className="w-32">IP</TableHead>
+                <TableHead className="w-20">{t("Lỗi")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((row) => {
+                const mBg = HTTP_METHOD_BG[row.httpMethod ?? ""] ?? "#f3f4f6";
+                const mColor = HTTP_METHOD_COLOR[row.httpMethod ?? ""] ?? "#374151";
+                const sc = statusColors(row.httpStatusCode);
+                return (
+                  <TableRow key={row.id}>
+                    <TableCell className="text-xs whitespace-nowrap">
+                      {dayjs(row.executionTime).format("DD/MM/YYYY HH:mm:ss")}
+                    </TableCell>
+                    <TableCell>{row.userName ?? "—"}</TableCell>
+                    <TableCell>
+                      {row.httpMethod ? (
+                        <span
+                          className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
+                          style={{ background: mBg, color: mColor }}
+                        >
+                          {row.httpMethod}
+                        </span>
+                      ) : "—"}
+                    </TableCell>
+                    <TableCell className="max-w-xs truncate">
+                      <span style={{ fontFamily: "monospace", fontSize: 12 }}>{row.url ?? "—"}</span>
+                    </TableCell>
+                    <TableCell>
+                      {row.httpStatusCode ? (
+                        <span
+                          className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
+                          style={{ background: sc.bg, color: sc.color }}
+                        >
+                          {row.httpStatusCode}
+                        </span>
+                      ) : "—"}
+                    </TableCell>
+                    <TableCell>{row.executionDuration} ms</TableCell>
+                    <TableCell>{row.clientIpAddress ?? "—"}</TableCell>
+                    <TableCell>
+                      {row.exceptions ? (
+                        <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700">
+                          {t("Có lỗi")}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700">
+                          OK
+                        </span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
       </div>
     </div>
   );

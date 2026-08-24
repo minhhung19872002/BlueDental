@@ -1,11 +1,13 @@
 import React from "react";
-import { Input, Button, Segmented } from "antd";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
-  SearchOutlined,
-  FormOutlined,
-} from "@ant-design/icons";
+  Search,
+  FileEdit,
+} from "lucide-react";
 import dayjs, { type Dayjs } from "dayjs";
 import { DateNavigator, type DateNavigatorMode } from "@/components/DateNavigator";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { t } from "@/lib/i18n";
 
 type ViewMode = DateNavigatorMode;
@@ -32,28 +34,18 @@ export const ReceptionToolbar: React.FC<ReceptionToolbarProps> = ({
 }) => {
   const date = currentDate ?? dayjs();
 
-  const viewModeToLabel = (mode: ViewMode): string => {
-    if (mode === "day") return t("Ngày");
-    if (mode === "week") return t("Tuần");
-    return t("Tháng");
-  };
-
-  const labelToViewMode = (label: string): ViewMode => {
-    if (label === t("Ngày")) return "day";
-    if (label === t("Tuần")) return "week";
-    return "month";
-  };
-
-  const viewOptions = [t("Ngày"), t("Tuần"), t("Tháng")];
-
   return (
     <div className="reception-toolbar">
       <div className="reception-toolbar-left">
-        <Segmented
-          value={viewModeToLabel(viewMode)}
-          onChange={(val) => onViewModeChange?.(labelToViewMode(val as string))}
-          options={viewOptions}
-          style={{ flexShrink: 0 }}
+        <SegmentedControl
+          options={[
+            { key: "day" as ViewMode, label: t("Ngày") },
+            { key: "week" as ViewMode, label: t("Tuần") },
+            { key: "month" as ViewMode, label: t("Tháng") },
+          ]}
+          value={viewMode}
+          onChange={(v) => onViewModeChange?.(v)}
+          className="shrink-0"
         />
 
         <DateNavigator
@@ -62,27 +54,23 @@ export const ReceptionToolbar: React.FC<ReceptionToolbarProps> = ({
           onChange={(d) => onDateChange?.(d)}
         />
 
-        <Input
-          placeholder={t("Tìm bệnh nhân...")}
-          prefix={<SearchOutlined style={{ color: "#94A3B8" }} />}
-          value={keyword}
-          onChange={(e) => onSearchChange(e.target.value)}
-          allowClear
-          style={{ flex: 1, minWidth: 160 }}
-        />
+        <div className="relative flex-1 min-w-40">
+          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder={t("Tìm bệnh nhân...")}
+            value={keyword}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="pl-8"
+          />
+        </div>
       </div>
 
       <div className="reception-toolbar-right">
         <Button
-          type="primary"
-          icon={<FormOutlined />}
           onClick={onCreateClick}
-          style={{
-            fontWeight: 600,
-            paddingLeft: 16,
-            paddingRight: 16,
-          }}
+          className="font-semibold"
         >
+          <FileEdit size={14} className="mr-1.5" />
           {t("Tạo tiếp nhận")}
         </Button>
       </div>

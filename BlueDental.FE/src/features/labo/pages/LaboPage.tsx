@@ -1,6 +1,41 @@
 import { useState } from "react";
-import { Button, Input, Select, Table, Tag, Modal, Form, InputNumber, DatePicker, message, Popconfirm } from "antd";
-import { SearchOutlined, DownloadOutlined, PlusOutlined, DeleteOutlined, EditOutlined } from "@ant-design/icons";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { DatePickerInput } from "@/components/ui/date-picker-input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogFooter,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Loader2, Search, Download, Plus, Trash2, Pencil } from "lucide-react";
+import { toast } from "sonner";
 import dayjs from "dayjs";
 import {
   useLaboOrderList,
@@ -23,9 +58,9 @@ import {
 } from "../api/laboCatalogApi";
 import { usePatientList } from "@/features/patient-management/api/patientQueries";
 import { useDebounce } from "@/hooks/useDebounce";
-import type { ColumnsType } from "antd/es/table";
 import { t } from "@/lib/i18n";
 import { PageHeader } from "@/components/PageHeader";
+import { useForm, Controller } from "react-hook-form";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -39,79 +74,110 @@ type LaboSubRoute =
 
 // ── Create Labo Order Modal ────────────────────────────────────────────────
 
+interface CreateLaboFormValues {
+  patientId: string;
+  labProviderName: string;
+  toothNumbers?: string;
+  workDescription?: string;
+  estimatedCost: number;
+  dueDate?: string;
+  notes?: string;
+}
+
 function CreateLaboModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [form] = Form.useForm<CreateLaboOrderDto>();
   const [patientKeyword, setPatientKeyword] = useState("");
   const debouncedPatientKeyword = useDebounce(patientKeyword, 300);
   const { data: patientData } = usePatientList({ keyword: debouncedPatientKeyword || undefined, maxResultCount: 20 });
   const createMutation = useCreateLaboOrder();
 
-  const handleOk = async () => {
-    try {
-      const values = await form.validateFields();
-      await createMutation.mutateAsync({
-        ...values,
-        dueDate: values.dueDate ? dayjs(values.dueDate as unknown as dayjs.Dayjs).toISOString() : undefined,
-      });
-      message.success(t("Tạo mẫu Labo thành công"));
-      form.resetFields();
-      onClose();
-    } catch {
-      // validation handled by antd
-    }
-  };
+  const { register, handleSubmit, control, reset, watch, setValue, formState: { errors } } = useForm<CreateLaboFormValues>();
+
+  const onSubmit = handleSubmit(async (values) => {
+    await createMutation.mutateAsync({
+      ...values,
+      dueDate: values.dueDate ? dayjs(values.dueDate).toISOString() : undefined,
+    } as unknown as CreateLaboOrderDto);
+    toast.success(t("Tạo mẫu Labo thành công"));
+    reset();
+    onClose();
+  });
 
   return (
-    <Modal
-      title={t("Tạo mẫu Labo mới")}
-      open={open}
-      onCancel={() => { form.resetFields(); onClose(); }}
-      onOk={handleOk}
-      confirmLoading={createMutation.isPending}
-      okText={t("Tạo mẫu Labo")}
-      cancelText={t("Hủy")}
-      width={540}
-      destroyOnClose
-    >
-      <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
-        <Form.Item name="patientId" label={t("Khách hàng")} rules={[{ required: true, message: t("Chọn khách hàng") }]}>
-          <Select
-            showSearch
-            filterOption={false}
-            onSearch={setPatientKeyword}
-            placeholder={t("Tìm khách hàng...")}
-            options={(patientData?.items ?? []).map((p) => ({
-              value: p.id,
-              label: `${p.fullName} — ${p.phone ?? p.code}`,
-            }))}
-          />
-        </Form.Item>
-        <Form.Item name="labProviderName" label={t("Nhà cung cấp Labo")} rules={[{ required: true, message: t("Nhập tên nhà cung cấp") }]}>
-          <Input placeholder={t("Nhập tên nhà cung cấp")} />
-        </Form.Item>
-        <Form.Item name="toothNumbers" label={t("Số răng")}>
-          <Input placeholder={t("VD: 11, 12, 21")} />
-        </Form.Item>
-        <Form.Item name="workDescription" label={t("Mô tả công việc")}>
-          <Input.TextArea rows={3} placeholder={t("Mô tả công việc")} />
-        </Form.Item>
-        <Form.Item name="estimatedCost" label={t("Chi phí ước tính (VND)")} rules={[{ required: true, message: t("Nhập chi phí") }]}>
-          <InputNumber<number>
-            min={0}
-            style={{ width: "100%" }}
-            formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-            parser={(v) => parseFloat((v ?? "0").replace(/,/g, "")) || 0}
-            placeholder="0"
-          />
-        </Form.Item>
-        <Form.Item name="dueDate" label={t("Ngày giao dự kiến")}>
-          <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
-        </Form.Item>
-        <Form.Item name="notes" label={t("Ghi chú")}>
-          <Input.TextArea rows={2} placeholder={t("Ghi chú")} />
-        </Form.Item>
-      </Form>
-    </Modal>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) { reset(); onClose(); } }}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{t("Tạo mẫu Labo mới")}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={onSubmit} className="space-y-3 mt-2">
+          <div>
+            <label className="text-sm font-medium mb-1 block">{t("Khách hàng")} <span className="text-destructive">*</span></label>
+            <Controller
+              control={control}
+              name="patientId"
+              rules={{ required: t("Chọn khách hàng") }}
+              render={({ field }) => (
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t("Tìm khách hàng...")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <div className="px-2 py-1.5">
+                      <Input
+                        placeholder={t("Tìm...")}
+                        value={patientKeyword}
+                        onChange={(e) => setPatientKeyword(e.target.value)}
+                        className="h-7 text-sm"
+                      />
+                    </div>
+                    {(patientData?.items ?? []).map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.fullName} — {p.phone ?? p.code}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.patientId && <p className="text-xs text-destructive mt-1">{errors.patientId.message}</p>}
+          </div>
+          <div>
+            <label className="text-sm font-medium mb-1 block">{t("Nhà cung cấp Labo")} <span className="text-destructive">*</span></label>
+            <Input placeholder={t("Nhập tên nhà cung cấp")} {...register("labProviderName", { required: t("Nhập tên nhà cung cấp") })} />
+            {errors.labProviderName && <p className="text-xs text-destructive mt-1">{errors.labProviderName.message}</p>}
+          </div>
+          <div>
+            <label className="text-sm font-medium mb-1 block">{t("Số răng")}</label>
+            <Input placeholder="VD: 11, 12, 21" {...register("toothNumbers")} />
+          </div>
+          <div>
+            <label className="text-sm font-medium mb-1 block">{t("Mô tả công việc")}</label>
+            <textarea rows={3} placeholder={t("Mô tả công việc")} {...register("workDescription")}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+          </div>
+          <div>
+            <label className="text-sm font-medium mb-1 block">{t("Chi phí ước tính (VND)")} <span className="text-destructive">*</span></label>
+            <Input type="number" min={0} placeholder="0" {...register("estimatedCost", { required: t("Nhập chi phí"), valueAsNumber: true })} />
+            {errors.estimatedCost && <p className="text-xs text-destructive mt-1">{errors.estimatedCost.message}</p>}
+          </div>
+          <div>
+            <label className="text-sm font-medium mb-1 block">{t("Ngày giao dự kiến")}</label>
+            <DatePickerInput value={watch("dueDate")} onChange={(v) => setValue("dueDate", v)} />
+          </div>
+          <div>
+            <label className="text-sm font-medium mb-1 block">{t("Ghi chú")}</label>
+            <textarea rows={2} placeholder={t("Ghi chú")} {...register("notes")}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => { reset(); onClose(); }}>{t("Hủy")}</Button>
+            <Button type="submit" disabled={createMutation.isPending}>
+              {createMutation.isPending && <Loader2 className="size-4 animate-spin mr-2" />}
+              {t("Tạo mẫu Labo")}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -148,83 +214,11 @@ function MauLaboView() {
   const handleDelete = async (id: string) => {
     try {
       await deleteMutation.mutateAsync(id);
-      message.success(t("Xóa mẫu Labo thành công"));
+      toast.success(t("Xóa mẫu Labo thành công"));
     } catch {
-      message.error(t("Xóa thất bại"));
+      toast.error(t("Xóa thất bại"));
     }
   };
-
-  const columns = [
-    {
-      title: t("Mã / Ngày tạo"),
-      dataIndex: "orderCode",
-      key: "orderCode",
-      render: (code: string, record: LaboOrderDto) => (
-        <div>
-          <div style={{ fontWeight: 600 }}>{code}</div>
-          <div style={{ fontSize: 12, color: "#8c8c8c" }}>{dayjs(record.creationTime).format("DD/MM/YYYY")}</div>
-        </div>
-      ),
-    },
-    {
-      title: t("Nhà cung cấp"),
-      dataIndex: "labProviderName",
-      key: "labProviderName",
-    },
-    {
-      title: t("Khách hàng"),
-      dataIndex: "patientName",
-      key: "patientName",
-      render: (v: string) => v ?? "—",
-    },
-    {
-      title: t("Ngày giao / Trạng thái"),
-      key: "delivery",
-      render: (_: unknown, record: LaboOrderDto) => {
-        const cfg = LABO_STATUS_CONFIG[record.status];
-        return (
-          <div>
-            <div>{record.dueDate ? dayjs(record.dueDate).format("DD/MM/YYYY") : "—"}</div>
-            <Tag color={cfg.color} style={{ marginTop: 2 }}>{cfg.label}</Tag>
-          </div>
-        );
-      },
-    },
-    {
-      title: t("Bác sĩ chỉ định"),
-      dataIndex: "dentistName",
-      key: "dentistName",
-      render: (v: string) => v ?? "—",
-    },
-    {
-      title: t("Răng"),
-      dataIndex: "toothNumbers",
-      key: "toothNumbers",
-      render: (v: string) => v ?? "—",
-    },
-    {
-      title: t("Chi phí"),
-      dataIndex: "estimatedCost",
-      key: "estimatedCost",
-      align: "right" as const,
-      render: (v: number) => `${v.toLocaleString("vi-VN")} ₫`,
-    },
-    {
-      title: t("Thao tác"),
-      key: "actions",
-      render: (_: unknown, record: LaboOrderDto) => (
-        <Popconfirm
-          title={t("Xóa mẫu Labo này?")}
-          onConfirm={() => handleDelete(record.id)}
-          okText={t("Xóa")}
-          cancelText={t("Hủy")}
-          okButtonProps={{ danger: true }}
-        >
-          <Button size="small" danger icon={<DeleteOutlined />} />
-        </Popconfirm>
-      ),
-    },
-  ];
 
   return (
     <>
@@ -232,21 +226,8 @@ function MauLaboView() {
       <div className="reception-card reception-card--tabs">
         <div style={{ display: "flex", gap: 0, flexWrap: "wrap" }}>
           {MAU_LABO_FILTER_TABS.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setFilterTab(tab.key)}
-              style={{
-                padding: "8px 16px",
-                border: "none",
-                borderBottom:
-                  filterTab === tab.key ? "2px solid #1677ff" : "2px solid transparent",
-                background: "none",
-                color: filterTab === tab.key ? "#1677ff" : "#595959",
-                fontWeight: filterTab === tab.key ? 600 : 400,
-                cursor: "pointer",
-                fontSize: 13,
-              }}
-            >
+            <button key={tab.key} onClick={() => setFilterTab(tab.key)}
+              style={{ padding: "8px 16px", border: "none", borderBottom: filterTab === tab.key ? "2px solid #1677ff" : "2px solid transparent", background: "none", color: filterTab === tab.key ? "#1677ff" : "#595959", fontWeight: filterTab === tab.key ? 600 : 400, cursor: "pointer", fontSize: 13 }}>
               {tab.label}
             </button>
           ))}
@@ -257,40 +238,76 @@ function MauLaboView() {
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "space-between", flexWrap: "wrap" }}>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <Button icon={<DownloadOutlined />}>{t("Xuất Excel")}</Button>
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
-              {t("Tạo mẫu Labo")}
-            </Button>
+            <Button variant="outline"><Download size={14} className="mr-1.5" />{t("Xuất Excel")}</Button>
+            <Button onClick={() => setCreateOpen(true)}><Plus size={14} className="mr-1.5" />{t("Tạo mẫu Labo")}</Button>
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <Input
-              prefix={<SearchOutlined />}
-              placeholder={t("Tìm theo mã, bệnh nhân...")}
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              style={{ width: 220 }}
-              allowClear
-            />
+          <div className="relative">
+            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input placeholder={t("Tìm theo mã, bệnh nhân...")} value={keyword} onChange={(e) => setKeyword(e.target.value)} className="pl-8 w-56" />
           </div>
         </div>
       </div>
 
       {/* Table */}
       <div className="reception-card reception-card--content">
-        <Table
-          columns={columns}
-          dataSource={filtered}
-          rowKey="id"
-          loading={isLoading}
-          pagination={{
-            pageSize: 20,
-            showSizeChanger: true,
-            pageSizeOptions: ["10", "20", "50", "100"],
-            showTotal: (total) => t("Hiển thị {0} mẫu labo", total),
-          }}
-          locale={{ emptyText: t("Không có dữ liệu") }}
-          size="middle"
-        />
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t("Mã / Ngày tạo")}</TableHead>
+                <TableHead>{t("Nhà cung cấp")}</TableHead>
+                <TableHead>{t("Khách hàng")}</TableHead>
+                <TableHead>{t("Ngày giao / Trạng thái")}</TableHead>
+                <TableHead>{t("Bác sĩ chỉ định")}</TableHead>
+                <TableHead>{t("Răng")}</TableHead>
+                <TableHead className="text-right">{t("Chi phí")}</TableHead>
+                <TableHead className="w-20">{t("Thao tác")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow><TableCell colSpan={8} className="text-center py-8"><Loader2 className="size-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
+              ) : filtered.length === 0 ? (
+                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">{t("Không có dữ liệu")}</TableCell></TableRow>
+              ) : (
+                filtered.map((o) => {
+                  const cfg = LABO_STATUS_CONFIG[o.status];
+                  return (
+                    <TableRow key={o.id}>
+                      <TableCell>
+                        <div className="font-semibold">{o.orderCode}</div>
+                        <div className="text-xs text-muted-foreground">{dayjs(o.creationTime).format("DD/MM/YYYY")}</div>
+                      </TableCell>
+                      <TableCell>{o.labProviderName}</TableCell>
+                      <TableCell>{o.patientName ?? "—"}</TableCell>
+                      <TableCell>
+                        <div>{o.dueDate ? dayjs(o.dueDate).format("DD/MM/YYYY") : "—"}</div>
+                        <span className="text-xs px-2 py-0.5 rounded mt-1 inline-block" style={{ background: cfg.color + "22", color: cfg.color, border: `1px solid ${cfg.color}44` }}>{cfg.label}</span>
+                      </TableCell>
+                      <TableCell>{o.dentistName ?? "—"}</TableCell>
+                      <TableCell>{o.toothNumbers ?? "—"}</TableCell>
+                      <TableCell className="text-right">{o.estimatedCost.toLocaleString("vi-VN")} ₫</TableCell>
+                      <TableCell>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="destructive" size="sm" className="h-7 w-7 p-0"><Trash2 size={14} /></Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader><AlertDialogTitle>{t("Xóa mẫu Labo này?")}</AlertDialogTitle></AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>{t("Hủy")}</AlertDialogCancel>
+                              <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => handleDelete(o.id)}>{t("Xóa")}</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       <CreateLaboModal open={createOpen} onClose={() => setCreateOpen(false)} />
@@ -300,11 +317,18 @@ function MauLaboView() {
 
 // ── Supplier View ──────────────────────────────────────────────────────────
 
+interface SupplierFormValues {
+  name: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+}
+
 function SupplierView() {
   const [keyword, setKeyword] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<LaboSupplierDto | null>(null);
-  const [form] = Form.useForm();
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<SupplierFormValues>();
 
   const { data, isLoading } = useLaboSupplierList();
   const createMutation = useCreateLaboSupplier();
@@ -316,70 +340,112 @@ function SupplierView() {
     (s) => !keyword || s.name.toLowerCase().includes(keyword.toLowerCase()) || (s.phone ?? "").includes(keyword),
   );
 
-  const handleOk = async () => {
-    try {
-      const values = await form.validateFields();
-      if (isEdit && editingItem) {
-        await updateMutation.mutateAsync({ id: editingItem.id, data: values });
-        message.success(t("Cập nhật nhà cung cấp thành công"));
-      } else {
-        await createMutation.mutateAsync(values);
-        message.success(t("Tạo nhà cung cấp thành công"));
-      }
-      form.resetFields();
-      setEditingItem(null);
-      setModalOpen(false);
-    } catch { /* validation */ }
-  };
+  const openCreate = () => { setEditingItem(null); reset({ name: "", phone: "", email: "", address: "" }); setModalOpen(true); };
+  const openEdit = (item: LaboSupplierDto) => { setEditingItem(item); reset({ name: item.name, phone: item.phone ?? "", email: item.email ?? "", address: item.address ?? "" }); setModalOpen(true); };
+
+  const onSubmit = handleSubmit(async (values) => {
+    if (isEdit && editingItem) {
+      await updateMutation.mutateAsync({ id: editingItem.id, data: values });
+      toast.success(t("Cập nhật nhà cung cấp thành công"));
+    } else {
+      await createMutation.mutateAsync(values);
+      toast.success(t("Tạo nhà cung cấp thành công"));
+    }
+    reset(); setEditingItem(null); setModalOpen(false);
+  });
 
   const handleDelete = async (id: string) => {
-    try { await deleteMutation.mutateAsync(id); message.success(t("Xóa thành công")); } catch { message.error(t("Xóa thất bại")); }
+    try { await deleteMutation.mutateAsync(id); toast.success(t("Xóa thành công")); } catch { toast.error(t("Xóa thất bại")); }
   };
-
-  const columns: ColumnsType<LaboSupplierDto> = [
-    { title: t("Tên nhà cung cấp"), dataIndex: "name", key: "name" },
-    { title: t("Số điện thoại"), dataIndex: "phone", key: "phone", render: (v: string) => v ?? "—" },
-    { title: t("Email"), dataIndex: "email", key: "email", render: (v: string) => v ?? "—" },
-    { title: t("Địa chỉ"), dataIndex: "address", key: "address", render: (v: string) => v ?? "—" },
-    { title: t("Cập nhật gần nhất"), dataIndex: "lastModificationTime", key: "updatedAt", render: (v: string) => v ? dayjs(v).format("DD/MM/YYYY") : "—" },
-    {
-      title: t("Thao tác"), key: "actions", width: 120,
-      render: (_, record) => (
-        <div style={{ display: "flex", gap: 6 }}>
-          <Button size="small" icon={<EditOutlined />} onClick={() => { setEditingItem(record); setModalOpen(true); }} />
-          <Popconfirm title={t("Xóa nhà cung cấp?")} onConfirm={() => handleDelete(record.id)} okText={t("Xóa")} cancelText={t("Hủy")} okButtonProps={{ danger: true }}>
-            <Button size="small" danger icon={<DeleteOutlined />} />
-          </Popconfirm>
-        </div>
-      ),
-    },
-  ];
 
   return (
     <>
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
-          <Input prefix={<SearchOutlined />} placeholder={t("Tìm kiếm Labo...")} value={keyword} onChange={(e) => setKeyword(e.target.value)} style={{ width: 280 }} allowClear />
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingItem(null); form.resetFields(); setModalOpen(true); }}>{t("Tạo nhà cung cấp")}</Button>
+          <div className="relative">
+            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input placeholder={t("Tìm kiếm Labo...")} value={keyword} onChange={(e) => setKeyword(e.target.value)} className="pl-8 w-72" />
+          </div>
+          <Button onClick={openCreate}><Plus size={14} className="mr-1.5" />{t("Tạo nhà cung cấp")}</Button>
         </div>
       </div>
-      <div className="reception-card reception-card--content">
-        <Table columns={columns} dataSource={filtered} rowKey="id" loading={isLoading}
-          pagination={{ pageSize: 20, showTotal: (total) => t("{0} nhà cung cấp", total) }}
-          locale={{ emptyText: t("Không có dữ liệu") }} size="middle" />
+      <div className="reception-card reception-card--content overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{t("Tên nhà cung cấp")}</TableHead>
+              <TableHead>{t("Số điện thoại")}</TableHead>
+              <TableHead>{t("Email")}</TableHead>
+              <TableHead>{t("Địa chỉ")}</TableHead>
+              <TableHead>{t("Cập nhật gần nhất")}</TableHead>
+              <TableHead className="w-28">{t("Thao tác")}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow><TableCell colSpan={6} className="text-center py-8"><Loader2 className="size-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
+            ) : filtered.length === 0 ? (
+              <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">{t("Không có dữ liệu")}</TableCell></TableRow>
+            ) : filtered.map((s) => (
+              <TableRow key={s.id}>
+                <TableCell className="font-medium">{s.name}</TableCell>
+                <TableCell>{s.phone ?? "—"}</TableCell>
+                <TableCell>{s.email ?? "—"}</TableCell>
+                <TableCell>{s.address ?? "—"}</TableCell>
+                <TableCell>{s.lastModificationTime ? dayjs(s.lastModificationTime).format("DD/MM/YYYY") : "—"}</TableCell>
+                <TableCell>
+                  <div className="flex gap-1.5">
+                    <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => openEdit(s)}><Pencil size={14} /></Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild><Button variant="destructive" size="sm" className="h-7 w-7 p-0"><Trash2 size={14} /></Button></AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader><AlertDialogTitle>{t("Xóa nhà cung cấp?")}</AlertDialogTitle></AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>{t("Hủy")}</AlertDialogCancel>
+                          <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => handleDelete(s.id)}>{t("Xóa")}</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
-      <Modal title={isEdit ? t("Chỉnh sửa nhà cung cấp") : t("Thêm nhà cung cấp")} open={modalOpen}
-        onCancel={() => { form.resetFields(); setEditingItem(null); setModalOpen(false); }}
-        onOk={handleOk} confirmLoading={createMutation.isPending || updateMutation.isPending}
-        okText={isEdit ? t("Lưu") : t("Tạo")} cancelText={t("Hủy")} width={480} destroyOnClose
-        afterOpenChange={(visible) => { if (visible && editingItem) form.setFieldsValue(editingItem); }}>
-        <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
-          <Form.Item name="name" label={t("Tên nhà cung cấp")} rules={[{ required: true, message: t("Nhập tên") }]}><Input placeholder={t("Nhập tên")} /></Form.Item>
-          <Form.Item name="phone" label={t("Số điện thoại")}><Input placeholder={t("Số điện thoại")} /></Form.Item>
-          <Form.Item name="email" label={t("Email")}><Input placeholder={t("Email")} /></Form.Item>
-          <Form.Item name="address" label={t("Địa chỉ")}><Input.TextArea rows={2} placeholder={t("Địa chỉ")} /></Form.Item>
-        </Form>
-      </Modal>
+
+      <Dialog open={modalOpen} onOpenChange={(o) => { if (!o) { reset(); setEditingItem(null); setModalOpen(false); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>{isEdit ? t("Chỉnh sửa nhà cung cấp") : t("Thêm nhà cung cấp")}</DialogTitle></DialogHeader>
+          <form onSubmit={onSubmit} className="space-y-3 mt-2">
+            <div>
+              <label className="text-sm font-medium mb-1 block">{t("Tên nhà cung cấp")} <span className="text-destructive">*</span></label>
+              <Input placeholder={t("Nhập tên")} {...register("name", { required: t("Nhập tên") })} />
+              {errors.name && <p className="text-xs text-destructive mt-1">{errors.name.message}</p>}
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">{t("Số điện thoại")}</label>
+              <Input placeholder={t("Số điện thoại")} {...register("phone")} />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">{t("Email")}</label>
+              <Input placeholder={t("Email")} {...register("email")} />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">{t("Địa chỉ")}</label>
+              <textarea rows={2} placeholder={t("Địa chỉ")} {...register("address")}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => { reset(); setEditingItem(null); setModalOpen(false); }}>{t("Hủy")}</Button>
+              <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
+                {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="size-4 animate-spin mr-2" />}
+                {isEdit ? t("Lưu") : t("Tạo")}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
@@ -424,12 +490,14 @@ const LABO_CRUD_CONFIGS: Record<string, LaboCrudConfig> = {
   },
 };
 
+interface CrudFormValues { name: string; description?: string; }
+
 function LaboCrudView({ config }: { config: LaboCrudConfig }) {
   const label = t(config.labelKey);
   const [keyword, setKeyword] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<LaboCatalogItem | null>(null);
-  const [form] = Form.useForm();
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<CrudFormValues>();
 
   const { data, isLoading } = config.useList();
   const createMutation = config.useCreate();
@@ -441,72 +509,109 @@ function LaboCrudView({ config }: { config: LaboCrudConfig }) {
     (item) => !keyword || item.name.toLowerCase().includes(keyword.toLowerCase()),
   );
 
-  const handleOk = async () => {
-    try {
-      const values = await form.validateFields();
-      if (isEdit && editingItem) {
-        await updateMutation.mutateAsync({ id: editingItem.id, data: values });
-        message.success(t("Cập nhật thành công"));
-      } else {
-        await createMutation.mutateAsync(values);
-        message.success(t("Tạo thành công"));
-      }
-      form.resetFields(); setEditingItem(null); setModalOpen(false);
-    } catch { /* validation */ }
-  };
+  const openCreate = () => { setEditingItem(null); reset({ name: "", description: "" }); setModalOpen(true); };
+  const openEdit = (item: LaboCatalogItem) => { setEditingItem(item); reset({ name: item.name, description: item.description ?? "" }); setModalOpen(true); };
+
+  const onSubmit = handleSubmit(async (values) => {
+    if (isEdit && editingItem) {
+      await updateMutation.mutateAsync({ id: editingItem.id, data: values });
+      toast.success(t("Cập nhật thành công"));
+    } else {
+      await createMutation.mutateAsync(values);
+      toast.success(t("Tạo thành công"));
+    }
+    reset(); setEditingItem(null); setModalOpen(false);
+  });
 
   const handleDelete = async (id: string) => {
-    try { await deleteMutation.mutateAsync(id); message.success(t("Xóa thành công")); } catch { message.error(t("Xóa thất bại")); }
+    try { await deleteMutation.mutateAsync(id); toast.success(t("Xóa thành công")); } catch { toast.error(t("Xóa thất bại")); }
   };
-
-  const columns: ColumnsType<LaboCatalogItem> = [
-    { title: label, dataIndex: "name", key: "name" },
-    { title: t("Cập nhật gần nhất"), dataIndex: "lastModificationTime", key: "updatedAt", render: (v: string) => v ? dayjs(v).format("DD/MM/YYYY") : "—" },
-    {
-      title: t("Thao tác"), key: "actions", width: 120,
-      render: (_, record) => (
-        <div style={{ display: "flex", gap: 6 }}>
-          <Button size="small" icon={<EditOutlined />} onClick={() => { setEditingItem(record); setModalOpen(true); }} />
-          <Popconfirm title={t("Xác nhận")} onConfirm={() => handleDelete(record.id)} okText={t("Xóa")} cancelText={t("Hủy")} okButtonProps={{ danger: true }}>
-            <Button size="small" danger icon={<DeleteOutlined />} />
-          </Popconfirm>
-        </div>
-      ),
-    },
-  ];
 
   return (
     <>
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
-          <Input prefix={<SearchOutlined />} placeholder={`${t("Tìm kiếm...")} ${label.toLowerCase()}...`} value={keyword} onChange={(e) => setKeyword(e.target.value)} style={{ width: 280 }} allowClear />
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingItem(null); form.resetFields(); setModalOpen(true); }}>{t("Tạo")} {label.toLowerCase()}</Button>
+          <div className="relative">
+            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input placeholder={`${t("Tìm kiếm...")} ${label.toLowerCase()}...`} value={keyword} onChange={(e) => setKeyword(e.target.value)} className="pl-8 w-72" />
+          </div>
+          <Button onClick={openCreate}><Plus size={14} className="mr-1.5" />{t("Tạo")} {label.toLowerCase()}</Button>
         </div>
       </div>
-      <div className="reception-card reception-card--content">
-        <Table columns={columns} dataSource={items} rowKey="id" loading={isLoading}
-          pagination={{ pageSize: 20, showTotal: (total) => t("{0} mục", total) }}
-          locale={{ emptyText: t("Không có dữ liệu") }} size="middle" />
+      <div className="reception-card reception-card--content overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{label}</TableHead>
+              <TableHead>{t("Cập nhật gần nhất")}</TableHead>
+              <TableHead className="w-28">{t("Thao tác")}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow><TableCell colSpan={3} className="text-center py-8"><Loader2 className="size-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
+            ) : items.length === 0 ? (
+              <TableRow><TableCell colSpan={3} className="text-center py-8 text-muted-foreground">{t("Không có dữ liệu")}</TableCell></TableRow>
+            ) : items.map((item) => (
+              <TableRow key={item.id}>
+                <TableCell className="font-medium">{item.name}</TableCell>
+                <TableCell>{item.lastModificationTime ? dayjs(item.lastModificationTime).format("DD/MM/YYYY") : "—"}</TableCell>
+                <TableCell>
+                  <div className="flex gap-1.5">
+                    <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => openEdit(item)}><Pencil size={14} /></Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild><Button variant="destructive" size="sm" className="h-7 w-7 p-0"><Trash2 size={14} /></Button></AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader><AlertDialogTitle>{t("Xác nhận")}</AlertDialogTitle></AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>{t("Hủy")}</AlertDialogCancel>
+                          <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => handleDelete(item.id)}>{t("Xóa")}</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
-      <Modal title={isEdit ? `${t("Chỉnh sửa")} ${label.toLowerCase()}` : `${t("Tạo")} ${label.toLowerCase()}`} open={modalOpen}
-        onCancel={() => { form.resetFields(); setEditingItem(null); setModalOpen(false); }}
-        onOk={handleOk} confirmLoading={createMutation.isPending || updateMutation.isPending}
-        okText={isEdit ? t("Lưu") : t("Tạo")} cancelText={t("Hủy")} width={420} destroyOnClose
-        afterOpenChange={(visible) => { if (visible && editingItem) form.setFieldsValue(editingItem); }}>
-        <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
-          <Form.Item name="name" label={label} rules={[{ required: true, message: `${t("Tạo")} ${label.toLowerCase()}` }]}><Input placeholder={`${t("Tạo")} ${label.toLowerCase()}...`} /></Form.Item>
-          <Form.Item name="description" label={t("Mô tả")}><Input.TextArea rows={2} placeholder={t("Mô tả")} /></Form.Item>
-        </Form>
-      </Modal>
+
+      <Dialog open={modalOpen} onOpenChange={(o) => { if (!o) { reset(); setEditingItem(null); setModalOpen(false); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>{isEdit ? `${t("Chỉnh sửa")} ${label.toLowerCase()}` : `${t("Tạo")} ${label.toLowerCase()}`}</DialogTitle></DialogHeader>
+          <form onSubmit={onSubmit} className="space-y-3 mt-2">
+            <div>
+              <label className="text-sm font-medium mb-1 block">{label} <span className="text-destructive">*</span></label>
+              <Input placeholder={`${t("Tạo")} ${label.toLowerCase()}...`} {...register("name", { required: `${t("Tạo")} ${label.toLowerCase()}` })} />
+              {errors.name && <p className="text-xs text-destructive mt-1">{errors.name.message}</p>}
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">{t("Mô tả")}</label>
+              <textarea rows={2} placeholder={t("Mô tả")} {...register("description")}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => { reset(); setEditingItem(null); setModalOpen(false); }}>{t("Hủy")}</Button>
+              <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
+                {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="size-4 animate-spin mr-2" />}
+                {isEdit ? t("Lưu") : t("Tạo")}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
+
+interface MaterialFormValues { name: string; category?: string; supplierId?: string; description?: string; }
 
 function ServiceMaterialView() {
   const [keyword, setKeyword] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<LaboMaterialDto | null>(null);
-  const [form] = Form.useForm();
+  const { register, handleSubmit, control, reset } = useForm<MaterialFormValues>();
 
   const { data, isLoading } = useLaboMaterialList();
   const createMutation = useCreateLaboMaterial();
@@ -522,46 +627,24 @@ function ServiceMaterialView() {
 
   const supplierMap = new Map((suppliers?.items ?? []).map((s) => [s.id, s.name]));
 
-  const handleOk = async () => {
-    try {
-      const values = await form.validateFields();
-      if (editingItem) {
-        await updateMutation.mutateAsync({ id: editingItem.id, data: values });
-        message.success(t("Cập nhật vật liệu thành công"));
-      } else {
-        await createMutation.mutateAsync(values);
-        message.success(t("Thêm vật liệu thành công"));
-      }
-      form.resetFields();
-      setModalOpen(false);
-      setEditingItem(null);
-    } catch { /* validation */ }
-  };
+  const openCreate = () => { setEditingItem(null); reset({ name: "", category: "", supplierId: undefined, description: "" }); setModalOpen(true); };
+  const openEdit = (item: LaboMaterialDto) => { setEditingItem(item); reset({ name: item.name, category: item.category ?? "", supplierId: item.supplierId ?? undefined, description: item.description ?? "" }); setModalOpen(true); };
+
+  const onSubmit = handleSubmit(async (values) => {
+    if (editingItem) {
+      await updateMutation.mutateAsync({ id: editingItem.id, data: values });
+      toast.success(t("Cập nhật vật liệu thành công"));
+    } else {
+      await createMutation.mutateAsync(values);
+      toast.success(t("Thêm vật liệu thành công"));
+    }
+    reset(); setModalOpen(false); setEditingItem(null);
+  });
 
   const handleDelete = async (id: string) => {
     await deleteMutation.mutateAsync(id);
-    message.success(t("Xóa vật liệu thành công"));
+    toast.success(t("Xóa vật liệu thành công"));
   };
-
-  const columns: ColumnsType<LaboMaterialDto> = [
-    { title: t("Tên vật liệu"), dataIndex: "name", key: "name" },
-    { title: t("Nhóm phân loại"), dataIndex: "category", key: "category", render: (v: string) => v ?? "—" },
-    { title: t("Nhà cung cấp"), key: "supplier", render: (_, r) => r.supplierId ? supplierMap.get(r.supplierId) ?? "—" : "—" },
-    { title: t("Cập nhật gần nhất"), dataIndex: "lastModificationTime", key: "updatedAt", render: (v: string) => v ? dayjs(v).format("DD/MM/YYYY") : "—" },
-    {
-      title: t("Thao tác"),
-      key: "actions",
-      width: 120,
-      render: (_, record) => (
-        <div style={{ display: "flex", gap: 6 }}>
-          <Button size="small" icon={<EditOutlined />} onClick={() => { setEditingItem(record); form.setFieldsValue(record); setModalOpen(true); }} />
-          <Popconfirm title={t("Xác nhận")} onConfirm={() => handleDelete(record.id)} okText={t("Xóa")} cancelText={t("Hủy")} okButtonProps={{ danger: true }}>
-            <Button size="small" danger icon={<DeleteOutlined />} />
-          </Popconfirm>
-        </div>
-      ),
-    },
-  ];
 
   return (
     <div style={{ display: "flex", gap: 16 }}>
@@ -583,34 +666,95 @@ function ServiceMaterialView() {
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
         <div className="reception-card reception-card--toolbar">
           <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingItem(null); form.resetFields(); setModalOpen(true); }}>{t("Tạo vật liệu")}</Button>
-            <Input prefix={<SearchOutlined />} placeholder={t("Tìm kiếm...")} value={keyword} onChange={(e) => setKeyword(e.target.value)} style={{ width: 220 }} allowClear />
+            <Button onClick={openCreate}><Plus size={14} className="mr-1.5" />{t("Tạo vật liệu")}</Button>
+            <div className="relative">
+              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input placeholder={t("Tìm kiếm...")} value={keyword} onChange={(e) => setKeyword(e.target.value)} className="pl-8 w-56" />
+            </div>
           </div>
         </div>
-        <div className="reception-card reception-card--content">
-          <Table columns={columns} dataSource={items} rowKey="id" loading={isLoading} pagination={{ pageSize: 20, showTotal: (total) => t("{0} vật liệu", total) }} locale={{ emptyText: t("Không có dữ liệu") }} size="middle" />
+        <div className="reception-card reception-card--content overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t("Tên vật liệu")}</TableHead>
+                <TableHead>{t("Nhóm phân loại")}</TableHead>
+                <TableHead>{t("Nhà cung cấp")}</TableHead>
+                <TableHead>{t("Cập nhật gần nhất")}</TableHead>
+                <TableHead className="w-28">{t("Thao tác")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow><TableCell colSpan={5} className="text-center py-8"><Loader2 className="size-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
+              ) : items.length === 0 ? (
+                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">{t("Không có dữ liệu")}</TableCell></TableRow>
+              ) : items.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell className="font-medium">{item.name}</TableCell>
+                  <TableCell>{item.category ?? "—"}</TableCell>
+                  <TableCell>{item.supplierId ? supplierMap.get(item.supplierId) ?? "—" : "—"}</TableCell>
+                  <TableCell>{item.lastModificationTime ? dayjs(item.lastModificationTime).format("DD/MM/YYYY") : "—"}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-1.5">
+                      <Button variant="outline" size="sm" className="h-7 w-7 p-0" onClick={() => openEdit(item)}><Pencil size={14} /></Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild><Button variant="destructive" size="sm" className="h-7 w-7 p-0"><Trash2 size={14} /></Button></AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader><AlertDialogTitle>{t("Xác nhận")}</AlertDialogTitle></AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>{t("Hủy")}</AlertDialogCancel>
+                            <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={() => handleDelete(item.id)}>{t("Xóa")}</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       </div>
 
-      <Modal
-        title={editingItem ? t("Chỉnh sửa vật liệu") : t("Thêm vật liệu Labo")}
-        open={modalOpen}
-        onCancel={() => { setModalOpen(false); setEditingItem(null); form.resetFields(); }}
-        onOk={handleOk}
-        confirmLoading={createMutation.isPending || updateMutation.isPending}
-        okText={editingItem ? t("Lưu") : t("Tạo")}
-        cancelText={t("Hủy")}
-        destroyOnClose
-      >
-        <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
-          <Form.Item name="name" label={t("Tên vật liệu")} rules={[{ required: true, message: t("Nhập tên vật liệu") }]}><Input placeholder={t("Nhập tên vật liệu")} /></Form.Item>
-          <Form.Item name="category" label={t("Nhóm phân loại")}><Input placeholder={t("VD: Kim loại, Sứ, Composite...")} /></Form.Item>
-          <Form.Item name="supplierId" label={t("Nhà cung cấp")}>
-            <Select placeholder={t("Chọn nhà cung cấp")} allowClear options={(suppliers?.items ?? []).map((s) => ({ value: s.id, label: s.name }))} />
-          </Form.Item>
-          <Form.Item name="description" label={t("Mô tả")}><Input.TextArea rows={2} placeholder={t("Mô tả")} /></Form.Item>
-        </Form>
-      </Modal>
+      <Dialog open={modalOpen} onOpenChange={(o) => { if (!o) { reset(); setModalOpen(false); setEditingItem(null); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>{editingItem ? t("Chỉnh sửa vật liệu") : t("Thêm vật liệu Labo")}</DialogTitle></DialogHeader>
+          <form onSubmit={onSubmit} className="space-y-3 mt-2">
+            <div>
+              <label className="text-sm font-medium mb-1 block">{t("Tên vật liệu")} <span className="text-destructive">*</span></label>
+              <Input placeholder={t("Nhập tên vật liệu")} {...register("name", { required: t("Nhập tên vật liệu") })} />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">{t("Nhóm phân loại")}</label>
+              <Input placeholder="VD: Kim loại, Sứ, Composite..." {...register("category")} />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">{t("Nhà cung cấp")}</label>
+              <Controller control={control} name="supplierId" render={({ field }) => (
+                <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                  <SelectTrigger><SelectValue placeholder={t("Chọn nhà cung cấp")} /></SelectTrigger>
+                  <SelectContent>
+                    {(suppliers?.items ?? []).map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )} />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">{t("Mô tả")}</label>
+              <textarea rows={2} placeholder={t("Mô tả")} {...register("description")}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => { reset(); setModalOpen(false); setEditingItem(null); }}>{t("Hủy")}</Button>
+              <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
+                {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="size-4 animate-spin mr-2" />}
+                {editingItem ? t("Lưu") : t("Tạo")}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -621,56 +765,34 @@ export function LaboPage() {
   const [activeTab, setActiveTab] = useState<LaboSubRoute>("mau-labo");
 
   const SUB_ROUTES: { key: LaboSubRoute; label: string }[] = [
-    { key: "mau-labo",          label: t("Mẫu Labo") },
-    { key: "supplier",          label: t("Nhà cung cấp Labo") },
-    { key: "bite",              label: t("Khớp cắn Labo") },
-    { key: "finish-line",       label: t("Đường hoàn tất") },
-    { key: "nhip",              label: t("Kiểu nhịp Labo") },
-    { key: "service-material",  label: t("Dịch vụ - vật liệu") },
+    { key: "mau-labo",         label: t("Mẫu Labo") },
+    { key: "supplier",         label: t("Nhà cung cấp Labo") },
+    { key: "bite",             label: t("Khớp cắn Labo") },
+    { key: "finish-line",      label: t("Đường hoàn tất") },
+    { key: "nhip",             label: t("Kiểu nhịp Labo") },
+    { key: "service-material", label: t("Dịch vụ - vật liệu") },
   ];
 
   const renderContent = () => {
     switch (activeTab) {
-      case "mau-labo":
-        return <MauLaboView />;
-      case "supplier":
-        return <SupplierView />;
+      case "mau-labo":        return <MauLaboView />;
+      case "supplier":        return <SupplierView />;
       case "bite":
       case "finish-line":
-      case "nhip":
-        return <LaboCrudView config={LABO_CRUD_CONFIGS[activeTab]} />;
-      case "service-material":
-        return <ServiceMaterialView />;
-      default:
-        return null;
+      case "nhip":            return <LaboCrudView config={LABO_CRUD_CONFIGS[activeTab]} />;
+      case "service-material": return <ServiceMaterialView />;
+      default:                return null;
     }
   };
 
   return (
     <div className="reception-page">
-      <PageHeader
-        title={t("Labo")}
-        subtitle={t("Phiếu labo, nhà cung cấp và danh mục kỹ thuật")}
-      />
-
+      <PageHeader title={t("Labo")} subtitle={t("Phiếu labo, nhà cung cấp và danh mục kỹ thuật")} />
       <div className="reception-card reception-card--tabs">
         <div style={{ display: "flex", gap: 0, flexWrap: "wrap" }}>
           {SUB_ROUTES.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              style={{
-                padding: "8px 18px",
-                border: "none",
-                borderBottom: activeTab === tab.key ? "2px solid #1677ff" : "2px solid transparent",
-                background: "none",
-                color: activeTab === tab.key ? "#1677ff" : "#595959",
-                fontWeight: activeTab === tab.key ? 600 : 400,
-                cursor: "pointer",
-                fontSize: 13,
-                whiteSpace: "nowrap",
-              }}
-            >
+            <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+              style={{ padding: "8px 18px", border: "none", borderBottom: activeTab === tab.key ? "2px solid #1677ff" : "2px solid transparent", background: "none", color: activeTab === tab.key ? "#1677ff" : "#595959", fontWeight: activeTab === tab.key ? 600 : 400, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>
               {tab.label}
             </button>
           ))}

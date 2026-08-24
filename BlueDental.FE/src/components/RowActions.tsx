@@ -1,7 +1,11 @@
-// RowActions — dropdown menu for table row actions (edit, delete, view).
-
-import { Dropdown, Button, type MenuProps } from "antd";
-import { MoreOutlined } from "@ant-design/icons";
+import { MoreHorizontal } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Action {
   key: string;
@@ -15,21 +19,28 @@ interface Props {
 }
 
 export function RowActions({ actions }: Props) {
-  const items: MenuProps["items"] = actions.map((action) => ({
-    key: action.key,
-    label: action.label,
-    danger: action.danger,
-    onClick: action.onClick,
-  }));
-
   return (
-    <Dropdown menu={{ items }} trigger={["click"]} placement="bottomRight">
-      <Button
-        type="text"
-        icon={<MoreOutlined />}
-        onClick={(e) => e.stopPropagation()}
-        size="small"
-      />
-    </Dropdown>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <MoreHorizontal className="size-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {actions.map((action) => (
+          <DropdownMenuItem
+            key={action.key}
+            onClick={action.onClick}
+            className={action.danger ? "text-destructive focus:text-destructive" : undefined}
+          >
+            {action.label}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

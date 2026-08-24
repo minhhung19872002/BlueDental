@@ -1,5 +1,6 @@
-import { useEffect } from "react";
-import { Button, Empty, Form, Input, Spin, message } from "antd";
+import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import {
   useClinicBranch,
   useClinicBranches,
@@ -9,12 +10,14 @@ import { useStaffList, useStaffRoleNames } from "@/features/staff/api/staffQueri
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface BranchFormValues {
   name: string;
-  address?: string;
-  phoneNumber?: string;
-  email?: string;
+  address: string;
+  phoneNumber: string;
+  email: string;
 }
 
 /**
@@ -26,7 +29,6 @@ interface BranchFormValues {
  * typed would be worse than a shorter form.
  */
 export function ClinicSettingsPage() {
-  const [form] = Form.useForm<BranchFormValues>();
   const branchId = useCurrentBranchId();
 
   const { data: branch, isLoading } = useClinicBranch(branchId);
@@ -35,24 +37,29 @@ export function ClinicSettingsPage() {
   const { data: staff } = useStaffList({ maxResultCount: 200 });
   const updateBranch = useUpdateClinicBranch();
 
+  const [form, setForm] = useState<BranchFormValues>({ name: "", address: "", phoneNumber: "", email: "" });
+
   useEffect(() => {
     if (branch) {
-      form.setFieldsValue({
+      setForm({
         name: branch.name,
         address: branch.address ?? "",
         phoneNumber: branch.phoneNumber ?? "",
         email: branch.email ?? "",
       });
     }
-  }, [branch, form]);
+  }, [branch]);
+
+  const setField = <K extends keyof BranchFormValues>(key: K, value: string) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
 
   const handleSave = async () => {
-    const values = await form.validateFields();
     try {
-      await updateBranch.mutateAsync({ id: branchId, input: values });
-      message.success(t("Đã lưu cài đặt phòng khám"));
+      await updateBranch.mutateAsync({ id: branchId, input: form });
+      toast.success(t("Đã lưu cài đặt phòng khám"));
     } catch (error) {
-      message.error(extractApiError(error));
+      toast.error(extractApiError(error));
     }
   };
 
@@ -80,41 +87,42 @@ export function ClinicSettingsPage() {
             {t("Thông tin chung")}
           </div>
           {isLoading ? (
-            <Spin />
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="size-5 animate-spin" />
+            </div>
           ) : (
-            <Form form={form} layout="vertical" requiredMark={false}>
-              <Form.Item
-                name="name"
-                label={t("Tên phòng khám")}
-                rules={[{ required: true, message: t("Vui lòng nhập tên") }]}
-              >
-                <Input />
-              </Form.Item>
-              <Form.Item name="address" label={t("Địa chỉ")}>
-                <Input />
-              </Form.Item>
+            <div className="flex flex-col gap-4">
+              <div>
+                <label className="text-sm font-medium mb-1 block">
+                  {t("Tên phòng khám")} <span className="text-destructive">*</span>
+                </label>
+                <Input value={form.name} onChange={(e) => setField("name", e.target.value)} />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">{t("Địa chỉ")}</label>
+                <Input value={form.address} onChange={(e) => setField("address", e.target.value)} />
+              </div>
               <div className="settings-row">
-                <Form.Item name="phoneNumber" label={t("Số điện thoại")}>
-                  <Input />
-                </Form.Item>
-                <Form.Item
-                  name="email"
-                  label="Email"
-                  rules={[{ type: "email", message: t("Email không hợp lệ") }]}
-                >
-                  <Input />
-                </Form.Item>
+                <div className="flex-1">
+                  <label className="text-sm font-medium mb-1 block">{t("Số điện thoại")}</label>
+                  <Input value={form.phoneNumber} onChange={(e) => setField("phoneNumber", e.target.value)} />
+                </div>
+                <div className="flex-1">
+                  <label className="text-sm font-medium mb-1 block">Email</label>
+                  <Input type="email" value={form.email} onChange={(e) => setField("email", e.target.value)} />
+                </div>
               </div>
               <Button
-                type="primary"
-                block
-                size="large"
-                loading={updateBranch.isPending}
+                className="w-full"
+                size="lg"
+                disabled={updateBranch.isPending}
                 onClick={() => void handleSave()}
               >
-                {t("Lưu thay đổi")}
+                {updateBranch.isPending ? (
+                  <><Loader2 className="size-4 animate-spin mr-2" />{t("Đang lưu...")}</>
+                ) : t("Lưu thay đổi")}
               </Button>
-            </Form>
+            </div>
           )}
         </div>
 
@@ -124,7 +132,7 @@ export function ClinicSettingsPage() {
               {t("Chi nhánh")}
             </div>
             {(branches ?? []).length === 0 ? (
-              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("Chưa có chi nhánh")} />
+              <div className="py-4 text-center text-muted-foreground text-sm">{t("Chưa có chi nhánh")}</div>
             ) : (
               <div className="dash-list">
                 {(branches ?? []).map((item) => (
@@ -145,7 +153,7 @@ export function ClinicSettingsPage() {
               {t("Phân quyền")}
             </div>
             {(roleNames ?? []).length === 0 ? (
-              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("Chưa có vai trò")} />
+              <div className="py-4 text-center text-muted-foreground text-sm">{t("Chưa có vai trò")}</div>
             ) : (
               <div className="settings-roles">
                 {(roleNames ?? []).map((role) => (

@@ -1,7 +1,6 @@
 // MedicalHistoryPanel — displays and allows editing of medical history notes.
 // TODO: Implement rich text editing with auto-save.
 
-import { Typography } from "antd";
 import { t } from "@/lib/i18n";
 
 interface Props {
@@ -11,15 +10,15 @@ interface Props {
 export function MedicalHistoryPanel({ history }: Props) {
   if (!history) {
     return (
-      <Typography.Text type="secondary">
+      <p className="text-sm text-muted-foreground">
         {t("Chưa có thông tin tiền sử bệnh.")}
-      </Typography.Text>
+      </p>
     );
   }
 
   return (
-    <Typography.Paragraph style={{ whiteSpace: "pre-wrap" }}>
+    <p className="text-sm whitespace-pre-wrap leading-relaxed">
       {history}
-    </Typography.Paragraph>
+    </p>
   );
 }

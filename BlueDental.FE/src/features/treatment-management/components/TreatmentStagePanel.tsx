@@ -1,7 +1,17 @@
 import { useState } from "react";
-import { Button, Card, Empty, Progress, Space, Table, Tag, Typography, message } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
-import type { TableColumnsType } from "antd";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Loader2, Plus } from "lucide-react";
+import { toast } from "sonner";
 import {
   STAGE_STATUS,
   stageStatusConfig,
@@ -17,8 +27,6 @@ import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { extractApiError } from "@/lib/apiError";
 import { formatDate } from "@/utils/format";
 import { t } from "@/lib/i18n";
-
-const { Text } = Typography;
 
 interface TreatmentStagePanelProps {
   patientId: string;
@@ -52,129 +60,133 @@ export function TreatmentStagePanel({ patientId }: TreatmentStagePanelProps) {
   const run = async (action: Promise<unknown>, success: string) => {
     try {
       await action;
-      message.success(success);
+      toast.success(success);
     } catch (error) {
-      message.error(extractApiError(error));
+      toast.error(extractApiError(error));
     }
   };
 
-  const columns: TableColumnsType<TreatmentStageDto> = [
-    { title: "#", dataIndex: "sequenceNumber", key: "sequenceNumber", width: 50 },
-    {
-      title: t("Dịch vụ"),
-      dataIndex: "serviceName",
-      key: "serviceName",
-      width: 180,
-      render: (value: string | null) => value ?? "—",
-    },
-    { title: t("Công đoạn"), dataIndex: "name", key: "name" },
-    {
-      title: t("Răng"),
-      key: "teeth",
-      width: 140,
-      render: (_, row) => (row.teeth.length === 0 ? "—" : formatTeeth(row.teeth)),
-    },
-    {
-      title: t("Bác sĩ"),
-      dataIndex: "staffName",
-      key: "staffName",
-      width: 140,
-      render: (value: string | null) => value ?? "—",
-    },
-    {
-      title: t("Ngày dự kiến"),
-      dataIndex: "scheduledDate",
-      key: "scheduledDate",
-      width: 120,
-      render: (value: string | null) => (value ? formatDate(value) : "—"),
-    },
-    {
-      title: t("Trạng thái"),
-      dataIndex: "status",
-      key: "status",
-      width: 130,
-      render: (_, row) => {
-        const config = stageStatusConfig()[row.status];
-        return (
-          <Space size={4}>
-            <Tag color={config.color}>{config.label}</Tag>
-            {row.isImageRequired && row.imageUrls.length === 0 ? (
-              <Tag color="warning">{t("Cần ảnh")}</Tag>
-            ) : null}
-          </Space>
-        );
-      },
-    },
-    {
-      title: t("Thao tác"),
-      key: "actions",
-      width: 190,
-      render: (_, row) =>
-        row.status === STAGE_STATUS.Completed ? (
-          <Text type="secondary">{t("Đã xong")}</Text>
-        ) : (
-          <Space size={4}>
-            {row.status === STAGE_STATUS.Pending ? (
-              <Button
-                size="small"
-                type="link"
-                loading={continueStage.isPending}
-                onClick={() =>
-                  run(continueStage.mutateAsync(row.id), t("Đã tiếp tục công đoạn"))
-                }
-              >
-                {t("Tiếp tục")}
-              </Button>
-            ) : null}
-            <Button
-              size="small"
-              type="link"
-              loading={completeStage.isPending}
-              onClick={() => run(completeStage.mutateAsync(row.id), t("Đã hoàn thành công đoạn"))}
-            >
-              {t("Hoàn thành")}
-            </Button>
-          </Space>
-        ),
-    },
-  ];
-
   return (
     <>
-      <Card
-        size="small"
-        title={t("Công đoạn điều trị")}
-        extra={
-          <Button size="small" type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
+      <Card style={{ marginTop: 16 }}>
+        <CardHeader className="flex flex-row items-center justify-between py-3 px-4">
+          <CardTitle className="text-sm font-semibold">{t("Công đoạn điều trị")}</CardTitle>
+          <Button size="sm" onClick={() => setModalOpen(true)}>
+            <Plus size={14} className="mr-1" />
             {t("Công đoạn")}
           </Button>
-        }
-        style={{ marginTop: 16 }}
-      >
-        <div style={{ marginBottom: 12 }} data-testid="stage-progress">
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            {t("Tiến độ:")} {completed}/{stages.length} {t("công đoạn")}
-          </Text>
-          <Progress percent={progressPercent} size="small" />
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            {t("Công đoạn gần nhất:")}{" "}
-            {latest
-              ? `${latest.serviceName ?? t("Dịch vụ")} — ${latest.stageNote ?? t("(không có ghi chú)")}`
-              : t("Chưa có công đoạn")}
-          </Text>
-        </div>
+        </CardHeader>
+        <CardContent className="px-4 pb-4">
+          <div className="mb-3" data-testid="stage-progress">
+            <p className="text-xs text-muted-foreground mb-1">
+              {t("Tiến độ:")} {completed}/{stages.length} {t("công đoạn")}
+            </p>
+            <Progress value={progressPercent} className="h-2" />
+            <p className="text-xs text-muted-foreground mt-1">
+              {t("Công đoạn gần nhất:")}{" "}
+              {latest
+                ? `${latest.serviceName ?? t("Dịch vụ")} — ${latest.stageNote ?? t("(không có ghi chú)")}`
+                : t("Chưa có công đoạn")}
+            </p>
+          </div>
 
-        <Table<TreatmentStageDto>
-          size="small"
-          rowKey="id"
-          loading={isLoading}
-          columns={columns}
-          dataSource={stages}
-          pagination={false}
-          locale={{
-            emptyText: <Empty description={t("Chưa có công đoạn")} image={Empty.PRESENTED_IMAGE_SIMPLE} />,
-          }}
-        />
+          {isLoading ? (
+            <div className="grid place-items-center py-8">
+              <Loader2 className="size-5 animate-spin" />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead style={{ width: 50 }}>#</TableHead>
+                    <TableHead style={{ width: 180 }}>{t("Dịch vụ")}</TableHead>
+                    <TableHead>{t("Công đoạn")}</TableHead>
+                    <TableHead style={{ width: 140 }}>{t("Răng")}</TableHead>
+                    <TableHead style={{ width: 140 }}>{t("Bác sĩ")}</TableHead>
+                    <TableHead style={{ width: 120 }}>{t("Ngày dự kiến")}</TableHead>
+                    <TableHead style={{ width: 130 }}>{t("Trạng thái")}</TableHead>
+                    <TableHead style={{ width: 190 }}>{t("Thao tác")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {stages.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                        {t("Chưa có công đoạn")}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    stages.map((row: TreatmentStageDto) => {
+                      const config = stageStatusConfig()[row.status];
+                      return (
+                        <TableRow key={row.id}>
+                          <TableCell className="text-xs">{row.sequenceNumber}</TableCell>
+                          <TableCell className="text-xs">{row.serviceName ?? "—"}</TableCell>
+                          <TableCell className="text-xs">{row.name}</TableCell>
+                          <TableCell className="text-xs">
+                            {row.teeth.length === 0 ? "—" : formatTeeth(row.teeth)}
+                          </TableCell>
+                          <TableCell className="text-xs">{row.staffName ?? "—"}</TableCell>
+                          <TableCell className="text-xs">
+                            {row.scheduledDate ? formatDate(row.scheduledDate) : "—"}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <span
+                                className="inline-block px-2 py-0.5 rounded text-xs font-medium"
+                                style={{ background: config.color + "22", color: config.color }}
+                              >
+                                {config.label}
+                              </span>
+                              {row.isImageRequired && row.imageUrls.length === 0 ? (
+                                <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-700">
+                                  {t("Cần ảnh")}
+                                </span>
+                              ) : null}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {row.status === STAGE_STATUS.Completed ? (
+                              <span className="text-xs text-muted-foreground">{t("Đã xong")}</span>
+                            ) : (
+                              <div className="flex items-center gap-1">
+                                {row.status === STAGE_STATUS.Pending ? (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-xs h-7 px-2"
+                                    disabled={continueStage.isPending}
+                                    onClick={() =>
+                                      run(continueStage.mutateAsync(row.id), t("Đã tiếp tục công đoạn"))
+                                    }
+                                  >
+                                    {t("Tiếp tục")}
+                                  </Button>
+                                ) : null}
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-xs h-7 px-2"
+                                  disabled={completeStage.isPending}
+                                  onClick={() =>
+                                    run(completeStage.mutateAsync(row.id), t("Đã hoàn thành công đoạn"))
+                                  }
+                                >
+                                  {t("Hoàn thành")}
+                                </Button>
+                              </div>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
       </Card>
 
       <StageModal open={modalOpen} patientId={patientId} onClose={() => setModalOpen(false)} />

@@ -1,20 +1,32 @@
 import { useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Button,
-  Card,
-  Col,
-  Form,
-  InputNumber,
-  Modal,
-  Row,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import {
   Table,
-  Tag,
-  Typography,
-  message,
-} from "antd";
-import { PlusOutlined } from "@ant-design/icons";
-import type { TableColumnsType } from "antd";
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Loader2, Plus } from "lucide-react";
+import { toast } from "sonner";
 import {
   PAYMENT_KIND,
   paymentKindConfig,
@@ -32,17 +44,15 @@ import { extractApiError } from "@/lib/apiError";
 import { formatDateTime, formatVND } from "@/utils/format";
 import { t } from "@/lib/i18n";
 
-const { Text } = Typography;
-
 interface PatientAccountPanelProps {
   patientId: string;
 }
 
 interface PaymentFormValues {
-  kind: PatientPaymentKind;
-  method: PaymentMethodKind;
+  kind: string;
+  method: string;
   treatmentPlanId?: string;
-  amount: number;
+  amount: string;
   staffId: string;
 }
 
@@ -55,14 +65,23 @@ interface PaymentFormValues {
  */
 export function PatientAccountPanel({ patientId }: PatientAccountPanelProps) {
   const branchId = useCurrentBranchId();
-  const [form] = Form.useForm<PaymentFormValues>();
   const [modalOpen, setModalOpen] = useState(false);
 
   const { data: account, isLoading } = usePatientAccount(patientId, branchId);
   const { data: dentists } = useDentistList();
   const recordPayment = useRecordPayment();
 
-  const kind = Form.useWatch("kind", form) ?? PAYMENT_KIND.Payment;
+  const { control, handleSubmit, watch, reset } = useForm<PaymentFormValues>({
+    defaultValues: {
+      kind: String(PAYMENT_KIND.Payment),
+      method: String(PAYMENT_METHOD.Cash),
+      amount: "0",
+      treatmentPlanId: undefined,
+      staffId: "",
+    },
+  });
+
+  const kindValue = watch("kind");
   const slips = account?.plans ?? [];
 
   const tiles = [
@@ -74,197 +93,234 @@ export function PatientAccountPanel({ patientId }: PatientAccountPanelProps) {
     { label: t("Đang giữ hộ"), value: account?.heldForPatient ?? 0, testId: "acc-held", color: "#1c3566" },
   ];
 
-  const handleSubmit = async () => {
-    const values = await form.validateFields();
-
+  const onSubmit = async (values: PaymentFormValues) => {
     try {
       await recordPayment.mutateAsync({
         patientId,
         clinicBranchId: branchId,
-        treatmentPlanId: values.kind === PAYMENT_KIND.Prepaid ? undefined : values.treatmentPlanId,
-        kind: values.kind,
-        method: values.method,
-        amount: values.amount,
+        treatmentPlanId: Number(values.kind) === PAYMENT_KIND.Prepaid ? undefined : values.treatmentPlanId,
+        kind: Number(values.kind) as PatientPaymentKind,
+        method: Number(values.method) as PaymentMethodKind,
+        amount: Number(values.amount),
         staffId: values.staffId,
       });
 
-      message.success(t("Đã ghi nhận giao dịch"));
+      toast.success(t("Đã ghi nhận giao dịch"));
       setModalOpen(false);
-      form.resetFields();
+      reset();
     } catch (error) {
-      message.error(extractApiError(error));
+      toast.error(extractApiError(error));
     }
   };
 
-  const columns: TableColumnsType<PatientPaymentDto> = [
-    {
-      title: t("Ngày"),
-      dataIndex: "paidAt",
-      key: "paidAt",
-      width: 150,
-      render: (value: string) => formatDateTime(value),
-    },
-    { title: t("Số phiếu"), dataIndex: "code", key: "code", width: 120 },
-    {
-      title: t("Loại"),
-      dataIndex: "kind",
-      key: "kind",
-      width: 110,
-      render: (value: PatientPaymentKind) => {
-        const config = paymentKindConfig()[value];
-        return <Tag color={config.color}>{config.label}</Tag>;
-      },
-    },
-    {
-      title: t("Hình thức"),
-      dataIndex: "method",
-      key: "method",
-      width: 130,
-      render: (value: PaymentMethodKind) => paymentMethodLabels()[value],
-    },
-    {
-      title: t("Kế hoạch"),
-      dataIndex: "treatmentPlanCode",
-      key: "treatmentPlanCode",
-      width: 100,
-      render: (value: string | null) => value ?? "—",
-    },
-    {
-      title: t("Số tiền"),
-      dataIndex: "amount",
-      key: "amount",
-      width: 140,
-      align: "right",
-      render: (value: number, row) => (
-        <Text style={{ color: row.kind === PAYMENT_KIND.Refund ? "#ef4d4d" : "#1f8a63" }}>
-          {row.kind === PAYMENT_KIND.Refund ? "-" : ""}
-          {formatVND(value)} {t("đ")}
-        </Text>
-      ),
-    },
-    {
-      title: t("Người thu"),
-      dataIndex: "staffName",
-      key: "staffName",
-      width: 150,
-      render: (value: string | null) => value ?? "—",
-    },
-  ];
+  const kindConfig = paymentKindConfig();
+  const methodLabels = paymentMethodLabels();
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
+      <div className="flex justify-end mb-4">
+        <Button onClick={() => setModalOpen(true)}>
+          <Plus size={14} className="mr-2" />
           {t("Ghi nhận thanh toán")}
         </Button>
       </div>
 
-      <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
         {tiles.map((tile) => (
-          <Col key={tile.testId} xs={12} md={8} lg={4}>
-            <Card size="small" data-testid={tile.testId}>
-              <div style={{ fontSize: 12, color: "#98a4b4" }}>{tile.label}</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: tile.color }}>
+          <Card key={tile.testId} data-testid={tile.testId}>
+            <CardContent className="p-3">
+              <div className="text-xs text-muted-foreground">{tile.label}</div>
+              <div className="text-lg font-bold" style={{ color: tile.color }}>
                 {formatVND(tile.value)} {t("đ")}
               </div>
-            </Card>
-          </Col>
+            </CardContent>
+          </Card>
         ))}
-      </Row>
+      </div>
 
-      <Card size="small" title={t("Lịch sử giao dịch")}>
-        <Table<PatientPaymentDto>
-          size="small"
-          rowKey="id"
-          loading={isLoading}
-          columns={columns}
-          dataSource={account?.payments ?? []}
-          pagination={false}
-          locale={{ emptyText: <span style={{ color: "#98a4b4" }}>{t("Chưa có giao dịch")}</span> }}
-        />
+      <Card>
+        <CardHeader className="py-3 px-4">
+          <CardTitle className="text-sm">{t("Lịch sử giao dịch")}</CardTitle>
+        </CardHeader>
+        <CardContent className="px-3 pb-3">
+          {isLoading ? (
+            <div className="grid place-items-center py-8">
+              <Loader2 className="size-5 animate-spin" />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead style={{ width: 150 }}>{t("Ngày")}</TableHead>
+                    <TableHead style={{ width: 120 }}>{t("Số phiếu")}</TableHead>
+                    <TableHead style={{ width: 110 }}>{t("Loại")}</TableHead>
+                    <TableHead style={{ width: 130 }}>{t("Hình thức")}</TableHead>
+                    <TableHead style={{ width: 100 }}>{t("Kế hoạch")}</TableHead>
+                    <TableHead style={{ width: 140 }} className="text-right">{t("Số tiền")}</TableHead>
+                    <TableHead style={{ width: 150 }}>{t("Người thu")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(account?.payments ?? []).length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8" style={{ color: "#98a4b4" }}>
+                        {t("Chưa có giao dịch")}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    (account?.payments ?? []).map((row: PatientPaymentDto) => {
+                      const kConfig = kindConfig[row.kind as PatientPaymentKind];
+                      const isRefund = row.kind === PAYMENT_KIND.Refund;
+                      return (
+                        <TableRow key={row.id}>
+                          <TableCell className="text-xs">{formatDateTime(row.paidAt)}</TableCell>
+                          <TableCell className="text-xs">{row.code}</TableCell>
+                          <TableCell>
+                            <span
+                              className="inline-block px-2 py-0.5 rounded text-xs font-medium"
+                              style={{ background: kConfig.color + "22", color: kConfig.color }}
+                            >
+                              {kConfig.label}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-xs">{methodLabels[row.method as PaymentMethodKind]}</TableCell>
+                          <TableCell className="text-xs">{row.treatmentPlanCode ?? "—"}</TableCell>
+                          <TableCell className="text-xs text-right" style={{ color: isRefund ? "#ef4d4d" : "#1f8a63" }}>
+                            {isRefund ? "-" : ""}
+                            {formatVND(row.amount)} {t("đ")}
+                          </TableCell>
+                          <TableCell className="text-xs">{row.staffName ?? "—"}</TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
       </Card>
 
-      <Modal
-        open={modalOpen}
-        title={t("Ghi nhận thanh toán")}
-        okText={t("Lưu")}
-        cancelText={t("Huỷ")}
-        confirmLoading={recordPayment.isPending}
-        onOk={handleSubmit}
-        onCancel={() => setModalOpen(false)}
-        destroyOnHidden
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          requiredMark
-          initialValues={{ kind: PAYMENT_KIND.Payment, method: PAYMENT_METHOD.Cash, amount: 0 }}
-        >
-          <Form.Item name="kind" label={t("Loại giao dịch")} rules={[{ required: true }]}>
-            <Select
-              options={Object.entries(paymentKindConfig()).map(([value, config]) => ({
-                value: Number(value),
-                label: config.label,
-              }))}
-            />
-          </Form.Item>
-
-          {kind !== PAYMENT_KIND.Prepaid && (
-            <Form.Item
-              name="treatmentPlanId"
-              label={t("Kế hoạch điều trị")}
-              rules={[{ required: true, message: t("Vui lòng chọn kế hoạch") }]}
-            >
-              <Select
-                placeholder={
-                  slips.length === 0 ? t("Bệnh nhân chưa có kế hoạch điều trị") : t("Chọn kế hoạch")
-                }
-                options={slips.map((slip) => ({
-                  value: slip.id,
-                  label: t("{0} — còn lại {1} đ", slip.code, formatVND(slip.payment.totalDue)),
-                }))}
+      <Dialog open={modalOpen} onOpenChange={(open) => { if (!open) { setModalOpen(false); reset(); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("Ghi nhận thanh toán")}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium">{t("Loại giao dịch")}</label>
+              <Controller
+                name="kind"
+                control={control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(kindConfig).map(([value, config]) => (
+                        <SelectItem key={value} value={String(value)}>{config.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               />
-            </Form.Item>
-          )}
+            </div>
 
-          <Form.Item name="method" label={t("Hình thức")} rules={[{ required: true }]}>
-            <Select
-              options={Object.entries(paymentMethodLabels()).map(([value, label]) => ({
-                value: Number(value),
-                label,
-              }))}
-            />
-          </Form.Item>
+            {Number(kindValue) !== PAYMENT_KIND.Prepaid && (
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium">{t("Kế hoạch điều trị")}</label>
+                <Controller
+                  name="treatmentPlanId"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value ?? ""} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue
+                          placeholder={
+                            slips.length === 0
+                              ? t("Bệnh nhân chưa có kế hoạch điều trị")
+                              : t("Chọn kế hoạch")
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {slips.map((slip) => (
+                          <SelectItem key={slip.id} value={slip.id}>
+                            {t("{0} — còn lại {1} đ", slip.code, formatVND(slip.payment.totalDue))}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+            )}
 
-          <Form.Item
-            name="amount"
-            label={t("Số tiền (đ)")}
-            rules={[
-              { required: true, message: t("Vui lòng nhập số tiền") },
-              { type: "number", min: 1, message: t("Số tiền phải lớn hơn 0") },
-            ]}
-          >
-            <InputNumber<number>
-              style={{ width: "100%" }}
-              min={0}
-              step={100000}
-              formatter={(v) => `${v ?? ""}`.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
-              parser={(v) => Number((v ?? "").replace(/\./g, "")) as 0}
-            />
-          </Form.Item>
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium">{t("Hình thức")}</label>
+              <Controller
+                name="method"
+                control={control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(methodLabels).map(([value, label]) => (
+                        <SelectItem key={value} value={String(value)}>{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
 
-          <Form.Item
-            name="staffId"
-            label={t("Người thu")}
-            rules={[{ required: true, message: t("Vui lòng chọn người thu") }]}
-          >
-            <Select
-              placeholder={t("Chọn nhân viên")}
-              options={(dentists ?? []).map((d) => ({ value: d.id, label: d.name }))}
-            />
-          </Form.Item>
-        </Form>
-      </Modal>
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium">{t("Số tiền (đ)")}</label>
+              <Controller
+                name="amount"
+                control={control}
+                render={({ field }) => (
+                  <Input {...field} type="number" min={0} step={100000} placeholder="0" />
+                )}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium">{t("Người thu")}</label>
+              <Controller
+                name="staffId"
+                control={control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={t("Chọn nhân viên")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(dentists ?? []).map((d) => (
+                        <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => { setModalOpen(false); reset(); }}>
+                {t("Huỷ")}
+              </Button>
+              <Button type="submit" disabled={recordPayment.isPending}>
+                {recordPayment.isPending && <Loader2 className="size-4 animate-spin mr-2" />}
+                {t("Lưu")}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

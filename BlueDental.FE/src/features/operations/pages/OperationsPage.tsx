@@ -1,9 +1,15 @@
 import { useState } from "react";
-import { Table, Empty, Tabs, Button, Input, Modal, Popconfirm, message } from "antd";
-import { SearchOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
+import { Search, Plus, Trash2, Pencil, Loader2 } from "lucide-react";
 import dayjs from "dayjs";
+import { toast } from "sonner";
 import { t } from "@/lib/i18n";
 import { PageHeader } from "@/components/PageHeader";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   useOperationCategories, useCreateOperationCategory, useDeleteOperationCategory,
   useOperationArticles, useCreateOperationArticle, useUpdateOperationArticle, useDeleteOperationArticle,
@@ -111,7 +117,7 @@ export function OperationsPage() {
   const [articleTitle, setArticleTitle] = useState("");
   const [editingArticle, setEditingArticle] = useState<OperationArticleDto | null>(null);
 
-  const currentTabDef = MAIN_TAB_DEFS.find((t) => t.key === activeTab)!;
+  const currentTabDef = MAIN_TAB_DEFS.find((td) => td.key === activeTab)!;
   const activeSubTab = activeSubTabs[activeTab] ?? currentTabDef.subTabs[0]?.key ?? "";
 
   const setSubTab = (sub: string) => {
@@ -137,7 +143,7 @@ export function OperationsPage() {
     if (!categoryName.trim()) return;
     createCategory.mutate(
       { name: categoryName.trim(), department: activeTab, subTab: activeSubTab },
-      { onSuccess: () => { setCategoryModalOpen(false); setCategoryName(""); message.success(t("Đã tạo mục")); } },
+      { onSuccess: () => { setCategoryModalOpen(false); setCategoryName(""); toast.success(t("Đã tạo mục")); } },
     );
   };
 
@@ -146,14 +152,14 @@ export function OperationsPage() {
     if (editingArticle) {
       updateArticle.mutate(
         { id: editingArticle.id, data: { title: articleTitle.trim() } },
-        { onSuccess: () => { setArticleModalOpen(false); setArticleTitle(""); setEditingArticle(null); message.success(t("Đã cập nhật")); } },
+        { onSuccess: () => { setArticleModalOpen(false); setArticleTitle(""); setEditingArticle(null); toast.success(t("Đã cập nhật")); } },
       );
     } else {
       const catId = selectedCategoryId ?? categories[0]?.id;
-      if (!catId) { message.warning(t("Vui lòng tạo mục trước")); return; }
+      if (!catId) { toast.warning(t("Vui lòng tạo mục trước")); return; }
       createArticle.mutate(
         { title: articleTitle.trim(), categoryId: catId, department: activeTab, subTab: activeSubTab },
-        { onSuccess: () => { setArticleModalOpen(false); setArticleTitle(""); message.success(t("Đã tạo bài viết")); } },
+        { onSuccess: () => { setArticleModalOpen(false); setArticleTitle(""); toast.success(t("Đã tạo bài viết")); } },
       );
     }
   };
@@ -165,31 +171,35 @@ export function OperationsPage() {
         subtitle={t("Chỉ số theo từng khối chức năng trong ngày")}
       />
 
-      <div className="reception-card" style={{ padding: "0 16px" }}>
-        <Tabs
-          activeKey={activeTab}
-          onChange={(k) => { setActiveTab(k); setSelectedCategoryId(undefined); }}
-          style={{ marginBottom: 0 }}
-          items={MAIN_TAB_DEFS.map((tab) => ({ key: tab.key, label: t(tab.labelKey) }))}
-        />
+      <div className="reception-card px-4">
+        <Tabs value={activeTab} onValueChange={(k) => { setActiveTab(k); setSelectedCategoryId(undefined); }}>
+          <TabsList className="h-auto w-full justify-start gap-0 rounded-none border-b bg-transparent p-0">
+            {MAIN_TAB_DEFS.map((tab) => (
+              <TabsTrigger
+                key={tab.key}
+                value={tab.key}
+                className="rounded-none border-b-2 border-transparent px-4 py-2.5 text-[13px] data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:shadow-none"
+              >
+                {t(tab.labelKey)}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
       </div>
 
       {currentTabDef.subTabs.length > 0 && (
         <div className="reception-card reception-card--tabs">
-          <div style={{ display: "flex", gap: 0 }}>
+          <div className="flex">
             {currentTabDef.subTabs.map((sub) => (
               <button
                 key={sub.key}
                 type="button"
                 onClick={() => setSubTab(sub.key)}
-                style={{
-                  padding: "8px 16px", border: "none",
-                  borderBottom: activeSubTab === sub.key ? "2px solid #1677ff" : "2px solid transparent",
-                  background: "none",
-                  color: activeSubTab === sub.key ? "#1677ff" : "#595959",
-                  fontWeight: activeSubTab === sub.key ? 600 : 400,
-                  cursor: "pointer", fontSize: 13, whiteSpace: "nowrap",
-                }}
+                className={`whitespace-nowrap border-b-2 bg-transparent px-4 py-2 text-[13px] ${
+                  activeSubTab === sub.key
+                    ? "border-primary font-semibold text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
               >
                 {t(sub.labelKey)}
               </button>
@@ -198,115 +208,198 @@ export function OperationsPage() {
         </div>
       )}
 
-      <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
-        <div className="reception-card" style={{ width: 220, minWidth: 180, flexShrink: 0, padding: 12 }}>
-          <Button type="dashed" block icon={<PlusOutlined />} style={{ marginBottom: 10 }} onClick={() => setCategoryModalOpen(true)}>
+      <div className="flex items-start gap-4">
+        {/* Sidebar categories */}
+        <div className="reception-card w-[220px] min-w-[180px] shrink-0 p-3">
+          <Button variant="outline" className="mb-2.5 w-full border-dashed" onClick={() => setCategoryModalOpen(true)}>
+            <Plus size={14} />
             {t("Thêm Mới")}
           </Button>
           {categories.length === 0 ? (
-            <div style={{ color: "#9CA3AF", fontSize: 13, textAlign: "center", paddingTop: 20 }}>
+            <div className="pt-5 text-center text-[13px] text-muted-foreground">
               {t("Chưa có mục nào")}
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <div className="flex flex-col gap-0.5">
               {categories.map((cat: OperationCategoryDto) => (
                 <div
                   key={cat.id}
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "space-between",
-                    padding: "6px 8px", borderRadius: 6, cursor: "pointer",
-                    background: selectedCategoryId === cat.id ? "#EBF3FE" : "transparent",
-                    color: selectedCategoryId === cat.id ? "#1E70E6" : "#374151",
-                    fontWeight: selectedCategoryId === cat.id ? 600 : 400, fontSize: 13,
-                  }}
+                  className={`flex cursor-pointer items-center justify-between rounded-md px-2 py-1.5 text-[13px] ${
+                    selectedCategoryId === cat.id
+                      ? "bg-blue-50 font-semibold text-primary"
+                      : "text-foreground hover:bg-muted"
+                  }`}
                   onClick={() => setSelectedCategoryId(selectedCategoryId === cat.id ? undefined : cat.id)}
                 >
-                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cat.name}</span>
-                  <Popconfirm title={t("Xoá mục này?")} onConfirm={() => deleteCategory.mutate(cat.id)}>
-                    <Button type="text" size="small" danger icon={<DeleteOutlined />} style={{ flexShrink: 0 }} />
-                  </Popconfirm>
+                  <span className="truncate">{cat.name}</span>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-6 shrink-0 text-destructive hover:text-destructive"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Trash2 size={14} />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>{t("Xoá mục này?")}</AlertDialogTitle>
+                        <AlertDialogDescription>{t("Hành động này không thể hoàn tác.")}</AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>{t("Hủy")}</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => deleteCategory.mutate(cat.id)}>
+                          {t("Xoá")}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 0 }}>
+        {/* Main content */}
+        <div className="flex min-w-0 flex-1 flex-col">
           <div className="reception-card reception-card--toolbar">
-            <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "space-between" }}>
-              <Button type="primary" style={{ background: "#2671D8" }} onClick={() => { setEditingArticle(null); setArticleTitle(""); setArticleModalOpen(true); }}>
+            <div className="flex items-center justify-between gap-2">
+              <Button onClick={() => { setEditingArticle(null); setArticleTitle(""); setArticleModalOpen(true); }}>
                 {t("Tạo Bài Viết")}
               </Button>
-              <Input
-                prefix={<SearchOutlined style={{ color: "#9CA3AF" }} />}
-                placeholder={t("Tìm kiếm...")}
-                value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
-                allowClear
-                style={{ maxWidth: 240 }}
-              />
+              <div className="relative max-w-[240px]">
+                <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder={t("Tìm kiếm...")}
+                  value={keyword}
+                  onChange={(e) => setKeyword(e.target.value)}
+                  className="h-8 pl-8 text-sm"
+                />
+              </div>
             </div>
           </div>
+
           <div className="reception-card reception-card--content">
-            <Table<OperationArticleDto>
-              rowKey="id"
-              size="small"
-              loading={articlesLoading}
-              dataSource={articles}
-              columns={[
-                { title: t("Tiêu đề"), dataIndex: "title", key: "title" },
-                { title: t("Ngày tạo"), dataIndex: "creationTime", key: "creationTime", width: 130,
-                  render: (v: string) => dayjs(v).format("DD/MM/YYYY") },
-                { title: t("Ngày cập nhật"), dataIndex: "lastModificationTime", key: "lastModificationTime", width: 150,
-                  render: (v: string) => v ? dayjs(v).format("DD/MM/YYYY HH:mm") : "—" },
-                {
-                  title: t("Thao tác"), key: "actions", width: 120,
-                  render: (_: unknown, record: OperationArticleDto) => (
-                    <div style={{ display: "flex", gap: 6 }}>
-                      <Button size="small" onClick={() => { setEditingArticle(record); setArticleTitle(record.title); setArticleModalOpen(true); }}>{t("Sửa")}</Button>
-                      <Popconfirm title={t("Xoá bài viết?")} onConfirm={() => deleteArticle.mutate(record.id)}>
-                        <Button size="small" danger>{t("Xoá")}</Button>
-                      </Popconfirm>
-                    </div>
-                  ),
-                },
-              ]}
-              locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("Không có dữ liệu")} /> }}
-              pagination={{ pageSize: 20, showTotal: (total) => t("{0} bài viết", total) }}
-            />
+            {articlesLoading ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 className="animate-spin text-muted-foreground" />
+              </div>
+            ) : articles.length === 0 ? (
+              <div className="py-10 text-center text-sm text-muted-foreground">
+                {t("Không có dữ liệu")}
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t("Tiêu đề")}</TableHead>
+                    <TableHead className="w-[130px]">{t("Ngày tạo")}</TableHead>
+                    <TableHead className="w-[150px]">{t("Ngày cập nhật")}</TableHead>
+                    <TableHead className="w-[120px]">{t("Thao tác")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {articles.map((record) => (
+                    <TableRow key={record.id}>
+                      <TableCell>{record.title}</TableCell>
+                      <TableCell>{dayjs(record.creationTime).format("DD/MM/YYYY")}</TableCell>
+                      <TableCell>{record.lastModificationTime ? dayjs(record.lastModificationTime).format("DD/MM/YYYY HH:mm") : "—"}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1.5">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={() => { setEditingArticle(record); setArticleTitle(record.title); setArticleModalOpen(true); }}
+                          >
+                            <Pencil size={12} />
+                            {t("Sửa")}
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="outline" size="sm" className="h-7 text-xs text-destructive hover:text-destructive">
+                                <Trash2 size={12} />
+                                {t("Xoá")}
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>{t("Xoá bài viết?")}</AlertDialogTitle>
+                                <AlertDialogDescription>{t("Hành động này không thể hoàn tác.")}</AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>{t("Hủy")}</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => deleteArticle.mutate(record.id)}>
+                                  {t("Xoá")}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+            {articles.length > 0 && (
+              <div className="border-t px-4 py-2 text-xs text-muted-foreground">
+                {t("{0} bài viết", articles.length)}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      <Modal
-        title={t("Thêm mục mới")}
-        open={categoryModalOpen}
-        onOk={handleCreateCategory}
-        onCancel={() => { setCategoryModalOpen(false); setCategoryName(""); }}
-        confirmLoading={createCategory.isPending}
-      >
-        <Input
-          placeholder={t("Tên mục")}
-          value={categoryName}
-          onChange={(e) => setCategoryName(e.target.value)}
-          onPressEnter={handleCreateCategory}
-        />
-      </Modal>
+      {/* Category modal */}
+      <Dialog open={categoryModalOpen} onOpenChange={(open) => { if (!open) { setCategoryModalOpen(false); setCategoryName(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("Thêm mục mới")}</DialogTitle>
+          </DialogHeader>
+          <Input
+            placeholder={t("Tên mục")}
+            value={categoryName}
+            onChange={(e) => setCategoryName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleCreateCategory(); }}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setCategoryModalOpen(false); setCategoryName(""); }}>
+              {t("Hủy")}
+            </Button>
+            <Button onClick={handleCreateCategory} disabled={createCategory.isPending}>
+              {createCategory.isPending && <Loader2 className="animate-spin" />}
+              {t("Tạo")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      <Modal
-        title={editingArticle ? t("Sửa bài viết") : t("Tạo bài viết mới")}
-        open={articleModalOpen}
-        onOk={handleCreateOrUpdateArticle}
-        onCancel={() => { setArticleModalOpen(false); setArticleTitle(""); setEditingArticle(null); }}
-        confirmLoading={createArticle.isPending || updateArticle.isPending}
-      >
-        <Input
-          placeholder={t("Tiêu đề bài viết")}
-          value={articleTitle}
-          onChange={(e) => setArticleTitle(e.target.value)}
-          onPressEnter={handleCreateOrUpdateArticle}
-        />
-      </Modal>
+      {/* Article modal */}
+      <Dialog open={articleModalOpen} onOpenChange={(open) => { if (!open) { setArticleModalOpen(false); setArticleTitle(""); setEditingArticle(null); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingArticle ? t("Sửa bài viết") : t("Tạo bài viết mới")}</DialogTitle>
+          </DialogHeader>
+          <Input
+            placeholder={t("Tiêu đề bài viết")}
+            value={articleTitle}
+            onChange={(e) => setArticleTitle(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleCreateOrUpdateArticle(); }}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setArticleModalOpen(false); setArticleTitle(""); setEditingArticle(null); }}>
+              {t("Hủy")}
+            </Button>
+            <Button onClick={handleCreateOrUpdateArticle} disabled={createArticle.isPending || updateArticle.isPending}>
+              {(createArticle.isPending || updateArticle.isPending) && <Loader2 className="animate-spin" />}
+              {editingArticle ? t("Cập nhật") : t("Tạo")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

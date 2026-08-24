@@ -1,43 +1,35 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Input, Spin } from "antd";
-import {
-  CalendarOutlined,
-  HeartOutlined,
-  IdcardOutlined,
-  SearchOutlined,
-  UserOutlined,
-} from "@ant-design/icons";
+import { Calendar, Heart, IdCard, Search, User, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { usePatientList } from "@/features/patient-management/api/patientQueries";
 import { useDebounce } from "@/hooks/useDebounce";
 import { brand } from "@/theme/index";
 import { t } from "@/lib/i18n";
 
-/** What the empty state offers before anything has been typed. */
 const searchCategories = () => [
   {
-    icon: <UserOutlined style={{ fontSize: 18, color: brand.muted }} />,
+    icon: <User size={18} color={brand.muted} />,
     title: t("Khách hàng"),
     desc: t("Tìm theo tên, mã KH, số điện thoại"),
   },
   {
-    icon: <CalendarOutlined style={{ fontSize: 18, color: brand.muted }} />,
+    icon: <Calendar size={18} color={brand.muted} />,
     title: t("Lịch hẹn"),
     desc: t("Tìm theo tên hoặc SĐT khách hàng"),
   },
   {
-    icon: <HeartOutlined style={{ fontSize: 18, color: brand.muted }} />,
+    icon: <Heart size={18} color={brand.muted} />,
     title: t("CSKH"),
     desc: t("Tìm theo khách hàng, nội dung"),
   },
   {
-    icon: <IdcardOutlined style={{ fontSize: 18, color: brand.muted }} />,
+    icon: <IdCard size={18} color={brand.muted} />,
     title: t("Nhân viên"),
     desc: t("Tìm theo tên, email, số điện thoại"),
   },
 ];
 
-/** Below this the server would be asked to match half the clinic. */
 const MIN_QUERY = 2;
 
 interface Props {
@@ -45,20 +37,11 @@ interface Props {
   onClose: () => void;
 }
 
-/**
- * The Ctrl-K palette.
- *
- * The design shows a hit list — name, code, phone, service — that opens the
- * record. It searches patients, which is what the reference's own palette leads
- * with and the only entity whose list endpoint takes a free-text filter today.
- * The other three categories stay as guidance until their endpoints do too.
- */
 export function GlobalSearch({ open, onClose }: Props) {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const debounced = useDebounce(query, 250);
 
-  // Reopening should not show the last search.
   useEffect(() => {
     if (open) setQuery("");
   }, [open]);
@@ -82,18 +65,19 @@ export function GlobalSearch({ open, onClose }: Props) {
     <div className="app-search-overlay" onClick={onClose}>
       <div className="app-search-modal" onClick={(event) => event.stopPropagation()}>
         <div className="app-search-input-row">
-          <Input
-            autoFocus
-            size="large"
-            prefix={<SearchOutlined />}
-            placeholder={t("Tìm kiếm khách hàng, lịch hẹn, nhân viên…")}
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            onPressEnter={() => {
-              if (hits.length > 0) openPatient(hits[0].id);
-            }}
-            style={{ borderRadius: 12 }}
-          />
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-muted-foreground" />
+            <Input
+              autoFocus
+              className="h-11 rounded-xl pl-10 text-base"
+              placeholder={t("Tìm kiếm khách hàng, lịch hẹn, nhân viên…")}
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && hits.length > 0) openPatient(hits[0].id);
+              }}
+            />
+          </div>
           <kbd className="app-search-esc" onClick={onClose}>
             Esc
           </kbd>
@@ -103,7 +87,7 @@ export function GlobalSearch({ open, onClose }: Props) {
           <div className="app-search-results">
             {isFetching && hits.length === 0 ? (
               <div className="app-search-loading">
-                <Spin size="small" />
+                <Loader2 className="size-4 animate-spin" />
               </div>
             ) : hits.length === 0 ? (
               <div className="app-search-hint">

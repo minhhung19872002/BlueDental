@@ -1,6 +1,22 @@
 import { useState } from "react";
-import { Table, Tag, Button, Input, Select } from "antd";
-import { SearchOutlined, PlusOutlined } from "@ant-design/icons";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Search, Plus } from "lucide-react";
 import { useAppointmentList } from "../api/appointmentQueries";
 import { AppointmentEditorModal } from "../components/AppointmentEditorModal";
 import { useTablePagination } from "@/hooks/useTablePagination";
@@ -47,25 +63,31 @@ export function AppointmentListPage() {
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "space-between" }}>
           <div style={{ display: "flex", gap: 8 }}>
-            <Input
-              prefix={<SearchOutlined />}
-              placeholder={t("Tìm kiếm bệnh nhân, bác sĩ, lý do khám...")}
-              value={keyword}
-              onChange={(e) => {
-                setKeyword(e.target.value);
-                pagination.resetToFirstPage();
-              }}
-              style={{ width: 280 }}
-              allowClear
-            />
-            <Select
-              placeholder={t("Bác sĩ điều trị")}
-              allowClear
-              style={{ width: 180 }}
-              options={[]}
-            />
+            <div className="relative">
+              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder={t("Tìm kiếm bệnh nhân, bác sĩ, lý do khám...")}
+                value={keyword}
+                onChange={(e) => {
+                  setKeyword(e.target.value);
+                  pagination.resetToFirstPage();
+                }}
+                className="pl-8 w-72"
+              />
+            </div>
+            <Select>
+              <SelectTrigger className="w-44">
+                <SelectValue placeholder={t("Bác sĩ điều trị")} />
+              </SelectTrigger>
+              <SelectContent>
+                {/* doctor options loaded dynamically */}
+              </SelectContent>
+            </Select>
           </div>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setEditorOpen(true)}>{t("Tạo lịch hẹn")}</Button>
+          <Button onClick={() => setEditorOpen(true)}>
+            <Plus size={14} className="mr-1.5" />
+            {t("Tạo lịch hẹn")}
+          </Button>
         </div>
       </div>
 
@@ -100,50 +122,71 @@ export function AppointmentListPage() {
 
       {/* Table */}
       <div className="reception-card reception-card--content">
-        <Table<Appointment>
-          rowKey="id"
-          dataSource={appointments}
-          loading={isLoading}
-          pagination={pagination.buildConfig(data?.totalCount)}
-          scroll={{ x: 800 }}
-          size="middle"
-          columns={[
-            {
-              title: t("Bệnh nhân"),
-              dataIndex: "patientName",
-              key: "patientName",
-            },
-            {
-              title: t("Bác sĩ"),
-              dataIndex: "doctorName",
-              key: "doctorName",
-            },
-            {
-              title: t("Ngày khám"),
-              key: "startTime",
-              render: (_: unknown, record: Appointment) => formatDate(record.startTime),
-            },
-            {
-              title: t("Giờ"),
-              key: "time",
-              width: 140,
-              render: (_: unknown, record: Appointment) =>
-                `${dayjs(record.startTime).format("HH:mm")} – ${dayjs(record.endTime).format("HH:mm")}`,
-            },
-            {
-              title: t("Trạng thái"),
-              key: "status",
-              width: 140,
-              render: (_: unknown, record: Appointment) => <StatusBadge status={record.status} />,
-            },
-            {
-              title: t("Lý do"),
-              dataIndex: "reason",
-              key: "reason",
-              render: (v: string | null) => v ?? <Tag color="default">{t("Định kỳ")}</Tag>,
-            },
-          ]}
-        />
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t("Bệnh nhân")}</TableHead>
+                <TableHead>{t("Bác sĩ")}</TableHead>
+                <TableHead>{t("Ngày khám")}</TableHead>
+                <TableHead className="w-36">{t("Giờ")}</TableHead>
+                <TableHead className="w-36">{t("Trạng thái")}</TableHead>
+                <TableHead>{t("Lý do")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    {t("Đang tải...")}
+                  </TableCell>
+                </TableRow>
+              ) : appointments.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    {t("Không có dữ liệu")}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                appointments.map((record: Appointment) => (
+                  <TableRow key={record.id}>
+                    <TableCell>{record.patientName}</TableCell>
+                    <TableCell>{record.doctorName}</TableCell>
+                    <TableCell>{formatDate(record.startTime)}</TableCell>
+                    <TableCell>
+                      {dayjs(record.startTime).format("HH:mm")} – {dayjs(record.endTime).format("HH:mm")}
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge status={record.status} />
+                    </TableCell>
+                    <TableCell>
+                      {record.reason ?? (
+                        <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-500">{t("Định kỳ")}</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* Pagination */}
+        {(data?.totalCount ?? 0) > pagination.maxResultCount && (
+          <div className="flex items-center justify-between px-4 py-3 border-t border-border text-sm text-muted-foreground">
+            <span>{t("Tổng số {0} lịch hẹn", data?.totalCount ?? 0)}</span>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={pagination.skipCount === 0}
+                onClick={() => pagination.resetToFirstPage()}
+              >
+                {t("Trang trước")}
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       <AppointmentEditorModal

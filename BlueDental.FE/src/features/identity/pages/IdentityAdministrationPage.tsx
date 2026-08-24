@@ -1,10 +1,50 @@
 import { useState } from "react";
-import { Tabs, Table, Button, Input, Tag, Modal, Form, Select, message, Popconfirm, Switch } from "antd";
-import { SearchOutlined, PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, SafetyOutlined } from "@ant-design/icons";
-import type { ColumnsType } from "antd/es/table";
+import { Search, Plus, Pencil, Trash2, User, Shield } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
 import { PageHeader } from "@/components/PageHeader";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import {
   useIdentityUserList,
   useIdentityRoleList,
@@ -22,6 +62,18 @@ import {
 
 // ── User Modal ─────────────────────────────────────────────────────────────
 
+const userCreateSchema = z.object({
+  userName: z.string().min(1, t("Nhập tên đăng nhập")),
+  name: z.string().min(1, t("Nhập họ tên")),
+  email: z.string().email(t("Nhập email hợp lệ")),
+  phoneNumber: z.string().optional(),
+  password: z.string().min(8, t("Tối thiểu 8 ký tự")).optional(),
+  roleNames: z.array(z.string()).optional(),
+  isActive: z.boolean().optional(),
+});
+
+type UserFormValues = z.infer<typeof userCreateSchema>;
+
 function UserModal({
   open,
   onClose,
@@ -33,14 +85,30 @@ function UserModal({
   editingUser: IdentityUserDto | null;
   roleNames: string[];
 }) {
-  const [form] = Form.useForm<CreateIdentityUserDto & UpdateIdentityUserDto>();
   const createMutation = useCreateIdentityUser();
   const updateMutation = useUpdateIdentityUser();
   const isEdit = Boolean(editingUser);
 
-  const handleOk = async () => {
+  const { control, handleSubmit, reset, formState: { errors } } = useForm<UserFormValues>({
+    resolver: zodResolver(userCreateSchema),
+    defaultValues: {
+      userName: editingUser?.userName ?? "",
+      name: editingUser?.name ?? "",
+      email: editingUser?.email ?? "",
+      phoneNumber: editingUser?.phoneNumber ?? "",
+      password: "",
+      roleNames: editingUser?.roleNames ?? [],
+      isActive: editingUser?.isActive ?? true,
+    },
+  });
+
+  const handleClose = () => {
+    reset();
+    onClose();
+  };
+
+  const onSubmit = async (values: UserFormValues) => {
     try {
-      const values = await form.validateFields();
       if (isEdit && editingUser) {
         await updateMutation.mutateAsync({
           id: editingUser.id,
@@ -53,7 +121,7 @@ function UserModal({
             isActive: values.isActive ?? true,
           } as UpdateIdentityUserDto,
         });
-        message.success(t("Cập nhật người dùng thành công"));
+        toast.success(t("Cập nhật người dùng thành công"));
       } else {
         await createMutation.mutateAsync({
           userName: values.userName,
@@ -64,116 +132,183 @@ function UserModal({
           roleNames: values.roleNames,
           isActive: values.isActive ?? true,
         } as CreateIdentityUserDto);
-        message.success(t("Tạo người dùng thành công"));
+        toast.success(t("Tạo người dùng thành công"));
       }
-      form.resetFields();
+      reset();
       onClose();
     } catch {
-      // validation handled by antd
+      // error toast handled by interceptor
     }
   };
 
   return (
-    <Modal
-      title={isEdit ? t("Chỉnh sửa người dùng") : t("Tạo người dùng")}
-      open={open}
-      onCancel={() => { form.resetFields(); onClose(); }}
-      onOk={handleOk}
-      confirmLoading={createMutation.isPending || updateMutation.isPending}
-      okText={isEdit ? t("Lưu thay đổi") : t("Tạo người dùng")}
-      cancelText={t("Hủy")}
-      width={520}
-      destroyOnClose
-      afterOpenChange={(visible) => {
-        if (visible && editingUser) {
-          form.setFieldsValue({
-            userName: editingUser.userName,
-            name: editingUser.name,
-            email: editingUser.email,
-            phoneNumber: editingUser.phoneNumber,
-            roleNames: editingUser.roleNames,
-            isActive: editingUser.isActive,
-          });
-        } else if (visible) {
-          form.setFieldsValue({ isActive: true });
-        }
-      }}
-    >
-      <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
-        <Form.Item name="userName" label={t("Tên đăng nhập")} rules={[{ required: true, message: t("Nhập tên đăng nhập") }]}>
-          <Input placeholder="username" disabled={isEdit} />
-        </Form.Item>
-        <Form.Item name="name" label={t("Họ và tên")} rules={[{ required: true, message: t("Nhập họ tên") }]}>
-          <Input placeholder={t("Nguyễn Văn A")} />
-        </Form.Item>
-        <Form.Item name="email" label="Email" rules={[{ required: true, type: "email", message: t("Nhập email hợp lệ") }]}>
-          <Input placeholder="user@example.com" />
-        </Form.Item>
-        <Form.Item name="phoneNumber" label={t("Số điện thoại")}>
-          <Input placeholder="0901234567" />
-        </Form.Item>
-        {!isEdit && (
-          <Form.Item name="password" label={t("Mật khẩu")} rules={[{ required: true, min: 8, message: t("Tối thiểu 8 ký tự") }]}>
-            <Input.Password placeholder={t("Mật khẩu...")} />
-          </Form.Item>
-        )}
-        <Form.Item name="roleNames" label={t("Vai trò")}>
-          <Select
-            mode="multiple"
-            placeholder={t("Chọn vai trò...")}
-            options={roleNames.map((r) => ({ value: r, label: r }))}
-          />
-        </Form.Item>
-        <Form.Item name="isActive" label={t("Trạng thái")} valuePropName="checked">
-          <Switch checkedChildren={t("Hoạt động")} unCheckedChildren={t("Vô hiệu")} />
-        </Form.Item>
-      </Form>
-    </Modal>
+    <Dialog open={open} onOpenChange={(open) => { if (!open) handleClose(); }}>
+      <DialogContent style={{ maxWidth: 520 }}>
+        <DialogHeader>
+          <DialogTitle>{isEdit ? t("Chỉnh sửa người dùng") : t("Tạo người dùng")}</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4 mt-2">
+          <div className="space-y-1">
+            <label className="text-sm font-medium">{t("Tên đăng nhập")} <span className="text-destructive">*</span></label>
+            <Controller name="userName" control={control} render={({ field }) => (
+              <Input placeholder="username" disabled={isEdit} {...field} className={errors.userName ? "border-destructive" : ""} />
+            )} />
+            {errors.userName && <p className="text-xs text-destructive">{errors.userName.message}</p>}
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-sm font-medium">{t("Họ và tên")} <span className="text-destructive">*</span></label>
+            <Controller name="name" control={control} render={({ field }) => (
+              <Input placeholder={t("Nguyễn Văn A")} {...field} className={errors.name ? "border-destructive" : ""} />
+            )} />
+            {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Email <span className="text-destructive">*</span></label>
+            <Controller name="email" control={control} render={({ field }) => (
+              <Input placeholder="user@example.com" {...field} className={errors.email ? "border-destructive" : ""} />
+            )} />
+            {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-sm font-medium">{t("Số điện thoại")}</label>
+            <Controller name="phoneNumber" control={control} render={({ field }) => (
+              <Input placeholder="0901234567" {...field} />
+            )} />
+          </div>
+
+          {!isEdit && (
+            <div className="space-y-1">
+              <label className="text-sm font-medium">{t("Mật khẩu")} <span className="text-destructive">*</span></label>
+              <Controller name="password" control={control} render={({ field }) => (
+                <Input type="password" placeholder={t("Mật khẩu...")} {...field} className={errors.password ? "border-destructive" : ""} />
+              )} />
+              {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
+            </div>
+          )}
+
+          <div className="space-y-1">
+            <label className="text-sm font-medium">{t("Vai trò")}</label>
+            <Controller name="roleNames" control={control} render={({ field }) => (
+              <Select
+                value={field.value?.[0] ?? ""}
+                onValueChange={(v) => field.onChange(v ? [v] : [])}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={t("Chọn vai trò...")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {roleNames.map((r) => (
+                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )} />
+          </div>
+
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-medium">{t("Trạng thái")}</label>
+            <Controller name="isActive" control={control} render={({ field }) => (
+              <div className="flex items-center gap-2">
+                <Switch checked={field.value ?? true} onCheckedChange={field.onChange} />
+                <span className="text-sm">{field.value ? t("Hoạt động") : t("Vô hiệu")}</span>
+              </div>
+            )} />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={handleClose}>{t("Hủy")}</Button>
+          <Button
+            disabled={createMutation.isPending || updateMutation.isPending}
+            onClick={handleSubmit(onSubmit)}
+          >
+            {isEdit ? t("Lưu thay đổi") : t("Tạo người dùng")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
 // ── Role Modal ─────────────────────────────────────────────────────────────
 
-function RoleModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [form] = Form.useForm<CreateIdentityRoleDto>();
-  const createMutation = useCreateIdentityRole();
+const roleSchema = z.object({
+  name: z.string().min(1, t("Nhập tên vai trò")),
+  isDefault: z.boolean().optional(),
+  isPublic: z.boolean().optional(),
+});
 
-  const handleOk = async () => {
+type RoleFormValues = z.infer<typeof roleSchema>;
+
+function RoleModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const createMutation = useCreateIdentityRole();
+  const { control, handleSubmit, reset, formState: { errors } } = useForm<RoleFormValues>({
+    resolver: zodResolver(roleSchema),
+    defaultValues: { name: "", isDefault: false, isPublic: true },
+  });
+
+  const handleClose = () => { reset(); onClose(); };
+
+  const onSubmit = async (values: RoleFormValues) => {
     try {
-      const values = await form.validateFields();
-      await createMutation.mutateAsync(values);
-      message.success(t("Tạo vai trò thành công"));
-      form.resetFields();
+      await createMutation.mutateAsync(values as CreateIdentityRoleDto);
+      toast.success(t("Tạo vai trò thành công"));
+      reset();
       onClose();
     } catch {
-      // antd validation
+      // handled
     }
   };
 
   return (
-    <Modal
-      title={t("Tạo vai trò")}
-      open={open}
-      onCancel={() => { form.resetFields(); onClose(); }}
-      onOk={handleOk}
-      confirmLoading={createMutation.isPending}
-      okText={t("Tạo vai trò")}
-      cancelText={t("Hủy")}
-      width={420}
-      destroyOnClose
-    >
-      <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
-        <Form.Item name="name" label={t("Tên vai trò")} rules={[{ required: true, message: t("Nhập tên vai trò") }]}>
-          <Input placeholder="VD: admin, doctor, receptionist" />
-        </Form.Item>
-        <Form.Item name="isDefault" label={t("Mặc định")} valuePropName="checked">
-          <Switch checkedChildren={t("Có")} unCheckedChildren={t("Không")} />
-        </Form.Item>
-        <Form.Item name="isPublic" label={t("Công khai")} valuePropName="checked" initialValue>
-          <Switch checkedChildren={t("Có")} unCheckedChildren={t("Không")} defaultChecked />
-        </Form.Item>
-      </Form>
-    </Modal>
+    <Dialog open={open} onOpenChange={(open) => { if (!open) handleClose(); }}>
+      <DialogContent style={{ maxWidth: 420 }}>
+        <DialogHeader>
+          <DialogTitle>{t("Tạo vai trò")}</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4 mt-2">
+          <div className="space-y-1">
+            <label className="text-sm font-medium">{t("Tên vai trò")} <span className="text-destructive">*</span></label>
+            <Controller name="name" control={control} render={({ field }) => (
+              <Input placeholder="VD: admin, doctor, receptionist" {...field} className={errors.name ? "border-destructive" : ""} />
+            )} />
+            {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-medium">{t("Mặc định")}</label>
+            <Controller name="isDefault" control={control} render={({ field }) => (
+              <div className="flex items-center gap-2">
+                <Switch checked={field.value ?? false} onCheckedChange={field.onChange} />
+                <span className="text-sm">{field.value ? t("Có") : t("Không")}</span>
+              </div>
+            )} />
+          </div>
+
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-medium">{t("Công khai")}</label>
+            <Controller name="isPublic" control={control} render={({ field }) => (
+              <div className="flex items-center gap-2">
+                <Switch checked={field.value ?? true} onCheckedChange={field.onChange} />
+                <span className="text-sm">{field.value ? t("Có") : t("Không")}</span>
+              </div>
+            )} />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={handleClose}>{t("Hủy")}</Button>
+          <Button disabled={createMutation.isPending} onClick={handleSubmit(onSubmit)}>
+            {t("Tạo vai trò")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -193,89 +328,113 @@ function UsersTab() {
   const handleDelete = async (id: string) => {
     try {
       await deleteMutation.mutateAsync(id);
-      message.success(t("Xóa người dùng thành công"));
+      toast.success(t("Xóa người dùng thành công"));
     } catch {
-      message.error(t("Xóa thất bại"));
+      toast.error(t("Xóa thất bại"));
     }
   };
 
-  const columns: ColumnsType<IdentityUserDto> = [
-    { title: t("Tên đăng nhập"), dataIndex: "userName", key: "userName", width: 160 },
-    { title: t("Họ và tên"), dataIndex: "name", key: "name" },
-    { title: "Email", dataIndex: "email", key: "email" },
-    { title: t("Số điện thoại"), dataIndex: "phoneNumber", key: "phoneNumber", render: (v: string) => v ?? "—" },
-    {
-      title: t("Vai trò"),
-      dataIndex: "roleNames",
-      key: "roleNames",
-      render: (roles: string[]) => (
-        <>{(roles ?? []).map((r) => <Tag key={r} color="blue">{r}</Tag>)}</>
-      ),
-    },
-    {
-      title: t("Trạng thái"),
-      dataIndex: "isActive",
-      key: "isActive",
-      render: (v: boolean) => <Tag color={v ? "green" : "default"}>{v ? t("Hoạt động") : t("Vô hiệu")}</Tag>,
-    },
-    {
-      title: t("Ngày tạo"),
-      dataIndex: "creationTime",
-      key: "creationTime",
-      render: (v: string) => dayjs(v).format("DD/MM/YYYY"),
-    },
-    {
-      title: t("Thao tác"),
-      key: "actions",
-      width: 120,
-      render: (_, record) => (
-        <div style={{ display: "flex", gap: 6 }}>
-          <Button size="small" icon={<EditOutlined />} onClick={() => { setEditingUser(record); setModalOpen(true); }} />
-          <Popconfirm
-            title={t("Xóa người dùng này?")}
-            onConfirm={() => handleDelete(record.id)}
-            okText={t("Xóa")}
-            cancelText={t("Hủy")}
-            okButtonProps={{ danger: true }}
-          >
-            <Button size="small" danger icon={<DeleteOutlined />} />
-          </Popconfirm>
-        </div>
-      ),
-    },
-  ];
+  const users = usersData?.items ?? [];
 
   return (
     <>
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
           <Button
-            type="primary"
-            icon={<PlusOutlined />}
             onClick={() => { setEditingUser(null); setModalOpen(true); }}
           >
+            <Plus size={14} className="mr-1" />
             {t("Tạo người dùng")}
           </Button>
-          <Input
-            prefix={<SearchOutlined />}
-            placeholder={t("Tìm theo tên, email...")}
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            style={{ width: 260 }}
-            allowClear
-          />
+          <div className="relative">
+            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="pl-8 w-64"
+              placeholder={t("Tìm theo tên, email...")}
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+            />
+          </div>
         </div>
       </div>
       <div className="reception-card reception-card--content">
-        <Table<IdentityUserDto>
-          rowKey="id"
-          dataSource={usersData?.items ?? []}
-          columns={columns}
-          loading={isLoading}
-          pagination={{ pageSize: 20, showTotal: (total) => t("{0} người dùng", total) }}
-          locale={{ emptyText: t("Không có người dùng") }}
-          size="middle"
-        />
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="size-5 animate-spin text-primary" />
+          </div>
+        ) : users.length === 0 ? (
+          <div className="py-8 text-center text-muted-foreground">{t("Không có người dùng")}</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-40">{t("Tên đăng nhập")}</TableHead>
+                  <TableHead>{t("Họ và tên")}</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead className="w-36">{t("Số điện thoại")}</TableHead>
+                  <TableHead>{t("Vai trò")}</TableHead>
+                  <TableHead className="w-28">{t("Trạng thái")}</TableHead>
+                  <TableHead className="w-28">{t("Ngày tạo")}</TableHead>
+                  <TableHead className="w-28">{t("Thao tác")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell>{user.userName}</TableCell>
+                    <TableCell>{user.name}</TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>{user.phoneNumber ?? "—"}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {(user.roleNames ?? []).map((r) => (
+                          <span key={r} className="inline-block rounded bg-blue-100 px-2 py-0.5 text-xs text-blue-700">{r}</span>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${user.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                        {user.isActive ? t("Hoạt động") : t("Vô hiệu")}
+                      </span>
+                    </TableCell>
+                    <TableCell>{dayjs(user.creationTime).format("DD/MM/YYYY")}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => { setEditingUser(user); setModalOpen(true); }}
+                        >
+                          <Pencil size={14} />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="sm" variant="destructive">
+                              <Trash2 size={14} />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>{t("Xóa người dùng này?")}</AlertDialogTitle>
+                              <AlertDialogDescription>{user.userName}</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>{t("Hủy")}</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => void handleDelete(user.id)}>
+                                {t("Xóa")}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </div>
       <UserModal
         open={modalOpen}
@@ -297,72 +456,91 @@ function RolesTab() {
   const handleDelete = async (id: string) => {
     try {
       await deleteMutation.mutateAsync(id);
-      message.success(t("Xóa vai trò thành công"));
+      toast.success(t("Xóa vai trò thành công"));
     } catch {
-      message.error(t("Không thể xóa vai trò hệ thống"));
+      toast.error(t("Không thể xóa vai trò hệ thống"));
     }
   };
 
-  const columns: ColumnsType<IdentityRoleDto> = [
-    { title: t("Tên vai trò"), dataIndex: "name", key: "name" },
-    {
-      title: t("Mặc định"),
-      dataIndex: "isDefault",
-      key: "isDefault",
-      render: (v: boolean) => v ? <Tag color="blue">{t("Mặc định")}</Tag> : "—",
-    },
-    {
-      title: t("Hệ thống"),
-      dataIndex: "isStatic",
-      key: "isStatic",
-      render: (v: boolean) => v ? <Tag color="orange">{t("Tĩnh")}</Tag> : "—",
-    },
-    {
-      title: t("Công khai"),
-      dataIndex: "isPublic",
-      key: "isPublic",
-      render: (v: boolean) => <Tag color={v ? "green" : "default"}>{v ? t("Công khai") : t("Riêng tư")}</Tag>,
-    },
-    {
-      title: t("Thao tác"),
-      key: "actions",
-      width: 100,
-      render: (_, record) =>
-        record.isStatic ? (
-          <Tag>{t("Không thể xóa")}</Tag>
-        ) : (
-          <Popconfirm
-            title={t("Xóa vai trò này?")}
-            onConfirm={() => handleDelete(record.id)}
-            okText={t("Xóa")}
-            cancelText={t("Hủy")}
-            okButtonProps={{ danger: true }}
-          >
-            <Button size="small" danger icon={<DeleteOutlined />} />
-          </Popconfirm>
-        ),
-    },
-  ];
+  const roles: IdentityRoleDto[] = data?.items ?? [];
 
   return (
     <>
       <div className="reception-card reception-card--toolbar">
-        <div style={{ display: "flex", gap: 8 }}>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
-            {t("Tạo vai trò")}
-          </Button>
-        </div>
+        <Button onClick={() => setModalOpen(true)}>
+          <Plus size={14} className="mr-1" />
+          {t("Tạo vai trò")}
+        </Button>
       </div>
       <div className="reception-card reception-card--content">
-        <Table<IdentityRoleDto>
-          rowKey="id"
-          dataSource={data?.items ?? []}
-          columns={columns}
-          loading={isLoading}
-          pagination={false}
-          locale={{ emptyText: t("Không có vai trò") }}
-          size="middle"
-        />
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="size-5 animate-spin text-primary" />
+          </div>
+        ) : roles.length === 0 ? (
+          <div className="py-8 text-center text-muted-foreground">{t("Không có vai trò")}</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("Tên vai trò")}</TableHead>
+                  <TableHead className="w-28">{t("Mặc định")}</TableHead>
+                  <TableHead className="w-28">{t("Hệ thống")}</TableHead>
+                  <TableHead className="w-28">{t("Công khai")}</TableHead>
+                  <TableHead className="w-28">{t("Thao tác")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {roles.map((role) => (
+                  <TableRow key={role.id}>
+                    <TableCell>{role.name}</TableCell>
+                    <TableCell>
+                      {role.isDefault ? (
+                        <span className="inline-block rounded bg-blue-100 px-2 py-0.5 text-xs text-blue-700">{t("Mặc định")}</span>
+                      ) : "—"}
+                    </TableCell>
+                    <TableCell>
+                      {role.isStatic ? (
+                        <span className="inline-block rounded bg-orange-100 px-2 py-0.5 text-xs text-orange-700">{t("Tĩnh")}</span>
+                      ) : "—"}
+                    </TableCell>
+                    <TableCell>
+                      <span className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${role.isPublic ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                        {role.isPublic ? t("Công khai") : t("Riêng tư")}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {role.isStatic ? (
+                        <span className="inline-block rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-500">{t("Không thể xóa")}</span>
+                      ) : (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="sm" variant="destructive">
+                              <Trash2 size={14} />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>{t("Xóa vai trò này?")}</AlertDialogTitle>
+                              <AlertDialogDescription>{role.name}</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>{t("Hủy")}</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => void handleDelete(role.id)}>
+                                {t("Xóa")}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </div>
       <RoleModal open={modalOpen} onClose={() => setModalOpen(false)} />
     </>
@@ -388,25 +566,24 @@ export function IdentityAdministrationPage() {
         </div>
       </div>
       <Tabs
-        defaultActiveKey="users"
-        style={{ background: "#fff", borderRadius: 10, padding: "0 16px" }}
-        items={[
-          {
-            key: "users",
-            label: (
-              <span><UserOutlined style={{ marginRight: 6 }} />{t("Người dùng")}</span>
-            ),
-            children: <UsersTab />,
-          },
-          {
-            key: "roles",
-            label: (
-              <span><SafetyOutlined style={{ marginRight: 6 }} />{t("Vai trò")}</span>
-            ),
-            children: <RolesTab />,
-          },
-        ]}
-      />
+        defaultValue="users"
+        className="bg-white rounded-xl px-4"
+      >
+        <TabsList>
+          <TabsTrigger value="users">
+            <User size={14} className="mr-1" />{t("Người dùng")}
+          </TabsTrigger>
+          <TabsTrigger value="roles">
+            <Shield size={14} className="mr-1" />{t("Vai trò")}
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="users">
+          <UsersTab />
+        </TabsContent>
+        <TabsContent value="roles">
+          <RolesTab />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

@@ -1,5 +1,25 @@
 import { useEffect } from "react";
-import { DatePicker, Form, Input, InputNumber, Modal, Select, message } from "antd";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { DatePickerInput } from "@/components/ui/date-picker-input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import dayjs from "dayjs";
 import {
   CASH_HOLDING,
@@ -22,21 +42,20 @@ interface CashflowEntryModalProps {
 }
 
 interface CashflowFormValues {
-  fromHolding?: CashHolding;
-  toHolding?: CashHolding;
-  amount: number;
-  categoryId?: string;
-  entryDate: dayjs.Dayjs;
-  note?: string;
+  fromHolding: string;
+  toHolding: string;
+  amount: string;
+  categoryId: string;
+  entryDate: string;
+  note: string;
 }
 
 const HOLDING_OPTIONS = Object.entries(CASH_HOLDING_LABELS).map(([value, label]) => ({
-  value: Number(value) as CashHolding,
+  value: String(value),
   label,
 }));
 
 export function CashflowEntryModal({ open, transactionType, onClose }: CashflowEntryModalProps) {
-  const [form] = Form.useForm<CashflowFormValues>();
   const branchId = useCurrentBranchId();
   const currentUserId = useAuthStore((s) => s.user?.id);
   const createEntry = useCreateCashflowEntry();
@@ -51,24 +70,42 @@ export function CashflowEntryModal({ open, transactionType, onClose }: CashflowE
     [CASH_TRANSACTION_TYPE.Transfer]: t("Luân chuyển"),
   };
 
+  const schema = z.object({
+    fromHolding: needsFrom ? z.string().min(1, t("Vui lòng chọn nguồn tiền")) : z.string().optional(),
+    toHolding: needsTo ? z.string().min(1, t("Vui lòng chọn đích")) : z.string().optional(),
+    amount: z.string().min(1, t("Vui lòng nhập số tiền")),
+    categoryId: z.string().optional(),
+    entryDate: z.string().min(1, t("Vui lòng chọn ngày")),
+    note: z.string().optional(),
+  });
+
+  const { control, handleSubmit, reset, formState: { errors } } = useForm<CashflowFormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      fromHolding: needsFrom ? String(CASH_HOLDING.Cash) : "",
+      toHolding: needsTo ? (transactionType === CASH_TRANSACTION_TYPE.Transfer ? String(CASH_HOLDING.Bank) : String(CASH_HOLDING.Cash)) : "",
+      amount: "",
+      categoryId: "",
+      entryDate: dayjs().format("YYYY-MM-DD"),
+      note: "",
+    },
+  });
+
   useEffect(() => {
     if (!open) return;
-
-    form.setFieldsValue({
-      fromHolding: needsFrom ? CASH_HOLDING.Cash : undefined,
-      toHolding: needsTo ? (transactionType === CASH_TRANSACTION_TYPE.Transfer ? CASH_HOLDING.Bank : CASH_HOLDING.Cash) : undefined,
-      amount: undefined,
-      categoryId: undefined,
-      entryDate: dayjs(),
-      note: undefined,
+    reset({
+      fromHolding: needsFrom ? String(CASH_HOLDING.Cash) : "",
+      toHolding: needsTo ? (transactionType === CASH_TRANSACTION_TYPE.Transfer ? String(CASH_HOLDING.Bank) : String(CASH_HOLDING.Cash)) : "",
+      amount: "",
+      categoryId: "",
+      entryDate: dayjs().format("YYYY-MM-DD"),
+      note: "",
     });
-  }, [open, transactionType, needsFrom, needsTo, form]);
+  }, [open, transactionType, needsFrom, needsTo, reset]);
 
-  const handleSubmit = async () => {
-    const values = await form.validateFields();
-
+  const onSubmit = async (values: CashflowFormValues) => {
     if (!currentUserId) {
-      message.error(t("Không xác định được người dùng hiện tại."));
+      toast.error(t("Không xác định được người dùng hiện tại."));
       return;
     }
 
@@ -76,7 +113,7 @@ export function CashflowEntryModal({ open, transactionType, onClose }: CashflowE
       transactionType === CASH_TRANSACTION_TYPE.Transfer &&
       values.fromHolding === values.toHolding
     ) {
-      message.error(t("Nguồn và đích của luân chuyển phải khác nhau."));
+      toast.error(t("Nguồn và đích của luân chuyển phải khác nhau."));
       return;
     }
 
@@ -84,87 +121,157 @@ export function CashflowEntryModal({ open, transactionType, onClose }: CashflowE
       await createEntry.mutateAsync({
         clinicBranchId: branchId,
         transactionType,
-        fromHolding: needsFrom ? values.fromHolding : null,
-        toHolding: needsTo ? values.toHolding : null,
-        amount: values.amount,
-        categoryId: values.categoryId ?? null,
+        fromHolding: needsFrom ? (Number(values.fromHolding) as CashHolding) : null,
+        toHolding: needsTo ? (Number(values.toHolding) as CashHolding) : null,
+        amount: Number(values.amount),
+        categoryId: values.categoryId || null,
         createdByStaffId: currentUserId,
-        entryDate: values.entryDate.format("YYYY-MM-DD"),
-        note: values.note,
+        entryDate: values.entryDate,
+        note: values.note || undefined,
       });
 
-      message.success(t("Đã ghi nhận giao dịch {0}", TITLES[transactionType].toLowerCase()));
+      toast.success(t("Đã ghi nhận giao dịch {0}", TITLES[transactionType].toLowerCase()));
       onClose();
     } catch (error) {
-      message.error(extractApiError(error));
+      toast.error(extractApiError(error));
     }
   };
 
   return (
-    <Modal
-      open={open}
-      title={TITLES[transactionType]}
-      okText={t("Ghi nhận")}
-      cancelText={t("Huỷ")}
-      confirmLoading={createEntry.isPending}
-      onOk={handleSubmit}
-      onCancel={onClose}
-      destroyOnHidden
-    >
-      <Form form={form} layout="vertical" requiredMark>
-        {needsFrom && (
-          <Form.Item
-            name="fromHolding"
-            label={t("Từ")}
-            rules={[{ required: true, message: t("Vui lòng chọn nguồn tiền") }]}
+    <Dialog open={open} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{TITLES[transactionType]}</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4 mt-2">
+          {needsFrom && (
+            <div className="space-y-1">
+              <label className="text-sm font-medium">{t("Từ")} <span className="text-destructive">*</span></label>
+              <Controller
+                name="fromHolding"
+                control={control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger className={errors.fromHolding ? "border-destructive" : ""}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {HOLDING_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.fromHolding && <p className="text-xs text-destructive">{errors.fromHolding.message}</p>}
+            </div>
+          )}
+
+          {needsTo && (
+            <div className="space-y-1">
+              <label className="text-sm font-medium">{t("Đến")} <span className="text-destructive">*</span></label>
+              <Controller
+                name="toHolding"
+                control={control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger className={errors.toHolding ? "border-destructive" : ""}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {HOLDING_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.toHolding && <p className="text-xs text-destructive">{errors.toHolding.message}</p>}
+            </div>
+          )}
+
+          <div className="space-y-1">
+            <label className="text-sm font-medium">{t("Số tiền (đ)")} <span className="text-destructive">*</span></label>
+            <Controller
+              name="amount"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  type="number"
+                  min={1}
+                  step={100000}
+                  {...field}
+                  className={errors.amount ? "border-destructive" : ""}
+                />
+              )}
+            />
+            {errors.amount && <p className="text-xs text-destructive">{errors.amount.message}</p>}
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-sm font-medium">{t("Danh mục")}</label>
+            <Controller
+              name="categoryId"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t("Không bắt buộc")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">{t("Không chọn")}</SelectItem>
+                    {(categoryPage?.items ?? []).map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-sm font-medium">{t("Ngày")} <span className="text-destructive">*</span></label>
+            <Controller
+              name="entryDate"
+              control={control}
+              render={({ field }) => (
+                <DatePickerInput
+                  value={field.value}
+                  onChange={(v) => field.onChange(v)}
+                  className={errors.entryDate ? "border-destructive" : ""}
+                />
+              )}
+            />
+            {errors.entryDate && <p className="text-xs text-destructive">{errors.entryDate.message}</p>}
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-sm font-medium">{t("Ghi chú")}</label>
+            <Controller
+              name="note"
+              control={control}
+              render={({ field }) => (
+                <textarea
+                  {...field}
+                  rows={2}
+                  className="w-full rounded-md border border-input px-3 py-2 text-sm"
+                />
+              )}
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>{t("Huỷ")}</Button>
+          <Button
+            disabled={createEntry.isPending}
+            onClick={handleSubmit(onSubmit)}
           >
-            <Select options={HOLDING_OPTIONS} />
-          </Form.Item>
-        )}
-
-        {needsTo && (
-          <Form.Item
-            name="toHolding"
-            label={t("Đến")}
-            rules={[{ required: true, message: t("Vui lòng chọn đích") }]}
-          >
-            <Select options={HOLDING_OPTIONS} />
-          </Form.Item>
-        )}
-
-        <Form.Item
-          name="amount"
-          label={t("Số tiền (đ)")}
-          rules={[
-            { required: true, message: t("Vui lòng nhập số tiền") },
-            { type: "number", min: 1, message: t("Số tiền phải lớn hơn 0") },
-          ]}
-        >
-          <InputNumber<number>
-            style={{ width: "100%" }}
-            min={0}
-            step={100000}
-            formatter={(v) => `${v ?? ""}`.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
-            parser={(v) => Number((v ?? "").replace(/\./g, ""))}
-          />
-        </Form.Item>
-
-        <Form.Item name="categoryId" label={t("Danh mục")}>
-          <Select
-            allowClear
-            placeholder={t("Không bắt buộc")}
-            options={(categoryPage?.items ?? []).map((c) => ({ value: c.id, label: c.name }))}
-          />
-        </Form.Item>
-
-        <Form.Item name="entryDate" label={t("Ngày")} rules={[{ required: true }]}>
-          <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
-        </Form.Item>
-
-        <Form.Item name="note" label={t("Ghi chú")}>
-          <Input.TextArea rows={2} />
-        </Form.Item>
-      </Form>
-    </Modal>
+            {t("Ghi nhận")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -1,5 +1,29 @@
 import { useEffect, useState, useMemo } from "react";
-import { Modal, Form, Input, Select, DatePicker, Row, Col, Button, Radio, Tabs } from "antd";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { DatePickerInput } from "@/components/ui/date-picker-input";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Loader2, Plus, Save, Search } from "lucide-react";
+import { Building2 } from "lucide-react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -10,7 +34,6 @@ import type { PatientDto } from "../types/patient";
 import { t } from "@/lib/i18n";
 import { GENDER_BY_CODE } from "../api/patientAdapters";
 
-/** The translator, so helpers below can take it as a parameter. */
 type Translate = (vietnamese: string, ...params: (string | number)[]) => string;
 
 function createPatientSchema(t: Translate) {
@@ -23,7 +46,6 @@ function createPatientSchema(t: Translate) {
     email: z.string().email(t("Email không hợp lệ")).optional().or(z.literal("")),
     address: z.string().optional(),
     notes: z.string().optional(),
-    medicalHistory: z.string().optional(),
     examReason: z.string().optional(),
     insuranceNumber: z.string().optional(),
     province: z.string().optional(),
@@ -34,6 +56,49 @@ function createPatientSchema(t: Translate) {
 
 type FormValues = z.infer<ReturnType<typeof createPatientSchema>>;
 
+const MEDICAL_HISTORY_CATEGORIES = [
+  {
+    key: "respiratory",
+    label: "Bệnh Hô Hấp",
+    items: ["Lao", "Hen Suyễn", "Bệnh Phổi Tắc Nghẽn Mãn Tính"],
+  },
+  {
+    key: "cancer",
+    label: "Bệnh Ung Thư",
+    items: ["Ung Thư Gan", "Ung Thư Tuyến Giáp", "Ung Thư Vòm Họng", "Ung Thư Vú", "Ung Thư Dạ Dày", "Ung Thư Trực Tràng", "Ung Thư Phổi"],
+  },
+  {
+    key: "cardiovascular",
+    label: "Bệnh Tim Mạch",
+    items: ["Cao Huyết Áp", "Nhồi Máu Cơ Tim", "Suy Tim", "Bệnh Van Tim"],
+  },
+  {
+    key: "kidney",
+    label: "Bệnh Thận",
+    items: ["Suy Thận", "Sỏi Thận", "Viêm Cầu Thận"],
+  },
+  {
+    key: "hypertension",
+    label: "Bệnh Huyết Áp",
+    items: ["Tăng Huyết Áp", "Hạ Huyết Áp"],
+  },
+  {
+    key: "diabetes",
+    label: "Bệnh Đường Huyết",
+    items: ["Tiểu Đường Type 1", "Tiểu Đường Type 2", "Tiểu Đường Thai Kỳ"],
+  },
+  {
+    key: "allergy",
+    label: "Dị Ứng Thuốc",
+    items: ["Penicillin", "Aspirin", "Ibuprofen", "Sulfonamide"],
+  },
+  {
+    key: "other",
+    label: "Chưa Ghi Nhận Bất Thường",
+    items: [],
+  },
+];
+
 interface Props {
   open: boolean;
   patient?: PatientDto | null;
@@ -41,25 +106,37 @@ interface Props {
   onSuccess?: () => void;
 }
 
-/**
- * Vietnamese names read family-first: every word but the last belongs to the
- * family and middle part, and the last word is the given name.
- */
-function familyName(fullName: string): string {
-  const words = fullName.trim().split(/\s+/).filter(Boolean);
-  return words.length > 1 ? words.slice(0, -1).join(" ") : (words[0] ?? "");
+interface FloatingFieldProps {
+  label: string;
+  required?: boolean;
+  error?: string;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
 }
 
-function givenName(fullName: string): string {
-  const words = fullName.trim().split(/\s+/).filter(Boolean);
-  return words.length > 1 ? words[words.length - 1] : "";
+function FloatingField({ label, required, error, icon, children }: FloatingFieldProps) {
+  return (
+    <div className="floating-field">
+      <div className={`floating-field-wrapper ${error ? "floating-field--error" : ""}`}>
+        {icon && <span className="floating-field-icon">{icon}</span>}
+        {children}
+        <span className={`floating-field-label ${icon ? "floating-field-label--with-icon" : ""}`}>
+          {label}{required && <span className="floating-field-required">*</span>}
+        </span>
+      </div>
+      {error && <div className="floating-field-error">{error}</div>}
+    </div>
+  );
 }
 
 export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props) {
-  const schema = useMemo(() => createPatientSchema(t), [t]);
+  const schema = useMemo(() => createPatientSchema(t), []);
   const isEdit = Boolean(patient);
-  const [infoTab, setInfoTab] = useState("basic");
+  const [infoTab, setInfoTab] = useState<"basic" | "history">("basic");
   const [sourceType, setSourceType] = useState<string | undefined>();
+  const [upperCase, setUpperCase] = useState(false);
+  const [checkedConditions, setCheckedConditions] = useState<Set<string>>(new Set());
+  const [historySearch, setHistorySearch] = useState<Record<string, string>>({});
 
   const CHANNEL_MAP: Record<string, { value: string; label: string }[]> = {
     walk_in: [
@@ -85,17 +162,19 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
   const channelOptions = useMemo(
     () => (sourceType ? CHANNEL_MAP[sourceType] ?? [] : []),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [sourceType, t],
+    [sourceType],
   );
 
   const {
     control,
     handleSubmit,
     reset,
+    watch,
     setError,
-    formState: { errors },
+    formState: { errors, isValid },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
+    mode: "onChange",
     defaultValues: {
       firstName: "",
       lastName: "",
@@ -105,7 +184,6 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
       email: "",
       address: "",
       notes: "",
-      medicalHistory: "",
       examReason: "",
       insuranceNumber: "",
       province: "",
@@ -113,6 +191,9 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
       ward: "",
     },
   });
+
+  const provinceValue = watch("province");
+  const districtValue = watch("district");
 
   useEffect(() => {
     if (open && patient) {
@@ -127,6 +208,10 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
     } else if (open && !patient) {
       reset();
       setInfoTab("basic");
+      setSourceType(undefined);
+      setUpperCase(false);
+      setCheckedConditions(new Set());
+      setHistorySearch({});
     }
   }, [open, patient, reset]);
 
@@ -134,10 +219,17 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
   const updateMutation = useUpdatePatient(patient?.id ?? "");
   const isPending = createMutation.isPending || updateMutation.isPending;
 
+  const toggleCondition = (condition: string) => {
+    setCheckedConditions((prev) => {
+      const next = new Set(prev);
+      if (next.has(condition)) next.delete(condition);
+      else next.add(condition);
+      return next;
+    });
+  };
+
   const onSubmit = async (values: FormValues) => {
     try {
-      // The form shows a single "Họ và tên" field bound to lastName. Split into
-      // firstName (given name, last word) and lastName (family name, remaining).
       const nameParts = values.lastName.trim().split(/\s+/);
       const derivedFirstName = values.firstName || (nameParts.length > 1 ? nameParts.pop()! : "");
       const derivedLastName = nameParts.join(" ") || values.lastName.trim();
@@ -163,268 +255,387 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
   };
 
   return (
-    <Modal
-      open={open}
-      title={isEdit ? t("Chỉnh sửa thông tin bệnh nhân") : t("Tạo hồ sơ bệnh nhân")}
-      onCancel={onClose}
-      footer={null}
-      width={1100}
-      destroyOnHidden
-      styles={{ body: { padding: "20px 24px" } }}
-    >
-      <form onSubmit={handleSubmit(onSubmit)} noValidate>
-        <Row gutter={24}>
-          {/* Column 1 — Contact & Source */}
-          <Col span={8}>
-            <Row gutter={8}>
-              <Col span={8}>
-                <Form.Item label={t("Mã")}>
-                  <Input placeholder={t("Tự động")} disabled />
-                </Form.Item>
-              </Col>
-              <Col span={16}>
-                <Form.Item label={t("Họ và tên")} required validateStatus={errors.lastName ? "error" : ""} help={errors.lastName?.message}>
-                  <Controller
-                    name="lastName"
-                    control={control}
-                    render={({ field }) => <Input {...field} placeholder={t("Nguyễn Văn A")} />}
+    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
+      <DialogContent
+        className="patient-editor-modal"
+        style={{ maxWidth: 1100, width: "95vw" }}
+      >
+        <DialogHeader>
+          <DialogTitle>{isEdit ? t("Chỉnh sửa hồ sơ") : t("Tạo hồ sơ")}</DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit(onSubmit)} noValidate>
+          <div className="patient-editor-body">
+            {/* Column 1 — Contact & Source */}
+            <div className="patient-editor-col">
+              <FloatingField label={t("Mã khách hàng")}>
+                <div className="patient-code-field">
+                  <span className="patient-code-prefix">DH26</span>
+                  <Input
+                    className="patient-code-input"
+                    placeholder="013"
+                    disabled={isEdit}
                   />
-                </Form.Item>
-              </Col>
-            </Row>
+                </div>
+              </FloatingField>
 
-            <Form.Item label={t("Số điện thoại")} required validateStatus={errors.phone ? "error" : ""} help={errors.phone?.message}>
-              <Controller
-                name="phone"
-                control={control}
-                render={({ field }) => <Input {...field} placeholder="09xxxxxxxx" type="tel" />}
-              />
-            </Form.Item>
+              <FloatingField label={t("Họ và tên")} required error={errors.lastName?.message}>
+                <Controller
+                  name="lastName"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      placeholder=" "
+                      style={upperCase ? { textTransform: "uppercase" } : undefined}
+                    />
+                  )}
+                />
+              </FloatingField>
 
-            <Form.Item label={t("Chọn loại nguồn đến")}>
-              <Select
-                placeholder={t("Chọn nguồn")}
-                allowClear
-                style={{ width: "100%" }}
-                value={sourceType}
-                onChange={(v) => { setSourceType(v); }}
-                options={[
-                  { value: "walk_in", label: t("Vãng lai tự tìm đến") },
-                  { value: "referral", label: t("Giới thiệu") },
-                  { value: "online", label: t("Online") },
-                ]}
-              />
-            </Form.Item>
+              <label className="patient-uppercase-check">
+                <input
+                  type="checkbox"
+                  checked={upperCase}
+                  onChange={(e) => setUpperCase(e.target.checked)}
+                />
+                <span>{t("IN HOA")}</span>
+              </label>
 
-            <Form.Item label={t("Kênh kết nối")}>
-              <Select
-                placeholder={sourceType ? t("Chọn kênh") : t("Chọn nguồn đến trước")}
-                allowClear
-                disabled={!sourceType}
-                style={{ width: "100%" }}
-                options={channelOptions}
-              />
-            </Form.Item>
+              <FloatingField label={t("Điện thoại")} required error={errors.phone?.message}>
+                <Controller
+                  name="phone"
+                  control={control}
+                  render={({ field }) => <Input {...field} placeholder=" " type="tel" />}
+                />
+              </FloatingField>
 
-            <Form.Item label={t("Ngày tạo")}>
-              <Input value={dayjs().format("DD/MM/YYYY")} disabled />
-            </Form.Item>
-
-            <Form.Item label={t("Lý do đến khám")}>
-              <Controller
-                name="examReason"
-                control={control}
-                render={({ field }) => (
-                  <Input.TextArea {...field} rows={3} placeholder={t("Lý do khám bệnh...")} maxLength={1000} />
-                )}
-              />
-            </Form.Item>
-          </Col>
-
-          {/* Column 2 — Basic info / Medical history (tabbed) */}
-          <Col span={8}>
-            <Tabs
-              activeKey={infoTab}
-              onChange={setInfoTab}
-              size="small"
-              items={[
-                {
-                  key: "basic",
-                  label: t("Thông tin cơ bản"),
-                  children: (
-                    <>
-                      <Form.Item label={t("Giới tính")} validateStatus={errors.gender ? "error" : ""}>
-                        <Controller
-                          name="gender"
-                          control={control}
-                          render={({ field }) => (
-                            <Radio.Group {...field}>
-                              <Radio value="male">{t("Nam")}</Radio>
-                              <Radio value="female">{t("Nữ")}</Radio>
-                              <Radio value="other">{t("Khác")}</Radio>
-                            </Radio.Group>
-                          )}
-                        />
-                      </Form.Item>
-
-                      <Form.Item label={t("Ngày sinh")}>
-                        <Controller
-                          name="dateOfBirth"
-                          control={control}
-                          render={({ field }) => (
-                            <DatePicker
-                              style={{ width: "100%" }}
-                              format="DD/MM/YYYY"
-                              disabledDate={(d) => d && d.isAfter(dayjs())}
-                              value={field.value ? dayjs(field.value) : null}
-                              onChange={(d) => field.onChange(d ? d.format("YYYY-MM-DD") : "")}
-                            />
-                          )}
-                        />
-                      </Form.Item>
-
-                      <Form.Item label="Email" validateStatus={errors.email ? "error" : ""} help={errors.email?.message}>
-                        <Controller
-                          name="email"
-                          control={control}
-                          render={({ field }) => <Input {...field} placeholder="email@example.com" />}
-                        />
-                      </Form.Item>
-
-                      <Form.Item label={t("Ghi chú")}>
-                        <Controller
-                          name="notes"
-                          control={control}
-                          render={({ field }) => (
-                            <Input.TextArea {...field} rows={3} placeholder={t("Ghi chú thêm...")} />
-                          )}
-                        />
-                      </Form.Item>
-
-                      <Form.Item label={t("Nghề nghiệp")}>
-                        <Select placeholder={t("Chọn nghề nghiệp")} allowClear style={{ width: "100%" }}>
-                          <Select.Option value="other">{t("Khác")}</Select.Option>
-                        </Select>
-                      </Form.Item>
-                    </>
-                  ),
-                },
-                {
-                  key: "history",
-                  label: t("Tiểu sử bệnh"),
-                  children: (
-                    <Form.Item label={t("Tiền sử bệnh")}>
-                      <Controller
-                        name="medicalHistory"
-                        control={control}
-                        render={({ field }) => (
-                          <Input.TextArea {...field} rows={8} placeholder={t("Ghi nhận tiền sử bệnh...")} />
-                        )}
-                      />
-                    </Form.Item>
-                  ),
-                },
-              ]}
-            />
-          </Col>
-
-          {/* Column 3 — Insurance & Address */}
-          <Col span={8}>
-            <Form.Item label={t("Số thẻ BHYT")}>
-              <Controller
-                name="insuranceNumber"
-                control={control}
-                render={({ field }) => (
-                  <Input {...field} placeholder={t("Số thẻ bảo hiểm y tế")} minLength={10} maxLength={15} />
-                )}
-              />
-            </Form.Item>
-
-            <Form.Item label={t("Quốc gia")}>
-              <Input value={t("Việt Nam")} disabled />
-            </Form.Item>
-
-            <Form.Item label={t("Số nhà / Đường")}>
-              <Controller
-                name="address"
-                control={control}
-                render={({ field }) => <Input {...field} placeholder={t("Địa chỉ...")} />}
-              />
-            </Form.Item>
-
-            <Form.Item label={t("Tỉnh / Thành phố")}>
-              <Controller
-                name="province"
-                control={control}
-                render={({ field }) => (
+              <div className="patient-source-row">
+                <FloatingField label={t("Chọn loại nguồn đến")}>
                   <Select
-                    {...field}
-                    showSearch
-                    allowClear
-                    placeholder={t("Chọn tỉnh / thành")}
-                    style={{ width: "100%" }}
-                    filterOption={(input, option) =>
-                      (option?.label as string ?? "").toLowerCase().includes(input.toLowerCase())
-                    }
-                    options={[
-                      { value: "HCM", label: t("TP. Hồ Chí Minh") },
-                      { value: "HN", label: t("Hà Nội") },
-                      { value: "DN", label: t("Đà Nẵng") },
-                    ]}
-                  />
-                )}
-              />
-            </Form.Item>
+                    value={sourceType ?? ""}
+                    onValueChange={(v) => setSourceType(v || undefined)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder=" " />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="walk_in">{t("Vãng lai tự tìm đến")}</SelectItem>
+                      <SelectItem value="referral">{t("Giới thiệu")}</SelectItem>
+                      <SelectItem value="online">{t("Online")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FloatingField>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="patient-source-add-btn rounded-full w-8 h-8 p-0"
+                >
+                  <Plus size={14} />
+                </Button>
+              </div>
 
-            <Form.Item label={t("Quận / Huyện")}>
-              <Controller
-                name="district"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    {...field}
-                    showSearch
-                    allowClear
-                    placeholder={t("Chọn quận / huyện")}
-                    style={{ width: "100%" }}
-                    options={[]}
-                  />
-                )}
-              />
-            </Form.Item>
+              <FloatingField label={t("Kênh kết nối")}>
+                <Select disabled={!sourceType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder=" " />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {channelOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FloatingField>
 
-            <Form.Item label={t("Xã / Phường")}>
-              <Controller
-                name="ward"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    {...field}
-                    showSearch
-                    allowClear
-                    placeholder={t("Chọn xã / phường")}
-                    style={{ width: "100%" }}
-                    options={[]}
-                  />
-                )}
-              />
-            </Form.Item>
-          </Col>
-        </Row>
+              <FloatingField label={t("Ngày tạo")}>
+                <Input value={dayjs().format("D/M/YYYY")} disabled placeholder=" " />
+              </FloatingField>
 
-        {errors.root && (
-          <div style={{ color: "#C62828", fontSize: 13, marginBottom: 12 }}>
-            {errors.root.message}
+              <FloatingField label={t("Lý do đến khám")}>
+                <Controller
+                  name="examReason"
+                  control={control}
+                  render={({ field }) => (
+                    <textarea
+                      {...field}
+                      rows={3}
+                      placeholder=" "
+                      maxLength={1000}
+                      className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    />
+                  )}
+                />
+              </FloatingField>
+            </div>
+
+            {/* Column 2 — Tabs (Thông tin cơ bản / Tiểu sử bệnh) */}
+            <div className="patient-editor-col">
+              <div className="patient-editor-tabs">
+                <button
+                  type="button"
+                  className={`patient-editor-tab ${infoTab === "basic" ? "patient-editor-tab--active" : ""}`}
+                  onClick={() => setInfoTab("basic")}
+                >
+                  {t("Thông tin cơ bản")}
+                </button>
+                <button
+                  type="button"
+                  className={`patient-editor-tab ${infoTab === "history" ? "patient-editor-tab--active" : ""}`}
+                  onClick={() => setInfoTab("history")}
+                >
+                  {t("Tiểu sử bệnh")}
+                </button>
+              </div>
+
+              {infoTab === "basic" && (
+                <div className="patient-editor-tab-content">
+                  <div className="patient-editor-field-group">
+                    <span className="patient-editor-field-label">{t("Giới tính")}</span>
+                    <Controller
+                      name="gender"
+                      control={control}
+                      render={({ field }) => (
+                        <div className="flex items-center gap-4">
+                          {(["male", "female", "other"] as const).map((g) => (
+                            <label key={g} className="flex items-center gap-1 cursor-pointer text-sm">
+                              <input
+                                type="radio"
+                                value={g}
+                                checked={field.value === g}
+                                onChange={() => field.onChange(g)}
+                              />
+                              {g === "male" ? t("Nam") : g === "female" ? t("Nữ") : t("Khác")}
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    />
+                  </div>
+
+                  <FloatingField label={t("Ngày sinh")}>
+                    <Controller
+                      name="dateOfBirth"
+                      control={control}
+                      render={({ field }) => (
+                        <DatePickerInput
+                          value={field.value ?? ""}
+                          onChange={(v) => field.onChange(v)}
+                          max={dayjs().format("YYYY-MM-DD")}
+                        />
+                      )}
+                    />
+                  </FloatingField>
+
+                  <FloatingField label="Email" error={errors.email?.message}>
+                    <Controller
+                      name="email"
+                      control={control}
+                      render={({ field }) => <Input {...field} placeholder=" " />}
+                    />
+                  </FloatingField>
+
+                  <FloatingField label={t("Ghi chú")}>
+                    <Controller
+                      name="notes"
+                      control={control}
+                      render={({ field }) => (
+                        <textarea
+                          {...field}
+                          rows={4}
+                          placeholder=" "
+                          className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        />
+                      )}
+                    />
+                  </FloatingField>
+
+                  <FloatingField
+                    label={t("Nghề nghiệp")}
+                    icon={<Building2 size={16} strokeWidth={1.5} color="#9CA3AF" />}
+                  >
+                    <Select>
+                      <SelectTrigger>
+                        <SelectValue placeholder=" " />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="doctor">{t("Bác sĩ")}</SelectItem>
+                        <SelectItem value="teacher">{t("Giáo viên")}</SelectItem>
+                        <SelectItem value="engineer">{t("Kỹ sư")}</SelectItem>
+                        <SelectItem value="student">{t("Sinh viên")}</SelectItem>
+                        <SelectItem value="worker">{t("Công nhân")}</SelectItem>
+                        <SelectItem value="business">{t("Kinh doanh")}</SelectItem>
+                        <SelectItem value="retired">{t("Hưu trí")}</SelectItem>
+                        <SelectItem value="other">{t("Khác")}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FloatingField>
+                </div>
+              )}
+
+              {infoTab === "history" && (
+                <div className="patient-editor-tab-content">
+                  <div className="medical-history-title">{t("TIỂU SỬ BỆNH")}</div>
+                  <Accordion type="multiple" className="medical-history-collapse">
+                    {MEDICAL_HISTORY_CATEGORIES.filter((c) => c.items.length > 0).map((category) => {
+                      const searchTerm = historySearch[category.key] ?? "";
+                      const filtered = searchTerm
+                        ? category.items.filter((item) =>
+                            item.toLowerCase().includes(searchTerm.toLowerCase())
+                          )
+                        : category.items;
+
+                      return (
+                        <AccordionItem key={category.key} value={category.key}>
+                          <AccordionTrigger className="text-sm font-medium py-2">
+                            {t(category.label)}
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            <div className="medical-history-items">
+                              {category.items.length > 5 && (
+                                <div className="relative mb-2">
+                                  <Search size={13} className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                                  <Input
+                                    className="pl-7 h-7 text-xs"
+                                    placeholder={t("Tìm kiếm...")}
+                                    value={searchTerm}
+                                    onChange={(e) =>
+                                      setHistorySearch((prev) => ({ ...prev, [category.key]: e.target.value }))
+                                    }
+                                  />
+                                </div>
+                              )}
+                              {filtered.map((item) => (
+                                <div key={item} className="flex items-center gap-2 mb-1.5">
+                                  <Checkbox
+                                    id={`cond-${item}`}
+                                    checked={checkedConditions.has(item)}
+                                    onCheckedChange={() => toggleCondition(item)}
+                                  />
+                                  <label htmlFor={`cond-${item}`} className="text-sm cursor-pointer">
+                                    {t(item)}
+                                  </label>
+                                </div>
+                              ))}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      );
+                    })}
+                  </Accordion>
+                  {MEDICAL_HISTORY_CATEGORIES.filter((c) => c.items.length === 0).map((category) => (
+                    <div key={category.key} className="medical-history-no-items">
+                      <span style={{ marginRight: 8 }}>▸</span>
+                      {t(category.label)}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Column 3 — Insurance & Address */}
+            <div className="patient-editor-col">
+              <FloatingField label={t("Số thẻ BHYT")}>
+                <Controller
+                  name="insuranceNumber"
+                  control={control}
+                  render={({ field }) => (
+                    <Input {...field} placeholder=" " minLength={10} maxLength={15} />
+                  )}
+                />
+              </FloatingField>
+
+              <FloatingField label={t("Quốc gia")}>
+                <Select value="VN" disabled>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="VN">{t("Việt Nam")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FloatingField>
+
+              <FloatingField label={t("Số nhà/ Đường")}>
+                <Controller
+                  name="address"
+                  control={control}
+                  render={({ field }) => <Input {...field} placeholder=" " />}
+                />
+              </FloatingField>
+
+              <FloatingField label={t("Tỉnh/ Thành phố")}>
+                <Controller
+                  name="province"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value ?? ""} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder=" " />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="HCM">{t("TP. Hồ Chí Minh")}</SelectItem>
+                        <SelectItem value="HN">{t("Hà Nội")}</SelectItem>
+                        <SelectItem value="DN">{t("Đà Nẵng")}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </FloatingField>
+
+              <FloatingField label={t("Quận/ Huyện")}>
+                <Controller
+                  name="district"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value ?? ""} onValueChange={field.onChange} disabled={!provinceValue}>
+                      <SelectTrigger>
+                        <SelectValue placeholder=" " />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {/* populated dynamically */}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </FloatingField>
+
+              <FloatingField label={t("Xã/ Phường")}>
+                <Controller
+                  name="ward"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value ?? ""} onValueChange={field.onChange} disabled={!districtValue}>
+                      <SelectTrigger>
+                        <SelectValue placeholder=" " />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {/* populated dynamically */}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </FloatingField>
+            </div>
           </div>
-        )}
 
-        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", paddingTop: 8, borderTop: "1px solid #E5E7EB" }}>
-          <Button onClick={onClose}>{t("Hủy")}</Button>
-          <Button type="primary" htmlType="submit" loading={isPending} icon={<span>💾</span>}>
-            {isEdit ? t("Lưu thay đổi") : t("Lưu")}
-          </Button>
-        </div>
-      </form>
-    </Modal>
+          {errors.root && (
+            <div style={{ color: "#C62828", fontSize: 13, marginBottom: 12 }}>
+              {errors.root.message}
+            </div>
+          )}
+
+          <div className="patient-editor-footer">
+            <Button
+              type="submit"
+              disabled={isPending || (!isValid && !isEdit)}
+            >
+              {isPending ? <Loader2 className="size-4 animate-spin mr-2" /> : <Save size={14} className="mr-2" />}
+              {t("Lưu")}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

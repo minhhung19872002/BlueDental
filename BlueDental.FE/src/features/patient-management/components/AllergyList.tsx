@@ -1,8 +1,7 @@
 // AllergyList — displays a patient's known allergies as styled tags.
 // TODO: Add inline editing to add/remove allergies.
 
-import { Tag, Empty } from "antd";
-import { WarningOutlined } from "@ant-design/icons";
+import { AlertTriangle } from "lucide-react";
 import { t } from "@/lib/i18n";
 
 interface Props {
@@ -11,15 +10,23 @@ interface Props {
 
 export function AllergyList({ allergies }: Props) {
   if (allergies.length === 0) {
-    return <Empty description={t("Không có dị ứng đã ghi nhận")} />;
+    return (
+      <div className="flex flex-col items-center justify-center py-6 text-muted-foreground text-sm gap-2">
+        <p>{t("Không có dị ứng đã ghi nhận")}</p>
+      </div>
+    );
   }
 
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+    <div className="flex flex-wrap gap-2">
       {allergies.map((allergy) => (
-        <Tag key={allergy} color="red" icon={<WarningOutlined />}>
+        <span
+          key={allergy}
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 border border-red-200"
+        >
+          <AlertTriangle size={12} />
           {allergy}
-        </Tag>
+        </span>
       ))}
     </div>
   );

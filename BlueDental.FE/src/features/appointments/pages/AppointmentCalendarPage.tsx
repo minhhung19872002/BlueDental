@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Button, Tabs, Segmented } from "antd";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import dayjs, { type Dayjs } from "dayjs";
-import { LeftOutlined, RightOutlined } from "@ant-design/icons";
 import { DayViewCalendar, type DayViewDoctor } from "../components/DayViewCalendar";
 import { WeekViewCalendar } from "../components/WeekViewCalendar";
 import { MonthViewCalendar } from "../components/MonthViewCalendar";
@@ -10,6 +9,8 @@ import { AppointmentEditorModal } from "../components/AppointmentEditorModal";
 import { AppointmentDetailDrawer } from "../components/AppointmentDetailDrawer";
 import { useDentistList } from "@/features/staff/api/staffQueries";
 import { TimekeepingBoard } from "@/features/timekeeping/components/TimekeepingBoard";
+import { DateNavigator } from "@/components/DateNavigator";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { t } from "@/lib/i18n";
 
 type ViewMode = "day" | "week" | "month";
@@ -67,16 +68,6 @@ export function AppointmentCalendarPage() {
     setCurrentDate((d) => d.add(dir, unit));
   };
 
-  const displayDate = () => {
-    if (viewMode === "day") return currentDate.format("DD/MM/YYYY");
-    if (viewMode === "week") {
-      const start = currentDate.startOf("week").format("DD/MM");
-      const end = currentDate.endOf("week").format("DD/MM/YYYY");
-      return `${start} – ${end}`;
-    }
-    return currentDate.format("MM/YYYY");
-  };
-
   const handleCellClick = (doctorId: string, slotIndex: number) => {
     setInitialDate(currentDate.format("YYYY-MM-DD"));
     setAddOpen(true);
@@ -98,15 +89,22 @@ export function AppointmentCalendarPage() {
             justifyContent: "space-between",
           }}
         >
-          <Tabs
-            activeKey={topTab}
-            onChange={setTopTab}
-            style={{ marginBottom: 0 }}
-            items={[
-              { key: "customer", label: t("Lịch hẹn khách hàng") },
-              { key: "work",     label: t("Lịch làm việc") },
-            ]}
-          />
+          <Tabs value={topTab} onValueChange={setTopTab}>
+            <TabsList className="h-auto bg-transparent p-0 rounded-none border-b-0">
+              <TabsTrigger
+                value="customer"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-3"
+              >
+                {t("Lịch hẹn khách hàng")}
+              </TabsTrigger>
+              <TabsTrigger
+                value="work"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-3"
+              >
+                {t("Lịch làm việc")}
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
 
         {/* Toolbar row 1: view mode + date nav */}
@@ -120,24 +118,20 @@ export function AppointmentCalendarPage() {
             borderBottom: "1px solid #e2e8f0",
           }}
         >
-          <Segmented
-            value={viewMode}
-            onChange={(v) => setViewMode(v as ViewMode)}
+          <SegmentedControl
             options={[
-              { label: t("Ngày"),  value: "day" },
-              { label: t("Tuần"),  value: "week" },
-              { label: t("Tháng"), value: "month" },
+              { key: "day" as ViewMode, label: t("Ngày") },
+              { key: "week" as ViewMode, label: t("Tuần") },
+              { key: "month" as ViewMode, label: t("Tháng") },
             ]}
-            style={{ fontWeight: 500 }}
+            value={viewMode}
+            onChange={setViewMode}
           />
-
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <Button type="text" size="small" icon={<LeftOutlined />} onClick={() => navigateDate(-1)} />
-            <span style={{ minWidth: 120, textAlign: "center", fontWeight: 600, fontSize: 14, color: "#101c2c" }}>
-              {displayDate()}
-            </span>
-            <Button type="text" size="small" icon={<RightOutlined />} onClick={() => navigateDate(1)} />
-          </div>
+          <DateNavigator
+            value={currentDate}
+            mode={viewMode}
+            onChange={(d) => setCurrentDate(() => d)}
+          />
         </div>
 
         {/* Calendar grid — switches by viewMode */}

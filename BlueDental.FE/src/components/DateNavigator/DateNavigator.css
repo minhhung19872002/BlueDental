@@ -11,10 +11,9 @@
 }
 
 /* ── Arrow buttons ── */
-.date-navigator-arrow.ant-btn {
+.date-navigator-arrow {
   border: none;
   background: none;
-  box-shadow: none;
   width: 34px;
   height: 38px;
   min-width: 34px;
@@ -25,27 +24,22 @@
   color: var(--bd-muted);
   border-radius: 0;
   flex-shrink: 0;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
 }
 
-.date-navigator-arrow.ant-btn:first-child {
+.date-navigator-arrow:first-child {
   border-radius: 10px 0 0 10px;
 }
 
-.date-navigator-arrow.ant-btn:last-of-type {
+.date-navigator-arrow:last-of-type {
   border-radius: 0 10px 10px 0;
 }
 
-.date-navigator .date-navigator-arrow.ant-btn.ant-btn-default:hover,
-.date-navigator .date-navigator-arrow.ant-btn.ant-btn-default:focus,
-.date-navigator .date-navigator-arrow.ant-btn.ant-btn-default:active {
-  color: var(--bd-ink) !important;
-  background: #f9f7f5 !important;
-  border-color: transparent !important;
-  box-shadow: none !important;
-}
-
-.date-navigator-arrow .anticon {
-  font-size: 12px;
+.date-navigator-arrow:hover,
+.date-navigator-arrow:focus {
+  color: var(--bd-ink);
+  background: #f9f7f5;
 }
 
 /* ── Clickable date display ── */
@@ -175,6 +169,13 @@
 
 .date-nav-day.outside {
   color: #ccc;
+}
+
+.date-nav-day.disabled,
+.date-nav-day.disabled:hover {
+  color: #d1d5db;
+  cursor: not-allowed;
+  background: none;
 }
 
 .date-nav-day.today {

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DatePicker } from "antd";
+import { DatePickerInput } from "@/components/ui/date-picker-input";
 import dayjs, { type Dayjs } from "dayjs";
 import { TimekeepingBoard } from "../components/TimekeepingBoard";
 import { t } from "@/lib/i18n";
@@ -31,13 +31,13 @@ export function TimekeepingPage() {
         <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1B2A41" }}>
           {t("Chấm công")}
         </h2>
-        <DatePicker
-          value={currentDate}
-          onChange={(date) => {
-            if (date) setCurrentDate(date);
+        <DatePickerInput
+          value={currentDate.format("YYYY-MM-DD")}
+          onChange={(v) => {
+            const d = dayjs(v);
+            if (d.isValid()) setCurrentDate(d);
           }}
-          format="DD/MM/YYYY"
-          allowClear={false}
+          className="w-40"
         />
       </div>
 

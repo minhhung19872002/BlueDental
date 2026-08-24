@@ -1,10 +1,5 @@
 import dayjs from "dayjs";
-import {
-  BarChartOutlined,
-  CalendarOutlined,
-  TeamOutlined,
-  WalletOutlined,
-} from "@ant-design/icons";
+import { BarChart3, Calendar, Users, Wallet } from "lucide-react";
 import { usePaymentStat } from "@/features/report/api/clinicReportApi";
 import { useAppointmentList } from "@/features/appointments/api/appointmentQueries";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
@@ -53,7 +48,7 @@ export function DashboardPage() {
           label={t("Doanh số hôm nay")}
           value={`${formatVND(stat?.totalActualReceived ?? 0)} ₫`}
           sub={t("Thực thu trong ngày")}
-          icon={<BarChartOutlined />}
+          icon={<BarChart3 className="size-4" />}
           color={brand.blue}
           loading={statLoading}
         />
@@ -61,7 +56,7 @@ export function DashboardPage() {
           label={t("Lượt khách")}
           value={newPatients}
           sub={t("Lượt khám ghi nhận hôm nay")}
-          icon={<TeamOutlined />}
+          icon={<Users className="size-4" />}
           color={brand.gold}
           loading={statLoading}
         />
@@ -69,7 +64,7 @@ export function DashboardPage() {
           label={t("Lịch hẹn")}
           value={appts?.totalCount ?? 0}
           sub={t("{0} chờ đến", awaiting)}
-          icon={<CalendarOutlined />}
+          icon={<Calendar className="size-4" />}
           color={brand.goldDeep}
           loading={apptLoading}
         />
@@ -77,7 +72,7 @@ export function DashboardPage() {
           label={t("Công nợ tồn")}
           value={`${formatVND(stat?.totalOutstandingDebt ?? 0)} ₫`}
           sub={t("Chưa thu trong ngày")}
-          icon={<WalletOutlined />}
+          icon={<Wallet className="size-4" />}
           color={brand.red}
           loading={statLoading}
         />

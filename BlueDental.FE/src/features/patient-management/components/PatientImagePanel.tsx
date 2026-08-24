@@ -1,6 +1,19 @@
 import { useRef, useState } from "react";
-import { Button, Card, Empty, Image, Popconfirm, Space, Typography, message } from "antd";
-import { DeleteOutlined, UploadOutlined } from "@ant-design/icons";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Loader2, Trash2, Upload } from "lucide-react";
+import { toast } from "sonner";
 import {
   useDeletePatientImage,
   usePatientImages,
@@ -10,8 +23,6 @@ import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { extractApiError } from "@/lib/apiError";
 import { formatDateTime } from "@/utils/format";
 import { t } from "@/lib/i18n";
-
-const { Text } = Typography;
 
 interface PatientImagePanelProps {
   patientId: string;
@@ -39,9 +50,9 @@ export function PatientImagePanel({ patientId }: PatientImagePanelProps) {
     setUploading(true);
     try {
       await uploadImage.mutateAsync({ patientId, clinicBranchId: branchId, file });
-      message.success(t("Đã tải ảnh lên"));
+      toast.success(t("Đã tải ảnh lên"));
     } catch (error) {
-      message.error(extractApiError(error));
+      toast.error(extractApiError(error));
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = "";
@@ -50,74 +61,89 @@ export function PatientImagePanel({ patientId }: PatientImagePanelProps) {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+      <div className="flex justify-end mb-4">
         {/* A plain input keeps the upload a real multipart POST. */}
         <input
           ref={inputRef}
           type="file"
           accept="image/png,image/jpeg,image/webp"
           data-testid="patient-image-input"
-          style={{ display: "none" }}
+          className="hidden"
           onChange={(event) => {
             const file = event.target.files?.[0];
             if (file) void handleFile(file);
           }}
         />
         <Button
-          type="primary"
-          icon={<UploadOutlined />}
-          loading={uploading}
           onClick={() => inputRef.current?.click()}
+          disabled={uploading}
         >
+          {uploading ? <Loader2 className="size-4 animate-spin mr-2" /> : <Upload size={14} className="mr-2" />}
           {t("Thêm ảnh")}
         </Button>
       </div>
 
-      <Card size="small" loading={isLoading}>
-        {images.length === 0 ? (
-          <Empty description={t("Chưa có hình ảnh")} image={Empty.PRESENTED_IMAGE_SIMPLE} />
-        ) : (
-          <div
-            style={{ display: "flex", flexWrap: "wrap", gap: 12 }}
-            data-testid="patient-image-grid"
-          >
-            {images.map((image) => (
-              <div key={image.id} style={{ width: 180 }}>
-                <Image
-                  // The server already returns an app-relative path, prefix and all.
-                  src={image.url}
-                  alt={image.fileName}
-                  width={180}
-                  height={140}
-                  style={{ objectFit: "cover", borderRadius: 8 }}
-                />
-                <div style={{ marginTop: 4 }}>
-                  <Text ellipsis style={{ fontSize: 12, display: "block" }}>
-                    {image.fileName}
-                  </Text>
-                  <Space size={4} style={{ fontSize: 11, color: "#98a4b4" }}>
-                    <span>{formatDateTime(image.takenAt)}</span>
-                    <Popconfirm
-                      title={t("Xoá ảnh này?")}
-                      okText={t("Xoá")}
-                      cancelText={t("Huỷ")}
-                      onConfirm={async () => {
-                        try {
-                          await deleteImage.mutateAsync(image.id);
-                          message.success(t("Đã xoá ảnh"));
-                        } catch (error) {
-                          message.error(extractApiError(error));
-                        }
-                      }}
-                    >
-                      <Button type="text" size="small" danger icon={<DeleteOutlined />} />
-                    </Popconfirm>
-                  </Space>
+      <Card>
+        <CardContent className="p-4">
+          {isLoading ? (
+            <div className="grid place-items-center py-8">
+              <Loader2 className="size-5 animate-spin" />
+            </div>
+          ) : images.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground">{t("Chưa có hình ảnh")}</div>
+          ) : (
+            <div
+              className="flex flex-wrap gap-3"
+              data-testid="patient-image-grid"
+            >
+              {images.map((image) => (
+                <div key={image.id} style={{ width: 180 }}>
+                  <img
+                    src={image.url}
+                    alt={image.fileName}
+                    width={180}
+                    height={140}
+                    style={{ objectFit: "cover", borderRadius: 8 }}
+                  />
+                  <div className="mt-1">
+                    <span className="text-xs block truncate">{image.fileName}</span>
+                    <div className="flex items-center gap-1 text-xs" style={{ color: "#98a4b4" }}>
+                      <span>{formatDateTime(image.takenAt)}</span>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive h-6 w-6 p-0">
+                            <Trash2 size={14} />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>{t("Xoá ảnh này?")}</AlertDialogTitle>
+                            <AlertDialogDescription>{image.fileName}</AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>{t("Huỷ")}</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={async () => {
+                                try {
+                                  await deleteImage.mutateAsync(image.id);
+                                  toast.success(t("Đã xoá ảnh"));
+                                } catch (error) {
+                                  toast.error(extractApiError(error));
+                                }
+                              }}
+                            >
+                              {t("Xoá")}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </CardContent>
       </Card>
     </div>
   );

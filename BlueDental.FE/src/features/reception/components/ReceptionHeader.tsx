@@ -1,230 +1,128 @@
-import React from "react";
-import { Card, Row, Col, Typography, Statistic, Space } from "antd";
+import React, { useState } from "react";
 import {
-  UserAddOutlined,
-  UsergroupAddOutlined,
-  CalendarOutlined,
-  CheckCircleOutlined,
-} from "@ant-design/icons";
-import { DateViewSelector } from "./DateViewSelector";
+  UserPlus,
+  Users,
+  Calendar,
+  CheckCircle,
+} from "lucide-react";
+import dayjs, { type Dayjs } from "dayjs";
+import { DateNavigator, type DateNavigatorMode } from "@/components/DateNavigator";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import type { ReceptionMetrics } from "../types/reception";
 import { t } from "@/lib/i18n";
-
-const { Title, Text } = Typography;
 
 interface ReceptionHeaderProps {
   metrics?: ReceptionMetrics;
   loading?: boolean;
 }
 
+interface StatCardProps {
+  icon: React.ReactNode;
+  iconBg: string;
+  iconColor: string;
+  label: string;
+  value: number;
+  loading?: boolean;
+}
+
+const StatCard: React.FC<StatCardProps> = ({ icon, iconBg, iconColor, label, value, loading }) => (
+  <div
+    className="rounded-2xl border border-[#E2E8F0] bg-white p-4"
+    style={{ boxShadow: "0 4px 20px rgba(15,23,42,0.04)" }}
+  >
+    <div className="flex items-center gap-4">
+      <div
+        className="flex items-center justify-center rounded-xl"
+        style={{ width: 46, height: 46, background: iconBg, color: iconColor }}
+      >
+        {icon}
+      </div>
+      <div>
+        <div className="text-[13px] font-semibold text-[#64748B]">{label}</div>
+        <div className="text-2xl font-extrabold text-[#0F172A]">
+          {loading ? "…" : value}
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
   metrics,
   loading = false,
 }) => {
+  const [viewMode, setViewMode] = useState<DateNavigatorMode>("day");
+  const [currentDate, setCurrentDate] = useState<Dayjs>(dayjs());
 
   return (
     <div style={{ marginBottom: 20 }}>
       {/* Top Title & Date Control Row */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 20,
-          flexWrap: "wrap",
-          gap: 16,
-        }}
-      >
+      <div className="flex justify-between items-center mb-5 flex-wrap gap-4">
         <div>
-          <Text
-            type="secondary"
-            style={{
-              fontSize: 12,
-              fontWeight: 700,
-              letterSpacing: 1,
-              color: "#64748B",
-              textTransform: "uppercase",
-            }}
-          >
+          <p className="text-xs font-bold tracking-widest text-[#64748B] uppercase">
             {t("TỔNG QUAN")}
-          </Text>
-          <Title
-            level={2}
-            style={{ margin: 0, fontWeight: 800, color: "#0F172A", fontSize: 26 }}
-          >
+          </p>
+          <h2 className="text-[26px] font-extrabold text-[#0F172A] m-0">
             {t("Tiếp nhận khách hàng")}
-          </Title>
+          </h2>
         </div>
 
-        <DateViewSelector />
+        <div
+          className="flex items-center flex-wrap gap-3 bg-white px-4 py-2 rounded-xl border border-[#E2E8F0]"
+          style={{ boxShadow: "0 2px 8px rgba(15,23,42,0.03)" }}
+        >
+          <SegmentedControl
+            options={[
+              { key: "day" as DateNavigatorMode, label: t("Ngày") },
+              { key: "week" as DateNavigatorMode, label: t("Tuần") },
+              { key: "month" as DateNavigatorMode, label: t("Tháng") },
+            ]}
+            value={viewMode}
+            onChange={setViewMode}
+          />
+          <DateNavigator
+            value={currentDate}
+            mode={viewMode}
+            onChange={setCurrentDate}
+          />
+        </div>
       </div>
 
       {/* 4 Stat Counter Cards */}
-      <Row gutter={[16, 16]}>
-        <Col xs={24} sm={12} md={6}>
-          <Card
-            bordered={false}
-            loading={loading}
-            style={{
-              borderRadius: 16,
-              boxShadow: "0 4px 20px rgba(15, 23, 42, 0.04)",
-              border: "1px solid #E2E8F0",
-              background: "#FFFFFF",
-            }}
-            styles={{ body: { padding: "16px 20px" } }}
-          >
-            <Space align="center" size={16}>
-              <div
-                style={{
-                  width: 46,
-                  height: 46,
-                  borderRadius: 14,
-                  background: "rgba(38, 113, 216, 0.1)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#2671D8",
-                  fontSize: 22,
-                }}
-              >
-                <UserAddOutlined />
-              </div>
-              <Statistic
-                title={
-                  <Text style={{ color: "#64748B", fontSize: 13, fontWeight: 600 }}>
-                    {t("Khách mới")}
-                  </Text>
-                }
-                value={metrics?.newPatientsCount ?? 0}
-                valueStyle={{ fontWeight: 800, fontSize: 24, color: "#0F172A" }}
-              />
-            </Space>
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} md={6}>
-          <Card
-            bordered={false}
-            loading={loading}
-            style={{
-              borderRadius: 16,
-              boxShadow: "0 4px 20px rgba(15, 23, 42, 0.04)",
-              border: "1px solid #E2E8F0",
-              background: "#FFFFFF",
-            }}
-            styles={{ body: { padding: "16px 20px" } }}
-          >
-            <Space align="center" size={16}>
-              <div
-                style={{
-                  width: 46,
-                  height: 46,
-                  borderRadius: 14,
-                  background: "rgba(16, 185, 129, 0.1)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#10B981",
-                  fontSize: 22,
-                }}
-              >
-                <UsergroupAddOutlined />
-              </div>
-              <Statistic
-                title={
-                  <Text style={{ color: "#64748B", fontSize: 13, fontWeight: 600 }}>
-                    {t("Khách cũ phát sinh")}
-                  </Text>
-                }
-                value={metrics?.oldPatientsCount ?? 0}
-                valueStyle={{ fontWeight: 800, fontSize: 24, color: "#0F172A" }}
-              />
-            </Space>
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} md={6}>
-          <Card
-            bordered={false}
-            loading={loading}
-            style={{
-              borderRadius: 16,
-              boxShadow: "0 4px 20px rgba(15, 23, 42, 0.04)",
-              border: "1px solid #E2E8F0",
-              background: "#FFFFFF",
-            }}
-            styles={{ body: { padding: "16px 20px" } }}
-          >
-            <Space align="center" size={16}>
-              <div
-                style={{
-                  width: 46,
-                  height: 46,
-                  borderRadius: 14,
-                  background: "rgba(245, 158, 11, 0.1)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#F59E0B",
-                  fontSize: 22,
-                }}
-              >
-                <CalendarOutlined />
-              </div>
-              <Statistic
-                title={
-                  <Text style={{ color: "#64748B", fontSize: 13, fontWeight: 600 }}>
-                    {t("Đã hẹn")}
-                  </Text>
-                }
-                value={metrics?.scheduledCount ?? 0}
-                valueStyle={{ fontWeight: 800, fontSize: 24, color: "#0F172A" }}
-              />
-            </Space>
-          </Card>
-        </Col>
-
-        <Col xs={24} sm={12} md={6}>
-          <Card
-            bordered={false}
-            loading={loading}
-            style={{
-              borderRadius: 16,
-              boxShadow: "0 4px 20px rgba(15, 23, 42, 0.04)",
-              border: "1px solid #E2E8F0",
-              background: "#FFFFFF",
-            }}
-            styles={{ body: { padding: "16px 20px" } }}
-          >
-            <Space align="center" size={16}>
-              <div
-                style={{
-                  width: 46,
-                  height: 46,
-                  borderRadius: 14,
-                  background: "rgba(99, 102, 241, 0.1)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#6366F1",
-                  fontSize: 22,
-                }}
-              >
-                <CheckCircleOutlined />
-              </div>
-              <Statistic
-                title={
-                  <Text style={{ color: "#64748B", fontSize: 13, fontWeight: 600 }}>
-                    {t("Khách đến")}
-                  </Text>
-                }
-                value={metrics?.arrivedCount ?? 0}
-                valueStyle={{ fontWeight: 800, fontSize: 24, color: "#0F172A" }}
-              />
-            </Space>
-          </Card>
-        </Col>
-      </Row>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard
+          icon={<UserPlus size={22} />}
+          iconBg="rgba(38,113,216,0.1)"
+          iconColor="#2671D8"
+          label={t("Khách mới")}
+          value={metrics?.newPatientsCount ?? 0}
+          loading={loading}
+        />
+        <StatCard
+          icon={<Users size={22} />}
+          iconBg="rgba(16,185,129,0.1)"
+          iconColor="#10B981"
+          label={t("Khách cũ phát sinh")}
+          value={metrics?.oldPatientsCount ?? 0}
+          loading={loading}
+        />
+        <StatCard
+          icon={<Calendar size={22} />}
+          iconBg="rgba(245,158,11,0.1)"
+          iconColor="#F59E0B"
+          label={t("Đã hẹn")}
+          value={metrics?.scheduledCount ?? 0}
+          loading={loading}
+        />
+        <StatCard
+          icon={<CheckCircle size={22} />}
+          iconBg="rgba(99,102,241,0.1)"
+          iconColor="#6366F1"
+          label={t("Khách đến")}
+          value={metrics?.arrivedCount ?? 0}
+          loading={loading}
+        />
+      </div>
     </div>
   );
 };

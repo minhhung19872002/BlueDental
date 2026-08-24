@@ -3,8 +3,8 @@
 // Appointments are rendered as colored blocks spanning their time range.
 
 import { useMemo } from "react";
-import { Button } from "antd";
-import { LeftOutlined, RightOutlined } from "@ant-design/icons";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import dayjs from "dayjs";
 import type { Appointment } from "../types/appointment";
 import { t } from "@/lib/i18n";
@@ -77,19 +77,23 @@ export function AppointmentCalendar({
         }}
       >
         <Button
-          type="text"
-          icon={<LeftOutlined />}
+          variant="ghost"
+          size="sm"
           onClick={() => onWeekChange(-1)}
-        />
+        >
+          <ChevronLeft size={14} />
+        </Button>
         <span style={{ fontWeight: 700, fontSize: 14 }}>
           {weekStart.format("DD/MM/YYYY")} –{" "}
           {weekStart.add(6, "day").format("DD/MM/YYYY")}
         </span>
         <Button
-          type="text"
-          icon={<RightOutlined />}
+          variant="ghost"
+          size="sm"
           onClick={() => onWeekChange(1)}
-        />
+        >
+          <ChevronRight size={14} />
+        </Button>
       </div>
 
       {/* Column headers */}

@@ -1,9 +1,19 @@
 import { useEffect } from "react";
-import { Modal, Button, Input, DatePicker, TimePicker, message } from "antd";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { DatePickerInput } from "@/components/ui/date-picker-input";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import dayjs from "dayjs";
+import { toast } from "sonner";
 import { useCreateAppointment } from "../api/appointmentMutations";
 import { SearchSelect } from "@/components/SearchSelect";
 import { usePatientOptions } from "@/hooks/usePatientOptions";
@@ -77,13 +87,13 @@ export function AppointmentEditorModal({ open, appointmentId, initialDate, onClo
       },
       {
         onSuccess: () => {
-          message.success(t("Tạo lịch hẹn thành công!"));
+          toast.success(t("Tạo lịch hẹn thành công!"));
           reset();
           onSuccess?.();
           onClose();
         },
         onError: (err) => {
-          message.error((err as Error).message || t("Tạo lịch hẹn thất bại"));
+          toast.error((err as Error).message || t("Tạo lịch hẹn thất bại"));
         },
       },
     );
@@ -94,144 +104,146 @@ export function AppointmentEditorModal({ open, appointmentId, initialDate, onClo
   const requiredMark = <span style={{ color: "#ef4d4d", marginLeft: 2 }}>*</span>;
 
   return (
-    <Modal
-      open={open}
-      title={isEdit ? t("Chỉnh sửa lịch hẹn") : t("Tạo lịch hẹn mới")}
-      onCancel={onClose}
-      width={580}
-      footer={
-        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-          <Button onClick={onClose}>{t("Hủy")}</Button>
+    <Dialog open={open} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent style={{ maxWidth: 580 }}>
+        <DialogHeader>
+          <DialogTitle>{isEdit ? t("Chỉnh sửa lịch hẹn") : t("Tạo lịch hẹn mới")}</DialogTitle>
+        </DialogHeader>
+
+        <div style={{ paddingTop: 8 }}>
+          {/* Patient */}
+          <div style={fieldStyle}>
+            <label style={labelStyle}>{t("Khách hàng")}{requiredMark}</label>
+            <Controller
+              name="patientId"
+              control={control}
+              render={({ field }) => (
+                <SearchSelect
+                  value={field.value || undefined}
+                  placeholder={t("Tìm kiếm khách hàng...")}
+                  options={(patients ?? []).map((p) => ({
+                    value: p.id,
+                    label: `[${p.code}] - ${p.name.toUpperCase()}`,
+                  }))}
+                  onChange={(v) => field.onChange(v ?? "")}
+                  status={errors.patientId ? "error" : ""}
+                />
+              )}
+            />
+            {errors.patientId && <span style={{ color: "#ef4d4d", fontSize: 12 }}>{errors.patientId.message}</span>}
+          </div>
+
+          {/* Doctor */}
+          <div style={fieldStyle}>
+            <label style={labelStyle}>{t("Bác sĩ")}{requiredMark}</label>
+            <Controller
+              name="doctorId"
+              control={control}
+              render={({ field }) => (
+                <SearchSelect
+                  value={field.value || undefined}
+                  placeholder={t("Chọn bác sĩ")}
+                  options={(dentists ?? []).map((d) => ({ value: d.id, label: d.name }))}
+                  onChange={(v) => field.onChange(v ?? "")}
+                  status={errors.doctorId ? "error" : ""}
+                />
+              )}
+            />
+            {errors.doctorId && <span style={{ color: "#ef4d4d", fontSize: 12 }}>{errors.doctorId.message}</span>}
+          </div>
+
+          {/* Date + Time row */}
+          <div style={{ display: "flex", gap: 12, ...fieldStyle }}>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>{t("Ngày hẹn")}{requiredMark}</label>
+              <Controller
+                name="date"
+                control={control}
+                render={({ field }) => (
+                  <DatePickerInput
+                    value={field.value}
+                    onChange={(v) => field.onChange(v)}
+                    className={errors.date ? "border-destructive" : ""}
+                  />
+                )}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>{t("Giờ bắt đầu")}{requiredMark}</label>
+              <Controller
+                name="startTime"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    type="time"
+                    value={field.value}
+                    onChange={(e) => field.onChange(e.target.value)}
+                    step={1800}
+                    style={{ height: 40 }}
+                    className={errors.startTime ? "border-destructive" : ""}
+                  />
+                )}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>{t("Giờ kết thúc")}</label>
+              <Controller
+                name="endTime"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    type="time"
+                    value={field.value}
+                    onChange={(e) => field.onChange(e.target.value)}
+                    step={1800}
+                    style={{ height: 40 }}
+                  />
+                )}
+              />
+            </div>
+          </div>
+
+          {/* Reason */}
+          <div style={fieldStyle}>
+            <label style={labelStyle}>{t("Lý do khám")}</label>
+            <Controller
+              name="reason"
+              control={control}
+              render={({ field }) => (
+                <Input {...field} placeholder={t("Nhập lý do khám")} style={{ height: 40 }} />
+              )}
+            />
+          </div>
+
+          {/* Notes */}
+          <div style={fieldStyle}>
+            <label style={labelStyle}>{t("Ghi chú")}</label>
+            <Controller
+              name="notes"
+              control={control}
+              render={({ field }) => (
+                <textarea
+                  {...field}
+                  rows={3}
+                  placeholder={t("Nội dung ghi chú")}
+                  style={{ resize: "none", width: "100%", padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: 6, fontSize: 14 }}
+                />
+              )}
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>{t("Hủy")}</Button>
           <Button
-            type="primary"
-            loading={createMutation.isPending}
+            disabled={createMutation.isPending}
             onClick={handleSubmit(onSubmit)}
             style={{ background: "#1c3566" }}
           >
-            {isEdit ? t("Cập nhật") : t("Lưu lịch hẹn")}
+            {createMutation.isPending ? t("Đang lưu...") : isEdit ? t("Cập nhật") : t("Lưu lịch hẹn")}
           </Button>
-        </div>
-      }
-    >
-      <div style={{ paddingTop: 8 }}>
-        {/* Patient */}
-        <div style={fieldStyle}>
-          <label style={labelStyle}>{t("Khách hàng")}{requiredMark}</label>
-          <Controller
-            name="patientId"
-            control={control}
-            render={({ field }) => (
-              <SearchSelect
-                value={field.value || undefined}
-                placeholder={t("Tìm kiếm khách hàng...")}
-                options={(patients ?? []).map((p) => ({
-                  value: p.id,
-                  label: `[${p.code}] - ${p.name.toUpperCase()}`,
-                }))}
-                onChange={(v) => field.onChange(v ?? "")}
-                status={errors.patientId ? "error" : ""}
-              />
-            )}
-          />
-          {errors.patientId && <span style={{ color: "#ef4d4d", fontSize: 12 }}>{errors.patientId.message}</span>}
-        </div>
-
-        {/* Doctor */}
-        <div style={fieldStyle}>
-          <label style={labelStyle}>{t("Bác sĩ")}{requiredMark}</label>
-          <Controller
-            name="doctorId"
-            control={control}
-            render={({ field }) => (
-              <SearchSelect
-                value={field.value || undefined}
-                placeholder={t("Chọn bác sĩ")}
-                options={(dentists ?? []).map((d) => ({ value: d.id, label: d.name }))}
-                onChange={(v) => field.onChange(v ?? "")}
-                status={errors.doctorId ? "error" : ""}
-              />
-            )}
-          />
-          {errors.doctorId && <span style={{ color: "#ef4d4d", fontSize: 12 }}>{errors.doctorId.message}</span>}
-        </div>
-
-        {/* Date + Time row */}
-        <div style={{ display: "flex", gap: 12, ...fieldStyle }}>
-          <div style={{ flex: 1 }}>
-            <label style={labelStyle}>{t("Ngày hẹn")}{requiredMark}</label>
-            <Controller
-              name="date"
-              control={control}
-              render={({ field }) => (
-                <DatePicker
-                  value={field.value ? dayjs(field.value) : null}
-                  onChange={(d) => field.onChange(d ? d.format("YYYY-MM-DD") : "")}
-                  format="DD/MM/YYYY"
-                  style={{ width: "100%", height: 40 }}
-                  status={errors.date ? "error" : ""}
-                />
-              )}
-            />
-          </div>
-          <div style={{ flex: 1 }}>
-            <label style={labelStyle}>{t("Giờ bắt đầu")}{requiredMark}</label>
-            <Controller
-              name="startTime"
-              control={control}
-              render={({ field }) => (
-                <TimePicker
-                  value={field.value ? dayjs(`2000-01-01 ${field.value}`) : null}
-                  onChange={(t) => field.onChange(t ? t.format("HH:mm") : "")}
-                  format="HH:mm"
-                  minuteStep={30}
-                  style={{ width: "100%", height: 40 }}
-                  status={errors.startTime ? "error" : ""}
-                />
-              )}
-            />
-          </div>
-          <div style={{ flex: 1 }}>
-            <label style={labelStyle}>{t("Giờ kết thúc")}</label>
-            <Controller
-              name="endTime"
-              control={control}
-              render={({ field }) => (
-                <TimePicker
-                  value={field.value ? dayjs(`2000-01-01 ${field.value}`) : null}
-                  onChange={(t) => field.onChange(t ? t.format("HH:mm") : "")}
-                  format="HH:mm"
-                  minuteStep={30}
-                  style={{ width: "100%", height: 40 }}
-                />
-              )}
-            />
-          </div>
-        </div>
-
-        {/* Reason */}
-        <div style={fieldStyle}>
-          <label style={labelStyle}>{t("Lý do khám")}</label>
-          <Controller
-            name="reason"
-            control={control}
-            render={({ field }) => (
-              <Input {...field} placeholder={t("Nhập lý do khám")} style={{ height: 40 }} />
-            )}
-          />
-        </div>
-
-        {/* Notes */}
-        <div style={fieldStyle}>
-          <label style={labelStyle}>{t("Ghi chú")}</label>
-          <Controller
-            name="notes"
-            control={control}
-            render={({ field }) => (
-              <Input.TextArea {...field} rows={3} placeholder={t("Nội dung ghi chú")} style={{ resize: "none" }} />
-            )}
-          />
-        </div>
-      </div>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

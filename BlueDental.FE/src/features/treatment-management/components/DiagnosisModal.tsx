@@ -1,5 +1,22 @@
 import { useEffect } from "react";
-import { Alert, Form, Input, Modal, Select, message } from "antd";
+import { useForm, Controller } from "react-hook-form";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { useCreateDiagnosis } from "../api/consultingQueries";
 import { formatTeeth, type ToothSelectionDto } from "../api/consultingApi";
 import { CATALOG_GROUP, useCatalogOptions } from "@/hooks/useCatalogOptions";
@@ -31,7 +48,9 @@ export function DiagnosisModal({
   onClose,
   onCreated,
 }: DiagnosisModalProps) {
-  const [form] = Form.useForm<DiagnosisFormValues>();
+  const { control, handleSubmit, reset } = useForm<DiagnosisFormValues>({
+    defaultValues: { diagnosisId: "", staffId: "", secondStaffId: "", note: "" },
+  });
   const branchId = useCurrentBranchId();
   const createDiagnosis = useCreateDiagnosis();
 
@@ -40,12 +59,10 @@ export function DiagnosisModal({
 
   useEffect(() => {
     if (!open) return;
-    form.resetFields();
-  }, [open, form]);
+    reset();
+  }, [open, reset]);
 
-  const handleSubmit = async () => {
-    const values = await form.validateFields();
-
+  const onSubmit = async (values: DiagnosisFormValues) => {
     try {
       await createDiagnosis.mutateAsync({
         patientId,
@@ -57,87 +74,131 @@ export function DiagnosisModal({
         teeth,
       });
 
-      message.success(t("Đã tạo phiếu chẩn đoán"));
+      toast.success(t("Đã tạo phiếu chẩn đoán"));
       onCreated?.();
       onClose();
     } catch (error) {
-      message.error(extractApiError(error));
+      toast.error(extractApiError(error));
     }
   };
 
   return (
-    <Modal
-      open={open}
-      title={t("Tạo phiếu chẩn đoán")}
-      okText={t("Tạo")}
-      cancelText={t("Huỷ")}
-      okButtonProps={{ disabled: teeth.length === 0 }}
-      confirmLoading={createDiagnosis.isPending}
-      onOk={handleSubmit}
-      onCancel={onClose}
-      destroyOnHidden
-    >
-      {teeth.length === 0 ? (
-        <Alert
-          type="warning"
-          showIcon
-          message={t("Chưa chọn răng")}
-          description={t("Chọn ít nhất một răng hoặc một mặt răng trên sơ đồ trước khi tạo phiếu chẩn đoán.")}
-        />
-      ) : (
-        <Alert
-          type="info"
-          showIcon
-          style={{ marginBottom: 16 }}
-          message={t("Răng đã chọn: {0}", formatTeeth(teeth))}
-        />
-      )}
+    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t("Tạo phiếu chẩn đoán")}</DialogTitle>
+        </DialogHeader>
 
-      <Form form={form} layout="vertical" requiredMark disabled={teeth.length === 0}>
-        <Form.Item
-          name="diagnosisId"
-          label={t("Chẩn đoán")}
-          rules={[{ required: true, message: t("Vui lòng chọn chẩn đoán") }]}
-        >
-          <Select
-            showSearch
-            optionFilterProp="label"
-            placeholder={
-              (diagnoses?.length ?? 0) === 0
-                ? t("Chưa có danh mục chẩn đoán — thêm ở trang Danh mục")
-                : t("Chọn chẩn đoán")
-            }
-            options={(diagnoses ?? []).map((d) => ({ value: d.id, label: d.name }))}
-          />
-        </Form.Item>
+        {teeth.length === 0 ? (
+          <div className="border rounded-md p-4 bg-yellow-50 text-yellow-700 text-sm">
+            <div className="font-medium mb-1">{t("Chưa chọn răng")}</div>
+            <div className="text-xs text-yellow-600">
+              {t("Chọn ít nhất một răng hoặc một mặt răng trên sơ đồ trước khi tạo phiếu chẩn đoán.")}
+            </div>
+          </div>
+        ) : (
+          <div className="border rounded-md p-3 bg-blue-50 text-blue-700 text-sm">
+            {t("Răng đã chọn: {0}", formatTeeth(teeth))}
+          </div>
+        )}
 
-        <Form.Item
-          name="staffId"
-          label={t("Bác sĩ chẩn đoán")}
-          rules={[{ required: true, message: t("Vui lòng chọn bác sĩ") }]}
-        >
-          <Select
-            showSearch
-            optionFilterProp="label"
-            placeholder={t("Chọn bác sĩ")}
-            options={(dentists ?? []).map((d) => ({ value: d.id, label: d.name }))}
-          />
-        </Form.Item>
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+          <fieldset disabled={teeth.length === 0} className="contents">
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium">{t("Chẩn đoán")} <span className="text-destructive">*</span></label>
+              <Controller
+                name="diagnosisId"
+                control={control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange} disabled={teeth.length === 0}>
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder={
+                          (diagnoses?.length ?? 0) === 0
+                            ? t("Chưa có danh mục chẩn đoán — thêm ở trang Danh mục")
+                            : t("Chọn chẩn đoán")
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(diagnoses ?? []).map((d) => (
+                        <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
 
-        <Form.Item name="secondStaffId" label={t("Bác sĩ hỗ trợ")}>
-          <Select
-            allowClear
-            showSearch
-            optionFilterProp="label"
-            placeholder={t("Không bắt buộc")}
-            options={(dentists ?? []).map((d) => ({ value: d.id, label: d.name }))}
-          />
-        </Form.Item>
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium">{t("Bác sĩ chẩn đoán")} <span className="text-destructive">*</span></label>
+              <Controller
+                name="staffId"
+                control={control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange} disabled={teeth.length === 0}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={t("Chọn bác sĩ")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(dentists ?? []).map((d) => (
+                        <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
 
-        <Form.Item name="note" label={t("Ghi chú")}>
-          <Input.TextArea rows={3} placeholder={t("Mô tả tình trạng")} />
-        </Form.Item>
-      </Form>
-    </Modal>
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium">{t("Bác sĩ hỗ trợ")}</label>
+              <Controller
+                name="secondStaffId"
+                control={control}
+                render={({ field }) => (
+                  <Select value={field.value ?? ""} onValueChange={field.onChange} disabled={teeth.length === 0}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={t("Không bắt buộc")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(dentists ?? []).map((d) => (
+                        <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium">{t("Ghi chú")}</label>
+              <Controller
+                name="note"
+                control={control}
+                render={({ field }) => (
+                  <textarea
+                    {...field}
+                    rows={3}
+                    placeholder={t("Mô tả tình trạng")}
+                    disabled={teeth.length === 0}
+                    className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50"
+                  />
+                )}
+              />
+            </div>
+          </fieldset>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              {t("Huỷ")}
+            </Button>
+            <Button type="submit" disabled={teeth.length === 0 || createDiagnosis.isPending}>
+              {createDiagnosis.isPending && <Loader2 className="size-4 animate-spin mr-2" />}
+              {t("Tạo")}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
