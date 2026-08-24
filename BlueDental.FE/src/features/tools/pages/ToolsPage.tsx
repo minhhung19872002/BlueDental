@@ -678,8 +678,8 @@ interface InvoiceConfig {
 
 /** Synthetic seed data — status uses CONFIG_STATUS_ACTIVE constant, not a translated label. */
 const INVOICE_SEED: InvoiceConfig[] = [
-  { id: "1", nameKey: "tools.invoiceSeedName1", branchKey: "tools.invoiceSeedBranch1", moduleKey: "tools.invoiceModule", provider: "MISA", status: CONFIG_STATUS_ACTIVE },
-  { id: "2", nameKey: "tools.invoiceSeedName2", branchKey: "tools.invoiceSeedBranch2", moduleKey: "tools.invoiceModule", provider: "MISA", status: CONFIG_STATUS_ACTIVE },
+  { id: "1", nameKey: "Quang Vinh", branchKey: "Chi nhánh Quang Vinh", moduleKey: "Hóa đơn", provider: "MISA", status: CONFIG_STATUS_ACTIVE },
+  { id: "2", nameKey: "Thuế Hố Nai", branchKey: "Chi nhánh Hố Nai", moduleKey: "Hóa đơn", provider: "MISA", status: CONFIG_STATUS_ACTIVE },
 ];
 
 function InvoiceView() {

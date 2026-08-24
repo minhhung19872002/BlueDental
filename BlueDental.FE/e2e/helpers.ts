@@ -1,8 +1,10 @@
 import type { Page } from "@playwright/test";
 
+// The account BlueDental.DbMigrator seeds — see its appsettings Seed section.
+// The ABP template password (1q2w3E*) has never existed in this database.
 export const TEST_USER = {
-  username: process.env.E2E_USERNAME ?? "admin",
-  password: process.env.E2E_PASSWORD ?? "1q2w3E*",
+  username: process.env.E2E_USERNAME ?? process.env.E2E_USER ?? "admin",
+  password: process.env.E2E_PASSWORD ?? "Admin@123456",
 };
 
 export async function login(page: Page) {

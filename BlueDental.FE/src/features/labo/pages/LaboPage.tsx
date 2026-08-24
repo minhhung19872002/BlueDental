@@ -401,21 +401,21 @@ interface LaboCrudConfig {
 
 const LABO_CRUD_CONFIGS: Record<string, LaboCrudConfig> = {
   bite: {
-    labelKey: "labo.bite",
+    labelKey: "Khớp cắn Labo",
     useList: useLaboBiteTypeList as LaboCrudConfig["useList"],
     useCreate: useCreateLaboBiteType as LaboCrudConfig["useCreate"],
     useUpdate: useUpdateLaboBiteType as LaboCrudConfig["useUpdate"],
     useDelete: useDeleteLaboBiteType as LaboCrudConfig["useDelete"],
   },
   "finish-line": {
-    labelKey: "labo.finishLine",
+    labelKey: "Đường hoàn tất",
     useList: useLaboFinishLineList as LaboCrudConfig["useList"],
     useCreate: useCreateLaboFinishLine as LaboCrudConfig["useCreate"],
     useUpdate: useUpdateLaboFinishLine as LaboCrudConfig["useUpdate"],
     useDelete: useDeleteLaboFinishLine as LaboCrudConfig["useDelete"],
   },
   nhip: {
-    labelKey: "labo.bridgeType",
+    labelKey: "Kiểu nhịp Labo",
     useList: useLaboRhythmTypeList as LaboCrudConfig["useList"],
     useCreate: useCreateLaboRhythmType as LaboCrudConfig["useCreate"],
     useUpdate: useUpdateLaboRhythmType as LaboCrudConfig["useUpdate"],

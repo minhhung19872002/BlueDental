@@ -26,8 +26,8 @@ const BRANCH_STATUS_COLOR: Record<string, string> = {
 };
 
 const BRANCH_STATUS_KEY: Record<string, string> = {
-  Active: "common.active",
-  Inactive: "common.inactive",
+  Active: "Đang hoạt động",
+  Inactive: "Ngừng hoạt động",
 };
 
 function BranchTable() {
