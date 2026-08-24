@@ -1,4 +1,7 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
+import { Button } from "antd";
 import {
   BarChartOutlined,
   CalendarOutlined,
@@ -15,9 +18,12 @@ import { RevenueBarChart } from "../components/RevenueBarChart";
 import { DoctorsOnDutyCard } from "../components/DoctorsOnDutyCard";
 import { LowStockCard } from "../components/LowStockCard";
 import { OngoingReceptionsCard } from "../components/OngoingReceptionsCard";
+import { AppointmentEditorModal } from "@/features/appointments/components/AppointmentEditorModal";
 import { t } from "@/lib/i18n";
 
 export function DashboardPage() {
+  const navigate = useNavigate();
+  const [newApptOpen, setNewApptOpen] = useState(false);
   const today = dayjs().format("YYYY-MM-DD");
   const branchId = useCurrentBranchId();
 
@@ -45,6 +51,16 @@ export function DashboardPage() {
           <p className="page-header-subtitle">
             {dayjs().format("dddd, DD/MM/YYYY")}
           </p>
+        </div>
+        {/* The design pairs the title with an outline export and a solid
+            create action. Both go somewhere real: the report screen owns the
+            exports, and the appointment editor is the same one the calendar
+            opens. */}
+        <div className="page-header-actions">
+          <Button onClick={() => navigate("/report")}>{t("Xuất báo cáo")}</Button>
+          <Button type="primary" onClick={() => setNewApptOpen(true)}>
+            + {t("Tạo lịch hẹn")}
+          </Button>
         </div>
       </div>
 
@@ -92,6 +108,13 @@ export function DashboardPage() {
       </div>
 
       <OngoingReceptionsCard />
+
+      <AppointmentEditorModal
+        open={newApptOpen}
+        initialDate={today}
+        onClose={() => setNewApptOpen(false)}
+        onSuccess={() => setNewApptOpen(false)}
+      />
     </div>
   );
 }

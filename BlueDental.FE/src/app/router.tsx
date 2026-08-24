@@ -186,7 +186,9 @@ const appRoutes: RouteObject[] = [
     children: [
       {
         index: true,
-        element: <Navigate to="/reception" replace />,
+        // navDef opens on Tổng quan, so signing in lands there rather than on
+        // a reception list the user may not have come for.
+        element: <Navigate to="/dashboard" replace />,
       },
       // ── Reception (default page) ──
       {
@@ -323,7 +325,7 @@ const appRoutes: RouteObject[] = [
           </S>
         ),
       },
-      // ── Dashboard (kept for internal use) ──
+      // ── Dashboard (Tổng quan — the design's first screen) ──
       {
         path: "dashboard",
         element: (
@@ -360,9 +362,13 @@ const appRoutes: RouteObject[] = [
           </S>
         ),
       },
-      // ── Settings ──
+      // ── Display preferences ──
+      // This used to be declared as a second "settings" route, which React
+      // Router never reached because the clinic settings above already claimed
+      // that path. It is the display-options screen, not the clinic one, so it
+      // gets its own address instead of shadowing.
       {
-        path: "settings",
+        path: "settings/preferences",
         element: (
           <S>
             <SettingsPage />

@@ -140,7 +140,7 @@ Hỗ trợ song ngữ Việt/Anh (i18n via ABP Localization).
 
 ### Frontend
 - **Framework**: React 19 + TypeScript + Vite 8
-- **UI & Styling**: Tailwind CSS (Khớp 1:1 với app.nfcdental.com) + Reusable Components
+- **UI & Styling**: Ant Design 6 + `src/styles/index.css` (class thủ công, token `--bd-*` đồng bộ với `src/theme/index.ts`). **KHÔNG dùng Tailwind** — đã gỡ khỏi dự án, xem commit `73755ce`.
 - **Server state**: TanStack Query v5
 - **Client state**: Zustand 5
 - **Forms**: React Hook Form + Zod
@@ -891,17 +891,23 @@ function useStatusLabels() {
 
 ### 16.3 Không Dùng Inline Style Objects
 
-Dùng Tailwind classes thay vì `style={{}}`. Khi cần dynamic value, dùng CSS custom properties hoặc Tailwind arbitrary values.
+Dùng class trong `src/styles/index.css` thay vì `style={{}}`. Khi cần dynamic value, truyền qua CSS custom property.
 
 ```tsx
 // SAI
 <div style={{ backgroundColor: color, borderRadius: 8, padding: '12px 16px' }}>
 
-// ĐÚNG — Tailwind classes
-<div className="rounded-lg px-4 py-3" style={{ '--status-color': color } as React.CSSProperties}>
+// ĐÚNG — class + custom property cho phần động
+<div className="status-card" style={{ "--status-color": color } as React.CSSProperties}>
+```
 
-// ĐÚNG — Tailwind arbitrary value cho dynamic
-<div className={cn('rounded-lg px-4 py-3', `bg-[${color}]`)}>
+```css
+/* index.css — màu lấy từ token, không hard-code hex trong tsx */
+.status-card {
+  padding: 12px 16px;
+  border-radius: var(--bd-radius-card);
+  background: var(--status-color, var(--bd-bg-soft));
+}
 ```
 
 **Ngoại lệ duy nhất**: dynamic CSS không thể biểu diễn bằng class (animation transforms, canvas positions). Khi đó dùng CSS custom property, không inline trực tiếp.
@@ -1275,24 +1281,21 @@ function PatientForm({ onSubmit, initialData }: Props) {
 
 ---
 
-### 16.16 CSS / Tailwind Rules
+### 16.16 CSS Rules
 
-- **Không** mix CSS modules + Tailwind + inline styles trong cùng 1 component
-- Dùng `cn()` (clsx + twMerge) cho conditional classes
-- Responsive: mobile-first (`base` → `sm:` → `md:` → `lg:`)
-- Tailwind arbitrary values `[]` chỉ dùng khi design token không có sẵn — ưu tiên extend `tailwind.config`
-- Animations: dùng Tailwind `animate-*` hoặc CSS keyframes trong global CSS, **không** inline `transition` style objects
+- **Không** mix inline styles với class trong cùng 1 component — chọn một
+- Màu, bán kính, khoảng cách lấy từ token `--bd-*`; **không** hard-code hex trong `.tsx`
+- Conditional class: nối chuỗi template hoặc mảng `.filter(Boolean).join(" ")`
+- Responsive: media query trong `index.css`, breakpoint 1280 / 1100 / 640
+- Animations: CSS keyframes trong `index.css`, **không** inline `transition` style objects
 
 ```tsx
-// ĐÚNG — cn() cho conditional
-<div className={cn(
-  'rounded-lg border p-4',
-  isActive && 'border-primary bg-primary/5',
-  isError && 'border-destructive bg-destructive/5',
-)}>
+// ĐÚNG — class cơ sở + modifier, ghép tường minh
+<div className={["stat-card", isActive && "stat-card--active", isError && "stat-card--error"]
+  .filter(Boolean).join(" ")}>
 
-// SAI — string concatenation
-<div className={'rounded-lg border p-4 ' + (isActive ? 'border-primary' : '')}>
+// SAI — dựng style bằng hex ngay trong tsx
+<div style={{ border: `1px solid ${isError ? "#ef4d4d" : "#e2e8f0"}` }}>
 ```
 
 ---

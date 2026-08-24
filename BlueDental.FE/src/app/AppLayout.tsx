@@ -14,18 +14,6 @@ import {
   BellOutlined,
   GlobalOutlined,
   SearchOutlined,
-  ScheduleOutlined,
-  TeamOutlined,
-  CalendarOutlined,
-  CustomerServiceOutlined,
-  DollarOutlined,
-  ExperimentOutlined,
-  SettingOutlined,
-  BarChartOutlined,
-  IdcardOutlined,
-  MedicineBoxOutlined,
-  AppstoreOutlined,
-  ToolOutlined,
   CheckOutlined,
 } from "@ant-design/icons";
 import { useLanguage, useT } from "@/lib/i18n";
@@ -44,20 +32,71 @@ interface NavItem {
 /** Translator type, so the builders below stay readable. */
 type Translate = (vietnamese: string) => string;
 
+/**
+ * The rail's icons are the design's own `navDef` paths, traced at 24x24 with a
+ * 1.7 stroke, rather than an icon set that only approximates them.
+ */
+function NavIcon({ d }: { d: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="19"
+      height="19"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d={d} />
+    </svg>
+  );
+}
+
+/**
+ * Order, labels and icons follow BlueDental.dc.html's `navDef`.
+ *
+ * `plan` ("Điều trị") is in that list but has no artboard of its own and no
+ * route here — treatment lives inside a patient's record — so it is left out
+ * rather than added as a link that goes nowhere.
+ */
+const NAV_ICON_PATHS = {
+  dashboard: "M4 13h6V4H4v9zm10 7h6v-9h-6v9zM4 20h6v-4H4v4zm10-11h6V4h-6v5z",
+  reception: "M4 20v-2a4 4 0 014-4h8a4 4 0 014 4v2M12 3a4 4 0 100 8 4 4 0 000-8z",
+  calendar: "M3 9h18M7 3v4m10-4v4M5 5h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z",
+  patients: "M16 20v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 3a4 4 0 100 8 4 4 0 000-8zm11 17v-2a4 4 0 00-3-3.87",
+  billing: "M3 10h18M3 7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7zm4 8h4",
+  materials: "M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8",
+  staff: "M17 21v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2M10 3a4 4 0 100 8 4 4 0 000-8zM21 8v6m3-3h-6",
+  labo: "M9 3h6v5l4 9a3 3 0 01-3 4H8a3 3 0 01-3-4l4-9V3z",
+  cskh: "M12 21s-6-4.5-6-9a4 4 0 018-1 4 4 0 018 1c0 4.5-6 9-6 9z",
+  voucher: "M3 8a2 2 0 012-2h14a2 2 0 012 2v2a2 2 0 000 4v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-2a2 2 0 000-4V8zm12-2v12",
+  taxonomy: "M4 6h16M4 12h16M4 18h10",
+  operations: "M3 21V9l9-6 9 6v12M9 21v-7h6v7",
+  tools: "M14 6l4 4-8 8H6v-4l8-8zM17 3l4 4",
+  reports: "M4 19V5m0 14h16M8 19v-6m4 6V8m4 11v-9",
+  settings:
+    "M12 15a3 3 0 100-6 3 3 0 000 6zm7.4-3a7.4 7.4 0 00-.1-1.2l2-1.6-2-3.4-2.4 1a7.5 7.5 0 00-2-1.2L14.5 2h-4l-.4 2.6c-.7.3-1.4.7-2 1.2l-2.4-1-2 3.4 2 1.6a7.4 7.4 0 000 2.4l-2 1.6 2 3.4 2.4-1c.6.5 1.3.9 2 1.2l.4 2.6h4l.4-2.6c.7-.3 1.4-.7 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z",
+} as const;
+
 // The navigation is built per render: its labels follow the chosen language.
 const mainNav = (t: Translate): NavItem[] => [
-  { key: "/reception", icon: <ScheduleOutlined />, label: t("Tiếp nhận") },
-  { key: "/patient", icon: <TeamOutlined />, label: t("Danh sách bệnh nhân") },
-  { key: "/calendar", icon: <CalendarOutlined />, label: t("Lịch hẹn") },
-  { key: "/cskh-grouping", icon: <CustomerServiceOutlined />, label: t("CSKH - Phân nhóm") },
-  { key: "/labo", icon: <ExperimentOutlined />, label: t("Labo") },
-  { key: "/billing", icon: <DollarOutlined />, label: t("Thanh toán") },
-  { key: "/operations", icon: <SettingOutlined />, label: t("Quản trị vận hành") },
-  { key: "/report", icon: <BarChartOutlined />, label: t("Báo cáo") },
-  { key: "/staff", icon: <IdcardOutlined />, label: t("Nhân viên") },
-  { key: "/materials", icon: <MedicineBoxOutlined />, label: t("Vật tư") },
-  { key: "/taxonomy", icon: <AppstoreOutlined />, label: t("Danh mục") },
-  { key: "/tools", icon: <ToolOutlined />, label: t("Công cụ") },
+  { key: "/dashboard", icon: <NavIcon d={NAV_ICON_PATHS.dashboard} />, label: t("Tổng quan") },
+  { key: "/reception", icon: <NavIcon d={NAV_ICON_PATHS.reception} />, label: t("Tiếp nhận") },
+  { key: "/calendar", icon: <NavIcon d={NAV_ICON_PATHS.calendar} />, label: t("Lịch hẹn") },
+  { key: "/patient", icon: <NavIcon d={NAV_ICON_PATHS.patients} />, label: t("Bệnh nhân") },
+  { key: "/billing", icon: <NavIcon d={NAV_ICON_PATHS.billing} />, label: t("Thanh toán") },
+  { key: "/materials", icon: <NavIcon d={NAV_ICON_PATHS.materials} />, label: t("Vật tư") },
+  { key: "/staff", icon: <NavIcon d={NAV_ICON_PATHS.staff} />, label: t("Nhân sự") },
+  { key: "/labo", icon: <NavIcon d={NAV_ICON_PATHS.labo} />, label: t("Labo") },
+  { key: "/cskh-grouping", icon: <NavIcon d={NAV_ICON_PATHS.cskh} />, label: t("CSKH") },
+  { key: "/voucher", icon: <NavIcon d={NAV_ICON_PATHS.voucher} />, label: t("Voucher") },
+  { key: "/taxonomy", icon: <NavIcon d={NAV_ICON_PATHS.taxonomy} />, label: t("Danh mục") },
+  { key: "/operations", icon: <NavIcon d={NAV_ICON_PATHS.operations} />, label: t("Vận hành") },
+  { key: "/tools", icon: <NavIcon d={NAV_ICON_PATHS.tools} />, label: t("Công cụ") },
+  { key: "/report", icon: <NavIcon d={NAV_ICON_PATHS.reports} />, label: t("Báo cáo") },
+  { key: "/settings", icon: <NavIcon d={NAV_ICON_PATHS.settings} />, label: t("Cài đặt") },
 ];
 
 function initialsOf(name: string | undefined): string {
