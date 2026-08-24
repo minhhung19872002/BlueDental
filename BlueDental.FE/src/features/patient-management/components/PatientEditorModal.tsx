@@ -15,8 +15,10 @@ type Translate = (vietnamese: string, ...params: (string | number)[]) => string;
 
 function createPatientSchema(t: Translate) {
   return z.object({
-    firstName: z.string().min(1, t("Vui lòng nhập họ")),
-    lastName: z.string().min(1, t("Vui lòng nhập tên")),
+    // One "Họ và tên" box on screen; it is split on submit, so only that one
+    // is required here — requiring firstName made the form unsubmittable.
+    firstName: z.string().optional(),
+    lastName: z.string().min(1, t("Vui lòng nhập họ và tên")),
     phone: z.string().regex(/^\d{8,15}$/, t("Số điện thoại không hợp lệ")),
     gender: z.enum(["male", "female", "other"]).optional(),
     dateOfBirth: z.string().optional(),
@@ -39,6 +41,20 @@ interface Props {
   patient?: PatientDto | null;
   onClose: () => void;
   onSuccess?: () => void;
+}
+
+/**
+ * Vietnamese names read family-first: every word but the last belongs to the
+ * family and middle part, and the last word is the given name.
+ */
+function familyName(fullName: string): string {
+  const words = fullName.trim().split(/\s+/).filter(Boolean);
+  return words.length > 1 ? words.slice(0, -1).join(" ") : (words[0] ?? "");
+}
+
+function givenName(fullName: string): string {
+  const words = fullName.trim().split(/\s+/).filter(Boolean);
+  return words.length > 1 ? words[words.length - 1] : "";
 }
 
 export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props) {
@@ -104,7 +120,7 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
     if (open && patient) {
       reset({
         firstName: patient.firstName,
-        lastName: patient.lastName,
+        lastName: [patient.lastName, patient.firstName].filter(Boolean).join(" ").trim(),
         phone: patient.phoneNumber ?? "",
         gender: GENDER_BY_CODE[patient.gender] ?? "other",
         dateOfBirth: patient.dateOfBirth,
@@ -125,8 +141,8 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
       // Address and medical history have no home on the register endpoint, and
       // the branch comes from the signed-in user, so none of them are sent.
       const payload = {
-        firstName: values.firstName,
-        lastName: values.lastName,
+        firstName: givenName(values.lastName),
+        lastName: familyName(values.lastName),
         phoneNumber: values.phone,
         gender: values.gender ?? "male",
         dateOfBirth: values.dateOfBirth ?? "",

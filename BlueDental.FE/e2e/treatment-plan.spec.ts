@@ -24,16 +24,19 @@ test.describe("Kế hoạch điều trị", () => {
 
     await page.getByRole("button", { name: /Tạo hồ sơ/ }).click();
     const dialog = page.getByRole("dialog");
-    await dialog.getByPlaceholder("Nguyễn Văn An").fill(fullName);
+    await dialog.getByPlaceholder("Nguyễn Văn A").fill(fullName);
     await dialog.getByPlaceholder("09xxxxxxxx").fill("0900000003");
 
     const dob = dialog.getByPlaceholder("Chọn thời điểm");
     await dob.fill("20/03/1992");
     await dob.press("Enter");
+    // The panel stays open over the Save button; clicking the title closes it
+    // without closing the dialog the way Escape does.
+    await dialog.getByText("Tạo hồ sơ bệnh nhân").first().click();
     await dialog.getByRole("button", { name: /Lưu/ }).click();
 
     // The list grows across runs, so find the new record instead of assuming page 1.
-    await page.getByPlaceholder("Tìm kiếm").fill(fullName);
+    await page.getByPlaceholder("Tìm kiếm...").fill(fullName);
     await page.getByRole("row", { name: new RegExp(fullName) }).click();
     await expect(page).toHaveURL(/\/patient\/[0-9a-f-]{36}/);
 
