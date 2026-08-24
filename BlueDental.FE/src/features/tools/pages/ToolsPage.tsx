@@ -56,11 +56,6 @@ function SubTabBar({
 }) {
   return (
     <div className="reception-card reception-card--tabs">
-      <PageHeader
-        title={t("Công cụ")}
-        subtitle={t("Tổng đài, tin nhắn, Zalo OA và hoá đơn điện tử")}
-      />
-
       <div style={{ display: "flex", gap: 0 }}>
         {tabs.map((tab) => (
           <button
@@ -94,71 +89,32 @@ function formatDuration(seconds: number): string {
 }
 
 // ── Config status constant ─────────────────────────────────────────────────
-// UNKNOWN_REFERENCE_BEHAVIOR: The exact enum/string value used for the
-// "activated" status in the call/message config API is not confirmed.
-// Using "active" as a placeholder; adjust to match backend contract.
-const CONFIG_STATUS_ACTIVE = "active";
 
 // ── "Gọi thoại" views ─────────────────────────────────────────────────────
 
-function CallConfigView() {
-  const [keyword, setKeyword] = useState("");
-
-  const columns = [
-    { title: t("Tên"),        dataIndex: "name",        key: "name" },
-    { title: t("Chi nhánh"),      dataIndex: "branch",      key: "branch" },
-    { title: t("Loại cấu hình"), dataIndex: "settingType", key: "settingType" },
-    { title: t("Nhà cung cấp"),    dataIndex: "provider",    key: "provider" },
-    {
-      title: t("Trạng thái"),
-      dataIndex: "status",
-      key: "status",
-      render: (v: string | undefined) =>
-        v ? (
-          <Tag color={v === CONFIG_STATUS_ACTIVE ? "green" : "default"}>
-            {v === CONFIG_STATUS_ACTIVE ? t("Đã kích hoạt") : t("Chưa kích hoạt")}
-          </Tag>
-        ) : null,
-    },
-    {
-      title: t("Thao tác"),
-      key: "actions",
-      render: () => (
-        <div style={{ display: "flex", gap: 6 }}>
-          <Button size="small">{t("Chỉnh sửa")}</Button>
-          <Button size="small" danger>{t("Xoá")}</Button>
-        </div>
-      ),
-    },
-  ];
-
+/**
+ * The three integration-config screens — phone system, messaging, e-invoice —
+ * have no endpoint behind them. They used to draw a search box that filtered
+ * nothing, a "Tạo cấu hình" button with no handler, and edit/delete actions
+ * that could never run; the e-invoice one went further and listed two seeded
+ * rows as active MISA integrations, which is not something a clinic should
+ * read on its own screen. Until there is an API, they say so.
+ */
+function ConfigNotAvailable({ what }: { what: string }) {
   return (
-    <>
-      <div className="reception-card reception-card--toolbar">
-        <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
-          <Input
-            prefix={<SearchOutlined />}
-            placeholder={t("Tìm kiếm")}
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            style={{ width: 260 }}
-            allowClear
-          />
-          <Button type="primary">{t("Tạo cấu hình")}</Button>
-        </div>
+    <div className="reception-card reception-card--content">
+      <div className="tools-empty">
+        <div className="tools-empty-title">{t("Chưa có cấu hình {0}", what)}</div>
+        <p className="tools-empty-body">
+          {t("Phần cấu hình này chưa kết nối với hệ thống. Liên hệ quản trị viên để bật tích hợp.")}
+        </p>
       </div>
-      <div className="reception-card reception-card--content">
-        <Table
-          columns={columns}
-          dataSource={[]}
-          rowKey="id"
-          size="small"
-          locale={{ emptyText: t("Chưa có cấu hình nào") }}
-          pagination={{ pageSize: 20, showTotal: (total) => `0 / ${total}` }}
-        />
-      </div>
-    </>
+    </div>
   );
+}
+
+function CallConfigView() {
+  return <ConfigNotAvailable what={t("tổng đài")} />;
 }
 
 function CallAssignView() {
@@ -547,61 +503,7 @@ function MessageLogView({ channel }: { channel: number }) {
 // ── "Tin nhắn" views ──────────────────────────────────────────────────────
 
 function MessageConfigView() {
-  const [keyword, setKeyword] = useState("");
-
-  const columns = [
-    { title: t("Tên"),     dataIndex: "name",     key: "name" },
-    { title: t("Nhà cung cấp"), dataIndex: "provider", key: "provider" },
-    {
-      title: t("Trạng thái"),
-      dataIndex: "status",
-      key: "status",
-      render: (v: string | undefined) =>
-        v ? (
-          <Tag color={v === CONFIG_STATUS_ACTIVE ? "green" : "default"}>
-            {v === CONFIG_STATUS_ACTIVE ? t("Đã kích hoạt") : t("Chưa kích hoạt")}
-          </Tag>
-        ) : null,
-    },
-    {
-      title: t("Thao tác"),
-      key: "actions",
-      render: () => (
-        <div style={{ display: "flex", gap: 6 }}>
-          <Button size="small">{t("Chỉnh sửa")}</Button>
-          <Button size="small" danger>{t("Xoá")}</Button>
-        </div>
-      ),
-    },
-  ];
-
-  return (
-    <>
-      <div className="reception-card reception-card--toolbar">
-        <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
-          <Input
-            prefix={<SearchOutlined />}
-            placeholder={t("Tìm kiếm")}
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            style={{ width: 260 }}
-            allowClear
-          />
-          <Button type="primary">{t("Tạo cấu hình")}</Button>
-        </div>
-      </div>
-      <div className="reception-card reception-card--content">
-        <Table
-          columns={columns}
-          dataSource={[]}
-          rowKey="id"
-          size="small"
-          locale={{ emptyText: t("Chưa có cấu hình nào") }}
-          pagination={{ pageSize: 20, showTotal: (total) => `0 / ${total}` }}
-        />
-      </div>
-    </>
-  );
+  return <ConfigNotAvailable what={t("tin nhắn")} />;
 }
 
 function MessageView() {
@@ -673,106 +575,8 @@ function ZaloView() {
 
 // ── "Hóa đơn" view ────────────────────────────────────────────────────────
 
-interface InvoiceConfig {
-  id: string;
-  nameKey: string;
-  branchKey: string;
-  moduleKey: string;
-  provider: string;
-  status: string;
-}
-
-/** Synthetic seed data — status uses CONFIG_STATUS_ACTIVE constant, not a translated label. */
-const INVOICE_SEED: InvoiceConfig[] = [
-  { id: "1", nameKey: "Quang Vinh", branchKey: "Chi nhánh Quang Vinh", moduleKey: "Hóa đơn", provider: "MISA", status: CONFIG_STATUS_ACTIVE },
-  { id: "2", nameKey: "Thuế Hố Nai", branchKey: "Chi nhánh Hố Nai", moduleKey: "Hóa đơn", provider: "MISA", status: CONFIG_STATUS_ACTIVE },
-];
-
 function InvoiceView() {
-  const [keyword, setKeyword] = useState("");
-
-  const INVOICE_DATA = INVOICE_SEED.map((r) => ({
-    ...r,
-    name: t(r.nameKey),
-    branch: t(r.branchKey),
-    module: t(r.moduleKey),
-  }));
-
-  const filtered = INVOICE_DATA.filter(
-    (r) => r.name.toLowerCase().includes(keyword.toLowerCase()) || r.branch.toLowerCase().includes(keyword.toLowerCase()),
-  );
-
-  const columns = [
-    { title: t("Tên"),       dataIndex: "name",     key: "name" },
-    { title: t("Tên chi nhánh"), dataIndex: "branch",   key: "branch" },
-    { title: t("Phân hệ"),     dataIndex: "module",   key: "module" },
-    { title: t("Nhà cung cấp"),   dataIndex: "provider", key: "provider" },
-    {
-      title: t("Trạng thái"),
-      dataIndex: "status",
-      key: "status",
-      render: (v: string) => (
-        <Tag color={v === CONFIG_STATUS_ACTIVE ? "green" : "default"}>
-          {v === CONFIG_STATUS_ACTIVE ? t("Đã kích hoạt") : t("Chưa kích hoạt")}
-        </Tag>
-      ),
-    },
-    {
-      title: t("Thao tác"),
-      key: "actions",
-      render: () => (
-        <div style={{ display: "flex", gap: 6 }}>
-          <Button size="small">{t("Chỉnh sửa")}</Button>
-          <Button size="small" danger>{t("Xoá")}</Button>
-        </div>
-      ),
-    },
-  ];
-
-  return (
-    <>
-      <div className="reception-card reception-card--tabs">
-        <button
-          type="button"
-          style={{
-            padding: "8px 16px",
-            border: "none",
-            borderBottom: "2px solid #1677ff",
-            background: "none",
-            color: "#1677ff",
-            fontWeight: 600,
-            cursor: "default",
-            fontSize: 13,
-          }}
-        >
-          {t("Cấu Hình")}
-        </button>
-      </div>
-      <div className="reception-card reception-card--toolbar">
-        <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
-          <Input
-            prefix={<SearchOutlined />}
-            placeholder={t("Tìm kiếm")}
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            style={{ width: 260 }}
-            allowClear
-          />
-          <Button type="primary">{t("Tạo cấu hình")}</Button>
-        </div>
-      </div>
-      <div className="reception-card reception-card--content">
-        <Table
-          columns={columns}
-          dataSource={filtered}
-          rowKey="id"
-          size="small"
-          locale={{ emptyText: t("Chưa có cấu hình nào") }}
-          pagination={{ pageSize: 20, showTotal: (total) => `0 / ${total}` }}
-        />
-      </div>
-    </>
-  );
+  return <ConfigNotAvailable what={t("hoá đơn điện tử")} />;
 }
 
 // ── Main component ─────────────────────────────────────────────────────────
@@ -789,6 +593,11 @@ export function ToolsPage() {
 
   return (
     <div className="reception-page">
+      <PageHeader
+        title={t("Công cụ")}
+        subtitle={t("Tổng đài, tin nhắn, Zalo OA và hoá đơn điện tử")}
+      />
+
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", gap: 0 }}>
           {TOOL_TABS.map((tab) => (

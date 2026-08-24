@@ -292,12 +292,6 @@ export function PatientProfilePage() {
               <Card
                 title={t("Biểu đồ răng")}
                 size="small"
-                extra={
-                  <Space>
-                    <Button size="small">{t("Thêm ảnh")}</Button>
-                    <Button size="small">{t("Danh mục")}</Button>
-                  </Space>
-                }
                 style={{ marginBottom: 16 }}
               >
                 <Tabs
@@ -414,10 +408,6 @@ export function PatientProfilePage() {
                       {t("Chiết khấu")}: {formatVND(adviseSummary?.totalDiscountAmount ?? 0)} đ
                     </Text>
                   )}
-                  <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-                    <Button size="small">{t("Thêm kế hoạch điều trị")}</Button>
-                    <Button size="small">{t("Tạo báo giá")}</Button>
-                  </div>
                 </div>
               </Card>
             </Col>
@@ -431,12 +421,6 @@ export function PatientProfilePage() {
       icon: <FileTextOutlined />,
       children: (
         <div style={{ padding: "16px 0" }}>
-          {/* Toolbar */}
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 16 }}>
-            <Button icon={<PlusOutlined />}>{t("Tạo kế hoạch mới")}</Button>
-            <Button>{t("Xem tất cả dịch vụ")}</Button>
-          </div>
-
           {/* Summary cards */}
           <Row gutter={12} style={{ marginBottom: 16 }}>
             <Col span={12}>
@@ -466,8 +450,7 @@ export function PatientProfilePage() {
               size="small"
               rowKey="id"
               columns={[
-                { title: t("Thêm công đoạn"), key: "addStep", width: 120, render: () => <Button size="small" type="link">+ {t("Công đoạn")}</Button> },
-                { title: t("Số phiếu"), dataIndex: "code", key: "code", width: 80, render: (v: string) => <Button type="link" size="small">{v}</Button> },
+                { title: t("Số phiếu"), dataIndex: "code", key: "code", width: 80 },
                 { title: t("Dịch vụ"), dataIndex: "serviceName", key: "serviceName", width: 200 },
                 { title: t("Bác sĩ tiếp nhận"), dataIndex: "doctorName", key: "doctorName", width: 140 },
                 { title: t("Trạng thái"), dataIndex: "status", key: "status", width: 140, render: (v: string) => v ? <Tag color="processing">{v}</Tag> : null },

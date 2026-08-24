@@ -409,7 +409,6 @@ function AllocationView() {
             <Button type="primary" icon={<PlusOutlined />} onClick={() => { form.resetFields(); setModalOpen(true); }}>{t("Tạo phiếu phân bổ")}</Button>
             <Input prefix={<SearchOutlined />} placeholder={t("Tìm phiếu phân bổ...")} value={keyword} onChange={(e) => setKeyword(e.target.value)} style={{ width: 280 }} allowClear />
           </div>
-          <Button>{t("Lịch sử kiểm kho")}</Button>
         </div>
       </div>
       <div className="reception-card reception-card--content">

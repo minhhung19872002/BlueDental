@@ -3395,3 +3395,23 @@ body {
   color: var(--bd-red);
   background: #fdeeee;
 }
+
+/* ── Tools: screens whose integration is not wired yet ──────────────────── */
+
+.tools-empty {
+  padding: 44px 20px;
+  text-align: center;
+}
+
+.tools-empty-title {
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--bd-ink);
+}
+
+.tools-empty-body {
+  margin: 6px auto 0;
+  max-width: 420px;
+  font-size: 13px;
+  color: var(--bd-muted);
+}

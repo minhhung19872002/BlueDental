@@ -106,15 +106,6 @@ export function CskhGroupingPage() {
         status ? <Tag>{status}</Tag> : null,
     },
     { title: t("Ghi chú"), dataIndex: "note", key: "note" },
-    {
-      title: t("Thao tác"),
-      key: "actions",
-      render: () => (
-        <Button size="small" type="link">
-          {t("Chi tiết")}
-        </Button>
-      ),
-    },
   ];
 
   const { data: careData, isLoading: careLoading } = useCareRecordList({

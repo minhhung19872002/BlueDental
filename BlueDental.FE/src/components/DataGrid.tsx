@@ -7,7 +7,7 @@ export interface DataGridColumn<T> {
   /** Any grid track size: "80px", "1.7fr", "minmax(0, 1fr)". */
   width: string;
   render: (row: T, index: number) => ReactNode;
-  /** Applies the shared ellipsis/​min-width-0 cell wrapper. Default true. */
+  /** Applies the shared ellipsis / min-width-0 cell wrapper. Default true. */
   clip?: boolean;
 }
 

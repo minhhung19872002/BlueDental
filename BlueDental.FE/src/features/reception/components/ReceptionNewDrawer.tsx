@@ -7,6 +7,7 @@ import { useCreateReception } from "../api/receptionMutations";
 import { usePatientList } from "@/features/patient-management/api/patientQueries";
 import { useDebounce } from "@/hooks/useDebounce";
 import { SearchSelect } from "@/components/SearchSelect";
+import { PatientEditorModal } from "@/features/patient-management/components/PatientEditorModal";
 import type { RefType } from "../types/reception";
 import { t } from "@/lib/i18n";
 
@@ -49,6 +50,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
   const createMutation = useCreateReception();
   const [selectedPhone, setSelectedPhone] = useState<string>("---");
   const [patientKeyword, setPatientKeyword] = useState("");
+  const [newPatientOpen, setNewPatientOpen] = useState(false);
   const debouncedPatientKeyword = useDebounce(patientKeyword);
 
   const { data: patientData } = usePatientList({
@@ -156,9 +158,13 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
           </div>
           <div style={{ display: "flex", flexDirection: "column", flexShrink: 0 }}>
             <span style={{ display: "block", height: 21, marginBottom: 4 }} />
+            {/* Beside the search: for a caller who is not on file yet. Opens the
+                same editor the patient list uses, so the record is created the
+                one way rather than a second one. */}
             <Button
               type="primary"
-              style={{ background: "#2671D8", height: 40, fontWeight: 600 }}
+              style={{ height: 40, fontWeight: 600 }}
+              onClick={() => setNewPatientOpen(true)}
             >
               {t("Tạo Mới")}
             </Button>
@@ -256,6 +262,17 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
           </Button>
         </div>
       </div>
+
+      <PatientEditorModal
+        open={newPatientOpen}
+        onClose={() => setNewPatientOpen(false)}
+        onSuccess={() => {
+          // The list this drawer searches refetches on its own; clearing the
+          // keyword puts the newest records back in view.
+          setNewPatientOpen(false);
+          setPatientKeyword("");
+        }}
+      />
     </Modal>
   );
 };
