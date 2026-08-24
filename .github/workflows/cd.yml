@@ -1,0 +1,99 @@
+name: CD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      skip_ci:
+        description: 'Deploy without re-running CI (hotfix only)'
+        type: boolean
+        default: false
+
+# Never let two deploys touch the VM at once; queue instead of cancelling so a
+# half-applied deploy is not abandoned mid-flight.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    name: CI
+    if: ${{ !inputs.skip_ci }}
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    name: Deploy to VM
+    needs: [ci]
+    # `always()` so a skip_ci dispatch (which skips the ci job) still deploys,
+    # while a genuine CI failure still blocks.
+    if: ${{ always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 30
+
+    steps:
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          install -m 600 /dev/null ~/.ssh/id_deploy
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_deploy
+          # Pinned host key: without this, StrictHostKeyChecking would have to
+          # be off, which would accept any MITM host key.
+          echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+          cat >> ~/.ssh/config <<EOF
+          Host deploy-target
+            HostName ${{ secrets.SSH_HOST }}
+            Port ${{ secrets.SSH_PORT || '22' }}
+            User ${{ secrets.SSH_USER }}
+            IdentityFile ~/.ssh/id_deploy
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+            ServerAliveInterval 30
+            ServerAliveCountMax 20
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Deploy
+        env:
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/home/hung/BlueDental' }}
+          DEPLOY_SHA: ${{ github.sha }}
+        run: |
+          ssh deploy-target \
+            DEPLOY_PATH="$DEPLOY_PATH" DEPLOY_SHA="$DEPLOY_SHA" \
+            'bash -s' <<'REMOTE'
+          set -euo pipefail
+          cd "$DEPLOY_PATH"
+
+          echo "==> currently deployed: $(git rev-parse HEAD)"
+          echo "==> deploying:          $DEPLOY_SHA"
+
+          git fetch --prune origin
+          # Hard reset to the exact commit CI validated. Untracked+ignored files
+          # (.env, Logs/) are left alone by reset, so server config survives.
+          git checkout -f main
+          git reset --hard "$DEPLOY_SHA"
+
+          bash deploy.sh
+          REMOTE
+
+      - name: Smoke test
+        env:
+          SITE_URL: ${{ vars.SITE_URL || 'https://bluedental.bluestar.com.vn' }}
+        run: |
+          set -euo pipefail
+          fail=0
+          check() {
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "$1" || echo 000)
+            printf '%-50s -> %s\n' "$1" "$code"
+            [[ "$code" == "$2" ]] || fail=1
+          }
+          check "$SITE_URL/"       200
+          check "$SITE_URL/health" 200
+          exit $fail
+
+      - name: Report failure
+        if: failure()
+        run: |
+          echo "::error::Deploy failed. SSH to the VM and check: docker compose ps && docker compose logs --tail=100 api"

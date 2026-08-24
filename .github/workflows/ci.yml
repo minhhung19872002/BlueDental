@@ -1,0 +1,110 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+  # Called by cd.yml so main deploys only after the same checks pass.
+  workflow_call:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Frontend (lint, typecheck, test, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: BlueDental.FE
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'          # matches BlueDental.FE/Dockerfile
+          cache: npm
+          cache-dependency-path: BlueDental.FE/package-lock.json
+
+      # `npm ci` runs husky via the "prepare" script, which fails outside a
+      # git hook context on a bare runner. HUSKY=0 disables it.
+      - name: Install
+        run: npm ci
+        env:
+          HUSKY: 0
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run lint:ts
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+  backend:
+    name: Backend (build, test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: BlueDental.BE
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Cache NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('BlueDental.BE/**/*.csproj', 'BlueDental.BE/common.props') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore BlueDental.sln
+
+      - name: Build
+        run: dotnet build BlueDental.sln -c Release --no-restore
+
+      - name: Test
+        run: dotnet test BlueDental.sln -c Release --no-build --logger "trx;LogFileName=test-results.trx" --results-directory ./TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-results
+          path: BlueDental.BE/TestResults/
+          if-no-files-found: ignore
+
+  docker:
+    name: Docker images build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Build-only (no push): proves both Dockerfiles still produce an image
+      # before main is allowed to deploy.
+      - name: Build API image
+        uses: docker/build-push-action@v6
+        with:
+          context: BlueDental.BE
+          push: false
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+
+      - name: Build frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: BlueDental.FE
+          push: false
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
