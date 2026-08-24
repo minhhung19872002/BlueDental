@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Loader2, Search, Download, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { extractApiError } from "@/lib/apiError";
 import dayjs, { type Dayjs } from "dayjs";
 import "dayjs/locale/vi";
 import { useCareRecordList } from "../api/careApi";
@@ -380,8 +381,8 @@ function CskhGroupingPanel() {
     try {
       await deleteMutation.mutateAsync(id);
       toast.success(t("Xóa thành công"));
-    } catch {
-      toast.error(t("Xóa thất bại"));
+    } catch (error) {
+      toast.error(extractApiError(error));
     }
   };
 

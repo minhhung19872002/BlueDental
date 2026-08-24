@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Loader2, Search, Download, Plus, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
+import { extractApiError } from "@/lib/apiError";
 import dayjs from "dayjs";
 import {
   useLaboOrderList,
@@ -214,8 +215,8 @@ function MauLaboView() {
     try {
       await deleteMutation.mutateAsync(id);
       toast.success(t("Xóa mẫu Labo thành công"));
-    } catch {
-      toast.error(t("Xóa thất bại"));
+    } catch (error) {
+      toast.error(extractApiError(error));
     }
   };
 
@@ -354,7 +355,7 @@ function SupplierView() {
   });
 
   const handleDelete = async (id: string) => {
-    try { await deleteMutation.mutateAsync(id); toast.success(t("Xóa thành công")); } catch { toast.error(t("Xóa thất bại")); }
+    try { await deleteMutation.mutateAsync(id); toast.success(t("Xóa thành công")); } catch (error) { toast.error(extractApiError(error)); }
   };
 
   return (
@@ -523,7 +524,7 @@ function LaboCrudView({ config }: { config: LaboCrudConfig }) {
   });
 
   const handleDelete = async (id: string) => {
-    try { await deleteMutation.mutateAsync(id); toast.success(t("Xóa thành công")); } catch { toast.error(t("Xóa thất bại")); }
+    try { await deleteMutation.mutateAsync(id); toast.success(t("Xóa thành công")); } catch (error) { toast.error(extractApiError(error)); }
   };
 
   return (

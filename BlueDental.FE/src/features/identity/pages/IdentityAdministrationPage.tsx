@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Search, Plus, Pencil, Trash2, User, Shield } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { extractApiError } from "@/lib/apiError";
 import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
 import { PageHeader } from "@/components/PageHeader";
@@ -329,8 +330,8 @@ function UsersTab() {
     try {
       await deleteMutation.mutateAsync(id);
       toast.success(t("Xóa người dùng thành công"));
-    } catch {
-      toast.error(t("Xóa thất bại"));
+    } catch (error) {
+      toast.error(extractApiError(error));
     }
   };
 
@@ -457,8 +458,8 @@ function RolesTab() {
     try {
       await deleteMutation.mutateAsync(id);
       toast.success(t("Xóa vai trò thành công"));
-    } catch {
-      toast.error(t("Không thể xóa vai trò hệ thống"));
+    } catch (error) {
+      toast.error(extractApiError(error));
     }
   };
 

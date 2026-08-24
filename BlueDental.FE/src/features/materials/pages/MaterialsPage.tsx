@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Loader2, Search, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { extractApiError } from "@/lib/apiError";
 import dayjs from "dayjs";
 import { useForm, Controller } from "react-hook-form";
 import { t } from "@/lib/i18n";
@@ -200,8 +201,8 @@ function ClinicMaterialsView() {
     try {
       await deleteMutation.mutateAsync(id);
       toast.success(t("Xóa vật tư thành công"));
-    } catch {
-      toast.error(t("Xóa thất bại"));
+    } catch (error) {
+      toast.error(extractApiError(error));
     }
   };
 

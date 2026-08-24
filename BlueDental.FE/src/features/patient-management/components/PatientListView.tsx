@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { extractApiError } from "@/lib/apiError";
 import {
   Plus,
   Search,
@@ -101,8 +102,8 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
         ],
         `danh-sach-benh-nhan-${dayjs().format("YYYYMMDD")}`,
       );
-    } catch {
-      toast.error(t("Xuất file thất bại"));
+    } catch (error) {
+      toast.error(extractApiError(error));
     } finally {
       setExporting(false);
     }

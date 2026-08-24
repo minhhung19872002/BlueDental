@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { extractApiError } from "@/lib/apiError";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -111,7 +112,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
           onClose();
         },
         onError: (err) => {
-          toast.error(err.message || t("Tạo tiếp nhận thất bại"));
+          toast.error(extractApiError(err));
         },
       },
     );

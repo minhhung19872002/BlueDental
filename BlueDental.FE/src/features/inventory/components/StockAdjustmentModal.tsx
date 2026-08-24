@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { extractApiError } from "@/lib/apiError";
 import { useAdjustStock, useInventoryList } from "../api/index";
 import { t } from "@/lib/i18n";
 
@@ -89,8 +90,8 @@ export function StockAdjustmentModal({ open, onClose, itemId }: Props) {
           setErrors({});
           onClose();
         },
-        onError: () => {
-          toast.error(t("Không thể điều chỉnh kho. Vui lòng thử lại."));
+        onError: (error) => {
+          toast.error(extractApiError(error));
         },
       },
     );

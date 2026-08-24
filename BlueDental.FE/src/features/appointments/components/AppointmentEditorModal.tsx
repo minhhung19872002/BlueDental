@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { extractApiError } from "@/lib/apiError";
 import {
   Dialog,
   DialogContent,
@@ -93,7 +94,7 @@ export function AppointmentEditorModal({ open, appointmentId, initialDate, onClo
           onClose();
         },
         onError: (err) => {
-          toast.error((err as Error).message || t("Tạo lịch hẹn thất bại"));
+          toast.error(extractApiError(err));
         },
       },
     );

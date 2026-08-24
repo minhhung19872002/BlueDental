@@ -14,6 +14,12 @@ import { brand } from "@/theme/index";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 
+const LOGIN_ERROR_MESSAGES: Record<string, () => string> = {
+  InvalidUserNameOrPassword: () => t("Tên đăng nhập hoặc mật khẩu không đúng"),
+  LoginIsNotAllowed: () => t("Tài khoản chưa được phép đăng nhập"),
+  LockedOut: () => t("Tài khoản đã bị khóa, vui lòng thử lại sau"),
+};
+
 const buildLoginSchema = () =>
   z.object({
   userNameOrEmailAddress: z.string().min(1, t("Vui lòng nhập tên đăng nhập")),
@@ -36,7 +42,7 @@ export function LoginForm() {
     formState: { errors },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(buildLoginSchema()),
-    defaultValues: { rememberMe: false },
+    defaultValues: { userNameOrEmailAddress: "", password: "", rememberMe: false },
   });
 
   const loginMutation = useMutation({
@@ -44,7 +50,9 @@ export function LoginForm() {
     onSuccess: async (result) => {
       if (result.result !== 1) {
         setError("root", {
-          message: result.description || t("Đăng nhập không thành công"),
+          message:
+            LOGIN_ERROR_MESSAGES[result.description]?.() ||
+            t("Đăng nhập không thành công"),
         });
         return;
       }

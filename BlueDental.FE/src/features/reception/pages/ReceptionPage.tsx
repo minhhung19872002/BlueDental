@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { toast } from "sonner";
+import { extractApiError } from "@/lib/apiError";
 import { Loader2 } from "lucide-react";
 import dayjs, { type Dayjs } from "dayjs";
 import { ReceptionToolbar } from "../components/ReceptionToolbar";
@@ -53,7 +54,7 @@ export const ReceptionPage: React.FC = () => {
           toast.success(t("Cập nhật trạng thái tiếp nhận thành công!"));
         },
         onError: (err) => {
-          toast.error(err.message || t("Cập nhật trạng thái thất bại"));
+          toast.error(extractApiError(err));
         },
       },
     );

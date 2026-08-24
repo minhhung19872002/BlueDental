@@ -144,19 +144,19 @@ function StaffCard({ record }: { record: TimeKeepingRecordDto }) {
 
   const handleRegistrationChange = (checked: boolean) => {
     const mutation = checked ? registerWorking.mutateAsync(record.id) : registerDayOff.mutateAsync({ id: record.id });
-    void mutation.catch(() => toast.error(t("Không thể đổi đăng ký sau khi đã chấm công.")));
+    void mutation.catch((error) => toast.error(extractApiError(error)));
   };
 
   const handleCheckIn = (shift: WorkShiftKind) => {
     void checkIn
       .mutateAsync({ id: record.id, input: { shift } })
-      .catch(() => toast.error(t("Không thể vào ca.")));
+      .catch((error) => toast.error(extractApiError(error)));
   };
 
   const handleCheckOut = (shift: WorkShiftKind) => {
     void checkOut
       .mutateAsync({ id: record.id, input: { shift } })
-      .catch(() => toast.error(t("Không thể ra ca.")));
+      .catch((error) => toast.error(extractApiError(error)));
   };
 
   return (

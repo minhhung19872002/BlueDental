@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { extractApiError } from "@/lib/apiError";
 import { authApi } from "@/features/auth/api";
 import { t } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
@@ -48,8 +49,8 @@ export function ChangePasswordPage() {
       toast.success(t("Đổi mật khẩu thành công!"));
       reset();
     },
-    onError: () => {
-      toast.error(t("Đổi mật khẩu thất bại"));
+    onError: (error) => {
+      toast.error(extractApiError(error));
     },
   });
 

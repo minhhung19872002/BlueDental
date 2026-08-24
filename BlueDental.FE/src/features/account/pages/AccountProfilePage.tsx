@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Pencil, Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { extractApiError } from "@/lib/apiError";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useUpdateProfile } from "@/features/account/api/accountMutations";
 import { t } from "@/lib/i18n";
@@ -29,8 +30,8 @@ export function AccountProfilePage() {
           toast.success(t("Cập nhật thông tin thành công!"));
           setEditing(false);
         },
-        onError: () => {
-          toast.error(t("Cập nhật thất bại. Vui lòng thử lại."));
+        onError: (error) => {
+          toast.error(extractApiError(error));
         },
       },
     );
