@@ -931,7 +931,7 @@ export function ClinicSettingsPage() {
       case "branch-manage":
         return <BranchManageTab />;
       default:
-        return <PersonalInfoTab />;
+        return <PersonalInfoTab branchId={branchId} />;
     }
   };
 

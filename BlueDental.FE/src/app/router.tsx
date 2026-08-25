@@ -113,18 +113,6 @@ const ToolsPage = lazy(() =>
   })),
 );
 
-const AccountProfilePage = lazy(() =>
-  import("@/features/account/pages/AccountProfilePage").then((m) => ({
-    default: m.AccountProfilePage,
-  })),
-);
-
-const ChangePasswordPage = lazy(() =>
-  import("@/features/account/pages/ChangePasswordPage").then((m) => ({
-    default: m.ChangePasswordPage,
-  })),
-);
-
 const IdentityAdministrationPage = lazy(() =>
   import("@/features/identity/pages").then((m) => ({
     default: m.IdentityAdministrationPage,
