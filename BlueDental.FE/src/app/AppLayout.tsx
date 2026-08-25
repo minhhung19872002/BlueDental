@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   Avatar,
+  Drawer,
   Dropdown,
   Popover,
   type MenuProps,
@@ -15,6 +16,8 @@ import {
   GlobalOutlined,
   SearchOutlined,
   CheckOutlined,
+  MenuOutlined,
+  CloseOutlined,
 } from "@ant-design/icons";
 import { useLanguage, useT } from "@/lib/i18n";
 import { useAuthStore } from "@/features/auth/store/authStore";
@@ -150,9 +153,8 @@ function SidebarNavItem({
 
 export function AppLayout() {
   const [searchOpen, setSearchOpen] = useState(false);
-  // The design opens with the rail expanded and its labels showing; collapsing
-  // is the deliberate act, not the starting point.
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [language, setLanguage] = useLanguage();
   const t = useT();
   const navigate = useNavigate();
@@ -167,6 +169,10 @@ export function AppLayout() {
       navigate("/login", { replace: true });
     },
   });
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -355,7 +361,16 @@ export function AppLayout() {
           <div className="app-header-left">
             <button
               type="button"
-              className="app-header-toggle"
+              className="app-header-toggle sidebar-mobile-only"
+              onClick={() => setMobileMenuOpen(true)}
+              title={t("Mở menu")}
+            >
+              <MenuOutlined style={{ fontSize: 18 }} />
+            </button>
+
+            <button
+              type="button"
+              className="app-header-toggle sidebar-desktop-only"
               onClick={() => setSidebarExpanded((prev) => !prev)}
               title={sidebarExpanded ? t("Thu gọn menu") : t("Mở rộng menu")}
             >
@@ -447,6 +462,62 @@ export function AppLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* ── Mobile sidebar drawer ── */}
+      <Drawer
+        open={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+        placement="left"
+        width={260}
+        closable={false}
+        styles={{
+          body: { padding: 0, background: "var(--bd-sidebar-bg)", display: "flex", flexDirection: "column", height: "100%" },
+          wrapper: {},
+        }}
+        className="sidebar-drawer"
+      >
+        <div className="sidebar-mobile-header">
+          <div className="sidebar-logo-area">
+            <div className="sidebar-logo-img-wrap">
+              <img src={clinicLogoUrl} alt={clinicName} className="sidebar-logo-img" />
+            </div>
+            <div className="sidebar-logo-text">
+              <span className="sidebar-logo-name">BlueDental</span>
+              <span className="sidebar-logo-sub">{t("Quản trị vận hành")}</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="sidebar-mobile-close"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-label={t("Đóng menu")}
+          >
+            <CloseOutlined style={{ fontSize: 16 }} />
+          </button>
+        </div>
+
+        <div className="sidebar-nav-heading">{t("MENU")}</div>
+        <nav className="sidebar-nav-main">
+          {mainNav(t).map((item) => (
+            <SidebarNavItem
+              key={item.key}
+              item={item}
+              active={isActive(item.key)}
+              expanded
+              onClick={() => handleNavClick(item)}
+            />
+          ))}
+        </nav>
+
+        <nav className="sidebar-nav-bottom">
+          <SidebarNavItem
+            item={{ key: "logout", icon: <LogoutOutlined />, label: t("Đăng xuất") }}
+            active={false}
+            expanded
+            onClick={() => logoutMutation.mutate()}
+          />
+        </nav>
+      </Drawer>
 
       <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>

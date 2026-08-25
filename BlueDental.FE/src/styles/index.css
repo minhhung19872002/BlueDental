@@ -375,6 +375,15 @@ button {
   color: var(--bd-primary);
 }
 
+/* Desktop toggle shown by default, mobile hamburger hidden */
+.sidebar-mobile-only {
+  display: none;
+}
+
+.sidebar-desktop-only {
+  display: inline-flex;
+}
+
 .app-header-clinic {
   display: flex;
   align-items: center;
@@ -2523,11 +2532,67 @@ button {
   }
 }
 
+/* ── Mobile sidebar drawer ── */
+.sidebar-mobile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-mobile-header .sidebar-logo-area {
+  padding: 0;
+  border: 0;
+}
+
+.sidebar-mobile-close {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.65);
+  cursor: pointer;
+  transition: all 0.15s;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.sidebar-mobile-close:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.sidebar-drawer .ant-drawer-body {
+  scrollbar-width: none;
+}
+
+.sidebar-drawer .ant-drawer-body::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
 /* Phone: the rail becomes an overlay, the header keeps only what identifies
    the clinic and the account, and every grid drops to one column. */
 @media (max-width: 760px) {
   .app-sidebar {
-    box-shadow: 0 24px 50px -18px rgba(21, 42, 82, 0.45);
+    display: none;
+  }
+
+  .app-main {
+    margin-left: 0 !important;
+  }
+
+  .sidebar-mobile-only {
+    display: inline-flex;
+  }
+
+  .sidebar-desktop-only {
+    display: none;
   }
 
   .app-header-clinic-text,
