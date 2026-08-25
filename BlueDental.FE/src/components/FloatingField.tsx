@@ -2,9 +2,23 @@ import React, { useId, useState } from "react";
 import { Form } from "antd";
 import type { FormItemProps } from "antd";
 
+/**
+ * What this wrapper hands down to the control it wraps. React 19 types a bare
+ * ReactElement's props as unknown, so naming them is what lets the handlers be
+ * chained and cloneElement type-check.
+ */
+interface FloatingFieldChildProps {
+  id?: string;
+  placeholder?: string;
+  onFocus?: (...args: unknown[]) => void;
+  onBlur?: (...args: unknown[]) => void;
+  /** Ant Design's Select and DatePicker report their panel this way. */
+  onOpenChange?: (open: boolean) => void;
+}
+
 interface FloatingFieldProps extends Omit<FormItemProps, "label"> {
   label: string;
-  children: React.ReactElement;
+  children: React.ReactElement<FloatingFieldChildProps>;
 }
 
 export function FloatingField({ label, children, className, ...rest }: FloatingFieldProps) {
@@ -18,7 +32,7 @@ export function FloatingField({ label, children, className, ...rest }: FloatingF
     : watchedValue !== undefined && watchedValue !== null && watchedValue !== "";
   const floated = focused || hasValue;
 
-  const child = React.cloneElement(children, {
+  const child = React.cloneElement<FloatingFieldChildProps>(children, {
     id,
     placeholder: " ",
     onFocus: (...args: unknown[]) => {
