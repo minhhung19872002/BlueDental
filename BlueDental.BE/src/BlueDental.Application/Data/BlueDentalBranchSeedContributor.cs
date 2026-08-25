@@ -58,7 +58,7 @@ public class BlueDentalBranchSeedContributor(
         var branch = new ClinicBranch(
             id: SecondBranchId,
             code: "BD-002",
-            name: "BlueDental - Chi nhánh 2",
+            name: "Nha Khoa Đức Hạnh Premium - Chi nhánh 2",
             address: "45 Lê Lợi, Quận 1, TP.HCM",
             phoneNumber: "02887654321",
             email: "cn2@bluedental.vn");
