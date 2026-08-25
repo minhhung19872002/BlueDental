@@ -5476,3 +5476,25 @@ html:has(.ant-modal-wrap) {
   border-top: 1px solid var(--bd-line);
   padding-top: 8px;
 }
+
+/* ── Vận hành ───────────────────────────────────────────────────────────── */
+
+/* The division tabs are routes and sit in the strip above; the sub-tabs belong
+   to the division, so they sit on their own line under it. */
+.bd-ops-subtabs {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--bd-line);
+  background: #fff;
+  padding: 12px 20px;
+  overflow-x: auto;
+}
+
+/* Danh mục pairs a search box with a square "+"; this panel has no search, so
+   its one button spans the row instead of being squeezed into that square. */
+.bd-ops-addrow {
+  margin-top: 12px;
+}
+
+.bd-ops-addrow .ant-btn {
+  height: 40px;
+}

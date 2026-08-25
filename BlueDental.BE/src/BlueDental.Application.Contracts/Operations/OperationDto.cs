@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Volo.Abp.Application.Dtos;
 
 namespace BlueDental.Operations;
@@ -10,6 +10,12 @@ public class OperationCategoryDto : EntityDto<Guid>
     public string SubTab { get; set; } = default!;
     public int SortOrder { get; set; }
     public DateTimeOffset CreationTime { get; set; }
+}
+
+public class UpdateOperationCategoryDto
+{
+    public string Name { get; set; } = string.Empty;
+    public int SortOrder { get; set; }
 }
 
 public class CreateOperationCategoryDto

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Permissions;
@@ -48,6 +48,19 @@ public class OperationAppService(
     {
         var entity = new OperationCategory(GuidGenerator.Create(), input.Name, input.Department, input.SubTab, input.SortOrder);
         await categoryRepo.InsertAsync(entity);
+        return new OperationCategoryDto
+        {
+            Id = entity.Id, Name = entity.Name, Department = entity.Department,
+            SubTab = entity.SubTab, SortOrder = entity.SortOrder, CreationTime = entity.CreationTime,
+        };
+    }
+
+    [Authorize(BlueDentalPermissions.Catalogs.Edit)]
+    public async Task<OperationCategoryDto> UpdateCategoryAsync(Guid id, UpdateOperationCategoryDto input)
+    {
+        var entity = await categoryRepo.GetAsync(id);
+        entity.Update(input.Name, input.SortOrder);
+        await categoryRepo.UpdateAsync(entity);
         return new OperationCategoryDto
         {
             Id = entity.Id, Name = entity.Name, Department = entity.Department,

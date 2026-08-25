@@ -2,69 +2,74 @@ import { expect, test } from "@playwright/test";
 import { login, runId } from "./fixtures/auth";
 
 /**
- * Feature: Quản trị vận hành.
+ * Feature: Vận hành — a screen per division, categories on the left and the
+ * articles filed under the selected one on the right.
  *
- * The operations page manages articles (blog posts / announcements) grouped
- * by category. Tests verify CRUD through the real API and PostgreSQL.
+ * Real stack only: real login, real ASP.NET Core API, real PostgreSQL.
  */
-test.describe("Quản trị vận hành", () => {
+test.describe("Vận hành", () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
   });
 
-  test("an article is created with a category and persists after reload", async ({ page }) => {
+  test("files an article under a category, and both survive a reload", async ({ page }) => {
     const id = runId();
-    const categoryName = `Mục E2E ${id}`;
-    const title = `Thông báo E2E ${id}`;
+    const category = `MUC ${id}`;
+    const title = `BAI VIET ${id}`;
 
     await page.goto("/operations");
-    await page.waitForLoadState("networkidle");
 
-    // First, create a category (required before articles can be created).
-    await page.getByRole("button", { name: "Thêm Mới" }).click();
-    const categoryDialog = page.getByRole("dialog");
-    await categoryDialog.getByPlaceholder("Tên mục").fill(categoryName);
-    await categoryDialog.getByRole("button", { name: "Đồng ý" }).click();
-    await expect(categoryDialog).toBeHidden({ timeout: 10_000 });
+    // ── Category ───────────────────────────────────────────────────────────
+    await page.getByRole("button", { name: /Thêm Mới$/ }).click();
+    let dialog = page.getByRole("dialog");
+    await dialog.getByLabel(/Tên mục/).fill(category);
+    await dialog.getByRole("button", { name: /Lưu$/ }).click();
+    await expect(dialog).toBeHidden();
+    await expect(page.getByRole("button", { name: new RegExp(category) })).toBeVisible();
 
-    // Wait for the category to appear in the sidebar.
-    await expect(page.getByText(categoryName)).toBeVisible();
+    // ── Article ────────────────────────────────────────────────────────────
+    const create = page.getByRole("button", { name: /Tạo Bài Viết$/ });
+    await expect(create).toBeEnabled();
+    await create.click();
 
-    // Select the new category.
-    await page.getByText(categoryName).click();
-
-    // Now create an article in that category.
-    await page.getByRole("button", { name: "Tạo Bài Viết" }).click();
-    const articleDialog = page.getByRole("dialog");
-    await articleDialog.getByPlaceholder("Tiêu đề bài viết").fill(title);
-    await articleDialog.getByRole("button", { name: "Đồng ý" }).click();
-    await expect(articleDialog).toBeHidden({ timeout: 10_000 });
+    dialog = page.getByRole("dialog");
+    await dialog.getByLabel(/Tiêu đề/).fill(title);
+    await dialog.locator(".ql-editor").fill("Nội dung quy trình");
+    await dialog.getByRole("button", { name: /Lưu$/ }).click();
+    await expect(dialog).toBeHidden();
 
     const row = page.getByRole("row", { name: new RegExp(title) });
     await expect(row).toBeVisible();
 
+    // The server kept it, not the page.
     await page.reload();
     await expect(page.getByRole("row", { name: new RegExp(title) })).toBeVisible();
+    // The count beside the heading, and the pager's own summary.
+    await expect(page.locator(".bd-cat-count")).toHaveText("1 bài viết");
+    await expect(page.getByText("Hiển thị 1–1 trên 1 bài viết")).toBeVisible();
   });
 
-  test("the operations page loads and displays the create button", async ({ page }) => {
+  test("every division is its own URL, and the sub-tab travels in the query", async ({ page }) => {
     await page.goto("/operations");
-    await page.waitForLoadState("networkidle");
 
-    await expect(page.locator("body")).not.toContainText("Unexpected Application Error");
-    await expect(page.getByRole("button", { name: "Tạo Bài Viết" })).toBeVisible();
+    await page.getByRole("link", { name: "Khối lễ tân" }).click();
+    await expect(page).toHaveURL(/\/operations\/reception/);
+
+    await page.getByRole("tab", { name: "Quy trình" }).click();
+    await expect(page).toHaveURL(/subTab=process/);
+
+    // Straight to a sub-screen by its address.
+    await page.goto("/operations/cskh?subTab=task");
+    await expect(page.getByRole("tab", { name: "Công việc" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await expect(page.getByRole("heading", { name: "Công việc" })).toBeVisible();
   });
 
-  test("the operations page loads categories correctly", async ({ page }) => {
-    await page.goto("/operations");
-
-    const requests: string[] = [];
-    page.on("request", (req) => {
-      if (req.url().includes("/operations/")) requests.push(req.url());
-    });
-
-    await page.waitForLoadState("networkidle");
-
-    expect(requests.length).toBeGreaterThan(0);
+  test("an article needs a category to be filed under", async ({ page }) => {
+    await page.goto("/operations/finance");
+    // Nothing selected, so the reference disables this — and so does this.
+    await expect(page.getByRole("button", { name: /Tạo Bài Viết$/ })).toBeDisabled();
   });
 });

@@ -11,6 +11,11 @@ export interface OperationCategoryDto {
   creationTime: string;
 }
 
+export interface UpdateOperationCategoryDto {
+  name: string;
+  sortOrder?: number;
+}
+
 export interface CreateOperationCategoryDto {
   name: string;
   department: string;
@@ -47,11 +52,20 @@ const operationApi = {
     api.get("/v1/app/operations/categories", { params: { ...params, maxResultCount: 100 } }).then((r) => r.data),
   createCategory: (data: CreateOperationCategoryDto): Promise<OperationCategoryDto> =>
     api.post("/v1/app/operations/categories", data).then((r) => r.data),
+  updateCategory: (id: string, data: UpdateOperationCategoryDto): Promise<OperationCategoryDto> =>
+    api.put(`/v1/app/operations/categories/${id}`, data).then((r) => r.data),
   deleteCategory: (id: string): Promise<void> =>
     api.delete(`/v1/app/operations/categories/${id}`).then((r) => r.data),
 
-  articles: (params: { department: string; subTab: string; categoryId?: string; filter?: string }): Promise<PagedResult<OperationArticleDto>> =>
-    api.get("/v1/app/operations/articles", { params: { ...params, maxResultCount: 100 } }).then((r) => r.data),
+  articles: (params: {
+    department: string;
+    subTab: string;
+    categoryId?: string;
+    filter?: string;
+    skipCount: number;
+    maxResultCount: number;
+  }): Promise<PagedResult<OperationArticleDto>> =>
+    api.get("/v1/app/operations/articles", { params }).then((r) => r.data),
   createArticle: (data: CreateOperationArticleDto): Promise<OperationArticleDto> =>
     api.post("/v1/app/operations/articles", data).then((r) => r.data),
   updateArticle: (id: string, data: UpdateOperationArticleDto): Promise<OperationArticleDto> =>
@@ -72,7 +86,22 @@ export function useCreateOperationCategory() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: CreateOperationCategoryDto) => operationApi.createCategory(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["operation-categories"] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["operation-categories"] });
+      void qc.invalidateQueries({ queryKey: ["operation-articles"] });
+    },
+  });
+}
+
+export function useUpdateOperationCategory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateOperationCategoryDto }) =>
+      operationApi.updateCategory(id, data),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["operation-categories"] });
+      void qc.invalidateQueries({ queryKey: ["operation-articles"] });
+    },
   });
 }
 
@@ -80,14 +109,28 @@ export function useDeleteOperationCategory() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => operationApi.deleteCategory(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["operation-categories"] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["operation-categories"] });
+      void qc.invalidateQueries({ queryKey: ["operation-articles"] });
+    },
   });
 }
 
-export function useOperationArticles(department: string, subTab: string, categoryId?: string, filter?: string) {
+export interface ArticleListParams {
+  categoryId?: string;
+  filter?: string;
+  skipCount: number;
+  maxResultCount: number;
+}
+
+export function useOperationArticles(
+  department: string,
+  subTab: string,
+  params: ArticleListParams,
+) {
   return useQuery({
-    queryKey: ["operation-articles", department, subTab, categoryId, filter],
-    queryFn: () => operationApi.articles({ department, subTab, categoryId, filter }),
+    queryKey: ["operation-articles", department, subTab, params],
+    queryFn: () => operationApi.articles({ department, subTab, ...params }),
     enabled: Boolean(department && subTab),
   });
 }

@@ -267,6 +267,16 @@ const appRoutes: RouteObject[] = [
         ),
       },
       {
+        // Each division is its own URL, as the reference has it, so a screen
+        // can be bookmarked and reached with the back button.
+        path: "operations/:division",
+        element: (
+          <S>
+            <OperationsPage />
+          </S>
+        ),
+      },
+      {
         path: "report",
         element: (
           <S>
