@@ -187,26 +187,19 @@ export function OperationsPage() {
       <DivisionStatsGrid />
 
       {currentTabDef.subTabs.length > 0 && (
-        <div className="reception-card reception-card--tabs">
-          <div style={{ display: "flex", gap: 0 }}>
-            {currentTabDef.subTabs.map((sub) => (
-              <button
-                key={sub.key}
-                type="button"
-                onClick={() => setSubTab(sub.key)}
-                style={{
-                  padding: "8px 16px", border: "none",
-                  borderBottom: activeSubTab === sub.key ? "2px solid var(--bd-blue)" : "2px solid transparent",
-                  background: "none",
-                  color: activeSubTab === sub.key ? "var(--bd-blue)" : "var(--bd-muted)",
-                  fontWeight: activeSubTab === sub.key ? 600 : 400,
-                  cursor: "pointer", fontSize: 13, whiteSpace: "nowrap",
-                }}
-              >
-                {t(sub.labelKey)}
-              </button>
-            ))}
-          </div>
+        <div className="pill-tabs" role="tablist" style={{ marginBottom: 4 }}>
+          {currentTabDef.subTabs.map((sub) => (
+            <button
+              key={sub.key}
+              type="button"
+              role="tab"
+              aria-selected={sub.key === activeSubTab}
+              className={`pill-tab${sub.key === activeSubTab ? " pill-tab--active" : ""}`}
+              onClick={() => setSubTab(sub.key)}
+            >
+              {t(sub.labelKey)}
+            </button>
+          ))}
         </div>
       )}
 

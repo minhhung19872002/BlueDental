@@ -9,6 +9,7 @@ import { StatusBadge } from "../components/StatusBadge";
 import { formatDate } from "@/utils/format";
 import dayjs from "dayjs";
 import type { Appointment } from "../types/appointment";
+import { PageHeader } from "@/components/PageHeader";
 import { t } from "@/lib/i18n";
 
 type StatusFilter = "all" | "scheduled" | "confirmed" | "inProgress" | "completed" | "cancelled";
@@ -43,6 +44,11 @@ export function AppointmentListPage() {
 
   return (
     <div className="reception-page">
+      <PageHeader
+        title={t("Danh sách lịch hẹn")}
+        subtitle={t("{0} lịch hẹn", data?.totalCount ?? 0)}
+      />
+
       {/* Toolbar */}
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "space-between" }}>
@@ -70,32 +76,19 @@ export function AppointmentListPage() {
       </div>
 
       {/* Status filter tabs */}
-      <div className="reception-card reception-card--tabs">
-        <div style={{ display: "flex", gap: 0 }}>
-          {statusTabs().map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => {
-                setStatusFilter(tab.key);
-                pagination.resetToFirstPage();
-              }}
-              style={{
-                padding: "8px 16px",
-                border: "none",
-                borderBottom: statusFilter === tab.key ? "2px solid #1c3566" : "2px solid transparent",
-                background: "none",
-                color: statusFilter === tab.key ? "#1c3566" : "#6f7c90",
-                fontWeight: statusFilter === tab.key ? 600 : 400,
-                cursor: "pointer",
-                fontSize: 13,
-                whiteSpace: "nowrap",
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      <div className="pill-tabs" role="tablist" style={{ marginBottom: 4 }}>
+        {statusTabs().map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            role="tab"
+            aria-selected={tab.key === statusFilter}
+            className={`pill-tab${tab.key === statusFilter ? " pill-tab--active" : ""}`}
+            onClick={() => { setStatusFilter(tab.key); pagination.resetToFirstPage(); }}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {/* Table */}

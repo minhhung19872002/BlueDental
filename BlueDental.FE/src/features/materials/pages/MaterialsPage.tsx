@@ -594,28 +594,19 @@ export function MaterialsPage() {
         subtitle={t("{0} mặt hàng dưới định mức cần nhập thêm", lowStockCount)}
       />
 
-      <div className="reception-card reception-card--tabs">
-        <div style={{ display: "flex", gap: 0 }}>
-          {SUB_ROUTES.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              style={{
-                padding: "8px 20px",
-                border: "none",
-                borderBottom: activeTab === tab.key ? "2px solid var(--bd-blue)" : "2px solid transparent",
-                background: "none",
-                color: activeTab === tab.key ? "var(--bd-blue)" : "var(--bd-muted)",
-                fontWeight: activeTab === tab.key ? 600 : 400,
-                cursor: "pointer",
-                fontSize: 14,
-                whiteSpace: "nowrap",
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      <div className="pill-tabs" role="tablist" style={{ marginBottom: 4 }}>
+        {SUB_ROUTES.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            role="tab"
+            aria-selected={tab.key === activeTab}
+            className={`pill-tab${tab.key === activeTab ? " pill-tab--active" : ""}`}
+            onClick={() => setActiveTab(tab.key)}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
       {renderContent()}
     </div>
