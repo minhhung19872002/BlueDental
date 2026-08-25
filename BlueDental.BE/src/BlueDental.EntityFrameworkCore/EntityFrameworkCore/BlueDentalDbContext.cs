@@ -1,4 +1,4 @@
-using BlueDental.Appointments;
+﻿using BlueDental.Appointments;
 using BlueDental.Billing;
 using BlueDental.Catalogs;
 using BlueDental.CustomerCare;
@@ -135,6 +135,7 @@ public class BlueDentalDbContext :
     // Operations
     public DbSet<OperationCategory> OperationCategories { get; set; }
     public DbSet<OperationArticle> OperationArticles { get; set; }
+    public DbSet<OperationArticleImage> OperationArticleImages { get; set; }
     public DbSet<OperationsArticle> OperationsArticles { get; set; }
     public DbSet<OperationsTask> OperationsTasks { get; set; }
 

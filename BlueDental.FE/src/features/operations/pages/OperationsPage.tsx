@@ -252,33 +252,21 @@ export function OperationsPage() {
           </aside>
 
           <main className="bd-taxonomy-main">
-            <div className="bd-cat-header">
-              <div className="bd-cat-headrow">
-                <div className="bd-min0">
-                  <div className="bd-cat-inline2">
-                    <h1 className="bd-cat-title">{subTab.label}</h1>
-                    <span className="bd-cat-count">{t("{0} bài viết", totalCount)}</span>
-                  </div>
-                  <p className="bd-cat-sub">{division.label}</p>
-                </div>
-
-                <div className="bd-cat-headactions">
-                  <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    // The reference offers this only once an article has a
-                    // category to be filed under.
-                    disabled={!selectedCategoryId}
-                    title={selectedCategoryId ? undefined : t("Chọn một mục trước khi thêm")}
-                    onClick={() => setArticleModal({ open: true, article: null })}
-                  >
-                    {t("Tạo Bài Viết")}
-                  </Button>
-                </div>
-              </div>
+            <div className="bd-ops-toolbar">
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                // The reference offers this only once an article has a category
+                // to be filed under.
+                disabled={!selectedCategoryId}
+                title={selectedCategoryId ? undefined : t("Chọn một mục trước khi thêm")}
+                onClick={() => setArticleModal({ open: true, article: null })}
+              >
+                {t("Tạo Bài Viết")}
+              </Button>
 
               <Input
-                className="bd-cat-search bd-mt2"
+                className="bd-ops-search"
                 prefix={<SearchOutlined />}
                 placeholder={t("Tìm kiếm")}
                 aria-label={t("Tìm kiếm")}

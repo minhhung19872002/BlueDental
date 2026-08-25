@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
@@ -12,22 +13,31 @@ namespace BlueDental.Operations;
 [Authorize(BlueDentalPermissions.Catalogs.Default)]
 public class OperationAppService(
     IRepository<OperationCategory, Guid> categoryRepo,
-    IRepository<OperationArticle, Guid> articleRepo) : ApplicationService, IOperationAppService
+    IRepository<OperationArticle, Guid> articleRepo,
+    BranchAccessChecker branchAccess,
+    ICurrentClinicBranchResolver branchResolver) : ApplicationService, IOperationAppService
 {
     [Authorize(BlueDentalPermissions.Catalogs.View)]
     public async Task<PagedResultDto<OperationCategoryDto>> GetCategoryListAsync(GetOperationListInput input)
     {
+        var branchFilter = await branchAccess.ResolveFilterAsync(input.ClinicBranchId);
         var query = await categoryRepo.GetQueryableAsync();
 
+        if (branchFilter.Count > 0)
+            query = query.Where(c => branchFilter.Contains(c.ClinicBranchId));
         if (!string.IsNullOrWhiteSpace(input.Department))
             query = query.Where(c => c.Department == input.Department);
         if (!string.IsNullOrWhiteSpace(input.SubTab))
             query = query.Where(c => c.SubTab == input.SubTab);
-        if (!string.IsNullOrWhiteSpace(input.Filter))
-            query = query.Where(c => c.Name.Contains(input.Filter!));
+        foreach (var term in SearchTerms.From(input.Filter))
+            query = query.Where(c => c.Name.ToLower().Contains(term));
 
         var totalCount = query.Count();
-        var items = query.OrderBy(c => c.SortOrder).ThenBy(c => c.Name)
+        var items = query
+            .OrderBy(c => c.SortOrder)
+            // Newest first among equal priorities, so a category just added is
+            // at the top of the panel the moment it is saved.
+            .ThenByDescending(c => c.CreationTime)
             .Skip(input.SkipCount).Take(input.MaxResultCount)
             .ToList();
 
@@ -46,7 +56,13 @@ public class OperationAppService(
     [Authorize(BlueDentalPermissions.Catalogs.Create)]
     public async Task<OperationCategoryDto> CreateCategoryAsync(CreateOperationCategoryDto input)
     {
-        var entity = new OperationCategory(GuidGenerator.Create(), input.Name, input.Department, input.SubTab, input.SortOrder);
+        var clinicBranchId = await branchAccess.ResolveWriteTargetAsync(
+            input.ClinicBranchId,
+            branchResolver.GetRequiredClinicBranchId());
+
+        var entity = new OperationCategory(
+            GuidGenerator.Create(), clinicBranchId, input.Name,
+            input.Department, input.SubTab, input.SortOrder);
         await categoryRepo.InsertAsync(entity);
         return new OperationCategoryDto
         {
@@ -59,6 +75,7 @@ public class OperationAppService(
     public async Task<OperationCategoryDto> UpdateCategoryAsync(Guid id, UpdateOperationCategoryDto input)
     {
         var entity = await categoryRepo.GetAsync(id);
+        await branchAccess.CheckAsync(entity.ClinicBranchId);
         entity.Update(input.Name, input.SortOrder);
         await categoryRepo.UpdateAsync(entity);
         return new OperationCategoryDto
@@ -69,21 +86,29 @@ public class OperationAppService(
     }
 
     [Authorize(BlueDentalPermissions.Catalogs.Delete)]
-    public async Task DeleteCategoryAsync(Guid id) => await categoryRepo.DeleteAsync(id);
+    public async Task DeleteCategoryAsync(Guid id)
+    {
+        var entity = await categoryRepo.GetAsync(id);
+        await branchAccess.CheckAsync(entity.ClinicBranchId);
+        await categoryRepo.DeleteAsync(id);
+    }
 
     [Authorize(BlueDentalPermissions.Catalogs.View)]
     public async Task<PagedResultDto<OperationArticleDto>> GetArticleListAsync(GetOperationListInput input)
     {
+        var branchFilter = await branchAccess.ResolveFilterAsync(input.ClinicBranchId);
         var query = await articleRepo.GetQueryableAsync();
 
+        if (branchFilter.Count > 0)
+            query = query.Where(a => branchFilter.Contains(a.ClinicBranchId));
         if (!string.IsNullOrWhiteSpace(input.Department))
             query = query.Where(a => a.Department == input.Department);
         if (!string.IsNullOrWhiteSpace(input.SubTab))
             query = query.Where(a => a.SubTab == input.SubTab);
         if (input.CategoryId.HasValue)
             query = query.Where(a => a.CategoryId == input.CategoryId.Value);
-        if (!string.IsNullOrWhiteSpace(input.Filter))
-            query = query.Where(a => a.Title.Contains(input.Filter!));
+        foreach (var term in SearchTerms.From(input.Filter))
+            query = query.Where(a => a.Title.ToLower().Contains(term));
 
         var totalCount = query.Count();
         var items = query.OrderByDescending(a => a.LastModificationTime ?? a.CreationTime)
@@ -102,7 +127,13 @@ public class OperationAppService(
     [Authorize(BlueDentalPermissions.Catalogs.Create)]
     public async Task<OperationArticleDto> CreateArticleAsync(CreateOperationArticleDto input)
     {
-        var entity = new OperationArticle(GuidGenerator.Create(), input.Title, input.CategoryId, input.Department, input.SubTab, input.Content);
+        var clinicBranchId = await branchAccess.ResolveWriteTargetAsync(
+            input.ClinicBranchId,
+            branchResolver.GetRequiredClinicBranchId());
+
+        var entity = new OperationArticle(
+            GuidGenerator.Create(), clinicBranchId, input.Title, input.CategoryId,
+            input.Department, input.SubTab, input.Content);
         await articleRepo.InsertAsync(entity);
         return new OperationArticleDto
         {
@@ -115,6 +146,7 @@ public class OperationAppService(
     public async Task<OperationArticleDto> UpdateArticleAsync(Guid id, UpdateOperationArticleDto input)
     {
         var entity = await articleRepo.GetAsync(id);
+        await branchAccess.CheckAsync(entity.ClinicBranchId);
         entity.Update(input.Title, input.Content);
         await articleRepo.UpdateAsync(entity);
         return new OperationArticleDto
@@ -126,5 +158,10 @@ public class OperationAppService(
     }
 
     [Authorize(BlueDentalPermissions.Catalogs.Delete)]
-    public async Task DeleteArticleAsync(Guid id) => await articleRepo.DeleteAsync(id);
+    public async Task DeleteArticleAsync(Guid id)
+    {
+        var entity = await articleRepo.GetAsync(id);
+        await branchAccess.CheckAsync(entity.ClinicBranchId);
+        await articleRepo.DeleteAsync(id);
+    }
 }

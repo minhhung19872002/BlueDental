@@ -5436,6 +5436,14 @@ html:has(.ant-modal-wrap) {
 
 .bd-rich-text .ql-editor { min-height: 140px; }
 
+/* An image the author has just picked, shown while its bytes are on their way
+   to storage. A `data:` src is the file itself rather than a link to a stored
+   one, so it is dimmed until the stored URL replaces it. */
+.bd-rich-text .ql-editor img[src^="data:"] {
+  opacity: 0.55;
+  filter: grayscale(0.3);
+}
+
 /* main zeroes a Form.Item's margin inside a dialog and lets the Row's vertical
    gutter space the fields. A field that stands on its own — not in a Row — has
    no gutter to inherit, so it carries the same rhythm itself. */
@@ -5498,3 +5506,31 @@ html:has(.ant-modal-wrap) {
 .bd-ops-addrow .ant-btn {
   height: 40px;
 }
+
+/* Vận hành: the create button sits beside the search rather than under a page
+   title — this screen already says where it is with its two rows of tabs. */
+.bd-ops-toolbar {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--bd-line);
+  background: #fff;
+  padding: 16px;
+}
+
+.bd-ops-search { flex: 1; min-width: 240px; max-width: 420px; }
+
+/* Two commands per category row, revealed the way the grip is. */
+.bd-ops-rowactions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 150ms;
+}
+
+.bd-group-row:hover .bd-ops-rowactions,
+.bd-ops-rowactions:focus-within { opacity: 1; }

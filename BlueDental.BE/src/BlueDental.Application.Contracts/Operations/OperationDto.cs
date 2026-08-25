@@ -20,6 +20,9 @@ public class UpdateOperationCategoryDto
 
 public class CreateOperationCategoryDto
 {
+    /// <summary>Empty lands the row in the caller's own branch.</summary>
+    public Guid ClinicBranchId { get; set; }
+
     public string Name { get; set; } = default!;
     public string Department { get; set; } = default!;
     public string SubTab { get; set; } = default!;
@@ -39,6 +42,9 @@ public class OperationArticleDto : EntityDto<Guid>
 
 public class CreateOperationArticleDto
 {
+    /// <summary>Empty lands the row in the caller's own branch.</summary>
+    public Guid ClinicBranchId { get; set; }
+
     public string Title { get; set; } = default!;
     public string? Content { get; set; }
     public Guid CategoryId { get; set; }
@@ -54,6 +60,9 @@ public class UpdateOperationArticleDto
 
 public class GetOperationListInput : PagedAndSortedResultRequestDto
 {
+    /// <summary>Null means "every branch this account may see".</summary>
+    public Guid? ClinicBranchId { get; set; }
+
     public string? Department { get; set; }
     public string? SubTab { get; set; }
     public Guid? CategoryId { get; set; }

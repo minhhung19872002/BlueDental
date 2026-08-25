@@ -1,10 +1,9 @@
 import { memo } from "react";
-import { Button, Dropdown, Spin } from "antd";
+import { Button, Spin, Tooltip } from "antd";
 import {
   DeleteOutlined,
   EditOutlined,
   FolderOpenOutlined,
-  MoreOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
 import type { OperationCategoryDto } from "../api/operationApi";
@@ -50,37 +49,29 @@ const CategoryRow = memo(function CategoryRow({
           </span>
         </button>
 
-        <Dropdown
-          trigger={["click"]}
-          placement="bottomRight"
-          menu={{
-            items: [
-              {
-                key: "rename",
-                icon: <EditOutlined />,
-                label: t("Chỉnh sửa"),
-                onClick: () => onRename(category),
-              },
-              {
-                key: "delete",
-                danger: true,
-                icon: <DeleteOutlined />,
-                label: t("Xoá"),
-                onClick: () => onDelete(category),
-              },
-            ],
-          }}
-        >
-          <button
-            type="button"
-            aria-label={t("Thêm thao tác")}
-            title={t("Thêm thao tác")}
-            data-category-menu={category.name}
-            className="bd-group-menu-trigger"
-          >
-            <MoreOutlined aria-hidden="true" />
-          </button>
-        </Dropdown>
+        {/* Both commands out in the open: there are only two, and a menu
+            hides them behind an extra click for nothing. */}
+        <div className="bd-ops-rowactions">
+          <Tooltip title={t("Chỉnh sửa")}>
+            <Button
+              type="text"
+              size="small"
+              icon={<EditOutlined />}
+              aria-label={t("Chỉnh sửa {0}", category.name)}
+              onClick={() => onRename(category)}
+            />
+          </Tooltip>
+          <Tooltip title={t("Xoá")}>
+            <Button
+              type="text"
+              size="small"
+              danger
+              icon={<DeleteOutlined />}
+              aria-label={t("Xoá {0}", category.name)}
+              onClick={() => onDelete(category)}
+            />
+          </Tooltip>
+        </div>
       </div>
     </li>
   );

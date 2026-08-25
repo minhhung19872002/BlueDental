@@ -8,6 +8,7 @@ import {
 } from "../api/operationApi";
 import { AppDialog } from "@/components/AppDialog";
 import { FloatingField } from "@/components/FloatingField";
+import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 
 interface FormValues {
@@ -32,6 +33,7 @@ export function OperationCategoryModal({
   onClose,
   onCreated,
 }: Props) {
+  const branchId = useCurrentBranchId();
   const createCategory = useCreateOperationCategory();
   const updateCategory = useUpdateOperationCategory();
 
@@ -59,7 +61,12 @@ export function OperationCategoryModal({
         return;
       }
 
-      const created = await createCategory.mutateAsync({ name: trimmed, department, subTab });
+      const created = await createCategory.mutateAsync({
+        clinicBranchId: branchId,
+        name: trimmed,
+        department,
+        subTab,
+      });
       toast.success(t("Đã thêm mục"));
       // Closed before the parent is told, so a hiccup while it moves the
       // selection can never leave this dialog stuck open over the result.

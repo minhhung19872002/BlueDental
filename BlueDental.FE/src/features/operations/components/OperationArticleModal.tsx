@@ -4,11 +4,13 @@ import { useEffect } from "react";
 import {
   useCreateOperationArticle,
   useUpdateOperationArticle,
+  useUploadOperationArticleImage,
   type OperationArticleDto,
 } from "../api/operationApi";
 import { AppDialog } from "@/components/AppDialog";
 import { FloatingField } from "@/components/FloatingField";
 import { RichTextField } from "@/components/RichTextField";
+import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 
 interface FormValues {
@@ -41,8 +43,10 @@ export function OperationArticleModal({
   subTab,
   onClose,
 }: Props) {
+  const branchId = useCurrentBranchId();
   const createArticle = useCreateOperationArticle();
   const updateArticle = useUpdateOperationArticle();
+  const uploadImage = useUploadOperationArticleImage();
 
   const [form] = Form.useForm<FormValues>();
   const title = Form.useWatch("title", form) ?? "";
@@ -67,6 +71,7 @@ export function OperationArticleModal({
       } else {
         if (!categoryId) return;
         await createArticle.mutateAsync({
+          clinicBranchId: branchId,
           title: trimmed,
           content,
           categoryId,
@@ -108,7 +113,18 @@ export function OperationArticleModal({
         </FloatingField>
 
         <Form.Item name="content">
-          <RichTextField placeholder={t("Nhập nội dung bài viết...")} />
+          <RichTextField
+            placeholder={t("Nhập nội dung bài viết...")}
+            // Stored alongside the article rather than inside it, so the body
+            // stays small enough to send with every list read.
+            onUploadImage={async (file) => {
+              const { url } = await uploadImage.mutateAsync({
+                clinicBranchId: branchId,
+                file,
+              });
+              return url;
+            }}
+          />
         </Form.Item>
       </Form>
     </AppDialog>
