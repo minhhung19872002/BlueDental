@@ -3757,3 +3757,79 @@ body {
 .ant-message .ant-message-notice-icon-info {
   color: var(--bd-gold);
 }
+
+/* ── Stock stepper (the design adjusts stock in the row) ─────────────────── */
+
+.stock-adjust {
+  display: flex;
+  gap: 6px;
+}
+
+.stock-step {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--bd-line);
+  background: #ffffff;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--bd-sub);
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.stock-step:hover:not(:disabled) {
+  border-color: var(--bd-blue);
+  color: var(--bd-blue);
+}
+
+.stock-step:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── Treatment progress (the design's card on a patient's profile) ───────── */
+
+.tp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tp-row-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.tp-name {
+  font-weight: 650;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tp-steps {
+  font-size: 11.5px;
+  color: var(--bd-dim);
+  white-space: nowrap;
+}
+
+.tp-bar {
+  height: 7px;
+  border-radius: 6px;
+  background: var(--bd-line-soft);
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+/* The design fills the bar with the navy-to-gold sweep. */
+.tp-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--bd-blue), var(--bd-gold));
+}

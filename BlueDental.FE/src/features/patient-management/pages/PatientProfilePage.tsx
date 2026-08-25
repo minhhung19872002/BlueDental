@@ -29,6 +29,10 @@ import {
 } from "@/features/treatment-management/api/consultingApi";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import type { PatientStatus } from "../types/patient";
+import {
+  useTreatmentStages,
+  STAGE_STATUS,
+} from "@/features/treatment-management/api/stageApi";
 import { t } from "@/lib/i18n";
 
 const { Text } = Typography;
@@ -44,6 +48,19 @@ interface AppointmentRow {
 }
 
 
+
+/**
+ * Plan status crosses the wire as its number — TreatmentPlanStatus on the
+ * server — so it is named here rather than printed raw.
+ */
+const PLAN_STATUS_META: Record<number, { label: string; color: string }> = {
+  1: { label: "Nháp", color: "default" },
+  2: { label: "Chờ duyệt", color: "orange" },
+  3: { label: "Đã duyệt", color: "blue" },
+  4: { label: "Đang điều trị", color: "processing" },
+  5: { label: "Hoàn tất", color: "green" },
+  6: { label: "Đã huỷ", color: "red" },
+};
 
 export function PatientProfilePage() {
   const { id } = useParams<{ id: string }>();
@@ -93,6 +110,13 @@ export function PatientProfilePage() {
   const { data: prescriptions } = usePatientPrescriptions(id ?? "");
   const appointments = appointmentsData?.items ?? [];
   const plans = treatmentPlans?.items ?? [];
+
+  // Real progress, from the patient's own stages.
+  const { data: stageData } = useTreatmentStages({ patientId: id ?? "", maxResultCount: 200 }, !!id);
+  const patientStages = stageData?.items ?? [];
+  const stagesTotal = patientStages.length;
+  const stagesDone = patientStages.filter((st) => st.status === STAGE_STATUS.Completed).length;
+  const stagePercent = stagesTotal === 0 ? 0 : Math.round((stagesDone / stagesTotal) * 100);
   const patientInvoices = invoices ?? [];
   const patientLaboOrders = laboOrders ?? [];
   const patientCareRecords = careRecords?.items ?? [];
@@ -238,8 +262,43 @@ export function PatientProfilePage() {
               </Card>
             </Col>
 
-            {/* Right: financial summary + treatment history */}
+            {/* Right: plan progress + treatment history */}
             <Col xs={24} lg={16}>
+              {/* The design shows how far each plan has got. Stages are the
+                  only real measure of that, and they are filterable by patient
+                  rather than by plan, so the bar reports this patient's stages
+                  as a whole and each plan keeps its own status beside it. */}
+              <Card title={t("Tiến độ điều trị")} size="small" style={{ marginBottom: 16 }}>
+                {plans.length === 0 ? (
+                  <span style={{ color: "var(--bd-muted)", fontSize: 13 }}>
+                    {t("Chưa có kế hoạch điều trị")}
+                  </span>
+                ) : (
+                  <div className="tp-list">
+                    <div>
+                      <div className="tp-row-head">
+                        <span className="tp-name">{t("Công đoạn đã hoàn thành")}</span>
+                        <span className="tp-steps">
+                          {stagesDone}/{stagesTotal} {t("công đoạn")}
+                        </span>
+                      </div>
+                      <div className="tp-bar">
+                        <span className="tp-bar-fill" style={{ width: `${stagePercent}%` }} />
+                      </div>
+                    </div>
+
+                    {plans.map((plan) => (
+                      <div key={plan.id} className="tp-row-head">
+                        <span className="tp-name">{plan.title}</span>
+                        <Tag color={PLAN_STATUS_META[Number(plan.status)]?.color ?? "default"}>
+                          {t(PLAN_STATUS_META[Number(plan.status)]?.label ?? "Không rõ")}
+                        </Tag>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+
               {/* Treatment history — uses completed appointments as proxy */}
               <Card title={t("Lịch sử điều trị")} size="small">
                 <Table

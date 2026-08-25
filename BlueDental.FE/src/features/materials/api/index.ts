@@ -60,6 +60,14 @@ const inventoryApi = {
   update: (id: string, data: UpdateInventoryItemDto): Promise<InventoryItemDto> =>
     api.put(`/v1/app/inventory-items/${id}`, data).then((r) => r.data),
 
+  /**
+   * Điều chỉnh tồn. The server routes by movement type: Purchase adds,
+   * Consumption takes away, so the design's − and + map onto real movements
+   * rather than a raw quantity write.
+   */
+  adjustStock: (id: string, data: { movementType: number; quantity: number; notes?: string }): Promise<InventoryItemDto> =>
+    api.post(`/v1/app/inventory-items/${id}/adjust-stock`, data).then((r) => r.data),
+
   delete: (id: string): Promise<void> =>
     api.delete(`/v1/app/inventory-items/${id}`).then((r) => r.data),
 };
@@ -94,6 +102,18 @@ export function useUpdateInventoryItem() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateInventoryItemDto }) =>
       inventoryApi.update(id, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["inventory-items"] }),
+  });
+}
+
+/** Movement codes as the server declares them in StockMovementType. */
+export const STOCK_MOVEMENT = { Purchase: 1, Consumption: 2 } as const;
+
+export function useAdjustInventoryStock() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, movementType, quantity }: { id: string; movementType: number; quantity: number }) =>
+      inventoryApi.adjustStock(id, { movementType, quantity }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["inventory-items"] }),
   });
 }
