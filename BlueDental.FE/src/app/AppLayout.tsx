@@ -21,7 +21,7 @@ import {
 } from "@ant-design/icons";
 import { useLanguage, useT } from "@/lib/i18n";
 import { useAuthStore } from "@/features/auth/store/authStore";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { authApi } from "@/features/auth/api";
 import { brand, SIDEBAR_WIDTH, SIDEBAR_EXPANDED_WIDTH } from "@/theme/index";
 import { GlobalSearch } from "@/components/GlobalSearch";
@@ -236,15 +236,21 @@ export function AppLayout() {
   const clinicTagline = user?.clinicTagline ?? "Kiến Tạo Nụ Cười - Giá Trị Bền Vững";
   const sidebarWidth = sidebarExpanded ? SIDEBAR_EXPANDED_WIDTH : SIDEBAR_WIDTH;
 
+  const queryClient = useQueryClient();
   const { data: branches } = useClinicBranches();
   const currentBranchId = useBranchStore((s) => s.currentBranchId);
   const setCurrentBranchId = useBranchStore((s) => s.setCurrentBranchId);
 
+  const handleBranchChange = (id: string | null) => {
+    setCurrentBranchId(id);
+    void queryClient.invalidateQueries();
+  };
+
   useEffect(() => {
     if (!branches || !currentBranchId) return;
     const valid = branches.some((b) => b.id === currentBranchId);
-    if (!valid) setCurrentBranchId(null);
-  }, [branches, currentBranchId, setCurrentBranchId]);
+    if (!valid) handleBranchChange(null);
+  }, [branches, currentBranchId]);
 
   const selectedBranchName =
     currentBranchId === null
@@ -257,7 +263,7 @@ export function AppLayout() {
       <button
         type="button"
         className={`app-popover-item${currentBranchId === null ? " app-popover-item--active" : ""}`}
-        onClick={() => setCurrentBranchId(null)}
+        onClick={() => handleBranchChange(null)}
       >
         <span
           className="app-popover-dot"
@@ -275,7 +281,7 @@ export function AppLayout() {
             key={branch.id}
             type="button"
             className={`app-popover-item${isActive ? " app-popover-item--active" : ""}`}
-            onClick={() => setCurrentBranchId(branch.id)}
+            onClick={() => handleBranchChange(branch.id)}
           >
             <span
               className="app-popover-dot"

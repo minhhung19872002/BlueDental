@@ -37,16 +37,40 @@ public class StaffAppService(
     [Authorize(BlueDentalPermissions.Staff.View)]
     public async Task<PagedResultDto<StaffDto>> GetListAsync(GetStaffListInput input)
     {
+        // When filtering by branch, first find which staff IDs belong to that branch.
+        HashSet<Guid>? branchStaffIds = null;
+        if (input.BranchId.HasValue)
+        {
+            var assignments = await assignmentRepository.GetListAsync(
+                a => a.ClinicBranchId == input.BranchId.Value);
+            branchStaffIds = assignments.Select(a => a.StaffId).ToHashSet();
+        }
+
+        var needsInMemoryFilter = branchStaffIds != null || input.IsActive.HasValue;
+
         var users = await userRepository.GetListAsync(
             sorting: input.Sorting ?? "Name",
-            maxResultCount: input.MaxResultCount,
-            skipCount: input.SkipCount,
+            maxResultCount: needsInMemoryFilter ? int.MaxValue : input.MaxResultCount,
+            skipCount: needsInMemoryFilter ? 0 : input.SkipCount,
             filter: input.Filter);
 
-        var totalCount = await userRepository.GetCountAsync(filter: input.Filter);
+        if (branchStaffIds != null)
+        {
+            users = users.Where(u => branchStaffIds.Contains(u.Id)).ToList();
+        }
+
+        if (input.IsActive.HasValue)
+        {
+            users = users.Where(u => u.IsActive == input.IsActive.Value).ToList();
+        }
+
+        var totalCount = users.Count;
+        var paged = needsInMemoryFilter
+            ? users.Skip(input.SkipCount).Take(input.MaxResultCount).ToList()
+            : users;
 
         var dtos = new List<StaffDto>();
-        foreach (var user in users)
+        foreach (var user in paged)
         {
             dtos.Add(await MapAsync(user));
         }

@@ -35,6 +35,7 @@ export interface GetStaffListInput {
   filter?: string;
   isActive?: boolean;
   sorting?: string;
+  branchId?: string;
 }
 
 export interface CreateStaffInput {

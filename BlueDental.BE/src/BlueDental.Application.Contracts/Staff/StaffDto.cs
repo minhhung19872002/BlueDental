@@ -48,6 +48,7 @@ public class GetStaffListInput : PagedAndSortedResultRequestDto
 {
     public string? Filter { get; set; }
     public bool? IsActive { get; set; }
+    public Guid? BranchId { get; set; }
 }
 
 public class CreateStaffDto

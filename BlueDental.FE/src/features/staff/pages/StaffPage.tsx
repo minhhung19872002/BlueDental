@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Button,
   Input,
@@ -25,6 +25,7 @@ import {
 import { staffApi, type StaffDto } from "../api/staffApi";
 import { StaffEditorModal, type StaffFormValues } from "../components/StaffEditorModal";
 import { useClinicBranches } from "@/features/organizations/api";
+import { useBranchStore } from "@/lib/clinicBranch";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useTablePagination } from "@/hooks/useTablePagination";
 
@@ -54,11 +55,21 @@ export function StaffPage() {
   const [draftStatus, setDraftStatus] = useState<StatusFilter>("all");
 
   const debouncedKeyword = useDebounce(keyword);
+  const currentBranchId = useBranchStore((s) => s.currentBranchId);
+
+  const isActiveParam =
+    statusFilter === "all" ? undefined : statusFilter === "working";
+
+  useEffect(() => {
+    pagination.resetToFirstPage();
+  }, [debouncedKeyword, statusFilter, currentBranchId]);
 
   const { data, isLoading } = useStaffList({
-    filter: debouncedKeyword || undefined,
+    filter: debouncedKeyword.trim() || undefined,
+    isActive: isActiveParam,
     skipCount: pagination.skipCount,
     maxResultCount: pagination.maxResultCount,
+    branchId: currentBranchId ?? undefined,
   });
   const { data: roleNames } = useStaffRoleNames();
   const { data: branches } = useClinicBranches();
@@ -68,13 +79,7 @@ export function StaffPage() {
   const updateStaff = useUpdateStaff();
   const deleteStaff = useDeleteStaff();
 
-  const rows = (data?.items ?? []).filter((staff) =>
-    statusFilter === "all"
-      ? true
-      : statusFilter === "working"
-        ? staff.isActive
-        : !staff.isActive,
-  );
+  const rows = data?.items ?? [];
 
   const openCreate = () => {
     setEditing(null);
