@@ -8,7 +8,6 @@
  */
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { useAuthStore } from "@/features/auth/store/authStore";
 
 export const DEFAULT_BRANCH_ID = "11111111-1111-1111-1111-111111111111";
 
@@ -32,6 +31,12 @@ function readFromUrl(): string | null {
 
 interface BranchState {
   currentBranchId: string | null;
+  /**
+   * The branch this account belongs to, handed over when the session is
+   * established. Kept here rather than read back out of the auth store so this
+   * module depends on nothing — the two would otherwise import each other.
+   */
+  ownBranchId: string | null;
   setCurrentBranchId: (id: string | null) => void;
 }
 
@@ -42,6 +47,7 @@ export const useBranchStore = create<BranchState>()(
       // an account that has no access to that branch would otherwise open on a
       // screenful of 403s before the header could correct itself.
       currentBranchId: null,
+      ownBranchId: null,
       setCurrentBranchId: (id) => {
         syncToUrl(id);
         set({ currentBranchId: id });
@@ -49,6 +55,7 @@ export const useBranchStore = create<BranchState>()(
     }),
     {
       name: STORAGE_KEY,
+      partialize: (state) => ({ currentBranchId: state.currentBranchId }),
       merge: (persisted, current) => {
         const stored = persisted as Partial<BranchState> | undefined;
         const fromUrl = readFromUrl();
@@ -68,6 +75,8 @@ export const useBranchStore = create<BranchState>()(
  * is settled before the first query goes out.
  */
 export function initBranchForSession(ownBranchId: string | null): void {
+  useBranchStore.setState({ ownBranchId });
+
   if (useBranchStore.getState().currentBranchId) return;
   if (readFromUrl()) return;
   if (!ownBranchId) return;
@@ -84,7 +93,7 @@ export function initBranchForSession(ownBranchId: string | null): void {
  */
 export function useCurrentBranchId(): string {
   const id = useBranchStore((s) => s.currentBranchId);
-  const ownBranchId = useAuthStore((s) => s.user?.clinicId);
+  const ownBranchId = useBranchStore((s) => s.ownBranchId);
   return id ?? ownBranchId ?? DEFAULT_BRANCH_ID;
 }
 
