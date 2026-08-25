@@ -28,7 +28,7 @@ test.describe("Danh mục", () => {
 
     const groupDialog = page.getByRole("dialog");
     await groupDialog.getByLabel(/Tên phân loại/).fill(groupName);
-    await groupDialog.getByRole("button", { name: "Lưu", exact: true }).click();
+    await groupDialog.getByRole("button", { name: /Lưu$/ }).click();
 
     // Creating a group selects it, so the table below is that group's own list.
     await expect(page.getByRole("heading", { name: groupName })).toBeVisible();
@@ -40,7 +40,7 @@ test.describe("Danh mục", () => {
     await entryDialog.getByLabel(/^Dịch vụ/).fill(serviceName);
     await entryDialog.getByLabel(/Mã dịch vụ/).fill(`E2E${id}`);
     await entryDialog.getByLabel(/^Giá$/).fill("180000");
-    await entryDialog.getByRole("button", { name: "Lưu", exact: true }).click();
+    await entryDialog.getByRole("button", { name: /Lưu$/ }).click();
 
     const row = page.getByRole("row", { name: new RegExp(serviceName) });
     await expect(row).toBeVisible();
@@ -89,14 +89,14 @@ test.describe("Danh mục", () => {
     await page.getByRole("button", { name: "Thêm nhóm phân loại" }).click();
     const groupDialog = page.getByRole("dialog");
     await groupDialog.getByLabel(/Tên phân loại/).fill(groupName);
-    await groupDialog.getByRole("button", { name: "Lưu", exact: true }).click();
+    await groupDialog.getByRole("button", { name: /Lưu$/ }).click();
     await expect(page.getByRole("heading", { name: groupName })).toBeVisible();
 
     for (const name of [`A ${id}`, `B ${id}`]) {
       await page.getByRole("button", { name: /Thêm dịch vụ/ }).click();
       const dialog = page.getByRole("dialog");
       await dialog.getByLabel(/^Dịch vụ/).fill(name);
-      await dialog.getByRole("button", { name: "Lưu", exact: true }).click();
+      await dialog.getByRole("button", { name: /Lưu$/ }).click();
       await expect(dialog).toBeHidden();
       await expect(page.getByRole("row", { name: new RegExp(name) })).toBeVisible();
     }
@@ -125,14 +125,14 @@ test.describe("Danh mục", () => {
     await page.getByRole("button", { name: "Thêm nhóm phân loại" }).click();
     const groupDialog = page.getByRole("dialog");
     await groupDialog.getByLabel(/Tên phân loại/).fill(groupName);
-    await groupDialog.getByRole("button", { name: "Lưu", exact: true }).click();
+    await groupDialog.getByRole("button", { name: /Lưu$/ }).click();
     await expect(page.getByRole("heading", { name: groupName })).toBeVisible();
 
     for (const name of [`ROW A ${id}`, `ROW B ${id}`]) {
       await page.getByRole("button", { name: /Thêm dịch vụ/ }).click();
       const dialog = page.getByRole("dialog");
       await dialog.getByLabel(/^Dịch vụ/).fill(name);
-      await dialog.getByRole("button", { name: "Lưu", exact: true }).click();
+      await dialog.getByRole("button", { name: /Lưu$/ }).click();
       await expect(dialog).toBeHidden();
       await expect(page.getByRole("row", { name: new RegExp(name) })).toBeVisible();
     }

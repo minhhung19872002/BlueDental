@@ -14,7 +14,7 @@ test.describe("Chi nhánh", () => {
 
     await page.locator(".app-header-branch").click();
 
-    const menu = page.getByRole("dialog");
+    const menu = page.locator(".app-popover-list");
     await expect(menu.getByText("Tất cả chi nhánh")).toBeVisible();
     await expect(menu.getByText("BlueDental - Chi nhánh chính")).toBeVisible();
 
@@ -29,7 +29,7 @@ test.describe("Chi nhánh", () => {
     await login(page, MANAGER_USER);
     await page.goto("/taxonomy/service");
 
-    const menu = page.getByRole("dialog");
+    const menu = page.locator(".app-popover-list");
 
     /** Reopening only works once the previous popover has finished closing. */
     const pickBranch = async (name: string) => {
@@ -47,7 +47,19 @@ test.describe("Chi nhánh", () => {
     await page.keyboard.press("Escape");
     await expect(menu).toBeHidden();
 
+    /**
+     * Asks the server for the group by name rather than scanning the panel: the
+     * panel loads a bounded page of groups, so a seeded group can sit past the
+     * end of it once a branch holds enough of them.
+     */
+    const searchGroups = async (keyword: string) => {
+      const search = page.getByLabel("Tìm nhóm...");
+      await search.fill(keyword);
+      await expect(page.getByRole("button", { name: new RegExp(keyword) }).first()).toBeVisible();
+    };
+
     await pickBranch("BlueDental - Chi nhánh chính");
+    await searchGroups("Implant");
     await expect(page.getByRole("button", { name: "Nhóm Implant", exact: true })).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Nhóm Nha Khoa Trẻ Em", exact: true }),
@@ -55,6 +67,7 @@ test.describe("Chi nhánh", () => {
 
     // Switching branch swaps the whole catalog, seeded groups included.
     await pickBranch("BlueDental - Chi nhánh 2");
+    await searchGroups("Nha Khoa Trẻ Em");
     await expect(
       page.getByRole("button", { name: "Nhóm Nha Khoa Trẻ Em", exact: true }),
     ).toBeVisible();
@@ -83,7 +96,7 @@ test.describe("Chi nhánh", () => {
     await page.getByRole("button", { name: "Thêm nhóm phân loại" }).click();
     const dialog = page.getByRole("dialog");
     await dialog.getByLabel(/Tên phân loại/).fill(groupName);
-    await dialog.getByRole("button", { name: "Lưu", exact: true }).click();
+    await dialog.getByRole("button", { name: /Lưu$/ }).click();
 
     await expect(page.getByRole("heading", { name: groupName })).toBeVisible();
 

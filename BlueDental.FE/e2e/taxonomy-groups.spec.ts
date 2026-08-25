@@ -25,7 +25,7 @@ async function createGroup(page: Page, name: string, priority: string) {
 
   await dialog.getByLabel(/Tên phân loại/).fill(name);
   await dialog.getByLabel(/Mức độ ưu tiên/).fill(priority);
-  await dialog.getByRole("button", { name: "Lưu", exact: true }).click();
+  await dialog.getByRole("button", { name: /Lưu$/ }).click();
   await expect(dialog).toBeHidden();
 }
 
@@ -142,7 +142,7 @@ test.describe("Danh mục — nhóm phân loại", () => {
     await page.getByRole("menuitem", { name: "Chỉnh sửa" }).click();
     const edit = page.getByRole("dialog");
     await edit.getByLabel(/Mức độ ưu tiên/).fill("500");
-    await edit.getByRole("button", { name: "Lưu", exact: true }).click();
+    await edit.getByRole("button", { name: /Lưu$/ }).click();
     await expect(edit).toBeHidden();
 
     await page.locator("#taxonomy-group-search").fill(id);
@@ -172,7 +172,7 @@ test.describe("Danh mục — nhóm phân loại", () => {
     const dialog = page.getByRole("dialog");
     await dialog.getByLabel(/Tên phân loại/).fill(`CHAM ${id}`);
 
-    const save = dialog.getByRole("button", { name: "Lưu", exact: true });
+    const save = dialog.getByRole("button", { name: /Lưu$/ });
     await save.click();
 
     await expect(dialog.getByRole("button", { name: /Đang lưu/ })).toBeVisible();
@@ -207,7 +207,7 @@ test.describe("Danh mục — nhóm phân loại", () => {
     await page.locator(`[data-group-menu="${name}"]`).click();
     await page.getByRole("menuitem", { name: "Xoá" }).click();
     const dialog = page.getByRole("dialog");
-    await dialog.getByRole("button", { name: "Xoá", exact: true }).click();
+    await dialog.getByRole("button", { name: /Xoá$/ }).click();
 
     await expect(dialog.getByRole("button", { name: /Đang xoá/ })).toBeVisible();
 
@@ -234,13 +234,14 @@ test.describe("Danh mục — nhóm phân loại", () => {
     await expect(dialog.getByRole("heading", { name: "Xác nhận xoá nhóm" })).toBeVisible();
     // The record being deleted is picked out of the sentence, not left to the
     // user to remember which row they clicked.
-    await expect(dialog.locator("span.font-bold")).toHaveText(name);
+    await expect(dialog.locator("strong")).toHaveText(name);
     await expect(dialog.getByText("Hành động này không thể hoàn tác.")).toBeVisible();
 
     // A delete cannot be taken back, so its button is not the same as "Lưu".
-    const remove = dialog.getByRole("button", { name: "Xoá", exact: true });
+    const remove = dialog.getByRole("button", { name: /Xoá$/ });
     const colour = await remove.evaluate((el) => getComputedStyle(el).backgroundColor);
-    expect(colour).toBe("rgb(229, 72, 77)");
+    // brand.red, wired into the antd theme as colorError.
+    expect(colour).toBe("rgb(239, 77, 77)");
 
     await remove.click();
     await expect(dialog).toBeHidden();
@@ -368,7 +369,7 @@ test.describe("Danh mục — màn hình đơn giản", () => {
     await expect(dialog.getByRole("button", { name: "Huỷ" })).toHaveCount(0);
 
     await dialog.getByLabel(/Tên nguồn đến/).fill(name);
-    await dialog.getByRole("button", { name: "Lưu", exact: true }).click();
+    await dialog.getByRole("button", { name: /Lưu$/ }).click();
     await expect(dialog).toBeHidden();
 
     await expect(page.getByRole("row", { name: new RegExp(name) })).toBeVisible();
@@ -392,7 +393,7 @@ test.describe("Danh mục — màn hình đơn giản", () => {
     await page.getByRole("button", { name: "Thêm nghề nghiệp" }).click();
     let dialog = page.getByRole("dialog");
     await dialog.getByLabel(/Tên nghề nghiệp/).fill(name);
-    await dialog.getByRole("button", { name: "Lưu", exact: true }).click();
+    await dialog.getByRole("button", { name: /Lưu$/ }).click();
     await expect(dialog).toBeHidden();
 
     const row = page.getByRole("row", { name: new RegExp(name) });
@@ -401,7 +402,7 @@ test.describe("Danh mục — màn hình đơn giản", () => {
     await row.getByRole("button").nth(1).click();
     dialog = page.getByRole("dialog");
     await dialog.getByLabel("Đã xoá").check();
-    await dialog.getByRole("button", { name: "Lưu", exact: true }).click();
+    await dialog.getByRole("button", { name: /Lưu$/ }).click();
     await expect(dialog).toBeHidden();
 
     await page.reload();

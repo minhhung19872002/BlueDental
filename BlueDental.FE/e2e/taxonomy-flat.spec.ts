@@ -68,7 +68,7 @@ test.describe("Danh mục — màn hình phẳng", () => {
     await expect(page.getByRole("row", { name: new RegExp(momoHolder) })).toBeVisible();
 
     // ── Ngân hàng ──────────────────────────────────────────────────────────
-    await page.getByRole("button", { name: "Ngân hàng", exact: true }).click();
+    await page.locator(".ant-segmented-item", { hasText: "Ngân hàng" }).click();
     await expect(page.getByRole("columnheader", { name: "Số tài khoản" })).toBeVisible();
     await expect(page.getByRole("row", { name: new RegExp(momoHolder) })).toHaveCount(0);
 
@@ -94,7 +94,7 @@ test.describe("Danh mục — màn hình phẳng", () => {
 
     await page.getByRole("button", { name: "Thêm phương thức" }).click();
     const dialog = page.getByRole("dialog");
-    const save = dialog.getByRole("button", { name: "Lưu", exact: true });
+    const save = dialog.getByRole("button", { name: /Lưu$/ });
 
     // The reference keeps its single "Lưu" disabled until the form is complete,
     // so an incomplete account cannot be submitted at all.

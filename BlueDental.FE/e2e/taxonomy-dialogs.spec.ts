@@ -13,7 +13,7 @@ async function createGroup(page: Page, name: string) {
   await page.getByRole("button", { name: "Thêm nhóm phân loại" }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel(/Tên phân loại/).fill(name);
-  await dialog.getByRole("button", { name: "Lưu", exact: true }).click();
+  await dialog.getByRole("button", { name: /Lưu$/ }).click();
   await expect(dialog).toBeHidden();
 
   // Creating a group selects it. Wait for that: an entry dialog opened before
@@ -53,7 +53,7 @@ test.describe("Danh mục — dialog theo từng danh mục", () => {
 
     // 10% VAT, price quoted before tax
     await dialog.getByLabel(/% thuế/).click();
-    await page.getByRole("option", { name: "10%" }).click();
+    await page.locator(".ant-select-item-option").filter({ hasText: /^10%$/ }).click();
 
     await dialog.getByLabel("Yêu cầu hình ảnh khi điều trị").check();
     await dialog.getByLabel("Hiển thị răng ở hóa đơn").check();
@@ -67,7 +67,7 @@ test.describe("Danh mục — dialog theo từng danh mục", () => {
     await dialog.getByRole("tab", { name: "Bảo hành" }).click();
     await dialog.getByLabel("Bảo hành 1 năm").check();
 
-    await dialog.getByRole("button", { name: "Lưu", exact: true }).click();
+    await dialog.getByRole("button", { name: /Lưu$/ }).click();
     await expect(dialog).toBeHidden();
     await expect(page.getByRole("row", { name: new RegExp(name) })).toBeVisible();
 
@@ -111,7 +111,7 @@ test.describe("Danh mục — dialog theo từng danh mục", () => {
     // This catalog is the one the reference gives no state checkboxes.
     await expect(dialog.getByLabel("Đang hoạt động")).toHaveCount(0);
 
-    await dialog.getByRole("button", { name: "Lưu", exact: true }).click();
+    await dialog.getByRole("button", { name: /Lưu$/ }).click();
     await expect(dialog).toBeHidden();
 
     await page.reload();
@@ -136,7 +136,7 @@ test.describe("Danh mục — dialog theo từng danh mục", () => {
     await dialog.locator(".ql-editor").click();
     await page.keyboard.type("Nội dung tư vấn E2E");
     await dialog.getByLabel(/Ghi chú/).fill("Ghi chú E2E");
-    await dialog.getByRole("button", { name: "Lưu", exact: true }).click();
+    await dialog.getByRole("button", { name: /Lưu$/ }).click();
     await expect(dialog).toBeHidden();
 
     await page.reload();
@@ -156,7 +156,7 @@ test.describe("Danh mục — dialog theo từng danh mục", () => {
     await page.getByRole("button", { name: /^Thêm loại thuốc$/ }).click();
     let dialog = page.getByRole("dialog");
     await dialog.getByLabel(/Tên thuốc/).fill(medicine);
-    await dialog.getByRole("button", { name: "Lưu", exact: true }).click();
+    await dialog.getByRole("button", { name: /Lưu$/ }).click();
     await expect(dialog).toBeHidden();
 
     await page.goto("/taxonomy/prescription-template");
@@ -167,7 +167,7 @@ test.describe("Danh mục — dialog theo từng danh mục", () => {
     await dialog.getByLabel(/Lời dặn/).fill("Uống đủ liều");
 
     await dialog.getByLabel(/Tên thuốc/).click();
-    await page.getByRole("option", { name: medicine }).click();
+    await page.locator(".ant-select-item-option", { hasText: medicine }).click();
     await dialog.getByLabel("Ngày uống").fill("2");
     await dialog.getByLabel("Mỗi lần").fill("1.5");
     await dialog.getByLabel("Số ngày").fill("5");
@@ -182,7 +182,7 @@ test.describe("Danh mục — dialog theo từng danh mục", () => {
     await page.getByLabel("Trước khi ngủ").check();
     await page.keyboard.press("Escape");
 
-    await dialog.getByRole("button", { name: "Lưu", exact: true }).click();
+    await dialog.getByRole("button", { name: /Lưu$/ }).click();
     await expect(dialog).toBeHidden();
 
     await page.reload();
@@ -260,19 +260,15 @@ test.describe("Danh mục — dialog theo từng danh mục", () => {
     await expect(dialog.getByText("100%")).toBeVisible();
 
     const margins = await page.evaluate(() => {
-      const sheetPage = [...document.querySelectorAll("[role=dialog] div")].find(
-        (el) =>
-          Math.round(el.getBoundingClientRect().width) > 600 &&
-          getComputedStyle(el).backgroundColor === "rgb(255, 255, 255)",
-      )!;
-      const scroller = sheetPage.closest("div.overflow-auto")!;
+      const sheetPage = document.querySelector<HTMLElement>("[role=dialog] .bd-a4-page")!;
+      const scroller = sheetPage.closest("div.bd-a4-viewport")!;
       const outer = scroller.getBoundingClientRect();
       const inner = sheetPage.getBoundingClientRect();
       return { left: inner.left - outer.left, right: outer.right - inner.right };
     });
     expect(Math.abs(margins.left - margins.right)).toBeLessThan(6);
 
-    await dialog.getByRole("button", { name: "Lưu", exact: true }).click();
+    await dialog.getByRole("button", { name: /Lưu$/ }).click();
     await expect(dialog).toBeHidden();
 
     await page.reload();
