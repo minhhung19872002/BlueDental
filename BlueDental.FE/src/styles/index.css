@@ -3833,3 +3833,72 @@ body {
   border-radius: 6px;
   background: linear-gradient(90deg, var(--bd-blue), var(--bd-gold));
 }
+
+/* ── Month grid (the design's Lịch hẹn month view) ───────────────────────── */
+
+.month-grid-card {
+  padding: 16px;
+}
+
+.month-grid-head,
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+
+.month-grid-head {
+  margin-bottom: 8px;
+}
+
+.month-grid-weekday {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--bd-dim);
+  text-align: center;
+}
+
+/* Separate rounded cells with a gap, not a ruled table. */
+.month-cell {
+  height: 84px;
+  text-align: left;
+  border: 1px solid var(--bd-line);
+  background: #ffffff;
+  border-radius: 11px;
+  padding: 9px 10px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 0.15s ease;
+}
+
+.month-cell:hover {
+  border-color: var(--bd-blue);
+}
+
+.month-cell--outside {
+  opacity: 0.45;
+}
+
+.month-cell--today {
+  border-color: var(--bd-blue);
+  background: var(--bd-blue-pale);
+}
+
+.month-cell-date {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--bd-ink);
+}
+
+/* How many appointments the day holds. */
+.month-cell-count {
+  align-self: flex-start;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--bd-blue);
+  background: color-mix(in srgb, var(--bd-blue) 8%, #ffffff);
+  padding: 2px 7px;
+  border-radius: 20px;
+}
