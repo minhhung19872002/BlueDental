@@ -5023,37 +5023,15 @@ html:has(.ant-modal-wrap) {
 }
 
 /* ── Page tab strip ─────────────────────────────────────────────────────── */
+
+/* Holds the pills clear of the content under them. The pills themselves are
+   the design's own — see .pill-tab. */
 .bd-tabbar {
   flex-shrink: 0;
   border-bottom: 1px solid var(--bd-line);
   background: #fff;
-  padding-inline: 20px;
-}
-
-.bd-tabbar-nav { display: flex; overflow-x: auto; }
-
-.bd-tab {
-  position: relative;
-  flex-shrink: 0;
-  padding: 14px 16px;
-  font-size: 14px;
-  font-weight: 600;
-  white-space: nowrap;
-  color: var(--bd-sub);
-  transition: background 150ms, color 150ms;
-}
-
-.bd-tab:hover { background: var(--bd-bg); color: var(--bd-ink); }
-
-.bd-tab--active { background: var(--bd-blue-pale); color: var(--bd-blue); }
-
-.bd-tab-underline {
-  position: absolute;
-  inset-inline: 0;
-  bottom: 0;
-  height: 2px;
-  border-radius: 2px 2px 0 0;
-  background: var(--bd-blue);
+  padding: 12px 20px;
+  overflow-x: auto;
 }
 
 /* ── Record initial square ──────────────────────────────────────────────── */
