@@ -243,7 +243,10 @@ export function TimekeepingBoard({ currentDate }: TimekeepingBoardProps) {
     maxResultCount: 100,
   });
 
-  const { data: staffPage } = useStaffList({ maxResultCount: 100, isActive: true });
+  const { data: staffPage, isLoading: staffLoading } = useStaffList({
+    maxResultCount: 100,
+    isActive: true,
+  });
   const openWorkDay = useOpenWorkDay();
 
   /**
@@ -260,13 +263,17 @@ export function TimekeepingBoard({ currentDate }: TimekeepingBoardProps) {
     }
 
     try {
-      for (const member of staff) {
-        await openWorkDay.mutateAsync({
-          staffId: member.id,
-          clinicBranchId: branchId,
-          workDate,
-        });
-      }
+      // One request per person, but issued together: waiting for each in turn
+      // made opening the day take as long as the roster is.
+      await Promise.all(
+        staff.map((member) =>
+          openWorkDay.mutateAsync({
+            staffId: member.id,
+            clinicBranchId: branchId,
+            workDate,
+          }),
+        ),
+      );
       message.success(t("Đã mở ngày làm việc cho {0} nhân viên", staff.length));
     } catch (error) {
       message.error(extractApiError(error));
@@ -283,6 +290,7 @@ export function TimekeepingBoard({ currentDate }: TimekeepingBoardProps) {
   return (
     <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 16 }}>
       <div
+        data-testid="timekeeping-kpis"
         style={{
           display: "flex",
           gap: 24,
@@ -309,9 +317,13 @@ export function TimekeepingBoard({ currentDate }: TimekeepingBoardProps) {
           onChange={(e) => setKeyword(e.target.value)}
           style={{ maxWidth: 320 }}
         />
+        {/* Until the roster arrives there is nobody to open the day for, and
+            the click used to fall through to an error toast — which read as the
+            button doing nothing at all. */}
         <Button
           type="primary"
-          loading={openWorkDay.isPending}
+          loading={openWorkDay.isPending || staffLoading}
+          disabled={staffLoading || (staffPage?.items?.length ?? 0) === 0}
           onClick={handleOpenWorkDay}
         >
           {t("Mở ngày làm việc")}

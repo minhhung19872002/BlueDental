@@ -6,6 +6,10 @@ export const api = axios.create({
   withCredentials: true,
   xsrfCookieName: "XSRF-TOKEN",
   xsrfHeaderName: "RequestVerificationToken",
+  // Axios writes an array as `key[]=a&key[]=b`, which ASP.NET Core does not
+  // bind to a collection — it silently returns everything. `indexes: null`
+  // repeats the bare key instead, which it does bind.
+  paramsSerializer: { indexes: null },
   headers: {
     "Content-Type": "application/json",
     "Accept-Language": "vi",

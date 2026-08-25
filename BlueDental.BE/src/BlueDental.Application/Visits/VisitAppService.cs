@@ -127,6 +127,8 @@ public class VisitAppService : ApplicationService, IVisitAppService
             query = query.Where(v => v.DentistId == input.DentistId.Value);
         if (input.Status.HasValue)
             query = query.Where(v => v.Status == input.Status.Value);
+        if (input.Statuses is { Count: > 0 })
+            query = query.Where(v => input.Statuses.Contains(v.Status));
 
         // Without this the board showed every visit the clinic has ever had,
         // whatever its date picker said.

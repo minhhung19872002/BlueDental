@@ -10,11 +10,31 @@ import type {
   ReceptionStatus,
 } from "../types/reception";
 
+/** VisitStatus on the server. */
+const VISIT_STATUS = {
+  Scheduled: 1,
+  CheckedIn: 2,
+  InProgress: 3,
+  Completed: 4,
+  Cancelled: 5,
+  NoShow: 6,
+} as const;
+
+/**
+ * The board groups the visit states into its three tabs: anyone booked or
+ * through the door but not yet in the chair is waiting, the chair is in
+ * progress, and the rest is done.
+ */
+const TAB_STATUSES: Record<Exclude<ReceptionStatus, "All">, number[]> = {
+  WaitingForExam: [VISIT_STATUS.Scheduled, VISIT_STATUS.CheckedIn],
+  InProgress: [VISIT_STATUS.InProgress],
+  Completed: [VISIT_STATUS.Completed],
+};
+
 function mapStatusFromBe(beStatus: unknown): ReceptionStatus {
   switch (beStatus) {
-    case 3: return "WaitingForExam";
-    case 4: return "InProgress";
-    case 5: return "Completed";
+    case VISIT_STATUS.InProgress: return "InProgress";
+    case VISIT_STATUS.Completed: return "Completed";
     default: return "WaitingForExam";
   }
 }
@@ -116,7 +136,7 @@ export const receptionApi = {
       params: {
         keyword: filter.keyword,
         dentistId: filter.doctorId,
-        status: filter.status !== "All" ? filter.status : undefined,
+        statuses: filter.status && filter.status !== "All" ? TAB_STATUSES[filter.status] : undefined,
         maxResultCount: 50,
         ...dateWindow(filter),
       },
@@ -135,7 +155,7 @@ export const receptionApi = {
 
     return {
       totalCount: stats.total ?? 0,
-      waitingCount: stats.checkedIn ?? 0,
+      waitingCount: (stats.scheduled ?? 0) + (stats.checkedIn ?? 0),
       inProgressCount: stats.inProgress ?? 0,
       completedCount: stats.completed ?? 0,
       counters: {

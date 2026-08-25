@@ -17,7 +17,10 @@ test.describe("Authentication", () => {
     await page.getByPlaceholder("Tên đăng nhập hoặc email").fill("invalid_user");
     await page.getByPlaceholder("Mật khẩu").fill("wrong_password");
     await page.getByRole("button", { name: "Đăng nhập" }).click();
-    await expect(page.getByText(/InvalidUserNameOrPassword|Đăng nhập không thành công/)).toBeVisible({ timeout: 10000 });
+    // The screen says this in its own words; it used to print ABP's enum name.
+    await expect(
+      page.getByText("Tên đăng nhập hoặc mật khẩu không đúng."),
+    ).toBeVisible({ timeout: 10000 });
   });
 
   test("logs out successfully", async ({ page }) => {

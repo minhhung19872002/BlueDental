@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
+using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
@@ -124,13 +125,25 @@ public class InventoryItemAppService : ApplicationService, IInventoryItemAppServ
     {
         var item = await _repository.GetAsync(id);
 
-        if (input.MovementType == StockMovementType.Purchase || input.MovementType == StockMovementType.Return)
+        // Anything outside these three used to fall through both branches: the
+        // call answered 200 with the stock untouched, which reads as a movement
+        // that was recorded and was not.
+        switch (input.MovementType)
         {
-            item.AddStock(input.Quantity, input.Notes);
-        }
-        else if (input.MovementType == StockMovementType.Consumption)
-        {
-            item.ConsumeStock(input.Quantity);
+            case StockMovementType.Purchase:
+            case StockMovementType.Return:
+                item.AddStock(input.Quantity, input.Notes);
+                break;
+
+            case StockMovementType.Consumption:
+            case StockMovementType.Expired:
+                item.ConsumeStock(input.Quantity);
+                break;
+
+            default:
+                throw new BusinessException(
+                    BlueDentalDomainErrorCodes.Inventory.InvalidStockMovement,
+                    $"Stock movement {input.MovementType} is not supported here.");
         }
 
         await _repository.UpdateAsync(item, autoSave: true);

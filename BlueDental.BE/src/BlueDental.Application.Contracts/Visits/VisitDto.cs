@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Volo.Abp.Application.Dtos;
 
 namespace BlueDental.Visits;
@@ -49,6 +50,13 @@ public class GetVisitListInput : PagedAndSortedResultRequestDto
     public Guid? PatientId { get; set; }
     public Guid? DentistId { get; set; }
     public VisitStatus? Status { get; set; }
+
+    /// <summary>
+    /// The board's tabs group several states into one — waiting is both booked
+    /// and arrived — so it asks for a set rather than a single status.
+    /// </summary>
+    public List<VisitStatus>? Statuses { get; set; }
+
     public string? Filter { get; set; }
 
     /// <summary>
