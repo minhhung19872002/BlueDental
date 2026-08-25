@@ -181,3 +181,55 @@ bản gốc chỉ có 9 nhóm nên chưa quan sát được nó phân trang hay 
 | R-67 | Tờ A4: sinh hiệu và bảng bàn giao hồ sơ vẽ sai bố cục | Sinh hiệu xếp thành một hàng ngang dưới `IV. KHÁM BỆNH` thay vì nằm trong hộp có viền bên phải; các ô `Họ tên` trong bảng bàn giao thiếu gạch chân, cột quá hẹp làm `Người giao hồ sơ:` xuống dòng, cột bác sỹ căn đáy thay vì căn giữa | Lần dựng trước đọc cấu trúc mà bỏ qua `div.clear` — dấu hiệu của một khối float phải; và bảng thì dựng theo trí nhớ chứ chưa soi lại ảnh | Cột trái giữ `1. Toàn thân` cùng hai gạch chân, cột phải là hộp viền chứa 5 dòng sinh hiệu; bảng chia lại tỉ lệ cột 38/14/24/24, mỗi `Họ tên` có gạch chân, cột cuối `align-middle` | F-34 (test đo hộp sinh hiệu nằm bên phải ô khám toàn thân và có viền, đồng thời khẳng định hai tiêu đề cột bàn giao không xuống dòng) |
 | R-68 | Bảng dữ liệu vẫn nháy khi thả, dù panel nhóm đã hết | Đo theo từng khung hình: **47ms** quay về thứ tự cũ, **285ms** mới sang thứ tự mới, rồi **443–593ms** phủ thêm lớp loading — nặng hơn cả lỗi cũ của panel nhóm | Hai nguyên nhân chồng lên nhau. Một: bảng truyền `onReorder={(from, to) => void reorderEntries(from, to)}` — `void` vứt mất promise nên hook `await` phải `undefined`, xoá thứ tự tạm ngay lập tức trong khi cache chưa kịp cập nhật lạc quan. Panel nhóm truyền thẳng hàm nên không dính. Hai: `isLoading={entriesQuery.isFetching}` bật lớp phủ cho cả lần refetch sau khi lưu, phủ lên đúng dữ liệu đã đúng sẵn | Truyền thẳng `onReorder={reorderEntries}` (bọc `useCallback` để bảng memo hoá còn tác dụng), và tắt lớp phủ khi đang có mutation sắp xếp: `entriesQuery.isFetching && !reorderEntriesMutation.isPending`. Panel nhóm cũng bỏ mờ trong lúc đó. Đo lại: **một trạng thái duy nhất** suốt 2,5s | F-02 (test ghi 120 khung hình quanh lúc thả, khẳng định bảng chỉ có đúng một trạng thái và không có lớp phủ) |
 
+
+## 2026-08-25 — rebase lên `main` và chuyển sang Ant Design
+
+`main` đã đổi thư viện UI sang **Ant Design 6** và **gỡ hẳn Tailwind** khỏi build.
+15 commit của nhánh này rebase sạch, nhưng phần giao diện thì phải dựng lại: 245
+lớp utility của Tailwind trong màn hình Danh mục không còn sinh ra CSS nào.
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-69 | Backend không build được sau rebase | Toàn bộ BE đứng — không chạy được test thật nào | Hai dấu `>>>>>>> 6c3bd52` còn sót trong `BlueDentalDbContextModelSnapshot.cs` (dòng 700 và 1398): nửa `<<<<<<<`/`=======` đã bị xoá nên `git` không báo còn xung đột | Xoá hai dòng thừa; `dotnet build` sạch, 0 warning | `dotnet build BlueDental.sln` |
+| R-70 | 245 lớp Tailwind trong Danh mục không còn tác dụng | Bảng, panel nhóm, tờ A4, các dialog mất toàn bộ khoảng cách, viền, màu | `main` gỡ Tailwind nhưng để lại các chuỗi class trong những component nhánh này đã viết | Đặt tên ngữ nghĩa cho từng khối (`bd-cat-*`, `bd-a4-*`, `bd-group-*`, `bd-pager-*`, `bd-search-*`, `bd-tab*`) và viết CSS thật trong `src/styles/index.css`, theo đúng lối `main` đang dùng (`page-header`, `app-popover-*`) | `vite build` + toàn bộ E2E Danh mục |
+| R-71 | Thanh tab của trang Danh mục đè lên nội dung | Không bấm được sang catalog khác — Playwright báo `bd-group-headrow ... intercepts pointer events` | `PageTabBar` mất `shrink-0`, nên là flex item co lại dưới chiều cao nội dung và phần tràn bị anh em phía sau vẽ đè | `PageTabBar` chuyển sang class ngữ nghĩa, `.bd-tabbar { flex-shrink: 0 }` | F-31 (test "gives every catalog its own URL") |
+| R-72 | Nhóm vừa tạo không được chọn | Tiêu đề panel vẫn là nhóm cũ, bảng bên dưới là dữ liệu nhóm khác | Effect dự phòng "selection không còn trong danh sách thì quay về nhóm đầu" chạy trước khi **URL** kịp mang id mới *và* trước khi danh sách nhóm kịp refetch, nên cướp lại selection vĩnh viễn | Ghi id đang chờ vào ref; effect bỏ qua cho tới khi **cả hai** đuổi kịp rồi mới xoá ref | F-31, F-32 |
+| R-73 | Dialog "Tạo nhóm" đôi khi kẹt mở sau khi lưu | Lưu xong nhưng dialog vẫn đứng đó | `onCreated()` gọi trước `onClose()`, nên bất kỳ trục trặc nào trong lúc cha chuyển selection cũng chặn luôn việc đóng | Đóng trước, báo cho cha sau | F-31 |
+| R-74 | Mọi tài khoản ngoài chi nhánh 1 gặp 403 hàng loạt | Tài khoản `branch2` mở màn hình nào cũng 403, tạo nhóm thì `POST /app/taxonomies → 403` | `useCurrentBranchId()` trả về hằng `DEFAULT_BRANCH_ID` (chi nhánh 1) mỗi khi header đang ở "Tất cả chi nhánh" — mà "tất cả" là một *bộ lọc*, không phải một nơi để ghi vào | Dự phòng đổi thành **chi nhánh của chính tài khoản** (`user.clinicId`). Store khởi tạo bằng `null`, và `initBranchForSession()` chốt chi nhánh **ngay khi phiên đăng nhập được thiết lập**, trước khi màn hình đầu tiên gọi API | F-33 (branch-switcher, branch-isolation) |
+| R-75 | Bộ chọn chi nhánh mời cả chi nhánh không được phép | Chọn phải là 403 toàn bộ màn hình | `AppLayout` gọi `useClinicBranches()` không tham số → liệt kê mọi chi nhánh | Gọi `useClinicBranches(true)` (`accessibleOnly`) | F-33 |
+| R-76 | Chọn chi nhánh xong menu không đóng | Danh sách nằm đè lên trang vừa tải lại | antd `Popover` không kiểm soát thì click bên trong không tự đóng, khác với Radix | `Popover` chuyển sang có kiểm soát; `handleBranchChange` đóng menu | F-33 |
+
+### Ghi nhận: flake chỉ có ở dev server
+
+Ba test Danh mục thỉnh thoảng đỏ khi chạy với `vite dev`, và đo được nguyên nhân:
+`onClick` của React **không hề chạy** dù Playwright báo click thành công. Log
+mount/unmount cho thấy cả cây màn hình mount → unmount → mount một lần sau khi
+tải — đúng hành vi **StrictMode** ở chế độ dev. Cú click rơi trúng lúc remount thì
+mất.
+
+Chạy cùng bộ test trên **bản build production** (`vite preview`, không StrictMode):
+36/36 xanh, lặp lại 5 lần một test hay đỏ nhất cũng 5/5. Đây là hiện tượng của môi
+trường dev, không phải lỗi sản phẩm — nhưng nó nói rằng **acceptance test phải chạy
+trên bản build**, nên `vite.config.ts` được thêm khối `preview` (cổng 8080, proxy
+API giống `server`) đúng bằng `baseURL` mặc định trong `playwright.config.ts`.
+
+### Ghi nhận: `/app/visits` trả 500
+
+Mỗi lần vào trang sau đăng nhập, `GET /api/v1/app/visits?keyword=&maxResultCount=50`
+và `GET /api/v1/app/visits?maxResultCount=200` đều **500**. Thuộc màn hình Tiếp nhận,
+nằm ngoài phạm vi lần rebase này, **chưa xử lý**.
+
+### Selector đổi theo Ant Design
+
+Các test thật phải bám vào DOM mà antd thực sự dựng ra:
+
+- Nút có icon mang tên `"save Lưu"`, `"delete Xoá"` — icon của `@ant-design/icons`
+  góp `aria-label` vào accessible name, nên `{ name: "Lưu", exact: true }` đổi thành
+  `{ name: /Lưu$/ }`.
+- `Segmented` là nhóm radio với input ẩn kích thước 0 — click vào
+  `.ant-segmented-item`, không click vào `role=radio`.
+- `Select` giữ một **bản sao ẩn** `role="listbox"` cho trình đọc màn hình, chỉ chứa
+  vài mục đầu và text là *giá trị* chứ không phải nhãn. Mục người dùng thật sự bấm
+  là `.ant-select-item-option`.
+- `Modal` đặt tiêu đề trong một `div` thường — `AppDialog` và `ConfirmDeleteDialog`
+  bọc lại bằng `<h2>` để tiêu đề dialog vẫn là một heading thật.
