@@ -697,7 +697,6 @@ namespace BlueDental.Migrations
                     b.ToTable("bd_consulting_data", (string)null);
                 });
 
->>>>>>> 6c3bd52 (feat(be): give every catalog the fields it actually carries)
             modelBuilder.Entity("BlueDental.Catalogs.DentalProcedure", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1395,7 +1394,6 @@ namespace BlueDental.Migrations
                     b.ToTable("bd_prescription_templates", (string)null);
                 });
 
->>>>>>> 6c3bd52 (feat(be): give every catalog the fields it actually carries)
             modelBuilder.Entity("BlueDental.Catalogs.Taxonomy", b =>
                 {
                     b.Property<Guid>("Id")
