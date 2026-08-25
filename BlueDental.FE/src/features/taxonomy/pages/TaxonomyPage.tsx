@@ -1,401 +1,479 @@
-import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import { Button, Empty, Input, Modal, Popconfirm, Table, Tag, message } from "antd";
-import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
-import type { ColumnsType } from "antd/es/table";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useParams, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
 import {
-  TAXONOMY_GROUP,
   useCatalogEntries,
   useCreateTaxonomyGroup,
   useDeleteCatalogEntry,
+  useDeleteTaxonomyGroup,
+  useReorderCatalogEntries,
+  useReorderTaxonomyGroups,
   useTaxonomyGroups,
   type CatalogEntryDto,
   type TaxonomyDto,
 } from "../api/taxonomyApi";
-import { CatalogEntryModal } from "../components/CatalogEntryModal";
-import { useCurrentBranchId } from "@/lib/clinicBranch";
+import { CatalogEntryTable } from "../components/CatalogEntryTable";
+import { MedicalRecordTemplateDialog } from "../components/MedicalRecordTemplateDialog";
+import { MedicineDialog } from "../components/MedicineDialog";
+import { PrescriptionTemplateDialog } from "../components/PrescriptionTemplateDialog";
+import { RichCatalogDialog } from "../components/RichCatalogDialog";
+import { ServiceDialog } from "../components/ServiceDialog";
+import { CatalogPanelHeader } from "../components/CatalogPanelHeader";
+import { PatientTagPanel } from "../components/PatientTagPanel";
+import { SimpleCatalogDialog } from "../components/SimpleCatalogDialog";
+import { PaymentAccountPanel } from "../components/PaymentAccountPanel";
+import { TaxonomyGroupModal } from "../components/TaxonomyGroupModal";
+import { TaxonomyGroupPanel } from "../components/TaxonomyGroupPanel";
+import {
+  DEFAULT_TAXONOMY_TAB,
+  findTaxonomyTab,
+  taxonomyTabs,
+  type TaxonomyTab,
+} from "../taxonomyTabs";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { PageTabBar } from "@/components/PageTabBar";
+import { TablePaginationBar } from "@/components/TablePaginationBar";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { useDebounce } from "@/hooks/useDebounce";
 import { extractApiError } from "@/lib/apiError";
-import { formatDate, formatVND } from "@/utils/format";
+import { useBranchFilter, useCurrentBranchId, useIsAllBranches } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
-import { PageHeader } from "@/components/PageHeader";
+import { moveItem } from "@/utils/array";
+import { exportToExcel } from "@/utils/exportExcel";
+import { formatDateTime } from "@/utils/format";
 
-/**
- * Every "Danh mục" sub-route in the reference is the same screen: a group list on
- * the left and the entries of the selected group on the right. Only the taxonomy
- * group slug and the column wording change, so the tabs are pure configuration.
- */
-interface TaxonomyTab {
-  key: string;
-  label: string;
-  /** Taxonomy group slug, or null for catalogs BlueDental has not modelled yet. */
-  group: string | null;
-  /** Singular noun used in column headers and dialogs. */
-  entityLabel: string;
-  priced?: boolean;
-  templated?: boolean;
-  /** Explains why a tab has no data source yet. */
-  pendingNote?: string;
-}
+const DEFAULT_PAGE_SIZE = 20;
 
-function useTaxonomyTabs(): TaxonomyTab[] {
-  return [
-    { key: "service", label: t("Dịch vụ"), group: TAXONOMY_GROUP.CareService, entityLabel: t("Tên dịch vụ"), priced: true },
-    { key: "diagnosis", label: t("Chẩn đoán"), group: TAXONOMY_GROUP.Diagnosis, entityLabel: t("Tên chẩn đoán") },
-    { key: "medicine", label: t("Loại thuốc"), group: TAXONOMY_GROUP.MedicationType, entityLabel: t("Tên loại thuốc"), priced: true },
-    { key: "consulting", label: t("Dữ liệu tư vấn"), group: TAXONOMY_GROUP.ConsultingData, entityLabel: t("Tên dữ liệu tư vấn") },
-    { key: "source", label: t("Nguồn đến"), group: TAXONOMY_GROUP.Source, entityLabel: t("Tên nguồn đến") },
-    { key: "history", label: t("Lịch sử bệnh"), group: TAXONOMY_GROUP.DiseaseHistory, entityLabel: t("Tên lịch sử bệnh") },
-    { key: "prescription-template", label: t("Đơn thuốc mẫu"), group: TAXONOMY_GROUP.PrescriptionTemplate, entityLabel: t("Tên đơn thuốc mẫu"), templated: true },
-    { key: "medical-record-template", label: t("Bệnh án mẫu"), group: TAXONOMY_GROUP.MedicalRecordTemplate, entityLabel: t("Tên bệnh án mẫu"), templated: true },
-    { key: "tags", label: t("Thẻ hồ sơ"), group: null, entityLabel: t("Tên thẻ"), pendingNote: t("Thẻ hồ sơ dùng danh mục riêng ở app gốc (medical-record/tag) — chưa dựng ở BlueDental.") },
-    { key: "payment-method", label: t("Phương thức thanh toán"), group: null, entityLabel: t("Phương thức"), pendingNote: t("Phương thức thanh toán ở app gốc là tài khoản MoMo/ngân hàng, không phải danh mục — chưa dựng ở BlueDental.") },
-    { key: "occupation", label: t("Nghề nghiệp"), group: TAXONOMY_GROUP.Occupation, entityLabel: t("Tên nghề nghiệp") },
-  ];
-}
+/** Either a group or an entry queued for the shared confirmation dialog. */
+type PendingDelete =
+  { kind: "group"; id: string; name: string } | { kind: "entry"; id: string; name: string };
 
-function GroupSidebar({
-  groups,
-  isLoading,
-  selectedId,
-  onSelect,
-  onAdd,
-}: {
-  groups: TaxonomyDto[];
-  isLoading: boolean;
-  selectedId: string | null;
-  onSelect: (id: string | null) => void;
-  onAdd: () => void;
-}) {
+function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
+  /**
+   * Lists follow the header's branch selection, including "Tất cả chi nhánh";
+   * a record can only be created in one branch, so writes use the concrete id
+   * and the create action is disabled while the whole clinic is in view.
+   */
+  const branchFilter = useBranchFilter();
+  const branchId = useCurrentBranchId();
+  const isAllBranches = useIsAllBranches();
+  const group = tab.group as string;
+  /** Đơn thuốc mẫu is one flat table in the reference; the rest keep their groups. */
+  const grouped = tab.grouped !== false;
+
+  /**
+   * The selected group lives in the URL so the screen can be linked to, and so
+   * a reload comes back to the same group instead of jumping to the first one.
+   */
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedGroupId = searchParams.get("group");
+
   const [keyword, setKeyword] = useState("");
-  const filtered = groups.filter((g) => g.name.toLowerCase().includes(keyword.toLowerCase()));
+  /** The group panel searches on the server, so its text lives here too. */
+  const [groupKeyword, setGroupKeyword] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [groupsOpen, setGroupsOpen] = useState(false);
+
+  const [entryModal, setEntryModal] = useState<{ open: boolean; entry: CatalogEntryDto | null }>({
+    open: false,
+    entry: null,
+  });
+  const [groupModal, setGroupModal] = useState<{ open: boolean; group: TaxonomyDto | null }>({
+    open: false,
+    group: null,
+  });
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
+
+  const debouncedKeyword = useDebounce(keyword, 300);
+  const debouncedGroupKeyword = useDebounce(groupKeyword, 300);
+
+  const groupsQuery = useTaxonomyGroups(branchFilter, group, debouncedGroupKeyword);
+  const groups = useMemo(() => groupsQuery.data?.items ?? [], [groupsQuery.data]);
+  /** While a group search is on, the panel holds matches rather than the catalog. */
+  const searchingGroups = debouncedGroupKeyword.trim().length > 0;
+
+  const entriesQuery = useCatalogEntries(branchFilter, group, {
+    // A flat catalog lists the whole group; a grouped one waits for a selection.
+    scope: grouped ? "group" : "catalog",
+    taxonomyId: grouped ? (selectedGroupId ?? undefined) : undefined,
+    filter: debouncedKeyword,
+    skipCount: (page - 1) * pageSize,
+    maxResultCount: pageSize,
+  });
+
+  const createGroup = useCreateTaxonomyGroup();
+  const reorderGroupsMutation = useReorderTaxonomyGroups();
+  const reorderEntriesMutation = useReorderCatalogEntries();
+  const deleteGroup = useDeleteTaxonomyGroup();
+  const deleteEntry = useDeleteCatalogEntry();
+
+  const entries = entriesQuery.data?.items ?? [];
+  const totalCount = entriesQuery.data?.totalCount ?? 0;
+
+  /**
+   * A group search narrows the panel but must not change what the right-hand
+   * side is showing, so the selected group is remembered even while the search
+   * hides it from the list.
+   */
+  const lastSelected = useRef<TaxonomyDto | null>(null);
+  const inList = groups.find((item) => item.id === selectedGroupId) ?? null;
+  if (inList) lastSelected.current = inList;
+  const selectedGroup =
+    inList ?? (lastSelected.current?.id === selectedGroupId ? lastSelected.current : null);
+
+  /**
+   * The reference opens on the first group rather than on a combined view, and
+   * a group that disappears (deleted, or pointed at by a stale link) hands the
+   * selection back to the first one. Replacing rather than pushing keeps the
+   * back button on the previous screen.
+   */
+  useEffect(() => {
+    // A search shows a subset, so "the selection is not in the list" says
+    // nothing about whether the group still exists — leave it alone.
+    if (!grouped || groupsQuery.isFetching || searchingGroups) return;
+
+    // A group id belongs to one branch, so switching branches leaves a link
+    // pointing at a group this branch does not have — drop it rather than
+    // querying it and collecting a 403.
+    const stillThere = selectedGroupId && groups.some((item) => item.id === selectedGroupId);
+    if (stillThere) return;
+
+    setSearchParams(
+      (params) => {
+        if (groups.length === 0) params.delete("group");
+        else params.set("group", groups[0].id);
+        return params;
+      },
+      { replace: true },
+    );
+  }, [grouped, groups, groupsQuery.isFetching, searchingGroups, selectedGroupId, setSearchParams]);
+
+  /** A narrower result set can leave the current page past the end of the data. */
+  useEffect(() => {
+    const lastPage = Math.max(1, Math.ceil(totalCount / pageSize));
+    if (page > lastPage) setPage(lastPage);
+  }, [page, pageSize, totalCount]);
+
+  // The panel's rows are memoised, so the handlers they receive have to keep
+  // their identity between renders or the memo buys nothing.
+  const selectGroup = useCallback(
+    (id: string) => {
+      setSearchParams((params) => {
+        params.set("group", id);
+        return params;
+      });
+      setPage(1);
+      setGroupsOpen(false);
+    },
+    [setSearchParams],
+  );
+
+  const openGroupModal = useCallback((item: TaxonomyDto) => {
+    setGroupModal({ open: true, group: item });
+  }, []);
+
+  const openGroupModalForCreate = useCallback(() => {
+    setGroupModal({ open: true, group: null });
+  }, []);
+
+  const requestGroupDelete = useCallback((item: TaxonomyDto) => {
+    setPendingDelete({ kind: "group", id: item.id, name: item.name });
+  }, []);
+
+  const changeKeyword = (value: string) => {
+    setKeyword(value);
+    setPage(1);
+  };
+
+  /** The whole list in its new order, as the reorder endpoints take it. */
+  const orderedItems = <T extends { id: string }>(list: T[], from: number, to: number, base = 0) =>
+    moveItem(list, from, to).map((item, index) => ({ id: item.id, order: base + index }));
+
+  const reorderGroups = useCallback(
+    async (from: number, to: number) => {
+      try {
+        await reorderGroupsMutation.mutateAsync({
+          clinicBranchId: branchFilter,
+          group,
+          items: orderedItems(groups, from, to),
+        });
+      } catch (cause) {
+        toast.error(extractApiError(cause));
+      }
+    },
+    [branchFilter, group, groups, reorderGroupsMutation],
+  );
+
+  const reorderEntries = useCallback(
+    async (from: number, to: number) => {
+      try {
+        await reorderEntriesMutation.mutateAsync({
+          clinicBranchId: branchFilter,
+          group,
+          taxonomyId: grouped ? (selectedGroupId ?? undefined) : undefined,
+          // The page offset keeps row 1 of page 3 sorting after page 2.
+          items: orderedItems(entries, from, to, (page - 1) * pageSize),
+        });
+      } catch (cause) {
+        toast.error(extractApiError(cause));
+      }
+    },
+    [
+      branchFilter,
+      entries,
+      group,
+      grouped,
+      page,
+      pageSize,
+      reorderEntriesMutation,
+      selectedGroupId,
+    ],
+  );
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+
+    try {
+      if (pendingDelete.kind === "group") {
+        await deleteGroup.mutateAsync(pendingDelete.id);
+        toast.success(t("Đã xoá nhóm"));
+      } else {
+        await deleteEntry.mutateAsync(pendingDelete.id);
+        toast.success(t("Đã xoá"));
+      }
+    } catch (cause) {
+      toast.error(extractApiError(cause));
+    } finally {
+      setPendingDelete(null);
+    }
+  };
+
+  /**
+   * A flat catalog still stores its entries under a taxonomy row, because that
+   * is what the entry table is keyed by. The reference hides that from the
+   * user, so the container group is created on first use rather than asked for.
+   */
+  const openEntryModal = async (entry: CatalogEntryDto | null) => {
+    if (grouped || groups.length > 0 || entry) {
+      setEntryModal({ open: true, entry });
+      return;
+    }
+
+    try {
+      await createGroup.mutateAsync({
+        clinicBranchId: branchId,
+        group,
+        name: tab.label,
+        sortOrder: 0,
+      });
+      setEntryModal({ open: true, entry: null });
+    } catch (cause) {
+      toast.error(extractApiError(cause));
+    }
+  };
+
+  const handleExport = () => {
+    const columns: {
+      header: string;
+      key: keyof CatalogEntryDto;
+      format?: (v: unknown) => string;
+    }[] = [
+      { header: t("Tên {0}", tab.noun), key: "name" },
+      ...(grouped
+        ? ([{ header: t("Nhóm phân loại"), key: "taxonomyName" }] as {
+            header: string;
+            key: keyof CatalogEntryDto;
+          }[])
+        : []),
+      ...(tab.priced
+        ? ([{ header: t("Giá"), key: "price" }] as { header: string; key: keyof CatalogEntryDto }[])
+        : []),
+      {
+        header: t("Cập nhật gần nhất"),
+        key: "lastModificationTime",
+        format: (value) => formatDateTime(value as string | null),
+      },
+    ];
+
+    exportToExcel(entries, columns, `danh-muc-${tab.key}`);
+  };
+
+  /** The add/edit dialog this catalog uses — see TaxonomyTab.dialog. */
+  const entryDialogProps = {
+    open: entryModal.open,
+    entry: entryModal.entry,
+    groups,
+    defaultTaxonomyId: (grouped ? selectedGroupId : groups[0]?.id) ?? undefined,
+    onClose: () => setEntryModal({ open: false, entry: null }),
+  };
+
+  const entryDialog = {
+    service: <ServiceDialog {...entryDialogProps} />,
+    medicine: <MedicineDialog {...entryDialogProps} />,
+    rich: <RichCatalogDialog {...entryDialogProps} noun={tab.noun} />,
+    prescription: <PrescriptionTemplateDialog {...entryDialogProps} />,
+    "medical-record": <MedicalRecordTemplateDialog {...entryDialogProps} />,
+    simple: <SimpleCatalogDialog {...entryDialogProps} noun={tab.noun} />,
+  }[tab.dialog ?? "simple"];
+
+  const groupPanel = (
+    <TaxonomyGroupPanel
+      title={t("Nhóm {0}", tab.noun)}
+      subtitle={t("Chọn nhóm để xem {0} bên trong", tab.noun)}
+      groups={groups}
+      isLoading={groupsQuery.isLoading}
+      isSearching={
+        groupsQuery.isFetching && !groupsQuery.isLoading && !reorderGroupsMutation.isPending
+      }
+      keyword={groupKeyword}
+      onKeywordChange={setGroupKeyword}
+      selectedId={selectedGroupId}
+      onSelect={selectGroup}
+      onCreate={openGroupModalForCreate}
+      onRename={openGroupModal}
+      onDelete={requestGroupDelete}
+      onReorder={reorderGroups}
+    />
+  );
 
   return (
-    <div style={{ width: 260, flexShrink: 0 }}>
-      <div style={{ fontWeight: 600, fontSize: 13, color: "var(--bd-ink)", marginBottom: 2 }}>
-        {t("Nhóm phân loại")}
-      </div>
-      <div style={{ fontSize: 12, color: "var(--bd-faint)", marginBottom: 8 }}>
-        {isLoading ? t("Đang tải…") : t("{0} nhóm", groups.length)}
-      </div>
+    <div className="flex h-full">
+      {grouped && (
+        <>
+          <aside className="hidden w-[272px] shrink-0 border-r border-app-line md:block">
+            {groupPanel}
+          </aside>
 
-      <Input
-        prefix={<SearchOutlined />}
-        placeholder={t("Tìm nhóm...")}
-        value={keyword}
-        onChange={(e) => setKeyword(e.target.value)}
-        allowClear
-        style={{ marginBottom: 8 }}
+          <Sheet open={groupsOpen} onOpenChange={setGroupsOpen}>
+            <SheetContent
+              side="left"
+              // Keeps the sheet's own close button clear of the panel's record count.
+              className="w-[288px] p-0 md:hidden [&_[data-slot=group-panel-header]]:pr-10"
+            >
+              <SheetTitle className="sr-only">{t("Nhóm {0}", tab.noun)}</SheetTitle>
+              {groupPanel}
+            </SheetContent>
+          </Sheet>
+        </>
+      )}
+
+      <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-app-surface">
+        <CatalogPanelHeader
+          title={grouped ? (selectedGroup?.name ?? tab.label) : tab.label}
+          groupName={grouped ? (selectedGroup?.name ?? null) : null}
+          noun={tab.noun}
+          totalCount={totalCount}
+          keyword={keyword}
+          onKeywordChange={changeKeyword}
+          onCreate={() => void openEntryModal(null)}
+          onExport={tab.exportable === false ? null : handleExport}
+          createDisabled={isAllBranches || (grouped && groups.length === 0)}
+          exportDisabled={entries.length === 0}
+          onOpenGroups={grouped ? () => setGroupsOpen(true) : null}
+        />
+
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-3 md:p-5">
+          <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-app-line bg-white shadow-[0_2px_6px_rgba(27,42,65,0.06)]">
+            <CatalogEntryTable
+              entries={entries}
+              entityLabel={t("Tên {0}", tab.noun)}
+              priced={Boolean(tab.priced)}
+              showGroupColumn={grouped}
+              isLoading={entriesQuery.isFetching && !reorderEntriesMutation.isPending}
+              emptyText={
+                grouped && groups.length === 0
+                  ? t("Cần tạo ít nhất một nhóm phân loại trước khi thêm mục.")
+                  : debouncedKeyword
+                    ? t("Không tìm thấy kết quả phù hợp")
+                    : t("Không có dữ liệu")
+              }
+              canReorder={!debouncedKeyword && (!grouped || selectedGroupId !== null)}
+              onEdit={(entry) => setEntryModal({ open: true, entry })}
+              onDelete={(entry) =>
+                setPendingDelete({ kind: "entry", id: entry.id, name: entry.name })
+              }
+              onReorder={reorderEntries}
+            />
+
+            <TablePaginationBar
+              page={page}
+              pageSize={pageSize}
+              total={totalCount}
+              onPageChange={setPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setPage(1);
+              }}
+            />
+          </div>
+        </div>
+      </main>
+
+      {/* The reference gives each catalog its own form, so the screen picks
+          the dialog its tab names rather than bending one shared one. */}
+      {entryDialog}
+
+      <TaxonomyGroupModal
+        open={groupModal.open}
+        group={groupModal.group}
+        taxonomyGroup={group}
+        onClose={() => setGroupModal({ open: false, group: null })}
+        onCreated={(created) => selectGroup(created.id)}
       />
 
-      <button
-        type="button"
-        onClick={() => onSelect(null)}
-        style={{
-          width: "100%", textAlign: "left", border: "none", cursor: "pointer",
-          padding: "8px 10px", borderRadius: 6, marginBottom: 4,
-          background: selectedId === null ? "var(--bd-blue-pale)" : "transparent",
-          color: selectedId === null ? "var(--bd-blue)" : "var(--bd-ink)",
-          fontWeight: selectedId === null ? 600 : 400,
-        }}
-      >
-        {t("Tất cả nhóm")}
-      </button>
-
-      {filtered.map((group) => (
-        <button
-          key={group.id}
-          type="button"
-          onClick={() => onSelect(group.id)}
-          style={{
-            width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center",
-            border: "none", cursor: "pointer", padding: "8px 10px", borderRadius: 6, marginBottom: 2,
-            background: selectedId === group.id ? "var(--bd-blue-pale)" : "transparent",
-            color: selectedId === group.id ? "var(--bd-blue)" : "var(--bd-ink)",
-            fontWeight: selectedId === group.id ? 600 : 400,
-            textAlign: "left",
-          }}
-        >
-          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            {group.color && (
-              <span style={{
-                width: 8, height: 8, borderRadius: "50%",
-                background: group.color, display: "inline-block",
-              }} />
-            )}
-            {group.name}
-          </span>
-          <span style={{ fontSize: 12, color: "var(--bd-faint)" }}>{group.itemCount}</span>
-        </button>
-      ))}
-
-      <Button block icon={<PlusOutlined />} onClick={onAdd} style={{ marginTop: 8 }}>
-        {t("Thêm nhóm")}
-      </Button>
+      <ConfirmDeleteDialog
+        open={pendingDelete !== null}
+        noun={pendingDelete?.kind === "group" ? t("nhóm") : tab.noun}
+        name={pendingDelete?.name ?? ""}
+        pending={deleteGroup.isPending || deleteEntry.isPending}
+        onConfirm={() => void confirmDelete()}
+        onClose={() => setPendingDelete(null)}
+      />
     </div>
   );
 }
 
-function CatalogPanel({ tab }: { tab: TaxonomyTab }) {
-  const branchId = useCurrentBranchId();
-  const group = tab.group!;
-
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
-  const [keyword, setKeyword] = useState("");
-  const [editing, setEditing] = useState<CatalogEntryDto | null>(null);
-  const [entryModalOpen, setEntryModalOpen] = useState(false);
-  const [groupModalOpen, setGroupModalOpen] = useState(false);
-  const [newGroupName, setNewGroupName] = useState("");
-
-  const { data: groupPage, isLoading: groupsLoading, isFetching: groupsFetching } =
-    useTaxonomyGroups(branchId, group);
-  const groups = useMemo(() => groupPage?.items ?? [], [groupPage]);
-
-  const { data: entryPage, isLoading: entriesLoading } = useCatalogEntries(
-    branchId,
-    group,
-    selectedGroupId ?? undefined,
-    keyword,
-  );
-
-  const createGroup = useCreateTaxonomyGroup();
-  const deleteEntry = useDeleteCatalogEntry();
-
-  // Selecting a group that then disappears (deleted elsewhere) would show an
-  // empty table with no way back, so fall back to "all groups" — but only once
-  // the list has settled, otherwise this races a freshly created group whose
-  // refetch is still in flight and clears the selection we just made.
-  useEffect(() => {
-    if (groupsFetching) return;
-
-    if (selectedGroupId && !groups.some((g) => g.id === selectedGroupId)) {
-      setSelectedGroupId(null);
-    }
-  }, [groups, groupsFetching, selectedGroupId]);
-
-  const currentGroup = groups.find((g) => g.id === selectedGroupId);
-
-  const columns: ColumnsType<CatalogEntryDto> = [
-    { title: tab.entityLabel, dataIndex: "name", key: "name" },
-    {
-      title: t("Nhóm phân loại"),
-      dataIndex: "taxonomyName",
-      key: "taxonomyName",
-      width: 200,
-      render: (value: string | null) => value ?? "—",
-    },
-    ...(tab.priced
-      ? [{
-          title: t("Giá"),
-          dataIndex: "price",
-          key: "price",
-          width: 140,
-          align: "right" as const,
-          render: (value: number | null) => (value == null ? "—" : `${formatVND(value)} đ`),
-        }]
-      : []),
-    {
-      title: t("Trạng thái"),
-      dataIndex: "isActive",
-      key: "isActive",
-      width: 120,
-      render: (isActive: boolean) =>
-        isActive
-          ? <Tag color="green">{t("Đang dùng")}</Tag>
-          : <Tag>{t("Ngừng dùng")}</Tag>,
-    },
-    {
-      title: t("Cập nhật gần nhất"),
-      dataIndex: "lastModificationTime",
-      key: "lastModificationTime",
-      width: 150,
-      render: (value: string | null, row) => formatDate(value ?? row.creationTime),
-    },
-    {
-      title: t("Thao tác"),
-      key: "actions",
-      width: 140,
-      render: (_, row) => (
-        <>
-          <Button type="link" size="small" onClick={() => { setEditing(row); setEntryModalOpen(true); }}>
-            {t("Sửa")}
-          </Button>
-          <Popconfirm
-            title={t("Xoá mục này?")}
-            okText={t("Xoá")}
-            cancelText={t("Huỷ")}
-            onConfirm={async () => {
-              try {
-                await deleteEntry.mutateAsync(row.id);
-                message.success(t("Đã xoá"));
-              } catch (error) {
-                message.error(extractApiError(error));
-              }
-            }}
-          >
-            <Button type="link" size="small" danger>{t("Xoá")}</Button>
-          </Popconfirm>
-        </>
-      ),
-    },
-  ];
-
-  const handleCreateGroup = async () => {
-    if (!newGroupName.trim()) return;
-
-    try {
-      const created = await createGroup.mutateAsync({
-        clinicBranchId: branchId,
-        group,
-        name: newGroupName.trim(),
-      });
-      // Select the new group so the next "add item" lands where the user just
-      // created it, instead of falling back to the first group in the list.
-      setSelectedGroupId(created.id);
-      message.success(t("Đã thêm nhóm"));
-      setGroupModalOpen(false);
-      setNewGroupName("");
-    } catch (error) {
-      message.error(extractApiError(error));
-    }
-  };
+/**
+ * Two catalogs are not taxonomy-backed at all: they bring their own record
+ * shape and their own flat screen.
+ */
+function StandaloneScreen({ tab }: { tab: TaxonomyTab }) {
+  if (tab.screen === "tags") return <PatientTagPanel />;
+  if (tab.screen === "payment-method") return <PaymentAccountPanel />;
 
   return (
-    <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
-      <GroupSidebar
-        groups={groups}
-        isLoading={groupsLoading}
-        selectedId={selectedGroupId}
-        onSelect={setSelectedGroupId}
-        onAdd={() => setGroupModalOpen(true)}
-      />
-
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ fontWeight: 700, fontSize: 16, color: "var(--bd-ink)" }}>
-            {currentGroup?.name ?? tab.label}
-            <span style={{ fontWeight: 400, color: "var(--bd-faint)", fontSize: 13, marginLeft: 8 }}>
-              {t("{0} bản ghi", entryPage?.totalCount ?? 0)}
-            </span>
-          </div>
-          <div style={{ fontSize: 12, color: "var(--bd-muted)", marginBottom: 10 }}>
-            {currentGroup
-              ? t("Quản lý các mục thuộc nhóm {0}", currentGroup.name)
-              : t("Tất cả mục của danh mục {0}", tab.label.toLowerCase())}
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "space-between" }}>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              disabled={groups.length === 0}
-              onClick={() => { setEditing(null); setEntryModalOpen(true); }}
-            >
-              {t("Thêm {0}", tab.label.toLowerCase())}
-            </Button>
-            <Input
-              prefix={<SearchOutlined />}
-              placeholder={t("Tìm theo {0}...", tab.entityLabel.toLowerCase())}
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              style={{ width: 260 }}
-              allowClear
-            />
-          </div>
-
-          {groups.length === 0 && !groupsLoading && (
-            <div style={{ fontSize: 12, color: "#B45309", marginTop: 8 }}>
-              {t("Cần tạo ít nhất một nhóm phân loại trước khi thêm mục.")}
-            </div>
-          )}
-        </div>
-
-        <Table<CatalogEntryDto>
-          rowKey="id"
-          loading={entriesLoading}
-          dataSource={entryPage?.items ?? []}
-          columns={columns}
-          size="middle"
-          locale={{
-            emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("Không có dữ liệu")} />,
-          }}
-          pagination={{
-            pageSize: 20,
-            showTotal: (total, range) => t("Hiển thị {0}–{1} trên {2} bản ghi", range[0], range[1], total),
-          }}
-        />
-      </div>
-
-      <CatalogEntryModal
-        open={entryModalOpen}
-        entry={editing}
-        groups={groups}
-        defaultTaxonomyId={selectedGroupId ?? undefined}
-        priced={Boolean(tab.priced)}
-        templated={Boolean(tab.templated)}
-        entityLabel={tab.entityLabel}
-        entityNoun={tab.label}
-        onClose={() => { setEntryModalOpen(false); setEditing(null); }}
-      />
-
-      <Modal
-        open={groupModalOpen}
-        title={t("Thêm nhóm phân loại")}
-        okText={t("Thêm")}
-        cancelText={t("Huỷ")}
-        confirmLoading={createGroup.isPending}
-        onOk={handleCreateGroup}
-        onCancel={() => { setGroupModalOpen(false); setNewGroupName(""); }}
-      >
-        <Input
-          placeholder={t("Tên nhóm")}
-          value={newGroupName}
-          onChange={(e) => setNewGroupName(e.target.value)}
-          onPressEnter={handleCreateGroup}
-        />
-      </Modal>
+    <div className="flex h-full items-center justify-center bg-app-surface p-8">
+      <p className="max-w-md text-center text-[14px] text-app-label">
+        {tab.pendingNote ?? t("Chưa có dữ liệu")}
+      </p>
     </div>
   );
 }
 
 export function TaxonomyPage() {
-  const tabs = useTaxonomyTabs();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = searchParams.get("tab") ?? "service";
-  const tab = tabs.find((tb) => tb.key === activeTab) ?? tabs[0];
+  const tabs = taxonomyTabs();
+  const { section } = useParams();
+  const [searchParams] = useSearchParams();
+  const tab = findTaxonomyTab(tabs, section ?? searchParams.get("tab") ?? DEFAULT_TAXONOMY_TAB);
 
   return (
-    <div className="reception-page">
-      <PageHeader
-        title={t("Danh mục")}
-        subtitle={t("Dữ liệu nền cho dịch vụ, chẩn đoán, thuốc và nguồn khách")}
+    <div className="-m-4 flex h-[calc(100vh-var(--bd-header-height))] flex-col overflow-hidden bg-white">
+      <PageTabBar
+        label={t("Danh mục")}
+        activeKey={tab.key}
+        tabs={tabs.map((item) => ({
+          key: item.key,
+          label: item.label,
+          to: `/taxonomy/${item.key}`,
+        }))}
       />
 
-      <div className="reception-card reception-card--toolbar">
-        {/* The design switches this screen with pills, not an underline row. */}
-        <div className="pill-tabs" role="tablist">
-          {tabs.map((tb) => (
-            <button
-              key={tb.key}
-              type="button"
-              role="tab"
-              aria-selected={tb.key === tab.key}
-              className={`pill-tab${tb.key === tab.key ? " pill-tab--active" : ""}`}
-              onClick={() => setSearchParams((p) => { p.set("tab", tb.key); return p; })}
-            >
-              {tb.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="reception-card reception-card--content">
+      <div className="min-h-0 flex-1">
         {tab.group ? (
-          <CatalogPanel key={tab.key} tab={tab} />
+          <CatalogWorkspace key={tab.key} tab={tab} />
         ) : (
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={tab.pendingNote ?? t("Chưa có dữ liệu")}
-          />
+          <StandaloneScreen key={tab.key} tab={tab} />
         )}
       </div>
     </div>
