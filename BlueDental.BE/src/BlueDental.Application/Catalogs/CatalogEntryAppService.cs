@@ -327,6 +327,7 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
                     line.AmountPerTime,
                     line.Days,
                     line.Usage,
+                    line.OtherUsage,
                     index)));
         }
     }
@@ -418,6 +419,7 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
                 AmountPerTime = x.AmountPerTime,
                 Days = x.Days,
                 Usage = x.Usage,
+                OtherUsage = x.OtherUsage,
                 Quantity = x.Quantity,
                 MedicineName = medicineNames != null
                     && medicineNames.TryGetValue(x.MedicineEntryId, out var medicine)

@@ -115,6 +115,8 @@ export interface PrescriptionTemplateLineDto {
   days: number;
   /** Flags of PRESCRIPTION_USAGE. */
   usage: number;
+  /** What the user wrote for "Khác"; null unless that flag is set. */
+  otherUsage: string | null;
   /** Computed by the server. */
   quantity?: number;
   medicineName?: string | null;

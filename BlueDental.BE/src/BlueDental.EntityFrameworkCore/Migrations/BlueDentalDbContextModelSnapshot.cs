@@ -614,6 +614,10 @@ namespace BlueDental.Migrations
                     b.Property<Guid>("MedicineEntryId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("OtherUsage")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer");
 

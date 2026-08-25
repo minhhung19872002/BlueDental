@@ -13,7 +13,12 @@ import {
   message,
 } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
+import {
+  DeleteOutlined,
+  ExclamationCircleOutlined,
+  PlusOutlined,
+  SaveOutlined,
+} from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import {
   PRESCRIPTION_USAGE,
@@ -53,6 +58,7 @@ const EMPTY_LINE: Line = {
   amountPerTime: 1,
   days: 1,
   usage: 0,
+  otherUsage: null,
 };
 
 /** The six choices the reference lists, in its order. */
@@ -67,37 +73,127 @@ function usageOptions(): { flag: number; label: string }[] {
   ];
 }
 
-function usageLabel(usage: number): string {
-  const picked = usageOptions().filter((option) => (usage & option.flag) !== 0);
-  return picked.length === 0 ? t("Sử dụng") : picked.map((option) => option.label).join(", ");
+/** What one line stores for "Sử dụng": the chosen flags, plus the written-out
+ * text when "Khác" is among them. */
+interface UsageValue {
+  usage: number;
+  otherUsage: string | null;
 }
 
-/** "Sử dụng" — a multi-select, the way the reference builds it. */
-function UsagePicker({ value, onChange }: { value: number; onChange: (next: number) => void }) {
+function usageLabel({ usage, otherUsage }: UsageValue): string {
+  const picked = usageOptions()
+    .filter((option) => (usage & option.flag) !== 0)
+    .map((option) =>
+      // "Khác" reads as whatever was written for it.
+      option.flag === PRESCRIPTION_USAGE.Other && otherUsage ? otherUsage : option.label,
+    );
+
+  return picked.length === 0 ? t("Sử dụng") : picked.join(", ");
+}
+
+/**
+ * "Sử dụng" — a multi-select, the way the reference builds it.
+ *
+ * Nothing leaves this popover until "Lưu" is pressed: the boxes edit a draft,
+ * so a half-made choice never reaches the line behind it. Ticking "Khác" asks
+ * for the usage in words and will not save without it, as the reference does.
+ */
+function UsagePicker({
+  value,
+  onChange,
+}: {
+  value: UsageValue;
+  onChange: (next: UsageValue) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<UsageValue>(value);
+  const [error, setError] = useState<string | null>(null);
+
+  // Re-opening starts from what is actually stored, not from an abandoned draft.
+  const show = (next: boolean) => {
+    if (next) {
+      setDraft(value);
+      setError(null);
+    }
+    setOpen(next);
+  };
+
+  const wantsOther = (draft.usage & PRESCRIPTION_USAGE.Other) !== 0;
+
+  const commit = () => {
+    if (wantsOther && !draft.otherUsage?.trim()) {
+      setError(t("Vui lòng nhập giá trị!"));
+      return;
+    }
+
+    onChange({
+      usage: draft.usage,
+      otherUsage: wantsOther ? (draft.otherUsage?.trim() ?? null) : null,
+    });
+    setOpen(false);
+  };
+
   const content = (
     <div className="bd-usage-picker">
       {usageOptions().map((option) => {
-        const checked = (value & option.flag) !== 0;
+        const checked = (draft.usage & option.flag) !== 0;
         return (
           <Checkbox
             key={option.flag}
             checked={checked}
             onChange={(event) =>
-              onChange(event.target.checked ? value | option.flag : value & ~option.flag)
+              setDraft((current) => ({
+                ...current,
+                usage: event.target.checked
+                  ? current.usage | option.flag
+                  : current.usage & ~option.flag,
+              }))
             }
           >
             {option.label}
           </Checkbox>
         );
       })}
+
+      {wantsOther && (
+        <div className="bd-usage-other">
+          <Input
+            autoFocus
+            status={error ? "error" : undefined}
+            placeholder={t("Vui lòng nhập")}
+            aria-label={t("Cách sử dụng khác")}
+            value={draft.otherUsage ?? ""}
+            onChange={(event) => {
+              setDraft((current) => ({ ...current, otherUsage: event.target.value }));
+              if (error) setError(null);
+            }}
+            onPressEnter={commit}
+          />
+          {error && (
+            <p role="alert" className="bd-usage-error">
+              <ExclamationCircleOutlined aria-hidden="true" /> {error}
+            </p>
+          )}
+        </div>
+      )}
+
+      <div className="bd-usage-footer">
+        <Button type="primary" size="small" icon={<SaveOutlined />} onClick={commit}>
+          {t("Lưu")}
+        </Button>
+      </div>
     </div>
   );
 
   return (
-    <Popover content={content} trigger="click" placement="bottomLeft">
-      <Button className="bd-usage-trigger">
-        {usageLabel(value)}
-      </Button>
+    <Popover
+      content={content}
+      trigger="click"
+      placement="bottomLeft"
+      open={open}
+      onOpenChange={show}
+    >
+      <Button className="bd-usage-trigger">{usageLabel(value)}</Button>
     </Popover>
   );
 }
@@ -149,6 +245,7 @@ export function PrescriptionTemplateDialog({
             amountPerTime: line.amountPerTime,
             days: line.days,
             usage: line.usage,
+            otherUsage: line.otherUsage ?? null,
           }))
         : [EMPTY_LINE],
     );
@@ -294,7 +391,10 @@ export function PrescriptionTemplateDialog({
         title: t("Sử dụng"),
         width: 200,
         render: (_, line, index) => (
-          <UsagePicker value={line.usage} onChange={(next) => patch(index, { usage: next })} />
+          <UsagePicker
+            value={{ usage: line.usage, otherUsage: line.otherUsage ?? null }}
+            onChange={(next) => patch(index, next)}
+          />
         ),
       },
       {

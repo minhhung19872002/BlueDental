@@ -1,4 +1,4 @@
-using BlueDental.Appointments;
+﻿using BlueDental.Appointments;
 using BlueDental.Appointments.Values;
 using BlueDental.Billing;
 using BlueDental.Billing.Values;
@@ -895,6 +895,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.ConfigureByConvention();
             entity.Property(x => x.AmountPerTime).HasColumnType("numeric(18,2)");
             entity.Property(x => x.Usage).HasConversion<int>();
+            entity.Property(x => x.OtherUsage).HasMaxLength(200);
             entity.Ignore(x => x.Quantity);
             entity.HasIndex(x => new { x.CatalogEntryId, x.SortOrder });
         });

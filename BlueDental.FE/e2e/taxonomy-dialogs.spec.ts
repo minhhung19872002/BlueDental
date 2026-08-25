@@ -181,10 +181,19 @@ test.describe("Danh mục — dialog theo từng danh mục", () => {
     await expect(quantity).toBeDisabled();
     await expect(quantity).toHaveValue("15");
 
-    await dialog.getByRole("button", { name: /^Sử dụng$/ }).click();
+    // ── "Sử dụng" only commits on its own "Lưu" ────────────────────────────
+    const usage = dialog.getByRole("button", { name: /^Sử dụng$/ });
+    await usage.click();
     await page.getByLabel("Sau khi ăn").check();
     await page.getByLabel("Trước khi ngủ").check();
-    await page.keyboard.press("Escape");
+
+    // Ticking a box changes nothing behind the popover yet.
+    await expect(usage).toHaveText("Sử dụng");
+
+    await page.getByRole("button", { name: /Lưu$/ }).last().click();
+    await expect(dialog.getByRole("button", { name: /Sau khi ăn/ })).toContainText(
+      "Trước khi ngủ",
+    );
 
     await dialog.getByRole("button", { name: /Lưu$/ }).click();
     await expect(dialog).toBeHidden();
@@ -193,6 +202,56 @@ test.describe("Danh mục — dialog theo từng danh mục", () => {
     dialog = await reopen(page, template);
     await expect(dialog.getByLabel("Số lượng")).toHaveValue("15");
     await expect(dialog.getByRole("button", { name: /Sau khi ăn/ })).toContainText("Trước khi ngủ");
+  });
+
+  test('"Khác" asks for the usage in words, and shows it back', async ({ page }) => {
+    const id = runId();
+    const medicine = `THUOC KHAC ${id}`;
+    const template = `DON KHAC ${id}`;
+    const written = `Ngậm dưới lưỡi ${id}`;
+
+    // A prescription line picks from the thuốc catalog, so one has to exist.
+    await page.goto("/taxonomy/medicine");
+    await createGroup(page, `NHOM TK ${id}`);
+    await page.getByRole("button", { name: /Thêm loại thuốc$/ }).click();
+    let dialog = page.getByRole("dialog");
+    await dialog.getByLabel(/Tên thuốc/).fill(medicine);
+    await dialog.getByRole("button", { name: /Lưu$/ }).click();
+    await expect(dialog).toBeHidden();
+
+    // Đơn thuốc mẫu is one flat table on the reference — no group panel.
+    await page.goto("/taxonomy/prescription-template");
+    await page.getByRole("button", { name: /Thêm đơn thuốc mẫu$/ }).click();
+    dialog = page.getByRole("dialog");
+    await dialog.getByLabel(/Tên đơn thuốc mẫu/).fill(template);
+
+    await dialog.getByLabel(/Tên thuốc/).click();
+    await page.locator(".ant-select-item-option", { hasText: medicine }).click();
+
+    const usage = dialog.getByRole("button", { name: /^Sử dụng$/ });
+    await usage.click();
+    await page.getByLabel("Khác").check();
+
+    // Ticking "Khác" asks for the words, and refuses to commit without them.
+    const other = page.getByLabel("Cách sử dụng khác");
+    await expect(other).toBeVisible();
+    await page.getByRole("button", { name: /Lưu$/ }).last().click();
+    await expect(page.getByText("Vui lòng nhập giá trị!")).toBeVisible();
+    await expect(usage).toHaveText("Sử dụng");
+
+    await other.fill(written);
+    await page.getByRole("button", { name: /Lưu$/ }).last().click();
+
+    // "Khác" reads as whatever was written for it.
+    await expect(dialog.getByRole("button", { name: new RegExp(written) })).toBeVisible();
+
+    await dialog.getByRole("button", { name: /Lưu$/ }).click();
+    await expect(dialog).toBeHidden();
+
+    // The server kept it, not the page.
+    await page.reload();
+    dialog = await reopen(page, template);
+    await expect(dialog.getByRole("button", { name: new RegExp(written) })).toBeVisible();
   });
 
   test("a medical record template stores the A4 sheet it was filled in with", async ({ page }) => {

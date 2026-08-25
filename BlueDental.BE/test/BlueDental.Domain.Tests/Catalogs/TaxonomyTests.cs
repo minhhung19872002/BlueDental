@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using BlueDental.Catalogs;
 using Volo.Abp;
 using Xunit;
@@ -183,10 +183,45 @@ public class CatalogEntryTests
         var line = new PrescriptionTemplateLine(
             Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
             timesPerDay: 2, amountPerTime: 1.5m, days: 5,
-            PrescriptionUsage.AfterMeal | PrescriptionUsage.BeforeSleep, sortOrder: 0);
+            PrescriptionUsage.AfterMeal | PrescriptionUsage.BeforeSleep,
+            otherUsage: null, sortOrder: 0);
 
         Assert.Equal(15m, line.Quantity);
         Assert.True(line.Usage.HasFlag(PrescriptionUsage.BeforeSleep));
+    }
+
+    [Fact]
+    public void Should_Refuse_Khac_Without_The_Usage_Written_Out()
+    {
+        // The reference marks the box required the moment "Khác" is ticked.
+        Assert.Throws<BusinessException>(() => new PrescriptionTemplateLine(
+            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
+            timesPerDay: 1, amountPerTime: 1m, days: 1, PrescriptionUsage.Other,
+            otherUsage: "   ", sortOrder: 0));
+    }
+
+    [Fact]
+    public void Should_Drop_The_Written_Usage_When_Khac_Is_Not_Chosen()
+    {
+        var line = new PrescriptionTemplateLine(
+            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
+            timesPerDay: 1, amountPerTime: 1m, days: 1, PrescriptionUsage.AfterMeal,
+            otherUsage: "Ngậm dưới lưỡi", sortOrder: 0);
+
+        // Nothing would ever show it, so it is not kept.
+        Assert.Null(line.OtherUsage);
+    }
+
+    [Fact]
+    public void Should_Keep_The_Written_Usage_When_Khac_Is_Chosen()
+    {
+        var line = new PrescriptionTemplateLine(
+            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
+            timesPerDay: 1, amountPerTime: 1m, days: 1,
+            PrescriptionUsage.AfterMeal | PrescriptionUsage.Other,
+            otherUsage: "  Ngậm dưới lưỡi  ", sortOrder: 0);
+
+        Assert.Equal("Ngậm dưới lưỡi", line.OtherUsage);
     }
 
     [Fact]
@@ -194,7 +229,8 @@ public class CatalogEntryTests
     {
         Assert.Throws<BusinessException>(() => new PrescriptionTemplateLine(
             Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
-            timesPerDay: 0, amountPerTime: 1m, days: 1, PrescriptionUsage.None, 0));
+            timesPerDay: 0, amountPerTime: 1m, days: 1, PrescriptionUsage.None,
+            otherUsage: null, sortOrder: 0));
     }
 
     [Fact]

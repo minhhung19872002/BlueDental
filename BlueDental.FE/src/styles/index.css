@@ -4,6 +4,10 @@
    ========================================================================== */
 
 :root {
+  /* The catalog's two headers sit either side of a divide, so they share a
+     height. Two lines of subtitle: the longer catalog names wrap. */
+  --bd-catalog-header-height: 158px;
+
   --bd-font: "Google Sans", "Be Vietnam Pro", system-ui, -apple-system, sans-serif;
 
   /* Brand — navy carries the chrome, gold is the accent. */
@@ -4616,7 +4620,7 @@ html:has(.ant-modal-wrap) {
 }
 
 @media (min-width: 768px) {
-  .bd-cat-header { min-height: 134px; }
+  .bd-cat-header { min-height: var(--bd-catalog-header-height); }
 
 }
 
@@ -4782,16 +4786,15 @@ html:has(.ant-modal-wrap) {
    a fixed height: if anything in here does grow — a longer translation, a wider
    font — it has to push the list down, not sit on top of it. */
 @media (min-width: 768px) {
-  .bd-group-head { min-height: 134px; }
+  .bd-group-head { min-height: var(--bd-catalog-header-height); }
 
 }
 
 /* The subtitle names the catalog, and some of those names are long enough to
-   wrap. One line, clipped, with the whole sentence on hover. */
+   wrap onto a second line. It is shown in full — the header has room for two
+   lines, so both panes still line up across the divide. */
 .bd-group-sub {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .bd-group-headrow { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
@@ -5229,4 +5232,27 @@ html:has(.ant-modal-wrap) {
 .bd-cat-name--deleted {
   text-decoration: line-through;
   color: var(--bd-muted);
+}
+
+/* ── Đơn thuốc mẫu: the "Sử dụng" picker ─────────────────────────────────── */
+
+/* Nothing is committed until "Lưu", so the popover needs room for the written
+   usage and its own footer. */
+.bd-usage-other { margin-top: 4px; }
+
+.bd-usage-error {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #ff4d4f;
+}
+
+.bd-usage-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+  border-top: 1px solid var(--bd-line);
+  padding-top: 8px;
 }

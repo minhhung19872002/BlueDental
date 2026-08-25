@@ -155,6 +155,9 @@ public class PrescriptionTemplateLineDto
     public int Days { get; set; } = 1;
     public PrescriptionUsage Usage { get; set; }
 
+    /// <summary>What the user wrote for "Khác"; required when that flag is set.</summary>
+    public string? OtherUsage { get; set; }
+
     /// <summary>Read side only — the reference shows this box disabled.</summary>
     public decimal Quantity { get; set; }
 

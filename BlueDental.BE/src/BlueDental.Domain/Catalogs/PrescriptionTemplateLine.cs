@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Volo.Abp;
 using Volo.Abp.Domain.Entities;
 
@@ -27,6 +27,13 @@ public class PrescriptionTemplateLine : Entity<Guid>
     /// <summary>Sử dụng — a multi-choice, so several may be set at once.</summary>
     public PrescriptionUsage Usage { get; private set; }
 
+    /// <summary>
+    /// What the user wrote for "Khác". The reference asks for it as soon as
+    /// that box is ticked and refuses an empty one, so it is required exactly
+    /// when the flag is set and meaningless otherwise.
+    /// </summary>
+    public string? OtherUsage { get; private set; }
+
     public int SortOrder { get; private set; }
 
     /// <summary>
@@ -45,6 +52,7 @@ public class PrescriptionTemplateLine : Entity<Guid>
         decimal amountPerTime,
         int days,
         PrescriptionUsage usage,
+        string? otherUsage,
         int sortOrder) : base(id)
     {
         if (timesPerDay <= 0 || days <= 0 || amountPerTime <= 0m)
@@ -54,12 +62,25 @@ public class PrescriptionTemplateLine : Entity<Guid>
                 "A prescription line needs a positive dose, frequency and duration.");
         }
 
+        var wantsOther = usage.HasFlag(PrescriptionUsage.Other);
+        var written = otherUsage?.Trim();
+
+        if (wantsOther && string.IsNullOrEmpty(written))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Catalogs.InvalidPrescriptionLine,
+                "\"Khác\" needs the usage written out.");
+        }
+
         CatalogEntryId = catalogEntryId;
         MedicineEntryId = medicineEntryId;
         TimesPerDay = timesPerDay;
         AmountPerTime = amountPerTime;
         Days = days;
         Usage = usage;
+        // Dropped when "Khác" is not among the choices: keeping it would leave
+        // a value behind that nothing displays.
+        OtherUsage = wantsOther ? written : null;
         SortOrder = sortOrder;
     }
 }
