@@ -353,3 +353,12 @@ BE: 686/686 xanh. FE: 37/37 trên bản build production.
 
 BE: 689/689 (thêm 3 test domain cho quy tắc của "Khác"). FE: 38/38 trên bản build
 production.
+
+## 2026-08-25 — khối "Cấu hình giá & thuế" chồng dòng
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-92 | Hai hàng trong khối giá & thuế dính sát, nhãn đè lên hàng trên | Đo được: hàng 1 kết thúc ở **485px**, hàng 2 bắt đầu đúng **485px** — không có khe nào. Nhãn nổi nằm *trên* viền ô nên bị vẽ đè lên control của hàng trước, nhìn như chữ chồng chữ | Rule khoảng cách chỉ nhắm con **trực tiếp** của `Form` (`.app-dialog .ant-form > .ant-row`), mà hai hàng này nằm trong `.bd-dialog-section` nên không dính rule. Gutter dọc của `Row` chỉ có tác dụng giữa các item **bên trong** một Row, không phải giữa hai Row anh em | Hàng trong section tự mang `margin-bottom: 18px` (rộng hơn 12px thường dùng, vì nhãn nổi ăn lên trên viền ~8px); tiêu đề section cách hàng đầu 16px; `Segmented` nâng lên 42px cho bằng ô nhập bên cạnh | F-34 (đo lại: không còn nhãn nào đè hàng trên) |
+
+Chốt màn hình: **Danh mục coi như hoàn thiện.** Đã ghi vào `CLAUDE.md` mục 17 và
+đánh dấu trên F-31…F-34 để người sau không dựng lại.

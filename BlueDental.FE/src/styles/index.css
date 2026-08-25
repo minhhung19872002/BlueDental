@@ -5153,7 +5153,24 @@ html:has(.ant-modal-wrap) {
   color: var(--bd-ink);
 }
 
+.bd-dialog-section-head { margin-bottom: 16px; }
 .bd-dialog-section-head .bd-dialog-section-title { margin-bottom: 0; }
+
+/* Rows inside a section are siblings, so the Row's own gutter does nothing
+   between them. They need the gap themselves — and a wider one than elsewhere,
+   because a floating label sits *on* its field's top border and would
+   otherwise be drawn over the row above. */
+.bd-dialog-section .ant-row { margin-bottom: 18px; }
+.bd-dialog-section .ant-row:last-child { margin-bottom: 0; }
+
+/* The two toggles carry no label, so they line up with the boxes beside them
+   rather than sitting 2px short. */
+.bd-dialog-section .ant-segmented { height: 42px; }
+.bd-dialog-section .ant-segmented .ant-segmented-item-label {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
 
 /* A checkbox with an explanation under it, the shape these tabs repeat. */
 .bd-check-list { display: flex; flex-direction: column; gap: 12px; }
