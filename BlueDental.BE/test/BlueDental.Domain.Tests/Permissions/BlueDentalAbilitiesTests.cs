@@ -13,7 +13,9 @@ public class BlueDentalAbilitiesTests
     [Fact]
     public void Catalog_Should_Cover_Every_Observed_Subject()
     {
-        Assert.Equal(83, BlueDentalAbilities.Catalog.Count);
+        // 83 subjects observed on the reference + branchManager, which BlueDental adds.
+        Assert.Equal(84, BlueDentalAbilities.Catalog.Count);
+        Assert.True(BlueDentalAbilities.Catalog.ContainsKey(BlueDentalAbilities.Subjects.BranchManager));
     }
 
     [Fact]

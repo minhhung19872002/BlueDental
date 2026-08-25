@@ -45,6 +45,7 @@ public static class BlueDentalAbilities
     {
         public const string Account = "account";
         public const string Appointment = "appointment";
+        public const string BranchManager = "branchManager";
         public const string CatalogConsultation = "catalogConsultation";
         public const string CatalogDiagnosis = "catalogDiagnosis";
         public const string CatalogHistory = "catalogHistory";
@@ -137,6 +138,8 @@ public static class BlueDentalAbilities
     {
         ["account"] = [Actions.Read, Actions.Update],
         ["appointment"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
+        // BlueDental-local: the reference has no branchManager subject.
+        ["branchManager"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete],
         ["catalogConsultation"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
         ["catalogDiagnosis"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
         ["catalogHistory"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
@@ -208,7 +211,6 @@ public static class BlueDentalAbilities
         ["reportTransferCategory"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete],
         ["rolePermission"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete],
         ["staff"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
-        ["branchManager"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete],
         ["toolCall"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
         ["toolMessage"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
         ["treatmentConsultation"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Print],
