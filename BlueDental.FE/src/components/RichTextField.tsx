@@ -4,8 +4,9 @@ import "react-quill-new/dist/quill.snow.css";
 import { cn } from "@/lib/cn";
 
 interface Props {
-  value: string;
-  onChange: (html: string) => void;
+  /** Optional so an antd Form.Item can inject them: it controls the field. */
+  value?: string;
+  onChange?: (html: string) => void;
   placeholder?: string;
   className?: string;
 }

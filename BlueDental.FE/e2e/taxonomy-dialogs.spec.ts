@@ -60,12 +60,16 @@ test.describe("Danh mục — dialog theo từng danh mục", () => {
 
     await dialog.getByRole("tab", { name: "Công đoạn" }).click();
     await dialog.getByLabel("Tính doanh số trên công đoạn").check();
-    await dialog.getByLabel(/^Công đoạn$/).fill("Lấy dấu");
-    await dialog.getByRole("button", { name: "Công đoạn", exact: true }).click();
+    await dialog.getByLabel(/^Tên công đoạn$/).fill("Lấy dấu");
+    await dialog.getByRole("button", { name: /Công đoạn$/ }).click();
     await expect(dialog.getByRole("cell", { name: "Lấy dấu", exact: true })).toBeVisible();
 
     await dialog.getByRole("tab", { name: "Bảo hành" }).click();
-    await dialog.getByLabel("Bảo hành 1 năm").check();
+    // Radio-like: picking one clears the rest, so this is a click rather than
+    // a check — the box is controlled, and check() samples it before React has
+    // re-rendered the group.
+    await dialog.getByLabel("Bảo hành 1 năm").click();
+    await expect(dialog.getByLabel("Bảo hành 1 năm")).toBeChecked();
 
     await dialog.getByRole("button", { name: /Lưu$/ }).click();
     await expect(dialog).toBeHidden();
@@ -246,7 +250,7 @@ test.describe("Danh mục — dialog theo từng danh mục", () => {
     expect(layout.wrapped, "the handover column is too narrow and its headings wrap").toBe(0);
     await expect(dialog.getByText("ĐẠI DIỆN CƠ SỞ KHÁM CHỮA BỆNH")).toBeVisible();
 
-    await dialog.getByLabel(/Nhập tên mẫu bệnh án/).fill(name);
+    await dialog.getByLabel(/Tiêu đề bệnh án/).fill(name);
     await dialog.getByLabel("Nhập lý do vào viện...").fill("Đau răng số 36");
     await dialog.getByLabel("Nhập khám toàn thân...").fill("Thể trạng bình thường");
     // A cell on each of the other two pages, so all three are wired up.

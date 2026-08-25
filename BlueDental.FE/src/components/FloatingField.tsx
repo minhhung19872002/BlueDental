@@ -54,7 +54,9 @@ export function FloatingField({ label, children, className, ...rest }: FloatingF
       <Form.Item {...rest} label={undefined} className={className}>
         {child}
       </Form.Item>
-      <label htmlFor={id} className="floating-field-label" aria-hidden>
+      {/* Not aria-hidden: Form.Item renders no label of its own here, so this
+          is the field's only name — hiding it leaves an unlabelled control. */}
+      <label htmlFor={id} className="floating-field-label">
         {label}
         {rest.required && <span className="floating-field-required">*</span>}
       </label>

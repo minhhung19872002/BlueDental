@@ -4209,36 +4209,9 @@ html:has(.ant-modal-wrap) {
   color: rgba(0, 0, 0, 0.72);
 }
 
-.bd-field-required {
-  margin-left: 2px;
-  color: #ff4d4f;
-}
-
-.bd-field-error {
-  margin: 4px 0 0;
-  font-size: 12px;
-  color: #ff4d4f;
-}
-
 /* The dialog footer carries a single button, so it needs no top gap of its own. */
 .app-dialog .ant-modal-footer {
   margin-top: 16px;
-}
-
-.bd-dialog-grid {
-  display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.bd-dialog-grid--three {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.bd-dialog-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
 }
 
 .bd-dialog-row {
@@ -4500,33 +4473,17 @@ html:has(.ant-modal-wrap) {
 
 .bd-min0h { min-height: 0; }
 
-.bd-min140 { min-width: 140px; }
-
-.bd-min180 { min-width: 180px; }
-
-.bd-min280 { min-width: 280px; }
-
 .bd-flex1 { flex: 1; }
 
 .bd-rel { position: relative; }
 
-.bd-w56 { width: 56px; }
-
-.bd-w80 { width: 80px; }
-
 .bd-w160 { width: 160px; }
-
-.bd-mt05 { margin-top: 2px; }
 
 .bd-mt2 { margin-top: 8px; }
 
 .bd-mt3 { margin-top: 12px; }
 
-.bd-pt4 { padding-top: 16px; }
-
 .bd-text-left { text-align: left; }
-
-.bd-text-center { text-align: center; }
 
 .bd-semibold { font-weight: 600; }
 
@@ -4544,21 +4501,9 @@ html:has(.ant-modal-wrap) {
 
 .bd-error-text { margin: 0; font-size: 12px; color: #ff4d4f; }
 
-.bd-check-label { cursor: pointer; font-size: 14px; color: var(--bd-ink); }
-
 .bd-row-end { display: flex; justify-content: flex-end; }
 
-.bd-row-end-items { display: flex; align-items: flex-end; gap: 8px; }
-
-.bd-row-start-items { display: flex; align-items: flex-start; gap: 8px; }
-
 .bd-center-pad { display: flex; justify-content: center; padding-block: 40px; }
-
-.bd-section { border-top: 1px solid var(--bd-line); padding-top: 16px; }
-
-.bd-section-title { font-size: 16px; font-weight: 700; color: var(--bd-ink); }
-
-.bd-dialog-stack--tight { gap: 8px; }
 
 @media (min-width: 640px) {
   .bd-hide-sm { display: none; }
@@ -4748,14 +4693,6 @@ html:has(.ant-modal-wrap) {
 
 .bd-cat-rowactions { display: flex; align-items: center; justify-content: center; gap: 2px; }
 
-.bd-cat-tablebox {
-  overflow-x: auto;
-  border: 1px solid var(--bd-line);
-  border-radius: 8px;
-}
-
-.bd-cat-footline { border-top: 1px solid var(--bd-line); }
-
 /* ── Table cell contents ─────────────────────────────────────────────────── */
 .bd-cat-inline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 
@@ -4777,8 +4714,6 @@ html:has(.ant-modal-wrap) {
 .bd-cat-subtle { font-size: 12px; color: var(--bd-muted); }
 
 .bd-cat-filename { font-size: 13px; color: var(--bd-ink); }
-
-.bd-cat-strong { font-size: 14px; font-weight: 600; color: var(--bd-ink); }
 
 .bd-cat-medium { font-weight: 500; color: var(--bd-ink); }
 
@@ -4848,6 +4783,7 @@ html:has(.ant-modal-wrap) {
    font — it has to push the list down, not sit on top of it. */
 @media (min-width: 768px) {
   .bd-group-head { min-height: 134px; }
+
 }
 
 /* The subtitle names the catalog, and some of those names are long enough to
@@ -4910,29 +4846,6 @@ html:has(.ant-modal-wrap) {
 .bd-group-menu-trigger:hover { background: var(--bd-blue-pale); color: var(--bd-blue); }
 
 .bd-group-drawer .bd-group-panel { height: 100%; }
-
-/* ── Bảng giá dịch vụ: the stage and warranty tables inside the dialog ───── */
-.bd-svc-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--bd-line); }
-
-.bd-svc-tab { height: 44px; gap: 4px; }
-
-.bd-svc-th { padding: 8px 12px; font-weight: 500; }
-
-.bd-svc-td { padding: 8px 12px; }
-
-.bd-svc-empty { padding: 24px 12px; text-align: center; color: var(--bd-muted); }
-
-.bd-plain-input {
-  height: 36px;
-  width: 100%;
-  border: 1px solid var(--bd-line);
-  border-radius: 6px;
-  padding-inline: 8px;
-  font-size: 14px;
-  outline: none;
-}
-
-.bd-plain-input:focus { border-color: var(--bd-blue); }
 
 /* ── Đơn thuốc mẫu: the "Sử dụng" multi-select ──────────────────────────── */
 .bd-usage-picker { display: flex; flex-direction: column; gap: 6px; min-width: 200px; }
@@ -5031,19 +4944,6 @@ html:has(.ant-modal-wrap) {
 /* ── Bệnh án mẫu: the zoom control above the sheet ──────────────────────── */
 .bd-zoom { display: flex; align-items: center; gap: 4px; font-size: 13px; color: var(--bd-muted); }
 
-.bd-zoom-btn {
-  height: 32px;
-  cursor: pointer;
-  border: 1px solid var(--bd-line);
-  border-radius: 6px;
-  background: none;
-  padding-inline: 12px;
-  font-size: 13px;
-  color: var(--bd-muted);
-}
-
-.bd-zoom-btn:hover { background: var(--bd-bg); }
-
 .bd-zoom-value { width: 48px; text-align: center; font-size: 13px; color: var(--bd-ink); }
 
 /* Matches the shading the sheet gives every fillable cell, so the legend and
@@ -5109,25 +5009,6 @@ html:has(.ant-modal-wrap) {
 .bd-tag-color:hover { transform: scale(1.1); }
 
 .bd-tag-color--picked { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--bd-ink); }
-
-/* Bảng giá dịch vụ: the dialog's own tab strip. */
-.bd-svc-tabbtn {
-  cursor: pointer;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  background: none;
-  padding: 8px 16px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--bd-muted);
-  transition: color 150ms, border-color 150ms;
-}
-
-.bd-svc-tabbtn:hover { color: var(--bd-ink); }
-
-.bd-svc-tabbtn--on { border-bottom-color: var(--bd-blue); color: var(--bd-blue); }
-
-.bd-cat-thead { background: var(--bd-bg); text-align: left; color: var(--bd-muted); }
 
 /* The MoMo/Bank switch sits full-width on a phone and shrinks to its content
    from the tablet breakpoint up, as the reference lays it out. */
@@ -5220,6 +5101,7 @@ html:has(.ant-modal-wrap) {
 }
 
 .bd-group-searchrow .ant-input-affix-wrapper { flex: 1; min-width: 0; }
+
 .bd-group-searchrow .ant-btn { width: 40px; height: 40px; flex-shrink: 0; }
 
 /* The card owns the height; the table fills it and scrolls inside, with the
@@ -5262,13 +5144,71 @@ html:has(.ant-modal-wrap) {
 /* The grip column is a drag handle, not a cell of text. */
 .bd-cat-card .ant-table-cell .bd-grip { display: inline-flex; }
 
-/* Bảng giá dịch vụ and Đơn thuốc mẫu draw small tables of their own inside a
-   dialog — plain markup, not a data grid, so they keep their own rules. */
-.bd-cat-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
+/* ── Danh mục: what the dialogs still ask for on top of Ant Design ───────── */
+
+.bd-mb2 { margin-bottom: 8px; }
+
+/* A titled block inside a dialog — "Cấu hình giá & thuế" and friends. */
+.bd-dialog-section {
+  margin-block: 8px 16px;
+  border-top: 1px solid var(--bd-line);
+  padding-top: 16px;
+}
+
+/* The heading and the control that belongs to it sit together, the way the
+   reference pairs "Cấu hình giá & thuế" with its tax rate. */
+.bd-dialog-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 4px;
+}
+
+.bd-dialog-section-title {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--bd-ink);
+}
+
+.bd-dialog-section-head .bd-dialog-section-title { margin-bottom: 0; }
+
+/* A checkbox with an explanation under it, the shape these tabs repeat. */
+.bd-check-list { display: flex; flex-direction: column; gap: 12px; }
+.bd-check-row { display: flex; flex-direction: column; gap: 2px; }
+
+.bd-check-hint {
+  margin: 0 0 0 24px;
+  font-size: 12px;
+  color: var(--bd-muted);
+}
+
+/* The small editable tables inside a dialog: line items, service stages. */
+.bd-line-table .ant-table { font-size: 13px; }
+.bd-line-table .ant-table-cell { padding: 6px 8px !important; }
+
+.bd-dialog-tabs .ant-tabs-nav { margin-bottom: 16px; }
+
+/* A field the server fills in after a save reads as text, not as a box the
+   user could type into. */
+.bd-dialog-section .ant-input[readonly] {
+  background: var(--bd-bg);
+  color: var(--bd-muted);
+}
+
+/* The rich-text editor carries no styling of its own, so it needs a frame that
+   matches the inputs beside it. */
+.bd-rich-text .ql-toolbar {
+  border-color: var(--bd-line);
+  border-radius: 8px 8px 0 0;
+}
+
+.bd-rich-text .ql-container {
+  border-color: var(--bd-line);
+  border-radius: 0 0 8px 8px;
+  font-family: inherit;
   font-size: 14px;
 }
 
-.bd-cat-table--wider { min-width: 860px; }
+.bd-rich-text .ql-editor { min-height: 140px; }

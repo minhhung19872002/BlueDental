@@ -1,10 +1,10 @@
-import { message } from "antd";
-import { useEffect, useState } from "react";
-import { Pipette } from "lucide-react";
+import { Form, Input, message } from "antd";
+import { useEffect } from "react";
+import { BgColorsOutlined } from "@ant-design/icons";
 import { useCreatePatientTag, useUpdatePatientTag, type PatientTagDto } from "../api/patientTagApi";
 import { cn } from "@/lib/cn";
 import { AppDialog } from "@/components/AppDialog";
-import { LabeledField } from "@/components/LabeledField";
+import { FloatingField } from "@/components/FloatingField";
 import { extractApiError } from "@/lib/apiError";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
@@ -23,6 +23,11 @@ const PRESET_COLORS = [
 
 const DEFAULT_COLOR = "#3B82F6";
 
+interface FormValues {
+  name: string;
+  color: string;
+}
+
 interface Props {
   open: boolean;
   tag: PatientTagDto | null;
@@ -34,25 +39,19 @@ export function PatientTagModal({ open, tag, onClose }: Props) {
   const createTag = useCreatePatientTag();
   const updateTag = useUpdatePatientTag();
 
-  const [name, setName] = useState("");
-  const [color, setColor] = useState<string>(DEFAULT_COLOR);
-  const [error, setError] = useState<string | null>(null);
+  const [form] = Form.useForm<FormValues>();
+  const name = Form.useWatch("name", form) ?? "";
+  const color = Form.useWatch("color", form) ?? DEFAULT_COLOR;
 
   useEffect(() => {
     if (!open) return;
-    setName(tag?.name ?? "");
-    setColor(tag?.color ?? DEFAULT_COLOR);
-    setError(null);
-  }, [open, tag]);
+    form.setFieldsValue({ name: tag?.name ?? "", color: tag?.color ?? DEFAULT_COLOR });
+  }, [open, tag, form]);
 
   const pending = createTag.isPending || updateTag.isPending;
 
-  const submit = async () => {
-    const trimmed = name.trim();
-    if (!trimmed) {
-      setError(t("Vui lòng nhập tên thẻ hồ sơ"));
-      return;
-    }
+  const submit = async (values: FormValues) => {
+    const trimmed = values.name.trim();
 
     try {
       if (tag) {
@@ -60,14 +59,18 @@ export function PatientTagModal({ open, tag, onClose }: Props) {
           id: tag.id,
           input: {
             name: trimmed,
-            color,
+            color: values.color,
             description: tag.description ?? undefined,
             isActive: tag.isActive,
           },
         });
         message.success(t("Đã cập nhật thẻ hồ sơ"));
       } else {
-        await createTag.mutateAsync({ clinicBranchId: branchId, name: trimmed, color });
+        await createTag.mutateAsync({
+          clinicBranchId: branchId,
+          name: trimmed,
+          color: values.color,
+        });
         message.success(t("Đã thêm thẻ hồ sơ"));
       }
       onClose();
@@ -82,28 +85,33 @@ export function PatientTagModal({ open, tag, onClose }: Props) {
       title={tag ? t("Cập nhật thẻ hồ sơ") : t("Thêm thẻ hồ sơ mới")}
       canSave={name.trim().length > 0}
       saving={pending}
-      onSave={() => void submit()}
+      onSave={() => form.submit()}
       onClose={onClose}
     >
-      <div className="bd-dialog-stack">
-        <LabeledField
-          id="tag-name"
+      <Form
+        form={form}
+        layout="vertical"
+        requiredMark={false}
+        initialValues={{ name: "", color: DEFAULT_COLOR }}
+        onFinish={(values) => void submit(values)}
+      >
+        <FloatingField
+          name="name"
           label={t("Tên thẻ hồ sơ")}
           required
-          autoFocus
-          value={name}
-          error={error ?? undefined}
-          onChange={(next) => {
-            setName(next);
-            if (error) setError(null);
-          }}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") void submit();
-          }}
-        />
+          rules={[{ required: true, message: t("Vui lòng nhập tên thẻ hồ sơ") }]}
+        >
+          <Input autoFocus />
+        </FloatingField>
 
-        <fieldset className="bd-dialog-stack bd-dialog-stack--tight">
-          <legend className="bd-cat-strong">{t("Màu")}</legend>
+        {/* The colour is picked, not typed, so the field holds it rather than
+            rendering a control of its own. */}
+        <Form.Item name="color" hidden>
+          <Input />
+        </Form.Item>
+
+        <div className="bd-dialog-section">
+          <p className="bd-dialog-section-title">{t("Màu")}</p>
           <div className="bd-cat-inline">
             {PRESET_COLORS.map((preset) => (
               <button
@@ -111,7 +119,7 @@ export function PatientTagModal({ open, tag, onClose }: Props) {
                 type="button"
                 aria-label={t("Chọn màu {0}", preset)}
                 aria-pressed={color.toUpperCase() === preset}
-                onClick={() => setColor(preset)}
+                onClick={() => form.setFieldValue("color", preset)}
                 style={{ backgroundColor: preset }}
                 className={cn(
                   "bd-tag-color",
@@ -121,33 +129,29 @@ export function PatientTagModal({ open, tag, onClose }: Props) {
             ))}
 
             <div className="bd-rel">
-              <span
-                aria-hidden="true"
-                className="bd-tag-swatch"
-              >
-                <Pipette className="bd-icon" />
+              <span aria-hidden="true" className="bd-tag-swatch">
+                <BgColorsOutlined />
               </span>
               <input
                 type="color"
                 aria-label={t("Chọn màu tuỳ chỉnh")}
                 value={color}
-                onChange={(event) => setColor(event.target.value.toUpperCase())}
+                onChange={(event) =>
+                  form.setFieldValue("color", event.target.value.toUpperCase())
+                }
                 className="bd-color-input"
               />
             </div>
           </div>
-        </fieldset>
+        </div>
 
         <div className="bd-tag-preview">
           <p className="bd-cat-hint">{t("Xem trước")}</p>
-          <span
-            style={{ backgroundColor: color }}
-            className="bd-tag-chip"
-          >
+          <span style={{ backgroundColor: color }} className="bd-tag-chip">
             {name.trim() || t("Khách hàng mới")}
           </span>
         </div>
-      </div>
+      </Form>
     </AppDialog>
   );
 }

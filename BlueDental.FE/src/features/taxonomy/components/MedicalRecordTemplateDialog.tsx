@@ -1,6 +1,6 @@
-import { message } from "antd";
+import { Button, Col, Form, Input, InputNumber, Row, Space, message } from "antd";
 import { useEffect, useRef, useState } from "react";
-import { Minus, Plus } from "lucide-react";
+import { MinusOutlined, PlusOutlined } from "@ant-design/icons";
 import {
   useCreateCatalogEntry,
   useUpdateCatalogEntry,
@@ -9,10 +9,15 @@ import {
 } from "../api/taxonomyApi";
 import { MedicalRecordSheet, type MedicalRecordFields } from "./MedicalRecordSheet";
 import { AppDialog } from "@/components/AppDialog";
-import { LabeledField } from "@/components/LabeledField";
+import { FloatingField } from "@/components/FloatingField";
 import { extractApiError } from "@/lib/apiError";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
+
+interface FormValues {
+  name: string;
+  priority: number;
+}
 
 interface Props {
   open: boolean;
@@ -56,20 +61,17 @@ export function MedicalRecordTemplateDialog({
   const createEntry = useCreateCatalogEntry();
   const updateEntry = useUpdateCatalogEntry();
 
-  const [name, setName] = useState("");
+  const [form] = Form.useForm<FormValues>();
+  const name = Form.useWatch("name", form) ?? "";
   const [fields, setFields] = useState<MedicalRecordFields>({});
-  const [priority, setPriority] = useState("0");
   const [zoom, setZoom] = useState(0.9);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
-    setName(entry?.name ?? "");
+    form.setFieldsValue({ name: entry?.name ?? "", priority: entry?.sortOrder ?? 0 });
     setFields(parseFields(entry?.content ?? null));
-    setPriority(String(entry?.sortOrder ?? 0));
     setZoom(0.9);
-    setError(null);
-  }, [open, entry]);
+  }, [open, entry, form]);
 
   const pending = createEntry.isPending || updateEntry.isPending;
 
@@ -78,19 +80,15 @@ export function MedicalRecordTemplateDialog({
   const defaults = useRef({ defaultTaxonomyId, groups });
   defaults.current = { defaultTaxonomyId, groups };
 
-  const submit = async () => {
-    const trimmed = name.trim();
-    if (!trimmed) {
-      setError(t("Vui lòng nhập tên mẫu bệnh án"));
-      return;
-    }
+  const submit = async (values: FormValues) => {
+    const trimmed = values.name.trim();
 
     const taxonomy =
       entry?.taxonomyId ??
       defaults.current.defaultTaxonomyId ??
       defaults.current.groups[0]?.id ??
       "";
-    const sortOrder = Number.parseInt(priority, 10) || 0;
+    const sortOrder = Number(values.priority) || 0;
     const content = JSON.stringify(fields);
 
     try {
@@ -123,9 +121,6 @@ export function MedicalRecordTemplateDialog({
     }
   };
 
-  const zoomButton =
-    "flex size-8 cursor-pointer items-center justify-center rounded-md border border-app-line text-app-label outline-none hover:bg-app-surface focus-visible:ring-2 focus-visible:ring-app-primary/40";
-
   return (
     <AppDialog
       open={open}
@@ -133,79 +128,62 @@ export function MedicalRecordTemplateDialog({
       width={1040}
       canSave={name.trim().length > 0}
       saving={pending}
-      onSave={() => void submit()}
+      onSave={() => form.submit()}
       onClose={onClose}
     >
-      <div className="bd-dialog-stack">
-        <div className="bd-cat-inline">
-          <span className="bd-cat-strong">{t("Tiêu đề bệnh án:")}</span>
-          <LabeledField
-            id="medical-record-name"
-            label={t("Nhập tên mẫu bệnh án...")}
-            required
-            autoFocus
-            value={name}
-            error={error ?? undefined}
-            onChange={(next) => {
-              setName(next);
-              if (error) setError(null);
-            }}
-            className="bd-flex1 bd-min280"
-          />
-        </div>
+      <Form
+        form={form}
+        layout="vertical"
+        requiredMark={false}
+        initialValues={{ name: "", priority: 0 }}
+        onFinish={(values) => void submit(values)}
+      >
+        <Row gutter={[16, 0]}>
+          <Col span={16}>
+            <FloatingField
+              name="name"
+              label={t("Tiêu đề bệnh án")}
+              required
+              rules={[{ required: true, message: t("Vui lòng nhập tên mẫu bệnh án") }]}
+            >
+              <Input autoFocus />
+            </FloatingField>
+          </Col>
+          <Col span={8}>
+            <FloatingField name="priority" label={t("Mức độ ưu tiên")}>
+              <InputNumber min={0} style={{ width: "100%" }} />
+            </FloatingField>
+          </Col>
+        </Row>
 
-        <div className="bd-cat-headrow">
+        <div className="bd-cat-headrow bd-mb2">
           <p className="bd-zoom">
             {/* The reference marks "nền vàng" with a sample of the shading it
                 is talking about. */}
             <span aria-hidden="true">💡</span>
             {t("Nhấp vào các ô")}
-            <span className="bd-a4-swatch">
-              {t("nền vàng")}
-            </span>
+            <span className="bd-a4-swatch">{t("nền vàng")}</span>
             {t("để chỉnh sửa trực tiếp trên bệnh án")}
           </p>
-          <div className="bd-cat-inline2">
-            <button
-              type="button"
+          <Space.Compact>
+            <Button
+              icon={<MinusOutlined />}
               aria-label={t("Thu nhỏ")}
               onClick={() => setZoom((current) => Math.max(MIN_ZOOM, current - ZOOM_STEP))}
-              className={zoomButton}
-            >
-              <Minus className="bd-icon" aria-hidden="true" />
-            </button>
-            <span className="bd-zoom-value">
+            />
+            <Button className="bd-zoom-value" onClick={() => setZoom(0.9)}>
               {Math.round(zoom * 100)}%
-            </span>
-            <button
-              type="button"
-              onClick={() => setZoom(0.9)}
-              className="bd-zoom-btn"
-            >
-              {t("Fit")}
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              icon={<PlusOutlined />}
               aria-label={t("Phóng to")}
               onClick={() => setZoom((current) => Math.min(MAX_ZOOM, current + ZOOM_STEP))}
-              className={zoomButton}
-            >
-              <Plus className="bd-icon" aria-hidden="true" />
-            </button>
-          </div>
+            />
+          </Space.Compact>
         </div>
 
         <MedicalRecordSheet value={fields} onChange={setFields} zoom={zoom} />
-
-        <LabeledField
-          id="medical-record-priority"
-          label={t("Mức độ ưu tiên")}
-          type="number"
-          min={0}
-          value={priority}
-          onChange={setPriority}
-        />
-      </div>
+      </Form>
     </AppDialog>
   );
 }

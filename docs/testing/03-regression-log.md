@@ -277,3 +277,33 @@ thuộc phạm vi lần này. Ưu tiên dùng lại component sẵn có nên **g
 Đo lại trên cả 8 tab có panel nhóm: header **135px** (bản gốc 134), không tràn,
 không đè. Reset này cũng trả lại khoảng cách đúng cho tờ A4 — các `<p>` in sẵn
 trong đó cũng đang cõng lề mặc định kể từ lúc Tailwind bị gỡ.
+
+## 2026-08-25 — dialog Danh mục dùng đúng form của app
+
+Các dialog vẫn tự dựng field riêng trong khi app đã có sẵn `FloatingField` —
+đúng thứ dialog "Thêm nhân viên" đang dùng. Nay tất cả chạy trên antd `Form` +
+`FloatingField`, và những chỗ dựng tay còn lại (bảng dòng thuốc, bảng công đoạn,
+tab, nút zoom) chuyển sang `Table`, `Tabs`, `Button`.
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-82 | Dialog Danh mục không dùng field của app | Nhãn nằm **trên** ô nhập, trong khi mọi dialog khác của app nhãn nổi **trên viền** — hai lối trình bày trong cùng một sản phẩm | `LabeledField`/`FloatingSelect` ra đời vì các dialog này giữ state React riêng, còn `FloatingField` cần một antd `Form` | Mỗi dialog có `Form` của mình; `LabeledField` và `FloatingSelect` không còn ai dùng nên xoá | F-31…F-34 |
+| R-83 | Dòng thuốc trong đơn thuốc mẫu có nhãn thừa trong ô | Cột đã tên là "Tên thuốc" rồi mà trong ô lại in "Tên thuốc *" một lần nữa, đẩy lệch cả hàng | Cell dùng `FloatingSelect`, mà component đó luôn tự vẽ nhãn | Bảng dựng bằng antd `Table`; trong cell chỉ còn control trần, tên cột lo phần đặt tên | F-34 |
+| R-84 | Bệnh án mẫu có hai nhãn cho một ô | "Tiêu đề bệnh án:" nằm bên trái, "Nhập tên mẫu bệnh án... *" nằm trên — cùng trỏ vào một input | Một `<span>` dựng tay đặt cạnh một `LabeledField` vốn đã có nhãn | Một `FloatingField` duy nhất, nhãn "Tiêu đề bệnh án" | F-34 |
+| R-85 | Mọi field dựng trên `FloatingField` đều **không có tên** với trình đọc màn hình | `<label for>` bị đánh `aria-hidden`, mà `Form.Item` thì không vẽ nhãn nào khác — nên input không có accessible name nào cả. Ảnh hưởng cả dialog Nhân viên của `main` | `aria-hidden` có lẽ thêm vào để tránh đọc trùng, nhưng ở đây không có gì trùng để tránh | Bỏ `aria-hidden` | F-31…F-34, và `getByLabel` trong mọi test |
+
+### Ghi nhận: 5 test đỏ sẵn, không phải do lần này
+
+`staff`, `sidebar-navigation` và `reception` có 5 test đỏ. Đã kiểm chứng bằng
+cách `git stash` toàn bộ thay đổi rồi chạy lại trên cây trước khi sửa: **vẫn đúng
+5 test đó đỏ**. Nguyên nhân nằm ngoài phạm vi lần này — `/app/visits` trả 500,
+selector `.sidebar-nav-item[aria-label=…]` không khớp markup sidebar hiện tại, và
+`getByPlaceholder("Họ và tên")` không thể khớp vì `FloatingField` luôn ghi đè
+placeholder thành `" "`.
+
+### Selector đổi theo antd
+
+- `check()` không dùng được cho nhóm checkbox kiểu radio (chọn cái này thì cái kia
+  tắt): nó đọc `input.checked` ngay sau cú click, trước khi React kịp render lại
+  nhóm. Dùng `click()` rồi `toBeChecked()`.
+- Nút mang icon thì accessible name có tiền tố, kể cả nút "Công đoạn" trong dialog.

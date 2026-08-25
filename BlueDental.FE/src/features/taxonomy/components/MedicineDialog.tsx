@@ -1,5 +1,5 @@
-import { message } from "antd";
-import { useEffect, useRef, useState } from "react";
+import { Col, Form, Input, InputNumber, Row, Select, message } from "antd";
+import { useEffect, useRef } from "react";
 import {
   useCreateCatalogEntry,
   useUpdateCatalogEntry,
@@ -7,8 +7,7 @@ import {
   type TaxonomyDto,
 } from "../api/taxonomyApi";
 import { AppDialog } from "@/components/AppDialog";
-import { LabeledField } from "@/components/LabeledField";
-import { FloatingSelect } from "@/components/FloatingSelect";
+import { FloatingField } from "@/components/FloatingField";
 import { extractApiError } from "@/lib/apiError";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
@@ -21,10 +20,34 @@ interface Props {
   onClose: () => void;
 }
 
-const number = (value: string) => {
-  const parsed = Number.parseFloat(value.replace(/[^\d.-]/g, ""));
-  return Number.isNaN(parsed) ? 0 : parsed;
+interface FormValues {
+  name: string;
+  taxonomyId: string;
+  activeIngredient: string;
+  usage: string;
+  purchasePrice: number | null;
+  salePrice: number | null;
+  prescriptionCode: string;
+  usageNote: string;
+  unit: string;
+  priority: number;
+}
+
+const EMPTY: FormValues = {
+  name: "",
+  taxonomyId: "",
+  activeIngredient: "",
+  usage: "",
+  purchasePrice: 0,
+  salePrice: null,
+  prescriptionCode: "",
+  usageNote: "",
+  unit: "",
+  priority: 0,
 };
+
+/** Blank text fields are stored as null, not as an empty string. */
+const orNull = (value: string | undefined) => value?.trim() || null;
 
 /**
  * Loại thuốc. The reference asks for seven fields here and — alone among the
@@ -35,17 +58,9 @@ export function MedicineDialog({ open, entry, groups, defaultTaxonomyId, onClose
   const createEntry = useCreateCatalogEntry();
   const updateEntry = useUpdateCatalogEntry();
 
-  const [name, setName] = useState("");
-  const [taxonomyId, setTaxonomyId] = useState("");
-  const [activeIngredient, setActiveIngredient] = useState("");
-  const [usage, setUsage] = useState("");
-  const [purchasePrice, setPurchasePrice] = useState("0");
-  const [salePrice, setSalePrice] = useState("");
-  const [prescriptionCode, setPrescriptionCode] = useState("");
-  const [usageNote, setUsageNote] = useState("");
-  const [unit, setUnit] = useState("");
-  const [priority, setPriority] = useState("0");
-  const [error, setError] = useState<string | null>(null);
+  const [form] = Form.useForm<FormValues>();
+  const name = Form.useWatch("name", form) ?? "";
+  const taxonomyId = Form.useWatch("taxonomyId", form) ?? "";
 
   // React Query hands back a new array on every refetch, so these are read
   // through a ref: a refetch landing while the dialog is open must not reset
@@ -56,49 +71,46 @@ export function MedicineDialog({ open, entry, groups, defaultTaxonomyId, onClose
   useEffect(() => {
     if (!open) return;
     const fallback = defaults.current.defaultTaxonomyId ?? defaults.current.groups[0]?.id ?? "";
-    setName(entry?.name ?? "");
-    setTaxonomyId(entry?.taxonomyId ?? fallback);
-    setActiveIngredient(entry?.medicine?.activeIngredient ?? "");
-    setUsage(entry?.medicine?.usage ?? "");
-    setPurchasePrice(String(entry?.medicine?.purchasePrice ?? 0));
-    setSalePrice(entry?.price == null ? "" : String(entry.price));
-    setPrescriptionCode(entry?.medicine?.prescriptionCode ?? "");
-    setUsageNote(entry?.medicine?.usageNote ?? "");
-    setUnit(entry?.unit ?? "");
-    setPriority(String(entry?.sortOrder ?? 0));
-    setError(null);
-  }, [open, entry]);
+    form.setFieldsValue({
+      name: entry?.name ?? "",
+      taxonomyId: entry?.taxonomyId ?? fallback,
+      activeIngredient: entry?.medicine?.activeIngredient ?? "",
+      usage: entry?.medicine?.usage ?? "",
+      purchasePrice: entry?.medicine?.purchasePrice ?? 0,
+      salePrice: entry?.price ?? null,
+      prescriptionCode: entry?.medicine?.prescriptionCode ?? "",
+      usageNote: entry?.medicine?.usageNote ?? "",
+      unit: entry?.unit ?? "",
+      priority: entry?.sortOrder ?? 0,
+    });
+  }, [open, entry, form]);
 
   const pending = createEntry.isPending || updateEntry.isPending;
 
-  const submit = async () => {
-    const trimmed = name.trim();
-    if (!trimmed) {
-      setError(t("Vui lòng nhập tên thuốc"));
-      return;
-    }
+  const submit = async (values: FormValues) => {
+    const trimmed = values.name.trim();
 
     const medicine = {
-      activeIngredient: activeIngredient.trim() || null,
-      usage: usage.trim() || null,
-      purchasePrice: number(purchasePrice),
-      prescriptionCode: prescriptionCode.trim() || null,
-      usageNote: usageNote.trim() || null,
+      activeIngredient: orNull(values.activeIngredient),
+      usage: orNull(values.usage),
+      purchasePrice: Number(values.purchasePrice ?? 0),
+      prescriptionCode: orNull(values.prescriptionCode),
+      usageNote: orNull(values.usageNote),
     };
     // The entry's own price is the selling price everything else quotes from.
-    const price = salePrice.trim() === "" ? null : number(salePrice);
-    const sortOrder = Number.parseInt(priority, 10) || 0;
+    const price = values.salePrice == null ? null : Number(values.salePrice);
+    const sortOrder = Number(values.priority) || 0;
 
     try {
       if (entry) {
         await updateEntry.mutateAsync({
           id: entry.id,
           input: {
-            taxonomyId,
+            taxonomyId: values.taxonomyId,
             name: trimmed,
             code: entry.code ?? undefined,
             price,
-            unit: unit.trim() || null,
+            unit: orNull(values.unit),
             medicine,
             isActive: entry.isActive,
             sortOrder,
@@ -108,10 +120,10 @@ export function MedicineDialog({ open, entry, groups, defaultTaxonomyId, onClose
       } else {
         await createEntry.mutateAsync({
           clinicBranchId: branchId,
-          taxonomyId,
+          taxonomyId: values.taxonomyId,
           name: trimmed,
           price,
-          unit: unit.trim() || null,
+          unit: orNull(values.unit),
           medicine,
           sortOrder,
         });
@@ -130,93 +142,87 @@ export function MedicineDialog({ open, entry, groups, defaultTaxonomyId, onClose
       width={820}
       canSave={name.trim().length > 0 && taxonomyId.length > 0}
       saving={pending}
-      onSave={() => void submit()}
+      onSave={() => form.submit()}
       onClose={onClose}
     >
-      <div className="bd-dialog-grid">
-        <LabeledField
-          id="medicine-name"
-          label={t("Tên thuốc")}
-          required
-          autoFocus
-          value={name}
-          error={error ?? undefined}
-          onChange={(next) => {
-            setName(next);
-            if (error) setError(null);
-          }}
-        />
+      <Form
+        form={form}
+        layout="vertical"
+        requiredMark={false}
+        initialValues={EMPTY}
+        onFinish={(values) => void submit(values)}
+      >
+        <Row gutter={[16, 0]}>
+          <Col span={12}>
+            <FloatingField
+              name="name"
+              label={t("Tên thuốc")}
+              required
+              rules={[{ required: true, message: t("Vui lòng nhập tên thuốc") }]}
+            >
+              <Input autoFocus />
+            </FloatingField>
+          </Col>
+          <Col span={12}>
+            <FloatingField
+              name="taxonomyId"
+              label={t("Chọn nhóm thuốc")}
+              required
+              rules={[{ required: true, message: t("Vui lòng chọn nhóm thuốc") }]}
+            >
+              <Select
+                showSearch
+                optionFilterProp="label"
+                options={groups.map((group) => ({ value: group.id, label: group.name }))}
+              />
+            </FloatingField>
+          </Col>
 
-        <FloatingSelect
-          id="medicine-group"
-          label={t("Chọn nhóm thuốc")}
-          required
-          value={taxonomyId}
-          onChange={setTaxonomyId}
-          options={groups.map((group) => ({ value: group.id, label: group.name }))}
-        />
+          <Col span={12}>
+            <FloatingField name="activeIngredient" label={t("Hoạt chất")}>
+              <Input />
+            </FloatingField>
+          </Col>
+          <Col span={12}>
+            <FloatingField name="usage" label={t("Cách dùng")}>
+              <Input />
+            </FloatingField>
+          </Col>
 
-        <LabeledField
-          id="medicine-ingredient"
-          label={t("Hoạt chất")}
-          value={activeIngredient}
-          onChange={setActiveIngredient}
-        />
+          <Col span={12}>
+            <FloatingField name="purchasePrice" label={t("Giá mua")}>
+              <InputNumber min={0} style={{ width: "100%" }} />
+            </FloatingField>
+          </Col>
+          <Col span={12}>
+            <FloatingField name="salePrice" label={t("Giá bán")}>
+              <InputNumber min={0} style={{ width: "100%" }} />
+            </FloatingField>
+          </Col>
 
-        <LabeledField
-          id="medicine-usage"
-          label={t("Cách dùng")}
-          value={usage}
-          onChange={setUsage}
-        />
+          <Col span={12}>
+            <FloatingField name="prescriptionCode" label={t("Mã toa thuốc")}>
+              <Input />
+            </FloatingField>
+          </Col>
+          <Col span={12}>
+            <FloatingField name="usageNote" label={t("Lưu ý sử dụng")}>
+              <Input />
+            </FloatingField>
+          </Col>
 
-        <div className="bd-dialog-grid">
-          <LabeledField
-            id="medicine-purchase-price"
-            label={t("Giá mua")}
-            inputMode="decimal"
-            value={purchasePrice}
-            onChange={setPurchasePrice}
-          />
-          <LabeledField
-            id="medicine-sale-price"
-            label={t("Giá bán")}
-            inputMode="decimal"
-            value={salePrice}
-            onChange={setSalePrice}
-          />
-        </div>
-
-        <LabeledField
-          id="medicine-code"
-          label={t("Mã toa thuốc")}
-          value={prescriptionCode}
-          onChange={setPrescriptionCode}
-        />
-
-        <LabeledField
-          id="medicine-note"
-          label={t("Lưu ý sử dụng")}
-          value={usageNote}
-          onChange={setUsageNote}
-        />
-
-        <LabeledField
-          id="medicine-unit"
-          label={t("Đơn vị tính")}
-          value={unit}
-          onChange={setUnit}
-        />
-
-        <LabeledField
-          id="medicine-priority"
-          label={t("Mức độ ưu tiên")}
-          type="number"
-          min={0}
-          value={priority}
-          onChange={setPriority}
-        />
-      </div>
+          <Col span={12}>
+            <FloatingField name="unit" label={t("Đơn vị tính")}>
+              <Input />
+            </FloatingField>
+          </Col>
+          <Col span={12}>
+            <FloatingField name="priority" label={t("Mức độ ưu tiên")}>
+              <InputNumber min={0} style={{ width: "100%" }} />
+            </FloatingField>
+          </Col>
+        </Row>
+      </Form>
     </AppDialog>
   );
 }

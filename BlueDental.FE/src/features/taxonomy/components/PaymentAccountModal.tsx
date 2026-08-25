@@ -1,4 +1,5 @@
 import { Button, message } from "antd";
+import { Form, Input } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { ImageUp, Trash2 } from "lucide-react";
 import {
@@ -11,7 +12,7 @@ import {
   type PaymentAccountKind,
 } from "../api/paymentAccountApi";
 import { AppDialog } from "@/components/AppDialog";
-import { LabeledField } from "@/components/LabeledField";
+import { FloatingField } from "@/components/FloatingField";
 import { extractApiError } from "@/lib/apiError";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
@@ -24,9 +25,12 @@ interface Props {
   onClose: () => void;
 }
 
-type Errors = Partial<
-  Record<"holderName" | "phoneNumber" | "bankName" | "accountNumber" | "qrImage", string>
->;
+interface FormValues {
+  holderName: string;
+  phoneNumber: string;
+  bankName: string;
+  accountNumber: string;
+}
 
 /** Kept in step with PaymentAccount.MaxQrImageBytes on the server. */
 const MAX_QR_BYTES = 5 * 1024 * 1024;
@@ -42,11 +46,13 @@ export function PaymentAccountModal({ open, kind, account, onClose }: Props) {
   const activeKind = account?.kind ?? kind;
   const isMoMo = activeKind === PAYMENT_ACCOUNT_KIND.MoMo;
 
-  const [holderName, setHolderName] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [bankName, setBankName] = useState("");
-  const [accountNumber, setAccountNumber] = useState("");
-  const [errors, setErrors] = useState<Errors>({});
+  const [form] = Form.useForm<FormValues>();
+  const holderName = Form.useWatch("holderName", form) ?? "";
+  const phoneNumber = Form.useWatch("phoneNumber", form) ?? "";
+  const bankName = Form.useWatch("bankName", form) ?? "";
+  const accountNumber = Form.useWatch("accountNumber", form) ?? "";
+  /** The QR is a file, not a form value, so its own error lives here. */
+  const [qrError, setQrError] = useState<string | null>(null);
 
   /** A QR picked in this dialog but not uploaded yet — the row must exist first. */
   const [qrFile, setQrFile] = useState<File | null>(null);
@@ -57,15 +63,17 @@ export function PaymentAccountModal({ open, kind, account, onClose }: Props) {
 
   useEffect(() => {
     if (!open) return;
-    setHolderName(account?.holderName ?? "");
-    setPhoneNumber(account?.phoneNumber ?? "");
-    setBankName(account?.bankName ?? "");
-    setAccountNumber(account?.accountNumber ?? "");
-    setErrors({});
+    form.setFieldsValue({
+      holderName: account?.holderName ?? "",
+      phoneNumber: account?.phoneNumber ?? "",
+      bankName: account?.bankName ?? "",
+      accountNumber: account?.accountNumber ?? "",
+    });
+    setQrError(null);
     setQrFile(null);
     setQrPreview(null);
     setQrRemoved(false);
-  }, [open, account]);
+  }, [open, account, form]);
 
   // The preview of a locally picked file is an object URL, so it has to be
   // released when it is replaced or the dialog goes away.
@@ -91,19 +99,16 @@ export function PaymentAccountModal({ open, kind, account, onClose }: Props) {
 
   const pickQrFile = (file: File) => {
     if (!ACCEPTED_QR_TYPES.includes(file.type)) {
-      setErrors((current) => ({
-        ...current,
-        qrImage: t("Chỉ chấp nhận ảnh PNG, JPG hoặc WEBP"),
-      }));
+      setQrError(t("Chỉ chấp nhận ảnh PNG, JPG hoặc WEBP"));
       return;
     }
 
     if (file.size > MAX_QR_BYTES) {
-      setErrors((current) => ({ ...current, qrImage: t("Ảnh QR phải nhỏ hơn 5 MB") }));
+      setQrError(t("Ảnh QR phải nhỏ hơn 5 MB"));
       return;
     }
 
-    setErrors((current) => ({ ...current, qrImage: undefined }));
+    setQrError(null);
     setQrFile(file);
     setQrRemoved(false);
   };
@@ -112,33 +117,16 @@ export function PaymentAccountModal({ open, kind, account, onClose }: Props) {
     setQrFile(null);
     setQrPreview(null);
     setQrRemoved(true);
-    setErrors((current) => ({ ...current, qrImage: undefined }));
+    setQrError(null);
     if (qrInputRef.current) qrInputRef.current.value = "";
   };
 
-  const validate = (): boolean => {
-    const next: Errors = {};
-    if (!holderName.trim()) next.holderName = t("Vui lòng nhập tên chủ tài khoản");
-
-    if (isMoMo) {
-      if (!phoneNumber.trim()) next.phoneNumber = t("Vui lòng nhập số điện thoại");
-    } else {
-      if (!bankName.trim()) next.bankName = t("Vui lòng nhập tên ngân hàng");
-      if (!accountNumber.trim()) next.accountNumber = t("Vui lòng nhập số tài khoản");
-    }
-
-    setErrors(next);
-    return Object.keys(next).length === 0;
-  };
-
-  const submit = async () => {
-    if (!validate()) return;
-
+  const submit = async (values: FormValues) => {
     const payload = {
-      holderName: holderName.trim(),
-      phoneNumber: isMoMo ? phoneNumber.trim() : undefined,
-      bankName: isMoMo ? undefined : bankName.trim(),
-      accountNumber: isMoMo ? undefined : accountNumber.trim(),
+      holderName: values.holderName.trim(),
+      phoneNumber: isMoMo ? values.phoneNumber.trim() : undefined,
+      bankName: isMoMo ? undefined : values.bankName.trim(),
+      accountNumber: isMoMo ? undefined : values.accountNumber.trim(),
     };
 
     let saved: PaymentAccountDto;
@@ -194,53 +182,58 @@ export function PaymentAccountModal({ open, kind, account, onClose }: Props) {
       width={440}
       canSave={canSave}
       saving={pending}
-      onSave={() => void submit()}
+      onSave={() => form.submit()}
       onClose={onClose}
     >
-      <div className="bd-dialog-stack">
+      <Form
+        form={form}
+        layout="vertical"
+        requiredMark={false}
+        initialValues={{ holderName: "", phoneNumber: "", bankName: "", accountNumber: "" }}
+        onFinish={(values) => void submit(values)}
+      >
         {isMoMo ? (
-          <LabeledField
-            id="payment-phone"
+          <FloatingField
+            name="phoneNumber"
             label={t("Số điện thoại")}
             required
-            type="tel"
-            value={phoneNumber}
-            error={errors.phoneNumber}
-            onChange={setPhoneNumber}
-          />
+            rules={[{ required: true, message: t("Vui lòng nhập số điện thoại") }]}
+          >
+            <Input type="tel" autoFocus />
+          </FloatingField>
         ) : (
-          <LabeledField
-            id="payment-bank"
+          <FloatingField
+            name="bankName"
             label={t("Tên ngân hàng")}
             required
-            value={bankName}
-            error={errors.bankName}
-            onChange={setBankName}
-          />
+            rules={[{ required: true, message: t("Vui lòng nhập tên ngân hàng") }]}
+          >
+            <Input autoFocus />
+          </FloatingField>
         )}
 
-        <LabeledField
-          id="payment-holder"
+        <FloatingField
+          name="holderName"
           label={t("Tên chủ tài khoản")}
           required
-          value={holderName}
-          error={errors.holderName}
-          onChange={setHolderName}
-        />
+          rules={[{ required: true, message: t("Vui lòng nhập tên chủ tài khoản") }]}
+        >
+          <Input />
+        </FloatingField>
 
         {!isMoMo && (
-          <LabeledField
-            id="payment-number"
+          <FloatingField
+            name="accountNumber"
             label={t("Số tài khoản")}
             required
-            value={accountNumber}
-            error={errors.accountNumber}
-            onChange={setAccountNumber}
-          />
+            rules={[{ required: true, message: t("Vui lòng nhập số tài khoản") }]}
+          >
+            <Input />
+          </FloatingField>
         )}
 
-        <div className="bd-dialog-stack bd-dialog-stack--tight">
-          <label htmlFor="payment-qr" className="bd-cat-strong">
+        <div className="bd-dialog-section">
+          <label htmlFor="payment-qr" className="bd-dialog-section-title">
             {t("Tải ảnh QR")}
           </label>
 
@@ -252,8 +245,8 @@ export function PaymentAccountModal({ open, kind, account, onClose }: Props) {
             accept="image/png,image/jpeg,image/webp"
             data-testid="payment-qr-input"
             className="bd-sr-only"
-            aria-invalid={Boolean(errors.qrImage)}
-            aria-describedby={errors.qrImage ? "payment-qr-error" : undefined}
+            aria-invalid={Boolean(qrError)}
+            aria-describedby={qrError ? "payment-qr-error" : undefined}
             onChange={(event) => {
               const file = event.target.files?.[0];
               if (file) pickQrFile(file);
@@ -306,13 +299,13 @@ export function PaymentAccountModal({ open, kind, account, onClose }: Props) {
             </button>
           )}
 
-          {errors.qrImage && (
+          {qrError && (
             <p id="payment-qr-error" role="alert" className="bd-error-text">
-              {errors.qrImage}
+              {qrError}
             </p>
           )}
         </div>
-      </div>
+      </Form>
     </AppDialog>
   );
 }

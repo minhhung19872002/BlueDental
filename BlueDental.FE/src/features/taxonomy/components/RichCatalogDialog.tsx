@@ -1,5 +1,5 @@
-import { Checkbox, message } from "antd";
-import { useEffect, useRef, useState } from "react";
+import { Checkbox, Col, Form, Input, InputNumber, Row, Select, message } from "antd";
+import { useEffect, useRef } from "react";
 import {
   useCreateCatalogEntry,
   useDeleteCatalogEntry,
@@ -8,12 +8,21 @@ import {
   type TaxonomyDto,
 } from "../api/taxonomyApi";
 import { AppDialog } from "@/components/AppDialog";
-import { LabeledField } from "@/components/LabeledField";
-import { FloatingSelect } from "@/components/FloatingSelect";
+import { FloatingField } from "@/components/FloatingField";
 import { RichTextField } from "@/components/RichTextField";
 import { extractApiError } from "@/lib/apiError";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
+
+interface FormValues {
+  name: string;
+  taxonomyId: string;
+  content: string;
+  note: string;
+  isActive: boolean;
+  isDeleted: boolean;
+  priority: number;
+}
 
 interface Props {
   open: boolean;
@@ -42,14 +51,9 @@ export function RichCatalogDialog({
   const updateEntry = useUpdateCatalogEntry();
   const deleteEntry = useDeleteCatalogEntry();
 
-  const [name, setName] = useState("");
-  const [taxonomyId, setTaxonomyId] = useState("");
-  const [content, setContent] = useState("");
-  const [note, setNote] = useState("");
-  const [isActive, setIsActive] = useState(true);
-  const [isDeleted, setIsDeleted] = useState(false);
-  const [priority, setPriority] = useState("0");
-  const [error, setError] = useState<string | null>(null);
+  const [form] = Form.useForm<FormValues>();
+  const name = Form.useWatch("name", form) ?? "";
+  const taxonomyId = Form.useWatch("taxonomyId", form) ?? "";
 
   // React Query hands back a new array on every refetch, so these are read
   // through a ref: a refetch landing while the dialog is open must not reset
@@ -60,41 +64,41 @@ export function RichCatalogDialog({
   useEffect(() => {
     if (!open) return;
     const fallback = defaults.current.defaultTaxonomyId ?? defaults.current.groups[0]?.id ?? "";
-    setName(entry?.name ?? "");
-    setTaxonomyId(entry?.taxonomyId ?? fallback);
-    setContent(entry?.content ?? "");
-    setNote(entry?.note ?? "");
-    setIsActive(entry?.isActive ?? true);
-    setIsDeleted(false);
-    setPriority(String(entry?.sortOrder ?? 0));
-    setError(null);
-  }, [open, entry]);
+    form.setFieldsValue({
+      name: entry?.name ?? "",
+      taxonomyId: entry?.taxonomyId ?? fallback,
+      content: entry?.content ?? "",
+      note: entry?.note ?? "",
+      isActive: entry?.isActive ?? true,
+      isDeleted: false,
+      priority: entry?.sortOrder ?? 0,
+    });
+  }, [open, entry, form]);
 
   const pending = createEntry.isPending || updateEntry.isPending || deleteEntry.isPending;
 
-  const submit = async () => {
-    const trimmed = name.trim();
-    if (!trimmed) {
-      setError(t("Vui lòng nhập tên {0}", noun));
-      return;
-    }
-
-    const sortOrder = Number.parseInt(priority, 10) || 0;
+  const submit = async (values: FormValues) => {
+    const trimmed = values.name.trim();
+    const sortOrder = Number(values.priority) || 0;
     // Quill leaves this behind for an empty document; storing it would make an
     // empty body look like content everywhere else.
-    const body = content === "<p><br></p>" ? null : content || null;
+    const body = values.content === "<p><br></p>" ? null : values.content || null;
+    const noteText = values.note?.trim() || null;
+    const taxonomyIdValue = values.taxonomyId;
+    const isDeleted = values.isDeleted;
+    const isActive = values.isActive;
 
     try {
       if (entry) {
         await updateEntry.mutateAsync({
           id: entry.id,
           input: {
-            taxonomyId,
+            taxonomyId: taxonomyIdValue,
             name: trimmed,
             code: entry.code ?? undefined,
             price: entry.price,
             content: body,
-            note: note.trim() || null,
+            note: noteText,
             description: entry.description ?? undefined,
             isActive,
             sortOrder,
@@ -112,10 +116,10 @@ export function RichCatalogDialog({
       } else {
         await createEntry.mutateAsync({
           clinicBranchId: branchId,
-          taxonomyId,
+          taxonomyId: taxonomyIdValue,
           name: trimmed,
           content: body,
-          note: note.trim() || null,
+          note: noteText,
           sortOrder,
         });
         message.success(t("Đã thêm"));
@@ -133,73 +137,77 @@ export function RichCatalogDialog({
       width={820}
       canSave={name.trim().length > 0 && taxonomyId.length > 0}
       saving={pending}
-      onSave={() => void submit()}
+      onSave={() => form.submit()}
       onClose={onClose}
     >
-      <div className="bd-dialog-stack">
-        <div className="bd-dialog-grid">
-          <LabeledField
-            id="catalog-rich-name"
-            label={t("Tên {0}", noun)}
-            required
-            autoFocus
-            value={name}
-            error={error ?? undefined}
-            onChange={(next) => {
-              setName(next);
-              if (error) setError(null);
-            }}
-          />
+      <Form
+        form={form}
+        layout="vertical"
+        requiredMark={false}
+        initialValues={{
+          name: "",
+          taxonomyId: "",
+          content: "",
+          note: "",
+          isActive: true,
+          isDeleted: false,
+          priority: 0,
+        }}
+        onFinish={(values) => void submit(values)}
+      >
+        <Row gutter={[16, 0]}>
+          <Col span={12}>
+            <FloatingField
+              name="name"
+              label={t("Tên {0}", noun)}
+              required
+              rules={[{ required: true, message: t("Vui lòng nhập tên {0}", noun) }]}
+            >
+              <Input autoFocus />
+            </FloatingField>
+          </Col>
+          <Col span={12}>
+            <FloatingField
+              name="taxonomyId"
+              label={t("Chọn nhóm {0}", noun)}
+              required
+              rules={[{ required: true, message: t("Vui lòng chọn nhóm {0}", noun) }]}
+            >
+              <Select
+                showSearch
+                optionFilterProp="label"
+                options={groups.map((group) => ({ value: group.id, label: group.name }))}
+              />
+            </FloatingField>
+          </Col>
+        </Row>
 
-          <FloatingSelect
-            id="catalog-rich-group"
-            label={t("Chọn nhóm {0}", noun)}
-            required
-            value={taxonomyId}
-            onChange={setTaxonomyId}
-            options={groups.map((group) => ({ value: group.id, label: group.name }))}
-          />
-        </div>
+        <Form.Item name="content">
+          <RichTextField placeholder={t("Nhập nội dung tư vấn...")} />
+        </Form.Item>
 
-        <RichTextField
-          value={content}
-          onChange={setContent}
-          placeholder={t("Nhập nội dung tư vấn...")}
-        />
-
-        <LabeledField
-          id="catalog-rich-note"
-          label={t("Ghi chú")}
-          value={note}
-          onChange={setNote}
-        />
+        <Row gutter={[16, 0]}>
+          <Col span={12}>
+            <FloatingField name="note" label={t("Ghi chú")}>
+              <Input />
+            </FloatingField>
+          </Col>
+          <Col span={12}>
+            <FloatingField name="priority" label={t("Mức độ ưu tiên")}>
+              <InputNumber min={0} style={{ width: "100%" }} />
+            </FloatingField>
+          </Col>
+        </Row>
 
         <div className="bd-dialog-row">
-<Checkbox
-              id="catalog-rich-active"
-              checked={isActive}
-              onChange={(event) => setIsActive(event.target.checked)}>
-            {t("Đang hoạt động")}
-          </Checkbox>
-
-<Checkbox
-              id="catalog-rich-deleted"
-              checked={isDeleted}
-              disabled={!entry}
-              onChange={(event) => setIsDeleted(event.target.checked)}>
-            {t("Đã xoá")}
-          </Checkbox>
+          <Form.Item name="isActive" valuePropName="checked" noStyle>
+            <Checkbox>{t("Đang hoạt động")}</Checkbox>
+          </Form.Item>
+          <Form.Item name="isDeleted" valuePropName="checked" noStyle>
+            <Checkbox disabled={!entry}>{t("Đã xoá")}</Checkbox>
+          </Form.Item>
         </div>
-
-        <LabeledField
-          id="catalog-rich-priority"
-          label={t("Mức độ ưu tiên")}
-          type="number"
-          min={0}
-          value={priority}
-          onChange={setPriority}
-        />
-      </div>
+      </Form>
     </AppDialog>
   );
 }

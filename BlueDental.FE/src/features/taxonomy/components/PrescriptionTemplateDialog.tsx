@@ -1,6 +1,20 @@
-import { Button, Checkbox, Popover, message } from "antd";
-import { useEffect, useRef, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import {
+  Button,
+  Checkbox,
+  Col,
+  Form,
+  Input,
+  InputNumber,
+  Popover,
+  Row,
+  Select,
+  Table,
+  Tooltip,
+  message,
+} from "antd";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
+import type { ColumnsType } from "antd/es/table";
 import {
   PRESCRIPTION_USAGE,
   TAXONOMY_GROUP,
@@ -12,11 +26,16 @@ import {
   type TaxonomyDto,
 } from "../api/taxonomyApi";
 import { AppDialog } from "@/components/AppDialog";
-import { LabeledField } from "@/components/LabeledField";
-import { FloatingSelect } from "@/components/FloatingSelect";
+import { FloatingField } from "@/components/FloatingField";
 import { extractApiError } from "@/lib/apiError";
 import { useBranchFilter, useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
+
+interface FormValues {
+  name: string;
+  advice: string;
+  priority: number;
+}
 
 interface Props {
   open: boolean;
@@ -110,17 +129,17 @@ export function PrescriptionTemplateDialog({
   });
   const medicines = medicinesQuery.data?.items ?? [];
 
-  const [name, setName] = useState("");
-  const [advice, setAdvice] = useState("");
-  const [priority, setPriority] = useState("0");
+  const [form] = Form.useForm<FormValues>();
+  const name = Form.useWatch("name", form) ?? "";
   const [lines, setLines] = useState<Line[]>([EMPTY_LINE]);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
-    setName(entry?.name ?? "");
-    setAdvice(entry?.description ?? "");
-    setPriority(String(entry?.sortOrder ?? 0));
+    form.setFieldsValue({
+      name: entry?.name ?? "",
+      advice: entry?.description ?? "",
+      priority: entry?.sortOrder ?? 0,
+    });
     setLines(
       entry && entry.prescriptionLines.length > 0
         ? entry.prescriptionLines.map((line) => ({
@@ -133,8 +152,7 @@ export function PrescriptionTemplateDialog({
           }))
         : [EMPTY_LINE],
     );
-    setError(null);
-  }, [open, entry]);
+  }, [open, entry, form]);
 
   const pending = createEntry.isPending || updateEntry.isPending;
 
@@ -148,12 +166,9 @@ export function PrescriptionTemplateDialog({
   const defaults = useRef({ defaultTaxonomyId, groups });
   defaults.current = { defaultTaxonomyId, groups };
 
-  const submit = async () => {
-    const trimmed = name.trim();
-    if (!trimmed) {
-      setError(t("Vui lòng nhập tên đơn thuốc mẫu"));
-      return;
-    }
+  const submit = async (values: FormValues) => {
+    const trimmed = values.name.trim();
+    const advice = values.advice?.trim() || undefined;
 
     // A line with no medicine picked is the empty row the table always shows.
     const filled = lines.filter((line) => line.medicineEntryId);
@@ -162,7 +177,7 @@ export function PrescriptionTemplateDialog({
       defaults.current.defaultTaxonomyId ??
       defaults.current.groups[0]?.id ??
       "";
-    const sortOrder = Number.parseInt(priority, 10) || 0;
+    const sortOrder = Number(values.priority) || 0;
 
     try {
       if (entry) {
@@ -171,7 +186,7 @@ export function PrescriptionTemplateDialog({
           input: {
             taxonomyId: taxonomy,
             name: trimmed,
-            description: advice.trim() || undefined,
+            description: advice,
             price: entry.price,
             isActive: entry.isActive,
             prescriptionLines: filled,
@@ -184,7 +199,7 @@ export function PrescriptionTemplateDialog({
           clinicBranchId: branchId,
           taxonomyId: taxonomy,
           name: trimmed,
-          description: advice.trim() || undefined,
+          description: advice,
           prescriptionLines: filled,
           sortOrder,
         });
@@ -196,9 +211,114 @@ export function PrescriptionTemplateDialog({
     }
   };
 
-  const CELL = "px-2 py-2 align-middle";
-  const NUM =
-    "bd-plain-input";
+  const columns = useMemo<ColumnsType<Line>>(
+    () => [
+      {
+        key: "medicine",
+        title: t("Tên thuốc"),
+        width: 260,
+        render: (_, line, index) => (
+          <Select
+            showSearch
+            optionFilterProp="label"
+            style={{ width: "100%" }}
+            aria-label={t("Tên thuốc")}
+            placeholder={t("Chọn thuốc")}
+            value={line.medicineEntryId || undefined}
+            onChange={(next) => patch(index, { medicineEntryId: next })}
+            options={medicines.map((medicine) => ({
+              value: medicine.id,
+              label: medicine.name,
+            }))}
+          />
+        ),
+      },
+      {
+        key: "timesPerDay",
+        title: t("Ngày uống"),
+        width: 120,
+        render: (_, line, index) => (
+          <InputNumber
+            min={0}
+            style={{ width: "100%" }}
+            aria-label={t("Ngày uống")}
+            value={line.timesPerDay}
+            onChange={(next) => patch(index, { timesPerDay: Number(next) || 0 })}
+          />
+        ),
+      },
+      {
+        key: "amountPerTime",
+        title: t("Mỗi lần"),
+        width: 110,
+        render: (_, line, index) => (
+          <InputNumber
+            min={0}
+            step={0.5}
+            style={{ width: "100%" }}
+            aria-label={t("Mỗi lần")}
+            value={line.amountPerTime}
+            onChange={(next) => patch(index, { amountPerTime: Number(next) || 0 })}
+          />
+        ),
+      },
+      {
+        key: "days",
+        title: t("Số ngày"),
+        width: 110,
+        render: (_, line, index) => (
+          <InputNumber
+            min={0}
+            style={{ width: "100%" }}
+            aria-label={t("Số ngày")}
+            value={line.days}
+            onChange={(next) => patch(index, { days: Number(next) || 0 })}
+          />
+        ),
+      },
+      {
+        key: "quantity",
+        title: t("Số lượng"),
+        width: 110,
+        render: (_, line) => (
+          <InputNumber
+            disabled
+            style={{ width: "100%" }}
+            aria-label={t("Số lượng")}
+            value={line.timesPerDay * line.amountPerTime * line.days}
+          />
+        ),
+      },
+      {
+        key: "usage",
+        title: t("Sử dụng"),
+        width: 200,
+        render: (_, line, index) => (
+          <UsagePicker value={line.usage} onChange={(next) => patch(index, { usage: next })} />
+        ),
+      },
+      {
+        key: "remove",
+        title: "",
+        width: 60,
+        align: "center",
+        render: (_, __, index) => (
+          <Tooltip title={t("Xoá dòng")}>
+            <Button
+              type="text"
+              danger
+              size="small"
+              icon={<DeleteOutlined />}
+              aria-label={t("Xoá dòng thuốc {0}", String(index + 1))}
+              disabled={lines.length === 1}
+              onClick={() => setLines((current) => current.filter((_, at) => at !== index))}
+            />
+          </Tooltip>
+        ),
+      },
+    ],
+    [lines.length, medicines],
+  );
 
   return (
     <AppDialog
@@ -207,145 +327,60 @@ export function PrescriptionTemplateDialog({
       width={1040}
       canSave={name.trim().length > 0}
       saving={pending}
-      onSave={() => void submit()}
+      onSave={() => form.submit()}
       onClose={onClose}
     >
-      <div className="bd-dialog-stack">
-        <div className="bd-dialog-grid">
-          <LabeledField
-            id="prescription-name"
-            label={t("Tên đơn thuốc mẫu")}
-            required
-            autoFocus
-            value={name}
-            error={error ?? undefined}
-            onChange={(next) => {
-              setName(next);
-              if (error) setError(null);
-            }}
-          />
-          <LabeledField
-            id="prescription-advice"
-            label={t("Lời dặn")}
-            value={advice}
-            onChange={setAdvice}
-          />
-        </div>
+      <Form
+        form={form}
+        layout="vertical"
+        requiredMark={false}
+        initialValues={{ name: "", advice: "", priority: 0 }}
+        onFinish={(values) => void submit(values)}
+      >
+        <Row gutter={[16, 0]}>
+          <Col span={12}>
+            <FloatingField
+              name="name"
+              label={t("Tên đơn thuốc mẫu")}
+              required
+              rules={[{ required: true, message: t("Vui lòng nhập tên đơn thuốc mẫu") }]}
+            >
+              <Input autoFocus />
+            </FloatingField>
+          </Col>
+          <Col span={12}>
+            <FloatingField name="advice" label={t("Lời dặn")}>
+              <Input />
+            </FloatingField>
+          </Col>
+        </Row>
 
-        <div className="bd-row-end">
+        <div className="bd-row-end bd-mb2">
           <Button
-            htmlType="button"
-            variant="outlined"
-            className="bd-primary-text"
+            icon={<PlusOutlined />}
             onClick={() => setLines((current) => [...current, { ...EMPTY_LINE }])}
           >
-            <Plus className="bd-icon" aria-hidden="true" />
             {t("Thêm mới")}
           </Button>
         </div>
 
-        <div className="bd-cat-tablebox">
-          <table className="bd-cat-table bd-cat-table--wider">
-            <thead>
-              <tr className="bd-cat-thead">
-                <th className={`${CELL} font-medium`}>{t("Tên thuốc")}</th>
-                <th className={`${CELL} w-28 font-medium`}>{t("Ngày uống")}</th>
-                <th className={`${CELL} w-24 font-medium`}>{t("Mỗi lần")}</th>
-                <th className={`${CELL} w-24 font-medium`}>{t("Số ngày")}</th>
-                <th className={`${CELL} w-24 font-medium`}>{t("Số lượng")}</th>
-                <th className={`${CELL} w-52 font-medium`}>{t("Sử dụng")}</th>
-                <th className={`${CELL} w-16`} />
-              </tr>
-            </thead>
-            <tbody>
-              {lines.map((line, index) => (
-                <tr key={line.id ?? index} className="bd-cat-footline">
-                  <td className={`${CELL} min-w-[220px]`}>
-                    <FloatingSelect
-                      id={`prescription-medicine-${index}`}
-                      label={t("Tên thuốc")}
-                      required
-                      value={line.medicineEntryId}
-                      onChange={(next) => patch(index, { medicineEntryId: next })}
-                      options={medicines.map((medicine) => ({
-                        value: medicine.id,
-                        label: medicine.name,
-                      }))}
-                    />
-                  </td>
-                  <td className={CELL}>
-                    <input
-                      aria-label={t("Ngày uống")}
-                      inputMode="numeric"
-                      value={String(line.timesPerDay)}
-                      onChange={(event) =>
-                        patch(index, { timesPerDay: Number.parseInt(event.target.value, 10) || 0 })
-                      }
-                      className={NUM}
-                    />
-                  </td>
-                  <td className={CELL}>
-                    <input
-                      aria-label={t("Mỗi lần")}
-                      inputMode="decimal"
-                      value={String(line.amountPerTime)}
-                      onChange={(event) =>
-                        patch(index, { amountPerTime: Number.parseFloat(event.target.value) || 0 })
-                      }
-                      className={NUM}
-                    />
-                  </td>
-                  <td className={CELL}>
-                    <input
-                      aria-label={t("Số ngày")}
-                      inputMode="numeric"
-                      value={String(line.days)}
-                      onChange={(event) =>
-                        patch(index, { days: Number.parseInt(event.target.value, 10) || 0 })
-                      }
-                      className={NUM}
-                    />
-                  </td>
-                  <td className={CELL}>
-                    <input
-                      aria-label={t("Số lượng")}
-                      disabled
-                      value={String(line.timesPerDay * line.amountPerTime * line.days)}
-                      className={`${NUM} bg-app-surface text-app-label`}
-                    />
-                  </td>
-                  <td className={CELL}>
-                    <UsagePicker
-                      value={line.usage}
-                      onChange={(next) => patch(index, { usage: next })}
-                    />
-                  </td>
-                  <td className={`${CELL} text-center`}>
-                    <button
-                      type="button"
-                      aria-label={t("Xoá dòng thuốc {0}", String(index + 1))}
-                      disabled={lines.length === 1}
-                      onClick={() => setLines((current) => current.filter((_, at) => at !== index))}
-                      className="bd-danger-text"
-                    >
-                      <Trash2 className="bd-icon" aria-hidden="true" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <LabeledField
-          id="prescription-priority"
-          label={t("Mức độ ưu tiên")}
-          type="number"
-          min={0}
-          value={priority}
-          onChange={setPriority}
+        <Table<Line>
+          columns={columns}
+          dataSource={lines}
+          rowKey={(line, index) => line.id ?? String(index)}
+          pagination={false}
+          size="small"
+          className="bd-line-table"
         />
-      </div>
+
+        <Row gutter={[16, 0]} className="bd-mt3">
+          <Col span={12}>
+            <FloatingField name="priority" label={t("Mức độ ưu tiên")}>
+              <InputNumber min={0} style={{ width: "100%" }} />
+            </FloatingField>
+          </Col>
+        </Row>
+      </Form>
     </AppDialog>
   );
 }

@@ -1,15 +1,20 @@
-import { message } from "antd";
-import { useEffect, useState } from "react";
+import { Col, Form, Input, InputNumber, Row, message } from "antd";
+import { useEffect } from "react";
 import {
   useCreateTaxonomyGroup,
   useUpdateTaxonomyGroup,
   type TaxonomyDto,
 } from "../api/taxonomyApi";
 import { AppDialog } from "@/components/AppDialog";
-import { LabeledField } from "@/components/LabeledField";
+import { FloatingField } from "@/components/FloatingField";
 import { extractApiError } from "@/lib/apiError";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
+
+interface FormValues {
+  name: string;
+  priority: number;
+}
 
 interface Props {
   open: boolean;
@@ -29,35 +34,24 @@ export function TaxonomyGroupModal({ open, group, taxonomyGroup, onClose, onCrea
   const createGroup = useCreateTaxonomyGroup();
   const updateGroup = useUpdateTaxonomyGroup();
 
-  const [name, setName] = useState("");
-  /** "Mức độ ưu tiên" — the sort order the panel lists groups by. */
-  const [priority, setPriority] = useState(DEFAULT_PRIORITY);
-  const [error, setError] = useState<string | null>(null);
+  const [form] = Form.useForm<FormValues>();
+  const name = Form.useWatch("name", form) ?? "";
 
   useEffect(() => {
     if (!open) return;
-    setName(group?.name ?? "");
-    setPriority(group ? String(group.sortOrder) : DEFAULT_PRIORITY);
-    setError(null);
-  }, [open, group]);
+    form.setFieldsValue({
+      name: group?.name ?? "",
+      /** "Mức độ ưu tiên" — the sort order the panel lists groups by. */
+      priority: group ? group.sortOrder : Number(DEFAULT_PRIORITY),
+    });
+  }, [open, group, form]);
 
   const pending = createGroup.isPending || updateGroup.isPending;
 
-  const submit = async () => {
-    const trimmed = name.trim();
-    if (!trimmed) {
-      setError(t("Vui lòng nhập tên phân loại"));
-      return;
-    }
-
+  const submit = async (values: FormValues) => {
+    const trimmed = values.name.trim();
     // An empty box means "no priority", which is the same as the default.
-    const sortOrder = Number.parseInt(priority, 10);
-    if (priority.trim() !== "" && (Number.isNaN(sortOrder) || sortOrder < 0)) {
-      setError(t("Mức độ ưu tiên phải là số không âm"));
-      return;
-    }
-
-    const resolvedSortOrder = Number.isNaN(sortOrder) ? 0 : sortOrder;
+    const resolvedSortOrder = Number.isFinite(values.priority) ? Number(values.priority) : 0;
 
     try {
       if (group) {
@@ -99,38 +93,34 @@ export function TaxonomyGroupModal({ open, group, taxonomyGroup, onClose, onCrea
       title={group ? t("Cập nhật nhóm") : t("Tạo nhóm")}
       canSave={name.trim().length > 0}
       saving={pending}
-      onSave={() => void submit()}
+      onSave={() => form.submit()}
       onClose={onClose}
     >
-      <div className="bd-dialog-grid">
-        <LabeledField
-          id="taxonomy-group-name"
-          label={t("Tên phân loại")}
-          required
-          autoFocus
-          value={name}
-          error={error ?? undefined}
-          onChange={(next) => {
-            setName(next);
-            if (error) setError(null);
-          }}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") void submit();
-          }}
-        />
-
-        <LabeledField
-          id="taxonomy-group-priority"
-          label={t("Mức độ ưu tiên")}
-          type="number"
-          min={0}
-          value={priority}
-          onChange={setPriority}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") void submit();
-          }}
-        />
-      </div>
+      <Form
+        form={form}
+        layout="vertical"
+        requiredMark={false}
+        initialValues={{ name: "", priority: Number(DEFAULT_PRIORITY) }}
+        onFinish={(values) => void submit(values)}
+      >
+        <Row gutter={[16, 0]}>
+          <Col span={12}>
+            <FloatingField
+              name="name"
+              label={t("Tên phân loại")}
+              required
+              rules={[{ required: true, message: t("Vui lòng nhập tên phân loại") }]}
+            >
+              <Input autoFocus />
+            </FloatingField>
+          </Col>
+          <Col span={12}>
+            <FloatingField name="priority" label={t("Mức độ ưu tiên")}>
+              <InputNumber min={0} style={{ width: "100%" }} />
+            </FloatingField>
+          </Col>
+        </Row>
+      </Form>
     </AppDialog>
   );
 }

@@ -1,5 +1,5 @@
-import { Checkbox, message } from "antd";
-import { useEffect, useRef, useState } from "react";
+import { Checkbox, Col, Form, Input, InputNumber, Row, Select, message } from "antd";
+import { useEffect, useRef } from "react";
 import {
   useCreateCatalogEntry,
   useDeleteCatalogEntry,
@@ -8,8 +8,7 @@ import {
   type TaxonomyDto,
 } from "../api/taxonomyApi";
 import { AppDialog } from "@/components/AppDialog";
-import { LabeledField } from "@/components/LabeledField";
-import { FloatingSelect } from "@/components/FloatingSelect";
+import { FloatingField } from "@/components/FloatingField";
 import { extractApiError } from "@/lib/apiError";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
@@ -22,6 +21,14 @@ interface Props {
   /** Lowercase noun of the catalog, e.g. "nguồn đến". */
   noun: string;
   onClose: () => void;
+}
+
+interface FormValues {
+  name: string;
+  taxonomyId: string;
+  isActive: boolean;
+  isDeleted: boolean;
+  priority: number;
 }
 
 /**
@@ -48,12 +55,9 @@ export function SimpleCatalogDialog({
   const updateEntry = useUpdateCatalogEntry();
   const deleteEntry = useDeleteCatalogEntry();
 
-  const [name, setName] = useState("");
-  const [taxonomyId, setTaxonomyId] = useState("");
-  const [isActive, setIsActive] = useState(true);
-  const [isDeleted, setIsDeleted] = useState(false);
-  const [priority, setPriority] = useState("0");
-  const [error, setError] = useState<string | null>(null);
+  const [form] = Form.useForm<FormValues>();
+  const name = Form.useWatch("name", form) ?? "";
+  const taxonomyId = Form.useWatch("taxonomyId", form) ?? "";
 
   // React Query hands back a new array on every refetch, so these are read
   // through a ref: a refetch landing while the dialog is open must not reset
@@ -64,42 +68,38 @@ export function SimpleCatalogDialog({
   useEffect(() => {
     if (!open) return;
     const fallback = defaults.current.defaultTaxonomyId ?? defaults.current.groups[0]?.id ?? "";
-    setName(entry?.name ?? "");
-    setTaxonomyId(entry?.taxonomyId ?? fallback);
-    setIsActive(entry?.isActive ?? true);
-    setIsDeleted(false);
-    setPriority(String(entry?.sortOrder ?? 0));
-    setError(null);
-  }, [open, entry]);
+    form.setFieldsValue({
+      name: entry?.name ?? "",
+      taxonomyId: entry?.taxonomyId ?? fallback,
+      isActive: entry?.isActive ?? true,
+      isDeleted: false,
+      priority: entry?.sortOrder ?? 0,
+    });
+  }, [open, entry, form]);
 
   const pending = createEntry.isPending || updateEntry.isPending || deleteEntry.isPending;
 
-  const submit = async () => {
-    const trimmed = name.trim();
-    if (!trimmed) {
-      setError(t("Vui lòng nhập tên {0}", noun));
-      return;
-    }
-
-    const sortOrder = Number.parseInt(priority, 10);
+  const submit = async (values: FormValues) => {
+    const trimmed = values.name.trim();
+    const sortOrder = Number(values.priority) || 0;
 
     try {
       if (entry) {
         await updateEntry.mutateAsync({
           id: entry.id,
           input: {
-            taxonomyId,
+            taxonomyId: values.taxonomyId,
             name: trimmed,
             code: entry.code ?? undefined,
             price: entry.price,
             content: entry.content,
             description: entry.description ?? undefined,
-            isActive,
-            sortOrder: Number.isNaN(sortOrder) ? 0 : sortOrder,
+            isActive: values.isActive,
+            sortOrder,
           },
         });
 
-        if (isDeleted) {
+        if (values.isDeleted) {
           await deleteEntry.mutateAsync(entry.id);
           message.success(t("Đã xoá"));
           onClose();
@@ -110,9 +110,9 @@ export function SimpleCatalogDialog({
       } else {
         await createEntry.mutateAsync({
           clinicBranchId: branchId,
-          taxonomyId,
+          taxonomyId: values.taxonomyId,
           name: trimmed,
-          sortOrder: Number.isNaN(sortOrder) ? 0 : sortOrder,
+          sortOrder,
         });
         message.success(t("Đã thêm"));
       }
@@ -128,68 +128,66 @@ export function SimpleCatalogDialog({
       title={entry ? t("Cập nhật {0}", noun) : t("Thêm {0}", noun)}
       canSave={name.trim().length > 0 && taxonomyId.length > 0}
       saving={pending}
-      onSave={() => void submit()}
+      onSave={() => form.submit()}
       onClose={onClose}
     >
-      <div className="bd-dialog-stack">
-        <div className="bd-dialog-grid">
-          <LabeledField
-            id="catalog-simple-name"
-            label={t("Tên {0}", noun)}
-            required
-            autoFocus
-            value={name}
-            error={error ?? undefined}
-            onChange={(next) => {
-              setName(next);
-              if (error) setError(null);
-            }}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") void submit();
-            }}
-          />
+      <Form
+        form={form}
+        layout="vertical"
+        requiredMark={false}
+        initialValues={{ name: "", taxonomyId: "", isActive: true, isDeleted: false, priority: 0 }}
+        onFinish={(values) => void submit(values)}
+      >
+        <Row gutter={[16, 0]}>
+          <Col span={12}>
+            <FloatingField
+              name="name"
+              label={t("Tên {0}", noun)}
+              required
+              rules={[{ required: true, message: t("Vui lòng nhập tên {0}", noun) }]}
+            >
+              <Input autoFocus />
+            </FloatingField>
+          </Col>
+          <Col span={12}>
+            <FloatingField
+              name="taxonomyId"
+              label={t("Chọn nhóm {0}", noun)}
+              required
+              rules={[{ required: true, message: t("Vui lòng chọn nhóm {0}", noun) }]}
+            >
+              <Select
+                showSearch
+                optionFilterProp="label"
+                options={groups.map((group) => ({ value: group.id, label: group.name }))}
+              />
+            </FloatingField>
+          </Col>
+        </Row>
 
-          <FloatingSelect
-            id="catalog-simple-group"
-            label={t("Chọn nhóm {0}", noun)}
-            required
-            value={taxonomyId}
-            onChange={setTaxonomyId}
-            options={groups.map((group) => ({ value: group.id, label: group.name }))}
-          />
-        </div>
-
-        <div className="bd-dialog-row">
-          <Checkbox
-            id="catalog-simple-active"
-            checked={isActive}
-            onChange={(event) => setIsActive(event.target.checked)}
-          >
-            {t("Đang hoạt động")}
-          </Checkbox>
-
-          <Checkbox
-            id="catalog-simple-deleted"
-            checked={isDeleted}
-            disabled={!entry}
-            title={entry ? undefined : t("Chỉ dùng khi sửa bản ghi đã có")}
-            onChange={(event) => setIsDeleted(event.target.checked)}
-          >
-            {t("Đã xoá")}
-          </Checkbox>
-        </div>
-
-        <div className="bd-dialog-grid">
-          <LabeledField
-            id="catalog-simple-priority"
-            label={t("Mức độ ưu tiên")}
-            type="number"
-            min={0}
-            value={priority}
-            onChange={setPriority}
-          />
-        </div>
-      </div>
+        <Row gutter={[16, 0]}>
+          <Col span={12}>
+            <div className="bd-dialog-row">
+              <Form.Item name="isActive" valuePropName="checked" noStyle>
+                <Checkbox>{t("Đang hoạt động")}</Checkbox>
+              </Form.Item>
+              <Form.Item name="isDeleted" valuePropName="checked" noStyle>
+                <Checkbox
+                  disabled={!entry}
+                  title={entry ? undefined : t("Chỉ dùng khi sửa bản ghi đã có")}
+                >
+                  {t("Đã xoá")}
+                </Checkbox>
+              </Form.Item>
+            </div>
+          </Col>
+          <Col span={12}>
+            <FloatingField name="priority" label={t("Mức độ ưu tiên")}>
+              <InputNumber min={0} style={{ width: "100%" }} />
+            </FloatingField>
+          </Col>
+        </Row>
+      </Form>
     </AppDialog>
   );
 }
