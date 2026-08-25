@@ -142,8 +142,8 @@ export function PaymentAccountModal({ open, kind, account, onClose }: Props) {
             kind: activeKind,
             ...payload,
           });
-    } catch (cause) {
-      message.error(extractApiError(cause));
+    } catch {
+      // queryClient reports the failure; nothing to add here.
       return;
     }
 

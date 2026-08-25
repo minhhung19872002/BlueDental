@@ -35,7 +35,6 @@ import { PageTabBar } from "@/components/PageTabBar";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { countedTotal } from "../countedTotal";
 import { useDebounce } from "@/hooks/useDebounce";
-import { extractApiError } from "@/lib/apiError";
 import { useBranchFilter, useCurrentBranchId, useIsAllBranches } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { moveItem } from "@/utils/array";
@@ -215,8 +214,8 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
           group,
           items: orderedItems(groups, from, to),
         });
-      } catch (cause) {
-        message.error(extractApiError(cause));
+      } catch {
+        // queryClient reports the failure; nothing to add here.
       }
     },
     [branchFilter, group, groups, reorderGroupsMutation],
@@ -232,8 +231,8 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
           // The page offset keeps row 1 of page 3 sorting after page 2.
           items: orderedItems(entries, from, to, (page - 1) * pageSize),
         });
-      } catch (cause) {
-        message.error(extractApiError(cause));
+      } catch {
+        // queryClient reports the failure; nothing to add here.
       }
     },
     [
@@ -259,8 +258,8 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
         await deleteEntry.mutateAsync(pendingDelete.id);
         message.success(t("Đã xoá"));
       }
-    } catch (cause) {
-      message.error(extractApiError(cause));
+    } catch {
+      // queryClient reports the failure; nothing to add here.
     } finally {
       setPendingDelete(null);
     }
@@ -285,8 +284,8 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
         sortOrder: 0,
       });
       setEntryModal({ open: true, entry: null });
-    } catch (cause) {
-      message.error(extractApiError(cause));
+    } catch {
+      // queryClient reports the failure; nothing to add here.
     }
   };
 

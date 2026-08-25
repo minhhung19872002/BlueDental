@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { notifyApiError } from "@/lib/notify";
 import { api } from "@/lib/axios";
 import type { PagedResult } from "@/types";
 
@@ -451,12 +452,15 @@ export function useReorderTaxonomyGroups() {
         ),
       };
     },
-    onError: (_error, _input, context) => {
+    onError: (error, _input, context) => {
       // The save failed, so the order the user saw was never real: put back
       // exactly what the cache held before the drag.
       for (const [key, data] of context?.snapshot ?? []) {
         queryClient.setQueryData(key, data);
       }
+      // queryClient reads "this mutation has an onError" as "it reports
+      // itself", and this one only exists to roll back — so say what broke.
+      notifyApiError(error);
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: taxonomyKeys.all }),
   });
@@ -482,10 +486,13 @@ export function useReorderCatalogEntries() {
         ),
       };
     },
-    onError: (_error, _input, context) => {
+    onError: (error, _input, context) => {
       for (const [key, data] of context?.snapshot ?? []) {
         queryClient.setQueryData(key, data);
       }
+      // queryClient reads "this mutation has an onError" as "it reports
+      // itself", and this one only exists to roll back — so say what broke.
+      notifyApiError(error);
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: taxonomyKeys.all }),
   });

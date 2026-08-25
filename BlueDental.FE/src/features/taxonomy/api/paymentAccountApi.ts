@@ -118,11 +118,13 @@ export function usePaymentAccounts(branchId: string | undefined, query: PaymentA
 
 function usePaymentAccountMutation<TVariables, TData>(
   fn: (variables: TVariables) => Promise<TData>,
+  meta?: Record<string, unknown>,
 ) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: fn,
+    meta,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: paymentAccountKeys.all });
     },
@@ -146,13 +148,25 @@ export function useDeletePaymentAccount() {
   return usePaymentAccountMutation((id: string) => paymentAccountApi.remove(id));
 }
 
+/**
+ * The QR is saved after the account it belongs to, so a failure here needs its
+ * own wording — the account *was* saved. These two report through the dialog
+ * rather than through the global handler, which would say only that something
+ * failed and leave the user thinking they had lost the lot.
+ */
+const QR_REPORTS_ITSELF = { skipGlobalErrorToast: true } as const;
+
 /** "Tải ảnh QR" — the image is attached to an account that already exists. */
 export function useUploadPaymentAccountQrImage() {
-  return usePaymentAccountMutation(({ id, file }: { id: string; file: File }) =>
-    paymentAccountApi.uploadQrImage(id, file),
+  return usePaymentAccountMutation(
+    ({ id, file }: { id: string; file: File }) => paymentAccountApi.uploadQrImage(id, file),
+    QR_REPORTS_ITSELF,
   );
 }
 
 export function useDeletePaymentAccountQrImage() {
-  return usePaymentAccountMutation((id: string) => paymentAccountApi.removeQrImage(id));
+  return usePaymentAccountMutation(
+    (id: string) => paymentAccountApi.removeQrImage(id),
+    QR_REPORTS_ITSELF,
+  );
 }

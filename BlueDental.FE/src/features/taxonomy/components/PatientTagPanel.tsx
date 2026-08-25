@@ -10,7 +10,6 @@ import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { DataTable } from "@/components/DataTable";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useTablePagination } from "@/hooks/useTablePagination";
-import { extractApiError } from "@/lib/apiError";
 import { useBranchFilter, useIsAllBranches } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 
@@ -47,8 +46,8 @@ export function PatientTagPanel() {
     try {
       await deleteTag.mutateAsync(pendingDelete.id);
       message.success(t("Đã xoá thẻ hồ sơ"));
-    } catch (cause) {
-      message.error(extractApiError(cause));
+    } catch {
+      // queryClient reports the failure; nothing to add here.
     } finally {
       setPendingDelete(null);
     }

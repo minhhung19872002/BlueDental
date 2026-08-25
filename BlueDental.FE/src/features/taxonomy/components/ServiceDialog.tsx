@@ -29,7 +29,6 @@ import {
 } from "../api/taxonomyApi";
 import { AppDialog } from "@/components/AppDialog";
 import { FloatingField } from "@/components/FloatingField";
-import { extractApiError } from "@/lib/apiError";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { formatVND } from "@/utils/format";
@@ -235,8 +234,8 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
         message.success(t("Đã thêm dịch vụ"));
       }
       onClose();
-    } catch (cause) {
-      message.error(extractApiError(cause));
+    } catch {
+      // queryClient reports the failure; nothing to add here.
     }
   };
 

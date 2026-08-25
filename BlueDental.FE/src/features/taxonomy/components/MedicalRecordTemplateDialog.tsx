@@ -10,7 +10,6 @@ import {
 import { MedicalRecordSheet, type MedicalRecordFields } from "./MedicalRecordSheet";
 import { AppDialog } from "@/components/AppDialog";
 import { FloatingField } from "@/components/FloatingField";
-import { extractApiError } from "@/lib/apiError";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 
@@ -116,8 +115,8 @@ export function MedicalRecordTemplateDialog({
         message.success(t("Đã thêm mẫu bệnh án"));
       }
       onClose();
-    } catch (cause) {
-      message.error(extractApiError(cause));
+    } catch {
+      // queryClient reports the failure; nothing to add here.
     }
   };
 

@@ -16,7 +16,6 @@ import { PaymentAccountModal } from "./PaymentAccountModal";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { DataTable } from "@/components/DataTable";
 import { useTablePagination } from "@/hooks/useTablePagination";
-import { extractApiError } from "@/lib/apiError";
 import { useBranchFilter, useIsAllBranches } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
@@ -65,8 +64,8 @@ export function PaymentAccountPanel() {
     try {
       await deleteAccount.mutateAsync(pendingDelete.id);
       message.success(t("Đã xoá phương thức thanh toán"));
-    } catch (cause) {
-      message.error(extractApiError(cause));
+    } catch {
+      // queryClient reports the failure; nothing to add here.
     } finally {
       setPendingDelete(null);
     }
