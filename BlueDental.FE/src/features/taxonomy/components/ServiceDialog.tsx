@@ -318,7 +318,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
         initialValues={EMPTY}
         onFinish={(values) => void submit(values)}
       >
-        <Row gutter={[16, 0]}>
+        <Row gutter={[16, 12]}>
           <Col span={8}>
             <FloatingField
               name="name"
@@ -363,7 +363,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
           <Input.TextArea rows={3} />
         </FloatingField>
 
-        <Row gutter={[16, 0]}>
+        <Row gutter={[16, 12]}>
           <Col span={12}>
             <FloatingField name="priority" label={t("Mức độ ưu tiên")}>
               <InputNumber min={0} style={{ width: "100%" }} />
@@ -393,7 +393,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
             </FloatingField>
           </div>
 
-          <Row gutter={[16, 0]} align="middle">
+          <Row gutter={[16, 12]} align="middle">
             <Col flex="none">
               <Form.Item name="priceIncludesTax" noStyle>
                 <TaxSegmented />
@@ -416,7 +416,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
             </Col>
           </Row>
 
-          <Row gutter={[16, 0]}>
+          <Row gutter={[16, 12]}>
             {/* Read-only: these two come back from the server after a save, so
                 the formula lives in one place. */}
             <Col span={8}>
@@ -474,7 +474,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
                     )}
                   />
 
-                  <Row gutter={[8, 0]} className="bd-mt3">
+                  <Row gutter={[8, 12]} className="bd-mt3">
                     <Col flex="auto">
                       <Input
                         aria-label={t("Tên công đoạn")}
@@ -526,7 +526,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
                     ))}
                   </Row>
 
-                  <Row gutter={[16, 0]} className="bd-mt3">
+                  <Row gutter={[16, 12]} className="bd-mt3">
                     <Col span={12}>
                       <FloatingField name="warrantyDays" label={t("Tuỳ chỉnh")}>
                         <InputNumber min={0} style={{ width: "100%" }} />

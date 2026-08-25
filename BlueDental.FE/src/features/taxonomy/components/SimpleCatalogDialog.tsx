@@ -138,7 +138,7 @@ export function SimpleCatalogDialog({
         initialValues={{ name: "", taxonomyId: "", isActive: true, isDeleted: false, priority: 0 }}
         onFinish={(values) => void submit(values)}
       >
-        <Row gutter={[16, 0]}>
+        <Row gutter={[16, 12]}>
           <Col span={12}>
             <FloatingField
               name="name"
@@ -165,7 +165,7 @@ export function SimpleCatalogDialog({
           </Col>
         </Row>
 
-        <Row gutter={[16, 0]}>
+        <Row gutter={[16, 12]}>
           <Col span={12}>
             <div className="bd-dialog-row">
               <Form.Item name="isActive" valuePropName="checked" noStyle>

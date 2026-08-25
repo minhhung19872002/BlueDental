@@ -155,7 +155,7 @@ export function RichCatalogDialog({
         }}
         onFinish={(values) => void submit(values)}
       >
-        <Row gutter={[16, 0]}>
+        <Row gutter={[16, 12]}>
           <Col span={12}>
             <FloatingField
               name="name"
@@ -186,7 +186,7 @@ export function RichCatalogDialog({
           <RichTextField placeholder={t("Nhập nội dung tư vấn...")} />
         </Form.Item>
 
-        <Row gutter={[16, 0]}>
+        <Row gutter={[16, 12]}>
           <Col span={12}>
             <FloatingField name="note" label={t("Ghi chú")}>
               <Input />

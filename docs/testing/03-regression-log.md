@@ -307,3 +307,9 @@ placeholder thành `" "`.
   tắt): nó đọc `input.checked` ngay sau cú click, trước khi React kịp render lại
   nhóm. Dùng `click()` rồi `toBeChecked()`.
 - Nút mang icon thì accessible name có tiền tố, kể cả nút "Công đoạn" trong dialog.
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-86 | Các item trong dialog dính sát nhau, không có khoảng cách dọc | Ô nhập, editor, hàng checkbox nằm đè lên nhau về mặt thị giác — không đọc ra được đâu là một nhóm | `main` chủ động đặt `.ant-modal .ant-form-item { margin-bottom: 0 }` và để **gutter dọc của `Row`** lo khoảng cách — dialog Nhân viên truyền `[16, 12]`. Lần chuyển sang `Form` mình truyền `[16, 0]`, và những field đứng một mình (không nằm trong `Row`) thì không có gutter nào để thừa hưởng | Gutter đổi thành `[16, 12]` theo đúng dialog Nhân viên; thêm rule cho con trực tiếp của `Form` trong `.app-dialog` để field đứng một mình cũng giữ đúng nhịp | F-31…F-34 |
+
+Đo lại trên dialog Chẩn đoán: khoảng cách giữa mọi khối là **12px** đều nhau.

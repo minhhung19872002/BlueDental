@@ -152,7 +152,7 @@ export function MedicineDialog({ open, entry, groups, defaultTaxonomyId, onClose
         initialValues={EMPTY}
         onFinish={(values) => void submit(values)}
       >
-        <Row gutter={[16, 0]}>
+        <Row gutter={[16, 12]}>
           <Col span={12}>
             <FloatingField
               name="name"

@@ -103,7 +103,7 @@ export function TaxonomyGroupModal({ open, group, taxonomyGroup, onClose, onCrea
         initialValues={{ name: "", priority: Number(DEFAULT_PRIORITY) }}
         onFinish={(values) => void submit(values)}
       >
-        <Row gutter={[16, 0]}>
+        <Row gutter={[16, 12]}>
           <Col span={12}>
             <FloatingField
               name="name"

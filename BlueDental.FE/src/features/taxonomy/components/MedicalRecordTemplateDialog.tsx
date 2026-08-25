@@ -138,7 +138,7 @@ export function MedicalRecordTemplateDialog({
         initialValues={{ name: "", priority: 0 }}
         onFinish={(values) => void submit(values)}
       >
-        <Row gutter={[16, 0]}>
+        <Row gutter={[16, 12]}>
           <Col span={16}>
             <FloatingField
               name="name"

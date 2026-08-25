@@ -5212,3 +5212,14 @@ html:has(.ant-modal-wrap) {
 }
 
 .bd-rich-text .ql-editor { min-height: 140px; }
+
+/* main zeroes a Form.Item's margin inside a dialog and lets the Row's vertical
+   gutter space the fields. A field that stands on its own — not in a Row — has
+   no gutter to inherit, so it carries the same rhythm itself. */
+.app-dialog .ant-form > .floating-field,
+.app-dialog .ant-form > .ant-form-item:not(.ant-form-item-hidden),
+.app-dialog .ant-form > .ant-row {
+  margin-bottom: 12px;
+}
+
+.app-dialog .ant-form > *:last-child { margin-bottom: 0; }
