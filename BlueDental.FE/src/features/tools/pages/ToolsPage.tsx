@@ -55,29 +55,19 @@ function SubTabBar({
   onChange: (k: string) => void;
 }) {
   return (
-    <div className="reception-card reception-card--tabs">
-      <div style={{ display: "flex", gap: 0 }}>
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => onChange(tab.key)}
-            style={{
-              padding: "8px 16px",
-              border: "none",
-              borderBottom: active === tab.key ? "2px solid var(--bd-blue)" : "2px solid transparent",
-              background: "none",
-              color: active === tab.key ? "var(--bd-blue)" : "var(--bd-muted)",
-              fontWeight: active === tab.key ? 600 : 400,
-              cursor: "pointer",
-              fontSize: 13,
-              whiteSpace: "nowrap",
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+    <div className="pill-tabs" role="tablist" style={{ marginBottom: 4 }}>
+      {tabs.map((tab) => (
+        <button
+          key={tab.key}
+          type="button"
+          role="tab"
+          aria-selected={tab.key === active}
+          className={`pill-tab${tab.key === active ? " pill-tab--active" : ""}`}
+          onClick={() => onChange(tab.key)}
+        >
+          {tab.label}
+        </button>
+      ))}
     </div>
   );
 }
@@ -598,29 +588,19 @@ export function ToolsPage() {
         subtitle={t("Tổng đài, tin nhắn, Zalo OA và hoá đơn điện tử")}
       />
 
-      <div className="reception-card reception-card--toolbar">
-        <div style={{ display: "flex", gap: 0 }}>
-          {TOOL_TABS.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setActiveTab(tab.key)}
-              style={{
-                padding: "8px 20px",
-                border: "none",
-                borderBottom: activeTab === tab.key ? "2px solid var(--bd-blue)" : "2px solid transparent",
-                background: "none",
-                color: activeTab === tab.key ? "var(--bd-blue)" : "var(--bd-muted)",
-                fontWeight: activeTab === tab.key ? 600 : 400,
-                cursor: "pointer",
-                fontSize: 14,
-                whiteSpace: "nowrap",
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      <div className="pill-tabs" role="tablist" style={{ marginBottom: 4 }}>
+        {TOOL_TABS.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            role="tab"
+            aria-selected={tab.key === activeTab}
+            className={`pill-tab${tab.key === activeTab ? " pill-tab--active" : ""}`}
+            onClick={() => setActiveTab(tab.key)}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {activeTab === "call"     && <CallView />}
