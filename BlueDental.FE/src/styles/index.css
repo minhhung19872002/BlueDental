@@ -674,27 +674,40 @@ button {
 
 /* ── Global search overlay ── */
 
+/* This palette is hand-rolled rather than an Ant Design modal, so it does not
+   pick up the dialog overrides; the design's shell is written out here. */
 .app-search-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(21, 42, 82, 0.45);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
   z-index: 1000;
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding-top: 120px;
+  padding-top: 12vh;
+  animation: bd-fade-in 0.14s ease;
 }
 
 .app-search-modal {
-  width: 520px;
+  width: 560px;
+  max-width: 92vw;
   background: #fff;
-  border-radius: 14px;
-  padding: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: var(--bd-shadow-modal);
+  animation: bd-pop-in 0.18s ease;
 }
 
+/* Search icon, a borderless field, then the Esc key — one row, as drawn. */
 .app-search-input-row {
   position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--bd-line-soft);
 }
 
 .app-search-esc {
@@ -3033,6 +3046,12 @@ body {
 
 /* ── Dialogs (the shell every modal in the design shares) ───────────────── */
 
+/* The design fades the backdrop in and pops the panel. */
+@keyframes bd-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 @keyframes bd-pop-in {
   from {
     opacity: 0;
@@ -3235,12 +3254,14 @@ html:has(.ant-modal-wrap) {
 }
 
 /* Payment dialog summary above the form. */
+/* The design tints this strip blue rather than neutral grey, so the amount
+   still owed reads as a notice rather than as another field. */
 .pay-summary {
   margin-bottom: 18px;
-  padding: 13px 15px;
-  border: 1px solid var(--bd-line-soft);
+  padding: 13px 14px;
+  border: 1px solid color-mix(in srgb, var(--bd-blue) 12%, #ffffff);
   border-radius: 12px;
-  background: var(--bd-bg-soft);
+  background: color-mix(in srgb, var(--bd-blue) 4%, #ffffff);
 }
 
 .pay-summary-row {
@@ -3644,4 +3665,470 @@ html:has(.ant-modal-wrap) {
 .floating-field .ant-form-item-has-error ~ .floating-field-label,
 .floating-field:has(.ant-form-item-has-error) .floating-field-label {
   color: #ff4d4f;
+}
+
+/* ── Patient header (the design's Chi tiết bệnh nhân banner) ────────────── */
+
+.pt-head {
+  background: #ffffff;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius);
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+/* Rounded square, not a circle — the design's navy-to-gold sweep. */
+.pt-head-avatar {
+  width: 58px;
+  height: 58px;
+  flex: 0 0 auto;
+  border-radius: 18px;
+  background: linear-gradient(140deg, var(--bd-blue), var(--bd-gold));
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.pt-head-identity {
+  min-width: 200px;
+}
+
+.pt-head-name {
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--bd-ink);
+}
+
+.pt-head-meta {
+  font-size: 12.5px;
+  color: var(--bd-muted);
+  margin-top: 3px;
+}
+
+.pt-head-tags {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.pt-head-tag {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--bd-blue);
+  background: color-mix(in srgb, var(--bd-blue) 8%, #ffffff);
+  padding: 3px 9px;
+  border-radius: 20px;
+}
+
+/* The three figures ride in the same card, pushed to the right. */
+.pt-head-figures {
+  margin-left: auto;
+  display: flex;
+  gap: 26px;
+  flex-wrap: wrap;
+}
+
+.pt-head-figure-label {
+  font-size: 11.5px;
+  color: var(--bd-dim);
+}
+
+.pt-head-figure-value {
+  font-size: 18px;
+  font-weight: 700;
+  margin-top: 2px;
+  color: var(--figure-color, var(--bd-ink));
+}
+
+/* Breadcrumb's back control: a bordered button, as the design draws it. */
+.pt-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--bd-line);
+  background: #ffffff;
+  border-radius: 9px;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--bd-sub);
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.pt-back:hover {
+  border-color: var(--bd-blue);
+  color: var(--bd-blue);
+}
+
+/* ── Pill tabs (the design's Danh mục / Chi tiết bệnh nhân switcher) ─────── */
+
+.pill-tabs {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.pill-tab {
+  border: 1px solid var(--bd-line);
+  background: #ffffff;
+  color: var(--bd-sub);
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 9px 15px;
+  border-radius: 10px;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.pill-tab:hover {
+  border-color: var(--bd-blue);
+  color: var(--bd-blue);
+}
+
+.pill-tab--active {
+  border-color: var(--bd-blue);
+  background: var(--bd-blue);
+  color: #ffffff;
+}
+
+.pill-tab--active:hover {
+  background: var(--bd-blue-dark);
+  color: #ffffff;
+}
+
+/* ── Stat tiles ─────────────────────────────────────────────────────────────
+   The design's counter card, used by Tiếp nhận, CSKH, Voucher and Labo: a
+   white tile topped by a 3px band in the status colour, its number large in
+   that colour and the label muted underneath. Colour arrives as --tile-color. */
+
+.stat-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+}
+
+.stat-tile {
+  background: #ffffff;
+  border: 1px solid var(--bd-border);
+  border-top: 3px solid var(--tile-color, var(--bd-blue));
+  border-radius: 14px;
+  padding: 14px 16px;
+  line-height: 1.2;
+}
+
+.stat-tile-value {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.9px;
+  color: var(--tile-color, var(--bd-ink));
+}
+
+.stat-tile-label {
+  font-size: 12px;
+  color: var(--bd-muted);
+  margin-top: 2px;
+}
+
+/* ── Voucher cards (the design lists vouchers as cards, not rows) ────────── */
+
+.voucher-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 14px;
+}
+
+.voucher-card {
+  background: #ffffff;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.voucher-card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.voucher-code {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  color: var(--bd-blue);
+}
+
+.voucher-name {
+  font-size: 13px;
+  font-weight: 550;
+  margin-top: 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.voucher-meta {
+  font-size: 11.5px;
+  color: var(--bd-dim);
+  margin-top: 2px;
+}
+
+.voucher-percent {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.6px;
+  color: var(--bd-ink);
+  text-align: right;
+}
+
+.voucher-usage {
+  font-size: 11.5px;
+  color: var(--bd-dim);
+  text-align: right;
+  margin-top: 2px;
+}
+
+.voucher-card-actions {
+  display: flex;
+  gap: 8px;
+  border-top: 1px solid var(--bd-line-soft);
+  padding-top: 12px;
+}
+
+/* Search palette field: the design's 14.5px borderless input. */
+.app-search-icon {
+  color: var(--bd-dim);
+  font-size: 17px;
+  flex: 0 0 auto;
+}
+
+.app-search-field.ant-input-affix-wrapper,
+.app-search-field.ant-input {
+  flex: 1;
+  padding: 0;
+  height: auto;
+  font-size: 14.5px;
+  background: transparent;
+}
+
+/* Borderless still draws a focus ring; the design's field has none, the
+   surrounding panel is the focus affordance. */
+.app-search-field.ant-input:focus,
+.app-search-field.ant-input-focused,
+.app-search-field.ant-input-affix-wrapper:focus,
+.app-search-field.ant-input-affix-wrapper-focused {
+  box-shadow: none;
+  border-color: transparent;
+  outline: none;
+}
+
+/* Confirming a payment is green in the design, where other primaries are navy. */
+.ant-btn.btn-confirm-money,
+.ant-btn.btn-confirm-money:not(:disabled):hover {
+  background: var(--bd-green);
+  border-color: var(--bd-green);
+  color: #ffffff;
+}
+
+.ant-btn.btn-confirm-money:not(:disabled):hover {
+  filter: brightness(1.06);
+}
+
+/* ── Toast ──────────────────────────────────────────────────────────────────
+   The design's toast is a navy pill at the bottom centre. Ant Design floats
+   its messages from the top as white cards, so the list is re-anchored and the
+   notice restyled.
+
+   Ant Design 6 renamed the inner element: the visible pill is
+   .ant-message-notice-wrapper, where v5 had .ant-message-notice-content. The
+   v5 name matches nothing here. */
+
+/* Placement is left to Ant Design. The design puts this pill 26px from the
+   bottom, centred; Ant Design 6 drives the list's position from an inline
+   --notification-top and its own transform, with no bottom placement in the
+   message API. Overriding it means fighting internals that change between
+   releases, so the toast keeps the design's shape at Ant Design's position.
+   Moving it down means replacing the notifier, not restyling it. */
+
+.ant-message .ant-message-notice-wrapper {
+  background: var(--bd-navy);
+  color: #ffffff;
+  padding: 13px 20px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 18px 40px -14px rgba(21, 42, 82, 0.7);
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+/* Ant Design tints its own status icons; on navy they need to stay legible. */
+.ant-message .ant-message-notice-icon-success {
+  color: var(--bd-green-bright);
+}
+
+.ant-message .ant-message-notice-icon-error {
+  color: #ff8b8b;
+}
+
+.ant-message .ant-message-notice-icon-warning,
+.ant-message .ant-message-notice-icon-info {
+  color: var(--bd-gold);
+}
+
+/* ── Stock stepper (the design adjusts stock in the row) ─────────────────── */
+
+.stock-adjust {
+  display: flex;
+  gap: 6px;
+}
+
+.stock-step {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--bd-line);
+  background: #ffffff;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--bd-sub);
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.stock-step:hover:not(:disabled) {
+  border-color: var(--bd-blue);
+  color: var(--bd-blue);
+}
+
+.stock-step:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── Treatment progress (the design's card on a patient's profile) ───────── */
+
+.tp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tp-row-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.tp-name {
+  font-weight: 650;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tp-steps {
+  font-size: 11.5px;
+  color: var(--bd-dim);
+  white-space: nowrap;
+}
+
+.tp-bar {
+  height: 7px;
+  border-radius: 6px;
+  background: var(--bd-line-soft);
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+/* The design fills the bar with the navy-to-gold sweep. */
+.tp-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--bd-blue), var(--bd-gold));
+}
+
+/* ── Month grid (the design's Lịch hẹn month view) ───────────────────────── */
+
+.month-grid-card {
+  padding: 16px;
+}
+
+.month-grid-head,
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+
+.month-grid-head {
+  margin-bottom: 8px;
+}
+
+.month-grid-weekday {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--bd-dim);
+  text-align: center;
+}
+
+/* Separate rounded cells with a gap, not a ruled table. */
+.month-cell {
+  height: 84px;
+  text-align: left;
+  border: 1px solid var(--bd-line);
+  background: #ffffff;
+  border-radius: 11px;
+  padding: 9px 10px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 0.15s ease;
+}
+
+.month-cell:hover {
+  border-color: var(--bd-blue);
+}
+
+.month-cell--outside {
+  opacity: 0.45;
+}
+
+.month-cell--today {
+  border-color: var(--bd-blue);
+  background: var(--bd-blue-pale);
+}
+
+.month-cell-date {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--bd-ink);
+}
+
+/* How many appointments the day holds. */
+.month-cell-count {
+  align-self: flex-start;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--bd-blue);
+  background: color-mix(in srgb, var(--bd-blue) 8%, #ffffff);
+  padding: 2px 7px;
+  border-radius: 20px;
 }

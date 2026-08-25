@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Tabs, Row, Col, Button, Select, Segmented, Spin, Table, Typography, Tag, Modal, Input, Popconfirm, message } from "antd";
+import { Row, Col, Button, Select, Segmented, Spin, Table, Typography, Tag, Modal, Input, Popconfirm, message } from "antd";
 import { useStaffList } from "@/features/staff/api/staffQueries";
 import { DownloadOutlined, LeftOutlined, RightOutlined, PlusOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
@@ -239,14 +239,20 @@ export function ReportPage() {
         subtitle={t("Kỳ báo cáo: {0} · toàn chi nhánh", periodLabel)}
       />
 
-      {/* Main tab bar */}
-      <div className="reception-card" style={{ padding: "0 16px" }}>
-        <Tabs
-          activeKey={activeTab}
-          onChange={setActiveTab}
-          style={{ marginBottom: 0 }}
-          items={REPORT_TABS.map((tab) => ({ key: tab.key, label: tab.label }))}
-        />
+      {/* Main tab bar — pills, as the design switches this screen. */}
+      <div className="pill-tabs" role="tablist" style={{ marginBottom: 4 }}>
+        {REPORT_TABS.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            role="tab"
+            aria-selected={tab.key === activeTab}
+            className={`pill-tab${tab.key === activeTab ? " pill-tab--active" : ""}`}
+            onClick={() => setActiveTab(tab.key)}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {/* Shared toolbar */}
@@ -275,26 +281,19 @@ export function ReportPage() {
       {activeTab === "expense" && (
         <>
           {/* Sub-filter pills */}
-          <div className="reception-card reception-card--tabs">
-            <div style={{ display: "flex", gap: 0 }}>
-              {SUB_FILTERS.map((f) => (
-                <button
-                  key={f.key}
-                  type="button"
-                  onClick={() => setSubFilter(f.key)}
-                  style={{
-                    padding: "8px 14px", border: "none",
-                    borderBottom: subFilter === f.key ? "2px solid var(--bd-blue)" : "2px solid transparent",
-                    background: "none",
-                    color: subFilter === f.key ? "var(--bd-blue)" : "var(--bd-muted)",
-                    fontWeight: subFilter === f.key ? 600 : 400,
-                    cursor: "pointer", fontSize: 13, whiteSpace: "nowrap",
-                  }}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
+          <div className="pill-tabs" role="tablist" style={{ marginBottom: 4 }}>
+            {SUB_FILTERS.map((f) => (
+              <button
+                key={f.key}
+                type="button"
+                role="tab"
+                aria-selected={f.key === subFilter}
+                className={`pill-tab${f.key === subFilter ? " pill-tab--active" : ""}`}
+                onClick={() => setSubFilter(f.key)}
+              >
+                {f.label}
+              </button>
+            ))}
           </div>
 
           {/* Quick stats + export */}
@@ -506,26 +505,19 @@ function CashflowTab({ period }: { period: PeriodRange }) {
 
   return (
     <>
-      <div className="reception-card reception-card--tabs">
-        <div style={{ display: "flex", gap: 0 }}>
-          {CASHFLOW_TYPES.map((f) => (
-            <button
-              key={f.key}
-              type="button"
-              onClick={() => setTypeFilter(f.key)}
-              style={{
-                padding: "8px 14px", border: "none",
-                borderBottom: typeFilter === f.key ? "2px solid var(--bd-blue)" : "2px solid transparent",
-                background: "none",
-                color: typeFilter === f.key ? "var(--bd-blue)" : "var(--bd-muted)",
-                fontWeight: typeFilter === f.key ? 600 : 400,
-                cursor: "pointer", fontSize: 13, whiteSpace: "nowrap",
-              }}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
+      <div className="pill-tabs" role="tablist" style={{ marginBottom: 4 }}>
+        {CASHFLOW_TYPES.map((f) => (
+          <button
+            key={f.key}
+            type="button"
+            role="tab"
+            aria-selected={f.key === typeFilter}
+            className={`pill-tab${f.key === typeFilter ? " pill-tab--active" : ""}`}
+            onClick={() => setTypeFilter(f.key)}
+          >
+            {f.label}
+          </button>
+        ))}
       </div>
 
       <Row gutter={[12, 12]} style={{ margin: "12px 0" }}>

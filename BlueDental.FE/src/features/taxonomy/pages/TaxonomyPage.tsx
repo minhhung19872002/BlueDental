@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Button, Empty, Input, Modal, Popconfirm, Table, Tabs, Tag, message } from "antd";
+import { Button, Empty, Input, Modal, Popconfirm, Table, Tag, message } from "antd";
 import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -371,12 +371,21 @@ export function TaxonomyPage() {
       />
 
       <div className="reception-card reception-card--toolbar">
-        <Tabs
-          activeKey={tab.key}
-          onChange={(key) => setSearchParams((p) => { p.set("tab", key); return p; })}
-          style={{ marginBottom: 0 }}
-          items={tabs.map((tb) => ({ key: tb.key, label: tb.label }))}
-        />
+        {/* The design switches this screen with pills, not an underline row. */}
+        <div className="pill-tabs" role="tablist">
+          {tabs.map((tb) => (
+            <button
+              key={tb.key}
+              type="button"
+              role="tab"
+              aria-selected={tb.key === tab.key}
+              className={`pill-tab${tb.key === tab.key ? " pill-tab--active" : ""}`}
+              onClick={() => setSearchParams((p) => { p.set("tab", tb.key); return p; })}
+            >
+              {tb.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="reception-card reception-card--content">

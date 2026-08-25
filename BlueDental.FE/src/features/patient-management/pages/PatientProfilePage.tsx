@@ -28,6 +28,11 @@ import {
   type PatientAdviseStatus,
 } from "@/features/treatment-management/api/consultingApi";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
+import type { PatientStatus } from "../types/patient";
+import {
+  useTreatmentStages,
+  STAGE_STATUS,
+} from "@/features/treatment-management/api/stageApi";
 import { t } from "@/lib/i18n";
 
 const { Text } = Typography;
@@ -43,6 +48,19 @@ interface AppointmentRow {
 }
 
 
+
+/**
+ * Plan status crosses the wire as its number — TreatmentPlanStatus on the
+ * server — so it is named here rather than printed raw.
+ */
+const PLAN_STATUS_META: Record<number, { label: string; color: string }> = {
+  1: { label: "Nháp", color: "default" },
+  2: { label: "Chờ duyệt", color: "orange" },
+  3: { label: "Đã duyệt", color: "blue" },
+  4: { label: "Đang điều trị", color: "processing" },
+  5: { label: "Hoàn tất", color: "green" },
+  6: { label: "Đã huỷ", color: "red" },
+};
 
 export function PatientProfilePage() {
   const { id } = useParams<{ id: string }>();
@@ -92,10 +110,41 @@ export function PatientProfilePage() {
   const { data: prescriptions } = usePatientPrescriptions(id ?? "");
   const appointments = appointmentsData?.items ?? [];
   const plans = treatmentPlans?.items ?? [];
+
+  // Real progress, from the patient's own stages.
+  const { data: stageData } = useTreatmentStages({ patientId: id ?? "", maxResultCount: 200 }, !!id);
+  const patientStages = stageData?.items ?? [];
+  const stagesTotal = patientStages.length;
+  const stagesDone = patientStages.filter((st) => st.status === STAGE_STATUS.Completed).length;
+  const stagePercent = stagesTotal === 0 ? 0 : Math.round((stagesDone / stagesTotal) * 100);
   const patientInvoices = invoices ?? [];
   const patientLaboOrders = laboOrders ?? [];
   const patientCareRecords = careRecords?.items ?? [];
   const patientPrescriptions = prescriptions ?? [];
+
+  // Values for the banner. The money is the same arithmetic the profile tab
+  // used before it moved up here.
+  const headTotalCost = patientInvoices.reduce((sum, inv) => sum + (inv.totalAmount ?? 0), 0);
+  const headTotalPaid = patientInvoices.reduce((sum, inv) => sum + (inv.paidAmount ?? 0), 0);
+  const headTotalDebt = Math.max(0, headTotalCost - headTotalPaid);
+
+  const patientInitials = (() => {
+    const words = (patient?.fullName ?? "").trim().split(/\s+/).filter(Boolean);
+    if (words.length === 0) return "BN";
+    if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+    return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+  })();
+
+  // The design's banner carries tags. There is no tag field on a patient, and
+  // the card here used to print a hardcoded "Chỉnh Nha" on everyone, so the
+  // slot shows the status the record actually has.
+  const PATIENT_STATUS_LABELS: Record<PatientStatus, string> = {
+    NoActivity: t("Chưa phát sinh"),
+    InTreatment: t("Đang điều trị"),
+    Completed: t("Điều trị hoàn tất"),
+  };
+  const patientStatusLabel =
+    PATIENT_STATUS_LABELS[patient?.status ?? "NoActivity"] ?? t("Chưa phát sinh");
 
   const branchId = useCurrentBranchId();
   const consultingParams = { patientId: id ?? "", clinicBranchId: branchId, maxResultCount: 50 };
@@ -210,43 +259,45 @@ export function PatientProfilePage() {
                     ))}
                   </tbody>
                 </table>
-
-                <div style={{ marginTop: 12 }}>
-                  <div style={{ color: "#5A6B82", fontSize: 12, marginBottom: 6 }}>{t("Nhãn / Tag")}</div>
-                  <Space size={4} wrap>
-                    <Tag color="blue">{t("Chỉnh Nha")}</Tag>
-                  </Space>
-                </div>
               </Card>
             </Col>
 
-            {/* Right: financial summary + treatment history */}
+            {/* Right: plan progress + treatment history */}
             <Col xs={24} lg={16}>
-              {/* Financial summary */}
-              {(() => {
-                const totalCost = patientInvoices.reduce((s, inv) => s + (inv.totalAmount ?? 0), 0);
-                const totalPaid = patientInvoices.reduce((s, inv) => s + (inv.paidAmount ?? 0), 0);
-                const totalDebt = Math.max(0, totalCost - totalPaid);
-                return (
-                  <Row gutter={12} style={{ marginBottom: 16 }}>
-                    {[
-                      { label: t("Tổng chi phí"), value: totalCost,  color: "#1B2A41" },
-                      { label: t("Thực thu"),              value: totalPaid,  color: "#10B981" },
-                      { label: t("Công nợ"),              value: totalDebt,  color: "#EF4444" },
-                    ].map(({ label, value, color }) => (
-                      <Col span={8} key={label}>
-                        <Card size="small" style={{ textAlign: "center" }}>
-                          <div style={{ fontSize: 12, color: "#5A6B82", marginBottom: 4 }}>{label}</div>
-                          <div style={{ fontSize: 20, fontWeight: 700, color }}>
-                            {formatVND(value)}
-                            <span style={{ fontSize: 12, fontWeight: 400, marginLeft: 2 }}>đ</span>
-                          </div>
-                        </Card>
-                      </Col>
+              {/* The design shows how far each plan has got. Stages are the
+                  only real measure of that, and they are filterable by patient
+                  rather than by plan, so the bar reports this patient's stages
+                  as a whole and each plan keeps its own status beside it. */}
+              <Card title={t("Tiến độ điều trị")} size="small" style={{ marginBottom: 16 }}>
+                {plans.length === 0 ? (
+                  <span style={{ color: "var(--bd-muted)", fontSize: 13 }}>
+                    {t("Chưa có kế hoạch điều trị")}
+                  </span>
+                ) : (
+                  <div className="tp-list">
+                    <div>
+                      <div className="tp-row-head">
+                        <span className="tp-name">{t("Công đoạn đã hoàn thành")}</span>
+                        <span className="tp-steps">
+                          {stagesDone}/{stagesTotal} {t("công đoạn")}
+                        </span>
+                      </div>
+                      <div className="tp-bar">
+                        <span className="tp-bar-fill" style={{ width: `${stagePercent}%` }} />
+                      </div>
+                    </div>
+
+                    {plans.map((plan) => (
+                      <div key={plan.id} className="tp-row-head">
+                        <span className="tp-name">{plan.title}</span>
+                        <Tag color={PLAN_STATUS_META[Number(plan.status)]?.color ?? "default"}>
+                          {t(PLAN_STATUS_META[Number(plan.status)]?.label ?? "Không rõ")}
+                        </Tag>
+                      </div>
                     ))}
-                  </Row>
-                );
-              })()}
+                  </div>
+                )}
+              </Card>
 
               {/* Treatment history — uses completed appointments as proxy */}
               <Card title={t("Lịch sử điều trị")} size="small">
@@ -790,20 +841,54 @@ export function PatientProfilePage() {
   return (
     <div className="page-container">
       {/* Breadcrumb */}
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12, fontSize: 14 }}>
-        <Button
-          type="text"
-          size="small"
-          icon={<ArrowLeftOutlined />}
-          onClick={() => navigate("/patient")}
-          style={{ color: "var(--bd-blue)", padding: "0 4px" }}
-        >
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 15, fontSize: 13 }}>
+        <button type="button" className="pt-back" onClick={() => navigate("/patient")}>
+          <ArrowLeftOutlined />
           {t("Quay lại")}
-        </Button>
-        <span style={{ color: "#D1D5DB" }}>/</span>
-        <span style={{ color: "#1B2A41", fontWeight: 500 }}>
-          [{patient.code}] - {patient.fullName}
+        </button>
+        <span style={{ color: "var(--bd-faint)" }}>/</span>
+        <span style={{ fontWeight: 650 }}>
+          [{patient.code}] – {patient.fullName}
         </span>
+      </div>
+
+      {/* The design's patient banner: identity on the left, money on the
+          right, in one card rather than three separate ones. */}
+      <div className="pt-head" style={{ marginBottom: 15 }}>
+        <div className="pt-head-avatar">{patientInitials}</div>
+        <div className="pt-head-identity">
+          <div className="pt-head-name">{patient.fullName}</div>
+          <div className="pt-head-meta">
+            {[
+              patient.code,
+              GENDER_LABELS[patient.gender],
+              formatDate(patient.dateOfBirth),
+              patient.phone,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </div>
+          <div className="pt-head-tags">
+            <span className="pt-head-tag">{patientStatusLabel}</span>
+          </div>
+        </div>
+        <div className="pt-head-figures">
+          {[
+            { label: t("Tổng chi phí"), value: headTotalCost, color: "var(--bd-ink)" },
+            { label: t("Thực thu"), value: headTotalPaid, color: "var(--bd-green)" },
+            { label: t("Công nợ"), value: headTotalDebt, color: "var(--bd-red)" },
+          ].map(({ label, value, color }) => (
+            <div key={label}>
+              <div className="pt-head-figure-label">{label}</div>
+              <div
+                className="pt-head-figure-value"
+                style={{ "--figure-color": color } as React.CSSProperties}
+              >
+                {formatVND(value)} đ
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* 10 tabs with URL sync */}

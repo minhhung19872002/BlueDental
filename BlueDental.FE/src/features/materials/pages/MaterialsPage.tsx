@@ -3,6 +3,7 @@ import { Button, Input, Table, Modal, Form, InputNumber, Tag, message, Popconfir
 import { SearchOutlined, PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
+import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
 import { PageHeader } from "@/components/PageHeader";
 import {
@@ -10,6 +11,8 @@ import {
   useCreateInventoryItem,
   useUpdateInventoryItem,
   useDeleteInventoryItem,
+  useAdjustInventoryStock,
+  STOCK_MOVEMENT,
   type InventoryItemDto,
   type UpdateInventoryItemDto,
 } from "../api";
@@ -158,6 +161,17 @@ function ClinicMaterialsView() {
     return item.name.toLowerCase().includes(kw) || item.itemCode.toLowerCase().includes(kw) || (item.category ?? "").toLowerCase().includes(kw);
   });
 
+  // A step is one unit in or out, recorded as a real stock movement.
+  const adjustStock = useAdjustInventoryStock();
+
+  const handleAdjust = async (id: string, movementType: number) => {
+    try {
+      await adjustStock.mutateAsync({ id, movementType, quantity: 1 });
+    } catch (error) {
+      message.error(extractApiError(error));
+    }
+  };
+
   const handleDelete = async (id: string) => {
     try {
       await deleteMutation.mutateAsync(id);
@@ -173,14 +187,44 @@ function ClinicMaterialsView() {
     { title: t("Nhóm phân loại"), dataIndex: "category", key: "category", render: (v: string) => v ?? "—" },
     { title: t("Đơn vị"), dataIndex: "unit", key: "unit", render: (v: string) => v ?? "—" },
     {
-      title: t("Tồn kho"),
+      // The design reads stock against its floor — "12 / 10 hộp" — rather than
+      // a bare number the reader has to judge on its own.
+      title: t("Tồn / định mức"),
       dataIndex: "quantityOnHand",
       key: "quantityOnHand",
-      align: "right",
+      width: 150,
       render: (v: number, record) => (
-        <span style={{ color: record.needsReorder ? "#ff4d4f" : undefined, fontWeight: record.needsReorder ? 600 : 400 }}>
-          {v}
+        <span>
+          <b style={{ fontWeight: 700, color: record.needsReorder ? "var(--bd-red)" : "var(--bd-green)" }}>{v}</b>
+          <span style={{ color: "var(--bd-sub)" }}> / {record.reorderLevel} {record.unit ?? ""}</span>
         </span>
+      ),
+    },
+    {
+      title: t("Điều chỉnh"),
+      key: "adjust",
+      width: 120,
+      render: (_, record) => (
+        <div className="stock-adjust">
+          <button
+            type="button"
+            className="stock-step"
+            aria-label={t("Giảm tồn {0}", record.name)}
+            disabled={adjustStock.isPending || record.quantityOnHand <= 0}
+            onClick={() => void handleAdjust(record.id, STOCK_MOVEMENT.Consumption)}
+          >
+            −
+          </button>
+          <button
+            type="button"
+            className="stock-step"
+            aria-label={t("Tăng tồn {0}", record.name)}
+            disabled={adjustStock.isPending}
+            onClick={() => void handleAdjust(record.id, STOCK_MOVEMENT.Purchase)}
+          >
+            +
+          </button>
+        </div>
       ),
     },
     {
@@ -594,28 +638,19 @@ export function MaterialsPage() {
         subtitle={t("{0} mặt hàng dưới định mức cần nhập thêm", lowStockCount)}
       />
 
-      <div className="reception-card reception-card--tabs">
-        <div style={{ display: "flex", gap: 0 }}>
-          {SUB_ROUTES.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              style={{
-                padding: "8px 20px",
-                border: "none",
-                borderBottom: activeTab === tab.key ? "2px solid var(--bd-blue)" : "2px solid transparent",
-                background: "none",
-                color: activeTab === tab.key ? "var(--bd-blue)" : "var(--bd-muted)",
-                fontWeight: activeTab === tab.key ? 600 : 400,
-                cursor: "pointer",
-                fontSize: 14,
-                whiteSpace: "nowrap",
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      <div className="pill-tabs" role="tablist" style={{ marginBottom: 4 }}>
+        {SUB_ROUTES.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            role="tab"
+            aria-selected={tab.key === activeTab}
+            className={`pill-tab${tab.key === activeTab ? " pill-tab--active" : ""}`}
+            onClick={() => setActiveTab(tab.key)}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
       {renderContent()}
     </div>

@@ -142,27 +142,19 @@ export function CskhGroupingPage() {
       />
 
       {/* Top-level tabs */}
-      <div className="reception-card reception-card--tabs">
-        <div style={{ display: "flex", gap: 0 }}>
-          {TOP_TABS.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setTopTab(tab.key)}
-              style={{
-                padding: "8px 20px",
-                border: "none",
-                borderBottom: topTab === tab.key ? "2px solid var(--bd-blue)" : "2px solid transparent",
-                background: "none",
-                color: topTab === tab.key ? "var(--bd-blue)" : "var(--bd-muted)",
-                fontWeight: topTab === tab.key ? 600 : 400,
-                cursor: "pointer",
-                fontSize: 14,
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      <div className="pill-tabs" role="tablist" style={{ marginBottom: 4 }}>
+        {TOP_TABS.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            role="tab"
+            aria-selected={tab.key === topTab}
+            className={`pill-tab${tab.key === topTab ? " pill-tab--active" : ""}`}
+            onClick={() => setTopTab(tab.key)}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {/* Toolbar row 1: date navigation */}
@@ -241,27 +233,19 @@ export function CskhGroupingPage() {
       </div>
 
       {/* Care type tabs */}
-      <div className="reception-card reception-card--tabs">
-        <div style={{ display: "flex", gap: 0, flexWrap: "wrap" }}>
-          {CARE_TYPES.map((ct) => (
-            <button
-              key={ct.key}
-              onClick={() => setCareType(ct.key)}
-              style={{
-                padding: "8px 16px",
-                border: "none",
-                borderBottom: careType === ct.key ? "2px solid var(--bd-blue)" : "2px solid transparent",
-                background: "none",
-                color: careType === ct.key ? "var(--bd-blue)" : "var(--bd-muted)",
-                fontWeight: careType === ct.key ? 600 : 400,
-                cursor: "pointer",
-                fontSize: 13,
-              }}
-            >
-              {ct.label}
-            </button>
-          ))}
-        </div>
+      <div className="pill-tabs" role="tablist" style={{ marginBottom: 4 }}>
+        {CARE_TYPES.map((ct) => (
+          <button
+            key={ct.key}
+            type="button"
+            role="tab"
+            aria-selected={ct.key === careType}
+            className={`pill-tab${ct.key === careType ? " pill-tab--active" : ""}`}
+            onClick={() => setCareType(ct.key)}
+          >
+            {ct.label}
+          </button>
+        ))}
       </div>
 
       {/* Toolbar row 2 */}

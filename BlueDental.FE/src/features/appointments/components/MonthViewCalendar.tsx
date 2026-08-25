@@ -1,109 +1,86 @@
 import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
+import { useAppointmentList } from "../api/appointmentQueries";
+import { t } from "@/lib/i18n";
 
 const DAY_LABELS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 
 interface Props {
   currentDate: Dayjs;
   onDayClick?: (day: Dayjs) => void;
-  onCreateAppointment?: () => void;
 }
 
-export function MonthViewCalendar({ currentDate, onDayClick, onCreateAppointment: _onCreateAppointment }: Props) {
+/**
+ * The month grid as the design draws it: separate rounded cells with a gap
+ * between them, each carrying its date and — the part that was missing — how
+ * many appointments fall on it. Without the count the month view only told you
+ * what the calendar on the wall already does.
+ */
+export function MonthViewCalendar({ currentDate, onDayClick }: Props) {
   const monthStart = currentDate.startOf("month");
   const monthEnd = currentDate.endOf("month");
   const calStart = monthStart.startOf("week");
   const calEnd = monthEnd.endOf("week");
   const today = dayjs();
 
-  const weeks: Dayjs[][] = [];
+  // One request for the whole grid, including the trailing days of the
+  // neighbouring months the grid shows.
+  const { data } = useAppointmentList({
+    fromDate: calStart.format("YYYY-MM-DD"),
+    toDate: calEnd.format("YYYY-MM-DD"),
+    maxResultCount: 1000,
+  });
+
+  const countByDay = new Map<string, number>();
+  for (const appointment of data?.items ?? []) {
+    if (!appointment.startTime) continue;
+    const key = dayjs(appointment.startTime).format("YYYY-MM-DD");
+    countByDay.set(key, (countByDay.get(key) ?? 0) + 1);
+  }
+
+  const days: Dayjs[] = [];
   let current = calStart;
   while (current.isBefore(calEnd) || current.isSame(calEnd, "day")) {
-    const week: Dayjs[] = [];
-    for (let i = 0; i < 7; i++) {
-      week.push(current);
-      current = current.add(1, "day");
-    }
-    weeks.push(week);
+    days.push(current);
+    current = current.add(1, "day");
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "auto" }}>
-      {/* Header */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", borderBottom: "2px solid #e2e8f0", background: "#F9FAFB" }}>
-        {DAY_LABELS.map((d) => (
-          <div
-            key={d}
-            style={{
-              padding: "8px 0",
-              textAlign: "center",
-              fontSize: 12,
-              fontWeight: 600,
-              color: d === "CN" ? "#ef4d4d" : "#6f7c90",
-              borderRight: "1px solid #e2e8f0",
-            }}
-          >
-            {d}
-          </div>
+    <div className="month-grid-card">
+      <div className="month-grid-head">
+        {DAY_LABELS.map((label) => (
+          <span key={label} className="month-grid-weekday">
+            {label}
+          </span>
         ))}
       </div>
 
-      {/* Week rows */}
-      {weeks.map((week, wi) => (
-        <div
-          key={wi}
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(7, 1fr)",
-            flex: 1,
-            minHeight: 90,
-          }}
-        >
-          {week.map((day, di) => {
-            const isCurrentMonth = day.month() === currentDate.month();
-            const isToday = day.isSame(today, "day");
-            const isSunday = day.day() === 0;
-            return (
-              <div
-                key={di}
-                onClick={() => onDayClick?.(day)}
-                style={{
-                  borderRight: "1px solid #e2e8f0",
-                  borderBottom: "1px solid #e2e8f0",
-                  padding: "6px 8px",
-                  background: isToday ? "#eaf0fa" : "#fff",
-                  cursor: "pointer",
-                  transition: "background 0.1s",
-                  opacity: isCurrentMonth ? 1 : 0.4,
-                }}
-                onMouseEnter={(e) => {
-                  if (!isToday) (e.currentTarget as HTMLDivElement).style.background = "#F3F8FF";
-                }}
-                onMouseLeave={(e) => {
-                  if (!isToday) (e.currentTarget as HTMLDivElement).style.background = "#fff";
-                }}
-              >
-                <div
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    width: 26,
-                    height: 26,
-                    borderRadius: "50%",
-                    background: isToday ? "#1c3566" : "transparent",
-                    color: isToday ? "#fff" : isSunday ? "#ef4d4d" : "#101c2c",
-                    fontWeight: isToday ? 700 : 400,
-                    fontSize: 13,
-                  }}
-                >
-                  {day.date()}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ))}
+      <div className="month-grid">
+        {days.map((day) => {
+          const key = day.format("YYYY-MM-DD");
+          const count = countByDay.get(key) ?? 0;
+          const classes = [
+            "month-cell",
+            day.month() === currentDate.month() ? "" : "month-cell--outside",
+            day.isSame(today, "day") ? "month-cell--today" : "",
+          ]
+            .filter(Boolean)
+            .join(" ");
+
+          return (
+            <button
+              key={key}
+              type="button"
+              className={classes}
+              onClick={() => onDayClick?.(day)}
+              aria-label={t("{0} — {1} lịch hẹn", day.format("DD/MM/YYYY"), count)}
+            >
+              <span className="month-cell-date">{day.date()}</span>
+              {count > 0 && <span className="month-cell-count">{count}</span>}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

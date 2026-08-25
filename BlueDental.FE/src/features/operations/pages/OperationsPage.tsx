@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Table, Empty, Tabs, Button, Input, Modal, Popconfirm, message } from "antd";
+import { Table, Empty, Button, Input, Modal, Popconfirm, message } from "antd";
 import { SearchOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
 import { PageHeader } from "@/components/PageHeader";
+import { DivisionStatsGrid } from "../components/DivisionStatsGrid";
 import {
   useOperationCategories, useCreateOperationCategory, useDeleteOperationCategory,
   useOperationArticles, useCreateOperationArticle, useUpdateOperationArticle, useDeleteOperationArticle,
@@ -165,36 +166,40 @@ export function OperationsPage() {
         subtitle={t("Chỉ số theo từng khối chức năng trong ngày")}
       />
 
-      <div className="reception-card" style={{ padding: "0 16px" }}>
-        <Tabs
-          activeKey={activeTab}
-          onChange={(k) => { setActiveTab(k); setSelectedCategoryId(undefined); }}
-          style={{ marginBottom: 0 }}
-          items={MAIN_TAB_DEFS.map((tab) => ({ key: tab.key, label: t(tab.labelKey) }))}
-        />
+      {/* The design switches the divisions with pills. */}
+      <div className="pill-tabs" role="tablist" style={{ marginBottom: 4 }}>
+        {MAIN_TAB_DEFS.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            role="tab"
+            aria-selected={tab.key === activeTab}
+            className={`pill-tab${tab.key === activeTab ? " pill-tab--active" : ""}`}
+            onClick={() => { setActiveTab(tab.key); setSelectedCategoryId(undefined); }}
+          >
+            {t(tab.labelKey)}
+          </button>
+        ))}
       </div>
 
+      {/* One card per division, as the design lays this screen out. The
+          component was written for it and then never rendered. */}
+      <DivisionStatsGrid />
+
       {currentTabDef.subTabs.length > 0 && (
-        <div className="reception-card reception-card--tabs">
-          <div style={{ display: "flex", gap: 0 }}>
-            {currentTabDef.subTabs.map((sub) => (
-              <button
-                key={sub.key}
-                type="button"
-                onClick={() => setSubTab(sub.key)}
-                style={{
-                  padding: "8px 16px", border: "none",
-                  borderBottom: activeSubTab === sub.key ? "2px solid var(--bd-blue)" : "2px solid transparent",
-                  background: "none",
-                  color: activeSubTab === sub.key ? "var(--bd-blue)" : "var(--bd-muted)",
-                  fontWeight: activeSubTab === sub.key ? 600 : 400,
-                  cursor: "pointer", fontSize: 13, whiteSpace: "nowrap",
-                }}
-              >
-                {t(sub.labelKey)}
-              </button>
-            ))}
-          </div>
+        <div className="pill-tabs" role="tablist" style={{ marginBottom: 4 }}>
+          {currentTabDef.subTabs.map((sub) => (
+            <button
+              key={sub.key}
+              type="button"
+              role="tab"
+              aria-selected={sub.key === activeSubTab}
+              className={`pill-tab${sub.key === activeSubTab ? " pill-tab--active" : ""}`}
+              onClick={() => setSubTab(sub.key)}
+            >
+              {t(sub.labelKey)}
+            </button>
+          ))}
         </div>
       )}
 

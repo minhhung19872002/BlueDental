@@ -48,18 +48,25 @@ function StatTile({
   value,
   label,
   testId,
+  color,
 }: {
   value: number;
   label: string;
   /** Stable hook for tests — the labels also appear as status tags in the table. */
   testId: string;
+  /** Token for the tile's top band and its number, as the design colours them. */
+  color: string;
 }) {
   return (
-    <div className="reception-card" data-testid={testId} style={{ padding: "16px 20px" }}>
-      <div style={{ fontSize: 22, fontWeight: 700, color: "#101c2c", fontVariantNumeric: "tabular-nums" }}>
+    <div
+      className="stat-tile"
+      data-testid={testId}
+      style={{ "--tile-color": color } as React.CSSProperties}
+    >
+      <div className="stat-tile-value" style={{ fontVariantNumeric: "tabular-nums" }}>
         {value}
       </div>
-      <div style={{ fontSize: 12, color: "#6f7c90" }}>{label}</div>
+      <div className="stat-tile-label">{label}</div>
     </div>
   );
 }
@@ -401,12 +408,12 @@ export function VoucherPage() {
         subtitle={t("Voucher mới luôn ở trạng thái Nháp — phải kích hoạt mới dùng được")}
       />
 
-      <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
-        <Col xs={12} md={6}><StatTile value={stats?.total ?? 0} label={t("Tổng voucher")} testId="voucher-stat-total" /></Col>
-        <Col xs={12} md={6}><StatTile value={stats?.active ?? 0} label={t("Đang hoạt động")} testId="voucher-stat-active" /></Col>
-        <Col xs={12} md={6}><StatTile value={stats?.issued ?? 0} label={t("Đã phát hành")} testId="voucher-stat-issued" /></Col>
-        <Col xs={12} md={6}><StatTile value={stats?.expired ?? 0} label={t("Đã hết hạn")} testId="voucher-stat-expired" /></Col>
-      </Row>
+      <div className="stat-tiles" style={{ marginBottom: 12 }}>
+        <StatTile value={stats?.total ?? 0} label={t("Tổng voucher")} testId="voucher-stat-total" color="var(--bd-blue)" />
+        <StatTile value={stats?.active ?? 0} label={t("Đang hoạt động")} testId="voucher-stat-active" color="var(--bd-green-bright)" />
+        <StatTile value={stats?.issued ?? 0} label={t("Đã phát hành")} testId="voucher-stat-issued" color="var(--bd-gold-deep)" />
+        <StatTile value={stats?.expired ?? 0} label={t("Đã hết hạn")} testId="voucher-stat-expired" color="var(--bd-red)" />
+      </div>
 
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
