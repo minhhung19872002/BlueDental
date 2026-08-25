@@ -267,3 +267,13 @@ thuộc phạm vi lần này. Ưu tiên dùng lại component sẵn có nên **g
   và `:nth-of-type` thì đếm lệch một hàng nên chuyển sang `.nth(index)`.
 - Nút "Thêm …" mang icon nên accessible name có tiền tố (`plus Thêm dịch vụ`) —
   neo đuôi chuỗi, đừng neo đầu.
+
+## 2026-08-25 — lề mặc định của trình duyệt quay lại sau khi gỡ Tailwind
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-81 | Ô tìm nhóm và nút `+` đè lên dòng nhóm đầu tiên | Rõ nhất ở tab có tên dài (`bệnh án mẫu`): đo được header nhóm cao đúng `134px` nhưng nội dung cần **152px**, nên hàng tìm kiếm tràn xuống 18px và nằm chồng lên danh sách | Hai nguyên nhân chồng nhau. Một: `.bd-group-head` đặt `height` cứng `134px` — bản gốc cũng vậy, nhưng phụ đề của bản gốc **luôn ghi "dịch vụ"** ở mọi tab nên không bao giờ xuống dòng, còn mình ghép đúng tên danh mục nên tab tên dài thì xuống 2 dòng. Hai: preflight của Tailwind từng xoá lề mặc định của `<p>`/`<hN>`; Tailwind đi rồi mà reset của `main` chỉ có `box-sizing` và `body`, nên riêng tiêu đề nhóm đã âm thầm cõng thêm `16px` trên và `16px` dưới | Reset lề bằng `:where(...)` (độ ưu tiên bằng 0, không đè rule nào) cho các nhánh của Danh mục; `height` đổi thành `min-height` để nếu còn thứ gì nở ra thì nó **đẩy** danh sách xuống chứ không đè lên; phụ đề gói gọn một dòng, cắt bằng `…`, câu đầy đủ nằm ở `title` | F-31…F-34 |
+
+Đo lại trên cả 8 tab có panel nhóm: header **135px** (bản gốc 134), không tràn,
+không đè. Reset này cũng trả lại khoảng cách đúng cho tờ A4 — các `<p>` in sẵn
+trong đó cũng đang cõng lề mặc định kể từ lúc Tailwind bị gỡ.

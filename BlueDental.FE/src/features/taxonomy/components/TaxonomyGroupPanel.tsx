@@ -213,7 +213,9 @@ export function TaxonomyGroupPanel({
             {isLoading ? t("Đang tải…") : t("{0} nhóm", groups.length)}
           </span>
         </div>
-        <p className="bd-cat-sub">{subtitle}</p>
+        <p className="bd-cat-sub bd-group-sub" title={subtitle}>
+          {subtitle}
+        </p>
 
         <div className="bd-group-searchrow">
           <Input

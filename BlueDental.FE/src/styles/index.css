@@ -4450,6 +4450,18 @@ html:has(.ant-modal-wrap) {
 
 .bd-a4-cellinput:focus { background: #fff9c4; }
 
+/* Tailwind's preflight used to zero the browser's own margins on headings and
+   paragraphs. It went with Tailwind, and main's reset only covers box-sizing
+   and body — so a <p> here silently carried 16px above and below it, which is
+   what pushed the group panel's search box out through the bottom of its own
+   header and onto the list underneath.
+
+   :where() keeps this at zero specificity, so any rule below still wins. */
+:where(.bd-taxonomy-page, .bd-cat-screen, .app-dialog, .bd-a4-viewport)
+  :where(p, h1, h2, h3, h4, ul, ol, figure) {
+  margin: 0;
+}
+
 /* ==========================================================================
    Danh mục — the catalog screens.
 
@@ -4831,9 +4843,19 @@ html:has(.ant-modal-wrap) {
   padding: 16px;
 }
 
+/* Lines up with the table's own header across the divide. A minimum rather than
+   a fixed height: if anything in here does grow — a longer translation, a wider
+   font — it has to push the list down, not sit on top of it. */
 @media (min-width: 768px) {
-  .bd-group-head { height: 134px; }
+  .bd-group-head { min-height: 134px; }
+}
 
+/* The subtitle names the catalog, and some of those names are long enough to
+   wrap. One line, clipped, with the whole sentence on hover. */
+.bd-group-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .bd-group-headrow { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
