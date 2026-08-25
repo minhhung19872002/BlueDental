@@ -9,6 +9,8 @@ public class ClinicBranch : FullAuditedAggregateRoot<Guid>
     public string Code { get; private set; } = default!;
     public string Name { get; private set; } = default!;
     public string? Address { get; private set; }
+    public string? ProvinceId { get; private set; }
+    public string? WardId { get; private set; }
     public string? PhoneNumber { get; private set; }
     public string? Email { get; private set; }
     public BranchStatus Status { get; private set; }
@@ -40,11 +42,13 @@ public class ClinicBranch : FullAuditedAggregateRoot<Guid>
         return this;
     }
 
-    public ClinicBranch SetContactInfo(string? phoneNumber, string? email, string? address)
+    public ClinicBranch SetContactInfo(string? phoneNumber, string? email, string? address, string? provinceId = null, string? wardId = null)
     {
         PhoneNumber = phoneNumber;
         Email = email;
         Address = address;
+        ProvinceId = provinceId;
+        WardId = wardId;
         return this;
     }
 

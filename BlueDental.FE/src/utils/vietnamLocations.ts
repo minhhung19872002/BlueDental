@@ -25,3 +25,15 @@ export async function getWardsByProvince(provinceCode: string): Promise<Location
   cachedWardsMap.set(provinceCode, wards);
   return wards;
 }
+
+export async function getProvinceName(code: string | undefined | null): Promise<string | null> {
+  if (!code) return null;
+  const provinces = await getAllProvinces();
+  return provinces.find((p) => p.code === code)?.name ?? null;
+}
+
+export async function getWardName(provinceCode: string | undefined | null, wardCode: string | undefined | null): Promise<string | null> {
+  if (!provinceCode || !wardCode) return null;
+  const wards = await getWardsByProvince(provinceCode);
+  return wards.find((w) => w.code === wardCode)?.name ?? null;
+}

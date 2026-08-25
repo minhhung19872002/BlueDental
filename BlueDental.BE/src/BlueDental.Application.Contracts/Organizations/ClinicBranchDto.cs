@@ -9,6 +9,8 @@ public class ClinicBranchDto : FullAuditedEntityDto<Guid>
     public string Code { get; set; } = default!;
     public string Name { get; set; } = default!;
     public string? Address { get; set; }
+    public string? ProvinceId { get; set; }
+    public string? WardId { get; set; }
     public string? PhoneNumber { get; set; }
     public string? Email { get; set; }
     public BranchStatus Status { get; set; }
@@ -25,6 +27,12 @@ public class CreateClinicBranchDto
 
     [StringLength(500, ErrorMessage = "Địa chỉ tối đa 500 ký tự.")]
     public string? Address { get; set; }
+
+    [StringLength(20)]
+    public string? ProvinceId { get; set; }
+
+    [StringLength(20)]
+    public string? WardId { get; set; }
 
     [Phone(ErrorMessage = "Số điện thoại không hợp lệ.")]
     [StringLength(20, ErrorMessage = "Số điện thoại tối đa 20 ký tự.")]
@@ -43,6 +51,12 @@ public class UpdateClinicBranchDto
 
     [StringLength(500, ErrorMessage = "Địa chỉ tối đa 500 ký tự.")]
     public string? Address { get; set; }
+
+    [StringLength(20)]
+    public string? ProvinceId { get; set; }
+
+    [StringLength(20)]
+    public string? WardId { get; set; }
 
     [Phone(ErrorMessage = "Số điện thoại không hợp lệ.")]
     [StringLength(20, ErrorMessage = "Số điện thoại tối đa 20 ký tự.")]

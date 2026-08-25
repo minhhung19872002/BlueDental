@@ -7,6 +7,8 @@ export interface ClinicBranchDto {
   code: string;
   name: string;
   address?: string;
+  provinceId?: string;
+  wardId?: string;
   phoneNumber?: string;
   email?: string;
   status: string;
@@ -15,6 +17,8 @@ export interface ClinicBranchDto {
 export interface CreateClinicBranchDto {
   code: string;
   name: string;
+  provinceId?: string;
+  wardId?: string;
   address?: string;
   phoneNumber?: string;
   email?: string;
@@ -22,6 +26,8 @@ export interface CreateClinicBranchDto {
 
 export interface UpdateClinicBranchDto {
   name: string;
+  provinceId?: string;
+  wardId?: string;
   address?: string;
   phoneNumber?: string;
   email?: string;
@@ -154,6 +160,8 @@ export function useDeleteDepartment() {
 export interface UpdateClinicBranchInput {
   name: string;
   address?: string;
+  provinceId?: string;
+  wardId?: string;
   phoneNumber?: string;
   email?: string;
 }

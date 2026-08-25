@@ -2902,127 +2902,209 @@ body {
   }
 }
 
-/* ── Clinic settings (ported from the design's Cài đặt screen) ──────────── */
+/* ── Clinic settings (tabbed layout) ────────────────────────────────────── */
 
-.settings-split {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  align-items: start;
+.settings-tabs-card {
+  background: #fff;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius);
+  box-shadow: var(--bd-shadow-card);
+  padding: 4px 24px 32px;
 }
 
-.settings-side {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+.settings-tabs-card .ant-tabs-nav {
+  margin-bottom: 0 !important;
+}
+
+.settings-tabs-card .ant-tabs-body-holder {
+  padding-top: 16px !important;
+}
+
+.settings-form {
+  max-width: 560px;
+}
+
+.settings-form .ant-form-item-label > label {
+  font-weight: 600;
+}
+
+.settings-input-icon {
+  color: var(--bd-faint);
+  font-size: 14px;
 }
 
 .settings-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.settings-branch {
-  display: flex;
-  align-items: center;
   gap: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--bd-bg);
 }
 
-.settings-branch:last-child {
-  padding-bottom: 0;
-  border-bottom: 0;
+.branch-editor-form {
+  margin-top: 4px;
 }
 
-.settings-dot {
-  width: 8px;
-  height: 8px;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  background: var(--bd-green-bright);
+.branch-editor-form .ant-form-item {
+  margin-bottom: 12px !important;
 }
 
-.settings-roles {
-  display: flex;
-  flex-direction: column;
-  gap: 11px;
-}
-
-.settings-role {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 12.5px;
-}
-
-.settings-role-name {
-  flex: 1;
-  min-width: 0;
-  font-weight: 600;
-  color: var(--bd-ink);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.settings-role-count {
-  font-weight: 700;
-  color: var(--bd-primary);
-}
-
-.settings-card-header {
+.settings-section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 14px;
+  gap: 16px;
+  margin-bottom: 20px;
 }
 
-.settings-card-header .dash-card-title {
-  margin-bottom: 0;
+.settings-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--bd-ink);
 }
 
-.settings-branch-actions {
+.settings-section-desc {
+  font-size: 13px;
+  color: var(--bd-muted);
+  margin-top: 2px;
+}
+
+.settings-branch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+
+.settings-branch-card {
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-control);
+  padding: 16px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.settings-branch-card:hover {
+  border-color: color-mix(in srgb, var(--bd-primary) 30%, transparent);
+  box-shadow: 0 2px 8px rgba(28, 53, 102, 0.06);
+}
+
+.settings-branch-card-header {
   display: flex;
-  gap: 2px;
-  opacity: 0;
-  transition: opacity 0.15s;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
-.settings-branch:hover .settings-branch-actions {
-  opacity: 1;
+.settings-branch-card-status {
+  flex-shrink: 0;
+  margin: 0;
 }
 
-.settings-role--clickable {
+.settings-branch-card-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--bd-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-branch-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settings-branch-card-detail {
+  font-size: 12.5px;
+  color: var(--bd-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-branch-card-detail .anticon {
+  font-size: 12px;
+  color: var(--bd-faint);
+}
+
+.settings-roles-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 480px;
+}
+
+.settings-role-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-control);
   cursor: pointer;
-  padding: 8px 10px;
-  margin: -8px -10px;
-  border-radius: 10px;
-  transition: background 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.settings-role--clickable:hover {
-  background: var(--bd-bg);
+.settings-role-card:hover {
+  border-color: color-mix(in srgb, var(--bd-primary) 30%, transparent);
+  box-shadow: 0 2px 8px rgba(28, 53, 102, 0.06);
 }
 
-.settings-role-arrow {
-  font-size: 10px;
+.settings-role-card-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.settings-role-card-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--bd-primary) 10%, transparent);
+  color: var(--bd-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.settings-role-card-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--bd-ink);
+}
+
+.settings-role-card-count {
+  font-size: 12.5px;
+  color: var(--bd-muted);
+  margin-top: 1px;
+}
+
+.settings-role-card-arrow {
+  font-size: 12px;
   color: var(--bd-faint);
   transition: transform 0.15s;
 }
 
-.settings-role--clickable:hover .settings-role-arrow {
-  transform: translateX(2px);
+.settings-role-card:hover .settings-role-card-arrow {
+  transform: translateX(3px);
+  color: var(--bd-primary);
 }
 
-@media (max-width: 900px) {
-  .settings-split {
+@media (max-width: 640px) {
+  .settings-row {
     grid-template-columns: 1fr;
   }
 
-  .settings-branch-actions {
-    opacity: 1;
+  .settings-branch-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-tabs-card {
+    padding: 0 16px;
   }
 }
 

@@ -1,16 +1,19 @@
-import { useEffect } from "react";
-import { Form, Input, Modal } from "antd";
+import { useCallback, useEffect, useState } from "react";
+import { Form, Input, Modal, Select } from "antd";
 import { toast } from "sonner";
 import {
   useCreateBranch,
   useUpdateBranch,
   type ClinicBranchDto,
 } from "../api";
+import { getAllProvinces, getWardsByProvince, type LocationOption } from "@/utils/vietnamLocations";
 import { t } from "@/lib/i18n";
 
 interface BranchFormValues {
   code: string;
   name: string;
+  provinceId?: string;
+  wardId?: string;
   address?: string;
   phoneNumber?: string;
   email?: string;
@@ -29,33 +32,74 @@ export function BranchEditorModal({ open, branch, onClose }: BranchEditorModalPr
   const isEditing = Boolean(branch);
   const saving = createBranch.isPending || updateBranch.isPending;
 
+  const selectedProvinceId = Form.useWatch("provinceId", form);
+  const [provinces, setProvinces] = useState<LocationOption[]>([]);
+  const [wards, setWards] = useState<LocationOption[]>([]);
+
+  useEffect(() => {
+    getAllProvinces().then(setProvinces);
+  }, []);
+
+  const loadWards = useCallback((provinceCode: string) => {
+    if (!provinceCode) { setWards([]); return; }
+    getWardsByProvince(provinceCode).then(setWards);
+  }, []);
+
+  useEffect(() => {
+    if (selectedProvinceId) {
+      loadWards(selectedProvinceId);
+    } else {
+      setWards([]);
+    }
+  }, [selectedProvinceId, loadWards]);
+
   useEffect(() => {
     if (open) {
       if (branch) {
         form.setFieldsValue({
           code: branch.code,
           name: branch.name,
+          provinceId: branch.provinceId ?? undefined,
+          wardId: branch.wardId ?? undefined,
           address: branch.address ?? "",
           phoneNumber: branch.phoneNumber ?? "",
           email: branch.email ?? "",
         });
+        if (branch.provinceId) loadWards(branch.provinceId);
       } else {
         form.resetFields();
+        setWards([]);
       }
     }
-  }, [open, branch, form]);
+  }, [open, branch, form, loadWards]);
 
   const handleOk = async () => {
     const values = await form.validateFields();
+    const clean = (v: string | undefined) => v?.trim() || undefined;
+    const payload = {
+      ...values,
+      address: clean(values.address),
+      phoneNumber: clean(values.phoneNumber),
+      email: clean(values.email),
+      provinceId: values.provinceId || undefined,
+      wardId: values.wardId || undefined,
+    };
     try {
       if (branch) {
         await updateBranch.mutateAsync({
           id: branch.id,
-          data: { name: values.name, address: values.address, phoneNumber: values.phoneNumber, email: values.email },
+          data: {
+            name: payload.name,
+            provinceId: payload.provinceId,
+            wardId: payload.wardId,
+            address: payload.address,
+            phoneNumber: payload.phoneNumber,
+            email: payload.email,
+          },
         });
         toast.success(t("Cập nhật chi nhánh thành công"));
       } else {
-        await createBranch.mutateAsync(values);
+        await createBranch.mutateAsync(payload);
         toast.success(t("Tạo chi nhánh thành công"));
       }
       onClose();
@@ -75,16 +119,14 @@ export function BranchEditorModal({ open, branch, onClose }: BranchEditorModalPr
       cancelText={t("Hủy")}
       destroyOnClose
     >
-      <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
-        {!isEditing && (
-          <Form.Item
-            name="code"
-            label={t("Mã chi nhánh")}
-            rules={[{ required: true, message: t("Vui lòng nhập mã") }]}
-          >
-            <Input />
-          </Form.Item>
-        )}
+      <Form form={form} layout="vertical" className="branch-editor-form">
+        <Form.Item
+          name="code"
+          label={t("Mã chi nhánh")}
+          rules={[{ required: true, message: t("Vui lòng nhập mã") }]}
+        >
+          <Input disabled={isEditing} />
+        </Form.Item>
         <Form.Item
           name="name"
           label={t("Tên chi nhánh")}
@@ -92,6 +134,32 @@ export function BranchEditorModal({ open, branch, onClose }: BranchEditorModalPr
         >
           <Input />
         </Form.Item>
+        <div className="settings-row">
+          <Form.Item name="provinceId" label={t("Tỉnh/ Thành phố")}>
+            <Select
+              showSearch
+              allowClear
+              placeholder={t("Chọn tỉnh/ thành phố")}
+              options={provinces.map((p) => ({ label: p.name, value: p.code }))}
+              filterOption={(input, option) =>
+                (option?.label as string).toLowerCase().includes(input.toLowerCase())
+              }
+              onChange={() => form.setFieldValue("wardId", undefined)}
+            />
+          </Form.Item>
+          <Form.Item name="wardId" label={t("Xã/ Phường")}>
+            <Select
+              showSearch
+              allowClear
+              placeholder={t("Chọn xã/ phường")}
+              options={wards.map((w) => ({ label: w.name, value: w.code }))}
+              filterOption={(input, option) =>
+                (option?.label as string).toLowerCase().includes(input.toLowerCase())
+              }
+              disabled={!selectedProvinceId}
+            />
+          </Form.Item>
+        </div>
         <Form.Item name="address" label={t("Địa chỉ")}>
           <Input />
         </Form.Item>

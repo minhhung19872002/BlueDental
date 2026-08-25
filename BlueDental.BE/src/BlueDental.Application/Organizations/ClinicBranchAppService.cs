@@ -74,6 +74,7 @@ public class ClinicBranchAppService : ApplicationService, IClinicBranchAppServic
             input.Address,
             input.PhoneNumber,
             input.Email);
+        branch.SetContactInfo(input.PhoneNumber, input.Email, input.Address, input.ProvinceId, input.WardId);
 
         await _repository.InsertAsync(branch, autoSave: true);
         return ObjectMapper.Map<ClinicBranch, ClinicBranchDto>(branch);
@@ -84,7 +85,7 @@ public class ClinicBranchAppService : ApplicationService, IClinicBranchAppServic
     {
         var branch = await _repository.GetAsync(id);
         branch.SetName(input.Name);
-        branch.SetContactInfo(input.PhoneNumber, input.Email, input.Address);
+        branch.SetContactInfo(input.PhoneNumber, input.Email, input.Address, input.ProvinceId, input.WardId);
         await _repository.UpdateAsync(branch, autoSave: true);
         return ObjectMapper.Map<ClinicBranch, ClinicBranchDto>(branch);
     }
