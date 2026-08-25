@@ -1,14 +1,62 @@
 /**
- * Current clinic branch.
+ * Current clinic branch — Zustand store + URL sync.
  *
- * The reference application scopes every business call by `branchId` and lets
- * the user switch branches from the header. BlueDental does not have the branch
- * switcher yet, so this resolves to the branch seeded by
- * BlueDentalDataSeedContributor. Replace the body once the switcher lands —
- * every caller already goes through this hook.
+ * Priority: URL param > localStorage > DEFAULT_BRANCH_ID.
+ *
+ * When a branch is selected, both the store and URL `?branchId=...` are updated.
+ * "All branches" (null) removes the param.
  */
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+
 export const DEFAULT_BRANCH_ID = "11111111-1111-1111-1111-111111111111";
 
+const STORAGE_KEY = "bd-current-branch-id";
+const URL_PARAM = "branchId";
+
+function syncToUrl(id: string | null) {
+  const url = new URL(window.location.href);
+  if (id) {
+    url.searchParams.set(URL_PARAM, id);
+  } else {
+    url.searchParams.delete(URL_PARAM);
+  }
+  window.history.replaceState(null, "", url.toString());
+}
+
+function readFromUrl(): string | null {
+  const params = new URLSearchParams(window.location.search);
+  return params.get(URL_PARAM);
+}
+
+interface BranchState {
+  currentBranchId: string | null;
+  setCurrentBranchId: (id: string | null) => void;
+}
+
+export const useBranchStore = create<BranchState>()(
+  persist(
+    (set) => ({
+      currentBranchId: DEFAULT_BRANCH_ID,
+      setCurrentBranchId: (id) => {
+        syncToUrl(id);
+        set({ currentBranchId: id });
+      },
+    }),
+    {
+      name: STORAGE_KEY,
+      merge: (persisted, current) => {
+        const stored = persisted as Partial<BranchState> | undefined;
+        const fromUrl = readFromUrl();
+        const branchId = fromUrl ?? stored?.currentBranchId ?? current.currentBranchId;
+        syncToUrl(branchId);
+        return { ...current, currentBranchId: branchId };
+      },
+    },
+  ),
+);
+
 export function useCurrentBranchId(): string {
-  return DEFAULT_BRANCH_ID;
+  const id = useBranchStore((s) => s.currentBranchId);
+  return id ?? DEFAULT_BRANCH_ID;
 }

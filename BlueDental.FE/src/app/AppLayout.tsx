@@ -22,6 +22,8 @@ import { useMutation } from "@tanstack/react-query";
 import { authApi } from "@/features/auth/api";
 import { brand, SIDEBAR_WIDTH, SIDEBAR_EXPANDED_WIDTH } from "@/theme/index";
 import { GlobalSearch } from "@/components/GlobalSearch";
+import { useClinicBranches } from "@/features/organizations/api";
+import { useBranchStore } from "@/lib/clinicBranch";
 
 interface NavItem {
   key: string;
@@ -228,17 +230,58 @@ export function AppLayout() {
   const clinicTagline = user?.clinicTagline ?? "Kiến Tạo Nụ Cười - Giá Trị Bền Vững";
   const sidebarWidth = sidebarExpanded ? SIDEBAR_EXPANDED_WIDTH : SIDEBAR_WIDTH;
 
+  const { data: branches } = useClinicBranches();
+  const currentBranchId = useBranchStore((s) => s.currentBranchId);
+  const setCurrentBranchId = useBranchStore((s) => s.setCurrentBranchId);
+
+  useEffect(() => {
+    if (!branches || !currentBranchId) return;
+    const valid = branches.some((b) => b.id === currentBranchId);
+    if (!valid) setCurrentBranchId(null);
+  }, [branches, currentBranchId, setCurrentBranchId]);
+
+  const selectedBranchName =
+    currentBranchId === null
+      ? t("Tất cả chi nhánh")
+      : (branches?.find((b) => b.id === currentBranchId)?.name ?? clinicName);
+
   const branchContent = (
     <div className="app-popover-list">
       <div className="app-popover-header">{t("Chi nhánh")}</div>
-      <button type="button" className="app-popover-item">
-        <span className="app-popover-dot" style={{ background: brand.faint }} />
+      <button
+        type="button"
+        className={`app-popover-item${currentBranchId === null ? " app-popover-item--active" : ""}`}
+        onClick={() => setCurrentBranchId(null)}
+      >
+        <span
+          className="app-popover-dot"
+          style={{ background: currentBranchId === null ? "#25a97a" : brand.faint }}
+        />
         <span>{t("Tất cả chi nhánh")}</span>
+        {currentBranchId === null && (
+          <CheckOutlined style={{ color: "#25a97a", fontSize: 12, marginLeft: "auto" }} />
+        )}
       </button>
-      <button type="button" className="app-popover-item app-popover-item--active">
-        <span className="app-popover-dot" style={{ background: "#25a97a" }} />
-        <span>{clinicName}</span>
-      </button>
+      {(branches ?? []).map((branch) => {
+        const isActive = branch.id === currentBranchId;
+        return (
+          <button
+            key={branch.id}
+            type="button"
+            className={`app-popover-item${isActive ? " app-popover-item--active" : ""}`}
+            onClick={() => setCurrentBranchId(branch.id)}
+          >
+            <span
+              className="app-popover-dot"
+              style={{ background: isActive ? "#25a97a" : brand.faint }}
+            />
+            <span>{branch.name}</span>
+            {isActive && (
+              <CheckOutlined style={{ color: "#25a97a", fontSize: 12, marginLeft: "auto" }} />
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 
@@ -367,7 +410,7 @@ export function AppLayout() {
             <Popover content={branchContent} trigger="click" placement="bottomRight" arrow={false}>
               <button type="button" className="app-header-branch">
                 <span className="app-header-branch-dot" />
-                <span className="app-header-branch-name">{clinicName}</span>
+                <span className="app-header-branch-name">{selectedBranchName}</span>
                 <DownOutlined style={{ fontSize: 14, color: "#6f7c90" }} />
               </button>
             </Popover>

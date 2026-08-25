@@ -74,7 +74,15 @@ public class StaffAppService(
         ValidateExtendedFields(input.PhoneNumber, input.MorningStartTime, input.MorningEndTime,
             input.AfternoonStartTime, input.AfternoonEndTime);
 
-        var user = new Volo.Abp.Identity.IdentityUser(GuidGenerator.Create(), input.UserName, input.Email)
+        var existingByEmail = await userRepository.FindByNormalizedEmailAsync(input.Email.ToUpperInvariant());
+        if (existingByEmail is not null)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Staff.DuplicateEmail);
+        }
+
+        var userName = await GenerateUniqueUserNameAsync(input.UserName, input.Email);
+
+        var user = new Volo.Abp.Identity.IdentityUser(GuidGenerator.Create(), userName, input.Email)
         {
             Name = input.Name,
             Surname = input.Surname
@@ -222,11 +230,24 @@ public class StaffAppService(
 
     // ─── Private helpers ──────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Validates the subset of input fields that have format constraints.
-    /// Phone and time fields are optional; when supplied they must match their
-    /// respective formats.
-    /// </summary>
+    private async Task<string> GenerateUniqueUserNameAsync(string? preferredUserName, string email)
+    {
+        var baseName = !preferredUserName.IsNullOrWhiteSpace()
+            ? preferredUserName!
+            : email.Split('@')[0];
+
+        var candidate = baseName;
+        var suffix = 1;
+        while (await userRepository.FindByNormalizedUserNameAsync(
+                   candidate.ToUpperInvariant()) is not null)
+        {
+            candidate = $"{baseName}{suffix}";
+            suffix++;
+        }
+
+        return candidate;
+    }
+
     private static void ValidateExtendedFields(
         string? phoneNumber,
         string? morningStartTime,
