@@ -22,10 +22,10 @@ test.describe("Vận hành", () => {
     // ── Category ───────────────────────────────────────────────────────────
     await page.getByRole("button", { name: /Thêm Mới$/ }).click();
     let dialog = page.getByRole("dialog");
-    await dialog.getByLabel(/Tên mục/).fill(category);
+    await dialog.getByLabel(/Tên phân loại/).fill(category);
     await dialog.getByRole("button", { name: /Lưu$/ }).click();
     await expect(dialog).toBeHidden();
-    await expect(page.locator(".bd-group-name", { hasText: category })).toBeVisible();
+    await expect(page.locator(".bd-ops-cat-name", { hasText: category })).toBeVisible();
 
     // ── Article ────────────────────────────────────────────────────────────
     const create = page.getByRole("button", { name: /Tạo Bài Viết$/ });
@@ -45,7 +45,7 @@ test.describe("Vận hành", () => {
     await page.reload();
     await expect(page.getByRole("row", { name: new RegExp(title) })).toBeVisible();
     // The count beside the heading, and the pager's own summary.
-    await expect(page.getByText("Hiển thị 1–1 trên 1 bài viết")).toBeVisible();
+    await expect(page.getByText("Hiển thị 1–1 trên 1")).toBeVisible();
   });
 
   test("every division is its own URL, and the sub-tab travels in the query", async ({ page }) => {
@@ -55,10 +55,10 @@ test.describe("Vận hành", () => {
     await expect(page).toHaveURL(/\/operations\/reception/);
 
     await page.getByRole("tab", { name: "Quy trình" }).click();
-    await expect(page).toHaveURL(/subTab=process/);
+    await expect(page).toHaveURL(/receptionSubTab=process/);
 
     // Straight to a sub-screen by its address.
-    await page.goto("/operations/cskh?subTab=task");
+    await page.goto("/operations/cskh?cskhSubTab=task");
     await expect(page.getByRole("tab", { name: "Công việc" })).toHaveAttribute(
       "aria-selected",
       "true",
@@ -78,13 +78,13 @@ test.describe("Vận hành", () => {
     for (const name of [`CU ${id}`, `MOI ${id}`]) {
       await page.getByRole("button", { name: /Thêm Mới$/ }).click();
       const dialog = page.getByRole("dialog");
-      await dialog.getByLabel(/Tên mục/).fill(name);
+      await dialog.getByLabel(/Tên phân loại/).fill(name);
       await dialog.getByRole("button", { name: /Lưu$/ }).click();
       await expect(dialog).toBeHidden();
     }
 
     // Newest first, as the catalog panel does it.
-    const names = page.locator(".bd-group-name");
+    const names = page.locator(".bd-ops-cat-name");
     await expect(names.first()).toHaveText(`MOI ${id}`);
     await expect(names.nth(1)).toHaveText(`CU ${id}`);
   });
@@ -96,21 +96,21 @@ test.describe("Vận hành", () => {
     await page.goto("/operations/security");
     await page.getByRole("button", { name: /Thêm Mới$/ }).click();
     let dialog = page.getByRole("dialog");
-    await dialog.getByLabel(/Tên mục/).fill(name);
+    await dialog.getByLabel(/Tên phân loại/).fill(name);
     await dialog.getByRole("button", { name: /Lưu$/ }).click();
     await expect(dialog).toBeHidden();
 
     // No menu to open first: edit and delete sit on the row.
     await page.getByRole("button", { name: `Chỉnh sửa ${name}` }).click();
     dialog = page.getByRole("dialog");
-    await dialog.getByLabel(/Tên mục/).fill(`${name} SUA`);
+    await dialog.getByLabel(/Tên phân loại/).fill(`${name} SUA`);
     await dialog.getByRole("button", { name: /Lưu$/ }).click();
     await expect(dialog).toBeHidden();
-    await expect(page.locator(".bd-group-name", { hasText: `${name} SUA` })).toBeVisible();
+    await expect(page.locator(".bd-ops-cat-name", { hasText: `${name} SUA` })).toBeVisible();
 
     await page.getByRole("button", { name: `Xoá ${name} SUA` }).click();
     await page.getByRole("dialog").getByRole("button", { name: /Xoá$/ }).click();
-    await expect(page.locator(".bd-group-name", { hasText: `${name} SUA` })).toHaveCount(0);
+    await expect(page.locator(".bd-ops-cat-name", { hasText: `${name} SUA` })).toHaveCount(0);
   });
 
   test("the article search is trimmed and ignores case", async ({ page }) => {
@@ -120,7 +120,7 @@ test.describe("Vận hành", () => {
     await page.goto("/operations/treatment");
     await page.getByRole("button", { name: /Thêm Mới$/ }).click();
     let dialog = page.getByRole("dialog");
-    await dialog.getByLabel(/Tên mục/).fill(`MUC TK ${id}`);
+    await dialog.getByLabel(/Tên phân loại/).fill(`MUC TK ${id}`);
     await dialog.getByRole("button", { name: /Lưu$/ }).click();
     await expect(dialog).toBeHidden();
 
@@ -143,6 +143,79 @@ test.describe("Vận hành", () => {
     await expect(row).toBeVisible();
   });
 
+  test("each division offers the sub-tabs the reference gives it", async ({ page }) => {
+    const subTabs = async () => {
+      // Read only once the row has rendered, or an empty list passes for a
+      // division that simply had not loaded yet.
+      await expect(page.getByRole("tab", { name: "Trang chủ" })).toBeVisible();
+      return page
+        .getByRole("tab")
+        .filter({ hasNotText: /^(Tổng quan|Truy cập)$/ })
+        .allInnerTexts();
+    };
+
+    await page.goto("/operations/overview");
+    expect(await subTabs()).toEqual([
+      "Trang chủ",
+      "Quy trình",
+      "Công việc",
+      "Báo cáo",
+      "Chẩn đoán chưa điều trị",
+      "Đơn thuốc",
+    ]);
+
+    // Not every division gets all six: Khối bảo vệ has three.
+    await page.goto("/operations/security");
+    expect(await subTabs()).toEqual(["Trang chủ", "Quy trình", "Công việc"]);
+
+    // And Khối tài chính has its own six, not the shared set.
+    await page.goto("/operations/finance");
+    expect(await subTabs()).toEqual([
+      "Trang chủ",
+      "Khách hàng phát sinh",
+      "Quy trình",
+      "Công việc",
+      "Hóa đơn",
+      "Hoàn thành theo dịch vụ",
+    ]);
+  });
+
+  test("every division keeps its own sub-tab, and they all travel together", async ({ page }) => {
+    await page.goto("/operations/overview");
+    await page.getByRole("tab", { name: "Công việc" }).click();
+    await expect(page).toHaveURL(/overviewSubTab=task/);
+
+    await page.getByRole("link", { name: "Khối lễ tân" }).click();
+    await page.getByRole("tab", { name: "Quy trình" }).click();
+    await expect(page).toHaveURL(/receptionSubTab=process/);
+    // The one left behind is still in the address, as the reference carries it.
+    await expect(page).toHaveURL(/overviewSubTab=task/);
+
+    // So going back lands on the sub-tab this division was left on.
+    await page.getByRole("link", { name: "Quản trị vận hành" }).click();
+    await expect(page.getByRole("tab", { name: "Công việc" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+  });
+
+  test("only Trang chủ, Quy trình and Công việc are the article screen", async ({ page }) => {
+    await page.goto("/operations/overview");
+    await expect(page.getByRole("button", { name: /Tạo Bài Viết$/ })).toBeVisible();
+
+    // Báo cáo is a report of its own, with no categories and no articles.
+    await page.getByRole("tab", { name: "Báo cáo" }).click();
+    await expect(page.getByRole("button", { name: /Tạo Bài Viết$/ })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /Thêm Mới$/ })).toHaveCount(0);
+
+    // Khối điều trị puts Truy cập in a row of its own above the sub-tabs.
+    await page.goto("/operations/treatment");
+    await expect(page.getByRole("tab", { name: "Tổng quan" })).toBeVisible();
+    await page.getByRole("tab", { name: "Truy cập" }).click();
+    await expect(page).toHaveURL(/treatmentTab=access/);
+    await expect(page.getByRole("button", { name: /Tạo Bài Viết$/ })).toHaveCount(0);
+  });
+
   test("an image in an article is stored beside it, not inside it", async ({ page }) => {
     const id = runId();
     const title = `ANH ${id}`;
@@ -150,7 +223,7 @@ test.describe("Vận hành", () => {
     await page.goto("/operations/finance");
     await page.getByRole("button", { name: /Thêm Mới$/ }).click();
     let dialog = page.getByRole("dialog");
-    await dialog.getByLabel(/Tên mục/).fill(`MUC ANH ${id}`);
+    await dialog.getByLabel(/Tên phân loại/).fill(`MUC ANH ${id}`);
     await dialog.getByRole("button", { name: /Lưu$/ }).click();
     await expect(dialog).toBeHidden();
 

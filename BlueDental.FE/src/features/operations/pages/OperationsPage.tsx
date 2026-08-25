@@ -15,11 +15,19 @@ import {
 import { OperationArticleModal } from "../components/OperationArticleModal";
 import { OperationCategoryModal } from "../components/OperationCategoryModal";
 import { OperationCategoryPanel } from "../components/OperationCategoryPanel";
-import { DEFAULT_SUB_TAB, findDivision, operationsDivisions } from "../operationsTabs";
+import { OperationReportPanel } from "../components/OperationReportPanel";
+import { operationsTotal } from "../operationsTotal";
+import {
+  DEFAULT_MIDDLE_TAB,
+  DEFAULT_SUB_TAB,
+  findDivision,
+  middleTabParamOf,
+  operationsDivisions,
+  subTabParamOf,
+} from "../operationsTabs";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { DataTable } from "@/components/DataTable";
 import { PageTabBar } from "@/components/PageTabBar";
-import { countedTotal } from "@/features/taxonomy/countedTotal";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { cn } from "@/lib/cn";
@@ -35,21 +43,32 @@ type PendingDelete =
 /**
  * Vận hành — one screen per division, each with its own sub-tabs.
  *
- * The reference makes every division its own route and carries the sub-tab in
- * the query string, so both are in the URL here too: a sub-screen can be
- * bookmarked, shared and reached with the back button.
+ * The reference keeps every division's sub-tab in its own query parameter and
+ * lets them all accumulate, so leaving a division and coming back returns to
+ * the sub-tab it was left on. That is reproduced here rather than a single
+ * shared `subTab`, because it is what the reference's own links carry.
  *
- * Below the tabs it is the same shape as Danh mục — categories on the left, the
- * articles of the selected one on the right — so it is built out of the same
- * pieces rather than a second set that merely looks alike.
+ * Only Trang chủ, Quy trình and Công việc are the category+article screen; the
+ * rest are reports, and say so.
  */
 export function OperationsPage() {
   const { division: divisionParam } = useParams<{ division?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const division = findDivision(divisionParam);
-  const subTabKey = searchParams.get("subTab") ?? DEFAULT_SUB_TAB;
+  const subTabParam = subTabParamOf(division);
+  const subTabKey = searchParams.get(subTabParam) ?? DEFAULT_SUB_TAB;
   const subTab = division.subTabs.find((s) => s.key === subTabKey) ?? division.subTabs[0];
+
+  const middleParam = middleTabParamOf(division);
+  const middleKey = division.middleTabs
+    ? (searchParams.get(middleParam) ?? DEFAULT_MIDDLE_TAB)
+    : null;
+  const middleTab = division.middleTabs?.find((m) => m.key === middleKey) ?? null;
+
+  // Truy cập is a screen of its own; the sub-tabs belong to Tổng quan.
+  const onMiddleReport = middleTab !== null && middleTab.key !== DEFAULT_MIDDLE_TAB;
+  const showsArticles = !onMiddleReport && subTab.kind === "articles";
 
   const selectedCategoryId = searchParams.get("category");
 
@@ -67,15 +86,22 @@ export function OperationsPage() {
 
   const debouncedKeyword = useDebounce(keyword, 300);
 
-  const categoriesQuery = useOperationCategories(division.key, subTab.key);
+  const categoriesQuery = useOperationCategories(division.key, subTab.key, {
+    enabled: showsArticles,
+  });
   const categories = useMemo(() => categoriesQuery.data?.items ?? [], [categoriesQuery.data]);
 
-  const articlesQuery = useOperationArticles(division.key, subTab.key, {
-    categoryId: selectedCategoryId ?? undefined,
-    filter: debouncedKeyword.trim() || undefined,
-    skipCount: pagination.skipCount,
-    maxResultCount: pagination.maxResultCount,
-  });
+  const articlesQuery = useOperationArticles(
+    division.key,
+    subTab.key,
+    {
+      categoryId: selectedCategoryId ?? undefined,
+      filter: debouncedKeyword.trim() || undefined,
+      skipCount: pagination.skipCount,
+      maxResultCount: pagination.maxResultCount,
+    },
+    { enabled: showsArticles },
+  );
   const articles = articlesQuery.data?.items ?? [];
   const totalCount = articlesQuery.data?.totalCount ?? 0;
 
@@ -97,10 +123,11 @@ export function OperationsPage() {
     [setSearchParams, pagination],
   );
 
-  // A category id belongs to one sub-screen, so a link carried over from another
-  // one — or a category just deleted — has to be let go of rather than queried.
+  // A category id belongs to one sub-screen, so a link carried over from
+  // another one — or a category just deleted — has to be let go of rather than
+  // queried.
   useEffect(() => {
-    if (categoriesQuery.isFetching) return;
+    if (!showsArticles || categoriesQuery.isFetching) return;
 
     const awaited = awaitingCategoryRef.current;
     if (awaited) {
@@ -112,12 +139,34 @@ export function OperationsPage() {
     if (selectedCategoryId && !categories.some((c) => c.id === selectedCategoryId)) {
       selectCategory(null);
     }
-  }, [categories, categoriesQuery.isFetching, selectedCategoryId, selectCategory]);
+  }, [categories, categoriesQuery.isFetching, selectedCategoryId, selectCategory, showsArticles]);
+
+  /**
+   * The other divisions' sub-tab parameters travel with a division link, as
+   * they do in the reference; the selected category does not, because it names
+   * a row that only this sub-screen has.
+   */
+  const divisionHref = (key: string) => {
+    const params = new URLSearchParams(searchParams);
+    params.delete("category");
+    const query = params.toString();
+    return query ? `/operations/${key}?${query}` : `/operations/${key}`;
+  };
 
   const changeSubTab = (key: string) => {
     setSearchParams((params) => {
-      params.set("subTab", key);
+      params.set(subTabParam, key);
       // Categories belong to one sub-tab, so the selection cannot travel.
+      params.delete("category");
+      return params;
+    });
+    setKeyword("");
+    pagination.resetToFirstPage();
+  };
+
+  const changeMiddleTab = (key: string) => {
+    setSearchParams((params) => {
+      params.set(middleParam, key);
       params.delete("category");
       return params;
     });
@@ -153,7 +202,7 @@ export function OperationsPage() {
       {
         key: "creationTime",
         title: t("Ngày tạo"),
-        width: 200,
+        width: 220,
         render: (_, article) => (
           <span className="bd-cat-num">{formatDate(article.creationTime)}</span>
         ),
@@ -161,7 +210,7 @@ export function OperationsPage() {
       {
         key: "lastModificationTime",
         title: t("Ngày cập nhật"),
-        width: 220,
+        width: 260,
         render: (_, article) => (
           <span className="bd-cat-num">
             {formatDateTime(article.lastModificationTime ?? article.creationTime)}
@@ -171,7 +220,7 @@ export function OperationsPage() {
       {
         key: "actions",
         title: t("Thao tác"),
-        width: 100,
+        width: 110,
         align: "center",
         fixed: "right",
         render: (_, article) => (
@@ -212,92 +261,125 @@ export function OperationsPage() {
         tabs={operationsDivisions().map((item) => ({
           key: item.key,
           label: item.label,
-          to: `/operations/${item.key}`,
+          to: divisionHref(item.key),
         }))}
       />
 
-      <div className="bd-ops-subtabs">
-        <div className="pill-tabs" role="tablist" aria-label={division.label}>
-          {division.subTabs.map((item) => (
+      {division.middleTabs ? (
+        <div className="bd-ops-middletabs" role="tablist" aria-label={division.label}>
+          {division.middleTabs.map((item) => (
             <button
               key={item.key}
               type="button"
               role="tab"
-              aria-selected={item.key === subTab.key}
-              className={cn("pill-tab", item.key === subTab.key && "pill-tab--active")}
-              onClick={() => changeSubTab(item.key)}
+              aria-selected={item.key === middleTab?.key}
+              className={cn(
+                "bd-ops-middletab",
+                item.key === middleTab?.key && "bd-ops-middletab--active",
+              )}
+              onClick={() => changeMiddleTab(item.key)}
             >
               {item.label}
             </button>
           ))}
         </div>
-      </div>
+      ) : null}
 
-      <div className="bd-min0h bd-flex1">
-        <div className="bd-taxonomy-shell">
-          <aside className="bd-taxonomy-aside">
-            <OperationCategoryPanel
-              title={t("Phân loại")}
-              subtitle={t("Chọn mục để xem bài viết bên trong")}
-              categories={categories}
-              isLoading={categoriesQuery.isLoading}
-              selectedId={selectedCategoryId}
-              onSelect={(id) => selectCategory(id === selectedCategoryId ? null : id)}
-              onCreate={() => setCategoryModal({ open: true, category: null })}
-              onRename={(category) => setCategoryModal({ open: true, category })}
-              onDelete={(category) =>
-                setPendingDelete({ kind: "category", id: category.id, name: category.name })
-              }
-            />
-          </aside>
-
-          <main className="bd-taxonomy-main">
-            <div className="bd-ops-toolbar">
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                // The reference offers this only once an article has a category
-                // to be filed under.
-                disabled={!selectedCategoryId}
-                title={selectedCategoryId ? undefined : t("Chọn một mục trước khi thêm")}
-                onClick={() => setArticleModal({ open: true, article: null })}
-              >
-                {t("Tạo Bài Viết")}
-              </Button>
-
-              <Input
-                className="bd-ops-search"
-                prefix={<SearchOutlined />}
-                placeholder={t("Tìm kiếm")}
-                aria-label={t("Tìm kiếm")}
-                value={keyword}
-                allowClear
-                onChange={(event) => {
-                  setKeyword(event.target.value);
-                  pagination.resetToFirstPage();
-                }}
-              />
+      {onMiddleReport ? (
+        <div className="bd-min0h bd-flex1">
+          <OperationReportPanel label={middleTab?.label ?? ""} />
+        </div>
+      ) : (
+        <>
+          <div className="bd-ops-subtabs">
+            <div className="pill-tabs" role="tablist" aria-label={division.label}>
+              {division.subTabs.map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={item.key === subTab.key}
+                  className={cn("pill-tab", item.key === subTab.key && "pill-tab--active")}
+                  onClick={() => changeSubTab(item.key)}
+                >
+                  {item.label}
+                </button>
+              ))}
             </div>
+          </div>
 
-            <div className="bd-cat-body">
-              <div className="bd-cat-card">
-                <DataTable<OperationArticleDto>
-                  columns={columns}
-                  dataSource={articles}
-                  rowKey="id"
-                  loading={articlesQuery.isFetching}
-                  pagination={pagination.buildConfig(totalCount, countedTotal(t("bài viết")))}
-                  locale={{
-                    emptyText: debouncedKeyword
-                      ? t("Không tìm thấy kết quả phù hợp")
-                      : t("Không có dữ liệu"),
-                  }}
-                />
+          {showsArticles ? (
+            <div className="bd-min0h bd-flex1">
+              <div className="bd-ops-shell">
+                <aside className="bd-ops-aside">
+                  <OperationCategoryPanel
+                    label={t("Phân loại")}
+                    categories={categories}
+                    isLoading={categoriesQuery.isLoading}
+                    selectedId={selectedCategoryId}
+                    onSelect={(id) => selectCategory(id === selectedCategoryId ? null : id)}
+                    onCreate={() => setCategoryModal({ open: true, category: null })}
+                    onRename={(category) => setCategoryModal({ open: true, category })}
+                    onDelete={(category) =>
+                      setPendingDelete({ kind: "category", id: category.id, name: category.name })
+                    }
+                  />
+                </aside>
+
+                <main className="bd-ops-main">
+                  <div className="bd-ops-toolbar">
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      // The reference offers this only once an article has a
+                      // category to be filed under.
+                      disabled={!selectedCategoryId}
+                      title={selectedCategoryId ? undefined : t("Chọn một mục trước khi thêm")}
+                      onClick={() => setArticleModal({ open: true, article: null })}
+                    >
+                      {t("Tạo Bài Viết")}
+                    </Button>
+
+                    <Input
+                      className="bd-ops-search"
+                      prefix={<SearchOutlined />}
+                      placeholder={t("Tìm kiếm")}
+                      aria-label={t("Tìm kiếm")}
+                      value={keyword}
+                      allowClear
+                      onChange={(event) => {
+                        setKeyword(event.target.value);
+                        pagination.resetToFirstPage();
+                      }}
+                    />
+                  </div>
+
+                  <div className="bd-cat-body">
+                    <div className="bd-cat-card">
+                      <DataTable<OperationArticleDto>
+                        columns={columns}
+                        dataSource={articles}
+                        rowKey="id"
+                        loading={articlesQuery.isFetching}
+                        pagination={pagination.buildConfig(totalCount, operationsTotal)}
+                        locale={{
+                          emptyText: debouncedKeyword
+                            ? t("Không tìm thấy kết quả phù hợp")
+                            : t("Không có dữ liệu"),
+                        }}
+                      />
+                    </div>
+                  </div>
+                </main>
               </div>
             </div>
-          </main>
-        </div>
-      </div>
+          ) : (
+            <div className="bd-min0h bd-flex1">
+              <OperationReportPanel label={subTab.label} />
+            </div>
+          )}
+        </>
+      )}
 
       <OperationCategoryModal
         open={categoryModal.open}

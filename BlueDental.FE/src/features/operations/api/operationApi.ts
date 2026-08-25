@@ -92,14 +92,23 @@ const operationApi = {
     api.delete(`/v1/app/operations/articles/${id}`).then((r) => r.data),
 };
 
-export function useOperationCategories(department: string, subTab: string) {
+/** Lets a caller switch a query off where its sub-tab has nothing to ask for. */
+interface QueryOptions {
+  enabled?: boolean;
+}
+
+export function useOperationCategories(
+  department: string,
+  subTab: string,
+  options: QueryOptions = {},
+) {
   // Follows the header's branch; undefined means every branch this account sees.
   const clinicBranchId = useBranchFilter();
 
   return useQuery({
     queryKey: ["operation-categories", clinicBranchId, department, subTab],
     queryFn: () => operationApi.categories({ clinicBranchId, department, subTab }),
-    enabled: Boolean(department && subTab),
+    enabled: (options.enabled ?? true) && Boolean(department && subTab),
   });
 }
 
@@ -148,13 +157,14 @@ export function useOperationArticles(
   department: string,
   subTab: string,
   params: ArticleListParams,
+  options: QueryOptions = {},
 ) {
   const clinicBranchId = useBranchFilter();
 
   return useQuery({
     queryKey: ["operation-articles", clinicBranchId, department, subTab, params],
     queryFn: () => operationApi.articles({ clinicBranchId, department, subTab, ...params }),
-    enabled: Boolean(department && subTab),
+    enabled: (options.enabled ?? true) && Boolean(department && subTab),
   });
 }
 

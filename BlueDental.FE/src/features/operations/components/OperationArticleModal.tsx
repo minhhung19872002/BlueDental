@@ -89,8 +89,8 @@ export function OperationArticleModal({
   return (
     <AppDialog
       open={open}
-      title={article ? t("Cập nhật bài viết") : t("Tạo Bài Viết")}
-      width={820}
+      title={article ? t("Sửa bài viết") : t("Tiêu đề bài viết")}
+      width={772}
       canSave={title.trim().length > 0}
       saving={pending}
       onSave={() => form.submit()}
@@ -112,9 +112,10 @@ export function OperationArticleModal({
           <Input autoFocus />
         </FloatingField>
 
-        <Form.Item name="content">
+        <Form.Item name="content" label={t("Nội dung bài viết")}>
           <RichTextField
-            placeholder={t("Nhập nội dung bài viết...")}
+            className="bd-ops-editor"
+            placeholder={t("Nhập nội dung tư vấn...")}
             // Stored alongside the article rather than inside it, so the body
             // stays small enough to send with every list read.
             onUploadImage={async (file) => {

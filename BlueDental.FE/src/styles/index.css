@@ -5487,6 +5487,44 @@ html:has(.ant-modal-wrap) {
 
 /* ── Vận hành ───────────────────────────────────────────────────────────── */
 
+/* Khối điều trị and Khối tài chính put a second tab row under the divisions:
+   underlined, like the row above it, not pills like the row below. */
+.bd-ops-middletabs {
+  display: flex;
+  flex-shrink: 0;
+  gap: 4px;
+  border-bottom: 1px solid var(--bd-line);
+  background: #fff;
+  padding: 0 20px;
+  overflow-x: auto;
+}
+
+.bd-ops-middletab {
+  position: relative;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  padding: 14px 16px;
+  color: var(--bd-muted);
+  font-size: 13.5px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.bd-ops-middletab:hover { color: var(--bd-ink); }
+
+.bd-ops-middletab--active { color: var(--bd-blue); }
+
+.bd-ops-middletab--active::after {
+  position: absolute;
+  right: 16px;
+  bottom: -1px;
+  left: 16px;
+  background: var(--bd-blue);
+  height: 2px;
+  content: "";
+}
+
 /* The division tabs are routes and sit in the strip above; the sub-tabs belong
    to the division, so they sit on their own line under it. */
 .bd-ops-subtabs {
@@ -5497,15 +5535,152 @@ html:has(.ant-modal-wrap) {
   overflow-x: auto;
 }
 
-/* Danh mục pairs a search box with a square "+"; this panel has no search, so
-   its one button spans the row instead of being squeezed into that square. */
-.bd-ops-addrow {
-  margin-top: 12px;
+/* Two columns: the categories, then the articles of the selected one. */
+.bd-ops-shell {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 16px;
+  height: 100%;
+  min-height: 0;
+  padding: 16px 20px;
 }
 
-.bd-ops-addrow .ant-btn {
-  height: 40px;
+.bd-ops-aside { min-height: 0; }
+
+.bd-ops-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
 }
+
+/* The panel carries no heading, no count and no description — a button that
+   stays put while the list scrolls under it, and the list. */
+.bd-ops-panel {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius);
+  background: #fff;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.bd-ops-panel-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  flex-shrink: 0;
+  background: #fff;
+  padding: 8px;
+}
+
+.bd-ops-panel-head .ant-btn { height: 42px; }
+
+.bd-ops-panel-list {
+  flex: 1;
+  min-height: 0;
+  padding: 0 8px 8px;
+  overflow-y: auto;
+}
+
+.bd-ops-cats {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bd-ops-cat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-left: 3px solid transparent;
+  border-radius: 12px;
+  padding-right: 4px;
+  transition: background 150ms;
+}
+
+.bd-ops-cat:hover { background: var(--bd-bg-soft); }
+
+.bd-ops-cat--active {
+  border-left-color: var(--bd-blue);
+  background: var(--bd-blue-pale);
+}
+
+.bd-ops-cat-btn {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  border: 0;
+  background: none;
+  padding: 10px 8px;
+  min-width: 0;
+  text-align: left;
+}
+
+.bd-ops-cat-icon {
+  flex-shrink: 0;
+  color: var(--bd-muted);
+  font-size: 16px;
+}
+
+.bd-ops-cat--active .bd-ops-cat-icon { color: var(--bd-blue); }
+
+/* Two lines, then clipped, as the reference clamps it. */
+.bd-ops-cat-name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.bd-ops-cat--active .bd-ops-cat-name { color: var(--bd-blue); }
+
+/* Out of the way until the row is pointed at, focused, or selected. */
+.bd-ops-cat-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 150ms;
+}
+
+.bd-ops-cat:hover .bd-ops-cat-actions,
+.bd-ops-cat--active .bd-ops-cat-actions,
+.bd-ops-cat-actions:focus-within { opacity: 1; }
+
+.bd-ops-cat-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  width: 28px;
+  height: 28px;
+  color: var(--bd-muted);
+  font-size: 14px;
+  transition: background 150ms, color 150ms;
+}
+
+.bd-ops-cat-action:hover {
+  background: #fff;
+  color: var(--bd-blue);
+}
+
+.bd-ops-cat-action--danger:hover { color: var(--bd-red); }
 
 /* Vận hành: the create button sits beside the search rather than under a page
    title — this screen already says where it is with its two rows of tabs. */
@@ -5515,22 +5690,52 @@ html:has(.ant-modal-wrap) {
   flex-wrap: wrap;
   align-items: center;
   gap: 12px;
-  border-bottom: 1px solid var(--bd-line);
-  background: #fff;
-  padding: 16px;
+  padding-bottom: 16px;
 }
 
-.bd-ops-search { flex: 1; min-width: 240px; max-width: 420px; }
+.bd-ops-toolbar .ant-btn { height: 42px; }
 
-/* Two commands per category row, revealed the way the grip is. */
-.bd-ops-rowactions {
+.bd-ops-search {
+  flex: 1;
+  min-width: 240px;
+  max-width: 420px;
+}
+
+.bd-ops-search .ant-input-affix-wrapper,
+.bd-ops-search.ant-input-affix-wrapper { height: 42px; }
+
+/* The reference gives the article body a tall editor rather than a box that
+   grows only once it is written in. */
+.bd-ops-editor .ql-editor { min-height: 320px; }
+
+/* A sub-tab that is a report this application does not serve yet. */
+.bd-ops-report {
   display: flex;
-  flex-shrink: 0;
+  flex: 1;
+  flex-direction: column;
   align-items: center;
-  gap: 2px;
-  opacity: 0;
-  transition: opacity 150ms;
+  justify-content: center;
+  gap: 8px;
+  padding: 64px 24px;
+  color: var(--bd-muted);
+  text-align: center;
 }
 
-.bd-group-row:hover .bd-ops-rowactions,
-.bd-ops-rowactions:focus-within { opacity: 1; }
+.bd-ops-report-title {
+  color: var(--bd-ink);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.bd-ops-report-note {
+  max-width: 420px;
+  font-size: 13px;
+}
+
+@media (max-width: 1100px) {
+  .bd-ops-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bd-ops-panel { height: auto; max-height: 320px; }
+}
