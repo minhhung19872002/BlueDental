@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Button, Form, Input, Modal, Popconfirm, Space, Table, Tag, Tabs, message } from "antd";
+import { Button, Form, Input, Modal, Popconfirm, Space, Table, Tag, message } from "antd";
+import { PillTabs } from "@/components/PillTabs";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { t } from "@/lib/i18n";
@@ -328,20 +329,12 @@ export function OrganizationListPage() {
     {
       key: "branches",
       label: t("Chi nhánh"),
-      children: (
-        <div style={{ paddingTop: 16 }}>
-          <BranchTable />
-        </div>
-      ),
+      children: <BranchTable />,
     },
     {
       key: "departments",
       label: t("Phòng ban"),
-      children: (
-        <div style={{ paddingTop: 16 }}>
-          <DepartmentTable />
-        </div>
-      ),
+      children: <DepartmentTable />,
     },
   ];
 
@@ -353,10 +346,10 @@ export function OrganizationListPage() {
           borderRadius: 10,
           padding: "16px 20px",
           marginBottom: 16,
-          border: "1px solid #E5E7EB",
+          border: "1px solid var(--bd-line)",
         }}
       >
-        <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1B2A41" }}>
+        <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--bd-ink)" }}>
           {t("Chi nhánh & Phòng ban")}
         </h2>
       </div>
@@ -364,11 +357,11 @@ export function OrganizationListPage() {
         style={{
           background: "#fff",
           borderRadius: 10,
-          border: "1px solid #E5E7EB",
+          border: "1px solid var(--bd-line)",
           padding: "0 20px",
         }}
       >
-        <Tabs items={tabItems} />
+        <PillTabs items={tabItems} />
       </div>
     </div>
   );

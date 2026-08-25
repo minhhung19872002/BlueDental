@@ -37,9 +37,9 @@ interface Props {
 /** Same card colours as the day grid, so a status reads identically in both. */
 const WEEK_CARD_LOOK: Record<AppointmentStatus, { bg: string; border: string; text: string }> = {
   scheduled:  { bg: "#eaf0fa", border: "#1c3566", text: "#1c3566" },
-  confirmed:  { bg: "#e6f5ef", border: "#1f8a63", text: "#166848" },
+  confirmed:  { bg: "#e6f5ef", border: "#1f8a63", text: "var(--bd-green)" },
   inProgress: { bg: "#fdf3e2", border: "#dd9426", text: "#9a6412" },
-  completed:  { bg: "#e6f5ef", border: "#25a97a", text: "#166848" },
+  completed:  { bg: "#e6f5ef", border: "#25a97a", text: "var(--bd-green)" },
   cancelled:  { bg: "#fdeeee", border: "#ef4d4d", text: "#c33" },
   noShow:     { bg: "#efedf6", border: "#6f63a3", text: "#544a80" },
 };
@@ -122,7 +122,7 @@ export function WeekViewCalendar({
         }}
       >
         {/* Time gutter */}
-        <div style={{ width: TIME_COL_W, flexShrink: 0, background: "#F9FAFB" }} />
+        <div style={{ width: TIME_COL_W, flexShrink: 0, background: "var(--bd-bg-soft)" }} />
         {days.map((day, i) => {
           const isToday = day.isSame(today, "day");
           return (
@@ -157,7 +157,7 @@ export function WeekViewCalendar({
       <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
         <div style={{ display: "flex", minHeight: TOTAL_SLOTS * SLOT_H }}>
           {/* Time column */}
-          <div style={{ width: TIME_COL_W, flexShrink: 0, background: "#F9FAFB", borderRight: "1px solid #e2e8f0" }}>
+          <div style={{ width: TIME_COL_W, flexShrink: 0, background: "var(--bd-bg-soft)", borderRight: "1px solid #e2e8f0" }}>
             {slots.map((slotIdx) => (
               <div
                 key={slotIdx}

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Tabs, Table, Button, Input, Tag, Modal, Form, Select, message, Popconfirm, Switch } from "antd";
+import { Table, Button, Input, Tag, Modal, Form, Select, message, Popconfirm, Switch } from "antd";
+import { PillTabs } from "@/components/PillTabs";
 import { SearchOutlined, PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, SafetyOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
@@ -380,16 +381,16 @@ export function IdentityAdministrationPage() {
       />
 
       <div className="reception-card reception-card--toolbar">
-        <div style={{ fontWeight: 700, fontSize: 18, color: "#1B2A41", marginBottom: 4 }}>
+        <div style={{ fontWeight: 700, fontSize: 18, color: "var(--bd-ink)", marginBottom: 4 }}>
           {t("Quản trị người dùng & vai trò")}
         </div>
-        <div style={{ fontSize: 13, color: "#5A6B82" }}>
+        <div style={{ fontSize: 13, color: "var(--bd-muted)" }}>
           {t("Quản lý tài khoản, vai trò và phân quyền trong hệ thống")}
         </div>
       </div>
-      <Tabs
+      <PillTabs
+        className="identity-tabs"
         defaultActiveKey="users"
-        style={{ background: "#fff", borderRadius: 10, padding: "0 16px" }}
         items={[
           {
             key: "users",

@@ -7,6 +7,7 @@ import {
 } from "../api";
 import { useStaffList, useStaffRoleNames } from "@/features/staff/api/staffQueries";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
+import { PageHeader } from "@/components/PageHeader";
 import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
 
@@ -65,14 +66,10 @@ export function ClinicSettingsPage() {
 
   return (
     <div className="page-container">
-      <div className="page-header">
-        <div className="page-header-left">
-          <h1 className="page-header-title">{t("Cài đặt phòng khám")}</h1>
-          <p className="page-header-subtitle">
-            {t("Thông tin thương hiệu, chi nhánh và phân quyền")}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title={t("Cài đặt phòng khám")}
+        subtitle={t("Thông tin thương hiệu, chi nhánh và phân quyền")}
+      />
 
       <div className="settings-split">
         <div className="page-card">

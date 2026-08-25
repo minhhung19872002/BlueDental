@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Button, Tabs, Segmented } from "antd";
+import { Button, Segmented } from "antd";
+import { PillTabs } from "@/components/PillTabs";
 import dayjs, { type Dayjs } from "dayjs";
 import { LeftOutlined, RightOutlined, DownloadOutlined, PlusOutlined } from "@ant-design/icons";
 import { PageHeader } from "@/components/PageHeader";
@@ -136,12 +137,11 @@ export function AppointmentCalendarPage() {
           }
         />
 
-        {/* Top-level tabs */}
+        {/* Top-level switcher — the design uses pills here, not a tab row. */}
         <div className="reception-card reception-card--tabs">
-          <Tabs
+          <PillTabs
             activeKey={topTab}
             onChange={setTopTab}
-            style={{ marginBottom: 0 }}
             items={[
               { key: "customer", label: t("Lịch hẹn khách hàng") },
               { key: "work",     label: t("Lịch làm việc") },

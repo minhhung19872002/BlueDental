@@ -209,7 +209,7 @@ export function OperationsPage() {
             {t("Thêm Mới")}
           </Button>
           {categories.length === 0 ? (
-            <div style={{ color: "#9CA3AF", fontSize: 13, textAlign: "center", paddingTop: 20 }}>
+            <div style={{ color: "var(--bd-faint)", fontSize: 13, textAlign: "center", paddingTop: 20 }}>
               {t("Chưa có mục nào")}
             </div>
           ) : (
@@ -220,8 +220,8 @@ export function OperationsPage() {
                   style={{
                     display: "flex", alignItems: "center", justifyContent: "space-between",
                     padding: "6px 8px", borderRadius: 6, cursor: "pointer",
-                    background: selectedCategoryId === cat.id ? "#EBF3FE" : "transparent",
-                    color: selectedCategoryId === cat.id ? "var(--bd-blue)" : "#374151",
+                    background: selectedCategoryId === cat.id ? "var(--bd-blue-pale)" : "transparent",
+                    color: selectedCategoryId === cat.id ? "var(--bd-blue)" : "var(--bd-sub)",
                     fontWeight: selectedCategoryId === cat.id ? 600 : 400, fontSize: 13,
                   }}
                   onClick={() => setSelectedCategoryId(selectedCategoryId === cat.id ? undefined : cat.id)}
@@ -243,7 +243,7 @@ export function OperationsPage() {
                 {t("Tạo Bài Viết")}
               </Button>
               <Input
-                prefix={<SearchOutlined style={{ color: "#9CA3AF" }} />}
+                prefix={<SearchOutlined style={{ color: "var(--bd-faint)" }} />}
                 placeholder={t("Tìm kiếm...")}
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}

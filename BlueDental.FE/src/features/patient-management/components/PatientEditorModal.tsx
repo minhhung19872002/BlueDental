@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
-import { Modal, Form, Input, Select, DatePicker, Row, Col, Button, Radio, Tabs } from "antd";
+import { Modal, Form, Input, Select, DatePicker, Row, Col, Button, Radio } from "antd";
+import { PillTabs } from "@/components/PillTabs";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -230,10 +231,9 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
 
           {/* Column 2 — Basic info / Medical history (tabbed) */}
           <Col span={8}>
-            <Tabs
+            <PillTabs
               activeKey={infoTab}
               onChange={setInfoTab}
-              size="small"
               items={[
                 {
                   key: "basic",
@@ -405,7 +405,7 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
           </div>
         )}
 
-        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", paddingTop: 8, borderTop: "1px solid #E5E7EB" }}>
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", paddingTop: 8, borderTop: "1px solid var(--bd-line)" }}>
           <Button onClick={onClose}>{t("Hủy")}</Button>
           <Button type="primary" htmlType="submit" loading={isPending} icon={<span>💾</span>}>
             {isEdit ? t("Lưu thay đổi") : t("Lưu")}

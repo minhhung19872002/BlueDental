@@ -12,6 +12,7 @@ import { usePaymentStat } from "@/features/report/api/clinicReportApi";
 import { useAppointmentList } from "@/features/appointments/api/appointmentQueries";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { formatVND } from "@/utils/format";
+import { PageHeader } from "@/components/PageHeader";
 import { brand } from "@/theme/index";
 import { KpiCard } from "../components/KpiCard";
 import { RevenueBarChart } from "../components/RevenueBarChart";
@@ -45,24 +46,22 @@ export function DashboardPage() {
 
   return (
     <div className="page-container">
-      <div className="page-header">
-        <div className="page-header-left">
-          <h1 className="page-header-title">{t("Tổng quan hôm nay")}</h1>
-          <p className="page-header-subtitle">
-            {dayjs().format("dddd, DD/MM/YYYY")}
-          </p>
-        </div>
-        {/* The design pairs the title with an outline export and a solid
-            create action. Both go somewhere real: the report screen owns the
-            exports, and the appointment editor is the same one the calendar
-            opens. */}
-        <div className="page-header-actions">
-          <Button onClick={() => navigate("/report")}>{t("Xuất báo cáo")}</Button>
-          <Button type="primary" onClick={() => setNewApptOpen(true)}>
-            + {t("Tạo lịch hẹn")}
-          </Button>
-        </div>
-      </div>
+      {/* The design pairs the title with an outline export and a solid
+          create action. Both go somewhere real: the report screen owns the
+          exports, and the appointment editor is the same one the calendar
+          opens. */}
+      <PageHeader
+        title={t("Tổng quan hôm nay")}
+        subtitle={dayjs().format("dddd, DD/MM/YYYY")}
+        actions={
+          <>
+            <Button onClick={() => navigate("/report")}>{t("Xuất báo cáo")}</Button>
+            <Button type="primary" onClick={() => setNewApptOpen(true)}>
+              + {t("Tạo lịch hẹn")}
+            </Button>
+          </>
+        }
+      />
 
       <div className="kpi-grid">
         <KpiCard

@@ -106,10 +106,10 @@ export function AuditLogPage() {
       />
 
       <div className="reception-card reception-card--toolbar">
-        <div style={{ fontWeight: 700, fontSize: 18, color: "#1B2A41", marginBottom: 4 }}>
+        <div style={{ fontWeight: 700, fontSize: 18, color: "var(--bd-ink)", marginBottom: 4 }}>
           {t("Nhật ký hoạt động")}
         </div>
-        <div style={{ fontSize: 13, color: "#5A6B82" }}>
+        <div style={{ fontSize: 13, color: "var(--bd-muted)" }}>
           {t("Lịch sử các thao tác trong hệ thống")}
         </div>
       </div>

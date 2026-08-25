@@ -41,6 +41,12 @@
   --bd-teal: #3d7fa8;
   --bd-pink: #bf5a8c;
 
+  /* Status tints — the fill behind a status accent. */
+  --bd-green-pale: #e6f5ef;
+  --bd-amber-pale: #fdf3e2;
+  --bd-red-pale: #fdeeee;
+  --bd-purple-pale: #efedf6;
+
   /* Shape. Cards sit at 16, controls at 10, nav items at 11, pills at 20. */
   --bd-radius: 16px;
   --bd-radius-control: 10px;
@@ -3775,6 +3781,30 @@ html:has(.ant-modal-wrap) {
   display: flex;
   gap: 7px;
   flex-wrap: wrap;
+}
+
+/* The switcher row: pills at one end, an optional count or action at the
+   other. Used by the PillTabs component. */
+.pill-tabs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pill-tabs-row + * {
+  margin-top: 16px;
+}
+
+/* Người dùng & vai trò carries its switcher on a toolbar card, as the other
+   pill screens do. */
+.identity-tabs > .pill-tabs-row {
+  background: #ffffff;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius);
+  box-shadow: var(--bd-shadow-card);
+  padding: 14px 16px;
 }
 
 .pill-tab {
