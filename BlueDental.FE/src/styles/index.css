@@ -375,6 +375,94 @@ button {
   color: var(--bd-primary);
 }
 
+/* Desktop toggle shown by default, mobile hamburger hidden */
+.sidebar-mobile-only {
+  display: none;
+}
+
+.sidebar-desktop-only {
+  display: inline-flex;
+}
+
+/* General responsive visibility — mobile breakpoint matches the sidebar drawer. */
+.mobile-only {
+  display: none !important;
+}
+
+.mobile-filter-block {
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Mobile filter drawer ── */
+
+.mobile-filter-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 44px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-control);
+  background: #fff;
+  color: var(--bd-body);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.mobile-filter-trigger:hover {
+  border-color: var(--bd-primary);
+}
+
+.mobile-filter-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--bd-ink);
+  margin-bottom: 8px;
+}
+
+.mobile-filter-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mobile-filter-clear {
+  background: none;
+  border: none;
+  color: var(--bd-sub);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+
+.mobile-filter-clear:hover {
+  color: var(--bd-primary);
+  background: var(--bd-blue-pale);
+}
+
+.mobile-filter-drawer .ant-drawer-content-wrapper {
+  border-radius: 16px 16px 0 0 !important;
+  overflow: hidden;
+}
+
+.mobile-filter-drawer .ant-drawer-content {
+  border-radius: 16px 16px 0 0;
+}
+
+.mobile-filter-pills {
+  display: inline-flex;
+  gap: 0;
+  border: 1px solid var(--bd-line-soft);
+  border-radius: 8px;
+  padding: 4px;
+}
+
 .app-header-clinic {
   display: flex;
   align-items: center;
@@ -1276,11 +1364,6 @@ button {
   height: 29px;
 }
 
-.ant-modal .ant-modal-body {
-  max-height: calc(100vh - 190px);
-  overflow-y: auto;
-  overflow-x: hidden;
-}
 
 .ant-modal .ant-modal-title {
   font-size: 17px;
@@ -2541,11 +2624,75 @@ button {
   }
 }
 
+/* ── Mobile sidebar drawer ── */
+.sidebar-mobile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-mobile-header .sidebar-logo-area {
+  padding: 0;
+  border: 0;
+}
+
+.sidebar-mobile-close {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.65);
+  cursor: pointer;
+  transition: all 0.15s;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.sidebar-mobile-close:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.sidebar-drawer .ant-drawer-body {
+  scrollbar-width: none;
+}
+
+.sidebar-drawer .ant-drawer-body::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
 /* Phone: the rail becomes an overlay, the header keeps only what identifies
    the clinic and the account, and every grid drops to one column. */
 @media (max-width: 760px) {
   .app-sidebar {
-    box-shadow: 0 24px 50px -18px rgba(21, 42, 82, 0.45);
+    display: none;
+  }
+
+  .app-main {
+    margin-left: 0 !important;
+  }
+
+  .sidebar-mobile-only {
+    display: inline-flex;
+  }
+
+  .sidebar-desktop-only {
+    display: none;
+  }
+
+  .desktop-only {
+    display: none !important;
+  }
+
+  .mobile-only {
+    display: flex !important;
   }
 
   .app-header-clinic-text,
@@ -2925,12 +3072,33 @@ body {
   -webkit-backdrop-filter: blur(3px);
 }
 
-.ant-modal .ant-modal-content {
+html:has(.ant-modal-wrap) {
+  overflow: hidden;
+}
+
+.ant-modal-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden !important;
+}
+
+.ant-modal-wrap .ant-modal {
+  top: 0;
+  padding: 16px 0;
+  max-height: 100vh;
+}
+
+.ant-modal .ant-modal-content,
+.ant-modal .ant-modal-container {
   border-radius: 18px;
   padding: 0;
-  overflow: hidden;
   box-shadow: var(--bd-shadow-modal);
   animation: bd-pop-in 0.18s ease;
+  max-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+  overflow: clip;
 }
 
 .ant-modal .ant-modal-header {
@@ -2941,13 +3109,15 @@ body {
 }
 
 .ant-modal .ant-modal-title {
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 650;
   color: var(--bd-ink);
 }
 
 .ant-modal .ant-modal-body {
   padding: 20px;
+  flex: 1;
+  overflow-y: auto;
 }
 
 .ant-modal .ant-modal-footer {
@@ -2959,6 +3129,7 @@ body {
 .ant-modal .ant-modal-close {
   top: 14px;
   inset-inline-end: 14px;
+  color: #000;
 }
 
 .ant-drawer .ant-drawer-header {
@@ -2973,7 +3144,7 @@ body {
 /* Fields inside a dialog: label above, faint fill until focus. */
 .ant-modal .ant-form-item,
 .ant-drawer .ant-form-item {
-  margin-bottom: 12px;
+  margin-bottom: 0;
 }
 
 .ant-modal .ant-form-item-label,
@@ -3011,13 +3182,13 @@ body {
 
 /* The design's dialog fields stand 42px tall, where Ant Design's default is
    32px. Textareas keep their own height. */
-.ant-modal .ant-input:not(textarea),
+.ant-modal .ant-input:not(textarea):not(.ant-input-affix-wrapper .ant-input),
 .ant-modal .ant-input-affix-wrapper,
 .ant-modal .ant-input-number,
 .ant-modal .ant-input-number-input,
 .ant-modal .ant-picker,
 .ant-modal .ant-select-single .ant-select-selector,
-.ant-drawer .ant-input:not(textarea),
+.ant-drawer .ant-input:not(textarea):not(.ant-input-affix-wrapper .ant-input),
 .ant-drawer .ant-input-affix-wrapper,
 .ant-drawer .ant-input-number,
 .ant-drawer .ant-input-number-input,
@@ -3435,6 +3606,65 @@ body {
   max-width: 420px;
   font-size: 13px;
   color: var(--bd-muted);
+}
+
+/* ── FloatingField ── */
+.floating-field {
+  position: relative;
+}
+
+.floating-field-label {
+  position: absolute;
+  left: 12px;
+  right: 36px;
+  top: 0;
+  height: var(--ff-input-height, 42px);
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: #9ca3af;
+  pointer-events: none;
+  transition: all 0.15s ease;
+  background: transparent;
+  margin-left: 2px;
+  line-height: 1;
+  z-index: 5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: fit-content;
+}
+
+.floating-field-required {
+  color: #ff4d4f;
+  margin-left: 2px;
+}
+
+.floating-field .ant-input-password .ant-input {
+  padding-left: 0;
+}
+
+/* Floated state — label moves to sit on the border */
+.floating-field--floated .floating-field-label {
+  top: 0;
+  height: auto;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: var(--bd-blue, #1c3566);
+  right: auto;
+  overflow: visible;
+  background: #fff;
+}
+
+/* Hide Select placeholder when label is in resting position */
+.floating-field:not(.floating-field--floated) .ant-select-selection-placeholder {
+  opacity: 0;
+}
+
+/* Error state */
+.floating-field .ant-form-item-has-error ~ .floating-field-label,
+.floating-field:has(.ant-form-item-has-error) .floating-field-label {
+  color: #ff4d4f;
 }
 
 /* ── Patient header (the design's Chi tiết bệnh nhân banner) ────────────── */

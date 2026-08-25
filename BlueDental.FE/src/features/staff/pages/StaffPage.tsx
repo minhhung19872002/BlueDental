@@ -1,31 +1,36 @@
 import { useState } from "react";
 import {
   Button,
-  Form,
   Input,
-  Modal,
-  Select,
-  Empty,
-  Spin,
+  Popconfirm,
+  Tooltip,
   message,
 } from "antd";
-import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import {
+  PlusOutlined,
+  SearchOutlined,
+  EditOutlined,
+  DeleteOutlined,
+} from "@ant-design/icons";
+import type { ColumnsType } from "antd/es/table";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  staffKeys,
   useCreateStaff,
   useDeleteStaff,
   useStaffList,
   useStaffRoleNames,
   useUpdateStaff,
 } from "../api/staffQueries";
-import type { StaffDto } from "../api/staffApi";
-import { StaffRosterCard, accentFor } from "../components/StaffRosterCard";
-import { useWeekRoster, weekStartOf } from "../api/rosterQueries";
-import { useCurrentBranchId } from "@/lib/clinicBranch";
-import dayjs from "dayjs";
+import { staffApi, type StaffDto } from "../api/staffApi";
+import { StaffEditorModal, type StaffFormValues } from "../components/StaffEditorModal";
+import { useClinicBranches } from "@/features/organizations/api";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useTablePagination } from "@/hooks/useTablePagination";
-import { extractApiError } from "@/lib/apiError";
+
 import { PageHeader } from "@/components/PageHeader";
+import { DataTable } from "@/components/DataTable";
+import { MobileFilterDrawer } from "@/components/MobileFilterDrawer";
 import { t } from "@/lib/i18n";
 
 type StatusFilter = "all" | "working" | "resigned";
@@ -36,29 +41,17 @@ const statusTabs = (): { key: StatusFilter; label: string }[] => [
   { key: "resigned", label: t("Đã nghỉ") },
 ];
 
-interface StaffFormValues {
-  userName: string;
-  password?: string;
-  name?: string;
-  email: string;
-  phoneNumber?: string;
-  roleNames: string[];
-}
-
-/**
- * Nhân viên.
- *
- * Staff are ABP identity users, so creating one means creating an account: the
- * login name and the initial password belong to the form, and roles decide what
- * the account may do.
- */
 export function StaffPage() {
-  const [form] = Form.useForm<StaffFormValues>();
+  const queryClient = useQueryClient();
   const pagination = useTablePagination(20);
   const [keyword, setKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [editing, setEditing] = useState<StaffDto | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [draftKeyword, setDraftKeyword] = useState("");
+  const [draftStatus, setDraftStatus] = useState<StatusFilter>("all");
 
   const debouncedKeyword = useDebounce(keyword);
 
@@ -68,24 +61,13 @@ export function StaffPage() {
     maxResultCount: pagination.maxResultCount,
   });
   const { data: roleNames } = useStaffRoleNames();
+  const { data: branches } = useClinicBranches();
+  const branchOptions = (branches ?? []).map((b) => ({ value: b.id, label: b.name }));
 
   const createStaff = useCreateStaff();
   const updateStaff = useUpdateStaff();
   const deleteStaff = useDeleteStaff();
 
-  const branchId = useCurrentBranchId();
-  const { daysFor } = useWeekRoster(branchId, weekStartOf(dayjs()));
-
-  const handleDelete = async (staff: StaffDto) => {
-    try {
-      await deleteStaff.mutateAsync(staff.id);
-      message.success(t("Đã xoá nhân viên"));
-    } catch (error) {
-      message.error(extractApiError(error));
-    }
-  };
-
-  // Identity has no "resigned" flag of its own — an inactive account is one.
   const rows = (data?.items ?? []).filter((staff) =>
     statusFilter === "all"
       ? true
@@ -96,74 +78,170 @@ export function StaffPage() {
 
   const openCreate = () => {
     setEditing(null);
-    form.resetFields();
     setModalOpen(true);
   };
 
   const openEdit = (staff: StaffDto) => {
     setEditing(staff);
-    form.setFieldsValue({
-      userName: staff.userName,
-      name: staff.fullName || staff.name || "",
-      email: staff.email ?? "",
-      phoneNumber: staff.phoneNumber ?? "",
-      roleNames: staff.roleNames,
-    });
     setModalOpen(true);
   };
 
-  const handleSubmit = async () => {
-    const values = await form.validateFields();
+  const handleDelete = async (staff: StaffDto) => {
+    try {
+      await deleteStaff.mutateAsync(staff.id);
+      message.success(t("Đã xoá nhân viên"));
+    } catch {
+      // Global MutationCache.onError already shows the toast
+    }
+  };
+
+  const handleSubmit = async (values: StaffFormValues, avatarFile?: File | null | undefined) => {
+    const extraFields = {
+      address: values.address || undefined,
+      provinceId: values.provinceId || undefined,
+      wardId: values.wardId || undefined,
+      isDentist: values.isDentist,
+      isAssistant: values.isAssistant,
+      isHygienist: values.isHygienist,
+      morningStartTime: values.morningStartTime || undefined,
+      morningEndTime: values.morningEndTime || undefined,
+      afternoonStartTime: values.afternoonStartTime || undefined,
+      afternoonEndTime: values.afternoonEndTime || undefined,
+    };
 
     try {
+      let staffId: string;
       if (editing) {
         await updateStaff.mutateAsync({
           id: editing.id,
           data: {
             name: values.name,
             email: values.email,
-            phoneNumber: values.phoneNumber,
-            isActive: editing.isActive,
-            roleNames: values.roleNames ?? [],
-            branchIds: editing.branchIds,
+            phoneNumber: values.phoneNumber || undefined,
+            isActive: values.isActive,
+            roleNames: values.roleNames,
+            branchIds: values.branchIds,
+            ...extraFields,
           },
         });
-        message.success(t("Đã cập nhật nhân viên"));
+        staffId = editing.id;
       } else {
-        await createStaff.mutateAsync({
+        const result = await createStaff.mutateAsync({
           userName: values.userName,
-          password: values.password!,
+          password: values.password,
           name: values.name,
           email: values.email,
-          phoneNumber: values.phoneNumber,
-          roleNames: values.roleNames ?? [],
-          branchIds: [],
+          phoneNumber: values.phoneNumber || undefined,
+          roleNames: values.roleNames,
+          branchIds: values.branchIds,
+          ...extraFields,
         });
-        message.success(t("Đã tạo nhân viên"));
+        staffId = result.id;
       }
 
       setModalOpen(false);
-      form.resetFields();
-    } catch (error) {
-      message.error(extractApiError(error));
+      message.success(editing ? t("Đã cập nhật nhân viên") : t("Đã tạo nhân viên"));
+
+      if (avatarFile instanceof File) {
+        staffApi.uploadAvatar(staffId, avatarFile).then(
+          () => void queryClient.invalidateQueries({ queryKey: staffKeys.all }),
+          () => message.error(t("Tải ảnh đại diện thất bại")),
+        );
+      } else if (avatarFile === null && editing?.avatarUrl) {
+        staffApi.deleteAvatar(staffId).then(
+          () => void queryClient.invalidateQueries({ queryKey: staffKeys.all }),
+          () => message.error(t("Xóa ảnh đại diện thất bại")),
+        );
+      }
+    } catch {
+      // Global MutationCache.onError already shows the toast
     }
   };
 
+  const columns: ColumnsType<StaffDto> = [
+    {
+      key: "fullName",
+      title: t("Tên"),
+      width: 240,
+      render: (_, record) => record.fullName || record.userName,
+    },
+    {
+      key: "phoneNumber",
+      title: t("Số điện thoại"),
+      dataIndex: "phoneNumber",
+      width: 180,
+      render: (v) => v || "—",
+    },
+    {
+      key: "email",
+      title: "Email",
+      dataIndex: "email",
+      width: 280,
+      render: (v) => v || "—",
+    },
+    {
+      key: "roleNames",
+      title: t("Phân quyền"),
+      dataIndex: "roleNames",
+      width: 200,
+      render: (v: string[]) => (v?.length > 0 ? v.join(", ") : "—"),
+    },
+    {
+      key: "address",
+      title: t("Địa chỉ"),
+      width: 350,
+      render: (_, record) => record.address || "—",
+    },
+    {
+      key: "actions",
+      title: t("Thao tác"),
+      width: 110,
+      align: "center",
+      render: (_, record) => (
+        <div style={{ display: "flex", justifyContent: "center", gap: 4 }}>
+          <Tooltip title={t("Chỉnh sửa")}>
+            <Button
+              type="text"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={(e) => { e.stopPropagation(); openEdit(record); }}
+            />
+          </Tooltip>
+          <Popconfirm
+            title={t("Xoá nhân viên này?")}
+            description={record.fullName || record.userName}
+            okText={t("Xoá")}
+            cancelText={t("Huỷ")}
+            onConfirm={() => void handleDelete(record)}
+          >
+            <Tooltip title={t("Xoá")}>
+              <Button
+                type="text"
+                size="small"
+                danger
+                icon={<DeleteOutlined />}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </Tooltip>
+          </Popconfirm>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="reception-page">
-      <PageHeader
-        title={t("Nhân sự & lịch làm việc")}
-        subtitle={t("Bấm vào ngày để bật/tắt ca trực trong tuần")}
-      />
+      <PageHeader title={t("Nhân sự")} />
 
-      <div className="reception-card reception-card--toolbar">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      {/* ── Desktop: inline toolbar ── */}
+      <div className="reception-card reception-card--toolbar desktop-only">
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <Input
             prefix={<SearchOutlined />}
             placeholder={t("Tìm theo tên, email, số điện thoại...")}
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
-            style={{ width: 320 }}
+            style={{ flex: 1 }}
             allowClear
           />
           <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
@@ -172,7 +250,7 @@ export function StaffPage() {
         </div>
       </div>
 
-      <div className="reception-card reception-card--tabs">
+      <div className="reception-card reception-card--tabs desktop-only">
         <div style={{ display: "flex", gap: 0 }}>
           {statusTabs().map((tab) => (
             <button
@@ -187,88 +265,66 @@ export function StaffPage() {
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="page-card">
-          <Spin />
-        </div>
-      ) : rows.length === 0 ? (
-        <div className="page-card">
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("Chưa có nhân viên")} />
-        </div>
-      ) : (
-        <div className="staff-grid">
-          {rows.map((staff, i) => (
-            <StaffRosterCard
-              key={staff.id}
-              staff={staff}
-              accent={accentFor(i)}
-              days={daysFor(staff.id)}
-              clinicBranchId={branchId}
-              onEdit={() => openEdit(staff)}
-              onDelete={() => void handleDelete(staff)}
+      {/* ── Mobile: filter drawer + full-width create ── */}
+      <div className="mobile-only mobile-filter-block">
+        <MobileFilterDrawer
+          open={filterOpen}
+          onOpen={() => { setDraftKeyword(keyword); setDraftStatus(statusFilter); setFilterOpen(true); }}
+          onClose={() => setFilterOpen(false)}
+          onClear={() => { setDraftKeyword(""); setDraftStatus("all"); }}
+          onApply={() => { setKeyword(draftKeyword); setStatusFilter(draftStatus); }}
+        >
+          <div>
+            <div className="mobile-filter-label">{t("Tìm kiếm")}</div>
+            <Input
+              prefix={<SearchOutlined />}
+              placeholder={t("Tìm theo tên, email, số điện thoại...")}
+              value={draftKeyword}
+              onChange={(e) => setDraftKeyword(e.target.value)}
+              allowClear
             />
-          ))}
-        </div>
-      )}
+          </div>
+          <div>
+            <div className="mobile-filter-label">{t("Trạng thái")}</div>
+            <div className="mobile-filter-pills">
+              {statusTabs().map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  className={`reception-status-pill ${draftStatus === tab.key ? "reception-status-pill--active" : ""}`}
+                  onClick={() => setDraftStatus(tab.key)}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </MobileFilterDrawer>
 
-      <Modal
+        <Button type="primary" icon={<PlusOutlined />} block onClick={openCreate}>
+          {t("Tạo")}
+        </Button>
+      </div>
+
+      <div className="page-card" style={{ padding: 0 }}>
+        <DataTable<StaffDto>
+          columns={columns}
+          dataSource={rows}
+          rowKey="id"
+          loading={isLoading}
+          pagination={pagination.buildConfig(data?.totalCount)}
+        />
+      </div>
+
+      <StaffEditorModal
         open={modalOpen}
-        title={editing ? t("Chỉnh sửa nhân viên") : t("Tạo nhân viên")}
-        okText={editing ? t("Lưu") : t("Tạo")}
-        cancelText={t("Huỷ")}
-        confirmLoading={createStaff.isPending || updateStaff.isPending}
-        onOk={handleSubmit}
-        onCancel={() => setModalOpen(false)}
-        destroyOnHidden
-      >
-        <Form form={form} layout="vertical" requiredMark>
-          <Form.Item
-            name="userName"
-            label={t("Tên đăng nhập")}
-            rules={[{ required: true, message: t("Vui lòng nhập tên đăng nhập") }]}
-          >
-            <Input placeholder="letan01" disabled={Boolean(editing)} />
-          </Form.Item>
-
-          {!editing && (
-            <Form.Item
-              name="password"
-              label={t("Mật khẩu")}
-              rules={[{ required: true, message: t("Vui lòng nhập mật khẩu") }]}
-              extra={t("Tối thiểu 8 ký tự, có chữ hoa, số và ký tự đặc biệt.")}
-            >
-              <Input.Password placeholder={t("Mật khẩu đăng nhập")} />
-            </Form.Item>
-          )}
-
-          <Form.Item name="name" label={t("Họ và tên")}>
-            <Input placeholder={"Nguyễn Văn An"} />
-          </Form.Item>
-
-          <Form.Item
-            name="email"
-            label="Email"
-            rules={[
-              { required: true, message: t("Vui lòng nhập email") },
-              { type: "email", message: t("Email không hợp lệ") },
-            ]}
-          >
-            <Input placeholder="letan01@bluedental.vn" />
-          </Form.Item>
-
-          <Form.Item name="phoneNumber" label={t("Số điện thoại")}>
-            <Input placeholder="09xxxxxxxx" />
-          </Form.Item>
-
-          <Form.Item name="roleNames" label={t("Vai trò")}>
-            <Select
-              mode="multiple"
-              placeholder={t("Chọn vai trò")}
-              options={(roleNames ?? []).map((role) => ({ value: role, label: role }))}
-            />
-          </Form.Item>
-        </Form>
-      </Modal>
+        staff={editing}
+        roleNames={roleNames ?? []}
+        branchOptions={branchOptions}
+        loading={createStaff.isPending || updateStaff.isPending}
+        onSubmit={(v, avatar) => void handleSubmit(v, avatar)}
+        onClose={() => setModalOpen(false)}
+      />
     </div>
   );
 }

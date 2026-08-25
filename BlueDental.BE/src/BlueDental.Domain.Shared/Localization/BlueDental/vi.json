@@ -115,6 +115,13 @@
     "BlueDental:Auth:NotAuthenticated": "Bạn chưa đăng nhập.",
     "BlueDental:Tooth:InvalidFdiCode": "Số răng không hợp lệ theo chuẩn FDI.",
     "BlueDental:Tooth:InvalidPosition": "Vị trí răng không hợp lệ.",
-    "BlueDental:Tooth:InvalidQuadrant": "Cung hàm không hợp lệ."
+    "BlueDental:Tooth:InvalidQuadrant": "Cung hàm không hợp lệ.",
+    "BlueDental:Staff:0001": "Số điện thoại không hợp lệ.",
+    "BlueDental:Staff:0002": "Định dạng thời gian không hợp lệ.",
+    "BlueDental:Staff:0003": "Vui lòng chọn tệp ảnh.",
+    "BlueDental:Staff:0004": "Định dạng ảnh không được hỗ trợ.",
+    "BlueDental:Staff:0005": "Ảnh vượt quá kích thước cho phép.",
+    "BlueDental:Staff:0006": "Không tìm thấy ảnh đại diện.",
+    "BlueDental:Staff:0007": "Email đã được sử dụng."
   }
 }

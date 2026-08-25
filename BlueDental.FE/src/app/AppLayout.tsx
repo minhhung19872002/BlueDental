@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   Avatar,
+  Drawer,
   Dropdown,
   Popover,
   type MenuProps,
@@ -15,6 +16,8 @@ import {
   GlobalOutlined,
   SearchOutlined,
   CheckOutlined,
+  MenuOutlined,
+  CloseOutlined,
 } from "@ant-design/icons";
 import { useLanguage, useT } from "@/lib/i18n";
 import { useAuthStore } from "@/features/auth/store/authStore";
@@ -22,6 +25,8 @@ import { useMutation } from "@tanstack/react-query";
 import { authApi } from "@/features/auth/api";
 import { brand, SIDEBAR_WIDTH, SIDEBAR_EXPANDED_WIDTH } from "@/theme/index";
 import { GlobalSearch } from "@/components/GlobalSearch";
+import { useClinicBranches } from "@/features/organizations/api";
+import { useBranchStore } from "@/lib/clinicBranch";
 
 interface NavItem {
   key: string;
@@ -148,9 +153,8 @@ function SidebarNavItem({
 
 export function AppLayout() {
   const [searchOpen, setSearchOpen] = useState(false);
-  // The design opens with the rail expanded and its labels showing; collapsing
-  // is the deliberate act, not the starting point.
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [language, setLanguage] = useLanguage();
   const t = useT();
   const navigate = useNavigate();
@@ -165,6 +169,10 @@ export function AppLayout() {
       navigate("/login", { replace: true });
     },
   });
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -228,17 +236,58 @@ export function AppLayout() {
   const clinicTagline = user?.clinicTagline ?? "Kiến Tạo Nụ Cười - Giá Trị Bền Vững";
   const sidebarWidth = sidebarExpanded ? SIDEBAR_EXPANDED_WIDTH : SIDEBAR_WIDTH;
 
+  const { data: branches } = useClinicBranches();
+  const currentBranchId = useBranchStore((s) => s.currentBranchId);
+  const setCurrentBranchId = useBranchStore((s) => s.setCurrentBranchId);
+
+  useEffect(() => {
+    if (!branches || !currentBranchId) return;
+    const valid = branches.some((b) => b.id === currentBranchId);
+    if (!valid) setCurrentBranchId(null);
+  }, [branches, currentBranchId, setCurrentBranchId]);
+
+  const selectedBranchName =
+    currentBranchId === null
+      ? t("Tất cả chi nhánh")
+      : (branches?.find((b) => b.id === currentBranchId)?.name ?? clinicName);
+
   const branchContent = (
     <div className="app-popover-list">
       <div className="app-popover-header">{t("Chi nhánh")}</div>
-      <button type="button" className="app-popover-item">
-        <span className="app-popover-dot" style={{ background: brand.faint }} />
+      <button
+        type="button"
+        className={`app-popover-item${currentBranchId === null ? " app-popover-item--active" : ""}`}
+        onClick={() => setCurrentBranchId(null)}
+      >
+        <span
+          className="app-popover-dot"
+          style={{ background: currentBranchId === null ? "#25a97a" : brand.faint }}
+        />
         <span>{t("Tất cả chi nhánh")}</span>
+        {currentBranchId === null && (
+          <CheckOutlined style={{ color: "#25a97a", fontSize: 12, marginLeft: "auto" }} />
+        )}
       </button>
-      <button type="button" className="app-popover-item app-popover-item--active">
-        <span className="app-popover-dot" style={{ background: "#25a97a" }} />
-        <span>{clinicName}</span>
-      </button>
+      {(branches ?? []).map((branch) => {
+        const isActive = branch.id === currentBranchId;
+        return (
+          <button
+            key={branch.id}
+            type="button"
+            className={`app-popover-item${isActive ? " app-popover-item--active" : ""}`}
+            onClick={() => setCurrentBranchId(branch.id)}
+          >
+            <span
+              className="app-popover-dot"
+              style={{ background: isActive ? "#25a97a" : brand.faint }}
+            />
+            <span>{branch.name}</span>
+            {isActive && (
+              <CheckOutlined style={{ color: "#25a97a", fontSize: 12, marginLeft: "auto" }} />
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 
@@ -312,7 +361,16 @@ export function AppLayout() {
           <div className="app-header-left">
             <button
               type="button"
-              className="app-header-toggle"
+              className="app-header-toggle sidebar-mobile-only"
+              onClick={() => setMobileMenuOpen(true)}
+              title={t("Mở menu")}
+            >
+              <MenuOutlined style={{ fontSize: 18 }} />
+            </button>
+
+            <button
+              type="button"
+              className="app-header-toggle sidebar-desktop-only"
               onClick={() => setSidebarExpanded((prev) => !prev)}
               title={sidebarExpanded ? t("Thu gọn menu") : t("Mở rộng menu")}
             >
@@ -367,7 +425,7 @@ export function AppLayout() {
             <Popover content={branchContent} trigger="click" placement="bottomRight" arrow={false}>
               <button type="button" className="app-header-branch">
                 <span className="app-header-branch-dot" />
-                <span className="app-header-branch-name">{clinicName}</span>
+                <span className="app-header-branch-name">{selectedBranchName}</span>
                 <DownOutlined style={{ fontSize: 14, color: "#6f7c90" }} />
               </button>
             </Popover>
@@ -404,6 +462,62 @@ export function AppLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* ── Mobile sidebar drawer ── */}
+      <Drawer
+        open={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+        placement="left"
+        width={260}
+        closable={false}
+        styles={{
+          body: { padding: 0, background: "var(--bd-sidebar-bg)", display: "flex", flexDirection: "column", height: "100%" },
+          wrapper: {},
+        }}
+        className="sidebar-drawer"
+      >
+        <div className="sidebar-mobile-header">
+          <div className="sidebar-logo-area">
+            <div className="sidebar-logo-img-wrap">
+              <img src={clinicLogoUrl} alt={clinicName} className="sidebar-logo-img" />
+            </div>
+            <div className="sidebar-logo-text">
+              <span className="sidebar-logo-name">BlueDental</span>
+              <span className="sidebar-logo-sub">{t("Quản trị vận hành")}</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="sidebar-mobile-close"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-label={t("Đóng menu")}
+          >
+            <CloseOutlined style={{ fontSize: 16 }} />
+          </button>
+        </div>
+
+        <div className="sidebar-nav-heading">{t("MENU")}</div>
+        <nav className="sidebar-nav-main">
+          {mainNav(t).map((item) => (
+            <SidebarNavItem
+              key={item.key}
+              item={item}
+              active={isActive(item.key)}
+              expanded
+              onClick={() => handleNavClick(item)}
+            />
+          ))}
+        </nav>
+
+        <nav className="sidebar-nav-bottom">
+          <SidebarNavItem
+            item={{ key: "logout", icon: <LogoutOutlined />, label: t("Đăng xuất") }}
+            active={false}
+            expanded
+            onClick={() => logoutMutation.mutate()}
+          />
+        </nav>
+      </Drawer>
 
       <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>

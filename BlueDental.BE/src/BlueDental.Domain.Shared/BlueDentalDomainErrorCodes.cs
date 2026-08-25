@@ -176,5 +176,6 @@ public static class BlueDentalDomainErrorCodes
         public const string UnsupportedAvatarType = "BlueDental:Staff:0004";
         public const string AvatarTooLarge = "BlueDental:Staff:0005";
         public const string AvatarNotFound = "BlueDental:Staff:0006";
+        public const string DuplicateEmail = "BlueDental:Staff:0007";
     }
 }
