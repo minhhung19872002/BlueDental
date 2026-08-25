@@ -30,6 +30,7 @@ import { useTablePagination } from "@/hooks/useTablePagination";
 
 import { PageHeader } from "@/components/PageHeader";
 import { DataTable } from "@/components/DataTable";
+import { MobileFilterDrawer } from "@/components/MobileFilterDrawer";
 import { t } from "@/lib/i18n";
 
 type StatusFilter = "all" | "working" | "resigned";
@@ -47,6 +48,10 @@ export function StaffPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [editing, setEditing] = useState<StaffDto | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [draftKeyword, setDraftKeyword] = useState("");
+  const [draftStatus, setDraftStatus] = useState<StatusFilter>("all");
 
   const debouncedKeyword = useDebounce(keyword);
 
@@ -228,7 +233,8 @@ export function StaffPage() {
     <div className="reception-page">
       <PageHeader title={t("Nhân sự")} />
 
-      <div className="reception-card reception-card--toolbar">
+      {/* ── Desktop: inline toolbar ── */}
+      <div className="reception-card reception-card--toolbar desktop-only">
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <Input
             prefix={<SearchOutlined />}
@@ -244,7 +250,7 @@ export function StaffPage() {
         </div>
       </div>
 
-      <div className="reception-card reception-card--tabs">
+      <div className="reception-card reception-card--tabs desktop-only">
         <div style={{ display: "flex", gap: 0 }}>
           {statusTabs().map((tab) => (
             <button
@@ -257,6 +263,47 @@ export function StaffPage() {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* ── Mobile: filter drawer + full-width create ── */}
+      <div className="mobile-only mobile-filter-block">
+        <MobileFilterDrawer
+          open={filterOpen}
+          onOpen={() => { setDraftKeyword(keyword); setDraftStatus(statusFilter); setFilterOpen(true); }}
+          onClose={() => setFilterOpen(false)}
+          onClear={() => { setDraftKeyword(""); setDraftStatus("all"); }}
+          onApply={() => { setKeyword(draftKeyword); setStatusFilter(draftStatus); }}
+        >
+          <div>
+            <div className="mobile-filter-label">{t("Tìm kiếm")}</div>
+            <Input
+              prefix={<SearchOutlined />}
+              placeholder={t("Tìm theo tên, email, số điện thoại...")}
+              value={draftKeyword}
+              onChange={(e) => setDraftKeyword(e.target.value)}
+              allowClear
+            />
+          </div>
+          <div>
+            <div className="mobile-filter-label">{t("Trạng thái")}</div>
+            <div className="mobile-filter-pills">
+              {statusTabs().map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  className={`reception-status-pill ${draftStatus === tab.key ? "reception-status-pill--active" : ""}`}
+                  onClick={() => setDraftStatus(tab.key)}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </MobileFilterDrawer>
+
+        <Button type="primary" icon={<PlusOutlined />} block onClick={openCreate}>
+          {t("Tạo")}
+        </Button>
       </div>
 
       <div className="page-card" style={{ padding: 0 }}>

@@ -384,6 +384,85 @@ button {
   display: inline-flex;
 }
 
+/* General responsive visibility — mobile breakpoint matches the sidebar drawer. */
+.mobile-only {
+  display: none !important;
+}
+
+.mobile-filter-block {
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Mobile filter drawer ── */
+
+.mobile-filter-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 44px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-control);
+  background: #fff;
+  color: var(--bd-body);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.mobile-filter-trigger:hover {
+  border-color: var(--bd-primary);
+}
+
+.mobile-filter-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--bd-ink);
+  margin-bottom: 8px;
+}
+
+.mobile-filter-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mobile-filter-clear {
+  background: none;
+  border: none;
+  color: var(--bd-sub);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+
+.mobile-filter-clear:hover {
+  color: var(--bd-primary);
+  background: var(--bd-blue-pale);
+}
+
+.mobile-filter-drawer .ant-drawer-content-wrapper {
+  border-radius: 16px 16px 0 0 !important;
+  overflow: hidden;
+}
+
+.mobile-filter-drawer .ant-drawer-content {
+  border-radius: 16px 16px 0 0;
+}
+
+.mobile-filter-pills {
+  display: inline-flex;
+  gap: 0;
+  border: 1px solid var(--bd-line-soft);
+  border-radius: 8px;
+  padding: 4px;
+}
+
 .app-header-clinic {
   display: flex;
   align-items: center;
@@ -2593,6 +2672,14 @@ button {
 
   .sidebar-desktop-only {
     display: none;
+  }
+
+  .desktop-only {
+    display: none !important;
+  }
+
+  .mobile-only {
+    display: flex !important;
   }
 
   .app-header-clinic-text,
