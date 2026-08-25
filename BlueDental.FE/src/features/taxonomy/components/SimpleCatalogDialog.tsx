@@ -2,7 +2,6 @@ import { Checkbox, Col, Form, Input, InputNumber, Row, Select, message } from "a
 import { useEffect, useRef } from "react";
 import {
   useCreateCatalogEntry,
-  useDeleteCatalogEntry,
   useUpdateCatalogEntry,
   type CatalogEntryDto,
   type TaxonomyDto,
@@ -53,11 +52,11 @@ export function SimpleCatalogDialog({
   const branchId = useCurrentBranchId();
   const createEntry = useCreateCatalogEntry();
   const updateEntry = useUpdateCatalogEntry();
-  const deleteEntry = useDeleteCatalogEntry();
 
   const [form] = Form.useForm<FormValues>();
   const name = Form.useWatch("name", form) ?? "";
   const taxonomyId = Form.useWatch("taxonomyId", form) ?? "";
+  const isDeleted = Form.useWatch("isDeleted", form) ?? false;
 
   // React Query hands back a new array on every refetch, so these are read
   // through a ref: a refetch landing while the dialog is open must not reset
@@ -72,12 +71,12 @@ export function SimpleCatalogDialog({
       name: entry?.name ?? "",
       taxonomyId: entry?.taxonomyId ?? fallback,
       isActive: entry?.isActive ?? true,
-      isDeleted: false,
+      isDeleted: entry?.isDeleted ?? false,
       priority: entry?.sortOrder ?? 0,
     });
   }, [open, entry, form]);
 
-  const pending = createEntry.isPending || updateEntry.isPending || deleteEntry.isPending;
+  const pending = createEntry.isPending || updateEntry.isPending;
 
   const submit = async (values: FormValues) => {
     const trimmed = values.name.trim();
@@ -95,18 +94,12 @@ export function SimpleCatalogDialog({
             content: entry.content,
             description: entry.description ?? undefined,
             isActive: values.isActive,
+            isDeleted: values.isDeleted,
             sortOrder,
           },
         });
 
-        if (values.isDeleted) {
-          await deleteEntry.mutateAsync(entry.id);
-          message.success(t("Đã xoá"));
-          onClose();
-          return;
-        }
-
-        message.success(t("Đã cập nhật"));
+        message.success(values.isDeleted ? t("Đã xoá") : t("Đã cập nhật"));
       } else {
         await createEntry.mutateAsync({
           clinicBranchId: branchId,
@@ -167,19 +160,29 @@ export function SimpleCatalogDialog({
 
         <Row gutter={[16, 12]}>
           <Col span={12}>
+            {/* One state, drawn as the reference draws it: two boxes of which
+                exactly one is ticked. Disabled while creating — a record that
+                is born deleted is not a thing anyone wants. */}
             <div className="bd-dialog-row">
-              <Form.Item name="isActive" valuePropName="checked" noStyle>
-                <Checkbox>{t("Đang hoạt động")}</Checkbox>
-              </Form.Item>
-              <Form.Item name="isDeleted" valuePropName="checked" noStyle>
-                <Checkbox
-                  disabled={!entry}
-                  title={entry ? undefined : t("Chỉ dùng khi sửa bản ghi đã có")}
-                >
-                  {t("Đã xoá")}
-                </Checkbox>
-              </Form.Item>
+              <Checkbox
+                checked={!isDeleted}
+                disabled={!entry}
+                onChange={() => form.setFieldValue("isDeleted", false)}
+              >
+                {t("Đang hoạt động")}
+              </Checkbox>
+              <Checkbox
+                checked={isDeleted}
+                disabled={!entry}
+                title={entry ? undefined : t("Chỉ dùng khi sửa bản ghi đã có")}
+                onChange={() => form.setFieldValue("isDeleted", true)}
+              >
+                {t("Đã xoá")}
+              </Checkbox>
             </div>
+            <Form.Item name="isDeleted" hidden>
+              <Input />
+            </Form.Item>
           </Col>
           <Col span={12}>
             <FloatingField name="priority" label={t("Mức độ ưu tiên")}>

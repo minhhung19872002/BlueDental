@@ -5223,3 +5223,10 @@ html:has(.ant-modal-wrap) {
 }
 
 .app-dialog .ant-form > *:last-child { margin-bottom: 0; }
+
+/* A soft-deleted row keeps its place in the list, so it has to read as deleted
+   without being mistaken for a live record. */
+.bd-cat-name--deleted {
+  text-decoration: line-through;
+  color: var(--bd-muted);
+}

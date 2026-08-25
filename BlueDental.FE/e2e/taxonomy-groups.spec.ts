@@ -378,7 +378,7 @@ test.describe("Danh mục — màn hình đơn giản", () => {
     await expect(page.getByRole("row", { name: new RegExp(name) })).toBeVisible();
   });
 
-  test('"Đã xoá" removes the record on save', async ({ page }) => {
+  test('"Đã xoá" parks the record, and "Đang hoạt động" brings it back', async ({ page }) => {
     const id = runId();
     const groupName = `NGHE ${id}`;
     const name = `Kỹ sư ${id}`;
@@ -390,7 +390,7 @@ test.describe("Danh mục — màn hình đơn giản", () => {
     // sidebar's "Đăng xuất" contains this word too.
     await expect(page.getByRole("button", { name: "Xuất", exact: true })).toHaveCount(0);
 
-    await page.getByRole("button", { name: "Thêm nghề nghiệp" }).click();
+    await page.getByRole("button", { name: /Thêm nghề nghiệp$/ }).click();
     let dialog = page.getByRole("dialog");
     await dialog.getByLabel(/Tên nghề nghiệp/).fill(name);
     await dialog.getByRole("button", { name: /Lưu$/ }).click();
@@ -398,14 +398,68 @@ test.describe("Danh mục — màn hình đơn giản", () => {
 
     const row = page.getByRole("row", { name: new RegExp(name) });
     await expect(row).toBeVisible();
+    // A live record offers both "Chỉnh sửa" and "Xoá".
+    await expect(row.getByRole("button", { name: /^Xoá / })).toBeVisible();
 
-    await row.getByRole("button").nth(1).click();
+    // ── Park it ────────────────────────────────────────────────────────────
+    await row.getByRole("button", { name: /^Chỉnh sửa / }).click();
     dialog = page.getByRole("dialog");
-    await dialog.getByLabel("Đã xoá").check();
+    await dialog.getByLabel("Đã xoá").click();
+    await expect(dialog.getByLabel("Đã xoá")).toBeChecked();
+    // The pair is one state, so ticking one clears the other.
+    await expect(dialog.getByLabel("Đang hoạt động")).not.toBeChecked();
+    await dialog.getByRole("button", { name: /Lưu$/ }).click();
+    await expect(dialog).toBeHidden();
+
+    // Soft, not gone: the row keeps its place and loses only its delete action.
+    await expect(row).toBeVisible();
+    await expect(row.getByRole("button", { name: /^Xoá / })).toHaveCount(0);
+    await expect(row.getByRole("button", { name: /^Chỉnh sửa / })).toBeVisible();
+
+    // The server said so, not the page.
+    await page.reload();
+    await expect(row).toBeVisible();
+    await expect(row.getByRole("button", { name: /^Xoá / })).toHaveCount(0);
+
+    // ── Bring it back ──────────────────────────────────────────────────────
+    await row.getByRole("button", { name: /^Chỉnh sửa / }).click();
+    dialog = page.getByRole("dialog");
+    await expect(dialog.getByLabel("Đã xoá")).toBeChecked();
+    await dialog.getByLabel("Đang hoạt động").click();
+    await expect(dialog.getByLabel("Đã xoá")).not.toBeChecked();
     await dialog.getByRole("button", { name: /Lưu$/ }).click();
     await expect(dialog).toBeHidden();
 
     await page.reload();
-    await expect(page.getByRole("row", { name: new RegExp(name) })).toHaveCount(0);
+    await expect(row.getByRole("button", { name: /^Xoá / })).toBeVisible();
+  });
+
+  test("the bin icon is a soft delete too, on a catalog that offers the pair", async ({
+    page,
+  }) => {
+    const id = runId();
+    const groupName = `NGHE BIN ${id}`;
+    const name = `Thợ ${id}`;
+
+    await page.goto("/taxonomy/occupation");
+    await createGroup(page, groupName, "0");
+
+    await page.getByRole("button", { name: /Thêm nghề nghiệp$/ }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByLabel(/Tên nghề nghiệp/).fill(name);
+    await dialog.getByRole("button", { name: /Lưu$/ }).click();
+    await expect(dialog).toBeHidden();
+
+    const row = page.getByRole("row", { name: new RegExp(name) });
+    await row.getByRole("button", { name: /^Xoá / }).click();
+
+    const confirm = page.getByRole("dialog");
+    await confirm.getByRole("button", { name: /Xoá$/ }).click();
+    await expect(confirm).toBeHidden();
+
+    // Still there, still editable — the delete can be taken back.
+    await page.reload();
+    await expect(row).toBeVisible();
+    await expect(row.getByRole("button", { name: /^Xoá / })).toHaveCount(0);
   });
 });

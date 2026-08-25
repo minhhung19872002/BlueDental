@@ -131,6 +131,11 @@ export interface CatalogEntryDto {
   price: number | null;
   content: string | null;
   isActive: boolean;
+  /**
+   * Soft delete. A deleted entry stays in the list without its delete action,
+   * and is brought back by ticking "Đang hoạt động" in its dialog.
+   */
+  isDeleted: boolean;
   sortOrder: number;
   detailName: string | null;
   note: string | null;
@@ -189,6 +194,8 @@ export interface UpdateCatalogEntryInput {
   content?: string | null;
   description?: string;
   isActive: boolean;
+  /** The other half of the dialog's one state — see CatalogEntryDto. */
+  isDeleted?: boolean;
   sortOrder: number;
   detailName?: string | null;
   note?: string | null;

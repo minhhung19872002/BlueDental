@@ -124,7 +124,9 @@ export function CatalogEntryTable({
           <div className="bd-cat-inline3">
             <LetterAvatar name={entry.name} />
             <div className="bd-min0">
-              <p className="bd-cat-name">{entry.name}</p>
+              <p className={entry.isDeleted ? "bd-cat-name bd-cat-name--deleted" : "bd-cat-name"}>
+                {entry.name}
+              </p>
               {entry.code && <p className="bd-cat-subtle">{entry.code}</p>}
             </div>
           </div>
@@ -188,16 +190,20 @@ export function CatalogEntryTable({
                 onClick={() => onEdit(entry)}
               />
             </Tooltip>
-            <Tooltip title={t("Xoá")}>
-              <Button
-                type="text"
-                size="small"
-                danger
-                icon={<DeleteOutlined />}
-                aria-label={t("Xoá {0}", entry.name)}
-                onClick={() => onDelete(entry)}
-              />
-            </Tooltip>
+            {/* An entry that is already deleted has nothing left to delete —
+                it is brought back from its own dialog instead. */}
+            {!entry.isDeleted && (
+              <Tooltip title={t("Xoá")}>
+                <Button
+                  type="text"
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  aria-label={t("Xoá {0}", entry.name)}
+                  onClick={() => onDelete(entry)}
+                />
+              </Tooltip>
+            )}
           </div>
         ),
       },

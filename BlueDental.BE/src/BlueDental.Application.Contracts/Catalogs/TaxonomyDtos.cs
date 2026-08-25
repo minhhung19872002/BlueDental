@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Volo.Abp.Application.Dtos;
@@ -237,6 +237,14 @@ public class UpdateCatalogEntryDto
     public string? Content { get; set; }
     public string? Description { get; set; }
     public bool IsActive { get; set; }
+
+    /// <summary>
+    /// The other half of the dialog's one state: true parks this entry as
+    /// deleted, false brings it back. Honoured only for the catalogs whose
+    /// dialog shows the pair.
+    /// </summary>
+    public bool IsDeleted { get; set; }
+
     public int SortOrder { get; set; }
 
     /// <summary>"Tên chi tiết" — services only.</summary>

@@ -313,3 +313,32 @@ placeholder thành `" "`.
 | R-86 | Các item trong dialog dính sát nhau, không có khoảng cách dọc | Ô nhập, editor, hàng checkbox nằm đè lên nhau về mặt thị giác — không đọc ra được đâu là một nhóm | `main` chủ động đặt `.ant-modal .ant-form-item { margin-bottom: 0 }` và để **gutter dọc của `Row`** lo khoảng cách — dialog Nhân viên truyền `[16, 12]`. Lần chuyển sang `Form` mình truyền `[16, 0]`, và những field đứng một mình (không nằm trong `Row`) thì không có gutter nào để thừa hưởng | Gutter đổi thành `[16, 12]` theo đúng dialog Nhân viên; thêm rule cho con trực tiếp của `Form` trong `.app-dialog` để field đứng một mình cũng giữ đúng nhịp | F-31…F-34 |
 
 Đo lại trên dialog Chẩn đoán: khoảng cách giữa mọi khối là **12px** đều nhau.
+
+## 2026-08-25 — xoá mềm cho các danh mục có cặp "Đang hoạt động" / "Đã xoá"
+
+Quan sát trên bản gốc (chỉ đọc, không gửi request thay đổi gì):
+
+- API `GET /api/v1/care-service/list` của bản gốc **trả về cả bản ghi đã xoá**:
+  hai dòng `"isDeleted": true` và một dòng `"isDeleted": false`.
+- Đúng hai dòng `isDeleted: true` đó chỉ có **1 nút** ở cột Thao tác, dòng còn
+  lại có **2 nút**. Tức là dòng đã xoá mất đúng nút "Xoá".
+- Payload **không hề có `isActive`**. Nên "Đang hoạt động" và "Đã xoá" của bản
+  gốc là **một trạng thái**, không phải hai cờ — đó là lý do một lúc chỉ tick
+  được một cái.
+
+Mở dialog "Thêm …" của cả 11 tab để biết tab nào có cặp checkbox:
+
+| Có cặp (xoá mềm) | Không có |
+|---|---|
+| Dịch vụ, Chẩn đoán, Dữ liệu tư vấn, Nguồn đến, Lịch sử bệnh, Nghề nghiệp | Loại thuốc, Đơn thuốc mẫu, Bệnh án mẫu, Thẻ hồ sơ, Phương thức thanh toán |
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-87 | "Đã xoá" xoá thẳng, không lấy lại được | Tick "Đã xoá" rồi lưu là gọi `DELETE`, dòng biến mất khỏi danh sách. Bản gốc thì giữ dòng lại, chỉ bỏ nút xoá, và tick "Đang hoạt động" là quay về | Lần dựng đầu đọc cặp checkbox thành hai cờ rời, và hiểu "Đã xoá" là một lệnh xoá | Cặp checkbox điều khiển **một** giá trị `isDeleted`; lưu là đặt hoặc gỡ cờ chứ không xoá. Danh sách của 6 danh mục đó tắt filter `ISoftDelete` để dòng đã xoá vẫn hiện; bảng ẩn nút xoá khi `isDeleted`; tên dòng gạch ngang cho dễ nhận ra | F-31, F-32 |
+| R-88 | `MapToDto` không mang cờ `isDeleted` sang DTO | Bảng luôn nhận `isDeleted: false`, nên nút xoá không bao giờ ẩn — lỗi này chỉ lộ ra khi chạy thật | DTO kế thừa `FullAuditedEntityDto` (đã có sẵn ô `IsDeleted`) nhưng hàm map viết tay không gán | Gán `IsDeleted` và `DeletionTime` trong `MapToDto` | F-32 |
+
+Hai test mới đi hết vòng: tạo → tick "Đã xoá" → lưu → dòng **vẫn còn**, mất nút
+xoá, reload vẫn thế → tick "Đang hoạt động" → lưu → nút xoá quay lại. Và một test
+nữa cho nút thùng rác ngoài bảng: cũng là xoá mềm, dòng vẫn ở đó.
+
+BE: 686/686 xanh. FE: 37/37 trên bản build production.

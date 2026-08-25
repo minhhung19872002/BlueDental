@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Volo.Abp;
@@ -201,6 +201,29 @@ public class CatalogEntry : FullAuditedAggregateRoot<Guid>
     {
         IsActive = false;
         return this;
+    }
+
+    /// <summary>
+    /// Marks this entry deleted, or brings it back.
+    ///
+    /// The reference models "Đang hoạt động" and "Đã xoá" as one state rather
+    /// than two flags, and a delete there can always be taken back — so this is
+    /// a plain transition, not a one-way door.
+    /// </summary>
+    public void SetDeleted(bool deleted)
+    {
+        if (IsDeleted == deleted)
+        {
+            return;
+        }
+
+        IsDeleted = deleted;
+        DeletionTime = deleted ? DateTime.UtcNow : null;
+
+        if (!deleted)
+        {
+            DeleterId = null;
+        }
     }
 
     private static void GuardPrice(string group, decimal? price)

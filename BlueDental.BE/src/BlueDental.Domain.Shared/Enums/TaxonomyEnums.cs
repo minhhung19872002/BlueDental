@@ -1,4 +1,4 @@
-namespace BlueDental.Catalogs;
+﻿namespace BlueDental.Catalogs;
 
 /// <summary>
 /// The taxonomy groups the reference application exposes on the "Danh mục"
@@ -86,6 +86,22 @@ public static class TaxonomyGroups
     /// </summary>
     public static readonly string[] WithContent =
         [Diagnosis, ConsultingData, PrescriptionTemplate, MedicalRecordTemplate];
+
+    /// <summary>
+    /// Groups whose dialog carries the "Đang hoạt động" / "Đã xoá" pair.
+    ///
+    /// For these, a delete is a soft delete the user can take back: the row
+    /// stays in the list, loses its delete action, and is restored by ticking
+    /// "Đang hoạt động" again. Observed on the reference — its own list returns
+    /// rows with <c>isDeleted: true</c>, and those rows show only "Chỉnh sửa".
+    ///
+    /// The catalogs left out show no such pair, so nothing there could clear
+    /// the flag again — see docs/clone/unknowns.md.
+    /// </summary>
+    public static readonly string[] SoftDeletable =
+        [CareService, Diagnosis, ConsultingData, Source, DiseaseHistory, Occupation];
+
+    public static bool IsSoftDeletable(string group) => SoftDeletable.Contains(group);
 
     public static bool IsKnown(string group) => All.Contains(group);
 }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -7,7 +7,9 @@ using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
+using Volo.Abp.Auditing;
 using Volo.Abp.Application.Services;
+using Volo.Abp.Data;
 using Volo.Abp.Domain.Repositories;
 
 namespace BlueDental.Catalogs;
@@ -21,15 +23,18 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
     private readonly IRepository<CatalogEntry, Guid> _repository;
     private readonly IRepository<Taxonomy, Guid> _taxonomyRepository;
     private readonly BranchAccessChecker _branchAccess;
+    private readonly IDataFilter<ISoftDelete> _softDeleteFilter;
 
     public CatalogEntryAppService(
         IRepository<CatalogEntry, Guid> repository,
         IRepository<Taxonomy, Guid> taxonomyRepository,
-        BranchAccessChecker branchAccess)
+        BranchAccessChecker branchAccess,
+        IDataFilter<ISoftDelete> softDeleteFilter)
     {
         _repository = repository;
         _taxonomyRepository = taxonomyRepository;
         _branchAccess = branchAccess;
+        _softDeleteFilter = softDeleteFilter;
     }
 
     [Authorize(BlueDentalPermissions.Catalogs.View)]
@@ -38,6 +43,14 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
         // The header can switch branches, so the caller names the one it wants;
         // the checker narrows it to what this account may actually see.
         var branchFilter = await _branchAccess.ResolveFilterAsync(input.ClinicBranchId);
+
+        // A soft-deleted row stays in the list for the catalogs whose dialog can
+        // bring it back — it simply loses its delete action. Anywhere else the
+        // flag has no way to be cleared again, so those rows stay hidden.
+        using var _ = TaxonomyGroups.IsSoftDeletable(input.Group ?? string.Empty)
+            ? _softDeleteFilter.Disable()
+            : null;
+
         // WithDetails, not the bare queryable: the dialog behind each row edits
         // the catalog-specific parts, so the list has to carry them.
         var query = await _repository.WithDetailsAsync();
@@ -127,6 +140,10 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
     [Authorize(BlueDentalPermissions.Catalogs.Edit)]
     public async Task<CatalogEntryDto> UpdateAsync(Guid id, UpdateCatalogEntryDto input)
     {
+        // The row being edited may itself be soft-deleted — that is how it is
+        // brought back — so it has to be reachable here.
+        using var _ = _softDeleteFilter.Disable();
+
         var entry = await _repository.GetAsync(id);
         await _branchAccess.CheckAsync(entry.ClinicBranchId);
 
@@ -163,6 +180,13 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
         else
         {
             entry.Deactivate();
+        }
+
+        // "Đang hoạt động" and "Đã xoá" are one state, not two flags: whichever
+        // the dialog sends decides whether this row is deleted.
+        if (TaxonomyGroups.IsSoftDeletable(entry.Group))
+        {
+            entry.SetDeleted(input.IsDeleted);
         }
 
         await _repository.UpdateAsync(entry, autoSave: true);
@@ -341,6 +365,10 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
         Price = entity.Price,
         Content = entity.Content,
         IsActive = entity.IsActive,
+        // Hand-mapped, so the soft-delete flag has to be carried explicitly —
+        // the list shows deleted rows and the table keys its actions off this.
+        IsDeleted = entity.IsDeleted,
+        DeletionTime = entity.DeletionTime,
         SortOrder = entity.SortOrder,
         DetailName = entity.DetailName,
         Note = entity.Note,

@@ -21,7 +21,6 @@ import {
   SERVICE_TAX_RATE_OPTIONS,
   WARRANTY_PRESETS,
   useCreateCatalogEntry,
-  useDeleteCatalogEntry,
   useUpdateCatalogEntry,
   type CatalogEntryDto,
   type ServiceStageDto,
@@ -133,12 +132,12 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
   const branchId = useCurrentBranchId();
   const createEntry = useCreateCatalogEntry();
   const updateEntry = useUpdateCatalogEntry();
-  const deleteEntry = useDeleteCatalogEntry();
 
   const [form] = Form.useForm<FormValues>();
   const name = Form.useWatch("name", form) ?? "";
   const taxonomyId = Form.useWatch("taxonomyId", form) ?? "";
   const warrantyDays = Form.useWatch("warrantyDays", form) ?? 0;
+  const isDeleted = Form.useWatch("isDeleted", form) ?? false;
 
   /** The stage list is a small editor of its own, not a single field. */
   const [stages, setStages] = useState<ServiceStageDto[]>([]);
@@ -160,7 +159,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
       taxonomyId: entry?.taxonomyId ?? fallback,
       detailName: entry?.detailName ?? "",
       isActive: entry?.isActive ?? true,
-      isDeleted: false,
+      isDeleted: entry?.isDeleted ?? false,
       description: entry?.description ?? "",
       priority: entry?.sortOrder ?? 0,
       code: entry?.code ?? "",
@@ -185,7 +184,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
     setStageName("");
   }, [open, entry, form]);
 
-  const pending = createEntry.isPending || updateEntry.isPending || deleteEntry.isPending;
+  const pending = createEntry.isPending || updateEntry.isPending;
 
   const addStage = () => {
     const trimmed = stageName.trim();
@@ -227,17 +226,10 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
       if (entry) {
         await updateEntry.mutateAsync({
           id: entry.id,
-          input: { ...shared, isActive: values.isActive },
+          input: { ...shared, isActive: values.isActive, isDeleted: values.isDeleted },
         });
 
-        if (values.isDeleted) {
-          await deleteEntry.mutateAsync(entry.id);
-          message.success(t("Đã xoá"));
-          onClose();
-          return;
-        }
-
-        message.success(t("Đã cập nhật dịch vụ"));
+        message.success(values.isDeleted ? t("Đã xoá") : t("Đã cập nhật dịch vụ"));
       } else {
         await createEntry.mutateAsync({ clinicBranchId: branchId, ...shared });
         message.success(t("Đã thêm dịch vụ"));
@@ -350,14 +342,27 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
           </Col>
         </Row>
 
+        {/* One state, drawn as the reference draws it: two boxes of which
+            exactly one is ticked. */}
         <div className="bd-dialog-row bd-mb2">
-          <Form.Item name="isActive" valuePropName="checked" noStyle>
-            <Checkbox>{t("Đang hoạt động")}</Checkbox>
-          </Form.Item>
-          <Form.Item name="isDeleted" valuePropName="checked" noStyle>
-            <Checkbox disabled={!entry}>{t("Đã xoá")}</Checkbox>
-          </Form.Item>
+          <Checkbox
+            checked={!isDeleted}
+            disabled={!entry}
+            onChange={() => form.setFieldValue("isDeleted", false)}
+          >
+            {t("Đang hoạt động")}
+          </Checkbox>
+          <Checkbox
+            checked={isDeleted}
+            disabled={!entry}
+            onChange={() => form.setFieldValue("isDeleted", true)}
+          >
+            {t("Đã xoá")}
+          </Checkbox>
         </div>
+        <Form.Item name="isDeleted" hidden>
+          <Input />
+        </Form.Item>
 
         <FloatingField name="description" label={t("Mô tả")}>
           <Input.TextArea rows={3} />

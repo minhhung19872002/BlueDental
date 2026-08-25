@@ -630,3 +630,19 @@ Action taken: BlueDental tải tối đa 200 nhóm một lần và không phân 
         thật vượt ngưỡng này.
 ```
 
+
+```
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /taxonomy/medicine, /taxonomy/prescription-template,
+      /taxonomy/medical-record-template, /taxonomy/tags, /taxonomy/payment-method
+Control: xoá bản ghi ở 5 danh mục không có cặp "Đang hoạt động" / "Đã xoá"
+Reason: 6 danh mục có cặp checkbox thì đã quan sát được rõ — API của bản gốc trả
+        về cả bản ghi `isDeleted: true` và dòng đó chỉ còn nút "Chỉnh sửa". Còn 5
+        danh mục này không có checkbox nào, và chi nhánh quan sát được thì không
+        có dữ liệu để xem một dòng đã xoá trông ra sao, nên không biết bản gốc
+        xoá cứng hay xoá mềm rồi ẩn đi.
+Action taken: BlueDental giữ nguyên hành vi cũ cho 5 danh mục này — vẫn là xoá
+        mềm của ABP nhưng dòng bị ẩn khỏi danh sách. Nếu ẩn mà bản gốc không ẩn
+        thì chỉ khác ở chỗ không khôi phục được; chọn cách này vì ở đây không có
+        chỗ nào bỏ được cờ đã xoá, nên hiện ra sẽ thành dòng chết không gỡ được.
+```
