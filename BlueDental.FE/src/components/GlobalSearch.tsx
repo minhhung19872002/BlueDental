@@ -82,17 +82,19 @@ export function GlobalSearch({ open, onClose }: Props) {
     <div className="app-search-overlay" onClick={onClose}>
       <div className="app-search-modal" onClick={(event) => event.stopPropagation()}>
         <div className="app-search-input-row">
+          {/* The design puts the icon, a borderless field and the Esc key on
+              one line, rather than a bordered input inside a padded box. */}
+          <SearchOutlined className="app-search-icon" />
           <Input
             autoFocus
-            size="large"
-            prefix={<SearchOutlined />}
+            variant="borderless"
             placeholder={t("Tìm kiếm khách hàng, lịch hẹn, nhân viên…")}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             onPressEnter={() => {
               if (hits.length > 0) openPatient(hits[0].id);
             }}
-            style={{ borderRadius: 12 }}
+            className="app-search-field"
           />
           <kbd className="app-search-esc" onClick={onClose}>
             Esc
