@@ -158,6 +158,13 @@ public static class BlueDentalPermissions
         public const string Manage = Default + ".Manage";
     }
 
+    public static class BranchManager
+    {
+        public const string Default = GroupName + ".BranchManager";
+        public const string View = Default + ".View";
+        public const string Manage = Default + ".Manage";
+    }
+
     public static class Finance
     {
         public const string Default = GroupName + ".Finance";

@@ -50,6 +50,7 @@ public class BlueDentalDbContext :
     public DbSet<ClinicBranch> ClinicBranches { get; set; }
     public DbSet<Department> Departments { get; set; }
     public DbSet<StaffBranchAssignment> StaffBranchAssignments { get; set; }
+    public DbSet<BranchManagerAssignment> BranchManagerAssignments { get; set; }
 
     // Catalogs
     public DbSet<DentalProcedure> DentalProcedures { get; set; }

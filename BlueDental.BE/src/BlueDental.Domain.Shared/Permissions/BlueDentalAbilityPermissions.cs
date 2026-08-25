@@ -766,6 +766,16 @@ public static class BlueDentalAbilityPermissions
         public const string Export = "BlueDental.staff.export";
     }
 
+    /// <summary>Subject <c>branchManager</c>.</summary>
+    public static class BranchManager
+    {
+        public const string Subject = "branchManager";
+        public const string Read = "BlueDental.branchManager.read";
+        public const string Create = "BlueDental.branchManager.create";
+        public const string Update = "BlueDental.branchManager.update";
+        public const string Delete = "BlueDental.branchManager.delete";
+    }
+
     /// <summary>Subject <c>toolCall</c>.</summary>
     public static class ToolCall
     {

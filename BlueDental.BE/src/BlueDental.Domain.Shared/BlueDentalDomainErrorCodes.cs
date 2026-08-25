@@ -187,4 +187,14 @@ public static class BlueDentalDomainErrorCodes
         public const string AvatarNotFound = "BlueDental:Staff:0006";
         public const string DuplicateEmail = "BlueDental:Staff:0007";
     }
+
+    public static class BranchManager
+    {
+        public const string DuplicateEmail = "BlueDental:BranchManager:0001";
+        public const string InvalidPhoneNumber = "BlueDental:BranchManager:0002";
+        public const string AvatarFileRequired = "BlueDental:BranchManager:0003";
+        public const string UnsupportedAvatarType = "BlueDental:BranchManager:0004";
+        public const string AvatarTooLarge = "BlueDental:BranchManager:0005";
+        public const string AvatarNotFound = "BlueDental:BranchManager:0006";
+    }
 }

@@ -914,6 +914,14 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => x.ClinicBranchId);
         });
 
+        builder.Entity<BranchManagerAssignment>(entity =>
+        {
+            entity.ToTable("bd_branch_manager_assignments");
+            entity.ConfigureByConvention();
+            entity.HasIndex(x => new { x.ManagerId, x.ClinicBranchId }).IsUnique();
+            entity.HasIndex(x => x.ClinicBranchId);
+        });
+
         // Quan tri van hanh - bai viet
         builder.Entity<OperationsArticle>(entity =>
         {

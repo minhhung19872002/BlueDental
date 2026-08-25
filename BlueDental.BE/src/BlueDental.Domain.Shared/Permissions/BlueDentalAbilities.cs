@@ -208,6 +208,7 @@ public static class BlueDentalAbilities
         ["reportTransferCategory"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete],
         ["rolePermission"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete],
         ["staff"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
+        ["branchManager"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete],
         ["toolCall"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
         ["toolMessage"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
         ["treatmentConsultation"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Print],

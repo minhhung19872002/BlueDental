@@ -153,6 +153,13 @@ public class BlueDentalPermissionDefinitionProvider : PermissionDefinitionProvid
         staffPerm.AddChild(BlueDentalPermissions.Staff.View, L("Permission:Staff.View"));
         staffPerm.AddChild(BlueDentalPermissions.Staff.Manage, L("Permission:Staff.Manage"));
 
+        // Branch Manager
+        var bmPerm = myGroup.AddPermission(
+            BlueDentalPermissions.BranchManager.Default,
+            L("Permission:BranchManager"));
+        bmPerm.AddChild(BlueDentalPermissions.BranchManager.View, L("Permission:BranchManager.View"));
+        bmPerm.AddChild(BlueDentalPermissions.BranchManager.Manage, L("Permission:BranchManager.Manage"));
+
         // Finance
         var financePerm = myGroup.AddPermission(
             BlueDentalPermissions.Finance.Default,
