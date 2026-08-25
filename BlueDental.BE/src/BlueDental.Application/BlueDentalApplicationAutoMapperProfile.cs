@@ -28,7 +28,15 @@ public class BlueDentalApplicationAutoMapperProfile : Profile
         CreateMap<Medication, MedicationDto>();
         CreateMap<PatientSource, PatientSourceDto>();
         CreateMap<Occupation, OccupationDto>();
-        CreateMap<PaymentMethodOption, PaymentMethodDto>();
+        // The QR bytes are served by the API, so the DTO carries the address
+        // rather than the blob name. The version keeps a replaced QR from being
+        // served out of the browser cache.
+        CreateMap<PaymentAccount, PaymentAccountDto>()
+            .ForMember(dto => dto.QrImageUrl, options => options.MapFrom(account =>
+                account.QrImageBlobName == null
+                    ? null
+                    : $"/api/v1/app/payment-accounts/{account.Id}/qr-image?v=" +
+                      (account.LastModificationTime ?? account.CreationTime).Ticks));
         CreateMap<PatientTag, PatientTagDto>();
         CreateMap<Diagnosis, DiagnosisDto>();
         CreateMap<MedicationType, MedicationTypeDto>();

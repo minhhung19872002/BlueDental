@@ -80,5 +80,12 @@ public static class TaxonomyGroups
     /// <summary>Groups whose entries carry template content.</summary>
     public static readonly string[] Templated = [PrescriptionTemplate, MedicalRecordTemplate];
 
+    /// <summary>
+    /// Groups whose entries carry a body of content — the two template catalogs,
+    /// plus the two the reference gives a rich-text editor to.
+    /// </summary>
+    public static readonly string[] WithContent =
+        [Diagnosis, ConsultingData, PrescriptionTemplate, MedicalRecordTemplate];
+
     public static bool IsKnown(string group) => All.Contains(group);
 }

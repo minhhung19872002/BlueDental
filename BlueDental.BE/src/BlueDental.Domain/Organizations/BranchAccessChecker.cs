@@ -75,6 +75,21 @@ public class BranchAccessChecker : IDomainService
     }
 
     /// <summary>
+    /// The branch a write should land in.
+    ///
+    /// The client names it, because the header lets the user switch branches,
+    /// and it is honoured only when the account may act there. Callers that send
+    /// nothing keep landing in their own branch, which is what every screen did
+    /// before the switcher existed.
+    /// </summary>
+    public async Task<Guid> ResolveWriteTargetAsync(Guid requestedBranchId, Guid ownBranchId)
+    {
+        var target = requestedBranchId == Guid.Empty ? ownBranchId : requestedBranchId;
+        await CheckAsync(target);
+        return target;
+    }
+
+    /// <summary>
     /// Narrows a requested branch filter to what the user may see. Returns the
     /// requested branch when allowed, or the user's own branches when the caller
     /// did not name one; an empty result means "all branches".

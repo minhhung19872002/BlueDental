@@ -11,11 +11,15 @@ using Volo.Abp.Identity;
 namespace BlueDental.Data;
 
 /// <summary>
-/// Seeds a second clinic branch and a staff account restricted to it.
+/// Seeds a second clinic branch and the two accounts branch behaviour needs:
+/// one restricted to that branch, and one restricted to nothing.
 ///
 /// Branch isolation cannot be demonstrated — or regression-tested — with a single
-/// branch and a single clinic-wide account. This gives the acceptance suite a
-/// user who must be refused another branch's data.
+/// branch and a single account. <c>branch2</c> is the user who must be refused
+/// another branch's data; <c>manager</c> is the user who may switch between both
+/// branches, which is the only way the header's branch switcher can be exercised
+/// end to end (<c>admin</c> is assigned to the first branch, so it never sees the
+/// second one on offer).
 ///
 /// Only runs in Development; production seeding of real staff is an operator task.
 /// </summary>
@@ -31,6 +35,9 @@ public class BlueDentalBranchSeedContributor(
     private const string BranchUserName = "branch2";
     private const string BranchUserEmail = "branch2@bluedental.local";
 
+    private const string ClinicWideUserName = "manager";
+    private const string ClinicWideUserEmail = "manager@bluedental.local";
+
     public async Task SeedAsync(DataSeedContext context)
     {
         if (!IsDevelopment())
@@ -40,6 +47,7 @@ public class BlueDentalBranchSeedContributor(
 
         await SeedSecondBranchAsync();
         await SeedBranchScopedUserAsync();
+        await SeedClinicWideUserAsync();
     }
 
     private bool IsDevelopment() =>
@@ -112,5 +120,41 @@ public class BlueDentalBranchSeedContributor(
                 SecondBranchId,
                 isPrimary: true),
             autoSave: true);
+    }
+
+    /// <summary>
+    /// A back-office account with no <see cref="StaffBranchAssignment"/> at all —
+    /// which <see cref="BranchAccessChecker"/> reads as "every branch". It still
+    /// carries a home branch property, because a write with no branch named has
+    /// to land somewhere.
+    /// </summary>
+    private async Task SeedClinicWideUserAsync()
+    {
+        var existing = await userManager.FindByNameAsync(ClinicWideUserName);
+
+        if (existing is null)
+        {
+            existing = new IdentityUser(guidGenerator.Create(), ClinicWideUserName, ClinicWideUserEmail)
+            {
+                Name = "Quản lý toàn phòng khám",
+            };
+
+            var created = await userManager.CreateAsync(existing, "Manager@123456");
+            if (!created.Succeeded)
+            {
+                return;
+            }
+
+            await userManager.AddToRoleAsync(existing, "admin");
+        }
+
+        if (existing.GetProperty<System.Guid?>(BlueDentalConsts.UserClinicBranchIdPropertyName) is null)
+        {
+            existing.SetProperty(
+                BlueDentalConsts.UserClinicBranchIdPropertyName,
+                BlueDentalDataSeedContributor.DefaultBranchId);
+
+            await userManager.UpdateAsync(existing);
+        }
     }
 }

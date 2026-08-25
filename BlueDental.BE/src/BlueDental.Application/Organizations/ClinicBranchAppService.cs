@@ -13,16 +13,31 @@ namespace BlueDental.Organizations;
 public class ClinicBranchAppService : ApplicationService, IClinicBranchAppService
 {
     private readonly IRepository<ClinicBranch, Guid> _repository;
+    private readonly BranchAccessChecker _branchAccess;
 
-    public ClinicBranchAppService(IRepository<ClinicBranch, Guid> repository)
+    public ClinicBranchAppService(
+        IRepository<ClinicBranch, Guid> repository,
+        BranchAccessChecker branchAccess)
     {
         _repository = repository;
+        _branchAccess = branchAccess;
     }
 
     [Authorize(BlueDentalPermissions.Organizations.View)]
     public async Task<PagedResultDto<ClinicBranchDto>> GetListAsync(GetClinicBranchListInput input)
     {
         var query = await _repository.GetQueryableAsync();
+
+        if (input.AccessibleOnly)
+        {
+            // An empty list means "no limit", so a clinic-wide account still
+            // sees every branch.
+            var allowed = await _branchAccess.GetAllowedBranchIdsAsync();
+            if (allowed.Count > 0)
+            {
+                query = query.Where(b => allowed.Contains(b.Id));
+            }
+        }
 
         if (!string.IsNullOrWhiteSpace(input.Filter))
         {

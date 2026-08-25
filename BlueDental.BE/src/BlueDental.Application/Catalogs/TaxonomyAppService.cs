@@ -21,36 +21,52 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
     private readonly IRepository<Taxonomy, Guid> _repository;
     private readonly IRepository<CatalogEntry, Guid> _entryRepository;
     private readonly ICurrentClinicBranchResolver _branchResolver;
+    private readonly BranchAccessChecker _branchAccess;
 
     public TaxonomyAppService(
         IRepository<Taxonomy, Guid> repository,
         IRepository<CatalogEntry, Guid> entryRepository,
-        ICurrentClinicBranchResolver branchResolver)
+        ICurrentClinicBranchResolver branchResolver,
+        BranchAccessChecker branchAccess)
     {
         _repository = repository;
         _entryRepository = entryRepository;
         _branchResolver = branchResolver;
+        _branchAccess = branchAccess;
     }
 
     [Authorize(BlueDentalPermissions.Catalogs.View)]
     public async Task<PagedResultDto<TaxonomyDto>> GetListAsync(GetTaxonomyListInput input)
     {
-        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
+        // The header can switch branches, so the caller names the one it wants;
+        // the checker narrows it to what this account may actually see.
+        var branchFilter = await _branchAccess.ResolveFilterAsync(input.ClinicBranchId);
         var query = await _repository.GetQueryableAsync();
 
-        query = query.Where(x => x.ClinicBranchId == clinicBranchId);
+        if (branchFilter.Count > 0)
+        {
+            query = query.Where(x => branchFilter.Contains(x.ClinicBranchId));
+        }
+
         if (!string.IsNullOrWhiteSpace(input.Group))
             query = query.Where(x => x.Group == input.Group);
-        if (!string.IsNullOrWhiteSpace(input.Filter))
+        // Every word has to appear somewhere in the row, in any field and in
+        // any order — see SearchTerms for what "somewhere" means.
+        foreach (var term in SearchTerms.From(input.Filter))
         {
-            var filter = input.Filter.Trim();
-            query = query.Where(x => x.Name.Contains(filter));
+            query = query.Where(x =>
+                x.Name.ToLower().Contains(term) ||
+                (x.Alias != null && x.Alias.ToLower().Contains(term)) ||
+                (x.Description != null && x.Description.ToLower().Contains(term)));
         }
 
         var totalCount = query.Count();
         var items = query
             .OrderBy(x => x.SortOrder)
-            .ThenBy(x => x.Name)
+            // Newest first among equal priorities: a record just added carries
+            // the default priority, so this is what puts it at the top of the
+            // list the moment it is saved.
+            .ThenByDescending(x => x.CreationTime)
             .Skip(input.SkipCount)
             .Take(input.MaxResultCount)
             .ToList();
@@ -68,6 +84,7 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
     public async Task<TaxonomyDto> GetAsync(Guid id)
     {
         var taxonomy = await _repository.GetAsync(id);
+        await _branchAccess.CheckAsync(taxonomy.ClinicBranchId);
         var counts = await CountEntriesAsync([id]);
         return MapToDto(taxonomy, counts);
     }
@@ -75,7 +92,9 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
     [Authorize(BlueDentalPermissions.Catalogs.Create)]
     public async Task<TaxonomyDto> CreateAsync(CreateTaxonomyDto input)
     {
-        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
+        var clinicBranchId = await _branchAccess.ResolveWriteTargetAsync(
+            input.ClinicBranchId,
+            _branchResolver.GetRequiredClinicBranchId());
         var taxonomy = Taxonomy.Create(
             GuidGenerator.Create(),
             clinicBranchId,
@@ -96,6 +115,7 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
     public async Task<TaxonomyDto> UpdateAsync(Guid id, UpdateTaxonomyDto input)
     {
         var taxonomy = await _repository.GetAsync(id);
+        await _branchAccess.CheckAsync(taxonomy.ClinicBranchId);
 
         taxonomy.Rename(input.Name, input.Alias);
         taxonomy.Recolor(input.Color);
@@ -112,6 +132,7 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
     public async Task DeleteAsync(Guid id)
     {
         var taxonomy = await _repository.GetAsync(id);
+        await _branchAccess.CheckAsync(taxonomy.ClinicBranchId);
 
         if (taxonomy.IsSystem)
         {
@@ -129,6 +150,54 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
         }
 
         await _repository.DeleteAsync(id, autoSave: true);
+    }
+
+    /// <summary>
+    /// Applies a whole new order in one call — a drag is one action, so it is
+    /// one request and one transaction. Writing a row at a time would leave the
+    /// catalog half-sorted the moment any single write failed.
+    /// </summary>
+    [Authorize(BlueDentalPermissions.Catalogs.Edit)]
+    public async Task ReorderAsync(ReorderTaxonomyDto input)
+    {
+        if (input.Items.Count == 0)
+        {
+            return;
+        }
+
+        var ids = input.Items.Select(x => x.Id).Distinct().ToList();
+        var query = await _repository.GetQueryableAsync();
+        var groups = query.Where(x => ids.Contains(x.Id)).ToList();
+
+        if (groups.Count != ids.Count)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Catalogs.TaxonomyNotFound,
+                "One of the groups being ordered no longer exists.");
+        }
+
+        // Every row has to be one this account may write to, and they all have
+        // to belong to the catalog the caller named — otherwise a crafted
+        // payload could reorder a different branch's groups.
+        foreach (var branchId in groups.Select(x => x.ClinicBranchId).Distinct())
+        {
+            await _branchAccess.CheckAsync(branchId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(input.Group) && groups.Any(x => x.Group != input.Group))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Catalogs.UnknownTaxonomyGroup,
+                "The groups being ordered do not all belong to that catalog.");
+        }
+
+        var order = input.Items.ToDictionary(x => x.Id, x => x.Order);
+        foreach (var taxonomy in groups)
+        {
+            taxonomy.Reorder(order[taxonomy.Id]);
+        }
+
+        await _repository.UpdateManyAsync(groups, autoSave: true);
     }
 
     private async Task<Dictionary<Guid, int>> CountEntriesAsync(IReadOnlyCollection<Guid> taxonomyIds)

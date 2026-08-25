@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Volo.Abp;
 using Volo.Abp.Domain.Entities.Auditing;
@@ -18,6 +19,9 @@ namespace BlueDental.Catalogs;
 /// </summary>
 public class CatalogEntry : FullAuditedAggregateRoot<Guid>
 {
+    private readonly List<CatalogServiceStage> _stages = new();
+    private readonly List<PrescriptionTemplateLine> _prescriptionLines = new();
+
     public Guid ClinicBranchId { get; private set; }
 
     /// <summary>The group this entry belongs to.</summary>
@@ -38,15 +42,30 @@ public class CatalogEntry : FullAuditedAggregateRoot<Guid>
     /// <summary>Set for template catalogs (đơn thuốc mẫu, bệnh án mẫu); null elsewhere.</summary>
     public string? Content { get; private set; }
 
-    /// <summary>
-    /// Reference field <c>isImageRequired</c> on services — forces an image on the
-    /// consulting line before it can proceed.
-    /// </summary>
-    public bool IsImageRequired { get; private set; }
-
     public bool IsActive { get; private set; }
 
     public int SortOrder { get; private set; }
+
+    /// <summary>"Tên chi tiết" on a service — a longer name for the same thing.</summary>
+    public string? DetailName { get; private set; }
+
+    /// <summary>"Ghi chú" on a diagnosis or a piece of consulting data.</summary>
+    public string? Note { get; private set; }
+
+    /// <summary>"Đơn vị" on a service, "Đơn vị tính" on a medicine.</summary>
+    public string? Unit { get; private set; }
+
+    /// <summary>Set on services only — price, tax and the three setting tabs.</summary>
+    public CatalogServiceConfig? ServiceConfig { get; private set; }
+
+    /// <summary>Set on medicines only.</summary>
+    public CatalogMedicine? Medicine { get; private set; }
+
+    /// <summary>The "Công đoạn" table of a service.</summary>
+    public IReadOnlyList<CatalogServiceStage> Stages => _stages;
+
+    /// <summary>The medicine lines of a "Đơn thuốc mẫu".</summary>
+    public IReadOnlyList<PrescriptionTemplateLine> PrescriptionLines => _prescriptionLines;
 
     protected CatalogEntry() { }
 
@@ -60,7 +79,6 @@ public class CatalogEntry : FullAuditedAggregateRoot<Guid>
         decimal? price = null,
         string? content = null,
         string? description = null,
-        bool isImageRequired = false,
         int sortOrder = 0)
     {
         Check.NotNullOrWhiteSpace(group, nameof(group));
@@ -87,7 +105,6 @@ public class CatalogEntry : FullAuditedAggregateRoot<Guid>
             Price = price,
             Content = content,
             Description = description,
-            IsImageRequired = isImageRequired,
             IsActive = true,
             SortOrder = sortOrder
         };
@@ -120,10 +137,45 @@ public class CatalogEntry : FullAuditedAggregateRoot<Guid>
         return this;
     }
 
-    public CatalogEntry RequireImage(bool required)
+    public CatalogEntry UpdateDetails(string? detailName, string? note, string? unit)
     {
-        IsImageRequired = required;
+        DetailName = detailName;
+        Note = note;
+        Unit = unit;
         return this;
+    }
+
+    /// <summary>
+    /// The service half of the entry. Created on first use so the row only
+    /// exists for the catalog that has one.
+    /// </summary>
+    public CatalogServiceConfig EnsureServiceConfig(Guid id)
+    {
+        ServiceConfig ??= new CatalogServiceConfig(id, Id);
+        return ServiceConfig;
+    }
+
+    public CatalogMedicine EnsureMedicine(Guid id)
+    {
+        Medicine ??= new CatalogMedicine(id, Id);
+        return Medicine;
+    }
+
+    /// <summary>
+    /// Replaces the whole stage list. The dialog edits it as one table, so it
+    /// arrives whole — reconciling row by row would only invent an order the
+    /// user never asked for.
+    /// </summary>
+    public void ReplaceStages(IEnumerable<CatalogServiceStage> stages)
+    {
+        _stages.Clear();
+        _stages.AddRange(stages);
+    }
+
+    public void ReplacePrescriptionLines(IEnumerable<PrescriptionTemplateLine> lines)
+    {
+        _prescriptionLines.Clear();
+        _prescriptionLines.AddRange(lines);
     }
 
     /// <summary>Moves the entry into another group of the same catalog.</summary>
@@ -180,11 +232,13 @@ public class CatalogEntry : FullAuditedAggregateRoot<Guid>
             return;
         }
 
-        if (!TaxonomyGroups.Templated.Contains(group))
+        // Chẩn đoán and Dữ liệu tư vấn carry a rich-text body too, not only the
+        // two template catalogs — see TaxonomyGroups.WithContent.
+        if (!TaxonomyGroups.WithContent.Contains(group))
         {
             throw new BusinessException(
                 BlueDentalDomainErrorCodes.Catalogs.ContentNotSupported,
-                $"Catalog '{group}' does not carry template content.");
+                $"Catalog '{group}' does not carry a content body.");
         }
     }
 }

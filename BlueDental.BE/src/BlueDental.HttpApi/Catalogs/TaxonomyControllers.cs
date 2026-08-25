@@ -30,6 +30,10 @@ public sealed class TaxonomyController(ITaxonomyAppService service) : BlueDental
 
     [HttpDelete("{id:guid}")]
     public Task DeleteAsync(Guid id) => service.DeleteAsync(id);
+
+    /// <summary>One drag is one call carrying the whole order.</summary>
+    [HttpPost("reorder")]
+    public Task ReorderAsync([FromBody] ReorderTaxonomyDto input) => service.ReorderAsync(input);
 }
 
 /// <summary>Mục danh mục.</summary>
@@ -55,4 +59,8 @@ public sealed class CatalogEntryController(ICatalogEntryAppService service) : Bl
 
     [HttpDelete("{id:guid}")]
     public Task DeleteAsync(Guid id) => service.DeleteAsync(id);
+
+    /// <summary>One drag is one call carrying the whole order.</summary>
+    [HttpPost("reorder")]
+    public Task ReorderAsync([FromBody] ReorderCatalogEntryDto input) => service.ReorderAsync(input);
 }

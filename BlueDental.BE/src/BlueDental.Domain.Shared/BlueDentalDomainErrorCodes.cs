@@ -27,6 +27,14 @@ public static class BlueDentalDomainErrorCodes
         public const string TaxonomyNotFound = "BlueDental:Catalogs:0012";
         public const string CatalogEntryNotFound = "BlueDental:Catalogs:0013";
         public const string TaxonomyNotEmpty = "BlueDental:Catalogs:0014";
+        public const string UnknownPaymentAccountKind = "BlueDental:Catalogs:0015";
+        public const string InvalidQrImageFile = "BlueDental:Catalogs:0016";
+        public const string UnsupportedQrImageType = "BlueDental:Catalogs:0017";
+        public const string QrImageNotFound = "BlueDental:Catalogs:0018";
+        public const string InvalidServiceDiscount = "BlueDental:Catalogs:0019";
+        public const string InvalidWarrantyPeriod = "BlueDental:Catalogs:0020";
+        public const string InvalidStageValue = "BlueDental:Catalogs:0021";
+        public const string InvalidPrescriptionLine = "BlueDental:Catalogs:0022";
     }
 
     public static class PatientManagement
