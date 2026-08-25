@@ -2972,9 +2972,57 @@ body {
   color: var(--bd-primary);
 }
 
+.settings-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.settings-card-header .dash-card-title {
+  margin-bottom: 0;
+}
+
+.settings-branch-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.settings-branch:hover .settings-branch-actions {
+  opacity: 1;
+}
+
+.settings-role--clickable {
+  cursor: pointer;
+  padding: 8px 10px;
+  margin: -8px -10px;
+  border-radius: 10px;
+  transition: background 0.15s;
+}
+
+.settings-role--clickable:hover {
+  background: var(--bd-bg);
+}
+
+.settings-role-arrow {
+  font-size: 10px;
+  color: var(--bd-faint);
+  transition: transform 0.15s;
+}
+
+.settings-role--clickable:hover .settings-role-arrow {
+  transform: translateX(2px);
+}
+
 @media (max-width: 900px) {
   .settings-split {
     grid-template-columns: 1fr;
+  }
+
+  .settings-branch-actions {
+    opacity: 1;
   }
 }
 
@@ -3945,48 +3993,6 @@ html:has(.ant-modal-wrap) {
   filter: brightness(1.06);
 }
 
-/* ── Toast ──────────────────────────────────────────────────────────────────
-   The design's toast is a navy pill at the bottom centre. Ant Design floats
-   its messages from the top as white cards, so the list is re-anchored and the
-   notice restyled.
-
-   Ant Design 6 renamed the inner element: the visible pill is
-   .ant-message-notice-wrapper, where v5 had .ant-message-notice-content. The
-   v5 name matches nothing here. */
-
-/* Placement is left to Ant Design. The design puts this pill 26px from the
-   bottom, centred; Ant Design 6 drives the list's position from an inline
-   --notification-top and its own transform, with no bottom placement in the
-   message API. Overriding it means fighting internals that change between
-   releases, so the toast keeps the design's shape at Ant Design's position.
-   Moving it down means replacing the notifier, not restyling it. */
-
-.ant-message .ant-message-notice-wrapper {
-  background: var(--bd-navy);
-  color: #ffffff;
-  padding: 13px 20px;
-  border-radius: 12px;
-  font-size: 13px;
-  font-weight: 500;
-  box-shadow: 0 18px 40px -14px rgba(21, 42, 82, 0.7);
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-}
-
-/* Ant Design tints its own status icons; on navy they need to stay legible. */
-.ant-message .ant-message-notice-icon-success {
-  color: var(--bd-green-bright);
-}
-
-.ant-message .ant-message-notice-icon-error {
-  color: #ff8b8b;
-}
-
-.ant-message .ant-message-notice-icon-warning,
-.ant-message .ant-message-notice-icon-info {
-  color: var(--bd-gold);
-}
 
 /* ── Stock stepper (the design adjusts stock in the row) ─────────────────── */
 

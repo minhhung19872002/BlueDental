@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Table, Empty, Button, Input, Modal, Popconfirm, message } from "antd";
+import { Table, Empty, Button, Input, Modal, Popconfirm } from "antd";
+import { toast } from "sonner";
 import { SearchOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
@@ -138,7 +139,7 @@ export function OperationsPage() {
     if (!categoryName.trim()) return;
     createCategory.mutate(
       { name: categoryName.trim(), department: activeTab, subTab: activeSubTab },
-      { onSuccess: () => { setCategoryModalOpen(false); setCategoryName(""); message.success(t("Đã tạo mục")); } },
+      { onSuccess: () => { setCategoryModalOpen(false); setCategoryName(""); toast.success(t("Đã tạo mục")); } },
     );
   };
 
@@ -147,14 +148,14 @@ export function OperationsPage() {
     if (editingArticle) {
       updateArticle.mutate(
         { id: editingArticle.id, data: { title: articleTitle.trim() } },
-        { onSuccess: () => { setArticleModalOpen(false); setArticleTitle(""); setEditingArticle(null); message.success(t("Đã cập nhật")); } },
+        { onSuccess: () => { setArticleModalOpen(false); setArticleTitle(""); setEditingArticle(null); toast.success(t("Đã cập nhật")); } },
       );
     } else {
       const catId = selectedCategoryId ?? categories[0]?.id;
-      if (!catId) { message.warning(t("Vui lòng tạo mục trước")); return; }
+      if (!catId) { toast.warning(t("Vui lòng tạo mục trước")); return; }
       createArticle.mutate(
         { title: articleTitle.trim(), categoryId: catId, department: activeTab, subTab: activeSubTab },
-        { onSuccess: () => { setArticleModalOpen(false); setArticleTitle(""); message.success(t("Đã tạo bài viết")); } },
+        { onSuccess: () => { setArticleModalOpen(false); setArticleTitle(""); toast.success(t("Đã tạo bài viết")); } },
       );
     }
   };

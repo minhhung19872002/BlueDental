@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Table, Button, Space, Typography, Tooltip, Segmented, Input, message } from "antd";
+import { toast } from "sonner";
+import { Table, Button, Space, Typography, Tooltip, Segmented, Input } from "antd";
 import type { TableColumnsType } from "antd";
 import {
   PlusOutlined,
@@ -100,7 +101,7 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
         `danh-sach-benh-nhan-${dayjs().format("YYYYMMDD")}`,
       );
     } catch {
-      message.error(t("Xuất file thất bại"));
+      toast.error(t("Xuất file thất bại"));
     } finally {
       setExporting(false);
     }

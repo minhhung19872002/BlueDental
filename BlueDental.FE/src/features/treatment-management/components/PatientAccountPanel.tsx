@@ -11,7 +11,6 @@ import {
   Table,
   Tag,
   Typography,
-  message,
 } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import type { TableColumnsType } from "antd";
@@ -28,6 +27,7 @@ import {
 } from "../api/treatmentPlanApi";
 import { useDentistList } from "@/features/staff/api/staffQueries";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
+import { toast } from "sonner";
 import { extractApiError } from "@/lib/apiError";
 import { formatDateTime, formatVND } from "@/utils/format";
 import { t } from "@/lib/i18n";
@@ -88,11 +88,11 @@ export function PatientAccountPanel({ patientId }: PatientAccountPanelProps) {
         staffId: values.staffId,
       });
 
-      message.success(t("Đã ghi nhận giao dịch"));
+      toast.success(t("Đã ghi nhận giao dịch"));
       setModalOpen(false);
       form.resetFields();
     } catch (error) {
-      message.error(extractApiError(error));
+      toast.error(extractApiError(error));
     }
   };
 

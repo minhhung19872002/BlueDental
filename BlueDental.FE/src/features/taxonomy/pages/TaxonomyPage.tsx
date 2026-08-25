@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Button, Empty, Input, Modal, Popconfirm, Table, Tag, message } from "antd";
+import { toast } from "sonner";
+import { Button, Empty, Input, Modal, Popconfirm, Table, Tag } from "antd";
 import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -226,9 +227,9 @@ function CatalogPanel({ tab }: { tab: TaxonomyTab }) {
             onConfirm={async () => {
               try {
                 await deleteEntry.mutateAsync(row.id);
-                message.success(t("Đã xoá"));
+                toast.success(t("Đã xoá"));
               } catch (error) {
-                message.error(extractApiError(error));
+                toast.error(extractApiError(error));
               }
             }}
           >
@@ -251,11 +252,11 @@ function CatalogPanel({ tab }: { tab: TaxonomyTab }) {
       // Select the new group so the next "add item" lands where the user just
       // created it, instead of falling back to the first group in the list.
       setSelectedGroupId(created.id);
-      message.success(t("Đã thêm nhóm"));
+      toast.success(t("Đã thêm nhóm"));
       setGroupModalOpen(false);
       setNewGroupName("");
     } catch (error) {
-      message.error(extractApiError(error));
+      toast.error(extractApiError(error));
     }
   };
 

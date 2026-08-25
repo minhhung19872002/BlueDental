@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Form, Input, InputNumber, Modal, Select, message } from "antd";
+import { Form, Input, InputNumber, Modal, Select } from "antd";
 import {
   PAYMENT_METHOD,
   paymentMethodLabels,
@@ -7,6 +7,7 @@ import {
   type InvoiceDto,
   type PaymentMethod,
 } from "../api";
+import { toast } from "sonner";
 import { extractApiError } from "@/lib/apiError";
 import { formatVND } from "@/utils/format";
 import { t } from "@/lib/i18n";
@@ -57,10 +58,10 @@ export function PaymentModal({ open, invoice, onClose }: Props) {
           reference: values.reference?.trim() || undefined,
         },
       });
-      message.success(t("Đã ghi nhận thanh toán"));
+      toast.success(t("Đã ghi nhận thanh toán"));
       onClose();
     } catch (error) {
-      message.error(extractApiError(error));
+      toast.error(extractApiError(error));
     }
   };
 

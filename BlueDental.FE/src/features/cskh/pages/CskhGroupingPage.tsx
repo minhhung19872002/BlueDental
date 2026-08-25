@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Button, Input, Select, Spin, Table, Tag, Modal, Form, message, Popconfirm } from "antd";
+import { Button, Input, Select, Spin, Table, Tag, Modal, Form, Popconfirm } from "antd";
+import { toast } from "sonner";
 import {
   SearchOutlined,
   DownloadOutlined,
@@ -335,17 +336,17 @@ function CskhGroupingPanel() {
       const values = await form.validateFields();
       if (isEdit && editingItem) {
         await updateMutation.mutateAsync({ id: editingItem.id, data: values });
-        message.success(t("Cập nhật nhóm thành công"));
+        toast.success(t("Cập nhật nhóm thành công"));
       } else {
         await createMutation.mutateAsync(values);
-        message.success(t("Tạo nhóm thành công"));
+        toast.success(t("Tạo nhóm thành công"));
       }
       form.resetFields(); setEditingItem(null); setModalOpen(false);
     } catch { /* validation */ }
   };
 
   const handleDelete = async (id: string) => {
-    try { await deleteMutation.mutateAsync(id); message.success(t("Xóa thành công")); } catch { message.error(t("Xóa thất bại")); }
+    try { await deleteMutation.mutateAsync(id); toast.success(t("Xóa thành công")); } catch { toast.error(t("Xóa thất bại")); }
   };
 
   const columns = [

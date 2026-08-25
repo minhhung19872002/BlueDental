@@ -1,12 +1,9 @@
 using System;
+using Volo.Abp;
 using Volo.Abp.Domain.Entities.Auditing;
 
 namespace BlueDental.Organizations;
 
-/// <summary>
-/// Represents a physical dental clinic branch / location.
-/// Aggregate root for the Organizations bounded context.
-/// </summary>
 public class ClinicBranch : FullAuditedAggregateRoot<Guid>
 {
     public string Code { get; private set; } = default!;
@@ -29,8 +26,8 @@ public class ClinicBranch : FullAuditedAggregateRoot<Guid>
         string? email = null)
         : base(id)
     {
-        Code = code;
-        Name = name;
+        Code = Check.NotNullOrWhiteSpace(code, nameof(code));
+        Name = Check.NotNullOrWhiteSpace(name, nameof(name), maxLength: 200);
         Address = address;
         PhoneNumber = phoneNumber;
         Email = email;
@@ -39,7 +36,7 @@ public class ClinicBranch : FullAuditedAggregateRoot<Guid>
 
     public ClinicBranch SetName(string name)
     {
-        Name = name;
+        Name = Check.NotNullOrWhiteSpace(name, nameof(name), maxLength: 200);
         return this;
     }
 
@@ -53,6 +50,11 @@ public class ClinicBranch : FullAuditedAggregateRoot<Guid>
 
     public ClinicBranch SetOperatingHours(TimeOnly? opening, TimeOnly? closing)
     {
+        if (opening.HasValue && closing.HasValue && closing <= opening)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Organizations.InvalidOperatingHours);
+        }
+
         OpeningTime = opening;
         ClosingTime = closing;
         return this;

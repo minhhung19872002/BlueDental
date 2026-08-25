@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
   Button, Col, DatePicker, Empty, Form, Input, InputNumber, Modal, Popconfirm,
-  Row, Select, Table, Tag, message,
+  Row, Select, Table, Tag,
 } from "antd";
 import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
@@ -126,7 +127,7 @@ function VoucherModal({
             validTo: validTo.format("YYYY-MM-DD"),
           },
         });
-        message.success(t("Đã cập nhật voucher"));
+        toast.success(t("Đã cập nhật voucher"));
       } else {
         await createVoucher.mutateAsync({
           clinicBranchId: branchId,
@@ -142,12 +143,12 @@ function VoucherModal({
           validTo: validTo.format("YYYY-MM-DD"),
           usageLimit: values.usageLimit ?? null,
         });
-        message.success(t("Đã tạo voucher"));
+        toast.success(t("Đã tạo voucher"));
       }
 
       onClose();
     } catch (error) {
-      message.error(extractApiError(error));
+      toast.error(extractApiError(error));
     }
   };
 
@@ -293,9 +294,9 @@ export function VoucherPage() {
   const run = async (action: Promise<unknown>, successMessage: string) => {
     try {
       await action;
-      message.success(successMessage);
+      toast.success(successMessage);
     } catch (error) {
-      message.error(extractApiError(error));
+      toast.error(extractApiError(error));
     }
   };
 

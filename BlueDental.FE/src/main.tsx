@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ConfigProvider, App as AntdApp } from "antd";
+import { Toaster } from "sonner";
 import viVN from "antd/locale/vi_VN";
 import enUS from "antd/locale/en_US";
 import dayjs from "dayjs";
@@ -16,10 +17,6 @@ import "./styles/index.css";
 
 dayjs.locale("vi");
 
-/**
- * antd carries its own strings (date pickers, pagination, empty states), so its
- * locale has to follow the app's language rather than being pinned.
- */
 function LocalizedApp() {
   const [language] = useLanguage();
 
@@ -33,9 +30,8 @@ function LocalizedApp() {
   return (
     <ConfigProvider locale={language === "en" ? enUS : viVN} theme={themeConfig}>
       <AntdApp>
-        {/* Remounting on switch guarantees every screen re-reads the overlay,
-            including labels that live in constant maps. */}
         <RouterProvider key={language} router={router} />
+        <Toaster position="top-center" richColors offset={80} />
       </AntdApp>
     </ConfigProvider>
   );

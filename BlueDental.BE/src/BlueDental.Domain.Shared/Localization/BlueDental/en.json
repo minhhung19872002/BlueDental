@@ -53,6 +53,7 @@
     "BlueDental:Organizations:0002": "That branch code is already in use.",
     "BlueDental:Organizations:0003": "An active clinic cannot be deleted.",
     "BlueDental:Organizations:0004": "Opening hours must end after they start.",
+    "BlueDental:Organizations:0006": "That branch name is already in use.",
     "BlueDental:Catalogs:0001": "Procedure not found.",
     "BlueDental:Catalogs:0002": "That procedure code is already in use.",
     "BlueDental:Catalogs:0003": "Insurance plan not found.",

@@ -1,6 +1,7 @@
 // StockAdjustmentModal — records stock-in, stock-out, or adjustment transactions.
 
-import { Modal, Button, Form, Select, Input, InputNumber, message } from "antd";
+import { toast } from "sonner";
+import { Modal, Button, Form, Select, Input, InputNumber } from "antd";
 import { useAdjustStock, useInventoryList } from "../api/index";
 import { t } from "@/lib/i18n";
 
@@ -27,7 +28,6 @@ export function StockAdjustmentModal({ open, onClose, itemId }: Props) {
   ];
 
   const [form] = Form.useForm<AdjustmentFormValues>();
-  const [messageApi, contextHolder] = message.useMessage();
 
   const adjustStock = useAdjustStock();
   const { data: inventoryPage, isLoading: inventoryLoading } = useInventoryList({
@@ -57,12 +57,12 @@ export function StockAdjustmentModal({ open, onClose, itemId }: Props) {
       { id: resolvedItemId, adjustment: delta, note: values.reason },
       {
         onSuccess: () => {
-          void messageApi.success(t("Điều chỉnh kho thành công!"));
+          toast.success(t("Điều chỉnh kho thành công!"));
           form.resetFields();
           onClose();
         },
         onError: () => {
-          void messageApi.error(t("Không thể điều chỉnh kho. Vui lòng thử lại."));
+          toast.error(t("Không thể điều chỉnh kho. Vui lòng thử lại."));
         },
       },
     );
@@ -75,7 +75,6 @@ export function StockAdjustmentModal({ open, onClose, itemId }: Props) {
 
   return (
     <>
-      {contextHolder}
       <Modal
         open={open}
         title={t("Điều chỉnh kho")}

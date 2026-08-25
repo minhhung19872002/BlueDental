@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, Card, Empty, Progress, Space, Table, Tag, Typography, message } from "antd";
+import { Button, Card, Empty, Progress, Space, Table, Tag, Typography } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import type { TableColumnsType } from "antd";
 import {
@@ -14,6 +14,7 @@ import {
 import { StageModal } from "./StageModal";
 import { formatTeeth } from "../api/consultingApi";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
+import { toast } from "sonner";
 import { extractApiError } from "@/lib/apiError";
 import { formatDate } from "@/utils/format";
 import { t } from "@/lib/i18n";
@@ -52,9 +53,9 @@ export function TreatmentStagePanel({ patientId }: TreatmentStagePanelProps) {
   const run = async (action: Promise<unknown>, success: string) => {
     try {
       await action;
-      message.success(success);
+      toast.success(success);
     } catch (error) {
-      message.error(extractApiError(error));
+      toast.error(extractApiError(error));
     }
   };
 

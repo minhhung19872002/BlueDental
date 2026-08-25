@@ -79,6 +79,21 @@ function readOptionalString(
   return typeof value === "string" ? value : undefined;
 }
 
+function readValidationErrors(
+  abpError: Record<string, unknown>,
+): AbpValidationError[] | undefined {
+  const raw = abpError.validationErrors;
+  if (!Array.isArray(raw) || raw.length === 0) return undefined;
+  return raw.filter(isRecord).map((e) => ({
+    message: readOptionalString(e, "message"),
+    members: Array.isArray(e.members)
+      ? (e.members as unknown[]).filter(
+          (m): m is string => typeof m === "string",
+        )
+      : undefined,
+  }));
+}
+
 function readErrorEnvelope(data: unknown): AbpErrorEnvelope | undefined {
   const payload = typeof data === "string" ? JSON.parse(data) : data;
   if (!isRecord(payload)) return undefined;
@@ -88,12 +103,23 @@ function readErrorEnvelope(data: unknown): AbpErrorEnvelope | undefined {
       code: readOptionalString(abpError, "code"),
       message: readOptionalString(abpError, "message"),
       details: readOptionalString(abpError, "details"),
+      validationErrors: readValidationErrors(abpError),
     };
   }
   return undefined;
 }
 
 function pickServerMessage(envelope: AbpErrorEnvelope): string | undefined {
+  const valErrors = envelope.validationErrors;
+  if (valErrors !== undefined && valErrors.length > 0) {
+    const msgs = valErrors
+      .map((e) => e.message)
+      .filter((m): m is string => m !== undefined && m.length > 0);
+    if (msgs.length > 0) return truncate(msgs.join(" "));
+  }
+  if (envelope.code !== undefined && envelope.code.length > 0) {
+    return sanitizeServerText(envelope.message);
+  }
   const details = sanitizeServerText(envelope.details);
   if (details !== undefined) return details;
   return sanitizeServerText(envelope.message);

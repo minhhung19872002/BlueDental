@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Alert, DatePicker, Form, Input, Modal, Select, message } from "antd";
+import { Alert, DatePicker, Form, Input, Modal, Select } from "antd";
 import dayjs from "dayjs";
 import { useCreateStage } from "../api/stageApi";
 import {
@@ -9,6 +9,7 @@ import {
 } from "../api/treatmentPlanApi";
 import { useDentistList } from "@/features/staff/api/staffQueries";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
+import { toast } from "sonner";
 import { extractApiError } from "@/lib/apiError";
 import { formatVND } from "@/utils/format";
 import { t } from "@/lib/i18n";
@@ -86,10 +87,10 @@ export function StageModal({ open, patientId, onClose }: StageModalProps) {
         scheduledDate: values.scheduledDate?.format("YYYY-MM-DD"),
       });
 
-      message.success(t("Đã thêm công đoạn"));
+      toast.success(t("Đã thêm công đoạn"));
       onClose();
     } catch (error) {
-      message.error(extractApiError(error));
+      toast.error(extractApiError(error));
     }
   };
 

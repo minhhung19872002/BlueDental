@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { Modal, Button, Input, message } from "antd";
+import { toast } from "sonner";
+import { Modal, Button, Input } from "antd";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -99,13 +100,13 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
       },
       {
         onSuccess: () => {
-          message.success(t("Tạo tiếp nhận thành công!"));
+          toast.success(t("Tạo tiếp nhận thành công!"));
           reset();
           setSelectedPhone("---");
           onClose();
         },
         onError: (err) => {
-          message.error(err.message || t("Tạo tiếp nhận thất bại"));
+          toast.error(err.message || t("Tạo tiếp nhận thất bại"));
         },
       },
     );

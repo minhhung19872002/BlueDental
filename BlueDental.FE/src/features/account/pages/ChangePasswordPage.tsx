@@ -1,4 +1,5 @@
-import { Card, Button, Input, Typography, message, Row, Col } from "antd";
+import { toast } from "sonner";
+import { Card, Button, Input, Typography, Row, Col } from "antd";
 import { LockOutlined, SaveOutlined } from "@ant-design/icons";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -45,11 +46,11 @@ export function ChangePasswordPage() {
     mutationFn: (data: { currentPassword: string; newPassword: string }) =>
       authApi.changePassword(data),
     onSuccess: () => {
-      message.success(t("Đổi mật khẩu thành công!"));
+      toast.success(t("Đổi mật khẩu thành công!"));
       reset();
     },
     onError: () => {
-      message.error(t("Đổi mật khẩu thất bại"));
+      toast.error(t("Đổi mật khẩu thất bại"));
     },
   });
 

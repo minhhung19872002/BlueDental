@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { DatePicker, Form, InputNumber, Modal, message } from "antd";
+import { DatePicker, Form, InputNumber, Modal } from "antd";
+import { toast } from "sonner";
 import dayjs from "dayjs";
 import { useReceiveStock, type SupplyDto } from "../api/suppliesApi";
 import { extractApiError } from "@/lib/apiError";
@@ -53,10 +54,10 @@ export function ReceiveStockModal({ open, supply, onClose }: ReceiveStockModalPr
         },
       });
 
-      message.success(t("Đã nhập kho"));
+      toast.success(t("Đã nhập kho"));
       onClose();
     } catch (error) {
-      message.error(extractApiError(error));
+      toast.error(extractApiError(error));
     }
   };
 

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Alert, Col, Form, Input, InputNumber, Modal, Row, Select, Typography, message } from "antd";
+import { Alert, Col, Form, Input, InputNumber, Modal, Row, Select, Typography } from "antd";
 import { useCreateAdvise } from "../api/consultingQueries";
 import {
   DISCOUNT_TYPE,
@@ -10,6 +10,7 @@ import {
 import { CATALOG_GROUP, useCatalogOptions } from "@/hooks/useCatalogOptions";
 import { useDentistList } from "@/features/staff/api/staffQueries";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
+import { toast } from "sonner";
 import { extractApiError } from "@/lib/apiError";
 import { formatVND } from "@/utils/format";
 import { t } from "@/lib/i18n";
@@ -114,11 +115,11 @@ export function AdviseModal({
         teeth: diagnosis.teeth,
       });
 
-      message.success(t("Đã tạo phiếu tư vấn"));
+      toast.success(t("Đã tạo phiếu tư vấn"));
       onCreated?.();
       onClose();
     } catch (error) {
-      message.error(extractApiError(error));
+      toast.error(extractApiError(error));
     }
   };
 

@@ -1,4 +1,5 @@
-import { Card, Avatar, Button, Input, Row, Col, Typography, Divider, message } from "antd";
+import { toast } from "sonner";
+import { Card, Avatar, Button, Input, Row, Col, Typography, Divider } from "antd";
 import { UserOutlined, EditOutlined, SaveOutlined } from "@ant-design/icons";
 import { useState } from "react";
 import { useAuthStore } from "@/features/auth/store/authStore";
@@ -23,11 +24,11 @@ export function AccountProfilePage() {
       {
         onSuccess: (data) => {
           setAuth({ ...user, name: data.name ?? name, email: data.email ?? email });
-          message.success(t("Cập nhật thông tin thành công!"));
+          toast.success(t("Cập nhật thông tin thành công!"));
           setEditing(false);
         },
         onError: () => {
-          message.error(t("Cập nhật thất bại. Vui lòng thử lại."));
+          toast.error(t("Cập nhật thất bại. Vui lòng thử lại."));
         },
       },
     );

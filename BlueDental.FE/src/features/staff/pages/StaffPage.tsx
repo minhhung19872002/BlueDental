@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import {
   Button,
   Input,
   Popconfirm,
   Tooltip,
-  message,
 } from "antd";
 import {
   PlusOutlined,
@@ -94,7 +94,7 @@ export function StaffPage() {
   const handleDelete = async (staff: StaffDto) => {
     try {
       await deleteStaff.mutateAsync(staff.id);
-      message.success(t("Đã xoá nhân viên"));
+      toast.success(t("Đã xoá nhân viên"));
     } catch {
       // Global MutationCache.onError already shows the toast
     }
@@ -145,17 +145,17 @@ export function StaffPage() {
       }
 
       setModalOpen(false);
-      message.success(editing ? t("Đã cập nhật nhân viên") : t("Đã tạo nhân viên"));
+      toast.success(editing ? t("Đã cập nhật nhân viên") : t("Đã tạo nhân viên"));
 
       if (avatarFile instanceof File) {
         staffApi.uploadAvatar(staffId, avatarFile).then(
           () => void queryClient.invalidateQueries({ queryKey: staffKeys.all }),
-          () => message.error(t("Tải ảnh đại diện thất bại")),
+          () => toast.error(t("Tải ảnh đại diện thất bại")),
         );
       } else if (avatarFile === null && editing?.avatarUrl) {
         staffApi.deleteAvatar(staffId).then(
           () => void queryClient.invalidateQueries({ queryKey: staffKeys.all }),
-          () => message.error(t("Xóa ảnh đại diện thất bại")),
+          () => toast.error(t("Xóa ảnh đại diện thất bại")),
         );
       }
     } catch {

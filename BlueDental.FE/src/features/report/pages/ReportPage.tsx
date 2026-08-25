@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Row, Col, Button, Select, Segmented, Spin, Table, Typography, Tag, Modal, Input, Popconfirm, message } from "antd";
+import { Row, Col, Button, Select, Segmented, Spin, Table, Typography, Tag, Modal, Input, Popconfirm } from "antd";
 import { useStaffList } from "@/features/staff/api/staffQueries";
 import { DownloadOutlined, LeftOutlined, RightOutlined, PlusOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 import { formatDate, formatVND } from "@/utils/format";
 import { exportToExcel, exportTableToExcel } from "@/utils/exportExcel";
 import { useReportSummary, useRevenueReport, useExpenseReport } from "../api/reportingApi";
+import { toast } from "sonner";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { extractApiError } from "@/lib/apiError";
@@ -421,9 +422,9 @@ function CashflowTab({ period }: { period: PeriodRange }) {
     if (!currentUserId) return;
     try {
       await approveEntry.mutateAsync({ id: row.id, staffId: currentUserId });
-      message.success(t("Đã duyệt"));
+      toast.success(t("Đã duyệt"));
     } catch (error) {
-      message.error(extractApiError(error));
+      toast.error(extractApiError(error));
     }
   };
 
@@ -444,14 +445,14 @@ function CashflowTab({ period }: { period: PeriodRange }) {
       cancelText: t("Hủy"),
       onOk: async () => {
         if (!reason.trim()) {
-          message.error(t("Vui lòng nhập lý do từ chối."));
+          toast.error(t("Vui lòng nhập lý do từ chối."));
           throw new Error("missing reason");
         }
         try {
           await rejectEntry.mutateAsync({ id: row.id, staffId: currentUserId, reason: reason.trim() });
-          message.success(t("Từ chối"));
+          toast.success(t("Từ chối"));
         } catch (error) {
-          message.error(extractApiError(error));
+          toast.error(extractApiError(error));
           throw error;
         }
       },
@@ -490,9 +491,9 @@ function CashflowTab({ period }: { period: PeriodRange }) {
             onConfirm={async () => {
               try {
                 await deleteEntry.mutateAsync(row.id);
-                message.success(t("Xóa thành công"));
+                toast.success(t("Xóa thành công"));
               } catch (error) {
-                message.error(extractApiError(error));
+                toast.error(extractApiError(error));
               }
             }}
           >

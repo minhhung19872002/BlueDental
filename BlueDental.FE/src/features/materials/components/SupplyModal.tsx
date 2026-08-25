@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { Col, Form, Input, InputNumber, Modal, Row, Select, message } from "antd";
+import { Col, Form, Input, InputNumber, Modal, Row, Select } from "antd";
+import { toast } from "sonner";
 import {
   useCreateSupply,
   useUpdateSupply,
@@ -77,7 +78,7 @@ export function SupplyModal({
             origin: values.origin,
           },
         });
-        message.success(t("Đã cập nhật vật tư"));
+        toast.success(t("Đã cập nhật vật tư"));
       } else {
         await createSupply.mutateAsync({
           branchId,
@@ -91,12 +92,12 @@ export function SupplyModal({
           supplier: values.supplier,
           origin: values.origin,
         });
-        message.success(t("Đã thêm vật tư"));
+        toast.success(t("Đã thêm vật tư"));
       }
 
       onClose();
     } catch (error) {
-      message.error(extractApiError(error));
+      toast.error(extractApiError(error));
     }
   };
 

@@ -9,6 +9,7 @@ public static class BlueDentalDomainErrorCodes
         public const string CannotDeleteActiveClinic = "BlueDental:Organizations:0003";
         public const string InvalidOperatingHours = "BlueDental:Organizations:0004";
         public const string BranchNotAssigned = "BlueDental:Organizations:0005";
+        public const string DuplicateName = "BlueDental:Organizations:0006";
     }
 
     public static class Catalogs

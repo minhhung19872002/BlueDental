@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, Card, Col, Row, Space, Table, Tag, Typography, message } from "antd";
+import { Button, Card, Col, Row, Space, Table, Tag, Typography } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import type { TableColumnsType } from "antd";
 import {
@@ -17,6 +17,7 @@ import { usePatientAdvises } from "../api/consultingQueries";
 import { ADVISE_STATUS } from "../api/consultingApi";
 import { useDentistList } from "@/features/staff/api/staffQueries";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
+import { toast } from "sonner";
 import { extractApiError } from "@/lib/apiError";
 import { downloadFile } from "@/lib/download";
 import { formatDate, formatVND } from "@/utils/format";
@@ -81,16 +82,16 @@ export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
   const run = async (action: Promise<unknown>, success: string) => {
     try {
       await action;
-      message.success(success);
+      toast.success(success);
     } catch (error) {
-      message.error(extractApiError(error));
+      toast.error(extractApiError(error));
     }
   };
 
   const handleOpenPlan = async () => {
     const dentistId = dentists?.[0]?.id;
     if (!dentistId) {
-      message.error(t("Chưa có bác sĩ để tiếp nhận kế hoạch"));
+      toast.error(t("Chưa có bác sĩ để tiếp nhận kế hoạch"));
       return;
     }
 
@@ -101,9 +102,9 @@ export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
         clinicBranchId: branchId,
         dentistId,
       });
-      message.success(t("Đã tạo kế hoạch điều trị"));
+      toast.success(t("Đã tạo kế hoạch điều trị"));
     } catch (error) {
-      message.error(extractApiError(error));
+      toast.error(extractApiError(error));
     } finally {
       setOpening(false);
     }

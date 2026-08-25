@@ -1,4 +1,5 @@
-import { Button, Popconfirm, Tag, message } from "antd";
+import { Button, Popconfirm, Tag } from "antd";
+import { toast } from "sonner";
 import {
   useOpenWorkDay,
   useRegisterDayOff,
@@ -69,7 +70,7 @@ export function StaffRosterCard({
         })) as TimeKeepingRecordDto);
       await registerWorking.mutateAsync(record.id);
     } catch (error) {
-      message.error(extractApiError(error));
+      toast.error(extractApiError(error));
     }
   };
 

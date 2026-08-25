@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Button, Input, Table, Modal, Form, InputNumber, Tag, message, Popconfirm, Select } from "antd";
+import { Button, Input, Table, Modal, Form, InputNumber, Tag, Popconfirm, Select } from "antd";
 import { SearchOutlined, PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
+import { toast } from "sonner";
 import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
 import { PageHeader } from "@/components/PageHeader";
@@ -62,7 +63,7 @@ function InventoryModal({ open, onClose, editingItem }: InventoryModalProps) {
             unitCost: values.unitCost,
           } as UpdateInventoryItemDto,
         });
-        message.success(t("Cập nhật vật tư thành công"));
+        toast.success(t("Cập nhật vật tư thành công"));
       } else {
         await createMutation.mutateAsync({
           itemCode: values.itemCode,
@@ -72,7 +73,7 @@ function InventoryModal({ open, onClose, editingItem }: InventoryModalProps) {
           reorderLevel: values.reorderLevel ?? 0,
           unitCost: values.unitCost,
         });
-        message.success(t("Thêm vật tư thành công"));
+        toast.success(t("Thêm vật tư thành công"));
       }
       form.resetFields();
       onClose();
@@ -168,16 +169,16 @@ function ClinicMaterialsView() {
     try {
       await adjustStock.mutateAsync({ id, movementType, quantity: 1 });
     } catch (error) {
-      message.error(extractApiError(error));
+      toast.error(extractApiError(error));
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
       await deleteMutation.mutateAsync(id);
-      message.success(t("Xóa vật tư thành công"));
+      toast.success(t("Xóa vật tư thành công"));
     } catch {
-      message.error(t("Xóa thất bại"));
+      toast.error(t("Xóa thất bại"));
     }
   };
 
@@ -413,7 +414,7 @@ function AllocationView() {
     try {
       const values = await form.validateFields();
       await createMutation.mutateAsync(values);
-      message.success(t("Tạo phiếu phân bổ thành công"));
+      toast.success(t("Tạo phiếu phân bổ thành công"));
       form.resetFields();
       setModalOpen(false);
     } catch { /* validation */ }
@@ -421,7 +422,7 @@ function AllocationView() {
 
   const handleDelete = async (id: string) => {
     await deleteMutation.mutateAsync(id);
-    message.success(t("Xóa phiếu phân bổ thành công"));
+    toast.success(t("Xóa phiếu phân bổ thành công"));
   };
 
   const columns: ColumnsType<MaterialAllocationDto> = [
@@ -505,10 +506,10 @@ function DepartmentView() {
       const values = await deptForm.validateFields();
       if (editingDept) {
         await updateDept.mutateAsync({ id: editingDept.id, data: values });
-        message.success(t("Cập nhật phòng ban thành công"));
+        toast.success(t("Cập nhật phòng ban thành công"));
       } else {
         await createDept.mutateAsync(values);
-        message.success(t("Tạo phòng ban thành công"));
+        toast.success(t("Tạo phòng ban thành công"));
       }
       deptForm.resetFields();
       setDeptModalOpen(false);
@@ -519,7 +520,7 @@ function DepartmentView() {
   const handleDeptDelete = async (id: string) => {
     await deleteDept.mutateAsync(id);
     if (selectedDeptId === id) setSelectedDeptId(null);
-    message.success(t("Xóa phòng ban thành công"));
+    toast.success(t("Xóa phòng ban thành công"));
   };
 
   const rightColumns: ColumnsType<MaterialAllocationDto> = [

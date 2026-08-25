@@ -1,13 +1,18 @@
-import { useEffect } from "react";
-import { Button, Empty, Form, Input, Spin, message } from "antd";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { Button, Empty, Form, Input, Popconfirm, Spin } from "antd";
+import { PlusOutlined, EditOutlined, DeleteOutlined, RightOutlined } from "@ant-design/icons";
 import {
   useClinicBranch,
   useClinicBranches,
+  useDeleteBranch,
   useUpdateClinicBranch,
+  type ClinicBranchDto,
 } from "../api";
+import { BranchEditorModal } from "../components/BranchEditorModal";
 import { useStaffList, useStaffRoleNames } from "@/features/staff/api/staffQueries";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
-import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
 
 interface BranchFormValues {
@@ -17,23 +22,20 @@ interface BranchFormValues {
   email?: string;
 }
 
-/**
- * Cài đặt phòng khám.
- *
- * The design's general-info card lists a tagline, opening hours and a calendar
- * step. None of those exist on the branch the API updates, so the card carries
- * the fields the server actually stores — a Save that silently drops what was
- * typed would be worse than a shorter form.
- */
 export function ClinicSettingsPage() {
   const [form] = Form.useForm<BranchFormValues>();
+  const navigate = useNavigate();
   const branchId = useCurrentBranchId();
 
   const { data: branch, isLoading } = useClinicBranch(branchId);
-  const { data: branches } = useClinicBranches();
-  const { data: roleNames } = useStaffRoleNames();
-  const { data: staff } = useStaffList({ maxResultCount: 200 });
+  const { data: branches, isLoading: branchesLoading } = useClinicBranches();
+  const { data: roleNames, isLoading: rolesLoading } = useStaffRoleNames();
+  const { data: staff, isLoading: staffLoading } = useStaffList({ maxResultCount: 200 });
   const updateBranch = useUpdateClinicBranch();
+  const deleteBranch = useDeleteBranch();
+
+  const [branchModalOpen, setBranchModalOpen] = useState(false);
+  const [editingBranch, setEditingBranch] = useState<ClinicBranchDto | null>(null);
 
   useEffect(() => {
     if (branch) {
@@ -50,10 +52,29 @@ export function ClinicSettingsPage() {
     const values = await form.validateFields();
     try {
       await updateBranch.mutateAsync({ id: branchId, input: values });
-      message.success(t("Đã lưu cài đặt phòng khám"));
-    } catch (error) {
-      message.error(extractApiError(error));
+      toast.success(t("Đã lưu cài đặt phòng khám"));
+    } catch {
+      // Global MutationCache.onError already shows the toast
     }
+  };
+
+  const handleDeleteBranch = async (id: string) => {
+    try {
+      await deleteBranch.mutateAsync(id);
+      toast.success(t("Xóa chi nhánh thành công"));
+    } catch {
+      // Global MutationCache.onError already shows the toast
+    }
+  };
+
+  const openAddBranch = () => {
+    setEditingBranch(null);
+    setBranchModalOpen(true);
+  };
+
+  const openEditBranch = (b: ClinicBranchDto) => {
+    setEditingBranch(b);
+    setBranchModalOpen(true);
   };
 
   const staffPerRole = new Map<string, number>();
@@ -75,6 +96,7 @@ export function ClinicSettingsPage() {
       </div>
 
       <div className="settings-split">
+        {/* ── General info form ── */}
         <div className="page-card">
           <div className="dash-card-title" style={{ marginBottom: 15 }}>
             {t("Thông tin chung")}
@@ -94,7 +116,11 @@ export function ClinicSettingsPage() {
                 <Input />
               </Form.Item>
               <div className="settings-row">
-                <Form.Item name="phoneNumber" label={t("Số điện thoại")}>
+                <Form.Item
+                  name="phoneNumber"
+                  label={t("Số điện thoại")}
+                  rules={[{ pattern: /^0\d{9,10}$/, message: t("Số điện thoại không hợp lệ") }]}
+                >
                   <Input />
                 </Form.Item>
                 <Form.Item
@@ -118,12 +144,22 @@ export function ClinicSettingsPage() {
           )}
         </div>
 
+        {/* ── Right sidebar ── */}
         <div className="settings-side">
+          {/* Branches */}
           <div className="page-card">
-            <div className="dash-card-title" style={{ marginBottom: 14 }}>
-              {t("Chi nhánh")}
+            <div className="settings-card-header">
+              <span className="dash-card-title">{t("Chi nhánh")}</span>
+              <Button
+                type="text"
+                size="small"
+                icon={<PlusOutlined />}
+                onClick={openAddBranch}
+              />
             </div>
-            {(branches ?? []).length === 0 ? (
+            {branchesLoading ? (
+              <Spin size="small" />
+            ) : (branches ?? []).length === 0 ? (
               <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("Chưa có chi nhánh")} />
             ) : (
               <div className="dash-list">
@@ -134,26 +170,53 @@ export function ClinicSettingsPage() {
                       <span className="dash-row-title">{item.name}</span>
                       <span className="dash-row-caption">{item.address ?? "—"}</span>
                     </span>
+                    <span className="settings-branch-actions">
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<EditOutlined />}
+                        onClick={() => openEditBranch(item)}
+                      />
+                      <Popconfirm
+                        title={t("Bạn có chắc muốn xóa chi nhánh này?")}
+                        onConfirm={() => void handleDeleteBranch(item.id)}
+                        okText={t("Xóa")}
+                        cancelText={t("Hủy")}
+                      >
+                        <Button type="text" size="small" danger icon={<DeleteOutlined />} />
+                      </Popconfirm>
+                    </span>
                   </div>
                 ))}
               </div>
             )}
           </div>
 
+          {/* Permissions / roles */}
           <div className="page-card">
             <div className="dash-card-title" style={{ marginBottom: 14 }}>
               {t("Phân quyền")}
             </div>
-            {(roleNames ?? []).length === 0 ? (
+            {rolesLoading || staffLoading ? (
+              <Spin size="small" />
+            ) : (roleNames ?? []).length === 0 ? (
               <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("Chưa có vai trò")} />
             ) : (
               <div className="settings-roles">
                 {(roleNames ?? []).map((role) => (
-                  <div key={role} className="settings-role">
+                  <div
+                    key={role}
+                    className="settings-role settings-role--clickable"
+                    onClick={() => navigate("/staff")}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === "Enter") navigate("/staff"); }}
+                  >
                     <span className="settings-role-name">{role}</span>
                     <span className="settings-role-count">
                       {t("{0} người", staffPerRole.get(role) ?? 0)}
                     </span>
+                    <RightOutlined className="settings-role-arrow" />
                   </div>
                 ))}
               </div>
@@ -161,6 +224,12 @@ export function ClinicSettingsPage() {
           </div>
         </div>
       </div>
+
+      <BranchEditorModal
+        open={branchModalOpen}
+        branch={editingBranch}
+        onClose={() => setBranchModalOpen(false)}
+      />
     </div>
   );
 }

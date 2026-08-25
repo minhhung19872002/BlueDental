@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { Modal, Button, Input, DatePicker, TimePicker, message } from "antd";
+import { toast } from "sonner";
+import { Modal, Button, Input, DatePicker, TimePicker } from "antd";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -77,13 +78,13 @@ export function AppointmentEditorModal({ open, appointmentId, initialDate, onClo
       },
       {
         onSuccess: () => {
-          message.success(t("Tạo lịch hẹn thành công!"));
+          toast.success(t("Tạo lịch hẹn thành công!"));
           reset();
           onSuccess?.();
           onClose();
         },
         onError: (err) => {
-          message.error((err as Error).message || t("Tạo lịch hẹn thất bại"));
+          toast.error((err as Error).message || t("Tạo lịch hẹn thất bại"));
         },
       },
     );

@@ -1,10 +1,11 @@
 import { useEffect } from "react";
-import { Alert, Form, Input, Modal, Select, message } from "antd";
+import { Alert, Form, Input, Modal, Select } from "antd";
 import { useCreateDiagnosis } from "../api/consultingQueries";
 import { formatTeeth, type ToothSelectionDto } from "../api/consultingApi";
 import { CATALOG_GROUP, useCatalogOptions } from "@/hooks/useCatalogOptions";
 import { useDentistList } from "@/features/staff/api/staffQueries";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
+import { toast } from "sonner";
 import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
 
@@ -57,11 +58,11 @@ export function DiagnosisModal({
         teeth,
       });
 
-      message.success(t("Đã tạo phiếu chẩn đoán"));
+      toast.success(t("Đã tạo phiếu chẩn đoán"));
       onCreated?.();
       onClose();
     } catch (error) {
-      message.error(extractApiError(error));
+      toast.error(extractApiError(error));
     }
   };
 

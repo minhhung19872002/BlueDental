@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { Form, Input, InputNumber, Modal, Select, Switch, message } from "antd";
+import { Form, Input, InputNumber, Modal, Select, Switch } from "antd";
+import { toast } from "sonner";
 import {
   useCreateCatalogEntry,
   useUpdateCatalogEntry,
@@ -96,7 +97,7 @@ export function CatalogEntryModal({
             sortOrder: values.sortOrder,
           },
         });
-        message.success(t("Đã cập nhật {0}", entityNoun.toLowerCase()));
+        toast.success(t("Đã cập nhật {0}", entityNoun.toLowerCase()));
       } else {
         await createEntry.mutateAsync({
           clinicBranchId: branchId,
@@ -109,12 +110,12 @@ export function CatalogEntryModal({
           isImageRequired: values.isImageRequired,
           sortOrder: values.sortOrder,
         });
-        message.success(t("Đã thêm {0}", entityNoun.toLowerCase()));
+        toast.success(t("Đã thêm {0}", entityNoun.toLowerCase()));
       }
 
       onClose();
     } catch (error) {
-      message.error(extractApiError(error));
+      toast.error(extractApiError(error));
     }
   };
 

@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
-import { Button, Card, Empty, Image, Popconfirm, Space, Typography, message } from "antd";
+import { toast } from "sonner";
+import { Button, Card, Empty, Image, Popconfirm, Space, Typography } from "antd";
 import { DeleteOutlined, UploadOutlined } from "@ant-design/icons";
 import {
   useDeletePatientImage,
@@ -39,9 +40,9 @@ export function PatientImagePanel({ patientId }: PatientImagePanelProps) {
     setUploading(true);
     try {
       await uploadImage.mutateAsync({ patientId, clinicBranchId: branchId, file });
-      message.success(t("Đã tải ảnh lên"));
+      toast.success(t("Đã tải ảnh lên"));
     } catch (error) {
-      message.error(extractApiError(error));
+      toast.error(extractApiError(error));
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = "";
@@ -104,9 +105,9 @@ export function PatientImagePanel({ patientId }: PatientImagePanelProps) {
                       onConfirm={async () => {
                         try {
                           await deleteImage.mutateAsync(image.id);
-                          message.success(t("Đã xoá ảnh"));
+                          toast.success(t("Đã xoá ảnh"));
                         } catch (error) {
-                          message.error(extractApiError(error));
+                          toast.error(extractApiError(error));
                         }
                       }}
                     >

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { DatePicker, Form, Input, InputNumber, Modal, Select, message } from "antd";
+import { DatePicker, Form, Input, InputNumber, Modal, Select } from "antd";
+import { toast } from "sonner";
 import dayjs from "dayjs";
 import {
   PAYMENT_CHANNEL,
@@ -83,9 +84,9 @@ export function SalesEntryModal({ open, entry, defaultType, onClose }: SalesEntr
       });
       form.setFieldValue("categoryId", created.id);
       setNewCategoryName("");
-      message.success(t("Đã thêm mục thu chi"));
+      toast.success(t("Đã thêm mục thu chi"));
     } catch (error) {
-      message.error(extractApiError(error));
+      toast.error(extractApiError(error));
     }
   };
 
@@ -93,7 +94,7 @@ export function SalesEntryModal({ open, entry, defaultType, onClose }: SalesEntr
     const values = await form.validateFields();
 
     if (!currentUserId) {
-      message.error(t("Không xác định được người dùng hiện tại."));
+      toast.error(t("Không xác định được người dùng hiện tại."));
       return;
     }
 
@@ -111,7 +112,7 @@ export function SalesEntryModal({ open, entry, defaultType, onClose }: SalesEntr
             entryDate,
           },
         });
-        message.success(t("Đã cập nhật phiếu"));
+        toast.success(t("Đã cập nhật phiếu"));
       } else {
         await createEntry.mutateAsync({
           clinicBranchId: branchId,
@@ -123,7 +124,7 @@ export function SalesEntryModal({ open, entry, defaultType, onClose }: SalesEntr
           description: values.description,
           entryDate,
         });
-        message.success(
+        toast.success(
           values.type === SALES_ENTRY_TYPE.Expense
             ? t("Đã tạo phiếu chi — đang chờ duyệt")
             : t("Đã tạo phiếu thu"),
@@ -132,7 +133,7 @@ export function SalesEntryModal({ open, entry, defaultType, onClose }: SalesEntr
 
       onClose();
     } catch (error) {
-      message.error(extractApiError(error));
+      toast.error(extractApiError(error));
     }
   };
 

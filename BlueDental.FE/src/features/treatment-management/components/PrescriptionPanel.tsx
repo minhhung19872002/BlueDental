@@ -11,7 +11,6 @@ import {
   Space,
   Table,
   Tag,
-  message,
 } from "antd";
 import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
 import type { TableColumnsType } from "antd";
@@ -28,6 +27,7 @@ import {
 import { CATALOG_GROUP, useCatalogOptions } from "@/hooks/useCatalogOptions";
 import { useDentistList } from "@/features/staff/api/staffQueries";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
+import { toast } from "sonner";
 import { extractApiError } from "@/lib/apiError";
 import { downloadFile } from "@/lib/download";
 import { formatDate } from "@/utils/format";
@@ -74,9 +74,9 @@ export function PrescriptionPanel({ patientId }: PrescriptionPanelProps) {
   const run = async (action: Promise<unknown>, success: string) => {
     try {
       await action;
-      message.success(success);
+      toast.success(success);
     } catch (error) {
-      message.error(extractApiError(error));
+      toast.error(extractApiError(error));
     }
   };
 
@@ -100,11 +100,11 @@ export function PrescriptionPanel({ patientId }: PrescriptionPanelProps) {
         })),
       });
 
-      message.success(t("Đã tạo đơn thuốc"));
+      toast.success(t("Đã tạo đơn thuốc"));
       setModalOpen(false);
       form.resetFields();
     } catch (error) {
-      message.error(extractApiError(error));
+      toast.error(extractApiError(error));
     }
   };
 

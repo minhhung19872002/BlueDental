@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
+using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
@@ -56,6 +57,16 @@ public class ClinicBranchAppService : ApplicationService, IClinicBranchAppServic
     [Authorize(BlueDentalPermissions.Organizations.Create)]
     public async Task<ClinicBranchDto> CreateAsync(CreateClinicBranchDto input)
     {
+        if (await _repository.AnyAsync(b => b.Code == input.Code))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Organizations.DuplicateCode);
+        }
+
+        if (await _repository.AnyAsync(b => b.Name == input.Name))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Organizations.DuplicateName);
+        }
+
         var branch = new ClinicBranch(
             GuidGenerator.Create(),
             input.Code,

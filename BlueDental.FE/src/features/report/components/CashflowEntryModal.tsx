@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { DatePicker, Form, Input, InputNumber, Modal, Select, message } from "antd";
+import { DatePicker, Form, Input, InputNumber, Modal, Select } from "antd";
+import { toast } from "sonner";
 import dayjs from "dayjs";
 import {
   CASH_HOLDING,
@@ -68,7 +69,7 @@ export function CashflowEntryModal({ open, transactionType, onClose }: CashflowE
     const values = await form.validateFields();
 
     if (!currentUserId) {
-      message.error(t("Không xác định được người dùng hiện tại."));
+      toast.error(t("Không xác định được người dùng hiện tại."));
       return;
     }
 
@@ -76,7 +77,7 @@ export function CashflowEntryModal({ open, transactionType, onClose }: CashflowE
       transactionType === CASH_TRANSACTION_TYPE.Transfer &&
       values.fromHolding === values.toHolding
     ) {
-      message.error(t("Nguồn và đích của luân chuyển phải khác nhau."));
+      toast.error(t("Nguồn và đích của luân chuyển phải khác nhau."));
       return;
     }
 
@@ -93,10 +94,10 @@ export function CashflowEntryModal({ open, transactionType, onClose }: CashflowE
         note: values.note,
       });
 
-      message.success(t("Đã ghi nhận giao dịch {0}", TITLES[transactionType].toLowerCase()));
+      toast.success(t("Đã ghi nhận giao dịch {0}", TITLES[transactionType].toLowerCase()));
       onClose();
     } catch (error) {
-      message.error(extractApiError(error));
+      toast.error(extractApiError(error));
     }
   };
 

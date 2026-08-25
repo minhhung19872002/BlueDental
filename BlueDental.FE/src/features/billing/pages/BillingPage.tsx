@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, Empty, Input, Select, Spin, Table, Tag, message } from "antd";
+import { Button, Empty, Input, Select, Spin, Table, Tag } from "antd";
 import { ExportOutlined, SearchOutlined } from "@ant-design/icons";
 import type { TableColumnsType } from "antd";
 import {
@@ -14,6 +14,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
+import { toast } from "sonner";
 import { downloadFile } from "@/lib/download";
 import { extractApiError } from "@/lib/apiError";
 import { formatDate, formatVND } from "@/utils/format";
@@ -69,7 +70,7 @@ export function BillingPage() {
         filter: debouncedSearch || undefined,
       });
     } catch (error) {
-      message.error(extractApiError(error));
+      toast.error(extractApiError(error));
     }
   };
 

@@ -1,63 +1,16 @@
-import {
-  ConfigProvider,
-  message as staticMessage,
-  notification as staticNotification,
-} from "antd";
-import type { MessageArgsProps, NotificationArgsProps } from "antd";
-import viVN from "antd/locale/vi_VN";
-import { themeConfig } from "@/theme/index";
+import { toast } from "sonner";
 import { describeApiError } from "./apiError";
 import type { ApiErrorInfo } from "./apiError";
 import { t } from "@/lib/i18n";
 
-export interface AntdNotifier {
-  message: { error: (config: MessageArgsProps) => unknown };
-  notification: { error: (config: NotificationArgsProps) => void };
-}
-
-ConfigProvider.config({
-  holderRender: (children) => (
-    <ConfigProvider locale={viVN} theme={themeConfig}>
-      {children}
-    </ConfigProvider>
-  ),
-});
-
-const staticNotifier: AntdNotifier = {
-  message: staticMessage,
-  notification: staticNotification,
-};
-
-let boundNotifier: AntdNotifier | undefined;
-
-export function bindAntdNotifier(notifier: AntdNotifier): () => void {
-  boundNotifier = notifier;
-  return () => {
-    if (boundNotifier === notifier) {
-      boundNotifier = undefined;
-    }
-  };
-}
-
-function currentNotifier(): AntdNotifier {
-  return boundNotifier ?? staticNotifier;
-}
-
 function showApiError(info: ApiErrorInfo): void {
-  const notifier = currentNotifier();
-  if (info.kind === "system") {
-    notifier.notification.error({
-      title: t("Lỗi hệ thống"),
-      description: info.message,
-      key: `bluedental-error-${info.message}`,
-      duration: 8,
-    });
-    return;
-  }
-  void notifier.message.error({
-    content: info.message,
-    key: `bluedental-error-${info.message}`,
-    duration: 5,
+  const msg =
+    info.kind === "system"
+      ? `${t("Lỗi hệ thống")}: ${info.message}`
+      : info.message;
+  toast.error(msg, {
+    id: `bluedental-error-${info.message}`,
+    duration: info.kind === "system" ? 8000 : 5000,
   });
 }
 

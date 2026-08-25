@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Button, Input, Select, Table, Tag, Modal, Form, InputNumber, DatePicker, message, Popconfirm } from "antd";
+import { Button, Input, Select, Table, Tag, Modal, Form, InputNumber, DatePicker, Popconfirm } from "antd";
+import { toast } from "sonner";
 import { SearchOutlined, DownloadOutlined, PlusOutlined, DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import {
@@ -53,7 +54,7 @@ function CreateLaboModal({ open, onClose }: { open: boolean; onClose: () => void
         ...values,
         dueDate: values.dueDate ? dayjs(values.dueDate as unknown as dayjs.Dayjs).toISOString() : undefined,
       });
-      message.success(t("Tạo mẫu Labo thành công"));
+      toast.success(t("Tạo mẫu Labo thành công"));
       form.resetFields();
       onClose();
     } catch {
@@ -158,9 +159,9 @@ function MauLaboView() {
   const handleDelete = async (id: string) => {
     try {
       await deleteMutation.mutateAsync(id);
-      message.success(t("Xóa mẫu Labo thành công"));
+      toast.success(t("Xóa mẫu Labo thành công"));
     } catch {
-      message.error(t("Xóa thất bại"));
+      toast.error(t("Xóa thất bại"));
     }
   };
 
@@ -337,10 +338,10 @@ function SupplierView() {
       const values = await form.validateFields();
       if (isEdit && editingItem) {
         await updateMutation.mutateAsync({ id: editingItem.id, data: values });
-        message.success(t("Cập nhật nhà cung cấp thành công"));
+        toast.success(t("Cập nhật nhà cung cấp thành công"));
       } else {
         await createMutation.mutateAsync(values);
-        message.success(t("Tạo nhà cung cấp thành công"));
+        toast.success(t("Tạo nhà cung cấp thành công"));
       }
       form.resetFields();
       setEditingItem(null);
@@ -349,7 +350,7 @@ function SupplierView() {
   };
 
   const handleDelete = async (id: string) => {
-    try { await deleteMutation.mutateAsync(id); message.success(t("Xóa thành công")); } catch { message.error(t("Xóa thất bại")); }
+    try { await deleteMutation.mutateAsync(id); toast.success(t("Xóa thành công")); } catch { toast.error(t("Xóa thất bại")); }
   };
 
   const columns: ColumnsType<LaboSupplierDto> = [
@@ -462,17 +463,17 @@ function LaboCrudView({ config }: { config: LaboCrudConfig }) {
       const values = await form.validateFields();
       if (isEdit && editingItem) {
         await updateMutation.mutateAsync({ id: editingItem.id, data: values });
-        message.success(t("Cập nhật thành công"));
+        toast.success(t("Cập nhật thành công"));
       } else {
         await createMutation.mutateAsync(values);
-        message.success(t("Tạo thành công"));
+        toast.success(t("Tạo thành công"));
       }
       form.resetFields(); setEditingItem(null); setModalOpen(false);
     } catch { /* validation */ }
   };
 
   const handleDelete = async (id: string) => {
-    try { await deleteMutation.mutateAsync(id); message.success(t("Xóa thành công")); } catch { message.error(t("Xóa thất bại")); }
+    try { await deleteMutation.mutateAsync(id); toast.success(t("Xóa thành công")); } catch { toast.error(t("Xóa thất bại")); }
   };
 
   const columns: ColumnsType<LaboCatalogItem> = [
@@ -543,10 +544,10 @@ function ServiceMaterialView() {
       const values = await form.validateFields();
       if (editingItem) {
         await updateMutation.mutateAsync({ id: editingItem.id, data: values });
-        message.success(t("Cập nhật vật liệu thành công"));
+        toast.success(t("Cập nhật vật liệu thành công"));
       } else {
         await createMutation.mutateAsync(values);
-        message.success(t("Thêm vật liệu thành công"));
+        toast.success(t("Thêm vật liệu thành công"));
       }
       form.resetFields();
       setModalOpen(false);
@@ -556,7 +557,7 @@ function ServiceMaterialView() {
 
   const handleDelete = async (id: string) => {
     await deleteMutation.mutateAsync(id);
-    message.success(t("Xóa vật liệu thành công"));
+    toast.success(t("Xóa vật liệu thành công"));
   };
 
   const columns: ColumnsType<LaboMaterialDto> = [

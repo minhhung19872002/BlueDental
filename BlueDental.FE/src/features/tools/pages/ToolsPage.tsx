@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Table, Button, Input, Tag, Empty, Popconfirm, Modal, message } from "antd";
+import { toast } from "sonner";
+import { Table, Button, Input, Tag, Empty, Popconfirm, Modal } from "antd";
 import { SearchOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
@@ -331,12 +332,12 @@ function MessageTemplateView({ channel }: { channel: number }) {
     if (editingItem) {
       updateTemplate.mutate(
         { id: editingItem.id, data: { name: name.trim(), content: content.trim(), category: category.trim() || undefined } },
-        { onSuccess: () => { setModalOpen(false); message.success(t("Đã cập nhật mẫu tin")); } },
+        { onSuccess: () => { setModalOpen(false); toast.success(t("Đã cập nhật mẫu tin")); } },
       );
     } else {
       createTemplate.mutate(
         { name: name.trim(), content: content.trim(), channel, category: category.trim() || undefined },
-        { onSuccess: () => { setModalOpen(false); message.success(t("Đã tạo mẫu tin")); } },
+        { onSuccess: () => { setModalOpen(false); toast.success(t("Đã tạo mẫu tin")); } },
       );
     }
   };
