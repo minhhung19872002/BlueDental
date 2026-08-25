@@ -201,8 +201,8 @@ public class BlueDentalClinicalDemoSeeder(
         }
 
         var random = new Random(20260825);
-        var offsetSpan = DateTimeOffset.Now.Offset;
-        var today = DateTimeOffset.Now.Date;
+        var offsetSpan = BlueDentalDemoSeedContributor.ClinicOffset;
+        var today = BlueDentalDemoSeedContributor.ClinicToday;
         var visits = new List<Visit>();
 
         for (var dayOffset = -7; dayOffset <= 0; dayOffset++)
@@ -275,7 +275,7 @@ public class BlueDentalClinicalDemoSeeder(
         }
 
         var random = new Random(20260826);
-        var today = DateOnly.FromDateTime(DateTime.Now);
+        var today = DateOnly.FromDateTime(BlueDentalDemoSeedContributor.ClinicToday);
         var chosen = patients.Take(8).ToList();
 
         var diagnoses = new List<PatientDiagnosis>();

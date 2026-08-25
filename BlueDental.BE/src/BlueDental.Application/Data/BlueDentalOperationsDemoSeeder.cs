@@ -204,7 +204,7 @@ public class BlueDentalOperationsDemoSeeder(
         }
 
         var random = new Random(20260828);
-        var today = DateOnly.FromDateTime(DateTime.Now);
+        var today = DateOnly.FromDateTime(BlueDentalDemoSeedContributor.ClinicToday);
         var orders = new List<LaboOrder>();
 
         for (var i = 0; i < 8; i++)
@@ -361,7 +361,7 @@ public class BlueDentalOperationsDemoSeeder(
             return;
         }
 
-        var today = DateOnly.FromDateTime(DateTime.Now);
+        var today = DateOnly.FromDateTime(BlueDentalDemoSeedContributor.ClinicToday);
         var vouchers = new List<Voucher>();
 
         for (var i = 0; i < Vouchers.Length; i++)
@@ -413,7 +413,7 @@ public class BlueDentalOperationsDemoSeeder(
             return;
         }
 
-        var today = DateOnly.FromDateTime(DateTime.Now);
+        var today = DateOnly.FromDateTime(BlueDentalDemoSeedContributor.ClinicToday);
         var records = new List<TimeKeepingRecord>();
         var index = 0;
 
@@ -450,7 +450,7 @@ public class BlueDentalOperationsDemoSeeder(
                 // wall clock is converted before it reaches a column.
                 var dayStart = new DateTimeOffset(
                         workDate.ToDateTime(new TimeOnly(8, 0)),
-                        DateTimeOffset.Now.Offset)
+                        BlueDentalDemoSeedContributor.ClinicOffset)
                     .ToUniversalTime();
 
                 if (dayOffset < 0)
@@ -484,7 +484,7 @@ public class BlueDentalOperationsDemoSeeder(
         var articles = new List<OperationArticle>();
         var drafts = new List<OperationsArticle>();
         var tasks = new List<OperationsTask>();
-        var today = DateOnly.FromDateTime(DateTime.Now);
+        var today = DateOnly.FromDateTime(BlueDentalDemoSeedContributor.ClinicToday);
 
         for (var i = 0; i < OperationsArticles.Length; i++)
         {
@@ -611,7 +611,7 @@ public class BlueDentalOperationsDemoSeeder(
                 templates[i % templates.Count].Content,
                 i % 2 == 0 ? MessageChannelType.Sms : MessageChannelType.Zalo,
                 i % 4 == 3 ? MessageSendStatus.Failed : MessageSendStatus.Sent,
-                DateTime.Now.AddDays(-i),
+                BlueDentalDemoSeedContributor.ClinicToday.AddDays(-i),
                 i % 4 == 3 ? "Số thuê bao không tồn tại" : null));
         }
 
@@ -649,7 +649,7 @@ public class BlueDentalOperationsDemoSeeder(
         var expenseCategories = categories.Where(c => c.Type == SalesEntryType.Expense).ToList();
 
         var random = new Random(20260830);
-        var today = DateOnly.FromDateTime(DateTime.Now);
+        var today = DateOnly.FromDateTime(BlueDentalDemoSeedContributor.ClinicToday);
         var sales = new List<SalesEntry>();
         var cashflows = new List<CashflowEntry>();
         var index = 0;

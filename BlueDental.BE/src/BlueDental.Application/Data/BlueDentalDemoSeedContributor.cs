@@ -49,6 +49,16 @@ public class BlueDentalDemoSeedContributor(
     /// </summary>
     private const string DentistRole = "dentist";
 
+    /// <summary>
+    /// The clinic keeps Vietnam hours whatever the server's clock is set to.
+    /// Seeding against the machine's own offset put a UTC container's 08:00
+    /// slot at 15:00 in front of the people reading it.
+    /// </summary>
+    internal static readonly TimeSpan ClinicOffset = TimeSpan.FromHours(7);
+
+    /// <summary>Today as the clinic sees it.</summary>
+    internal static DateTime ClinicToday => DateTimeOffset.UtcNow.ToOffset(ClinicOffset).Date;
+
     /// <summary>Days of diary before and after today.</summary>
     private const int DaysBack = 7;
     private const int DaysForward = 21;
@@ -396,8 +406,8 @@ public class BlueDentalDemoSeedContributor(
 
         // The clinic thinks in local opening hours; Npgsql stores timestamptz and
         // only accepts UTC, so every instant is built locally and then converted.
-        var today = DateTimeOffset.Now.Date;
-        var offsetSpan = DateTimeOffset.Now.Offset;
+        var today = ClinicToday;
+        var offsetSpan = ClinicOffset;
         var windowStart = new DateTimeOffset(today.AddDays(-DaysBack), offsetSpan).ToUniversalTime();
         var windowEnd = new DateTimeOffset(today.AddDays(DaysForward + 1), offsetSpan).ToUniversalTime();
 
