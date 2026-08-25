@@ -114,10 +114,12 @@ button {
     opacity: 0;
     transform: translateY(8px);
   }
+
   to {
     opacity: 1;
     transform: none;
   }
+
 }
 
 /* ── Sidebar ── */
@@ -1217,6 +1219,7 @@ button {
   .login-aside {
     display: none;
   }
+
 }
 
 /* ── AntD overrides ── */
@@ -1321,7 +1324,6 @@ button {
   font-weight: 600;
 }
 
-
 .ant-input,
 .ant-input-affix-wrapper,
 .ant-select .ant-select-selector,
@@ -1382,7 +1384,6 @@ button {
   border-radius: 7px;
   height: 29px;
 }
-
 
 .ant-modal .ant-modal-title {
   font-size: 17px;
@@ -1497,7 +1498,6 @@ button {
   gap: 8px;
   flex-shrink: 0;
 }
-
 
 .reception-filter-row {
   display: flex;
@@ -1630,6 +1630,7 @@ button {
   .reception-card-grid {
     grid-template-columns: 1fr 1fr;
   }
+
 }
 
 /* ── ReceptionCard ── */
@@ -1688,12 +1689,14 @@ button {
     align-items: center;
     gap: 12px;
   }
+
 }
 
 @media (min-width: 1536px) {
   .rc-grid {
     grid-template-columns: 180px minmax(0, 1fr) 150px;
   }
+
 }
 
 /* Col 1 */
@@ -1809,6 +1812,7 @@ button {
     padding: 0 4px;
     align-items: center;
   }
+
 }
 
 .rc-steps {
@@ -1874,12 +1878,14 @@ button {
   .rc-doctor-select {
     max-width: 340px;
   }
+
 }
 
 @media (min-width: 1536px) {
   .rc-doctor-select {
     max-width: 380px;
   }
+
 }
 
 /* Col 3 */
@@ -1895,6 +1901,7 @@ button {
     min-width: 220px;
     justify-self: end;
   }
+
 }
 
 .rc-outcome-btn {
@@ -2283,6 +2290,7 @@ button {
   .app-header-user-name {
     display: none;
   }
+
 }
 
 /* ── Reduced motion ── */
@@ -2292,6 +2300,7 @@ button {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+
 }
 
 /* ── Print ── */
@@ -2301,6 +2310,7 @@ button {
   .app-header {
     display: none !important;
   }
+
 }
 
 /* ── Dashboard (ported from the design's overview screen) ───────────────── */
@@ -2375,6 +2385,7 @@ button {
   .dash-split {
     grid-template-columns: 1fr;
   }
+
 }
 
 .dash-card-head {
@@ -2609,6 +2620,7 @@ button {
   .dash-reception-doctor {
     display: none;
   }
+
 }
 
 /* ── Responsive ─────────────────────────────────────────────────────────────
@@ -2626,6 +2638,7 @@ button {
   .kpi-card-value {
     font-size: 23px;
   }
+
 }
 
 @media (max-width: 1024px) {
@@ -2641,6 +2654,7 @@ button {
   .app-header-search {
     max-width: none;
   }
+
 }
 
 /* ── Mobile sidebar drawer ── */
@@ -2761,6 +2775,7 @@ button {
   .ant-table-wrapper .ant-table-body {
     overflow-x: auto;
   }
+
 }
 
 @media (max-width: 460px) {
@@ -2775,6 +2790,7 @@ button {
   .login-form-title {
     font-size: 22px;
   }
+
 }
 
 /* Nothing in the header may push the page wider than the viewport. */
@@ -2800,6 +2816,7 @@ button {
     padding-left: 6px;
     margin-left: 0;
   }
+
 }
 
 /* Phone: tighten the header's own spacing rather than dropping controls —
@@ -2814,6 +2831,7 @@ button {
     padding: 0 10px;
     gap: 8px;
   }
+
 }
 
 /* A stray wide child should scroll its own box, never the document. */
@@ -2919,6 +2937,7 @@ body {
   .staff-grid {
     grid-template-columns: 1fr;
   }
+
 }
 
 /* ── Clinic settings (ported from the design's Cài đặt screen) ──────────── */
@@ -2995,6 +3014,7 @@ body {
   .settings-split {
     grid-template-columns: 1fr;
   }
+
 }
 
 /* ── Operations divisions (ported from the design's Quản trị vận hành) ──── */
@@ -3068,7 +3088,9 @@ body {
 /* The design fades the backdrop in and pops the panel. */
 @keyframes bd-fade-in {
   from { opacity: 0; }
+
   to { opacity: 1; }
+
 }
 
 @keyframes bd-pop-in {
@@ -3076,10 +3098,12 @@ body {
     opacity: 0;
     transform: translateY(10px) scale(0.985);
   }
+
   to {
     opacity: 1;
     transform: none;
   }
+
 }
 
 /* The design tints the backdrop navy and blurs what is behind it, rather than
@@ -3315,6 +3339,7 @@ html:has(.ant-modal-wrap) {
     flex: 1 1 100%;
     max-width: none !important;
   }
+
 }
 
 /* Ctrl-K palette results */
@@ -3385,8 +3410,6 @@ html:has(.ant-modal-wrap) {
   color: #b3bdc9;
   flex: none;
 }
-
-
 
 /* ── Calendar grid card ─────────────────────────────────────────────────── */
 
@@ -4230,8 +4253,8 @@ html:has(.ant-modal-wrap) {
   .bd-dialog-grid--three {
     grid-template-columns: minmax(0, 1fr);
   }
-}
 
+}
 
 /* ==========================================================================
    Danh mục › Bệnh án mẫu — the printed A4 sheet.
@@ -4258,27 +4281,47 @@ html:has(.ant-modal-wrap) {
 }
 
 .bd-a4-center { margin-inline: auto; }
+
 .bd-a4-center-text { text-align: center; }
+
 .bd-a4-b { font-weight: 700; }
+
 .bd-a4-nowrap { white-space: nowrap; }
+
 .bd-a4-ml { margin-left: 8px; }
+
 .bd-a4-push { margin-left: auto; }
+
 .bd-a4-flex1 { flex: 1; min-width: 0; }
+
 .bd-a4-lh19 { line-height: 19px; }
+
 .bd-a4-col { display: flex; flex-direction: column; }
+
 .bd-a4-mt1 { margin-top: 4px; }
+
 .bd-a4-mt2 { margin-top: 8px; }
+
 .bd-a4-mt3 { margin-top: 12px; }
+
 .bd-a4-mt4 { margin-top: 16px; }
+
 .bd-a4-mt16 { margin-top: 64px; }
+
 .bd-a4-w14 { width: 14%; }
+
 .bd-a4-w24 { width: 24%; }
+
 .bd-a4-w38 { width: 38%; }
+
 .bd-a4-w46 { width: 46%; }
+
 .bd-a4-w245 { width: 245px; flex-shrink: 0; }
-.bd-a4-w250 { width: 250px; flex-shrink: 0; }
+
 .bd-a4-w420 { max-width: 420px; }
+
 .bd-a4-top { vertical-align: top; }
+
 .bd-a4-mid { vertical-align: middle; }
 
 .bd-a4-head {
@@ -4288,7 +4331,9 @@ html:has(.ant-modal-wrap) {
 }
 
 .bd-a4-title { font-size: 18px; line-height: 25px; font-weight: 700; }
+
 .bd-a4-subtitle { font-size: 16px; font-weight: 700; }
+
 .bd-a4-meta { font-size: 12px; line-height: 18px; text-align: right; }
 
 /* A labelled line: caption, then a dotted rule that eats the remaining width. */
@@ -4301,9 +4346,13 @@ html:has(.ant-modal-wrap) {
 .bd-a4-line--pad { padding-block: 3px; }
 
 .bd-a4-split { display: flex; gap: 16px; }
+
 .bd-a4-split.bd-a4-mt2 { gap: 16px; }
+
 .bd-a4-tickrow { display: flex; gap: 24px; }
+
 .bd-a4-signrow { margin-top: 40px; display: flex; justify-content: space-between; }
+
 .bd-a4-boxes { display: flex; gap: 2px; }
 
 .bd-a4-rule {
@@ -4365,10 +4414,15 @@ html:has(.ant-modal-wrap) {
 }
 
 .bd-a4-cell { border: 1px solid #000; padding: 8px; }
+
 .bd-a4-cell--sm { padding: 4px 8px; }
+
 .bd-a4-cell--lg { padding: 8px 12px; }
+
 .bd-a4-cell--tight { padding: 0 8px; }
+
 .bd-a4-cell--left { text-align: left; }
+
 .bd-a4-th { height: 28px; }
 
 /* Every cell a template can fill in is shaded, so a blank form reads at a
@@ -4418,10 +4472,12 @@ html:has(.ant-modal-wrap) {
 }
 
 .bd-icon { width: 16px; height: 16px; }
+
 .bd-icon--sm { width: 14px; height: 14px; }
+
 .bd-icon--lg { width: 20px; height: 20px; }
+
 .bd-icon--xl { width: 32px; height: 32px; color: var(--bd-faint); }
-.bd-menu-icon { width: 16px; height: 16px; }
 
 .bd-num,
 .bd-cat-num,
@@ -4429,48 +4485,77 @@ html:has(.ant-modal-wrap) {
 .bd-zoom-value { font-variant-numeric: tabular-nums; }
 
 .bd-min0 { min-width: 0; }
+
 .bd-min0h { min-height: 0; }
+
 .bd-min140 { min-width: 140px; }
+
 .bd-min180 { min-width: 180px; }
+
 .bd-min280 { min-width: 280px; }
+
 .bd-flex1 { flex: 1; }
+
 .bd-rel { position: relative; }
-.bd-w-full { width: 100%; }
-.bd-w12 { width: 48px; }
+
 .bd-w56 { width: 56px; }
+
 .bd-w80 { width: 80px; }
+
 .bd-w160 { width: 160px; }
-.bd-z20 { z-index: 20; }
+
 .bd-mt05 { margin-top: 2px; }
+
 .bd-mt2 { margin-top: 8px; }
+
 .bd-mt3 { margin-top: 12px; }
+
 .bd-pt4 { padding-top: 16px; }
+
 .bd-text-left { text-align: left; }
-.bd-text-right { text-align: right; }
+
 .bd-text-center { text-align: center; }
+
 .bd-semibold { font-weight: 600; }
+
 .bd-medium { font-weight: 500; }
+
 .bd-dimmed { opacity: 0.6; }
+
 .bd-muted-text { color: var(--bd-muted); }
+
 .bd-primary-text { color: var(--bd-blue); }
+
 .bd-danger-text { color: #d4380d; cursor: pointer; }
+
 .bd-danger-text:disabled { opacity: 0.4; cursor: not-allowed; }
+
 .bd-error-text { margin: 0; font-size: 12px; color: #ff4d4f; }
+
 .bd-check-label { cursor: pointer; font-size: 14px; color: var(--bd-ink); }
+
 .bd-row-end { display: flex; justify-content: flex-end; }
+
 .bd-row-end-items { display: flex; align-items: flex-end; gap: 8px; }
+
 .bd-row-start-items { display: flex; align-items: flex-start; gap: 8px; }
+
 .bd-center-pad { display: flex; justify-content: center; padding-block: 40px; }
+
 .bd-section { border-top: 1px solid var(--bd-line); padding-top: 16px; }
+
 .bd-section-title { font-size: 16px; font-weight: 700; color: var(--bd-ink); }
+
 .bd-dialog-stack--tight { gap: 8px; }
 
 @media (min-width: 640px) {
   .bd-hide-sm { display: none; }
+
 }
 
 @media (max-width: 639px) {
   .bd-only-sm { display: none; }
+
 }
 
 .bd-empty {
@@ -4489,10 +4574,15 @@ html:has(.ant-modal-wrap) {
 }
 
 /* ── Screen shell ────────────────────────────────────────────────────────── */
+/* Two panes that scroll independently, as the reference lays them out. That
+   needs a real height: main's shell only sets a min-height, so `height: 100%`
+   resolves to the content — and the group panel's rows would then decide how
+   tall the table beside them is. */
 .bd-taxonomy-page {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: calc(100vh - var(--bd-header-height) - 32px);
+  min-height: 420px;
   overflow: hidden;
   background: #fff;
 }
@@ -4508,6 +4598,7 @@ html:has(.ant-modal-wrap) {
 
 @media (min-width: 768px) {
   .bd-taxonomy-aside { display: block; }
+
 }
 
 .bd-taxonomy-main {
@@ -4556,6 +4647,7 @@ html:has(.ant-modal-wrap) {
 
 @media (min-width: 768px) {
   .bd-cat-body { padding: 20px; }
+
 }
 
 /* ── Panel header ────────────────────────────────────────────────────────── */
@@ -4568,12 +4660,14 @@ html:has(.ant-modal-wrap) {
 
 @media (min-width: 768px) {
   .bd-cat-header { min-height: 134px; }
+
 }
 
 .bd-cat-header--bar { padding-block: 8px; min-height: 0; }
 
 @media (min-width: 768px) {
   .bd-cat-header--bar { display: none; }
+
 }
 
 .bd-cat-headrow {
@@ -4595,6 +4689,7 @@ html:has(.ant-modal-wrap) {
 
 @media (min-width: 768px) {
   .bd-cat-title { font-size: 20px; }
+
 }
 
 /* The record count sits beside the title, as the reference prints it. */
@@ -4614,46 +4709,13 @@ html:has(.ant-modal-wrap) {
 }
 
 .bd-cat-headactions { display: flex; flex-shrink: 0; align-items: center; gap: 8px; }
+
 .bd-cat-search { width: 100%; }
 
 @media (min-width: 768px) {
   .bd-cat-search { max-width: 360px; }
-}
 
-.bd-cat-linkbtn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  border: 0;
-  background: none;
-  padding: 0;
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--bd-blue);
 }
-
-.bd-cat-primarybtn {
-  display: inline-flex;
-  height: 40px;
-  flex-shrink: 0;
-  cursor: pointer;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: var(--bd-blue);
-  padding-inline: 16px;
-  font-size: 14px;
-  font-weight: 500;
-  white-space: nowrap;
-  color: #fff;
-  transition: background 150ms;
-}
-
-.bd-cat-primarybtn:hover { background: var(--bd-blue-dark); }
-.bd-cat-primarybtn:disabled { pointer-events: none; opacity: 0.5; }
 
 /* ── Card and table ─────────────────────────────────────────────────────── */
 .bd-cat-card {
@@ -4669,108 +4731,10 @@ html:has(.ant-modal-wrap) {
   box-shadow: 0 2px 6px rgb(27 42 65 / 6%);
 }
 
-.bd-cat-scroll {
-  position: relative;
-  width: 100%;
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-}
-
-/* Held over the table rather than replacing it, so a refetch does not make the
-   rows jump; the drag commit deliberately does not raise it at all. */
-.bd-cat-busy {
-  position: absolute;
-  inset: 0;
-  z-index: 30;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgb(255 255 255 / 70%);
-}
-
-.bd-cat-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  font-size: 14px;
-}
-
-.bd-cat-table--wide { min-width: 760px; }
-.bd-cat-table--wider { min-width: 860px; }
-
-.bd-cat-th {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  height: 40px;
-  border-bottom: 1px solid var(--bd-line);
-  background: var(--bd-bg);
-  padding: 8px 16px;
-  text-align: left;
-  vertical-align: middle;
-  font-size: 14px;
-  font-weight: 500;
-  white-space: nowrap;
-  color: var(--bd-muted);
-}
-
-.bd-cat-td {
-  height: 56px;
-  border-bottom: 1px solid var(--bd-line);
-  padding: 12px 16px;
-  vertical-align: middle;
-  font-size: 14px;
-  color: var(--bd-ink);
-}
-
-.bd-cat-tbody tr:last-child .bd-cat-td { border-bottom: 0; }
-
-.bd-cat-row { background: #fff; transition: background 150ms; }
-.bd-cat-row:hover > .bd-cat-td { background: var(--bd-bg); }
-
 /* The row under the pointer during a drag. */
 .bd-cat-row--dragging > .bd-cat-td { background: var(--bd-blue-pale); }
 
-/* The actions column stays pinned while the table scrolls sideways. */
-.bd-cat-sticky {
-  position: sticky;
-  right: 0;
-  box-shadow: -4px 0 6px -2px rgb(27 42 65 / 6%);
-}
-
-.bd-cat-td--actions { z-index: 10; background: #fff; text-align: center; }
-.bd-cat-row:hover > .bd-cat-td--actions { background: var(--bd-bg); }
-
-.bd-cat-emptycell {
-  height: 128px;
-  padding: 12px 16px;
-  text-align: center;
-  vertical-align: middle;
-  font-size: 14px;
-  color: var(--bd-muted);
-}
-
 .bd-cat-rowactions { display: flex; align-items: center; justify-content: center; gap: 2px; }
-
-.bd-cat-iconbtn {
-  display: flex;
-  width: 28px;
-  height: 28px;
-  cursor: pointer;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  border-radius: 6px;
-  background: none;
-  color: var(--bd-muted);
-  transition: background 150ms, color 150ms;
-}
-
-.bd-cat-iconbtn:hover { background: var(--bd-bg); color: var(--bd-ink); }
-.bd-cat-iconbtn:focus-visible { outline: 2px solid var(--bd-blue-light); outline-offset: 1px; }
-.bd-cat-iconbtn--danger { color: #d4380d; }
-.bd-cat-iconbtn--danger:hover { background: #fff1f0; color: #d4380d; }
 
 .bd-cat-tablebox {
   overflow-x: auto;
@@ -4782,7 +4746,9 @@ html:has(.ant-modal-wrap) {
 
 /* ── Table cell contents ─────────────────────────────────────────────────── */
 .bd-cat-inline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
 .bd-cat-inline2 { display: inline-flex; align-items: center; gap: 8px; }
+
 .bd-cat-inline3 { display: flex; align-items: center; gap: 12px; }
 
 .bd-cat-name,
@@ -4795,14 +4761,23 @@ html:has(.ant-modal-wrap) {
 }
 
 .bd-cat-name { font-weight: 500; }
+
 .bd-cat-subtle { font-size: 12px; color: var(--bd-muted); }
+
 .bd-cat-filename { font-size: 13px; color: var(--bd-ink); }
+
 .bd-cat-strong { font-size: 14px; font-weight: 600; color: var(--bd-ink); }
+
 .bd-cat-medium { font-weight: 500; color: var(--bd-ink); }
+
 .bd-cat-sub { margin-top: 2px; font-size: 14px; color: var(--bd-muted); }
+
 .bd-cat-hint { font-size: 12px; color: var(--bd-muted); flex-shrink: 0; }
+
 .bd-cat-hint--13 { font-size: 13px; }
+
 .bd-cat-num { color: var(--bd-muted); }
+
 .bd-cat-price { font-weight: 600; color: var(--bd-ink); }
 
 .bd-cat-chip {
@@ -4833,7 +4808,9 @@ html:has(.ant-modal-wrap) {
 }
 
 .bd-grip:active { cursor: grabbing; }
+
 .bd-grip:disabled { cursor: not-allowed; opacity: 0.5; }
+
 .bd-grip:focus-visible { outline: 2px solid var(--bd-blue-light); color: var(--bd-blue); }
 
 /* ── Group panel ─────────────────────────────────────────────────────────── */
@@ -4856,30 +4833,17 @@ html:has(.ant-modal-wrap) {
 
 @media (min-width: 768px) {
   .bd-group-head { height: 134px; }
+
 }
 
 .bd-group-headrow { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+
 .bd-group-title { font-size: 16px; font-weight: 600; color: var(--bd-ink); }
 
-.bd-group-add {
-  display: flex;
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  cursor: pointer;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  border-radius: 8px;
-  background: var(--bd-blue);
-  color: #fff;
-  transition: background 150ms;
-}
-
-.bd-group-add:hover { background: var(--bd-blue-dark); }
-
 .bd-group-list { position: relative; flex: 1; overflow-y: auto; padding: 8px; }
+
 .bd-group-items { list-style: none; margin: 0; padding: 0; user-select: none; }
+
 .bd-group-items > li + li { margin-top: 2px; }
 
 .bd-group-btn {
@@ -4897,6 +4861,7 @@ html:has(.ant-modal-wrap) {
 }
 
 .bd-group-btn:focus-visible { outline: 2px solid var(--bd-blue-light); }
+
 .bd-group-name { display: block; font-size: 14px; }
 
 /* Revealed on hover, and always once focused, so the menu is keyboard-reachable. */
@@ -4921,13 +4886,18 @@ html:has(.ant-modal-wrap) {
 .bd-group-menu-trigger[aria-expanded="true"] { opacity: 1; }
 
 .bd-group-menu-trigger:hover { background: var(--bd-blue-pale); color: var(--bd-blue); }
+
 .bd-group-drawer .bd-group-panel { height: 100%; }
 
 /* ── Bảng giá dịch vụ: the stage and warranty tables inside the dialog ───── */
 .bd-svc-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--bd-line); }
+
 .bd-svc-tab { height: 44px; gap: 4px; }
+
 .bd-svc-th { padding: 8px 12px; font-weight: 500; }
+
 .bd-svc-td { padding: 8px 12px; }
+
 .bd-svc-empty { padding: 24px 12px; text-align: center; color: var(--bd-muted); }
 
 .bd-plain-input {
@@ -4944,6 +4914,7 @@ html:has(.ant-modal-wrap) {
 
 /* ── Đơn thuốc mẫu: the "Sử dụng" multi-select ──────────────────────────── */
 .bd-usage-picker { display: flex; flex-direction: column; gap: 6px; min-width: 200px; }
+
 .bd-usage-trigger { width: 100%; text-align: left; overflow: hidden; text-overflow: ellipsis; }
 
 /* ── Nhãn bệnh nhân ─────────────────────────────────────────────────────── */
@@ -5050,6 +5021,7 @@ html:has(.ant-modal-wrap) {
 }
 
 .bd-zoom-btn:hover { background: var(--bd-bg); }
+
 .bd-zoom-value { width: 48px; text-align: center; font-size: 13px; color: var(--bd-ink); }
 
 /* Matches the shading the sheet gives every fillable cell, so the legend and
@@ -5095,27 +5067,12 @@ html:has(.ant-modal-wrap) {
 /* The grip only appears on hover in the group panel, but focus must reveal it
    too — otherwise reordering is unreachable without a pointer. */
 .bd-grip--reveal { opacity: 0; transition: opacity 150ms; }
+
 .bd-group-row:hover .bd-grip--reveal,
 .bd-grip--reveal:focus-visible,
 .bd-grip--shown { opacity: 1; }
+
 .bd-grip--off { cursor: not-allowed; opacity: 0.5; }
-
-/* Toolbar buttons in the catalog header. */
-.bd-cat-toolbtn {
-  border: 1px solid var(--bd-line);
-  background: #fff;
-  color: var(--bd-ink);
-}
-
-.bd-cat-toolbtn:hover { background: var(--bd-bg); }
-
-.bd-cat-toolbtn--primary {
-  border-color: transparent;
-  background: var(--bd-blue);
-  color: #fff;
-}
-
-.bd-cat-toolbtn--primary:hover { background: var(--bd-blue-dark); }
 
 /* Nhãn bệnh nhân: the preset colour swatches. */
 .bd-tag-color {
@@ -5128,6 +5085,7 @@ html:has(.ant-modal-wrap) {
 }
 
 .bd-tag-color:hover { transform: scale(1.1); }
+
 .bd-tag-color--picked { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--bd-ink); }
 
 /* Bảng giá dịch vụ: the dialog's own tab strip. */
@@ -5144,6 +5102,7 @@ html:has(.ant-modal-wrap) {
 }
 
 .bd-svc-tabbtn:hover { color: var(--bd-ink); }
+
 .bd-svc-tabbtn--on { border-bottom-color: var(--bd-blue); color: var(--bd-blue); }
 
 .bd-cat-thead { background: var(--bd-bg); text-align: left; color: var(--bd-muted); }
@@ -5154,6 +5113,7 @@ html:has(.ant-modal-wrap) {
 
 @media (min-width: 768px) {
   .bd-catalog-segmented { width: auto; align-self: flex-start; }
+
 }
 
 /* ── Page tab strip ─────────────────────────────────────────────────────── */
@@ -5178,6 +5138,7 @@ html:has(.ant-modal-wrap) {
 }
 
 .bd-tab:hover { background: var(--bd-bg); color: var(--bd-ink); }
+
 .bd-tab--active { background: var(--bd-blue-pale); color: var(--bd-blue); }
 
 .bd-tab-underline {
@@ -5203,193 +5164,9 @@ html:has(.ant-modal-wrap) {
   color: #fff;
 }
 
-/* ── Search box with a floating label ───────────────────────────────────── */
-.bd-search { position: relative; }
-
-.bd-search-icon {
-  position: absolute;
-  top: 50%;
-  left: 16px;
-  z-index: 1;
-  display: flex;
-  width: 20px;
-  height: 20px;
-  align-items: center;
-  justify-content: center;
-  transform: translateY(-50%);
-  pointer-events: none;
-  color: var(--bd-muted);
-}
-
-.bd-search-input {
-  height: 40px;
-  width: 100%;
-  min-width: 0;
-  border: 1px solid var(--bd-line);
-  border-radius: 8px;
-  background: #fff;
-  padding: 0 12px 0 44px;
-  font-size: 14px;
-  color: var(--bd-ink);
-  outline: none;
-  transition: border-color 150ms, box-shadow 150ms;
-}
-
-.bd-search-input::placeholder { color: transparent; }
-.bd-search-input:hover { border-color: var(--bd-faint); }
-
-.bd-search-input:focus-visible {
-  border-color: var(--bd-blue);
-  box-shadow: 0 0 0 3px rgb(28 53 102 / 20%);
-}
-
-/* Resting state — the label sits inside, beside the magnifier. */
-.bd-search-label {
-  position: absolute;
-  top: 50%;
-  left: 44px;
-  z-index: 1;
-  max-width: calc(100% - 3.5rem);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  transform: translateY(-50%);
-  pointer-events: none;
-  background: transparent;
-  padding: 0;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--bd-muted);
-  transition: top 200ms, left 200ms, font-size 200ms, color 200ms;
-}
-
-/* Filled or focused — the label lifts onto the border. */
-.bd-search-input:not(:placeholder-shown) + .bd-search-label,
-.bd-search-input:focus + .bd-search-label {
-  top: 0;
-  left: 16px;
-  background: #fff;
-  padding-inline: 4px;
-  font-size: 13px;
-}
-
-.bd-search-input:focus + .bd-search-label { color: var(--bd-blue); }
-
-/* ── Table footer: page size, summary, stepper ──────────────────────────── */
-.bd-pager {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  border-top: 1px solid var(--bd-line);
-  background: var(--bd-bg);
-  padding: 12px 16px;
-}
-
 @media (min-width: 768px) {
   .bd-pager { flex-direction: row; align-items: center; justify-content: space-between; }
-}
 
-.bd-pager-left {
-  display: flex;
-  min-width: 0;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
-}
-
-.bd-pager-size {
-  height: 32px;
-  cursor: pointer;
-  border: 1px solid var(--bd-line);
-  border-radius: 8px;
-  background: #fff;
-  padding-inline: 8px;
-  font-size: 13px;
-  color: var(--bd-ink);
-  outline: none;
-}
-
-.bd-pager-size:focus { border-color: var(--bd-blue); }
-
-.bd-pager-summary {
-  min-width: 140px;
-  flex: 1;
-  margin: 0;
-  font-size: 14px;
-  line-height: 24px;
-  color: var(--bd-muted);
-}
-
-.bd-pager-strong { font-weight: 600; color: var(--bd-ink); font-variant-numeric: tabular-nums; }
-
-.bd-pager-steps {
-  margin-left: auto;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
-}
-
-.bd-pager-step {
-  display: inline-flex;
-  height: 32px;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  border: 1px solid var(--bd-line);
-  border-radius: 6px;
-  background: #fff;
-  padding-inline: 12px;
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
-  color: var(--bd-muted);
-  cursor: pointer;
-  transition: border-color 150ms, background 150ms;
-}
-
-.bd-pager-step:hover { border-color: var(--bd-faint); background: var(--bd-bg); }
-.bd-pager-step:disabled { pointer-events: none; opacity: 0.4; }
-
-.bd-pager-page {
-  display: inline-flex;
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--bd-line);
-  border-radius: 6px;
-  background: #fff;
-  padding: 0;
-  font-size: 13px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: var(--bd-muted);
-  cursor: pointer;
-  transition: border-color 150ms, background 150ms, color 150ms;
-}
-
-.bd-pager-page:hover { border-color: var(--bd-faint); background: var(--bd-bg); }
-
-.bd-pager-page--on {
-  border-color: transparent;
-  background: var(--bd-blue);
-  color: #fff;
-}
-
-.bd-pager-page--on:hover { background: var(--bd-blue-dark); }
-
-.bd-pager-gap {
-  display: flex;
-  width: 32px;
-  height: 32px;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  color: var(--bd-muted);
 }
 
 /* antd puts its modal title in a plain div; these dialogs use a real heading,
@@ -5401,3 +5178,75 @@ html:has(.ant-modal-wrap) {
   line-height: inherit;
   color: inherit;
 }
+
+/* ── Danh mục: what the shared components still need from us ─────────────── */
+
+/* The header's icon sits on the same baseline as the title beside it. */
+.bd-cat-headicon {
+  display: inline-flex;
+  align-items: center;
+  font-size: 20px;
+  color: var(--bd-ink);
+}
+
+/* The group search and its add button share a row; the button is square. */
+.bd-group-searchrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.bd-group-searchrow .ant-input-affix-wrapper { flex: 1; min-width: 0; }
+.bd-group-searchrow .ant-btn { width: 40px; height: 40px; flex-shrink: 0; }
+
+/* The card owns the height; the table fills it and scrolls inside, with the
+   pager pinned to the bottom the way the reference draws it.
+
+   Every wrapper Ant Design puts between the card and the rows has to carry the
+   height down, and `min-height: 0` on each one is what lets the scroller
+   actually shrink rather than growing to fit every row. */
+.bd-cat-card > .ant-table-wrapper,
+.bd-cat-card > .ant-table-wrapper > .ant-spin,
+.bd-cat-card .ant-spin-container,
+.bd-cat-card .ant-table,
+.bd-cat-card .ant-table-container {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+}
+
+/* Whichever scroller this table ended up with — antd uses .ant-table-content
+   until a vertical scroll height is set, and .ant-table-body after. */
+.bd-cat-card .ant-table-content,
+.bd-cat-card .ant-table-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.bd-cat-card .ant-table-pagination.ant-pagination {
+  margin: 0;
+  flex-shrink: 0;
+  border-top: 1px solid var(--bd-line);
+  background: var(--bd-bg);
+  padding: 12px 16px;
+}
+
+/* An empty table should not collapse the card's whole body. */
+.bd-cat-card .ant-table-placeholder .ant-table-cell { border-bottom: 0; }
+
+/* The grip column is a drag handle, not a cell of text. */
+.bd-cat-card .ant-table-cell .bd-grip { display: inline-flex; }
+
+/* Bảng giá dịch vụ and Đơn thuốc mẫu draw small tables of their own inside a
+   dialog — plain markup, not a data grid, so they keep their own rules. */
+.bd-cat-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 14px;
+}
+
+.bd-cat-table--wider { min-width: 860px; }

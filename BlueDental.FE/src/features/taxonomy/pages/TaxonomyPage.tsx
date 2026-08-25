@@ -32,7 +32,8 @@ import {
 } from "../taxonomyTabs";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { PageTabBar } from "@/components/PageTabBar";
-import { TablePaginationBar } from "@/components/TablePaginationBar";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { countedTotal } from "../countedTotal";
 import { useDebounce } from "@/hooks/useDebounce";
 import { extractApiError } from "@/lib/apiError";
 import { useBranchFilter, useCurrentBranchId, useIsAllBranches } from "@/lib/clinicBranch";
@@ -70,8 +71,8 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
   const [keyword, setKeyword] = useState("");
   /** The group panel searches on the server, so its text lives here too. */
   const [groupKeyword, setGroupKeyword] = useState("");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const pagination = useTablePagination(DEFAULT_PAGE_SIZE);
+  const { page, pageSize } = pagination;
   const [groupsOpen, setGroupsOpen] = useState(false);
 
   const [entryModal, setEntryModal] = useState<{ open: boolean; entry: CatalogEntryDto | null }>({
@@ -97,8 +98,8 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
     scope: grouped ? "group" : "catalog",
     taxonomyId: grouped ? (selectedGroupId ?? undefined) : undefined,
     filter: debouncedKeyword,
-    skipCount: (page - 1) * pageSize,
-    maxResultCount: pageSize,
+    skipCount: pagination.skipCount,
+    maxResultCount: pagination.maxResultCount,
   });
 
   const createGroup = useCreateTaxonomyGroup();
@@ -165,7 +166,7 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
   /** A narrower result set can leave the current page past the end of the data. */
   useEffect(() => {
     const lastPage = Math.max(1, Math.ceil(totalCount / pageSize));
-    if (page > lastPage) setPage(lastPage);
+    if (page > lastPage) pagination.resetToFirstPage();
   }, [page, pageSize, totalCount]);
 
   // The panel's rows are memoised, so the handlers they receive have to keep
@@ -179,7 +180,7 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
         params.set("group", id);
         return params;
       });
-      setPage(1);
+      pagination.resetToFirstPage();
       setGroupsOpen(false);
     },
     [setSearchParams],
@@ -199,7 +200,7 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
 
   const changeKeyword = (value: string) => {
     setKeyword(value);
-    setPage(1);
+    pagination.resetToFirstPage();
   };
 
   /** The whole list in its new order, as the reorder endpoints take it. */
@@ -365,7 +366,7 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
             open={groupsOpen}
             onClose={() => setGroupsOpen(false)}
             placement="left"
-            width={288}
+            size={288}
             title={t("Nhóm {0}", tab.noun)}
             className="bd-group-drawer"
             styles={{ body: { padding: 0 } }}
@@ -411,17 +412,7 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
                 setPendingDelete({ kind: "entry", id: entry.id, name: entry.name })
               }
               onReorder={reorderEntries}
-            />
-
-            <TablePaginationBar
-              page={page}
-              pageSize={pageSize}
-              total={totalCount}
-              onPageChange={setPage}
-              onPageSizeChange={(size) => {
-                setPageSize(size);
-                setPage(1);
-              }}
+              pagination={pagination.buildConfig(totalCount, countedTotal(t("bản ghi")))}
             />
           </div>
         </div>

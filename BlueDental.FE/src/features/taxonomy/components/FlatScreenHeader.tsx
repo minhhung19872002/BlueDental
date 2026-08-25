@@ -1,10 +1,9 @@
-import type { LucideIcon } from "lucide-react";
-import { Plus } from "lucide-react";
-import { SearchField } from "@/components/SearchField";
-import { t } from "@/lib/i18n";
+import type { ReactNode } from "react";
+import { Button, Input } from "antd";
+import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
 
 interface Props {
-  icon: LucideIcon;
+  icon: ReactNode;
   title: string;
   subtitle: string;
   actionLabel: string;
@@ -26,7 +25,7 @@ interface Props {
  * group panel plus a table — Thẻ hồ sơ and Phương thức thanh toán.
  */
 export function FlatScreenHeader({
-  icon: Icon,
+  icon,
   title,
   subtitle,
   actionLabel,
@@ -40,34 +39,36 @@ export function FlatScreenHeader({
       <div className="bd-cat-headrow">
         <div className="bd-min0">
           <div className="bd-cat-inline2">
-            <Icon className="bd-icon bd-icon--lg" aria-hidden="true" />
+            <span className="bd-cat-headicon" aria-hidden="true">
+              {icon}
+            </span>
             <h1 className="bd-cat-title">{title}</h1>
           </div>
           <p className="bd-cat-sub">{subtitle}</p>
         </div>
 
-        <button
-          type="button"
-          onClick={onAction}
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
           disabled={actionDisabled}
           title={actionDisabled ? actionDisabledHint : undefined}
-          className="bd-cat-primarybtn"
+          onClick={onAction}
         >
-          <Plus className="bd-icon" aria-hidden="true" />
-          <span className="bd-only-sm">{actionLabel}</span>
-          <span className="bd-hide-sm">{t("Thêm")}</span>
-        </button>
+          {actionLabel}
+        </Button>
       </div>
 
       {search && (
-        <div className="bd-cat-search bd-mt3">
-          <SearchField
-            id={search.id}
-            label={search.label}
-            value={search.value}
-            onChange={search.onChange}
-          />
-        </div>
+        <Input
+          id={search.id}
+          className="bd-cat-search bd-mt3"
+          prefix={<SearchOutlined />}
+          placeholder={search.label}
+          aria-label={search.label}
+          value={search.value}
+          allowClear
+          onChange={(event) => search.onChange(event.target.value)}
+        />
       )}
     </div>
   );

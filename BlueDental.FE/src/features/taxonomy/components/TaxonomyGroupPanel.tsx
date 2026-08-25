@@ -1,8 +1,15 @@
 import { memo } from "react";
-import { Dropdown, Spin } from "antd";
-import { FolderOpen, GripVertical, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
+import { Button, Dropdown, Input, Spin } from "antd";
+import {
+  DeleteOutlined,
+  EditOutlined,
+  FolderOpenOutlined,
+  HolderOutlined,
+  MoreOutlined,
+  PlusOutlined,
+  SearchOutlined,
+} from "@ant-design/icons";
 import type { TaxonomyDto } from "../api/taxonomyApi";
-import { SearchField } from "@/components/SearchField";
 import { useDragReorder } from "@/hooks/useDragReorder";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
@@ -85,9 +92,9 @@ const GroupRow = memo(function GroupRow({
           aria-current={active ? "true" : undefined}
           className="bd-group-btn"
         >
-          <FolderOpen
+          <FolderOpenOutlined
             aria-hidden="true"
-            className={cn("bd-icon", active ? "bd-primary-text" : "bd-muted-text")}
+            className={cn(active ? "bd-primary-text" : "bd-muted-text")}
           />
           <span className="bd-min0 bd-flex1 bd-text-left">
             <span className={cn("bd-group-name", active ? "bd-semibold" : "bd-medium")}>
@@ -105,14 +112,14 @@ const GroupRow = memo(function GroupRow({
             items: [
               {
                 key: "rename",
-                icon: <Pencil className="bd-menu-icon" />,
+                icon: <EditOutlined />,
                 label: t("Chỉnh sửa"),
                 onClick: () => onRename(group),
               },
               {
                 key: "delete",
                 danger: true,
-                icon: <Trash2 className="bd-menu-icon" />,
+                icon: <DeleteOutlined />,
                 label: t("Xoá"),
                 onClick: () => onDelete(group),
               },
@@ -126,7 +133,7 @@ const GroupRow = memo(function GroupRow({
             data-group-menu={group.name}
             className="bd-group-menu-trigger"
           >
-            <MoreHorizontal className="bd-menu-icon" aria-hidden="true" />
+            <MoreOutlined aria-hidden="true" />
           </button>
         </Dropdown>
 
@@ -155,7 +162,7 @@ const GroupRow = memo(function GroupRow({
             canReorder ? "" : "bd-grip--off",
           )}
         >
-          <GripVertical className="bd-icon" aria-hidden="true" />
+          <HolderOutlined aria-hidden="true" />
         </button>
       </div>
     </li>
@@ -208,23 +215,23 @@ export function TaxonomyGroupPanel({
         </div>
         <p className="bd-cat-sub">{subtitle}</p>
 
-        <div className="bd-cat-inline2 bd-mt3">
-          <SearchField
+        <div className="bd-group-searchrow">
+          <Input
             id="taxonomy-group-search"
-            label={t("Tìm nhóm...")}
+            prefix={<SearchOutlined />}
+            placeholder={t("Tìm nhóm...")}
+            aria-label={t("Tìm nhóm...")}
             value={keyword}
-            onChange={onKeywordChange}
-            className="bd-w-full"
+            allowClear
+            onChange={(event) => onKeywordChange(event.target.value)}
           />
-          <button
-            type="button"
-            onClick={onCreate}
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
             aria-label={t("Thêm nhóm phân loại")}
             title={t("Thêm nhóm phân loại")}
-            className="bd-group-add"
-          >
-            <Plus className="bd-icon" aria-hidden="true" />
-          </button>
+            onClick={onCreate}
+          />
         </div>
       </div>
 
@@ -235,7 +242,7 @@ export function TaxonomyGroupPanel({
           </div>
         ) : drag.items.length === 0 ? (
           <div className="bd-empty">
-            <FolderOpen className="bd-icon bd-icon--xl" aria-hidden="true" />
+            <FolderOpenOutlined className="bd-icon--xl" aria-hidden="true" />
             <p className="bd-cat-hint bd-cat-hint--13">
               {keyword ? t("Không tìm thấy nhóm phù hợp") : t("Chưa có nhóm nào")}
             </p>

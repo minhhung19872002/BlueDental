@@ -13,7 +13,8 @@ export interface TablePagination {
   resetToFirstPage: () => void;
   buildConfig: (
     total?: number,
-    showTotal?: (total: number) => string,
+    /** Same shape antd expects, so a caller can name what it is counting. */
+    showTotal?: TablePaginationConfig["showTotal"],
   ) => TablePaginationConfig;
 }
 

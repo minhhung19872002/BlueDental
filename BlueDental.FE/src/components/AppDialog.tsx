@@ -43,7 +43,7 @@ export function AppDialog({
       onCancel={onClose}
       width={width}
       destroyOnHidden
-      maskClosable={false}
+      mask={{ closable: false }}
       className="app-dialog"
       footer={
         <div style={{ display: "flex", justifyContent: "flex-end" }}>

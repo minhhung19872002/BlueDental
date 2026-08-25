@@ -42,7 +42,7 @@ test.describe("Danh mục — dialog theo từng danh mục", () => {
     await page.goto("/taxonomy/service");
     await createGroup(page, `NHOM DV ${id}`);
 
-    await page.getByRole("button", { name: /^Thêm dịch vụ$/ }).click();
+    await page.getByRole("button", { name: /Thêm dịch vụ$/ }).click();
     let dialog = page.getByRole("dialog");
 
     await dialog.getByLabel(/^Dịch vụ/).fill(name);
@@ -98,7 +98,7 @@ test.describe("Danh mục — dialog theo từng danh mục", () => {
     await page.goto("/taxonomy/medicine");
     await createGroup(page, `NHOM THUOC ${id}`);
 
-    await page.getByRole("button", { name: /^Thêm loại thuốc$/ }).click();
+    await page.getByRole("button", { name: /Thêm loại thuốc$/ }).click();
     let dialog = page.getByRole("dialog");
 
     await dialog.getByLabel(/Tên thuốc/).fill(name);
@@ -128,7 +128,7 @@ test.describe("Danh mục — dialog theo từng danh mục", () => {
     await page.goto("/taxonomy/diagnosis");
     await createGroup(page, `NHOM CD ${id}`);
 
-    await page.getByRole("button", { name: /^Thêm chẩn đoán$/ }).click();
+    await page.getByRole("button", { name: /Thêm chẩn đoán$/ }).click();
     let dialog = page.getByRole("dialog");
 
     await dialog.getByLabel(/Tên chẩn đoán/).fill(name);
@@ -153,14 +153,14 @@ test.describe("Danh mục — dialog theo từng danh mục", () => {
     // The line picker reads the branch's medicine catalog, so seed one first.
     await page.goto("/taxonomy/medicine");
     await createGroup(page, `NHOM DON ${id}`);
-    await page.getByRole("button", { name: /^Thêm loại thuốc$/ }).click();
+    await page.getByRole("button", { name: /Thêm loại thuốc$/ }).click();
     let dialog = page.getByRole("dialog");
     await dialog.getByLabel(/Tên thuốc/).fill(medicine);
     await dialog.getByRole("button", { name: /Lưu$/ }).click();
     await expect(dialog).toBeHidden();
 
     await page.goto("/taxonomy/prescription-template");
-    await page.getByRole("button", { name: /^Thêm đơn thuốc mẫu$/ }).click();
+    await page.getByRole("button", { name: /Thêm đơn thuốc mẫu$/ }).click();
     dialog = page.getByRole("dialog");
 
     await dialog.getByLabel(/Tên đơn thuốc mẫu/).fill(template);
@@ -198,7 +198,7 @@ test.describe("Danh mục — dialog theo từng danh mục", () => {
     await page.goto("/taxonomy/medical-record-template");
     await createGroup(page, `NHOM BA ${id}`);
 
-    await page.getByRole("button", { name: /^Thêm bệnh án mẫu$/ }).click();
+    await page.getByRole("button", { name: /Thêm bệnh án mẫu$/ }).click();
     let dialog = page.getByRole("dialog");
 
     // The printed sheet is the dental outpatient record, not a blank form.

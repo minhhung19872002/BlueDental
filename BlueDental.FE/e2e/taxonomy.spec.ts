@@ -102,18 +102,18 @@ test.describe("Danh mục", () => {
     }
 
     // Newest first, so the one added second is on top before anything is moved.
-    const names = page.locator("tbody tr td:nth-child(2) p");
+    const names = page.locator("tbody tr.ant-table-row td:nth-child(2) p");
     await expect(names).toHaveText([`B ${id}`, `A ${id}`]);
 
     // The grip is a real control: focus it and move the row with the keyboard.
-    await page.locator("tbody tr:nth-child(2) td:first-child button").focus();
+    await page.locator("tbody tr.ant-table-row").nth(1).locator("td:first-child button").focus();
     await page.keyboard.press("ArrowUp");
     await expect(names).toHaveText([`A ${id}`, `B ${id}`]);
 
     // The order came from the server, not from local state — and the selected
     // group survives the reload because it lives in the URL.
     await page.reload();
-    await expect(page.locator("tbody tr td:nth-child(2) p")).toHaveText([`A ${id}`, `B ${id}`]);
+    await expect(page.locator("tbody tr.ant-table-row td:nth-child(2) p")).toHaveText([`A ${id}`, `B ${id}`]);
   });
 
   test("drags a table row, and saves the whole order in one call", async ({ page }) => {
@@ -138,11 +138,11 @@ test.describe("Danh mục", () => {
     }
 
     // Newest first, so ROW B leads until something is dragged.
-    const names = page.locator("tbody tr td:nth-child(2) p");
+    const names = page.locator("tbody tr.ant-table-row td:nth-child(2) p");
     await expect(names).toHaveText([`ROW B ${id}`, `ROW A ${id}`]);
 
-    const firstRow = page.locator("tbody tr").first();
-    const secondRow = page.locator("tbody tr").nth(1);
+    const firstRow = page.locator("tbody tr.ant-table-row").first();
+    const secondRow = page.locator("tbody tr.ant-table-row").nth(1);
     const grip = firstRow.locator("td:first-child button");
     const gripBox = (await grip.boundingBox())!;
     const targetBox = (await secondRow.boundingBox())!;
@@ -156,7 +156,7 @@ test.describe("Danh mục", () => {
 
     // The lifted row is the one being dragged, which by now has swapped into
     // the second slot — find it by its name, not by position.
-    const draggedRow = page.locator("tbody tr").filter({ hasText: `ROW B ${id}` });
+    const draggedRow = page.locator("tbody tr.ant-table-row").filter({ hasText: `ROW B ${id}` });
     const lifted = await draggedRow.evaluate((row) => getComputedStyle(row).transform);
     expect(lifted).not.toBe("none");
     // matrix(a, b, c, d, translateX, translateY). The horizontal offset is the
@@ -180,7 +180,7 @@ test.describe("Danh mục", () => {
       const w = window as unknown as { __frames: string[] };
       w.__frames = [];
       const tick = () => {
-        const first = document.querySelector("tbody tr td:nth-child(2) p");
+        const first = document.querySelector("tbody tr.ant-table-row td:nth-child(2) p");
         const spinner = document
           .querySelector("tbody")
           ?.closest("div")
@@ -223,7 +223,7 @@ test.describe("Danh mục", () => {
     expect(seen, `the table changed mid-drop: ${seen.join(" → ")}`).toEqual([`ROW A ${id}`]);
 
     await page.reload();
-    await expect(page.locator("tbody tr td:nth-child(2) p")).toHaveText([
+    await expect(page.locator("tbody tr.ant-table-row td:nth-child(2) p")).toHaveText([
       `ROW A ${id}`,
       `ROW B ${id}`,
     ]);

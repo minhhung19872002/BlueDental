@@ -233,3 +233,37 @@ Các test thật phải bám vào DOM mà antd thực sự dựng ra:
   là `.ant-select-item-option`.
 - `Modal` đặt tiêu đề trong một `div` thường — `AppDialog` và `ConfirmDeleteDialog`
   bọc lại bằng `<h2>` để tiêu đề dialog vẫn là một heading thật.
+
+## 2026-08-25 — Danh mục dùng lại component sẵn có của app
+
+Sau khi chuyển sang Ant Design, các màn hình Danh mục vẫn còn tự dựng bảng, ô tìm
+kiếm, nút và thanh phân trang của riêng mình. Nay chúng dùng đúng những thứ app đã
+có — `DataTable`, `useTablePagination`, `Input` + `SearchOutlined`, `Button` — như
+màn hình Nhân sự vẫn làm.
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-77 | Bảng cao vống lên theo cột nhóm dù chỉ có một dòng | Đo được: `body` cao **9498px**, thẻ bảng **9129px** trong khi bảng chỉ **163px**. Panel nhóm 200 dòng cao 9214px kéo cả trang theo | `.bd-taxonomy-page` đặt `height: 100%`, mà `main` chỉ cho `.app-main` một `min-height` — nên `100%` rơi về chiều cao nội dung, và nội dung cao nhất chính là danh sách nhóm | Trang chốt chiều cao thật: `calc(100vh - var(--bd-header-height) - 32px)`. Panel nhóm cuộn trong lòng nó, bảng cuộn trong thẻ của nó | F-31 |
+| R-78 | Thanh phân trang trôi lửng giữa thẻ bảng | Bản gốc ghim nó ở đáy thẻ; bản mình để nó dính ngay dưới dòng cuối, chừa 292px trắng bên dưới | Chuỗi flex bị đứt: antd 6 lồng bảng dưới `.ant-spin`, không phải `.ant-spin-nested-loading` như CSS đang nhắm | Chuỗi `min-height: 0` chạy đủ từ thẻ xuống `.ant-table-content`; phân trang `flex-shrink: 0` | F-31 |
+| R-79 | Danh mục tự dựng bảng/ô tìm kiếm/nút/phân trang riêng | Hai lối viết song song trong cùng một app, và bảng của Danh mục không có gì của `DataTable` (cột cố định, cỡ trang, tổng số dòng) | Các component này ra đời khi app còn dùng Tailwind + shadcn, trước khi `main` đổi sang antd | Bảng dựng trên `DataTable` + `ColumnsType`, phân trang trên `useTablePagination`, tìm kiếm trên `Input prefix={<SearchOutlined/>} allowClear`, nút trên `Button`. `SearchField` và `TablePaginationBar` không còn ai dùng nên xoá hẳn | F-31…F-34 |
+| R-80 | Hai cảnh báo deprecated của antd ở console | `Drawer.width` và `Modal.maskClosable` | API đổi tên ở antd 6 | `size` và `mask={{ closable: false }}` | — |
+
+### Tỉ lệ cột lấy theo bản gốc
+
+Đo trên bảng rộng 1490px của bản gốc: tay kéo 48px, tên 567, nhóm phân loại 300,
+giá 207 (canh phải), cập nhật 277, thao tác 90. Cột của mình chỉnh theo đúng tỉ lệ
+đó — trước đó giá 160 và cập nhật 200 nên hai cột dính vào nhau.
+
+### Còn khác bản gốc, và vì sao giữ nguyên
+
+Tiêu đề cột của app **in hoa** (`.ant-table-thead th`), bản gốc thì không. Đây là
+quy ước chung cho mọi bảng trong app; sửa riêng cho Danh mục sẽ làm nó lệch với
+Nhân sự và các màn hình khác, còn sửa toàn cục thì đổi luôn những màn hình không
+thuộc phạm vi lần này. Ưu tiên dùng lại component sẵn có nên **giữ theo app**.
+
+### Selector đổi theo antd Table
+
+- `tbody tr` giờ khớp cả **hàng đo** ẩn antd chèn đầu tbody — dùng `tr.ant-table-row`,
+  và `:nth-of-type` thì đếm lệch một hàng nên chuyển sang `.nth(index)`.
+- Nút "Thêm …" mang icon nên accessible name có tiền tố (`plus Thêm dịch vụ`) —
+  neo đuôi chuỗi, đừng neo đầu.

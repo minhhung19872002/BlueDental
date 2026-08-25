@@ -1,6 +1,7 @@
-import { Segmented, Spin, message } from "antd";
-import { useEffect, useState } from "react";
-import { CreditCard, Pencil, Trash2 } from "lucide-react";
+import { Button, Segmented, Tooltip, message } from "antd";
+import { useMemo, useState } from "react";
+import { CreditCardOutlined, DeleteOutlined, EditOutlined } from "@ant-design/icons";
+import type { ColumnsType } from "antd/es/table";
 import {
   PAYMENT_ACCOUNT_KIND,
   paymentAccountKindLabels,
@@ -10,19 +11,15 @@ import {
   type PaymentAccountKind,
 } from "../api/paymentAccountApi";
 import { FlatScreenHeader } from "./FlatScreenHeader";
+import { countedTotal } from "../countedTotal";
 import { PaymentAccountModal } from "./PaymentAccountModal";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
-import { TablePaginationBar } from "@/components/TablePaginationBar";
+import { DataTable } from "@/components/DataTable";
+import { useTablePagination } from "@/hooks/useTablePagination";
 import { extractApiError } from "@/lib/apiError";
 import { useBranchFilter, useIsAllBranches } from "@/lib/clinicBranch";
-import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
-
-const HEAD_CELL =
-  "bd-cat-th";
-const BODY_CELL = "bd-cat-td";
-const STICKY_END = "bd-cat-sticky";
 
 const DEFAULT_PAGE_SIZE = 20;
 
@@ -41,9 +38,8 @@ export function PaymentAccountPanel() {
   const isAllBranches = useIsAllBranches();
   const kindLabels = paymentAccountKindLabels();
 
+  const pagination = useTablePagination(DEFAULT_PAGE_SIZE);
   const [tab, setTab] = useState<TabKey>("momo");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [modal, setModal] = useState<{ open: boolean; account: PaymentAccountDto | null }>({
     open: false,
     account: null,
@@ -55,19 +51,13 @@ export function PaymentAccountPanel() {
 
   const accountsQuery = usePaymentAccounts(branchFilter, {
     kind,
-    skipCount: (page - 1) * pageSize,
-    maxResultCount: pageSize,
+    skipCount: pagination.skipCount,
+    maxResultCount: pagination.maxResultCount,
   });
   const deleteAccount = useDeletePaymentAccount();
 
   const accounts = accountsQuery.data?.items ?? [];
   const totalCount = accountsQuery.data?.totalCount ?? 0;
-  const columnCount = isMoMo ? 4 : 5;
-
-  useEffect(() => {
-    const lastPage = Math.max(1, Math.ceil(totalCount / pageSize));
-    if (page > lastPage) setPage(lastPage);
-  }, [page, pageSize, totalCount]);
 
   const confirmDelete = async () => {
     if (!pendingDelete) return;
@@ -82,10 +72,77 @@ export function PaymentAccountPanel() {
     }
   };
 
+  /** A MoMo wallet is a phone number; a bank account is a name and a number. */
+  const columns = useMemo<ColumnsType<PaymentAccountDto>>(() => {
+    const list: ColumnsType<PaymentAccountDto> = [
+      isMoMo
+        ? {
+            key: "phoneNumber",
+            title: t("Số điện thoại"),
+            render: (_, account) => <span className="bd-num">{account.phoneNumber}</span>,
+          }
+        : { key: "bankName", title: t("Tên ngân hàng"), dataIndex: "bankName" },
+      { key: "holderName", title: t("Tên chủ tài khoản"), dataIndex: "holderName" },
+    ];
+
+    if (!isMoMo) {
+      list.push({
+        key: "accountNumber",
+        title: t("Số tài khoản"),
+        render: (_, account) => <span className="bd-num">{account.accountNumber}</span>,
+      });
+    }
+
+    list.push(
+      {
+        key: "lastModificationTime",
+        title: t("Lần cập nhật cuối"),
+        width: 200,
+        render: (_, account) => (
+          <span className="bd-cat-num">
+            {formatDate(account.lastModificationTime ?? account.creationTime)}
+          </span>
+        ),
+      },
+      {
+        key: "actions",
+        title: t("Thao tác"),
+        width: 110,
+        align: "center",
+        fixed: "right",
+        render: (_, account) => (
+          <div className="bd-cat-rowactions">
+            <Tooltip title={t("Chỉnh sửa")}>
+              <Button
+                type="text"
+                size="small"
+                icon={<EditOutlined />}
+                aria-label={t("Chỉnh sửa {0}", account.holderName)}
+                onClick={() => setModal({ open: true, account })}
+              />
+            </Tooltip>
+            <Tooltip title={t("Xoá")}>
+              <Button
+                type="text"
+                size="small"
+                danger
+                icon={<DeleteOutlined />}
+                aria-label={t("Xoá {0}", account.holderName)}
+                onClick={() => setPendingDelete(account)}
+              />
+            </Tooltip>
+          </div>
+        ),
+      },
+    );
+
+    return list;
+  }, [isMoMo]);
+
   return (
     <div className="bd-cat-screen">
       <FlatScreenHeader
-        icon={CreditCard}
+        icon={<CreditCardOutlined />}
         title={t("Quản lý phương thức thanh toán")}
         subtitle={t("Tạo và quản lý tài khoản MoMo, ngân hàng dùng khi thanh toán.")}
         actionLabel={t("Thêm phương thức")}
@@ -100,7 +157,7 @@ export function PaymentAccountPanel() {
           value={tab}
           onChange={(next) => {
             setTab(next);
-            setPage(1);
+            pagination.resetToFirstPage();
           }}
           options={[
             { value: "momo", label: kindLabels[PAYMENT_ACCOUNT_KIND.MoMo] },
@@ -109,107 +166,16 @@ export function PaymentAccountPanel() {
         />
 
         <div className="bd-cat-card">
-          <div className="bd-cat-scroll">
-            {accountsQuery.isFetching && (
-              <div className="bd-cat-busy">
-                <Spin size="large" />
-              </div>
-            )}
-
-            <table className="bd-cat-table bd-cat-table--wide">
-              <thead>
-                <tr>
-                  {isMoMo ? (
-                    <th className={HEAD_CELL}>{t("Số điện thoại")}</th>
-                  ) : (
-                    <th className={HEAD_CELL}>{t("Tên ngân hàng")}</th>
-                  )}
-                  <th className={HEAD_CELL}>{t("Tên chủ tài khoản")}</th>
-                  {!isMoMo && <th className={HEAD_CELL}>{t("Số tài khoản")}</th>}
-                  <th className={HEAD_CELL}>{t("Lần cập nhật cuối")}</th>
-                  <th className={cn(HEAD_CELL, "bd-z20 bd-text-center", STICKY_END)}>{t("Thao tác")}</th>
-                </tr>
-              </thead>
-
-              <tbody className="bd-cat-tbody">
-                {accounts.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={columnCount}
-                      className="bd-cat-emptycell"
-                    >
-                      {isMoMo
-                        ? t("Không có phương thức MoMo")
-                        : t("Không có phương thức ngân hàng")}
-                    </td>
-                  </tr>
-                ) : (
-                  accounts.map((account) => (
-                    <tr
-                      key={account.id}
-                      className="bd-cat-row"
-                    >
-                      <td className={BODY_CELL}>
-                        {isMoMo ? (
-                          <span className="bd-num">{account.phoneNumber}</span>
-                        ) : (
-                          account.bankName
-                        )}
-                      </td>
-                      <td className={BODY_CELL}>{account.holderName}</td>
-                      {!isMoMo && (
-                        <td className={BODY_CELL}>
-                          <span className="bd-num">{account.accountNumber}</span>
-                        </td>
-                      )}
-                      <td className={BODY_CELL}>
-                        <span className="bd-cat-num">
-                          {formatDate(account.lastModificationTime ?? account.creationTime)}
-                        </span>
-                      </td>
-
-                      <td
-                        className={cn(
-                          BODY_CELL,
-                          "bd-cat-td--actions",
-                          STICKY_END,
-                        )}
-                      >
-                        <div className="bd-cat-rowactions">
-                          <button
-                            type="button"
-                            aria-label={t("Chỉnh sửa {0}", account.holderName)}
-                            onClick={() => setModal({ open: true, account })}
-                            className="bd-cat-iconbtn"
-                          >
-                            <Pencil className="bd-icon bd-icon--sm" aria-hidden="true" />
-                          </button>
-                          <button
-                            type="button"
-                            aria-label={t("Xoá {0}", account.holderName)}
-                            onClick={() => setPendingDelete(account)}
-                            className="bd-cat-iconbtn bd-cat-iconbtn--danger"
-                          >
-                            <Trash2 className="bd-icon bd-icon--sm" aria-hidden="true" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          <TablePaginationBar
-            page={page}
-            pageSize={pageSize}
-            total={totalCount}
-            unitLabel=""
-            onPageChange={setPage}
-            onPageSizeChange={(size) => {
-              setPageSize(size);
-              setPage(1);
+          <DataTable<PaymentAccountDto>
+            columns={columns}
+            dataSource={accounts}
+            rowKey="id"
+            loading={accountsQuery.isFetching}
+            pagination={pagination.buildConfig(totalCount, countedTotal(t("bản ghi")))}
+            locale={{
+              emptyText: isMoMo
+                ? t("Không có phương thức MoMo")
+                : t("Không có phương thức ngân hàng"),
             }}
           />
         </div>
