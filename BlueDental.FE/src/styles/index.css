@@ -357,7 +357,7 @@ button {
   display: flex;
   align-items: center;
   gap: 12px;
-  flex-shrink: 0;
+  min-width: 0;
 }
 
 .app-header-toggle {
@@ -473,6 +473,7 @@ button {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
   padding: 0 6px 0 0;
 }
 
@@ -531,17 +532,23 @@ button {
 
 /* ── Header search button ── */
 
+/* A flex item's automatic minimum size is its content, so without min-width:0
+   none of these blocks shrink: anywhere between the rail's width and 1440px
+   the row grew past the header and pushed the account button off screen. They
+   shrink now, and the text inside each one ellipsizes instead. */
 .app-header-right {
   margin-left: auto;
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 
 .app-header-search {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
   height: 38px;
   border-radius: var(--bd-radius-control);
   border: 1px solid var(--bd-line);
@@ -561,6 +568,7 @@ button {
 
 .app-header-search-text {
   flex: 1;
+  min-width: 0;
   text-align: left;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -606,6 +614,10 @@ button {
 .app-header-branch:hover {
   background: #fff !important;
   border-color: var(--bd-primary) !important;
+}
+
+.app-header-branch {
+  min-width: 0 !important;
 }
 
 .app-header-branch-dot {
@@ -660,6 +672,7 @@ button {
   cursor: pointer;
   display: flex;
   align-items: center;
+  flex-shrink: 0;
   gap: 9px;
   padding: 0 0 0 12px;
   border-left: 1px solid var(--bd-line);
