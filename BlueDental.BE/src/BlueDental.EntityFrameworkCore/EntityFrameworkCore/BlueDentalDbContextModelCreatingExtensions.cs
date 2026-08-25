@@ -482,6 +482,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.ChiefComplaint).HasMaxLength(500);
             entity.Property(x => x.Notes).HasMaxLength(2000);
             entity.Property(x => x.CancellationReason).HasMaxLength(500);
+            entity.Property(x => x.Outcome).HasConversion<short?>();
             entity.HasIndex(x => new { x.BranchId, x.Status });
             entity.HasIndex(x => new { x.PatientId, x.ScheduledAt });
         });

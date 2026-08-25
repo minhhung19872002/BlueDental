@@ -70,6 +70,7 @@ public class BlueDentalDbContext :
 
     // Patient Management
     public DbSet<Patient> Patients { get; set; }
+    public DbSet<PatientImage> PatientImages { get; set; }
 
     // Appointments
     public DbSet<Appointment> Appointments { get; set; }
@@ -99,6 +100,7 @@ public class BlueDentalDbContext :
     // Billing
     public DbSet<Invoice> Invoices { get; set; }
     public DbSet<InsuranceClaim> InsuranceClaims { get; set; }
+    public DbSet<PatientPayment> PatientPayments { get; set; }
 
     // Inventory
     public DbSet<InventoryItem> InventoryItems { get; set; }

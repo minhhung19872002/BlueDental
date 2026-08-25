@@ -167,6 +167,21 @@ public class VisitAppService : ApplicationService, IVisitAppService
         await _repository.UpdateAsync(visit, autoSave: true);
     }
 
+    /// <summary>
+    /// Recording how a visit ended is part of running it, not editing its
+    /// booking, so it sits behind the workflow permission alongside check-in
+    /// and complete rather than behind Edit.
+    /// </summary>
+    [Authorize(BlueDentalPermissions.Visits.Workflow)]
+    public async Task<VisitDto> RecordOutcomeAsync(Guid id, RecordVisitOutcomeDto input)
+    {
+        var visit = await _repository.GetAsync(id);
+        GuardBranchAccess(visit);
+        visit.RecordOutcome(input.Outcome);
+        await _repository.UpdateAsync(visit, autoSave: true);
+        return ObjectMapper.Map<Visit, VisitDto>(visit);
+    }
+
     private void GuardBranchAccess(Visit entity)
     {
         var branchId = _branchResolver.GetRequiredClinicBranchId();

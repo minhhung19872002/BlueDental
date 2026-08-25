@@ -30,11 +30,54 @@ public class InventoryItemAppService : ApplicationService, IInventoryItemAppServ
         var branchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
         query = query.Where(i => i.BranchId == branchId);
+
+        // GetInventoryItemListInput has declared Filter, TaxonomyId, Status and
+        // IsActive for a while, but only NeedsReorder was ever read. Callers
+        // passing the others got an unfiltered list back and no error — which
+        // is how the dashboard's "vật tư dưới định mức" came to report every
+        // item in the branch, its rows showing stock well above the reorder
+        // level.
+        if (!string.IsNullOrWhiteSpace(input.Filter))
+        {
+            var term = input.Filter.Trim();
+            query = query.Where(i => i.Name.Contains(term) || i.ItemCode.Contains(term));
+        }
+
+        if (input.TaxonomyId.HasValue)
+            query = query.Where(i => i.TaxonomyId == input.TaxonomyId.Value);
+
+        if (input.IsActive.HasValue)
+            query = query.Where(i => i.IsActive == input.IsActive.Value);
+
         if (input.NeedsReorder.HasValue && input.NeedsReorder.Value)
             query = query.Where(i => i.QuantityOnHand <= i.ReorderLevel);
 
-        var totalCount = query.Count();
-        var items = query.Skip(input.SkipCount).Take(input.MaxResultCount).ToList();
+        int totalCount;
+        System.Collections.Generic.List<InventoryItem> items;
+
+        if (input.Status.HasValue)
+        {
+            // Status is derived, not stored: expiry outranks stock level, and
+            // the warning window is a per-row column. Rather than restate those
+            // rules as a SQL predicate that could drift from the entity's, the
+            // branch's items are read and StatusAsOf decides. Paging is applied
+            // after filtering so the count and the page agree. Inventory is
+            // per-branch and bounded; if that stops holding, this is the place
+            // to push the rule into the query.
+            var today = DateOnly.FromDateTime(Clock.Now);
+            var matching = query
+                .ToList()
+                .Where(i => i.StatusAsOf(today) == input.Status.Value)
+                .ToList();
+
+            totalCount = matching.Count;
+            items = matching.Skip(input.SkipCount).Take(input.MaxResultCount).ToList();
+        }
+        else
+        {
+            totalCount = query.Count();
+            items = query.Skip(input.SkipCount).Take(input.MaxResultCount).ToList();
+        }
 
         return new PagedResultDto<InventoryItemDto>(
             totalCount,

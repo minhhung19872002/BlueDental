@@ -1,9 +1,10 @@
 import { api } from "@/lib/axios";
 import type {
-  ReceptionItem,
-  ReceptionFilter,
-  ReceptionMetrics,
+  AppointmentOutcome,
   CreateReceptionInput,
+  ReceptionFilter,
+  ReceptionItem,
+  ReceptionMetrics,
   ReceptionStatus,
 } from "../types/reception";
 
@@ -22,6 +23,23 @@ function mapStatusToBe(status: ReceptionStatus): string {
     case "Completed": return "complete";
     default: return "check-in";
   }
+}
+
+/**
+ * VisitOutcome crosses the wire as its numeric value, so it is mapped back to
+ * the names the reception buttons use. Order matches the enum on the server.
+ */
+const OUTCOME_BY_VALUE: Record<number, AppointmentOutcome> = {
+  1: "EndTreatment",
+  2: "FollowUp",
+  3: "TransferDoctor",
+  4: "Revisit",
+};
+
+function mapOutcome(raw: unknown): AppointmentOutcome {
+  if (typeof raw === "number") return OUTCOME_BY_VALUE[raw] ?? null;
+  if (typeof raw === "string") return (raw as AppointmentOutcome) ?? null;
+  return null;
 }
 
 function mapVisitDto(dto: Record<string, unknown>): ReceptionItem {
@@ -44,6 +62,9 @@ function mapVisitDto(dto: Record<string, unknown>): ReceptionItem {
       ? new Date(dto.slotStart as string).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
       : new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
     createdAt: (dto.creationTime as string) || new Date().toISOString(),
+    // The server stores the outcome as its enum name, which is the same set of
+    // values the reception buttons use.
+    selectedOutcome: mapOutcome(dto.outcome),
   };
 }
 
@@ -97,8 +118,13 @@ export const receptionApi = {
     return mapVisitDto(res.data as Record<string, unknown>);
   },
 
+  /**
+   * Recording an outcome is a workflow step, not an edit of the booking: the
+   * update endpoint refuses anything past Scheduled, and never carried an
+   * outcome field to begin with.
+   */
   async updateOutcome(id: string, outcome: string): Promise<void> {
-    await api.put(`/v1/app/visits/${id}`, { outcome });
+    await api.post(`/v1/app/visits/${id}/outcome`, { outcome });
   },
 
   async updateDoctor(id: string, doctorId: string): Promise<void> {

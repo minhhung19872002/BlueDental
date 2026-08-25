@@ -18,6 +18,11 @@ public class Visit : FullAuditedAggregateRoot<Guid>
     public DateTimeOffset? CompletedAt { get; private set; }
     public string? CancellationReason { get; private set; }
 
+    /// <summary>What reception recorded at the end of the visit, once known.</summary>
+    public VisitOutcome? Outcome { get; private set; }
+
+    public DateTimeOffset? OutcomeRecordedAt { get; private set; }
+
     protected Visit() { }
 
     public Visit(
@@ -87,6 +92,29 @@ public class Visit : FullAuditedAggregateRoot<Guid>
         Check.NotNullOrWhiteSpace(reason, nameof(reason));
         Status = VisitStatus.Cancelled;
         CancellationReason = reason;
+        return this;
+    }
+
+    /// <summary>
+    /// Record how the visit ended.
+    ///
+    /// Deliberately not part of Update: that is for correcting a booking and is
+    /// refused once a visit leaves Scheduled, whereas an outcome is only known
+    /// after the patient has arrived. A cancelled or no-show visit has no
+    /// outcome to record.
+    /// </summary>
+    public Visit RecordOutcome(VisitOutcome outcome)
+    {
+        if (Status is VisitStatus.Scheduled)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Visits.InvalidTransition,
+                "Cannot record an outcome before the patient has checked in.");
+
+        if (Status is VisitStatus.Cancelled or VisitStatus.NoShow)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Visits.InvalidTransition,
+                $"Cannot record an outcome for a visit in status {Status}.");
+
+        Outcome = outcome;
+        OutcomeRecordedAt = DateTimeOffset.UtcNow;
         return this;
     }
 

@@ -45,4 +45,8 @@ public sealed class VisitController(IVisitAppService service) : BlueDentalContro
 
     [HttpPost("{id:guid}/no-show")]
     public Task MarkNoShowAsync(Guid id) => service.MarkNoShowAsync(id);
+
+    [HttpPost("{id:guid}/outcome")]
+    public Task<VisitDto> RecordOutcomeAsync(Guid id, [FromBody] RecordVisitOutcomeDto input) =>
+        service.RecordOutcomeAsync(id, input);
 }
