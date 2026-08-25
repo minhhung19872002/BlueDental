@@ -13,6 +13,7 @@ import { usePatient } from "../api/patientQueries";
 import { DentalChartView, type ToothRecord } from "../components/DentalChartView";
 import { formatDate, formatDateTime, formatVND } from "@/utils/format";
 import { PillTabs } from "@/components/PillTabs";
+import { EmptyState } from "@/components/EmptyState";
 import { useAppointmentList } from "@/features/appointments/api/appointmentQueries";
 import { useTreatmentPlanList, usePatientPrescriptions } from "@/features/treatment-management/api/index";
 import { INVOICE_STATUS, usePatientInvoices } from "@/features/billing/api/index";
@@ -176,7 +177,21 @@ export function PatientProfilePage() {
     );
   }
 
-  if (!patient) return null;
+  // A wrong or stale id used to render nothing at all, which reads as a broken
+  // screen rather than a missing record.
+  if (!patient) {
+    return (
+      <div className="page-container">
+        <EmptyState
+          icon="🔍"
+          title={t("Không tìm thấy hồ sơ bệnh nhân")}
+          description={t("Hồ sơ này không tồn tại hoặc không thuộc chi nhánh đang xem.")}
+          actionLabel={t("Về danh sách bệnh nhân")}
+          onAction={() => navigate("/patient")}
+        />
+      </div>
+    );
+  }
 
   const appointmentColumns: TableColumnsType<AppointmentRow> = [
     {

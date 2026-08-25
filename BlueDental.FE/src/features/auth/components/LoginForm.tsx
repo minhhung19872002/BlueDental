@@ -9,6 +9,33 @@ import { useAuthStore } from "../store/authStore";
 import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
 import { brand } from "@/theme/index";
+import type { LoginResponse } from "../types";
+
+/**
+ * ABP answers a refused login with `LoginResultType` and its enum name in
+ * `description` — "InvalidUserNameOrPassword". That name is not something to
+ * show a user, and it is never localized, so the screen says it in its own
+ * words. Built per call: t() reads the language that is current now.
+ */
+const LOGIN_RESULT_MESSAGES: Record<number, () => string> = {
+  2: () => t("Tên đăng nhập hoặc mật khẩu không đúng."),
+  3: () => t("Tài khoản chưa được phép đăng nhập. Vui lòng liên hệ quản trị viên."),
+  4: () => t("Tài khoản đang tạm khoá do đăng nhập sai nhiều lần. Vui lòng thử lại sau."),
+  5: () => t("Tài khoản cần xác thực hai lớp để đăng nhập."),
+};
+
+function loginResultMessage(result: LoginResponse): string {
+  if (result.result === 4 && result.lockoutMinutes) {
+    return t(
+      "Tài khoản đang tạm khoá do đăng nhập sai nhiều lần. Vui lòng thử lại sau {0} phút.",
+      result.lockoutMinutes,
+    );
+  }
+  return (
+    LOGIN_RESULT_MESSAGES[result.result]?.() ??
+    t("Đăng nhập không thành công. Vui lòng thử lại.")
+  );
+}
 
 const buildLoginSchema = () =>
   z.object({
@@ -38,9 +65,7 @@ export function LoginForm() {
     mutationFn: authApi.login,
     onSuccess: async (result) => {
       if (result.result !== 1) {
-        setError("root", {
-          message: result.description || t("Đăng nhập không thành công"),
-        });
+        setError("root", { message: loginResultMessage(result) });
         return;
       }
       const user = await authApi.getCurrentUser();
