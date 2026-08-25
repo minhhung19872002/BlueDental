@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { Button, Empty, Input, Spin, Switch, Tag, Tooltip, message } from "antd";
+import { Button, Empty, Input, Spin, Switch, Tag, Tooltip } from "antd";
+import { toast } from "sonner";
 import type { Dayjs } from "dayjs";
 import {
   useCheckIn,
@@ -133,19 +134,19 @@ function StaffCard({ record }: { record: TimeKeepingRecordDto }) {
 
   const handleRegistrationChange = (checked: boolean) => {
     const mutation = checked ? registerWorking.mutateAsync(record.id) : registerDayOff.mutateAsync({ id: record.id });
-    void mutation.catch(() => message.error(t("Không thể đổi đăng ký sau khi đã chấm công.")));
+    void mutation.catch(() => toast.error(t("Không thể đổi đăng ký sau khi đã chấm công.")));
   };
 
   const handleCheckIn = (shift: WorkShiftKind) => {
     void checkIn
       .mutateAsync({ id: record.id, input: { shift } })
-      .catch(() => message.error(t("Không thể vào ca.")));
+      .catch(() => toast.error(t("Không thể vào ca.")));
   };
 
   const handleCheckOut = (shift: WorkShiftKind) => {
     void checkOut
       .mutateAsync({ id: record.id, input: { shift } })
-      .catch(() => message.error(t("Không thể ra ca.")));
+      .catch(() => toast.error(t("Không thể ra ca.")));
   };
 
   return (
@@ -258,7 +259,7 @@ export function TimekeepingBoard({ currentDate }: TimekeepingBoardProps) {
     const staff = staffPage?.items ?? [];
 
     if (staff.length === 0) {
-      message.error(t("Chưa có nhân viên nào đang làm việc."));
+      toast.error(t("Chưa có nhân viên nào đang làm việc."));
       return;
     }
 
@@ -274,9 +275,9 @@ export function TimekeepingBoard({ currentDate }: TimekeepingBoardProps) {
           }),
         ),
       );
-      message.success(t("Đã mở ngày làm việc cho {0} nhân viên", staff.length));
+      toast.success(t("Đã mở ngày làm việc cho {0} nhân viên", staff.length));
     } catch (error) {
-      message.error(extractApiError(error));
+      toast.error(extractApiError(error));
     }
   };
 

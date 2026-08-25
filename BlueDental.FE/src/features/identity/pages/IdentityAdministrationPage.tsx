@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Table, Button, Input, Tag, Modal, Form, Select, message, Popconfirm, Switch } from "antd";
+import { Table, Button, Input, Tag, Modal, Form, Select, Popconfirm, Switch } from "antd";
+import { toast } from "sonner";
 import { PillTabs } from "@/components/PillTabs";
 import { SearchOutlined, PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, SafetyOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
@@ -54,7 +55,7 @@ function UserModal({
             isActive: values.isActive ?? true,
           } as UpdateIdentityUserDto,
         });
-        message.success(t("Cập nhật người dùng thành công"));
+        toast.success(t("Cập nhật người dùng thành công"));
       } else {
         await createMutation.mutateAsync({
           userName: values.userName,
@@ -65,7 +66,7 @@ function UserModal({
           roleNames: values.roleNames,
           isActive: values.isActive ?? true,
         } as CreateIdentityUserDto);
-        message.success(t("Tạo người dùng thành công"));
+        toast.success(t("Tạo người dùng thành công"));
       }
       form.resetFields();
       onClose();
@@ -143,7 +144,7 @@ function RoleModal({ open, onClose }: { open: boolean; onClose: () => void }) {
     try {
       const values = await form.validateFields();
       await createMutation.mutateAsync(values);
-      message.success(t("Tạo vai trò thành công"));
+      toast.success(t("Tạo vai trò thành công"));
       form.resetFields();
       onClose();
     } catch {
@@ -194,9 +195,9 @@ function UsersTab() {
   const handleDelete = async (id: string) => {
     try {
       await deleteMutation.mutateAsync(id);
-      message.success(t("Xóa người dùng thành công"));
+      toast.success(t("Xóa người dùng thành công"));
     } catch {
-      message.error(t("Xóa thất bại"));
+      toast.error(t("Xóa thất bại"));
     }
   };
 
@@ -298,9 +299,9 @@ function RolesTab() {
   const handleDelete = async (id: string) => {
     try {
       await deleteMutation.mutateAsync(id);
-      message.success(t("Xóa vai trò thành công"));
+      toast.success(t("Xóa vai trò thành công"));
     } catch {
-      message.error(t("Không thể xóa vai trò hệ thống"));
+      toast.error(t("Không thể xóa vai trò hệ thống"));
     }
   };
 

@@ -1,17 +1,5 @@
-import {
-  Button,
-  Checkbox,
-  Col,
-  Form,
-  Input,
-  InputNumber,
-  Popover,
-  Row,
-  Select,
-  Table,
-  Tooltip,
-  message,
-} from "antd";
+import { Button, Checkbox, Col, Form, Input, InputNumber, Popover, Row, Select, Table, Tooltip } from "antd";
+import { toast } from "sonner";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DeleteOutlined,
@@ -289,7 +277,7 @@ export function PrescriptionTemplateDialog({
             sortOrder,
           },
         });
-        message.success(t("Đã cập nhật đơn thuốc mẫu"));
+        toast.success(t("Đã cập nhật đơn thuốc mẫu"));
       } else {
         await createEntry.mutateAsync({
           clinicBranchId: branchId,
@@ -299,7 +287,7 @@ export function PrescriptionTemplateDialog({
           prescriptionLines: filled,
           sortOrder,
         });
-        message.success(t("Đã thêm đơn thuốc mẫu"));
+        toast.success(t("Đã thêm đơn thuốc mẫu"));
       }
       onClose();
     } catch {

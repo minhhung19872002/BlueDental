@@ -1,4 +1,5 @@
-import { Drawer, message } from "antd";
+import { Drawer } from "antd";
+import { toast } from "sonner";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import {
@@ -253,10 +254,10 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
     try {
       if (pendingDelete.kind === "group") {
         await deleteGroup.mutateAsync(pendingDelete.id);
-        message.success(t("Đã xoá nhóm"));
+        toast.success(t("Đã xoá nhóm"));
       } else {
         await deleteEntry.mutateAsync(pendingDelete.id);
-        message.success(t("Đã xoá"));
+        toast.success(t("Đã xoá"));
       }
     } catch {
       // queryClient reports the failure; nothing to add here.

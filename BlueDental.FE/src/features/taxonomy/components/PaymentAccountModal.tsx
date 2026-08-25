@@ -1,4 +1,5 @@
-import { Button, message } from "antd";
+import { Button } from "antd";
+import { toast } from "sonner";
 import { Form, Input } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { ImageUp, Trash2 } from "lucide-react";
@@ -158,14 +159,14 @@ export function PaymentAccountModal({ open, kind, account, onClose }: Props) {
     } catch (cause) {
       // The account itself is already saved, so the dialog closes rather than
       // inviting a second submit that would create a duplicate.
-      message.error(
+      toast.error(
         `${t("Đã lưu phương thức thanh toán nhưng chưa lưu được ảnh QR")}: ${extractApiError(cause)}`,
       );
       onClose();
       return;
     }
 
-    message.success(
+    toast.success(
       account ? t("Đã cập nhật phương thức thanh toán") : t("Đã thêm phương thức thanh toán"),
     );
     onClose();

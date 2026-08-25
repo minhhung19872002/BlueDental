@@ -1,18 +1,5 @@
-import {
-  Button,
-  Checkbox,
-  Col,
-  Form,
-  Input,
-  InputNumber,
-  Row,
-  Segmented,
-  Select,
-  Table,
-  Tabs,
-  Tooltip,
-  message,
-} from "antd";
+import { Button, Checkbox, Col, Form, Input, InputNumber, Row, Segmented, Select, Table, Tabs, Tooltip } from "antd";
+import { toast } from "sonner";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
@@ -228,10 +215,10 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
           input: { ...shared, isActive: values.isActive, isDeleted: values.isDeleted },
         });
 
-        message.success(values.isDeleted ? t("Đã xoá") : t("Đã cập nhật dịch vụ"));
+        toast.success(values.isDeleted ? t("Đã xoá") : t("Đã cập nhật dịch vụ"));
       } else {
         await createEntry.mutateAsync({ clinicBranchId: branchId, ...shared });
-        message.success(t("Đã thêm dịch vụ"));
+        toast.success(t("Đã thêm dịch vụ"));
       }
       onClose();
     } catch {

@@ -1,4 +1,5 @@
-import { Checkbox, Col, Form, Input, InputNumber, Row, Select, message } from "antd";
+import { Checkbox, Col, Form, Input, InputNumber, Row, Select } from "antd";
+import { toast } from "sonner";
 import { useEffect, useRef } from "react";
 import {
   useCreateCatalogEntry,
@@ -104,7 +105,7 @@ export function RichCatalogDialog({
           },
         });
 
-        message.success(isDeleted ? t("Đã xoá") : t("Đã cập nhật"));
+        toast.success(isDeleted ? t("Đã xoá") : t("Đã cập nhật"));
       } else {
         await createEntry.mutateAsync({
           clinicBranchId: branchId,
@@ -114,7 +115,7 @@ export function RichCatalogDialog({
           note: noteText,
           sortOrder,
         });
-        message.success(t("Đã thêm"));
+        toast.success(t("Đã thêm"));
       }
       onClose();
     } catch {

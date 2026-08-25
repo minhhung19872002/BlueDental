@@ -1,4 +1,5 @@
-import { Form, Input, message } from "antd";
+import { Form, Input } from "antd";
+import { toast } from "sonner";
 import { useEffect } from "react";
 import { BgColorsOutlined } from "@ant-design/icons";
 import { useCreatePatientTag, useUpdatePatientTag, type PatientTagDto } from "../api/patientTagApi";
@@ -63,14 +64,14 @@ export function PatientTagModal({ open, tag, onClose }: Props) {
             isActive: tag.isActive,
           },
         });
-        message.success(t("Đã cập nhật thẻ hồ sơ"));
+        toast.success(t("Đã cập nhật thẻ hồ sơ"));
       } else {
         await createTag.mutateAsync({
           clinicBranchId: branchId,
           name: trimmed,
           color: values.color,
         });
-        message.success(t("Đã thêm thẻ hồ sơ"));
+        toast.success(t("Đã thêm thẻ hồ sơ"));
       }
       onClose();
     } catch {

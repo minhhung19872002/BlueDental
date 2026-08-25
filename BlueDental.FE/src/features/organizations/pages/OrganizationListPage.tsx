@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Button, Form, Input, Modal, Popconfirm, Space, Table, Tag, message } from "antd";
+import { Button, Form, Input, Modal, Popconfirm, Space, Table, Tag } from "antd";
+import { toast } from "sonner";
 import { PillTabs } from "@/components/PillTabs";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
@@ -70,7 +71,7 @@ function BranchTable() {
         email: values.email,
       };
       await updateMutation.mutateAsync({ id: editingBranch.id, data: updateData });
-      message.success(t("Cập nhật chi nhánh thành công"));
+      toast.success(t("Cập nhật chi nhánh thành công"));
     } else {
       const createData: CreateClinicBranchDto = {
         code: values.code,
@@ -80,7 +81,7 @@ function BranchTable() {
         email: values.email,
       };
       await createMutation.mutateAsync(createData);
-      message.success(t("Tạo chi nhánh thành công"));
+      toast.success(t("Tạo chi nhánh thành công"));
     }
     setModalOpen(false);
     form.resetFields();
@@ -88,7 +89,7 @@ function BranchTable() {
 
   const handleDelete = async (id: string) => {
     await deleteMutation.mutateAsync(id);
-    message.success(t("Xóa chi nhánh thành công"));
+    toast.success(t("Xóa chi nhánh thành công"));
   };
 
   const columns: ColumnsType<ClinicBranchDto> = [
@@ -227,14 +228,14 @@ function DepartmentTable() {
         description: values.description,
       };
       await updateMutation.mutateAsync({ id: editingDept.id, data: updateData });
-      message.success(t("Cập nhật phòng ban thành công"));
+      toast.success(t("Cập nhật phòng ban thành công"));
     } else {
       const createData: CreateDepartmentDto = {
         name: values.name,
         description: values.description,
       };
       await createMutation.mutateAsync(createData);
-      message.success(t("Tạo phòng ban thành công"));
+      toast.success(t("Tạo phòng ban thành công"));
     }
     setModalOpen(false);
     form.resetFields();
@@ -242,7 +243,7 @@ function DepartmentTable() {
 
   const handleDelete = async (id: string) => {
     await deleteMutation.mutateAsync(id);
-    message.success(t("Xóa phòng ban thành công"));
+    toast.success(t("Xóa phòng ban thành công"));
   };
 
   const columns: ColumnsType<DepartmentDto> = [

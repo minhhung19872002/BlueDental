@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Button, Descriptions, Divider, Form, Input, Modal, Select, Spin, Typography, message } from "antd";
+import { Button, Descriptions, Divider, Form, Input, Modal, Select, Spin, Typography } from "antd";
+import { toast } from "sonner";
 import { PillTabs } from "@/components/PillTabs";
 import { useNavigate } from "react-router-dom";
 import { EditOutlined, UserOutlined } from "@ant-design/icons";
@@ -52,7 +53,7 @@ function ClinicInfoTab() {
       email: values.email,
     };
     await updateMutation.mutateAsync(data);
-    message.success(t("Cập nhật thông tin thành công"));
+    toast.success(t("Cập nhật thông tin thành công"));
     setEditOpen(false);
   };
 
@@ -144,7 +145,7 @@ function GeneralSettingsTab() {
       setLanguage(values.language as Language);
     }
     setSaved(true);
-    message.success(t("Lưu cài đặt thành công"));
+    toast.success(t("Lưu cài đặt thành công"));
     setTimeout(() => setSaved(false), 2000);
   };
 

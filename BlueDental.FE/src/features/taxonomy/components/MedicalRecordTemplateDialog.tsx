@@ -1,4 +1,5 @@
-import { Button, Col, Form, Input, InputNumber, Row, Space, message } from "antd";
+import { Button, Col, Form, Input, InputNumber, Row, Space } from "antd";
+import { toast } from "sonner";
 import { useEffect, useRef, useState } from "react";
 import { MinusOutlined, PlusOutlined } from "@ant-design/icons";
 import {
@@ -103,7 +104,7 @@ export function MedicalRecordTemplateDialog({
             sortOrder,
           },
         });
-        message.success(t("Đã cập nhật mẫu bệnh án"));
+        toast.success(t("Đã cập nhật mẫu bệnh án"));
       } else {
         await createEntry.mutateAsync({
           clinicBranchId: branchId,
@@ -112,7 +113,7 @@ export function MedicalRecordTemplateDialog({
           content,
           sortOrder,
         });
-        message.success(t("Đã thêm mẫu bệnh án"));
+        toast.success(t("Đã thêm mẫu bệnh án"));
       }
       onClose();
     } catch {
