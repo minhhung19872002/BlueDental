@@ -30,17 +30,19 @@ test.describe("Kế hoạch điều trị", () => {
 
     await page.getByRole("tab", { name: "Kế hoạch điều trị" }).click();
 
-    // The buttons should be visible (even though they're decorative).
+    // The tab renders TreatmentPlanPanel now, not the stand-in table it used
+    // to draw: a slip is opened from accepted consulting lines, so the action
+    // is "Tạo kế hoạch mới" and the decorative "Xem tất cả dịch vụ" is gone.
     await expect(page.getByRole("button", { name: "Tạo kế hoạch mới" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Xem tất cả dịch vụ" })).toBeVisible();
 
-    // Summary cards should render.
+    // Summary cards: what is being worked, and the slip behind it.
     await expect(page.getByText("Dịch vụ đang điều trị", { exact: true })).toBeVisible();
-    await expect(page.getByText("Dịch vụ có công đoạn gần nhất", { exact: true })).toBeVisible();
+    await expect(page.getByText("Phiếu điều trị", { exact: true })).toBeVisible();
 
-    // Table column headers should be present.
+    // One row per service line, carrying the slip number and the service.
     await expect(page.getByRole("columnheader", { name: "Số phiếu" })).toBeVisible();
     await expect(page.getByRole("columnheader", { name: "Dịch vụ" })).toBeVisible();
+    await expect(page.getByRole("columnheader", { name: "Trạng thái - Tiến độ" })).toBeVisible();
   });
 
   test("the treatment plan tab loads plan data from the API", async ({ page }) => {
