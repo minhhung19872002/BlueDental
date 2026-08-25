@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import type { PagedResult } from "@/types";
 import { usePrescriptions } from "./prescriptionApi";
-import { DEFAULT_BRANCH_ID } from "@/lib/clinicBranch";
+import { useCurrentBranchId } from "@/lib/clinicBranch";
 
 export interface TreatmentPlanDto {
   id: string;
@@ -60,9 +60,10 @@ export function useCreateTreatmentPlan() {
 
 /**
  * The patient tab asks for a patient's slips without naming a branch; the list
- * hook takes one, so this passes the current branch on its behalf.
+ * hook takes one, so this passes the branch the header is on.
  */
 export function usePatientPrescriptions(patientId: string) {
-  const query = usePrescriptions(patientId, DEFAULT_BRANCH_ID);
+  const branchId = useCurrentBranchId();
+  const query = usePrescriptions(patientId, branchId);
   return { ...query, data: query.data?.items };
 }

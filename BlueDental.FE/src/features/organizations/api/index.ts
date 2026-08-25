@@ -46,8 +46,10 @@ export interface UpdateDepartmentDto {
 }
 
 const organizationApi = {
-  listBranches: (): Promise<PagedResult<ClinicBranchDto>> =>
-    api.get("/v1/app/clinic-branches", { params: { maxResultCount: 50 } }).then((r) => r.data),
+  listBranches: (accessibleOnly = false): Promise<PagedResult<ClinicBranchDto>> =>
+    api
+      .get("/v1/app/clinic-branches", { params: { maxResultCount: 50, accessibleOnly } })
+      .then((r) => r.data),
 
   getBranch: (id: string): Promise<ClinicBranchDto> =>
     api.get(`/v1/app/clinic-branches/${id}`).then((r) => r.data),
@@ -74,10 +76,15 @@ const organizationApi = {
     api.delete(`/v1/app/departments/${id}`).then(() => undefined),
 };
 
-export function useClinicBranches() {
+/**
+ * @param accessibleOnly true for the header's branch switcher, which must only
+ * offer branches this account can actually read — picking another one would
+ * simply 403 on every screen.
+ */
+export function useClinicBranches(accessibleOnly = false) {
   return useQuery({
-    queryKey: ["clinic-branches"],
-    queryFn: () => organizationApi.listBranches(),
+    queryKey: ["clinic-branches", { accessibleOnly }],
+    queryFn: () => organizationApi.listBranches(accessibleOnly),
     select: (d) => d.items,
     staleTime: 10 * 60_000,
   });
