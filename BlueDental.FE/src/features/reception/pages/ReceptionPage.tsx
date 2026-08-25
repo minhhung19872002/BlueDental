@@ -16,7 +16,7 @@ import { useUpdateReceptionStatus, useUpdateReceptionOutcome, useUpdateReception
 import { t } from "@/lib/i18n";
 import { PageHeader } from "@/components/PageHeader";
 import { exportToExcel } from "@/utils/exportExcel";
-import { formatVND } from "@/utils/format";
+import { formatClock, formatVND } from "@/utils/format";
 import type {
   ReceptionStatus,
   ReceptionFilter,
@@ -38,10 +38,12 @@ export const ReceptionPage: React.FC = () => {
     keyword,
     doctorId: selectedDoctorId,
     date: currentDate.format("YYYY-MM-DD"),
+    viewMode,
   };
 
   const { data: listData, isLoading: listLoading } = useReceptionList(filter);
-  const { data: metrics } = useReceptionMetrics();
+  // The counters read the same window as the list, minus the status tab.
+  const { data: metrics } = useReceptionMetrics({ date: filter.date, viewMode });
   const { data: doctors = [] } = useReceptionDoctors();
   const updateStatusMutation = useUpdateReceptionStatus();
   const updateOutcomeMutation = useUpdateReceptionOutcome();
@@ -81,7 +83,11 @@ export const ReceptionPage: React.FC = () => {
     exportToExcel(
       items,
       [
-        { header: t("Giờ"), key: "arrivalTime" },
+        {
+          header: t("Giờ"),
+          key: "arrivalTime",
+          format: (v) => (typeof v === "string" ? formatClock(v) : ""),
+        },
         { header: t("Khách hàng"), key: "patientName" },
         { header: t("Số điện thoại"), key: "patientPhone" },
         {

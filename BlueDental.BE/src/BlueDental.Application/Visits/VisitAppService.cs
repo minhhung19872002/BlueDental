@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Organizations;
+using BlueDental.PatientManagement;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
@@ -10,6 +11,7 @@ using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Entities;
 using Volo.Abp.Domain.Repositories;
+using Volo.Abp.Identity;
 
 namespace BlueDental.Visits;
 
@@ -17,14 +19,59 @@ namespace BlueDental.Visits;
 public class VisitAppService : ApplicationService, IVisitAppService
 {
     private readonly IRepository<Visit, Guid> _repository;
+    private readonly IRepository<Patient, Guid> _patientRepository;
+    private readonly IIdentityUserRepository _userRepository;
     private readonly ICurrentClinicBranchResolver _branchResolver;
 
     public VisitAppService(
         IRepository<Visit, Guid> repository,
+        IRepository<Patient, Guid> patientRepository,
+        IIdentityUserRepository userRepository,
         ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
+        _patientRepository = patientRepository;
+        _userRepository = userRepository;
         _branchResolver = branchResolver;
+    }
+
+    /// <summary>
+    /// A visit stores ids, and the board shows names. Nothing filled these in,
+    /// so every row read "Bệnh nhân" and "Bác sĩ" however full the table was.
+    /// </summary>
+    private async Task FillNamesAsync(
+        IReadOnlyList<Visit> entities,
+        IReadOnlyList<VisitDto> dtos)
+    {
+        if (entities.Count == 0)
+        {
+            return;
+        }
+
+        var patientIds = entities.Select(v => v.PatientId).Distinct().ToList();
+        var patientQuery = await _patientRepository.GetQueryableAsync();
+        var patients = (await AsyncExecuter.ToListAsync(
+                patientQuery.Where(p => patientIds.Contains(p.Id))))
+            .ToDictionary(p => p.Id, p => (p.LastName + " " + p.FirstName).Trim());
+
+        var dentistIds = entities
+            .Where(v => v.DentistId.HasValue)
+            .Select(v => v.DentistId!.Value)
+            .Distinct()
+            .ToList();
+
+        var dentists = dentistIds.Count == 0
+            ? []
+            : (await _userRepository.GetListByIdsAsync(dentistIds))
+                .ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
+
+        for (var i = 0; i < entities.Count; i++)
+        {
+            dtos[i].PatientName = patients.GetValueOrDefault(entities[i].PatientId);
+            dtos[i].DentistName = entities[i].DentistId.HasValue
+                ? dentists.GetValueOrDefault(entities[i].DentistId!.Value)
+                : null;
+        }
     }
 
     [Authorize(BlueDentalPermissions.Visits.View)]
@@ -39,9 +86,10 @@ public class VisitAppService : ApplicationService, IVisitAppService
             .Take(input.MaxResultCount)
             .ToList();
 
-        return new PagedResultDto<VisitDto>(
-            totalCount,
-            ObjectMapper.Map<List<Visit>, List<VisitDto>>(items));
+        var dtos = ObjectMapper.Map<List<Visit>, List<VisitDto>>(items);
+        await FillNamesAsync(items, dtos);
+
+        return new PagedResultDto<VisitDto>(totalCount, dtos);
     }
 
     [Authorize(BlueDentalAbilityPermissions.Reception.Read)]
@@ -75,8 +123,17 @@ public class VisitAppService : ApplicationService, IVisitAppService
 
         if (input.PatientId.HasValue)
             query = query.Where(v => v.PatientId == input.PatientId.Value);
+        if (input.DentistId.HasValue)
+            query = query.Where(v => v.DentistId == input.DentistId.Value);
         if (input.Status.HasValue)
             query = query.Where(v => v.Status == input.Status.Value);
+
+        // Without this the board showed every visit the clinic has ever had,
+        // whatever its date picker said.
+        if (input.FromDate.HasValue)
+            query = query.Where(v => v.ScheduledAt >= input.FromDate.Value);
+        if (input.ToDate.HasValue)
+            query = query.Where(v => v.ScheduledAt < input.ToDate.Value);
 
         if (!string.IsNullOrWhiteSpace(input.Filter))
         {
@@ -94,7 +151,10 @@ public class VisitAppService : ApplicationService, IVisitAppService
     {
         var visit = await _repository.GetAsync(id);
         GuardBranchAccess(visit);
-        return ObjectMapper.Map<Visit, VisitDto>(visit);
+
+        var dto = ObjectMapper.Map<Visit, VisitDto>(visit);
+        await FillNamesAsync([visit], [dto]);
+        return dto;
     }
 
     [Authorize(BlueDentalPermissions.Visits.Create)]

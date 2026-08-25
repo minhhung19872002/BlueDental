@@ -36,6 +36,15 @@ export function formatDateTime(
 }
 
 /** Format currency as VND with symbol */
+/** HH:mm in local time, or a placeholder when there is no instant. */
+export function formatClock(value: string | Date | null | undefined): string {
+  if (!value) return "--:--";
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime())
+    ? "--:--"
+    : `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+}
+
 export function formatCurrency(value: number): string {
   return new Intl.NumberFormat("vi-VN", {
     style: "currency",

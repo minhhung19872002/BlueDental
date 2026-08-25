@@ -1,5 +1,7 @@
+import dayjs from "dayjs";
 import { api } from "@/lib/axios";
 import type {
+  AppointmentCounterType,
   AppointmentOutcome,
   CreateReceptionInput,
   ReceptionFilter,
@@ -42,6 +44,41 @@ function mapOutcome(raw: unknown): AppointmentOutcome {
   return null;
 }
 
+/**
+ * The half-open window the board is asking for. A day, a week and a month all
+ * become the same from/to pair, which is what the server filters on.
+ */
+function dateWindow(filter: ReceptionFilter): { fromDate?: string; toDate?: string } {
+  if (!filter.date) return {};
+
+  const unit = filter.viewMode === "week" ? "week" : filter.viewMode === "month" ? "month" : "day";
+  const start = dayjs(filter.date).startOf(unit);
+
+  return {
+    fromDate: start.toISOString(),
+    toDate: start.add(1, unit).toISOString(),
+  };
+}
+
+/**
+ * The six counters the board draws are the reference's, and a visit has seven
+ * states; this is how they line up. Anything still waiting is "đã hẹn", anyone
+ * through the door is "đã đến" whatever stage they are at, and a no-show sits
+ * with the late ones because that is the counter the board offers.
+ */
+const COUNTER_BY_VISIT_STATUS: Record<number, AppointmentCounterType> = {
+  1: "Scheduled",
+  2: "Arrived",
+  3: "Arrived",
+  4: "Arrived",
+  5: "Cancelled",
+  6: "Late",
+};
+
+function mapCounterStatus(raw: unknown): AppointmentCounterType | undefined {
+  return typeof raw === "number" ? COUNTER_BY_VISIT_STATUS[raw] : undefined;
+}
+
 function mapVisitDto(dto: Record<string, unknown>): ReceptionItem {
   return {
     id: dto.id as string,
@@ -54,13 +91,15 @@ function mapVisitDto(dto: Record<string, unknown>): ReceptionItem {
     doctorName: (dto.dentistName as string) || "Bác sĩ",
     refType: "Medical",
     status: mapStatusFromBe(dto.status),
+    counterStatus: mapCounterStatus(dto.status),
     totalDue: 0,
     expectedRevenue: 0,
     services: [(dto.procedureName as string) || "Khám tư vấn"],
     notes: (dto.notes as string) || (dto.chiefComplaint as string) || undefined,
-    arrivalTime: dto.slotStart
-      ? new Date(dto.slotStart as string).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
-      : new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
+    // The instant, not a clock face: every reader formats it themselves. It
+    // reads `scheduledAt` because `slotStart` belongs to the appointment
+    // contract and was never on this response.
+    arrivalTime: ((dto.scheduledAt as string) ?? (dto.checkedInAt as string) ?? ""),
     createdAt: (dto.creationTime as string) || new Date().toISOString(),
     // The server stores the outcome as its enum name, which is the same set of
     // values the reception buttons use.
@@ -76,25 +115,31 @@ export const receptionApi = {
         dentistId: filter.doctorId,
         status: filter.status !== "All" ? filter.status : undefined,
         maxResultCount: 50,
+        ...dateWindow(filter),
       },
     });
     const items: ReceptionItem[] = (res.data?.items ?? []).map(mapVisitDto);
     return { items, total: res.data?.totalCount ?? items.length };
   },
 
-  async getMetrics(): Promise<ReceptionMetrics> {
-    const res = await api.get("/v1/app/visits", { params: { maxResultCount: 200 } });
-    const items: ReceptionItem[] = (res.data?.items ?? []).map(mapVisitDto);
+  async getMetrics(filter: ReceptionFilter = {}): Promise<ReceptionMetrics> {
+    // The server counts the same window the list is showing. This used to page
+    // the rows back and call every one of them arrived.
+    const res = await api.get("/v1/app/visits/stats", {
+      params: dateWindow(filter),
+    });
+    const stats = res.data ?? {};
+
     return {
-      totalCount: res.data?.totalCount ?? items.length,
-      waitingCount: items.filter((i) => i.status === "WaitingForExam").length,
-      inProgressCount: items.filter((i) => i.status === "InProgress").length,
-      completedCount: items.filter((i) => i.status === "Completed").length,
+      totalCount: stats.total ?? 0,
+      waitingCount: stats.checkedIn ?? 0,
+      inProgressCount: stats.inProgress ?? 0,
+      completedCount: stats.completed ?? 0,
       counters: {
-        scheduledCount: 0,
-        arrivedCount: items.length,
-        cancelledCount: 0,
-        lateCount: 0,
+        scheduledCount: stats.scheduled ?? 0,
+        arrivedCount: (stats.checkedIn ?? 0) + (stats.inProgress ?? 0) + (stats.completed ?? 0),
+        cancelledCount: stats.cancelled ?? 0,
+        lateCount: stats.noShow ?? 0,
         temporaryCount: 0,
         convertedCount: 0,
       },

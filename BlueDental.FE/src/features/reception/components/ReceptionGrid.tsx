@@ -2,6 +2,7 @@ import { CalendarX } from "lucide-react";
 import { DataGrid, type DataGridColumn } from "@/components/DataGrid";
 import { SearchSelect } from "@/components/SearchSelect";
 import { t } from "@/lib/i18n";
+import { formatClock } from "@/utils/format";
 import type {
   ReceptionItem,
   AppointmentOutcome,
@@ -34,15 +35,6 @@ const OUTCOME_KEYS: NonNullOutcome[] = [
   "TransferDoctor",
   "Revisit",
 ];
-
-/** Hour and minute only — the row already sits under a chosen date. */
-function clockOf(value?: string): string {
-  if (!value) return "--:--";
-  const d = new Date(value);
-  return Number.isNaN(d.getTime())
-    ? "--:--"
-    : `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-}
 
 /**
  * Reception as the design draws its lists.
@@ -85,7 +77,7 @@ export function ReceptionGrid({
       title: t("Giờ"),
       width: "76px",
       render: (r) => (
-        <span className="dg-key">{clockOf(r.arrivalTime || r.appointmentTime)}</span>
+        <span className="dg-key">{formatClock(r.arrivalTime || r.appointmentTime)}</span>
       ),
     },
     {
@@ -150,7 +142,7 @@ export function ReceptionGrid({
                 <span className={`rec-step-dot${time ? " rec-step-dot--done" : ""}`}>
                   {i + 1}
                 </span>
-                <span className="rec-step-time">{clockOf(time)}</span>
+                <span className="rec-step-time">{formatClock(time)}</span>
               </div>
             ))}
           </div>

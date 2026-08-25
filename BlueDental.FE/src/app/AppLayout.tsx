@@ -334,7 +334,6 @@ export function AppLayout() {
 
         {/* Main nav */}
         <nav className="sidebar-nav-main">
-          {sidebarExpanded && <div className="sidebar-nav-heading">{t("MENU")}</div>}
           {mainNav(t).map((item) => (
             <SidebarNavItem
               key={item.key}
@@ -502,7 +501,6 @@ export function AppLayout() {
           </button>
         </div>
 
-        <div className="sidebar-nav-heading">{t("MENU")}</div>
         <nav className="sidebar-nav-main">
           {mainNav(t).map((item) => (
             <SidebarNavItem

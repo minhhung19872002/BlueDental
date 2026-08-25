@@ -47,8 +47,19 @@ public class GetVisitListInput : PagedAndSortedResultRequestDto
 {
     public Guid? BranchId { get; set; }
     public Guid? PatientId { get; set; }
+    public Guid? DentistId { get; set; }
     public VisitStatus? Status { get; set; }
     public string? Filter { get; set; }
+
+    /// <summary>
+    /// The window the reception board is looking at. Half-open: a visit counts
+    /// when it is scheduled at or after <see cref="FromDate"/> and strictly
+    /// before <see cref="ToDate"/>, so a day, a week and a month all express
+    /// themselves the same way and no visit lands in two windows.
+    /// </summary>
+    public DateTimeOffset? FromDate { get; set; }
+
+    public DateTimeOffset? ToDate { get; set; }
 }
 
 /// <summary>
