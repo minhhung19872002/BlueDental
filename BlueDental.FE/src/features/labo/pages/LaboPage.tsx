@@ -135,6 +135,16 @@ function MauLaboView() {
   });
   const deleteMutation = useDeleteLaboOrder();
 
+  // The tiles count the whole queue, not the filtered view, so switching a
+  // filter does not change the numbers above it.
+  const { data: allOrders } = useLaboOrderList({ maxResultCount: 500 });
+  const allLaboItems = allOrders?.items ?? [];
+  const laboCounts = {
+    all: allOrders?.totalCount ?? 0,
+    pending: allLaboItems.filter((o) => o.status === LABO_STATUS.Sent || o.status === LABO_STATUS.InProgress).length,
+    received: allLaboItems.filter((o) => o.status === LABO_STATUS.Received || o.status === LABO_STATUS.Completed).length,
+  };
+
   const filtered = (data?.items ?? []).filter((o) => {
     if (!keyword) return true;
     const kw = keyword.toLowerCase();
@@ -228,29 +238,35 @@ function MauLaboView() {
 
   return (
     <>
-      {/* Status filter tabs */}
-      <div className="reception-card reception-card--tabs">
-        <div style={{ display: "flex", gap: 0, flexWrap: "wrap" }}>
-          {MAU_LABO_FILTER_TABS.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setFilterTab(tab.key)}
-              style={{
-                padding: "8px 16px",
-                border: "none",
-                borderBottom:
-                  filterTab === tab.key ? "2px solid var(--bd-blue)" : "2px solid transparent",
-                background: "none",
-                color: filterTab === tab.key ? "var(--bd-blue)" : "var(--bd-muted)",
-                fontWeight: filterTab === tab.key ? 600 : 400,
-                cursor: "pointer",
-                fontSize: 13,
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
+      {/* The design counts the queue above the filters. */}
+      <div className="stat-tiles" style={{ marginBottom: 12 }}>
+        <div className="stat-tile" style={{ "--tile-color": "var(--bd-blue)" } as React.CSSProperties}>
+          <div className="stat-tile-value">{laboCounts.all}</div>
+          <div className="stat-tile-label">{t("Tất cả phiếu")}</div>
         </div>
+        <div className="stat-tile" style={{ "--tile-color": "var(--bd-gold-deep)" } as React.CSSProperties}>
+          <div className="stat-tile-value">{laboCounts.pending}</div>
+          <div className="stat-tile-label">{t("Chưa nhận")}</div>
+        </div>
+        <div className="stat-tile" style={{ "--tile-color": "var(--bd-green-bright)" } as React.CSSProperties}>
+          <div className="stat-tile-value">{laboCounts.received}</div>
+          <div className="stat-tile-label">{t("Đã nhận hàng")}</div>
+        </div>
+      </div>
+
+      <div className="pill-tabs" role="tablist" style={{ marginBottom: 12 }}>
+        {MAU_LABO_FILTER_TABS.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            role="tab"
+            aria-selected={tab.key === filterTab}
+            className={`pill-tab${tab.key === filterTab ? " pill-tab--active" : ""}`}
+            onClick={() => setFilterTab(tab.key)}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {/* Toolbar */}
@@ -653,28 +669,19 @@ export function LaboPage() {
         subtitle={t("Phiếu labo, nhà cung cấp và danh mục kỹ thuật")}
       />
 
-      <div className="reception-card reception-card--tabs">
-        <div style={{ display: "flex", gap: 0, flexWrap: "wrap" }}>
-          {SUB_ROUTES.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              style={{
-                padding: "8px 18px",
-                border: "none",
-                borderBottom: activeTab === tab.key ? "2px solid var(--bd-blue)" : "2px solid transparent",
-                background: "none",
-                color: activeTab === tab.key ? "var(--bd-blue)" : "var(--bd-muted)",
-                fontWeight: activeTab === tab.key ? 600 : 400,
-                cursor: "pointer",
-                fontSize: 13,
-                whiteSpace: "nowrap",
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      <div className="pill-tabs" role="tablist" style={{ marginBottom: 4 }}>
+        {SUB_ROUTES.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            role="tab"
+            aria-selected={tab.key === activeTab}
+            className={`pill-tab${tab.key === activeTab ? " pill-tab--active" : ""}`}
+            onClick={() => setActiveTab(tab.key)}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
       {renderContent()}
     </div>

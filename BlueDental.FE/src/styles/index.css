@@ -3553,3 +3553,104 @@ body {
   background: var(--bd-blue-dark);
   color: #ffffff;
 }
+
+/* ── Stat tiles ─────────────────────────────────────────────────────────────
+   The design's counter card, used by Tiếp nhận, CSKH, Voucher and Labo: a
+   white tile topped by a 3px band in the status colour, its number large in
+   that colour and the label muted underneath. Colour arrives as --tile-color. */
+
+.stat-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+}
+
+.stat-tile {
+  background: #ffffff;
+  border: 1px solid var(--bd-border);
+  border-top: 3px solid var(--tile-color, var(--bd-blue));
+  border-radius: 14px;
+  padding: 14px 16px;
+  line-height: 1.2;
+}
+
+.stat-tile-value {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.9px;
+  color: var(--tile-color, var(--bd-ink));
+}
+
+.stat-tile-label {
+  font-size: 12px;
+  color: var(--bd-muted);
+  margin-top: 2px;
+}
+
+/* ── Voucher cards (the design lists vouchers as cards, not rows) ────────── */
+
+.voucher-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 14px;
+}
+
+.voucher-card {
+  background: #ffffff;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.voucher-card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.voucher-code {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  color: var(--bd-blue);
+}
+
+.voucher-name {
+  font-size: 13px;
+  font-weight: 550;
+  margin-top: 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.voucher-meta {
+  font-size: 11.5px;
+  color: var(--bd-dim);
+  margin-top: 2px;
+}
+
+.voucher-percent {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.6px;
+  color: var(--bd-ink);
+  text-align: right;
+}
+
+.voucher-usage {
+  font-size: 11.5px;
+  color: var(--bd-dim);
+  text-align: right;
+  margin-top: 2px;
+}
+
+.voucher-card-actions {
+  display: flex;
+  gap: 8px;
+  border-top: 1px solid var(--bd-line-soft);
+  padding-top: 12px;
+}
