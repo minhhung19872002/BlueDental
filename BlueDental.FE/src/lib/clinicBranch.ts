@@ -1,13 +1,14 @@
 /**
  * Current clinic branch — Zustand store + URL sync.
  *
- * Priority: URL param > localStorage > DEFAULT_BRANCH_ID.
+ * Priority: URL param > localStorage > no branch at all.
  *
  * When a branch is selected, both the store and URL `?branchId=...` are updated.
  * "All branches" (null) removes the param.
  */
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { useAuthStore } from "@/features/auth/store/authStore";
 
 export const DEFAULT_BRANCH_ID = "11111111-1111-1111-1111-111111111111";
 
@@ -37,7 +38,10 @@ interface BranchState {
 export const useBranchStore = create<BranchState>()(
   persist(
     (set) => ({
-      currentBranchId: DEFAULT_BRANCH_ID,
+      // Starts on "every branch this account may see" rather than a fixed id:
+      // an account that has no access to that branch would otherwise open on a
+      // screenful of 403s before the header could correct itself.
+      currentBranchId: null,
       setCurrentBranchId: (id) => {
         syncToUrl(id);
         set({ currentBranchId: id });
@@ -56,9 +60,32 @@ export const useBranchStore = create<BranchState>()(
   ),
 );
 
+/**
+ * Points the app at the account's own branch, unless a branch is already
+ * chosen — by the URL, or by this browser last time.
+ *
+ * Called as the session is established rather than from a screen, so the choice
+ * is settled before the first query goes out.
+ */
+export function initBranchForSession(ownBranchId: string | null): void {
+  if (useBranchStore.getState().currentBranchId) return;
+  if (readFromUrl()) return;
+  if (!ownBranchId) return;
+  useBranchStore.getState().setCurrentBranchId(ownBranchId);
+}
+
+/**
+ * The branch a screen should read and write.
+ *
+ * `null` in the store means "Tất cả chi nhánh", which is a filter, not a place
+ * to write to — so the fallback is the account's *own* branch. Falling back to
+ * a fixed id instead would point every account without that branch at data it
+ * may not touch, and the server would refuse each request with a 403.
+ */
 export function useCurrentBranchId(): string {
   const id = useBranchStore((s) => s.currentBranchId);
-  return id ?? DEFAULT_BRANCH_ID;
+  const ownBranchId = useAuthStore((s) => s.user?.clinicId);
+  return id ?? ownBranchId ?? DEFAULT_BRANCH_ID;
 }
 
 /**
