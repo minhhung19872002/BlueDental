@@ -56,3 +56,19 @@ errors, so neither branch's typecheck had caught them.
 
 Caught by `e2e/screen-sweep.mjs`, which walks every route and fails on an
 application console error or an empty page.
+
+## 2026-08-25 — first pass over the deployed production build
+
+Both found by using the deployed app at `bluedental.bluestar.com.vn` rather
+than a local one. Neither is a type error and neither shows up on a seeded
+local database, which is why they had survived every earlier run.
+
+| What broke | Why | Fix |
+|---|---|---|
+| A refused login told the user `InvalidUserNameOrPassword` | That is ABP's `LoginResultType` enum name. The account endpoint returns it in `description`, the login form printed `description` as-is, and ABP never localizes it — so the screen quoted an internal identifier at whoever mistyped a password. | The four refusal codes carry their own Vietnamese wording; a lockout also says how many minutes are left when the server sends `lockoutMinutes`. |
+| `/patient/<unknown id>` rendered a blank page | `if (!patient) return null` — a fetch that 404s left the route with nothing to draw. A stale bookmark, a record moved to another branch, or a mistyped id all landed on white. | The route shows the empty state and a way back to the list. |
+
+The second one only appears where no patient exists, so a seeded local database
+hides it: every local run had a first row to click. Production was empty on its
+first day, and `e2e/screen-sweep.mjs` walked into `/patient/undefined` and
+reported 0 characters — the same signal that caught the 2026-08-24 defects.
