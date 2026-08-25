@@ -504,7 +504,19 @@ export function PatientProfilePage() {
                 { title: t("Số phiếu"), dataIndex: "code", key: "code", width: 80 },
                 { title: t("Dịch vụ"), dataIndex: "serviceName", key: "serviceName", width: 200 },
                 { title: t("Bác sĩ tiếp nhận"), dataIndex: "doctorName", key: "doctorName", width: 140 },
-                { title: t("Trạng thái"), dataIndex: "status", key: "status", width: 140, render: (v: string) => v ? <Tag color="processing">{v}</Tag> : null },
+                {
+                  title: t("Trạng thái"),
+                  dataIndex: "status",
+                  key: "status",
+                  width: 140,
+                  // Same numeric enum as the banner: printed raw this read "4".
+                  render: (v: number | string) =>
+                    v === undefined || v === null ? null : (
+                      <Tag color={PLAN_STATUS_META[Number(v)]?.color ?? "default"}>
+                        {t(PLAN_STATUS_META[Number(v)]?.label ?? "Không rõ")}
+                      </Tag>
+                    ),
+                },
                 { title: t("Ngày tạo hồ sơ"), dataIndex: "createdAt", key: "createdAt", width: 110, render: (v: string) => v ? formatDate(v) : "—" },
                 { title: t("Tổng phiếu"), dataIndex: "totalAmount", key: "totalAmount", width: 120, align: "right", render: (v: number) => `${formatVND(v ?? 0)} đ` },
                 { title: t("Giảm giá"), dataIndex: "discountAmount", key: "discountAmount", width: 110, align: "right", render: (v: number) => `${formatVND(v ?? 0)} đ` },

@@ -54,20 +54,40 @@ const UPPER_RIGHT = [21, 22, 23, 24, 25, 26, 27, 28] as const;
 const LOWER_LEFT = [48, 47, 46, 45, 44, 43, 42, 41] as const;
 const LOWER_RIGHT = [31, 32, 33, 34, 35, 36, 37, 38] as const;
 
-const TOOTH_W = 32;
-const TOOTH_H = 40;
-const GAP = 4;
+const TOOTH_W = 34;
+const TOOTH_H = 42;
+const GAP = 5;
 const ROW_H = TOOTH_H + GAP;
+
+/**
+ * One tooth. The design writes the FDI number inside the tooth rather than
+ * under it — a row of blank boxes with numbers beneath reads as a form, not a
+ * mouth — and rounds the crown end more than the root end, so an upper tooth
+ * and a lower one are not the same rectangle.
+ */
+/** Rectangle with per-corner radii, clockwise from the top-left. */
+function roundedRectPath(w: number, h: number, tl: number, tr: number, br: number, bl: number): string {
+  return [
+    `M ${tl} 0`,
+    `H ${w - tr}`, `A ${tr} ${tr} 0 0 1 ${w} ${tr}`,
+    `V ${h - br}`, `A ${br} ${br} 0 0 1 ${w - br} ${h}`,
+    `H ${bl}`, `A ${bl} ${bl} 0 0 1 0 ${h - bl}`,
+    `V ${tl}`, `A ${tl} ${tl} 0 0 1 ${tl} 0`,
+    "Z",
+  ].join(" ");
+}
 
 function ToothCell({
   fdi,
   status,
+  jaw,
   onClick,
   readOnly,
   ariaLabel,
 }: {
   fdi: number;
   status: ToothStatus;
+  jaw: "upper" | "lower";
   onClick?: () => void;
   readOnly?: boolean;
   ariaLabel: string;
@@ -75,6 +95,12 @@ function ToothCell({
   const fill = STATUS_COLORS[status];
   const stroke = STATUS_STROKE[status];
   const isMissing = status === "missing";
+  const crownRadius = 9;
+  const rootRadius = 6;
+  const path =
+    jaw === "upper"
+      ? roundedRectPath(TOOTH_W, TOOTH_H, crownRadius, crownRadius, rootRadius, rootRadius)
+      : roundedRectPath(TOOTH_W, TOOTH_H, rootRadius, rootRadius, crownRadius, crownRadius);
 
   return (
     <g
@@ -83,10 +109,8 @@ function ToothCell({
       role={readOnly ? undefined : "button"}
       aria-label={ariaLabel}
     >
-      <rect
-        width={TOOTH_W}
-        height={TOOTH_H}
-        rx={5}
+      <path
+        d={path}
         fill={fill}
         stroke={stroke}
         strokeWidth={1.5}
@@ -114,11 +138,12 @@ function ToothCell({
       )}
       <text
         x={TOOTH_W / 2}
-        y={TOOTH_H + 13}
+        y={TOOTH_H / 2 + 4}
         textAnchor="middle"
-        fontSize={9}
-        fill="#5E748E"
-        fontFamily="Inter, sans-serif"
+        fontSize={11.5}
+        fontWeight={700}
+        fill={isMissing ? "#98a4b4" : "#41505f"}
+        fontFamily="inherit"
       >
         {fdi}
       </text>
@@ -130,6 +155,7 @@ function buildRow(
   fdis: readonly number[],
   teeth: ToothRecord[],
   yOffset: number,
+  jaw: "upper" | "lower",
   toothAriaLabel: (fdi: number, status: string) => string,
   onToothClick?: (fdi: number) => void,
   readOnly?: boolean,
@@ -143,6 +169,7 @@ function buildRow(
         <ToothCell
           fdi={fdi}
           status={status}
+          jaw={jaw}
           ariaLabel={toothAriaLabel(fdi, status)}
           onClick={() => onToothClick?.(fdi)}
           readOnly={readOnly}
@@ -180,10 +207,10 @@ export function DentalChartView({
       >
         {/* Upper jaw */}
         <g transform={`translate(0, ${upperY})`}>
-          {buildRow(UPPER_LEFT, teeth, 0, toothAriaLabel, onToothClick, readOnly)}
+          {buildRow(UPPER_LEFT, teeth, 0, "upper", toothAriaLabel, onToothClick, readOnly)}
         </g>
         <g transform={`translate(${HALF_W + DIVIDER}, ${upperY})`}>
-          {buildRow(UPPER_RIGHT, teeth, 0, toothAriaLabel, onToothClick, readOnly)}
+          {buildRow(UPPER_RIGHT, teeth, 0, "upper", toothAriaLabel, onToothClick, readOnly)}
         </g>
 
         {/* Center line */}
@@ -199,10 +226,10 @@ export function DentalChartView({
 
         {/* Lower jaw */}
         <g transform={`translate(0, ${lowerY})`}>
-          {buildRow(LOWER_LEFT, teeth, 0, toothAriaLabel, onToothClick, readOnly)}
+          {buildRow(LOWER_LEFT, teeth, 0, "lower", toothAriaLabel, onToothClick, readOnly)}
         </g>
         <g transform={`translate(${HALF_W + DIVIDER}, ${lowerY})`}>
-          {buildRow(LOWER_RIGHT, teeth, 0, toothAriaLabel, onToothClick, readOnly)}
+          {buildRow(LOWER_RIGHT, teeth, 0, "lower", toothAriaLabel, onToothClick, readOnly)}
         </g>
 
         {/* Jaw labels */}
@@ -210,9 +237,12 @@ export function DentalChartView({
           x={TOTAL_W / 2}
           y={upperY - 8}
           textAnchor="middle"
-          fontSize={10}
-          fill="#8FA8C0"
-          fontFamily="Inter, sans-serif"
+          fontSize={10.5}
+          fontWeight={700}
+          letterSpacing={1.2}
+          fill="#7d8a9c"
+          fontFamily="inherit"
+          style={{ textTransform: "uppercase" }}
         >
           {t("Hàm Trên")}
         </text>
@@ -220,9 +250,12 @@ export function DentalChartView({
           x={TOTAL_W / 2}
           y={lowerY - 8}
           textAnchor="middle"
-          fontSize={10}
-          fill="#8FA8C0"
-          fontFamily="Inter, sans-serif"
+          fontSize={10.5}
+          fontWeight={700}
+          letterSpacing={1.2}
+          fill="#7d8a9c"
+          fontFamily="inherit"
+          style={{ textTransform: "uppercase" }}
         >
           {t("Hàm Dưới")}
         </text>
