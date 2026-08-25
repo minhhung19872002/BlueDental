@@ -1,10 +1,10 @@
+import { message } from "antd";
 import { useEffect, useState } from "react";
 import { Pipette } from "lucide-react";
-import { toast } from "sonner";
 import { useCreatePatientTag, useUpdatePatientTag, type PatientTagDto } from "../api/patientTagApi";
 import { cn } from "@/lib/cn";
 import { AppDialog } from "@/components/AppDialog";
-import { FloatingField } from "@/components/FloatingField";
+import { LabeledField } from "@/components/LabeledField";
 import { extractApiError } from "@/lib/apiError";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
@@ -65,14 +65,14 @@ export function PatientTagModal({ open, tag, onClose }: Props) {
             isActive: tag.isActive,
           },
         });
-        toast.success(t("Đã cập nhật thẻ hồ sơ"));
+        message.success(t("Đã cập nhật thẻ hồ sơ"));
       } else {
         await createTag.mutateAsync({ clinicBranchId: branchId, name: trimmed, color });
-        toast.success(t("Đã thêm thẻ hồ sơ"));
+        message.success(t("Đã thêm thẻ hồ sơ"));
       }
       onClose();
     } catch (cause) {
-      toast.error(extractApiError(cause));
+      message.error(extractApiError(cause));
     }
   };
 
@@ -85,8 +85,8 @@ export function PatientTagModal({ open, tag, onClose }: Props) {
       onSave={() => void submit()}
       onClose={onClose}
     >
-      <div className="space-y-5">
-        <FloatingField
+      <div className="bd-dialog-stack">
+        <LabeledField
           id="tag-name"
           label={t("Tên thẻ hồ sơ")}
           required
@@ -102,9 +102,9 @@ export function PatientTagModal({ open, tag, onClose }: Props) {
           }}
         />
 
-        <fieldset className="space-y-2">
-          <legend className="text-[14px] font-semibold text-app-ink">{t("Màu")}</legend>
-          <div className="flex flex-wrap items-center gap-2">
+        <fieldset className="bd-dialog-stack bd-dialog-stack--tight">
+          <legend className="bd-cat-strong">{t("Màu")}</legend>
+          <div className="bd-cat-inline">
             {PRESET_COLORS.map((preset) => (
               <button
                 key={preset}
@@ -114,35 +114,35 @@ export function PatientTagModal({ open, tag, onClose }: Props) {
                 onClick={() => setColor(preset)}
                 style={{ backgroundColor: preset }}
                 className={cn(
-                  "size-10 cursor-pointer rounded-full transition-transform hover:scale-110",
-                  color.toUpperCase() === preset && "ring-2 ring-app-ink ring-offset-2",
+                  "bd-tag-color",
+                  color.toUpperCase() === preset && "bd-tag-color--picked",
                 )}
               />
             ))}
 
-            <div className="relative">
+            <div className="bd-rel">
               <span
                 aria-hidden="true"
-                className="flex size-10 items-center justify-center rounded-full border border-dashed border-app-line text-app-label"
+                className="bd-tag-swatch"
               >
-                <Pipette className="size-4" />
+                <Pipette className="bd-icon" />
               </span>
               <input
                 type="color"
                 aria-label={t("Chọn màu tuỳ chỉnh")}
                 value={color}
                 onChange={(event) => setColor(event.target.value.toUpperCase())}
-                className="absolute inset-0 size-full cursor-pointer opacity-0"
+                className="bd-color-input"
               />
             </div>
           </div>
         </fieldset>
 
-        <div className="space-y-2 rounded-xl bg-app-surface p-4">
-          <p className="text-[12px] text-app-label">{t("Xem trước")}</p>
+        <div className="bd-tag-preview">
+          <p className="bd-cat-hint">{t("Xem trước")}</p>
           <span
             style={{ backgroundColor: color }}
-            className="inline-flex items-center rounded-md px-3 py-1 text-[12px] font-semibold text-white"
+            className="bd-tag-chip"
           >
             {name.trim() || t("Khách hàng mới")}
           </span>

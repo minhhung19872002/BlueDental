@@ -1,10 +1,9 @@
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -12,6 +11,24 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5019',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/signalr': {
+        target: 'http://localhost:5019',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+        timeout: 0,
+        proxyTimeout: 0,
+      },
+    },
+  },
+  preview: {
+    port: 8080,
     proxy: {
       '/api': {
         target: 'http://localhost:5019',

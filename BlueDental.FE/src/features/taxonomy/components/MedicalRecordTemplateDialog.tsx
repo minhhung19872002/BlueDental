@@ -1,6 +1,6 @@
+import { message } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { Minus, Plus } from "lucide-react";
-import { toast } from "sonner";
 import {
   useCreateCatalogEntry,
   useUpdateCatalogEntry,
@@ -9,7 +9,7 @@ import {
 } from "../api/taxonomyApi";
 import { MedicalRecordSheet, type MedicalRecordFields } from "./MedicalRecordSheet";
 import { AppDialog } from "@/components/AppDialog";
-import { FloatingField } from "@/components/FloatingField";
+import { LabeledField } from "@/components/LabeledField";
 import { extractApiError } from "@/lib/apiError";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
@@ -106,7 +106,7 @@ export function MedicalRecordTemplateDialog({
             sortOrder,
           },
         });
-        toast.success(t("Đã cập nhật mẫu bệnh án"));
+        message.success(t("Đã cập nhật mẫu bệnh án"));
       } else {
         await createEntry.mutateAsync({
           clinicBranchId: branchId,
@@ -115,11 +115,11 @@ export function MedicalRecordTemplateDialog({
           content,
           sortOrder,
         });
-        toast.success(t("Đã thêm mẫu bệnh án"));
+        message.success(t("Đã thêm mẫu bệnh án"));
       }
       onClose();
     } catch (cause) {
-      toast.error(extractApiError(cause));
+      message.error(extractApiError(cause));
     }
   };
 
@@ -130,16 +130,16 @@ export function MedicalRecordTemplateDialog({
     <AppDialog
       open={open}
       title={entry ? t("Cập nhật mẫu bệnh án") : t("Thêm mẫu bệnh án")}
-      width="sm:max-w-5xl"
+      width={1040}
       canSave={name.trim().length > 0}
       saving={pending}
       onSave={() => void submit()}
       onClose={onClose}
     >
-      <div className="space-y-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-[14px] font-semibold text-app-ink">{t("Tiêu đề bệnh án:")}</span>
-          <FloatingField
+      <div className="bd-dialog-stack">
+        <div className="bd-cat-inline">
+          <span className="bd-cat-strong">{t("Tiêu đề bệnh án:")}</span>
+          <LabeledField
             id="medical-record-name"
             label={t("Nhập tên mẫu bệnh án...")}
             required
@@ -150,37 +150,37 @@ export function MedicalRecordTemplateDialog({
               setName(next);
               if (error) setError(null);
             }}
-            className="min-w-[280px] flex-1"
+            className="bd-flex1 bd-min280"
           />
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="flex items-center gap-1 text-[13px] text-app-label">
+        <div className="bd-cat-headrow">
+          <p className="bd-zoom">
             {/* The reference marks "nền vàng" with a sample of the shading it
                 is talking about. */}
             <span aria-hidden="true">💡</span>
             {t("Nhấp vào các ô")}
-            <span className="rounded-sm border border-dotted border-amber-500 bg-[#FFFDE7] px-1">
+            <span className="bd-a4-swatch">
               {t("nền vàng")}
             </span>
             {t("để chỉnh sửa trực tiếp trên bệnh án")}
           </p>
-          <div className="flex items-center gap-2">
+          <div className="bd-cat-inline2">
             <button
               type="button"
               aria-label={t("Thu nhỏ")}
               onClick={() => setZoom((current) => Math.max(MIN_ZOOM, current - ZOOM_STEP))}
               className={zoomButton}
             >
-              <Minus className="size-4" aria-hidden="true" />
+              <Minus className="bd-icon" aria-hidden="true" />
             </button>
-            <span className="w-12 text-center text-[13px] tabular-nums text-app-ink">
+            <span className="bd-zoom-value">
               {Math.round(zoom * 100)}%
             </span>
             <button
               type="button"
               onClick={() => setZoom(0.9)}
-              className="h-8 cursor-pointer rounded-md border border-app-line px-3 text-[13px] text-app-label outline-none hover:bg-app-surface focus-visible:ring-2 focus-visible:ring-app-primary/40"
+              className="bd-zoom-btn"
             >
               {t("Fit")}
             </button>
@@ -190,22 +190,20 @@ export function MedicalRecordTemplateDialog({
               onClick={() => setZoom((current) => Math.min(MAX_ZOOM, current + ZOOM_STEP))}
               className={zoomButton}
             >
-              <Plus className="size-4" aria-hidden="true" />
+              <Plus className="bd-icon" aria-hidden="true" />
             </button>
           </div>
         </div>
 
         <MedicalRecordSheet value={fields} onChange={setFields} zoom={zoom} />
 
-        <FloatingField
+        <LabeledField
           id="medical-record-priority"
           label={t("Mức độ ưu tiên")}
           type="number"
           min={0}
-          inputMode="numeric"
           value={priority}
           onChange={setPriority}
-          className="sm:max-w-[240px]"
         />
       </div>
     </AppDialog>

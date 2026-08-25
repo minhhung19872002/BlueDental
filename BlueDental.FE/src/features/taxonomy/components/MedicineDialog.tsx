@@ -1,5 +1,5 @@
+import { message } from "antd";
 import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 import {
   useCreateCatalogEntry,
   useUpdateCatalogEntry,
@@ -7,7 +7,7 @@ import {
   type TaxonomyDto,
 } from "../api/taxonomyApi";
 import { AppDialog } from "@/components/AppDialog";
-import { FloatingField } from "@/components/FloatingField";
+import { LabeledField } from "@/components/LabeledField";
 import { FloatingSelect } from "@/components/FloatingSelect";
 import { extractApiError } from "@/lib/apiError";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
@@ -104,7 +104,7 @@ export function MedicineDialog({ open, entry, groups, defaultTaxonomyId, onClose
             sortOrder,
           },
         });
-        toast.success(t("Đã cập nhật loại thuốc"));
+        message.success(t("Đã cập nhật loại thuốc"));
       } else {
         await createEntry.mutateAsync({
           clinicBranchId: branchId,
@@ -115,11 +115,11 @@ export function MedicineDialog({ open, entry, groups, defaultTaxonomyId, onClose
           medicine,
           sortOrder,
         });
-        toast.success(t("Đã thêm loại thuốc"));
+        message.success(t("Đã thêm loại thuốc"));
       }
       onClose();
     } catch (cause) {
-      toast.error(extractApiError(cause));
+      message.error(extractApiError(cause));
     }
   };
 
@@ -127,14 +127,14 @@ export function MedicineDialog({ open, entry, groups, defaultTaxonomyId, onClose
     <AppDialog
       open={open}
       title={entry ? t("Cập nhật loại thuốc") : t("Thêm loại thuốc")}
-      width="sm:max-w-3xl"
+      width={820}
       canSave={name.trim().length > 0 && taxonomyId.length > 0}
       saving={pending}
       onSave={() => void submit()}
       onClose={onClose}
     >
-      <div className="grid gap-4 sm:grid-cols-2">
-        <FloatingField
+      <div className="bd-dialog-grid">
+        <LabeledField
           id="medicine-name"
           label={t("Tên thuốc")}
           required
@@ -156,29 +156,29 @@ export function MedicineDialog({ open, entry, groups, defaultTaxonomyId, onClose
           options={groups.map((group) => ({ value: group.id, label: group.name }))}
         />
 
-        <FloatingField
+        <LabeledField
           id="medicine-ingredient"
           label={t("Hoạt chất")}
           value={activeIngredient}
           onChange={setActiveIngredient}
         />
 
-        <FloatingField
+        <LabeledField
           id="medicine-usage"
           label={t("Cách dùng")}
           value={usage}
           onChange={setUsage}
         />
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FloatingField
+        <div className="bd-dialog-grid">
+          <LabeledField
             id="medicine-purchase-price"
             label={t("Giá mua")}
             inputMode="decimal"
             value={purchasePrice}
             onChange={setPurchasePrice}
           />
-          <FloatingField
+          <LabeledField
             id="medicine-sale-price"
             label={t("Giá bán")}
             inputMode="decimal"
@@ -187,33 +187,32 @@ export function MedicineDialog({ open, entry, groups, defaultTaxonomyId, onClose
           />
         </div>
 
-        <FloatingField
+        <LabeledField
           id="medicine-code"
           label={t("Mã toa thuốc")}
           value={prescriptionCode}
           onChange={setPrescriptionCode}
         />
 
-        <FloatingField
+        <LabeledField
           id="medicine-note"
           label={t("Lưu ý sử dụng")}
           value={usageNote}
           onChange={setUsageNote}
         />
 
-        <FloatingField
+        <LabeledField
           id="medicine-unit"
           label={t("Đơn vị tính")}
           value={unit}
           onChange={setUnit}
         />
 
-        <FloatingField
+        <LabeledField
           id="medicine-priority"
           label={t("Mức độ ưu tiên")}
           type="number"
           min={0}
-          inputMode="numeric"
           value={priority}
           onChange={setPriority}
         />

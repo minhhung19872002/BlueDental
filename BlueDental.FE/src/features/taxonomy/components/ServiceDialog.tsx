@@ -1,6 +1,6 @@
+import { Button, Checkbox, Input, Segmented, message } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
-import { toast } from "sonner";
 import {
   SERVICE_TAX_RATE,
   SERVICE_TAX_RATE_OPTIONS,
@@ -14,13 +14,8 @@ import {
   type TaxonomyDto,
 } from "../api/taxonomyApi";
 import { AppDialog } from "@/components/AppDialog";
-import { FloatingField } from "@/components/FloatingField";
+import { LabeledField } from "@/components/LabeledField";
 import { FloatingSelect } from "@/components/FloatingSelect";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { SegmentedControl } from "@/components/ui/segmented-control";
-import { Textarea } from "@/components/ui/textarea";
 import { extractApiError } from "@/lib/apiError";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { cn } from "@/lib/cn";
@@ -65,18 +60,18 @@ function CheckRow({
   onChange: (next: boolean) => void;
 }) {
   return (
-    <div className="flex items-start gap-2">
+    <div className="bd-row-start-items">
       <Checkbox
         id={id}
         checked={checked}
-        className="mt-0.5"
-        onCheckedChange={(next) => onChange(next === true)}
+        className="bd-mt05"
+        onChange={(event) => onChange( event.target.checked)}
       />
-      <div className="min-w-0">
-        <Label htmlFor={id} className="cursor-pointer text-[14px] text-app-ink">
+      <div className="bd-min0">
+        <label htmlFor={id} className="bd-check-label">
           {label}
-        </Label>
-        {hint && <p className="mt-0.5 text-[12px] text-app-label">{hint}</p>}
+        </label>
+        {hint && <p className="bd-mt05 bd-cat-hint">{hint}</p>}
       </div>
     </div>
   );
@@ -214,19 +209,19 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
 
         if (isDeleted) {
           await deleteEntry.mutateAsync(entry.id);
-          toast.success(t("Đã xoá"));
+          message.success(t("Đã xoá"));
           onClose();
           return;
         }
 
-        toast.success(t("Đã cập nhật dịch vụ"));
+        message.success(t("Đã cập nhật dịch vụ"));
       } else {
         await createEntry.mutateAsync({ clinicBranchId: branchId, ...shared });
-        toast.success(t("Đã thêm dịch vụ"));
+        message.success(t("Đã thêm dịch vụ"));
       }
       onClose();
     } catch (cause) {
-      toast.error(extractApiError(cause));
+      message.error(extractApiError(cause));
     }
   };
 
@@ -236,15 +231,15 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
     <AppDialog
       open={open}
       title={entry ? t("Cập nhật dịch vụ") : t("Thêm dịch vụ")}
-      width="sm:max-w-3xl"
+      width={820}
       canSave={name.trim().length > 0 && taxonomyId.length > 0}
       saving={pending}
       onSave={() => void submit()}
       onClose={onClose}
     >
-      <div className="space-y-4">
-        <div className="grid gap-4 sm:grid-cols-3">
-          <FloatingField
+      <div className="bd-dialog-stack">
+        <div className="bd-dialog-grid bd-dialog-grid--three">
+          <LabeledField
             id="service-name"
             label={t("Dịch vụ")}
             required
@@ -264,7 +259,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
             onChange={setTaxonomyId}
             options={groups.map((group) => ({ value: group.id, label: group.name }))}
           />
-          <FloatingField
+          <LabeledField
             id="service-detail-name"
             label={t("Tên chi tiết")}
             value={detailName}
@@ -272,58 +267,44 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-6">
-          <div className="flex items-center gap-2">
-            <Checkbox
+        <div className="bd-dialog-row">
+<Checkbox
               id="service-active"
               checked={isActive}
-              onCheckedChange={(checked) => setIsActive(checked === true)}
-            />
-            <Label htmlFor="service-active" className="cursor-pointer text-[14px]">
-              {t("Đang hoạt động")}
-            </Label>
-          </div>
-          <div className="flex items-center gap-2">
-            <Checkbox
+              onChange={(event) => setIsActive(event.target.checked)}>
+            {t("Đang hoạt động")}
+          </Checkbox>
+<Checkbox
               id="service-deleted"
               checked={isDeleted}
               disabled={!entry}
-              onCheckedChange={(checked) => setIsDeleted(checked === true)}
-            />
-            <Label htmlFor="service-deleted" className="cursor-pointer text-[14px]">
-              {t("Đã xoá")}
-            </Label>
-          </div>
+              onChange={(event) => setIsDeleted(event.target.checked)}>
+            {t("Đã xoá")}
+          </Checkbox>
         </div>
 
-        <div className="relative">
-          <Textarea
-            id="service-description"
-            value={description}
-            placeholder=" "
-            rows={3}
-            onChange={(event) => setDescription(event.target.value)}
-            className="peer min-h-[90px] rounded-lg border-app-line bg-white text-[14px] placeholder:text-transparent"
-          />
-          <label
-            htmlFor="service-description"
-            className="pointer-events-none absolute top-0 left-3 -translate-y-1/2 bg-white px-1 text-[13px] font-medium text-app-label peer-placeholder-shown:top-4 peer-placeholder-shown:bg-transparent peer-placeholder-shown:text-[14px] peer-focus:top-0 peer-focus:bg-white peer-focus:text-[13px] peer-focus:text-app-primary"
-          >
+        <div>
+          <label className="bd-field-label" htmlFor="service-description">
             {t("Mô tả")}
           </label>
+          <Input.TextArea
+            id="service-description"
+            value={description}
+            rows={3}
+            onChange={(event) => setDescription(event.target.value)}
+          />
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FloatingField
+        <div className="bd-dialog-grid">
+          <LabeledField
             id="service-priority"
             label={t("Mức độ ưu tiên")}
             type="number"
             min={0}
-            inputMode="numeric"
             value={priority}
             onChange={setPriority}
           />
-          <FloatingField
+          <LabeledField
             id="service-code"
             label={t("Mã dịch vụ (để trống sẽ tự động tạo mã)")}
             value={code}
@@ -332,9 +313,9 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
         </div>
 
         {/* ── Cấu hình giá & thuế ─────────────────────────────────────── */}
-        <div className="space-y-4 border-t border-app-line pt-4">
-          <div className="flex flex-wrap items-center gap-4">
-            <p className="text-[16px] font-bold text-app-ink">{t("Cấu hình giá & thuế")}</p>
+        <div className="bd-section bd-dialog-stack">
+          <div className="bd-dialog-row">
+            <p className="bd-section-title">{t("Cấu hình giá & thuế")}</p>
             <FloatingSelect
               id="service-tax"
               label={t("% thuế")}
@@ -344,59 +325,57 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
                 value: String(option.value),
                 label: option.label,
               }))}
-              className="w-[160px]"
+              className="bd-w160"
             />
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <SegmentedControl
-              tone="app"
+          <div className="bd-cat-inline">
+            <Segmented
               value={priceIncludesTax ? "after" : "before"}
               onChange={(next) => setPriceIncludesTax(next === "after")}
               options={[
-                { key: "before", label: t("Trước thuế") },
-                { key: "after", label: t("Sau thuế") },
+                { value: "before", label: t("Trước thuế") },
+                { value: "after", label: t("Sau thuế") },
               ]}
             />
-            <FloatingField
+            <LabeledField
               id="service-price"
               label={t("Giá")}
               inputMode="decimal"
               value={price}
               onChange={setPrice}
-              className="min-w-[180px] flex-1"
+              className="bd-flex1 bd-min180"
             />
-            <SegmentedControl
-              tone="app"
+            <Segmented
               value={discountIsPercent ? "percent" : "vnd"}
               onChange={(next) => setDiscountIsPercent(next === "percent")}
               options={[
-                { key: "percent", label: "%" },
-                { key: "vnd", label: "VNĐ" },
+                { value: "percent", label: "%" },
+                { value: "vnd", label: "VNĐ" },
               ]}
             />
-            <FloatingField
+            <LabeledField
               id="service-discount"
               label={t("Giảm giá")}
               inputMode="decimal"
               value={discountValue}
               onChange={setDiscountValue}
-              className="min-w-[140px] flex-1"
+              className="bd-flex1 bd-min140"
             />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="bd-dialog-grid bd-dialog-grid--three">
             {/* Read-only: these two come back from the server after a save, so
                 the formula lives in one place. */}
-            <FloatingField
+            <LabeledField
               id="service-after-discount"
               label={t("Giá sau giảm")}
               readOnly
               value={saved ? formatVND(saved.priceAfterDiscount) : "—"}
               onChange={() => undefined}
             />
-            <FloatingField id="service-unit" label={t("Đơn vị")} value={unit} onChange={setUnit} />
-            <FloatingField
+            <LabeledField id="service-unit" label={t("Đơn vị")} value={unit} onChange={setUnit} />
+            <LabeledField
               id="service-collected"
               label={t("Thực thu từ khách (Đã gồm VAT)")}
               readOnly
@@ -407,8 +386,8 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
         </div>
 
         {/* ── Cài đặt | Công đoạn | Bảo hành ──────────────────────────── */}
-        <div className="border-t border-app-line pt-4">
-          <div role="tablist" className="flex gap-1 border-b border-app-line">
+        <div className="bd-section">
+          <div role="tablist" className="bd-svc-tabs">
             {(
               [
                 ["settings", t("Cài đặt")],
@@ -423,10 +402,8 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
                 aria-selected={tab === key}
                 onClick={() => setTab(key)}
                 className={cn(
-                  "cursor-pointer px-4 py-2 text-[14px] font-medium transition-colors",
-                  tab === key
-                    ? "border-b-2 border-app-primary text-app-primary"
-                    : "text-app-label hover:text-app-ink",
+                  "bd-svc-tabbtn",
+                  tab === key && "bd-svc-tabbtn--on",
                 )}
               >
                 {label}
@@ -434,9 +411,9 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
             ))}
           </div>
 
-          <div className="pt-4">
+          <div className="bd-pt4">
             {tab === "settings" && (
-              <div className="space-y-3">
+              <div className="bd-dialog-stack bd-dialog-stack--tight">
                 <CheckRow
                   id="service-require-image"
                   label={t("Yêu cầu hình ảnh khi điều trị")}
@@ -465,7 +442,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
             )}
 
             {tab === "stages" && (
-              <div className="space-y-4">
+              <div className="bd-dialog-stack">
                 <CheckRow
                   id="service-revenue-by-stage"
                   label={t("Tính doanh số trên công đoạn")}
@@ -481,8 +458,8 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
                   onChange={setRequireStageSequence}
                 />
 
-                <div className="flex items-end gap-2">
-                  <FloatingField
+                <div className="bd-row-end-items">
+                  <LabeledField
                     id="service-stage-name"
                     label={t("Công đoạn")}
                     value={stageName}
@@ -493,28 +470,28 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
                         addStage();
                       }
                     }}
-                    className="flex-1"
+                    className="bd-flex1"
                   />
-                  <Button type="button" onClick={addStage} className="h-11 gap-1">
-                    <Plus className="size-4" aria-hidden="true" />
+                  <Button htmlType="button" onClick={addStage} className="bd-svc-tab">
+                    <Plus className="bd-icon" aria-hidden="true" />
                     {t("Công đoạn")}
                   </Button>
                 </div>
 
-                <div className="overflow-hidden rounded-lg border border-app-line">
-                  <table className="w-full text-[14px]">
+                <div className="bd-cat-tablebox">
+                  <table className="bd-cat-table">
                     <thead>
-                      <tr className="bg-app-surface text-left text-app-label">
-                        <th className="w-14 px-3 py-2 font-medium">{t("STT")}</th>
-                        <th className="px-3 py-2 font-medium">{t("Tên công đoạn")}</th>
-                        <th className="w-40 px-3 py-2 font-medium">{t("Giá trị")}</th>
-                        <th className="w-20 px-3 py-2 text-center font-medium">{t("Thao tác")}</th>
+                      <tr className="bd-cat-thead">
+                        <th className="bd-svc-th bd-w56">{t("STT")}</th>
+                        <th className="bd-svc-th">{t("Tên công đoạn")}</th>
+                        <th className="bd-svc-th bd-w160">{t("Giá trị")}</th>
+                        <th className="bd-svc-th bd-text-center bd-w80">{t("Thao tác")}</th>
                       </tr>
                     </thead>
                     <tbody>
                       {stages.length === 0 ? (
                         <tr>
-                          <td colSpan={4} className="px-3 py-6 text-center text-app-label">
+                          <td colSpan={4} className="bd-svc-empty">
                             {t("Chưa có công đoạn nào")}
                           </td>
                         </tr>
@@ -522,11 +499,11 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
                         stages.map((stage, index) => (
                           <tr
                             key={stage.id ?? `${stage.name}-${index}`}
-                            className="border-t border-app-line"
+                            className="bd-cat-footline"
                           >
-                            <td className="px-3 py-2 text-app-label">{index + 1}</td>
-                            <td className="px-3 py-2 text-app-ink">{stage.name}</td>
-                            <td className="px-3 py-2">
+                            <td className="bd-svc-td bd-muted-text">{index + 1}</td>
+                            <td className="bd-svc-td">{stage.name}</td>
+                            <td className="bd-svc-td">
                               <input
                                 aria-label={t("Giá trị công đoạn {0}", stage.name)}
                                 inputMode="decimal"
@@ -540,19 +517,19 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
                                     ),
                                   )
                                 }
-                                className="h-9 w-full rounded-md border border-app-line px-2 text-[14px] outline-none focus-visible:border-app-primary"
+                                className="bd-plain-input"
                               />
                             </td>
-                            <td className="px-3 py-2 text-center">
+                            <td className="bd-svc-td bd-text-center">
                               <button
                                 type="button"
                                 aria-label={t("Xoá công đoạn {0}", stage.name)}
                                 onClick={() =>
                                   setStages((current) => current.filter((_, at) => at !== index))
                                 }
-                                className="cursor-pointer text-app-danger"
+                                className="bd-danger-text"
                               >
-                                <Trash2 className="size-4" aria-hidden="true" />
+                                <Trash2 className="bd-icon" aria-hidden="true" />
                               </button>
                             </td>
                           </tr>
@@ -565,8 +542,8 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
             )}
 
             {tab === "warranty" && (
-              <div className="space-y-3">
-                <div className="grid gap-3 sm:grid-cols-3">
+              <div className="bd-dialog-stack bd-dialog-stack--tight">
+                <div className="bd-dialog-grid bd-dialog-grid--three">
                   {WARRANTY_PRESETS.map((days) => (
                     <CheckRow
                       key={days}
@@ -579,7 +556,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
                     />
                   ))}
                 </div>
-                <FloatingField
+                <LabeledField
                   id="service-warranty-custom"
                   label={t("Tuỳ chỉnh")}
                   type="number"
@@ -587,9 +564,9 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
                   inputMode="numeric"
                   value={String(warrantyDays)}
                   onChange={(next) => setWarrantyDays(Number.parseInt(next, 10) || 0)}
-                  className="sm:max-w-[240px]"
+                  className=""
                 />
-                <p className="text-[12px] text-app-label">{t("Đơn vị: Ngày")}</p>
+                <p className="bd-cat-hint">{t("Đơn vị: Ngày")}</p>
               </div>
             )}
           </div>

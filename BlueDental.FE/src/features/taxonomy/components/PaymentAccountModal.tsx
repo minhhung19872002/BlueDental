@@ -1,6 +1,6 @@
+import { Button, message } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { ImageUp, Trash2 } from "lucide-react";
-import { toast } from "sonner";
 import {
   PAYMENT_ACCOUNT_KIND,
   useCreatePaymentAccount,
@@ -11,9 +11,7 @@ import {
   type PaymentAccountKind,
 } from "../api/paymentAccountApi";
 import { AppDialog } from "@/components/AppDialog";
-import { Label } from "@/components/ui/label";
-import { FloatingField } from "@/components/FloatingField";
-import { Button } from "@/components/ui/button";
+import { LabeledField } from "@/components/LabeledField";
 import { extractApiError } from "@/lib/apiError";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
@@ -157,7 +155,7 @@ export function PaymentAccountModal({ open, kind, account, onClose }: Props) {
             ...payload,
           });
     } catch (cause) {
-      toast.error(extractApiError(cause));
+      message.error(extractApiError(cause));
       return;
     }
 
@@ -172,14 +170,14 @@ export function PaymentAccountModal({ open, kind, account, onClose }: Props) {
     } catch (cause) {
       // The account itself is already saved, so the dialog closes rather than
       // inviting a second submit that would create a duplicate.
-      toast.error(
+      message.error(
         `${t("Đã lưu phương thức thanh toán nhưng chưa lưu được ảnh QR")}: ${extractApiError(cause)}`,
       );
       onClose();
       return;
     }
 
-    toast.success(
+    message.success(
       account ? t("Đã cập nhật phương thức thanh toán") : t("Đã thêm phương thức thanh toán"),
     );
     onClose();
@@ -193,15 +191,15 @@ export function PaymentAccountModal({ open, kind, account, onClose }: Props) {
     <AppDialog
       open={open}
       title={account ? t("Cập nhật phương thức") : t("Thêm phương thức")}
-      width="sm:max-w-md"
+      width={440}
       canSave={canSave}
       saving={pending}
       onSave={() => void submit()}
       onClose={onClose}
     >
-      <div className="flex flex-col gap-4">
+      <div className="bd-dialog-stack">
         {isMoMo ? (
-          <FloatingField
+          <LabeledField
             id="payment-phone"
             label={t("Số điện thoại")}
             required
@@ -211,7 +209,7 @@ export function PaymentAccountModal({ open, kind, account, onClose }: Props) {
             onChange={setPhoneNumber}
           />
         ) : (
-          <FloatingField
+          <LabeledField
             id="payment-bank"
             label={t("Tên ngân hàng")}
             required
@@ -221,7 +219,7 @@ export function PaymentAccountModal({ open, kind, account, onClose }: Props) {
           />
         )}
 
-        <FloatingField
+        <LabeledField
           id="payment-holder"
           label={t("Tên chủ tài khoản")}
           required
@@ -231,7 +229,7 @@ export function PaymentAccountModal({ open, kind, account, onClose }: Props) {
         />
 
         {!isMoMo && (
-          <FloatingField
+          <LabeledField
             id="payment-number"
             label={t("Số tài khoản")}
             required
@@ -241,10 +239,10 @@ export function PaymentAccountModal({ open, kind, account, onClose }: Props) {
           />
         )}
 
-        <div className="space-y-1.5">
-          <Label htmlFor="payment-qr" className="text-[14px] font-semibold text-app-ink">
+        <div className="bd-dialog-stack bd-dialog-stack--tight">
+          <label htmlFor="payment-qr" className="bd-cat-strong">
             {t("Tải ảnh QR")}
-          </Label>
+          </label>
 
           {/* A plain input keeps the upload a real multipart POST. */}
           <input
@@ -253,7 +251,7 @@ export function PaymentAccountModal({ open, kind, account, onClose }: Props) {
             type="file"
             accept="image/png,image/jpeg,image/webp"
             data-testid="payment-qr-input"
-            className="sr-only"
+            className="bd-sr-only"
             aria-invalid={Boolean(errors.qrImage)}
             aria-describedby={errors.qrImage ? "payment-qr-error" : undefined}
             onChange={(event) => {
@@ -263,32 +261,32 @@ export function PaymentAccountModal({ open, kind, account, onClose }: Props) {
           />
 
           {shownQrUrl ? (
-            <div className="flex items-center gap-3 rounded-xl border border-app-line bg-app-surface p-3">
+            <div className="bd-pay-qr">
               <img
                 src={shownQrUrl}
                 alt={t("Ảnh QR")}
                 data-testid="payment-qr-preview"
-                className="size-24 shrink-0 rounded-lg border border-app-line bg-white object-contain"
+                className="bd-pay-qr-img"
               />
-              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                <span className="truncate text-[13px] text-app-ink">{shownQrName}</span>
-                <div className="flex flex-wrap gap-2">
+              <div className="bd-pay-qr-meta">
+                <span className="bd-cat-filename">{shownQrName}</span>
+                <div className="bd-cat-inline">
                   <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
+                    htmlType="button"
+                    variant="outlined"
+                    size="small"
                     onClick={() => qrInputRef.current?.click()}
                   >
                     {t("Đổi ảnh")}
                   </Button>
                   <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="text-app-danger hover:bg-app-danger/10 hover:text-app-danger"
+                    htmlType="button"
+                    variant="text"
+                    size="small"
+                    className="bd-danger-text"
                     onClick={clearQrImage}
                   >
-                    <Trash2 className="size-3.5" aria-hidden="true" />
+                    <Trash2 className="bd-icon bd-icon--sm" aria-hidden="true" />
                     {t("Xoá ảnh")}
                   </Button>
                 </div>
@@ -301,15 +299,15 @@ export function PaymentAccountModal({ open, kind, account, onClose }: Props) {
               type="button"
               data-testid="payment-qr-upload"
               onClick={() => qrInputRef.current?.click()}
-              className="flex w-fit cursor-pointer items-center gap-2 rounded-lg border border-dashed border-app-line px-4 py-3 text-[14px] font-medium text-app-primary outline-none transition-colors duration-150 hover:border-app-primary hover:bg-app-primary-soft focus-visible:ring-2 focus-visible:ring-app-primary/40"
+              className="bd-pay-upload"
             >
-              <ImageUp className="size-5" aria-hidden="true" />
+              <ImageUp className="bd-icon bd-icon--lg" aria-hidden="true" />
               {t("Tải ảnh QR")}
             </button>
           )}
 
           {errors.qrImage && (
-            <p id="payment-qr-error" role="alert" className="text-xs text-app-danger">
+            <p id="payment-qr-error" role="alert" className="bd-error-text">
               {errors.qrImage}
             </p>
           )}

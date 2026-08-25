@@ -1,17 +1,17 @@
 import { GripVertical, Pencil, Trash2 } from "lucide-react";
+import { Spin } from "antd";
 import type { CatalogEntryDto } from "../api/taxonomyApi";
 import { LetterAvatar } from "@/components/LetterAvatar";
-import { Spinner } from "@/components/Spinner";
 import { useDragReorder } from "@/hooks/useDragReorder";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { formatDateTime, formatVND } from "@/utils/format";
 
 const HEAD_CELL =
-  "sticky top-0 z-10 h-10 border-b border-app-line bg-app-surface px-4 py-2 text-left align-middle text-[14px] font-medium whitespace-nowrap text-app-label";
-const BODY_CELL = "h-14 border-b border-app-line px-4 py-3 align-middle text-[14px] text-app-ink";
+  "bd-cat-th";
+const BODY_CELL = "bd-cat-td";
 /** The actions column stays pinned while the table scrolls sideways. */
-const STICKY_END = "sticky right-0 shadow-[-4px_0_6px_-2px_rgba(27,42,65,0.06)]";
+const STICKY_END = "bd-cat-sticky";
 
 interface Props {
   entries: CatalogEntryDto[];
@@ -57,33 +57,33 @@ export function CatalogEntryTable({
   });
 
   return (
-    <div className="relative min-h-0 w-full flex-1 overflow-auto">
+    <div className="bd-cat-scroll">
       {isLoading && (
-        <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/70">
-          <Spinner />
+        <div className="bd-cat-busy">
+          <Spin size="large" />
         </div>
       )}
 
-      <table className="w-full border-separate border-spacing-0 text-sm">
+      <table className="bd-cat-table">
         <thead>
           <tr>
-            <th className={cn(HEAD_CELL, "w-12")}>
-              <span className="sr-only">{t("Sắp xếp")}</span>
+            <th className={cn(HEAD_CELL, "bd-w12")}>
+              <span className="bd-sr-only">{t("Sắp xếp")}</span>
             </th>
             <th className={HEAD_CELL}>{entityLabel}</th>
             {showGroupColumn && <th className={HEAD_CELL}>{t("Nhóm phân loại")}</th>}
-            {priced && <th className={cn(HEAD_CELL, "text-right")}>{t("Giá")}</th>}
+            {priced && <th className={cn(HEAD_CELL, "bd-text-right")}>{t("Giá")}</th>}
             <th className={HEAD_CELL}>{t("Cập nhật gần nhất")}</th>
-            <th className={cn(HEAD_CELL, "z-20 text-center", STICKY_END)}>{t("Thao tác")}</th>
+            <th className={cn(HEAD_CELL, "bd-z20 bd-text-center", STICKY_END)}>{t("Thao tác")}</th>
           </tr>
         </thead>
 
-        <tbody className="[&_tr:last-child_td]:border-b-0">
+        <tbody className="bd-cat-tbody">
           {drag.items.length === 0 ? (
             <tr>
               <td
                 colSpan={columnCount}
-                className="h-32 border-app-line px-4 py-3 text-center align-middle text-[14px] text-app-label"
+                className="bd-cat-emptycell"
               >
                 {emptyText ?? t("Không có dữ liệu")}
               </td>
@@ -94,9 +94,9 @@ export function CatalogEntryTable({
                 key={entry.id}
                 ref={drag.registerRow(entry.id)}
                 className={cn(
-                  "group bg-white transition-colors hover:bg-app-surface",
+                  "bd-cat-row",
                   drag.draggingKey === entry.id &&
-                    "[&>td]:bg-app-primary-soft/60 [&>td]:shadow-[inset_0_0_0_9999px_rgba(28,53,102,0.04)]",
+                    "bd-cat-row--dragging",
                 )}
               >
                 <td className={BODY_CELL}>
@@ -117,24 +117,21 @@ export function CatalogEntryTable({
                       }
                     }}
                     className={cn(
-                      "inline-flex rounded text-app-icon outline-none",
-                      "focus-visible:text-app-primary focus-visible:ring-2 focus-visible:ring-app-primary/40",
-                      canReorder
-                        ? "cursor-grab active:cursor-grabbing"
-                        : "cursor-not-allowed opacity-50",
+                      "bd-grip",
+                      !canReorder && "bd-grip--off",
                     )}
                   >
-                    <GripVertical className="size-4" aria-hidden="true" />
+                    <GripVertical className="bd-icon" aria-hidden="true" />
                   </button>
                 </td>
 
                 <td className={BODY_CELL}>
-                  <div className="flex items-center gap-3">
+                  <div className="bd-cat-inline3">
                     <LetterAvatar name={entry.name} />
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">{entry.name}</p>
+                    <div className="bd-min0">
+                      <p className="bd-cat-name">{entry.name}</p>
                       {entry.code && (
-                        <p className="truncate text-[12px] text-app-label">{entry.code}</p>
+                        <p className="bd-cat-subtle">{entry.code}</p>
                       )}
                     </div>
                   </div>
@@ -143,25 +140,25 @@ export function CatalogEntryTable({
                 {showGroupColumn && (
                   <td className={BODY_CELL}>
                     {entry.taxonomyName ? (
-                      <span className="inline-flex h-6 w-fit shrink-0 items-center rounded-md bg-app-surface px-2.5 text-[12px] font-medium whitespace-nowrap text-app-label">
+                      <span className="bd-cat-chip">
                         {entry.taxonomyName}
                       </span>
                     ) : (
-                      <span className="text-app-label">—</span>
+                      <span className="bd-muted-text">—</span>
                     )}
                   </td>
                 )}
 
                 {priced && (
-                  <td className={cn(BODY_CELL, "text-right")}>
-                    <span className="font-semibold tabular-nums text-app-ink">
+                  <td className={cn(BODY_CELL, "bd-text-right")}>
+                    <span className="bd-cat-price">
                       {entry.price == null ? "—" : `${formatVND(entry.price)} đ`}
                     </span>
                   </td>
                 )}
 
                 <td className={BODY_CELL}>
-                  <span className="tabular-nums text-app-label">
+                  <span className="bd-cat-num">
                     {formatDateTime(entry.lastModificationTime ?? entry.creationTime)}
                   </span>
                 </td>
@@ -169,27 +166,26 @@ export function CatalogEntryTable({
                 <td
                   className={cn(
                     BODY_CELL,
-                    "z-10 bg-white text-center",
+                    "bd-cat-td--actions",
                     STICKY_END,
-                    "group-hover:bg-app-surface",
                   )}
                 >
-                  <div className="flex items-center justify-center gap-0.5">
+                  <div className="bd-cat-rowactions">
                     <button
                       type="button"
                       aria-label={t("Chỉnh sửa {0}", entry.name)}
                       onClick={() => onEdit(entry)}
-                      className="flex size-7 cursor-pointer items-center justify-center rounded-md text-app-label outline-none transition-colors duration-150 hover:bg-app-surface hover:text-app-ink focus-visible:ring-2 focus-visible:ring-app-primary/40"
+                      className="bd-cat-iconbtn"
                     >
-                      <Pencil className="size-3.5" aria-hidden="true" />
+                      <Pencil className="bd-icon bd-icon--sm" aria-hidden="true" />
                     </button>
                     <button
                       type="button"
                       aria-label={t("Xoá {0}", entry.name)}
                       onClick={() => onDelete(entry)}
-                      className="flex size-7 cursor-pointer items-center justify-center rounded-md text-app-danger outline-none transition-colors duration-150 hover:bg-app-danger/10 focus-visible:ring-2 focus-visible:ring-app-danger/40"
+                      className="bd-cat-iconbtn bd-cat-iconbtn--danger"
                     >
-                      <Trash2 className="size-3.5" aria-hidden="true" />
+                      <Trash2 className="bd-icon bd-icon--sm" aria-hidden="true" />
                     </button>
                   </div>
                 </td>

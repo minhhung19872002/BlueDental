@@ -1,5 +1,5 @@
+import { Checkbox, message } from "antd";
 import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 import {
   useCreateCatalogEntry,
   useDeleteCatalogEntry,
@@ -8,10 +8,8 @@ import {
   type TaxonomyDto,
 } from "../api/taxonomyApi";
 import { AppDialog } from "@/components/AppDialog";
-import { FloatingField } from "@/components/FloatingField";
+import { LabeledField } from "@/components/LabeledField";
 import { FloatingSelect } from "@/components/FloatingSelect";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { extractApiError } from "@/lib/apiError";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
@@ -103,12 +101,12 @@ export function SimpleCatalogDialog({
 
         if (isDeleted) {
           await deleteEntry.mutateAsync(entry.id);
-          toast.success(t("Đã xoá"));
+          message.success(t("Đã xoá"));
           onClose();
           return;
         }
 
-        toast.success(t("Đã cập nhật"));
+        message.success(t("Đã cập nhật"));
       } else {
         await createEntry.mutateAsync({
           clinicBranchId: branchId,
@@ -116,11 +114,11 @@ export function SimpleCatalogDialog({
           name: trimmed,
           sortOrder: Number.isNaN(sortOrder) ? 0 : sortOrder,
         });
-        toast.success(t("Đã thêm"));
+        message.success(t("Đã thêm"));
       }
       onClose();
     } catch (cause) {
-      toast.error(extractApiError(cause));
+      message.error(extractApiError(cause));
     }
   };
 
@@ -133,9 +131,9 @@ export function SimpleCatalogDialog({
       onSave={() => void submit()}
       onClose={onClose}
     >
-      <div className="space-y-4">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FloatingField
+      <div className="bd-dialog-stack">
+        <div className="bd-dialog-grid">
+          <LabeledField
             id="catalog-simple-name"
             label={t("Tên {0}", noun)}
             required
@@ -161,45 +159,36 @@ export function SimpleCatalogDialog({
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-6">
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="catalog-simple-active"
-              checked={isActive}
-              onCheckedChange={(checked) => setIsActive(checked === true)}
-            />
-            <Label htmlFor="catalog-simple-active" className="cursor-pointer text-[14px]">
-              {t("Đang hoạt động")}
-            </Label>
-          </div>
+        <div className="bd-dialog-row">
+          <Checkbox
+            id="catalog-simple-active"
+            checked={isActive}
+            onChange={(event) => setIsActive(event.target.checked)}
+          >
+            {t("Đang hoạt động")}
+          </Checkbox>
 
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="catalog-simple-deleted"
-              checked={isDeleted}
-              disabled={!entry}
-              onCheckedChange={(checked) => setIsDeleted(checked === true)}
-            />
-            <Label
-              htmlFor="catalog-simple-deleted"
-              className="cursor-pointer text-[14px]"
-              title={entry ? undefined : t("Chỉ dùng khi sửa bản ghi đã có")}
-            >
-              {t("Đã xoá")}
-            </Label>
-          </div>
+          <Checkbox
+            id="catalog-simple-deleted"
+            checked={isDeleted}
+            disabled={!entry}
+            title={entry ? undefined : t("Chỉ dùng khi sửa bản ghi đã có")}
+            onChange={(event) => setIsDeleted(event.target.checked)}
+          >
+            {t("Đã xoá")}
+          </Checkbox>
         </div>
 
-        <FloatingField
-          id="catalog-simple-priority"
-          label={t("Mức độ ưu tiên")}
-          type="number"
-          min={0}
-          inputMode="numeric"
-          value={priority}
-          onChange={setPriority}
-          className="sm:max-w-[240px]"
-        />
+        <div className="bd-dialog-grid">
+          <LabeledField
+            id="catalog-simple-priority"
+            label={t("Mức độ ưu tiên")}
+            type="number"
+            min={0}
+            value={priority}
+            onChange={setPriority}
+          />
+        </div>
       </div>
     </AppDialog>
   );

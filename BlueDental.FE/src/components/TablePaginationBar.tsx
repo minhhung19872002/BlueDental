@@ -29,8 +29,7 @@ export function pageSlots(current: number, totalPages: number): Slot[] {
   );
 }
 
-const STEP_BUTTON =
-  "inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-md border border-app-line bg-white px-3 text-[13px] font-medium whitespace-nowrap text-app-label outline-none transition-all duration-150 hover:border-app-line-strong hover:bg-app-surface focus-visible:ring-[3px] focus-visible:ring-app-primary/25 disabled:pointer-events-none disabled:opacity-40";
+const STEP_BUTTON = "bd-pager-step";
 
 interface Props {
   page: number;
@@ -65,26 +64,22 @@ export function TablePaginationBar({
   const unit = unitLabel ?? t("bản ghi");
 
   const strong = (value: number) => (
-    <span className="font-semibold text-app-ink tabular-nums">{value.toLocaleString("vi-VN")}</span>
+    <span className="bd-pager-strong">{value.toLocaleString("vi-VN")}</span>
   );
 
   return (
     <div
-      className={cn(
-        "flex flex-col gap-3 border-t border-app-line bg-app-surface px-4 py-3",
-        "md:flex-row md:items-center md:justify-between",
-        className,
-      )}
+      className={cn("bd-pager", className)}
     >
-      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
-        <label htmlFor="table-page-size" className="sr-only">
+      <div className="bd-pager-left">
+        <label htmlFor="table-page-size" className="bd-sr-only">
           {t("Số dòng mỗi trang")}
         </label>
         <select
           id="table-page-size"
           value={pageSize}
           onChange={(event) => onPageSizeChange(Number(event.target.value))}
-          className="h-8 cursor-pointer rounded-lg border border-app-line bg-white px-2 text-[13px] text-app-ink outline-none focus:border-app-primary focus:ring-[3px] focus:ring-app-primary/20"
+          className="bd-pager-size"
         >
           {pageSizeOptions.map((size) => (
             <option key={size} value={size}>
@@ -94,7 +89,7 @@ export function TablePaginationBar({
         </select>
 
         {/* An empty list has no range to name, so it counts rather than spans. */}
-        <p className="min-w-[140px] flex-1 text-[14px] leading-6 text-app-label" aria-live="polite">
+        <p className="bd-pager-summary" aria-live="polite">
           {/* Some lists count nothing in particular, so the noun is left out. */}
           {unit
             ? total === 0
@@ -112,14 +107,14 @@ export function TablePaginationBar({
         </p>
       </div>
 
-      <div className="ml-auto flex flex-wrap items-center justify-end gap-1.5">
+      <div className="bd-pager-steps">
         <button
           type="button"
           className={STEP_BUTTON}
           disabled={current <= 1}
           onClick={() => onPageChange(current - 1)}
         >
-          <ChevronLeft className="size-3.5" aria-hidden="true" />
+          <ChevronLeft className="bd-icon bd-icon--sm" aria-hidden="true" />
           {t("Trước")}
         </button>
 
@@ -128,7 +123,7 @@ export function TablePaginationBar({
             <span
               key={`gap-${index}`}
               aria-hidden="true"
-              className="flex size-8 items-center justify-center text-[13px] text-app-label"
+              className="bd-pager-gap"
             >
               …
             </span>
@@ -139,13 +134,7 @@ export function TablePaginationBar({
               aria-label={t("Trang {0}", slot)}
               aria-current={slot === current ? "page" : undefined}
               onClick={() => onPageChange(slot)}
-              className={cn(
-                "inline-flex size-8 shrink-0 items-center justify-center rounded-md border p-0 text-[13px] font-semibold tabular-nums",
-                "outline-none transition-all duration-150 focus-visible:ring-[3px] focus-visible:ring-app-primary/25",
-                slot === current
-                  ? "border-transparent bg-app-primary text-white hover:bg-app-primary-dark"
-                  : "border-app-line bg-white text-app-label hover:border-app-line-strong hover:bg-app-surface",
-              )}
+              className={cn("bd-pager-page", slot === current && "bd-pager-page--on")}
             >
               {slot}
             </button>
@@ -159,7 +148,7 @@ export function TablePaginationBar({
           onClick={() => onPageChange(current + 1)}
         >
           {t("Sau")}
-          <ChevronRight className="size-3.5" aria-hidden="true" />
+          <ChevronRight className="bd-icon bd-icon--sm" aria-hidden="true" />
         </button>
       </div>
     </div>

@@ -1,6 +1,6 @@
+import { Segmented, Spin, message } from "antd";
 import { useEffect, useState } from "react";
 import { CreditCard, Pencil, Trash2 } from "lucide-react";
-import { toast } from "sonner";
 import {
   PAYMENT_ACCOUNT_KIND,
   paymentAccountKindLabels,
@@ -12,9 +12,7 @@ import {
 import { FlatScreenHeader } from "./FlatScreenHeader";
 import { PaymentAccountModal } from "./PaymentAccountModal";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
-import { Spinner } from "@/components/Spinner";
 import { TablePaginationBar } from "@/components/TablePaginationBar";
-import { SegmentedControl } from "@/components/ui/segmented-control";
 import { extractApiError } from "@/lib/apiError";
 import { useBranchFilter, useIsAllBranches } from "@/lib/clinicBranch";
 import { cn } from "@/lib/cn";
@@ -22,9 +20,9 @@ import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
 
 const HEAD_CELL =
-  "sticky top-0 z-10 h-10 border-b border-app-line bg-app-surface px-4 py-2 text-left align-middle text-[14px] font-medium whitespace-nowrap text-app-label";
-const BODY_CELL = "h-14 border-b border-app-line px-4 py-3 align-middle text-[14px] text-app-ink";
-const STICKY_END = "sticky right-0 shadow-[-4px_0_6px_-2px_rgba(27,42,65,0.06)]";
+  "bd-cat-th";
+const BODY_CELL = "bd-cat-td";
+const STICKY_END = "bd-cat-sticky";
 
 const DEFAULT_PAGE_SIZE = 20;
 
@@ -76,16 +74,16 @@ export function PaymentAccountPanel() {
 
     try {
       await deleteAccount.mutateAsync(pendingDelete.id);
-      toast.success(t("Đã xoá phương thức thanh toán"));
+      message.success(t("Đã xoá phương thức thanh toán"));
     } catch (cause) {
-      toast.error(extractApiError(cause));
+      message.error(extractApiError(cause));
     } finally {
       setPendingDelete(null);
     }
   };
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-app-surface">
+    <div className="bd-cat-screen">
       <FlatScreenHeader
         icon={CreditCard}
         title={t("Quản lý phương thức thanh toán")}
@@ -96,30 +94,29 @@ export function PaymentAccountPanel() {
         actionDisabledHint={t("Chọn một chi nhánh cụ thể trước khi thêm")}
       />
 
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-3 md:p-5">
-        <SegmentedControl
-          tone="app"
-          className="w-full md:w-auto md:self-start"
+      <div className="bd-cat-body bd-cat-body--gap">
+        <Segmented<TabKey>
+          className="bd-catalog-segmented"
           value={tab}
           onChange={(next) => {
             setTab(next);
             setPage(1);
           }}
           options={[
-            { key: "momo", label: kindLabels[PAYMENT_ACCOUNT_KIND.MoMo] },
-            { key: "bank", label: kindLabels[PAYMENT_ACCOUNT_KIND.Bank] },
+            { value: "momo", label: kindLabels[PAYMENT_ACCOUNT_KIND.MoMo] },
+            { value: "bank", label: kindLabels[PAYMENT_ACCOUNT_KIND.Bank] },
           ]}
         />
 
-        <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-app-line bg-white shadow-[0_2px_6px_rgba(27,42,65,0.06)]">
-          <div className="relative min-h-0 w-full flex-1 overflow-auto">
+        <div className="bd-cat-card">
+          <div className="bd-cat-scroll">
             {accountsQuery.isFetching && (
-              <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/70">
-                <Spinner />
+              <div className="bd-cat-busy">
+                <Spin size="large" />
               </div>
             )}
 
-            <table className="w-full min-w-[760px] border-separate border-spacing-0 text-sm">
+            <table className="bd-cat-table bd-cat-table--wide">
               <thead>
                 <tr>
                   {isMoMo ? (
@@ -130,16 +127,16 @@ export function PaymentAccountPanel() {
                   <th className={HEAD_CELL}>{t("Tên chủ tài khoản")}</th>
                   {!isMoMo && <th className={HEAD_CELL}>{t("Số tài khoản")}</th>}
                   <th className={HEAD_CELL}>{t("Lần cập nhật cuối")}</th>
-                  <th className={cn(HEAD_CELL, "z-20 text-center", STICKY_END)}>{t("Thao tác")}</th>
+                  <th className={cn(HEAD_CELL, "bd-z20 bd-text-center", STICKY_END)}>{t("Thao tác")}</th>
                 </tr>
               </thead>
 
-              <tbody className="[&_tr:last-child_td]:border-b-0">
+              <tbody className="bd-cat-tbody">
                 {accounts.length === 0 ? (
                   <tr>
                     <td
                       colSpan={columnCount}
-                      className="h-32 border-app-line px-4 py-3 text-center align-middle text-[14px] text-app-label"
+                      className="bd-cat-emptycell"
                     >
                       {isMoMo
                         ? t("Không có phương thức MoMo")
@@ -150,11 +147,11 @@ export function PaymentAccountPanel() {
                   accounts.map((account) => (
                     <tr
                       key={account.id}
-                      className="group bg-white transition-colors hover:bg-app-surface"
+                      className="bd-cat-row"
                     >
                       <td className={BODY_CELL}>
                         {isMoMo ? (
-                          <span className="tabular-nums">{account.phoneNumber}</span>
+                          <span className="bd-num">{account.phoneNumber}</span>
                         ) : (
                           account.bankName
                         )}
@@ -162,11 +159,11 @@ export function PaymentAccountPanel() {
                       <td className={BODY_CELL}>{account.holderName}</td>
                       {!isMoMo && (
                         <td className={BODY_CELL}>
-                          <span className="tabular-nums">{account.accountNumber}</span>
+                          <span className="bd-num">{account.accountNumber}</span>
                         </td>
                       )}
                       <td className={BODY_CELL}>
-                        <span className="tabular-nums text-app-label">
+                        <span className="bd-cat-num">
                           {formatDate(account.lastModificationTime ?? account.creationTime)}
                         </span>
                       </td>
@@ -174,27 +171,26 @@ export function PaymentAccountPanel() {
                       <td
                         className={cn(
                           BODY_CELL,
-                          "z-10 bg-white text-center",
+                          "bd-cat-td--actions",
                           STICKY_END,
-                          "group-hover:bg-app-surface",
                         )}
                       >
-                        <div className="flex items-center justify-center gap-0.5">
+                        <div className="bd-cat-rowactions">
                           <button
                             type="button"
                             aria-label={t("Chỉnh sửa {0}", account.holderName)}
                             onClick={() => setModal({ open: true, account })}
-                            className="flex size-7 cursor-pointer items-center justify-center rounded-md text-app-label outline-none transition-colors duration-150 hover:bg-app-surface hover:text-app-ink focus-visible:ring-2 focus-visible:ring-app-primary/40"
+                            className="bd-cat-iconbtn"
                           >
-                            <Pencil className="size-3.5" aria-hidden="true" />
+                            <Pencil className="bd-icon bd-icon--sm" aria-hidden="true" />
                           </button>
                           <button
                             type="button"
                             aria-label={t("Xoá {0}", account.holderName)}
                             onClick={() => setPendingDelete(account)}
-                            className="flex size-7 cursor-pointer items-center justify-center rounded-md text-app-danger outline-none transition-colors duration-150 hover:bg-app-danger/10 focus-visible:ring-2 focus-visible:ring-app-danger/40"
+                            className="bd-cat-iconbtn bd-cat-iconbtn--danger"
                           >
-                            <Trash2 className="size-3.5" aria-hidden="true" />
+                            <Trash2 className="bd-icon bd-icon--sm" aria-hidden="true" />
                           </button>
                         </div>
                       </td>

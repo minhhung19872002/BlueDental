@@ -1,6 +1,6 @@
+import { Button, Checkbox, Popover, message } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
-import { toast } from "sonner";
 import {
   PRESCRIPTION_USAGE,
   TAXONOMY_GROUP,
@@ -12,12 +12,8 @@ import {
   type TaxonomyDto,
 } from "../api/taxonomyApi";
 import { AppDialog } from "@/components/AppDialog";
-import { FloatingField } from "@/components/FloatingField";
+import { LabeledField } from "@/components/LabeledField";
 import { FloatingSelect } from "@/components/FloatingSelect";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { extractApiError } from "@/lib/apiError";
 import { useBranchFilter, useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
@@ -59,38 +55,30 @@ function usageLabel(usage: number): string {
 
 /** "Sử dụng" — a multi-select, the way the reference builds it. */
 function UsagePicker({ value, onChange }: { value: number; onChange: (next: number) => void }) {
+  const content = (
+    <div className="bd-usage-picker">
+      {usageOptions().map((option) => {
+        const checked = (value & option.flag) !== 0;
+        return (
+          <Checkbox
+            key={option.flag}
+            checked={checked}
+            onChange={(event) =>
+              onChange(event.target.checked ? value | option.flag : value & ~option.flag)
+            }
+          >
+            {option.label}
+          </Checkbox>
+        );
+      })}
+    </div>
+  );
+
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className="flex h-9 w-full cursor-pointer items-center justify-between rounded-md border border-app-line px-2 text-left text-[13px] text-app-ink outline-none focus-visible:border-app-primary"
-        >
-          <span className="truncate">{usageLabel(value)}</span>
-        </button>
-      </PopoverTrigger>
-      <PopoverContent align="start" className="w-56 p-2">
-        <div className="space-y-1.5">
-          {usageOptions().map((option) => {
-            const id = `usage-${option.flag}`;
-            const checked = (value & option.flag) !== 0;
-            return (
-              <div key={option.flag} className="flex items-center gap-2">
-                <Checkbox
-                  id={id}
-                  checked={checked}
-                  onCheckedChange={(next) =>
-                    onChange(next === true ? value | option.flag : value & ~option.flag)
-                  }
-                />
-                <Label htmlFor={id} className="cursor-pointer text-[14px]">
-                  {option.label}
-                </Label>
-              </div>
-            );
-          })}
-        </div>
-      </PopoverContent>
+    <Popover content={content} trigger="click" placement="bottomLeft">
+      <Button className="bd-usage-trigger">
+        {usageLabel(value)}
+      </Button>
     </Popover>
   );
 }
@@ -190,7 +178,7 @@ export function PrescriptionTemplateDialog({
             sortOrder,
           },
         });
-        toast.success(t("Đã cập nhật đơn thuốc mẫu"));
+        message.success(t("Đã cập nhật đơn thuốc mẫu"));
       } else {
         await createEntry.mutateAsync({
           clinicBranchId: branchId,
@@ -200,31 +188,31 @@ export function PrescriptionTemplateDialog({
           prescriptionLines: filled,
           sortOrder,
         });
-        toast.success(t("Đã thêm đơn thuốc mẫu"));
+        message.success(t("Đã thêm đơn thuốc mẫu"));
       }
       onClose();
     } catch (cause) {
-      toast.error(extractApiError(cause));
+      message.error(extractApiError(cause));
     }
   };
 
   const CELL = "px-2 py-2 align-middle";
   const NUM =
-    "h-9 w-full rounded-md border border-app-line px-2 text-[14px] outline-none focus-visible:border-app-primary";
+    "bd-plain-input";
 
   return (
     <AppDialog
       open={open}
       title={entry ? t("Cập nhật đơn thuốc mẫu") : t("Thêm đơn thuốc mẫu")}
-      width="sm:max-w-5xl"
+      width={1040}
       canSave={name.trim().length > 0}
       saving={pending}
       onSave={() => void submit()}
       onClose={onClose}
     >
-      <div className="space-y-4">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FloatingField
+      <div className="bd-dialog-stack">
+        <div className="bd-dialog-grid">
+          <LabeledField
             id="prescription-name"
             label={t("Tên đơn thuốc mẫu")}
             required
@@ -236,7 +224,7 @@ export function PrescriptionTemplateDialog({
               if (error) setError(null);
             }}
           />
-          <FloatingField
+          <LabeledField
             id="prescription-advice"
             label={t("Lời dặn")}
             value={advice}
@@ -244,22 +232,22 @@ export function PrescriptionTemplateDialog({
           />
         </div>
 
-        <div className="flex justify-end">
+        <div className="bd-row-end">
           <Button
-            type="button"
-            variant="outline"
-            className="gap-1 text-app-primary"
+            htmlType="button"
+            variant="outlined"
+            className="bd-primary-text"
             onClick={() => setLines((current) => [...current, { ...EMPTY_LINE }])}
           >
-            <Plus className="size-4" aria-hidden="true" />
+            <Plus className="bd-icon" aria-hidden="true" />
             {t("Thêm mới")}
           </Button>
         </div>
 
-        <div className="overflow-x-auto rounded-lg border border-app-line">
-          <table className="w-full min-w-[860px] text-[14px]">
+        <div className="bd-cat-tablebox">
+          <table className="bd-cat-table bd-cat-table--wider">
             <thead>
-              <tr className="bg-app-surface text-left text-app-label">
+              <tr className="bd-cat-thead">
                 <th className={`${CELL} font-medium`}>{t("Tên thuốc")}</th>
                 <th className={`${CELL} w-28 font-medium`}>{t("Ngày uống")}</th>
                 <th className={`${CELL} w-24 font-medium`}>{t("Mỗi lần")}</th>
@@ -271,7 +259,7 @@ export function PrescriptionTemplateDialog({
             </thead>
             <tbody>
               {lines.map((line, index) => (
-                <tr key={line.id ?? index} className="border-t border-app-line">
+                <tr key={line.id ?? index} className="bd-cat-footline">
                   <td className={`${CELL} min-w-[220px]`}>
                     <FloatingSelect
                       id={`prescription-medicine-${index}`}
@@ -338,9 +326,9 @@ export function PrescriptionTemplateDialog({
                       aria-label={t("Xoá dòng thuốc {0}", String(index + 1))}
                       disabled={lines.length === 1}
                       onClick={() => setLines((current) => current.filter((_, at) => at !== index))}
-                      className="cursor-pointer text-app-danger disabled:opacity-40"
+                      className="bd-danger-text"
                     >
-                      <Trash2 className="size-4" aria-hidden="true" />
+                      <Trash2 className="bd-icon" aria-hidden="true" />
                     </button>
                   </td>
                 </tr>
@@ -349,15 +337,13 @@ export function PrescriptionTemplateDialog({
           </table>
         </div>
 
-        <FloatingField
+        <LabeledField
           id="prescription-priority"
           label={t("Mức độ ưu tiên")}
           type="number"
           min={0}
-          inputMode="numeric"
           value={priority}
           onChange={setPriority}
-          className="sm:max-w-[240px]"
         />
       </div>
     </AppDialog>

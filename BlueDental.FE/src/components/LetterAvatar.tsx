@@ -45,10 +45,7 @@ export function LetterAvatar({ name, className }: Props) {
     <span
       aria-hidden="true"
       style={{ backgroundColor: letterAvatarColor(name) }}
-      className={cn(
-        "flex size-8 shrink-0 items-center justify-center rounded-lg text-[13px] font-bold text-white",
-        className,
-      )}
+      className={cn("bd-letter-avatar", className)}
     >
       {firstLetter(name)}
     </span>

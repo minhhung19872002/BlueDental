@@ -1,14 +1,8 @@
 import { memo } from "react";
+import { Dropdown, Spin } from "antd";
 import { FolderOpen, GripVertical, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import type { TaxonomyDto } from "../api/taxonomyApi";
 import { SearchField } from "@/components/SearchField";
-import { Spinner } from "@/components/Spinner";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useDragReorder } from "@/hooks/useDragReorder";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
@@ -76,62 +70,65 @@ const GroupRow = memo(function GroupRow({
       data-group-row={group.id}
       // No transition on the row itself: the lifted row's transform is written
       // on every pointer move, and a transition would make it trail the cursor.
-      className={cn(dragging && "opacity-95 shadow-[0_8px_20px_rgba(27,42,65,0.18)]")}
+      className={cn(dragging && "bd-lifted")}
     >
       <div
         className={cn(
-          "group relative flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left transition-colors",
-          active
-            ? "border-l-[3px] border-app-primary bg-app-primary-soft pl-[calc(0.75rem-3px)] text-app-primary-dark"
-            : "text-app-label hover:bg-app-surface hover:text-app-ink",
-          dragging && "bg-white ring-2 ring-app-primary/40",
+          "bd-group-row",
+          active && "bd-group-row--active",
+          dragging && "bd-group-row--dragging",
         )}
       >
         <button
           type="button"
           onClick={() => onSelect(group.id)}
           aria-current={active ? "true" : undefined}
-          className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 rounded outline-none focus-visible:ring-2 focus-visible:ring-app-primary/40"
+          className="bd-group-btn"
         >
           <FolderOpen
             aria-hidden="true"
-            className={cn("size-4 shrink-0", active ? "text-app-primary" : "text-app-label")}
+            className={cn("bd-icon", active ? "bd-primary-text" : "bd-muted-text")}
           />
-          <span className="min-w-0 flex-1 text-left">
-            <span className={cn("block text-[14px]", active ? "font-semibold" : "font-medium")}>
+          <span className="bd-min0 bd-flex1 bd-text-left">
+            <span className={cn("bd-group-name", active ? "bd-semibold" : "bd-medium")}>
               {group.name}
             </span>
           </span>
         </button>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              aria-label={t("Thêm thao tác")}
-              title={t("Thêm thao tác")}
-              data-group-menu={group.name}
-              className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded text-app-icon opacity-0 transition-opacity outline-none group-hover:opacity-100 hover:bg-app-primary-soft hover:text-app-primary focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-app-primary/40 data-[state=open]:opacity-100"
-            >
-              <MoreHorizontal className="size-4" aria-hidden="true" />
-            </button>
-          </DropdownMenuTrigger>
-          {/* The reference offers exactly these two commands. Reordering is not
-              in the menu — the grip carries it, by pointer and by keyboard. */}
-          <DropdownMenuContent align="end" className="w-40">
-            <DropdownMenuItem onClick={() => onRename(group)}>
-              <Pencil className="size-4" />
-              {t("Chỉnh sửa")}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive"
-              onClick={() => onDelete(group)}
-            >
-              <Trash2 className="size-4" />
-              {t("Xoá")}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* The reference offers exactly these two commands. Reordering is not
+            in the menu — the grip carries it, by pointer and by keyboard. */}
+        <Dropdown
+          trigger={["click"]}
+          placement="bottomRight"
+          menu={{
+            items: [
+              {
+                key: "rename",
+                icon: <Pencil className="bd-menu-icon" />,
+                label: t("Chỉnh sửa"),
+                onClick: () => onRename(group),
+              },
+              {
+                key: "delete",
+                danger: true,
+                icon: <Trash2 className="bd-menu-icon" />,
+                label: t("Xoá"),
+                onClick: () => onDelete(group),
+              },
+            ],
+          }}
+        >
+          <button
+            type="button"
+            aria-label={t("Thêm thao tác")}
+            title={t("Thêm thao tác")}
+            data-group-menu={group.name}
+            className="bd-group-menu-trigger"
+          >
+            <MoreHorizontal className="bd-menu-icon" aria-hidden="true" />
+          </button>
+        </Dropdown>
 
         {/* A real button, not a decoration: dragging is a pointer gesture, so
             the same move has to be reachable with the arrow keys once the grip
@@ -153,13 +150,12 @@ const GroupRow = memo(function GroupRow({
             }
           }}
           className={cn(
-            "flex size-5 shrink-0 items-center justify-center rounded text-app-icon opacity-0 outline-none transition-opacity group-hover:opacity-100",
-            "focus-visible:text-app-primary focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-app-primary/40",
-            dragging && "opacity-100",
-            canReorder ? "cursor-grab active:cursor-grabbing" : "cursor-not-allowed",
+            "bd-grip bd-grip--reveal",
+            dragging && "bd-grip--shown",
+            canReorder ? "" : "bd-grip--off",
           )}
         >
-          <GripVertical className="size-4" aria-hidden="true" />
+          <GripVertical className="bd-icon" aria-hidden="true" />
         </button>
       </div>
     </li>
@@ -199,53 +195,53 @@ export function TaxonomyGroupPanel({
   });
 
   return (
-    <div className="flex h-full w-full flex-col bg-white">
+    <div className="bd-group-panel">
       <div
         data-slot="group-panel-header"
-        className="flex shrink-0 flex-col justify-center border-b border-app-line p-4 md:h-[134px]"
+        className="bd-group-head"
       >
-        <div className="flex items-baseline justify-between gap-2">
-          <p className="text-[16px] font-semibold text-app-ink">{title}</p>
-          <span className="shrink-0 text-[12px] text-app-label">
+        <div className="bd-group-headrow">
+          <p className="bd-group-title">{title}</p>
+          <span className="bd-cat-hint">
             {isLoading ? t("Đang tải…") : t("{0} nhóm", groups.length)}
           </span>
         </div>
-        <p className="mt-0.5 text-[14px] text-app-label">{subtitle}</p>
+        <p className="bd-cat-sub">{subtitle}</p>
 
-        <div className="mt-3 flex items-center gap-2">
+        <div className="bd-cat-inline2 bd-mt3">
           <SearchField
             id="taxonomy-group-search"
             label={t("Tìm nhóm...")}
             value={keyword}
             onChange={onKeywordChange}
-            className="w-full"
+            className="bd-w-full"
           />
           <button
             type="button"
             onClick={onCreate}
             aria-label={t("Thêm nhóm phân loại")}
             title={t("Thêm nhóm phân loại")}
-            className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-lg bg-app-primary text-white outline-none transition-colors duration-150 hover:bg-app-primary-dark focus-visible:ring-[3px] focus-visible:ring-app-primary/25"
+            className="bd-group-add"
           >
-            <Plus className="size-4" aria-hidden="true" />
+            <Plus className="bd-icon" aria-hidden="true" />
           </button>
         </div>
       </div>
 
-      <nav aria-label={title} className="relative flex-1 overflow-y-auto p-2">
+      <nav aria-label={title} className="bd-group-list">
         {isLoading ? (
-          <div className="flex justify-center py-10">
-            <Spinner />
+          <div className="bd-center-pad">
+            <Spin size="large" />
           </div>
         ) : drag.items.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 py-10 text-center">
-            <FolderOpen className="size-8 text-app-icon" aria-hidden="true" />
-            <p className="text-[13px] text-app-label">
+          <div className="bd-empty">
+            <FolderOpen className="bd-icon bd-icon--xl" aria-hidden="true" />
+            <p className="bd-cat-hint bd-cat-hint--13">
               {keyword ? t("Không tìm thấy nhóm phù hợp") : t("Chưa có nhóm nào")}
             </p>
           </div>
         ) : (
-          <ul className={cn("space-y-0.5 select-none", isSearching && "opacity-60")}>
+          <ul className={cn("bd-group-items", isSearching && "bd-dimmed")}>
             {drag.items.map((group, index) => (
               <GroupRow
                 key={group.id}

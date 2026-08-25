@@ -1,12 +1,12 @@
+import { message } from "antd";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 import {
   useCreateTaxonomyGroup,
   useUpdateTaxonomyGroup,
   type TaxonomyDto,
 } from "../api/taxonomyApi";
 import { AppDialog } from "@/components/AppDialog";
-import { FloatingField } from "@/components/FloatingField";
+import { LabeledField } from "@/components/LabeledField";
 import { extractApiError } from "@/lib/apiError";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
@@ -71,7 +71,7 @@ export function TaxonomyGroupModal({ open, group, taxonomyGroup, onClose, onCrea
             sortOrder: resolvedSortOrder,
           },
         });
-        toast.success(t("Đã cập nhật nhóm"));
+        message.success(t("Đã cập nhật nhóm"));
       } else {
         const created = await createGroup.mutateAsync({
           clinicBranchId: branchId,
@@ -79,12 +79,16 @@ export function TaxonomyGroupModal({ open, group, taxonomyGroup, onClose, onCrea
           name: trimmed,
           sortOrder: resolvedSortOrder,
         });
-        toast.success(t("Đã thêm nhóm"));
+        message.success(t("Đã thêm nhóm"));
+        // Closed before the parent is told, so a hiccup while it moves the
+        // selection can never leave this dialog stuck open over the result.
+        onClose();
         onCreated(created);
+        return;
       }
       onClose();
     } catch (cause) {
-      toast.error(extractApiError(cause));
+      message.error(extractApiError(cause));
     }
   };
 
@@ -98,8 +102,8 @@ export function TaxonomyGroupModal({ open, group, taxonomyGroup, onClose, onCrea
       onSave={() => void submit()}
       onClose={onClose}
     >
-      <div className="grid gap-4 sm:grid-cols-2">
-        <FloatingField
+      <div className="bd-dialog-grid">
+        <LabeledField
           id="taxonomy-group-name"
           label={t("Tên phân loại")}
           required
@@ -115,12 +119,11 @@ export function TaxonomyGroupModal({ open, group, taxonomyGroup, onClose, onCrea
           }}
         />
 
-        <FloatingField
+        <LabeledField
           id="taxonomy-group-priority"
           label={t("Mức độ ưu tiên")}
           type="number"
           min={0}
-          inputMode="numeric"
           value={priority}
           onChange={setPriority}
           onKeyDown={(event) => {

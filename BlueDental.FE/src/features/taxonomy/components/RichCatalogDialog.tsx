@@ -1,5 +1,5 @@
+import { Checkbox, message } from "antd";
 import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
 import {
   useCreateCatalogEntry,
   useDeleteCatalogEntry,
@@ -8,11 +8,9 @@ import {
   type TaxonomyDto,
 } from "../api/taxonomyApi";
 import { AppDialog } from "@/components/AppDialog";
-import { FloatingField } from "@/components/FloatingField";
+import { LabeledField } from "@/components/LabeledField";
 import { FloatingSelect } from "@/components/FloatingSelect";
 import { RichTextField } from "@/components/RichTextField";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { extractApiError } from "@/lib/apiError";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
@@ -105,12 +103,12 @@ export function RichCatalogDialog({
 
         if (isDeleted) {
           await deleteEntry.mutateAsync(entry.id);
-          toast.success(t("Đã xoá"));
+          message.success(t("Đã xoá"));
           onClose();
           return;
         }
 
-        toast.success(t("Đã cập nhật"));
+        message.success(t("Đã cập nhật"));
       } else {
         await createEntry.mutateAsync({
           clinicBranchId: branchId,
@@ -120,11 +118,11 @@ export function RichCatalogDialog({
           note: note.trim() || null,
           sortOrder,
         });
-        toast.success(t("Đã thêm"));
+        message.success(t("Đã thêm"));
       }
       onClose();
     } catch (cause) {
-      toast.error(extractApiError(cause));
+      message.error(extractApiError(cause));
     }
   };
 
@@ -132,15 +130,15 @@ export function RichCatalogDialog({
     <AppDialog
       open={open}
       title={entry ? t("Cập nhật {0}", noun) : t("Thêm {0}", noun)}
-      width="sm:max-w-3xl"
+      width={820}
       canSave={name.trim().length > 0 && taxonomyId.length > 0}
       saving={pending}
       onSave={() => void submit()}
       onClose={onClose}
     >
-      <div className="space-y-4">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FloatingField
+      <div className="bd-dialog-stack">
+        <div className="bd-dialog-grid">
+          <LabeledField
             id="catalog-rich-name"
             label={t("Tên {0}", noun)}
             required
@@ -169,47 +167,37 @@ export function RichCatalogDialog({
           placeholder={t("Nhập nội dung tư vấn...")}
         />
 
-        <FloatingField
+        <LabeledField
           id="catalog-rich-note"
           label={t("Ghi chú")}
           value={note}
           onChange={setNote}
         />
 
-        <div className="flex flex-wrap items-center gap-6">
-          <div className="flex items-center gap-2">
-            <Checkbox
+        <div className="bd-dialog-row">
+<Checkbox
               id="catalog-rich-active"
               checked={isActive}
-              onCheckedChange={(checked) => setIsActive(checked === true)}
-            />
-            <Label htmlFor="catalog-rich-active" className="cursor-pointer text-[14px]">
-              {t("Đang hoạt động")}
-            </Label>
-          </div>
+              onChange={(event) => setIsActive(event.target.checked)}>
+            {t("Đang hoạt động")}
+          </Checkbox>
 
-          <div className="flex items-center gap-2">
-            <Checkbox
+<Checkbox
               id="catalog-rich-deleted"
               checked={isDeleted}
               disabled={!entry}
-              onCheckedChange={(checked) => setIsDeleted(checked === true)}
-            />
-            <Label htmlFor="catalog-rich-deleted" className="cursor-pointer text-[14px]">
-              {t("Đã xoá")}
-            </Label>
-          </div>
+              onChange={(event) => setIsDeleted(event.target.checked)}>
+            {t("Đã xoá")}
+          </Checkbox>
         </div>
 
-        <FloatingField
+        <LabeledField
           id="catalog-rich-priority"
           label={t("Mức độ ưu tiên")}
           type="number"
           min={0}
-          inputMode="numeric"
           value={priority}
           onChange={setPriority}
-          className="sm:max-w-[240px]"
         />
       </div>
     </AppDialog>

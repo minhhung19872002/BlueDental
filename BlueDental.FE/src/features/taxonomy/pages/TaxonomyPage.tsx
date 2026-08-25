@@ -1,6 +1,6 @@
+import { Drawer, message } from "antd";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { toast } from "sonner";
 import {
   useCatalogEntries,
   useCreateTaxonomyGroup,
@@ -33,7 +33,6 @@ import {
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { PageTabBar } from "@/components/PageTabBar";
 import { TablePaginationBar } from "@/components/TablePaginationBar";
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { useDebounce } from "@/hooks/useDebounce";
 import { extractApiError } from "@/lib/apiError";
 import { useBranchFilter, useCurrentBranchId, useIsAllBranches } from "@/lib/clinicBranch";
@@ -136,6 +135,20 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
     // A group id belongs to one branch, so switching branches leaves a link
     // pointing at a group this branch does not have — drop it rather than
     // querying it and collecting a 403.
+    // A group created a moment ago is selected before the list that would hold
+    // it has come back — and before the URL carrying the selection has even
+    // updated. Falling back here would hand the selection to the old first row
+    // and the new group would never be shown.
+    const awaited = awaitingGroupRef.current;
+    if (awaited) {
+      // Two things lag behind a create: the URL that carries the selection, and
+      // the list that would contain the new group. Falling back before either
+      // has caught up hands the selection to the old first row for good.
+      if (selectedGroupId !== awaited) return;
+      if (!groups.some((item) => item.id === awaited)) return;
+      awaitingGroupRef.current = null;
+    }
+
     const stillThere = selectedGroupId && groups.some((item) => item.id === selectedGroupId);
     if (stillThere) return;
 
@@ -157,6 +170,9 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
 
   // The panel's rows are memoised, so the handlers they receive have to keep
   // their identity between renders or the memo buys nothing.
+  /** A group selected before the list holding it has been refetched. */
+  const awaitingGroupRef = useRef<string | null>(null);
+
   const selectGroup = useCallback(
     (id: string) => {
       setSearchParams((params) => {
@@ -199,7 +215,7 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
           items: orderedItems(groups, from, to),
         });
       } catch (cause) {
-        toast.error(extractApiError(cause));
+        message.error(extractApiError(cause));
       }
     },
     [branchFilter, group, groups, reorderGroupsMutation],
@@ -216,7 +232,7 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
           items: orderedItems(entries, from, to, (page - 1) * pageSize),
         });
       } catch (cause) {
-        toast.error(extractApiError(cause));
+        message.error(extractApiError(cause));
       }
     },
     [
@@ -237,13 +253,13 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
     try {
       if (pendingDelete.kind === "group") {
         await deleteGroup.mutateAsync(pendingDelete.id);
-        toast.success(t("Đã xoá nhóm"));
+        message.success(t("Đã xoá nhóm"));
       } else {
         await deleteEntry.mutateAsync(pendingDelete.id);
-        toast.success(t("Đã xoá"));
+        message.success(t("Đã xoá"));
       }
     } catch (cause) {
-      toast.error(extractApiError(cause));
+      message.error(extractApiError(cause));
     } finally {
       setPendingDelete(null);
     }
@@ -269,7 +285,7 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
       });
       setEntryModal({ open: true, entry: null });
     } catch (cause) {
-      toast.error(extractApiError(cause));
+      message.error(extractApiError(cause));
     }
   };
 
@@ -338,27 +354,28 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
   );
 
   return (
-    <div className="flex h-full">
+    <div className="bd-taxonomy-shell">
       {grouped && (
         <>
-          <aside className="hidden w-[272px] shrink-0 border-r border-app-line md:block">
+          <aside className="bd-taxonomy-aside">
             {groupPanel}
           </aside>
 
-          <Sheet open={groupsOpen} onOpenChange={setGroupsOpen}>
-            <SheetContent
-              side="left"
-              // Keeps the sheet's own close button clear of the panel's record count.
-              className="w-[288px] p-0 md:hidden [&_[data-slot=group-panel-header]]:pr-10"
-            >
-              <SheetTitle className="sr-only">{t("Nhóm {0}", tab.noun)}</SheetTitle>
-              {groupPanel}
-            </SheetContent>
-          </Sheet>
+          <Drawer
+            open={groupsOpen}
+            onClose={() => setGroupsOpen(false)}
+            placement="left"
+            width={288}
+            title={t("Nhóm {0}", tab.noun)}
+            className="bd-group-drawer"
+            styles={{ body: { padding: 0 } }}
+          >
+            {groupPanel}
+          </Drawer>
         </>
       )}
 
-      <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-app-surface">
+      <main className="bd-taxonomy-main">
         <CatalogPanelHeader
           title={grouped ? (selectedGroup?.name ?? tab.label) : tab.label}
           groupName={grouped ? (selectedGroup?.name ?? null) : null}
@@ -373,8 +390,8 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
           onOpenGroups={grouped ? () => setGroupsOpen(true) : null}
         />
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-3 md:p-5">
-          <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-app-line bg-white shadow-[0_2px_6px_rgba(27,42,65,0.06)]">
+        <div className="bd-cat-body">
+          <div className="bd-cat-card">
             <CatalogEntryTable
               entries={entries}
               entityLabel={t("Tên {0}", tab.noun)}
@@ -419,7 +436,10 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
         group={groupModal.group}
         taxonomyGroup={group}
         onClose={() => setGroupModal({ open: false, group: null })}
-        onCreated={(created) => selectGroup(created.id)}
+        onCreated={(created) => {
+          awaitingGroupRef.current = created.id;
+          selectGroup(created.id);
+        }}
       />
 
       <ConfirmDeleteDialog
@@ -443,8 +463,8 @@ function StandaloneScreen({ tab }: { tab: TaxonomyTab }) {
   if (tab.screen === "payment-method") return <PaymentAccountPanel />;
 
   return (
-    <div className="flex h-full items-center justify-center bg-app-surface p-8">
-      <p className="max-w-md text-center text-[14px] text-app-label">
+    <div className="bd-center-full">
+      <p className="bd-center-msg">
         {tab.pendingNote ?? t("Chưa có dữ liệu")}
       </p>
     </div>
@@ -458,7 +478,7 @@ export function TaxonomyPage() {
   const tab = findTaxonomyTab(tabs, section ?? searchParams.get("tab") ?? DEFAULT_TAXONOMY_TAB);
 
   return (
-    <div className="-m-4 flex h-[calc(100vh-var(--bd-header-height))] flex-col overflow-hidden bg-white">
+    <div className="bd-taxonomy-page">
       <PageTabBar
         label={t("Danh mục")}
         activeKey={tab.key}
@@ -469,7 +489,7 @@ export function TaxonomyPage() {
         }))}
       />
 
-      <div className="min-h-0 flex-1">
+      <div className="bd-min0h bd-flex1">
         {tab.group ? (
           <CatalogWorkspace key={tab.key} tab={tab} />
         ) : (

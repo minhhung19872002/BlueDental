@@ -44,40 +44,40 @@ export function CatalogPanelHeader({
   return (
     <>
       {onOpenGroups && (
-        <div className="shrink-0 border-b border-app-line bg-white px-4 py-2 md:hidden">
+        <div className="bd-cat-header bd-cat-header--bar">
           <button
             type="button"
             onClick={onOpenGroups}
-            className="flex cursor-pointer items-center gap-2 text-[13.5px] font-semibold text-app-primary"
+            className="bd-cat-linkbtn"
           >
-            <TextAlignStart className="size-4" aria-hidden="true" />
+            <TextAlignStart className="bd-icon" aria-hidden="true" />
             {t("Chọn nhóm")}
           </button>
         </div>
       )}
 
-      <div className="shrink-0 border-b border-app-line bg-white px-4 py-4 md:min-h-[134px]">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="truncate text-[18px] font-bold text-app-ink md:text-[20px]">
+      <div className="bd-cat-header">
+        <div className="bd-cat-headrow">
+          <div className="bd-min0">
+            <div className="bd-cat-inline2">
+              <h1 className="bd-cat-title">
                 {title}
               </h1>
-              <span className="inline-flex h-5 w-fit shrink-0 items-center rounded-full bg-app-primary-soft px-2 text-[11px] font-semibold whitespace-nowrap text-app-primary">
+              <span className="bd-cat-count">
                 {t("{0} bản ghi", totalCount)}
               </span>
             </div>
             {groupName && (
-              <p className="mt-0.5 text-[14px] text-app-label">
+              <p className="bd-cat-sub">
                 {tRich(
                   "Quản lý các mục thuộc nhóm {0}",
-                  <span className="font-medium text-app-ink">{groupName}</span>,
+                  <span className="bd-cat-medium">{groupName}</span>,
                 )}
               </p>
             )}
           </div>
 
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="bd-cat-headactions">
             {onExport && (
               <button
                 type="button"
@@ -85,10 +85,10 @@ export function CatalogPanelHeader({
                 disabled={exportDisabled}
                 className={cn(
                   BUTTON_BASE,
-                  "border-app-line bg-white text-app-ink hover:border-app-line-strong hover:bg-app-surface",
+                  "bd-cat-toolbtn",
                 )}
               >
-                <Download className="size-4" aria-hidden="true" />
+                <Download className="bd-icon" aria-hidden="true" />
                 {t("Xuất")}
               </button>
             )}
@@ -99,23 +99,23 @@ export function CatalogPanelHeader({
               disabled={createDisabled}
               className={cn(
                 BUTTON_BASE,
-                "border-transparent bg-app-primary text-white hover:bg-app-primary-dark",
+                "bd-cat-toolbtn bd-cat-toolbtn--primary",
               )}
             >
-              <Plus className="size-3.5" aria-hidden="true" />
-              <span className="hidden sm:inline">{t("Thêm {0}", noun)}</span>
-              <span className="sm:hidden">{t("Thêm")}</span>
+              <Plus className="bd-icon bd-icon--sm" aria-hidden="true" />
+              <span className="bd-only-sm">{t("Thêm {0}", noun)}</span>
+              <span className="bd-hide-sm">{t("Thêm")}</span>
             </button>
           </div>
         </div>
 
-        <div className="mt-2 flex items-center gap-2">
+        <div className="bd-cat-inline2 bd-mt2">
           <SearchField
             id="catalog-entry-search"
             label={t("Tìm theo tên {0}...", noun)}
             value={keyword}
             onChange={onKeywordChange}
-            className="w-full md:max-w-[360px]"
+            className="bd-cat-search"
           />
         </div>
       </div>

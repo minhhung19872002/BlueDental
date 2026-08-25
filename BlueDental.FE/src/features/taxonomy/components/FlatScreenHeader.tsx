@@ -36,14 +36,14 @@ export function FlatScreenHeader({
   search,
 }: Props) {
   return (
-    <div className="shrink-0 border-b border-app-line bg-white px-4 py-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <Icon className="size-5 text-app-ink" aria-hidden="true" />
-            <h1 className="truncate text-[20px] font-bold text-app-ink">{title}</h1>
+    <div className="bd-cat-header">
+      <div className="bd-cat-headrow">
+        <div className="bd-min0">
+          <div className="bd-cat-inline2">
+            <Icon className="bd-icon bd-icon--lg" aria-hidden="true" />
+            <h1 className="bd-cat-title">{title}</h1>
           </div>
-          <p className="mt-0.5 text-[14px] text-app-label">{subtitle}</p>
+          <p className="bd-cat-sub">{subtitle}</p>
         </div>
 
         <button
@@ -51,16 +51,16 @@ export function FlatScreenHeader({
           onClick={onAction}
           disabled={actionDisabled}
           title={actionDisabled ? actionDisabledHint : undefined}
-          className="inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg border border-transparent bg-app-primary px-4 text-[14px] font-medium whitespace-nowrap text-white outline-none transition-all duration-150 hover:bg-app-primary-dark focus-visible:ring-[3px] focus-visible:ring-app-primary/25 disabled:pointer-events-none disabled:opacity-50"
+          className="bd-cat-primarybtn"
         >
-          <Plus className="size-4" aria-hidden="true" />
-          <span className="hidden sm:inline">{actionLabel}</span>
-          <span className="sm:hidden">{t("Thêm")}</span>
+          <Plus className="bd-icon" aria-hidden="true" />
+          <span className="bd-only-sm">{actionLabel}</span>
+          <span className="bd-hide-sm">{t("Thêm")}</span>
         </button>
       </div>
 
       {search && (
-        <div className="mt-3 md:max-w-[360px]">
+        <div className="bd-cat-search bd-mt3">
           <SearchField
             id={search.id}
             label={search.label}

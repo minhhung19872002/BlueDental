@@ -4175,3 +4175,1229 @@ html:has(.ant-modal-wrap) {
   padding: 2px 7px;
   border-radius: 20px;
 }
+
+/* ── Danh mục: the catalog dialogs hold their own state, so their fields are
+   labelled here rather than by Form.Item. ─────────────────────────────────── */
+.bd-field-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.72);
+}
+
+.bd-field-required {
+  margin-left: 2px;
+  color: #ff4d4f;
+}
+
+.bd-field-error {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #ff4d4f;
+}
+
+/* The dialog footer carries a single button, so it needs no top gap of its own. */
+.app-dialog .ant-modal-footer {
+  margin-top: 16px;
+}
+
+.bd-dialog-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.bd-dialog-grid--three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.bd-dialog-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bd-dialog-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 24px;
+}
+
+@media (max-width: 640px) {
+  .bd-dialog-grid,
+  .bd-dialog-grid--three {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+
+/* ==========================================================================
+   Danh mục › Bệnh án mẫu — the printed A4 sheet.
+
+   A faithful reproduction of a paper form, so the measurements here are the
+   form's own: 96dpi A4, 45px side margins, 14px/19.6px body text, hairline
+   black rules. Nothing in this block should inherit from the app chrome.
+   ========================================================================== */
+.bd-a4-viewport {
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid var(--bd-line);
+  border-radius: 8px;
+  background: #e9edf3;
+}
+
+.bd-a4-page {
+  padding: 40px 45px;
+  background: #fff;
+  color: #000;
+  font-size: 14px;
+  line-height: 19.6px;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 15%);
+}
+
+.bd-a4-center { margin-inline: auto; }
+.bd-a4-center-text { text-align: center; }
+.bd-a4-b { font-weight: 700; }
+.bd-a4-nowrap { white-space: nowrap; }
+.bd-a4-ml { margin-left: 8px; }
+.bd-a4-push { margin-left: auto; }
+.bd-a4-flex1 { flex: 1; min-width: 0; }
+.bd-a4-lh19 { line-height: 19px; }
+.bd-a4-col { display: flex; flex-direction: column; }
+.bd-a4-mt1 { margin-top: 4px; }
+.bd-a4-mt2 { margin-top: 8px; }
+.bd-a4-mt3 { margin-top: 12px; }
+.bd-a4-mt4 { margin-top: 16px; }
+.bd-a4-mt16 { margin-top: 64px; }
+.bd-a4-w14 { width: 14%; }
+.bd-a4-w24 { width: 24%; }
+.bd-a4-w38 { width: 38%; }
+.bd-a4-w46 { width: 46%; }
+.bd-a4-w245 { width: 245px; flex-shrink: 0; }
+.bd-a4-w250 { width: 250px; flex-shrink: 0; }
+.bd-a4-w420 { max-width: 420px; }
+.bd-a4-top { vertical-align: top; }
+.bd-a4-mid { vertical-align: middle; }
+
+.bd-a4-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.bd-a4-title { font-size: 18px; line-height: 25px; font-weight: 700; }
+.bd-a4-subtitle { font-size: 16px; font-weight: 700; }
+.bd-a4-meta { font-size: 12px; line-height: 18px; text-align: right; }
+
+/* A labelled line: caption, then a dotted rule that eats the remaining width. */
+.bd-a4-line {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.bd-a4-line--pad { padding-block: 3px; }
+
+.bd-a4-split { display: flex; gap: 16px; }
+.bd-a4-split.bd-a4-mt2 { gap: 16px; }
+.bd-a4-tickrow { display: flex; gap: 24px; }
+.bd-a4-signrow { margin-top: 40px; display: flex; justify-content: space-between; }
+.bd-a4-boxes { display: flex; gap: 2px; }
+
+.bd-a4-rule {
+  display: inline-block;
+  flex: 1;
+  height: 19px;
+  border-bottom: 1px dotted #000;
+}
+
+/* The reference prints a faint italic prompt on some rules. */
+.bd-a4-hint {
+  color: rgb(0 0 0 / 45%);
+  font-style: italic;
+}
+
+.bd-a4-gridbox {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 1px solid #000;
+}
+
+.bd-a4-tickbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border: 1px solid #000;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.bd-a4-writebox {
+  margin-top: 4px;
+  height: 105px;
+  border: 1px solid #000;
+}
+
+.bd-a4-list {
+  margin-top: 4px;
+  list-style: decimal inside;
+  font-size: 13px;
+  line-height: 16px;
+}
+
+.bd-a4-vitals {
+  width: 250px;
+  flex-shrink: 0;
+  padding: 8px 12px;
+  border: 1px solid #000;
+}
+
+.bd-a4-table {
+  margin-top: 24px;
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
+}
+
+.bd-a4-cell { border: 1px solid #000; padding: 8px; }
+.bd-a4-cell--sm { padding: 4px 8px; }
+.bd-a4-cell--lg { padding: 8px 12px; }
+.bd-a4-cell--tight { padding: 0 8px; }
+.bd-a4-cell--left { text-align: left; }
+.bd-a4-th { height: 28px; }
+
+/* Every cell a template can fill in is shaded, so a blank form reads at a
+   glance as "these are the parts you complete". */
+.bd-a4-cellinput {
+  width: 100%;
+  resize: none;
+  overflow: hidden;
+  border: 0;
+  border-bottom: 1px dotted #000;
+  border-radius: 0;
+  padding: 2px 4px;
+  background: #fffde7;
+  color: #000;
+  font: inherit;
+  font-size: 14px;
+  line-height: 19.6px;
+  outline: none;
+}
+
+.bd-a4-cellinput::placeholder {
+  color: rgb(0 0 0 / 35%);
+  font-style: italic;
+}
+
+.bd-a4-cellinput:focus { background: #fff9c4; }
+
+/* ==========================================================================
+   Danh mục — the catalog screens.
+
+   Tailwind is no longer part of the build, so the chrome these screens share
+   is named here once: the card, its table, the row actions and the busy
+   overlay behave the same on every tab.
+   ========================================================================== */
+
+/* ── Small shared helpers ────────────────────────────────────────────────── */
+.bd-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.bd-icon { width: 16px; height: 16px; }
+.bd-icon--sm { width: 14px; height: 14px; }
+.bd-icon--lg { width: 20px; height: 20px; }
+.bd-icon--xl { width: 32px; height: 32px; color: var(--bd-faint); }
+.bd-menu-icon { width: 16px; height: 16px; }
+
+.bd-num,
+.bd-cat-num,
+.bd-cat-price,
+.bd-zoom-value { font-variant-numeric: tabular-nums; }
+
+.bd-min0 { min-width: 0; }
+.bd-min0h { min-height: 0; }
+.bd-min140 { min-width: 140px; }
+.bd-min180 { min-width: 180px; }
+.bd-min280 { min-width: 280px; }
+.bd-flex1 { flex: 1; }
+.bd-rel { position: relative; }
+.bd-w-full { width: 100%; }
+.bd-w12 { width: 48px; }
+.bd-w56 { width: 56px; }
+.bd-w80 { width: 80px; }
+.bd-w160 { width: 160px; }
+.bd-z20 { z-index: 20; }
+.bd-mt05 { margin-top: 2px; }
+.bd-mt2 { margin-top: 8px; }
+.bd-mt3 { margin-top: 12px; }
+.bd-pt4 { padding-top: 16px; }
+.bd-text-left { text-align: left; }
+.bd-text-right { text-align: right; }
+.bd-text-center { text-align: center; }
+.bd-semibold { font-weight: 600; }
+.bd-medium { font-weight: 500; }
+.bd-dimmed { opacity: 0.6; }
+.bd-muted-text { color: var(--bd-muted); }
+.bd-primary-text { color: var(--bd-blue); }
+.bd-danger-text { color: #d4380d; cursor: pointer; }
+.bd-danger-text:disabled { opacity: 0.4; cursor: not-allowed; }
+.bd-error-text { margin: 0; font-size: 12px; color: #ff4d4f; }
+.bd-check-label { cursor: pointer; font-size: 14px; color: var(--bd-ink); }
+.bd-row-end { display: flex; justify-content: flex-end; }
+.bd-row-end-items { display: flex; align-items: flex-end; gap: 8px; }
+.bd-row-start-items { display: flex; align-items: flex-start; gap: 8px; }
+.bd-center-pad { display: flex; justify-content: center; padding-block: 40px; }
+.bd-section { border-top: 1px solid var(--bd-line); padding-top: 16px; }
+.bd-section-title { font-size: 16px; font-weight: 700; color: var(--bd-ink); }
+.bd-dialog-stack--tight { gap: 8px; }
+
+@media (min-width: 640px) {
+  .bd-hide-sm { display: none; }
+}
+
+@media (max-width: 639px) {
+  .bd-only-sm { display: none; }
+}
+
+.bd-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding-block: 40px;
+  text-align: center;
+}
+
+/* Lifted by a drag: the row leaves the flow visually but keeps its size. */
+.bd-lifted {
+  opacity: 0.95;
+  box-shadow: 0 8px 20px rgb(27 42 65 / 18%);
+}
+
+/* ── Screen shell ────────────────────────────────────────────────────────── */
+.bd-taxonomy-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: #fff;
+}
+
+.bd-taxonomy-shell { display: flex; height: 100%; }
+
+.bd-taxonomy-aside {
+  display: none;
+  width: 272px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--bd-line);
+}
+
+@media (min-width: 768px) {
+  .bd-taxonomy-aside { display: block; }
+}
+
+.bd-taxonomy-main {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bd-bg);
+}
+
+.bd-center-full {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background: var(--bd-bg);
+}
+
+.bd-center-msg {
+  max-width: 28rem;
+  text-align: center;
+  font-size: 14px;
+  color: var(--bd-muted);
+}
+
+.bd-cat-screen {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bd-bg);
+}
+
+.bd-cat-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 12px;
+}
+
+.bd-cat-body--gap { gap: 16px; }
+
+@media (min-width: 768px) {
+  .bd-cat-body { padding: 20px; }
+}
+
+/* ── Panel header ────────────────────────────────────────────────────────── */
+.bd-cat-header {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--bd-line);
+  background: #fff;
+  padding: 16px;
+}
+
+@media (min-width: 768px) {
+  .bd-cat-header { min-height: 134px; }
+}
+
+.bd-cat-header--bar { padding-block: 8px; min-height: 0; }
+
+@media (min-width: 768px) {
+  .bd-cat-header--bar { display: none; }
+}
+
+.bd-cat-headrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bd-cat-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--bd-ink);
+}
+
+@media (min-width: 768px) {
+  .bd-cat-title { font-size: 20px; }
+}
+
+/* The record count sits beside the title, as the reference prints it. */
+.bd-cat-count {
+  display: inline-flex;
+  height: 20px;
+  width: fit-content;
+  flex-shrink: 0;
+  align-items: center;
+  border-radius: 999px;
+  background: var(--bd-blue-pale);
+  padding-inline: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--bd-blue);
+}
+
+.bd-cat-headactions { display: flex; flex-shrink: 0; align-items: center; gap: 8px; }
+.bd-cat-search { width: 100%; }
+
+@media (min-width: 768px) {
+  .bd-cat-search { max-width: 360px; }
+}
+
+.bd-cat-linkbtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--bd-blue);
+}
+
+.bd-cat-primarybtn {
+  display: inline-flex;
+  height: 40px;
+  flex-shrink: 0;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--bd-blue);
+  padding-inline: 16px;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: #fff;
+  transition: background 150ms;
+}
+
+.bd-cat-primarybtn:hover { background: var(--bd-blue-dark); }
+.bd-cat-primarybtn:disabled { pointer-events: none; opacity: 0.5; }
+
+/* ── Card and table ─────────────────────────────────────────────────────── */
+.bd-cat-card {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--bd-line);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 2px 6px rgb(27 42 65 / 6%);
+}
+
+.bd-cat-scroll {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* Held over the table rather than replacing it, so a refetch does not make the
+   rows jump; the drag commit deliberately does not raise it at all. */
+.bd-cat-busy {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(255 255 255 / 70%);
+}
+
+.bd-cat-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 14px;
+}
+
+.bd-cat-table--wide { min-width: 760px; }
+.bd-cat-table--wider { min-width: 860px; }
+
+.bd-cat-th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  height: 40px;
+  border-bottom: 1px solid var(--bd-line);
+  background: var(--bd-bg);
+  padding: 8px 16px;
+  text-align: left;
+  vertical-align: middle;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--bd-muted);
+}
+
+.bd-cat-td {
+  height: 56px;
+  border-bottom: 1px solid var(--bd-line);
+  padding: 12px 16px;
+  vertical-align: middle;
+  font-size: 14px;
+  color: var(--bd-ink);
+}
+
+.bd-cat-tbody tr:last-child .bd-cat-td { border-bottom: 0; }
+
+.bd-cat-row { background: #fff; transition: background 150ms; }
+.bd-cat-row:hover > .bd-cat-td { background: var(--bd-bg); }
+
+/* The row under the pointer during a drag. */
+.bd-cat-row--dragging > .bd-cat-td { background: var(--bd-blue-pale); }
+
+/* The actions column stays pinned while the table scrolls sideways. */
+.bd-cat-sticky {
+  position: sticky;
+  right: 0;
+  box-shadow: -4px 0 6px -2px rgb(27 42 65 / 6%);
+}
+
+.bd-cat-td--actions { z-index: 10; background: #fff; text-align: center; }
+.bd-cat-row:hover > .bd-cat-td--actions { background: var(--bd-bg); }
+
+.bd-cat-emptycell {
+  height: 128px;
+  padding: 12px 16px;
+  text-align: center;
+  vertical-align: middle;
+  font-size: 14px;
+  color: var(--bd-muted);
+}
+
+.bd-cat-rowactions { display: flex; align-items: center; justify-content: center; gap: 2px; }
+
+.bd-cat-iconbtn {
+  display: flex;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--bd-muted);
+  transition: background 150ms, color 150ms;
+}
+
+.bd-cat-iconbtn:hover { background: var(--bd-bg); color: var(--bd-ink); }
+.bd-cat-iconbtn:focus-visible { outline: 2px solid var(--bd-blue-light); outline-offset: 1px; }
+.bd-cat-iconbtn--danger { color: #d4380d; }
+.bd-cat-iconbtn--danger:hover { background: #fff1f0; color: #d4380d; }
+
+.bd-cat-tablebox {
+  overflow-x: auto;
+  border: 1px solid var(--bd-line);
+  border-radius: 8px;
+}
+
+.bd-cat-footline { border-top: 1px solid var(--bd-line); }
+
+/* ── Table cell contents ─────────────────────────────────────────────────── */
+.bd-cat-inline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.bd-cat-inline2 { display: inline-flex; align-items: center; gap: 8px; }
+.bd-cat-inline3 { display: flex; align-items: center; gap: 12px; }
+
+.bd-cat-name,
+.bd-cat-subtle,
+.bd-cat-filename {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0;
+}
+
+.bd-cat-name { font-weight: 500; }
+.bd-cat-subtle { font-size: 12px; color: var(--bd-muted); }
+.bd-cat-filename { font-size: 13px; color: var(--bd-ink); }
+.bd-cat-strong { font-size: 14px; font-weight: 600; color: var(--bd-ink); }
+.bd-cat-medium { font-weight: 500; color: var(--bd-ink); }
+.bd-cat-sub { margin-top: 2px; font-size: 14px; color: var(--bd-muted); }
+.bd-cat-hint { font-size: 12px; color: var(--bd-muted); flex-shrink: 0; }
+.bd-cat-hint--13 { font-size: 13px; }
+.bd-cat-num { color: var(--bd-muted); }
+.bd-cat-price { font-weight: 600; color: var(--bd-ink); }
+
+.bd-cat-chip {
+  display: inline-flex;
+  height: 24px;
+  width: fit-content;
+  flex-shrink: 0;
+  align-items: center;
+  border-radius: 6px;
+  background: var(--bd-bg);
+  padding-inline: 10px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--bd-muted);
+}
+
+/* The grip is a real button: dragging is a pointer gesture, so the same move
+   has to be reachable with the arrow keys once the grip has focus. */
+.bd-grip {
+  display: inline-flex;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  padding: 0;
+  color: var(--bd-faint);
+  cursor: grab;
+}
+
+.bd-grip:active { cursor: grabbing; }
+.bd-grip:disabled { cursor: not-allowed; opacity: 0.5; }
+.bd-grip:focus-visible { outline: 2px solid var(--bd-blue-light); color: var(--bd-blue); }
+
+/* ── Group panel ─────────────────────────────────────────────────────────── */
+.bd-group-panel {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  flex-direction: column;
+  background: #fff;
+}
+
+.bd-group-head {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  justify-content: center;
+  border-bottom: 1px solid var(--bd-line);
+  padding: 16px;
+}
+
+@media (min-width: 768px) {
+  .bd-group-head { height: 134px; }
+}
+
+.bd-group-headrow { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.bd-group-title { font-size: 16px; font-weight: 600; color: var(--bd-ink); }
+
+.bd-group-add {
+  display: flex;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: var(--bd-blue);
+  color: #fff;
+  transition: background 150ms;
+}
+
+.bd-group-add:hover { background: var(--bd-blue-dark); }
+
+.bd-group-list { position: relative; flex: 1; overflow-y: auto; padding: 8px; }
+.bd-group-items { list-style: none; margin: 0; padding: 0; user-select: none; }
+.bd-group-items > li + li { margin-top: 2px; }
+
+.bd-group-btn {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  padding: 0;
+  text-align: left;
+}
+
+.bd-group-btn:focus-visible { outline: 2px solid var(--bd-blue-light); }
+.bd-group-name { display: block; font-size: 14px; }
+
+/* Revealed on hover, and always once focused, so the menu is keyboard-reachable. */
+.bd-group-menu-trigger {
+  display: flex;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--bd-faint);
+  opacity: 0;
+  transition: opacity 150ms;
+}
+
+.bd-group-row:hover .bd-group-menu-trigger,
+.bd-group-menu-trigger:focus-visible,
+.bd-group-menu-trigger[aria-expanded="true"] { opacity: 1; }
+
+.bd-group-menu-trigger:hover { background: var(--bd-blue-pale); color: var(--bd-blue); }
+.bd-group-drawer .bd-group-panel { height: 100%; }
+
+/* ── Bảng giá dịch vụ: the stage and warranty tables inside the dialog ───── */
+.bd-svc-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--bd-line); }
+.bd-svc-tab { height: 44px; gap: 4px; }
+.bd-svc-th { padding: 8px 12px; font-weight: 500; }
+.bd-svc-td { padding: 8px 12px; }
+.bd-svc-empty { padding: 24px 12px; text-align: center; color: var(--bd-muted); }
+
+.bd-plain-input {
+  height: 36px;
+  width: 100%;
+  border: 1px solid var(--bd-line);
+  border-radius: 6px;
+  padding-inline: 8px;
+  font-size: 14px;
+  outline: none;
+}
+
+.bd-plain-input:focus { border-color: var(--bd-blue); }
+
+/* ── Đơn thuốc mẫu: the "Sử dụng" multi-select ──────────────────────────── */
+.bd-usage-picker { display: flex; flex-direction: column; gap: 6px; min-width: 200px; }
+.bd-usage-trigger { width: 100%; text-align: left; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── Nhãn bệnh nhân ─────────────────────────────────────────────────────── */
+.bd-tag-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-radius: 12px;
+  background: var(--bd-bg);
+  padding: 16px;
+}
+
+.bd-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.bd-tag-dot {
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--bd-line);
+  border-radius: 999px;
+}
+
+.bd-tag-swatch {
+  display: flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--bd-line);
+  border-radius: 999px;
+  color: var(--bd-muted);
+}
+
+/* The native colour well fills its swatch but shows the swatch, not itself. */
+.bd-color-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  opacity: 0;
+}
+
+/* ── Phương thức thanh toán: the QR image ───────────────────────────────── */
+.bd-pay-qr {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--bd-line);
+  border-radius: 12px;
+  background: var(--bd-bg);
+  padding: 12px;
+}
+
+.bd-pay-qr-meta { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 6px; }
+
+.bd-pay-qr-img {
+  width: 96px;
+  height: 96px;
+  flex-shrink: 0;
+  border: 1px solid var(--bd-line);
+  border-radius: 8px;
+  background: #fff;
+  object-fit: contain;
+}
+
+.bd-pay-upload {
+  display: flex;
+  width: fit-content;
+  cursor: pointer;
+  align-items: center;
+  gap: 8px;
+  border: 1px dashed var(--bd-line);
+  border-radius: 8px;
+  background: none;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--bd-blue);
+  transition: border-color 150ms, background 150ms;
+}
+
+.bd-pay-upload:hover { border-color: var(--bd-blue); background: var(--bd-blue-pale); }
+
+/* ── Bệnh án mẫu: the zoom control above the sheet ──────────────────────── */
+.bd-zoom { display: flex; align-items: center; gap: 4px; font-size: 13px; color: var(--bd-muted); }
+
+.bd-zoom-btn {
+  height: 32px;
+  cursor: pointer;
+  border: 1px solid var(--bd-line);
+  border-radius: 6px;
+  background: none;
+  padding-inline: 12px;
+  font-size: 13px;
+  color: var(--bd-muted);
+}
+
+.bd-zoom-btn:hover { background: var(--bd-bg); }
+.bd-zoom-value { width: 48px; text-align: center; font-size: 13px; color: var(--bd-ink); }
+
+/* Matches the shading the sheet gives every fillable cell, so the legend and
+   the form cannot drift apart. */
+.bd-a4-swatch {
+  border: 1px dotted #d48806;
+  border-radius: 2px;
+  background: #fffde7;
+  padding-inline: 4px;
+}
+
+/* ── Danh mục: state modifiers ──────────────────────────────────────────── */
+
+/* The group panel's rows. The active one is marked by a rule down its left
+   edge, padded back by the rule's own width so the label does not shift. */
+.bd-group-row {
+  position: relative;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  border-radius: 8px;
+  padding: 10px 12px;
+  text-align: left;
+  color: var(--bd-muted);
+  transition: background 150ms, color 150ms;
+}
+
+.bd-group-row:hover { background: var(--bd-bg); color: var(--bd-ink); }
+
+.bd-group-row--active {
+  border-left: 3px solid var(--bd-blue);
+  padding-left: 9px;
+  background: var(--bd-blue-pale);
+  color: var(--bd-blue-dark);
+}
+
+.bd-group-row--dragging {
+  background: #fff;
+  box-shadow: 0 0 0 2px var(--bd-blue-light);
+}
+
+/* The grip only appears on hover in the group panel, but focus must reveal it
+   too — otherwise reordering is unreachable without a pointer. */
+.bd-grip--reveal { opacity: 0; transition: opacity 150ms; }
+.bd-group-row:hover .bd-grip--reveal,
+.bd-grip--reveal:focus-visible,
+.bd-grip--shown { opacity: 1; }
+.bd-grip--off { cursor: not-allowed; opacity: 0.5; }
+
+/* Toolbar buttons in the catalog header. */
+.bd-cat-toolbtn {
+  border: 1px solid var(--bd-line);
+  background: #fff;
+  color: var(--bd-ink);
+}
+
+.bd-cat-toolbtn:hover { background: var(--bd-bg); }
+
+.bd-cat-toolbtn--primary {
+  border-color: transparent;
+  background: var(--bd-blue);
+  color: #fff;
+}
+
+.bd-cat-toolbtn--primary:hover { background: var(--bd-blue-dark); }
+
+/* Nhãn bệnh nhân: the preset colour swatches. */
+.bd-tag-color {
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  border: 0;
+  border-radius: 999px;
+  transition: transform 150ms;
+}
+
+.bd-tag-color:hover { transform: scale(1.1); }
+.bd-tag-color--picked { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--bd-ink); }
+
+/* Bảng giá dịch vụ: the dialog's own tab strip. */
+.bd-svc-tabbtn {
+  cursor: pointer;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--bd-muted);
+  transition: color 150ms, border-color 150ms;
+}
+
+.bd-svc-tabbtn:hover { color: var(--bd-ink); }
+.bd-svc-tabbtn--on { border-bottom-color: var(--bd-blue); color: var(--bd-blue); }
+
+.bd-cat-thead { background: var(--bd-bg); text-align: left; color: var(--bd-muted); }
+
+/* The MoMo/Bank switch sits full-width on a phone and shrinks to its content
+   from the tablet breakpoint up, as the reference lays it out. */
+.bd-catalog-segmented { width: 100%; }
+
+@media (min-width: 768px) {
+  .bd-catalog-segmented { width: auto; align-self: flex-start; }
+}
+
+/* ── Page tab strip ─────────────────────────────────────────────────────── */
+.bd-tabbar {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--bd-line);
+  background: #fff;
+  padding-inline: 20px;
+}
+
+.bd-tabbar-nav { display: flex; overflow-x: auto; }
+
+.bd-tab {
+  position: relative;
+  flex-shrink: 0;
+  padding: 14px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--bd-sub);
+  transition: background 150ms, color 150ms;
+}
+
+.bd-tab:hover { background: var(--bd-bg); color: var(--bd-ink); }
+.bd-tab--active { background: var(--bd-blue-pale); color: var(--bd-blue); }
+
+.bd-tab-underline {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--bd-blue);
+}
+
+/* ── Record initial square ──────────────────────────────────────────────── */
+.bd-letter-avatar {
+  display: flex;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* ── Search box with a floating label ───────────────────────────────────── */
+.bd-search { position: relative; }
+
+.bd-search-icon {
+  position: absolute;
+  top: 50%;
+  left: 16px;
+  z-index: 1;
+  display: flex;
+  width: 20px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--bd-muted);
+}
+
+.bd-search-input {
+  height: 40px;
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--bd-line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 0 12px 0 44px;
+  font-size: 14px;
+  color: var(--bd-ink);
+  outline: none;
+  transition: border-color 150ms, box-shadow 150ms;
+}
+
+.bd-search-input::placeholder { color: transparent; }
+.bd-search-input:hover { border-color: var(--bd-faint); }
+
+.bd-search-input:focus-visible {
+  border-color: var(--bd-blue);
+  box-shadow: 0 0 0 3px rgb(28 53 102 / 20%);
+}
+
+/* Resting state — the label sits inside, beside the magnifier. */
+.bd-search-label {
+  position: absolute;
+  top: 50%;
+  left: 44px;
+  z-index: 1;
+  max-width: calc(100% - 3.5rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transform: translateY(-50%);
+  pointer-events: none;
+  background: transparent;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--bd-muted);
+  transition: top 200ms, left 200ms, font-size 200ms, color 200ms;
+}
+
+/* Filled or focused — the label lifts onto the border. */
+.bd-search-input:not(:placeholder-shown) + .bd-search-label,
+.bd-search-input:focus + .bd-search-label {
+  top: 0;
+  left: 16px;
+  background: #fff;
+  padding-inline: 4px;
+  font-size: 13px;
+}
+
+.bd-search-input:focus + .bd-search-label { color: var(--bd-blue); }
+
+/* ── Table footer: page size, summary, stepper ──────────────────────────── */
+.bd-pager {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-top: 1px solid var(--bd-line);
+  background: var(--bd-bg);
+  padding: 12px 16px;
+}
+
+@media (min-width: 768px) {
+  .bd-pager { flex-direction: row; align-items: center; justify-content: space-between; }
+}
+
+.bd-pager-left {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.bd-pager-size {
+  height: 32px;
+  cursor: pointer;
+  border: 1px solid var(--bd-line);
+  border-radius: 8px;
+  background: #fff;
+  padding-inline: 8px;
+  font-size: 13px;
+  color: var(--bd-ink);
+  outline: none;
+}
+
+.bd-pager-size:focus { border-color: var(--bd-blue); }
+
+.bd-pager-summary {
+  min-width: 140px;
+  flex: 1;
+  margin: 0;
+  font-size: 14px;
+  line-height: 24px;
+  color: var(--bd-muted);
+}
+
+.bd-pager-strong { font-weight: 600; color: var(--bd-ink); font-variant-numeric: tabular-nums; }
+
+.bd-pager-steps {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.bd-pager-step {
+  display: inline-flex;
+  height: 32px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px solid var(--bd-line);
+  border-radius: 6px;
+  background: #fff;
+  padding-inline: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--bd-muted);
+  cursor: pointer;
+  transition: border-color 150ms, background 150ms;
+}
+
+.bd-pager-step:hover { border-color: var(--bd-faint); background: var(--bd-bg); }
+.bd-pager-step:disabled { pointer-events: none; opacity: 0.4; }
+
+.bd-pager-page {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--bd-line);
+  border-radius: 6px;
+  background: #fff;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--bd-muted);
+  cursor: pointer;
+  transition: border-color 150ms, background 150ms, color 150ms;
+}
+
+.bd-pager-page:hover { border-color: var(--bd-faint); background: var(--bd-bg); }
+
+.bd-pager-page--on {
+  border-color: transparent;
+  background: var(--bd-blue);
+  color: #fff;
+}
+
+.bd-pager-page--on:hover { background: var(--bd-blue-dark); }
+
+.bd-pager-gap {
+  display: flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: var(--bd-muted);
+}
+
+/* antd puts its modal title in a plain div; these dialogs use a real heading,
+   so it needs the surrounding font size rather than an h2's default. */
+.bd-modal-title {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  color: inherit;
+}

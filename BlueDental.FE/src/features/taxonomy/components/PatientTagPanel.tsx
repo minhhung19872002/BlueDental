@@ -1,11 +1,10 @@
+import { Spin, message } from "antd";
 import { useEffect, useState } from "react";
 import { Pencil, Tag, Trash2 } from "lucide-react";
-import { toast } from "sonner";
 import { useDeletePatientTag, usePatientTags, type PatientTagDto } from "../api/patientTagApi";
 import { FlatScreenHeader } from "./FlatScreenHeader";
 import { PatientTagModal } from "./PatientTagModal";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
-import { Spinner } from "@/components/Spinner";
 import { TablePaginationBar } from "@/components/TablePaginationBar";
 import { useDebounce } from "@/hooks/useDebounce";
 import { extractApiError } from "@/lib/apiError";
@@ -14,9 +13,9 @@ import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 
 const HEAD_CELL =
-  "sticky top-0 z-10 h-10 border-b border-app-line bg-app-surface px-4 py-2 text-left align-middle text-[14px] font-medium whitespace-nowrap text-app-label";
-const BODY_CELL = "h-14 border-b border-app-line px-4 py-3 align-middle text-[14px] text-app-ink";
-const STICKY_END = "sticky right-0 shadow-[-4px_0_6px_-2px_rgba(27,42,65,0.06)]";
+  "bd-cat-th";
+const BODY_CELL = "bd-cat-td";
+const STICKY_END = "bd-cat-sticky";
 
 const DEFAULT_PAGE_SIZE = 20;
 
@@ -57,16 +56,16 @@ export function PatientTagPanel() {
 
     try {
       await deleteTag.mutateAsync(pendingDelete.id);
-      toast.success(t("Đã xoá thẻ hồ sơ"));
+      message.success(t("Đã xoá thẻ hồ sơ"));
     } catch (cause) {
-      toast.error(extractApiError(cause));
+      message.error(extractApiError(cause));
     } finally {
       setPendingDelete(null);
     }
   };
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-app-surface">
+    <div className="bd-cat-screen">
       <FlatScreenHeader
         icon={Tag}
         title={t("Quản lý Thẻ hồ sơ")}
@@ -86,30 +85,30 @@ export function PatientTagPanel() {
         }}
       />
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-3 md:p-5">
-        <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-app-line bg-white shadow-[0_2px_6px_rgba(27,42,65,0.06)]">
-          <div className="relative min-h-0 w-full flex-1 overflow-auto">
+      <div className="bd-cat-body">
+        <div className="bd-cat-card">
+          <div className="bd-cat-scroll">
             {tagsQuery.isFetching && (
-              <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/70">
-                <Spinner />
+              <div className="bd-cat-busy">
+                <Spin size="large" />
               </div>
             )}
 
-            <table className="w-full border-separate border-spacing-0 text-sm">
+            <table className="bd-cat-table">
               <thead>
                 <tr>
                   <th className={HEAD_CELL}>{t("Tên tag")}</th>
                   <th className={HEAD_CELL}>{t("Màu")}</th>
-                  <th className={cn(HEAD_CELL, "z-20 text-center", STICKY_END)}>{t("Thao tác")}</th>
+                  <th className={cn(HEAD_CELL, "bd-z20 bd-text-center", STICKY_END)}>{t("Thao tác")}</th>
                 </tr>
               </thead>
 
-              <tbody className="[&_tr:last-child_td]:border-b-0">
+              <tbody className="bd-cat-tbody">
                 {tags.length === 0 ? (
                   <tr>
                     <td
                       colSpan={3}
-                      className="h-32 border-app-line px-4 py-3 text-center align-middle text-[14px] text-app-label"
+                      className="bd-cat-emptycell"
                     >
                       {t("Không tìm thấy tag nào")}
                     </td>
@@ -118,25 +117,25 @@ export function PatientTagPanel() {
                   tags.map((tag) => (
                     <tr
                       key={tag.id}
-                      className="group bg-white transition-colors hover:bg-app-surface"
+                      className="bd-cat-row"
                     >
                       <td className={BODY_CELL}>
                         <span
                           style={{ backgroundColor: tag.color }}
-                          className="inline-flex items-center rounded-md px-3 py-1 text-[12px] font-semibold text-white"
+                          className="bd-tag-chip"
                         >
                           {tag.name}
                         </span>
                       </td>
 
                       <td className={BODY_CELL}>
-                        <span className="inline-flex items-center gap-2">
+                        <span className="bd-cat-inline2">
                           <span
                             aria-hidden="true"
                             style={{ backgroundColor: tag.color }}
-                            className="size-4 rounded-full border border-app-line"
+                            className="bd-tag-dot"
                           />
-                          <span className="tabular-nums text-app-label">
+                          <span className="bd-cat-num">
                             {tag.color.toUpperCase()}
                           </span>
                         </span>
@@ -145,27 +144,26 @@ export function PatientTagPanel() {
                       <td
                         className={cn(
                           BODY_CELL,
-                          "z-10 bg-white text-center",
+                          "bd-cat-td--actions",
                           STICKY_END,
-                          "group-hover:bg-app-surface",
                         )}
                       >
-                        <div className="flex items-center justify-center gap-0.5">
+                        <div className="bd-cat-rowactions">
                           <button
                             type="button"
                             aria-label={t("Chỉnh sửa {0}", tag.name)}
                             onClick={() => setModal({ open: true, tag })}
-                            className="flex size-7 cursor-pointer items-center justify-center rounded-md text-app-label outline-none transition-colors duration-150 hover:bg-app-surface hover:text-app-ink focus-visible:ring-2 focus-visible:ring-app-primary/40"
+                            className="bd-cat-iconbtn"
                           >
-                            <Pencil className="size-3.5" aria-hidden="true" />
+                            <Pencil className="bd-icon bd-icon--sm" aria-hidden="true" />
                           </button>
                           <button
                             type="button"
                             aria-label={t("Xoá {0}", tag.name)}
                             onClick={() => setPendingDelete(tag)}
-                            className="flex size-7 cursor-pointer items-center justify-center rounded-md text-app-danger outline-none transition-colors duration-150 hover:bg-app-danger/10 focus-visible:ring-2 focus-visible:ring-app-danger/40"
+                            className="bd-cat-iconbtn bd-cat-iconbtn--danger"
                           >
-                            <Trash2 className="size-3.5" aria-hidden="true" />
+                            <Trash2 className="bd-icon bd-icon--sm" aria-hidden="true" />
                           </button>
                         </div>
                       </td>

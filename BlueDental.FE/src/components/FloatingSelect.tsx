@@ -1,11 +1,5 @@
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { cn } from "@/lib/cn";
+import { Select } from "antd";
+import { t } from "@/lib/i18n";
 
 export interface FloatingSelectOption {
   value: string;
@@ -25,12 +19,9 @@ interface Props {
 }
 
 /**
- * Select with the same floating label as {@link FloatingField}, so a form can
- * mix inputs and selects without the labels sitting at two different heights —
- * which is how the reference draws its dialogs.
- *
- * The label floats permanently rather than on focus: a select always shows
- * either a value or its placeholder, so there is no empty state to fall back to.
+ * A labelled select for the dialogs that hold their own state rather than an
+ * Ant Design Form — {@link FloatingField} needs a Form instance, and these
+ * dialogs edit tables and canvases alongside their fields.
  */
 export function FloatingSelect({
   id,
@@ -44,42 +35,25 @@ export function FloatingSelect({
   className,
 }: Props) {
   return (
-    <div className={cn("relative", className)}>
-      <Select value={value} onValueChange={onChange} disabled={disabled}>
-        <SelectTrigger
-          id={id}
-          aria-invalid={error ? true : undefined}
-          aria-describedby={error ? `${id}-error` : undefined}
-          className={cn(
-            "h-11 w-full rounded-lg border bg-white px-3.5 text-[14px] text-app-ink",
-            "focus-visible:ring-[3px]",
-            error
-              ? "border-app-danger focus-visible:border-app-danger focus-visible:ring-app-danger/20"
-              : "border-app-line focus-visible:border-app-primary focus-visible:ring-app-primary/20",
-          )}
-        >
-          <SelectValue placeholder=" " />
-        </SelectTrigger>
-        <SelectContent>
-          {options.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      <label
-        htmlFor={id}
-        className="pointer-events-none absolute top-0 left-3 z-10 max-w-[calc(100%-1rem)] -translate-y-1/2 truncate bg-white px-1 text-[13px] font-medium text-app-label"
-      >
+    <div className={className}>
+      <label htmlFor={id} className="bd-field-label">
         {label}
-        {/* The reference writes the asterisk against the label, with no space. */}
-        {required && <span className="text-app-danger">*</span>}
+        {required && <span className="bd-field-required">*</span>}
       </label>
-
+      <Select
+        id={id}
+        value={value || undefined}
+        onChange={onChange}
+        options={options}
+        disabled={disabled}
+        status={error ? "error" : undefined}
+        showSearch
+        optionFilterProp="label"
+        placeholder={t("Chọn…")}
+        style={{ width: "100%" }}
+      />
       {error && (
-        <p id={`${id}-error`} role="alert" className="mt-1 text-xs text-app-danger">
+        <p role="alert" className="bd-field-error">
           {error}
         </p>
       )}
