@@ -11,7 +11,11 @@ export interface ClinicBranchDto {
   wardId?: string;
   phoneNumber?: string;
   email?: string;
+  slogan?: string;
+  taxCode?: string;
+  contactPerson?: string;
   status: string;
+  lastModificationTime?: string;
 }
 
 export interface CreateClinicBranchDto {
@@ -22,6 +26,9 @@ export interface CreateClinicBranchDto {
   address?: string;
   phoneNumber?: string;
   email?: string;
+  slogan?: string;
+  taxCode?: string;
+  contactPerson?: string;
 }
 
 export interface UpdateClinicBranchDto {
@@ -31,6 +38,9 @@ export interface UpdateClinicBranchDto {
   address?: string;
   phoneNumber?: string;
   email?: string;
+  slogan?: string;
+  taxCode?: string;
+  contactPerson?: string;
 }
 
 export interface DepartmentDto {
@@ -164,6 +174,9 @@ export interface UpdateClinicBranchInput {
   wardId?: string;
   phoneNumber?: string;
   email?: string;
+  slogan?: string;
+  taxCode?: string;
+  contactPerson?: string;
 }
 
 export function useUpdateClinicBranch() {

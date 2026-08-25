@@ -13,6 +13,9 @@ public class ClinicBranchDto : FullAuditedEntityDto<Guid>
     public string? WardId { get; set; }
     public string? PhoneNumber { get; set; }
     public string? Email { get; set; }
+    public string? Slogan { get; set; }
+    public string? TaxCode { get; set; }
+    public string? ContactPerson { get; set; }
     public BranchStatus Status { get; set; }
 }
 
@@ -41,6 +44,15 @@ public class CreateClinicBranchDto
     [EmailAddress(ErrorMessage = "Email không hợp lệ.")]
     [StringLength(100, ErrorMessage = "Email tối đa 100 ký tự.")]
     public string? Email { get; set; }
+
+    [StringLength(500, ErrorMessage = "Slogan tối đa 500 ký tự.")]
+    public string? Slogan { get; set; }
+
+    [StringLength(50, ErrorMessage = "Mã số thuế tối đa 50 ký tự.")]
+    public string? TaxCode { get; set; }
+
+    [StringLength(200, ErrorMessage = "Người liên hệ tối đa 200 ký tự.")]
+    public string? ContactPerson { get; set; }
 }
 
 public class UpdateClinicBranchDto
@@ -65,6 +77,15 @@ public class UpdateClinicBranchDto
     [EmailAddress(ErrorMessage = "Email không hợp lệ.")]
     [StringLength(100, ErrorMessage = "Email tối đa 100 ký tự.")]
     public string? Email { get; set; }
+
+    [StringLength(500, ErrorMessage = "Slogan tối đa 500 ký tự.")]
+    public string? Slogan { get; set; }
+
+    [StringLength(50, ErrorMessage = "Mã số thuế tối đa 50 ký tự.")]
+    public string? TaxCode { get; set; }
+
+    [StringLength(200, ErrorMessage = "Người liên hệ tối đa 200 ký tự.")]
+    public string? ContactPerson { get; set; }
 }
 
 public class GetClinicBranchListInput : PagedAndSortedResultRequestDto

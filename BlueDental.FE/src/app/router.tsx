@@ -384,14 +384,14 @@ const appRoutes: RouteObject[] = [
           </S>
         ),
       },
-      // ── Account ──
+      // ── Account (redirect to unified profile page) ──
       {
         path: "account/profile",
-        element: <S><AccountProfilePage /></S>,
+        element: <S><ClinicSettingsPage /></S>,
       },
       {
         path: "account/change-password",
-        element: <S><ChangePasswordPage /></S>,
+        element: <S><ClinicSettingsPage /></S>,
       },
       {
         path: "*",

@@ -158,7 +158,7 @@ function CallAssignView() {
               </Button>
             </>
           )}
-          <Popconfirm title={t("Xoá phân công?")} onConfirm={() => deleteAssignment.mutate(record.id)}>
+          <Popconfirm title={t("Xoá phân công?")} onConfirm={() => deleteAssignment.mutateAsync(record.id)}>
             <Button size="small" danger icon={<DeleteOutlined />} />
           </Popconfirm>
         </div>
@@ -240,7 +240,7 @@ function CallListView() {
     {
       title: "", key: "actions", width: 50,
       render: (_: unknown, record: CallLogDto) => (
-        <Popconfirm title={t("Xoá cuộc gọi")} onConfirm={() => deleteLog.mutate(record.id)}>
+        <Popconfirm title={t("Xoá cuộc gọi")} onConfirm={() => deleteLog.mutateAsync(record.id)}>
           <Button size="small" type="text" danger icon={<DeleteOutlined />} />
         </Popconfirm>
       ),
@@ -361,7 +361,7 @@ function MessageTemplateView({ channel }: { channel: number }) {
       render: (_: unknown, record: MessageTemplateDto) => (
         <div style={{ display: "flex", gap: 6 }}>
           <Button size="small" onClick={() => openEdit(record)}>{t("Chỉnh sửa")}</Button>
-          <Popconfirm title={t("Xoá mẫu?")} onConfirm={() => deleteTemplate.mutate(record.id)}>
+          <Popconfirm title={t("Xoá mẫu?")} onConfirm={() => deleteTemplate.mutateAsync(record.id)}>
             <Button size="small" danger>{t("Xóa")}</Button>
           </Popconfirm>
         </div>

@@ -12,11 +12,13 @@ import { t } from "@/lib/i18n";
 interface BranchFormValues {
   code: string;
   name: string;
+  taxCode?: string;
+  email?: string;
+  phoneNumber?: string;
+  contactPerson?: string;
   provinceId?: string;
   wardId?: string;
   address?: string;
-  phoneNumber?: string;
-  email?: string;
 }
 
 interface BranchEditorModalProps {
@@ -59,11 +61,13 @@ export function BranchEditorModal({ open, branch, onClose }: BranchEditorModalPr
         form.setFieldsValue({
           code: branch.code,
           name: branch.name,
+          taxCode: branch.taxCode ?? "",
+          email: branch.email ?? "",
+          phoneNumber: branch.phoneNumber ?? "",
+          contactPerson: branch.contactPerson ?? "",
           provinceId: branch.provinceId ?? undefined,
           wardId: branch.wardId ?? undefined,
           address: branch.address ?? "",
-          phoneNumber: branch.phoneNumber ?? "",
-          email: branch.email ?? "",
         });
         if (branch.provinceId) loadWards(branch.provinceId);
       } else {
@@ -81,6 +85,8 @@ export function BranchEditorModal({ open, branch, onClose }: BranchEditorModalPr
       address: clean(values.address),
       phoneNumber: clean(values.phoneNumber),
       email: clean(values.email),
+      taxCode: clean(values.taxCode),
+      contactPerson: clean(values.contactPerson),
       provinceId: values.provinceId || undefined,
       wardId: values.wardId || undefined,
     };
@@ -95,6 +101,8 @@ export function BranchEditorModal({ open, branch, onClose }: BranchEditorModalPr
             address: payload.address,
             phoneNumber: payload.phoneNumber,
             email: payload.email,
+            taxCode: payload.taxCode,
+            contactPerson: payload.contactPerson,
           },
         });
         toast.success(t("Cập nhật chi nhánh thành công"));
@@ -111,29 +119,56 @@ export function BranchEditorModal({ open, branch, onClose }: BranchEditorModalPr
   return (
     <Modal
       open={open}
-      title={isEditing ? t("Sửa chi nhánh") : t("Thêm chi nhánh")}
+      title={isEditing ? t("Cập nhật chi nhánh") : t("Thêm chi nhánh")}
       onCancel={onClose}
       onOk={() => void handleOk()}
       confirmLoading={saving}
       okText={t("Lưu")}
       cancelText={t("Hủy")}
       destroyOnClose
+      width={720}
     >
       <Form form={form} layout="vertical" className="branch-editor-form">
-        <Form.Item
-          name="code"
-          label={t("Mã chi nhánh")}
-          rules={[{ required: true, message: t("Vui lòng nhập mã") }]}
-        >
-          <Input disabled={isEditing} />
-        </Form.Item>
-        <Form.Item
-          name="name"
-          label={t("Tên chi nhánh")}
-          rules={[{ required: true, message: t("Vui lòng nhập tên") }]}
-        >
-          <Input />
-        </Form.Item>
+        <div className="settings-row">
+          <Form.Item
+            name="code"
+            label={t("Mã chi nhánh")}
+            rules={isEditing ? [] : [{ required: true, message: t("Vui lòng nhập mã chi nhánh") }]}
+          >
+            <Input disabled={isEditing} placeholder={t("Mã chi nhánh")} />
+          </Form.Item>
+          <Form.Item
+            name="name"
+            label={t("Tên chi nhánh")}
+            rules={[{ required: true, message: t("Vui lòng nhập tên") }]}
+          >
+            <Input />
+          </Form.Item>
+        </div>
+        <div className="settings-row">
+          <Form.Item name="taxCode" label={t("Mã số thuế")}>
+            <Input placeholder={t("Mã số thuế")} />
+          </Form.Item>
+          <Form.Item name="contactPerson" label={t("Người liên hệ")}>
+            <Input placeholder={t("Người liên hệ")} />
+          </Form.Item>
+        </div>
+        <div className="settings-row">
+          <Form.Item
+            name="email"
+            label="Email"
+            rules={[{ type: "email", message: t("Email không hợp lệ") }]}
+          >
+            <Input placeholder="Email" />
+          </Form.Item>
+          <Form.Item
+            name="phoneNumber"
+            label={t("Số điện thoại")}
+            rules={[{ pattern: /^0\d{9,10}$/, message: t("Số điện thoại không hợp lệ") }]}
+          >
+            <Input placeholder={t("Số điện thoại")} />
+          </Form.Item>
+        </div>
         <div className="settings-row">
           <Form.Item name="provinceId" label={t("Tỉnh/ Thành phố")}>
             <Select
@@ -160,25 +195,9 @@ export function BranchEditorModal({ open, branch, onClose }: BranchEditorModalPr
             />
           </Form.Item>
         </div>
-        <Form.Item name="address" label={t("Địa chỉ")}>
-          <Input />
+        <Form.Item name="address" label={t("Địa chỉ chi nhánh")}>
+          <Input placeholder={t("Địa chỉ chi nhánh")} />
         </Form.Item>
-        <div className="settings-row">
-          <Form.Item
-            name="phoneNumber"
-            label={t("Số điện thoại")}
-            rules={[{ pattern: /^0\d{9,10}$/, message: t("Số điện thoại không hợp lệ") }]}
-          >
-            <Input />
-          </Form.Item>
-          <Form.Item
-            name="email"
-            label="Email"
-            rules={[{ type: "email", message: t("Email không hợp lệ") }]}
-          >
-            <Input />
-          </Form.Item>
-        </div>
       </Form>
     </Modal>
   );

@@ -213,13 +213,13 @@ export function AppLayout() {
       key: "profile",
       icon: <UserOutlined />,
       label: t("Thông tin cá nhân"),
-      onClick: () => navigate("/account/profile"),
+      onClick: () => navigate("/settings?tab=info"),
     },
     {
       key: "change-password",
       icon: <KeyOutlined />,
       label: t("Đổi mật khẩu"),
-      onClick: () => navigate("/account/change-password"),
+      onClick: () => navigate("/settings?tab=password"),
     },
     { type: "divider" },
     {

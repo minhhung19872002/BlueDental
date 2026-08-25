@@ -228,7 +228,7 @@ export function OperationsPage() {
                   onClick={() => setSelectedCategoryId(selectedCategoryId === cat.id ? undefined : cat.id)}
                 >
                   <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cat.name}</span>
-                  <Popconfirm title={t("Xoá mục này?")} onConfirm={() => deleteCategory.mutate(cat.id)}>
+                  <Popconfirm title={t("Xoá mục này?")} onConfirm={() => deleteCategory.mutateAsync(cat.id)}>
                     <Button type="text" size="small" danger icon={<DeleteOutlined />} style={{ flexShrink: 0 }} />
                   </Popconfirm>
                 </div>
@@ -270,7 +270,7 @@ export function OperationsPage() {
                   render: (_: unknown, record: OperationArticleDto) => (
                     <div style={{ display: "flex", gap: 6 }}>
                       <Button size="small" onClick={() => { setEditingArticle(record); setArticleTitle(record.title); setArticleModalOpen(true); }}>{t("Sửa")}</Button>
-                      <Popconfirm title={t("Xoá bài viết?")} onConfirm={() => deleteArticle.mutate(record.id)}>
+                      <Popconfirm title={t("Xoá bài viết?")} onConfirm={() => deleteArticle.mutateAsync(record.id)}>
                         <Button size="small" danger>{t("Xoá")}</Button>
                       </Popconfirm>
                     </div>

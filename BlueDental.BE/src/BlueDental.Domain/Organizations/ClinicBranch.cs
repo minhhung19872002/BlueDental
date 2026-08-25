@@ -13,6 +13,9 @@ public class ClinicBranch : FullAuditedAggregateRoot<Guid>
     public string? WardId { get; private set; }
     public string? PhoneNumber { get; private set; }
     public string? Email { get; private set; }
+    public string? Slogan { get; private set; }
+    public string? TaxCode { get; private set; }
+    public string? ContactPerson { get; private set; }
     public BranchStatus Status { get; private set; }
     public TimeOnly? OpeningTime { get; private set; }
     public TimeOnly? ClosingTime { get; private set; }
@@ -61,6 +64,24 @@ public class ClinicBranch : FullAuditedAggregateRoot<Guid>
 
         OpeningTime = opening;
         ClosingTime = closing;
+        return this;
+    }
+
+    public ClinicBranch SetSlogan(string? slogan)
+    {
+        Slogan = slogan?.Trim();
+        return this;
+    }
+
+    public ClinicBranch SetTaxCode(string? taxCode)
+    {
+        TaxCode = taxCode?.Trim();
+        return this;
+    }
+
+    public ClinicBranch SetContactPerson(string? contactPerson)
+    {
+        ContactPerson = contactPerson?.Trim();
         return this;
     }
 

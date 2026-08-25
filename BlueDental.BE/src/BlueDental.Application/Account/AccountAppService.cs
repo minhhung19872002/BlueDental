@@ -27,10 +27,13 @@ public class AccountAppService(
         var clinicId = branchResolver.ClinicBranchId;
         string? clinicName = null;
 
+        string? clinicTagline = null;
+
         if (clinicId.HasValue)
         {
             var branch = await branchRepository.FindAsync(clinicId.Value);
             clinicName = branch?.Name;
+            clinicTagline = branch?.Slogan;
         }
 
         return new CurrentUserDto
@@ -42,7 +45,7 @@ public class AccountAppService(
             ClinicId = clinicId,
             ClinicName = clinicName,
             ClinicLogoUrl = null,
-            ClinicTagline = null,
+            ClinicTagline = clinicTagline,
             Roles = roles.ToList(),
             Permissions = [],
             PasswordMustChange = false,

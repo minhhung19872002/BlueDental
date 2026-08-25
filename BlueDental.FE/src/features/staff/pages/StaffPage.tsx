@@ -217,7 +217,7 @@ export function StaffPage() {
             description={record.fullName || record.userName}
             okText={t("Xoá")}
             cancelText={t("Huỷ")}
-            onConfirm={() => void handleDelete(record)}
+            onConfirm={() => handleDelete(record)}
           >
             <Tooltip title={t("Xoá")}>
               <Button
