@@ -56,8 +56,8 @@ const statusFilterButtons = (): {
 }[] => [
   { key: "scheduled",  label: t("Đã hẹn"),     statuses: ["scheduled", "confirmed"], borderColor: "#1c3566", bgColor: "#eaf0fa", textColor: "#1c3566" },
   { key: "arrived",    label: t("Đã đến"),     statuses: ["inProgress", "completed"], borderColor: "#1f8a63", bgColor: "#e6f5ef", textColor: "#1f8a63" },
-  { key: "cancelled",  label: t("Huỷ hẹn"),    statuses: ["cancelled"], borderColor: "#ef4d4d", bgColor: "#FCE8E6", textColor: "#ef4d4d" },
-  { key: "late",       label: t("Trễ hẹn"),    statuses: ["noShow"], borderColor: "#dd9426", bgColor: "#FEF3C7", textColor: "#dd9426" },
+  { key: "cancelled",  label: t("Huỷ hẹn"),    statuses: ["cancelled"], borderColor: "#ef4d4d", bgColor: "var(--bd-red-pale)", textColor: "#ef4d4d" },
+  { key: "late",       label: t("Trễ hẹn"),    statuses: ["noShow"], borderColor: "#dd9426", bgColor: "var(--bd-amber-pale)", textColor: "#dd9426" },
   { key: "temporary",  label: t("Lịch tạm"),   statuses: [], borderColor: "#dd9426", bgColor: "#FFEDD5", textColor: "#dd9426" },
   { key: "converted",  label: t("Chuyển đổi"), statuses: [], borderColor: "#3d7fa8", bgColor: "#CFFAFE", textColor: "#3d7fa8" },
 ];
@@ -65,9 +65,9 @@ const statusFilterButtons = (): {
 /** Card colours, matching the status pills used elsewhere in the app. */
 const CARD_LOOK: Record<AppointmentStatus, { bg: string; border: string; text: string }> = {
   scheduled:  { bg: "#eaf0fa", border: "#1c3566", text: "#1c3566" },
-  confirmed:  { bg: "#e6f5ef", border: "#1f8a63", text: "#166848" },
+  confirmed:  { bg: "#e6f5ef", border: "#1f8a63", text: "var(--bd-green)" },
   inProgress: { bg: "#fdf3e2", border: "#dd9426", text: "#9a6412" },
-  completed:  { bg: "#e6f5ef", border: "#25a97a", text: "#166848" },
+  completed:  { bg: "#e6f5ef", border: "#25a97a", text: "var(--bd-green)" },
   cancelled:  { bg: "#fdeeee", border: "#ef4d4d", text: "#c33" },
   noShow:     { bg: "#efedf6", border: "#6f63a3", text: "#544a80" },
 };
@@ -334,7 +334,7 @@ export function DayViewCalendar({
                   alignItems: "center",
                   justifyContent: "center",
                   fontSize: 11,
-                  color: isHourStart(slotIdx) ? "#41505f" : "#D1D5DB",
+                  color: isHourStart(slotIdx) ? "#41505f" : "var(--bd-line)",
                   fontWeight: isHourStart(slotIdx) ? 500 : 400,
                   background: "#fafbfd",
                 }}

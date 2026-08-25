@@ -1,4 +1,4 @@
-using BlueDental.Appointments;
+﻿using BlueDental.Appointments;
 using BlueDental.Appointments.Values;
 using BlueDental.Billing;
 using BlueDental.Billing.Values;
@@ -133,14 +133,21 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Description).HasMaxLength(1000);
         });
 
-        builder.Entity<PaymentMethodOption>(entity =>
+        builder.Entity<PaymentAccount>(entity =>
         {
-            entity.ToTable("bd_payment_methods");
+            entity.ToTable("bd_payment_accounts");
             entity.ConfigureByConvention();
-            entity.Property(x => x.Code).HasMaxLength(50).IsRequired();
-            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
-            entity.Property(x => x.Description).HasMaxLength(1000);
-            entity.HasIndex(x => x.Code).IsUnique();
+            entity.Property(x => x.HolderName).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.PhoneNumber).HasMaxLength(30);
+            entity.Property(x => x.BankName).HasMaxLength(200);
+            entity.Property(x => x.AccountNumber).HasMaxLength(50);
+            // Only the pointer to the QR lives here; MinIO holds the bytes.
+            entity.Property(x => x.QrImageBlobName).HasMaxLength(400);
+            entity.Property(x => x.QrImageFileName).HasMaxLength(260);
+            entity.Property(x => x.QrImageContentType).HasMaxLength(100);
+            entity.Ignore(x => x.HasQrImage);
+            // The screen always asks for one branch and one tab at a time.
+            entity.HasIndex(x => new { x.ClinicBranchId, x.Kind });
         });
 
         builder.Entity<PatientTag>(entity =>
@@ -148,8 +155,9 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.ToTable("bd_patient_tags");
             entity.ConfigureByConvention();
             entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
-            entity.Property(x => x.Color).HasMaxLength(20);
+            entity.Property(x => x.Color).HasMaxLength(20).IsRequired();
             entity.Property(x => x.Description).HasMaxLength(1000);
+            entity.HasIndex(x => x.ClinicBranchId);
         });
 
         builder.Entity<Diagnosis>(entity =>
@@ -821,8 +829,80 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Code).HasMaxLength(64);
             entity.Property(x => x.Description).HasMaxLength(2000);
             entity.Property(x => x.Price).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.DetailName).HasMaxLength(400);
+            entity.Property(x => x.Note).HasMaxLength(2000);
+            entity.Property(x => x.Unit).HasMaxLength(50);
+            // The rich-text bodies and the A4 medical-record form outgrow any
+            // sensible varchar, so this column is plain text.
+            entity.Property(x => x.Content).HasColumnType("text");
+
+            entity.HasOne(x => x.ServiceConfig)
+                .WithOne()
+                .HasForeignKey<CatalogServiceConfig>(x => x.CatalogEntryId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Navigation(x => x.ServiceConfig).UsePropertyAccessMode(PropertyAccessMode.Field);
+
+            entity.HasOne(x => x.Medicine)
+                .WithOne()
+                .HasForeignKey<CatalogMedicine>(x => x.CatalogEntryId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Navigation(x => x.Medicine).UsePropertyAccessMode(PropertyAccessMode.Field);
+
+            entity.HasMany(x => x.Stages)
+                .WithOne()
+                .HasForeignKey(x => x.CatalogEntryId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Navigation(x => x.Stages).UsePropertyAccessMode(PropertyAccessMode.Field);
+
+            entity.HasMany(x => x.PrescriptionLines)
+                .WithOne()
+                .HasForeignKey(x => x.CatalogEntryId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Navigation(x => x.PrescriptionLines).UsePropertyAccessMode(PropertyAccessMode.Field);
+
             entity.HasIndex(x => new { x.ClinicBranchId, x.Group, x.IsActive });
             entity.HasIndex(x => new { x.TaxonomyId, x.SortOrder });
+        });
+
+        builder.Entity<CatalogServiceConfig>(entity =>
+        {
+            entity.ToTable("bd_catalog_service_configs");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.TaxRate).HasConversion<short>();
+            entity.Property(x => x.DiscountValue).HasColumnType("numeric(18,2)");
+            entity.HasIndex(x => x.CatalogEntryId).IsUnique();
+        });
+
+        builder.Entity<CatalogServiceStage>(entity =>
+        {
+            entity.ToTable("bd_catalog_service_stages");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(400).IsRequired();
+            entity.Property(x => x.Value).HasColumnType("numeric(18,2)");
+            entity.HasIndex(x => new { x.CatalogEntryId, x.SortOrder });
+        });
+
+        builder.Entity<CatalogMedicine>(entity =>
+        {
+            entity.ToTable("bd_catalog_medicines");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.ActiveIngredient).HasMaxLength(400);
+            entity.Property(x => x.Usage).HasMaxLength(1000);
+            entity.Property(x => x.UsageNote).HasMaxLength(1000);
+            entity.Property(x => x.PrescriptionCode).HasMaxLength(100);
+            entity.Property(x => x.PurchasePrice).HasColumnType("numeric(18,2)");
+            entity.HasIndex(x => x.CatalogEntryId).IsUnique();
+        });
+
+        builder.Entity<PrescriptionTemplateLine>(entity =>
+        {
+            entity.ToTable("bd_prescription_template_lines");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.AmountPerTime).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.Usage).HasConversion<int>();
+            entity.Property(x => x.OtherUsage).HasMaxLength(200);
+            entity.Ignore(x => x.Quantity);
+            entity.HasIndex(x => new { x.CatalogEntryId, x.SortOrder });
         });
 
         // Phan cong nhan vien theo chi nhanh
@@ -1117,17 +1197,5 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => new { x.ClinicBranchId, x.Group, x.SortOrder });
         });
 
-        builder.Entity<CatalogEntry>(entity =>
-        {
-            entity.ToTable("bd_catalog_entries");
-            entity.ConfigureByConvention();
-            entity.Property(x => x.Group).HasMaxLength(64).IsRequired();
-            entity.Property(x => x.Name).HasMaxLength(300).IsRequired();
-            entity.Property(x => x.Code).HasMaxLength(64);
-            entity.Property(x => x.Description).HasMaxLength(2000);
-            entity.Property(x => x.Price).HasColumnType("numeric(18,2)");
-            entity.HasIndex(x => new { x.ClinicBranchId, x.Group, x.IsActive });
-            entity.HasIndex(x => new { x.TaxonomyId, x.SortOrder });
-        });
     }
 }

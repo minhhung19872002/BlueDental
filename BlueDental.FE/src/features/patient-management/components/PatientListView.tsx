@@ -37,9 +37,9 @@ interface Props {
 export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
 
   const STATUS_CONFIG: Record<PatientStatus, { label: string; color: string; bg: string; text: string }> = {
-    NoActivity:  { label: t("Chưa phát sinh"),  color: "#6B7280", bg: "#F3F4F6", text: "#374151" },
-    InTreatment: { label: t("Đang điều trị"), color: "var(--bd-blue)", bg: "#EBF3FE", text: "#1E5BB0" },
-    Completed:   { label: t("Điều trị hoàn tất"),   color: "#10B981", bg: "#E6F4EA", text: "#1F7A45" },
+    NoActivity:  { label: t("Chưa phát sinh"),  color: "var(--bd-muted)", bg: "var(--bd-bg)", text: "var(--bd-sub)" },
+    InTreatment: { label: t("Đang điều trị"), color: "var(--bd-blue)", bg: "var(--bd-blue-pale)", text: "#1E5BB0" },
+    Completed:   { label: t("Điều trị hoàn tất"),   color: "var(--bd-green)", bg: "var(--bd-green-pale)", text: "#1F7A45" },
   };
 
   const FILTER_TABS: { key: FilterStatus; label: string }[] = [
@@ -124,7 +124,7 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
       key: "createdAt",
       width: 120,
       render: (v: string) => (
-        <Text style={{ fontSize: 13, color: "#374151" }}>{formatDate(v)}</Text>
+        <Text style={{ fontSize: 13, color: "var(--bd-sub)" }}>{formatDate(v)}</Text>
       ),
     },
     {
@@ -134,7 +134,7 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
       render: (_, record) => (
         <div>
           <div>
-            <Text style={{ color: "#5A6B82", fontFamily: "monospace", fontSize: 12, fontWeight: 600 }}>
+            <Text style={{ color: "var(--bd-muted)", fontFamily: "monospace", fontSize: 12, fontWeight: 600 }}>
               [{record.code}]
             </Text>{" "}
             <Text
@@ -170,7 +170,7 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
       key: "status",
       width: 150,
       render: (status: PatientStatus) => {
-        const conf = STATUS_CONFIG[status] ?? { label: status, bg: "#F3F4F6", text: "#374151" };
+        const conf = STATUS_CONFIG[status] ?? { label: status, bg: "var(--bd-bg)", text: "var(--bd-sub)" };
         return (
           <span
             style={{
@@ -194,7 +194,7 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
       key: "serviceName",
       width: 180,
       render: (v: string | null) => (
-        <Text style={{ fontSize: 13, color: "#374151" }}>{v ?? "—"}</Text>
+        <Text style={{ fontSize: 13, color: "var(--bd-sub)" }}>{v ?? "—"}</Text>
       ),
     },
     {
@@ -229,7 +229,7 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
           style={{
             fontSize: 13,
             fontVariantNumeric: "tabular-nums",
-            color: v > 0 ? "#10B981" : "#374151",
+            color: v > 0 ? "var(--bd-green)" : "var(--bd-sub)",
             fontWeight: v > 0 ? 500 : 400,
           }}
         >
@@ -248,7 +248,7 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
           style={{
             fontSize: 13,
             fontVariantNumeric: "tabular-nums",
-            color: v > 0 ? "#EF4444" : "#374151",
+            color: v > 0 ? "var(--bd-red)" : "var(--bd-sub)",
             fontWeight: v > 0 ? 500 : 400,
           }}
         >
@@ -262,7 +262,7 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
       key: "nextAppointmentAt",
       width: 145,
       render: (v: string | null) => (
-        <Text style={{ fontSize: 12, color: v ? "#374151" : "#9CA3AF" }}>
+        <Text style={{ fontSize: 12, color: v ? "var(--bd-sub)" : "var(--bd-faint)" }}>
           {v ? formatDateTime(v) : "—"}
         </Text>
       ),
@@ -273,7 +273,7 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
       key: "lastVisitAt",
       width: 130,
       render: (v: string | null) => (
-        <Text style={{ fontSize: 12, color: v ? "#374151" : "#9CA3AF" }}>
+        <Text style={{ fontSize: 12, color: v ? "var(--bd-sub)" : "var(--bd-faint)" }}>
           {v ? formatDateTime(v) : "—"}
         </Text>
       ),
@@ -300,7 +300,7 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
               type="text"
               size="small"
               icon={<EditOutlined />}
-              style={{ color: "#6B7280" }}
+              style={{ color: "var(--bd-muted)" }}
               onClick={(e) => { e.stopPropagation(); onEdit?.(record.id); }}
             />
           </Tooltip>
@@ -353,7 +353,7 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
                 textAlign: "center",
                 fontSize: 14,
                 fontWeight: 500,
-                color: "#1B2A41",
+                color: "var(--bd-ink)",
               }}
             >
               {displayDate()}
@@ -368,7 +368,7 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
 
           {/* Center: search */}
           <Input
-            prefix={<SearchOutlined style={{ color: "#9CA3AF" }} />}
+            prefix={<SearchOutlined style={{ color: "var(--bd-faint)" }} />}
             placeholder={t("Tìm kiếm...")}
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
@@ -443,9 +443,9 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
           scroll={{ x: 1400 }}
           locale={{
             emptyText: (
-              <div style={{ padding: "40px 0", textAlign: "center", color: "#9CA3AF" }}>
+              <div style={{ padding: "40px 0", textAlign: "center", color: "var(--bd-faint)" }}>
                 <div style={{ fontSize: 32, marginBottom: 8 }}>🦷</div>
-                <div style={{ fontWeight: 500, color: "#6B7280" }}>{t("Không có bệnh nhân nào")}</div>
+                <div style={{ fontWeight: 500, color: "var(--bd-muted)" }}>{t("Không có bệnh nhân nào")}</div>
                 <div style={{ fontSize: 13, marginTop: 4 }}>{t("Thêm hồ sơ bệnh nhân đầu tiên")}</div>
               </div>
             ),

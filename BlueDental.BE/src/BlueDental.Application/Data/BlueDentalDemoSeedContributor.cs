@@ -8,6 +8,7 @@ using BlueDental.Billing;
 using BlueDental.Billing.Values;
 using BlueDental.Organizations;
 using BlueDental.PatientManagement;
+using BlueDental.PatientManagement.Values;
 using Microsoft.Extensions.Configuration;
 using Volo.Abp.Data;
 using Volo.Abp.DependencyInjection;
@@ -38,13 +39,25 @@ public class BlueDentalDemoSeedContributor(
     IdentityUserManager userManager,
     IdentityRoleManager roleManager,
     IGuidGenerator guidGenerator,
-    IConfiguration configuration) : IDataSeedContributor, ITransientDependency
+    IConfiguration configuration,
+    BlueDentalClinicalDemoSeeder clinicalSeeder,
+    BlueDentalOperationsDemoSeeder operationsSeeder) : IDataSeedContributor, ITransientDependency
 {
     /// <summary>
     /// The calendar picks its columns from whoever holds this role. Without it
     /// every account — the admin included — turns up as a bookable chair.
     /// </summary>
     private const string DentistRole = "dentist";
+
+    /// <summary>
+    /// The clinic keeps Vietnam hours whatever the server's clock is set to.
+    /// Seeding against the machine's own offset put a UTC container's 08:00
+    /// slot at 15:00 in front of the people reading it.
+    /// </summary>
+    internal static readonly TimeSpan ClinicOffset = TimeSpan.FromHours(7);
+
+    /// <summary>Today as the clinic sees it.</summary>
+    internal static DateTime ClinicToday => DateTimeOffset.UtcNow.ToOffset(ClinicOffset).Date;
 
     /// <summary>Days of diary before and after today.</summary>
     private const int DaysBack = 7;
@@ -121,22 +134,64 @@ public class BlueDentalDemoSeedContributor(
 
     public async Task SeedAsync(DataSeedContext context)
     {
-        if (!IsDevelopment())
-        {
-            return;
-        }
-
         var patients = await patientRepository.GetListAsync(p => p.BranchId == _branchId);
-        if (patients.Count == 0)
+
+        // Development always gets the demo. Anywhere else it fills a clinic that
+        // is still empty — a fresh install, which is the only time synthetic
+        // records are welcome — and never touches one that has real ones.
+        if (!IsDevelopment() && patients.Count > 0)
         {
-            // No one to book. Patient seeding is a separate concern.
             return;
         }
 
         var dentistIds = await EnsureDentistsAsync();
-        await EnsureExtraStaffAsync();
+        var staffIds = await EnsureExtraStaffAsync();
+
+        if (patients.Count == 0)
+        {
+            patients = await SeedPatientsAsync();
+        }
+
         await SeedAppointmentsAsync(patients, dentistIds);
         await SeedInvoicesAsync();
+
+        // The rest of the clinic. Both are idempotent per table, so a re-run
+        // fills in whatever an earlier one could not.
+        await clinicalSeeder.SeedAsync(patients, dentistIds);
+        await operationsSeeder.SeedAsync(patients, dentistIds.Concat(staffIds).ToList());
+    }
+
+    /// <summary>
+    /// A clinic with no patients has nothing to show on any screen. Registers a
+    /// roster of synthetic ones — invented names, invented numbers — so the
+    /// diary, the billing and the clinical chain all have someone to hang off.
+    /// </summary>
+    private async Task<List<Patient>> SeedPatientsAsync()
+    {
+        var random = new Random(20260831);
+        var patients = new List<Patient>();
+
+        for (var i = 0; i < DemoPatients.Length; i++)
+        {
+            var (lastName, firstName, gender) = DemoPatients[i];
+            var birthYear = 1965 + random.Next(0, 40);
+
+            patients.Add(Patient.Register(
+                guidGenerator.Create(),
+                $"BD26{9000 + i:D4}",
+                firstName,
+                lastName,
+                new DateOnly(birthYear, 1 + random.Next(0, 12), 1 + random.Next(0, 27)),
+                gender,
+                new ContactInfo(
+                    $"09{random.Next(10, 99)}{i:D6}",
+                    null,
+                    $"{10 + i} Nguyễn Huệ, Quận 1, TP.HCM"),
+                _branchId));
+        }
+
+        await patientRepository.InsertManyAsync(patients, autoSave: true);
+        return patients;
     }
 
     private bool IsDevelopment() =>
@@ -225,8 +280,43 @@ public class BlueDentalDemoSeedContributor(
         "0911111111", "0922222222", "0933333333", "0944444444", "0955555555"
     ];
 
-    private async Task EnsureExtraStaffAsync()
+    /// <summary>
+    /// Synthetic patients — invented names, invented numbers, no resemblance to
+    /// anyone in the reference system.
+    /// </summary>
+    private static readonly (string LastName, string FirstName, Gender Gender)[] DemoPatients =
+    [
+        ("Nguyễn Văn", "An", Gender.Male),
+        ("Trần Thị", "Bích", Gender.Female),
+        ("Lê Hoàng", "Cường", Gender.Male),
+        ("Phạm Thị", "Dung", Gender.Female),
+        ("Hoàng Minh", "Đức", Gender.Male),
+        ("Vũ Thị", "Giang", Gender.Female),
+        ("Đặng Quốc", "Hùng", Gender.Male),
+        ("Bùi Thị", "Hương", Gender.Female),
+        ("Đỗ Trung", "Kiên", Gender.Male),
+        ("Ngô Thị", "Lan", Gender.Female),
+        ("Dương Văn", "Long", Gender.Male),
+        ("Lý Thị", "Mai", Gender.Female),
+        ("Phan Thanh", "Nam", Gender.Male),
+        ("Trịnh Thị", "Ngọc", Gender.Female),
+        ("Cao Hữu", "Phúc", Gender.Male),
+        ("Mai Thị", "Quyên", Gender.Female),
+        ("Tạ Văn", "Sơn", Gender.Male),
+        ("Chu Thị", "Thảo", Gender.Female),
+        ("Hồ Anh", "Tuấn", Gender.Male),
+        ("Đinh Thị", "Vân", Gender.Female),
+        ("Lương Bảo", "Việt", Gender.Male),
+        ("Tô Thị", "Xuân", Gender.Female),
+        ("Nguyễn Hải", "Yến", Gender.Female),
+        ("Trương Công", "Định", Gender.Male)
+    ];
+
+    /// <summary>Creates the non-dentist staff and returns everyone it touched.</summary>
+    private async Task<List<Guid>> EnsureExtraStaffAsync()
     {
+        var staffIds = new List<Guid>();
+
         // Set ExtraProperties on existing dentists
         for (var i = 0; i < Dentists.Length; i++)
         {
@@ -252,7 +342,11 @@ public class BlueDentalDemoSeedContributor(
         foreach (var (userName, name, phone, address, isDentist, isAssistant, isHygienist) in ExtraStaff)
         {
             var user = await userManager.FindByNameAsync(userName);
-            if (user is not null) continue;
+            if (user is not null)
+            {
+                staffIds.Add(user.Id);
+                continue;
+            }
 
             user = new IdentityUser(
                 guidGenerator.Create(),
@@ -294,7 +388,11 @@ public class BlueDentalDemoSeedContributor(
                     StaffBranchAssignment.Assign(guidGenerator.Create(), user.Id, _branchId, isPrimary: true),
                     autoSave: true);
             }
+
+            staffIds.Add(user.Id);
         }
+
+        return staffIds;
     }
 
     private async Task<List<Appointment>> SeedAppointmentsAsync(
@@ -308,8 +406,8 @@ public class BlueDentalDemoSeedContributor(
 
         // The clinic thinks in local opening hours; Npgsql stores timestamptz and
         // only accepts UTC, so every instant is built locally and then converted.
-        var today = DateTimeOffset.Now.Date;
-        var offsetSpan = DateTimeOffset.Now.Offset;
+        var today = ClinicToday;
+        var offsetSpan = ClinicOffset;
         var windowStart = new DateTimeOffset(today.AddDays(-DaysBack), offsetSpan).ToUniversalTime();
         var windowEnd = new DateTimeOffset(today.AddDays(DaysForward + 1), offsetSpan).ToUniversalTime();
 

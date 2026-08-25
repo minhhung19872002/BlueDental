@@ -299,6 +299,16 @@ const appRoutes: RouteObject[] = [
         ),
       },
       {
+        // Each catalog is its own URL, exactly as in the reference, so a
+        // sub-screen can be bookmarked and reached with the back button.
+        path: "taxonomy/:section",
+        element: (
+          <S>
+            <TaxonomyPage />
+          </S>
+        ),
+      },
+      {
         // Reached from the account menu; the design gives it its own screen.
         path: "settings",
         element: (

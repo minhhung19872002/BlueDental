@@ -78,7 +78,7 @@ function buildCashflowColumns(
     { title: t("Thành tiền"), dataIndex: "amount", key: "amount", width: 140, align: "right" as const,
       render: (v: number, r: { type: SalesEntryType }) => (
         <Text style={{
-          color: r.type === SALES_ENTRY_TYPE.Income ? "#10B981" : "#EF4444",
+          color: r.type === SALES_ENTRY_TYPE.Income ? "var(--bd-green)" : "var(--bd-red)",
           fontVariantNumeric: "tabular-nums",
         }}>
           {r.type === SALES_ENTRY_TYPE.Income ? "+" : "-"}{formatVND(v ?? 0)} đ
@@ -105,11 +105,11 @@ function buildResultColumns(t: Translate) {
     { title: t("Doanh thu"), dataIndex: "revenue", key: "revenue", width: 160, align: "right" as const,
       render: (v: number) => <Text style={{ fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
     { title: t("Chi phí"), dataIndex: "expense", key: "expense", width: 160, align: "right" as const,
-      render: (v: number) => <Text style={{ color: "#EF4444", fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
+      render: (v: number) => <Text style={{ color: "var(--bd-red)", fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
     { title: t("Lợi nhuận"), dataIndex: "profit", key: "profit", width: 160, align: "right" as const,
-      render: (v: number) => <Text style={{ color: "#10B981", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
+      render: (v: number) => <Text style={{ color: "var(--bd-green)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
     { title: t("Tỷ lệ LN (%)"), dataIndex: "margin", key: "margin", width: 120, align: "right" as const,
-      render: (v: number) => <Text style={{ color: v >= 0 ? "#10B981" : "#EF4444" }}>{v ?? 0}%</Text> },
+      render: (v: number) => <Text style={{ color: v >= 0 ? "var(--bd-green)" : "var(--bd-red)" }}>{v ?? 0}%</Text> },
   ];
 }
 
@@ -122,7 +122,7 @@ function buildExpenseColumns(t: Translate) {
     { title: t("Dịch vụ điều trị"), dataIndex: "serviceName", key: "serviceName" },
     { title: t("Số lượng"), dataIndex: "quantity", key: "quantity", width: 90, align: "right" as const },
     { title: t("Thành tiền"), dataIndex: "totalAmount", key: "totalAmount", width: 130, align: "right" as const, render: (v: number) => <Text style={{ fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
-    { title: t("Đã thanh toán"), dataIndex: "paidAmount", key: "paidAmount", width: 130, align: "right" as const, render: (v: number) => <Text style={{ color: "#10B981", fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
+    { title: t("Đã thanh toán"), dataIndex: "paidAmount", key: "paidAmount", width: 130, align: "right" as const, render: (v: number) => <Text style={{ color: "var(--bd-green)", fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
   ];
 }
 
@@ -300,9 +300,9 @@ export function ReportPage() {
           {/* Quick stats + export */}
           <div className="reception-card reception-card--toolbar">
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-              <span style={{ fontSize: 13, color: "#5A6B82" }}>{t("Doanh số:")}</span>
+              <span style={{ fontSize: 13, color: "var(--bd-muted)" }}>{t("Doanh số:")}</span>
               {expenseLoading ? <Spin size="small" /> : (
-                <span style={{ fontWeight: 700, fontSize: 18, color: "#1B2A41" }}>
+                <span style={{ fontWeight: 700, fontSize: 18, color: "var(--bd-ink)" }}>
                   {formatVND(expenseData?.grandTotalAmount ?? 0)} đ
                 </span>
               )}
@@ -332,28 +332,28 @@ export function ReportPage() {
           <Row gutter={[12, 12]}>
             <Col xs={24} sm={12} md={6}>
               <div className="reception-card" style={{ padding: 16 }}>
-                <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 10 }}>{t("Thông tin lượt khách")}</div>
+                <div style={{ fontWeight: 600, fontSize: 13, color: "var(--bd-ink)", marginBottom: 10 }}>{t("Thông tin lượt khách")}</div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                  <span style={{ color: "#5A6B82" }}>{t("Lượt khách")}</span>
+                  <span style={{ color: "var(--bd-muted)" }}>{t("Lượt khách")}</span>
                   <span style={{ fontWeight: 600 }}>{expenseLoading ? "…" : (expenseData?.totalCount ?? 0)} {t("lượt")}</span>
                 </div>
               </div>
             </Col>
             <Col xs={24} sm={12} md={6}>
               <div className="reception-card" style={{ padding: 16 }}>
-                <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 10 }}>{t("Thông tin lịch hẹn")}</div>
+                <div style={{ fontWeight: 600, fontSize: 13, color: "var(--bd-ink)", marginBottom: 10 }}>{t("Thông tin lịch hẹn")}</div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                  <span style={{ color: "#5A6B82" }}>{t("Lịch hẹn khách hàng")}</span>
+                  <span style={{ color: "var(--bd-muted)" }}>{t("Lịch hẹn khách hàng")}</span>
                   <span style={{ fontWeight: 600 }}>{summaryLoading ? "…" : (summary?.totalAppointments ?? 0)}</span>
                 </div>
               </div>
             </Col>
             <Col xs={24} sm={12} md={6}>
               <div className="reception-card" style={{ padding: 16 }}>
-                <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 10 }}>{t("Thông tin thanh toán")}</div>
+                <div style={{ fontWeight: 600, fontSize: 13, color: "var(--bd-ink)", marginBottom: 10 }}>{t("Thông tin thanh toán")}</div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                  <span style={{ color: "#5A6B82" }}>{t("Doanh thu")}</span>
-                  <span style={{ fontWeight: 600, color: "#10B981" }}>
+                  <span style={{ color: "var(--bd-muted)" }}>{t("Doanh thu")}</span>
+                  <span style={{ fontWeight: 600, color: "var(--bd-green)" }}>
                     {expenseLoading ? "…" : formatVND(expenseData?.grandTotalAmount ?? 0)} đ
                   </span>
                 </div>
@@ -361,9 +361,9 @@ export function ReportPage() {
             </Col>
             <Col xs={24} sm={12} md={6}>
               <div className="reception-card" style={{ padding: 16 }}>
-                <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 10 }}>{t("TB doanh thu / KH")}</div>
+                <div style={{ fontWeight: 600, fontSize: 13, color: "var(--bd-ink)", marginBottom: 10 }}>{t("TB doanh thu / KH")}</div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                  <span style={{ color: "#5A6B82" }}>{t("Trung bình")}</span>
+                  <span style={{ color: "var(--bd-muted)" }}>{t("Trung bình")}</span>
                   <span style={{ fontWeight: 600 }}>
                     {expenseLoading ? "…" : formatVND(
                       (expenseData?.totalCount ?? 0) > 0
@@ -466,8 +466,8 @@ function CashflowTab({ period }: { period: PeriodRange }) {
   ];
 
   const summaryCards = [
-    { label: t("Tổng thu"),     value: stats?.totalIncome  ?? 0, color: "#10B981" },
-    { label: t("Tổng chi"),    value: stats?.totalExpense ?? 0, color: "#EF4444" },
+    { label: t("Tổng thu"),     value: stats?.totalIncome  ?? 0, color: "var(--bd-green)" },
+    { label: t("Tổng chi"),    value: stats?.totalExpense ?? 0, color: "var(--bd-red)" },
     { label: t("Lợi nhuận ước tính"), value: stats?.net          ?? 0, color: "var(--bd-blue)" },
   ];
 
@@ -525,7 +525,7 @@ function CashflowTab({ period }: { period: PeriodRange }) {
         {summaryCards.map((c) => (
           <Col key={c.label} xs={24} sm={8}>
             <div className="reception-card" style={{ padding: "16px 20px" }}>
-              <div style={{ fontSize: 12, color: "#5A6B82", marginBottom: 4 }}>{c.label}</div>
+              <div style={{ fontSize: 12, color: "var(--bd-muted)", marginBottom: 4 }}>{c.label}</div>
               <div style={{ fontSize: 22, fontWeight: 700, color: c.color, fontVariantNumeric: "tabular-nums" }}>
                 {formatVND(c.value)} đ
               </div>
@@ -598,10 +598,10 @@ function CashflowV2Tab({ period }: { period: PeriodRange }) {
 
   // Panel order and wording follow the reference "Luân chuyển dòng tiền V2" tab.
   const balancePanels = [
-    { label: t("Tổng Tiền"),          value: overview?.balance.total           ?? 0, color: "#1B2A41" },
-    { label: t("Tổng Tiền Mặt"),           value: overview?.balance.cash            ?? 0, color: "#10B981" },
+    { label: t("Tổng Tiền"),          value: overview?.balance.total           ?? 0, color: "var(--bd-ink)" },
+    { label: t("Tổng Tiền Mặt"),           value: overview?.balance.cash            ?? 0, color: "var(--bd-green)" },
     { label: t("Tổng Chuyển Khoản"),       value: overview?.balance.bank            ?? 0, color: "var(--bd-blue)" },
-    { label: t("Đang Giữ Hộ Khách"),  value: overview?.balance.customerPrepaid ?? 0, color: "#F59E0B" },
+    { label: t("Đang Giữ Hộ Khách"),  value: overview?.balance.customerPrepaid ?? 0, color: "var(--bd-gold-deep)" },
   ];
 
   return (
@@ -610,7 +610,7 @@ function CashflowV2Tab({ period }: { period: PeriodRange }) {
         {balancePanels.map((panel) => (
           <Col key={panel.label} xs={24} sm={12} md={6}>
             <div className="reception-card" style={{ padding: "16px 20px" }}>
-              <div style={{ fontSize: 12, color: "#5A6B82", marginBottom: 4 }}>{panel.label}</div>
+              <div style={{ fontSize: 12, color: "var(--bd-muted)", marginBottom: 4 }}>{panel.label}</div>
               <div style={{ fontSize: 22, fontWeight: 700, color: panel.color, fontVariantNumeric: "tabular-nums" }}>
                 {formatVND(panel.value)} đ
               </div>
@@ -630,7 +630,7 @@ function CashflowV2Tab({ period }: { period: PeriodRange }) {
           <Button onClick={() => setCashModal(CASH_TRANSACTION_TYPE.Transfer)}>
             {t("Luân chuyển")}
           </Button>
-          <Text style={{ fontSize: 13, color: "#5A6B82", marginLeft: 12 }}>
+          <Text style={{ fontSize: 13, color: "var(--bd-muted)", marginLeft: 12 }}>
             {t("Nạp")}: {formatVND(overview?.totalDeposit ?? 0)} đ
             {" · "}
             {t("Rút")}: {formatVND(overview?.totalWithdraw ?? 0)} đ
@@ -683,9 +683,9 @@ function BusinessResultTab() {
 
   const resultSummary = [
     { label: t("Doanh thu"),    value: revenue, color: "var(--bd-blue)" },
-    { label: t("Chi phí"),            value: expense, color: "#EF4444" },
-    { label: t("Lợi nhuận"),          value: profit,  color: "#10B981" },
-    { label: t("Tỷ lệ lợi nhuận"), value: `${margin}%`, color: "#F59E0B" },
+    { label: t("Chi phí"),            value: expense, color: "var(--bd-red)" },
+    { label: t("Lợi nhuận"),          value: profit,  color: "var(--bd-green)" },
+    { label: t("Tỷ lệ lợi nhuận"), value: `${margin}%`, color: "var(--bd-gold-deep)" },
   ];
 
   const resultData = [
@@ -698,7 +698,7 @@ function BusinessResultTab() {
         {resultSummary.map((c) => (
           <Col key={c.label} xs={24} sm={12} md={6}>
             <div className="reception-card" style={{ padding: "16px 20px" }}>
-              <div style={{ fontSize: 12, color: "#5A6B82", marginBottom: 4 }}>{c.label}</div>
+              <div style={{ fontSize: 12, color: "var(--bd-muted)", marginBottom: 4 }}>{c.label}</div>
               <div style={{ fontSize: 22, fontWeight: 700, color: c.color, fontVariantNumeric: "tabular-nums" }}>
                 {typeof c.value === "number" ? `${formatVND(c.value)} đ` : c.value}
               </div>
@@ -731,8 +731,8 @@ function BusinessResultTab() {
             <Table.Summary.Row>
               <Table.Summary.Cell index={0}><Text strong>{t("Tổng")}</Text></Table.Summary.Cell>
               <Table.Summary.Cell index={1} align="right"><Text strong style={{ fontVariantNumeric: "tabular-nums" }}>{formatVND(revenue)} đ</Text></Table.Summary.Cell>
-              <Table.Summary.Cell index={2} align="right"><Text strong style={{ color: "#EF4444", fontVariantNumeric: "tabular-nums" }}>{formatVND(expense)} đ</Text></Table.Summary.Cell>
-              <Table.Summary.Cell index={3} align="right"><Text strong style={{ color: "#10B981", fontVariantNumeric: "tabular-nums" }}>{formatVND(profit)} đ</Text></Table.Summary.Cell>
+              <Table.Summary.Cell index={2} align="right"><Text strong style={{ color: "var(--bd-red)", fontVariantNumeric: "tabular-nums" }}>{formatVND(expense)} đ</Text></Table.Summary.Cell>
+              <Table.Summary.Cell index={3} align="right"><Text strong style={{ color: "var(--bd-green)", fontVariantNumeric: "tabular-nums" }}>{formatVND(profit)} đ</Text></Table.Summary.Cell>
               <Table.Summary.Cell index={4} align="right"><Text strong>{margin}%</Text></Table.Summary.Cell>
             </Table.Summary.Row>
           )}

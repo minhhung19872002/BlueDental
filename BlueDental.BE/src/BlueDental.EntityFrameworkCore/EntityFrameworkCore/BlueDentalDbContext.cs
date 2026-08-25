@@ -57,7 +57,7 @@ public class BlueDentalDbContext :
     public DbSet<Medication> Medications { get; set; }
     public DbSet<PatientSource> PatientSources { get; set; }
     public DbSet<Occupation> Occupations { get; set; }
-    public DbSet<PaymentMethodOption> PaymentMethods { get; set; }
+    public DbSet<PaymentAccount> PaymentAccounts { get; set; }
     public DbSet<PatientTag> PatientTags { get; set; }
     public DbSet<Diagnosis> Diagnoses { get; set; }
     public DbSet<MedicationType> MedicationTypes { get; set; }
@@ -67,6 +67,10 @@ public class BlueDentalDbContext :
     public DbSet<MedicalRecordTemplate> MedicalRecordTemplates { get; set; }
     public DbSet<Taxonomy> Taxonomies { get; set; }
     public DbSet<CatalogEntry> CatalogEntries { get; set; }
+    public DbSet<CatalogServiceConfig> CatalogServiceConfigs { get; set; }
+    public DbSet<CatalogServiceStage> CatalogServiceStages { get; set; }
+    public DbSet<CatalogMedicine> CatalogMedicines { get; set; }
+    public DbSet<PrescriptionTemplateLine> PrescriptionTemplateLines { get; set; }
 
     // Patient Management
     public DbSet<Patient> Patients { get; set; }

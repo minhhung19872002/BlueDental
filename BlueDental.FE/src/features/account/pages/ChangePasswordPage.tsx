@@ -6,9 +6,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { authApi } from "@/features/auth/api";
+import { PageHeader } from "@/components/PageHeader";
 import { t } from "@/lib/i18n";
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 const schema = z.object({
   currentPassword: z.string().min(1, "required_current"),
@@ -67,32 +68,30 @@ export function ChangePasswordPage() {
   };
 
   const fieldStyle = { marginBottom: 16 };
-  const labelStyle = { fontSize: 13, fontWeight: 500 as const, color: "#374151", display: "block" as const, marginBottom: 6 };
+  const labelStyle = { fontSize: 13, fontWeight: 500 as const, color: "var(--bd-sub)", display: "block" as const, marginBottom: 6 };
 
   return (
     <div className="page-container">
-      <div className="page-header">
-        <div className="page-header-left">
-          <Title level={4} style={{ margin: 0 }}>{t("Đổi mật khẩu")}</Title>
-          <Text type="secondary">{t("Cập nhật mật khẩu để bảo vệ tài khoản của bạn")}</Text>
-        </div>
-      </div>
+      <PageHeader
+        title={t("Đổi mật khẩu")}
+        subtitle={t("Cập nhật mật khẩu để bảo vệ tài khoản của bạn")}
+      />
 
       <Row>
         <Col xs={24} sm={18} md={14} lg={10}>
           <Card>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-              <div style={{ background: "#EBF3FE", borderRadius: "50%", width: 48, height: 48, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ background: "var(--bd-blue-pale)", borderRadius: "50%", width: 48, height: 48, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <LockOutlined style={{ fontSize: 20, color: "var(--bd-blue)" }} />
               </div>
               <div>
-                <div style={{ fontWeight: 600, color: "#1B2A41" }}>{t("Bảo mật tài khoản")}</div>
-                <div style={{ fontSize: 13, color: "#6B7280" }}>{t("Tối thiểu 8 ký tự, gồm chữ, số và ký tự đặc biệt")}</div>
+                <div style={{ fontWeight: 600, color: "var(--bd-ink)" }}>{t("Bảo mật tài khoản")}</div>
+                <div style={{ fontSize: 13, color: "var(--bd-muted)" }}>{t("Tối thiểu 8 ký tự, gồm chữ, số và ký tự đặc biệt")}</div>
               </div>
             </div>
 
             <div style={fieldStyle}>
-              <label style={labelStyle}>{t("Mật khẩu hiện tại")} <span style={{ color: "#EF4444" }}>*</span></label>
+              <label style={labelStyle}>{t("Mật khẩu hiện tại")} <span style={{ color: "var(--bd-red)" }}>*</span></label>
               <Controller
                 name="currentPassword"
                 control={control}
@@ -106,11 +105,11 @@ export function ChangePasswordPage() {
                   />
                 )}
               />
-              {errors.currentPassword && <Text style={{ color: "#EF4444", fontSize: 12 }}>{resolveError(errors.currentPassword.message)}</Text>}
+              {errors.currentPassword && <Text style={{ color: "var(--bd-red)", fontSize: 12 }}>{resolveError(errors.currentPassword.message)}</Text>}
             </div>
 
             <div style={fieldStyle}>
-              <label style={labelStyle}>{t("Mật khẩu mới")} <span style={{ color: "#EF4444" }}>*</span></label>
+              <label style={labelStyle}>{t("Mật khẩu mới")} <span style={{ color: "var(--bd-red)" }}>*</span></label>
               <Controller
                 name="newPassword"
                 control={control}
@@ -124,11 +123,11 @@ export function ChangePasswordPage() {
                   />
                 )}
               />
-              {errors.newPassword && <Text style={{ color: "#EF4444", fontSize: 12 }}>{resolveError(errors.newPassword.message)}</Text>}
+              {errors.newPassword && <Text style={{ color: "var(--bd-red)", fontSize: 12 }}>{resolveError(errors.newPassword.message)}</Text>}
             </div>
 
             <div style={fieldStyle}>
-              <label style={labelStyle}>{t("Xác nhận mật khẩu mới")} <span style={{ color: "#EF4444" }}>*</span></label>
+              <label style={labelStyle}>{t("Xác nhận mật khẩu mới")} <span style={{ color: "var(--bd-red)" }}>*</span></label>
               <Controller
                 name="confirmPassword"
                 control={control}
@@ -142,7 +141,7 @@ export function ChangePasswordPage() {
                   />
                 )}
               />
-              {errors.confirmPassword && <Text style={{ color: "#EF4444", fontSize: 12 }}>{resolveError(errors.confirmPassword.message)}</Text>}
+              {errors.confirmPassword && <Text style={{ color: "var(--bd-red)", fontSize: 12 }}>{resolveError(errors.confirmPassword.message)}</Text>}
             </div>
 
             <Button

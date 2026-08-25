@@ -96,7 +96,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
     borderRadius: "50%",
     border: done ? `1px solid ${STEP_COLORS[stepIndex]}` : "1px solid #DCE3EE",
     background: done ? STEP_COLORS[stepIndex] : "#fff",
-    color: done ? "#fff" : "#5A6B82",
+    color: done ? "#fff" : "var(--bd-muted)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",

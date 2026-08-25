@@ -10,6 +10,7 @@ using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
+using Volo.Abp.Identity;
 
 namespace BlueDental.Timekeeping;
 
@@ -20,14 +21,38 @@ namespace BlueDental.Timekeeping;
 public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
 {
     private readonly IRepository<TimeKeepingRecord, Guid> _repository;
+    private readonly IIdentityUserRepository _userRepository;
     private readonly ICurrentClinicBranchResolver _branchResolver;
 
     public TimeKeepingAppService(
         IRepository<TimeKeepingRecord, Guid> repository,
+        IIdentityUserRepository userRepository,
         ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
+        _userRepository = userRepository;
         _branchResolver = branchResolver;
+    }
+
+    /// <summary>
+    /// A record stores the staff id; the board shows a person. Nothing filled
+    /// this in, so every card on a full roster read "Nhân viên".
+    /// </summary>
+    private async Task FillStaffNamesAsync(List<TimeKeepingRecordDto> dtos)
+    {
+        if (dtos.Count == 0)
+        {
+            return;
+        }
+
+        var staffIds = dtos.Select(d => d.StaffId).Distinct().ToList();
+        var users = await _userRepository.GetListByIdsAsync(staffIds);
+        var names = users.ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
+
+        foreach (var dto in dtos)
+        {
+            dto.StaffName = names.GetValueOrDefault(dto.StaffId);
+        }
     }
 
     [Authorize(BlueDentalPermissions.Timekeeping.View)]
@@ -43,7 +68,10 @@ public class TimeKeepingAppService : ApplicationService, ITimeKeepingAppService
             .Take(input.MaxResultCount)
             .ToList();
 
-        return new PagedResultDto<TimeKeepingRecordDto>(totalCount, items.Select(MapToDto).ToList());
+        var dtos = items.Select(MapToDto).ToList();
+        await FillStaffNamesAsync(dtos);
+
+        return new PagedResultDto<TimeKeepingRecordDto>(totalCount, dtos);
     }
 
     [Authorize(BlueDentalPermissions.Timekeeping.View)]

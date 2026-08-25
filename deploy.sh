@@ -58,10 +58,8 @@ WEB_PORT=$(grep '^WEB_PORT=' .env | cut -d= -f2); WEB_PORT=${WEB_PORT:-8080}
 [[ "$WEB_BIND" == 0.0.0.0 ]] && WEB_BIND=127.0.0.1
 echo -n "    Frontend /healthz  : "; curl -s "http://$WEB_BIND:$WEB_PORT/healthz" || echo FAIL
 echo -n "    Frontend -> /api   : "; curl -s -o /dev/null -w '%{http_code}\n' "http://$WEB_BIND:$WEB_PORT/health" || echo FAIL
-if docker compose ps --services 2>/dev/null | grep -qx caddy; then
-  echo -n "    Caddy TLS cert     : "
-  docker compose logs caddy 2>/dev/null | grep -q "certificate obtained successfully" && echo "OK" || echo "CHUA CO (kiem tra port 80/443 mo tu Internet; docker compose logs caddy)"
-fi
+# TLS khong con thuoc ve deploy nay: Caddy da tach ra ~/proxy (dung chung
+# voi blueidea + staylio). Kiem tra HTTPS nam o buoc "Smoke test" cua CD.
 
 echo
 echo "======================================================"

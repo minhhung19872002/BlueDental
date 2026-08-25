@@ -27,6 +27,24 @@ export default defineConfig({
       },
     },
   },
+  preview: {
+    port: 8080,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5019',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/signalr': {
+        target: 'http://localhost:5019',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+        timeout: 0,
+        proxyTimeout: 0,
+      },
+    },
+  },
   test: {
     globals: true,
     environment: 'jsdom',

@@ -7,6 +7,10 @@ export const brand = {
   blueMid: "#1c3566",
   blueLight: "#6f8ec4",
   bluePale: "#eaf0fa",
+  greenPale: "#e6f5ef",
+  amberPale: "#fdf3e2",
+  redPale: "#fdeeee",
+  purplePale: "#efedf6",
   navy: "#152a52",
   ink: "#101c2c",
   body: "#2c3a4a",
@@ -34,12 +38,12 @@ export const brand = {
 } as const;
 
 export const statusPaletteOf = () => ({
-  scheduled: { label: t("Đã đặt lịch"), bg: "#eaf0fa", color: "#1c3566" },
-  confirmed: { label: t("Đã xác nhận"), bg: "#e6f5ef", color: "#1f8a63" },
-  inProgress: { label: t("Đang khám"), bg: "#fdf3e2", color: "#dd9426" },
-  completed: { label: t("Hoàn thành"), bg: "#e6f5ef", color: "#1f8a63" },
-  cancelled: { label: t("Đã hủy"), bg: "#fdeeee", color: "#ef4d4d" },
-  noShow: { label: t("Không đến"), bg: "#efedf6", color: "#6f63a3" },
+  scheduled: { label: t("Đã đặt lịch"), bg: brand.bluePale, color: brand.blue },
+  confirmed: { label: t("Đã xác nhận"), bg: brand.greenPale, color: brand.green },
+  inProgress: { label: t("Đang khám"), bg: brand.amberPale, color: brand.amber },
+  completed: { label: t("Hoàn thành"), bg: brand.greenPale, color: brand.green },
+  cancelled: { label: t("Đã hủy"), bg: brand.redPale, color: brand.red },
+  noShow: { label: t("Không đến"), bg: brand.purplePale, color: brand.purple },
 });
 
 export const FONT_FAMILY =

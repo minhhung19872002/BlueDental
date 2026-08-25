@@ -25,6 +25,10 @@ test.describe("Chấm công", () => {
     await page.goto("/calendar?tab=timekeeping");
     await assertRealApiTraffic(page, "/api/v1/app/time-keepings/summary");
 
+    // Scoped to the KPI row: "Đang làm việc" is also the tag on every staff
+    // card, so an unscoped lookup is ambiguous as soon as the roster is real.
+    const kpis = page.getByTestId("timekeeping-kpis");
+
     for (const label of [
       "Tổng CBNV",
       "Đăng kí làm",
@@ -33,7 +37,7 @@ test.describe("Chấm công", () => {
       "Nghỉ ngang",
       "Giờ tăng ca",
     ]) {
-      await expect(page.getByText(label, { exact: true })).toBeVisible();
+      await expect(kpis.getByText(label, { exact: true })).toBeVisible();
     }
   });
 
@@ -59,7 +63,11 @@ test.describe("Chấm công", () => {
     await assertRealApiTraffic(page, "/api/v1/app/time-keepings/summary");
 
     // Attendance cards only exist once the day has been opened for the staff.
-    await page.getByRole("button", { name: "Mở ngày làm việc" }).click();
+    // The button stays disabled until the roster has arrived; clicking before
+    // that used to no-op behind a toast.
+    const openDay = page.getByRole("button", { name: "Mở ngày làm việc" });
+    await expect(openDay).toBeEnabled();
+    await openDay.click();
 
     const card = page.locator("text=LỊCH LÀM VIỆC").first();
     await expect(card).toBeVisible();

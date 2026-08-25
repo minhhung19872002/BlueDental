@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
-import { Button, Descriptions, Divider, Form, Input, Modal, Select, Spin, Tabs, Typography } from "antd";
+import { Button, Descriptions, Divider, Form, Input, Modal, Select, Spin, Typography, message } from "antd";
+import { PillTabs } from "@/components/PillTabs";
 import { useNavigate } from "react-router-dom";
 import { EditOutlined, UserOutlined } from "@ant-design/icons";
 import { useClinicInfo, useUpdateClinicInfo, type UpdateClinicInfoDto } from "../api";
@@ -52,7 +52,7 @@ function ClinicInfoTab() {
       email: values.email,
     };
     await updateMutation.mutateAsync(data);
-    toast.success(t("Cập nhật thông tin thành công"));
+    message.success(t("Cập nhật thông tin thành công"));
     setEditOpen(false);
   };
 
@@ -144,7 +144,7 @@ function GeneralSettingsTab() {
       setLanguage(values.language as Language);
     }
     setSaved(true);
-    toast.success(t("Lưu cài đặt thành công"));
+    message.success(t("Lưu cài đặt thành công"));
     setTimeout(() => setSaved(false), 2000);
   };
 
@@ -210,7 +210,7 @@ export function SettingsPage() {
       key: "clinic",
       label: t("Thông tin phòng khám"),
       children: (
-        <div style={{ paddingTop: 16, paddingBottom: 24 }}>
+        <div style={{ paddingBottom: 24 }}>
           <ClinicInfoTab />
         </div>
       ),
@@ -219,7 +219,7 @@ export function SettingsPage() {
       key: "general",
       label: t("Cài đặt chung"),
       children: (
-        <div style={{ paddingTop: 16, paddingBottom: 24 }}>
+        <div style={{ paddingBottom: 24 }}>
           <GeneralSettingsTab />
         </div>
       ),
@@ -228,7 +228,7 @@ export function SettingsPage() {
       key: "permissions",
       label: t("Phân quyền"),
       children: (
-        <div style={{ paddingTop: 16, paddingBottom: 24 }}>
+        <div style={{ paddingBottom: 24 }}>
           <PermissionsTab />
         </div>
       ),
@@ -248,10 +248,10 @@ export function SettingsPage() {
           borderRadius: 10,
           padding: "16px 20px",
           marginBottom: 16,
-          border: "1px solid #E5E7EB",
+          border: "1px solid var(--bd-line)",
         }}
       >
-        <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1B2A41" }}>
+        <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--bd-ink)" }}>
           {t("Cài đặt hệ thống")}
         </h2>
       </div>
@@ -259,11 +259,11 @@ export function SettingsPage() {
         style={{
           background: "#fff",
           borderRadius: 10,
-          border: "1px solid #E5E7EB",
+          border: "1px solid var(--bd-line)",
           padding: "0 20px",
         }}
       >
-        <Tabs items={tabItems} />
+        <PillTabs items={tabItems} />
       </div>
     </div>
   );

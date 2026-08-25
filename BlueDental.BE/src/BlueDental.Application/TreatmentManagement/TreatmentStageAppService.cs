@@ -287,11 +287,18 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         return used.Count == 0 ? 1 : used.Max(x => x.SequenceNumber) + 1;
     }
 
-    /// <summary>The image requirement lives on the service catalog entry.</summary>
+    /// <summary>
+    /// The image requirement lives on the service's own configuration — the
+    /// reference keeps it on the dialog's "Cài đặt" tab with the other service
+    /// settings, not on the shared catalog row.
+    /// </summary>
     private async Task<bool> ServiceRequiresImageAsync(Guid serviceId)
     {
         var query = await _catalogRepository.GetQueryableAsync();
-        return query.Where(x => x.Id == serviceId).Select(x => x.IsImageRequired).FirstOrDefault();
+        return query
+            .Where(x => x.Id == serviceId)
+            .Select(x => x.ServiceConfig != null && x.ServiceConfig.RequireImage)
+            .FirstOrDefault();
     }
 
     private async Task<StageLookups> BuildLookupsAsync(IReadOnlyCollection<TreatmentStage> items)

@@ -382,3 +382,267 @@ What was established:
 Next thing to try: bisect `ReceptionTable`'s nine column definitions — the
 difference from a working table is most likely in one of them (`render`,
 `width`, or `ellipsis`), not in CSS.
+
+---
+
+## Danh mục — assumptions made while cloning the redesigned layout (2026-08-24)
+
+Observed read-only on `staging.nfcdental.com/taxonomy/*`. Nothing was submitted
+on the reference; every write below happened only against the local stack.
+
+```
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /taxonomy/<catalog>
+Control: initial-letter colour square in the name column
+Reason: only five letters could be observed (A, I → blue; S → amber; T → rose;
+        M → emerald). That fits `charCode % 8`, so BlueDental uses an
+        eight-colour palette indexed that way; the four unobserved slots
+        (violet, cyan, indigo, pink) are our own choice.
+Action taken: PENDING — see src/components/LetterAvatar.tsx
+```
+
+```
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /taxonomy/<catalog>
+Control: "Xuất" button
+Reason: not clicked — the reference is read-only and the button's target
+        (server-rendered file vs client export) could not be established
+        without issuing the request.
+Action taken: PENDING — BlueDental exports the current page of the table to
+        .xlsx client-side via utils/exportExcel.ts.
+```
+
+```
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /taxonomy/<catalog>
+Control: drag grips on group rows and table rows
+Reason: dragging on the reference would have written a new sort order.
+Action taken: PENDING — BlueDental persists a drag by rewriting `sortOrder` on
+        every row whose position changed, and offers the same two moves from
+        the keyboard (grip focused, ArrowUp/ArrowDown) and from the group row's
+        overflow menu, because a drag-only affordance is unreachable without a
+        pointer.
+```
+
+```
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /taxonomy/<catalog>
+Control: group row overflow menu ("Thêm thao tác")
+Reason: not opened on the reference.
+Action taken: PENDING — BlueDental offers Đổi tên nhóm / Di chuyển lên /
+        Di chuyển xuống / Xoá nhóm.
+```
+
+## Thẻ hồ sơ & Phương thức thanh toán — what was and was not built (2026-08-24)
+
+```
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /taxonomy/payment-method, /taxonomy/tags
+Control: "Tải ảnh QR" upload in both Thêm phương thức dialogs
+Reason: uploading would have written to the reference. The field is visible in
+        the dialog on staging (an image-plus button over a hidden file input),
+        but its size limits, accepted types and where the image is shown
+        afterwards could not be observed without submitting.
+Action taken: BUILT with stated assumptions (2026-08-24). The upload itself is
+        confirmed on the reference; the parts that could not be observed were
+        chosen as follows, and each is a guess to revisit if the reference can
+        ever be observed safely:
+          - accepted types: JPEG, PNG, WEBP — the same set patient images accept.
+          - size limit: 5 MB, chosen because a QR is a small square image.
+          - one QR per account, replaced rather than accumulated.
+          - the QR is shown in the add/edit dialog only. The reference's MoMo
+            column list (Số điện thoại · Tên chủ tài khoản · Lần cập nhật cuối ·
+            Thao tác) has no QR column, so none was added to the table.
+        Storage follows the patient-image rule: bytes in MinIO, only the blob
+        name in PostgreSQL.
+```
+
+```
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /taxonomy/payment-method
+Control: footer sentence
+Reason: the reference renders "Hiển thị 0 trên 0" with no counted noun, unlike
+        every other catalog footer ("... bản ghi", "... thẻ hồ sơ").
+Action taken: matched exactly rather than inventing a noun.
+```
+
+```
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /taxonomy/payment-method
+Control: changing an account between MoMo and Ngân hàng
+Reason: not attempted on the reference.
+Action taken: PENDING — BlueDental fixes the kind at creation. A MoMo wallet and
+        a bank account hold different required fields, so switching would leave
+        the row half-filled; the user deletes and re-adds instead.
+```
+
+```
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /taxonomy/tags
+Control: whether a tag can be deactivated rather than deleted
+Reason: only create was observed.
+Action taken: PENDING — the entity carries IsActive and the API accepts it, but
+        the screen only offers edit and delete, as the reference does.
+```
+
+## Nhóm phân loại — dialog and ordering (2026-08-24)
+
+```
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /taxonomy/<catalog>
+Control: the "Tạo nhóm" dialog when editing an existing group
+Reason: only the create dialog was seen. Whether the reference reuses the same
+        dialog for an edit, and what it titles it, was not observed.
+Action taken: BlueDental reuses it and titles the edit "Sửa nhóm".
+```
+
+```
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /taxonomy/<catalog>
+Control: where a newly created group lands in the list
+Reason: the dialog prefills "Mức độ ưu tiên" with 0, but no group was created on
+        the reference, so where 0 puts a new group among existing ones — and how
+        the reference breaks ties between equal priorities — was not observed.
+Action taken: BlueDental keeps the prefill at 0 as observed and sorts by
+        (priority, name), so a new group lands among the other zeros
+        alphabetically rather than being appended to the end.
+```
+
+```
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /taxonomy/<catalog>
+Control: dragging a group while a search term is in the panel
+Reason: not attempted on the reference.
+Action taken: BlueDental refuses it — the panel is showing matches, not the
+        order, so positions in it are not positions in the catalog. The grip
+        shows "Xoá bộ lọc để sắp xếp lại".
+```
+
+## Danh mục — quan sát 2026-08-25 (rà soát parity toàn bộ tab)
+
+Xem `save/taxonomy-parity-plan.md` để có bản đối chiếu đầy đủ. Những gì không mở được
+mà không chạm vào dữ liệu staging:
+
+```
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /taxonomy/service
+Control: select "% thuế" trong dialog dịch vụ
+Reason: chỉ thấy giá trị mặc định "KCT"; mở select ra thì an toàn nhưng danh sách chưa
+        được ghi nhận trong lượt này.
+Action taken: NONE — cần một lượt quan sát riêng trước khi dựng.
+```
+
+```
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /taxonomy/service
+Control: "Giá sau giảm" và "Thực thu từ khách (Đã gồm VAT)"
+Reason: là ô tính ra, nhưng công thức khi kết hợp "Sau thuế" + giảm giá "%" chỉ suy được
+        bằng cách nhập thử — tức là gõ vào form của staging.
+Action taken: NONE — không gõ vào form bản gốc. Công thức sẽ là giả định của BlueDental
+        và phải ghi lại khi hiện thực.
+```
+
+```
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /taxonomy/service
+Control: tab "Bảo hành" — 7 ô chọn thời hạn
+Reason: chỉ thấy trạng thái mặc định ("Không bảo hành" được tích). Có loại trừ nhau hay
+        không thì phải bấm thử.
+Action taken: NONE — BlueDental sẽ coi là loại trừ nhau (một thời hạn duy nhất) vì đó là
+        cách duy nhất có nghĩa với một cột WarrantyDays.
+```
+
+```
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /taxonomy/prescription-template
+Control: select "Sử dụng" trên dòng thuốc
+Reason: chưa mở; danh sách lựa chọn chưa biết.
+Action taken: NONE
+```
+
+```
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: mọi dialog danh mục
+Control: hành vi khi bấm "Lưu"
+Reason: submit sẽ ghi vào staging.
+Action taken: NONE — thông báo thành công, validate phía server và quy tắc tự sinh
+        "Mã dịch vụ" đều chưa quan sát được.
+```
+
+## Danh mục — giả định khi hiện thực P3–P7 (2026-08-25)
+
+```
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /taxonomy/service
+Control: "Giá sau giảm" và "Thực thu từ khách (Đã gồm VAT)"
+Reason: là ô tính ra; công thức chỉ suy được bằng cách gõ vào form của bản gốc.
+Action taken: BlueDental chọn — giảm giá trừ vào giá đã nhập trước, rồi cộng VAT
+        nếu đang ở "Trước thuế" (đang ở "Sau thuế" thì giá đã gồm VAT nên không
+        cộng nữa). Cài trong CatalogServiceConfig, có test Domain khẳng định.
+        Hai ô này chỉ hiện số sau khi đã lưu — không tính lại ở trình duyệt để
+        server và giao diện không thể bất đồng về công thức.
+```
+
+```
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /taxonomy/service
+Control: tab "Bảo hành"
+Reason: bản gốc vẽ 7 ô vuông; không bấm thử nên không biết có loại trừ nhau không.
+Action taken: BlueDental coi là loại trừ — chọn một thời hạn sẽ bỏ các thời hạn
+        khác, vì chỉ có một cột WarrantyDays. Ô "Tuỳ chỉnh" ghi thẳng số ngày.
+```
+
+```
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /taxonomy/service
+Control: cột "Giá trị" của bảng công đoạn
+Reason: bảng rỗng trên bản gốc, không có đơn vị ghi bên cạnh.
+Action taken: lưu đúng con số đã nhập; ý nghĩa (tiền hay phần trăm) để cho module
+        điều trị quyết định sau.
+```
+
+```
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /taxonomy/medical-record-template
+Control: định dạng lưu của tờ bệnh án
+Reason: không xem được payload lưu.
+Action taken: BlueDental lưu JSON các ô đã điền vào cột Content, khoá theo tên ô,
+        để bố cục tờ A4 đổi về sau mà không cần migration — và để QuestPDF in
+        được từ cùng dữ liệu đó (CLAUDE.md §8).
+```
+
+```
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /taxonomy/medicine
+Control: ô "Cách dùng"
+Reason: chưa rõ là ô nhập tự do hay select.
+Action taken: dựng thành ô nhập tự do.
+```
+
+```
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /taxonomy/<catalog>
+Control: panel nhóm khi có rất nhiều nhóm
+Reason: chi nhánh trên bản gốc chỉ có 9 nhóm, không thấy được nó phân trang,
+        cuộn vô hạn hay tải hết một lần.
+Action taken: BlueDental tải tối đa 200 nhóm một lần và không phân trang — quá số
+        đó sẽ mất phần đuôi mà không báo. Cần quan sát lại trước khi có phòng khám
+        thật vượt ngưỡng này.
+```
+
+
+```
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /taxonomy/medicine, /taxonomy/prescription-template,
+      /taxonomy/medical-record-template, /taxonomy/tags, /taxonomy/payment-method
+Control: xoá bản ghi ở 5 danh mục không có cặp "Đang hoạt động" / "Đã xoá"
+Reason: 6 danh mục có cặp checkbox thì đã quan sát được rõ — API của bản gốc trả
+        về cả bản ghi `isDeleted: true` và dòng đó chỉ còn nút "Chỉnh sửa". Còn 5
+        danh mục này không có checkbox nào, và chi nhánh quan sát được thì không
+        có dữ liệu để xem một dòng đã xoá trông ra sao, nên không biết bản gốc
+        xoá cứng hay xoá mềm rồi ẩn đi.
+Action taken: BlueDental giữ nguyên hành vi cũ cho 5 danh mục này — vẫn là xoá
+        mềm của ABP nhưng dòng bị ẩn khỏi danh sách. Nếu ẩn mà bản gốc không ẩn
+        thì chỉ khác ở chỗ không khôi phục được; chọn cách này vì ở đây không có
+        chỗ nào bỏ được cờ đã xoá, nên hiện ra sẽ thành dòng chết không gỡ được.
+```

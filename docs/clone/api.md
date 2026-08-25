@@ -284,6 +284,42 @@ Response fields per item:
 | CẤY GHÉP IMPLANT | 8 |
 | PHẪU THUẬT NHA CHU | 0 |
 
+**Reorder — one call carries the whole list** (observed 2026-08-24, Network tab):
+
+```
+POST <taxonomy reorder endpoint>
+
+{
+  "group": "care_service",
+  "branchId": "<guid>",
+  "items": [
+    { "id": "<guid>", "order": 0 },
+    { "id": "<guid>", "order": 1 },
+    ...
+  ]
+}
+```
+
+The entry list reorders the same way, with the group added:
+
+```
+POST <catalog entry reorder endpoint>
+
+{
+  "group": "care_service",
+  "branchId": "<guid>",
+  "taxonomyId": "<guid>",
+  "items": [{ "id": "<guid>", "order": 0 }, ...]
+}
+```
+
+Every row of the list is sent, not only the ones that moved, and `order` is the
+zero-based position. The URL itself was not captured — only the payload was
+visible — so BlueDental exposes it as
+`POST /api/v1/app/taxonomies/reorder` and `POST /api/v1/app/catalog-entries/reorder`,
+and names the branch field `clinicBranchId` as every other BlueDental endpoint
+does.
+
 ---
 
 ### Vouchers

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using BlueDental.Catalogs;
 using Volo.Abp;
 using Xunit;
@@ -125,15 +125,112 @@ public class CatalogEntryTests
     }
 
     [Fact]
-    public void Should_Toggle_Image_Requirement()
+    public void Should_Toggle_Image_Requirement_On_The_Service_Configuration()
+    {
+        // The flag moved off the shared entry onto the service's own settings,
+        // which is where the reference keeps it.
+        var entry = Create(price: 1_000m);
+        var config = entry.EnsureServiceConfig(Guid.NewGuid());
+
+        config.Update(ServiceTaxRate.NotTaxable, false, true, 0m,
+            requireImage: true, false, false, false, false, false, 0);
+        Assert.True(entry.ServiceConfig!.RequireImage);
+
+        config.Update(ServiceTaxRate.NotTaxable, false, true, 0m,
+            requireImage: false, false, false, false, false, false, 0);
+        Assert.False(entry.ServiceConfig!.RequireImage);
+    }
+
+    [Theory]
+    // Trước thuế: the discount comes off, then VAT goes on.
+    [InlineData(true, false, 10, ServiceTaxRate.Ten, 900, 990)]
+    // Sau thuế: the price already carries VAT, so nothing is added.
+    [InlineData(true, true, 10, ServiceTaxRate.Ten, 900, 900)]
+    // A flat discount in đồng rather than a percentage.
+    [InlineData(false, false, 250, ServiceTaxRate.NotTaxable, 750, 750)]
+    // A discount larger than the price cannot make the customer owe less than nothing.
+    [InlineData(false, false, 5_000, ServiceTaxRate.Ten, 0, 0)]
+    public void Should_Price_A_Service(
+        bool discountIsPercent,
+        bool priceIncludesTax,
+        int discountValue,
+        ServiceTaxRate taxRate,
+        int expectedAfterDiscount,
+        int expectedCollected)
     {
         var entry = Create(price: 1_000m);
+        var config = entry.EnsureServiceConfig(Guid.NewGuid());
+        config.Update(taxRate, priceIncludesTax, discountIsPercent, discountValue,
+            false, false, false, false, false, false, 0);
 
-        entry.RequireImage(true);
-        Assert.True(entry.IsImageRequired);
+        Assert.Equal(expectedAfterDiscount, config.PriceAfterDiscount(1_000m));
+        Assert.Equal(expectedCollected, config.AmountCollected(1_000m));
+    }
 
-        entry.RequireImage(false);
-        Assert.False(entry.IsImageRequired);
+    [Fact]
+    public void Should_Refuse_A_Percentage_Discount_Over_One_Hundred()
+    {
+        var config = Create(price: 1_000m).EnsureServiceConfig(Guid.NewGuid());
+
+        Assert.Throws<BusinessException>(() => config.Update(
+            ServiceTaxRate.NotTaxable, false, true, 101m,
+            false, false, false, false, false, false, 0));
+    }
+
+    [Fact]
+    public void Should_Compute_The_Quantity_Of_A_Prescription_Line()
+    {
+        var line = new PrescriptionTemplateLine(
+            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
+            timesPerDay: 2, amountPerTime: 1.5m, days: 5,
+            PrescriptionUsage.AfterMeal | PrescriptionUsage.BeforeSleep,
+            otherUsage: null, sortOrder: 0);
+
+        Assert.Equal(15m, line.Quantity);
+        Assert.True(line.Usage.HasFlag(PrescriptionUsage.BeforeSleep));
+    }
+
+    [Fact]
+    public void Should_Refuse_Khac_Without_The_Usage_Written_Out()
+    {
+        // The reference marks the box required the moment "Khác" is ticked.
+        Assert.Throws<BusinessException>(() => new PrescriptionTemplateLine(
+            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
+            timesPerDay: 1, amountPerTime: 1m, days: 1, PrescriptionUsage.Other,
+            otherUsage: "   ", sortOrder: 0));
+    }
+
+    [Fact]
+    public void Should_Drop_The_Written_Usage_When_Khac_Is_Not_Chosen()
+    {
+        var line = new PrescriptionTemplateLine(
+            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
+            timesPerDay: 1, amountPerTime: 1m, days: 1, PrescriptionUsage.AfterMeal,
+            otherUsage: "Ngậm dưới lưỡi", sortOrder: 0);
+
+        // Nothing would ever show it, so it is not kept.
+        Assert.Null(line.OtherUsage);
+    }
+
+    [Fact]
+    public void Should_Keep_The_Written_Usage_When_Khac_Is_Chosen()
+    {
+        var line = new PrescriptionTemplateLine(
+            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
+            timesPerDay: 1, amountPerTime: 1m, days: 1,
+            PrescriptionUsage.AfterMeal | PrescriptionUsage.Other,
+            otherUsage: "  Ngậm dưới lưỡi  ", sortOrder: 0);
+
+        Assert.Equal("Ngậm dưới lưỡi", line.OtherUsage);
+    }
+
+    [Fact]
+    public void Should_Refuse_An_Empty_Prescription_Line()
+    {
+        Assert.Throws<BusinessException>(() => new PrescriptionTemplateLine(
+            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
+            timesPerDay: 0, amountPerTime: 1m, days: 1, PrescriptionUsage.None,
+            otherUsage: null, sortOrder: 0));
     }
 
     [Fact]

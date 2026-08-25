@@ -592,7 +592,7 @@ function ServiceMaterialView() {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {(suppliers?.items ?? []).map((s) => (
-              <div key={s.id} style={{ padding: "6px 8px", fontSize: 13, borderRadius: 4, background: "#F3F4F6", cursor: "default" }}>{s.name}</div>
+              <div key={s.id} style={{ padding: "6px 8px", fontSize: 13, borderRadius: 4, background: "var(--bd-bg)", cursor: "default" }}>{s.name}</div>
             ))}
           </div>
         )}

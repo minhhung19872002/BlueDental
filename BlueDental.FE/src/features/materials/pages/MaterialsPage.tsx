@@ -554,8 +554,8 @@ function DepartmentView() {
                 onClick={() => setSelectedDeptId(d.id === selectedDeptId ? null : d.id)}
                 style={{
                   padding: "6px 8px", fontSize: 13, borderRadius: 4, cursor: "pointer",
-                  background: d.id === selectedDeptId ? "var(--bd-blue-pale)" : "#F9FAFB",
-                  color: d.id === selectedDeptId ? "var(--bd-blue)" : "#374151",
+                  background: d.id === selectedDeptId ? "var(--bd-blue-pale)" : "var(--bd-bg-soft)",
+                  color: d.id === selectedDeptId ? "var(--bd-blue)" : "var(--bd-sub)",
                   fontWeight: d.id === selectedDeptId ? 600 : 400,
                   display: "flex", justifyContent: "space-between", alignItems: "center",
                 }}

@@ -1344,7 +1344,50 @@ Mọi button gọi API (submit form, delete, confirm) PHẢI:
 
 ---
 
-## 17. Không được làm
+## 17. Màn hình đã chốt — ĐỪNG dựng lại
+
+### Danh mục (`/taxonomy`) — HOÀN THIỆN
+
+Màn hình này đã clone xong 1:1 theo bản gốc, đã chạy thật và đã được nghiệm thu.
+**Không dựng lại, không "vibe code" đè lên nó.**
+
+Phạm vi đã hoàn thiện — cả 11 tab:
+
+| Tab | Route |
+|---|---|
+| Dịch vụ, Chẩn đoán, Loại thuốc, Dữ liệu tư vấn | `/taxonomy/service`, `/diagnosis`, `/medicine`, `/consulting` |
+| Nguồn đến, Lịch sử bệnh, Nghề nghiệp | `/taxonomy/source`, `/history`, `/occupation` |
+| Đơn thuốc mẫu, Bệnh án mẫu | `/taxonomy/prescription-template`, `/medical-record-template` |
+| Thẻ hồ sơ, Phương thức thanh toán | `/taxonomy/tags`, `/payment-method` |
+
+Những thứ đã dựng và đã có test bảo vệ:
+
+- Panel nhóm: tìm kiếm **bằng API** (không lọc trên giao diện), kéo-thả sắp xếp
+  đổi chỗ ngay khi kéo qua, lưu bằng **một** endpoint `reorder` duy nhất.
+- Bảng mục: kéo-thả tương tự, phân trang, cột theo từng danh mục.
+- **Mỗi danh mục một dialog riêng** (bản gốc làm vậy, không dùng chung một form):
+  `ServiceDialog`, `MedicineDialog`, `RichCatalogDialog`, `PrescriptionTemplateDialog`,
+  `MedicalRecordTemplateDialog`, `SimpleCatalogDialog`.
+- Tờ A4 bệnh án mẫu: 3 trang, 17 ô nhập, dựng theo đúng bản in của bản gốc.
+- Xoá mềm: cặp "Đang hoạt động" / "Đã xoá" là **một** trạng thái; dòng đã xoá vẫn
+  nằm trong bảng, chỉ mất nút xoá, và lấy lại được.
+- Ảnh QR cho phương thức thanh toán (upload thật lên MinIO).
+- Phân quyền theo chi nhánh, có test cách ly chi nhánh.
+
+Trước khi sửa bất cứ thứ gì trong `BlueDental.FE/src/features/taxonomy/`:
+
+1. Đọc `docs/clone/pages/taxonomy.md` và `docs/testing/03-regression-log.md`
+   (mục R-42 → R-91) — phần lớn "lỗi" nhìn thấy đã từng được đo và xử lý rồi,
+   sửa lại theo cảm tính là làm hỏng.
+2. Chạy `e2e/taxonomy*.spec.ts`, `payment-qr`, `branch-*` **trên bản build
+   production** (`vite preview`, cổng 8080) — dev server bật StrictMode nên mount
+   hai lần, gây đỏ giả.
+3. Sửa xong phải xanh lại đủ 38 test đó.
+
+Nếu bản gốc đổi, cập nhật màn hình này theo quy trình clone bình thường — nhưng
+đừng viết lại từ đầu.
+
+## 18. Không được làm
 
 - KHÔNG commit secrets, credentials, connection strings vào git
 - KHÔNG dùng `any` trong TypeScript
@@ -1355,6 +1398,7 @@ Mọi button gọi API (submit form, delete, confirm) PHẢI:
 - KHÔNG lưu file DICOM binary trong PostgreSQL
 - KHÔNG log thông tin y tế bệnh nhân (PHI) trong application logs
 - KHÔNG hard-code text hiển thị — phải qua hệ thống i18n
+- KHÔNG dựng lại màn hình Danh mục (`/taxonomy`) — xem mục 17
 
 
 # Testing Strategy — Mandatory

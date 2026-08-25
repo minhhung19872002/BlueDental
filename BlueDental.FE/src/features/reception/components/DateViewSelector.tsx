@@ -102,7 +102,7 @@ export const DateViewSelector: React.FC = () => {
 
         <Space size={6} style={{ marginLeft: 4 }}>
           <CalendarOutlined style={{ color: "var(--bd-blue)", fontSize: 16 }} />
-          <Text strong style={{ color: "#0F172A", fontSize: 14 }}>
+          <Text strong style={{ color: "var(--bd-ink)", fontSize: 14 }}>
             {formatDateDisplay()}
           </Text>
         </Space>

@@ -21,14 +21,14 @@ export function TimekeepingPage() {
           borderRadius: 10,
           padding: "16px 20px",
           marginBottom: 16,
-          border: "1px solid #E5E7EB",
+          border: "1px solid var(--bd-line)",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           gap: 12,
         }}
       >
-        <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1B2A41" }}>
+        <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--bd-ink)" }}>
           {t("Chấm công")}
         </h2>
         <DatePicker

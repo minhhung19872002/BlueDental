@@ -4,6 +4,10 @@
    ========================================================================== */
 
 :root {
+  /* The catalog's two headers sit either side of a divide, so they share a
+     height. Two lines of subtitle: the longer catalog names wrap. */
+  --bd-catalog-header-height: 158px;
+
   --bd-font: "Google Sans", "Be Vietnam Pro", system-ui, -apple-system, sans-serif;
 
   /* Brand — navy carries the chrome, gold is the accent. */
@@ -40,6 +44,12 @@
   --bd-purple: #6f63a3;
   --bd-teal: #3d7fa8;
   --bd-pink: #bf5a8c;
+
+  /* Status tints — the fill behind a status accent. */
+  --bd-green-pale: #e6f5ef;
+  --bd-amber-pale: #fdf3e2;
+  --bd-red-pale: #fdeeee;
+  --bd-purple-pale: #efedf6;
 
   /* Shape. Cards sit at 16, controls at 10, nav items at 11, pills at 20. */
   --bd-radius: 16px;
@@ -108,10 +118,12 @@ button {
     opacity: 0;
     transform: translateY(8px);
   }
+
   to {
     opacity: 1;
     transform: none;
   }
+
 }
 
 /* ── Sidebar ── */
@@ -351,7 +363,7 @@ button {
   display: flex;
   align-items: center;
   gap: 12px;
-  flex-shrink: 0;
+  min-width: 0;
 }
 
 .app-header-toggle {
@@ -467,6 +479,7 @@ button {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
   padding: 0 6px 0 0;
 }
 
@@ -525,17 +538,23 @@ button {
 
 /* ── Header search button ── */
 
+/* A flex item's automatic minimum size is its content, so without min-width:0
+   none of these blocks shrink: anywhere between the rail's width and 1440px
+   the row grew past the header and pushed the account button off screen. They
+   shrink now, and the text inside each one ellipsizes instead. */
 .app-header-right {
   margin-left: auto;
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 
 .app-header-search {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
   height: 38px;
   border-radius: var(--bd-radius-control);
   border: 1px solid var(--bd-line);
@@ -555,6 +574,7 @@ button {
 
 .app-header-search-text {
   flex: 1;
+  min-width: 0;
   text-align: left;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -600,6 +620,10 @@ button {
 .app-header-branch:hover {
   background: #fff !important;
   border-color: var(--bd-primary) !important;
+}
+
+.app-header-branch {
+  min-width: 0 !important;
 }
 
 .app-header-branch-dot {
@@ -654,6 +678,7 @@ button {
   cursor: pointer;
   display: flex;
   align-items: center;
+  flex-shrink: 0;
   gap: 9px;
   padding: 0 0 0 12px;
   border-left: 1px solid var(--bd-line);
@@ -1198,6 +1223,7 @@ button {
   .login-aside {
     display: none;
   }
+
 }
 
 /* ── AntD overrides ── */
@@ -1302,7 +1328,6 @@ button {
   font-weight: 600;
 }
 
-
 .ant-input,
 .ant-input-affix-wrapper,
 .ant-select .ant-select-selector,
@@ -1363,7 +1388,6 @@ button {
   border-radius: 7px;
   height: 29px;
 }
-
 
 .ant-modal .ant-modal-title {
   font-size: 17px;
@@ -1478,7 +1502,6 @@ button {
   gap: 8px;
   flex-shrink: 0;
 }
-
 
 .reception-filter-row {
   display: flex;
@@ -1611,6 +1634,7 @@ button {
   .reception-card-grid {
     grid-template-columns: 1fr 1fr;
   }
+
 }
 
 /* ── ReceptionCard ── */
@@ -1669,12 +1693,14 @@ button {
     align-items: center;
     gap: 12px;
   }
+
 }
 
 @media (min-width: 1536px) {
   .rc-grid {
     grid-template-columns: 180px minmax(0, 1fr) 150px;
   }
+
 }
 
 /* Col 1 */
@@ -1790,6 +1816,7 @@ button {
     padding: 0 4px;
     align-items: center;
   }
+
 }
 
 .rc-steps {
@@ -1855,12 +1882,14 @@ button {
   .rc-doctor-select {
     max-width: 340px;
   }
+
 }
 
 @media (min-width: 1536px) {
   .rc-doctor-select {
     max-width: 380px;
   }
+
 }
 
 /* Col 3 */
@@ -1876,6 +1905,7 @@ button {
     min-width: 220px;
     justify-self: end;
   }
+
 }
 
 .rc-outcome-btn {
@@ -2264,6 +2294,7 @@ button {
   .app-header-user-name {
     display: none;
   }
+
 }
 
 /* ── Reduced motion ── */
@@ -2273,6 +2304,7 @@ button {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+
 }
 
 /* ── Print ── */
@@ -2282,6 +2314,7 @@ button {
   .app-header {
     display: none !important;
   }
+
 }
 
 /* ── Dashboard (ported from the design's overview screen) ───────────────── */
@@ -2356,6 +2389,7 @@ button {
   .dash-split {
     grid-template-columns: 1fr;
   }
+
 }
 
 .dash-card-head {
@@ -2590,6 +2624,7 @@ button {
   .dash-reception-doctor {
     display: none;
   }
+
 }
 
 /* ── Responsive ─────────────────────────────────────────────────────────────
@@ -2607,6 +2642,7 @@ button {
   .kpi-card-value {
     font-size: 23px;
   }
+
 }
 
 @media (max-width: 1024px) {
@@ -2622,6 +2658,7 @@ button {
   .app-header-search {
     max-width: none;
   }
+
 }
 
 /* ── Mobile sidebar drawer ── */
@@ -2742,6 +2779,7 @@ button {
   .ant-table-wrapper .ant-table-body {
     overflow-x: auto;
   }
+
 }
 
 @media (max-width: 460px) {
@@ -2756,6 +2794,7 @@ button {
   .login-form-title {
     font-size: 22px;
   }
+
 }
 
 /* Nothing in the header may push the page wider than the viewport. */
@@ -2781,6 +2820,7 @@ button {
     padding-left: 6px;
     margin-left: 0;
   }
+
 }
 
 /* Phone: tighten the header's own spacing rather than dropping controls —
@@ -2795,6 +2835,7 @@ button {
     padding: 0 10px;
     gap: 8px;
   }
+
 }
 
 /* A stray wide child should scroll its own box, never the document. */
@@ -2900,6 +2941,7 @@ body {
   .staff-grid {
     grid-template-columns: 1fr;
   }
+
 }
 
 /* ── Profile page (sidebar + content layout) ───────────────────────────── */
@@ -3243,6 +3285,7 @@ body {
   .settings-branch-grid {
     grid-template-columns: 1fr;
   }
+
 }
 
 /* ── Operations divisions (ported from the design's Quản trị vận hành) ──── */
@@ -3316,7 +3359,9 @@ body {
 /* The design fades the backdrop in and pops the panel. */
 @keyframes bd-fade-in {
   from { opacity: 0; }
+
   to { opacity: 1; }
+
 }
 
 @keyframes bd-pop-in {
@@ -3324,10 +3369,12 @@ body {
     opacity: 0;
     transform: translateY(10px) scale(0.985);
   }
+
   to {
     opacity: 1;
     transform: none;
   }
+
 }
 
 /* The design tints the backdrop navy and blurs what is behind it, rather than
@@ -3563,6 +3610,7 @@ html:has(.ant-modal-wrap) {
     flex: 1 1 100%;
     max-width: none !important;
   }
+
 }
 
 /* Ctrl-K palette results */
@@ -3633,8 +3681,6 @@ html:has(.ant-modal-wrap) {
   color: #b3bdc9;
   flex: none;
 }
-
-
 
 /* ── Calendar grid card ─────────────────────────────────────────────────── */
 
@@ -4044,6 +4090,30 @@ html:has(.ant-modal-wrap) {
   flex-wrap: wrap;
 }
 
+/* The switcher row: pills at one end, an optional count or action at the
+   other. Used by the PillTabs component. */
+.pill-tabs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pill-tabs-row + * {
+  margin-top: 16px;
+}
+
+/* Người dùng & vai trò carries its switcher on a toolbar card, as the other
+   pill screens do. */
+.identity-tabs > .pill-tabs-row {
+  background: #ffffff;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius);
+  box-shadow: var(--bd-shadow-card);
+  padding: 14px 16px;
+}
+
 .pill-tab {
   border: 1px solid var(--bd-line);
   background: #ffffff;
@@ -4356,4 +4426,1053 @@ html:has(.ant-modal-wrap) {
   background: color-mix(in srgb, var(--bd-blue) 8%, #ffffff);
   padding: 2px 7px;
   border-radius: 20px;
+}
+
+/* ── Danh mục: the catalog dialogs hold their own state, so their fields are
+   labelled here rather than by Form.Item. ─────────────────────────────────── */
+.bd-field-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.72);
+}
+
+/* The dialog footer carries a single button, so it needs no top gap of its own. */
+.app-dialog .ant-modal-footer {
+  margin-top: 16px;
+}
+
+.bd-dialog-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 24px;
+}
+
+@media (max-width: 640px) {
+  .bd-dialog-grid,
+  .bd-dialog-grid--three {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+}
+
+/* ==========================================================================
+   Danh mục › Bệnh án mẫu — the printed A4 sheet.
+
+   A faithful reproduction of a paper form, so the measurements here are the
+   form's own: 96dpi A4, 45px side margins, 14px/19.6px body text, hairline
+   black rules. Nothing in this block should inherit from the app chrome.
+   ========================================================================== */
+.bd-a4-viewport {
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid var(--bd-line);
+  border-radius: 8px;
+  background: #e9edf3;
+}
+
+.bd-a4-page {
+  padding: 40px 45px;
+  background: #fff;
+  color: #000;
+  font-size: 14px;
+  line-height: 19.6px;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 15%);
+}
+
+.bd-a4-center { margin-inline: auto; }
+
+.bd-a4-center-text { text-align: center; }
+
+.bd-a4-b { font-weight: 700; }
+
+.bd-a4-nowrap { white-space: nowrap; }
+
+.bd-a4-ml { margin-left: 8px; }
+
+.bd-a4-push { margin-left: auto; }
+
+.bd-a4-flex1 { flex: 1; min-width: 0; }
+
+.bd-a4-lh19 { line-height: 19px; }
+
+.bd-a4-col { display: flex; flex-direction: column; }
+
+.bd-a4-mt1 { margin-top: 4px; }
+
+.bd-a4-mt2 { margin-top: 8px; }
+
+.bd-a4-mt3 { margin-top: 12px; }
+
+.bd-a4-mt4 { margin-top: 16px; }
+
+.bd-a4-mt16 { margin-top: 64px; }
+
+.bd-a4-w14 { width: 14%; }
+
+.bd-a4-w24 { width: 24%; }
+
+.bd-a4-w38 { width: 38%; }
+
+.bd-a4-w46 { width: 46%; }
+
+.bd-a4-w245 { width: 245px; flex-shrink: 0; }
+
+.bd-a4-w420 { max-width: 420px; }
+
+.bd-a4-top { vertical-align: top; }
+
+.bd-a4-mid { vertical-align: middle; }
+
+.bd-a4-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.bd-a4-title { font-size: 18px; line-height: 25px; font-weight: 700; }
+
+.bd-a4-subtitle { font-size: 16px; font-weight: 700; }
+
+.bd-a4-meta { font-size: 12px; line-height: 18px; text-align: right; }
+
+/* A labelled line: caption, then a dotted rule that eats the remaining width. */
+.bd-a4-line {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.bd-a4-line--pad { padding-block: 3px; }
+
+.bd-a4-split { display: flex; gap: 16px; }
+
+.bd-a4-split.bd-a4-mt2 { gap: 16px; }
+
+.bd-a4-tickrow { display: flex; gap: 24px; }
+
+.bd-a4-signrow { margin-top: 40px; display: flex; justify-content: space-between; }
+
+.bd-a4-boxes { display: flex; gap: 2px; }
+
+.bd-a4-rule {
+  display: inline-block;
+  flex: 1;
+  height: 19px;
+  border-bottom: 1px dotted #000;
+}
+
+/* The reference prints a faint italic prompt on some rules. */
+.bd-a4-hint {
+  color: rgb(0 0 0 / 45%);
+  font-style: italic;
+}
+
+.bd-a4-gridbox {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 1px solid #000;
+}
+
+.bd-a4-tickbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border: 1px solid #000;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.bd-a4-writebox {
+  margin-top: 4px;
+  height: 105px;
+  border: 1px solid #000;
+}
+
+.bd-a4-list {
+  margin-top: 4px;
+  list-style: decimal inside;
+  font-size: 13px;
+  line-height: 16px;
+}
+
+.bd-a4-vitals {
+  width: 250px;
+  flex-shrink: 0;
+  padding: 8px 12px;
+  border: 1px solid #000;
+}
+
+.bd-a4-table {
+  margin-top: 24px;
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
+}
+
+.bd-a4-cell { border: 1px solid #000; padding: 8px; }
+
+.bd-a4-cell--sm { padding: 4px 8px; }
+
+.bd-a4-cell--lg { padding: 8px 12px; }
+
+.bd-a4-cell--tight { padding: 0 8px; }
+
+.bd-a4-cell--left { text-align: left; }
+
+.bd-a4-th { height: 28px; }
+
+/* Every cell a template can fill in is shaded, so a blank form reads at a
+   glance as "these are the parts you complete". */
+.bd-a4-cellinput {
+  width: 100%;
+  resize: none;
+  overflow: hidden;
+  border: 0;
+  border-bottom: 1px dotted #000;
+  border-radius: 0;
+  padding: 2px 4px;
+  background: #fffde7;
+  color: #000;
+  font: inherit;
+  font-size: 14px;
+  line-height: 19.6px;
+  outline: none;
+}
+
+.bd-a4-cellinput::placeholder {
+  color: rgb(0 0 0 / 35%);
+  font-style: italic;
+}
+
+.bd-a4-cellinput:focus { background: #fff9c4; }
+
+/* Tailwind's preflight used to zero the browser's own margins on headings and
+   paragraphs. It went with Tailwind, and main's reset only covers box-sizing
+   and body — so a <p> here silently carried 16px above and below it, which is
+   what pushed the group panel's search box out through the bottom of its own
+   header and onto the list underneath.
+
+   :where() keeps this at zero specificity, so any rule below still wins. */
+:where(.bd-taxonomy-page, .bd-cat-screen, .app-dialog, .bd-a4-viewport)
+  :where(p, h1, h2, h3, h4, ul, ol, figure) {
+  margin: 0;
+}
+
+/* ==========================================================================
+   Danh mục — the catalog screens.
+
+   Tailwind is no longer part of the build, so the chrome these screens share
+   is named here once: the card, its table, the row actions and the busy
+   overlay behave the same on every tab.
+   ========================================================================== */
+
+/* ── Small shared helpers ────────────────────────────────────────────────── */
+.bd-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.bd-icon { width: 16px; height: 16px; }
+
+.bd-icon--sm { width: 14px; height: 14px; }
+
+.bd-icon--lg { width: 20px; height: 20px; }
+
+.bd-icon--xl { width: 32px; height: 32px; color: var(--bd-faint); }
+
+.bd-num,
+.bd-cat-num,
+.bd-cat-price,
+.bd-zoom-value { font-variant-numeric: tabular-nums; }
+
+.bd-min0 { min-width: 0; }
+
+.bd-min0h { min-height: 0; }
+
+.bd-flex1 { flex: 1; }
+
+.bd-rel { position: relative; }
+
+.bd-w160 { width: 160px; }
+
+.bd-mt2 { margin-top: 8px; }
+
+.bd-mt3 { margin-top: 12px; }
+
+.bd-text-left { text-align: left; }
+
+.bd-semibold { font-weight: 600; }
+
+.bd-medium { font-weight: 500; }
+
+.bd-dimmed { opacity: 0.6; }
+
+.bd-muted-text { color: var(--bd-muted); }
+
+.bd-primary-text { color: var(--bd-blue); }
+
+.bd-danger-text { color: #d4380d; cursor: pointer; }
+
+.bd-danger-text:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.bd-error-text { margin: 0; font-size: 12px; color: #ff4d4f; }
+
+.bd-row-end { display: flex; justify-content: flex-end; }
+
+.bd-center-pad { display: flex; justify-content: center; padding-block: 40px; }
+
+@media (min-width: 640px) {
+  .bd-hide-sm { display: none; }
+
+}
+
+@media (max-width: 639px) {
+  .bd-only-sm { display: none; }
+
+}
+
+.bd-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding-block: 40px;
+  text-align: center;
+}
+
+/* Lifted by a drag: the row leaves the flow visually but keeps its size. */
+.bd-lifted {
+  opacity: 0.95;
+  box-shadow: 0 8px 20px rgb(27 42 65 / 18%);
+}
+
+/* ── Screen shell ────────────────────────────────────────────────────────── */
+/* Two panes that scroll independently, as the reference lays them out. That
+   needs a real height: main's shell only sets a min-height, so `height: 100%`
+   resolves to the content — and the group panel's rows would then decide how
+   tall the table beside them is. */
+.bd-taxonomy-page {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--bd-header-height) - 32px);
+  min-height: 420px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.bd-taxonomy-shell { display: flex; height: 100%; }
+
+.bd-taxonomy-aside {
+  display: none;
+  width: 272px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--bd-line);
+}
+
+@media (min-width: 768px) {
+  .bd-taxonomy-aside { display: block; }
+
+}
+
+.bd-taxonomy-main {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bd-bg);
+}
+
+.bd-center-full {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background: var(--bd-bg);
+}
+
+.bd-center-msg {
+  max-width: 28rem;
+  text-align: center;
+  font-size: 14px;
+  color: var(--bd-muted);
+}
+
+.bd-cat-screen {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bd-bg);
+}
+
+.bd-cat-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 12px;
+}
+
+.bd-cat-body--gap { gap: 16px; }
+
+@media (min-width: 768px) {
+  .bd-cat-body { padding: 20px; }
+
+}
+
+/* ── Panel header ────────────────────────────────────────────────────────── */
+.bd-cat-header {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--bd-line);
+  background: #fff;
+  padding: 16px;
+}
+
+@media (min-width: 768px) {
+  .bd-cat-header { min-height: var(--bd-catalog-header-height); }
+
+}
+
+.bd-cat-header--bar { padding-block: 8px; min-height: 0; }
+
+@media (min-width: 768px) {
+  .bd-cat-header--bar { display: none; }
+
+}
+
+.bd-cat-headrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bd-cat-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--bd-ink);
+}
+
+@media (min-width: 768px) {
+  .bd-cat-title { font-size: 20px; }
+
+}
+
+/* The record count sits beside the title, as the reference prints it. */
+.bd-cat-count {
+  display: inline-flex;
+  height: 20px;
+  width: fit-content;
+  flex-shrink: 0;
+  align-items: center;
+  border-radius: 999px;
+  background: var(--bd-blue-pale);
+  padding-inline: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--bd-blue);
+}
+
+.bd-cat-headactions { display: flex; flex-shrink: 0; align-items: center; gap: 8px; }
+
+.bd-cat-search { width: 100%; }
+
+@media (min-width: 768px) {
+  .bd-cat-search { max-width: 360px; }
+
+}
+
+/* ── Card and table ─────────────────────────────────────────────────────── */
+.bd-cat-card {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--bd-line);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 2px 6px rgb(27 42 65 / 6%);
+}
+
+/* The row under the pointer during a drag. */
+.bd-cat-row--dragging > .bd-cat-td { background: var(--bd-blue-pale); }
+
+.bd-cat-rowactions { display: flex; align-items: center; justify-content: center; gap: 2px; }
+
+/* ── Table cell contents ─────────────────────────────────────────────────── */
+.bd-cat-inline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+.bd-cat-inline2 { display: inline-flex; align-items: center; gap: 8px; }
+
+.bd-cat-inline3 { display: flex; align-items: center; gap: 12px; }
+
+.bd-cat-name,
+.bd-cat-subtle,
+.bd-cat-filename {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0;
+}
+
+.bd-cat-name { font-weight: 500; }
+
+.bd-cat-subtle { font-size: 12px; color: var(--bd-muted); }
+
+.bd-cat-filename { font-size: 13px; color: var(--bd-ink); }
+
+.bd-cat-medium { font-weight: 500; color: var(--bd-ink); }
+
+.bd-cat-sub { margin-top: 2px; font-size: 14px; color: var(--bd-muted); }
+
+.bd-cat-hint { font-size: 12px; color: var(--bd-muted); flex-shrink: 0; }
+
+.bd-cat-hint--13 { font-size: 13px; }
+
+.bd-cat-num { color: var(--bd-muted); }
+
+.bd-cat-price { font-weight: 600; color: var(--bd-ink); }
+
+.bd-cat-chip {
+  display: inline-flex;
+  height: 24px;
+  width: fit-content;
+  flex-shrink: 0;
+  align-items: center;
+  border-radius: 6px;
+  background: var(--bd-bg);
+  padding-inline: 10px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--bd-muted);
+}
+
+/* The grip is a real button: dragging is a pointer gesture, so the same move
+   has to be reachable with the arrow keys once the grip has focus. */
+.bd-grip {
+  display: inline-flex;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  padding: 0;
+  color: var(--bd-faint);
+  cursor: grab;
+}
+
+.bd-grip:active { cursor: grabbing; }
+
+.bd-grip:disabled { cursor: not-allowed; opacity: 0.5; }
+
+.bd-grip:focus-visible { outline: 2px solid var(--bd-blue-light); color: var(--bd-blue); }
+
+/* ── Group panel ─────────────────────────────────────────────────────────── */
+.bd-group-panel {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  flex-direction: column;
+  background: #fff;
+}
+
+.bd-group-head {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  justify-content: center;
+  border-bottom: 1px solid var(--bd-line);
+  padding: 16px;
+}
+
+/* Lines up with the table's own header across the divide. A minimum rather than
+   a fixed height: if anything in here does grow — a longer translation, a wider
+   font — it has to push the list down, not sit on top of it. */
+@media (min-width: 768px) {
+  .bd-group-head { min-height: var(--bd-catalog-header-height); }
+
+}
+
+/* The subtitle names the catalog, and some of those names are long enough to
+   wrap onto a second line. It is shown in full — the header has room for two
+   lines, so both panes still line up across the divide. */
+.bd-group-sub {
+  white-space: normal;
+}
+
+.bd-group-headrow { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+
+.bd-group-title { font-size: 16px; font-weight: 600; color: var(--bd-ink); }
+
+.bd-group-list { position: relative; flex: 1; overflow-y: auto; padding: 8px; }
+
+.bd-group-items { list-style: none; margin: 0; padding: 0; user-select: none; }
+
+.bd-group-items > li + li { margin-top: 2px; }
+
+.bd-group-btn {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  padding: 0;
+  text-align: left;
+}
+
+.bd-group-btn:focus-visible { outline: 2px solid var(--bd-blue-light); }
+
+.bd-group-name { display: block; font-size: 14px; }
+
+/* Revealed on hover, and always once focused, so the menu is keyboard-reachable. */
+.bd-group-menu-trigger {
+  display: flex;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--bd-faint);
+  opacity: 0;
+  transition: opacity 150ms;
+}
+
+.bd-group-row:hover .bd-group-menu-trigger,
+.bd-group-menu-trigger:focus-visible,
+.bd-group-menu-trigger[aria-expanded="true"] { opacity: 1; }
+
+.bd-group-menu-trigger:hover { background: var(--bd-blue-pale); color: var(--bd-blue); }
+
+.bd-group-drawer .bd-group-panel { height: 100%; }
+
+/* ── Đơn thuốc mẫu: the "Sử dụng" multi-select ──────────────────────────── */
+.bd-usage-picker { display: flex; flex-direction: column; gap: 6px; min-width: 200px; }
+
+.bd-usage-trigger { width: 100%; text-align: left; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── Nhãn bệnh nhân ─────────────────────────────────────────────────────── */
+.bd-tag-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-radius: 12px;
+  background: var(--bd-bg);
+  padding: 16px;
+}
+
+.bd-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.bd-tag-dot {
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--bd-line);
+  border-radius: 999px;
+}
+
+.bd-tag-swatch {
+  display: flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--bd-line);
+  border-radius: 999px;
+  color: var(--bd-muted);
+}
+
+/* The native colour well fills its swatch but shows the swatch, not itself. */
+.bd-color-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  opacity: 0;
+}
+
+/* ── Phương thức thanh toán: the QR image ───────────────────────────────── */
+.bd-pay-qr {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--bd-line);
+  border-radius: 12px;
+  background: var(--bd-bg);
+  padding: 12px;
+}
+
+.bd-pay-qr-meta { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 6px; }
+
+.bd-pay-qr-img {
+  width: 96px;
+  height: 96px;
+  flex-shrink: 0;
+  border: 1px solid var(--bd-line);
+  border-radius: 8px;
+  background: #fff;
+  object-fit: contain;
+}
+
+.bd-pay-upload {
+  display: flex;
+  width: fit-content;
+  cursor: pointer;
+  align-items: center;
+  gap: 8px;
+  border: 1px dashed var(--bd-line);
+  border-radius: 8px;
+  background: none;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--bd-blue);
+  transition: border-color 150ms, background 150ms;
+}
+
+.bd-pay-upload:hover { border-color: var(--bd-blue); background: var(--bd-blue-pale); }
+
+/* ── Bệnh án mẫu: the zoom control above the sheet ──────────────────────── */
+.bd-zoom { display: flex; align-items: center; gap: 4px; font-size: 13px; color: var(--bd-muted); }
+
+.bd-zoom-value { width: 48px; text-align: center; font-size: 13px; color: var(--bd-ink); }
+
+/* Matches the shading the sheet gives every fillable cell, so the legend and
+   the form cannot drift apart. */
+.bd-a4-swatch {
+  border: 1px dotted #d48806;
+  border-radius: 2px;
+  background: #fffde7;
+  padding-inline: 4px;
+}
+
+/* ── Danh mục: state modifiers ──────────────────────────────────────────── */
+
+/* The group panel's rows. The active one is marked by a rule down its left
+   edge, padded back by the rule's own width so the label does not shift. */
+.bd-group-row {
+  position: relative;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  border-radius: 8px;
+  padding: 10px 12px;
+  text-align: left;
+  color: var(--bd-muted);
+  transition: background 150ms, color 150ms;
+}
+
+.bd-group-row:hover { background: var(--bd-bg); color: var(--bd-ink); }
+
+.bd-group-row--active {
+  border-left: 3px solid var(--bd-blue);
+  padding-left: 9px;
+  background: var(--bd-blue-pale);
+  color: var(--bd-blue-dark);
+}
+
+.bd-group-row--dragging {
+  background: #fff;
+  box-shadow: 0 0 0 2px var(--bd-blue-light);
+}
+
+/* The grip only appears on hover in the group panel, but focus must reveal it
+   too — otherwise reordering is unreachable without a pointer. */
+.bd-grip--reveal { opacity: 0; transition: opacity 150ms; }
+
+.bd-group-row:hover .bd-grip--reveal,
+.bd-grip--reveal:focus-visible,
+.bd-grip--shown { opacity: 1; }
+
+.bd-grip--off { cursor: not-allowed; opacity: 0.5; }
+
+/* Nhãn bệnh nhân: the preset colour swatches. */
+.bd-tag-color {
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  border: 0;
+  border-radius: 999px;
+  transition: transform 150ms;
+}
+
+.bd-tag-color:hover { transform: scale(1.1); }
+
+.bd-tag-color--picked { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--bd-ink); }
+
+/* The MoMo/Bank switch sits full-width on a phone and shrinks to its content
+   from the tablet breakpoint up, as the reference lays it out. */
+.bd-catalog-segmented { width: 100%; }
+
+@media (min-width: 768px) {
+  .bd-catalog-segmented { width: auto; align-self: flex-start; }
+
+}
+
+/* ── Page tab strip ─────────────────────────────────────────────────────── */
+
+/* Holds the pills clear of the content under them. The pills themselves are
+   the design's own — see .pill-tab. */
+.bd-tabbar {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--bd-line);
+  background: #fff;
+  padding: 12px 20px;
+  overflow-x: auto;
+}
+
+/* ── Record initial square ──────────────────────────────────────────────── */
+.bd-letter-avatar {
+  display: flex;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+
+@media (min-width: 768px) {
+  .bd-pager { flex-direction: row; align-items: center; justify-content: space-between; }
+
+}
+
+/* antd puts its modal title in a plain div; these dialogs use a real heading,
+   so it needs the surrounding font size rather than an h2's default. */
+.bd-modal-title {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+/* ── Danh mục: what the shared components still need from us ─────────────── */
+
+/* The header's icon sits on the same baseline as the title beside it. */
+.bd-cat-headicon {
+  display: inline-flex;
+  align-items: center;
+  font-size: 20px;
+  color: var(--bd-ink);
+}
+
+/* The group search and its add button share a row; the button is square. */
+.bd-group-searchrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.bd-group-searchrow .ant-input-affix-wrapper { flex: 1; min-width: 0; }
+
+.bd-group-searchrow .ant-btn { width: 40px; height: 40px; flex-shrink: 0; }
+
+/* The card owns the height; the table fills it and scrolls inside, with the
+   pager pinned to the bottom the way the reference draws it.
+
+   Every wrapper Ant Design puts between the card and the rows has to carry the
+   height down, and `min-height: 0` on each one is what lets the scroller
+   actually shrink rather than growing to fit every row. */
+.bd-cat-card > .ant-table-wrapper,
+.bd-cat-card > .ant-table-wrapper > .ant-spin,
+.bd-cat-card .ant-spin-container,
+.bd-cat-card .ant-table,
+.bd-cat-card .ant-table-container {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+}
+
+/* Whichever scroller this table ended up with — antd uses .ant-table-content
+   until a vertical scroll height is set, and .ant-table-body after. */
+.bd-cat-card .ant-table-content,
+.bd-cat-card .ant-table-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.bd-cat-card .ant-table-pagination.ant-pagination {
+  margin: 0;
+  flex-shrink: 0;
+  border-top: 1px solid var(--bd-line);
+  background: var(--bd-bg);
+  padding: 12px 16px;
+}
+
+/* An empty table should not collapse the card's whole body. */
+.bd-cat-card .ant-table-placeholder .ant-table-cell { border-bottom: 0; }
+
+/* The grip column is a drag handle, not a cell of text. */
+.bd-cat-card .ant-table-cell .bd-grip { display: inline-flex; }
+
+/* ── Danh mục: what the dialogs still ask for on top of Ant Design ───────── */
+
+.bd-mb2 { margin-bottom: 8px; }
+
+/* A titled block inside a dialog — "Cấu hình giá & thuế" and friends. */
+.bd-dialog-section {
+  margin-block: 8px 16px;
+  border-top: 1px solid var(--bd-line);
+  padding-top: 16px;
+}
+
+/* The heading and the control that belongs to it sit together, the way the
+   reference pairs "Cấu hình giá & thuế" with its tax rate. */
+.bd-dialog-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 4px;
+}
+
+.bd-dialog-section-title {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--bd-ink);
+}
+
+.bd-dialog-section-head { margin-bottom: 16px; }
+.bd-dialog-section-head .bd-dialog-section-title { margin-bottom: 0; }
+
+/* Rows inside a section are siblings, so the Row's own gutter does nothing
+   between them. They need the gap themselves — and a wider one than elsewhere,
+   because a floating label sits *on* its field's top border and would
+   otherwise be drawn over the row above. */
+.bd-dialog-section .ant-row { margin-bottom: 18px; }
+.bd-dialog-section .ant-row:last-child { margin-bottom: 0; }
+
+/* The two toggles carry no label, so they line up with the boxes beside them
+   rather than sitting 2px short. */
+.bd-dialog-section .ant-segmented { height: 42px; }
+.bd-dialog-section .ant-segmented .ant-segmented-item-label {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+/* A checkbox with an explanation under it, the shape these tabs repeat. */
+.bd-check-list { display: flex; flex-direction: column; gap: 12px; }
+.bd-check-row { display: flex; flex-direction: column; gap: 2px; }
+
+.bd-check-hint {
+  margin: 0 0 0 24px;
+  font-size: 12px;
+  color: var(--bd-muted);
+}
+
+/* The small editable tables inside a dialog: line items, service stages. */
+.bd-line-table .ant-table { font-size: 13px; }
+.bd-line-table .ant-table-cell { padding: 6px 8px !important; }
+
+.bd-dialog-tabs .ant-tabs-nav { margin-bottom: 16px; }
+
+/* A field the server fills in after a save reads as text, not as a box the
+   user could type into. */
+.bd-dialog-section .ant-input[readonly] {
+  background: var(--bd-bg);
+  color: var(--bd-muted);
+}
+
+/* The rich-text editor carries no styling of its own, so it needs a frame that
+   matches the inputs beside it. */
+.bd-rich-text .ql-toolbar {
+  border-color: var(--bd-line);
+  border-radius: 8px 8px 0 0;
+}
+
+.bd-rich-text .ql-container {
+  border-color: var(--bd-line);
+  border-radius: 0 0 8px 8px;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.bd-rich-text .ql-editor { min-height: 140px; }
+
+/* main zeroes a Form.Item's margin inside a dialog and lets the Row's vertical
+   gutter space the fields. A field that stands on its own — not in a Row — has
+   no gutter to inherit, so it carries the same rhythm itself. */
+.app-dialog .ant-form > .floating-field,
+.app-dialog .ant-form > .ant-form-item:not(.ant-form-item-hidden),
+.app-dialog .ant-form > .ant-row {
+  margin-bottom: 12px;
+}
+
+.app-dialog .ant-form > *:last-child { margin-bottom: 0; }
+
+/* A soft-deleted row keeps its place in the list, so it has to read as deleted
+   without being mistaken for a live record. */
+.bd-cat-name--deleted {
+  text-decoration: line-through;
+  color: var(--bd-muted);
+}
+
+/* ── Đơn thuốc mẫu: the "Sử dụng" picker ─────────────────────────────────── */
+
+/* Nothing is committed until "Lưu", so the popover needs room for the written
+   usage and its own footer. */
+.bd-usage-other { margin-top: 4px; }
+
+.bd-usage-error {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #ff4d4f;
+}
+
+.bd-usage-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+  border-top: 1px solid var(--bd-line);
+  padding-top: 8px;
 }

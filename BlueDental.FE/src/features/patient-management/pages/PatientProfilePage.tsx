@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  Button, Spin, Tabs, Tag, Row, Col, Card, Table, Typography, Space, Select,
+  Button, Spin, Tag, Row, Col, Card, Table, Typography, Space, Select,
   type TableColumnsType,
 } from "antd";
 import {
@@ -12,8 +12,11 @@ import {
 import { usePatient } from "../api/patientQueries";
 import { DentalChartView, type ToothRecord } from "../components/DentalChartView";
 import { formatDate, formatDateTime, formatVND } from "@/utils/format";
+import { PillTabs } from "@/components/PillTabs";
+import { EmptyState } from "@/components/EmptyState";
 import { useAppointmentList } from "@/features/appointments/api/appointmentQueries";
 import { useTreatmentPlanList, usePatientPrescriptions } from "@/features/treatment-management/api/index";
+import { TreatmentPlanPanel } from "@/features/treatment-management/components/TreatmentPlanPanel";
 import { INVOICE_STATUS, usePatientInvoices } from "@/features/billing/api/index";
 import { usePatientLaboOrders } from "@/features/labo/api/laboApi";
 import { useCareRecordList } from "@/features/cskh/api/careApi";
@@ -84,19 +87,19 @@ export function PatientProfilePage() {
 
   const APPOINTMENT_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
     Scheduled:  { label: t("Đã hẹn"),  color: "var(--bd-blue)" },
-    Confirmed:  { label: t("Đã xác nhận"),  color: "#3B82F6" },
-    CheckedIn:  { label: t("Đã đến"),  color: "#10B981" },
-    InProgress: { label: t("Đang khám"), color: "#F97316" },
-    Completed:  { label: t("Hoàn thành"),  color: "#10B981" },
-    Cancelled:  { label: t("Đã hủy"),  color: "#EF4444" },
-    NoShow:     { label: t("Vắng mặt"),     color: "#6B7280" },
+    Confirmed:  { label: t("Đã xác nhận"),  color: "var(--bd-blue)" },
+    CheckedIn:  { label: t("Đã đến"),  color: "var(--bd-green)" },
+    InProgress: { label: t("Đang khám"), color: "var(--bd-gold-deep)" },
+    Completed:  { label: t("Hoàn thành"),  color: "var(--bd-green)" },
+    Cancelled:  { label: t("Đã hủy"),  color: "var(--bd-red)" },
+    NoShow:     { label: t("Vắng mặt"),     color: "var(--bd-muted)" },
   };
 
   const APPOINTMENT_COUNTER_CARDS = [
-    { key: "scheduled", label: t("Đã hẹn"), borderColor: "var(--bd-blue)", bgColor: "#EBF3FE", textColor: "var(--bd-blue)" },
-    { key: "arrived",   label: t("Đã đến"),   borderColor: "#10B981", bgColor: "#E6F4EA", textColor: "#10B981" },
-    { key: "cancelled", label: t("Đã huỷ"), borderColor: "#EF4444", bgColor: "#FCE8E6", textColor: "#EF4444" },
-    { key: "late",      label: t("Trễ hẹn"),      borderColor: "#F59E0B", bgColor: "#FEF3C7", textColor: "#F59E0B" },
+    { key: "scheduled", label: t("Đã hẹn"), borderColor: "var(--bd-blue)", bgColor: "var(--bd-blue-pale)", textColor: "var(--bd-blue)" },
+    { key: "arrived",   label: t("Đã đến"),   borderColor: "var(--bd-green)", bgColor: "var(--bd-green-pale)", textColor: "var(--bd-green)" },
+    { key: "cancelled", label: t("Đã huỷ"), borderColor: "var(--bd-red)", bgColor: "var(--bd-red-pale)", textColor: "var(--bd-red)" },
+    { key: "late",      label: t("Trễ hẹn"),      borderColor: "var(--bd-gold-deep)", bgColor: "var(--bd-amber-pale)", textColor: "var(--bd-gold-deep)" },
   ];
 
   const activeTab = searchParams.get("tab") ?? "profile";
@@ -175,7 +178,21 @@ export function PatientProfilePage() {
     );
   }
 
-  if (!patient) return null;
+  // A wrong or stale id used to render nothing at all, which reads as a broken
+  // screen rather than a missing record.
+  if (!patient) {
+    return (
+      <div className="page-container">
+        <EmptyState
+          icon="🔍"
+          title={t("Không tìm thấy hồ sơ bệnh nhân")}
+          description={t("Hồ sơ này không tồn tại hoặc không thuộc chi nhánh đang xem.")}
+          actionLabel={t("Về danh sách bệnh nhân")}
+          onAction={() => navigate("/patient")}
+        />
+      </div>
+    );
+  }
 
   const appointmentColumns: TableColumnsType<AppointmentRow> = [
     {
@@ -194,7 +211,7 @@ export function PatientProfilePage() {
       key: "status",
       width: 130,
       render: (status: string) => {
-        const conf = APPOINTMENT_STATUS_CONFIG[status] ?? { label: status, color: "#6B7280" };
+        const conf = APPOINTMENT_STATUS_CONFIG[status] ?? { label: status, color: "var(--bd-muted)" };
         return (
           <span
             style={{
@@ -251,10 +268,10 @@ export function PatientProfilePage() {
                       { label: t("Địa chỉ"), value: patient.address ?? "—" },
                     ].map(({ label, value }) => (
                       <tr key={label}>
-                        <td style={{ color: "#5A6B82", paddingRight: 16, paddingBottom: 4, whiteSpace: "nowrap", verticalAlign: "top" }}>
+                        <td style={{ color: "var(--bd-muted)", paddingRight: 16, paddingBottom: 4, whiteSpace: "nowrap", verticalAlign: "top" }}>
                           {label}
                         </td>
-                        <td style={{ fontWeight: 500, color: "#1B2A41" }}>{value}</td>
+                        <td style={{ fontWeight: 500, color: "var(--bd-ink)" }}>{value}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -324,7 +341,7 @@ export function PatientProfilePage() {
                       status: a.status,
                     }))}
                   pagination={false}
-                  locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>{t("Chưa có lịch sử điều trị")}</span> }}
+                  locale={{ emptyText: <span style={{ color: "var(--bd-faint)" }}>{t("Chưa có lịch sử điều trị")}</span> }}
                 />
               </Card>
             </Col>
@@ -345,8 +362,7 @@ export function PatientProfilePage() {
                 size="small"
                 style={{ marginBottom: 16 }}
               >
-                <Tabs
-                  size="small"
+                <PillTabs
                   defaultActiveKey="select"
                   items={[
                     { key: "select", label: t("Chọn Răng") },
@@ -360,7 +376,7 @@ export function PatientProfilePage() {
                   onToothClick={handleToothClick}
                   style={{ marginTop: 8 }}
                 />
-                <div style={{ marginTop: 8, fontSize: 12, color: "#9CA3AF" }}>
+                <div style={{ marginTop: 8, fontSize: 12, color: "var(--bd-faint)" }}>
                   {t("Đã chọn:")}{" "}
                   {selectedTeeth.length > 0
                     ? selectedTeeth.map((tooth) => tooth.fdi).join(", ")
@@ -407,7 +423,7 @@ export function PatientProfilePage() {
                   ]}
                   dataSource={diagnosisRows}
                   pagination={false}
-                  locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>{t("Chưa có phiếu chẩn đoán")}</span> }}
+                  locale={{ emptyText: <span style={{ color: "var(--bd-faint)" }}>{t("Chưa có phiếu chẩn đoán")}</span> }}
                 />
               </Card>
 
@@ -443,19 +459,19 @@ export function PatientProfilePage() {
                   ]}
                   dataSource={adviseRows as unknown as Record<string, unknown>[]}
                   pagination={false}
-                  locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>{t("Chưa có phiếu tư vấn")}</span> }}
+                  locale={{ emptyText: <span style={{ color: "var(--bd-faint)" }}>{t("Chưa có phiếu tư vấn")}</span> }}
                 />
 
                 <div style={{
                   display: "flex", alignItems: "center", gap: 12, marginTop: 12,
-                  padding: "10px 0", borderTop: "1px solid #E5E7EB",
+                  padding: "10px 0", borderTop: "1px solid var(--bd-line)",
                 }}>
                   <Text strong style={{ fontSize: 13 }}>{t("TỔNG KẾ HOẠCH")}</Text>
-                  <Text style={{ fontSize: 13, color: "#5A6B82" }}>
+                  <Text style={{ fontSize: 13, color: "var(--bd-muted)" }}>
                     {t("Tổng thành tiền:")} {formatVND(adviseSummary?.totalEffectiveAmount ?? 0)} đ
                   </Text>
                   {(adviseSummary?.totalDiscountAmount ?? 0) > 0 && (
-                    <Text style={{ fontSize: 13, color: "#5A6B82" }}>
+                    <Text style={{ fontSize: 13, color: "var(--bd-muted)" }}>
                       {t("Chiết khấu")}: {formatVND(adviseSummary?.totalDiscountAmount ?? 0)} đ
                     </Text>
                   )}
@@ -470,83 +486,15 @@ export function PatientProfilePage() {
       key: "treatment-plan",
       label: t("Kế hoạch điều trị"),
       icon: <FileTextOutlined />,
+      // This tab used to draw its own table: the slip number was the first
+      // eight characters of the id, the dentist was a dash, and every money
+      // column read `estimatedCost`, a field the API has never returned, so
+      // the whole row of totals sat at 0 đ. TreatmentPlanPanel was already
+      // built against the endpoint that carries the slip code, the service
+      // lines, their money and their stage counts — it just was not wired in.
       children: (
         <div style={{ padding: "16px 0" }}>
-          {/* Summary cards */}
-          <Row gutter={12} style={{ marginBottom: 16 }}>
-            <Col span={12}>
-              <Card size="small" style={{ borderLeft: "4px solid var(--bd-blue)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ background: "var(--bd-blue)", color: "#fff", borderRadius: 12, padding: "2px 10px", fontWeight: 700, fontSize: 14 }}>0</span>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41" }}>{t("Dịch vụ đang điều trị")}</div>
-                    <div style={{ fontSize: 12, color: "#9CA3AF" }}>{t("Chưa có dịch vụ đang điều trị")}</div>
-                  </div>
-                </div>
-              </Card>
-            </Col>
-            <Col span={12}>
-              <Card size="small" style={{ borderLeft: "4px solid #10B981" }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 13, color: "#1B2A41", marginBottom: 4 }}>{t("Dịch vụ có công đoạn gần nhất")}</div>
-                  <div style={{ fontSize: 12, color: "#9CA3AF" }}>{t("Chưa có công đoạn")}</div>
-                </div>
-              </Card>
-            </Col>
-          </Row>
-
-          {/* Treatment plan table */}
-          <Card size="small">
-            <Table
-              size="small"
-              rowKey="id"
-              columns={[
-                { title: t("Số phiếu"), dataIndex: "code", key: "code", width: 80 },
-                { title: t("Dịch vụ"), dataIndex: "serviceName", key: "serviceName", width: 200 },
-                { title: t("Bác sĩ tiếp nhận"), dataIndex: "doctorName", key: "doctorName", width: 140 },
-                {
-                  title: t("Trạng thái"),
-                  dataIndex: "status",
-                  key: "status",
-                  width: 140,
-                  // Same numeric enum as the banner: printed raw this read "4".
-                  render: (v: number | string) =>
-                    v === undefined || v === null ? null : (
-                      <Tag color={PLAN_STATUS_META[Number(v)]?.color ?? "default"}>
-                        {t(PLAN_STATUS_META[Number(v)]?.label ?? "Không rõ")}
-                      </Tag>
-                    ),
-                },
-                { title: t("Ngày tạo hồ sơ"), dataIndex: "createdAt", key: "createdAt", width: 110, render: (v: string) => v ? formatDate(v) : "—" },
-                { title: t("Tổng phiếu"), dataIndex: "totalAmount", key: "totalAmount", width: 120, align: "right", render: (v: number) => `${formatVND(v ?? 0)} đ` },
-                { title: t("Giảm giá"), dataIndex: "discountAmount", key: "discountAmount", width: 110, align: "right", render: (v: number) => `${formatVND(v ?? 0)} đ` },
-                { title: t("Thành tiền"), dataIndex: "finalAmount", key: "finalAmount", width: 120, align: "right", render: (v: number) => `${formatVND(v ?? 0)} đ` },
-                { title: t("Đã trả"), dataIndex: "paidAmount", key: "paidAmount", width: 110, align: "right", render: (v: number) => <Text style={{ color: "#10B981" }}>{formatVND(v ?? 0)} đ</Text> },
-                { title: t("Hoàn tiền"), dataIndex: "refundedAmount", key: "refundedAmount", width: 100, align: "right", render: (v: number) => `${formatVND(v ?? 0)} đ` },
-                { title: t("Còn lại"), dataIndex: "remainingAmount", key: "remainingAmount", width: 120, align: "right", render: (v: number) => <Text style={{ color: "#EF4444" }}>{formatVND(v ?? 0)} đ</Text> },
-                { title: t("Phải thu"), dataIndex: "toCollect", key: "toCollect", width: 110, align: "right", render: (v: number) => `${formatVND(v ?? 0)} đ` },
-                { title: t("Thao tác"), key: "actions", width: 80, fixed: "right", render: () => <Space size={4}><Button type="text" size="small" icon={<EditOutlined />} /></Space> },
-              ]}
-              dataSource={plans.map((p) => ({
-                id: p.id,
-                code: p.id.slice(0, 8).toUpperCase(),
-                serviceName: p.title,
-                doctorName: "—",
-                status: p.status,
-                createdAt: p.creationTime,
-                totalAmount: p.estimatedCost ?? 0,
-                discountAmount: 0,
-                finalAmount: p.estimatedCost ?? 0,
-                paidAmount: 0,
-                refundedAmount: 0,
-                remainingAmount: p.estimatedCost ?? 0,
-                toCollect: p.estimatedCost ?? 0,
-              }))}
-              pagination={{ pageSize: 20, showTotal: (total, range) => `${range[0]}–${range[1]} / ${total}` }}
-              scroll={{ x: 1400 }}
-              locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>{t("Chưa có kế hoạch điều trị")}</span> }}
-            />
-          </Card>
+          <TreatmentPlanPanel patientId={id ?? ""} />
         </div>
       ),
     },
@@ -598,7 +546,7 @@ export function PatientProfilePage() {
               status: a.status,
             }))}
             pagination={{ pageSize: 20, showTotal: (tot, r) => `${r[0]}–${r[1]} / ${tot}` }}
-            locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>{t("Chưa có lịch hẹn nào")}</span> }}
+            locale={{ emptyText: <span style={{ color: "var(--bd-faint)" }}>{t("Chưa có lịch hẹn nào")}</span> }}
           />
         </div>
       ),
@@ -624,9 +572,9 @@ export function PatientProfilePage() {
             />
             <Button icon={<UploadOutlined />} style={{ marginLeft: "auto" }}>{t("Tải ảnh")}</Button>
           </div>
-          <div style={{ padding: "60px 0", textAlign: "center", color: "#9CA3AF", border: "1px dashed #E5E7EB", borderRadius: 8 }}>
-            <PictureOutlined style={{ fontSize: 40, marginBottom: 12, color: "#D1D5DB" }} />
-            <div style={{ fontWeight: 500, color: "#6B7280", marginBottom: 4 }}>{t("Không có ảnh trong bộ lọc đã chọn")}</div>
+          <div style={{ padding: "60px 0", textAlign: "center", color: "var(--bd-faint)", border: "1px dashed var(--bd-line)", borderRadius: 8 }}>
+            <PictureOutlined style={{ fontSize: 40, marginBottom: 12, color: "var(--bd-line)" }} />
+            <div style={{ fontWeight: 500, color: "var(--bd-muted)", marginBottom: 4 }}>{t("Không có ảnh trong bộ lọc đã chọn")}</div>
             <div style={{ fontSize: 13 }}>{t("Hãy đổi bộ lọc hoặc tải thêm ảnh để tiếp tục.")}</div>
           </div>
         </div>
@@ -640,9 +588,9 @@ export function PatientProfilePage() {
           {/* Top bar: counter filter buttons + create button */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
             {[
-              { label: t("Đơn hàng mới"), count: 0, bg: "#E6F4EA", text: "#10B981", border: "#10B981" },
-              { label: t("Tiếp tục công đoạn"), count: 0, bg: "#FEF3C7", text: "#D97706", border: "#F59E0B" },
-              { label: t("Bảo hành"), count: 0, bg: "#FCE8E6", text: "#DC2626", border: "#EF4444" },
+              { label: t("Đơn hàng mới"), count: 0, bg: "var(--bd-green-pale)", text: "var(--bd-green)", border: "var(--bd-green)" },
+              { label: t("Tiếp tục công đoạn"), count: 0, bg: "var(--bd-amber-pale)", text: "#D97706", border: "var(--bd-gold-deep)" },
+              { label: t("Bảo hành"), count: 0, bg: "var(--bd-red-pale)", text: "#DC2626", border: "var(--bd-red)" },
             ].map((c) => (
               <button
                 key={c.label}
@@ -689,7 +637,7 @@ export function PatientProfilePage() {
               returnedFile: "—",
             }))}
             pagination={{ pageSize: 20, showTotal: (total) => t("Hiển thị {0} mẫu labo", total) }}
-            locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>{t("Không có dữ liệu")}</span> }}
+            locale={{ emptyText: <span style={{ color: "var(--bd-faint)" }}>{t("Không có dữ liệu")}</span> }}
           />
         </div>
       ),
@@ -718,7 +666,7 @@ export function PatientProfilePage() {
             dataSource={patientPrescriptions}
             rowKey="id"
             pagination={{ pageSize: 20, showTotal: (total) => `0 / ${total}` }}
-            locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>{t("Không có đơn thuốc")}</span> }}
+            locale={{ emptyText: <span style={{ color: "var(--bd-faint)" }}>{t("Không có đơn thuốc")}</span> }}
           />
         </div>
       ),
@@ -744,8 +692,8 @@ export function PatientProfilePage() {
               <button
                 key={b.label}
                 style={{
-                  padding: "4px 12px", borderRadius: 16, border: "1px solid #E5E7EB",
-                  background: "#F9FAFB", color: "#374151", fontSize: 13, cursor: "pointer",
+                  padding: "4px 12px", borderRadius: 16, border: "1px solid var(--bd-line)",
+                  background: "var(--bd-bg-soft)", color: "var(--bd-sub)", fontSize: 13, cursor: "pointer",
                   display: "flex", alignItems: "center", gap: 4,
                 }}
               >
@@ -782,7 +730,7 @@ export function PatientProfilePage() {
               rating: r.resolution ?? "—",
             }))}
             pagination={{ pageSize: 20, showTotal: (total) => `0 / ${total}` }}
-            locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>{t("Chưa có dữ liệu chăm sóc")}</span> }}
+            locale={{ emptyText: <span style={{ color: "var(--bd-faint)" }}>{t("Chưa có dữ liệu chăm sóc")}</span> }}
           />
         </div>
       ),
@@ -802,13 +750,13 @@ export function PatientProfilePage() {
               { title: t("Thành tiền"), dataIndex: "totalAmount", key: "totalAmount", width: 140, align: "right" as const,
                 render: (v: number) => <Text style={{ fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
               { title: t("Đã trả"), dataIndex: "paidAmount", key: "paidAmount", width: 140, align: "right" as const,
-                render: (v: number) => <Text style={{ color: "#10B981", fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
+                render: (v: number) => <Text style={{ color: "var(--bd-green)", fontVariantNumeric: "tabular-nums" }}>{formatVND(v ?? 0)} đ</Text> },
               { title: t("Trạng thái"), dataIndex: "status", key: "status", width: 120,
                 render: (s: string) => <Tag color={s === "Paid" ? "success" : s === "Draft" ? "default" : "warning"}>{s}</Tag> },
             ]}
             dataSource={patientInvoices}
             pagination={{ pageSize: 20, showTotal: (tot, r) => `${r[0]}–${r[1]} / ${tot}` }}
-            locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>{t("Chưa có hóa đơn")}</span> }}
+            locale={{ emptyText: <span style={{ color: "var(--bd-faint)" }}>{t("Chưa có hóa đơn")}</span> }}
           />
         </div>
       ),
@@ -843,7 +791,7 @@ export function PatientProfilePage() {
               notes: `${inv.invoiceNumber} — ${inv.status}`,
             })).filter((r) => r.amount > 0)}
             pagination={{ pageSize: 20, showTotal: (total, range) => t("Hiển thị {0}–{1} trên {2} giao dịch", range[0], range[1], total) }}
-            locale={{ emptyText: <span style={{ color: "#9CA3AF" }}>{t("Chưa có lịch sử dư nợ")}</span> }}
+            locale={{ emptyText: <span style={{ color: "var(--bd-faint)" }}>{t("Chưa có lịch sử dư nợ")}</span> }}
           />
         </div>
       ),
@@ -903,12 +851,11 @@ export function PatientProfilePage() {
         </div>
       </div>
 
-      {/* 10 tabs with URL sync */}
-      <Tabs
+      {/* 10 pills with URL sync */}
+      <PillTabs
         activeKey={activeTab}
         onChange={handleTabChange}
         items={TAB_ITEMS}
-        style={{ background: "transparent" }}
       />
     </div>
   );

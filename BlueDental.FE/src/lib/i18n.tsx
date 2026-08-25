@@ -1,5 +1,6 @@
 import {
   createContext,
+  Fragment,
   useCallback,
   useContext,
   useEffect,
@@ -42,6 +43,21 @@ export function t(vietnamese: string, ...params: (string | number)[]): string {
   return template.replace(/\{(\d+)\}/g, (match, index: string) => {
     const value = params[Number(index)];
     return value === undefined ? match : String(value);
+  });
+}
+
+/**
+ * Same contract as {@link t}, but the placeholders are filled with React nodes
+ * instead of strings, so a sentence can carry emphasis (a bold record count, a
+ * highlighted group name) while still being translated as one whole sentence.
+ */
+export function tRich(vietnamese: string, ...params: ReactNode[]): ReactNode {
+  const template = overlay[vietnamese] ?? vietnamese;
+
+  return template.split(/(\{\d+\})/).map((chunk, index) => {
+    const placeholder = /^\{(\d+)\}$/.exec(chunk);
+    const value = placeholder ? params[Number(placeholder[1])] : chunk;
+    return <Fragment key={index}>{value}</Fragment>;
   });
 }
 

@@ -1,13 +1,16 @@
-# Production overlay: adds a Caddy TLS reverse proxy in front of the frontend.
+# Production overlay for the BlueDental services.
 #
 # Activate by putting this in .env (docker compose reads it automatically):
 #   COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml
 #   SITE_DOMAIN=your.domain.tld
-#   WEB_BIND_ADDRESS=127.0.0.1   # frontend no longer needs to be public
+#   WEB_BIND_ADDRESS=127.0.0.1   # frontend is reached through the proxy
 #   WEB_PORT=8080
 #
-# Caddy owns 0.0.0.0:80 and :443. Port 80 must be reachable from the
-# internet for the Let's Encrypt HTTP-01 challenge.
+# TLS and :80/:443 belong to a shared Caddy proxy that lives OUTSIDE this
+# repo, at ~/proxy on the server, because the same machine also serves
+# blueidea and staylio. Keeping Caddy here meant their vhosts had to be
+# edited into this file, and every "git reset --hard" during deploy wiped
+# them out. Per-site config now lives in ~/proxy/sites/*.caddy.
 
 services:
   api:
@@ -25,33 +28,5 @@ services:
     volumes:
       - dataprotection_keys:/data/keys
 
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    ports:
-      - "${CADDY_BIND_ADDRESS:-0.0.0.0}:80:80"
-      - "${CADDY_BIND_ADDRESS:-0.0.0.0}:443:443"
-      - "${CADDY_BIND_ADDRESS:-0.0.0.0}:443:443/udp"
-    environment:
-      SITE_DOMAIN: ${SITE_DOMAIN}
-    volumes:
-      - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      frontend:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2019/config/"]
-      interval: 15s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
-    networks:
-      bluedental:
-        ipv4_address: 172.29.0.11
-
 volumes:
-  caddy_data:
-  caddy_config:
   dataprotection_keys:

@@ -4,6 +4,7 @@ import { UserOutlined, EditOutlined, SaveOutlined } from "@ant-design/icons";
 import { useState } from "react";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useUpdateProfile } from "@/features/account/api/accountMutations";
+import { PageHeader } from "@/components/PageHeader";
 import { t } from "@/lib/i18n";
 
 const { Text, Title } = Typography;
@@ -36,12 +37,10 @@ export function AccountProfilePage() {
 
   return (
     <div className="page-container">
-      <div className="page-header">
-        <div className="page-header-left">
-          <Title level={4} style={{ margin: 0 }}>{t("Thông tin tài khoản")}</Title>
-          <Text type="secondary">{t("Quản lý thông tin cá nhân của bạn")}</Text>
-        </div>
-      </div>
+      <PageHeader
+        title={t("Thông tin tài khoản")}
+        subtitle={t("Quản lý thông tin cá nhân của bạn")}
+      />
 
       <Row gutter={[20, 20]}>
         {/* Avatar card */}
@@ -59,7 +58,7 @@ export function AccountProfilePage() {
                 <Text type="secondary">{user?.roles?.[0] ?? "Admin"}</Text>
               </div>
               <div style={{ marginTop: 12 }}>
-                <Text style={{ fontSize: 12, color: "#9CA3AF" }}>{user?.clinicName}</Text>
+                <Text style={{ fontSize: 12, color: "var(--bd-faint)" }}>{user?.clinicName}</Text>
               </div>
               <Button
                 icon={<EditOutlined />}
@@ -97,7 +96,7 @@ export function AccountProfilePage() {
             <Row gutter={[16, 16]}>
               <Col xs={24} sm={12}>
                 <div style={{ marginBottom: 4 }}>
-                  <Text style={{ fontSize: 12, color: "#5A6B82", fontWeight: 500 }}>{t("Họ và tên")}</Text>
+                  <Text style={{ fontSize: 12, color: "var(--bd-muted)", fontWeight: 500 }}>{t("Họ và tên")}</Text>
                 </div>
                 {editing ? (
                   <Input value={name} onChange={(e) => setName(e.target.value)} style={{ height: 40 }} />
@@ -107,7 +106,7 @@ export function AccountProfilePage() {
               </Col>
               <Col xs={24} sm={12}>
                 <div style={{ marginBottom: 4 }}>
-                  <Text style={{ fontSize: 12, color: "#5A6B82", fontWeight: 500 }}>{t("Email")}</Text>
+                  <Text style={{ fontSize: 12, color: "var(--bd-muted)", fontWeight: 500 }}>{t("Email")}</Text>
                 </div>
                 {editing ? (
                   <Input value={email} onChange={(e) => setEmail(e.target.value)} style={{ height: 40 }} />
@@ -117,13 +116,13 @@ export function AccountProfilePage() {
               </Col>
               <Col xs={24} sm={12}>
                 <div style={{ marginBottom: 4 }}>
-                  <Text style={{ fontSize: 12, color: "#5A6B82", fontWeight: 500 }}>{t("Vai trò")}</Text>
+                  <Text style={{ fontSize: 12, color: "var(--bd-muted)", fontWeight: 500 }}>{t("Vai trò")}</Text>
                 </div>
                 <Text>{user?.roles?.[0] ?? "—"}</Text>
               </Col>
               <Col xs={24} sm={12}>
                 <div style={{ marginBottom: 4 }}>
-                  <Text style={{ fontSize: 12, color: "#5A6B82", fontWeight: 500 }}>{t("Chi nhánh")}</Text>
+                  <Text style={{ fontSize: 12, color: "var(--bd-muted)", fontWeight: 500 }}>{t("Chi nhánh")}</Text>
                 </div>
                 <Text>{user?.clinicName ?? "—"}</Text>
               </Col>
@@ -134,9 +133,9 @@ export function AccountProfilePage() {
             <Row gutter={[16, 16]}>
               <Col xs={24} sm={12}>
                 <div style={{ marginBottom: 4 }}>
-                  <Text style={{ fontSize: 12, color: "#5A6B82", fontWeight: 500 }}>{t("ID tài khoản")}</Text>
+                  <Text style={{ fontSize: 12, color: "var(--bd-muted)", fontWeight: 500 }}>{t("ID tài khoản")}</Text>
                 </div>
-                <Text style={{ fontFamily: "monospace", fontSize: 12, color: "#6B7280" }}>{user?.id ?? "—"}</Text>
+                <Text style={{ fontFamily: "monospace", fontSize: 12, color: "var(--bd-muted)" }}>{user?.id ?? "—"}</Text>
               </Col>
             </Row>
           </Card>

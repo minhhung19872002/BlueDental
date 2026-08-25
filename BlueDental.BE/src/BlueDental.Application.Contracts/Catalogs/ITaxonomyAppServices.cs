@@ -15,6 +15,9 @@ public interface ITaxonomyAppService : IApplicationService
     Task<TaxonomyDto> CreateAsync(CreateTaxonomyDto input);
     Task<TaxonomyDto> UpdateAsync(Guid id, UpdateTaxonomyDto input);
     Task DeleteAsync(Guid id);
+
+    /// <summary>Applies a whole new order in one call.</summary>
+    Task ReorderAsync(ReorderTaxonomyDto input);
 }
 
 /// <summary>
@@ -28,4 +31,7 @@ public interface ICatalogEntryAppService : IApplicationService
     Task<CatalogEntryDto> CreateAsync(CreateCatalogEntryDto input);
     Task<CatalogEntryDto> UpdateAsync(Guid id, UpdateCatalogEntryDto input);
     Task DeleteAsync(Guid id);
+
+    /// <summary>Applies a whole new order in one call.</summary>
+    Task ReorderAsync(ReorderCatalogEntryDto input);
 }

@@ -92,4 +92,11 @@ public class GetClinicBranchListInput : PagedAndSortedResultRequestDto
 {
     public string? Filter { get; set; }
     public BranchStatus? Status { get; set; }
+
+    /// <summary>
+    /// Limits the list to the branches this account may actually work in — what
+    /// the header's branch switcher offers. The full list stays available to the
+    /// screens that administer branches.
+    /// </summary>
+    public bool AccessibleOnly { get; set; }
 }

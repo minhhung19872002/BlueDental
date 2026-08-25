@@ -4,6 +4,7 @@ import { useReceptionList } from "@/features/reception/api/receptionQueries";
 import type { ReceptionStatus } from "@/features/reception/types/reception";
 import { brand } from "@/theme/index";
 import { t } from "@/lib/i18n";
+import { formatClock } from "@/utils/format";
 
 const MAX_ROWS = 6;
 
@@ -58,7 +59,7 @@ export function OngoingReceptionsCard() {
                 onClick={() => navigate("/reception")}
               >
                 <span className="dash-reception-time">
-                  {item.appointmentTime ?? item.arrivalTime ?? "—"}
+                  {item.appointmentTime ?? formatClock(item.arrivalTime)}
                 </span>
                 <span className="dash-reception-patient">
                   <span className="dash-row-title">{item.patientName || "—"}</span>

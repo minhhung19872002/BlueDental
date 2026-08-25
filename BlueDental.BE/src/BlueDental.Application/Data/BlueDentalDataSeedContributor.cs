@@ -66,7 +66,7 @@ public class BlueDentalDataSeedContributor(
         var branch = new ClinicBranch(
             id: DefaultBranchId,
             code: "BD-001",
-            name: "BlueDental - Chi nhánh chính",
+            name: "Nha Khoa Đức Hạnh Premium",
             address: "123 Nguyễn Huệ, Quận 1, TP.HCM",
             phoneNumber: "02812345678",
             email: "info@bluedental.vn"

@@ -42,6 +42,7 @@ export interface ReceptionItem {
   services: string[];
   notes?: string;
   appointmentTime?: string;
+  /** ISO instant. Callers format it; see `clockOf` in ReceptionGrid. */
   arrivalTime: string;
   step1Time?: string;
   step2Time?: string;
@@ -55,6 +56,8 @@ export interface ReceptionFilter {
   keyword?: string;
   doctorId?: string;
   date?: string;
+  /** Which window around `date` the board is showing. Defaults to one day. */
+  viewMode?: "day" | "week" | "month";
   page?: number;
   pageSize?: number;
 }

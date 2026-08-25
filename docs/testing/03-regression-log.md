@@ -56,3 +56,309 @@ errors, so neither branch's typecheck had caught them.
 
 Caught by `e2e/screen-sweep.mjs`, which walks every route and fails on an
 application console error or an empty page.
+
+## 2026-08-25 — first pass over the deployed production build
+
+Both found by using the deployed app at `bluedental.bluestar.com.vn` rather
+than a local one. Neither is a type error and neither shows up on a seeded
+local database, which is why they had survived every earlier run.
+
+| What broke | Why | Fix |
+|---|---|---|
+| A refused login told the user `InvalidUserNameOrPassword` | That is ABP's `LoginResultType` enum name. The account endpoint returns it in `description`, the login form printed `description` as-is, and ABP never localizes it — so the screen quoted an internal identifier at whoever mistyped a password. | The four refusal codes carry their own Vietnamese wording; a lockout also says how many minutes are left when the server sends `lockoutMinutes`. |
+| `/patient/<unknown id>` rendered a blank page | `if (!patient) return null` — a fetch that 404s left the route with nothing to draw. A stale bookmark, a record moved to another branch, or a mistyped id all landed on white. | The route shows the empty state and a way back to the list. |
+
+The second one only appears where no patient exists, so a seeded local database
+hides it: every local run had a first row to click. Production was empty on its
+first day, and `e2e/screen-sweep.mjs` walked into `/patient/undefined` and
+reported 0 characters — the same signal that caught the 2026-08-24 defects.
+## 2026-08-24 — cloning the redesigned Danh mục screen
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-30 | Tailwind never compiled | Every utility class in the codebase — including all of `components/ui` (shadcn) — was inert; screens only looked right where hand-written CSS in `styles/index.css` happened to cover them | `@tailwindcss/vite` was a dependency and `styles/index.css` began with `@import "tailwindcss"`, but the plugin was never added to `vite.config.ts`, so nothing scanned the sources | Registered `tailwindcss()` in `vite.config.ts`; the reference palette is now declared as `--color-app-*` tokens in the `@theme` block | Full suite (46 specs) re-run after the change |
+| R-31 | Modals, sheets, popovers and dropdowns rendered **underneath** the fixed navigation rail | A left-anchored sheet was half hidden; dialogs sat next to, not above, the rail | Radix overlay layers ship at `z-index: 50`; `.app-sidebar` is `z-index: 100` | One rule in `styles/index.css` lifts every `[data-slot=…-overlay|content]` to `z-index: 110` | F-02 mobile group sheet; every spec that opens a dialog |
+| R-32 | Form labels in the catalog entry modal were not associated with their inputs | Screen readers announced unlabelled fields, and `getByLabel` could not find them | `<label>` elements carried no `htmlFor` and the inputs no `id` | A local `Field` wrapper renders `<Label htmlFor>` and links the validation message with `aria-describedby` + `role="alert"` | F-02 (`e2e/taxonomy.spec.ts` fills every field by label) |
+| R-33 | Reloading Danh mục dropped the selected group and briefly listed **every** entry in the catalog | The table flashed the wrong rows on each load, and the flash was wide enough to make assertions pass against the wrong data | The selection lived in component state, so on mount `taxonomyId` was undefined and the query fetched the whole catalog before the first group was picked | The selected group lives in `?group=<id>`; the entry query stays disabled until a group is known | F-02 (`reorders entries from the keyboard and keeps the new order` reloads and re-asserts) |
+
+| R-34 | `PatientTag` was not scoped to a clinic branch | Every branch would have seen and edited every other branch's record labels | The entity predates the branch rule in CLAUDE.md §3.3 and had no `ClinicBranchId`; its AppService filtered on nothing | `ClinicBranchId` added, colour made required, and the service now resolves and checks the branch like every other catalog service | F-29 |
+| R-35 | `bd_payment_methods` was a code/name lookup no screen ever read | Dead table; the real screen manages MoMo wallets and bank accounts, which it could not represent | Placeholder written before the reference screen was observed | Replaced by `bd_payment_accounts` (kind, holder, phone / bank + account number), branch-scoped | F-29 |
+| R-36 | The EF model snapshot has drifted from the database for unrelated entities | Any scaffolded migration carries phantom drops of prescription and treatment-plan columns that are already applied | A merge lost the snapshot updates that went with `ReshapePrescription` and the treatment-plan work; the database is correct, the snapshot is not | **Not fixed here.** This migration was hand-written so it carries only its own changes, and the snapshot was edited by hand for just the two entities it touches. The drift needs its own pass | — |
+
+## 2026-08-24 — branch switcher and BlueDental's own accent
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-37 | The header's branch switcher did nothing | Every screen was pinned to one hard-coded branch id, whoever was signed in; a second-branch account was looking at a branch it does not belong to until the server refused a call | `useCurrentBranchId()` returned a constant, and the popover listed two hard-coded rows | A persisted store holds the selection, the header fills it from the real branch list, and screens read `useBranchFilter()` for lists and `useCurrentBranchId()` for writes | F-30 |
+| R-38 | `GET /clinic-branches` returned every branch to every account | The switcher offered branches the account cannot read, so picking one produced a wall of 403s — and it enumerated other branches to a branch-scoped user | The list was not narrowed by `BranchAccessChecker` | New `accessibleOnly` flag, used by the switcher; the branch-administration screens still get the full list | F-30 |
+| R-39 | `Taxonomy` and `CatalogEntry` reads ignored the requested branch | Switching branches could not change what the catalog screens showed — they always filtered by the caller's own claim | `GetListAsync` used `ICurrentClinicBranchResolver` instead of `BranchAccessChecker.ResolveFilterAsync(input.ClinicBranchId)` | Both now resolve the requested branch through the checker, and `GetAsync`/`Update`/`Delete` check the record's own branch | F-30, F-02 |
+| R-40 | A catalog entry took its branch from the caller, not from its group | An entry could be written into a different branch from the group it belongs to | `CreateAsync` used the claim branch and ignored the group's | The entry now inherits `taxonomy.ClinicBranchId`, checked first | F-02 |
+| R-41 | Switching branches left a stale `?group=` in the URL | The entry query fired with another branch's group id and returned 403 | The effect only replaced the group when the list was non-empty | The parameter is dropped when the new branch has no matching group | F-30 |
+
+## 2026-08-24 — QR ảnh phương thức thanh toán + dữ liệu hai chi nhánh
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-42 | The branch popover stayed open after a branch was picked | The menu covered the screen the user had just switched, and a second switch needed a stray click to dismiss it first | The `Popover` was uncontrolled, so selecting an item changed the store without ever closing the menu | The header owns `branchMenuOpen`; picking a branch selects it and closes | F-30 |
+| R-43 | Only the first branch had catalog data | Every "Danh mục" tab looked identical (empty) in the second branch, so branch scoping could be neither demonstrated nor seen to fail | The dev seed filled one branch with three rows; the second branch was created but never populated | `BlueDentalTaxonomyDemoSeedContributor` seeds every catalog, tag and payment account in both branches, with deliberately different contents, under deterministic ids so re-running tops up rather than duplicates | F-30 |
+| R-44 | No account could switch branches at all | The switcher could not be exercised end to end: `admin` is assigned to branch 1 and `branch2` to branch 2, so neither is ever offered a second branch | Both seeded accounts carry a `StaffBranchAssignment`, and an assignment is what restricts an account | A third dev account, `manager`, is seeded with no assignment — which `BranchAccessChecker` already reads as clinic-wide | F-30 |
+
+### Suite state after this pass (2026-08-24)
+
+Full run: **55 passed, 30 failed** in 14.5 min (85 tests).
+
+The blast radius of this pass is green — `branch-isolation`, `branch-switcher`,
+`payment-qr`, `taxonomy` and `taxonomy-flat`: **20/20**.
+
+The 30 failures are **pre-existing and unrelated**: those specs were written
+against an Ant Design UI that no longer exists. They wait on selectors that
+appear nowhere in `src` — `.ant-picker-input`, `tr.ant-table-row`,
+`span.anticon-global` — and `antd` is not even a dependency any more. Affected:
+`patient`, `prescription`, `treatment-plan`, `treatment-stage`, `voucher`,
+`staff`, `timekeeping`, `finance`, `materials`, `operations`, `patient-image`,
+`reception`, `sidebar-navigation`, `export`, `appointment`. Rewriting them
+against the current DOM needs its own pass — they are stale specs, not
+regressions.
+
+`branch-isolation.spec.ts` was the one genuine stale spec inside this pass's
+radius and was rewritten: it encoded the older contract where naming another
+branch was silently narrowed. Since R-39 the server refuses it, so the spec now
+asserts **403** — a stricter assertion, not a relaxed one — and uses the new
+clinic-wide `manager` account for the case that really is clinic-wide.
+
+## 2026-08-24 — nhóm phân loại: dialog, tìm kiếm, kéo-thả, reorder
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-45 | The "Tạo nhóm" dialog had no `Mức độ ưu tiên` field | The reference asks for a priority when a group is created; BlueDental invented one (`sortOrder = groups.length`) and never showed it, so a group could not be placed deliberately | The field was not noticed when the dialog was first cloned | The dialog now matches what the reference draws: `Tên phân loại` + `Mức độ ưu tiên` side by side, prefilled `0`, one `Lưu` button with a save icon and no `Huỷ` | F-32 |
+| R-46 | Searching the group panel filtered the rows already on screen | A group outside the fetched page could not be found, and the count in the header disagreed with the list | The panel held its own `keyword` state and ran `Array.filter` | The container owns the term, debounces it and sends `filter=` to `GET /taxonomies`; the panel renders what comes back | F-32 |
+| R-47 | Reordering wrote one PUT per moved row | N requests for one drag, and a failure part-way left the catalog half-sorted with no way to tell | There was no reorder endpoint, so the client updated each row | New `POST /taxonomies/reorder` and `POST /catalog-entries/reorder` take the whole list (`items: [{id, order}]`) and apply it in one transaction, checking branch access and that every row belongs to the catalog named | F-32, F-02 |
+| R-48 | Drag felt late and was locked to the vertical axis | The row never followed the pointer, so the gesture read as "nothing is happening" until it snapped | HTML5 drag-and-drop: `draggable` was only set on mousedown, the browser decided when a drag began, and the drop target was merely highlighted | `useDragReorder` — pointer events, the lifted row's `transform` written straight to the DOM so it follows the pointer on both axes, and the list reordered as it passes each row. Shared by the group panel and the entry table | F-32, F-02 |
+| R-49 | Opening a dialog re-rendered every row of the group panel | Added to the dev-server cost of opening a dialog, which reads as jank | The panel rendered its rows inline and the container passed fresh closures each render | Rows are a memoised `GroupRow`; the container's row handlers are `useCallback`; the drag hook caches its per-row ref and grip props. Measured on the group dialog: dev **~120ms → ~86ms** of script, production build **~13ms** (`Performance.getMetrics`, ScriptDuration). Most of what is left is React dev-mode + StrictMode double-render, not the app | F-32 |
+| R-50 | Search was case-sensitive and looked at one or two columns | "trám" found nothing when the row read "Trám"; a trailing space from a paste found nothing at all; and a service could not be found by its description | `Contains` maps to a case-sensitive `LIKE` on PostgreSQL, and each service filtered on `Name` (plus `Code` on entries) only | `SearchTerms` folds case and splits on whitespace; every catalog service now matches each term against every text column it shows — groups (name/alias/description), entries (name/code/description), tags (name/colour/description), payment accounts (holder/phone/bank/account). A row must carry **all** terms, in any order. Verified against `lower()` under the `en_US.utf8` collation, so Vietnamese folds the same on both sides | F-32 |
+
+## 2026-08-25 — rà soát parity toàn bộ tab Danh mục (P1 + P2)
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-51 | Mọi dialog danh mục dùng khung riêng của shadcn, không phải khung của bản gốc | Nhãn nằm trên ô thay vì nổi trên viền, có nút `Huỷ` mà bản gốc không có, thiếu hai đường kẻ — đủ để đọc ra là một ứng dụng khác | Các dialog được dựng rời rạc trước khi khung chung của bản gốc được ghi nhận | `AppDialog` dùng chung + `FloatingField`/`FloatingSelect`; ba dialog đã chuyển sang | F-32, F-29 |
+| R-52 | Menu hàng nhóm có 4 mục, bản gốc có 2 | Lệch thấy được ngay | `Di chuyển lên/xuống` được thêm để có đường bàn phím | Menu còn `Chỉnh sửa` · `Xoá`; grip đổi thành `<button>` nhận `↑`/`↓` nên đường bàn phím vẫn còn | F-32 |
+| R-53 | Bảy tab taxonomy dùng chung một dialog với bộ field bịa | Ví dụ Nguồn đến hỏi giá và mã — bản gốc chỉ hỏi tên, nhóm, trạng thái, ưu tiên | Một `CatalogEntryModal` dùng cho mọi danh mục | `SimpleCatalogDialog` cho 3 tab đơn giản; 4 tab còn lại theo P3–P5 | F-32 |
+| R-54 | Tab Nghề nghiệp có nút `Xuất` mà bản gốc không có | Lệch thấy được | Header dùng chung luôn vẽ nút | Cờ `exportable` trên cấu hình tab | F-32 |
+
+## 2026-08-25 — dialog theo từng danh mục (P3 → P7)
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-55 | Bảy tab taxonomy dùng chung một dialog với bộ field bịa | Dịch vụ thiếu ~20 field bản gốc có (thuế, giảm giá, công đoạn, bảo hành); thuốc thiếu hoạt chất và giá mua; đơn thuốc mẫu lưu một chuỗi thay vì các dòng thuốc | `CatalogEntryModal` được viết trước khi các dialog của bản gốc được quan sát | Mỗi danh mục có dialog riêng: `ServiceDialog`, `MedicineDialog`, `RichCatalogDialog`, `PrescriptionTemplateDialog`, `MedicalRecordTemplateDialog`, `SimpleCatalogDialog`. `CatalogEntryModal` đã xoá | F-34 |
+| R-56 | `Select` mở trong dialog vẽ **dưới** lớp phủ của dialog | Không bấm được lựa chọn nào — mọi dialog có select đều hỏng | Quy tắc z-index của R-31 liệt kê sheet/dialog/alert-dialog/dropdown/popover nhưng **thiếu** `select-content` | Thêm `[data-slot="select-content"]` và `tooltip-content` vào cùng quy tắc | F-34 (test dịch vụ chọn "% thuế") |
+| R-57 | Refetch danh sách nhóm xoá sạch form đang gõ dở | Đang nhập một dịch vụ mà query nhóm refetch (đổi tab cửa sổ, invalidate) là mất hết | Effect khởi tạo form để `groups` và `defaultTaxonomyId` trong dependency list; React Query trả mảng mới mỗi lần fetch | Đọc qua `useRef`; effect chỉ chạy theo `[open, entry]` | F-34 |
+| R-58 | `IsImageRequired` nằm trên bảng dùng chung | Cờ chỉ có nghĩa với dịch vụ lại nằm cùng chỗ với chẩn đoán, nghề nghiệp… | Đặt vào `bd_catalog_entries` từ đầu | Chuyển sang `bd_catalog_service_configs` cùng ba cờ cài đặt khác; migration mang dữ liệu cũ theo | F-34, F-19 |
+| R-59 | Migration đầu tiên thêm `ExtraProperties`/`ConcurrencyStamp` cho bảng con | `INSERT` chết với `null value in column "ExtraProperties"` | Sao chép mẫu cột từ bảng aggregate root; entity con là `Entity<Guid>` nên không có hai cột đó — giống `bd_prescription_items` | Bỏ hai cột khỏi migration và snapshot | F-34 |
+
+## 2026-08-25 — tờ A4 bệnh án mẫu dựng lại theo bản gốc
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-60 | Tờ A4 dựng sai biểu mẫu | Dựng theo bệnh án **nội trú** của Bộ Y tế với các textarea rời, trong khi bản gốc in **bệnh án ngoại trú chuyên khoa răng hàm mặt** ba trang, dày đặc ô vuông và gạch chân | Lần quan sát đầu chỉ đọc cây accessibility của iframe nên mất hết bố cục, kích thước và các khối in sẵn | Đọc thẳng DOM + computed style của iframe: 3 trang `794×1053`, `.grid-box` 20×20, `.box` 15×15, ô nhập nền `#FFFDE7`. Dựng lại đủ 17 ô nhập đúng placeholder, hàng sinh hiệu, bảng hồ sơ phim ảnh, khung hình vẽ tổn thương và hai khối ký | F-34 |
+| R-61 | `Cell` khai báo bên trong `MedicalRecordSheet` | Mỗi lần render là một component type mới → React unmount/remount, con trỏ nhảy ra khỏi ô ngay ký tự đầu tiên | Viết component con ngay trong thân hàm render | Đưa ra ngoài module, nhận `value`/`onChange` qua props | F-34 |
+| R-62 | Tờ A4 dính lề trái, chừa khoảng xám bên phải | Thu phóng càng nhỏ càng lệch | `transform: scale` không đổi hộp layout, nên khối vẫn chiếm trọn bề ngang A4 và nằm sát trái | Bọc thêm một hộp đúng kích thước sau khi thu phóng (`width/height × zoom`) rồi `mx-auto`; khoảng cách giữa các trang chuyển sang `gap` của cột flex thay vì margin từng trang | F-34 (test đo hai lề, chênh < 6px) |
+| R-63 | Hộp xác nhận xoá không giống bản gốc | Không nêu bật tên bản ghi đang xoá, và nút xoá dùng đúng màu primary như nút "Lưu" — một hành động không hoàn tác được lại trông như một hành động bình thường | Ba màn hình tự dựng `AlertDialog` riêng, không đối chiếu bản gốc | `ConfirmDeleteDialog` dùng chung: tiêu đề `Xác nhận xoá {noun}`, tên bản ghi **in đậm** trong câu hỏi, dòng `Hành động này không thể hoàn tác.`, nút `Huỷ` nền xanh nhạt và nút `Xoá` **đỏ** có icon thùng rác | F-32 (test đo màu nền nút) |
+| R-64 | Thả item sau khi kéo thì danh sách nháy về thứ tự cũ rồi mới sang thứ tự mới | Đo bằng bộ ghi theo từng khung hình: **467ms** hiện thứ tự cũ, **590ms** mới sang thứ tự mới — nháy ~123ms | Thứ tự tạm trong lúc kéo bị xoá ngay khi mutation kết thúc, mà cache của React Query lúc đó vẫn giữ dữ liệu cũ, phải chờ refetch mới đúng | Cập nhật cache lạc quan trong `onMutate` (áp `items[{id, order}]` vào mọi list đang cache rồi sắp lại), khôi phục nguyên trạng trong `onError`, `invalidateQueries` chuyển sang `onSettled`. Đo lại: chỉ còn 2 mốc (9ms, 45ms) rồi đứng yên | F-32 (test ghi 120 khung hình quanh lúc thả, khẳng định hàng đầu không đổi) |
+| R-65 | Bản ghi vừa tạo không nằm ở đầu danh sách | Thêm một nhóm hay một mục xong phải đi tìm nó giữa danh sách | Thứ tự phụ là `ThenBy(Name)` — xếp theo bảng chữ cái, nên vị trí phụ thuộc vào cái tên chứ không phải vào việc vừa mới tạo | Thứ tự phụ đổi thành `ThenByDescending(CreationTime)` cho nhóm và mục danh mục, `OrderByDescending(CreationTime)` cho thẻ hồ sơ. `Mức độ ưu tiên` vẫn thắng — mới chỉ quyết định thứ tự giữa các bản ghi *cùng* mức ưu tiên | F-32 (test dựng hai nhóm rồi khẳng định cái mới ở đầu, và ưu tiên vẫn thắng) |
+| R-66 | Lưu/xoá trong dialog không có dấu hiệu đang chạy | Nút chỉ mờ đi — người dùng không biết là đang chạy hay là bị chặn | `AppDialog` và `ConfirmDeleteDialog` chỉ `disabled` khi đang gửi | Nút đổi sang spinner kèm chữ `Đang lưu…` / `Đang xoá…`. Test làm chậm đường truyền bằng CDP (API vẫn trả lời thật, chỉ thêm độ trễ) nên khẳng định không còn đua với tốc độ mạng | F-32 |
+
+### Ghi nhận: panel nhóm cắt ở 200 dòng
+
+`useTaxonomyGroups` gọi với `maxResultCount: 200` và panel không phân trang, nên
+một chi nhánh có hơn 200 nhóm sẽ **mất phần đuôi mà không báo gì**. DB dev đang có
+213 nhóm `care_service` do các lần chạy E2E tích lại, và chính điều đó làm hai test
+đỏ khi thứ tự đổi sang newest-first (nhóm ưu tiên cao rơi khỏi 200 dòng đầu).
+
+Hai test đã sửa để không phụ thuộc số lượng (dùng tìm kiếm để thu hẹp, và tạo nhóm
+ở mức ưu tiên mặc định để chúng nằm đầu danh sách). **Giới hạn 200 thì chưa xử lý** —
+bản gốc chỉ có 9 nhóm nên chưa quan sát được nó phân trang hay cuộn vô hạn.
+| R-67 | Tờ A4: sinh hiệu và bảng bàn giao hồ sơ vẽ sai bố cục | Sinh hiệu xếp thành một hàng ngang dưới `IV. KHÁM BỆNH` thay vì nằm trong hộp có viền bên phải; các ô `Họ tên` trong bảng bàn giao thiếu gạch chân, cột quá hẹp làm `Người giao hồ sơ:` xuống dòng, cột bác sỹ căn đáy thay vì căn giữa | Lần dựng trước đọc cấu trúc mà bỏ qua `div.clear` — dấu hiệu của một khối float phải; và bảng thì dựng theo trí nhớ chứ chưa soi lại ảnh | Cột trái giữ `1. Toàn thân` cùng hai gạch chân, cột phải là hộp viền chứa 5 dòng sinh hiệu; bảng chia lại tỉ lệ cột 38/14/24/24, mỗi `Họ tên` có gạch chân, cột cuối `align-middle` | F-34 (test đo hộp sinh hiệu nằm bên phải ô khám toàn thân và có viền, đồng thời khẳng định hai tiêu đề cột bàn giao không xuống dòng) |
+| R-68 | Bảng dữ liệu vẫn nháy khi thả, dù panel nhóm đã hết | Đo theo từng khung hình: **47ms** quay về thứ tự cũ, **285ms** mới sang thứ tự mới, rồi **443–593ms** phủ thêm lớp loading — nặng hơn cả lỗi cũ của panel nhóm | Hai nguyên nhân chồng lên nhau. Một: bảng truyền `onReorder={(from, to) => void reorderEntries(from, to)}` — `void` vứt mất promise nên hook `await` phải `undefined`, xoá thứ tự tạm ngay lập tức trong khi cache chưa kịp cập nhật lạc quan. Panel nhóm truyền thẳng hàm nên không dính. Hai: `isLoading={entriesQuery.isFetching}` bật lớp phủ cho cả lần refetch sau khi lưu, phủ lên đúng dữ liệu đã đúng sẵn | Truyền thẳng `onReorder={reorderEntries}` (bọc `useCallback` để bảng memo hoá còn tác dụng), và tắt lớp phủ khi đang có mutation sắp xếp: `entriesQuery.isFetching && !reorderEntriesMutation.isPending`. Panel nhóm cũng bỏ mờ trong lúc đó. Đo lại: **một trạng thái duy nhất** suốt 2,5s | F-02 (test ghi 120 khung hình quanh lúc thả, khẳng định bảng chỉ có đúng một trạng thái và không có lớp phủ) |
+
+
+## 2026-08-25 — rebase lên `main` và chuyển sang Ant Design
+
+`main` đã đổi thư viện UI sang **Ant Design 6** và **gỡ hẳn Tailwind** khỏi build.
+15 commit của nhánh này rebase sạch, nhưng phần giao diện thì phải dựng lại: 245
+lớp utility của Tailwind trong màn hình Danh mục không còn sinh ra CSS nào.
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-69 | Backend không build được sau rebase | Toàn bộ BE đứng — không chạy được test thật nào | Hai dấu `>>>>>>> 6c3bd52` còn sót trong `BlueDentalDbContextModelSnapshot.cs` (dòng 700 và 1398): nửa `<<<<<<<`/`=======` đã bị xoá nên `git` không báo còn xung đột | Xoá hai dòng thừa; `dotnet build` sạch, 0 warning | `dotnet build BlueDental.sln` |
+| R-70 | 245 lớp Tailwind trong Danh mục không còn tác dụng | Bảng, panel nhóm, tờ A4, các dialog mất toàn bộ khoảng cách, viền, màu | `main` gỡ Tailwind nhưng để lại các chuỗi class trong những component nhánh này đã viết | Đặt tên ngữ nghĩa cho từng khối (`bd-cat-*`, `bd-a4-*`, `bd-group-*`, `bd-pager-*`, `bd-search-*`, `bd-tab*`) và viết CSS thật trong `src/styles/index.css`, theo đúng lối `main` đang dùng (`page-header`, `app-popover-*`) | `vite build` + toàn bộ E2E Danh mục |
+| R-71 | Thanh tab của trang Danh mục đè lên nội dung | Không bấm được sang catalog khác — Playwright báo `bd-group-headrow ... intercepts pointer events` | `PageTabBar` mất `shrink-0`, nên là flex item co lại dưới chiều cao nội dung và phần tràn bị anh em phía sau vẽ đè | `PageTabBar` chuyển sang class ngữ nghĩa, `.bd-tabbar { flex-shrink: 0 }` | F-31 (test "gives every catalog its own URL") |
+| R-72 | Nhóm vừa tạo không được chọn | Tiêu đề panel vẫn là nhóm cũ, bảng bên dưới là dữ liệu nhóm khác | Effect dự phòng "selection không còn trong danh sách thì quay về nhóm đầu" chạy trước khi **URL** kịp mang id mới *và* trước khi danh sách nhóm kịp refetch, nên cướp lại selection vĩnh viễn | Ghi id đang chờ vào ref; effect bỏ qua cho tới khi **cả hai** đuổi kịp rồi mới xoá ref | F-31, F-32 |
+| R-73 | Dialog "Tạo nhóm" đôi khi kẹt mở sau khi lưu | Lưu xong nhưng dialog vẫn đứng đó | `onCreated()` gọi trước `onClose()`, nên bất kỳ trục trặc nào trong lúc cha chuyển selection cũng chặn luôn việc đóng | Đóng trước, báo cho cha sau | F-31 |
+| R-74 | Mọi tài khoản ngoài chi nhánh 1 gặp 403 hàng loạt | Tài khoản `branch2` mở màn hình nào cũng 403, tạo nhóm thì `POST /app/taxonomies → 403` | `useCurrentBranchId()` trả về hằng `DEFAULT_BRANCH_ID` (chi nhánh 1) mỗi khi header đang ở "Tất cả chi nhánh" — mà "tất cả" là một *bộ lọc*, không phải một nơi để ghi vào | Dự phòng đổi thành **chi nhánh của chính tài khoản** (`user.clinicId`). Store khởi tạo bằng `null`, và `initBranchForSession()` chốt chi nhánh **ngay khi phiên đăng nhập được thiết lập**, trước khi màn hình đầu tiên gọi API | F-33 (branch-switcher, branch-isolation) |
+| R-75 | Bộ chọn chi nhánh mời cả chi nhánh không được phép | Chọn phải là 403 toàn bộ màn hình | `AppLayout` gọi `useClinicBranches()` không tham số → liệt kê mọi chi nhánh | Gọi `useClinicBranches(true)` (`accessibleOnly`) | F-33 |
+| R-76 | Chọn chi nhánh xong menu không đóng | Danh sách nằm đè lên trang vừa tải lại | antd `Popover` không kiểm soát thì click bên trong không tự đóng, khác với Radix | `Popover` chuyển sang có kiểm soát; `handleBranchChange` đóng menu | F-33 |
+
+### Ghi nhận: flake chỉ có ở dev server
+
+Ba test Danh mục thỉnh thoảng đỏ khi chạy với `vite dev`, và đo được nguyên nhân:
+`onClick` của React **không hề chạy** dù Playwright báo click thành công. Log
+mount/unmount cho thấy cả cây màn hình mount → unmount → mount một lần sau khi
+tải — đúng hành vi **StrictMode** ở chế độ dev. Cú click rơi trúng lúc remount thì
+mất.
+
+Chạy cùng bộ test trên **bản build production** (`vite preview`, không StrictMode):
+36/36 xanh, lặp lại 5 lần một test hay đỏ nhất cũng 5/5. Đây là hiện tượng của môi
+trường dev, không phải lỗi sản phẩm — nhưng nó nói rằng **acceptance test phải chạy
+trên bản build**, nên `vite.config.ts` được thêm khối `preview` (cổng 8080, proxy
+API giống `server`) đúng bằng `baseURL` mặc định trong `playwright.config.ts`.
+
+### Ghi nhận: `/app/visits` trả 500
+
+Mỗi lần vào trang sau đăng nhập, `GET /api/v1/app/visits?keyword=&maxResultCount=50`
+và `GET /api/v1/app/visits?maxResultCount=200` đều **500**. Thuộc màn hình Tiếp nhận,
+nằm ngoài phạm vi lần rebase này, **chưa xử lý**.
+
+### Selector đổi theo Ant Design
+
+Các test thật phải bám vào DOM mà antd thực sự dựng ra:
+
+- Nút có icon mang tên `"save Lưu"`, `"delete Xoá"` — icon của `@ant-design/icons`
+  góp `aria-label` vào accessible name, nên `{ name: "Lưu", exact: true }` đổi thành
+  `{ name: /Lưu$/ }`.
+- `Segmented` là nhóm radio với input ẩn kích thước 0 — click vào
+  `.ant-segmented-item`, không click vào `role=radio`.
+- `Select` giữ một **bản sao ẩn** `role="listbox"` cho trình đọc màn hình, chỉ chứa
+  vài mục đầu và text là *giá trị* chứ không phải nhãn. Mục người dùng thật sự bấm
+  là `.ant-select-item-option`.
+- `Modal` đặt tiêu đề trong một `div` thường — `AppDialog` và `ConfirmDeleteDialog`
+  bọc lại bằng `<h2>` để tiêu đề dialog vẫn là một heading thật.
+
+## 2026-08-25 — Danh mục dùng lại component sẵn có của app
+
+Sau khi chuyển sang Ant Design, các màn hình Danh mục vẫn còn tự dựng bảng, ô tìm
+kiếm, nút và thanh phân trang của riêng mình. Nay chúng dùng đúng những thứ app đã
+có — `DataTable`, `useTablePagination`, `Input` + `SearchOutlined`, `Button` — như
+màn hình Nhân sự vẫn làm.
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-77 | Bảng cao vống lên theo cột nhóm dù chỉ có một dòng | Đo được: `body` cao **9498px**, thẻ bảng **9129px** trong khi bảng chỉ **163px**. Panel nhóm 200 dòng cao 9214px kéo cả trang theo | `.bd-taxonomy-page` đặt `height: 100%`, mà `main` chỉ cho `.app-main` một `min-height` — nên `100%` rơi về chiều cao nội dung, và nội dung cao nhất chính là danh sách nhóm | Trang chốt chiều cao thật: `calc(100vh - var(--bd-header-height) - 32px)`. Panel nhóm cuộn trong lòng nó, bảng cuộn trong thẻ của nó | F-31 |
+| R-78 | Thanh phân trang trôi lửng giữa thẻ bảng | Bản gốc ghim nó ở đáy thẻ; bản mình để nó dính ngay dưới dòng cuối, chừa 292px trắng bên dưới | Chuỗi flex bị đứt: antd 6 lồng bảng dưới `.ant-spin`, không phải `.ant-spin-nested-loading` như CSS đang nhắm | Chuỗi `min-height: 0` chạy đủ từ thẻ xuống `.ant-table-content`; phân trang `flex-shrink: 0` | F-31 |
+| R-79 | Danh mục tự dựng bảng/ô tìm kiếm/nút/phân trang riêng | Hai lối viết song song trong cùng một app, và bảng của Danh mục không có gì của `DataTable` (cột cố định, cỡ trang, tổng số dòng) | Các component này ra đời khi app còn dùng Tailwind + shadcn, trước khi `main` đổi sang antd | Bảng dựng trên `DataTable` + `ColumnsType`, phân trang trên `useTablePagination`, tìm kiếm trên `Input prefix={<SearchOutlined/>} allowClear`, nút trên `Button`. `SearchField` và `TablePaginationBar` không còn ai dùng nên xoá hẳn | F-31…F-34 |
+| R-80 | Hai cảnh báo deprecated của antd ở console | `Drawer.width` và `Modal.maskClosable` | API đổi tên ở antd 6 | `size` và `mask={{ closable: false }}` | — |
+
+### Tỉ lệ cột lấy theo bản gốc
+
+Đo trên bảng rộng 1490px của bản gốc: tay kéo 48px, tên 567, nhóm phân loại 300,
+giá 207 (canh phải), cập nhật 277, thao tác 90. Cột của mình chỉnh theo đúng tỉ lệ
+đó — trước đó giá 160 và cập nhật 200 nên hai cột dính vào nhau.
+
+### Còn khác bản gốc, và vì sao giữ nguyên
+
+Tiêu đề cột của app **in hoa** (`.ant-table-thead th`), bản gốc thì không. Đây là
+quy ước chung cho mọi bảng trong app; sửa riêng cho Danh mục sẽ làm nó lệch với
+Nhân sự và các màn hình khác, còn sửa toàn cục thì đổi luôn những màn hình không
+thuộc phạm vi lần này. Ưu tiên dùng lại component sẵn có nên **giữ theo app**.
+
+### Selector đổi theo antd Table
+
+- `tbody tr` giờ khớp cả **hàng đo** ẩn antd chèn đầu tbody — dùng `tr.ant-table-row`,
+  và `:nth-of-type` thì đếm lệch một hàng nên chuyển sang `.nth(index)`.
+- Nút "Thêm …" mang icon nên accessible name có tiền tố (`plus Thêm dịch vụ`) —
+  neo đuôi chuỗi, đừng neo đầu.
+
+## 2026-08-25 — lề mặc định của trình duyệt quay lại sau khi gỡ Tailwind
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-81 | Ô tìm nhóm và nút `+` đè lên dòng nhóm đầu tiên | Rõ nhất ở tab có tên dài (`bệnh án mẫu`): đo được header nhóm cao đúng `134px` nhưng nội dung cần **152px**, nên hàng tìm kiếm tràn xuống 18px và nằm chồng lên danh sách | Hai nguyên nhân chồng nhau. Một: `.bd-group-head` đặt `height` cứng `134px` — bản gốc cũng vậy, nhưng phụ đề của bản gốc **luôn ghi "dịch vụ"** ở mọi tab nên không bao giờ xuống dòng, còn mình ghép đúng tên danh mục nên tab tên dài thì xuống 2 dòng. Hai: preflight của Tailwind từng xoá lề mặc định của `<p>`/`<hN>`; Tailwind đi rồi mà reset của `main` chỉ có `box-sizing` và `body`, nên riêng tiêu đề nhóm đã âm thầm cõng thêm `16px` trên và `16px` dưới | Reset lề bằng `:where(...)` (độ ưu tiên bằng 0, không đè rule nào) cho các nhánh của Danh mục; `height` đổi thành `min-height` để nếu còn thứ gì nở ra thì nó **đẩy** danh sách xuống chứ không đè lên; phụ đề gói gọn một dòng, cắt bằng `…`, câu đầy đủ nằm ở `title` | F-31…F-34 |
+
+Đo lại trên cả 8 tab có panel nhóm: header **135px** (bản gốc 134), không tràn,
+không đè. Reset này cũng trả lại khoảng cách đúng cho tờ A4 — các `<p>` in sẵn
+trong đó cũng đang cõng lề mặc định kể từ lúc Tailwind bị gỡ.
+
+## 2026-08-25 — dialog Danh mục dùng đúng form của app
+
+Các dialog vẫn tự dựng field riêng trong khi app đã có sẵn `FloatingField` —
+đúng thứ dialog "Thêm nhân viên" đang dùng. Nay tất cả chạy trên antd `Form` +
+`FloatingField`, và những chỗ dựng tay còn lại (bảng dòng thuốc, bảng công đoạn,
+tab, nút zoom) chuyển sang `Table`, `Tabs`, `Button`.
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-82 | Dialog Danh mục không dùng field của app | Nhãn nằm **trên** ô nhập, trong khi mọi dialog khác của app nhãn nổi **trên viền** — hai lối trình bày trong cùng một sản phẩm | `LabeledField`/`FloatingSelect` ra đời vì các dialog này giữ state React riêng, còn `FloatingField` cần một antd `Form` | Mỗi dialog có `Form` của mình; `LabeledField` và `FloatingSelect` không còn ai dùng nên xoá | F-31…F-34 |
+| R-83 | Dòng thuốc trong đơn thuốc mẫu có nhãn thừa trong ô | Cột đã tên là "Tên thuốc" rồi mà trong ô lại in "Tên thuốc *" một lần nữa, đẩy lệch cả hàng | Cell dùng `FloatingSelect`, mà component đó luôn tự vẽ nhãn | Bảng dựng bằng antd `Table`; trong cell chỉ còn control trần, tên cột lo phần đặt tên | F-34 |
+| R-84 | Bệnh án mẫu có hai nhãn cho một ô | "Tiêu đề bệnh án:" nằm bên trái, "Nhập tên mẫu bệnh án... *" nằm trên — cùng trỏ vào một input | Một `<span>` dựng tay đặt cạnh một `LabeledField` vốn đã có nhãn | Một `FloatingField` duy nhất, nhãn "Tiêu đề bệnh án" | F-34 |
+| R-85 | Mọi field dựng trên `FloatingField` đều **không có tên** với trình đọc màn hình | `<label for>` bị đánh `aria-hidden`, mà `Form.Item` thì không vẽ nhãn nào khác — nên input không có accessible name nào cả. Ảnh hưởng cả dialog Nhân viên của `main` | `aria-hidden` có lẽ thêm vào để tránh đọc trùng, nhưng ở đây không có gì trùng để tránh | Bỏ `aria-hidden` | F-31…F-34, và `getByLabel` trong mọi test |
+
+### Ghi nhận: 5 test đỏ sẵn, không phải do lần này
+
+`staff`, `sidebar-navigation` và `reception` có 5 test đỏ. Đã kiểm chứng bằng
+cách `git stash` toàn bộ thay đổi rồi chạy lại trên cây trước khi sửa: **vẫn đúng
+5 test đó đỏ**. Nguyên nhân nằm ngoài phạm vi lần này — `/app/visits` trả 500,
+selector `.sidebar-nav-item[aria-label=…]` không khớp markup sidebar hiện tại, và
+`getByPlaceholder("Họ và tên")` không thể khớp vì `FloatingField` luôn ghi đè
+placeholder thành `" "`.
+
+### Selector đổi theo antd
+
+- `check()` không dùng được cho nhóm checkbox kiểu radio (chọn cái này thì cái kia
+  tắt): nó đọc `input.checked` ngay sau cú click, trước khi React kịp render lại
+  nhóm. Dùng `click()` rồi `toBeChecked()`.
+- Nút mang icon thì accessible name có tiền tố, kể cả nút "Công đoạn" trong dialog.
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-86 | Các item trong dialog dính sát nhau, không có khoảng cách dọc | Ô nhập, editor, hàng checkbox nằm đè lên nhau về mặt thị giác — không đọc ra được đâu là một nhóm | `main` chủ động đặt `.ant-modal .ant-form-item { margin-bottom: 0 }` và để **gutter dọc của `Row`** lo khoảng cách — dialog Nhân viên truyền `[16, 12]`. Lần chuyển sang `Form` mình truyền `[16, 0]`, và những field đứng một mình (không nằm trong `Row`) thì không có gutter nào để thừa hưởng | Gutter đổi thành `[16, 12]` theo đúng dialog Nhân viên; thêm rule cho con trực tiếp của `Form` trong `.app-dialog` để field đứng một mình cũng giữ đúng nhịp | F-31…F-34 |
+
+Đo lại trên dialog Chẩn đoán: khoảng cách giữa mọi khối là **12px** đều nhau.
+
+## 2026-08-25 — xoá mềm cho các danh mục có cặp "Đang hoạt động" / "Đã xoá"
+
+Quan sát trên bản gốc (chỉ đọc, không gửi request thay đổi gì):
+
+- API `GET /api/v1/care-service/list` của bản gốc **trả về cả bản ghi đã xoá**:
+  hai dòng `"isDeleted": true` và một dòng `"isDeleted": false`.
+- Đúng hai dòng `isDeleted: true` đó chỉ có **1 nút** ở cột Thao tác, dòng còn
+  lại có **2 nút**. Tức là dòng đã xoá mất đúng nút "Xoá".
+- Payload **không hề có `isActive`**. Nên "Đang hoạt động" và "Đã xoá" của bản
+  gốc là **một trạng thái**, không phải hai cờ — đó là lý do một lúc chỉ tick
+  được một cái.
+
+Mở dialog "Thêm …" của cả 11 tab để biết tab nào có cặp checkbox:
+
+| Có cặp (xoá mềm) | Không có |
+|---|---|
+| Dịch vụ, Chẩn đoán, Dữ liệu tư vấn, Nguồn đến, Lịch sử bệnh, Nghề nghiệp | Loại thuốc, Đơn thuốc mẫu, Bệnh án mẫu, Thẻ hồ sơ, Phương thức thanh toán |
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-87 | "Đã xoá" xoá thẳng, không lấy lại được | Tick "Đã xoá" rồi lưu là gọi `DELETE`, dòng biến mất khỏi danh sách. Bản gốc thì giữ dòng lại, chỉ bỏ nút xoá, và tick "Đang hoạt động" là quay về | Lần dựng đầu đọc cặp checkbox thành hai cờ rời, và hiểu "Đã xoá" là một lệnh xoá | Cặp checkbox điều khiển **một** giá trị `isDeleted`; lưu là đặt hoặc gỡ cờ chứ không xoá. Danh sách của 6 danh mục đó tắt filter `ISoftDelete` để dòng đã xoá vẫn hiện; bảng ẩn nút xoá khi `isDeleted`; tên dòng gạch ngang cho dễ nhận ra | F-31, F-32 |
+| R-88 | `MapToDto` không mang cờ `isDeleted` sang DTO | Bảng luôn nhận `isDeleted: false`, nên nút xoá không bao giờ ẩn — lỗi này chỉ lộ ra khi chạy thật | DTO kế thừa `FullAuditedEntityDto` (đã có sẵn ô `IsDeleted`) nhưng hàm map viết tay không gán | Gán `IsDeleted` và `DeletionTime` trong `MapToDto` | F-32 |
+
+Hai test mới đi hết vòng: tạo → tick "Đã xoá" → lưu → dòng **vẫn còn**, mất nút
+xoá, reload vẫn thế → tick "Đang hoạt động" → lưu → nút xoá quay lại. Và một test
+nữa cho nút thùng rác ngoài bảng: cũng là xoá mềm, dòng vẫn ở đó.
+
+BE: 686/686 xanh. FE: 37/37 trên bản build production.
+
+## 2026-08-25 — "Sử dụng" chốt bằng nút Lưu, và mô tả nhóm hiện đủ
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-89 | Chọn cách dùng là cập nhật ngay từng lần tick | Tick nửa chừng đã ghi vào dòng thuốc phía sau; không có bước xác nhận, cũng không bỏ ngang được | Popover gọi thẳng `onChange` mỗi lần đổi checkbox | Popover sửa trên một bản nháp, chỉ `onChange` khi bấm **Lưu**; mở lại thì nháp lấy từ giá trị đang lưu chứ không phải lần bỏ dở trước | F-34 |
+| R-90 | Tick "Khác" nhưng không nhập được gì | Bản gốc mở ô nhập bắt buộc ngay khi tick "Khác" (`Vui lòng nhập*`, lỗi `Vui lòng nhập giá trị!`); bản mình chỉ có mỗi cái cờ, không chỗ nào ghi nội dung | Enum `PrescriptionUsage.Other` có sẵn nhưng dòng thuốc không có ô nào để chứa chữ | Thêm `OtherUsage` (200 ký tự) vào `bd_prescription_template_lines` + migration; entity bắt buộc có chữ khi cờ `Other` bật, và **bỏ chữ đi** khi cờ tắt để không còn giá trị mồ côi; nhãn trên nút hiện đúng chữ đã nhập thay cho "Khác" | F-34 (3 test domain + 1 test E2E đi hết vòng, có reload) |
+| R-91 | Mô tả cột nhóm bị cắt bằng `…` | "Chọn nhóm để xem bệnh án mẫu bên trong" chỉ hiện được một phần | Lần sửa tràn trước đó chọn cách kẹp một dòng để hai header hai bên bằng nhau | Cho xuống dòng thoải mái; hai header dùng chung biến `--bd-catalog-header-height` (158px, đủ hai dòng) nên vẫn thẳng hàng. Đo lại 5 tab: `clipped: false`, `aligned: true`, không đè | F-31 |
+
+BE: 689/689 (thêm 3 test domain cho quy tắc của "Khác"). FE: 38/38 trên bản build
+production.
+
+## 2026-08-25 — khối "Cấu hình giá & thuế" chồng dòng
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-92 | Hai hàng trong khối giá & thuế dính sát, nhãn đè lên hàng trên | Đo được: hàng 1 kết thúc ở **485px**, hàng 2 bắt đầu đúng **485px** — không có khe nào. Nhãn nổi nằm *trên* viền ô nên bị vẽ đè lên control của hàng trước, nhìn như chữ chồng chữ | Rule khoảng cách chỉ nhắm con **trực tiếp** của `Form` (`.app-dialog .ant-form > .ant-row`), mà hai hàng này nằm trong `.bd-dialog-section` nên không dính rule. Gutter dọc của `Row` chỉ có tác dụng giữa các item **bên trong** một Row, không phải giữa hai Row anh em | Hàng trong section tự mang `margin-bottom: 18px` (rộng hơn 12px thường dùng, vì nhãn nổi ăn lên trên viền ~8px); tiêu đề section cách hàng đầu 16px; `Segmented` nâng lên 42px cho bằng ô nhập bên cạnh | F-34 (đo lại: không còn nhãn nào đè hàng trên) |
+
+Chốt màn hình: **Danh mục coi như hoàn thiện.** Đã ghi vào `CLAUDE.md` mục 17 và
+đánh dấu trên F-31…F-34 để người sau không dựng lại.

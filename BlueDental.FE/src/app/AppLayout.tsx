@@ -237,15 +237,20 @@ export function AppLayout() {
   const sidebarWidth = sidebarExpanded ? SIDEBAR_EXPANDED_WIDTH : SIDEBAR_WIDTH;
 
   const queryClient = useQueryClient();
-  const { data: branches } = useClinicBranches();
+  const { data: branches } = useClinicBranches(true);
   const currentBranchId = useBranchStore((s) => s.currentBranchId);
   const setCurrentBranchId = useBranchStore((s) => s.setCurrentBranchId);
 
+  const [branchMenuOpen, setBranchMenuOpen] = useState(false);
+
   const handleBranchChange = (id: string | null) => {
+    setBranchMenuOpen(false);
     setCurrentBranchId(id);
     void queryClient.invalidateQueries();
   };
 
+  // A branch id belongs to one account's world: a link or a stored id from
+  // another account points at a branch this one may not open, so drop it.
   useEffect(() => {
     if (!branches || !currentBranchId) return;
     const valid = branches.some((b) => b.id === currentBranchId);
@@ -334,7 +339,6 @@ export function AppLayout() {
 
         {/* Main nav */}
         <nav className="sidebar-nav-main">
-          {sidebarExpanded && <div className="sidebar-nav-heading">{t("MENU")}</div>}
           {mainNav(t).map((item) => (
             <SidebarNavItem
               key={item.key}
@@ -428,7 +432,14 @@ export function AppLayout() {
               <kbd className="app-header-search-kbd">Ctrl K</kbd>
             </button>
 
-            <Popover content={branchContent} trigger="click" placement="bottomRight" arrow={false}>
+            <Popover
+              content={branchContent}
+              trigger="click"
+              placement="bottomRight"
+              arrow={false}
+              open={branchMenuOpen}
+              onOpenChange={setBranchMenuOpen}
+            >
               <button type="button" className="app-header-branch">
                 <span className="app-header-branch-dot" />
                 <span className="app-header-branch-name">{selectedBranchName}</span>
@@ -502,7 +513,6 @@ export function AppLayout() {
           </button>
         </div>
 
-        <div className="sidebar-nav-heading">{t("MENU")}</div>
         <nav className="sidebar-nav-main">
           {mainNav(t).map((item) => (
             <SidebarNavItem

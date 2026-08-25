@@ -95,7 +95,7 @@ public class InvoiceAppService : ApplicationService, IInvoiceAppService
     {
         var branchId = _branchResolver.GetRequiredClinicBranchId();
 
-        var invoiceNumber = $"INV-{Clock.Now:yyyyMMdd}-{GuidGenerator.Create().ToString("N")[..6].ToUpper()}";
+        var invoiceNumber = await GenerateInvoiceNumberAsync(branchId);
         var invoice = new Invoice(
             GuidGenerator.Create(),
             invoiceNumber,
@@ -110,6 +110,40 @@ public class InvoiceAppService : ApplicationService, IInvoiceAppService
         await _repository.InsertAsync(invoice, autoSave: true);
         return ObjectMapper.Map<Invoice, InvoiceDto>(invoice);
     }
+
+    /// <summary>
+    /// A per-branch, per-month sequence rather than six characters of a GUID.
+    ///
+    /// ABP hands out sequential GUIDs, so those six characters are high-order
+    /// timestamp bits: two invoices written moments apart produced the same
+    /// number and the second one died on the unique index with a 500. This is
+    /// the same fault, and the same fix, as the patient code in R-04.
+    /// </summary>
+    private async Task<string> GenerateInvoiceNumberAsync(Guid branchId)
+    {
+        var now = Clock.Now;
+        var query = await _repository.GetQueryableAsync();
+
+        var sequence = query.Count(i =>
+            i.BranchId == branchId
+            && i.CreationTime.Year == now.Year
+            && i.CreationTime.Month == now.Month) + 1;
+
+        var number = FormatInvoiceNumber(now, sequence);
+
+        // Deleted rows and seeded ones leave gaps and repeats in that count, so
+        // walk forward until the number is genuinely free.
+        while (query.Any(i => i.InvoiceNumber == number))
+        {
+            sequence++;
+            number = FormatInvoiceNumber(now, sequence);
+        }
+
+        return number;
+    }
+
+    private static string FormatInvoiceNumber(DateTime issuedOn, int sequence) =>
+        $"HD-{issuedOn:yyyyMM}-{sequence:D4}";
 
     [Authorize(BlueDentalAbilityPermissions.Payment.Update)]
     public async Task<InvoiceDto> IssueAsync(Guid id)

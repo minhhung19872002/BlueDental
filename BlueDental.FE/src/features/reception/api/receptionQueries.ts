@@ -10,10 +10,10 @@ export function useReceptionList(filter: ReceptionFilter = {}) {
   });
 }
 
-export function useReceptionMetrics() {
+export function useReceptionMetrics(filter: ReceptionFilter = {}) {
   return useQuery({
-    queryKey: ["receptionMetrics"],
-    queryFn: () => receptionApi.getMetrics(),
+    queryKey: ["receptionMetrics", filter],
+    queryFn: () => receptionApi.getMetrics(filter),
   });
 }
 

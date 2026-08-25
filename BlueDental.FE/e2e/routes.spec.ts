@@ -18,7 +18,9 @@ test.describe("Route smoke tests", () => {
     { path: "/timekeeping", marker: /chấm công|timekeeping/i },
     { path: "/materials", marker: /vật tư|material/i },
     { path: "/billing", marker: /thanh toán|billing|hóa đơn/i },
-    { path: "/taxonomy", marker: /danh mục|catalog/i },
+    // The catalog screen follows the reference, which titles itself by the
+    // selected catalog rather than by the word "Danh mục".
+    { path: "/taxonomy", marker: /nhóm dịch vụ|dịch vụ/i },
     { path: "/tools", marker: /tổng đài|tin nhắn|zalo oa/i },
     { path: "/settings", marker: /cài đặt|setting/i },
     { path: "/organizations", marker: /chi nhánh|branch/i },

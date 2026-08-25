@@ -525,14 +525,14 @@ function ZaloConfigView() {
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "48px 0", gap: 16 }}>
         <div style={{
           width: 80, height: 80, borderRadius: "50%",
-          background: "#F3F4F6",
+          background: "var(--bd-bg)",
           display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 32,
         }}>
           OA
         </div>
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontWeight: 600, fontSize: 16, color: "#1B2A41", marginBottom: 6 }}>
+          <div style={{ fontWeight: 600, fontSize: 16, color: "var(--bd-ink)", marginBottom: 6 }}>
             {t("Chưa kết nối Zalo OA")}
           </div>
           <Tag color="default" style={{ marginBottom: 16 }}>{t("Chưa kích hoạt")}</Tag>

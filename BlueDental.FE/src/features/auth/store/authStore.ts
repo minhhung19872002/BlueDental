@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { initBranchForSession } from "@/lib/clinicBranch";
 
 export interface UserInfo {
   id: string;
@@ -28,7 +29,10 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   isAuthenticated: false,
   avatarVersion: 0,
 
-  setAuth: (user) => set({ user, isAuthenticated: true }),
+  setAuth: (user) => {
+    set({ user, isAuthenticated: true });
+    initBranchForSession(user.clinicId);
+  },
   clearAuth: () => set({ user: null, isAuthenticated: false, avatarVersion: 0 }),
 
   hasPermission: (permission) =>
