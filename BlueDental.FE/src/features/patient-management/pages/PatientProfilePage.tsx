@@ -16,6 +16,7 @@ import { PillTabs } from "@/components/PillTabs";
 import { EmptyState } from "@/components/EmptyState";
 import { useAppointmentList } from "@/features/appointments/api/appointmentQueries";
 import { useTreatmentPlanList, usePatientPrescriptions } from "@/features/treatment-management/api/index";
+import { TreatmentPlanPanel } from "@/features/treatment-management/components/TreatmentPlanPanel";
 import { INVOICE_STATUS, usePatientInvoices } from "@/features/billing/api/index";
 import { usePatientLaboOrders } from "@/features/labo/api/laboApi";
 import { useCareRecordList } from "@/features/cskh/api/careApi";
@@ -485,83 +486,15 @@ export function PatientProfilePage() {
       key: "treatment-plan",
       label: t("Kế hoạch điều trị"),
       icon: <FileTextOutlined />,
+      // This tab used to draw its own table: the slip number was the first
+      // eight characters of the id, the dentist was a dash, and every money
+      // column read `estimatedCost`, a field the API has never returned, so
+      // the whole row of totals sat at 0 đ. TreatmentPlanPanel was already
+      // built against the endpoint that carries the slip code, the service
+      // lines, their money and their stage counts — it just was not wired in.
       children: (
         <div style={{ padding: "16px 0" }}>
-          {/* Summary cards */}
-          <Row gutter={12} style={{ marginBottom: 16 }}>
-            <Col span={12}>
-              <Card size="small" style={{ borderLeft: "4px solid var(--bd-blue)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ background: "var(--bd-blue)", color: "#fff", borderRadius: 12, padding: "2px 10px", fontWeight: 700, fontSize: 14 }}>0</span>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 13, color: "var(--bd-ink)" }}>{t("Dịch vụ đang điều trị")}</div>
-                    <div style={{ fontSize: 12, color: "var(--bd-faint)" }}>{t("Chưa có dịch vụ đang điều trị")}</div>
-                  </div>
-                </div>
-              </Card>
-            </Col>
-            <Col span={12}>
-              <Card size="small" style={{ borderLeft: "4px solid var(--bd-green)" }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 13, color: "var(--bd-ink)", marginBottom: 4 }}>{t("Dịch vụ có công đoạn gần nhất")}</div>
-                  <div style={{ fontSize: 12, color: "var(--bd-faint)" }}>{t("Chưa có công đoạn")}</div>
-                </div>
-              </Card>
-            </Col>
-          </Row>
-
-          {/* Treatment plan table */}
-          <Card size="small">
-            <Table
-              size="small"
-              rowKey="id"
-              columns={[
-                { title: t("Số phiếu"), dataIndex: "code", key: "code", width: 80 },
-                { title: t("Dịch vụ"), dataIndex: "serviceName", key: "serviceName", width: 200 },
-                { title: t("Bác sĩ tiếp nhận"), dataIndex: "doctorName", key: "doctorName", width: 140 },
-                {
-                  title: t("Trạng thái"),
-                  dataIndex: "status",
-                  key: "status",
-                  width: 140,
-                  // Same numeric enum as the banner: printed raw this read "4".
-                  render: (v: number | string) =>
-                    v === undefined || v === null ? null : (
-                      <Tag color={PLAN_STATUS_META[Number(v)]?.color ?? "default"}>
-                        {t(PLAN_STATUS_META[Number(v)]?.label ?? "Không rõ")}
-                      </Tag>
-                    ),
-                },
-                { title: t("Ngày tạo hồ sơ"), dataIndex: "createdAt", key: "createdAt", width: 110, render: (v: string) => v ? formatDate(v) : "—" },
-                { title: t("Tổng phiếu"), dataIndex: "totalAmount", key: "totalAmount", width: 120, align: "right", render: (v: number) => `${formatVND(v ?? 0)} đ` },
-                { title: t("Giảm giá"), dataIndex: "discountAmount", key: "discountAmount", width: 110, align: "right", render: (v: number) => `${formatVND(v ?? 0)} đ` },
-                { title: t("Thành tiền"), dataIndex: "finalAmount", key: "finalAmount", width: 120, align: "right", render: (v: number) => `${formatVND(v ?? 0)} đ` },
-                { title: t("Đã trả"), dataIndex: "paidAmount", key: "paidAmount", width: 110, align: "right", render: (v: number) => <Text style={{ color: "var(--bd-green)" }}>{formatVND(v ?? 0)} đ</Text> },
-                { title: t("Hoàn tiền"), dataIndex: "refundedAmount", key: "refundedAmount", width: 100, align: "right", render: (v: number) => `${formatVND(v ?? 0)} đ` },
-                { title: t("Còn lại"), dataIndex: "remainingAmount", key: "remainingAmount", width: 120, align: "right", render: (v: number) => <Text style={{ color: "var(--bd-red)" }}>{formatVND(v ?? 0)} đ</Text> },
-                { title: t("Phải thu"), dataIndex: "toCollect", key: "toCollect", width: 110, align: "right", render: (v: number) => `${formatVND(v ?? 0)} đ` },
-                { title: t("Thao tác"), key: "actions", width: 80, fixed: "right", render: () => <Space size={4}><Button type="text" size="small" icon={<EditOutlined />} /></Space> },
-              ]}
-              dataSource={plans.map((p) => ({
-                id: p.id,
-                code: p.id.slice(0, 8).toUpperCase(),
-                serviceName: p.title,
-                doctorName: "—",
-                status: p.status,
-                createdAt: p.creationTime,
-                totalAmount: p.estimatedCost ?? 0,
-                discountAmount: 0,
-                finalAmount: p.estimatedCost ?? 0,
-                paidAmount: 0,
-                refundedAmount: 0,
-                remainingAmount: p.estimatedCost ?? 0,
-                toCollect: p.estimatedCost ?? 0,
-              }))}
-              pagination={{ pageSize: 20, showTotal: (total, range) => `${range[0]}–${range[1]} / ${total}` }}
-              scroll={{ x: 1400 }}
-              locale={{ emptyText: <span style={{ color: "var(--bd-faint)" }}>{t("Chưa có kế hoạch điều trị")}</span> }}
-            />
-          </Card>
+          <TreatmentPlanPanel patientId={id ?? ""} />
         </div>
       ),
     },

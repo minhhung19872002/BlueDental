@@ -94,8 +94,11 @@ function mapVisitDto(dto: Record<string, unknown>): ReceptionItem {
     counterStatus: mapCounterStatus(dto.status),
     totalDue: 0,
     expectedRevenue: 0,
-    services: [(dto.procedureName as string) || "Khám tư vấn"],
-    notes: (dto.notes as string) || (dto.chiefComplaint as string) || undefined,
+    // A visit records why the patient came, not a service line — there is no
+    // procedure on this contract, so the column used to print the same
+    // invented "Khám tư vấn" on every row.
+    services: dto.chiefComplaint ? [dto.chiefComplaint as string] : [],
+    notes: (dto.notes as string) || undefined,
     // The instant, not a clock face: every reader formats it themselves. It
     // reads `scheduledAt` because `slotStart` belongs to the appointment
     // contract and was never on this response.
