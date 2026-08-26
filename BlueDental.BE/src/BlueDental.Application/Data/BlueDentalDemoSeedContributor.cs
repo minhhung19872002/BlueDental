@@ -41,7 +41,8 @@ public class BlueDentalDemoSeedContributor(
     IGuidGenerator guidGenerator,
     IConfiguration configuration,
     BlueDentalClinicalDemoSeeder clinicalSeeder,
-    BlueDentalOperationsDemoSeeder operationsSeeder) : IDataSeedContributor, ITransientDependency
+    BlueDentalOperationsDemoSeeder operationsSeeder,
+    BlueDentalReportsDemoSeeder reportsSeeder) : IDataSeedContributor, ITransientDependency
 {
     /// <summary>
     /// The calendar picks its columns from whoever holds this role. Without it
@@ -159,6 +160,10 @@ public class BlueDentalDemoSeedContributor(
         // fills in whatever an earlier one could not.
         await clinicalSeeder.SeedAsync(patients, dentistIds);
         await operationsSeeder.SeedAsync(patients, dentistIds.Concat(staffIds).ToList());
+
+        // Depth for the Vận hành reports: the same chain, spread over two
+        // months so a date filter has something to filter.
+        await reportsSeeder.SeedAsync(patients, dentistIds.Concat(staffIds).ToList());
     }
 
     /// <summary>

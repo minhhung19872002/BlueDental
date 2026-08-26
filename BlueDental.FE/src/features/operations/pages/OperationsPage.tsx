@@ -16,6 +16,7 @@ import { OperationArticleModal } from "../components/OperationArticleModal";
 import { OperationCategoryModal } from "../components/OperationCategoryModal";
 import { OperationCategoryPanel } from "../components/OperationCategoryPanel";
 import { OperationReportPanel } from "../components/OperationReportPanel";
+import { reportScreenFor } from "../reports/reportScreens";
 import { operationsTotal } from "../operationsTotal";
 import {
   DEFAULT_MIDDLE_TAB,
@@ -287,7 +288,9 @@ export function OperationsPage() {
 
       {onMiddleReport ? (
         <div className="bd-min0h bd-flex1">
-          <OperationReportPanel label={middleTab?.label ?? ""} />
+          {reportScreenFor(middleTab?.key ?? "") ?? (
+            <OperationReportPanel label={middleTab?.label ?? ""} />
+          )}
         </div>
       ) : (
         <>
@@ -375,7 +378,7 @@ export function OperationsPage() {
             </div>
           ) : (
             <div className="bd-min0h bd-flex1">
-              <OperationReportPanel label={subTab.label} />
+              {reportScreenFor(subTab.key) ?? <OperationReportPanel label={subTab.label} />}
             </div>
           )}
         </>

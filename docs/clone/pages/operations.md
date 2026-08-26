@@ -152,19 +152,41 @@ Two deliberate departures:
   put the bytes in the row and broke the column outright (Postgres 22001). They
   go to blob storage and the body links to them.
 
-Sub-tabs that are reports render `OperationReportPanel`, which says the report
-is not built rather than showing the article screen and implying it works.
+### The report sub-tabs
+
+All of them are built, against tables the clinic already keeps:
+
+| Sub-tab | Reads |
+|---|---|
+| Báo cáo | diagnoses, consulting lines, service lines, stages and payments, unioned into one activity log and filtered by action |
+| Chẩn đoán chưa điều trị | `bd_patient_diagnoses` where `HasTreatmentService` is false |
+| Đơn thuốc | nothing — the reference has not built it either, and says so |
+| Khách hàng phát sinh | `bd_patient_advises` grouped by consultant; "new" means the clinic had not consulted that patient before the window opened |
+| Hóa đơn | `bd_invoices` |
+| Hoàn thành theo dịch vụ | service lines, with five figures over them |
+| Truy cập | the same service lines through every column, with three figures that double as the filter |
+
+`GET /api/v1/app/operations/reports/{work-log,untreated-diagnoses,consultant-summary,invoices,service-completion,sales-access}`,
+all read-only, all branch-scoped, all windowed by `Period` (1 Ngày, 2 Tuần,
+3 Tháng, 4 Năm) and an `Anchor` date the server squares to that period.
+
+Đơn thuốc renders the reference's own words — `Nội dung đang được xây dựng.` —
+rather than a report the reference does not have.
 
 ```
 UNKNOWN_REFERENCE_BEHAVIOR
 Page: /operations/<division>
-Control: the report sub-tabs and the Truy cập tab
-Reason: mọi bảng quan sát được đều rỗng hoặc gần rỗng, và các số liệu đằng sau
-        (hoá đơn, dịch vụ hoàn thành, lượt tư vấn, doanh số) chưa có trong
-        BlueDental, nên không suy ra được quy tắc lọc, cách tính hay phân trang.
-        Cột thì đã ghi lại ở trên.
-Action taken: BlueDental dựng khung tab đúng như bản gốc và nói rõ báo cáo chưa
-        được dựng. Cần quan sát lại khi có dữ liệu và khi BE có các bảng này.
+Control: cách bản gốc tính các con số trên thẻ, và vài cột luôn rỗng
+Reason: cột và nhãn thì quan sát được đầy đủ, nhưng bản gốc không lộ công thức:
+        "Thực thu" so với "Tổng doanh thu", "% đúng tiến độ", "Doanh thu từ KH
+        tạm ứng" (luôn 0 ở chi nhánh quan sát được), và các cột Nghề nghiệp,
+        Chẩn đoán 2, Bác sĩ hỗ trợ, Phụ tá, Tên chi tiết, Công đoạn, % Thuế đều
+        trống ở mọi dòng thấy được.
+Action taken: BlueDental tính theo cách hợp lý nhất với dữ liệu của mình —
+        "Thực thu"/"Dịch vụ hoàn thành" là tổng các dòng đã xong, "% đúng tiến
+        độ" là tỉ lệ dòng đã xong, "tạm ứng" để 0 — và các cột chưa có nguồn thì
+        hiện "—" đúng như bản gốc. Cần đối chiếu lại khi bản gốc có dữ liệu ở
+        những cột đó.
 ```
 
 ```

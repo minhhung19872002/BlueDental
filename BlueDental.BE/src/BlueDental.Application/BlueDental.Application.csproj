@@ -28,4 +28,9 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The report window arithmetic is internal; its tests need to see it. -->
+    <InternalsVisibleTo Include="BlueDental.Application.Tests" />
+  </ItemGroup>
+
 </Project>

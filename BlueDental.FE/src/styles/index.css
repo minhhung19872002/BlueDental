@@ -5739,3 +5739,250 @@ html:has(.ant-modal-wrap) {
 
   .bd-ops-panel { height: auto; max-height: 320px; }
 }
+
+/* ── Vận hành: báo cáo ───────────────────────────────────────────────────── */
+
+.bd-ops-report-screen {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  padding: 16px 20px;
+  overflow-y: auto;
+}
+
+/* The period switch sits at the right-hand end of the row above the report. */
+.bd-ops-report-bar {
+  display: flex;
+  flex-shrink: 0;
+  justify-content: flex-end;
+  padding-bottom: 16px;
+}
+
+.bd-ops-period {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.bd-ops-period-switch {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-control);
+  background: #fff;
+  padding: 3px;
+}
+
+.bd-ops-period-option {
+  cursor: pointer;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  padding: 7px 16px;
+  color: var(--bd-muted);
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 150ms, color 150ms;
+}
+
+.bd-ops-period-option:hover { color: var(--bd-ink); }
+
+.bd-ops-period-option--active {
+  background: var(--bd-blue);
+  color: #fff;
+}
+
+.bd-ops-period-step {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-control);
+  background: #fff;
+  padding: 3px;
+}
+
+.bd-ops-period-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  width: 30px;
+  height: 30px;
+  color: var(--bd-muted);
+}
+
+.bd-ops-period-arrow:hover {
+  background: var(--bd-bg-soft);
+  color: var(--bd-blue);
+}
+
+.bd-ops-period-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  min-width: 150px;
+  color: var(--bd-ink);
+  font-size: 13.5px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.bd-ops-report-filters {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 16px;
+}
+
+.bd-ops-filter { min-width: 240px; }
+
+/* ── Figures above a money report ────────────────────────────────────────── */
+
+.bd-ops-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  flex-shrink: 0;
+  gap: 12px;
+  padding-bottom: 16px;
+}
+
+.bd-ops-stat {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius);
+  background: #fff;
+  padding: 16px;
+  text-align: left;
+}
+
+.bd-ops-stat--pick { cursor: pointer; transition: border-color 150ms, box-shadow 150ms; }
+
+.bd-ops-stat--pick:hover { border-color: var(--bd-blue); }
+
+.bd-ops-stat--active {
+  border-color: var(--bd-blue);
+  box-shadow: 0 0 0 1px var(--bd-blue) inset;
+}
+
+.bd-ops-stat-icon {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  width: 36px;
+  height: 36px;
+  font-size: 16px;
+}
+
+.bd-ops-stat-icon--teal { background: #e6f5ef; color: var(--bd-green); }
+.bd-ops-stat-icon--blue { background: var(--bd-blue-pale); color: var(--bd-blue); }
+.bd-ops-stat-icon--amber { background: var(--bd-amber-pale); color: var(--bd-amber); }
+.bd-ops-stat-icon--green { background: var(--bd-green-pale); color: var(--bd-green); }
+.bd-ops-stat-icon--rose { background: var(--bd-red-pale); color: var(--bd-red); }
+
+.bd-ops-stat-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.bd-ops-stat-value {
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.bd-ops-stat-value--teal { color: var(--bd-green); }
+.bd-ops-stat-value--blue { color: var(--bd-blue); }
+.bd-ops-stat-value--amber { color: var(--bd-amber); }
+.bd-ops-stat-value--green { color: var(--bd-green); }
+.bd-ops-stat-value--rose { color: var(--bd-red); }
+
+.bd-ops-stat-label {
+  color: var(--bd-muted);
+  font-size: 12.5px;
+}
+
+.bd-ops-stat-badge {
+  align-self: flex-start;
+  margin-top: 6px;
+  border-radius: var(--bd-radius-sm);
+  padding: 3px 8px;
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.bd-ops-stat-badge--green { background: var(--bd-green-pale); color: var(--bd-green); }
+.bd-ops-stat-badge--rose { background: var(--bd-red-pale); color: var(--bd-red); }
+
+/* ── Report table cells ──────────────────────────────────────────────────── */
+
+.bd-ops-patient {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bd-ops-patient-name {
+  color: var(--bd-blue);
+  font-weight: 500;
+}
+
+.bd-ops-patient-since {
+  color: var(--bd-muted);
+  font-size: 11.5px;
+}
+
+.bd-ops-tag {
+  display: inline-flex;
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-bg-soft);
+  padding: 3px 10px;
+  font-size: 12.5px;
+}
+
+.bd-ops-pill {
+  display: inline-flex;
+  border: 1px solid;
+  border-radius: var(--bd-radius-pill);
+  padding: 3px 12px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.bd-ops-pill--done {
+  border-color: var(--bd-blue);
+  background: var(--bd-blue-pale);
+  color: var(--bd-blue);
+}
+
+.bd-ops-pill--own {
+  border-color: var(--bd-red);
+  background: var(--bd-red-pale);
+  color: var(--bd-red);
+}
+
+/* A sub-tab the reference itself has not built. */
+.bd-ops-construction {
+  border: 1px dashed var(--bd-line);
+  border-radius: var(--bd-radius);
+  background: #fff;
+  padding: 56px 24px;
+  color: var(--bd-muted);
+  font-size: 13.5px;
+  text-align: center;
+}

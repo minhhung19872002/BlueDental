@@ -6,8 +6,10 @@ using System.Text;
 using System.Threading.Tasks;
 using BlueDental.Catalogs;
 using Microsoft.Extensions.Configuration;
+using Volo.Abp;
 using Volo.Abp.Data;
 using Volo.Abp.DependencyInjection;
+using Volo.Abp.Domain.Entities;
 using Volo.Abp.Domain.Repositories;
 
 namespace BlueDental.Data;
@@ -30,8 +32,27 @@ public class BlueDentalTaxonomyDemoSeedContributor(
     IRepository<CatalogEntry, Guid> catalogRepository,
     IRepository<PatientTag, Guid> tagRepository,
     IRepository<PaymentAccount, Guid> paymentRepository,
+    IDataFilter<ISoftDelete> softDeleteFilter,
     IConfiguration configuration) : IDataSeedContributor, ITransientDependency
 {
+    /// <summary>
+    /// Does a row with this id exist — deleted ones included?
+    ///
+    /// Seeded ids are deterministic, and a soft-deleted row keeps its primary
+    /// key while dropping out of every ordinary query. Asking the ordinary way
+    /// answers "no" for a row that is still very much occupying that id, and the
+    /// insert that follows dies on the primary key. One deleted demo row was
+    /// enough to stop the whole seeder, and with it every screen downstream.
+    /// </summary>
+    private async Task<bool> ExistsAsync<TEntity>(IRepository<TEntity, Guid> repository, Guid id)
+        where TEntity : class, IEntity<Guid>
+    {
+        using (softDeleteFilter.Disable())
+        {
+            return await repository.AnyAsync(x => x.Id == id);
+        }
+    }
+
     /// <summary>One group of a catalog and the rows inside it.</summary>
     private sealed record GroupSeed(string Name, params EntrySeed[] Entries);
 
@@ -258,7 +279,7 @@ public class BlueDentalTaxonomyDemoSeedContributor(
                 var seed = groups[groupIndex];
                 var taxonomyId = DeterministicId($"taxonomy|{branchId}|{group}|{seed.Name}");
 
-                if (!await taxonomyRepository.AnyAsync(x => x.Id == taxonomyId))
+                if (!await ExistsAsync(taxonomyRepository, taxonomyId))
                 {
                     await taxonomyRepository.InsertAsync(
                         Taxonomy.Create(taxonomyId, branchId, group, seed.Name, sortOrder: groupIndex),
@@ -270,7 +291,7 @@ public class BlueDentalTaxonomyDemoSeedContributor(
                     var entry = seed.Entries[entryIndex];
                     var entryId = DeterministicId($"entry|{branchId}|{group}|{seed.Name}|{entry.Name}");
 
-                    if (await catalogRepository.AnyAsync(x => x.Id == entryId))
+                    if (await ExistsAsync(catalogRepository, entryId))
                     {
                         continue;
                     }
