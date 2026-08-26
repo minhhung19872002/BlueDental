@@ -301,12 +301,23 @@ test.describe("Vận hành — báo cáo", () => {
       el.scrollTop = el.scrollHeight;
     });
 
-    // The header did not move, and everything below is now reachable.
+    // The header did not move, and the last row is now inside the scroller
+    // rather than below its floor. Measured against the table's own box: the
+    // screen around it may scroll as well, which says nothing about whether the
+    // list can be read to the end.
     expect(
       await header.evaluate((el) => el.getBoundingClientRect().top),
     ).toBeCloseTo(headerTop, 0);
-    await expect(page.locator("tbody tr.ant-table-row").last()).toBeInViewport();
-    await expect(page.locator(".ant-pagination").first()).toBeInViewport();
+
+    const lastRowReached = await page.evaluate(() => {
+      const scroller = document.querySelector(".bd-cat-card .ant-table-content")!;
+      const rows = document.querySelectorAll("tbody tr.ant-table-row");
+      const last = rows[rows.length - 1];
+      const box = scroller.getBoundingClientRect();
+      const row = last.getBoundingClientRect();
+      return row.bottom <= box.bottom + 1 && row.top >= box.top - 1;
+    });
+    expect(lastRowReached).toBe(true);
   });
 
   test("the visit cell is centred against the block it spans", async ({ page }) => {
@@ -448,5 +459,54 @@ test.describe("Vận hành — báo cáo", () => {
     const patient = await style(page.locator(".bd-ops-patient-name").first());
     expect(patient.size).toBe("14px");
     expect(Number(patient.weight)).toBeGreaterThanOrEqual(600);
+  });
+
+  test("the money tables group their rows by day and then by patient", async ({ page }) => {
+    for (const url of [
+      "/operations/finance?financeSubTab=service-complete",
+      "/operations/treatment?treatmentTab=access",
+    ]) {
+      await page.goto(url);
+      await expect(page.locator("tbody tr.ant-table-row").first()).toBeVisible();
+
+      const grouped = await page.evaluate(() => {
+        const rows = [...document.querySelectorAll("tbody tr.ant-table-row")];
+        // The date cell is the first in a row that starts a day; a patient cell
+        // spans the services that patient had that day.
+        const spans = rows
+          .flatMap((tr) => [...tr.querySelectorAll("td")])
+          .map((td) => (td as HTMLTableCellElement).rowSpan);
+        return Math.max(...spans);
+      });
+
+      // With several services on one day, something has to span more than one
+      // row — a flat table spans nothing.
+      expect(grouped).toBeGreaterThan(1);
+    }
+  });
+
+  test("a wide report gives its horizontal bar something to take hold of", async ({ page }) => {
+    await page.goto("/operations/finance?financeSubTab=service-complete");
+    await expect(page.locator("tbody tr.ant-table-row").first()).toBeVisible();
+
+    const body = page.locator(".bd-cat-card .ant-table-content");
+
+    // Wide enough to pan sideways at all.
+    expect(await body.evaluate((el) => el.scrollWidth > el.clientWidth + 2)).toBe(true);
+
+    // It really pans, rather than merely being wider than its box.
+    await body.evaluate((el) => {
+      el.scrollLeft = el.scrollWidth;
+    });
+    expect(await body.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0);
+
+    // The bar's own thickness is deliberately not asserted: headless Chromium
+    // draws overlay scrollbars that take no layout space, so it measures 0 here
+    // whatever the styling says. In a real browser it is 14px against the 10px
+    // a page uses.
+
+    // And the table itself is worth reading rather than a couple of rows.
+    const card = (await page.locator(".bd-cat-card").boundingBox())!;
+    expect(card.height).toBeGreaterThanOrEqual(420);
   });
 });

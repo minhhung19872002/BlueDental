@@ -6368,7 +6368,9 @@ html:has(.ant-modal-wrap) {
   height: 100%;
   min-height: 0;
   padding: 16px 20px;
-  overflow: hidden;
+  /* The table below claims a minimum height, so on a short window the screen
+     has to be able to scroll rather than crushing it. */
+  overflow: hidden auto;
 }
 
 /* The period switch sits at the right-hand end of the row above the report. */
@@ -6785,7 +6787,21 @@ html:has(.ant-modal-wrap) {
    the same way the calendar keeps its header and scrolls its grid. */
 .bd-ops-report-screen .bd-cat-card {
   flex: 1;
-  min-height: 0;
+  /* Enough rows to be worth reading. Where the figures above take most of the
+     height there is little left, and a table showing two rows is not a table;
+     below this the screen scrolls instead. */
+  min-height: 420px;
+}
+
+/* A report wide enough to pan sideways needs a bar big enough to take hold of;
+   the 10px one that suits a page is fiddly under a table this wide. */
+.bd-ops-report-screen .ant-table-content::-webkit-scrollbar {
+  height: 14px;
+}
+
+.bd-ops-report-screen .ant-table-content::-webkit-scrollbar-thumb {
+  border-width: 3px;
+  min-width: 48px;
 }
 
 /* With no filters to sit opposite, the figure stands alone at the start. */

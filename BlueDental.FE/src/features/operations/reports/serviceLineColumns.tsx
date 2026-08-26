@@ -44,16 +44,47 @@ function classificationCell(row: ServiceLineRow) {
 const dash = (value: string | number | null | undefined) =>
   value === null || value === undefined || value === "" ? "—" : value;
 
+/**
+ * How the two money tables group: one block per day of work, and inside it one
+ * per patient — so a patient who had three things done that day names himself
+ * once, against all three.
+ */
+export interface ServiceLineSpans {
+  /** Rows in the order they are drawn, so a row can find its own index. */
+  indexOf: (row: ServiceLineRow) => number;
+  date: number[];
+  patient: number[];
+}
+
+export function serviceLineSpanKeys() {
+  return [
+    (row: ServiceLineRow) => row.occurredAt.slice(0, 10),
+    (row: ServiceLineRow) => `${row.occurredAt.slice(0, 10)}|${row.patientCode}`,
+  ];
+}
+
 /** Columns Hoàn thành theo dịch vụ shows. */
-export function serviceCompletionColumns(): ColumnsType<ServiceLineRow> {
+export function serviceCompletionColumns(spans?: ServiceLineSpans): ColumnsType<ServiceLineRow> {
+  const span = (of: "date" | "patient") =>
+    spans
+      ? (row: ServiceLineRow) => ({ rowSpan: spans[of][spans.indexOf(row)] })
+      : undefined;
+
   return [
     {
       key: "date",
       title: t("Ngày thao tác"),
       width: 140,
+      onCell: span("date"),
       render: (_, row) => <span className="bd-cat-num">{formatDate(row.occurredAt)}</span>,
     },
-    { key: "patient", title: t("Khách hàng"), width: 240, render: (_, row) => patientCell(row) },
+    {
+      key: "patient",
+      title: t("Khách hàng"),
+      width: 240,
+      onCell: span("patient"),
+      render: (_, row) => patientCell(row),
+    },
     { key: "branch", title: t("Chi nhánh"), dataIndex: "branchName", width: 220 },
     { key: "service", title: t("Dịch vụ"), dataIndex: "serviceName", width: 190 },
     { key: "group", title: t("Nhóm dịch vụ"), dataIndex: "serviceGroupName", width: 180 },
@@ -148,8 +179,8 @@ export function serviceCompletionColumns(): ColumnsType<ServiceLineRow> {
 }
 
 /** Truy cập shows everything above plus the columns below. */
-export function salesAccessColumns(): ColumnsType<ServiceLineRow> {
-  const base = serviceCompletionColumns();
+export function salesAccessColumns(spans?: ServiceLineSpans): ColumnsType<ServiceLineRow> {
+  const base = serviceCompletionColumns(spans);
   const at = (key: string) => base.findIndex((c) => c.key === key);
 
   const columns = [...base];
