@@ -24,10 +24,12 @@ public class BlueDentalDataSeedContributor(
     }
 
     /// <summary>
-    /// Every business call resolves its clinic from the signed-in user, and a
-    /// user with no branch is refused outright. The admin account is seeded
-    /// without one, so it gets the default clinic here — otherwise the very
-    /// first screen after install answers BranchNotAssigned.
+    /// The admin account needs the ClinicBranchId extra property so that
+    /// <see cref="Application.Organizations.CurrentClinicBranchResolver"/> can
+    /// resolve a default branch. But admin must NOT have a
+    /// <see cref="StaffBranchAssignment"/> — that would restrict the header's
+    /// branch switcher to only that branch instead of showing all branches
+    /// (clinic-wide access).
     /// </summary>
     private async Task AssignAdminToDefaultBranchAsync()
     {
@@ -37,23 +39,19 @@ public class BlueDentalDataSeedContributor(
             return;
         }
 
-        // The claim the resolver reads comes from this extra property, so it is
-        // what actually unblocks the API; the assignment row is what the rota
-        // and staff lists read.
         if (admin.GetProperty<Guid?>(BlueDentalConsts.UserClinicBranchIdPropertyName) is null)
         {
             admin.SetProperty(BlueDentalConsts.UserClinicBranchIdPropertyName, DefaultBranchId);
             await userManager.UpdateAsync(admin);
         }
 
-        if (await assignmentRepository.AnyAsync(a => a.StaffId == admin.Id))
+        // Admin is clinic-wide: remove any branch assignment so
+        // BranchAccessChecker.GetAllowedBranchIdsAsync returns empty (= no limit).
+        var assignments = await assignmentRepository.GetListAsync(a => a.StaffId == admin.Id);
+        foreach (var a in assignments)
         {
-            return;
+            await assignmentRepository.DeleteAsync(a, autoSave: true);
         }
-
-        await assignmentRepository.InsertAsync(
-            StaffBranchAssignment.Assign(guidGenerator.Create(), admin.Id, DefaultBranchId, isPrimary: true),
-            autoSave: true);
     }
 
     private async Task SeedDefaultBranchAsync()

@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
+using Volo.Abp.Auditing;
+using Volo.Abp.Data;
 using Volo.Abp.Domain.Repositories;
 
 namespace BlueDental.Organizations;
@@ -15,18 +17,23 @@ public class ClinicBranchAppService : ApplicationService, IClinicBranchAppServic
 {
     private readonly IRepository<ClinicBranch, Guid> _repository;
     private readonly BranchAccessChecker _branchAccess;
+    private readonly IDataFilter<ISoftDelete> _softDeleteFilter;
 
     public ClinicBranchAppService(
         IRepository<ClinicBranch, Guid> repository,
-        BranchAccessChecker branchAccess)
+        BranchAccessChecker branchAccess,
+        IDataFilter<ISoftDelete> softDeleteFilter)
     {
         _repository = repository;
         _branchAccess = branchAccess;
+        _softDeleteFilter = softDeleteFilter;
     }
 
     [Authorize(BlueDentalPermissions.Organizations.View)]
     public async Task<PagedResultDto<ClinicBranchDto>> GetListAsync(GetClinicBranchListInput input)
     {
+        using var _ = input.IncludeDeleted ? _softDeleteFilter.Disable() : null;
+
         var query = await _repository.GetQueryableAsync();
 
         if (input.AccessibleOnly)

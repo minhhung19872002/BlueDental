@@ -16,6 +16,7 @@ export interface ClinicBranchDto {
   contactPerson?: string;
   status: string;
   lastModificationTime?: string;
+  isDeleted?: boolean;
 }
 
 export interface CreateClinicBranchDto {
@@ -62,9 +63,9 @@ export interface UpdateDepartmentDto {
 }
 
 const organizationApi = {
-  listBranches: (accessibleOnly = false): Promise<PagedResult<ClinicBranchDto>> =>
+  listBranches: (accessibleOnly = false, includeDeleted = false): Promise<PagedResult<ClinicBranchDto>> =>
     api
-      .get("/v1/app/clinic-branches", { params: { maxResultCount: 50, accessibleOnly } })
+      .get("/v1/app/clinic-branches", { params: { maxResultCount: 50, accessibleOnly, includeDeleted } })
       .then((r) => r.data),
 
   getBranch: (id: string): Promise<ClinicBranchDto> =>
@@ -97,10 +98,10 @@ const organizationApi = {
  * offer branches this account can actually read — picking another one would
  * simply 403 on every screen.
  */
-export function useClinicBranches(accessibleOnly = false) {
+export function useClinicBranches(accessibleOnly = false, includeDeleted = false) {
   return useQuery({
-    queryKey: ["clinic-branches", { accessibleOnly }],
-    queryFn: () => organizationApi.listBranches(accessibleOnly),
+    queryKey: ["clinic-branches", { accessibleOnly, includeDeleted }],
+    queryFn: () => organizationApi.listBranches(accessibleOnly, includeDeleted),
     select: (d) => d.items,
     staleTime: 10 * 60_000,
   });

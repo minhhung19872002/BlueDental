@@ -264,7 +264,13 @@ export function AppLayout() {
 
   const branchContent = (
     <div className="app-popover-list">
-      <div className="app-popover-header">{t("Chi nhánh")}</div>
+      <div className="app-popover-header">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="6" y1="3" x2="6" y2="15" /><circle cx="18" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><path d="M18 9a9 9 0 0 1-9 9" />
+        </svg>
+        {t("Chi nhánh")}
+      </div>
+      <div className="app-popover-divider" />
       <button
         type="button"
         className={`app-popover-item${currentBranchId === null ? " app-popover-item--active" : ""}`}
@@ -275,17 +281,15 @@ export function AppLayout() {
           style={{ background: currentBranchId === null ? "#25a97a" : brand.faint }}
         />
         <span>{t("Tất cả chi nhánh")}</span>
-        {currentBranchId === null && (
-          <CheckOutlined style={{ color: "#25a97a", fontSize: 12, marginLeft: "auto" }} />
-        )}
       </button>
+      {(branches ?? []).length > 0 && <div className="app-popover-divider" />}
       {(branches ?? []).map((branch) => {
         const isActive = branch.id === currentBranchId;
         return (
           <button
             key={branch.id}
             type="button"
-            className={`app-popover-item${isActive ? " app-popover-item--active" : ""}`}
+            className={`app-popover-item app-popover-item--branch${isActive ? " app-popover-item--active" : ""}`}
             onClick={() => handleBranchChange(branch.id)}
           >
             <span
@@ -293,9 +297,6 @@ export function AppLayout() {
               style={{ background: isActive ? "#25a97a" : brand.faint }}
             />
             <span>{branch.name}</span>
-            {isActive && (
-              <CheckOutlined style={{ color: "#25a97a", fontSize: 12, marginLeft: "auto" }} />
-            )}
           </button>
         );
       })}

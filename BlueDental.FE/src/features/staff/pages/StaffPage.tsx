@@ -3,7 +3,6 @@ import { toast } from "sonner";
 import {
   Button,
   Input,
-  Popconfirm,
   Tooltip,
 } from "antd";
 import {
@@ -29,6 +28,7 @@ import { useBranchStore } from "@/lib/clinicBranch";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useTablePagination } from "@/hooks/useTablePagination";
 
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { PageHeader } from "@/components/PageHeader";
 import { DataTable } from "@/components/DataTable";
 import { MobileFilterDrawer } from "@/components/MobileFilterDrawer";
@@ -49,6 +49,7 @@ export function StaffPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [editing, setEditing] = useState<StaffDto | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<StaffDto | null>(null);
 
   const [filterOpen, setFilterOpen] = useState(false);
   const [draftKeyword, setDraftKeyword] = useState("");
@@ -91,12 +92,15 @@ export function StaffPage() {
     setModalOpen(true);
   };
 
-  const handleDelete = async (staff: StaffDto) => {
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
     try {
-      await deleteStaff.mutateAsync(staff.id);
+      await deleteStaff.mutateAsync(pendingDelete.id);
       toast.success(t("Đã xoá nhân viên"));
     } catch {
       // Global MutationCache.onError already shows the toast
+    } finally {
+      setPendingDelete(null);
     }
   };
 
@@ -212,23 +216,15 @@ export function StaffPage() {
               onClick={(e) => { e.stopPropagation(); openEdit(record); }}
             />
           </Tooltip>
-          <Popconfirm
-            title={t("Xoá nhân viên này?")}
-            description={record.fullName || record.userName}
-            okText={t("Xoá")}
-            cancelText={t("Huỷ")}
-            onConfirm={() => handleDelete(record)}
-          >
-            <Tooltip title={t("Xoá")}>
-              <Button
-                type="text"
-                size="small"
-                danger
-                icon={<DeleteOutlined />}
-                onClick={(e) => e.stopPropagation()}
-              />
-            </Tooltip>
-          </Popconfirm>
+          <Tooltip title={t("Xoá")}>
+            <Button
+              type="text"
+              size="small"
+              danger
+              icon={<DeleteOutlined />}
+              onClick={(e) => { e.stopPropagation(); setPendingDelete(record); }}
+            />
+          </Tooltip>
         </div>
       ),
     },
@@ -329,6 +325,15 @@ export function StaffPage() {
         loading={createStaff.isPending || updateStaff.isPending}
         onSubmit={(v, avatar) => void handleSubmit(v, avatar)}
         onClose={() => setModalOpen(false)}
+      />
+
+      <ConfirmDeleteDialog
+        open={pendingDelete !== null}
+        noun={t("nhân viên")}
+        name={pendingDelete?.fullName || pendingDelete?.userName || ""}
+        pending={deleteStaff.isPending}
+        onConfirm={() => void confirmDelete()}
+        onClose={() => setPendingDelete(null)}
       />
     </div>
   );

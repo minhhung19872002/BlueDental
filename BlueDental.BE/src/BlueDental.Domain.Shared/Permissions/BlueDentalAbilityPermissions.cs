@@ -171,6 +171,16 @@ public static class BlueDentalAbilityPermissions
         public const string Manage = "BlueDental.chatbot.manage";
     }
 
+    /// <summary>Subject <c>chatbotKnowledge</c>.</summary>
+    public static class ChatbotKnowledge
+    {
+        public const string Subject = "chatbotKnowledge";
+        public const string Read = "BlueDental.chatbotKnowledge.read";
+        public const string Create = "BlueDental.chatbotKnowledge.create";
+        public const string Update = "BlueDental.chatbotKnowledge.update";
+        public const string Delete = "BlueDental.chatbotKnowledge.delete";
+    }
+
     /// <summary>Subject <c>cskhCare</c>.</summary>
     public static class CskhCare
     {

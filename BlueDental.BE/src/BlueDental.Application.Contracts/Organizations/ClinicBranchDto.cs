@@ -99,4 +99,9 @@ public class GetClinicBranchListInput : PagedAndSortedResultRequestDto
     /// screens that administer branches.
     /// </summary>
     public bool AccessibleOnly { get; set; }
+
+    /// <summary>
+    /// When true, soft-deleted branches are included in the result.
+    /// </summary>
+    public bool IncludeDeleted { get; set; }
 }

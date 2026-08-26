@@ -58,6 +58,7 @@ public static class BlueDentalAbilities
         public const string CatalogSource = "catalogSource";
         public const string CatalogTemplate = "catalogTemplate";
         public const string Chatbot = "chatbot";
+        public const string ChatbotKnowledge = "chatbotKnowledge";
         public const string CskhCare = "cskhCare";
         public const string CskhGroup = "cskhGroup";
         public const string HelpSupport = "helpSupport";
@@ -150,6 +151,7 @@ public static class BlueDentalAbilities
         ["catalogSource"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
         ["catalogTemplate"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
         ["chatbot"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Approve, Actions.Manage],
+        ["chatbotKnowledge"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete],
         ["cskhCare"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Export],
         ["cskhGroup"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Export],
         ["helpSupport"] = [Actions.Read],

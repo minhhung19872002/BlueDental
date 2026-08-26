@@ -2,13 +2,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { Button, Empty, Form, Input, Popconfirm, Select, Spin, Tooltip } from "antd";
+import { Button, Form, Input, Select, Spin, Tooltip } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
-  RightOutlined,
+
   SaveOutlined,
   UserOutlined,
   LockOutlined,
@@ -26,6 +26,7 @@ import {
   type ClinicBranchDto,
 } from "../api";
 import { authApi } from "@/features/auth/api";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { describeApiError } from "@/lib/apiError";
 import { BranchEditorModal } from "../components/BranchEditorModal";
 import { BranchManagerEditorModal, type BranchManagerFormValues } from "../components/BranchManagerEditorModal";
@@ -38,14 +39,14 @@ import {
   useDeleteBranchManager,
 } from "../api/branchManagerQueries";
 import { useDebounce } from "@/hooks/useDebounce";
-import { useStaffList, useStaffRoleNames } from "@/features/staff/api/staffQueries";
+import { PermissionsTab } from "../components/PermissionsTab";
 import { DataTable } from "@/components/DataTable";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { useCurrentBranchId, useBranchStore } from "@/lib/clinicBranch";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useMyProfile, useUpdateProfile, uploadProfileAvatar, deleteProfileAvatar } from "@/features/account/api/accountMutations";
 import { useStaff, staffKeys } from "@/features/staff/api/staffQueries";
-import { getAllProvinces, getWardsByProvince, type LocationOption } from "@/utils/vietnamLocations";
+import { getAllProvinces, getWardsByProvince, getProvinceName, getWardName, type LocationOption } from "@/utils/vietnamLocations";
 import { t } from "@/lib/i18n";
 
 type TabKey = "info" | "password" | "clinic" | "permission" | "branches" | "branch-manage";
@@ -511,78 +512,25 @@ function ClinicInfoTab({ branchId }: { branchId: string }) {
   );
 }
 
-/* ── Tab: Phân quyền ──────────────────────────────────────────────────── */
-
-function PermissionsTab() {
-  const { data: roleNames, isLoading: rolesLoading } = useStaffRoleNames();
-  const { data: staff, isLoading: staffLoading } = useStaffList({ maxResultCount: 200 });
-
-  const staffPerRole = new Map<string, number>();
-  for (const member of staff?.items ?? []) {
-    for (const role of member.roleNames) {
-      staffPerRole.set(role, (staffPerRole.get(role) ?? 0) + 1);
-    }
-  }
-
-  if (rolesLoading || staffLoading) {
-    return <Spin style={{ display: "block", textAlign: "center", padding: 40 }} />;
-  }
-
-  return (
-    <>
-      <div className="profile-content-title">{t("Phân quyền")}</div>
-      <div className="settings-section-header" style={{ marginBottom: 16 }}>
-        <div>
-          <div className="settings-section-desc">
-            {t("Nhấn vào vai trò để xem danh sách nhân viên")}
-          </div>
-        </div>
-      </div>
-
-      {(roleNames ?? []).length === 0 ? (
-        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("Chưa có vai trò")} />
-      ) : (
-        <div className="settings-roles-grid">
-          {(roleNames ?? []).map((role) => {
-            const count = staffPerRole.get(role) ?? 0;
-            return (
-              <div key={role} className="settings-role-card" role="button" tabIndex={0}>
-                <div className="settings-role-card-left">
-                  <div className="settings-role-card-avatar">
-                    {role.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <div className="settings-role-card-name">{role}</div>
-                    <div className="settings-role-card-count">
-                      {t("{0} thành viên", count)}
-                    </div>
-                  </div>
-                </div>
-                <RightOutlined className="settings-role-card-arrow" />
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </>
-  );
-}
-
 /* ── Tab: Danh sách chi nhánh ─────────────────────────────────────────── */
 
 function BranchListTab() {
-  const { data: branches, isLoading } = useClinicBranches();
+  const { data: branches, isLoading } = useClinicBranches(false, true);
   const deleteBranch = useDeleteBranch();
   const pagination = useTablePagination(20);
   const [branchModalOpen, setBranchModalOpen] = useState(false);
   const [editingBranch, setEditingBranch] = useState<ClinicBranchDto | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<ClinicBranchDto | null>(null);
 
-  const handleDeleteBranch = async (id: string) => {
+  const confirmDeleteBranch = async () => {
+    if (!pendingDelete) return;
     try {
-      await deleteBranch.mutateAsync(id);
+      await deleteBranch.mutateAsync(pendingDelete.id);
       toast.success(t("Xóa chi nhánh thành công"));
     } catch {
       // Global MutationCache.onError already shows the toast
+    } finally {
+      setPendingDelete(null);
     }
   };
 
@@ -630,36 +578,30 @@ function BranchListTab() {
       title: t("Thao tác"),
       width: 110,
       align: "center",
-      render: (_, record) => (
-        <div style={{ display: "flex", justifyContent: "center", gap: 4 }}>
-          <Tooltip title={t("Chỉnh sửa")}>
-            <Button
-              type="text"
-              size="small"
-              icon={<EditOutlined />}
-              onClick={(e) => { e.stopPropagation(); setEditingBranch(record); setBranchModalOpen(true); }}
-            />
-          </Tooltip>
-          <Popconfirm
-            title={t("Xóa chi nhánh này?")}
-            description={record.name}
-            okText={t("Xóa")}
-            cancelText={t("Hủy")}
-            okButtonProps={{ danger: true }}
-            onConfirm={() => handleDeleteBranch(record.id)}
-          >
+      render: (_, record) => {
+        if (record.isDeleted) return null;
+        return (
+          <div style={{ display: "flex", justifyContent: "center", gap: 4 }}>
+            <Tooltip title={t("Chỉnh sửa")}>
+              <Button
+                type="text"
+                size="small"
+                icon={<EditOutlined />}
+                onClick={(e) => { e.stopPropagation(); setEditingBranch(record); setBranchModalOpen(true); }}
+              />
+            </Tooltip>
             <Tooltip title={t("Xóa")}>
               <Button
                 type="text"
                 size="small"
                 danger
                 icon={<DeleteOutlined />}
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); setPendingDelete(record); }}
               />
             </Tooltip>
-          </Popconfirm>
-        </div>
-      ),
+          </div>
+        );
+      },
     },
   ];
 
@@ -686,6 +628,7 @@ function BranchListTab() {
         rowKey="id"
         loading={isLoading}
         pagination={pagination.buildConfig((branches ?? []).length)}
+        rowClassName={(record) => record.isDeleted ? "row-deleted" : ""}
       />
 
       <BranchEditorModal
@@ -693,11 +636,43 @@ function BranchListTab() {
         branch={editingBranch}
         onClose={() => setBranchModalOpen(false)}
       />
+
+      <ConfirmDeleteDialog
+        open={pendingDelete !== null}
+        noun={t("chi nhánh")}
+        name={pendingDelete?.name ?? ""}
+        pending={deleteBranch.isPending}
+        onConfirm={() => void confirmDeleteBranch()}
+        onClose={() => setPendingDelete(null)}
+      />
     </>
   );
 }
 
 /* ── Tab: Quản lý chi nhánh ───────────────────────────────────────────── */
+
+function useFullAddressMap(managers: BranchManagerDto[]) {
+  const [addressMap, setAddressMap] = useState<Map<string, string>>(new Map());
+  useEffect(() => {
+    let cancelled = false;
+    async function resolve() {
+      const result = new Map<string, string>();
+      for (const mgr of managers) {
+        const parts: string[] = [];
+        if (mgr.address) parts.push(mgr.address);
+        const wardName = await getWardName(mgr.provinceId, mgr.wardId);
+        if (wardName) parts.push(wardName);
+        const provinceName = await getProvinceName(mgr.provinceId);
+        if (provinceName) parts.push(provinceName);
+        result.set(mgr.id, parts.length > 0 ? parts.join(", ") : "");
+      }
+      if (!cancelled) setAddressMap(result);
+    }
+    if (managers.length > 0) void resolve();
+    return () => { cancelled = true; };
+  }, [managers]);
+  return addressMap;
+}
 
 function BranchManageTab() {
   const queryClient = useQueryClient();
@@ -705,6 +680,7 @@ function BranchManageTab() {
   const [keyword, setKeyword] = useState("");
   const [editing, setEditing] = useState<BranchManagerDto | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [pendingDeleteMgr, setPendingDeleteMgr] = useState<BranchManagerDto | null>(null);
   const debouncedKeyword = useDebounce(keyword);
   const currentBranchId = useBranchStore((s) => s.currentBranchId);
 
@@ -726,6 +702,7 @@ function BranchManageTab() {
   const deleteMgr = useDeleteBranchManager();
 
   const rows = data?.items ?? [];
+  const fullAddressMap = useFullAddressMap(rows);
 
   const openCreate = () => {
     setEditing(null);
@@ -737,12 +714,15 @@ function BranchManageTab() {
     setModalOpen(true);
   };
 
-  const handleDelete = async (mgr: BranchManagerDto) => {
+  const confirmDeleteMgr = async () => {
+    if (!pendingDeleteMgr) return;
     try {
-      await deleteMgr.mutateAsync(mgr.id);
+      await deleteMgr.mutateAsync(pendingDeleteMgr.id);
       toast.success(t("Đã xoá quản lý chi nhánh"));
     } catch {
       // Global MutationCache.onError already shows the toast
+    } finally {
+      setPendingDeleteMgr(null);
     }
   };
 
@@ -828,7 +808,7 @@ function BranchManageTab() {
       key: "address",
       title: t("Địa chỉ"),
       width: 350,
-      render: (_, record) => record.address || "—",
+      render: (_, record) => fullAddressMap.get(record.id) || record.address || "—",
     },
     {
       key: "actions",
@@ -845,23 +825,15 @@ function BranchManageTab() {
               onClick={(e) => { e.stopPropagation(); openEdit(record); }}
             />
           </Tooltip>
-          <Popconfirm
-            title={t("Xoá quản lý chi nhánh này?")}
-            description={record.fullName || record.userName}
-            okText={t("Xoá")}
-            cancelText={t("Huỷ")}
-            onConfirm={() => handleDelete(record)}
-          >
-            <Tooltip title={t("Xoá")}>
-              <Button
-                type="text"
-                size="small"
-                danger
-                icon={<DeleteOutlined />}
-                onClick={(e) => e.stopPropagation()}
-              />
-            </Tooltip>
-          </Popconfirm>
+          <Tooltip title={t("Xoá")}>
+            <Button
+              type="text"
+              size="small"
+              danger
+              icon={<DeleteOutlined />}
+              onClick={(e) => { e.stopPropagation(); setPendingDeleteMgr(record); }}
+            />
+          </Tooltip>
         </div>
       ),
     },
@@ -900,6 +872,15 @@ function BranchManageTab() {
         loading={createMgr.isPending || updateMgr.isPending}
         onSubmit={(v, avatar) => void handleSubmit(v, avatar)}
         onClose={() => setModalOpen(false)}
+      />
+
+      <ConfirmDeleteDialog
+        open={pendingDeleteMgr !== null}
+        noun={t("quản lý chi nhánh")}
+        name={pendingDeleteMgr?.fullName || pendingDeleteMgr?.userName || ""}
+        pending={deleteMgr.isPending}
+        onConfirm={() => void confirmDeleteMgr()}
+        onClose={() => setPendingDeleteMgr(null)}
       />
     </>
   );
@@ -962,7 +943,7 @@ export function ClinicSettingsPage() {
             ))}
           </div>
         </div>
-        <div className="profile-content">
+        <div className={activeTab === "permission" ? "profile-content profile-content--perm" : "profile-content"}>
           {renderContent()}
         </div>
       </div>

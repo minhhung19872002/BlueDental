@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Table, Button, Input, Tag, Empty, Popconfirm, Modal } from "antd";
+import { Table, Button, Input, Tag, Empty, Modal } from "antd";
 import { SearchOutlined, PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { PageHeader } from "@/components/PageHeader";
 import {
   useCallAssignments, useUpdateCallAssignmentStatus, useDeleteCallAssignment,
@@ -110,10 +111,22 @@ function CallConfigView() {
 
 function CallAssignView() {
   const [keyword, setKeyword] = useState("");
+  const [pendingDelete, setPendingDelete] = useState<CallAssignmentDto | null>(null);
   const { data, isLoading } = useCallAssignments({ filter: keyword || undefined });
   const assignments = data?.items ?? [];
   const updateStatus = useUpdateCallAssignmentStatus();
   const deleteAssignment = useDeleteCallAssignment();
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    try {
+      await deleteAssignment.mutateAsync(pendingDelete.id);
+    } catch {
+      // Global MutationCache.onError already shows the toast
+    } finally {
+      setPendingDelete(null);
+    }
+  };
 
   const CALL_STATUS_LABELS: Record<number, string> = {
     0: t("Chưa gọi"),
@@ -158,9 +171,7 @@ function CallAssignView() {
               </Button>
             </>
           )}
-          <Popconfirm title={t("Xoá phân công?")} onConfirm={() => deleteAssignment.mutateAsync(record.id)}>
-            <Button size="small" danger icon={<DeleteOutlined />} />
-          </Popconfirm>
+          <Button size="small" danger icon={<DeleteOutlined />} onClick={() => setPendingDelete(record)} />
         </div>
       ),
     },
@@ -191,15 +202,36 @@ function CallAssignView() {
           pagination={{ pageSize: 20, showTotal: (total) => t("Tổng phân công: {0}", total) }}
         />
       </div>
+
+      <ConfirmDeleteDialog
+        open={pendingDelete !== null}
+        noun={t("phân công")}
+        name={pendingDelete?.patientName ?? ""}
+        pending={deleteAssignment.isPending}
+        onConfirm={() => void confirmDelete()}
+        onClose={() => setPendingDelete(null)}
+      />
     </>
   );
 }
 
 function CallListView() {
   const [keyword, setKeyword] = useState("");
+  const [pendingDelete, setPendingDelete] = useState<CallLogDto | null>(null);
   const { data, isLoading } = useCallLogs({ filter: keyword || undefined });
   const callLogs = data?.items ?? [];
   const deleteLog = useDeleteCallLog();
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    try {
+      await deleteLog.mutateAsync(pendingDelete.id);
+    } catch {
+      // Global MutationCache.onError already shows the toast
+    } finally {
+      setPendingDelete(null);
+    }
+  };
 
   const CALL_DIRECTION_LABELS: Record<number, string> = {
     0: t("Gọi đến"),
@@ -240,9 +272,7 @@ function CallListView() {
     {
       title: "", key: "actions", width: 50,
       render: (_: unknown, record: CallLogDto) => (
-        <Popconfirm title={t("Xoá cuộc gọi")} onConfirm={() => deleteLog.mutateAsync(record.id)}>
-          <Button size="small" type="text" danger icon={<DeleteOutlined />} />
-        </Popconfirm>
+        <Button size="small" type="text" danger icon={<DeleteOutlined />} onClick={() => setPendingDelete(record)} />
       ),
     },
   ];
@@ -272,6 +302,15 @@ function CallListView() {
           pagination={{ pageSize: 20, showTotal: (total) => t("Tổng cuộc gọi: {0}", total) }}
         />
       </div>
+
+      <ConfirmDeleteDialog
+        open={pendingDelete !== null}
+        noun={t("cuộc gọi")}
+        name={pendingDelete?.patientName ?? ""}
+        pending={deleteLog.isPending}
+        onConfirm={() => void confirmDelete()}
+        onClose={() => setPendingDelete(null)}
+      />
     </>
   );
 }
@@ -301,6 +340,7 @@ function MessageTemplateView({ channel }: { channel: number }) {
   const [keyword, setKeyword] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MessageTemplateDto | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<MessageTemplateDto | null>(null);
   const [name, setName] = useState("");
   const [content, setContent] = useState("");
   const [category, setCategory] = useState("");
@@ -342,6 +382,17 @@ function MessageTemplateView({ channel }: { channel: number }) {
     }
   };
 
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    try {
+      await deleteTemplate.mutateAsync(pendingDelete.id);
+    } catch {
+      // Global MutationCache.onError already shows the toast
+    } finally {
+      setPendingDelete(null);
+    }
+  };
+
   const columns = [
     { title: t("Tên mẫu"),   dataIndex: "name",     key: "name" },
     { title: t("Nội dung"),         dataIndex: "content",  key: "content",  ellipsis: true },
@@ -361,9 +412,7 @@ function MessageTemplateView({ channel }: { channel: number }) {
       render: (_: unknown, record: MessageTemplateDto) => (
         <div style={{ display: "flex", gap: 6 }}>
           <Button size="small" onClick={() => openEdit(record)}>{t("Chỉnh sửa")}</Button>
-          <Popconfirm title={t("Xoá mẫu?")} onConfirm={() => deleteTemplate.mutateAsync(record.id)}>
-            <Button size="small" danger>{t("Xóa")}</Button>
-          </Popconfirm>
+          <Button size="small" danger onClick={() => setPendingDelete(record)}>{t("Xóa")}</Button>
         </div>
       ),
     },
@@ -422,6 +471,15 @@ function MessageTemplateView({ channel }: { channel: number }) {
           />
         </div>
       </Modal>
+
+      <ConfirmDeleteDialog
+        open={pendingDelete !== null}
+        noun={t("mẫu tin")}
+        name={pendingDelete?.name ?? ""}
+        pending={deleteTemplate.isPending}
+        onConfirm={() => void confirmDelete()}
+        onClose={() => setPendingDelete(null)}
+      />
     </>
   );
 }
