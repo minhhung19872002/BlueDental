@@ -10,6 +10,15 @@ import { login, runId } from "./fixtures/auth";
 
 const PANEL = 'nav[aria-label^="Nhóm"]';
 
+/** `#e5484d` and `rgb(229, 72, 77)` are the same colour; compare them as one. */
+function toRgb(colour: string): string {
+  if (!colour.startsWith("#")) return colour;
+
+  const hex = colour.slice(1);
+  const pair = (at: number) => parseInt(hex.slice(at, at + 2), 16);
+  return `rgb(${pair(0)}, ${pair(2)}, ${pair(4)})`;
+}
+
 /** Names of the group rows, in the order the panel is showing them. */
 async function groupOrder(page: Page): Promise<string[]> {
   return page
@@ -237,11 +246,24 @@ test.describe("Danh mục — nhóm phân loại", () => {
     await expect(dialog.locator("strong")).toHaveText(name);
     await expect(dialog.getByText("Hành động này không thể hoàn tác.")).toBeVisible();
 
-    // A delete cannot be taken back, so its button is not the same as "Lưu".
+    // A delete cannot be taken back, so its button is not the same as "Lưu":
+    // it carries the theme's error colour rather than the primary one.
     const remove = dialog.getByRole("button", { name: /Xoá$/ });
-    const colour = await remove.evaluate((el) => getComputedStyle(el).backgroundColor);
-    // brand.red, wired into the antd theme as colorError.
-    expect(colour).toBe("rgb(239, 77, 77)");
+    const [colour, danger, primary] = await remove.evaluate((el) => {
+      // Ant Design scopes its variables to a generated class rather than :root,
+      // so they are read from the button, where they are in scope.
+      const style = getComputedStyle(el);
+      return [
+        style.backgroundColor,
+        style.getPropertyValue("--ant-color-error").trim(),
+        style.getPropertyValue("--ant-color-primary").trim(),
+      ];
+    });
+
+    // Read from the token rather than pinned to a hex: the palette has been
+    // repainted once already and left this asserting the old red.
+    expect(toRgb(danger)).toBe(colour);
+    expect(toRgb(primary)).not.toBe(colour);
 
     await remove.click();
     await expect(dialog).toBeHidden();
