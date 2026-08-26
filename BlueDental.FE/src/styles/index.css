@@ -5604,7 +5604,9 @@ html:has(.ant-modal-wrap) {
   display: flex;
   flex-shrink: 0;
   flex-wrap: nowrap;
-  align-items: flex-start;
+  /* Centred, so the switch lines up with the tabs rather than sitting a few
+     pixels above them — and stays centred against the block once they wrap. */
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
   border-bottom: 1px solid var(--bd-line);
