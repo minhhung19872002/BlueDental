@@ -5827,8 +5827,6 @@ html:has(.ant-modal-wrap) {
   .bd-ops-shell {
     grid-template-columns: minmax(0, 1fr);
   }
-
-  .bd-ops-panel { height: auto; max-height: 320px; }
 }
 
 /* ── Vận hành: báo cáo ───────────────────────────────────────────────────── */
@@ -6277,4 +6275,64 @@ html:has(.ant-modal-wrap) {
   }
 
   .bd-ops-tabrow-end .bd-ops-period { justify-content: flex-start; }
+}
+
+/* ── Vận hành và Danh mục trên màn hẹp ──────────────────────────────────── */
+
+/* Below 900px both screens stop being a fixed pane and become an ordinary
+   scrolling page.
+   Holding the desktop shape here broke three things at once: the category panel
+   overflowed the grid cell it was given and painted over the toolbar beneath
+   it, the table was left a few pixels tall, and nothing scrolled at all —
+   every box was already exactly as tall as its parent, so there was nowhere to
+   scroll to. */
+@media (max-width: 900px) {
+  .bd-taxonomy-page {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  /* One column, each pane as tall as it needs to be. */
+  .bd-ops-shell,
+  .bd-taxonomy-shell {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+  }
+
+  .bd-ops-aside,
+  .bd-taxonomy-aside,
+  .bd-ops-main,
+  .bd-taxonomy-main {
+    min-height: 0;
+    height: auto;
+  }
+
+  /* The list of categories keeps its own scroll so it cannot run the page
+     long, and is bounded so it cannot spill over what follows it. */
+  .bd-ops-panel,
+  .bd-group-panel {
+    height: auto;
+    max-height: 320px;
+  }
+
+  /* The table grows to its rows and the page scrolls, rather than the table
+     scrolling inside a box too short to be useful. */
+  .bd-cat-card {
+    flex: none;
+    height: auto;
+    min-height: 0;
+  }
+
+  .bd-cat-card .ant-table-content,
+  .bd-cat-card .ant-table-body {
+    flex: none;
+    max-height: none;
+  }
+
+  /* A report is a page here too, not a frame with a scrolling middle. */
+  .bd-ops-report-screen {
+    height: auto;
+    overflow: visible;
+  }
 }

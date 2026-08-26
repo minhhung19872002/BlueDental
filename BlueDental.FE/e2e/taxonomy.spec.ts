@@ -273,4 +273,19 @@ test.describe("Danh mục", () => {
       .poll(async () => body.evaluate((el) => el.scrollHeight > el.clientHeight + 2))
       .toBe(true);
   });
+
+  test("a phone-width window scrolls the page and keeps the table usable", async ({ page }) => {
+    await page.setViewportSize({ width: 430, height: 780 });
+    await page.goto("/taxonomy/service");
+    await expect(page.locator("tbody tr.ant-table-row").first()).toBeVisible();
+
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollHeight > window.innerHeight + 2,
+      ),
+    ).toBe(true);
+
+    const card = (await page.locator(".bd-cat-card").boundingBox())!;
+    expect(card.height).toBeGreaterThan(180);
+  });
 });

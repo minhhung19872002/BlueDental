@@ -324,4 +324,30 @@ test.describe("Vận hành", () => {
     expect(painted).toBe(true);
     await expect(pinnedHeading).toBeVisible();
   });
+
+  test("a phone-width window scrolls the page instead of collapsing the panes", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 430, height: 780 });
+    await page.goto("/operations/overview");
+    await expect(page.locator("tbody tr.ant-table-row").first()).toBeVisible();
+
+    // The page scrolls — every box used to be exactly as tall as its parent, so
+    // there was nowhere to scroll to.
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollHeight > window.innerHeight + 2,
+      ),
+    ).toBe(true);
+
+    // The category panel is bounded and clear of the toolbar it used to paint
+    // over.
+    const panel = (await page.locator(".bd-ops-panel").boundingBox())!;
+    const toolbar = (await page.locator(".bd-ops-toolbar").boundingBox())!;
+    expect(toolbar.y).toBeGreaterThanOrEqual(panel.y + panel.height);
+
+    // And the table is a table, not the few pixels it was left with.
+    const card = (await page.locator(".bd-cat-card").boundingBox())!;
+    expect(card.height).toBeGreaterThan(300);
+  });
 });
