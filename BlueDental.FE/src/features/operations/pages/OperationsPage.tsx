@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { Button, Input, Tooltip } from "antd";
+import { Button, Drawer, Input, Tooltip } from "antd";
 import { toast } from "sonner";
-import { DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
+import {
+  DeleteOutlined,
+  EditOutlined,
+  MenuOutlined,
+  PlusOutlined,
+  SearchOutlined,
+} from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import {
   useDeleteOperationArticle,
@@ -85,6 +91,8 @@ export function OperationsPage() {
     article: OperationArticleDto | null;
   }>({ open: false, article: null });
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
+  /** The category panel is a drawer on a narrow window, as it is in Danh mục. */
+  const [groupsOpen, setGroupsOpen] = useState(false);
 
   const debouncedKeyword = useDebounce(keyword, 300);
 
@@ -255,6 +263,24 @@ export function OperationsPage() {
     [],
   );
 
+  const categoryPanel = (
+    <OperationCategoryPanel
+      label={t("Phân loại")}
+      categories={categories}
+      isLoading={categoriesQuery.isLoading}
+      selectedId={selectedCategoryId}
+      onSelect={(id) => {
+        selectCategory(id === selectedCategoryId ? null : id);
+        setGroupsOpen(false);
+      }}
+      onCreate={() => setCategoryModal({ open: true, category: null })}
+      onRename={(category) => setCategoryModal({ open: true, category })}
+      onDelete={(category) =>
+        setPendingDelete({ kind: "category", id: category.id, name: category.name })
+      }
+    />
+  );
+
   return (
     <div className="bd-taxonomy-page">
       <PageTabBar
@@ -324,22 +350,27 @@ export function OperationsPage() {
           {showsArticles ? (
             <div className="bd-min0h bd-flex1">
               <div className="bd-ops-shell">
-                <aside className="bd-ops-aside">
-                  <OperationCategoryPanel
-                    label={t("Phân loại")}
-                    categories={categories}
-                    isLoading={categoriesQuery.isLoading}
-                    selectedId={selectedCategoryId}
-                    onSelect={(id) => selectCategory(id === selectedCategoryId ? null : id)}
-                    onCreate={() => setCategoryModal({ open: true, category: null })}
-                    onRename={(category) => setCategoryModal({ open: true, category })}
-                    onDelete={(category) =>
-                      setPendingDelete({ kind: "category", id: category.id, name: category.name })
-                    }
-                  />
-                </aside>
+                <aside className="bd-ops-aside">{categoryPanel}</aside>
+
+                <Drawer
+                  open={groupsOpen}
+                  onClose={() => setGroupsOpen(false)}
+                  placement="left"
+                  size={288}
+                  title={t("Phân loại")}
+                  className="bd-group-drawer"
+                  styles={{ body: { padding: 0 } }}
+                >
+                  {categoryPanel}
+                </Drawer>
 
                 <main className="bd-ops-main">
+                  <div className="bd-cat-header bd-cat-header--bar">
+                    <Button type="link" icon={<MenuOutlined />} onClick={() => setGroupsOpen(true)}>
+                      {t("Chọn nhóm")}
+                    </Button>
+                  </div>
+
                   <div className="bd-ops-toolbar">
                     <Button
                       type="primary"

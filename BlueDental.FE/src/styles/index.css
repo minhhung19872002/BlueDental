@@ -6344,18 +6344,14 @@ html:has(.ant-modal-wrap) {
     max-height: 320px;
   }
 
-  /* The table grows to its rows and the page scrolls, rather than the table
-     scrolling inside a box too short to be useful. */
+  /* The table is given a workable height and scrolls its rows inside it.
+     Letting it grow to every row instead made the page enormously long — 1262px
+     of table for twenty rows — with the pager stranded at the far bottom. */
   .bd-cat-card {
     flex: none;
     height: auto;
-    min-height: 0;
-  }
-
-  .bd-cat-card .ant-table-content,
-  .bd-cat-card .ant-table-body {
-    flex: none;
-    max-height: none;
+    max-height: 62vh;
+    min-height: 320px;
   }
 
   /* A report is a page here too, not a frame with a scrolling middle. */
@@ -6363,4 +6359,14 @@ html:has(.ant-modal-wrap) {
     height: auto;
     overflow: visible;
   }
+}
+
+/* Below 768px the category column gives way to a drawer, opened from a
+   "Chọn nhóm" bar — the same shape Danh mục already uses at this width. */
+@media (max-width: 767px) {
+  .bd-ops-aside { display: none; }
+}
+
+@media (min-width: 768px) {
+  .bd-ops-main > .bd-cat-header--bar { display: none; }
 }

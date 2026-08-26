@@ -340,14 +340,23 @@ test.describe("Vận hành", () => {
       ),
     ).toBe(true);
 
-    // The category panel is bounded and clear of the toolbar it used to paint
-    // over.
-    const panel = (await page.locator(".bd-ops-panel").boundingBox())!;
-    const toolbar = (await page.locator(".bd-ops-toolbar").boundingBox())!;
-    expect(toolbar.y).toBeGreaterThanOrEqual(panel.y + panel.height);
+    // The category column is gone; it is reached through a drawer here, the
+    // way Danh mục does it at this width.
+    await expect(page.locator(".bd-ops-aside")).toBeHidden();
+    await page.locator(".bd-ops-main").getByRole("button", { name: "Chọn nhóm" }).click();
 
-    // And the table is a table, not the few pixels it was left with.
+    const drawer = page.getByRole("dialog", { name: "Phân loại" });
+    await expect(drawer).toBeVisible();
+    await expect(drawer.getByRole("button", { name: /Thêm Mới$/ })).toBeVisible();
+
+    // Picking a category closes the drawer and filters behind it.
+    await drawer.locator(".bd-ops-cat-name").first().click();
+    await expect(drawer).toBeHidden();
+
+    // The table is a workable height — neither the few pixels it collapsed to
+    // nor the 1262px it ran to when left unbounded.
     const card = (await page.locator(".bd-cat-card").boundingBox())!;
     expect(card.height).toBeGreaterThan(300);
+    expect(card.height).toBeLessThan(700);
   });
 });
