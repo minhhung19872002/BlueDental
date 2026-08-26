@@ -5552,10 +5552,11 @@ html:has(.ant-modal-wrap) {
 }
 
 /* Where the period switch is dropped, at the end of a tab row.
-   It keeps its line — dropping below the tabs was the thing that looked wrong —
-   but it may fold its two halves onto two lines when the row runs out of width,
+   Down to 900px it keeps its line — dropping below the tabs was the thing that
+   looked wrong — folding its two halves onto two lines as the row narrows,
    which leaves the tabs enough room to wrap sensibly instead of stacking one to
-   a line. */
+   a line. Below 900px there is no longer room for both and it takes its own
+   line under the tabs; see the media query further down. */
 .bd-ops-tabrow-end {
   display: flex;
   flex-shrink: 1;
@@ -6232,4 +6233,31 @@ html:has(.ant-modal-wrap) {
 .bd-ops-subject-detail {
   color: var(--bd-muted);
   font-size: 11.5px;
+}
+
+/* ── Vận hành: hàng tab trên màn hẹp ─────────────────────────────────────── */
+
+/* Under 900px the tabs and the period switch can no longer share a line — the
+   switch will not go below 265px, the widest tab is 172px, and the row is not
+   wide enough for both. Rather than let them overlap, the row wraps and the
+   switch takes its own line beneath the tabs. */
+@media (max-width: 900px) {
+  .bd-ops-subtabs,
+  .bd-ops-middletabs {
+    flex-wrap: wrap;
+  }
+
+  .bd-ops-subtabs .pill-tabs,
+  .bd-ops-middletabs-list {
+    flex: 1 1 100%;
+  }
+
+  .bd-ops-tabrow-end {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+    margin-left: 0;
+    padding-top: 0;
+  }
+
+  .bd-ops-tabrow-end .bd-ops-period { justify-content: flex-start; }
 }

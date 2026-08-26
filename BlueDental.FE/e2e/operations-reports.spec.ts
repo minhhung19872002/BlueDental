@@ -312,6 +312,20 @@ test.describe("Vận hành — báo cáo", () => {
     await expect.poll(pillLines).toBeGreaterThan(1);
     tops = await topsOf();
     expect(Math.abs(tops.pills - tops.period)).toBeLessThan(4);
+
+    // Narrower still, there is no longer room for both on one line — the switch
+    // drops onto its own line under the tabs, clear of them rather than sitting
+    // on top. Polled because the measurement has to wait for the relayout.
+    await page.setViewportSize({ width: 560, height: 800 });
+    await expect
+      .poll(async () => {
+        const pillsBox = await pills.boundingBox();
+        const periodBox = await periodEnd.boundingBox();
+        if (!pillsBox || !periodBox) return null;
+        // Positive means the switch starts below where the tabs end.
+        return Math.round(periodBox.y - (pillsBox.y + pillsBox.height));
+      })
+      .toBeGreaterThanOrEqual(0);
   });
 
   test("the filter and the figure sit at opposite ends of the row", async ({ page }) => {
