@@ -4,9 +4,7 @@ using BlueDental.Controllers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Volo.Abp;
-using Microsoft.AspNetCore.Http;
 using Volo.Abp.Application.Dtos;
-using Volo.Abp.Content;
 
 namespace BlueDental.Operations;
 
@@ -14,8 +12,7 @@ namespace BlueDental.Operations;
 [Authorize]
 [Route("api/v1/app/operations")]
 public sealed class OperationController(
-    IOperationAppService service,
-    IOperationArticleImageAppService images) : BlueDentalController
+    IOperationAppService service) : BlueDentalController
 {
     [HttpGet("categories")]
     public Task<PagedResultDto<OperationCategoryDto>> GetCategoryListAsync(
@@ -48,30 +45,4 @@ public sealed class OperationController(
     [HttpDelete("articles/{id}")]
     public Task DeleteArticleAsync(Guid id) => service.DeleteArticleAsync(id);
 
-    /// <summary>
-    /// An image dropped into an article's body. Multipart, so the DTO is bound
-    /// by hand rather than from the JSON body — the same shape the QR upload
-    /// uses.
-    /// </summary>
-    [HttpPost("article-images")]
-    public Task<OperationArticleImageDto> UploadArticleImageAsync(
-        [FromForm] IFormFile file,
-        [FromForm] Guid clinicBranchId) =>
-        images.UploadAsync(new UploadOperationArticleImageDto
-        {
-            ClinicBranchId = clinicBranchId,
-            File = new RemoteStreamContent(
-                file.OpenReadStream(),
-                file.FileName,
-                file.ContentType,
-                file.Length),
-        });
-
-    [HttpGet("article-images/{id:guid}")]
-    public async Task<IActionResult> GetArticleImageAsync(Guid id)
-    {
-        var content = await images.GetAsync(id);
-
-        return File(content.GetStream(), content.ContentType ?? "application/octet-stream");
-    }
 }

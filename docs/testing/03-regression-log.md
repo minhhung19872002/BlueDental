@@ -473,3 +473,19 @@ dòng cuối ở 903px và pager ở 968px — trong khung 1000px. Ngang: màn T
 
 FE: **44/44** trên bản build production.
 
+## 2026-08-26 — Ảnh trong rich text: một kho dùng chung cho mọi trình soạn
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-114 | Vận hành: ảnh hiện rõ → mất → hiện lại | Đổi placeholder sang URL mà trình duyệt **chưa từng tải**, nên thẻ `<img>` trống cho tới khi ảnh về | Đổi ngay khi upload trả về | Tải ảnh trước rồi mới đổi, nên lúc đổi là đổi sang thứ đã có trong cache | `rich-image.spec.ts` theo dõi editor bằng `requestAnimationFrame`, **đỏ nếu ảnh rời khỏi DOM dù một frame** |
+| R-115 | Danh mục: ảnh mờ vĩnh viễn | Lớp mờ nghĩa "đang gửi lên", gắn theo điều kiện `src` là data URL — đúng với ảnh đang bay, nhưng editor đó nhúng ảnh và **giữ luôn**, nên mờ mãi | Selector theo `src` thay vì theo trạng thái | Chỉ editor **có upload** mới làm mờ placeholder | `rich-image.spec.ts` |
+| R-116 | Hai trình soạn giống hệt nhau nhưng **lưu ảnh khác nhau** | Vận hành đẩy bytes ra blob, Danh mục nhúng base64 vào cột `Content`. Cột là `text` nên không sập như lỗi 22001 trước đó, nhưng **mỗi lần đọc danh sách danh mục vẫn kéo theo toàn bộ bytes ảnh** | Kho ảnh được dựng riêng cho Vận hành | Gom thành một: `RichTextImage` trong `FileManagement`, bảng `bd_rich_text_images`, endpoint `/api/v1/app/rich-text-images`, hook `useUploadRichTextImage` dùng chung. Migration chỉ **đổi tên bảng** nên mọi id giữ nguyên, và route cũ vẫn trả ảnh vì link cũ đã nằm sẵn trong nội dung bài viết | `rich-image.spec.ts` khẳng định **cả hai** chốt ở link đã lưu và **không còn** `img[src^="data:"]` |
+
+**Đính chính một điều tôi từng nói sai:** trong các commit trước tôi ghi hai test
+`BlueDentalAbilitiesTests` là "lỗi có sẵn trên nhánh". Đo lại lần này: chúng
+**xanh** trên cả cây hiện tại lẫn cây đã stash sạch thay đổi. Nhiều khả năng lần
+đo trước tôi chạy trên bản build cũ. BE hiện **696/696**, không còn lỗi nào đã
+biết.
+
+FE: **43/43** (rich-image, operations, taxonomy ×3) trên bản build production.
+

@@ -273,7 +273,7 @@ test.describe("Vận hành", () => {
     // The body links to the image rather than carrying its bytes.
     const img = dialog.locator(".ql-editor img");
     await expect(img).toBeVisible();
-    await expect(img).toHaveAttribute("src", /\/api\/v1\/app\/operations\/article-images\//);
+    await expect(img).toHaveAttribute("src", /\/api\/v1\/app\/rich-text-images\//);
 
     // Nothing of the file itself left in the body: a data: URL would put the
     // bytes in the row, which is the thing this replaced.

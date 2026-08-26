@@ -175,9 +175,16 @@ public static class BlueDentalDomainErrorCodes
     {
         public const string InvalidTaskTransition = "BlueDental:Operations:0001";
         public const string EmptyArticleContent = "BlueDental:Operations:0002";
-        public const string UnsupportedImage = "BlueDental:Operations:0003";
-        public const string ImageTooLarge = "BlueDental:Operations:0004";
-        public const string ImageNotFound = "BlueDental:Operations:0005";
+        // 0003-0005 were the image codes, now FileManagement's. Left listed so
+        // the numbers are not handed out twice.
+    }
+
+    /// <summary>Images and files a rich-text body links to.</summary>
+    public static class FileManagement
+    {
+        public const string UnsupportedImage = "BlueDental:FileManagement:0001";
+        public const string ImageTooLarge = "BlueDental:FileManagement:0002";
+        public const string ImageNotFound = "BlueDental:FileManagement:0003";
     }
 
     public static class Staff

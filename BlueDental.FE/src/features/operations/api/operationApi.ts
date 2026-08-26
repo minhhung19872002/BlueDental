@@ -82,12 +82,6 @@ const operationApi = {
     api.post("/v1/app/operations/articles", data).then((r) => r.data),
   updateArticle: (id: string, data: UpdateOperationArticleDto): Promise<OperationArticleDto> =>
     api.put(`/v1/app/operations/articles/${id}`, data).then((r) => r.data),
-  uploadArticleImage: (clinicBranchId: string, file: File): Promise<{ id: string; url: string }> => {
-    const body = new FormData();
-    body.append("file", file);
-    body.append("clinicBranchId", clinicBranchId);
-    return api.post("/v1/app/operations/article-images", body).then((r) => r.data);
-  },
   deleteArticle: (id: string): Promise<void> =>
     api.delete(`/v1/app/operations/articles/${id}`).then((r) => r.data),
 };
@@ -192,13 +186,3 @@ export function useDeleteOperationArticle() {
   });
 }
 
-/**
- * Puts an image the user dropped into an article somewhere the row does not
- * have to carry it, and hands back the link the body keeps.
- */
-export function useUploadOperationArticleImage() {
-  return useMutation({
-    mutationFn: ({ clinicBranchId, file }: { clinicBranchId: string; file: File }) =>
-      operationApi.uploadArticleImage(clinicBranchId, file),
-  });
-}

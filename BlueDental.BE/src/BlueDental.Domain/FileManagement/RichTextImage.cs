@@ -2,18 +2,23 @@ using System;
 using Volo.Abp;
 using Volo.Abp.Domain.Entities.Auditing;
 
-namespace BlueDental.Operations;
+namespace BlueDental.FileManagement;
 
 /// <summary>
-/// An image dropped into an article's body.
+/// An image dropped into a rich-text body — an article, a piece of consulting
+/// data, a diagnosis.
 ///
 /// The editor writes HTML, and left alone it embeds a pasted image as a base64
-/// data URL inside that HTML. That put the bytes in the row: the article list
-/// returns every body, so twenty articles with a photo each would ship tens of
-/// megabytes on every page load — and BlueDental does not keep binaries in
-/// PostgreSQL. So the bytes go to blob storage and the body carries a link.
+/// data URL inside that HTML. That puts the bytes in the row: a list endpoint
+/// returns every body, so twenty rows with a photo each ship tens of megabytes
+/// on every page load — and BlueDental does not keep binaries in PostgreSQL.
+/// The bytes go to blob storage and the body carries a link.
+///
+/// Shared deliberately. This began life owned by Vận hành, while Danh mục went
+/// on embedding its images; two editors that look identical behaved differently
+/// and stored differently. One store, one endpoint, one set of limits.
 /// </summary>
-public class OperationArticleImage : FullAuditedAggregateRoot<Guid>
+public class RichTextImage : FullAuditedAggregateRoot<Guid>
 {
     /// <summary>Every row here is one branch's, as everywhere else.</summary>
     public Guid ClinicBranchId { get; private set; }
@@ -32,9 +37,9 @@ public class OperationArticleImage : FullAuditedAggregateRoot<Guid>
     public static bool IsSupported(string contentType) =>
         Array.IndexOf(Accepted, contentType.ToLowerInvariant()) >= 0;
 
-    protected OperationArticleImage() { }
+    protected RichTextImage() { }
 
-    public OperationArticleImage(
+    public RichTextImage(
         Guid id,
         Guid clinicBranchId,
         string blobName,
@@ -45,15 +50,15 @@ public class OperationArticleImage : FullAuditedAggregateRoot<Guid>
         if (!IsSupported(contentType))
         {
             throw new BusinessException(
-                BlueDentalDomainErrorCodes.Operations.UnsupportedImage,
-                "Only PNG, JPG, WEBP or GIF images can be placed in an article.");
+                BlueDentalDomainErrorCodes.FileManagement.UnsupportedImage,
+                "Only PNG, JPG, WEBP or GIF images can be placed in a body.");
         }
 
         if (sizeInBytes <= 0 || sizeInBytes > MaxBytes)
         {
             throw new BusinessException(
-                BlueDentalDomainErrorCodes.Operations.ImageTooLarge,
-                "An article image must be smaller than 5 MB.");
+                BlueDentalDomainErrorCodes.FileManagement.ImageTooLarge,
+                "An image in a body must be smaller than 5 MB.");
         }
 
         ClinicBranchId = clinicBranchId;

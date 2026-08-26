@@ -10,6 +10,7 @@ import {
 import { AppDialog } from "@/components/AppDialog";
 import { FloatingField } from "@/components/FloatingField";
 import { RichTextField } from "@/components/RichTextField";
+import { useUploadRichTextImage } from "@/hooks/useUploadRichTextImage";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 
@@ -48,6 +49,7 @@ export function RichCatalogDialog({
   const branchId = useCurrentBranchId();
   const createEntry = useCreateCatalogEntry();
   const updateEntry = useUpdateCatalogEntry();
+  const { upload: uploadImage } = useUploadRichTextImage();
 
   const [form] = Form.useForm<FormValues>();
   const name = Form.useWatch("name", form) ?? "";
@@ -176,7 +178,13 @@ export function RichCatalogDialog({
         </Row>
 
         <Form.Item name="content">
-          <RichTextField placeholder={t("Nhập nội dung tư vấn...")} />
+          <RichTextField
+            placeholder={t("Nhập nội dung tư vấn...")}
+            // Stored beside the row rather than inside it. This editor used to
+            // embed pictures as base64, which shipped their bytes with every
+            // read of the catalog list.
+            onUploadImage={uploadImage}
+          />
         </Form.Item>
 
         <Row gutter={[16, 12]}>

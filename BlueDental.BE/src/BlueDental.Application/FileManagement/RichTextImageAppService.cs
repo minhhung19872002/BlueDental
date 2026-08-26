@@ -10,10 +10,10 @@ using Volo.Abp.BlobStoring;
 using Volo.Abp.Content;
 using Volo.Abp.Domain.Repositories;
 
-namespace BlueDental.Operations;
+namespace BlueDental.FileManagement;
 
 /// <summary>
-/// The images an article's body links to.
+/// The images a rich-text body links to, wherever that body lives.
 ///
 /// The editor would otherwise embed a pasted image as a base64 data URL inside
 /// the HTML it stores, which puts the bytes in the row and ships them again on
@@ -21,15 +21,15 @@ namespace BlueDental.Operations;
 /// link to them.
 /// </summary>
 [Authorize(BlueDentalPermissions.Catalogs.Default)]
-public class OperationArticleImageAppService : ApplicationService, IOperationArticleImageAppService
+public class RichTextImageAppService : ApplicationService, IRichTextImageAppService
 {
-    private readonly IRepository<OperationArticleImage, Guid> _repository;
+    private readonly IRepository<RichTextImage, Guid> _repository;
     private readonly IBlobContainer _blobContainer;
     private readonly BranchAccessChecker _branchAccess;
     private readonly ICurrentClinicBranchResolver _branchResolver;
 
-    public OperationArticleImageAppService(
-        IRepository<OperationArticleImage, Guid> repository,
+    public RichTextImageAppService(
+        IRepository<RichTextImage, Guid> repository,
         IBlobContainer blobContainer,
         BranchAccessChecker branchAccess,
         ICurrentClinicBranchResolver branchResolver)
@@ -41,7 +41,7 @@ public class OperationArticleImageAppService : ApplicationService, IOperationArt
     }
 
     [Authorize(BlueDentalPermissions.Catalogs.Create)]
-    public async Task<OperationArticleImageDto> UploadAsync(UploadOperationArticleImageDto input)
+    public async Task<RichTextImageDto> UploadAsync(UploadRichTextImageDto input)
     {
         var clinicBranchId = await _branchAccess.ResolveWriteTargetAsync(
             input.ClinicBranchId,
@@ -55,9 +55,9 @@ public class OperationArticleImageAppService : ApplicationService, IOperationArt
         await input.File.GetStream().CopyToAsync(buffer);
 
         var id = GuidGenerator.Create();
-        var blobName = $"operation-articles/{clinicBranchId}/{id}{Path.GetExtension(fileName)}";
+        var blobName = $"rich-text/{clinicBranchId}/{id}{Path.GetExtension(fileName)}";
 
-        var entity = new OperationArticleImage(
+        var entity = new RichTextImage(
             id,
             clinicBranchId,
             blobName,
@@ -69,12 +69,12 @@ public class OperationArticleImageAppService : ApplicationService, IOperationArt
         await _blobContainer.SaveAsync(blobName, buffer, overrideExisting: true);
         await _repository.InsertAsync(entity, autoSave: true);
 
-        return new OperationArticleImageDto
+        return new RichTextImageDto
         {
             Id = entity.Id,
             // Relative on purpose: the body is stored with this inside it, and a
             // host baked in would break the moment the app moved.
-            Url = $"/api/v1/app/operations/article-images/{entity.Id}",
+            Url = $"/api/v1/app/rich-text-images/{entity.Id}",
             FileName = entity.FileName,
             ContentType = entity.ContentType,
             SizeInBytes = entity.SizeInBytes,
@@ -89,7 +89,7 @@ public class OperationArticleImageAppService : ApplicationService, IOperationArt
     {
         var entity = await _repository.FindAsync(id)
             ?? throw new BusinessException(
-                BlueDentalDomainErrorCodes.Operations.ImageNotFound,
+                BlueDentalDomainErrorCodes.FileManagement.ImageNotFound,
                 "This image no longer exists.");
 
         await _branchAccess.CheckAsync(entity.ClinicBranchId);

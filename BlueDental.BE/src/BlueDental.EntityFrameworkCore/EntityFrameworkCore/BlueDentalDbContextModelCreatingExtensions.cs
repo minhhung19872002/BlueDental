@@ -999,9 +999,9 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => new { x.Department, x.SubTab });
         });
 
-        builder.Entity<OperationArticleImage>(entity =>
+        builder.Entity<RichTextImage>(entity =>
         {
-            entity.ToTable("bd_operation_article_images");
+            entity.ToTable("bd_rich_text_images");
             entity.ConfigureByConvention();
             entity.Property(x => x.BlobName).HasMaxLength(400).IsRequired();
             entity.Property(x => x.FileName).HasMaxLength(300).IsRequired();
