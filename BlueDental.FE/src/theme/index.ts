@@ -66,6 +66,16 @@ export const themeConfig: ThemeConfig = {
     fontFamily: FONT_FAMILY,
     colorBgLayout: brand.bg,
     fontSize: 13,
+    /*
+     * The fill behind a chosen item in a dropdown or a menu, and the deeper one
+     * for when that item is also hovered.
+     *
+     * Only `optionSelectedBg` had been set, so hovering a chosen option fell
+     * through to Ant Design's default grey — visible as a slab across the
+     * Hành động list, where every option is chosen to begin with.
+     */
+    controlItemBgActive: brand.bluePale,
+    controlItemBgActiveHover: "#dce7f7",
   },
   components: {
     Layout: {
