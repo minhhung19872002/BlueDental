@@ -313,4 +313,29 @@ test.describe("Vận hành — báo cáo", () => {
     tops = await topsOf();
     expect(Math.abs(tops.pills - tops.period)).toBeLessThan(4);
   });
+
+  test("the filter and the figure sit at opposite ends of the row", async ({ page }) => {
+    for (const url of [
+      "/operations/overview?overviewSubTab=report",
+      "/operations/reception?receptionSubTab=report",
+    ]) {
+      await page.goto(url);
+
+      const head = page.locator(".bd-ops-report-head");
+      const filters = head.locator(".bd-ops-report-filters");
+      const card = head.locator(".bd-ops-stat--single");
+      await expect(card).toBeVisible();
+
+      const box = async (locator: typeof head) => (await locator.boundingBox())!;
+      const [headBox, filterBox, cardBox] = [
+        await box(head),
+        await box(filters),
+        await box(card),
+      ];
+
+      // Filters start the row, the figure finishes it.
+      expect(Math.abs(filterBox.x - headBox.x)).toBeLessThan(4);
+      expect(Math.abs(cardBox.x + cardBox.width - (headBox.x + headBox.width))).toBeLessThan(4);
+    }
+  });
 });

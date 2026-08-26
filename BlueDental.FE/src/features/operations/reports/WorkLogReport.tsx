@@ -92,7 +92,6 @@ export function WorkLogReport({ division }: Props) {
           "bd-ops-report-head",
           // With no filters the figure stands alone on the left.
           variant.card === "left" && "bd-ops-report-head--start",
-          variant.card === "inline" && "bd-ops-report-head--inline",
         )}
       >
         {variant.filters.length > 0 ? (

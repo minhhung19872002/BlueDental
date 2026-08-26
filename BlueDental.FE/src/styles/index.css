@@ -6197,16 +6197,9 @@ html:has(.ant-modal-wrap) {
   min-height: 0;
 }
 
-/* Báo cáo differs per division: no filters puts the figure alone on the left,
-   one filter sets it immediately beside that filter. */
-.bd-ops-report-head--start,
-.bd-ops-report-head--inline {
-  justify-content: flex-start;
-}
+/* With no filters to sit opposite, the figure stands alone at the start. */
+.bd-ops-report-head--start { justify-content: flex-start; }
 
-.bd-ops-report-head--inline .bd-ops-report-filters { flex: 0 0 auto; }
-
-.bd-ops-report-head--inline .bd-ops-stat--single,
 .bd-ops-report-head--start .bd-ops-stat--single { flex: 0 0 auto; }
 
 /* The item's own time, under its name. */
