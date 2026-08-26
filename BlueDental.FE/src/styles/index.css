@@ -5343,6 +5343,17 @@ html:has(.ant-modal-wrap) {
    so this is the one place `!important` earns its keep. */
 .bd-cat-card .ant-table-content { overflow: auto !important; }
 
+/* Ant Design sets `scrollbar-color` on its tables. Naming that property is
+   what makes a browser draw its own scrollbar and ignore `::-webkit-scrollbar`
+   entirely — so the bar inside a table came out wider and a different colour
+   from every other scroller in the app. Handing it back to `auto` lets the
+   app's own thin scrollbar apply here too, the same one the calendar has. */
+.bd-cat-card .ant-table-content,
+.bd-cat-card .ant-table-body,
+.bd-cat-card .ant-table-wrapper {
+  scrollbar-color: auto;
+}
+
 /* With the rows scrolling under it, the header has to stay put — otherwise the
    column names leave the screen the moment you look at anything. */
 .bd-cat-card .ant-table-thead > tr > th {
