@@ -87,10 +87,15 @@ public class InventoryItemAppService : ApplicationService, IInventoryItemAppServ
         // is how the dashboard's "vật tư dưới định mức" came to report every
         // item in the branch, its rows showing stock well above the reorder
         // level.
-        if (!string.IsNullOrWhiteSpace(input.Filter))
+        // Every word typed has to appear somewhere in the row, in either field
+        // and in any order. Contains() alone is case-sensitive on PostgreSQL,
+        // so a search for "gang tay" missed "Găng Tay"; SearchTerms lowercases
+        // and splits, and the column is lowered to match.
+        foreach (var term in SearchTerms.From(input.Filter))
         {
-            var term = input.Filter.Trim();
-            query = query.Where(i => i.Name.Contains(term) || i.ItemCode.Contains(term));
+            query = query.Where(i =>
+                i.Name.ToLower().Contains(term) ||
+                i.ItemCode.ToLower().Contains(term));
         }
 
         if (input.TaxonomyId.HasValue)
