@@ -11,6 +11,7 @@ import {
   type DepartmentDto,
 } from "../api/departmentApi";
 import { DepartmentDialog } from "./DepartmentDialog";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { DataTable } from "@/components/DataTable";
 import { GroupPanel } from "@/components/GroupPanel";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -35,6 +36,7 @@ export function DepartmentTab() {
     open: false,
     department: null,
   });
+  const [pendingDelete, setPendingDelete] = useState<DepartmentDto | null>(null);
 
   const pagination = useTablePagination(20);
   const debouncedPanel = useDebounce(panelKeyword, 300);
@@ -66,13 +68,18 @@ export function DepartmentTab() {
       : all;
   }, [allocationsQuery.data, debounced, selectedId]);
 
-  const removeDepartment = async (id: string) => {
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+
     try {
-      await deleteDepartment.mutateAsync(id);
-      if (selectedId === id) selectDepartment(null);
+      await deleteDepartment.mutateAsync(pendingDelete.id);
+      // The table beside it is that department's own list, so stop showing it.
+      if (selectedId === pendingDelete.id) selectDepartment(null);
       toast.success(t("Đã xoá phòng ban"));
     } catch {
       // queryClient reports the failure; nothing to add here.
+    } finally {
+      setPendingDelete(null);
     }
   };
 
@@ -157,7 +164,7 @@ export function DepartmentTab() {
               departments.find((row: DepartmentDto) => row.id === group.id) ?? null;
             setDialog({ open: true, department });
           }}
-          onDelete={(department) => void removeDepartment(department.id)}
+          onDelete={(department) => setPendingDelete(department)}
           // Departments carry no order of their own, so the panel offers none.
           onReorder={() => undefined}
         />
@@ -215,6 +222,15 @@ export function DepartmentTab() {
           </div>
         </div>
       </main>
+
+      <ConfirmDeleteDialog
+        open={pendingDelete !== null}
+        noun={t("phòng ban")}
+        name={pendingDelete?.name ?? ""}
+        pending={deleteDepartment.isPending}
+        onConfirm={() => void confirmDelete()}
+        onClose={() => setPendingDelete(null)}
+      />
 
       <DepartmentDialog
         open={dialog.open}

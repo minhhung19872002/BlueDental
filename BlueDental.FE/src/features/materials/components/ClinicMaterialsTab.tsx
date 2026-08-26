@@ -54,6 +54,7 @@ export function ClinicMaterialsTab() {
     material: SupplyDto | null;
   }>({ open: false, material: null });
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
+  const [pendingGroupDelete, setPendingGroupDelete] = useState<TaxonomyGroup | null>(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
 
   const pagination = useTablePagination(20);
@@ -81,6 +82,21 @@ export function ClinicMaterialsTab() {
       return params;
     });
     pagination.resetToFirstPage();
+  };
+
+  const confirmGroupDelete = async () => {
+    if (!pendingGroupDelete) return;
+
+    try {
+      await removeGroup.mutateAsync(pendingGroupDelete.id);
+      // The table below is the deleted group's own list, so stop showing it.
+      if (selectedGroupId === pendingGroupDelete.id) selectGroup(null);
+      toast.success(t("Đã xoá nhóm vật tư"));
+    } catch {
+      // queryClient reports the failure; nothing to add here.
+    } finally {
+      setPendingGroupDelete(null);
+    }
   };
 
   const confirmDelete = async () => {
@@ -225,7 +241,7 @@ export function ClinicMaterialsTab() {
           onSelect={(id) => selectGroup(id === selectedGroupId ? null : id)}
           onCreate={() => setGroupDialog({ open: true, group: null })}
           onRename={(group) => setGroupDialog({ open: true, group })}
-          onDelete={(group) => void removeGroup.mutateAsync(group.id)}
+          onDelete={(group) => setPendingGroupDelete(group)}
           onReorder={(from, to) => {
             const ids = groups.map((group) => group.id);
             const [moved] = ids.splice(from, 1);
@@ -315,6 +331,15 @@ export function ClinicMaterialsTab() {
         groups={groups}
         defaultTaxonomyId={selectedGroupId}
         onClose={() => setMaterialDialog({ open: false, material: null })}
+      />
+
+      <ConfirmDeleteDialog
+        open={pendingGroupDelete !== null}
+        noun={t("nhóm vật tư")}
+        name={pendingGroupDelete?.name ?? ""}
+        pending={removeGroup.isPending}
+        onConfirm={() => void confirmGroupDelete()}
+        onClose={() => setPendingGroupDelete(null)}
       />
 
       <ConfirmDeleteDialog
