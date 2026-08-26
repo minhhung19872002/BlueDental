@@ -1,23 +1,33 @@
 import { useMemo, useState } from "react";
-import { Input } from "antd";
+import { Button, Input, Select } from "antd";
 import {
   CheckCircleOutlined,
   DollarOutlined,
+  DownloadOutlined,
   RiseOutlined,
   SearchOutlined,
   StarOutlined,
+  SyncOutlined,
   WalletOutlined,
 } from "@ant-design/icons";
-import { useServiceCompletion, type ServiceLineRow } from "../api/operationReportApi";
+import {
+  SALES_CATEGORY,
+  useServiceCompletion,
+  type ServiceLineRow,
+} from "../api/operationReportApi";
 import { OperationsPeriodBar } from "./OperationsPeriodBar";
 import { OperationsStatCards, type StatCard } from "./OperationsStatCards";
 import { serviceCompletionColumns } from "./serviceLineColumns";
 import { usePeriodRange } from "./usePeriodRange";
 import { DataTable } from "@/components/DataTable";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useServiceGroupOptions } from "@/hooks/useServiceGroupOptions";
+import { useStaffOptions } from "@/hooks/useStaffOptions";
 import { useTablePagination } from "@/hooks/useTablePagination";
+import { exportToExcel } from "@/utils/exportExcel";
 import { t } from "@/lib/i18n";
 import { formatMoney } from "./formatMoney";
+import { formatDate } from "@/utils/format";
 
 /**
  * Khối tài chính → Hoàn thành theo dịch vụ.
@@ -29,16 +39,23 @@ export function ServiceCompletionReport() {
   const range = usePeriodRange("month");
   const pagination = useTablePagination(20);
   const [keyword, setKeyword] = useState("");
+  const [dentistId, setDentistId] = useState<string | undefined>();
+  const [serviceGroupId, setServiceGroupId] = useState<string | undefined>();
 
   const debounced = useDebounce(keyword, 300);
+  const dentists = useStaffOptions();
+  const serviceGroups = useServiceGroupOptions();
 
-  const query = useServiceCompletion({
-    periodCode: range.periodCode,
-    anchorIso: range.anchorIso,
-    skipCount: pagination.skipCount,
-    maxResultCount: pagination.maxResultCount,
-    filter: debounced.trim() || undefined,
-  });
+  const query = useServiceCompletion(
+    {
+      periodCode: range.periodCode,
+      anchorIso: range.anchorIso,
+      skipCount: pagination.skipCount,
+      maxResultCount: pagination.maxResultCount,
+      filter: debounced.trim() || undefined,
+    },
+    { DentistId: dentistId, ServiceGroupId: serviceGroupId },
+  );
 
   const stats = query.data?.stats;
 
@@ -98,25 +115,113 @@ export function ServiceCompletionReport() {
 
   const columns = useMemo(() => serviceCompletionColumns(), []);
 
+  /**
+   * The rows on screen, as a spreadsheet.
+   *
+   * Named field by field rather than through the table's own columns: every one
+   * of them is rendered, so none carries a `dataIndex` for a generic export to
+   * read.
+   */
+  const exportRows = () => {
+    exportToExcel<ServiceLineRow>(
+      query.data?.items ?? [],
+      [
+        { header: t("Ngày thao tác"), key: "occurredAt", format: (v) => formatDate(String(v)) },
+        { header: t("Mã khách hàng"), key: "patientCode" },
+        { header: t("Khách hàng"), key: "patientName" },
+        { header: t("Chi nhánh"), key: "branchName" },
+        { header: t("Dịch vụ"), key: "serviceName" },
+        { header: t("Nhóm dịch vụ"), key: "serviceGroupName" },
+        {
+          header: t("Phân loại"),
+          key: "classification",
+          format: (v) =>
+            v === SALES_CATEGORY.completed
+              ? t("Dịch vụ đã hoàn thành")
+              : t("Dịch vụ tính doanh số riêng"),
+        },
+        { header: t("Bác sĩ điều trị"), key: "treatingDentistName" },
+        { header: t("Nhân sự tư vấn"), key: "consultantName" },
+        { header: t("Răng"), key: "teeth" },
+        { header: t("Giá dịch vụ"), key: "price" },
+        { header: t("Số lượng"), key: "quantity" },
+        { header: t("Tổng giảm giá"), key: "discountAmount" },
+        { header: t("Giá điều trị bác sĩ"), key: "doctorAmount" },
+      ],
+      `hoan-thanh-theo-dich-vu-${range.anchorIso}`,
+    );
+  };
+
   return (
     <div className="bd-ops-report-screen">
       <div className="bd-ops-report-bar">
         <OperationsPeriodBar range={range} />
       </div>
 
-      <div className="bd-ops-report-filters">
-        <Input
-          className="bd-ops-search"
-          prefix={<SearchOutlined />}
-          placeholder={t("Tìm khách hàng, dịch vụ")}
-          aria-label={t("Tìm khách hàng, dịch vụ")}
-          value={keyword}
-          allowClear
-          onChange={(event) => {
-            setKeyword(event.target.value);
-            pagination.resetToFirstPage();
-          }}
-        />
+      {/* Three filters on the left, the two actions on the right. */}
+      <div className="bd-ops-report-head">
+        <div className="bd-ops-report-filters">
+          <Input
+            className="bd-ops-search"
+            prefix={<SearchOutlined />}
+            placeholder={t("Tìm khách hàng, dịch vụ")}
+            aria-label={t("Tìm khách hàng, dịch vụ")}
+            value={keyword}
+            allowClear
+            onChange={(event) => {
+              setKeyword(event.target.value);
+              pagination.resetToFirstPage();
+            }}
+          />
+
+          <Select
+            className="bd-ops-filter"
+            showSearch
+            allowClear
+            loading={dentists.isLoading}
+            placeholder={t("Bác sĩ điều trị")}
+            aria-label={t("Bác sĩ điều trị")}
+            optionFilterProp="label"
+            value={dentistId}
+            onChange={(value) => {
+              setDentistId(value ?? undefined);
+              pagination.resetToFirstPage();
+            }}
+            options={dentists.data ?? []}
+          />
+
+          <Select
+            className="bd-ops-filter"
+            showSearch
+            allowClear
+            loading={serviceGroups.isLoading}
+            placeholder={t("Nhóm dịch vụ")}
+            aria-label={t("Nhóm dịch vụ")}
+            optionFilterProp="label"
+            value={serviceGroupId}
+            onChange={(value) => {
+              setServiceGroupId(value ?? undefined);
+              pagination.resetToFirstPage();
+            }}
+            options={serviceGroups.data ?? []}
+          />
+        </div>
+
+        <div className="bd-ops-report-actions">
+          <Button
+            icon={<SyncOutlined />}
+            // The reference offers this; BlueDental has no sales system to sync
+            // with, so it says so rather than pretending to do something.
+            disabled
+            title={t("Chưa kết nối phần mềm bán hàng")}
+          >
+            {t("Đồng bộ phần mềm bán hàng")}
+          </Button>
+
+          <Button icon={<DownloadOutlined />} onClick={exportRows}>
+            {t("Xuất Excel")}
+          </Button>
+        </div>
       </div>
 
       <OperationsStatCards cards={cards} />

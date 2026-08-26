@@ -101,6 +101,46 @@ test.describe("Vận hành — báo cáo", () => {
 
     await expect(page.locator("tbody tr.ant-table-row").first()).toBeVisible();
     await expect(page.getByText(/Hiển thị .* dịch vụ/)).toBeVisible();
+
+    // Given the width the reference shows them at, all five fit on one row;
+    // wrapping them there ate the height the table needed. On a narrower window
+    // they are meant to wrap, so the width is stated rather than assumed.
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await expect
+      .poll(async () =>
+        page
+          .locator(".bd-ops-stats")
+          .evaluate(
+            (el) =>
+              new Set([...el.children].map((c) => Math.round(c.getBoundingClientRect().y))).size,
+          ),
+      )
+      .toBe(1);
+  });
+
+  test("Hoàn thành theo dịch vụ carries its whole toolbar", async ({ page }) => {
+    await page.goto("/operations/finance?financeSubTab=service-complete");
+
+    // Three filters, then the two actions — the reference's own set.
+    await expect(page.getByLabel("Tìm khách hàng, dịch vụ")).toBeVisible();
+    await expect(page.getByLabel("Bác sĩ điều trị")).toBeVisible();
+    await expect(page.getByLabel("Nhóm dịch vụ")).toBeVisible();
+    await expect(page.getByRole("button", { name: /Đồng bộ phần mềm bán hàng/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Xuất Excel/ })).toBeVisible();
+
+    // Picking a dentist re-reads the server and cannot widen the list.
+    await expect(page.locator("tbody tr.ant-table-row").first()).toBeVisible();
+    const before = await page.locator("tbody tr.ant-table-row").count();
+
+    await page.getByLabel("Bác sĩ điều trị").click();
+    await page
+      .locator(".ant-select-dropdown:visible .ant-select-item-option")
+      .first()
+      .click();
+
+    await expect
+      .poll(async () => page.locator("tbody tr.ant-table-row").count())
+      .toBeLessThanOrEqual(before);
   });
 
   test("Truy cập filters by the card that is picked", async ({ page }) => {

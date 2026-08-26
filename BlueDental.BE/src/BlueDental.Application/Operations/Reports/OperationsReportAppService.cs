@@ -509,7 +509,14 @@ public class OperationsReportAppService(
     /// Hoàn thành theo dịch vụ and Truy cập differ only in which columns they
     /// show and which figures they total, so they are read from one projection.
     /// </summary>
+    private sealed record ServiceLine(ServiceLineRowDto Row, Guid? DentistId, Guid ServiceGroupId);
+
     private async Task<List<ServiceLineRowDto>> ServiceLinesAsync(
+        IReadOnlyList<Guid> branchIds,
+        (DateTime Start, DateTime End) window)
+        => (await ServiceLinesWithKeysAsync(branchIds, window)).Select(l => l.Row).ToList();
+
+    private async Task<List<ServiceLine>> ServiceLinesWithKeysAsync(
         IReadOnlyList<Guid> branchIds,
         (DateTime Start, DateTime End) window)
     {
@@ -535,7 +542,7 @@ public class OperationsReportAppService(
                 var serviceStages = stagesByService.GetValueOrDefault(s.Id) ?? [];
                 var dentist = serviceStages.FirstOrDefault()?.StaffId;
 
-                return new ServiceLineRowDto
+                var row = new ServiceLineRowDto
                 {
                     Id = s.Id,
                     OccurredAt = s.CreationTime,
@@ -570,8 +577,10 @@ public class OperationsReportAppService(
                     TaxKind = "Sau thuế",
                     TaxPercent = null
                 };
+
+                return new ServiceLine(row, dentist, entry.GroupId);
             })
-            .OrderByDescending(r => r.OccurredAt)
+            .OrderByDescending(l => l.Row.OccurredAt)
             .ToList();
     }
 
@@ -581,7 +590,19 @@ public class OperationsReportAppService(
         var branchIds = await branchAccess.ResolveFilterAsync(input.ClinicBranchId);
         var window = WindowOf(input.Period, input.Anchor);
 
-        var rows = await ServiceLinesAsync(branchIds, window);
+        var lines = await ServiceLinesWithKeysAsync(branchIds, window);
+
+        if (input.DentistId is not null)
+        {
+            lines = lines.Where(l => l.DentistId == input.DentistId).ToList();
+        }
+
+        if (input.ServiceGroupId is not null)
+        {
+            lines = lines.Where(l => l.ServiceGroupId == input.ServiceGroupId).ToList();
+        }
+
+        var rows = lines.Select(l => l.Row).ToList();
 
         var terms = TermsOf(input.Filter);
         if (terms.Length > 0)
