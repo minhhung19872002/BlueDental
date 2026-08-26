@@ -5622,7 +5622,13 @@ html:has(.ant-modal-wrap) {
   padding: 8px;
 }
 
-.bd-ops-panel-head .ant-btn { height: 42px; }
+/* Ant Design lifts every solid button with `--ant-btn-shadow`. This one spans
+   the panel and sits against its list, where the lift reads as a seam rather
+   than a raised control. */
+.bd-ops-panel-head .ant-btn {
+  height: 42px;
+  box-shadow: none;
+}
 
 .bd-ops-panel-list {
   flex: 1;

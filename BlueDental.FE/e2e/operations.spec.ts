@@ -288,4 +288,15 @@ test.describe("Vận hành", () => {
     dialog = page.getByRole("dialog");
     await expect(dialog.locator(".ql-editor img")).toBeVisible();
   });
+
+  test("the panel's Thêm Mới button carries no lift", async ({ page }) => {
+    await page.goto("/operations/overview");
+
+    const button = page.locator(".bd-ops-panel-head .ant-btn");
+    await expect(button).toBeVisible();
+
+    // Ant Design shadows every solid button; against the list below it that
+    // reads as a seam, so this one is flat.
+    expect(await button.evaluate((el) => getComputedStyle(el).boxShadow)).toBe("none");
+  });
 });
