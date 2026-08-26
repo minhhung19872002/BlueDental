@@ -18,10 +18,23 @@ interface FloatingFieldChildProps {
 
 interface FloatingFieldProps extends Omit<FormItemProps, "label"> {
   label: string;
+  /**
+   * When false, the label floats only while the field has focus. For fields
+   * whose value renders elsewhere (the voucher service picker shows its
+   * selections as chips below), the resting label keeps acting as the
+   * placeholder even though the form value is non-empty.
+   */
+  floatOnValue?: boolean;
   children: React.ReactElement<FloatingFieldChildProps>;
 }
 
-export function FloatingField({ label, children, className, ...rest }: FloatingFieldProps) {
+export function FloatingField({
+  label,
+  children,
+  className,
+  floatOnValue = true,
+  ...rest
+}: FloatingFieldProps) {
   const id = useId();
   const [focused, setFocused] = useState(false);
   const form = Form.useFormInstance();
@@ -30,7 +43,7 @@ export function FloatingField({ label, children, className, ...rest }: FloatingF
   const hasValue = Array.isArray(watchedValue)
     ? watchedValue.length > 0
     : watchedValue !== undefined && watchedValue !== null && watchedValue !== "";
-  const floated = focused || hasValue;
+  const floated = focused || (floatOnValue && hasValue);
 
   const child = React.cloneElement<FloatingFieldChildProps>(children, {
     id,

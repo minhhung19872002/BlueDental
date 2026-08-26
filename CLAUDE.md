@@ -1286,8 +1286,25 @@ function PatientForm({ onSubmit, initialData }: Props) {
 - **Không** mix inline styles với class trong cùng 1 component — chọn một
 - Màu, bán kính, khoảng cách lấy từ token `--bd-*`; **không** hard-code hex trong `.tsx`
 - Conditional class: nối chuỗi template hoặc mảng `.filter(Boolean).join(" ")`
-- Responsive: media query trong `index.css`, breakpoint 1280 / 1100 / 640
-- Animations: CSS keyframes trong `index.css`, **không** inline `transition` style objects
+- Responsive: media query breakpoint 1280 / 1100 / 640
+- Animations: CSS keyframes, **không** inline `transition` style objects
+
+#### CSS File Scoping
+
+- `src/styles/index.css` chỉ chứa **global styles**: tokens, reset, layout shell (sidebar, header), AntD overrides, và shared utility classes (`.reception-card`, `.page-header`, `.stat-card`, ...).
+- **KHÔNG** thêm feature-specific CSS vào `index.css`. Mỗi feature tạo CSS file riêng trong folder `components/` của feature đó.
+- Feature CSS file đặt tên theo feature: `voucher.css`, `appointment.css`, `patient.css`, ...
+- Import CSS file từ page component (Container): `import "../components/voucher.css";`
+
+```
+features/voucher/components/voucher.css      ← feature-specific styles
+features/appointments/components/appointment.css
+features/patients/components/patient.css
+src/styles/index.css                          ← global only
+```
+
+- Tất cả feature CSS vẫn dùng token `--bd-*` từ `:root` trong `index.css`.
+- Khi refactor feature cũ: di chuyển CSS block từ `index.css` sang feature CSS file tương ứng.
 
 ```tsx
 // ĐÚNG — class cơ sở + modifier, ghép tường minh
@@ -1341,6 +1358,36 @@ Mọi button gọi API (submit form, delete, confirm) PHẢI:
 ```
 
 Áp dụng cho: form submit, delete confirm, status change, và mọi action button gọi API.
+
+---
+
+### 16.19 Input tiền tệ — CurrencyInput (react-number-format)
+
+Mọi field nhập **số tiền** (và số lớn cần phân cách hàng nghìn như số lượt voucher)
+PHẢI dùng component chung `CurrencyInput` (`src/components/CurrencyInput.tsx`) —
+wrapper của `react-number-format` (`NumericFormat` + `customInput` là AntD `Input`),
+format kiểu VN: `1.000.000` (phân cách `.`, thập phân `,`, không số âm, không lẻ).
+
+```tsx
+// ĐÚNG — form giữ number, hiển thị đã format
+<Form.Item name="amount" rules={[{ type: "number", min: 1, message: t("Số tiền phải lớn hơn 0") }]}>
+  <CurrencyInput />
+</Form.Item>
+
+// SAI — InputNumber + formatter/parser tự chế cho field tiền mới
+<InputNumber formatter={(v) => ...} parser={(v) => ...} />
+```
+
+Quy tắc:
+
+- KHÔNG bọc `NumericFormat` quanh `InputNumber` — hai bên tranh nhau format. Chỉ dùng qua `CurrencyInput`.
+- `CurrencyInput` không clamp min/max như `InputNumber` → ràng buộc phải khai báo bằng
+  Form rules (`{ type: "number", min: 1 }`), và cũng mất nút step lên/xuống.
+- Field rỗng trả về `undefined` (không phải `0`) — submit path phải xử lý (`?? null` / `?? 0`).
+- **Ngoại lệ giữ `InputNumber`**: field cần suffix/format riêng đã chốt
+  (`PaymentModal` ở Billing dùng `formatVND` — GIỮ NGUYÊN, không đổi qua `CurrencyInput`),
+  field số nhỏ cần nút step (số lượng, số ngày, reorder level, batch count),
+  và toàn bộ màn Danh mục `/taxonomy` (mục 17 — không đụng).
 
 ---
 

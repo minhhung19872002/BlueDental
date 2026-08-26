@@ -1,0 +1,767 @@
+/* ── Voucher table layout ────────────────────────────────────────────────── */
+
+.voucher-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.voucher-code {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  color: var(--bd-blue);
+}
+
+.voucher-discount {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--bd-ink);
+}
+
+.voucher-conditions {
+  font-size: 14px;
+  color: var(--bd-ink);
+  line-height: 1.6;
+}
+
+.voucher-conditions-detail {
+  display: inline-block;
+  font-size: 12px;
+  color: #2671d8;
+  cursor: pointer;
+}
+
+.voucher-conditions-detail:hover {
+  text-decoration: underline;
+}
+
+/* ── "Xem chi tiết" modal: applied services ── */
+
+.voucher-services-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.voucher-services-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--bd-border, #e2e8f0);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.voucher-services-index {
+  flex: none;
+  font-size: 12px;
+  color: var(--bd-muted);
+}
+
+.voucher-services-name {
+  flex: 1;
+  min-width: 0;
+  color: var(--bd-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.voucher-services-price {
+  flex: none;
+  color: var(--bd-ink);
+}
+
+.voucher-usage {
+  font-size: 12px;
+  color: var(--bd-ink);
+}
+
+.voucher-usage .ant-progress {
+  margin-top: 4px;
+}
+
+/* ── Display column: terminal cards ── */
+
+.voucher-terminal-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px;
+  border-radius: var(--bd-radius-card, 6px);
+  border: 1px solid;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.voucher-terminal-card strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.voucher-terminal-card--expired {
+  background: #fff8e1;
+  border-color: #ffe082;
+  color: #b8860b;
+}
+
+.voucher-terminal-card--exhausted {
+  background: #fff3e0;
+  border-color: #ffcc80;
+  color: #e65100;
+}
+
+.voucher-reactivate-link {
+  color: var(--bd-blue);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.voucher-reactivate-link:hover {
+  text-decoration: underline;
+}
+
+/* ── Display column: active toggle ── */
+
+.voucher-display-active {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.voucher-display-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.voucher-display-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--bd-ink);
+}
+
+.voucher-display-time {
+  font-size: 12px;
+  color: var(--bd-muted);
+}
+
+.voucher-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+
+/* ── Create/edit dialog ─────────────────────────────────────────────────── */
+
+/* The ref keeps a bright Tailwind blue accent inside this dialog while the
+   rest of the app stays navy. Kept in sync with voucherDialogTheme in
+   src/theme/index.ts. Re-pointing --bd-blue lets the shared floating-label
+   and chip styles pick the accent up without their own overrides. */
+.voucher-dialog,
+.voucher-service-dropdown {
+  --vc-accent: #2563eb;
+  --vc-price: #f97316;
+  --bd-blue: var(--vc-accent);
+  --ff-input-height: 40px;
+}
+
+.voucher-dialog .ant-modal-content {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 32px);
+  min-height: 0;
+}
+
+.voucher-dialog .ant-modal-body {
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* The create dialog gets its top spacing from the tabs bar; the edit dialog
+   has no tabs, so pad the body itself. */
+.voucher-dialog--edit .ant-modal-body {
+  padding-top: 16px;
+}
+
+/* In the create dialog the 16px under .ant-tabs separates the code grid from
+   the date row; without tabs the grid carries that gap itself, so the floated
+   date labels don't sit on the hint's second line. */
+.voucher-dialog--edit .voucher-code-grid {
+  margin-bottom: 16px;
+}
+
+.voucher-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Two half-width tabs with centred labels, as the ref lays them out. */
+.voucher-dialog .ant-tabs {
+  margin-bottom: 16px;
+}
+
+.voucher-dialog .ant-tabs-nav {
+  margin-bottom: 20px;
+}
+
+.voucher-dialog .ant-tabs-nav-list {
+  width: 100%;
+}
+
+.voucher-dialog .ant-tabs-tab {
+  flex: 1;
+  justify-content: center;
+  margin: 0;
+  font-weight: 600;
+}
+
+.voucher-dialog .ant-tabs-tab + .ant-tabs-tab {
+  margin-left: 0;
+}
+
+/* Floated labels rest grey and only take the accent while their field has
+   focus, matching the ref. */
+.voucher-dialog .floating-field--floated .floating-field-label {
+  color: var(--bd-sub);
+}
+
+.voucher-dialog .floating-field--floated:focus-within .floating-field-label {
+  color: var(--vc-accent);
+}
+
+/* Controls fill their column. */
+.voucher-dialog .ant-input-number,
+.voucher-dialog .ant-picker {
+  width: 100%;
+}
+
+/* ── Single tab: code grid ── */
+
+.voucher-code-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px 12px;
+  align-items: start;
+}
+
+.voucher-code-grid .ant-form-item {
+  margin-bottom: 0;
+}
+
+/* The HN- box occupies the field's left edge, so this label starts past it. */
+.floating-field:has(.voucher-code-field) .floating-field-label {
+  left: 56px;
+}
+
+.voucher-dialog .ant-input-group-addon {
+  background: var(--bd-bg);
+  color: var(--bd-ink);
+  font-weight: 600;
+  min-width: 46px;
+}
+
+.voucher-shuffle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--vc-accent);
+  cursor: pointer;
+}
+
+.voucher-form-hint {
+  grid-column: 1 / 2;
+  font-size: 12px;
+  color: var(--bd-muted);
+  line-height: 1.45;
+}
+
+/* ── Form: paired fields (dates) ── */
+
+.voucher-field-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.voucher-field-row .floating-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.voucher-field-row .ant-form-item {
+  margin-bottom: 0;
+}
+
+/* ── Form: discount row ── */
+
+.voucher-discount-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.voucher-discount-row .ant-segmented {
+  height: 40px;
+  flex: none;
+}
+
+.voucher-discount-row .ant-segmented .ant-segmented-item-label {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 16px;
+  font-weight: 600;
+}
+
+.voucher-discount-row .floating-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.voucher-discount-row .floating-field:has(.voucher-discount-max) {
+  flex: 1.7;
+}
+
+.voucher-discount-row .ant-form-item {
+  margin-bottom: 0;
+}
+
+/* ── Form: scope ── */
+
+.voucher-scope-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--bd-ink);
+  margin-bottom: 8px;
+}
+
+.voucher-required-star {
+  color: var(--bd-red);
+}
+
+.voucher-scope-bar {
+  background: var(--bd-bg);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.voucher-scope-bar .ant-radio-wrapper {
+  font-size: 14px;
+  color: var(--bd-ink);
+  margin-right: 24px;
+}
+
+/* ── Form: service picker ── */
+
+.voucher-service-picker {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.voucher-service-picker .ant-form-item {
+  margin-bottom: 0;
+}
+
+.voucher-service-picker .ant-select-selector {
+  padding-right: 44px;
+}
+
+.voucher-service-toggle {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 26px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* Group mode: primary-light ground, primary icon. */
+.voucher-service-toggle--group {
+  background: var(--bd-blue-pale, #eef4ff);
+  color: var(--vc-accent);
+}
+
+/* Service mode: primary ground, white icon. */
+.voucher-service-toggle--service {
+  background: var(--vc-accent);
+  color: #ffffff;
+}
+
+.voucher-service-dropdown .ant-select-item-option {
+  padding: 10px 12px;
+}
+
+/* Selections render as chips under the search field, not as tags inside it. */
+
+.voucher-service-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.voucher-service-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 340px;
+  padding: 6px 4px 6px 10px;
+  border: 1px solid rgb(191, 215, 247);
+  border-radius: 8px;
+  background: rgb(238, 245, 255);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.voucher-service-chip--group {
+  border-color: rgb(252, 211, 77);
+  background: rgb(255, 251, 235);
+}
+
+.voucher-service-chip--group .voucher-service-chip-name {
+  color: rgb(146, 64, 14);
+}
+
+.voucher-service-chip-icon {
+  color: rgb(217, 119, 6);
+  flex: none;
+}
+
+.voucher-service-chip-name {
+  color: var(--vc-accent);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.voucher-service-chip-price {
+  color: var(--bd-ink);
+  font-weight: 700;
+  flex: none;
+}
+
+.voucher-service-chip-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--bd-muted);
+  cursor: pointer;
+  flex: none;
+}
+
+.voucher-service-chip-remove:hover {
+  color: var(--bd-ink);
+}
+
+.voucher-opt-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--bd-ink);
+}
+
+.voucher-opt-group svg {
+  color: var(--bd-muted);
+  flex: none;
+}
+
+.voucher-opt-service {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--bd-ink);
+}
+
+.voucher-opt-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.voucher-opt-price {
+  color: var(--vc-price);
+  font-weight: 600;
+  flex: none;
+}
+
+/* ── Form: min order value (Tổng kế hoạch scope) ── */
+
+.voucher-min-order {
+  margin-bottom: 16px;
+}
+
+.voucher-min-order .ant-form-item {
+  margin-bottom: 0;
+}
+
+.voucher-min-order .voucher-form-hint {
+  margin-top: 6px;
+}
+
+/* ── Form: days-of-week section ── */
+
+.voucher-days-section {
+  margin-bottom: 16px;
+}
+
+.voucher-days-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: var(--bd-ink);
+}
+
+.voucher-days-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.voucher-day-chip {
+  border: 1px solid var(--bd-border);
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--bd-muted);
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 42px;
+  padding: 6px 0;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.voucher-day-chip:not(:disabled):hover {
+  border-color: var(--bd-blue);
+  color: var(--bd-blue);
+}
+
+.voucher-day-chip:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Active chip keeps the ref's outline look: accent border and text on a pale ground. */
+.voucher-day-chip--active {
+  background: var(--bd-blue-pale, #eef4ff);
+  border-color: var(--bd-blue);
+  color: var(--bd-blue);
+}
+
+.voucher-day-chip--active:not(:disabled):hover {
+  background: var(--bd-blue-pale, #eef4ff);
+  border-color: var(--bd-blue);
+  color: var(--bd-blue);
+}
+
+/* ── Form: exclusivity card ── */
+
+.voucher-exclusive-card {
+  background: var(--bd-bg-soft, #f8fafc);
+  border: 1px solid var(--bd-border, #e5e7eb);
+  border-radius: var(--bd-radius-card, 8px);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.voucher-exclusive-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.voucher-exclusive-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--bd-ink);
+}
+
+.voucher-exclusive-desc {
+  font-size: 12px;
+  color: var(--bd-muted);
+  margin-top: 2px;
+}
+
+/* ── Batch tab: code cards ── */
+
+/* The ref keeps the quantity field at half width on desktop. */
+.voucher-batch-count {
+  width: calc(50% - 6px);
+}
+
+.voucher-batch-count .ant-form-item {
+  margin-bottom: 0;
+}
+
+.voucher-batch-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 16px 0 12px;
+  font-size: 14px;
+  color: var(--bd-ink);
+}
+
+.voucher-batch-cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+  /* The reference caps the card list and scrolls inside it (bottom row cut
+     mid-card) instead of letting the whole modal body grow. */
+  max-height: 420px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.voucher-batch-card {
+  border: 1px solid var(--bd-border, #e5e7eb);
+  border-radius: var(--bd-radius-card, 8px);
+  padding: 8px 10px;
+  cursor: pointer;
+  background: var(--bd-surface, #fff);
+  transition: border-color 0.15s ease;
+}
+
+.voucher-batch-card--selected {
+  border-color: var(--vc-accent);
+}
+
+/* On the selected card the frame stays accent-blue and only the name input
+   turns red; an unselected card with an error gets the full red treatment. */
+.voucher-batch-card--error .voucher-batch-name-placeholder,
+.voucher-batch-card--error .voucher-batch-name-placeholder .voucher-required-star {
+  color: var(--bd-red);
+}
+
+.voucher-batch-card--error:not(.voucher-batch-card--selected) {
+  border-color: var(--bd-red);
+  background: var(--bd-red-pale);
+}
+
+.voucher-batch-card--error:not(.voucher-batch-card--selected) .voucher-batch-card-code {
+  color: var(--bd-red);
+}
+
+.voucher-batch-card-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin-bottom: 6px;
+}
+
+.voucher-batch-card-index {
+  font-size: 11px;
+  color: var(--bd-muted);
+  flex: none;
+}
+
+.voucher-batch-card-code {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--bd-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.voucher-batch-card--selected .voucher-batch-card-code {
+  color: var(--vc-accent);
+}
+
+.voucher-batch-card-name {
+  position: relative;
+}
+
+.voucher-batch-card-name .ant-input {
+  height: 32px !important;
+}
+
+/* Fake placeholder so the required star can be red inside it. */
+.voucher-batch-name-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 8px;
+  font-size: 12px;
+  color: var(--bd-muted);
+  pointer-events: none;
+}
+
+.voucher-batch-config-row {
+  display: flex;
+  gap: 12px;
+  align-items: start;
+}
+
+.voucher-batch-config-row .floating-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.voucher-batch-config-row .ant-form-item {
+  margin-bottom: 0;
+}
+
+.voucher-batch-hint {
+  margin-top: 6px;
+}
+
+@media (max-width: 1100px) {
+  .voucher-batch-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .voucher-batch-count {
+    width: 100%;
+  }
+
+  .voucher-batch-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .voucher-batch-config-row {
+    flex-direction: column;
+  }
+
+  .voucher-batch-config-row .floating-field {
+    width: 100%;
+  }
+}

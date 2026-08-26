@@ -380,19 +380,15 @@ public class BlueDentalOperationsDemoSeeder(
                 value,
                 validFrom,
                 validTo,
+                VoucherScopeTarget.Treatment,
                 clinicBranchId: _branchId,
-                minOrderAmount: value * 4,
-                customerTarget: i == 1 ? VoucherCustomerTarget.New : VoucherCustomerTarget.All,
+                minOrderValue: value * 4,
+                customerTargets: i == 1 ? ["new"] : ["new", "returning"],
                 usageLimit: 100);
 
             if (validTo >= today)
             {
-                voucher.Activate();
-
-                if (i == 3)
-                {
-                    voucher.Pause();
-                }
+                voucher.Publish();
             }
             else
             {

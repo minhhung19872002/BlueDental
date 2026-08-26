@@ -6,6 +6,7 @@ import {
   useUpdateSupply,
   type SupplyDto,
 } from "../api/suppliesApi";
+import { CurrencyInput } from "@/components/CurrencyInput";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
@@ -101,14 +102,6 @@ export function SupplyModal({
     }
   };
 
-  const money = {
-    style: { width: "100%" },
-    min: 0,
-    step: 10000,
-    formatter: (v?: number | string) => `${v ?? ""}`.replace(/\B(?=(\d{3})+(?!\d))/g, "."),
-    parser: (v?: string) => Number((v ?? "").replace(/\./g, "")),
-  };
-
   return (
     <Modal
       open={open}
@@ -164,12 +157,12 @@ export function SupplyModal({
         <Row gutter={12}>
           <Col span={12}>
             <Form.Item name="unitCost" label={t("Giá nhập (đ)")}>
-              <InputNumber<number> {...money} />
+              <CurrencyInput />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item name="salePrice" label={t("Giá bán (đ)")}>
-              <InputNumber<number> {...money} />
+              <CurrencyInput />
             </Form.Item>
           </Col>
         </Row>

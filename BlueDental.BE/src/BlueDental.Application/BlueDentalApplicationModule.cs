@@ -1,5 +1,9 @@
+using BlueDental.Promotions;
+using Microsoft.Extensions.DependencyInjection;
+using Volo.Abp;
 using Volo.Abp.Account;
 using Volo.Abp.AutoMapper;
+using Volo.Abp.BackgroundWorkers;
 using Volo.Abp.BlobStoring;
 using Volo.Abp.FeatureManagement;
 using Volo.Abp.Identity;
@@ -37,5 +41,10 @@ public class BlueDentalApplicationModule : AbpModule
         {
             options.FileSets.AddEmbedded<BlueDentalApplicationModule>();
         });
+    }
+
+    public override async Task OnApplicationInitializationAsync(ApplicationInitializationContext context)
+    {
+        await context.AddBackgroundWorkerAsync<VoucherExpirationWorker>();
     }
 }

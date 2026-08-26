@@ -649,3 +649,64 @@ Action taken: BlueDental giữ nguyên hành vi cũ cho 5 danh mục này — v�
         thì chỉ khác ở chỗ không khôi phục được; chọn cách này vì ở đây không có
         chỗ nào bỏ được cờ đã xoá, nên hiện ra sẽ thành dòng chết không gỡ được.
 ```
+
+## Voucher — tab "Tạo một lượt" (2026-08-26)
+
+ĐÃ QUAN SÁT ĐƯỢC (một phần) qua 3 ảnh chụp staging người dùng cung cấp
+(2026-08-26): ô số lượng "Nhập số lượng mã (tối đa 100)"* rộng ~50% desktop;
+hàng "Chọn mã để cấu hình riêng" / checkbox "Cấu hình tất cả"; lưới thẻ 4
+cột, mỗi thẻ = "#N" + mã "HN-..." (đậm, xanh khi chọn) + ô "Tên voucher" có
+sao đỏ trong placeholder; thẻ #1 mang đúng mã đang hiển thị ở tab "Tạo theo
+số lượng"; bật "Cấu hình tất cả" → mọi thẻ viền xanh, ô số lượt full-width,
+không có ô mã; chọn từng thẻ → ô "Mã ngẫu nhiên" (HN- + shuffle, sửa mã thẻ
+đang chọn) cạnh ô "Nhập số lượt tối đa" + hint "Chỉ chữ in hoa, số, dấu gạch
+ngang. Để trống để tạo tự động."; phần cấu hình chung (ngày, %/VNĐ, phạm vi,
+dịch vụ, ngày trong tuần, exclusive) nằm dưới. Đã dựng theo đúng các ảnh này.
+
+Bổ sung (ảnh 2026-08-26, 100 mã): lưới thẻ có scroll RIÊNG bên trong danh
+sách (hàng cuối bị cắt ngang thẻ; local chốt 420px theo yêu cầu), không đẩy cả body
+modal dài ra — các ô cấu hình chung bên dưới vẫn cuộn theo body như cũ.
+Đã áp max-height + overflow-y:auto cho `.voucher-batch-cards`.
+
+Còn lại chưa quan sát được:
+
+```
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /voucher (staging.nfcdental.com — dialog "Tạo voucher khuyến mãi")
+Control: tab "Tạo một lượt" — hành vi không nhìn thấy trên ảnh tĩnh:
+        (1) payload gửi lên khi submit (một request batch hay N request lẻ,
+            tên field), (2) click vào thẻ khi đang bật "Cấu hình tất cả" thì
+            checkbox có tự bỏ chọn không, (3) xử lý khi hai thẻ trùng mã,
+        (4) cách hiển thị lỗi khi thiếu tên voucher (viền đỏ thẻ? toast?).
+Reason: ảnh chụp là tĩnh; phiên staging đã hết hạn nên không bấm thử được,
+        và dù còn phiên cũng không được submit form trên hệ thống tham chiếu.
+Action taken: BlueDental tự chọn: 1 request POST /vouchers/batch với
+        configureAll + items[]; click thẻ khi đang "Cấu hình tất cả" sẽ bỏ
+        chọn checkbox và chuyển sang cấu hình riêng thẻ đó; mã trùng trong
+        danh sách bị chặn ở cả FE (toast) lẫn BE (BusinessException); thiếu
+        tên → viền đỏ thẻ + toast "Vui lòng nhập tên cho tất cả voucher".
+```
+
+```
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /voucher (staging.nfcdental.com — dialog "Tạo voucher khuyến mãi")
+Control: prefix "HN-" đứng trước mã voucher (addon của ô mã, và trên các thẻ
+        ở tab "Tạo một lượt")
+Reason: chỉ quan sát được duy nhất giá trị "HN-" trên staging; chưa bắt được
+        request tạo voucher nên không biết prefix nằm trong payload hay do
+        server tự gắn, và không biết nó là hằng số hệ thống hay cấu hình
+        theo phòng khám. Mẫu mã bệnh nhân của bản gốc ({ClinicPrefix}{YY}{SEQ},
+        ví dụ "DH" = Đức Hạnh — xem docs/clone/data-model.md) gợi ý mỗi phòng
+        khám có prefix riêng, và "HN-" nhiều khả năng là prefix của phòng khám
+        trên staging — nhưng chưa xác nhận được.
+Action taken: BE sở hữu prefix — hằng VoucherConsts.DefaultPrefix ("HN"),
+        trả về qua GET /api/v1/app/vouchers/code-prefix; FE fetch khi mở
+        dialog tạo (useVoucherCodePrefix, cache cả phiên) và chỉ giữ "HN-"
+        làm fallback hiển thị khi chưa fetch xong. Mã voucher vẫn sinh ở FE
+        (generateRandomCode) dưới dạng trần; BE nối prefix vào khi lưu
+        (ComposeFullCode) nên cột Code giữ mã đầy đủ "HN-XXXXXXXX" — đúng mã
+        khách dùng khi quy đổi. Prefix vẫn lưu riêng ở cột Voucher.Prefix
+        (nullable, tối đa 20 ký tự) để dialog sửa tách lại phần trần hiển thị.
+        Khi xác định được nguồn thật (cấu hình chi nhánh?) sẽ nối
+        VoucherConsts vào đó.
+```

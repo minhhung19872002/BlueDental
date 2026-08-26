@@ -783,26 +783,6 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => new { x.ClinicBranchId, x.TransactionType });
         });
 
-        // Voucher khuyen mai
-        builder.Entity<Voucher>(entity =>
-        {
-            entity.ToTable("bd_vouchers");
-            entity.ConfigureByConvention();
-            entity.Property(x => x.Code).HasMaxLength(32).IsRequired();
-            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
-            entity.Property(x => x.Description).HasMaxLength(1000);
-            entity.Property(x => x.DiscountType).HasConversion<short>();
-            entity.Property(x => x.CustomerTarget).HasConversion<short>();
-            entity.Property(x => x.Status).HasConversion<short>();
-            entity.Property(x => x.DiscountValue).HasColumnType("numeric(18,2)");
-            entity.Property(x => x.MaxDiscountAmount).HasColumnType("numeric(18,2)");
-            entity.Property(x => x.MinOrderAmount).HasColumnType("numeric(18,2)");
-            entity.Ignore(x => x.RemainingUses);
-            entity.Ignore(x => x.IsExhausted);
-            entity.HasIndex(x => x.Code).IsUnique();
-            entity.HasIndex(x => new { x.Status, x.ValidFrom, x.ValidTo });
-        });
-
         // Nhom danh muc
         builder.Entity<Taxonomy>(entity =>
         {
@@ -1186,19 +1166,29 @@ public static class BlueDentalDbContextModelCreatingExtensions
         {
             entity.ToTable("bd_vouchers");
             entity.ConfigureByConvention();
+            entity.Property(x => x.Prefix).HasMaxLength(20);
             entity.Property(x => x.Code).HasMaxLength(32).IsRequired();
             entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
             entity.Property(x => x.Description).HasMaxLength(1000);
             entity.Property(x => x.DiscountType).HasConversion<short>();
-            entity.Property(x => x.CustomerTarget).HasConversion<short>();
+            entity.Property(x => x.ScopeTarget).HasConversion<short>();
             entity.Property(x => x.Status).HasConversion<short>();
             entity.Property(x => x.DiscountValue).HasColumnType("numeric(18,2)");
             entity.Property(x => x.MaxDiscountAmount).HasColumnType("numeric(18,2)");
-            entity.Property(x => x.MinOrderAmount).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.MinOrderValue).HasColumnType("numeric(18,2)");
+            entity.PrimitiveCollection(x => x.TargetIds)
+                .UsePropertyAccessMode(PropertyAccessMode.Field)
+                .HasColumnName("TargetIds");
+            entity.PrimitiveCollection(x => x.CustomerTargets)
+                .UsePropertyAccessMode(PropertyAccessMode.Field)
+                .HasColumnName("CustomerTargets");
+            entity.PrimitiveCollection(x => x.DaysOfWeek)
+                .UsePropertyAccessMode(PropertyAccessMode.Field)
+                .HasColumnName("DaysOfWeek");
             entity.Ignore(x => x.RemainingUses);
             entity.Ignore(x => x.IsExhausted);
             entity.HasIndex(x => x.Code).IsUnique();
-            entity.HasIndex(x => new { x.Status, x.ValidFrom, x.ValidTo });
+            entity.HasIndex(x => new { x.IsPublished, x.Status, x.ValidFrom, x.ValidTo });
         });
     }
 

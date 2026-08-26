@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { DatePicker, Form, Input, InputNumber, Modal, Select } from "antd";
+import { DatePicker, Form, Input, Modal, Select } from "antd";
 import { toast } from "sonner";
 import dayjs from "dayjs";
 import {
@@ -17,6 +17,7 @@ import {
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { extractApiError } from "@/lib/apiError";
+import { CurrencyInput } from "@/components/CurrencyInput";
 import { t } from "@/lib/i18n";
 
 interface SalesEntryModalProps {
@@ -192,13 +193,7 @@ export function SalesEntryModal({ open, entry, defaultType, onClose }: SalesEntr
             { type: "number", min: 1, message: t("Số tiền phải lớn hơn 0") },
           ]}
         >
-          <InputNumber<number>
-            style={{ width: "100%" }}
-            min={0}
-            step={10000}
-            formatter={(v) => `${v ?? ""}`.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
-            parser={(v) => Number((v ?? "").replace(/\./g, ""))}
-          />
+          <CurrencyInput />
         </Form.Item>
 
         <Form.Item name="channel" label={t("Hình thức")} rules={[{ required: true }]}>

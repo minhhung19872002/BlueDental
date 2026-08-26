@@ -169,6 +169,55 @@ export const themeConfig: ThemeConfig = {
   },
 };
 
+/* The voucher dialog on the ref keeps a bright Tailwind blue accent instead of
+   the navy the rest of the app uses. Kept in sync with --vc-accent in
+   features/voucher/components/voucher.css. */
+const voucherAccent = "#2563eb";
+
+export const voucherDialogTheme: ThemeConfig = {
+  token: {
+    colorPrimary: voucherAccent,
+    colorInfo: voucherAccent,
+    colorLink: voucherAccent,
+  },
+  components: {
+    Tabs: {
+      itemSelectedColor: voucherAccent,
+      itemHoverColor: voucherAccent,
+      inkBarColor: voucherAccent,
+      titleFontSize: 14,
+    },
+    Segmented: {
+      itemSelectedBg: voucherAccent,
+      itemSelectedColor: "#ffffff",
+      itemColor: brand.muted,
+      trackBg: brand.lineSoft,
+      trackPadding: 4,
+      borderRadius: 8,
+    },
+    Input: {
+      activeBorderColor: voucherAccent,
+      hoverBorderColor: voucherAccent,
+      activeShadow: "none",
+    },
+    InputNumber: {
+      activeBorderColor: voucherAccent,
+      hoverBorderColor: voucherAccent,
+      activeShadow: "none",
+    },
+    DatePicker: {
+      activeBorderColor: voucherAccent,
+      hoverBorderColor: voucherAccent,
+      activeShadow: "none",
+    },
+    Select: {
+      activeBorderColor: voucherAccent,
+      hoverBorderColor: voucherAccent,
+      activeOutlineColor: "transparent",
+    },
+  },
+};
+
 export const SIDEBAR_WIDTH = 76;
 export const SIDEBAR_EXPANDED_WIDTH = 236;
 export const HEADER_HEIGHT = 66;

@@ -13,6 +13,7 @@ import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { toast } from "sonner";
 import { extractApiError } from "@/lib/apiError";
 import { formatVND } from "@/utils/format";
+import { CurrencyInput } from "@/components/CurrencyInput";
 import { t } from "@/lib/i18n";
 
 const { Text } = Typography;
@@ -185,13 +186,7 @@ export function AdviseModal({
                 { type: "number", min: 0, message: t("Đơn giá không được âm") },
               ]}
             >
-              <InputNumber<number>
-                style={{ width: "100%" }}
-                min={0}
-                step={100000}
-                formatter={(v) => `${v ?? ""}`.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
-                parser={(v) => Number((v ?? "").replace(/\./g, ""))}
-              />
+              <CurrencyInput />
             </Form.Item>
           </Col>
           <Col span={10}>
@@ -232,11 +227,7 @@ export function AdviseModal({
                   : []),
               ]}
             >
-              <InputNumber<number>
-                style={{ width: "100%" }}
-                min={0}
-                disabled={discountType === DISCOUNT_TYPE.None}
-              />
+              <CurrencyInput disabled={discountType === DISCOUNT_TYPE.None} />
             </Form.Item>
           </Col>
         </Row>

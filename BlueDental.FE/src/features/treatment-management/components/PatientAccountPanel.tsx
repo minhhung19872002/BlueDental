@@ -4,7 +4,6 @@ import {
   Card,
   Col,
   Form,
-  InputNumber,
   Modal,
   Row,
   Select,
@@ -30,6 +29,7 @@ import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { toast } from "sonner";
 import { extractApiError } from "@/lib/apiError";
 import { formatDateTime, formatVND } from "@/utils/format";
+import { CurrencyInput } from "@/components/CurrencyInput";
 import { t } from "@/lib/i18n";
 
 const { Text } = Typography;
@@ -244,13 +244,7 @@ export function PatientAccountPanel({ patientId }: PatientAccountPanelProps) {
               { type: "number", min: 1, message: t("Số tiền phải lớn hơn 0") },
             ]}
           >
-            <InputNumber<number>
-              style={{ width: "100%" }}
-              min={0}
-              step={100000}
-              formatter={(v) => `${v ?? ""}`.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}
-              parser={(v) => Number((v ?? "").replace(/\./g, "")) as 0}
-            />
+            <CurrencyInput />
           </Form.Item>
 
           <Form.Item

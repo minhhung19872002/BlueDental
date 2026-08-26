@@ -27,7 +27,7 @@ Last run: 2026-08-24, stack on `localhost:5173` (Vite) → `localhost:5019` (API
 | F-05 | Luân chuyển dòng tiền | `VERIFIED` | `e2e/finance.spec.ts` | Deposit moves Tổng Tiền Mặt by the deposited amount |
 | F-06 | Hồ sơ bệnh nhân (đăng ký + danh sách) | `VERIFIED` | `e2e/patient.spec.ts` | Registered through the UI, persisted, reopened from the list |
 | F-07 | Sơ đồ răng theo mặt | `VERIFIED` | `e2e/patient.spec.ts` | Whole-tooth, whole-jaw and clear all behave |
-| F-08 | Voucher khuyến mãi | `VERIFIED` | `e2e/voucher.spec.ts` | Draft → active → paused; percentage above 100 refused |
+| F-08 | Voucher khuyến mãi | `VERIFIED` | `e2e/voucher.spec.ts` | Draft → active → paused; percentage above 100 refused; batch "Tạo một lượt": shared config + per-card override persisted (0/30 vs 0/70), card #1 mirrors single-tab code, missing name refused (7 tests, 2026-08-26) |
 | F-09 | Chẩn đoán & Tư vấn | `VERIFIED` | `e2e/treatment-stage.spec.ts`, `e2e/treatment-plan.spec.ts` | Diagnosis and advise created, then accepted |
 | F-10 | Lịch hẹn | `VERIFIED` | `e2e/appointment.spec.ts` | Booking stored and found by a **server-side** search over every appointment (it used to filter only the fetched page); double-booking refused; day and week grids query their own range and now draw their bookings |
 | F-11 | Tiếp nhận | `VERIFIED` | `e2e/reception.spec.ts` | Visit stored through the real API; counters served by `/visits/stats` |

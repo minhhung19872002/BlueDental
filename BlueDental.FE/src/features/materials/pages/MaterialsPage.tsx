@@ -6,6 +6,7 @@ import dayjs from "dayjs";
 import { toast } from "sonner";
 import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
+import { CurrencyInput } from "@/components/CurrencyInput";
 import { PageHeader } from "@/components/PageHeader";
 import {
   useInventoryItemList,
@@ -124,13 +125,7 @@ function InventoryModal({ open, onClose, editingItem }: InventoryModalProps) {
           <InputNumber<number> min={0} style={{ width: "100%" }} placeholder="0" />
         </Form.Item>
         <Form.Item name="unitCost" label={t("Giá nhập (VND)")}>
-          <InputNumber<number>
-            min={0}
-            style={{ width: "100%" }}
-            formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-            parser={(v) => parseFloat((v ?? "0").replace(/,/g, "")) || 0}
-            placeholder="0"
-          />
+          <CurrencyInput placeholder="0" />
         </Form.Item>
       </Form>
     </Modal>

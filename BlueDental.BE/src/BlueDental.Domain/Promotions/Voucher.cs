@@ -1,49 +1,55 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using BlueDental.TreatmentManagement;
 using Volo.Abp;
 using Volo.Abp.Domain.Entities.Auditing;
 
 namespace BlueDental.Promotions;
 
-/// <summary>
-/// A promotional voucher applied to consulting lines and treatment plans
-/// (Voucher khuyến mãi).
-///
-/// Reference: <c>/voucher</c> screen plus <c>/api/v1/voucher/available</c>, which
-/// the patient screen calls to offer applicable vouchers. Applied vouchers show
-/// up on advises as <c>appliedCoupons</c> / <c>voucherDiscountAmount</c>.
-/// </summary>
 public class Voucher : FullAuditedAggregateRoot<Guid>
 {
     public Guid? ClinicBranchId { get; private set; }
-
-    /// <summary>Mã voucher — unique, upper case.</summary>
+    public string? Prefix { get; private set; }
     public string Code { get; private set; } = string.Empty;
-
     public string Name { get; private set; } = string.Empty;
     public string? Description { get; private set; }
 
     public DiscountType DiscountType { get; private set; }
     public decimal DiscountValue { get; private set; }
-
-    /// <summary>Caps a percentage discount; ignored for money discounts.</summary>
     public decimal? MaxDiscountAmount { get; private set; }
+    public decimal? MinOrderValue { get; private set; }
 
-    /// <summary>Điều kiện áp dụng — minimum order value.</summary>
-    public decimal? MinOrderAmount { get; private set; }
+    public VoucherScopeTarget ScopeTarget { get; private set; }
 
-    public VoucherCustomerTarget CustomerTarget { get; private set; }
+    private List<Guid> _targetIds = [];
+    public IReadOnlyList<Guid> TargetIds => _targetIds;
 
     public DateOnly ValidFrom { get; private set; }
     public DateOnly ValidTo { get; private set; }
 
-    /// <summary>Total redemptions allowed; null means unlimited.</summary>
     public int? UsageLimit { get; private set; }
-
-    /// <summary>Lượt dùng.</summary>
     public int UsedCount { get; private set; }
 
     public VoucherStatus Status { get; private set; }
+
+    public bool IsPublished { get; private set; }
+    public DateTime? PublishedAt { get; private set; }
+    public bool IsExclusive { get; private set; }
+
+    private List<string> _customerTargets = ["new", "returning"];
+    public IReadOnlyList<string> CustomerTargets => _customerTargets;
+
+    public int? PerCustomerLimit { get; private set; }
+    public bool IsDaysOfWeekLimited { get; private set; }
+
+    private List<int> _daysOfWeek = [];
+    public IReadOnlyList<int> DaysOfWeek => _daysOfWeek;
+
+    public bool DisplayOnNfcDental { get; private set; }
+
+    public int? RemainingUses => UsageLimit.HasValue ? UsageLimit.Value - UsedCount : null;
+    public bool IsExhausted => UsageLimit.HasValue && UsedCount >= UsageLimit.Value;
 
     protected Voucher() { }
 
@@ -55,94 +61,87 @@ public class Voucher : FullAuditedAggregateRoot<Guid>
         decimal discountValue,
         DateOnly validFrom,
         DateOnly validTo,
+        VoucherScopeTarget scopeTarget,
         Guid? clinicBranchId = null,
+        string? prefix = null,
+        List<Guid>? targetIds = null,
         decimal? maxDiscountAmount = null,
-        decimal? minOrderAmount = null,
-        VoucherCustomerTarget customerTarget = VoucherCustomerTarget.All,
+        decimal? minOrderValue = null,
+        bool isExclusive = false,
+        List<string>? customerTargets = null,
         int? usageLimit = null,
+        int? perCustomerLimit = null,
+        bool isDaysOfWeekLimited = false,
+        List<int>? daysOfWeek = null,
+        bool displayOnNfcDental = true,
         string? description = null)
     {
         Check.NotNullOrWhiteSpace(code, nameof(code));
         Check.NotNullOrWhiteSpace(name, nameof(name));
 
         if (discountType == DiscountType.None)
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.Promotions.InvalidDiscount,
-                "A voucher must define a discount type.");
-        }
+            throw new BusinessException(BlueDentalDomainErrorCodes.Promotions.InvalidDiscount);
 
         if (discountValue <= 0m)
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.Promotions.InvalidDiscount,
-                "A voucher discount must be greater than zero.");
-        }
+            throw new BusinessException(BlueDentalDomainErrorCodes.Promotions.InvalidDiscount);
 
         if (discountType == DiscountType.Percentage && discountValue > 100m)
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.Promotions.InvalidDiscount,
-                "A percentage discount must not exceed 100.");
-        }
+            throw new BusinessException(BlueDentalDomainErrorCodes.Promotions.InvalidDiscount);
 
         if (validTo < validFrom)
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.Promotions.InvalidValidityWindow,
-                "A voucher must expire on or after the day it becomes valid.");
-        }
+            throw new BusinessException(BlueDentalDomainErrorCodes.Promotions.InvalidValidityWindow);
 
         if (usageLimit is <= 0)
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.Promotions.InvalidUsageLimit,
-                "The usage limit must be greater than zero when set.");
-        }
+            throw new BusinessException(BlueDentalDomainErrorCodes.Promotions.InvalidUsageLimit);
+
+        ValidateCustomerTargets(customerTargets);
+        ValidateDaysOfWeek(daysOfWeek);
 
         return new Voucher
         {
             Id = id,
             ClinicBranchId = clinicBranchId,
+            Prefix = prefix?.Trim(),
             Code = code.Trim().ToUpperInvariant(),
             Name = name,
             Description = description,
             DiscountType = discountType,
             DiscountValue = discountValue,
             MaxDiscountAmount = maxDiscountAmount,
-            MinOrderAmount = minOrderAmount,
-            CustomerTarget = customerTarget,
+            MinOrderValue = minOrderValue,
+            ScopeTarget = scopeTarget,
+            _targetIds = targetIds ?? [],
             ValidFrom = validFrom,
             ValidTo = validTo,
             UsageLimit = usageLimit,
             UsedCount = 0,
-            Status = VoucherStatus.Draft
+            Status = VoucherStatus.Active,
+            IsPublished = false,
+            IsExclusive = isExclusive,
+            _customerTargets = customerTargets ?? ["new", "returning"],
+            PerCustomerLimit = perCustomerLimit,
+            IsDaysOfWeekLimited = isDaysOfWeekLimited,
+            _daysOfWeek = daysOfWeek ?? [],
+            DisplayOnNfcDental = displayOnNfcDental
         };
     }
 
-    public Voucher Activate()
+    public Voucher Publish()
     {
         if (Status == VoucherStatus.Expired)
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.Promotions.VoucherExpired,
-                "An expired voucher cannot be activated.");
-        }
+            throw new BusinessException(BlueDentalDomainErrorCodes.Promotions.VoucherExpired);
+        if (Status == VoucherStatus.OutOfUses)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Promotions.InvalidVoucherTransition);
 
-        Status = VoucherStatus.Active;
+        IsPublished = true;
+        PublishedAt = DateTime.UtcNow;
         return this;
     }
 
-    public Voucher Pause()
+    public Voucher Unpublish()
     {
-        if (Status != VoucherStatus.Active)
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.Promotions.InvalidVoucherTransition,
-                $"Only an active voucher can be paused (current: {Status}).");
-        }
-
-        Status = VoucherStatus.Paused;
+        IsPublished = false;
+        PublishedAt = null;
         return this;
     }
 
@@ -155,59 +154,105 @@ public class Voucher : FullAuditedAggregateRoot<Guid>
     public Voucher UpdateDetails(
         string name,
         string? description,
-        decimal? minOrderAmount,
+        VoucherScopeTarget scopeTarget,
+        List<Guid>? targetIds,
+        decimal? minOrderValue,
         decimal? maxDiscountAmount,
-        VoucherCustomerTarget customerTarget)
+        bool isExclusive,
+        List<string>? customerTargets,
+        int? perCustomerLimit,
+        bool isDaysOfWeekLimited,
+        List<int>? daysOfWeek,
+        bool displayOnNfcDental)
     {
-        GuardNotRedeemed();
         Check.NotNullOrWhiteSpace(name, nameof(name));
+        ValidateCustomerTargets(customerTargets);
+        ValidateDaysOfWeek(daysOfWeek);
 
         Name = name;
         Description = description;
-        MinOrderAmount = minOrderAmount;
+        ScopeTarget = scopeTarget;
+        _targetIds = targetIds ?? [];
+        MinOrderValue = minOrderValue;
         MaxDiscountAmount = maxDiscountAmount;
-        CustomerTarget = customerTarget;
+        IsExclusive = isExclusive;
+        _customerTargets = customerTargets ?? ["new", "returning"];
+        PerCustomerLimit = perCustomerLimit;
+        IsDaysOfWeekLimited = isDaysOfWeekLimited;
+        _daysOfWeek = daysOfWeek ?? [];
+        DisplayOnNfcDental = displayOnNfcDental;
+        return this;
+    }
+
+    public Voucher ChangeCode(string code)
+    {
+        Check.NotNullOrWhiteSpace(code, nameof(code));
+        Code = code.Trim().ToUpperInvariant();
+        return this;
+    }
+
+    public Voucher ChangePrefix(string? prefix)
+    {
+        Prefix = prefix?.Trim();
+        return this;
+    }
+
+    public Voucher ChangeDiscount(DiscountType discountType, decimal discountValue)
+    {
+        if (discountType == DiscountType.None)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Promotions.InvalidDiscount);
+
+        if (discountValue <= 0m)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Promotions.InvalidDiscount);
+
+        if (discountType == DiscountType.Percentage && discountValue > 100m)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Promotions.InvalidDiscount);
+
+        DiscountType = discountType;
+        DiscountValue = discountValue;
         return this;
     }
 
     public Voucher Reschedule(DateOnly validFrom, DateOnly validTo)
     {
         if (validTo < validFrom)
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.Promotions.InvalidValidityWindow,
-                "A voucher must expire on or after the day it becomes valid.");
-        }
+            throw new BusinessException(BlueDentalDomainErrorCodes.Promotions.InvalidValidityWindow);
 
         ValidFrom = validFrom;
         ValidTo = validTo;
+
+        if (Status == VoucherStatus.Expired && validTo >= DateOnly.FromDateTime(DateTime.UtcNow))
+            Status = VoucherStatus.Active;
+
         return this;
     }
 
-    /// <summary>Lượt dùng còn lại; null when the voucher is unlimited.</summary>
-    public int? RemainingUses => UsageLimit.HasValue ? UsageLimit.Value - UsedCount : null;
-
-    public bool IsExhausted => UsageLimit.HasValue && UsedCount >= UsageLimit.Value;
-
-    /// <summary>Can this voucher be applied to the given order right now?</summary>
-    public bool IsAvailableFor(DateOnly onDate, decimal orderAmount, VoucherCustomerTarget customerTarget)
+    public Voucher UpdateUsageLimit(int? usageLimit)
     {
-        if (Status != VoucherStatus.Active) return false;
-        if (onDate < ValidFrom || onDate > ValidTo) return false;
-        if (IsExhausted) return false;
-        if (MinOrderAmount.HasValue && orderAmount < MinOrderAmount.Value) return false;
+        if (usageLimit is <= 0)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Promotions.InvalidUsageLimit);
 
-        return CustomerTarget == VoucherCustomerTarget.All ||
-               CustomerTarget == customerTarget;
+        UsageLimit = usageLimit;
+
+        if (Status == VoucherStatus.OutOfUses && !IsExhausted)
+            Status = VoucherStatus.Active;
+
+        return this;
     }
 
-    /// <summary>Discount this voucher grants on the given amount, capped so it never exceeds it.</summary>
+    public bool IsAvailableFor(DateOnly onDate, decimal orderAmount)
+    {
+        if (Status != VoucherStatus.Active) return false;
+        if (!IsPublished) return false;
+        if (onDate < ValidFrom || onDate > ValidTo) return false;
+        if (IsExhausted) return false;
+        if (MinOrderValue.HasValue && orderAmount < MinOrderValue.Value) return false;
+        return true;
+    }
+
     public decimal CalculateDiscount(decimal orderAmount)
     {
-        if (orderAmount <= 0m)
-        {
-            return 0m;
-        }
+        if (orderAmount <= 0m) return 0m;
 
         var discount = DiscountType switch
         {
@@ -217,40 +262,45 @@ public class Voucher : FullAuditedAggregateRoot<Guid>
         };
 
         if (MaxDiscountAmount.HasValue && discount > MaxDiscountAmount.Value)
-        {
             discount = MaxDiscountAmount.Value;
-        }
 
         return discount > orderAmount ? orderAmount : discount;
     }
 
-    /// <summary>Consumes one redemption and returns the granted discount.</summary>
-    public decimal Redeem(DateOnly onDate, decimal orderAmount, VoucherCustomerTarget customerTarget)
+    public decimal Redeem(DateOnly onDate, decimal orderAmount)
     {
-        if (!IsAvailableFor(onDate, orderAmount, customerTarget))
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.Promotions.VoucherNotApplicable,
-                $"Voucher {Code} cannot be applied to this order.");
-        }
+        if (!IsAvailableFor(onDate, orderAmount))
+            throw new BusinessException(BlueDentalDomainErrorCodes.Promotions.VoucherNotApplicable);
 
         UsedCount++;
 
         if (IsExhausted)
-        {
-            Status = VoucherStatus.Expired;
-        }
+            Status = VoucherStatus.OutOfUses;
 
         return CalculateDiscount(orderAmount);
     }
 
-    private void GuardNotRedeemed()
+    private static readonly HashSet<string> ValidCustomerTargetValues = ["new", "returning"];
+
+    private static void ValidateCustomerTargets(List<string>? targets)
     {
-        if (UsedCount > 0)
+        if (targets == null) return;
+        foreach (var t in targets)
         {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.Promotions.VoucherLocked,
-                "A voucher that has already been redeemed can no longer be edited.");
+            if (!ValidCustomerTargetValues.Contains(t))
+                throw new BusinessException(BlueDentalDomainErrorCodes.Promotions.InvalidVoucherTransition,
+                    $"Invalid customer target: {t}");
+        }
+    }
+
+    private static void ValidateDaysOfWeek(List<int>? days)
+    {
+        if (days == null) return;
+        foreach (var d in days)
+        {
+            if (d < 1 || d > 7)
+                throw new BusinessException(BlueDentalDomainErrorCodes.Promotions.InvalidVoucherTransition,
+                    $"Day of week must be 1-7, got: {d}");
         }
     }
 }

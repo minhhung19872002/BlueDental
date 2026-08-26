@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, Input, Select, Table, Tag, Modal, Form, InputNumber, DatePicker, Popconfirm } from "antd";
+import { Button, Input, Select, Table, Tag, Modal, Form, DatePicker, Popconfirm } from "antd";
 import { toast } from "sonner";
 import { SearchOutlined, DownloadOutlined, PlusOutlined, DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -26,6 +26,7 @@ import { usePatientList } from "@/features/patient-management/api/patientQueries
 import { useDebounce } from "@/hooks/useDebounce";
 import type { ColumnsType } from "antd/es/table";
 import { t } from "@/lib/i18n";
+import { CurrencyInput } from "@/components/CurrencyInput";
 import { PageHeader } from "@/components/PageHeader";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -97,13 +98,7 @@ function CreateLaboModal({ open, onClose }: { open: boolean; onClose: () => void
           <Input.TextArea rows={3} placeholder={t("Mô tả công việc")} />
         </Form.Item>
         <Form.Item name="estimatedCost" label={t("Chi phí ước tính (VND)")} rules={[{ required: true, message: t("Nhập chi phí") }]}>
-          <InputNumber<number>
-            min={0}
-            style={{ width: "100%" }}
-            formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-            parser={(v) => parseFloat((v ?? "0").replace(/,/g, "")) || 0}
-            placeholder="0"
-          />
+          <CurrencyInput placeholder="0" />
         </Form.Item>
         <Form.Item name="dueDate" label={t("Ngày giao dự kiến")}>
           <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />

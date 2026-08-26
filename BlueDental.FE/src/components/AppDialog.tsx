@@ -8,9 +8,13 @@ interface Props {
   title: string;
   /** Modal width in pixels, as Ant Design takes it. */
   width?: number;
+  /** Extra class on the modal, next to the shared app-dialog styling. */
+  className?: string;
   /** Disables the save button — a form that cannot be submitted yet. */
   canSave: boolean;
   saving?: boolean;
+  /** Save button label; defaults to "Lưu". */
+  saveLabel?: string;
   onSave: () => void;
   onClose: () => void;
   children: ReactNode;
@@ -29,8 +33,10 @@ export function AppDialog({
   open,
   title,
   width = 560,
+  className,
   canSave,
   saving,
+  saveLabel,
   onSave,
   onClose,
   children,
@@ -44,7 +50,7 @@ export function AppDialog({
       width={width}
       destroyOnHidden
       mask={{ closable: false }}
-      className="app-dialog"
+      className={["app-dialog", className].filter(Boolean).join(" ")}
       footer={
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
           {/* A disabled button says "not now"; a spinner says "working". The
@@ -56,7 +62,7 @@ export function AppDialog({
             disabled={!canSave || saving}
             onClick={onSave}
           >
-            {saving ? t("Đang lưu…") : t("Lưu")}
+            {saving ? t("Đang lưu…") : saveLabel ?? t("Lưu")}
           </Button>
         </div>
       }

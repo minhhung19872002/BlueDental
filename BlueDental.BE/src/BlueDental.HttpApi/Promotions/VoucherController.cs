@@ -9,7 +9,6 @@ using Volo.Abp.Application.Dtos;
 
 namespace BlueDental.Promotions;
 
-/// <summary>Voucher khuyến mãi.</summary>
 [RemoteService]
 [Authorize]
 [Route("api/v1/app/vouchers")]
@@ -19,10 +18,6 @@ public sealed class VoucherController(IVoucherAppService service) : BlueDentalCo
     public Task<PagedResultDto<VoucherDto>> GetListAsync([FromQuery] GetVoucherListInput input) =>
         service.GetListAsync(input);
 
-    [HttpGet("stats")]
-    public Task<VoucherStatsDto> GetStatsAsync([FromQuery] Guid? clinicBranchId) =>
-        service.GetStatsAsync(clinicBranchId);
-
     [HttpGet("available")]
     public Task<List<VoucherDto>> GetAvailableAsync([FromQuery] GetAvailableVouchersInput input) =>
         service.GetAvailableAsync(input);
@@ -30,18 +25,25 @@ public sealed class VoucherController(IVoucherAppService service) : BlueDentalCo
     [HttpGet("{id:guid}")]
     public Task<VoucherDto> GetAsync(Guid id) => service.GetAsync(id);
 
+    [HttpGet("code-prefix")]
+    public Task<VoucherCodePrefixDto> GetCodePrefixAsync() => service.GetCodePrefixAsync();
+
     [HttpPost]
     public Task<VoucherDto> CreateAsync([FromBody] CreateVoucherDto input) => service.CreateAsync(input);
+
+    [HttpPost("batch")]
+    public Task<List<VoucherDto>> CreateBatchAsync([FromBody] CreateVoucherBatchDto input) =>
+        service.CreateBatchAsync(input);
 
     [HttpPut("{id:guid}")]
     public Task<VoucherDto> UpdateAsync(Guid id, [FromBody] UpdateVoucherDto input) =>
         service.UpdateAsync(id, input);
 
-    [HttpPost("{id:guid}/activate")]
-    public Task<VoucherDto> ActivateAsync(Guid id) => service.ActivateAsync(id);
+    [HttpPost("{id:guid}/publish")]
+    public Task<VoucherDto> PublishAsync(Guid id) => service.PublishAsync(id);
 
-    [HttpPost("{id:guid}/pause")]
-    public Task<VoucherDto> PauseAsync(Guid id) => service.PauseAsync(id);
+    [HttpPost("{id:guid}/unpublish")]
+    public Task<VoucherDto> UnpublishAsync(Guid id) => service.UnpublishAsync(id);
 
     [HttpPost("{id:guid}/redeem")]
     public Task<VoucherRedemptionResultDto> RedeemAsync(Guid id, [FromBody] RedeemVoucherInput input) =>
