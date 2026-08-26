@@ -10,6 +10,7 @@ import {
   ChevronsRightLeft,
   Folder,
   FileText,
+  Lock,
   Shield,
   ListTree,
   Trash2,
@@ -69,9 +70,10 @@ interface GroupNodeProps {
   depth: number;
   searchQuery: string;
   defaultExpanded: boolean;
+  readonly?: boolean;
 }
 
-function PermissionGroupNode({ node, granted, onToggleLeaf, onToggleGroup, depth, searchQuery, defaultExpanded }: GroupNodeProps) {
+function PermissionGroupNode({ node, granted, onToggleLeaf, onToggleGroup, depth, searchQuery, defaultExpanded, readonly: isReadonly }: GroupNodeProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
 
   if (node.type === "leaf") {
@@ -79,6 +81,7 @@ function PermissionGroupNode({ node, granted, onToggleLeaf, onToggleGroup, depth
       <label className="perm-leaf">
         <Checkbox
           checked={granted.has(node.id)}
+          disabled={isReadonly}
           onChange={() => onToggleLeaf(node.id)}
         />
         <FileText className="perm-leaf-icon" size={14} />
@@ -110,6 +113,7 @@ function PermissionGroupNode({ node, granted, onToggleLeaf, onToggleGroup, depth
         <Checkbox
           checked={allChecked}
           indeterminate={indeterminate}
+          disabled={isReadonly}
           onClick={(e) => e.stopPropagation()}
           onChange={() => onToggleGroup(leafIds, !allChecked)}
         />
@@ -136,6 +140,7 @@ function PermissionGroupNode({ node, granted, onToggleLeaf, onToggleGroup, depth
                 depth={depth + 1}
                 searchQuery={searchQuery}
                 defaultExpanded={defaultExpanded}
+                readonly={isReadonly}
               />
             ))}
         </div>
@@ -148,8 +153,10 @@ function PermissionGroupNode({ node, granted, onToggleLeaf, onToggleGroup, depth
 
 function RolePermissionEditor({
   roleName,
+  readonly: isReadonly,
 }: {
   roleName: string;
+  readonly?: boolean;
 }) {
   const { data: treeData, isLoading: treeLoading } = usePermissionTree();
   const { data: rolePerms, isLoading: permsLoading } = useRolePermissions(roleName);
@@ -230,9 +237,13 @@ function RolePermissionEditor({
     <div className="perm-editor">
       <div className="perm-editor-header">
         <div className="perm-editor-header-left">
-          <div className="perm-editor-title">{roleName}</div>
+          <div className="perm-editor-title">
+            {roleName}
+            {isReadonly && <Lock size={14} className="perm-editor-lock" />}
+          </div>
           <div className="perm-editor-subtitle">
             {checkedCount}/{totalPerms} {t("quyền chi tiết")}
+            {isReadonly && <span className="perm-editor-readonly-hint"> — {t("Vai trò hệ thống, không thể chỉnh sửa")}</span>}
           </div>
         </div>
         <div className="perm-editor-actions">
@@ -250,15 +261,17 @@ function RolePermissionEditor({
           >
             <ChevronsRightLeft size={16} />
           </button>
-          <Button
-            type="primary"
-            icon={<Save size={14} />}
-            loading={updatePerms.isPending}
-            disabled={!hasChanges || updatePerms.isPending}
-            onClick={() => void handleSave()}
-          >
-            {t("Lưu thay đổi")}
-          </Button>
+          {!isReadonly && (
+            <Button
+              type="primary"
+              icon={<Save size={14} />}
+              loading={updatePerms.isPending}
+              disabled={!hasChanges || updatePerms.isPending}
+              onClick={() => void handleSave()}
+            >
+              {t("Lưu thay đổi")}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -286,6 +299,7 @@ function RolePermissionEditor({
                 depth={0}
                 searchQuery={lowerQuery}
                 defaultExpanded={allExpanded}
+                readonly={isReadonly}
               />
             ))}
         </div>
@@ -296,9 +310,10 @@ function RolePermissionEditor({
 
 // ── RoleListItem ─────────────────────────────────────────────────────────
 
-function RoleListItem({ roleName, isActive, treeLeafIds, onClick, onDelete }: {
+function RoleListItem({ roleName, isActive, isStatic, treeLeafIds, onClick, onDelete }: {
   roleName: string;
   isActive: boolean;
+  isStatic: boolean;
   treeLeafIds: string[];
   onClick: () => void;
   onDelete: () => void;
@@ -323,19 +338,21 @@ function RoleListItem({ roleName, isActive, treeLeafIds, onClick, onDelete }: {
       tabIndex={0}
     >
       <span className="perm-role-shield">
-        <Shield size={16} />
+        {isStatic ? <Lock size={16} /> : <Shield size={16} />}
       </span>
       <span className="perm-role-name">{roleName}</span>
       {isActive && grantedCount !== null && (
         <span className="perm-role-perm-badge">{grantedCount}</span>
       )}
-      <button
-        className="perm-role-delete-btn"
-        title={t("Xóa vai trò")}
-        onClick={(e) => { e.stopPropagation(); onDelete(); }}
-      >
-        <Trash2 size={14} />
-      </button>
+      {!isStatic && (
+        <button
+          className="perm-role-delete-btn"
+          title={t("Xóa vai trò")}
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+        >
+          <Trash2 size={14} />
+        </button>
+      )}
     </div>
   );
 }
@@ -391,7 +408,10 @@ export function PermissionsTab() {
     return <Spin style={{ display: "block", textAlign: "center", padding: 40 }} />;
   }
 
-  const roles = roleData?.items ?? [];
+  const roles = [...(roleData?.items ?? [])].sort((a, b) => {
+    if (a.isStatic !== b.isStatic) return a.isStatic ? -1 : 1;
+    return a.name.localeCompare(b.name);
+  });
 
   return (
     <div className="perm-layout">
@@ -424,6 +444,7 @@ export function PermissionsTab() {
               key={role.id}
               roleName={role.name}
               isActive={selectedRole === role.name}
+              isStatic={role.isStatic}
               treeLeafIds={treeLeafIds}
               onClick={() => setSelectedRole(role.name)}
               onDelete={() => setDeleteConfirm({ id: role.id, name: role.name })}
@@ -438,6 +459,7 @@ export function PermissionsTab() {
           <RolePermissionEditor
             key={selectedRole}
             roleName={selectedRole}
+            readonly={roles.find((r) => r.name === selectedRole)?.isStatic}
           />
         ) : (
           <div className="perm-empty">

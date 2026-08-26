@@ -3565,12 +3565,24 @@ body {
   font-size: 18px;
   font-weight: 600;
   color: var(--bd-ink);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.perm-editor-lock {
+  color: var(--bd-muted);
 }
 
 .perm-editor-subtitle {
   font-size: 12px;
   color: var(--bd-muted);
   margin-top: 2px;
+}
+
+.perm-editor-readonly-hint {
+  color: var(--bd-faint);
+  font-style: italic;
 }
 
 .perm-editor-actions {
