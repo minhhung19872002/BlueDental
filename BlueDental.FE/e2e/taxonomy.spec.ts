@@ -288,4 +288,27 @@ test.describe("Danh mục", () => {
     const card = (await page.locator(".bd-cat-card").boundingBox())!;
     expect(card.height).toBeGreaterThan(180);
   });
+
+  test("the group drawer fills its height on a narrow window", async ({ page }) => {
+    await page.setViewportSize({ width: 430, height: 780 });
+    await page.goto("/taxonomy/diagnosis");
+
+    await page.locator(".bd-cat-header--bar").getByRole("button", { name: "Chọn nhóm" }).click();
+
+    const drawer = page.locator(".bd-group-drawer");
+    await expect(drawer).toBeVisible();
+
+    // The panel takes the whole drawer; a cap meant for the stacked layout used
+    // to stop its list a third of the way down.
+    const filled = await drawer.evaluate((el) => {
+      const body = el.querySelector(".ant-drawer-body")!;
+      const panel = el.querySelector(".bd-group-panel")!;
+      return {
+        fills: Math.abs(panel.clientHeight - body.clientHeight) < 4,
+        capped: getComputedStyle(panel).maxHeight,
+      };
+    });
+    expect(filled.fills).toBe(true);
+    expect(filled.capped).toBe("none");
+  });
 });

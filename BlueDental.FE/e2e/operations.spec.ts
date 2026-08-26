@@ -349,6 +349,24 @@ test.describe("Vận hành", () => {
     await expect(drawer).toBeVisible();
     await expect(drawer.getByRole("button", { name: /Thêm Mới$/ })).toBeVisible();
 
+    // The panel fills the drawer rather than stopping partway down it.
+    const filled = await drawer.evaluate((el) => {
+      const body = el.querySelector(".ant-drawer-body")!;
+      const panel = el.querySelector(".bd-ops-panel")!;
+      return Math.abs(panel.clientHeight - body.clientHeight) < 4;
+    });
+    expect(filled).toBe(true);
+
+    // And the bar that opened it is clear of the tools beneath it.
+    const gap = await page.evaluate(() => {
+      const button = document.querySelector(".bd-ops-main > .bd-cat-header--bar button")!;
+      const tool = document.querySelector(".bd-ops-toolbar .ant-btn")!;
+      return Math.round(
+        tool.getBoundingClientRect().y - button.getBoundingClientRect().bottom,
+      );
+    });
+    expect(gap).toBeGreaterThan(6);
+
     // Picking a category closes the drawer and filters behind it.
     await drawer.locator(".bd-ops-cat-name").first().click();
     await expect(drawer).toBeHidden();

@@ -5585,7 +5585,22 @@ html:has(.ant-modal-wrap) {
 
 .bd-group-menu-trigger:hover { background: var(--bd-blue-pale); color: var(--bd-blue); }
 
-.bd-group-drawer .bd-group-panel { height: 100%; }
+/* Inside the drawer the panel *is* the drawer: it takes everything left below
+   the title and scrolls only once its list outgrows that.
+
+   The narrow-window cap further down is for the panel stacked in the page,
+   where it must not run the page long. It was reaching in here too and
+   stopping the list a third of the way down an otherwise empty drawer. */
+.bd-group-drawer .bd-group-panel,
+.bd-group-drawer .bd-ops-panel {
+  height: 100%;
+  max-height: none;
+  border: 0;
+  border-radius: 0;
+}
+
+/* The drawer holds the frame; the list inside the panel is what scrolls. */
+.bd-group-drawer .ant-drawer-body { overflow: hidden; }
 
 /* ── Đơn thuốc mẫu: the "Sử dụng" multi-select ──────────────────────────── */
 .bd-usage-picker { display: flex; flex-direction: column; gap: 6px; min-width: 200px; }
@@ -6877,6 +6892,9 @@ html:has(.ant-modal-wrap) {
    "Chọn nhóm" bar — the same shape Danh mục already uses at this width. */
 @media (max-width: 767px) {
   .bd-ops-aside { display: none; }
+
+  /* The bar and the tools under it are separate things and need to look it. */
+  .bd-ops-main > .bd-cat-header--bar { padding-bottom: 12px; }
 }
 
 @media (min-width: 768px) {
