@@ -74,6 +74,17 @@ export interface CreateSupplyInput {
   salePrice?: number | null;
   supplier?: string;
   origin?: string;
+
+  /**
+   * The first delivery, entered with the material itself.
+   *
+   * The reference's own form asks for these, so a material does not have to be
+   * saved and then received into separately.
+   */
+  quantity?: number;
+  stockedAt?: string;
+  expiryDate?: string;
+  expiryWarningDays?: number;
 }
 
 export interface UpdateSupplyInput {

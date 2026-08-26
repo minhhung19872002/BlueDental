@@ -289,6 +289,16 @@ const appRoutes: RouteObject[] = [
         ),
       },
       {
+        // Each section is its own URL, exactly as in the reference, so a
+        // sub-screen can be bookmarked and reached with the back button.
+        path: "materials/:section",
+        element: (
+          <S>
+            <MaterialsPage />
+          </S>
+        ),
+      },
+      {
         path: "taxonomy",
         element: (
           <S>
