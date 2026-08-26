@@ -6008,7 +6008,11 @@ html:has(.ant-modal-wrap) {
 /* An image the author has just picked, shown while its bytes are on their way
    to storage. A `data:` src is the file itself rather than a link to a stored
    one, so it is dimmed until the stored URL replaces it. */
-.bd-rich-text .ql-editor img[src^="data:"] {
+/* A picture still on its way to storage, shown dimmed so the wait is legible.
+   Scoped to the editors that upload: where Quill embeds the picture and keeps
+   it — Dữ liệu tư vấn, Chẩn đoán — the data URL is the finished article, and
+   dimming it left every image looking permanently unfinished. */
+.bd-rich-text--uploads .ql-editor img[src^="data:"] {
   opacity: 0.55;
   filter: grayscale(0.3);
 }

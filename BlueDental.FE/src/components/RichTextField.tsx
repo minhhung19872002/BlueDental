@@ -30,6 +30,25 @@ function readAsDataUrl(file: File) {
 }
 
 /**
+ * Wait until the browser holds the stored image.
+ *
+ * Swapping the placeholder for a URL the browser has never fetched leaves a gap
+ * where the picture simply vanishes and comes back a moment later. Fetching it
+ * first means the swap lands on something already in cache and nothing flickers.
+ *
+ * Resolves either way: a picture that will not load is still better swapped in,
+ * because the URL is what gets saved and a broken image says so honestly.
+ */
+function preload(url: string) {
+  return new Promise<void>((resolve) => {
+    const image = new Image();
+    image.onload = () => resolve();
+    image.onerror = () => resolve();
+    image.src = url;
+  });
+}
+
+/**
  * The rich-text body the reference gives a diagnosis and a piece of consulting
  * data. The toolbar is laid out group for group as the reference's is, so the
  * two read as the same editor.
@@ -91,6 +110,10 @@ export function RichTextField({
 
       try {
         const url = await upload(file);
+        // Fetched before the swap, so the placeholder gives way to a picture
+        // that is already there rather than to an empty box.
+        await preload(url);
+
         const found = indexOfPlaceholder();
         if (found < 0) return;
 
@@ -134,7 +157,16 @@ export function RichTextField({
   );
 
   return (
-    <div className={cn("bd-rich-text", className)}>
+    <div
+      className={cn(
+        "bd-rich-text",
+        // Only an editor that uploads has an in-flight state to show, so only
+        // that one dims its placeholders. Where Quill embeds the picture and
+        // keeps it, the data URL is the final article and must look like it.
+        onUploadImage && "bd-rich-text--uploads",
+        className,
+      )}
+    >
       <ReactQuill
         ref={quillRef}
         theme="snow"
