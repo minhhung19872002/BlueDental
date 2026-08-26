@@ -5855,6 +5855,17 @@ html:has(.ant-modal-wrap) {
    so this is the one place `!important` earns its keep. */
 .bd-cat-card .ant-table-content { overflow: auto !important; }
 
+/* Ant Design sets `scrollbar-color` on its tables. Naming that property is
+   what makes a browser draw its own scrollbar and ignore `::-webkit-scrollbar`
+   entirely — so the bar inside a table came out wider and a different colour
+   from every other scroller in the app. Handing it back to `auto` lets the
+   app's own thin scrollbar apply here too, the same one the calendar has. */
+.bd-cat-card .ant-table-content,
+.bd-cat-card .ant-table-body,
+.bd-cat-card .ant-table-wrapper {
+  scrollbar-color: auto;
+}
+
 /* With the rows scrolling under it, the header has to stay put — otherwise the
    column names leave the screen the moment you look at anything. */
 .bd-cat-card .ant-table-thead > tr > th {
@@ -5863,11 +5874,20 @@ html:has(.ant-modal-wrap) {
   z-index: 3;
 }
 
-/* A pinned column is sticky sideways; over the header it also has to sit above
-   the rows scrolling beneath it. */
+/* A pinned column is sticky sideways as well as under the header, and Ant
+   Design gives its header cell and its body cells the same z-index. A tie is
+   settled by document order, so the rows won and scrolled straight over the
+   header — the "Thao tác" heading vanished behind the row beneath it. The
+   header's pinned cells outrank the body's here.
+
+   Both spellings are covered on purpose: Ant Design 6 names these `fix-start`
+   and `fix-end`, earlier versions `fix-left` and `fix-right`. */
+.bd-cat-card .ant-table-thead > tr > th.ant-table-cell-fix,
+.bd-cat-card .ant-table-thead > tr > th.ant-table-cell-fix-start,
+.bd-cat-card .ant-table-thead > tr > th.ant-table-cell-fix-end,
 .bd-cat-card .ant-table-thead > tr > th.ant-table-cell-fix-left,
 .bd-cat-card .ant-table-thead > tr > th.ant-table-cell-fix-right {
-  z-index: 4;
+  z-index: 5;
 }
 
 .bd-cat-card .ant-table-pagination.ant-pagination {
@@ -6044,10 +6064,11 @@ html:has(.ant-modal-wrap) {
 }
 
 /* Where the period switch is dropped, at the end of a tab row.
-   It keeps its line — dropping below the tabs was the thing that looked wrong —
-   but it may fold its two halves onto two lines when the row runs out of width,
+   Down to 900px it keeps its line — dropping below the tabs was the thing that
+   looked wrong — folding its two halves onto two lines as the row narrows,
    which leaves the tabs enough room to wrap sensibly instead of stacking one to
-   a line. */
+   a line. Below 900px there is no longer room for both and it takes its own
+   line under the tabs; see the media query further down. */
 .bd-ops-tabrow-end {
   display: flex;
   flex-shrink: 1;
@@ -6095,7 +6116,9 @@ html:has(.ant-modal-wrap) {
   display: flex;
   flex-shrink: 0;
   flex-wrap: nowrap;
-  align-items: flex-start;
+  /* Centred, so the switch lines up with the tabs rather than sitting a few
+     pixels above them — and stays centred against the block once they wrap. */
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
   border-bottom: 1px solid var(--bd-line);
@@ -6316,8 +6339,6 @@ html:has(.ant-modal-wrap) {
   .bd-ops-shell {
     grid-template-columns: minmax(0, 1fr);
   }
-
-  .bd-ops-panel { height: auto; max-height: 320px; }
 }
 
 /* ── Vận hành: báo cáo ───────────────────────────────────────────────────── */
@@ -6442,7 +6463,7 @@ html:has(.ant-modal-wrap) {
 
 .bd-ops-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(186px, 1fr));
   flex-shrink: 0;
   gap: 12px;
   padding-bottom: 16px;
@@ -6531,7 +6552,8 @@ html:has(.ant-modal-wrap) {
 
 .bd-ops-patient-name {
   color: var(--bd-blue);
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .bd-ops-patient-since {
@@ -6600,6 +6622,17 @@ html:has(.ant-modal-wrap) {
 .bd-ops-stat--single { min-width: 280px; }
 
 .bd-ops-filter--wide { min-width: 320px; }
+
+/* The actions at the right-hand end of a report's filter row. */
+.bd-ops-report-actions {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.bd-ops-report-actions .ant-btn { height: 42px; }
 
 /* Khách hàng phát sinh names itself, with the controls at the far end. */
 .bd-ops-report-bar--titled {
@@ -6701,6 +6734,33 @@ html:has(.ant-modal-wrap) {
    visit and the action group. */
 .bd-ops-worklog .ant-table-tbody > tr > td { vertical-align: middle; }
 
+/* Report rows carry the reference's own size and weight: 14px throughout, in
+   the ink colour rather than a mid grey, so the content reads first and the
+   placeholders read last. */
+.bd-ops-report-screen .ant-table-tbody > tr > td {
+  color: var(--bd-ink);
+  font-size: 14px;
+}
+
+.bd-ops-report-screen .ant-table-tbody > tr > td .bd-cat-num {
+  color: var(--bd-ink);
+  font-size: 14px;
+}
+
+.bd-ops-action {
+  color: var(--bd-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.bd-ops-subject { font-size: 14px; }
+
+/* The date above the patient stays quieter than the name under it. */
+.bd-ops-visit > .bd-cat-num {
+  color: var(--bd-muted) !important;
+  font-size: 13px !important;
+}
+
 /* The rows scroll inside the table, not the report around it: the tab rows,
    the filters and the figures stay where they are and only the list moves —
    the same way the calendar keeps its header and scrolls its grid. */
@@ -6709,16 +6769,9 @@ html:has(.ant-modal-wrap) {
   min-height: 0;
 }
 
-/* Báo cáo differs per division: no filters puts the figure alone on the left,
-   one filter sets it immediately beside that filter. */
-.bd-ops-report-head--start,
-.bd-ops-report-head--inline {
-  justify-content: flex-start;
-}
+/* With no filters to sit opposite, the figure stands alone at the start. */
+.bd-ops-report-head--start { justify-content: flex-start; }
 
-.bd-ops-report-head--inline .bd-ops-report-filters { flex: 0 0 auto; }
-
-.bd-ops-report-head--inline .bd-ops-stat--single,
 .bd-ops-report-head--start .bd-ops-stat--single { flex: 0 0 auto; }
 
 /* The item's own time, under its name. */
@@ -6731,4 +6784,101 @@ html:has(.ant-modal-wrap) {
 .bd-ops-subject-detail {
   color: var(--bd-muted);
   font-size: 11.5px;
+}
+
+/* ── Vận hành: hàng tab trên màn hẹp ─────────────────────────────────────── */
+
+/* Under 900px the tabs and the period switch can no longer share a line — the
+   switch will not go below 265px, the widest tab is 172px, and the row is not
+   wide enough for both. Rather than let them overlap, the row wraps and the
+   switch takes its own line beneath the tabs. */
+@media (max-width: 900px) {
+  .bd-ops-subtabs,
+  .bd-ops-middletabs {
+    flex-wrap: wrap;
+    /* Between the wrapped lines only — the tabs keep their own tighter spacing.
+       Without it the switch sits right under the last tab and reads as one more
+       row of tabs rather than a separate control. */
+    row-gap: 18px;
+  }
+
+  .bd-ops-subtabs .pill-tabs,
+  .bd-ops-middletabs-list {
+    flex: 1 1 100%;
+  }
+
+  .bd-ops-tabrow-end {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+    margin-left: 0;
+    padding-top: 0;
+  }
+
+  .bd-ops-tabrow-end .bd-ops-period { justify-content: flex-start; }
+}
+
+/* ── Vận hành và Danh mục trên màn hẹp ──────────────────────────────────── */
+
+/* Below 900px both screens stop being a fixed pane and become an ordinary
+   scrolling page.
+   Holding the desktop shape here broke three things at once: the category panel
+   overflowed the grid cell it was given and painted over the toolbar beneath
+   it, the table was left a few pixels tall, and nothing scrolled at all —
+   every box was already exactly as tall as its parent, so there was nowhere to
+   scroll to. */
+@media (max-width: 900px) {
+  .bd-taxonomy-page {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  /* One column, each pane as tall as it needs to be. */
+  .bd-ops-shell,
+  .bd-taxonomy-shell {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+  }
+
+  .bd-ops-aside,
+  .bd-taxonomy-aside,
+  .bd-ops-main,
+  .bd-taxonomy-main {
+    min-height: 0;
+    height: auto;
+  }
+
+  /* The list of categories keeps its own scroll so it cannot run the page
+     long, and is bounded so it cannot spill over what follows it. */
+  .bd-ops-panel,
+  .bd-group-panel {
+    height: auto;
+    max-height: 320px;
+  }
+
+  /* The table is given a workable height and scrolls its rows inside it.
+     Letting it grow to every row instead made the page enormously long — 1262px
+     of table for twenty rows — with the pager stranded at the far bottom. */
+  .bd-cat-card {
+    flex: none;
+    height: auto;
+    max-height: 62vh;
+    min-height: 320px;
+  }
+
+  /* A report is a page here too, not a frame with a scrolling middle. */
+  .bd-ops-report-screen {
+    height: auto;
+    overflow: visible;
+  }
+}
+
+/* Below 768px the category column gives way to a drawer, opened from a
+   "Chọn nhóm" bar — the same shape Danh mục already uses at this width. */
+@media (max-width: 767px) {
+  .bd-ops-aside { display: none; }
+}
+
+@media (min-width: 768px) {
+  .bd-ops-main > .bd-cat-header--bar { display: none; }
 }

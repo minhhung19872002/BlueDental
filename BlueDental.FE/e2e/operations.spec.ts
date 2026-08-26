@@ -299,4 +299,64 @@ test.describe("Vận hành", () => {
     // reads as a seam, so this one is flat.
     expect(await button.evaluate((el) => getComputedStyle(el).boxShadow)).toBe("none");
   });
+
+  test("a pinned column keeps its heading while the rows scroll under it", async ({ page }) => {
+    await page.setViewportSize({ width: 1500, height: 560 });
+    await page.goto("/operations/overview");
+    await expect(page.locator("tbody tr.ant-table-row").first()).toBeVisible();
+
+    const body = page.locator(".bd-cat-card .ant-table-content");
+    const pinnedHeading = page.locator(".bd-cat-card thead th.ant-table-cell-fix-end");
+    await expect(pinnedHeading).toHaveText("Thao tác");
+
+    await body.evaluate((el) => {
+      el.scrollTop = 250;
+    });
+
+    // Ant Design gives the pinned header and the pinned rows the same z-index,
+    // and a tie goes to whichever comes later — so the rows used to scroll
+    // straight over this heading. Whatever is painted here must be the heading.
+    const painted = await pinnedHeading.evaluate((th) => {
+      const r = th.getBoundingClientRect();
+      const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return top === th || th.contains(top);
+    });
+    expect(painted).toBe(true);
+    await expect(pinnedHeading).toBeVisible();
+  });
+
+  test("a phone-width window scrolls the page instead of collapsing the panes", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 430, height: 780 });
+    await page.goto("/operations/overview");
+    await expect(page.locator("tbody tr.ant-table-row").first()).toBeVisible();
+
+    // The page scrolls — every box used to be exactly as tall as its parent, so
+    // there was nowhere to scroll to.
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollHeight > window.innerHeight + 2,
+      ),
+    ).toBe(true);
+
+    // The category column is gone; it is reached through a drawer here, the
+    // way Danh mục does it at this width.
+    await expect(page.locator(".bd-ops-aside")).toBeHidden();
+    await page.locator(".bd-ops-main").getByRole("button", { name: "Chọn nhóm" }).click();
+
+    const drawer = page.getByRole("dialog", { name: "Phân loại" });
+    await expect(drawer).toBeVisible();
+    await expect(drawer.getByRole("button", { name: /Thêm Mới$/ })).toBeVisible();
+
+    // Picking a category closes the drawer and filters behind it.
+    await drawer.locator(".bd-ops-cat-name").first().click();
+    await expect(drawer).toBeHidden();
+
+    // The table is a workable height — neither the few pixels it collapsed to
+    // nor the 1262px it ran to when left unbounded.
+    const card = (await page.locator(".bd-cat-card").boundingBox())!;
+    expect(card.height).toBeGreaterThan(300);
+    expect(card.height).toBeLessThan(700);
+  });
 });

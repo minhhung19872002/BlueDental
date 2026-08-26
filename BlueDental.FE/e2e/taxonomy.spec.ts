@@ -253,4 +253,39 @@ test.describe("Danh mục", () => {
     await expect(page.locator("tbody tr.ant-table-row").last()).toBeInViewport();
     await expect(page.locator(".ant-pagination").first()).toBeInViewport();
   });
+
+  test("the table's scrollbar is the app's own, not Ant Design's", async ({ page }) => {
+    await page.goto("/taxonomy/medicine");
+    const body = page.locator(".bd-cat-card .ant-table-content");
+    await expect(page.locator("tbody tr.ant-table-row").first()).toBeVisible();
+
+    // Naming `scrollbar-color` is what makes a browser draw its own bar and
+    // ignore the app's ::-webkit-scrollbar, which is how the table ended up
+    // with a wider bar than every other scroller.
+    expect(await body.evaluate((el) => getComputedStyle(el).scrollbarColor)).toBe("auto");
+
+    // The width itself is deliberately not asserted: headless Chromium draws
+    // overlay scrollbars that occupy no layout space, so the gutter reads 0
+    // here whatever the styling says. Measured in a real browser it is 10px,
+    // matching every other scroller; Ant Design's own was 15px.
+    await page.setViewportSize({ width: 1400, height: 520 });
+    await expect
+      .poll(async () => body.evaluate((el) => el.scrollHeight > el.clientHeight + 2))
+      .toBe(true);
+  });
+
+  test("a phone-width window scrolls the page and keeps the table usable", async ({ page }) => {
+    await page.setViewportSize({ width: 430, height: 780 });
+    await page.goto("/taxonomy/service");
+    await expect(page.locator("tbody tr.ant-table-row").first()).toBeVisible();
+
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollHeight > window.innerHeight + 2,
+      ),
+    ).toBe(true);
+
+    const card = (await page.locator(".bd-cat-card").boundingBox())!;
+    expect(card.height).toBeGreaterThan(180);
+  });
 });

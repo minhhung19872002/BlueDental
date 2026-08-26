@@ -101,6 +101,46 @@ test.describe("Vận hành — báo cáo", () => {
 
     await expect(page.locator("tbody tr.ant-table-row").first()).toBeVisible();
     await expect(page.getByText(/Hiển thị .* dịch vụ/)).toBeVisible();
+
+    // Given the width the reference shows them at, all five fit on one row;
+    // wrapping them there ate the height the table needed. On a narrower window
+    // they are meant to wrap, so the width is stated rather than assumed.
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await expect
+      .poll(async () =>
+        page
+          .locator(".bd-ops-stats")
+          .evaluate(
+            (el) =>
+              new Set([...el.children].map((c) => Math.round(c.getBoundingClientRect().y))).size,
+          ),
+      )
+      .toBe(1);
+  });
+
+  test("Hoàn thành theo dịch vụ carries its whole toolbar", async ({ page }) => {
+    await page.goto("/operations/finance?financeSubTab=service-complete");
+
+    // Three filters, then the two actions — the reference's own set.
+    await expect(page.getByLabel("Tìm khách hàng, dịch vụ")).toBeVisible();
+    await expect(page.getByLabel("Bác sĩ điều trị")).toBeVisible();
+    await expect(page.getByLabel("Nhóm dịch vụ")).toBeVisible();
+    await expect(page.getByRole("button", { name: /Đồng bộ phần mềm bán hàng/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Xuất Excel/ })).toBeVisible();
+
+    // Picking a dentist re-reads the server and cannot widen the list.
+    await expect(page.locator("tbody tr.ant-table-row").first()).toBeVisible();
+    const before = await page.locator("tbody tr.ant-table-row").count();
+
+    await page.getByLabel("Bác sĩ điều trị").click();
+    await page
+      .locator(".ant-select-dropdown:visible .ant-select-item-option")
+      .first()
+      .click();
+
+    await expect
+      .poll(async () => page.locator("tbody tr.ant-table-row").count())
+      .toBeLessThanOrEqual(before);
   });
 
   test("Truy cập filters by the card that is picked", async ({ page }) => {
@@ -285,13 +325,13 @@ test.describe("Vận hành — báo cáo", () => {
 
     const pills = page.locator(".bd-ops-subtabs .pill-tabs");
     const periodEnd = page.locator(".bd-ops-tabrow-end");
-    const topsOf = async () => ({
-      pills: await pills
-        .locator("button")
-        .first()
-        .evaluate((el) => Math.round(el.getBoundingClientRect().top)),
-      period: await periodEnd.evaluate((el) => Math.round(el.getBoundingClientRect().top)),
-    });
+    // The row centres its children, so sharing a line means the two boxes
+    // overlap vertically rather than starting at the same y.
+    const sharesLine = async () => {
+      const a = (await pills.boundingBox())!;
+      const b = (await periodEnd.boundingBox())!;
+      return a.y < b.y + b.height && b.y < a.y + a.height;
+    };
     const pillLines = async () =>
       pills.evaluate((el) => {
         const tops = [...el.querySelectorAll("button")].map((b) =>
@@ -303,14 +343,110 @@ test.describe("Vận hành — báo cáo", () => {
     // Wide: one row of tabs, switch alongside them.
     await page.setViewportSize({ width: 1600, height: 900 });
     expect(await pillLines()).toBe(1);
-    let tops = await topsOf();
-    expect(Math.abs(tops.pills - tops.period)).toBeLessThan(4);
+    expect(await sharesLine()).toBe(true);
 
-    // Narrow: the tabs wrap onto more lines and the switch keeps its place at
-    // the top of the row rather than being stranded below them.
+    // Narrow: the tabs wrap onto more lines and the switch keeps its place
+    // beside them rather than being stranded below.
     await page.setViewportSize({ width: 980, height: 800 });
     await expect.poll(pillLines).toBeGreaterThan(1);
-    tops = await topsOf();
-    expect(Math.abs(tops.pills - tops.period)).toBeLessThan(4);
+    await expect.poll(sharesLine).toBe(true);
+
+    // Narrower still, there is no longer room for both on one line — the switch
+    // drops onto its own line under the tabs, clear of them and separated by
+    // more than the tabs' own two lines are separated from each other.
+    //
+    // Both distances are measured in a single pass inside the page and polled
+    // together: read in separate round trips, a half-finished layout got
+    // through where the switch had not yet moved down.
+    await page.setViewportSize({ width: 560, height: 800 });
+    await expect
+      .poll(async () =>
+        page.evaluate(() => {
+          const pills = document.querySelector(".bd-ops-subtabs .pill-tabs");
+          const period = document.querySelector(".bd-ops-tabrow-end");
+          if (!pills || !period) return null;
+
+          const p = pills.getBoundingClientRect();
+          const e = period.getBoundingClientRect();
+          const boxes = [...pills.querySelectorAll("button")].map((b) =>
+            b.getBoundingClientRect(),
+          );
+          const firstTop = Math.round(boxes[0].y);
+          const lineOneBottom = Math.max(
+            ...boxes.filter((b) => Math.round(b.y) === firstTop).map((b) => b.bottom),
+          );
+          const lineTwoTop = Math.min(
+            ...boxes.filter((b) => Math.round(b.y) !== firstTop).map((b) => b.y),
+          );
+
+          const belowTabs = Math.round(e.y - p.bottom);
+          const betweenTabLines = Math.round(lineTwoTop - lineOneBottom);
+
+          return belowTabs >= 0 && belowTabs > betweenTabLines;
+        }),
+      )
+      .toBe(true);
+  });
+
+  test("the filter and the figure sit at opposite ends of the row", async ({ page }) => {
+    for (const url of [
+      "/operations/overview?overviewSubTab=report",
+      "/operations/reception?receptionSubTab=report",
+    ]) {
+      await page.goto(url);
+
+      const head = page.locator(".bd-ops-report-head");
+      const filters = head.locator(".bd-ops-report-filters");
+      const card = head.locator(".bd-ops-stat--single");
+      await expect(card).toBeVisible();
+
+      const box = async (locator: typeof head) => (await locator.boundingBox())!;
+      const [headBox, filterBox, cardBox] = [
+        await box(head),
+        await box(filters),
+        await box(card),
+      ];
+
+      // Filters start the row, the figure finishes it.
+      expect(Math.abs(filterBox.x - headBox.x)).toBeLessThan(4);
+      expect(Math.abs(cardBox.x + cardBox.width - (headBox.x + headBox.width))).toBeLessThan(4);
+    }
+  });
+
+  test("the period switch is level with the tabs beside it", async ({ page }) => {
+    await page.setViewportSize({ width: 1500, height: 800 });
+    await page.goto("/operations/overview?overviewSubTab=report");
+
+    const centre = async (locator: ReturnType<typeof page.locator>) =>
+      locator.evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        return Math.round(r.y + r.height / 2);
+      });
+
+    const tab = page.locator(".bd-ops-subtabs .pill-tabs button").first();
+    const period = page.locator(".bd-ops-period-switch");
+    await expect(period).toBeVisible();
+
+    expect(Math.abs((await centre(period)) - (await centre(tab)))).toBeLessThan(2);
+  });
+
+  test("report rows read at the size the reference sets them", async ({ page }) => {
+    await page.goto("/operations/overview?overviewSubTab=report");
+    await expect(page.locator("tbody tr.ant-table-row").first()).toBeVisible();
+
+    const style = (locator: ReturnType<typeof page.locator>) =>
+      locator.evaluate((el) => {
+        const cs = getComputedStyle(el);
+        return { size: cs.fontSize, weight: cs.fontWeight };
+      });
+
+    // 14px throughout, as measured on the reference.
+    expect((await style(page.locator(".bd-ops-subject").first())).size).toBe("14px");
+    expect((await style(page.locator(".bd-ops-action").first())).size).toBe("14px");
+
+    // The patient is the one thing lifted out of the row.
+    const patient = await style(page.locator(".bd-ops-patient-name").first());
+    expect(patient.size).toBe("14px");
+    expect(Number(patient.weight)).toBeGreaterThanOrEqual(600);
   });
 });

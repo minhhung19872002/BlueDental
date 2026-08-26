@@ -15,11 +15,10 @@ export type WorkLogFilter = "staff" | "actions" | "patient";
 export interface WorkLogVariant {
   filters: WorkLogFilter[];
   /**
-   * "right" pushes the figure to the far end of the filter row, "inline" sets
-   * it immediately beside the one filter, "left" puts it on a row of its own
-   * where there are no filters at all.
+   * "right" pushes the figure to the far end of the row, opposite the filters;
+   * "left" puts it at the start where there are no filters to sit opposite.
    */
-  card: "right" | "inline" | "left";
+  card: "right" | "left";
   /** The pager says "68 công việc" on some divisions and plain "68" on others. */
   countNoun?: string;
 }
@@ -33,9 +32,10 @@ const FULL: WorkLogVariant = {
 const VARIANTS: Record<string, WorkLogVariant> = {
   overview: FULL,
   cskh: FULL,
-  // Lễ tân narrows to one filter and sets the figure beside it, and its pager
-  // names nothing.
-  reception: { filters: ["staff"], card: "inline" },
+  // Lễ tân narrows to one filter, and its pager names nothing. The reference
+  // sets its figure immediately beside that filter; here the two go to opposite
+  // ends of the row, which is a house choice rather than a parity one.
+  reception: { filters: ["staff"], card: "right" },
   // Khối điều trị offers no filter at all.
   treatment: { filters: [], card: "left", countNoun: "công việc" },
 };
