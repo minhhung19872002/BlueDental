@@ -204,4 +204,32 @@ test.describe("Vận hành — báo cáo", () => {
     await expect(page.getByRole("heading", { name: "Báo cáo khách hàng phát sinh" })).toBeVisible();
     await expect(page.getByLabel("Nhân sự tư vấn")).toBeVisible();
   });
+
+  test("Báo cáo is laid out per division, as the reference lays it out", async ({ page }) => {
+    // Quản trị vận hành: all three filters, the figure at the far end, and the
+    // pager naming what it counts.
+    await page.goto("/operations/overview?overviewSubTab=report");
+    await expect(page.getByLabel("Người tạo")).toBeVisible();
+    await expect(page.getByLabel("Hành động")).toBeVisible();
+    await expect(page.getByLabel("Tìm kiếm khách hàng")).toBeVisible();
+    await expect(page.getByText(/Hiển thị .* công việc/)).toBeVisible();
+
+    // Khối CSKH is the same screen.
+    await page.goto("/operations/cskh?cskhSubTab=report");
+    await expect(page.getByLabel("Hành động")).toBeVisible();
+
+    // Khối lễ tân narrows to one filter and drops the noun from the pager.
+    await page.goto("/operations/reception?receptionSubTab=report");
+    await expect(page.getByLabel("Người tạo")).toBeVisible();
+    await expect(page.getByLabel("Hành động")).toHaveCount(0);
+    await expect(page.getByLabel("Tìm kiếm khách hàng")).toHaveCount(0);
+    await expect(page.getByText(/Hiển thị .* công việc/)).toHaveCount(0);
+    await expect(page.getByText(/^Hiển thị/)).toBeVisible();
+
+    // Khối điều trị offers no filter at all, and stands its figure on the left.
+    await page.goto("/operations/treatment?treatmentSubTab=report");
+    await expect(page.getByLabel("Người tạo")).toHaveCount(0);
+    await expect(page.locator(".bd-ops-report-head--start")).toBeVisible();
+    await expect(page.getByText("Doanh số chốt kế hoạch")).toBeVisible();
+  });
 });

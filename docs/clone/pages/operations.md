@@ -184,6 +184,38 @@ rather than a report the reference does not have.
 | Hoàn thành theo dịch vụ | search, `Bác sĩ điều trị`, `Nhóm dịch vụ`, and two buttons | five cards |
 | Truy cập | `Phân loại` | three cards, which are also the filter |
 
+### Báo cáo is a different screen on each division
+
+Swept all five on 2026-08-26. The table and its visit grouping are identical
+everywhere; what changes is above it.
+
+| Division | Filters | Figure | Pager |
+|---|---|---|---|
+| Quản trị vận hành | `Người tạo`, `Hành động` (all selected), `Tìm kiếm khách hàng` | far right | `… công việc` |
+| Khối CSKH | identical to Quản trị vận hành | far right | `… công việc` |
+| Khối lễ tân | `Người tạo` only | immediately beside that filter | **no noun** |
+| Khối điều trị | **none** | alone on the left | `… công việc` |
+| Khối Marketing | **a different report entirely** — see below | — | — |
+
+Khối lễ tân's rows also name actions the others do not (`Đặt lịch`, `Tới khám`)
+and Khối điều trị adds `Điều trị mới` with a code beneath it; those come from
+the reference's own vocabulary, and BlueDental names its rows after the tables
+it actually keeps.
+
+```
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /operations/marketing?marketingSubTab=report
+Control: toàn bộ tab Báo cáo của Khối Marketing
+Reason: đây là một báo cáo khác hẳn: có thêm **hàng tab thứ tư** dạng segmented
+        — `Lọc theo nguồn đến` / `Lọc theo địa chỉ` / `Lọc theo dịch vụ` /
+        `Báo cáo lịch tạm` — và bên dưới là một thẻ tiêu đề kiểu
+        "Phân bổ khách hàng theo địa chỉ" chứa biểu đồ. Chi nhánh quan sát được
+        không có dữ liệu nên không thấy được biểu đồ vẽ ra sao, trục nào,
+        chú giải nào.
+Action taken: chưa dựng. Khối Marketing hiện dùng chung màn Báo cáo đầy đủ.
+        Cần quan sát lại khi bản gốc có dữ liệu.
+```
+
 ### Báo cáo is grouped, not flat
 
 Rows are drawn in blocks. The `Ngày / Khách hàng` cell spans the whole visit and

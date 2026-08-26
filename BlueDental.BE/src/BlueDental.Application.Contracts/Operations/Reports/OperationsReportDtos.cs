@@ -121,6 +121,9 @@ public class WorkLogRowDto
     public WorkLogAction Action { get; set; }
     /// <summary>Điều trị / Dịch vụ / Lịch hẹn — whichever the action points at.</summary>
     public string Subject { get; set; } = string.Empty;
+
+    /// <summary>The second line under it, where the item carries a time of its own.</summary>
+    public string? SubjectDetail { get; set; }
     public string? Note { get; set; }
     public decimal Amount { get; set; }
 }

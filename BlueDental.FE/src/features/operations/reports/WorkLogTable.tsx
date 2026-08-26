@@ -13,6 +13,8 @@ interface Props {
   loading: boolean;
   totalCount: number;
   pagination: TablePagination;
+  /** Divisions differ over whether the pager names what it counts. */
+  showTotal: (total: number, shown: [number, number]) => string;
 }
 
 /** `--:--` where a step has not been reached, exactly as the reference shows it. */
@@ -55,7 +57,7 @@ function spansOf(rows: WorkLogRow[]) {
 /**
  * The Báo cáo table: one block per visit, one group per action inside it.
  */
-export function WorkLogTable({ rows, loading, totalCount, pagination }: Props) {
+export function WorkLogTable({ rows, loading, totalCount, pagination, showTotal }: Props) {
   const spans = useMemo(() => spansOf(rows), [rows]);
   const indexOf = useMemo(
     () => new Map(rows.map((row, index) => [row, index] as const)),
@@ -120,7 +122,14 @@ export function WorkLogTable({ rows, loading, totalCount, pagination }: Props) {
       {
         key: "subject",
         title: t("Điều trị / Dịch vụ / Lịch hẹn"),
-        render: (_, row) => row.subject || t("(Trống)"),
+        render: (_, row) => (
+          <span className="bd-ops-subject">
+            <span>{row.subject || t("(Trống)")}</span>
+            {row.subjectDetail ? (
+              <span className="bd-ops-subject-detail">{row.subjectDetail}</span>
+            ) : null}
+          </span>
+        ),
       },
       {
         key: "note",
@@ -154,11 +163,7 @@ export function WorkLogTable({ rows, loading, totalCount, pagination }: Props) {
         dataSource={rows}
         rowKey={(row) => `${row.visitKey}-${row.action}-${row.occurredAt}-${row.subject}`}
         loading={loading}
-        pagination={pagination.buildConfig(totalCount, (total, shown) =>
-          total === 0
-            ? t("Hiển thị 0 trên 0 công việc")
-            : t("Hiển thị {0}–{1} trên {2} công việc", shown[0], shown[1], total),
-        )}
+        pagination={pagination.buildConfig(totalCount, showTotal)}
         locale={{ emptyText: t("Không có dữ liệu") }}
       />
     </div>

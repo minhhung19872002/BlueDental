@@ -288,7 +288,7 @@ export function OperationsPage() {
 
       {onMiddleReport ? (
         <div className="bd-min0h bd-flex1">
-          {reportScreenFor(middleTab?.key ?? "") ?? (
+          {reportScreenFor(middleTab?.key ?? "", division.key) ?? (
             <OperationReportPanel label={middleTab?.label ?? ""} />
           )}
         </div>
@@ -378,7 +378,7 @@ export function OperationsPage() {
             </div>
           ) : (
             <div className="bd-min0h bd-flex1">
-              {reportScreenFor(subTab.key) ?? <OperationReportPanel label={subTab.label} />}
+              {reportScreenFor(subTab.key, division.key) ?? <OperationReportPanel label={subTab.label} />}
             </div>
           )}
         </>

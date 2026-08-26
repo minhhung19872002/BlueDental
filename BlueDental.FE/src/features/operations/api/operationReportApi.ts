@@ -49,6 +49,8 @@ export interface WorkLogRow {
   staffName: string;
   action: WorkLogAction;
   subject: string;
+  /** The second line the reference puts under the subject — a time, a duration. */
+  subjectDetail?: string | null;
   note?: string | null;
   amount: number;
 }

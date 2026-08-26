@@ -14,8 +14,8 @@ import { WorkLogReport } from "./WorkLogReport";
  * division — Truy cập belongs to both Khối điều trị and Khối tài chính, and
  * they show the identical screen.
  */
-const SCREENS: Record<string, () => ReactNode> = {
-  report: () => <WorkLogReport />,
+const SCREENS: Record<string, (division: string) => ReactNode> = {
+  report: (division) => <WorkLogReport division={division} />,
   untreated: () => <UntreatedDiagnosisReport />,
   prescription: () => <UnderConstructionReport />,
   "customer-report": () => <ConsultantSummaryReport />,
@@ -25,7 +25,7 @@ const SCREENS: Record<string, () => ReactNode> = {
   access: () => <SalesAccessReport />,
 };
 
-export function reportScreenFor(key: string): ReactNode | null {
+export function reportScreenFor(key: string, division: string): ReactNode | null {
   const screen = SCREENS[key];
-  return screen ? screen() : null;
+  return screen ? screen(division) : null;
 }

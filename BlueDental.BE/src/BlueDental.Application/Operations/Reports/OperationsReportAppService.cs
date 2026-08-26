@@ -214,7 +214,7 @@ public class OperationsReportAppService(
 
         WorkLogRowDto Row(
             DateTime at, Guid patientId, Guid? staffId, WorkLogAction action,
-            string subject, string? note, decimal amount)
+            string subject, string? note, decimal amount, string? subjectDetail = null)
         {
             var patient = patients.GetValueOrDefault(patientId);
             var day = at.Date;
@@ -238,6 +238,7 @@ public class OperationsReportAppService(
                 StaffName = staffId is null ? string.Empty : staff.GetValueOrDefault(staffId.Value, string.Empty),
                 Action = action,
                 Subject = subject,
+                SubjectDetail = subjectDetail,
                 Note = note,
                 Amount = amount
             };
@@ -289,14 +290,16 @@ public class OperationsReportAppService(
             .Select(p => Row(
                 p.PaidAt.DateTime, p.PatientId, p.StaffId,
                 p.Amount < 0 ? WorkLogAction.Refund : WorkLogAction.Payment,
-                p.Method.ToString(), p.Note, p.Amount)));
+                p.Method.ToString(), p.Note, p.Amount,
+                p.PaidAt.DateTime.ToString("HH:mm dd/MM"))));
 
         // Visits are the Tiếp nhận line of the log.
         rows.AddRange(visits.Values
             .Where(v => Within(v.ScheduledAt.DateTime, window))
             .Select(v => Row(
                 v.ScheduledAt.DateTime, v.PatientId, v.DentistId, WorkLogAction.Reception,
-                v.ChiefComplaint ?? string.Empty, v.Notes, 0m)));
+                v.ChiefComplaint ?? string.Empty, v.Notes, 0m,
+                v.ScheduledAt.DateTime.ToString("HH:mm dd/MM"))));
 
         if (input.Actions.Count > 0)
         {

@@ -6,9 +6,11 @@ import { formatMoney } from "./formatMoney";
 import { OperationsPeriodBar } from "./OperationsPeriodBar";
 import { StaffFilter } from "./StaffFilter";
 import { WorkLogTable } from "./WorkLogTable";
+import { workLogTotal, workLogVariantOf } from "./workLogVariants";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { usePeriodRange } from "./usePeriodRange";
+import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 
 /** The reference's own list, in its own order. */
@@ -28,14 +30,21 @@ export const ACTION_LABELS: Record<WorkLogAction, string> = {
 
 const ACTION_ORDER: WorkLogAction[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
+interface Props {
+  /** Which division's Báo cáo this is — they differ, see workLogVariants. */
+  division: string;
+}
+
 /**
- * Quản trị vận hành → Báo cáo.
+ * Báo cáo — one block per patient-visit, and inside it one group per action.
  *
- * One block per patient-visit, and inside it one group per kind of action —
- * the shape the reference draws. Every action is selected to begin with, as it
- * is there.
+ * The table is the same on every division that has this tab; the filters above
+ * it and where the figure sits are not, so both come from the division's own
+ * variant rather than being drawn the same everywhere.
  */
-export function WorkLogReport() {
+export function WorkLogReport({ division }: Props) {
+  const variant = workLogVariantOf(division);
+
   const range = usePeriodRange("month");
   const pagination = useTablePagination(20);
   const [keyword, setKeyword] = useState("");
@@ -56,6 +65,21 @@ export function WorkLogReport() {
   );
 
   const rows = useMemo<WorkLogRow[]>(() => query.data?.items ?? [], [query.data]);
+  const shows = (filter: (typeof variant.filters)[number]) => variant.filters.includes(filter);
+
+  const card = (
+    <div className={cn("bd-ops-stat", "bd-ops-stat--single")}>
+      <span className="bd-ops-stat-icon bd-ops-stat-icon--green">
+        <CheckCircleOutlined />
+      </span>
+      <span className="bd-ops-stat-body">
+        <span className="bd-ops-stat-value bd-ops-stat-value--green">
+          {formatMoney(query.data?.plannedSales ?? 0)}
+        </span>
+        <span className="bd-ops-stat-label">{t("Doanh số chốt kế hoạch")}</span>
+      </span>
+    </div>
+  );
 
   return (
     <div className="bd-ops-report-screen">
@@ -63,58 +87,61 @@ export function WorkLogReport() {
         <OperationsPeriodBar range={range} />
       </div>
 
-      {/* Filters on the left, the one figure on the right, as the reference
-          lays this row out. */}
-      <div className="bd-ops-report-head">
-        <div className="bd-ops-report-filters">
-          <StaffFilter
-            label={t("Người tạo")}
-            value={staffId}
-            onChange={(value) => {
-              setStaffId(value);
-              pagination.resetToFirstPage();
-            }}
-          />
+      <div
+        className={cn(
+          "bd-ops-report-head",
+          // With no filters the figure stands alone on the left.
+          variant.card === "left" && "bd-ops-report-head--start",
+          variant.card === "inline" && "bd-ops-report-head--inline",
+        )}
+      >
+        {variant.filters.length > 0 ? (
+          <div className="bd-ops-report-filters">
+            {shows("staff") ? (
+              <StaffFilter
+                label={t("Người tạo")}
+                value={staffId}
+                onChange={(value) => {
+                  setStaffId(value);
+                  pagination.resetToFirstPage();
+                }}
+              />
+            ) : null}
 
-          <Select<WorkLogAction[]>
-            className="bd-ops-filter bd-ops-filter--wide"
-            mode="multiple"
-            allowClear
-            maxTagCount="responsive"
-            placeholder={t("Hành động")}
-            aria-label={t("Hành động")}
-            value={actions}
-            onChange={(value) => {
-              setActions(value);
-              pagination.resetToFirstPage();
-            }}
-            options={ACTION_ORDER.map((key) => ({ value: key, label: t(ACTION_LABELS[key]) }))}
-          />
+            {shows("actions") ? (
+              <Select<WorkLogAction[]>
+                className="bd-ops-filter bd-ops-filter--wide"
+                mode="multiple"
+                allowClear
+                maxTagCount="responsive"
+                placeholder={t("Hành động")}
+                aria-label={t("Hành động")}
+                value={actions}
+                onChange={(value) => {
+                  setActions(value);
+                  pagination.resetToFirstPage();
+                }}
+                options={ACTION_ORDER.map((key) => ({ value: key, label: t(ACTION_LABELS[key]) }))}
+              />
+            ) : null}
 
-          <Input
-            className="bd-ops-search"
-            placeholder={t("Tìm kiếm khách hàng")}
-            aria-label={t("Tìm kiếm khách hàng")}
-            value={keyword}
-            allowClear
-            onChange={(event) => {
-              setKeyword(event.target.value);
-              pagination.resetToFirstPage();
-            }}
-          />
-        </div>
+            {shows("patient") ? (
+              <Input
+                className="bd-ops-search"
+                placeholder={t("Tìm kiếm khách hàng")}
+                aria-label={t("Tìm kiếm khách hàng")}
+                value={keyword}
+                allowClear
+                onChange={(event) => {
+                  setKeyword(event.target.value);
+                  pagination.resetToFirstPage();
+                }}
+              />
+            ) : null}
+          </div>
+        ) : null}
 
-        <div className="bd-ops-stat bd-ops-stat--single">
-          <span className="bd-ops-stat-icon bd-ops-stat-icon--green">
-            <CheckCircleOutlined />
-          </span>
-          <span className="bd-ops-stat-body">
-            <span className="bd-ops-stat-value bd-ops-stat-value--green">
-              {formatMoney(query.data?.plannedSales ?? 0)}
-            </span>
-            <span className="bd-ops-stat-label">{t("Doanh số chốt kế hoạch")}</span>
-          </span>
-        </div>
+        {card}
       </div>
 
       <WorkLogTable
@@ -122,6 +149,7 @@ export function WorkLogReport() {
         loading={query.isFetching}
         totalCount={query.data?.totalCount ?? 0}
         pagination={pagination}
+        showTotal={workLogTotal(variant)}
       />
     </div>
   );

@@ -437,3 +437,25 @@ chưa dựng.
 BE: **694/696** (2 lỗi `BlueDentalAbilitiesTests` có sẵn). FE: **40/40** trên
 bản build production.
 
+## 2026-08-26 — Vận hành: rà 12 trang bản gốc, Báo cáo khác nhau theo từng khối
+
+Đi hết 12 URL người dùng đưa. Phát hiện chính: **Báo cáo không phải một màn dùng
+chung** — mỗi khối một kiểu.
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-109 | Báo cáo dựng một kiểu cho mọi khối | Khối lễ tân bị thêm 2 bộ lọc bản gốc không có và pager thừa chữ "công việc"; Khối điều trị bị thêm cả 3 bộ lọc và đặt thẻ sai chỗ | Lần trước chỉ quan sát Quản trị vận hành rồi suy ra phần còn lại | `workLogVariants.ts`: mỗi khối khai báo bộ lọc nào, thẻ đặt đâu, pager có đếm bằng chữ không | F-36 (test đi cả 4 khối, khẳng định đúng bộ lọc / vị trí thẻ / pager) |
+| R-110 | Không có dòng thứ hai dưới tên mục | Bản gốc ghi giờ dưới tên (`09:00 17/05`, `Thời lượng: 15 phút`), bản mình chỉ một dòng | Chưa quan sát tới | Thêm `SubjectDetail`, đổ giờ cho lượt tiếp nhận và thanh toán | F-36 |
+
+**Đo sai một lần và đã sửa cách đo:** lần đầu quét reception/marketing tôi đọc
+DOM ngay sau `goto`, trang chưa render xong nên trả về rỗng và tôi suýt kết luận
+"reception chỉ có 1 filter" vì lý do sai. Đã đổi sang chờ bảng xuất hiện rồi mới
+đọc, và xác nhận lại bằng ảnh chụp — reception đúng là 1 filter, nhưng vì bản gốc
+làm vậy chứ không phải vì trang chưa tải.
+
+Chưa dựng, đã ghi lại đầy đủ: **Báo cáo của Khối Marketing** (hàng tab thứ 4 +
+biểu đồ phân bổ) và **Tổng quan tài chính** dưới Khách hàng phát sinh (4 panel
+kèm biểu đồ). Cả hai đều không có dữ liệu trên bản gốc để quan sát biểu đồ.
+
+BE: **694/696**. FE: **41/41** trên bản build production.
+
