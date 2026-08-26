@@ -244,22 +244,27 @@ test.describe("Vận hành — báo cáo", () => {
     await expect(page.locator(".bd-ops-subtabs .bd-ops-period")).toHaveCount(0);
   });
 
-  test("a report scrolls far enough to reach its last row and its pager", async ({ page }) => {
+  test("the rows scroll inside the table, under a header that stays put", async ({ page }) => {
     await page.goto("/operations/overview?overviewSubTab=report");
-
-    const screen = page.locator(".bd-ops-report-screen");
     await expect(page.locator("tbody tr.ant-table-row").first()).toBeVisible();
 
-    // Twenty rows do not fit, so the screen has somewhere to scroll to.
-    expect(
-      await screen.evaluate((el) => el.scrollHeight > el.clientHeight + 2),
-    ).toBe(true);
+    const body = page.locator(".bd-cat-card .ant-table-content");
+    const header = page.locator(".bd-cat-card thead th").first();
 
-    await screen.evaluate((el) => {
+    // antd writes `overflow: auto hidden` inline here, which used to pin the
+    // list open and push its last rows out of reach.
+    expect(await body.evaluate((el) => getComputedStyle(el).overflowY)).toBe("auto");
+    expect(await body.evaluate((el) => el.scrollHeight > el.clientHeight + 2)).toBe(true);
+
+    const headerTop = await header.evaluate((el) => el.getBoundingClientRect().top);
+    await body.evaluate((el) => {
       el.scrollTop = el.scrollHeight;
     });
 
-    // Everything below is reachable once scrolled — this used to be clipped.
+    // The header did not move, and everything below is now reachable.
+    expect(
+      await header.evaluate((el) => el.getBoundingClientRect().top),
+    ).toBeCloseTo(headerTop, 0);
     await expect(page.locator("tbody tr.ant-table-row").last()).toBeInViewport();
     await expect(page.locator(".ant-pagination").first()).toBeInViewport();
   });

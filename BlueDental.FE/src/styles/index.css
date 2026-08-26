@@ -5336,6 +5336,28 @@ html:has(.ant-modal-wrap) {
   overflow: auto;
 }
 
+/* Ant Design writes `overflow: auto hidden` **inline** on the scroller as soon
+   as a table is given a horizontal width, which pins it open vertically: the
+   rows run past the bottom of the card and there is no way to reach the last
+   of them. An inline style cannot be answered from a stylesheet any other way,
+   so this is the one place `!important` earns its keep. */
+.bd-cat-card .ant-table-content { overflow: auto !important; }
+
+/* With the rows scrolling under it, the header has to stay put — otherwise the
+   column names leave the screen the moment you look at anything. */
+.bd-cat-card .ant-table-thead > tr > th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+/* A pinned column is sticky sideways; over the header it also has to sit above
+   the rows scrolling beneath it. */
+.bd-cat-card .ant-table-thead > tr > th.ant-table-cell-fix-left,
+.bd-cat-card .ant-table-thead > tr > th.ant-table-cell-fix-right {
+  z-index: 4;
+}
+
 .bd-cat-card .ant-table-pagination.ant-pagination {
   margin: 0;
   flex-shrink: 0;
@@ -5772,7 +5794,7 @@ html:has(.ant-modal-wrap) {
   height: 100%;
   min-height: 0;
   padding: 16px 20px;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 /* The period switch sits at the right-hand end of the row above the report. */
@@ -6145,27 +6167,13 @@ html:has(.ant-modal-wrap) {
    visit and the action group. */
 .bd-ops-worklog .ant-table-tbody > tr > td { vertical-align: middle; }
 
-/* A report scrolls as one piece.
-   The catalog card is built to fill a pane and clip, which suited Danh mục —
-   here it cut the table off partway with no way to reach the rest, because the
-   only thing that could scroll was buried inside it. In a report the card grows
-   to its content and the screen around it does the scrolling, so the filters and
-   the figures scroll away with the rows. */
+/* The rows scroll inside the table, not the report around it: the tab rows,
+   the filters and the figures stay where they are and only the list moves —
+   the same way the calendar keeps its header and scrolls its grid. */
 .bd-ops-report-screen .bd-cat-card {
-  flex: none;
-  height: auto;
+  flex: 1;
   min-height: 0;
-  overflow: visible;
 }
-
-.bd-ops-report-screen .ant-table-content,
-.bd-ops-report-screen .ant-table-body {
-  max-height: none;
-  overflow-y: visible;
-}
-
-/* Wide reports still scroll sideways inside the card, as they must. */
-.bd-ops-report-screen .ant-table-content { overflow-x: auto; }
 
 /* Báo cáo differs per division: no filters puts the figure alone on the left,
    one filter sets it immediately beside that filter. */
