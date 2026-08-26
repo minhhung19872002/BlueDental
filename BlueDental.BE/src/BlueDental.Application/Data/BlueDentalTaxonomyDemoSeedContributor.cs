@@ -77,6 +77,33 @@ public class BlueDentalTaxonomyDemoSeedContributor(
 
         await SeedPaymentAccountsAsync(firstBranch, FirstBranchAccounts());
         await SeedPaymentAccountsAsync(secondBranch, SecondBranchAccounts());
+
+        await SeedSuppliesSystemGroupAsync(firstBranch);
+        await SeedSuppliesSystemGroupAsync(secondBranch);
+    }
+
+    /// <summary>
+    /// The one material group the reference ships with: "Hệ thống", marked as a
+    /// system group so it can be neither renamed nor deleted. Vật tư's panel
+    /// draws it amber with an ⓘ where a normal group keeps its menu.
+    /// </summary>
+    private async Task SeedSuppliesSystemGroupAsync(Guid branchId)
+    {
+        var id = DeterministicId($"taxonomy|{branchId}|{TaxonomyGroups.Supplies}|Hệ thống");
+
+        if (await ExistsAsync(taxonomyRepository, id))
+        {
+            return;
+        }
+
+        await taxonomyRepository.InsertAsync(
+            Taxonomy.Create(
+                id,
+                branchId,
+                TaxonomyGroups.Supplies,
+                "Hệ thống",
+                isSystem: true),
+            autoSave: true);
     }
 
     private bool IsDevelopment() =>
