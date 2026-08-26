@@ -1,10 +1,11 @@
 import { memo, useCallback } from "react";
-import { Button, Dropdown, Input, Spin } from "antd";
+import { Button, Dropdown, Input, Spin, Tooltip } from "antd";
 import {
   DeleteOutlined,
   EditOutlined,
   FolderOpenOutlined,
   HolderOutlined,
+  InfoCircleOutlined,
   MoreOutlined,
   PlusOutlined,
   SearchOutlined,
@@ -24,6 +25,8 @@ export interface PanelGroup {
   name: string;
   /** Shown beside the name where the caller counts what is inside a group. */
   entryCount?: number;
+  /** Seeded by the system: the reference marks these and offers no commands. */
+  isSystem?: boolean;
 }
 
 interface Props<TGroup extends PanelGroup> {
@@ -45,6 +48,14 @@ interface Props<TGroup extends PanelGroup> {
   onDelete: (group: TGroup) => void;
   /** Persists a new order after a drag or a move-up/move-down command. */
   onReorder: (fromIndex: number, toIndex: number) => void | Promise<void>;
+  /** e.g. "Tìm nhóm vật tư...". Defaults to the wording Danh mục uses. */
+  searchPlaceholder?: string;
+  /** The noun the header counts in, e.g. "nhóm" giving "3 nhóm". */
+  countNoun?: string;
+  /** What an empty panel says, e.g. "Chưa có phòng ban". */
+  emptyText?: string;
+  /** Names the "+" for a screen reader, e.g. "Thêm phòng ban". */
+  createLabel?: string;
 }
 
 interface RowProps {
@@ -95,6 +106,7 @@ const GroupRow = memo(function GroupRow({
         className={cn(
           "bd-group-row",
           active && "bd-group-row--active",
+          group.isSystem && "bd-group-row--system",
           dragging && "bd-group-row--dragging",
         )}
       >
@@ -115,8 +127,13 @@ const GroupRow = memo(function GroupRow({
           </span>
         </button>
 
-        {/* The reference offers exactly these two commands. Reordering is not
-            in the menu — the grip carries it, by pointer and by keyboard. */}
+        {/* A system group is seeded, and the reference neither renames nor
+            deletes one: it swaps the menu for a note saying so. */}
+        {group.isSystem ? (
+          <Tooltip title={t("Nhóm hệ thống, không thể sửa hoặc xoá")}>
+            <InfoCircleOutlined aria-hidden="true" className="bd-group-system-mark" />
+          </Tooltip>
+        ) : (
         <Dropdown
           trigger={["click"]}
           placement="bottomRight"
@@ -148,6 +165,7 @@ const GroupRow = memo(function GroupRow({
             <MoreOutlined aria-hidden="true" />
           </button>
         </Dropdown>
+        )}
 
         {/* A real button, not a decoration: dragging is a pointer gesture, so
             the same move has to be reachable with the arrow keys once the grip
@@ -202,6 +220,10 @@ export function GroupPanel<TGroup extends PanelGroup>({
   onRename,
   onDelete,
   onReorder,
+  searchPlaceholder,
+  countNoun,
+  emptyText,
+  createLabel,
 }: Props<TGroup>) {
   /** A search shows part of the catalog, so positions in it are not the order. */
   const canReorder = keyword.trim().length === 0;
@@ -242,7 +264,9 @@ export function GroupPanel<TGroup extends PanelGroup>({
         <div className="bd-group-headrow">
           <p className="bd-group-title">{title}</p>
           <span className="bd-cat-hint">
-            {isLoading ? t("Đang tải…") : t("{0} nhóm", groups.length)}
+            {isLoading
+              ? t("Đang tải…")
+              : `${groups.length} ${countNoun ?? t("nhóm")}`}
           </span>
         </div>
         <p className="bd-cat-sub bd-group-sub" title={subtitle}>
@@ -253,8 +277,8 @@ export function GroupPanel<TGroup extends PanelGroup>({
           <Input
             id="taxonomy-group-search"
             prefix={<SearchOutlined />}
-            placeholder={t("Tìm nhóm...")}
-            aria-label={t("Tìm nhóm...")}
+            placeholder={searchPlaceholder ?? t("Tìm nhóm...")}
+            aria-label={searchPlaceholder ?? t("Tìm nhóm...")}
             value={keyword}
             allowClear
             onChange={(event) => onKeywordChange(event.target.value)}
@@ -262,8 +286,8 @@ export function GroupPanel<TGroup extends PanelGroup>({
           <Button
             type="primary"
             icon={<PlusOutlined />}
-            aria-label={t("Thêm nhóm phân loại")}
-            title={t("Thêm nhóm phân loại")}
+            aria-label={createLabel ?? t("Thêm nhóm phân loại")}
+            title={createLabel ?? t("Thêm nhóm phân loại")}
             onClick={onCreate}
           />
         </div>
@@ -278,7 +302,9 @@ export function GroupPanel<TGroup extends PanelGroup>({
           <div className="bd-empty">
             <FolderOpenOutlined className="bd-icon--xl" aria-hidden="true" />
             <p className="bd-cat-hint bd-cat-hint--13">
-              {keyword ? t("Không tìm thấy nhóm phù hợp") : t("Chưa có nhóm nào")}
+              {keyword
+                ? t("Không tìm thấy nhóm phù hợp")
+                : (emptyText ?? t("Chưa có nhóm nào"))}
             </p>
           </div>
         ) : (
