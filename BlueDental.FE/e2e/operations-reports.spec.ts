@@ -352,38 +352,40 @@ test.describe("Vận hành — báo cáo", () => {
     await expect.poll(sharesLine).toBe(true);
 
     // Narrower still, there is no longer room for both on one line — the switch
-    // drops onto its own line under the tabs, clear of them rather than sitting
-    // on top. Polled because the measurement has to wait for the relayout.
+    // drops onto its own line under the tabs, clear of them and separated by
+    // more than the tabs' own two lines are separated from each other.
+    //
+    // Both distances are measured in a single pass inside the page and polled
+    // together: read in separate round trips, a half-finished layout got
+    // through where the switch had not yet moved down.
     await page.setViewportSize({ width: 560, height: 800 });
     await expect
-      .poll(async () => {
-        const pillsBox = await pills.boundingBox();
-        const periodBox = await periodEnd.boundingBox();
-        if (!pillsBox || !periodBox) return null;
-        // Positive means the switch starts below where the tabs end.
-        return Math.round(periodBox.y - (pillsBox.y + pillsBox.height));
-      })
-      .toBeGreaterThanOrEqual(0);
+      .poll(async () =>
+        page.evaluate(() => {
+          const pills = document.querySelector(".bd-ops-subtabs .pill-tabs");
+          const period = document.querySelector(".bd-ops-tabrow-end");
+          if (!pills || !period) return null;
 
-    // And it is separated from them: the gap under the tabs is wider than the
-    // gap between the tabs' own wrapped lines, so the switch does not read as
-    // one more row of tabs.
-    const gaps = await pills.evaluate((el) => {
-      const boxes = [...el.querySelectorAll("button")].map((b) => b.getBoundingClientRect());
-      const firstTop = Math.round(boxes[0].y);
-      const lineOneBottom = Math.max(
-        ...boxes.filter((b) => Math.round(b.y) === firstTop).map((b) => b.bottom),
-      );
-      const lineTwoTop = Math.min(
-        ...boxes.filter((b) => Math.round(b.y) !== firstTop).map((b) => b.y),
-      );
-      return { betweenTabLines: Math.round(lineTwoTop - lineOneBottom) };
-    });
-    const pillsBox = (await pills.boundingBox())!;
-    const periodBox = (await periodEnd.boundingBox())!;
-    const belowTabs = Math.round(periodBox.y - (pillsBox.y + pillsBox.height));
+          const p = pills.getBoundingClientRect();
+          const e = period.getBoundingClientRect();
+          const boxes = [...pills.querySelectorAll("button")].map((b) =>
+            b.getBoundingClientRect(),
+          );
+          const firstTop = Math.round(boxes[0].y);
+          const lineOneBottom = Math.max(
+            ...boxes.filter((b) => Math.round(b.y) === firstTop).map((b) => b.bottom),
+          );
+          const lineTwoTop = Math.min(
+            ...boxes.filter((b) => Math.round(b.y) !== firstTop).map((b) => b.y),
+          );
 
-    expect(belowTabs).toBeGreaterThan(gaps.betweenTabLines);
+          const belowTabs = Math.round(e.y - p.bottom);
+          const betweenTabLines = Math.round(lineTwoTop - lineOneBottom);
+
+          return belowTabs >= 0 && belowTabs > betweenTabLines;
+        }),
+      )
+      .toBe(true);
   });
 
   test("the filter and the figure sit at opposite ends of the row", async ({ page }) => {
