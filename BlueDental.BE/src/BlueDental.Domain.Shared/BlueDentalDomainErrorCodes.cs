@@ -1,4 +1,4 @@
-namespace BlueDental;
+﻿namespace BlueDental;
 
 public static class BlueDentalDomainErrorCodes
 {
@@ -175,6 +175,9 @@ public static class BlueDentalDomainErrorCodes
     {
         public const string InvalidTaskTransition = "BlueDental:Operations:0001";
         public const string EmptyArticleContent = "BlueDental:Operations:0002";
+        public const string UnsupportedImage = "BlueDental:Operations:0003";
+        public const string ImageTooLarge = "BlueDental:Operations:0004";
+        public const string ImageNotFound = "BlueDental:Operations:0005";
     }
 
     public static class Staff

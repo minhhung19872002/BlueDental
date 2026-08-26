@@ -5916,6 +5916,28 @@ html:has(.ant-modal-wrap) {
   overflow: auto;
 }
 
+/* Ant Design writes `overflow: auto hidden` **inline** on the scroller as soon
+   as a table is given a horizontal width, which pins it open vertically: the
+   rows run past the bottom of the card and there is no way to reach the last
+   of them. An inline style cannot be answered from a stylesheet any other way,
+   so this is the one place `!important` earns its keep. */
+.bd-cat-card .ant-table-content { overflow: auto !important; }
+
+/* With the rows scrolling under it, the header has to stay put — otherwise the
+   column names leave the screen the moment you look at anything. */
+.bd-cat-card .ant-table-thead > tr > th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+/* A pinned column is sticky sideways; over the header it also has to sit above
+   the rows scrolling beneath it. */
+.bd-cat-card .ant-table-thead > tr > th.ant-table-cell-fix-left,
+.bd-cat-card .ant-table-thead > tr > th.ant-table-cell-fix-right {
+  z-index: 4;
+}
+
 .bd-cat-card .ant-table-pagination.ant-pagination {
   margin: 0;
   flex-shrink: 0;
@@ -6016,6 +6038,14 @@ html:has(.ant-modal-wrap) {
 
 .bd-rich-text .ql-editor { min-height: 140px; }
 
+/* An image the author has just picked, shown while its bytes are on their way
+   to storage. A `data:` src is the file itself rather than a link to a stored
+   one, so it is dimmed until the stored URL replaces it. */
+.bd-rich-text .ql-editor img[src^="data:"] {
+  opacity: 0.55;
+  filter: grayscale(0.3);
+}
+
 /* main zeroes a Form.Item's margin inside a dialog and lets the Row's vertical
    gutter space the fields. A field that stands on its own — not in a Row — has
    no gutter to inherit, so it carries the same rhythm itself. */
@@ -6055,4 +6085,718 @@ html:has(.ant-modal-wrap) {
   margin-top: 8px;
   border-top: 1px solid var(--bd-line);
   padding-top: 8px;
+}
+
+/* ── Vận hành ───────────────────────────────────────────────────────────── */
+
+/* Khối điều trị and Khối tài chính put a second tab row under the divisions:
+   underlined, like the row above it, not pills like the row below. */
+.bd-ops-middletabs {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--bd-line);
+  background: #fff;
+  padding: 0 20px;
+}
+
+.bd-ops-middletabs-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* Where the period switch is dropped, at the end of a tab row.
+   It keeps its line — dropping below the tabs was the thing that looked wrong —
+   but it may fold its two halves onto two lines when the row runs out of width,
+   which leaves the tabs enough room to wrap sensibly instead of stacking one to
+   a line. */
+.bd-ops-tabrow-end {
+  display: flex;
+  flex-shrink: 1;
+  align-items: center;
+  justify-content: flex-end;
+  margin-left: auto;
+  padding: 8px 0;
+  min-width: 0;
+}
+
+.bd-ops-tabrow-end .bd-ops-period { justify-content: flex-end; }
+
+.bd-ops-middletab {
+  position: relative;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  padding: 14px 16px;
+  color: var(--bd-muted);
+  font-size: 13.5px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.bd-ops-middletab:hover { color: var(--bd-ink); }
+
+.bd-ops-middletab--active { color: var(--bd-blue); }
+
+.bd-ops-middletab--active::after {
+  position: absolute;
+  right: 16px;
+  bottom: -1px;
+  left: 16px;
+  background: var(--bd-blue);
+  height: 2px;
+  content: "";
+}
+
+/* The division tabs are routes and sit in the strip above; the sub-tabs belong
+   to the division, so they sit on their own line under it. */
+/* The period switch holds its place at the end of the row; it is the tabs that
+   give way. Letting the row itself wrap dropped the switch onto a line of its
+   own, stranded under the tabs — so the row never wraps and the tabs do. */
+.bd-ops-subtabs {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--bd-line);
+  background: #fff;
+  padding: 12px 20px;
+}
+
+.bd-ops-subtabs .pill-tabs {
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+/* Two columns: the categories, then the articles of the selected one. */
+.bd-ops-shell {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 16px;
+  height: 100%;
+  min-height: 0;
+  padding: 16px 20px;
+}
+
+.bd-ops-aside { min-height: 0; }
+
+.bd-ops-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* The panel carries no heading, no count and no description — a button that
+   stays put while the list scrolls under it, and the list. */
+.bd-ops-panel {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius);
+  background: #fff;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.bd-ops-panel-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  flex-shrink: 0;
+  background: #fff;
+  padding: 8px;
+}
+
+/* Ant Design lifts every solid button with `--ant-btn-shadow`. This one spans
+   the panel and sits against its list, where the lift reads as a seam rather
+   than a raised control. */
+.bd-ops-panel-head .ant-btn {
+  height: 42px;
+  box-shadow: none;
+}
+
+.bd-ops-panel-list {
+  flex: 1;
+  min-height: 0;
+  padding: 0 8px 8px;
+  overflow-y: auto;
+}
+
+.bd-ops-cats {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bd-ops-cat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-left: 3px solid transparent;
+  border-radius: 12px;
+  padding-right: 4px;
+  transition: background 150ms;
+}
+
+.bd-ops-cat:hover { background: var(--bd-bg-soft); }
+
+.bd-ops-cat--active {
+  border-left-color: var(--bd-blue);
+  background: var(--bd-blue-pale);
+}
+
+.bd-ops-cat-btn {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  border: 0;
+  background: none;
+  padding: 10px 8px;
+  min-width: 0;
+  text-align: left;
+}
+
+.bd-ops-cat-icon {
+  flex-shrink: 0;
+  color: var(--bd-muted);
+  font-size: 16px;
+}
+
+.bd-ops-cat--active .bd-ops-cat-icon { color: var(--bd-blue); }
+
+/* Two lines, then clipped, as the reference clamps it. */
+.bd-ops-cat-name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.bd-ops-cat--active .bd-ops-cat-name { color: var(--bd-blue); }
+
+/* Out of the way until the row is pointed at, focused, or selected. */
+.bd-ops-cat-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 150ms;
+}
+
+.bd-ops-cat:hover .bd-ops-cat-actions,
+.bd-ops-cat--active .bd-ops-cat-actions,
+.bd-ops-cat-actions:focus-within { opacity: 1; }
+
+.bd-ops-cat-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  width: 28px;
+  height: 28px;
+  color: var(--bd-muted);
+  font-size: 14px;
+  transition: background 150ms, color 150ms;
+}
+
+.bd-ops-cat-action:hover {
+  background: #fff;
+  color: var(--bd-blue);
+}
+
+.bd-ops-cat-action--danger:hover { color: var(--bd-red); }
+
+/* Vận hành: the create button sits beside the search rather than under a page
+   title — this screen already says where it is with its two rows of tabs. */
+.bd-ops-toolbar {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 16px;
+}
+
+.bd-ops-toolbar .ant-btn { height: 42px; }
+
+.bd-ops-search {
+  flex: 1;
+  min-width: 240px;
+  max-width: 420px;
+}
+
+.bd-ops-search .ant-input-affix-wrapper,
+.bd-ops-search.ant-input-affix-wrapper { height: 42px; }
+
+/* The reference gives the article body a tall editor rather than a box that
+   grows only once it is written in. */
+.bd-ops-editor .ql-editor { min-height: 320px; }
+
+/* A sub-tab that is a report this application does not serve yet. */
+.bd-ops-report {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 64px 24px;
+  color: var(--bd-muted);
+  text-align: center;
+}
+
+.bd-ops-report-title {
+  color: var(--bd-ink);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.bd-ops-report-note {
+  max-width: 420px;
+  font-size: 13px;
+}
+
+@media (max-width: 1100px) {
+  .bd-ops-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bd-ops-panel { height: auto; max-height: 320px; }
+}
+
+/* ── Vận hành: báo cáo ───────────────────────────────────────────────────── */
+
+.bd-ops-report-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 16px 20px;
+  overflow: hidden;
+}
+
+/* The period switch sits at the right-hand end of the row above the report. */
+/* Only the reports that also put a heading here still need a row of their own;
+   the period switch itself sits up in the tab row. */
+.bd-ops-report-bar {
+  display: flex;
+  flex-shrink: 0;
+  justify-content: flex-end;
+  padding-bottom: 0;
+}
+
+.bd-ops-report-bar--titled { padding-bottom: 16px; }
+
+.bd-ops-period {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.bd-ops-period-switch {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-control);
+  background: #fff;
+  padding: 3px;
+}
+
+.bd-ops-period-option {
+  cursor: pointer;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  padding: 7px 16px;
+  color: var(--bd-muted);
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 150ms, color 150ms;
+}
+
+/* Only the resting options darken on hover: the selected one is already
+   white on blue, and repainting it made the label almost unreadable. */
+.bd-ops-period-option:not(.bd-ops-period-option--active):hover { color: var(--bd-ink); }
+
+.bd-ops-period-option--active,
+.bd-ops-period-option--active:hover {
+  background: var(--bd-blue);
+  color: #fff;
+}
+
+.bd-ops-period-step {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-control);
+  background: #fff;
+  padding: 3px;
+}
+
+.bd-ops-period-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  width: 30px;
+  height: 30px;
+  color: var(--bd-muted);
+}
+
+.bd-ops-period-arrow:hover {
+  background: var(--bd-bg-soft);
+  color: var(--bd-blue);
+}
+
+/* The date is the picker's own input, styled to read as plain text between
+   the two arrows. */
+.bd-ops-period-picker.ant-picker {
+  padding: 0 12px;
+  min-width: 168px;
+}
+
+.bd-ops-period-picker .ant-picker-input > input {
+  color: var(--bd-ink);
+  font-size: 13.5px;
+  font-weight: 500;
+  text-align: center;
+  cursor: pointer;
+}
+
+.bd-ops-period-picker .ant-picker-prefix { color: var(--bd-muted); }
+
+.bd-ops-report-filters {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 16px;
+}
+
+.bd-ops-filter { min-width: 240px; }
+
+/* ── Figures above a money report ────────────────────────────────────────── */
+
+.bd-ops-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  flex-shrink: 0;
+  gap: 12px;
+  padding-bottom: 16px;
+}
+
+.bd-ops-stat {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius);
+  background: #fff;
+  padding: 16px;
+  text-align: left;
+}
+
+.bd-ops-stat--pick { cursor: pointer; transition: border-color 150ms, box-shadow 150ms; }
+
+.bd-ops-stat--pick:hover { border-color: var(--bd-blue); }
+
+.bd-ops-stat--active {
+  border-color: var(--bd-blue);
+  box-shadow: 0 0 0 1px var(--bd-blue) inset;
+}
+
+.bd-ops-stat-icon {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  width: 36px;
+  height: 36px;
+  font-size: 16px;
+}
+
+.bd-ops-stat-icon--teal { background: #e6f5ef; color: var(--bd-green); }
+.bd-ops-stat-icon--blue { background: var(--bd-blue-pale); color: var(--bd-blue); }
+.bd-ops-stat-icon--amber { background: var(--bd-amber-pale); color: var(--bd-amber); }
+.bd-ops-stat-icon--green { background: var(--bd-green-pale); color: var(--bd-green); }
+.bd-ops-stat-icon--rose { background: var(--bd-red-pale); color: var(--bd-red); }
+
+.bd-ops-stat-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.bd-ops-stat-value {
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.bd-ops-stat-value--teal { color: var(--bd-green); }
+.bd-ops-stat-value--blue { color: var(--bd-blue); }
+.bd-ops-stat-value--amber { color: var(--bd-amber); }
+.bd-ops-stat-value--green { color: var(--bd-green); }
+.bd-ops-stat-value--rose { color: var(--bd-red); }
+
+.bd-ops-stat-label {
+  color: var(--bd-muted);
+  font-size: 12.5px;
+}
+
+.bd-ops-stat-badge {
+  align-self: flex-start;
+  margin-top: 6px;
+  border-radius: var(--bd-radius-sm);
+  padding: 3px 8px;
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.bd-ops-stat-badge--green { background: var(--bd-green-pale); color: var(--bd-green); }
+.bd-ops-stat-badge--rose { background: var(--bd-red-pale); color: var(--bd-red); }
+
+/* ── Report table cells ──────────────────────────────────────────────────── */
+
+.bd-ops-patient {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bd-ops-patient-name {
+  color: var(--bd-blue);
+  font-weight: 500;
+}
+
+.bd-ops-patient-since {
+  color: var(--bd-muted);
+  font-size: 11.5px;
+}
+
+.bd-ops-tag {
+  display: inline-flex;
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-bg-soft);
+  padding: 3px 10px;
+  font-size: 12.5px;
+}
+
+.bd-ops-pill {
+  display: inline-flex;
+  border: 1px solid;
+  border-radius: var(--bd-radius-pill);
+  padding: 3px 12px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.bd-ops-pill--done {
+  border-color: var(--bd-blue);
+  background: var(--bd-blue-pale);
+  color: var(--bd-blue);
+}
+
+.bd-ops-pill--own {
+  border-color: var(--bd-red);
+  background: var(--bd-red-pale);
+  color: var(--bd-red);
+}
+
+/* A sub-tab the reference itself has not built. */
+.bd-ops-construction {
+  border: 1px dashed var(--bd-line);
+  border-radius: var(--bd-radius);
+  background: #fff;
+  padding: 56px 24px;
+  color: var(--bd-muted);
+  font-size: 13.5px;
+  text-align: center;
+}
+
+/* ── Vận hành: hàng đầu của báo cáo ─────────────────────────────────────── */
+
+/* Filters on the left, the single figure on the right. */
+.bd-ops-report-head {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 16px;
+}
+
+.bd-ops-report-head .bd-ops-report-filters {
+  flex: 1;
+  padding-bottom: 0;
+}
+
+.bd-ops-stat--single { min-width: 280px; }
+
+.bd-ops-filter--wide { min-width: 320px; }
+
+/* Khách hàng phát sinh names itself, with the controls at the far end. */
+.bd-ops-report-bar--titled {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bd-ops-report-title {
+  margin: 0;
+  color: var(--bd-ink);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.bd-ops-report-barend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ── Báo cáo: khối theo lượt khám ───────────────────────────────────────── */
+
+.bd-ops-visit {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Đã đến → Đang khám → Hoàn tất. */
+.bd-ops-steps {
+  display: flex;
+  gap: 4px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bd-ops-step {
+  display: flex;
+  position: relative;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+/* The rule joining one step to the next, drawn behind the numbers. */
+.bd-ops-step + .bd-ops-step::before {
+  position: absolute;
+  top: 13px;
+  right: 50%;
+  left: -50%;
+  z-index: 0;
+  background: var(--bd-line);
+  height: 1px;
+  content: "";
+}
+
+.bd-ops-step-dot {
+  display: flex;
+  position: relative;
+  z-index: 1;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--bd-line);
+  border-radius: 999px;
+  background: #fff;
+  width: 26px;
+  height: 26px;
+  color: var(--bd-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.bd-ops-step-dot--done {
+  border-color: var(--bd-blue);
+  background: var(--bd-blue);
+  color: #fff;
+}
+
+.bd-ops-step-label {
+  color: var(--bd-sub);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.bd-ops-step-time {
+  color: var(--bd-faint);
+  font-size: 11px;
+}
+
+.bd-ops-action { font-weight: 500; }
+
+/* "(Trống)" and "---" are placeholders, not content. */
+.bd-ops-blank { color: var(--bd-faint); }
+
+/* A cell spanning a block is centred against it, as the reference centres the
+   visit and the action group. */
+.bd-ops-worklog .ant-table-tbody > tr > td { vertical-align: middle; }
+
+/* The rows scroll inside the table, not the report around it: the tab rows,
+   the filters and the figures stay where they are and only the list moves —
+   the same way the calendar keeps its header and scrolls its grid. */
+.bd-ops-report-screen .bd-cat-card {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Báo cáo differs per division: no filters puts the figure alone on the left,
+   one filter sets it immediately beside that filter. */
+.bd-ops-report-head--start,
+.bd-ops-report-head--inline {
+  justify-content: flex-start;
+}
+
+.bd-ops-report-head--inline .bd-ops-report-filters { flex: 0 0 auto; }
+
+.bd-ops-report-head--inline .bd-ops-stat--single,
+.bd-ops-report-head--start .bd-ops-stat--single { flex: 0 0 auto; }
+
+/* The item's own time, under its name. */
+.bd-ops-subject {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bd-ops-subject-detail {
+  color: var(--bd-muted);
+  font-size: 11.5px;
 }

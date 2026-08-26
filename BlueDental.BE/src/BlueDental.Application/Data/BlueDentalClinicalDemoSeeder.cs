@@ -9,6 +9,9 @@ using BlueDental.TreatmentManagement;
 using BlueDental.TreatmentManagement.Values;
 using BlueDental.Visits;
 using Volo.Abp.DependencyInjection;
+using Volo.Abp;
+using Volo.Abp.Data;
+using Volo.Abp.Domain.Entities;
 using Volo.Abp.Domain.Repositories;
 
 namespace BlueDental.Data;
@@ -33,7 +36,8 @@ public class BlueDentalClinicalDemoSeeder(
     IRepository<Prescription, Guid> prescriptionRepository,
     IRepository<PatientPayment, Guid> paymentRepository,
     IRepository<ConsultationRecord, Guid> consultationRepository,
-    IRepository<DiagnosticRecord, Guid> diagnosticRepository) : ITransientDependency
+    IRepository<DiagnosticRecord, Guid> diagnosticRepository,
+    IDataFilter<ISoftDelete> softDeleteFilter) : ITransientDependency
 {
     private readonly Guid _branchId = BlueDentalDataSeedContributor.DefaultBranchId;
 
@@ -144,6 +148,20 @@ public class BlueDentalClinicalDemoSeeder(
                 .ToList());
     }
 
+    /// <summary>
+    /// Does a row with this id exist — deleted ones included? A soft-deleted row
+    /// keeps its primary key but is invisible to an ordinary query, so asking
+    /// the ordinary way sends the seeder into a duplicate-key crash.
+    /// </summary>
+    private async Task<bool> ExistsAsync<TEntity>(IRepository<TEntity, Guid> repository, Guid id)
+        where TEntity : class, IEntity<Guid>
+    {
+        using (softDeleteFilter.Disable())
+        {
+            return await repository.AnyAsync(x => x.Id == id);
+        }
+    }
+
     /// <summary>Creates one taxonomy group and its entries, skipping what exists.</summary>
     private async Task<List<Guid>> EnsureGroupAsync(
         string kind,
@@ -153,7 +171,7 @@ public class BlueDentalClinicalDemoSeeder(
     {
         var taxonomyId = DemoId(kind, 0);
 
-        if (!await taxonomyRepository.AnyAsync(t => t.Id == taxonomyId))
+        if (!await ExistsAsync(taxonomyRepository, taxonomyId))
         {
             await taxonomyRepository.InsertAsync(
                 Taxonomy.Create(taxonomyId, _branchId, group, groupName),
@@ -168,7 +186,7 @@ public class BlueDentalClinicalDemoSeeder(
             var id = DemoId(kind, i + 1);
             ids.Add(id);
 
-            if (!await catalogRepository.AnyAsync(c => c.Id == id))
+            if (!await ExistsAsync(catalogRepository, id))
             {
                 missing.Add(CatalogEntry.Create(
                     id,

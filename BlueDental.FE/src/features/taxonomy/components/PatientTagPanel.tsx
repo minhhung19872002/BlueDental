@@ -1,4 +1,5 @@
-import { Button, Tooltip, message } from "antd";
+import { Button, Tooltip } from "antd";
+import { toast } from "sonner";
 import { useMemo, useState } from "react";
 import { DeleteOutlined, EditOutlined, TagOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
@@ -45,7 +46,7 @@ export function PatientTagPanel() {
 
     try {
       await deleteTag.mutateAsync(pendingDelete.id);
-      message.success(t("Đã xoá thẻ hồ sơ"));
+      toast.success(t("Đã xoá thẻ hồ sơ"));
     } catch {
       // queryClient reports the failure; nothing to add here.
     } finally {

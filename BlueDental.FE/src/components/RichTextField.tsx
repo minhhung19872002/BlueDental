@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
 import { cn } from "@/lib/cn";
@@ -9,6 +9,24 @@ interface Props {
   onChange?: (html: string) => void;
   placeholder?: string;
   className?: string;
+  /**
+   * Where an image the user adds should be stored. Given one, the picked file
+   * is handed over and whatever URL comes back is what the body links to.
+   *
+   * Left out, Quill does what it does by default and embeds the image in the
+   * HTML as base64 — fine for a draft held in memory, wrong for anything that
+   * is going to be written to a row.
+   */
+  onUploadImage?: (file: File) => Promise<string>;
+}
+
+function readAsDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
 }
 
 /**
@@ -20,29 +38,105 @@ interface Props {
  * rendered back through the same editor rather than injected into the page, so
  * the stored markup is never trusted as page HTML elsewhere.
  */
-export function RichTextField({ value, onChange, placeholder, className }: Props) {
+export function RichTextField({
+  value,
+  onChange,
+  placeholder,
+  className,
+  onUploadImage,
+}: Props) {
+  const quillRef = useRef<ReactQuill>(null);
+
+  // Read through a ref so the toolbar is not rebuilt on every keystroke —
+  // Quill rebuilds its whole toolbar when `modules` changes identity.
+  const uploadRef = useRef(onUploadImage);
+  uploadRef.current = onUploadImage;
+
+  const pickAndUpload = useCallback(() => {
+    const upload = uploadRef.current;
+    if (!upload) return;
+
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/png,image/jpeg,image/webp,image/gif";
+
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      const editor = quillRef.current?.getEditor();
+      if (!file || !editor) return;
+
+      // Straight in, before the upload is even started: picking an image and
+      // watching nothing happen reads as a failure. This is what Quill's own
+      // handler does — and so what the Dữ liệu tư vấn dialog does — except that
+      // here the data URL is a placeholder rather than what gets saved.
+      //
+      // It has to be a data URL: Quill's image blot allows only http, https and
+      // data, and rewrites anything else (a blob: URL included) to "//:0".
+      const preview = await readAsDataUrl(file);
+      // Where the caret was when the picker opened, or the end of the document.
+      const at = editor.getSelection(true)?.index ?? editor.getLength();
+      editor.insertEmbed(at, "image", preview, "user");
+      editor.setSelection(at + 1, 0, "user");
+
+      // Held as a blot rather than an index: the author may well keep typing
+      // while the bytes are in flight, which moves the image along.
+      const [placeholder] = editor.getLeaf(at + 1);
+      const indexOfPlaceholder = () => {
+        // A blot detached in the meantime — undone, or the body cleared —
+        // reports an index outside the document.
+        if (!placeholder) return -1;
+        const index = editor.getIndex(placeholder);
+        return index >= 0 && index < editor.getLength() ? index : -1;
+      };
+
+      try {
+        const url = await upload(file);
+        const found = indexOfPlaceholder();
+        if (found < 0) return;
+
+        editor.deleteText(found, 1, "silent");
+        editor.insertEmbed(found, "image", url, "user");
+      } catch {
+        // The caller reports the failure; this only takes back the placeholder
+        // so its bytes are not left in the body to be saved.
+        const found = indexOfPlaceholder();
+        if (found >= 0) editor.deleteText(found, 1, "user");
+      }
+    };
+
+    input.click();
+  }, []);
+
   const modules = useMemo(
     () => ({
-      toolbar: [
-        [{ font: [] }, { size: ["small", false, "large", "huge"] }],
-        [{ header: [1, 2, 3, false] }],
-        ["bold", "italic", "underline", "strike"],
-        [{ list: "ordered" }, { list: "bullet" }],
-        [{ indent: "-1" }, { indent: "+1" }],
-        [{ script: "super" }, { script: "sub" }],
-        ["blockquote", { direction: "rtl" }],
-        [{ align: [] }],
-        [{ color: [] }, { background: [] }],
-        ["link", "image", "video", "formula", "code-block"],
-        ["clean"],
-      ],
+      toolbar: {
+        container: [
+          [{ font: [] }, { size: ["small", false, "large", "huge"] }],
+          [{ header: [1, 2, 3, false] }],
+          ["bold", "italic", "underline", "strike"],
+          [{ list: "ordered" }, { list: "bullet" }],
+          [{ indent: "-1" }, { indent: "+1" }],
+          [{ script: "super" }, { script: "sub" }],
+          ["blockquote", { direction: "rtl" }],
+          [{ align: [] }],
+          [{ color: [] }, { background: [] }],
+          ["link", "image", "video", "formula", "code-block"],
+          ["clean"],
+        ],
+        // Only when the caller has somewhere to put the bytes; otherwise Quill's
+        // own handler runs and embeds them.
+        ...(onUploadImage ? { handlers: { image: pickAndUpload } } : {}),
+      },
     }),
-    [],
+    // Whether an upload handler exists changes the toolbar; the handler itself
+    // is read through a ref, so it does not.
+    [Boolean(onUploadImage), pickAndUpload],
   );
 
   return (
     <div className={cn("bd-rich-text", className)}>
       <ReactQuill
+        ref={quillRef}
         theme="snow"
         value={value}
         onChange={onChange}

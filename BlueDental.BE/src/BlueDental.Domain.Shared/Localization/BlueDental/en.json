@@ -127,10 +127,7 @@
     "BlueDental:Labo:0001": "Labo order not found.",
     "BlueDental:Labo:0002": "That labo transition is not allowed.",
     "BlueDental:Labo:0003": "That labo order code is already in use.",
-    "BlueDental:Operations:0001": "Article not found.",
-    "BlueDental:Operations:0002": "An article needs content before it can be published.",
-    "BlueDental:Operations:0003": "Task not found.",
-    "BlueDental:Operations:0004": "That task transition is not allowed.",
+    "BlueDental:Operations:0004": "An article image must be smaller than 5 MB.",
     "BlueDental:Promotions:0001": "Voucher not found.",
     "BlueDental:Promotions:0002": "That discount is not valid.",
     "BlueDental:Promotions:0003": "The validity window must end after it starts.",
@@ -772,7 +769,7 @@
     "Tìm phiếu phân bổ...": "Search allocation records...",
     "Tìm phòng ban...": "Search departments...",
     "Tìm theo mã hoặc tên voucher...": "Search by voucher code or name...",
-    "Tìm theo tên, email, số điện thoại...": "Search by name, email or phone number...",
+    "Tìm theo tên, email, số điện thoại...": "Search by name, email, phone...",
     "Tìm vật tư...": "Search items...",
     "Tạm dừng": "Paused",
     "Tạo bài viết": "Create post",
@@ -1742,7 +1739,6 @@
     "Chọn xã/ phường": "Select ward/ commune",
     "Tải ảnh đại diện thất bại": "Failed to upload avatar",
     "Xóa ảnh đại diện thất bại": "Failed to remove avatar",
-    "Tìm theo tên, email, số điện thoại...": "Search by name, email, phone...",
     "Nhân sự": "Staff",
     "BlueDental:Staff:0001": "Invalid phone number.",
     "BlueDental:Staff:0002": "Invalid time format.",
@@ -1750,6 +1746,8 @@
     "BlueDental:Staff:0004": "Unsupported image format.",
     "BlueDental:Staff:0005": "Image exceeds maximum size.",
     "BlueDental:Staff:0006": "Avatar not found.",
-    "BlueDental:Staff:0007": "Email is already in use."
+    "BlueDental:Staff:0007": "Email is already in use.",
+    "BlueDental:Operations:0003": "Only PNG, JPG, WEBP or GIF images can be placed in an article.",
+    "BlueDental:Operations:0005": "This image no longer exists."
   }
 }

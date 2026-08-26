@@ -1,4 +1,5 @@
-import { Col, Form, Input, InputNumber, Row, message } from "antd";
+import { Col, Form, Input, InputNumber, Row } from "antd";
+import { toast } from "sonner";
 import { useEffect } from "react";
 import {
   useCreateTaxonomyGroup,
@@ -64,7 +65,7 @@ export function TaxonomyGroupModal({ open, group, taxonomyGroup, onClose, onCrea
             sortOrder: resolvedSortOrder,
           },
         });
-        message.success(t("Đã cập nhật nhóm"));
+        toast.success(t("Đã cập nhật nhóm"));
       } else {
         const created = await createGroup.mutateAsync({
           clinicBranchId: branchId,
@@ -72,7 +73,7 @@ export function TaxonomyGroupModal({ open, group, taxonomyGroup, onClose, onCrea
           name: trimmed,
           sortOrder: resolvedSortOrder,
         });
-        message.success(t("Đã thêm nhóm"));
+        toast.success(t("Đã thêm nhóm"));
         // Closed before the parent is told, so a hiccup while it moves the
         // selection can never leave this dialog stuck open over the result.
         onClose();

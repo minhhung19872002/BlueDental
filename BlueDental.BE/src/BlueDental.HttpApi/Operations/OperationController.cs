@@ -1,17 +1,21 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using BlueDental.Controllers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Volo.Abp;
+using Microsoft.AspNetCore.Http;
 using Volo.Abp.Application.Dtos;
+using Volo.Abp.Content;
 
 namespace BlueDental.Operations;
 
 [RemoteService]
 [Authorize]
 [Route("api/v1/app/operations")]
-public sealed class OperationController(IOperationAppService service) : BlueDentalController
+public sealed class OperationController(
+    IOperationAppService service,
+    IOperationArticleImageAppService images) : BlueDentalController
 {
     [HttpGet("categories")]
     public Task<PagedResultDto<OperationCategoryDto>> GetCategoryListAsync(
@@ -20,6 +24,11 @@ public sealed class OperationController(IOperationAppService service) : BlueDent
     [HttpPost("categories")]
     public Task<OperationCategoryDto> CreateCategoryAsync(CreateOperationCategoryDto input) =>
         service.CreateCategoryAsync(input);
+
+    [HttpPut("categories/{id}")]
+    public Task<OperationCategoryDto> UpdateCategoryAsync(
+        Guid id,
+        UpdateOperationCategoryDto input) => service.UpdateCategoryAsync(id, input);
 
     [HttpDelete("categories/{id}")]
     public Task DeleteCategoryAsync(Guid id) => service.DeleteCategoryAsync(id);
@@ -38,4 +47,31 @@ public sealed class OperationController(IOperationAppService service) : BlueDent
 
     [HttpDelete("articles/{id}")]
     public Task DeleteArticleAsync(Guid id) => service.DeleteArticleAsync(id);
+
+    /// <summary>
+    /// An image dropped into an article's body. Multipart, so the DTO is bound
+    /// by hand rather than from the JSON body — the same shape the QR upload
+    /// uses.
+    /// </summary>
+    [HttpPost("article-images")]
+    public Task<OperationArticleImageDto> UploadArticleImageAsync(
+        [FromForm] IFormFile file,
+        [FromForm] Guid clinicBranchId) =>
+        images.UploadAsync(new UploadOperationArticleImageDto
+        {
+            ClinicBranchId = clinicBranchId,
+            File = new RemoteStreamContent(
+                file.OpenReadStream(),
+                file.FileName,
+                file.ContentType,
+                file.Length),
+        });
+
+    [HttpGet("article-images/{id:guid}")]
+    public async Task<IActionResult> GetArticleImageAsync(Guid id)
+    {
+        var content = await images.GetAsync(id);
+
+        return File(content.GetStream(), content.ContentType ?? "application/octet-stream");
+    }
 }

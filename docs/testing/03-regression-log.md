@@ -362,3 +362,114 @@ production.
 
 Chốt màn hình: **Danh mục coi như hoàn thiện.** Đã ghi vào `CLAUDE.md` mục 17 và
 đánh dấu trên F-31…F-34 để người sau không dựng lại.
+
+## 2026-08-25 — Vận hành: chi nhánh, thứ tự, hành động, tìm kiếm, ảnh, layout
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-93 | Phân loại và bài viết Vận hành không theo chi nhánh | Mọi chi nhánh nhìn thấy chung một đống dữ liệu; đây là chỗ duy nhất trong hệ thống còn hở, mọi bảng nghiệp vụ khác đều đã lọc theo `ClinicBranchId` | Hai bảng dựng theo đúng bản gốc — bản gốc trả `branchId: null` nên coi như dùng chung cả phòng khám | Thêm `ClinicBranchId` vào cả hai entity, lọc bằng `BranchAccessChecker` như các màn khác, `CheckAsync` trước mỗi lần ghi/xoá. Migration `20260825110000` backfill dữ liệu cũ về chi nhánh chính — để `Guid.Empty` thì **không** chi nhánh nào thấy | F-35 |
+| R-94 | Mục phân loại mới rơi xuống cuối danh sách | Tạo xong phải cuộn đi tìm; trang Danh mục thì đưa lên đầu | Chỉ sắp theo `SortOrder`, mà bản ghi mới nhận `SortOrder = 0` giống mọi bản ghi chưa kéo-thả bao giờ | `.OrderBy(SortOrder).ThenByDescending(CreationTime)` — kéo-thả vẫn thắng, còn trong cùng một mức thì mới nhất lên trước | F-35 (test tạo hai mục, khẳng định mục sau nằm trên) |
+| R-95 | Hai lệnh của hàng phân loại nằm trong menu ba chấm | Sửa/xoá phải hai lần bấm | Bê nguyên `Dropdown` từ bản dựng đầu | Hai nút nằm thẳng trên hàng (`.bd-ops-rowactions`) | F-35 |
+| R-96 | Chèn ảnh vào bài viết là lỗi "Lỗi hệ thống" | Không lưu được bài nào có ảnh | Quill nhúng ảnh thành base64 ngay trong HTML, mà cột `Content` giới hạn 10.000 ký tự → Postgres `22001: value too long`. Ảnh nằm trong hàng còn có nghĩa là mỗi lần đọc danh sách lại tải kèm cả ảnh | Ảnh đi ra blob storage (`bd_operation_article_images` + hai endpoint), nội dung chỉ giữ link **tương đối**; cột `Content` chuyển sang `text` vì rich-text không có trần hợp lý nào | F-35 |
+| R-97 | Ảnh chỉ hiện sau khi tải xong | Chọn ảnh xong màn hình không đổi gì trong lúc chờ, đọc như hỏng — bên Dữ liệu tư vấn thì ảnh hiện ra ngay | Đổi sang lưu ngoài nghĩa là phải chờ một vòng mạng rồi mới chèn | Chèn ngay chính file đó dưới dạng data URL (đúng cách Quill vẫn làm), làm mờ, rồi thay `src` bằng link đã lưu khi tải xong; hỏng thì gỡ ảnh tạm đi. Thử `blob:` trước — **không dùng được**: blot ảnh của Quill chỉ nhận `http`/`https`/`data`, thứ khác bị viết lại thành `//:0` | F-35 (test khẳng định không còn `img[src^="data:"]` lúc lưu) |
+| R-98 | Tìm kiếm bài viết phân biệt hoa thường và dính khoảng trắng | Dán tên bài từ chỗ khác vào là không ra | Lọc bằng `Contains` thẳng trên chuỗi người dùng gõ | Dùng `SearchTerms.From` như trang Danh mục: cắt khoảng trắng, hạ chữ thường, tách theo từ | F-35 |
+| R-99 | Đổi tên mục phân loại trả về **405** | Dialog sửa mở ra, điền xong bấm Lưu thì đứng im | `UpdateCategoryAsync` có trong AppService và interface nhưng controller chưa có route `PUT categories/{id}` — ABP không tự sinh route cho controller viết tay | Thêm `[HttpPut("categories/{id}")]` | F-35 |
+
+FE: 7/7 `operations.spec.ts` trên bản build production. tsc sạch.
+
+## 2026-08-25 — Vận hành: rà soát lại toàn bộ tab theo bản gốc
+
+Quan sát lại `staging.nfcdental.com/operations` ở 1600×1000, chỉ đọc: đi hết 8
+khối, mọi sub-tab, và mở cả hai dialog (không gõ, không lưu). Bản dựng trước đó
+đoán sai cấu trúc ở nhiều chỗ.
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-93 | Sub-tab dựng sai cho 2 khối | Khối bảo vệ thừa "Báo cáo"; Khối tài chính hiện 4 tab chung trong khi bản gốc có 6 tab riêng (Khách hàng phát sinh, Hóa đơn, Hoàn thành theo dịch vụ) | Lần dựng trước suy ra "mọi khối đều có 3 tab chung + Báo cáo" từ **một** khối quan sát được, không đi hết 8 khối | Bảng tab lấy đúng từng khối; `operationsTabs.ts` giữ cả `kind` của từng sub-tab | F-35 (test so khớp đúng danh sách của 3 khối) |
+| R-94 | Chỉ có **một** tham số `?subTab=` | Rời khối rồi quay lại là mất sub-tab đang xem; link chia sẻ không giống bản gốc | Bản gốc cho **mỗi khối một tham số riêng** (`overviewSubTab`, `financeSubTab`…) và để chúng cộng dồn trong URL | Tham số đặt theo khối, link khối mang theo toàn bộ tham số cũ (trừ `category`, vì nó là id của riêng một sub-screen) | F-35 (test đi 2 khối rồi quay lại) |
+| R-95 | Thiếu hẳn hàng tab giữa | Khối điều trị và Khối tài chính có thêm hàng "Tổng quan / Truy cập" (`treatmentTab`/`financeTab`) — bản mình không có | Không quan sát tới hai khối này | Dựng hàng tab giữa, kiểu gạch chân như hàng khối, chỉ ở hai khối đó | F-35 |
+| R-96 | 6 sub-tab báo cáo bị dựng thành màn "phân loại + bài viết" | Báo cáo, Chẩn đoán chưa điều trị, Đơn thuốc, Khách hàng phát sinh, Hóa đơn, Hoàn thành theo dịch vụ **không phải** màn bài viết — mỗi cái là một báo cáo với bộ cột riêng, không có panel phân loại. Dựng như cũ là **bịa hành vi**: người dùng tạo bài viết trong tab Hóa đơn | Lần trước ghi `UNKNOWN` rồi vẫn dựng cả 6 tab bằng một khung | Chỉ Trang chủ/Quy trình/Công việc là màn bài viết; còn lại render `OperationReportPanel` nói thẳng là chưa dựng. Cột của từng báo cáo đã ghi vào `docs/clone/pages/operations.md` | F-35 (test khẳng định tab báo cáo **không** có "Tạo Bài Viết" / "Thêm Mới") |
+| R-97 | Panel phân loại dùng lại nguyên khối của Danh mục | Bản gốc panel này **không có** tiêu đề, số đếm, dòng mô tả, ô tìm kiếm hay tay kéo — chỉ một nút "Thêm Mới" dính trên đỉnh và danh sách thư mục; hành động chỉ hiện khi rê chuột | Suy diễn "hai màn giống nhau nên dùng chung" thay vì đo | Tách `bd-ops-panel` riêng: nút sticky, hàng có icon thư mục, tên `line-clamp: 2`, hai nút ẩn ở `opacity: 0` cho tới khi hover/chọn/focus | F-35 |
+| R-98 | Dialog sai chữ và sai trường | Nhóm: bản gốc là "Tạo"/"Sửa" với **hai** trường `Tên phân loại*` + `Mức độ ưu tiên`; bản mình là "Thêm mục mới" một trường `Tên mục`. Bài viết: bản gốc "Tiêu đề bài viết"/"Sửa bài viết", rộng 772, có nhãn `Nội dung bài viết`, editor cao 320px, placeholder `Nhập nội dung tư vấn...` | Chưa mở dialog của bản gốc lần nào | Sửa đúng cả hai theo số đo đọc từ DOM | F-35 |
+
+Phụ: chân bảng bài viết của bản gốc **không có** đơn vị đếm — `Hiển thị 1–11
+trên 11`, và `Hiển thị 0 trên 0` khi rỗng (không phải `0–0`). Tách thành
+`operationsTotal` thay vì dùng `countedTotal("bài viết")`.
+
+FE: **10/10** `operations.spec.ts` + **17/17** hai bộ `taxonomy` trên bản build
+production. Toàn bộ suite 102/110 — 7 lỗi còn lại (cskh, labo ×2, patient,
+sidebar-navigation ×2, staff) đã **đo là có sẵn trên nhánh**: stash hết thay đổi
+rồi chạy lại vẫn đỏ đúng 7 test đó.
+
+## 2026-08-26 — Vận hành: dựng nốt 7 màn báo cáo
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-99 | Seeder chết vì trùng khoá chính, im lặng | Toàn bộ chuỗi lâm sàng (chẩn đoán → tư vấn → kế hoạch → dịch vụ → công đoạn → đơn thuốc) **rỗng** trên máy dev, nên mọi màn báo cáo đều trắng và không dựng được. Đo được: `bd_catalog_entries` có 63 dòng đã xoá mềm | Seeder hỏi "id này có chưa?" bằng `AnyAsync`, mà bộ lọc xoá mềm giấu mất dòng đã xoá — dòng vẫn giữ khoá chính. Chính e2e của mình xoá mềm các dòng seed, nên sau lần chạy test đầu tiên là seeder hỏng vĩnh viễn | Hỏi lại với `IDataFilter<ISoftDelete>.Disable()` trong cả hai seeder | Chạy lại DbMigrator: chuỗi lâm sàng lên đủ |
+| R-100 | Không có dữ liệu để lọc theo kỳ | Mọi dòng seed đều đóng dấu **đúng lúc chạy seeder**, nên Ngày/Tuần/Tháng cho ra cùng một danh sách và "% so với kỳ trước" không có gì để so | ABP đóng dấu `CreationTime` khi insert | `BlueDentalReportsDemoSeeder`: 120 ca rải trên 75 ngày. Đặt dấu thời gian **trước** khi insert — ABP chỉ ghi khi giá trị còn `default` nên nó giữ nguyên. Ghi sau không được: các entity này sở hữu răng dạng JSON, update làm EF báo sửa khoá ngoài định danh | 90 dịch vụ / 3 tháng, 38 chẩn đoán chưa điều trị |
+| R-101 | Một `ToothSelection` dùng chung cho 4 chủ sở hữu | Seeder chết: EF theo dõi giá trị sở hữu **theo tham chiếu**, một đối tượng đưa cho chẩn đoán + tư vấn + dòng dịch vụ + công đoạn thành 4 dòng tranh nhau | Tiết kiệm một dòng khởi tạo | Mỗi chủ sở hữu một thực thể riêng | Seeder chạy sạch |
+| R-102 | `ResolveFilterAsync(null)` trả về rỗng bị hiểu là "không chi nhánh nào" | Mọi báo cáo trả 0 dòng cho tài khoản không gán chi nhánh — tức là admin | Danh sách rỗng ở `BranchAccessChecker` nghĩa là **không bị giới hạn**, nhưng `branchIds.Contains(...)` đọc thành "không có gì" | Một hàm `InScope` duy nhất, theo đúng quy ước phần còn lại của ứng dụng đang dùng (`Count > 0` mới lọc) | 6/6 endpoint trả dữ liệu thật |
+| R-103 | Controller mới thiếu `[RemoteService]` / `[Authorize]` | 2 test quy ước controller đỏ | Viết mới không theo mẫu sẵn có | Thêm cả hai | `ControllerConventionTests` 15/15 |
+
+Bảy màn dựng xong: Báo cáo, Chẩn đoán chưa điều trị, Khách hàng phát sinh, Hóa
+đơn, Hoàn thành theo dịch vụ, Truy cập (dùng chung cho hai khối) — và Đơn thuốc
+giữ nguyên câu của bản gốc, *"Nội dung đang được xây dựng."*, vì bản gốc cũng
+chưa dựng.
+
+BE: **694/696** (2 lỗi `BlueDentalAbilitiesTests` đã đo là có sẵn — stash hết
+thay đổi vẫn đỏ y hệt). FE: **35/35** trên bản build production
+(`operations` 10, `operations-reports` 8, `taxonomy` 17).
+
+## 2026-08-26 — Vận hành: xoá nhóm, bộ lọc thời gian, và dựng lại Báo cáo
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-104 | Xoá nhóm nhưng bài viết ở lại | Bài viết chỉ tới được qua nhóm của nó, nên xoá nhóm là bỏ lại những dòng **không thể liệt kê, sửa hay xoá** — mà màn hình vẫn đếm chúng | `DeleteCategoryAsync` chỉ xoá đúng một dòng | Xoá nhóm kéo theo bài viết của nó | F-35 (test tạo nhóm + bài viết, xoá nhóm, reload — bài viết không còn) |
+| R-105 | Chữ trên nút kỳ đang chọn tối lại khi rê chuột | Nút đang chọn là chữ trắng trên nền xanh; rule hover sơn đè bằng màu chữ lúc nghỉ nên gần như không đọc được | Rule hover không loại trừ trạng thái active | Chỉ các nút **chưa** chọn mới đổi màu khi hover | F-36 (test đo `getComputedStyle().color` trước và trong khi hover) |
+| R-106 | Bấm vào ngày không xổ lịch | Ngày chỉ là chữ chết giữa hai mũi tên, nên chỉ đi được từng kỳ một — muốn về tháng 1 phải bấm 7 lần | Dựng bằng `<span>` | Thay bằng `DatePicker` mở đúng cấp của kỳ đang xem: Ngày→ngày, Tuần→tuần, Tháng→tháng, Năm→năm | F-36 (test mở cả ba cấp) |
+| R-107 | Báo cáo dựng phẳng, không giống bản gốc | Bản gốc gom theo **lượt khám** rồi theo **hành động**: ô ngày/khách hàng trải hết khối và có 3 bước Đã đến/Đang khám/Hoàn tất, ô hành động trải hết nhóm và ghi `Chẩn đoán (4)`. Thiếu 2 bộ lọc (`Người tạo`, `Tìm kiếm khách hàng`), thiếu thẻ `Doanh số chốt kế hoạch`, và `Hành động` phải chọn sẵn tất cả | Lần dựng trước chỉ đọc được cột, chưa quan sát được bản gốc lúc có dữ liệu | Dựng lại theo đúng khối: server trả `visitKey` + mốc thời gian của lượt khám, FE tính rowspan **trên trang đang hiện** vì bản gốc phân trang theo dòng chứ không theo khối | F-36 (test rowspan > 1, 3 bước, `Nhãn (n)`) |
+| R-108 | Ba tab báo cáo thiếu bộ lọc | `Chẩn đoán chưa điều trị` thiếu `Người tạo`; `Hóa đơn` thiếu `Tất cả trạng thái`; `Khách hàng phát sinh` thiếu `Nhân sự tư vấn` và tiêu đề | Chưa quan sát tới phần trên bảng của từng tab | Thêm cả ba, kèm `StaffFilter` dùng chung đặt ở `src/hooks` + `reports/` (không import chéo feature) | F-36 |
+
+Còn thiếu: bản gốc có thêm khối **"Tổng quan tài chính"** (4 panel kèm biểu đồ)
+dưới bảng của Khách hàng phát sinh — đã ghi vào `docs/clone/pages/operations.md`,
+chưa dựng.
+
+BE: **694/696** (2 lỗi `BlueDentalAbilitiesTests` có sẵn). FE: **40/40** trên
+bản build production.
+
+## 2026-08-26 — Vận hành: rà 12 trang bản gốc, Báo cáo khác nhau theo từng khối
+
+Đi hết 12 URL người dùng đưa. Phát hiện chính: **Báo cáo không phải một màn dùng
+chung** — mỗi khối một kiểu.
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-109 | Báo cáo dựng một kiểu cho mọi khối | Khối lễ tân bị thêm 2 bộ lọc bản gốc không có và pager thừa chữ "công việc"; Khối điều trị bị thêm cả 3 bộ lọc và đặt thẻ sai chỗ | Lần trước chỉ quan sát Quản trị vận hành rồi suy ra phần còn lại | `workLogVariants.ts`: mỗi khối khai báo bộ lọc nào, thẻ đặt đâu, pager có đếm bằng chữ không | F-36 (test đi cả 4 khối, khẳng định đúng bộ lọc / vị trí thẻ / pager) |
+| R-110 | Không có dòng thứ hai dưới tên mục | Bản gốc ghi giờ dưới tên (`09:00 17/05`, `Thời lượng: 15 phút`), bản mình chỉ một dòng | Chưa quan sát tới | Thêm `SubjectDetail`, đổ giờ cho lượt tiếp nhận và thanh toán | F-36 |
+
+**Đo sai một lần và đã sửa cách đo:** lần đầu quét reception/marketing tôi đọc
+DOM ngay sau `goto`, trang chưa render xong nên trả về rỗng và tôi suýt kết luận
+"reception chỉ có 1 filter" vì lý do sai. Đã đổi sang chờ bảng xuất hiện rồi mới
+đọc, và xác nhận lại bằng ảnh chụp — reception đúng là 1 filter, nhưng vì bản gốc
+làm vậy chứ không phải vì trang chưa tải.
+
+Chưa dựng, đã ghi lại đầy đủ: **Báo cáo của Khối Marketing** (hàng tab thứ 4 +
+biểu đồ phân bổ) và **Tổng quan tài chính** dưới Khách hàng phát sinh (4 panel
+kèm biểu đồ). Cả hai đều không có dữ liệu trên bản gốc để quan sát biểu đồ.
+
+BE: **694/696**. FE: **41/41** trên bản build production.
+
+## 2026-08-26 — Vận hành: chỗ đặt bộ lọc kỳ, căn ô, và bảng không cuộn được
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-111 | Cụm Ngày/Tuần/Tháng/Năm nằm ở hàng riêng | Bản gốc đặt nó ở **cuối hàng tab** — hàng giữa nếu khối có, không thì hàng tab con. Bản mình đẩy xuống một dải riêng, tốn một hàng và lệch bản gốc | Bộ lọc kỳ là state của màn báo cáo, còn hàng tab thuộc về trang — nên lần đầu tôi dựng nó ở nơi có state | Trang chừa một chỗ trống (`PERIOD_SLOT_ID`) ở cuối hàng tab, màn báo cáo `createPortal` vào đó. State ở đâu vẫn ở đó, DOM nằm đúng chỗ bản gốc | F-36 (test khối không có hàng giữa → ở hàng tab con; khối có → ở hàng giữa, và **không** ở hàng tab con) |
+| R-112 | Ô Ngày/Khách hàng căn trên | Ô này trải cả khối lượt khám (có khi 14 dòng); căn trên làm nội dung trôi lên đỉnh, bản gốc căn giữa | Tôi đặt `vertical-align: top` khi dựng rowspan | Trả về `middle` cho cả ô lượt khám lẫn ô nhóm hành động | F-36 (đo `getComputedStyle().verticalAlign`) |
+| R-113 | **Bảng không cuộn được để xem phần dưới** | Đo được: `.bd-cat-card` cao 626px, `overflow: hidden`, trong khi nội dung cần 1005px — dòng cuối nằm ở 1346px trong khung 1000px, **không cách nào tới được**. Phân trang cũng bị cắt | `.bd-cat-card` được dựng cho Danh mục: lấp đầy khung rồi cắt. Trong báo cáo, thứ duy nhất cuộn được lại nằm chôn bên trong nó | Trong màn báo cáo, card cao theo nội dung (`flex: none; overflow: visible`) và **cả màn** cuộn — bộ lọc, thẻ số, bảng cuộn cùng nhau. Bảng rộng vẫn cuộn ngang trong card | F-36 (test cuộn tới đáy rồi khẳng định dòng cuối và pager **nằm trong khung nhìn**) |
+
+Đo lại sau khi sửa: dọc `scrollHeight 1200 > clientHeight 757`, cuộn tới đáy thì
+dòng cuối ở 903px và pager ở 968px — trong khung 1000px. Ngang: màn Truy cập
+`scrollWidth 3600 > clientWidth 1280`, vẫn cuộn ngang bình thường.
+
+FE: **44/44** trên bản build production.
+

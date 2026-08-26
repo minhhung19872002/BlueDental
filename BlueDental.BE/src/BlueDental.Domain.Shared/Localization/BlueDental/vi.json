@@ -79,10 +79,7 @@
     "BlueDental:Labo:0001": "Không tìm thấy phiếu labo.",
     "BlueDental:Labo:0002": "Không thể chuyển trạng thái phiếu labo như vậy.",
     "BlueDental:Labo:0003": "Mã phiếu labo đã tồn tại.",
-    "BlueDental:Operations:0001": "Không tìm thấy bài viết.",
-    "BlueDental:Operations:0002": "Bài viết phải có nội dung mới đăng được.",
-    "BlueDental:Operations:0003": "Không tìm thấy công việc.",
-    "BlueDental:Operations:0004": "Không thể chuyển trạng thái công việc như vậy.",
+    "BlueDental:Operations:0004": "Ảnh trong bài viết phải nhỏ hơn 5 MB.",
     "BlueDental:Promotions:0001": "Không tìm thấy voucher.",
     "BlueDental:Promotions:0002": "Mức giảm giá không hợp lệ.",
     "BlueDental:Promotions:0003": "Thời gian hiệu lực phải kết thúc sau khi bắt đầu.",
@@ -131,6 +128,8 @@
     "BlueDental:Staff:0004": "Định dạng ảnh không được hỗ trợ.",
     "BlueDental:Staff:0005": "Ảnh vượt quá kích thước cho phép.",
     "BlueDental:Staff:0006": "Không tìm thấy ảnh đại diện.",
-    "BlueDental:Staff:0007": "Email đã được sử dụng."
+    "BlueDental:Staff:0007": "Email đã được sử dụng.",
+    "BlueDental:Operations:0003": "Chỉ chấp nhận ảnh PNG, JPG, WEBP hoặc GIF trong bài viết.",
+    "BlueDental:Operations:0005": "Ảnh này không còn tồn tại."
   }
 }

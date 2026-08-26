@@ -113,18 +113,6 @@ const ToolsPage = lazy(() =>
   })),
 );
 
-const AccountProfilePage = lazy(() =>
-  import("@/features/account/pages/AccountProfilePage").then((m) => ({
-    default: m.AccountProfilePage,
-  })),
-);
-
-const ChangePasswordPage = lazy(() =>
-  import("@/features/account/pages/ChangePasswordPage").then((m) => ({
-    default: m.ChangePasswordPage,
-  })),
-);
-
 const IdentityAdministrationPage = lazy(() =>
   import("@/features/identity/pages").then((m) => ({
     default: m.IdentityAdministrationPage,
@@ -260,6 +248,16 @@ const appRoutes: RouteObject[] = [
       },
       {
         path: "operations",
+        element: (
+          <S>
+            <OperationsPage />
+          </S>
+        ),
+      },
+      {
+        // Each division is its own URL, as the reference has it, so a screen
+        // can be bookmarked and reached with the back button.
+        path: "operations/:division",
         element: (
           <S>
             <OperationsPage />

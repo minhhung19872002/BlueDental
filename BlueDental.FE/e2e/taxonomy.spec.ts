@@ -228,4 +228,29 @@ test.describe("Danh mục", () => {
       `ROW B ${id}`,
     ]);
   });
+
+  test("the entry list scrolls inside its table, not off the card", async ({ page }) => {
+    await page.goto("/taxonomy/medicine");
+    await expect(page.locator("tbody tr.ant-table-row").first()).toBeVisible();
+
+    const body = page.locator(".bd-cat-card .ant-table-content");
+    const header = page.locator(".bd-cat-card thead th").first();
+
+    // The scroller antd pinned shut inline is open again, and the header is
+    // sticky so the column names survive scrolling.
+    expect(await body.evaluate((el) => getComputedStyle(el).overflowY)).toBe("auto");
+    expect(await header.evaluate((el) => getComputedStyle(el).position)).toBe("sticky");
+
+    // Squeeze the window until the rows cannot all fit, then reach the last.
+    await page.setViewportSize({ width: 1400, height: 520 });
+    await expect
+      .poll(async () => body.evaluate((el) => el.scrollHeight > el.clientHeight + 2))
+      .toBe(true);
+
+    await body.evaluate((el) => {
+      el.scrollTop = el.scrollHeight;
+    });
+    await expect(page.locator("tbody tr.ant-table-row").last()).toBeInViewport();
+    await expect(page.locator(".ant-pagination").first()).toBeInViewport();
+  });
 });

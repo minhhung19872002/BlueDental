@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -493,6 +493,7 @@ public class BlueDentalOperationsDemoSeeder(
 
             categories.Add(new OperationCategory(
                 categoryId,
+                _branchId,
                 department.ToString(),
                 department.ToString(),
                 "Quy trình",
@@ -500,6 +501,7 @@ public class BlueDentalOperationsDemoSeeder(
 
             articles.Add(new OperationArticle(
                 DemoId("1601", i + 1),
+                _branchId,
                 title,
                 categoryId,
                 department.ToString(),

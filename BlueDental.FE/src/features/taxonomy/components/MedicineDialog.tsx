@@ -1,4 +1,5 @@
-import { Col, Form, Input, InputNumber, Row, Select, message } from "antd";
+import { Col, Form, Input, InputNumber, Row, Select } from "antd";
+import { toast } from "sonner";
 import { useEffect, useRef } from "react";
 import {
   useCreateCatalogEntry,
@@ -115,7 +116,7 @@ export function MedicineDialog({ open, entry, groups, defaultTaxonomyId, onClose
             sortOrder,
           },
         });
-        message.success(t("Đã cập nhật loại thuốc"));
+        toast.success(t("Đã cập nhật loại thuốc"));
       } else {
         await createEntry.mutateAsync({
           clinicBranchId: branchId,
@@ -126,7 +127,7 @@ export function MedicineDialog({ open, entry, groups, defaultTaxonomyId, onClose
           medicine,
           sortOrder,
         });
-        message.success(t("Đã thêm loại thuốc"));
+        toast.success(t("Đã thêm loại thuốc"));
       }
       onClose();
     } catch {

@@ -1,4 +1,5 @@
-import { Button, Segmented, Tooltip, message } from "antd";
+import { Button, Segmented, Tooltip } from "antd";
+import { toast } from "sonner";
 import { useMemo, useState } from "react";
 import { CreditCardOutlined, DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
@@ -63,7 +64,7 @@ export function PaymentAccountPanel() {
 
     try {
       await deleteAccount.mutateAsync(pendingDelete.id);
-      message.success(t("Đã xoá phương thức thanh toán"));
+      toast.success(t("Đã xoá phương thức thanh toán"));
     } catch {
       // queryClient reports the failure; nothing to add here.
     } finally {

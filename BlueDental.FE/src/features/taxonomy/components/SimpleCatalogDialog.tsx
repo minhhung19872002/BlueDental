@@ -1,4 +1,5 @@
-import { Checkbox, Col, Form, Input, InputNumber, Row, Select, message } from "antd";
+import { Checkbox, Col, Form, Input, InputNumber, Row, Select } from "antd";
+import { toast } from "sonner";
 import { useEffect, useRef } from "react";
 import {
   useCreateCatalogEntry,
@@ -98,7 +99,7 @@ export function SimpleCatalogDialog({
           },
         });
 
-        message.success(values.isDeleted ? t("Đã xoá") : t("Đã cập nhật"));
+        toast.success(values.isDeleted ? t("Đã xoá") : t("Đã cập nhật"));
       } else {
         await createEntry.mutateAsync({
           clinicBranchId: branchId,
@@ -106,7 +107,7 @@ export function SimpleCatalogDialog({
           name: trimmed,
           sortOrder,
         });
-        message.success(t("Đã thêm"));
+        toast.success(t("Đã thêm"));
       }
       onClose();
     } catch {

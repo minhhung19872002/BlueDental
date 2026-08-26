@@ -201,11 +201,14 @@ See: docs/clone/pages/labo.md
 
 ---
 
-UNKNOWN_REFERENCE_BEHAVIOR
-Page: /operations
-Control: Entire page
-Reason: Page not yet navigated to. Route confirmed (HTTP 200) but content unknown.
-Action taken: NONE
+RESOLVED 2026-08-25 — /operations observed read-only across all eight
+divisions, their sub-tabs and both dialogs. Structure, columns, API parameters
+and dialog fields recorded in docs/clone/pages/operations.md.
+
+What remains unknown there: the six report sub-tabs and the Truy cập tab (no
+data to observe, and no BlueDental tables behind them yet), and whether the
+delete buttons confirm before deleting (not clicked — it is production).
+
 See: docs/clone/pages/operations.md
 
 ---

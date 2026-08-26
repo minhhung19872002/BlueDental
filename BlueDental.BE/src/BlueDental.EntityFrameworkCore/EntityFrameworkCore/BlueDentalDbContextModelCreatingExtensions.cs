@@ -1015,7 +1015,18 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
             entity.Property(x => x.Department).HasMaxLength(50).IsRequired();
             entity.Property(x => x.SubTab).HasMaxLength(50).IsRequired();
+            entity.HasIndex(x => new { x.ClinicBranchId, x.Department, x.SubTab });
             entity.HasIndex(x => new { x.Department, x.SubTab });
+        });
+
+        builder.Entity<OperationArticleImage>(entity =>
+        {
+            entity.ToTable("bd_operation_article_images");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.BlobName).HasMaxLength(400).IsRequired();
+            entity.Property(x => x.FileName).HasMaxLength(300).IsRequired();
+            entity.Property(x => x.ContentType).HasMaxLength(100).IsRequired();
+            entity.HasIndex(x => x.ClinicBranchId);
         });
 
         builder.Entity<OperationArticle>(entity =>
@@ -1023,9 +1034,12 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.ToTable("bd_operation_articles");
             entity.ConfigureByConvention();
             entity.Property(x => x.Title).HasMaxLength(500).IsRequired();
-            entity.Property(x => x.Content).HasMaxLength(10000);
+            // Rich text with no sensible ceiling: a 10,000 char cap refused
+            // any article long enough to be worth writing.
+            entity.Property(x => x.Content).HasColumnType("text");
             entity.Property(x => x.Department).HasMaxLength(50).IsRequired();
             entity.Property(x => x.SubTab).HasMaxLength(50).IsRequired();
+            entity.HasIndex(x => new { x.ClinicBranchId, x.Department, x.SubTab });
             entity.HasIndex(x => new { x.Department, x.SubTab, x.CategoryId });
         });
     }
