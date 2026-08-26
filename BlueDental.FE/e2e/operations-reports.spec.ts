@@ -232,4 +232,44 @@ test.describe("Vận hành — báo cáo", () => {
     await expect(page.locator(".bd-ops-report-head--start")).toBeVisible();
     await expect(page.getByText("Doanh số chốt kế hoạch")).toBeVisible();
   });
+
+  test("the period switch sits in the tab row above the report", async ({ page }) => {
+    // No middle row: it belongs to the sub-tab row.
+    await page.goto("/operations/overview?overviewSubTab=report");
+    await expect(page.locator(".bd-ops-subtabs .bd-ops-period")).toBeVisible();
+
+    // With a middle row, it belongs there instead.
+    await page.goto("/operations/treatment?treatmentTab=access");
+    await expect(page.locator(".bd-ops-middletabs .bd-ops-period")).toBeVisible();
+    await expect(page.locator(".bd-ops-subtabs .bd-ops-period")).toHaveCount(0);
+  });
+
+  test("a report scrolls far enough to reach its last row and its pager", async ({ page }) => {
+    await page.goto("/operations/overview?overviewSubTab=report");
+
+    const screen = page.locator(".bd-ops-report-screen");
+    await expect(page.locator("tbody tr.ant-table-row").first()).toBeVisible();
+
+    // Twenty rows do not fit, so the screen has somewhere to scroll to.
+    expect(
+      await screen.evaluate((el) => el.scrollHeight > el.clientHeight + 2),
+    ).toBe(true);
+
+    await screen.evaluate((el) => {
+      el.scrollTop = el.scrollHeight;
+    });
+
+    // Everything below is reachable once scrolled — this used to be clipped.
+    await expect(page.locator("tbody tr.ant-table-row").last()).toBeInViewport();
+    await expect(page.locator(".ant-pagination").first()).toBeInViewport();
+  });
+
+  test("the visit cell is centred against the block it spans", async ({ page }) => {
+    await page.goto("/operations/overview?overviewSubTab=report");
+
+    const cell = page.locator("tbody tr.ant-table-row td").first();
+    await expect(cell).toBeVisible();
+
+    expect(await cell.evaluate((td) => getComputedStyle(td).verticalAlign)).toBe("middle");
+  });
 });

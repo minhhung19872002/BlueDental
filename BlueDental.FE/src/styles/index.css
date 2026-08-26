@@ -5492,11 +5492,29 @@ html:has(.ant-modal-wrap) {
 .bd-ops-middletabs {
   display: flex;
   flex-shrink: 0;
-  gap: 4px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   border-bottom: 1px solid var(--bd-line);
   background: #fff;
   padding: 0 20px;
+}
+
+.bd-ops-middletabs-list {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   overflow-x: auto;
+}
+
+/* Where the period switch is dropped, at the end of a tab row. */
+.bd-ops-tabrow-end {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  margin-left: auto;
+  padding: 8px 0;
 }
 
 .bd-ops-middletab {
@@ -5528,12 +5546,18 @@ html:has(.ant-modal-wrap) {
 /* The division tabs are routes and sit in the strip above; the sub-tabs belong
    to the division, so they sit on their own line under it. */
 .bd-ops-subtabs {
+  display: flex;
   flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   border-bottom: 1px solid var(--bd-line);
   background: #fff;
   padding: 12px 20px;
-  overflow-x: auto;
 }
+
+.bd-ops-subtabs .pill-tabs { min-width: 0; overflow-x: auto; }
 
 /* Two columns: the categories, then the articles of the selected one. */
 .bd-ops-shell {
@@ -5744,20 +5768,24 @@ html:has(.ant-modal-wrap) {
 
 .bd-ops-report-screen {
   display: flex;
-  flex: 1;
   flex-direction: column;
+  height: 100%;
   min-height: 0;
   padding: 16px 20px;
   overflow-y: auto;
 }
 
 /* The period switch sits at the right-hand end of the row above the report. */
+/* Only the reports that also put a heading here still need a row of their own;
+   the period switch itself sits up in the tab row. */
 .bd-ops-report-bar {
   display: flex;
   flex-shrink: 0;
   justify-content: flex-end;
-  padding-bottom: 16px;
+  padding-bottom: 0;
 }
+
+.bd-ops-report-bar--titled { padding-bottom: 16px; }
 
 .bd-ops-period {
   display: flex;
@@ -6113,8 +6141,31 @@ html:has(.ant-modal-wrap) {
 /* "(Trống)" and "---" are placeholders, not content. */
 .bd-ops-blank { color: var(--bd-faint); }
 
-/* A spanned cell should sit against the top of its block, not float in it. */
-.bd-ops-worklog .ant-table-tbody > tr > td { vertical-align: top; }
+/* A cell spanning a block is centred against it, as the reference centres the
+   visit and the action group. */
+.bd-ops-worklog .ant-table-tbody > tr > td { vertical-align: middle; }
+
+/* A report scrolls as one piece.
+   The catalog card is built to fill a pane and clip, which suited Danh mục —
+   here it cut the table off partway with no way to reach the rest, because the
+   only thing that could scroll was buried inside it. In a report the card grows
+   to its content and the screen around it does the scrolling, so the filters and
+   the figures scroll away with the rows. */
+.bd-ops-report-screen .bd-cat-card {
+  flex: none;
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+}
+
+.bd-ops-report-screen .ant-table-content,
+.bd-ops-report-screen .ant-table-body {
+  max-height: none;
+  overflow-y: visible;
+}
+
+/* Wide reports still scroll sideways inside the card, as they must. */
+.bd-ops-report-screen .ant-table-content { overflow-x: auto; }
 
 /* Báo cáo differs per division: no filters puts the figure alone on the left,
    one filter sets it immediately beside that filter. */

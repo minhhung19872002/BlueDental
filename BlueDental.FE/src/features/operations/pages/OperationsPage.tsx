@@ -17,6 +17,7 @@ import { OperationCategoryModal } from "../components/OperationCategoryModal";
 import { OperationCategoryPanel } from "../components/OperationCategoryPanel";
 import { OperationReportPanel } from "../components/OperationReportPanel";
 import { reportScreenFor } from "../reports/reportScreens";
+import { PERIOD_SLOT_ID } from "../reports/periodBarSlot";
 import { operationsTotal } from "../operationsTotal";
 import {
   DEFAULT_MIDDLE_TAB,
@@ -267,8 +268,9 @@ export function OperationsPage() {
       />
 
       {division.middleTabs ? (
-        <div className="bd-ops-middletabs" role="tablist" aria-label={division.label}>
-          {division.middleTabs.map((item) => (
+        <div className="bd-ops-middletabs">
+          <div className="bd-ops-middletabs-list" role="tablist" aria-label={division.label}>
+            {division.middleTabs.map((item) => (
             <button
               key={item.key}
               type="button"
@@ -278,11 +280,15 @@ export function OperationsPage() {
                 "bd-ops-middletab",
                 item.key === middleTab?.key && "bd-ops-middletab--active",
               )}
-              onClick={() => changeMiddleTab(item.key)}
-            >
-              {item.label}
-            </button>
-          ))}
+                onClick={() => changeMiddleTab(item.key)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+
+          {/* The period switch lands here on the divisions that have this row. */}
+          <div id={PERIOD_SLOT_ID} className="bd-ops-tabrow-end" />
         </div>
       ) : null}
 
@@ -309,6 +315,10 @@ export function OperationsPage() {
                 </button>
               ))}
             </div>
+
+            {division.middleTabs ? null : (
+              <div id={PERIOD_SLOT_ID} className="bd-ops-tabrow-end" />
+            )}
           </div>
 
           {showsArticles ? (

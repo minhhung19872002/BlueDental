@@ -1,6 +1,8 @@
+import { createPortal } from "react-dom";
 import { DatePicker } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 import { CalendarOutlined, LeftOutlined, RightOutlined } from "@ant-design/icons";
+import { usePeriodSlot } from "./periodBarSlot";
 import { periodOptions, type PeriodRange, type ReportPeriod } from "./usePeriodRange";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
@@ -29,8 +31,9 @@ const PICKER_OF: Record<ReportPeriod, "date" | "week" | "month" | "year"> = {
  */
 export function OperationsPeriodBar({ range, periods }: Props) {
   const options = periodOptions().filter((o) => !periods || periods.includes(o.key));
+  const slot = usePeriodSlot();
 
-  return (
+  const bar = (
     <div className="bd-ops-period">
       <div className="bd-ops-period-switch" role="tablist" aria-label={t("Kỳ báo cáo")}>
         {options.map((option) => (
@@ -88,4 +91,8 @@ export function OperationsPeriodBar({ range, periods }: Props) {
       </div>
     </div>
   );
+
+  // Into the tab row where there is one; in place while the page is still
+  // mounting, so the control is never missing.
+  return slot ? createPortal(bar, slot) : bar;
 }
