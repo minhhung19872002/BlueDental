@@ -5514,7 +5514,7 @@ html:has(.ant-modal-wrap) {
 .bd-ops-middletabs {
   display: flex;
   flex-shrink: 0;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -5525,19 +5525,28 @@ html:has(.ant-modal-wrap) {
 
 .bd-ops-middletabs-list {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 4px;
-  overflow-x: auto;
+  min-width: 0;
 }
 
-/* Where the period switch is dropped, at the end of a tab row. */
+/* Where the period switch is dropped, at the end of a tab row.
+   It keeps its line — dropping below the tabs was the thing that looked wrong —
+   but it may fold its two halves onto two lines when the row runs out of width,
+   which leaves the tabs enough room to wrap sensibly instead of stacking one to
+   a line. */
 .bd-ops-tabrow-end {
   display: flex;
-  flex-shrink: 0;
+  flex-shrink: 1;
   align-items: center;
+  justify-content: flex-end;
   margin-left: auto;
   padding: 8px 0;
+  min-width: 0;
 }
+
+.bd-ops-tabrow-end .bd-ops-period { justify-content: flex-end; }
 
 .bd-ops-middletab {
   position: relative;
@@ -5567,11 +5576,14 @@ html:has(.ant-modal-wrap) {
 
 /* The division tabs are routes and sit in the strip above; the sub-tabs belong
    to the division, so they sit on their own line under it. */
+/* The period switch holds its place at the end of the row; it is the tabs that
+   give way. Letting the row itself wrap dropped the switch onto a line of its
+   own, stranded under the tabs — so the row never wraps and the tabs do. */
 .bd-ops-subtabs {
   display: flex;
   flex-shrink: 0;
-  flex-wrap: wrap;
-  align-items: center;
+  flex-wrap: nowrap;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   border-bottom: 1px solid var(--bd-line);
@@ -5579,7 +5591,11 @@ html:has(.ant-modal-wrap) {
   padding: 12px 20px;
 }
 
-.bd-ops-subtabs .pill-tabs { min-width: 0; overflow-x: auto; }
+.bd-ops-subtabs .pill-tabs {
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  min-width: 0;
+}
 
 /* Two columns: the categories, then the articles of the selected one. */
 .bd-ops-shell {

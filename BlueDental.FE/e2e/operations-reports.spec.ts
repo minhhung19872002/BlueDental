@@ -277,4 +277,40 @@ test.describe("Vận hành — báo cáo", () => {
 
     expect(await cell.evaluate((td) => getComputedStyle(td).verticalAlign)).toBe("middle");
   });
+
+  test("a narrow window wraps the tabs and keeps the period switch on its line", async ({
+    page,
+  }) => {
+    await page.goto("/operations/overview?overviewSubTab=report");
+
+    const pills = page.locator(".bd-ops-subtabs .pill-tabs");
+    const periodEnd = page.locator(".bd-ops-tabrow-end");
+    const topsOf = async () => ({
+      pills: await pills
+        .locator("button")
+        .first()
+        .evaluate((el) => Math.round(el.getBoundingClientRect().top)),
+      period: await periodEnd.evaluate((el) => Math.round(el.getBoundingClientRect().top)),
+    });
+    const pillLines = async () =>
+      pills.evaluate((el) => {
+        const tops = [...el.querySelectorAll("button")].map((b) =>
+          Math.round(b.getBoundingClientRect().top),
+        );
+        return new Set(tops).size;
+      });
+
+    // Wide: one row of tabs, switch alongside them.
+    await page.setViewportSize({ width: 1600, height: 900 });
+    expect(await pillLines()).toBe(1);
+    let tops = await topsOf();
+    expect(Math.abs(tops.pills - tops.period)).toBeLessThan(4);
+
+    // Narrow: the tabs wrap onto more lines and the switch keeps its place at
+    // the top of the row rather than being stranded below them.
+    await page.setViewportSize({ width: 980, height: 800 });
+    await expect.poll(pillLines).toBeGreaterThan(1);
+    tops = await topsOf();
+    expect(Math.abs(tops.pills - tops.period)).toBeLessThan(4);
+  });
 });
