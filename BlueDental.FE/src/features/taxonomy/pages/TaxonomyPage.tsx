@@ -24,7 +24,7 @@ import { PatientTagPanel } from "../components/PatientTagPanel";
 import { SimpleCatalogDialog } from "../components/SimpleCatalogDialog";
 import { PaymentAccountPanel } from "../components/PaymentAccountPanel";
 import { TaxonomyGroupModal } from "../components/TaxonomyGroupModal";
-import { TaxonomyGroupPanel } from "../components/TaxonomyGroupPanel";
+import { GroupPanel } from "@/components/GroupPanel";
 import {
   DEFAULT_TAXONOMY_TAB,
   findTaxonomyTab,
@@ -335,7 +335,7 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
   }[tab.dialog ?? "simple"];
 
   const groupPanel = (
-    <TaxonomyGroupPanel
+    <GroupPanel
       title={t("Nhóm {0}", tab.noun)}
       subtitle={t("Chọn nhóm để xem {0} bên trong", tab.noun)}
       groups={groups}

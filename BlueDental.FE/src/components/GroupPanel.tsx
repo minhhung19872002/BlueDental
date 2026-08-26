@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useCallback } from "react";
 import { Button, Dropdown, Input, Spin } from "antd";
 import {
   DeleteOutlined,
@@ -9,17 +9,29 @@ import {
   PlusOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
-import type { TaxonomyDto } from "../api/taxonomyApi";
 import { useDragReorder } from "@/hooks/useDragReorder";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 
-interface Props {
+/**
+ * What the panel needs of a group, and no more.
+ *
+ * Both Danh mục and Vật tư keep their groups in the same taxonomy collection,
+ * so both pass their own DTO straight in — the panel never learns which.
+ */
+export interface PanelGroup {
+  id: string;
+  name: string;
+  /** Shown beside the name where the caller counts what is inside a group. */
+  entryCount?: number;
+}
+
+interface Props<TGroup extends PanelGroup> {
   /** e.g. "Nhóm dịch vụ" */
   title: string;
   /** e.g. "Chọn nhóm để xem dịch vụ bên trong" */
   subtitle: string;
-  groups: TaxonomyDto[];
+  groups: TGroup[];
   isLoading: boolean;
   /** True while a narrowed list is being fetched, so the panel can dim. */
   isSearching: boolean;
@@ -29,14 +41,14 @@ interface Props {
   selectedId: string | null;
   onSelect: (id: string) => void;
   onCreate: () => void;
-  onRename: (group: TaxonomyDto) => void;
-  onDelete: (group: TaxonomyDto) => void;
+  onRename: (group: TGroup) => void;
+  onDelete: (group: TGroup) => void;
   /** Persists a new order after a drag or a move-up/move-down command. */
   onReorder: (fromIndex: number, toIndex: number) => void | Promise<void>;
 }
 
 interface RowProps {
-  group: TaxonomyDto;
+  group: PanelGroup;
   index: number;
   count: number;
   active: boolean;
@@ -48,8 +60,8 @@ interface RowProps {
     style: React.CSSProperties;
   };
   onSelect: (id: string) => void;
-  onRename: (group: TaxonomyDto) => void;
-  onDelete: (group: TaxonomyDto) => void;
+  onRename: (id: string) => void;
+  onDelete: (id: string) => void;
   onReorder: (fromIndex: number, toIndex: number) => void | Promise<void>;
 }
 
@@ -114,14 +126,14 @@ const GroupRow = memo(function GroupRow({
                 key: "rename",
                 icon: <EditOutlined />,
                 label: t("Chỉnh sửa"),
-                onClick: () => onRename(group),
+                onClick: () => onRename(group.id),
               },
               {
                 key: "delete",
                 danger: true,
                 icon: <DeleteOutlined />,
                 label: t("Xoá"),
-                onClick: () => onDelete(group),
+                onClick: () => onDelete(group.id),
               },
             ],
           }}
@@ -176,7 +188,7 @@ const GroupRow = memo(function GroupRow({
  * it moves — and, because a drag is not available to keyboard or screen-reader
  * users, by the "Di chuyển lên/xuống" commands in each row's menu.
  */
-export function TaxonomyGroupPanel({
+export function GroupPanel<TGroup extends PanelGroup>({
   title,
   subtitle,
   groups,
@@ -190,9 +202,29 @@ export function TaxonomyGroupPanel({
   onRename,
   onDelete,
   onReorder,
-}: Props) {
+}: Props<TGroup>) {
   /** A search shows part of the catalog, so positions in it are not the order. */
   const canReorder = keyword.trim().length === 0;
+
+  // The rows are memoised and so cannot be generic; they name the row they mean
+  // and the caller's own group is looked up here.
+  const byId = (id: string) => groups.find((group) => group.id === id);
+  const renameById = useCallback(
+    (id: string) => {
+      const group = byId(id);
+      if (group) onRename(group);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [groups, onRename],
+  );
+  const deleteById = useCallback(
+    (id: string) => {
+      const group = byId(id);
+      if (group) onDelete(group);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [groups, onDelete],
+  );
 
   const drag = useDragReorder({
     items: groups,
@@ -263,8 +295,8 @@ export function TaxonomyGroupPanel({
                 registerRow={drag.registerRow(group.id)}
                 handleProps={drag.handleProps(group.id)}
                 onSelect={onSelect}
-                onRename={onRename}
-                onDelete={onDelete}
+                onRename={renameById}
+                onDelete={deleteById}
                 onReorder={onReorder}
               />
             ))}
