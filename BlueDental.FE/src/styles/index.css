@@ -5362,11 +5362,20 @@ html:has(.ant-modal-wrap) {
   z-index: 3;
 }
 
-/* A pinned column is sticky sideways; over the header it also has to sit above
-   the rows scrolling beneath it. */
+/* A pinned column is sticky sideways as well as under the header, and Ant
+   Design gives its header cell and its body cells the same z-index. A tie is
+   settled by document order, so the rows won and scrolled straight over the
+   header — the "Thao tác" heading vanished behind the row beneath it. The
+   header's pinned cells outrank the body's here.
+
+   Both spellings are covered on purpose: Ant Design 6 names these `fix-start`
+   and `fix-end`, earlier versions `fix-left` and `fix-right`. */
+.bd-cat-card .ant-table-thead > tr > th.ant-table-cell-fix,
+.bd-cat-card .ant-table-thead > tr > th.ant-table-cell-fix-start,
+.bd-cat-card .ant-table-thead > tr > th.ant-table-cell-fix-end,
 .bd-cat-card .ant-table-thead > tr > th.ant-table-cell-fix-left,
 .bd-cat-card .ant-table-thead > tr > th.ant-table-cell-fix-right {
-  z-index: 4;
+  z-index: 5;
 }
 
 .bd-cat-card .ant-table-pagination.ant-pagination {

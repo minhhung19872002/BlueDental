@@ -299,4 +299,29 @@ test.describe("Vận hành", () => {
     // reads as a seam, so this one is flat.
     expect(await button.evaluate((el) => getComputedStyle(el).boxShadow)).toBe("none");
   });
+
+  test("a pinned column keeps its heading while the rows scroll under it", async ({ page }) => {
+    await page.setViewportSize({ width: 1500, height: 560 });
+    await page.goto("/operations/overview");
+    await expect(page.locator("tbody tr.ant-table-row").first()).toBeVisible();
+
+    const body = page.locator(".bd-cat-card .ant-table-content");
+    const pinnedHeading = page.locator(".bd-cat-card thead th.ant-table-cell-fix-end");
+    await expect(pinnedHeading).toHaveText("Thao tác");
+
+    await body.evaluate((el) => {
+      el.scrollTop = 250;
+    });
+
+    // Ant Design gives the pinned header and the pinned rows the same z-index,
+    // and a tie goes to whichever comes later — so the rows used to scroll
+    // straight over this heading. Whatever is painted here must be the heading.
+    const painted = await pinnedHeading.evaluate((th) => {
+      const r = th.getBoundingClientRect();
+      const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return top === th || th.contains(top);
+    });
+    expect(painted).toBe(true);
+    await expect(pinnedHeading).toBeVisible();
+  });
 });
