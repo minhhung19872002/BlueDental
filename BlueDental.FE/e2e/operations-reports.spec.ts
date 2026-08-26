@@ -326,6 +326,26 @@ test.describe("Vận hành — báo cáo", () => {
         return Math.round(periodBox.y - (pillsBox.y + pillsBox.height));
       })
       .toBeGreaterThanOrEqual(0);
+
+    // And it is separated from them: the gap under the tabs is wider than the
+    // gap between the tabs' own wrapped lines, so the switch does not read as
+    // one more row of tabs.
+    const gaps = await pills.evaluate((el) => {
+      const boxes = [...el.querySelectorAll("button")].map((b) => b.getBoundingClientRect());
+      const firstTop = Math.round(boxes[0].y);
+      const lineOneBottom = Math.max(
+        ...boxes.filter((b) => Math.round(b.y) === firstTop).map((b) => b.bottom),
+      );
+      const lineTwoTop = Math.min(
+        ...boxes.filter((b) => Math.round(b.y) !== firstTop).map((b) => b.y),
+      );
+      return { betweenTabLines: Math.round(lineTwoTop - lineOneBottom) };
+    });
+    const pillsBox = (await pills.boundingBox())!;
+    const periodBox = (await periodEnd.boundingBox())!;
+    const belowTabs = Math.round(periodBox.y - (pillsBox.y + pillsBox.height));
+
+    expect(belowTabs).toBeGreaterThan(gaps.betweenTabLines);
   });
 
   test("the filter and the figure sit at opposite ends of the row", async ({ page }) => {

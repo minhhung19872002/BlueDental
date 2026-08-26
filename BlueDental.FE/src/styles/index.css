@@ -6245,6 +6245,10 @@ html:has(.ant-modal-wrap) {
   .bd-ops-subtabs,
   .bd-ops-middletabs {
     flex-wrap: wrap;
+    /* Between the wrapped lines only — the tabs keep their own tighter spacing.
+       Without it the switch sits right under the last tab and reads as one more
+       row of tabs rather than a separate control. */
+    row-gap: 18px;
   }
 
   .bd-ops-subtabs .pill-tabs,
