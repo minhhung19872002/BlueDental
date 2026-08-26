@@ -483,6 +483,9 @@ FE: **44/44** trên bản build production.
 | R-117 | **Phòng ban và Phân bổ vật tư trả 404** | `DepartmentAppService` và `MaterialAllocationAppService` đã viết xong từ lâu nhưng **không có controller nào trỏ tới**. Trình duyệt gọi `/api/v1/app/departments` và `/api/v1/app/material-allocations` đều 404, hai tab hiện rỗng mà không báo lỗi gì | Dự án khai báo route bằng controller tường minh, không dùng auto-API của ABP; hai service này bị bỏ sót | Thêm `DepartmentController` và `MaterialAllocationController` | `materials.spec.ts` (`assertRealApiTraffic` trên đúng hai endpoint đó) |
 | R-118 | **Cột Trạng thái sai trên mọi dòng vật tư** | `Status` không phải cột lưu trong DB — thực thể tính ra bằng `StatusAsOf(today)`. AutoMapper không thấy thuộc tính nào tên `Status` nên để nguyên **số 0**, mà `SupplyStatus` bắt đầu từ 1 → mọi dòng mang một giá trị không có tên. `TaxonomyName` cũng không bao giờ được điền, nên cột "Nhóm phân loại" luôn là "—" | Map thẳng thực thể sang DTO, không ai kiểm lại hai trường không nằm trên thực thể | `ToDtosAsync` đóng dấu `Status` bằng `StatusAsOf` và tra tên nhóm theo lô sau khi map | `materials.spec.ts` khẳng định dòng vừa tạo mang **đúng tên nhóm** đã chọn |
 | R-119 | Thiếu cột chọn, nút "Thêm vật tư" bị khoá, thiếu nhóm "Hệ thống" | Đối chiếu ảnh bản gốc: bảng bản gốc mở đầu bằng ô tick; nút "Thêm vật tư" **luôn bật** (nhóm chọn trong dialog); panel có sẵn một nhóm hệ thống nền hổ phách kèm ⓘ thay cho menu ⋯ | Dựng theo trí nhớ khảo sát thay vì soi lại ảnh | Thêm `rowSelection`, bỏ `disabled`, seed `Taxonomy(IsSystem: true)` tên "Hệ thống" cho mỗi chi nhánh, `GroupPanel` vẽ dòng hệ thống theo kiểu đó | `materials.spec.ts` + chạy lại **31 test Danh mục** vì `GroupPanel` dùng chung |
+| R-120 | **Thêm vật tư báo lỗi `BlueDental:Inventory:0004`** | Ô "Số lượng" để trống là hợp lệ trên bản gốc, nhưng về tới `CreateAsync` nó thành 0 và bị đẩy thẳng vào `ReceiveStock` → `AddStock` từ chối nhập 0 → **hỏng cả lần lưu** vì một ô người dùng cố ý bỏ trống | Nhập kho lúc tạo được viết như thể lần nào cũng có hàng về | Tách phần ngày của `ReceiveStock` ra `SetShelfLife`; lúc tạo chỉ cộng kho khi thực sự có số lượng, còn ngày thì luôn ghi. Endpoint nhập kho riêng vẫn giữ nguyên ràng buộc | `materials.spec.ts` ("saves a material with no quantity") |
+| R-121 | Tìm vật tư phân biệt hoa thường, và chết khi có dấu cách | `Contains()` trên PostgreSQL chạy **phân biệt hoa thường**, nên gõ "gang tay" không ra "Găng Tay". Cụm có dấu cách lại càng không ra, vì cả cụm phải khớp nguyên văn | Viết bộ lọc riêng thay vì dùng helper đã có | Dùng `SearchTerms` — đúng helper mà tìm kiếm bên Danh mục đã dùng: trim, hạ chữ thường, tách từ, mỗi từ phải xuất hiện đâu đó trong tên hoặc mã | `materials.spec.ts` (tìm bằng chuỗi có đệm khoảng trắng, chữ thường, **sai thứ tự từ**) |
+| R-122 | Xoá nhóm vật tư / phòng ban **không hỏi lại** | Từ menu ⋯ bấm "Xoá" là xoá luôn, trong khi xoá một nhóm là kéo theo cả vật tư trong nhóm. Mọi chỗ xoá khác trên các màn này đều hỏi qua `ConfirmDeleteDialog` | Dựng panel dùng chung nhưng nối thẳng `onDelete` vào mutation | Cả hai tab hỏi lại, nêu đúng tên bản ghi, nút xác nhận đỏ; xoá đúng mục đang chọn thì bỏ chọn luôn | `materials.spec.ts` (huỷ thì còn, xác nhận thì mất và mất cả sau khi tải lại — cho cả nhóm vật tư lẫn phòng ban) |
 
 **Đính chính một điều tôi từng nói sai:** trong các commit trước tôi ghi hai test
 `BlueDentalAbilitiesTests` là "lỗi có sẵn trên nhánh". Đo lại lần này: chúng
@@ -494,3 +497,10 @@ FE: **43/43** (rich-image, operations, taxonomy ×3) trên bản build productio
 
 Vật tư (2026-08-26): **35/35** trên bản build production — 4 test `materials.spec.ts`
 cộng **31 test Danh mục** chạy lại vì `GroupPanel` nay dùng chung cho cả hai màn.
+
+Sau khi sửa R-120…R-122: `materials.spec.ts` lên **6/6**. BE `Domain.Tests`
+**195/196** — test đỏ duy nhất là `BlueDentalAbilitiesTests` đã đỏ sẵn từ `main`
+(commit `4cb0e1f` thêm subject `chatbotKnowledge` mà không nâng con số 84).
+Không đụng tới nó: test đó tồn tại để khoá danh sách quyền theo đúng những gì
+quan sát được trên bản gốc, mà `chatbotKnowledge` thì không có trong
+`docs/clone/permissions.md`.

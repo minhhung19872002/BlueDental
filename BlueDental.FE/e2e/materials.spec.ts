@@ -96,6 +96,94 @@ test.describe("Vật tư", () => {
     // It survives a reload — the department reached PostgreSQL.
     await page.reload();
     await expect(page.getByRole("button", { name: departmentName })).toBeVisible();
+
+    // Deleting one asks first, here as in the material panel.
+    await page.locator(`[data-group-menu="${departmentName}"]`).click();
+    await page.getByRole("menuitem", { name: "Xoá" }).click();
+
+    const confirm = page.getByRole("dialog");
+    await expect(confirm).toContainText(departmentName);
+    await confirm.getByRole("button", { name: /Xoá/ }).click();
+
+    await expect(page.getByRole("button", { name: departmentName })).toBeHidden({
+      timeout: 10_000,
+    });
+  });
+
+  test("saves a material with no quantity, and finds it however it is typed", async ({
+    page,
+  }) => {
+    const id = runId();
+    const groupName = `NHÓM VT E2E ${id}`;
+    // Mixed case and a word order the row does not use, so a naive
+    // Contains() on the raw term cannot match it.
+    const materialName = `Găng Tay E2E ${id}`;
+
+    await page.goto("/materials/clinic");
+    await assertRealApiTraffic(page, "/api/v1/app/taxonomies");
+
+    await page.getByRole("button", { name: "Thêm nhóm phân loại" }).click();
+    const groupDialog = page.getByRole("dialog");
+    await groupDialog.getByLabel(/Tên phân loại/).fill(groupName);
+    await groupDialog.getByRole("button", { name: /Lưu$/ }).click();
+    await expect(page.getByRole("button", { name: groupName })).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
+
+    // "Số lượng" is optional on the reference's form. Receiving nothing is not
+    // a receipt, so this must record the dates and leave stock at zero rather
+    // than failing the save.
+    await page.getByRole("button", { name: /Thêm vật tư/ }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByLabel(/^Tên vật tư/).fill(materialName);
+    await dialog.getByLabel(/Số lượng/).fill("");
+    await dialog.getByRole("button", { name: /Lưu$/ }).click();
+    await expect(dialog).toBeHidden({ timeout: 10_000 });
+
+    const row = page.getByRole("row", { name: new RegExp(materialName) });
+    await expect(row).toBeVisible();
+    await expect(row).toContainText("0");
+
+    // Padded, lowercased and out of order — the server still finds it.
+    await page.getByPlaceholder("Tìm kiếm").fill(`  e2e găng ${id}  `);
+    await expect(page.getByRole("row", { name: new RegExp(materialName) })).toBeVisible();
+  });
+
+  test("asks before deleting a material group", async ({ page }) => {
+    const id = runId();
+    const groupName = `NHÓM XOÁ E2E ${id}`;
+
+    await page.goto("/materials/clinic");
+    await assertRealApiTraffic(page, "/api/v1/app/taxonomies");
+
+    await page.getByRole("button", { name: "Thêm nhóm phân loại" }).click();
+    const groupDialog = page.getByRole("dialog");
+    await groupDialog.getByLabel(/Tên phân loại/).fill(groupName);
+    await groupDialog.getByRole("button", { name: /Lưu$/ }).click();
+    await expect(page.getByRole("button", { name: groupName })).toBeVisible();
+
+    const openDeleteMenu = async () => {
+      await page.locator(`[data-group-menu="${groupName}"]`).click();
+      await page.getByRole("menuitem", { name: "Xoá" }).click();
+    };
+
+    // Backing out leaves the group alone.
+    await openDeleteMenu();
+    const confirm = page.getByRole("dialog");
+    await expect(confirm).toContainText(groupName);
+    await confirm.getByRole("button", { name: "Huỷ" }).click();
+    await expect(page.getByRole("button", { name: groupName })).toBeVisible();
+
+    // Confirming removes it, and it stays gone after a reload.
+    await openDeleteMenu();
+    await page.getByRole("dialog").getByRole("button", { name: /Xoá/ }).click();
+    await expect(page.getByRole("button", { name: groupName })).toBeHidden({
+      timeout: 10_000,
+    });
+
+    await page.reload();
+    await expect(page.getByRole("button", { name: groupName })).toBeHidden();
   });
 
   test("Phân bổ vật tư lists real vouchers with no group panel", async ({ page }) => {
