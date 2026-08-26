@@ -357,15 +357,14 @@ test.describe("Vận hành", () => {
     });
     expect(filled).toBe(true);
 
-    // And the bar that opened it is clear of the tools beneath it.
-    const gap = await page.evaluate(() => {
-      const button = document.querySelector(".bd-ops-main > .bd-cat-header--bar button")!;
+    // The tools sit below the bar's rule with the same air Danh mục leaves
+    // under its own, rather than hard against it.
+    const belowRule = await page.evaluate(() => {
+      const bar = document.querySelector(".bd-ops-main > .bd-cat-header--bar")!;
       const tool = document.querySelector(".bd-ops-toolbar .ant-btn")!;
-      return Math.round(
-        tool.getBoundingClientRect().y - button.getBoundingClientRect().bottom,
-      );
+      return Math.round(tool.getBoundingClientRect().y - bar.getBoundingClientRect().bottom);
     });
-    expect(gap).toBeGreaterThan(6);
+    expect(belowRule).toBe(16);
 
     // Picking a category closes the drawer and filters behind it.
     await drawer.locator(".bd-ops-cat-name").first().click();

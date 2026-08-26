@@ -6893,8 +6893,9 @@ html:has(.ant-modal-wrap) {
 @media (max-width: 767px) {
   .bd-ops-aside { display: none; }
 
-  /* The bar and the tools under it are separate things and need to look it. */
-  .bd-ops-main > .bd-cat-header--bar { padding-bottom: 12px; }
+  /* The tools sit below the bar's rule with the same air Danh mục leaves under
+     its own — the space belongs to what follows the rule, not to the bar. */
+  .bd-ops-main > .bd-ops-toolbar { padding-top: 16px; }
 }
 
 @media (min-width: 768px) {
