@@ -6040,7 +6040,8 @@ html:has(.ant-modal-wrap) {
 
 .bd-ops-patient-name {
   color: var(--bd-blue);
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .bd-ops-patient-since {
@@ -6220,6 +6221,33 @@ html:has(.ant-modal-wrap) {
 /* A cell spanning a block is centred against it, as the reference centres the
    visit and the action group. */
 .bd-ops-worklog .ant-table-tbody > tr > td { vertical-align: middle; }
+
+/* Report rows carry the reference's own size and weight: 14px throughout, in
+   the ink colour rather than a mid grey, so the content reads first and the
+   placeholders read last. */
+.bd-ops-report-screen .ant-table-tbody > tr > td {
+  color: var(--bd-ink);
+  font-size: 14px;
+}
+
+.bd-ops-report-screen .ant-table-tbody > tr > td .bd-cat-num {
+  color: var(--bd-ink);
+  font-size: 14px;
+}
+
+.bd-ops-action {
+  color: var(--bd-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.bd-ops-subject { font-size: 14px; }
+
+/* The date above the patient stays quieter than the name under it. */
+.bd-ops-visit > .bd-cat-num {
+  color: var(--bd-muted) !important;
+  font-size: 13px !important;
+}
 
 /* The rows scroll inside the table, not the report around it: the tab rows,
    the filters and the figures stay where they are and only the list moves —

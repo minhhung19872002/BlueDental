@@ -429,4 +429,24 @@ test.describe("Vận hành — báo cáo", () => {
 
     expect(Math.abs((await centre(period)) - (await centre(tab)))).toBeLessThan(2);
   });
+
+  test("report rows read at the size the reference sets them", async ({ page }) => {
+    await page.goto("/operations/overview?overviewSubTab=report");
+    await expect(page.locator("tbody tr.ant-table-row").first()).toBeVisible();
+
+    const style = (locator: ReturnType<typeof page.locator>) =>
+      locator.evaluate((el) => {
+        const cs = getComputedStyle(el);
+        return { size: cs.fontSize, weight: cs.fontWeight };
+      });
+
+    // 14px throughout, as measured on the reference.
+    expect((await style(page.locator(".bd-ops-subject").first())).size).toBe("14px");
+    expect((await style(page.locator(".bd-ops-action").first())).size).toBe("14px");
+
+    // The patient is the one thing lifted out of the row.
+    const patient = await style(page.locator(".bd-ops-patient-name").first());
+    expect(patient.size).toBe("14px");
+    expect(Number(patient.weight)).toBeGreaterThanOrEqual(600);
+  });
 });
