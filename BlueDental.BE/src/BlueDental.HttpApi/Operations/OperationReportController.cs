@@ -18,20 +18,20 @@ public sealed class OperationReportController(IOperationsReportAppService servic
     : BlueDentalController
 {
     [HttpGet("work-log")]
-    public Task<PagedResultDto<WorkLogRowDto>> GetWorkLogAsync(
+    public Task<WorkLogResultDto> GetWorkLogAsync(
         [FromQuery] WorkLogInput input) => service.GetWorkLogAsync(input);
 
     [HttpGet("untreated-diagnoses")]
     public Task<PagedResultDto<UntreatedDiagnosisRowDto>> GetUntreatedDiagnosesAsync(
-        [FromQuery] OperationsReportInput input) => service.GetUntreatedDiagnosesAsync(input);
+        [FromQuery] StaffScopedReportInput input) => service.GetUntreatedDiagnosesAsync(input);
 
     [HttpGet("consultant-summary")]
     public Task<PagedResultDto<ConsultantSummaryRowDto>> GetConsultantSummaryAsync(
-        [FromQuery] OperationsReportInput input) => service.GetConsultantSummaryAsync(input);
+        [FromQuery] StaffScopedReportInput input) => service.GetConsultantSummaryAsync(input);
 
     [HttpGet("invoices")]
     public Task<PagedResultDto<InvoiceReportRowDto>> GetInvoicesAsync(
-        [FromQuery] OperationsReportInput input) => service.GetInvoicesAsync(input);
+        [FromQuery] InvoiceReportInput input) => service.GetInvoicesAsync(input);
 
     [HttpGet("service-completion")]
     public Task<ServiceCompletionResultDto> GetServiceCompletionAsync(

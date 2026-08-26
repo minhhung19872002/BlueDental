@@ -65,6 +65,8 @@ export interface PeriodRange {
   anchorIso: string;
   label: string;
   setPeriod: (period: ReportPeriod) => void;
+  /** Jump straight to a date, as the picker does. */
+  setAnchor: (date: Date) => void;
   step: (direction: -1 | 1) => void;
 }
 
@@ -106,6 +108,7 @@ export function usePeriodRange(initial: ReportPeriod = "month"): PeriodRange {
       anchorIso: toIsoDate(anchor),
       label: formatPeriod(period, anchor),
       setPeriod,
+      setAnchor,
       step,
     }),
     [period, anchor, step],

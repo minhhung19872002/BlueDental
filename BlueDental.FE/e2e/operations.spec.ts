@@ -216,6 +216,36 @@ test.describe("Vận hành", () => {
     await expect(page.getByRole("button", { name: /Tạo Bài Viết$/ })).toHaveCount(0);
   });
 
+  test("deleting a category takes its articles with it", async ({ page }) => {
+    const id = runId();
+    const category = `MUC XOA ${id}`;
+    const title = `BAI VIET XOA ${id}`;
+
+    await page.goto("/operations/cskh");
+
+    await page.getByRole("button", { name: /Thêm Mới$/ }).click();
+    let dialog = page.getByRole("dialog");
+    await dialog.getByLabel(/Tên phân loại/).fill(category);
+    await dialog.getByRole("button", { name: /Lưu$/ }).click();
+    await expect(dialog).toBeHidden();
+
+    await page.getByRole("button", { name: /Tạo Bài Viết$/ }).click();
+    dialog = page.getByRole("dialog");
+    await dialog.getByLabel(/Tiêu đề/).fill(title);
+    await dialog.getByRole("button", { name: /Lưu$/ }).click();
+    await expect(dialog).toBeHidden();
+    await expect(page.getByRole("row", { name: new RegExp(title) })).toBeVisible();
+
+    await page.getByRole("button", { name: `Xoá ${category}` }).click();
+    await page.getByRole("dialog").getByRole("button", { name: /Xoá$/ }).click();
+    await expect(page.locator(".bd-ops-cat-name", { hasText: category })).toHaveCount(0);
+
+    // The article was reachable only through that category, so it has to be
+    // gone from the server too — not merely hidden by the cleared selection.
+    await page.reload();
+    await expect(page.getByRole("row", { name: new RegExp(title) })).toHaveCount(0);
+  });
+
   test("an image in an article is stored beside it, not inside it", async ({ page }) => {
     const id = runId();
     const title = `ANH ${id}`;

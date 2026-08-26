@@ -161,7 +161,7 @@ All of them are built, against tables the clinic already keeps:
 | Báo cáo | diagnoses, consulting lines, service lines, stages and payments, unioned into one activity log and filtered by action |
 | Chẩn đoán chưa điều trị | `bd_patient_diagnoses` where `HasTreatmentService` is false |
 | Đơn thuốc | nothing — the reference has not built it either, and says so |
-| Khách hàng phát sinh | `bd_patient_advises` grouped by consultant; "new" means the clinic had not consulted that patient before the window opened |
+| Khách hàng phát sinh | `bd_patient_advises` grouped by consultant; "new" means the clinic had not consulted that patient before the window opened. **The reference also puts a `Tổng quan tài chính` dashboard below the table — four panels (lượt khách, lịch hẹn, thanh toán, thu chi), each a Hôm nay/Tuần này/Tháng này/Năm nay/Toàn bộ list beside a chart. Not built yet.** |
 | Hóa đơn | `bd_invoices` |
 | Hoàn thành theo dịch vụ | service lines, with five figures over them |
 | Truy cập | the same service lines through every column, with three figures that double as the filter |
@@ -172,6 +172,34 @@ all read-only, all branch-scoped, all windowed by `Period` (1 Ngày, 2 Tuần,
 
 Đơn thuốc renders the reference's own words — `Nội dung đang được xây dựng.` —
 rather than a report the reference does not have.
+
+### Filters above each report
+
+| Sub-tab | Filters | Figures |
+|---|---|---|
+| Báo cáo | `Người tạo`, `Hành động` (multi, **all selected by default**), `Tìm kiếm khách hàng` | one card: `Doanh số chốt kế hoạch` |
+| Chẩn đoán chưa điều trị | `Người tạo` | — |
+| Khách hàng phát sinh | `Nhân sự tư vấn`, beside the period bar; the screen is titled `Báo cáo khách hàng phát sinh` | — (see below) |
+| Hóa đơn | `Tất cả trạng thái` | — |
+| Hoàn thành theo dịch vụ | search, `Bác sĩ điều trị`, `Nhóm dịch vụ`, and two buttons | five cards |
+| Truy cập | `Phân loại` | three cards, which are also the filter |
+
+### Báo cáo is grouped, not flat
+
+Rows are drawn in blocks. The `Ngày / Khách hàng` cell spans the whole visit and
+holds the date, `[MÃ] - Tên`, and a three-step progress line — `Đã đến`,
+`Đang khám`, `Hoàn tất` — each with a time under it, or `--:--` where the step
+has not been reached. Inside the block the `Hành động` cell spans its group and
+reads `Chẩn đoán (4)`, `Tư vấn (10)` — the label and how many rows are under it.
+
+An empty note reads `(Trống)` and an empty amount reads `---`.
+
+Paging is by **item**, not by block: the reference's own footer counts
+`công việc`, so a block can be cut across a page boundary and the spans are
+computed over whatever is on screen.
+
+The period and the anchor date also live in the URL, per division:
+`ops_<division>_dateMode` and `ops_<division>_date`.
 
 ```
 UNKNOWN_REFERENCE_BEHAVIOR

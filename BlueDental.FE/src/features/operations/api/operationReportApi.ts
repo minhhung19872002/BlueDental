@@ -37,6 +37,12 @@ interface Paged<T> {
 }
 
 export interface WorkLogRow {
+  /** One patient on one day — the block this row is drawn inside. */
+  visitKey: string;
+  visitDate: string;
+  arrivedAt?: string | null;
+  startedAt?: string | null;
+  completedAt?: string | null;
   occurredAt: string;
   patientCode: string;
   patientName: string;
@@ -131,6 +137,7 @@ export interface SalesAccessStats {
   ownQuotaServices: number;
 }
 
+type WorkLogResult = Paged<WorkLogRow> & { plannedSales: number };
 type ServiceCompletionResult = Paged<ServiceLineRow> & { stats: ServiceCompletionStats };
 type SalesAccessResult = Paged<ServiceLineRow> & { stats: SalesAccessStats };
 
@@ -168,7 +175,7 @@ function reportQuery<TResult>(key: string, path: string) {
   };
 }
 
-export const useWorkLog = reportQuery<Paged<WorkLogRow>>("work-log", "work-log");
+export const useWorkLog = reportQuery<WorkLogResult>("work-log", "work-log");
 
 export const useUntreatedDiagnoses =
   reportQuery<Paged<UntreatedDiagnosisRow>>("untreated", "untreated-diagnoses");

@@ -15,18 +15,18 @@ namespace BlueDental.Operations.Reports;
 public interface IOperationsReportAppService : IApplicationService
 {
     /// <summary>Quản trị vận hành → Báo cáo.</summary>
-    Task<PagedResultDto<WorkLogRowDto>> GetWorkLogAsync(WorkLogInput input);
+    Task<WorkLogResultDto> GetWorkLogAsync(WorkLogInput input);
 
     /// <summary>Quản trị vận hành → Chẩn đoán chưa điều trị.</summary>
     Task<PagedResultDto<UntreatedDiagnosisRowDto>> GetUntreatedDiagnosesAsync(
-        OperationsReportInput input);
+        StaffScopedReportInput input);
 
     /// <summary>Khối tài chính → Khách hàng phát sinh.</summary>
     Task<PagedResultDto<ConsultantSummaryRowDto>> GetConsultantSummaryAsync(
-        OperationsReportInput input);
+        StaffScopedReportInput input);
 
     /// <summary>Khối tài chính → Hóa đơn.</summary>
-    Task<PagedResultDto<InvoiceReportRowDto>> GetInvoicesAsync(OperationsReportInput input);
+    Task<PagedResultDto<InvoiceReportRowDto>> GetInvoicesAsync(InvoiceReportInput input);
 
     /// <summary>Khối tài chính → Hoàn thành theo dịch vụ.</summary>
     Task<ServiceCompletionResultDto> GetServiceCompletionAsync(ServiceCompletionInput input);

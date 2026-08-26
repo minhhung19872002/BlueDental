@@ -25,8 +25,12 @@ test.describe("Vận hành — báo cáo", () => {
     await expect(page.locator("tbody tr.ant-table-row").first()).toBeVisible();
     const all = await page.locator("tbody tr.ant-table-row").count();
 
-    // Narrowing to one action must not leave more rows than the unfiltered list.
-    await page.getByLabel("Hành động").click();
+    // Every action is selected to begin with, as the reference leaves it, so
+    // narrowing means clearing them and picking one back.
+    const actions = page.getByLabel("Hành động");
+    await actions.click();
+    await page.locator(".ant-select-clear").click();
+    await actions.click();
     await page
       .locator(".ant-select-dropdown:visible .ant-select-item-option")
       .filter({ hasText: /^Chẩn đoán$/ })
@@ -36,7 +40,8 @@ test.describe("Vận hành — báo cáo", () => {
     await expect
       .poll(async () => page.locator("tbody tr.ant-table-row").count())
       .toBeLessThanOrEqual(all);
-    await expect(page.getByRole("cell", { name: "Chẩn đoán", exact: true }).first()).toBeVisible();
+    // Only diagnosis groups survive, and each names its own count.
+    await expect(page.locator(".bd-ops-action").first()).toHaveText(/^Chẩn đoán \(\d+\)$/);
   });
 
   test("Chẩn đoán chưa điều trị only lists diagnoses with no treatment", async ({ page }) => {
@@ -128,5 +133,75 @@ test.describe("Vận hành — báo cáo", () => {
     await expect
       .poll(async () => page.getByText(/Hiển thị .* dịch vụ/).innerText())
       .not.toBe(monthly);
+  });
+
+  test("the period date opens a picker at the right granularity", async ({ page }) => {
+    await page.goto("/operations/overview?overviewSubTab=report");
+
+    const picker = page.locator(".bd-ops-period-picker input");
+
+    // Tháng is the default, so the picker opens on months.
+    await picker.click();
+    await expect(page.locator(".ant-picker-month-panel")).toBeVisible();
+    await page.keyboard.press("Escape");
+
+    // Năm opens on years instead.
+    await page.getByRole("tab", { name: "Năm", exact: true }).click();
+    await picker.click();
+    await expect(page.locator(".ant-picker-year-panel")).toBeVisible();
+    await page.keyboard.press("Escape");
+
+    // And Ngày on days.
+    await page.getByRole("tab", { name: "Ngày", exact: true }).click();
+    await picker.click();
+    await expect(page.locator(".ant-picker-date-panel")).toBeVisible();
+  });
+
+  test("the selected period keeps its white label while hovered", async ({ page }) => {
+    await page.goto("/operations/overview?overviewSubTab=report");
+
+    const active = page.locator(".bd-ops-period-option--active");
+    const colourOf = () =>
+      active.evaluate((el) => getComputedStyle(el).color);
+
+    const resting = await colourOf();
+    await active.hover();
+
+    // White on blue either way: repainting it on hover made it unreadable.
+    expect(await colourOf()).toBe(resting);
+    expect(resting).toBe("rgb(255, 255, 255)");
+  });
+
+  test("Báo cáo groups its rows by visit and by action", async ({ page }) => {
+    await page.goto("/operations/overview?overviewSubTab=report");
+
+    const firstVisitCell = page.locator("tbody tr.ant-table-row td").first();
+    await expect(firstVisitCell).toBeVisible();
+
+    // The visit cell spans its whole block, and carries the three steps.
+    expect(await firstVisitCell.evaluate((td) => (td as HTMLTableCellElement).rowSpan))
+      .toBeGreaterThan(1);
+    for (const step of ["Đã đến", "Đang khám", "Hoàn tất"]) {
+      await expect(firstVisitCell.getByText(step)).toBeVisible();
+    }
+
+    // An action cell names its kind and counts what is under it.
+    const action = page.locator(".bd-ops-action").first();
+    await expect(action).toHaveText(/^.+ \(\d+\)$/);
+
+    // The one figure the reference puts on this screen.
+    await expect(page.getByText("Doanh số chốt kế hoạch")).toBeVisible();
+  });
+
+  test("the reports filter by staff and by invoice status", async ({ page }) => {
+    await page.goto("/operations/overview?overviewSubTab=untreated");
+    await expect(page.getByLabel("Người tạo")).toBeVisible();
+
+    await page.goto("/operations/finance?financeSubTab=invoice");
+    await expect(page.getByLabel("Tất cả trạng thái")).toBeVisible();
+
+    await page.goto("/operations/finance?financeSubTab=customer-report");
+    await expect(page.getByRole("heading", { name: "Báo cáo khách hàng phát sinh" })).toBeVisible();
+    await expect(page.getByLabel("Nhân sự tư vấn")).toBeVisible();
   });
 });

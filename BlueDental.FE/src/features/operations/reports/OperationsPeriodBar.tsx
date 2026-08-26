@@ -1,3 +1,5 @@
+import { DatePicker } from "antd";
+import dayjs, { type Dayjs } from "dayjs";
 import { CalendarOutlined, LeftOutlined, RightOutlined } from "@ant-design/icons";
 import { periodOptions, type PeriodRange, type ReportPeriod } from "./usePeriodRange";
 import { cn } from "@/lib/cn";
@@ -9,12 +11,21 @@ interface Props {
   periods?: ReportPeriod[];
 }
 
+/** The picker granularity each period opens at, as the reference opens it. */
+const PICKER_OF: Record<ReportPeriod, "date" | "week" | "month" | "year"> = {
+  day: "date",
+  week: "week",
+  month: "month",
+  year: "year",
+};
+
 /**
- * Ngày / Tuần / Tháng / Năm and the stepper beside it.
+ * Ngày / Tuần / Tháng / Năm, a stepper, and a picker.
  *
  * The reference puts this at the right-hand end of whichever tab row is
  * directly above the report, so it sits in that row here too rather than in a
- * strip of its own.
+ * strip of its own. Clicking the date opens a picker at the granularity of the
+ * period being read — a year grid for Năm, a month grid for Tháng, and so on.
  */
 export function OperationsPeriodBar({ range, periods }: Props) {
   const options = periodOptions().filter((o) => !periods || periods.includes(o.key));
@@ -49,10 +60,22 @@ export function OperationsPeriodBar({ range, periods }: Props) {
           <LeftOutlined aria-hidden="true" />
         </button>
 
-        <span className="bd-ops-period-label">
-          <CalendarOutlined aria-hidden="true" />
-          {range.label}
-        </span>
+        {/* The label is the picker's own input, so clicking it opens the
+            calendar rather than being dead text between two arrows. */}
+        <DatePicker
+          className="bd-ops-period-picker"
+          picker={PICKER_OF[range.period]}
+          value={dayjs(range.anchor)}
+          allowClear={false}
+          variant="borderless"
+          suffixIcon={null}
+          prefix={<CalendarOutlined aria-hidden="true" />}
+          format={() => range.label}
+          aria-label={t("Chọn kỳ")}
+          onChange={(value: Dayjs | null) => {
+            if (value) range.setAnchor(value.toDate());
+          }}
+        />
 
         <button
           type="button"

@@ -5788,9 +5788,12 @@ html:has(.ant-modal-wrap) {
   transition: background 150ms, color 150ms;
 }
 
-.bd-ops-period-option:hover { color: var(--bd-ink); }
+/* Only the resting options darken on hover: the selected one is already
+   white on blue, and repainting it made the label almost unreadable. */
+.bd-ops-period-option:not(.bd-ops-period-option--active):hover { color: var(--bd-ink); }
 
-.bd-ops-period-option--active {
+.bd-ops-period-option--active,
+.bd-ops-period-option--active:hover {
   background: var(--bd-blue);
   color: #fff;
 }
@@ -5823,17 +5826,22 @@ html:has(.ant-modal-wrap) {
   color: var(--bd-blue);
 }
 
-.bd-ops-period-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+/* The date is the picker's own input, styled to read as plain text between
+   the two arrows. */
+.bd-ops-period-picker.ant-picker {
   padding: 0 12px;
-  min-width: 150px;
+  min-width: 168px;
+}
+
+.bd-ops-period-picker .ant-picker-input > input {
   color: var(--bd-ink);
   font-size: 13.5px;
   font-weight: 500;
-  white-space: nowrap;
+  text-align: center;
+  cursor: pointer;
 }
+
+.bd-ops-period-picker .ant-picker-prefix { color: var(--bd-muted); }
 
 .bd-ops-report-filters {
   display: flex;
@@ -5986,3 +5994,124 @@ html:has(.ant-modal-wrap) {
   font-size: 13.5px;
   text-align: center;
 }
+
+/* ── Vận hành: hàng đầu của báo cáo ─────────────────────────────────────── */
+
+/* Filters on the left, the single figure on the right. */
+.bd-ops-report-head {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 16px;
+}
+
+.bd-ops-report-head .bd-ops-report-filters {
+  flex: 1;
+  padding-bottom: 0;
+}
+
+.bd-ops-stat--single { min-width: 280px; }
+
+.bd-ops-filter--wide { min-width: 320px; }
+
+/* Khách hàng phát sinh names itself, with the controls at the far end. */
+.bd-ops-report-bar--titled {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bd-ops-report-title {
+  margin: 0;
+  color: var(--bd-ink);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.bd-ops-report-barend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ── Báo cáo: khối theo lượt khám ───────────────────────────────────────── */
+
+.bd-ops-visit {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Đã đến → Đang khám → Hoàn tất. */
+.bd-ops-steps {
+  display: flex;
+  gap: 4px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bd-ops-step {
+  display: flex;
+  position: relative;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+/* The rule joining one step to the next, drawn behind the numbers. */
+.bd-ops-step + .bd-ops-step::before {
+  position: absolute;
+  top: 13px;
+  right: 50%;
+  left: -50%;
+  z-index: 0;
+  background: var(--bd-line);
+  height: 1px;
+  content: "";
+}
+
+.bd-ops-step-dot {
+  display: flex;
+  position: relative;
+  z-index: 1;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--bd-line);
+  border-radius: 999px;
+  background: #fff;
+  width: 26px;
+  height: 26px;
+  color: var(--bd-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.bd-ops-step-dot--done {
+  border-color: var(--bd-blue);
+  background: var(--bd-blue);
+  color: #fff;
+}
+
+.bd-ops-step-label {
+  color: var(--bd-sub);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.bd-ops-step-time {
+  color: var(--bd-faint);
+  font-size: 11px;
+}
+
+.bd-ops-action { font-weight: 500; }
+
+/* "(Trống)" and "---" are placeholders, not content. */
+.bd-ops-blank { color: var(--bd-faint); }
+
+/* A spanned cell should sit against the top of its block, not float in it. */
+.bd-ops-worklog .ant-table-tbody > tr > td { vertical-align: top; }

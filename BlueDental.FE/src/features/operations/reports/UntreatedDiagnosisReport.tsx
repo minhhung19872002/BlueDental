@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { ColumnsType } from "antd/es/table";
 import { useUntreatedDiagnoses, type UntreatedDiagnosisRow } from "../api/operationReportApi";
 import { operationsTotal } from "../operationsTotal";
 import { OperationsPeriodBar } from "./OperationsPeriodBar";
+import { StaffFilter } from "./StaffFilter";
 import { usePeriodRange } from "./usePeriodRange";
 import { DataTable } from "@/components/DataTable";
 import { useTablePagination } from "@/hooks/useTablePagination";
@@ -18,13 +19,17 @@ import { formatDate } from "@/utils/format";
 export function UntreatedDiagnosisReport() {
   const range = usePeriodRange("month");
   const pagination = useTablePagination(20);
+  const [staffId, setStaffId] = useState<string | undefined>();
 
-  const query = useUntreatedDiagnoses({
-    periodCode: range.periodCode,
-    anchorIso: range.anchorIso,
-    skipCount: pagination.skipCount,
-    maxResultCount: pagination.maxResultCount,
-  });
+  const query = useUntreatedDiagnoses(
+    {
+      periodCode: range.periodCode,
+      anchorIso: range.anchorIso,
+      skipCount: pagination.skipCount,
+      maxResultCount: pagination.maxResultCount,
+    },
+    { StaffId: staffId },
+  );
 
   const columns = useMemo<ColumnsType<UntreatedDiagnosisRow>>(
     () => [
@@ -61,6 +66,17 @@ export function UntreatedDiagnosisReport() {
     <div className="bd-ops-report-screen">
       <div className="bd-ops-report-bar">
         <OperationsPeriodBar range={range} />
+      </div>
+
+      <div className="bd-ops-report-filters">
+        <StaffFilter
+          label={t("Người tạo")}
+          value={staffId}
+          onChange={(value) => {
+            setStaffId(value);
+            pagination.resetToFirstPage();
+          }}
+        />
       </div>
 
       <div className="bd-cat-card">

@@ -1,19 +1,18 @@
 import { useMemo, useState } from "react";
 import { Input, Select } from "antd";
-import { SearchOutlined } from "@ant-design/icons";
-import type { ColumnsType } from "antd/es/table";
+import { CheckCircleOutlined } from "@ant-design/icons";
 import { useWorkLog, type WorkLogAction, type WorkLogRow } from "../api/operationReportApi";
+import { formatMoney } from "./formatMoney";
 import { OperationsPeriodBar } from "./OperationsPeriodBar";
-import { usePeriodRange } from "./usePeriodRange";
-import { DataTable } from "@/components/DataTable";
+import { StaffFilter } from "./StaffFilter";
+import { WorkLogTable } from "./WorkLogTable";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useTablePagination } from "@/hooks/useTablePagination";
+import { usePeriodRange } from "./usePeriodRange";
 import { t } from "@/lib/i18n";
-import { formatMoney } from "./formatMoney";
-import { formatDateTime } from "@/utils/format";
 
 /** The reference's own list, in its own order. */
-const ACTION_LABELS: Record<WorkLogAction, string> = {
+export const ACTION_LABELS: Record<WorkLogAction, string> = {
   1: "Chẩn đoán",
   2: "Tư vấn",
   3: "Điều trị",
@@ -32,14 +31,16 @@ const ACTION_ORDER: WorkLogAction[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 /**
  * Quản trị vận hành → Báo cáo.
  *
- * One line per thing that happened to a patient in the window, whichever table
- * it came from, filtered by what kind of thing it was.
+ * One block per patient-visit, and inside it one group per kind of action —
+ * the shape the reference draws. Every action is selected to begin with, as it
+ * is there.
  */
 export function WorkLogReport() {
   const range = usePeriodRange("month");
   const pagination = useTablePagination(20);
   const [keyword, setKeyword] = useState("");
-  const [actions, setActions] = useState<WorkLogAction[]>([]);
+  const [staffId, setStaffId] = useState<string | undefined>();
+  const [actions, setActions] = useState<WorkLogAction[]>(ACTION_ORDER);
 
   const debounced = useDebounce(keyword, 300);
 
@@ -51,53 +52,10 @@ export function WorkLogReport() {
       maxResultCount: pagination.maxResultCount,
       filter: debounced.trim() || undefined,
     },
-    { Actions: actions },
+    { Actions: actions, StaffId: staffId },
   );
 
-  const columns = useMemo<ColumnsType<WorkLogRow>>(
-    () => [
-      {
-        key: "when",
-        title: t("Ngày / Khách hàng"),
-        width: 260,
-        render: (_, row) => (
-          <span className="bd-ops-patient">
-            <span className="bd-cat-num">{formatDateTime(row.occurredAt)}</span>
-            <span className="bd-ops-patient-name">
-              [{row.patientCode}] - {row.patientName}
-            </span>
-          </span>
-        ),
-      },
-      { key: "staff", title: t("Nhân sự"), dataIndex: "staffName", width: 170 },
-      {
-        key: "action",
-        title: t("Hành động"),
-        width: 160,
-        render: (_, row) => <span className="bd-ops-tag">{t(ACTION_LABELS[row.action])}</span>,
-      },
-      {
-        key: "subject",
-        title: t("Điều trị / Dịch vụ / Lịch hẹn"),
-        render: (_, row) => row.subject || "—",
-      },
-      {
-        key: "note",
-        title: t("Nội dung / Ghi chú"),
-        render: (_, row) => row.note ?? "—",
-      },
-      {
-        key: "amount",
-        title: t("Doanh số"),
-        width: 150,
-        align: "right",
-        render: (_, row) => (
-          <span className="bd-cat-num">{row.amount === 0 ? "—" : formatMoney(row.amount)}</span>
-        ),
-      },
-    ],
-    [],
-  );
+  const rows = useMemo<WorkLogRow[]>(() => query.data?.items ?? [], [query.data]);
 
   return (
     <div className="bd-ops-report-screen">
@@ -105,52 +63,66 @@ export function WorkLogReport() {
         <OperationsPeriodBar range={range} />
       </div>
 
-      <div className="bd-ops-report-filters">
-        <Input
-          className="bd-ops-search"
-          prefix={<SearchOutlined />}
-          placeholder={t("Tìm kiếm")}
-          aria-label={t("Tìm kiếm")}
-          value={keyword}
-          allowClear
-          onChange={(event) => {
-            setKeyword(event.target.value);
-            pagination.resetToFirstPage();
-          }}
-        />
+      {/* Filters on the left, the one figure on the right, as the reference
+          lays this row out. */}
+      <div className="bd-ops-report-head">
+        <div className="bd-ops-report-filters">
+          <StaffFilter
+            label={t("Người tạo")}
+            value={staffId}
+            onChange={(value) => {
+              setStaffId(value);
+              pagination.resetToFirstPage();
+            }}
+          />
 
-        <Select<WorkLogAction[]>
-          className="bd-ops-filter"
-          mode="multiple"
-          allowClear
-          maxTagCount="responsive"
-          placeholder={t("Hành động")}
-          aria-label={t("Hành động")}
-          value={actions}
-          onChange={(value) => {
-            setActions(value);
-            pagination.resetToFirstPage();
-          }}
-          options={ACTION_ORDER.map((key) => ({ value: key, label: t(ACTION_LABELS[key]) }))}
-        />
+          <Select<WorkLogAction[]>
+            className="bd-ops-filter bd-ops-filter--wide"
+            mode="multiple"
+            allowClear
+            maxTagCount="responsive"
+            placeholder={t("Hành động")}
+            aria-label={t("Hành động")}
+            value={actions}
+            onChange={(value) => {
+              setActions(value);
+              pagination.resetToFirstPage();
+            }}
+            options={ACTION_ORDER.map((key) => ({ value: key, label: t(ACTION_LABELS[key]) }))}
+          />
+
+          <Input
+            className="bd-ops-search"
+            placeholder={t("Tìm kiếm khách hàng")}
+            aria-label={t("Tìm kiếm khách hàng")}
+            value={keyword}
+            allowClear
+            onChange={(event) => {
+              setKeyword(event.target.value);
+              pagination.resetToFirstPage();
+            }}
+          />
+        </div>
+
+        <div className="bd-ops-stat bd-ops-stat--single">
+          <span className="bd-ops-stat-icon bd-ops-stat-icon--green">
+            <CheckCircleOutlined />
+          </span>
+          <span className="bd-ops-stat-body">
+            <span className="bd-ops-stat-value bd-ops-stat-value--green">
+              {formatMoney(query.data?.plannedSales ?? 0)}
+            </span>
+            <span className="bd-ops-stat-label">{t("Doanh số chốt kế hoạch")}</span>
+          </span>
+        </div>
       </div>
 
-      <div className="bd-cat-card">
-        <DataTable<WorkLogRow>
-          columns={columns}
-          dataSource={query.data?.items ?? []}
-          rowKey={(row) => `${row.occurredAt}-${row.action}-${row.patientCode}-${row.subject}`}
-          loading={query.isFetching}
-          pagination={pagination.buildConfig(
-            query.data?.totalCount ?? 0,
-            (total, rangeOf) =>
-              total === 0
-                ? t("Hiển thị 0 trên 0 công việc")
-                : t("Hiển thị {0}–{1} trên {2} công việc", rangeOf[0], rangeOf[1], total),
-          )}
-          locale={{ emptyText: t("Không có dữ liệu") }}
-        />
-      </div>
+      <WorkLogTable
+        rows={rows}
+        loading={query.isFetching}
+        totalCount={query.data?.totalCount ?? 0}
+        pagination={pagination}
+      />
     </div>
   );
 }

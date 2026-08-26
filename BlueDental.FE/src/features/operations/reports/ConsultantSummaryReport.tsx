@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { ColumnsType } from "antd/es/table";
 import { useConsultantSummary, type ConsultantSummaryRow } from "../api/operationReportApi";
 import { operationsTotal } from "../operationsTotal";
 import { OperationsPeriodBar } from "./OperationsPeriodBar";
+import { StaffFilter } from "./StaffFilter";
 import { usePeriodRange } from "./usePeriodRange";
 import { DataTable } from "@/components/DataTable";
 import { useTablePagination } from "@/hooks/useTablePagination";
@@ -19,13 +20,17 @@ import { formatMoney } from "./formatMoney";
 export function ConsultantSummaryReport() {
   const range = usePeriodRange("month");
   const pagination = useTablePagination(20);
+  const [staffId, setStaffId] = useState<string | undefined>();
 
-  const query = useConsultantSummary({
-    periodCode: range.periodCode,
-    anchorIso: range.anchorIso,
-    skipCount: pagination.skipCount,
-    maxResultCount: pagination.maxResultCount,
-  });
+  const query = useConsultantSummary(
+    {
+      periodCode: range.periodCode,
+      anchorIso: range.anchorIso,
+      skipCount: pagination.skipCount,
+      maxResultCount: pagination.maxResultCount,
+    },
+    { StaffId: staffId },
+  );
 
   const columns = useMemo<ColumnsType<ConsultantSummaryRow>>(
     () => [
@@ -82,8 +87,20 @@ export function ConsultantSummaryReport() {
 
   return (
     <div className="bd-ops-report-screen">
-      <div className="bd-ops-report-bar">
-        <OperationsPeriodBar range={range} periods={["day", "week", "month"]} />
+      <div className="bd-ops-report-bar bd-ops-report-bar--titled">
+        <h2 className="bd-ops-report-title">{t("Báo cáo khách hàng phát sinh")}</h2>
+
+        <div className="bd-ops-report-barend">
+          <OperationsPeriodBar range={range} periods={["day", "week", "month"]} />
+          <StaffFilter
+            label={t("Nhân sự tư vấn")}
+            value={staffId}
+            onChange={(value) => {
+              setStaffId(value);
+              pagination.resetToFirstPage();
+            }}
+          />
+        </div>
       </div>
 
       <div className="bd-cat-card">

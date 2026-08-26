@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { Select } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useInvoiceReport, type InvoiceReportRow } from "../api/operationReportApi";
 import { operationsTotal } from "../operationsTotal";
@@ -26,13 +27,17 @@ const STATUS_LABELS: Record<string, string> = {
 export function InvoiceReport() {
   const range = usePeriodRange("month");
   const pagination = useTablePagination(20);
+  const [status, setStatus] = useState<string | undefined>();
 
-  const query = useInvoiceReport({
-    periodCode: range.periodCode,
-    anchorIso: range.anchorIso,
-    skipCount: pagination.skipCount,
-    maxResultCount: pagination.maxResultCount,
-  });
+  const query = useInvoiceReport(
+    {
+      periodCode: range.periodCode,
+      anchorIso: range.anchorIso,
+      skipCount: pagination.skipCount,
+      maxResultCount: pagination.maxResultCount,
+    },
+    { Status: status },
+  );
 
   const columns = useMemo<ColumnsType<InvoiceReportRow>>(
     () => [
@@ -97,6 +102,24 @@ export function InvoiceReport() {
     <div className="bd-ops-report-screen">
       <div className="bd-ops-report-bar">
         <OperationsPeriodBar range={range} periods={["day", "week", "month"]} />
+      </div>
+
+      <div className="bd-ops-report-filters">
+        <Select
+          className="bd-ops-filter"
+          allowClear
+          placeholder={t("Tất cả trạng thái")}
+          aria-label={t("Tất cả trạng thái")}
+          value={status}
+          onChange={(value) => {
+            setStatus(value ?? undefined);
+            pagination.resetToFirstPage();
+          }}
+          options={Object.entries(STATUS_LABELS).map(([value, label]) => ({
+            value,
+            label: t(label),
+          }))}
+        />
       </div>
 
       <div className="bd-cat-card">

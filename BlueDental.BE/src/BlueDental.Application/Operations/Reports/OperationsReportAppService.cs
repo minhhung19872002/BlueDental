@@ -8,6 +8,7 @@ using BlueDental.Organizations;
 using BlueDental.PatientManagement;
 using BlueDental.Permissions;
 using BlueDental.TreatmentManagement;
+using BlueDental.Visits;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
@@ -38,6 +39,7 @@ public class OperationsReportAppService(
     IRepository<TreatmentStage, Guid> stageRepository,
     IRepository<PatientPayment, Guid> paymentRepository,
     IRepository<Invoice, Guid> invoiceRepository,
+    IRepository<Visit, Guid> visitRepository,
     IRepository<Patient, Guid> patientRepository,
     IRepository<CatalogEntry, Guid> catalogRepository,
     IRepository<Taxonomy, Guid> taxonomyRepository,
@@ -193,7 +195,7 @@ public class OperationsReportAppService(
 
     // ── Báo cáo (work log) ──────────────────────────────────────────────────
 
-    public async Task<PagedResultDto<WorkLogRowDto>> GetWorkLogAsync(WorkLogInput input)
+    public async Task<WorkLogResultDto> GetWorkLogAsync(WorkLogInput input)
     {
         var branchIds = await branchAccess.ResolveFilterAsync(input.ClinicBranchId);
         var window = WindowOf(input.Period, input.Anchor);
@@ -202,6 +204,12 @@ public class OperationsReportAppService(
         var staff = await StaffNamesAsync();
         var catalog = await CatalogNamesAsync();
 
+        // The three steps under a patient's name come from their visit that day.
+        var visits = (await visitRepository.GetListAsync())
+            .Where(v => InScope(branchIds, v.BranchId))
+            .GroupBy(v => (v.PatientId, v.ScheduledAt.Date))
+            .ToDictionary(g => g.Key, g => g.OrderBy(v => v.ScheduledAt).First());
+
         var rows = new List<WorkLogRowDto>();
 
         WorkLogRowDto Row(
@@ -209,11 +217,24 @@ public class OperationsReportAppService(
             string subject, string? note, decimal amount)
         {
             var patient = patients.GetValueOrDefault(patientId);
+            var day = at.Date;
+            var visit = visits.GetValueOrDefault((patientId, day));
+
             return new WorkLogRowDto
             {
+                VisitKey = $"{patientId:N}-{day:yyyyMMdd}",
                 OccurredAt = at,
+                VisitDate = day,
                 PatientCode = patient?.Code ?? string.Empty,
                 PatientName = patient?.Name ?? string.Empty,
+                ArrivedAt = visit?.CheckedInAt?.DateTime,
+                // The visit records no separate "in progress" stamp, so the step
+                // is only known to have been reached, never when.
+                StartedAt = visit is not null && visit.Status >= VisitStatus.InProgress
+                    && visit.Status != VisitStatus.Cancelled
+                    ? visit.CheckedInAt?.DateTime
+                    : null,
+                CompletedAt = visit?.CompletedAt?.DateTime,
                 StaffName = staffId is null ? string.Empty : staff.GetValueOrDefault(staffId.Value, string.Empty),
                 Action = action,
                 Subject = subject,
@@ -224,14 +245,16 @@ public class OperationsReportAppService(
 
         var diagnoses = await DiagnosesAsync(branchIds);
         rows.AddRange(diagnoses
-            .Where(d => Within(d.CreationTime, window))
+            .Where(d => Within(d.CreationTime, window)
+                        && (input.StaffId is null || d.StaffId == input.StaffId))
             .Select(d => Row(
                 d.CreationTime, d.PatientId, d.StaffId, WorkLogAction.Diagnosis,
-                catalog.GetValueOrDefault(d.DiagnosisId, string.Empty), d.Note, 0m)));
+                DiagnosisSubject(d, catalog), d.Note, 0m)));
 
         var advises = await AdvisesAsync(branchIds);
         rows.AddRange(advises
-            .Where(a => Within(a.CreationTime, window))
+            .Where(a => Within(a.CreationTime, window)
+                        && (input.StaffId is null || a.StaffId == input.StaffId))
             .Select(a => Row(
                 a.CreationTime, a.PatientId, a.StaffId, WorkLogAction.Consultation,
                 catalog.GetValueOrDefault(a.ServiceId, string.Empty), a.Note, a.Price * a.Quantity)));
@@ -251,7 +274,9 @@ public class OperationsReportAppService(
         var serviceById = services.ToDictionary(s => s.Id);
         var stages = await stageRepository.GetListAsync();
         rows.AddRange(stages
-            .Where(st => serviceById.ContainsKey(st.TreatmentServiceId) && Within(st.CreationTime, window))
+            .Where(st => serviceById.ContainsKey(st.TreatmentServiceId)
+                         && Within(st.CreationTime, window)
+                         && (input.StaffId is null || st.StaffId == input.StaffId))
             .Select(st => Row(
                 st.CreationTime, serviceById[st.TreatmentServiceId].PatientId, st.StaffId,
                 WorkLogAction.Stage, st.Name, st.Note, 0m)));
@@ -259,11 +284,19 @@ public class OperationsReportAppService(
         var payments = await paymentRepository.GetListAsync();
         var patientIds = patients.Keys.ToHashSet();
         rows.AddRange(payments
-            .Where(p => patientIds.Contains(p.PatientId) && Within(p.PaidAt.DateTime, window))
+            .Where(p => patientIds.Contains(p.PatientId) && Within(p.PaidAt.DateTime, window)
+                        && (input.StaffId is null || p.StaffId == input.StaffId))
             .Select(p => Row(
-                p.PaidAt.DateTime, p.PatientId, null,
+                p.PaidAt.DateTime, p.PatientId, p.StaffId,
                 p.Amount < 0 ? WorkLogAction.Refund : WorkLogAction.Payment,
                 p.Method.ToString(), p.Note, p.Amount)));
+
+        // Visits are the Tiếp nhận line of the log.
+        rows.AddRange(visits.Values
+            .Where(v => Within(v.ScheduledAt.DateTime, window))
+            .Select(v => Row(
+                v.ScheduledAt.DateTime, v.PatientId, v.DentistId, WorkLogAction.Reception,
+                v.ChiefComplaint ?? string.Empty, v.Notes, 0m)));
 
         if (input.Actions.Count > 0)
         {
@@ -274,18 +307,46 @@ public class OperationsReportAppService(
         if (terms.Length > 0)
         {
             rows = rows
-                .Where(r => Matches($"{r.PatientName} {r.PatientCode} {r.StaffName} {r.Subject} {r.Note}", terms))
+                .Where(r => Matches($"{r.PatientName} {r.PatientCode}", terms))
                 .ToList();
         }
 
-        rows = rows.OrderByDescending(r => r.OccurredAt).ToList();
-        return Page(rows, input);
+        // Grouped in the order the screen draws them: newest visit first, and
+        // inside a visit the actions stay together.
+        rows = rows
+            .OrderByDescending(r => r.VisitDate)
+            .ThenBy(r => r.VisitKey)
+            .ThenBy(r => r.Action)
+            .ThenBy(r => r.OccurredAt)
+            .ToList();
+
+        var page = Page(rows, input);
+        return new WorkLogResultDto
+        {
+            TotalCount = page.TotalCount,
+            Items = page.Items,
+            // What the consulting lines agreed in this window are worth.
+            PlannedSales = rows
+                .Where(r => r.Action == WorkLogAction.Consultation)
+                .Sum(r => r.Amount)
+        };
+    }
+
+    /// <summary>A diagnosis reads "tooth - name" where it names a tooth.</summary>
+    private static string DiagnosisSubject(
+        PatientDiagnosis diagnosis,
+        IReadOnlyDictionary<Guid, string> catalog)
+    {
+        var name = catalog.GetValueOrDefault(diagnosis.DiagnosisId, string.Empty);
+        var teeth = Join(diagnosis.Teeth);
+
+        return string.IsNullOrEmpty(teeth) ? name : $"{teeth} - {name}";
     }
 
     // ── Chẩn đoán chưa điều trị ─────────────────────────────────────────────
 
     public async Task<PagedResultDto<UntreatedDiagnosisRowDto>> GetUntreatedDiagnosesAsync(
-        OperationsReportInput input)
+        StaffScopedReportInput input)
     {
         var branchIds = await branchAccess.ResolveFilterAsync(input.ClinicBranchId);
         var window = WindowOf(input.Period, input.Anchor);
@@ -296,6 +357,7 @@ public class OperationsReportAppService(
 
         var diagnoses = (await DiagnosesAsync(branchIds))
             .Where(d => !d.HasTreatmentService)
+            .Where(d => input.StaffId is null || d.StaffId == input.StaffId)
             .ToList();
 
         var rows = diagnoses
@@ -331,7 +393,7 @@ public class OperationsReportAppService(
     // ── Khách hàng phát sinh ────────────────────────────────────────────────
 
     public async Task<PagedResultDto<ConsultantSummaryRowDto>> GetConsultantSummaryAsync(
-        OperationsReportInput input)
+        StaffScopedReportInput input)
     {
         var branchIds = await branchAccess.ResolveFilterAsync(input.ClinicBranchId);
         var window = WindowOf(input.Period, input.Anchor);
@@ -346,7 +408,10 @@ public class OperationsReportAppService(
             .Select(a => a.PatientId)
             .ToHashSet();
 
-        var inWindow = advises.Where(a => Within(a.CreationTime, window)).ToList();
+        var inWindow = advises
+            .Where(a => Within(a.CreationTime, window))
+            .Where(a => input.StaffId is null || a.StaffId == input.StaffId)
+            .ToList();
 
         var rows = inWindow
             .GroupBy(a => a.StaffId)
@@ -385,7 +450,7 @@ public class OperationsReportAppService(
     // ── Hóa đơn ─────────────────────────────────────────────────────────────
 
     public async Task<PagedResultDto<InvoiceReportRowDto>> GetInvoicesAsync(
-        OperationsReportInput input)
+        InvoiceReportInput input)
     {
         var branchIds = await branchAccess.ResolveFilterAsync(input.ClinicBranchId);
         var window = WindowOf(input.Period, input.Anchor);
@@ -418,6 +483,11 @@ public class OperationsReportAppService(
             })
             .OrderByDescending(r => r.CreatedAt)
             .ToList();
+
+        if (!string.IsNullOrWhiteSpace(input.Status))
+        {
+            rows = rows.Where(r => r.Status == input.Status).ToList();
+        }
 
         var terms = TermsOf(input.Filter);
         if (terms.Length > 0)

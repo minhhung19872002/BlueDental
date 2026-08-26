@@ -90,6 +90,16 @@ public class OperationAppService(
     {
         var entity = await categoryRepo.GetAsync(id);
         await branchAccess.CheckAsync(entity.ClinicBranchId);
+
+        // An article belongs to exactly one category and is reachable only
+        // through it, so leaving them behind would strand rows nothing can
+        // list, edit or delete — and the screen would go on counting them.
+        var orphans = await articleRepo.GetListAsync(a => a.CategoryId == id);
+        if (orphans.Count > 0)
+        {
+            await articleRepo.DeleteManyAsync(orphans, autoSave: true);
+        }
+
         await categoryRepo.DeleteAsync(id);
     }
 

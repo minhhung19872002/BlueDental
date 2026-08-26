@@ -65,6 +65,22 @@ public class WorkLogInput : OperationsReportInput
 {
     /// <summary>Empty means every action.</summary>
     public List<WorkLogAction> Actions { get; set; } = [];
+
+    /// <summary>Người tạo — the staff member whose work is being looked at.</summary>
+    public Guid? StaffId { get; set; }
+}
+
+/// <summary>Chẩn đoán chưa điều trị and Khách hàng phát sinh both filter by staff.</summary>
+public class StaffScopedReportInput : OperationsReportInput
+{
+    public Guid? StaffId { get; set; }
+}
+
+/// <summary>Hóa đơn filters by where the money has got to.</summary>
+public class InvoiceReportInput : OperationsReportInput
+{
+    /// <summary>Empty means every status.</summary>
+    public string? Status { get; set; }
 }
 
 public class ServiceCompletionInput : OperationsReportInput
@@ -78,18 +94,41 @@ public class SalesAccessInput : OperationsReportInput
     public SalesCategory Category { get; set; } = SalesCategory.Total;
 }
 
-/// <summary>One line of Báo cáo — who did what to whom, and what it was worth.</summary>
+/// <summary>
+/// One line of Báo cáo — who did what to whom, and what it was worth.
+///
+/// The screen groups these: one block per visit, and inside it one group per
+/// action. Both keys travel with the row so the grouping survives paging, which
+/// the reference does by item and not by block.
+/// </summary>
 public class WorkLogRowDto
 {
+    /// <summary>One patient on one day — the block this row belongs to.</summary>
+    public string VisitKey { get; set; } = string.Empty;
+
     public DateTime OccurredAt { get; set; }
+    /// <summary>The day of the block, whatever time the row itself carries.</summary>
+    public DateTime VisitDate { get; set; }
     public string PatientCode { get; set; } = string.Empty;
     public string PatientName { get; set; } = string.Empty;
+
+    /// <summary>The three steps under the patient's name. Null means "--:--".</summary>
+    public DateTime? ArrivedAt { get; set; }
+    public DateTime? StartedAt { get; set; }
+    public DateTime? CompletedAt { get; set; }
+
     public string StaffName { get; set; } = string.Empty;
     public WorkLogAction Action { get; set; }
     /// <summary>Điều trị / Dịch vụ / Lịch hẹn — whichever the action points at.</summary>
     public string Subject { get; set; } = string.Empty;
     public string? Note { get; set; }
     public decimal Amount { get; set; }
+}
+
+/// <summary>Báo cáo carries one figure: what the plans agreed in the window are worth.</summary>
+public class WorkLogResultDto : PagedResultDto<WorkLogRowDto>
+{
+    public decimal PlannedSales { get; set; }
 }
 
 /// <summary>A diagnosis nobody has turned into treatment yet.</summary>
