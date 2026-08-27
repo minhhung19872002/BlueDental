@@ -20,8 +20,19 @@ import { useTablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
 import { formatDateTime } from "@/utils/format";
 
-/** A row after "Gộp số lượng vật tư" has folded several vouchers into one. */
-type MergedAllocation = MaterialAllocationDto & { mergedCount?: number };
+/**
+ * One material's whole story in this department, which is what the reference
+ * swaps the table to when "Gộp số lượng vật tư" is on — a different set of
+ * columns, not the detail rows folded together.
+ */
+interface MaterialSummary {
+  supplyId: string;
+  name: string;
+  totalQuantity: number;
+  totalConfirmed: number | null;
+  allocationCount: number;
+  latestAllocatedAt: string;
+}
 
 /**
  * Phòng ban — the departments on the left, what has been issued to the selected
@@ -74,31 +85,41 @@ export function DepartmentTab() {
         })
       : all;
 
-    if (!merged) return matching;
+    return matching;
+  }, [allocationsQuery.data, debounced, selectedId]);
 
-    // One row per material, its quantities added up. Vouchers issued at
-    // different times collapse into the earliest, and the code column says how
-    // many were folded together rather than showing one of them as if it were
-    // the whole story.
-    const byMaterial = new Map<string, MaterialAllocationDto & { mergedCount: number }>();
+  /**
+   * The same rows gathered per material: total issued, total confirmed, how
+   * many times it was issued and when it last was.
+   */
+  const summaries = useMemo<MaterialSummary[]>(() => {
+    const byMaterial = new Map<string, MaterialSummary>();
 
-    for (const row of matching) {
-      const key = row.inventoryItemId;
-      const seen = byMaterial.get(key);
+    for (const row of rows) {
+      const seen = byMaterial.get(row.inventoryItemId);
 
       if (!seen) {
-        byMaterial.set(key, { ...row, mergedCount: 1 });
+        byMaterial.set(row.inventoryItemId, {
+          supplyId: row.inventoryItemId,
+          name: row.inventoryItemName ?? "—",
+          totalQuantity: row.allocatedQuantity,
+          totalConfirmed: row.confirmedRemaining,
+          allocationCount: 1,
+          latestAllocatedAt: row.allocationTime,
+        });
         continue;
       }
 
-      seen.allocatedQuantity += row.allocatedQuantity;
-      seen.confirmedRemaining += row.confirmedRemaining;
-      seen.mergedCount += 1;
-      if (row.allocationTime < seen.allocationTime) seen.allocationTime = row.allocationTime;
+      seen.totalQuantity += row.allocatedQuantity;
+      seen.totalConfirmed = (seen.totalConfirmed ?? 0) + row.confirmedRemaining;
+      seen.allocationCount += 1;
+      if (row.allocationTime > seen.latestAllocatedAt) {
+        seen.latestAllocatedAt = row.allocationTime;
+      }
     }
 
     return [...byMaterial.values()];
-  }, [allocationsQuery.data, debounced, selectedId, merged]);
+  }, [rows]);
 
   const confirmDelete = async () => {
     if (!pendingDelete) return;
@@ -136,10 +157,7 @@ export function DepartmentTab() {
         key: "code",
         title: t("Mã phân bổ"),
         width: 160,
-        render: (_, row) => {
-          const folded = (row as MergedAllocation).mergedCount ?? 1;
-          return folded > 1 ? t("{0} phiếu", folded) : row.allocationCode;
-        },
+        render: (_, row) => <span className="bd-mat-code">{row.allocationCode || "—"}</span>,
       },
       {
         key: "item",
@@ -152,14 +170,18 @@ export function DepartmentTab() {
         title: t("SL được phát"),
         width: 150,
         align: "right",
-        render: (_, row) => <span className="bd-cat-num">{row.allocatedQuantity}</span>,
+        render: (_, row) => (
+          <span className="bd-cat-num bd-mat-issued">{row.allocatedQuantity}</span>
+        ),
       },
       {
         key: "remaining",
         title: t("SL còn lại (đã duyệt)"),
         width: 190,
         align: "right",
-        render: (_, row) => <span className="bd-cat-num">{row.confirmedRemaining}</span>,
+        render: (_, row) => (
+          <span className="bd-cat-num bd-mat-remaining">{row.confirmedRemaining}</span>
+        ),
       },
       {
         key: "stocktake",
@@ -180,6 +202,63 @@ export function DepartmentTab() {
     ],
     [],
   );
+
+  const summaryColumns = useMemo<ColumnsType<MaterialSummary>>(
+    () => [
+      {
+        key: "name",
+        title: t("Vật tư"),
+        render: (_, row) => <span className="bd-cat-medium">{row.name}</span>,
+      },
+      {
+        key: "totalQty",
+        title: t("Tổng SL phân bổ"),
+        width: 180,
+        align: "right",
+        render: (_, row) => (
+          <span className="bd-cat-num bd-mat-issued">{row.totalQuantity}</span>
+        ),
+      },
+      {
+        key: "totalConfirmed",
+        title: t("Tổng còn lại (đã duyệt)"),
+        width: 220,
+        align: "right",
+        render: (_, row) =>
+          row.totalConfirmed === null ? (
+            "—"
+          ) : (
+            <span className="bd-cat-num bd-mat-remaining">{row.totalConfirmed}</span>
+          ),
+      },
+      {
+        key: "allocationCount",
+        title: t("Số lần phân bổ"),
+        width: 170,
+        align: "right",
+        render: (_, row) => <span className="bd-cat-num">{t("{0} lần", row.allocationCount)}</span>,
+      },
+      {
+        key: "latestAllocatedAt",
+        title: t("Lần phân bổ gần nhất"),
+        width: 210,
+        render: (_, row) => (
+          <span className="bd-cat-num">
+            {row.latestAllocatedAt ? formatDateTime(row.latestAllocatedAt) : "—"}
+          </span>
+        ),
+      },
+    ],
+    [],
+  );
+
+  // The two views count differently, so the footer has to follow whichever is
+  // on screen.
+  const shown = merged ? summaries.length : rows.length;
+
+  const emptyText = selectedId
+    ? t("Phòng ban này chưa được phân bổ vật tư")
+    : t("Chọn phòng ban để xem vật tư đã phân bổ");
 
   return (
     <div className="bd-taxonomy-shell">
@@ -263,23 +342,38 @@ export function DepartmentTab() {
 
         <div className="bd-cat-body">
           <div className="bd-cat-card">
-            <DataTable<MaterialAllocationDto>
-              columns={columns}
-              dataSource={rows}
-              rowKey="id"
-              loading={allocationsQuery.isFetching}
-              scroll={{ x: 1400 }}
-              pagination={pagination.buildConfig(rows.length, (total, shown) =>
-                total === 0
-                  ? t("Hiển thị 0 trên 0")
-                  : t("Hiển thị {0}–{1} trên {2}", shown[0], shown[1], total),
-              )}
-              locale={{
-                emptyText: selectedId
-                  ? t("Không có dữ liệu")
-                  : t("Chọn phòng ban để xem vật tư đã phân bổ"),
-              }}
-            />
+            {/* The reference swaps the whole table, not the rows: gathered by
+                material it asks different questions of the data, so it shows
+                different columns. */}
+            {merged ? (
+              <DataTable<MaterialSummary>
+                columns={summaryColumns}
+                dataSource={summaries}
+                rowKey="supplyId"
+                loading={allocationsQuery.isFetching}
+                scroll={{ x: 1100 }}
+                pagination={pagination.buildConfig(shown, (total, range) =>
+                  total === 0
+                    ? t("Hiển thị 0 trên 0")
+                    : t("Hiển thị {0}–{1} trên {2}", range[0], range[1], total),
+                )}
+                locale={{ emptyText: emptyText }}
+              />
+            ) : (
+              <DataTable<MaterialAllocationDto>
+                columns={columns}
+                dataSource={rows}
+                rowKey="id"
+                loading={allocationsQuery.isFetching}
+                scroll={{ x: 1400 }}
+                pagination={pagination.buildConfig(shown, (total, range) =>
+                  total === 0
+                    ? t("Hiển thị 0 trên 0")
+                    : t("Hiển thị {0}–{1} trên {2}", range[0], range[1], total),
+                )}
+                locale={{ emptyText: emptyText }}
+              />
+            )}
           </div>
         </div>
       </main>
