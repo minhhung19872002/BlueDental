@@ -1,53 +1,43 @@
 using System;
+using Volo.Abp;
 using Volo.Abp.Domain.Entities.Auditing;
 
 namespace BlueDental.Tools;
 
+/// <summary>
+/// A SIP extension handed to a staff member under one call configuration —
+/// the rows of the "Phân Công Gọi" tab under Công cụ → Gọi thoại.
+/// </summary>
 public class CallAssignment : FullAuditedEntity<Guid>
 {
     public Guid ClinicBranchId { get; private set; }
-    public Guid PatientId { get; private set; }
+
+    /// <summary>The SIP extension the PBX rings for this staff member.</summary>
+    public string Sip { get; private set; } = string.Empty;
+
+    public Guid CallConfigurationId { get; private set; }
     public Guid StaffId { get; private set; }
-    public string PatientName { get; private set; } = string.Empty;
-    public string PhoneNumber { get; private set; } = string.Empty;
-    public string? Notes { get; private set; }
-    public CallAssignmentStatus Status { get; private set; }
-    public DateTime? CalledAt { get; private set; }
+    public bool IsActive { get; private set; }
 
     private CallAssignment() { }
 
     public CallAssignment(
-        Guid id, Guid clinicBranchId, Guid patientId, Guid staffId,
-        string patientName, string phoneNumber, string? notes)
+        Guid id, Guid clinicBranchId, string sip,
+        Guid callConfigurationId, Guid staffId, bool isActive)
         : base(id)
     {
         ClinicBranchId = clinicBranchId;
-        PatientId = patientId;
+        Sip = Check.NotNullOrWhiteSpace(sip, nameof(sip), maxLength: 100);
+        CallConfigurationId = callConfigurationId;
         StaffId = staffId;
-        PatientName = patientName;
-        PhoneNumber = phoneNumber;
-        Notes = notes;
-        Status = CallAssignmentStatus.Pending;
+        IsActive = isActive;
     }
 
-    public void MarkCalled(string? notes)
+    public void Update(string sip, Guid callConfigurationId, Guid staffId, bool isActive)
     {
-        Status = CallAssignmentStatus.Called;
-        CalledAt = DateTime.UtcNow;
-        if (notes is not null) Notes = notes;
+        Sip = Check.NotNullOrWhiteSpace(sip, nameof(sip), maxLength: 100);
+        CallConfigurationId = callConfigurationId;
+        StaffId = staffId;
+        IsActive = isActive;
     }
-
-    public void MarkUnreachable(string? notes)
-    {
-        Status = CallAssignmentStatus.Unreachable;
-        CalledAt = DateTime.UtcNow;
-        if (notes is not null) Notes = notes;
-    }
-}
-
-public enum CallAssignmentStatus
-{
-    Pending = 0,
-    Called = 1,
-    Unreachable = 2,
 }

@@ -31,6 +31,45 @@ public class ToolsAppServiceContractTests
     }
 
     [Fact]
+    public void GetCallConfigurationListAsync_Should_Have_Authorize_Attribute()
+    {
+        var method = _serviceType.GetMethod("GetCallConfigurationListAsync");
+        method.ShouldNotBeNull();
+        method!.GetCustomAttribute<AuthorizeAttribute>().ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void CreateCallConfigurationAsync_Should_Have_Authorize_Attribute()
+    {
+        var method = _serviceType.GetMethod("CreateCallConfigurationAsync");
+        method.ShouldNotBeNull();
+        method!.GetCustomAttribute<AuthorizeAttribute>().ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void UpdateCallConfigurationAsync_Should_Have_Authorize_Attribute()
+    {
+        var method = _serviceType.GetMethod("UpdateCallConfigurationAsync");
+        method.ShouldNotBeNull();
+        method!.GetCustomAttribute<AuthorizeAttribute>().ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void DeleteCallConfigurationAsync_Should_Have_Authorize_Attribute()
+    {
+        var method = _serviceType.GetMethod("DeleteCallConfigurationAsync");
+        method.ShouldNotBeNull();
+        method!.GetCustomAttribute<AuthorizeAttribute>().ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void CallConfigurationDto_Should_Not_Expose_SecretKey()
+    {
+        // "Mã bí mật" is a credential: it must never travel back to the client.
+        typeof(CallConfigurationDto).GetProperty("SecretKey").ShouldBeNull();
+    }
+
+    [Fact]
     public void GetCallAssignmentListAsync_Should_Have_Authorize_Attribute()
     {
         var method = _serviceType.GetMethod("GetCallAssignmentListAsync");
@@ -47,9 +86,9 @@ public class ToolsAppServiceContractTests
     }
 
     [Fact]
-    public void UpdateCallAssignmentStatusAsync_Should_Have_Authorize_Attribute()
+    public void UpdateCallAssignmentAsync_Should_Have_Authorize_Attribute()
     {
-        var method = _serviceType.GetMethod("UpdateCallAssignmentStatusAsync");
+        var method = _serviceType.GetMethod("UpdateCallAssignmentAsync");
         method.ShouldNotBeNull();
         method!.GetCustomAttribute<AuthorizeAttribute>().ShouldNotBeNull();
     }
@@ -74,14 +113,6 @@ public class ToolsAppServiceContractTests
     public void CreateCallLogAsync_Should_Have_Authorize_Attribute()
     {
         var method = _serviceType.GetMethod("CreateCallLogAsync");
-        method.ShouldNotBeNull();
-        method!.GetCustomAttribute<AuthorizeAttribute>().ShouldNotBeNull();
-    }
-
-    [Fact]
-    public void DeleteCallLogAsync_Should_Have_Authorize_Attribute()
-    {
-        var method = _serviceType.GetMethod("DeleteCallLogAsync");
         method.ShouldNotBeNull();
         method!.GetCustomAttribute<AuthorizeAttribute>().ShouldNotBeNull();
     }
@@ -127,6 +158,30 @@ public class ToolsAppServiceContractTests
     }
 
     [Fact]
+    public void GetCallConfigurationListAsync_Should_Exist_On_Interface()
+    {
+        _interfaceType.GetMethod("GetCallConfigurationListAsync").ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void CreateCallConfigurationAsync_Should_Exist_On_Interface()
+    {
+        _interfaceType.GetMethod("CreateCallConfigurationAsync").ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void UpdateCallConfigurationAsync_Should_Exist_On_Interface()
+    {
+        _interfaceType.GetMethod("UpdateCallConfigurationAsync").ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void DeleteCallConfigurationAsync_Should_Exist_On_Interface()
+    {
+        _interfaceType.GetMethod("DeleteCallConfigurationAsync").ShouldNotBeNull();
+    }
+
+    [Fact]
     public void GetCallAssignmentListAsync_Should_Exist_On_Interface()
     {
         _interfaceType.GetMethod("GetCallAssignmentListAsync").ShouldNotBeNull();
@@ -139,9 +194,9 @@ public class ToolsAppServiceContractTests
     }
 
     [Fact]
-    public void UpdateCallAssignmentStatusAsync_Should_Exist_On_Interface()
+    public void UpdateCallAssignmentAsync_Should_Exist_On_Interface()
     {
-        _interfaceType.GetMethod("UpdateCallAssignmentStatusAsync").ShouldNotBeNull();
+        _interfaceType.GetMethod("UpdateCallAssignmentAsync").ShouldNotBeNull();
     }
 
     [Fact]
@@ -160,12 +215,6 @@ public class ToolsAppServiceContractTests
     public void CreateCallLogAsync_Should_Exist_On_Interface()
     {
         _interfaceType.GetMethod("CreateCallLogAsync").ShouldNotBeNull();
-    }
-
-    [Fact]
-    public void DeleteCallLogAsync_Should_Exist_On_Interface()
-    {
-        _interfaceType.GetMethod("DeleteCallLogAsync").ShouldNotBeNull();
     }
 
     [Fact]

@@ -343,6 +343,16 @@ const appRoutes: RouteObject[] = [
           </S>
         ),
       },
+      {
+        // Each tool category is its own URL, as the reference has it, so a
+        // screen can be bookmarked and reached with the back button.
+        path: "tools/:category",
+        element: (
+          <S>
+            <ToolsPage />
+          </S>
+        ),
+      },
       // ── Dashboard (Tổng quan — the design's first screen) ──
       {
         path: "dashboard",

@@ -140,6 +140,7 @@ public class BlueDentalDbContext :
     public DbSet<OperationsTask> OperationsTasks { get; set; }
 
     // Tools
+    public DbSet<CallConfiguration> CallConfigurations { get; set; }
     public DbSet<CallAssignment> CallAssignments { get; set; }
     public DbSet<CallLog> CallLogs { get; set; }
     public DbSet<MessageTemplate> MessageTemplates { get; set; }

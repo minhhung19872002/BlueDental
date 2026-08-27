@@ -3,43 +3,82 @@ using System.ComponentModel.DataAnnotations;
 
 namespace BlueDental.Tools;
 
+// ── Call Configuration ────────────────────────────────────────────────────
+
+// The secret ("Mã bí mật") is write-only: no DTO ever carries it back out.
+public class CallConfigurationDto
+{
+    public Guid Id { get; set; }
+    public Guid BranchId { get; set; }
+    public string BranchName { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public int Provider { get; set; }
+    public string ApiKey { get; set; } = string.Empty;
+    public bool IsActive { get; set; }
+    public DateTime CreationTime { get; set; }
+}
+
+public class CreateCallConfigurationDto
+{
+    [Required] public Guid BranchId { get; set; }
+    [Required] public string Name { get; set; } = string.Empty;
+    public int Provider { get; set; }
+    [Required] public string ApiKey { get; set; } = string.Empty;
+    [Required] public string SecretKey { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+}
+
+public class UpdateCallConfigurationDto
+{
+    [Required] public string Name { get; set; } = string.Empty;
+    public int Provider { get; set; }
+    [Required] public string ApiKey { get; set; } = string.Empty;
+    /// <summary>Blank keeps the stored secret — the client never sees it.</summary>
+    public string? SecretKey { get; set; }
+    public bool IsActive { get; set; }
+}
+
+public class GetCallConfigurationListInput
+{
+    public string? Filter { get; set; }
+    public int MaxResultCount { get; set; } = 20;
+    public int SkipCount { get; set; }
+}
+
 // ── Call Assignment ───────────────────────────────────────────────────────
 
 public class CallAssignmentDto
 {
     public Guid Id { get; set; }
-    public Guid PatientId { get; set; }
+    public string Sip { get; set; } = string.Empty;
+    public Guid CallConfigurationId { get; set; }
+    public string ConfigurationName { get; set; } = string.Empty;
     public Guid StaffId { get; set; }
-    public string PatientName { get; set; } = string.Empty;
-    public string PhoneNumber { get; set; } = string.Empty;
-    public string? StaffName { get; set; }
-    public string? Notes { get; set; }
-    public int Status { get; set; }
-    public DateTime? CalledAt { get; set; }
+    public string StaffName { get; set; } = string.Empty;
+    public int Provider { get; set; }
+    public bool IsActive { get; set; }
     public DateTime CreationTime { get; set; }
 }
 
 public class CreateCallAssignmentDto
 {
     [Required] public Guid BranchId { get; set; }
-    [Required] public Guid PatientId { get; set; }
+    [Required] public string Sip { get; set; } = string.Empty;
+    [Required] public Guid CallConfigurationId { get; set; }
     [Required] public Guid StaffId { get; set; }
-    [Required] public string PatientName { get; set; } = string.Empty;
-    [Required] public string PhoneNumber { get; set; } = string.Empty;
-    public string? Notes { get; set; }
+    public bool IsActive { get; set; } = true;
 }
 
-public class UpdateCallAssignmentStatusDto
+public class UpdateCallAssignmentDto
 {
-    [Required] public int Status { get; set; }
-    public string? Notes { get; set; }
+    [Required] public string Sip { get; set; } = string.Empty;
+    [Required] public Guid CallConfigurationId { get; set; }
+    [Required] public Guid StaffId { get; set; }
+    public bool IsActive { get; set; }
 }
 
 public class GetCallAssignmentListInput
 {
-    public Guid? BranchId { get; set; }
-    public int? Status { get; set; }
-    public Guid? StaffId { get; set; }
     public string? Filter { get; set; }
     public int MaxResultCount { get; set; } = 20;
     public int SkipCount { get; set; }
@@ -50,38 +89,37 @@ public class GetCallAssignmentListInput
 public class CallLogDto
 {
     public Guid Id { get; set; }
-    public Guid? PatientId { get; set; }
     public Guid? StaffId { get; set; }
-    public string PatientName { get; set; } = string.Empty;
-    public string PhoneNumber { get; set; } = string.Empty;
     public string? StaffName { get; set; }
-    public int DurationSeconds { get; set; }
-    public int Direction { get; set; }
+    public string BranchName { get; set; } = string.Empty;
+    public string CallCode { get; set; } = string.Empty;
+    public string? ExtensionCode { get; set; }
+    public string PhoneNumber { get; set; } = string.Empty;
     public int Status { get; set; }
-    public string? Notes { get; set; }
-    public DateTime CreationTime { get; set; }
+    public int Provider { get; set; }
+    public DateTime CalledAt { get; set; }
 }
 
+// Kept so tests and a future provider webhook can record calls; the reference
+// UI itself only reads this list.
 public class CreateCallLogDto
 {
     [Required] public Guid BranchId { get; set; }
-    public Guid? PatientId { get; set; }
     public Guid? StaffId { get; set; }
-    [Required] public string PatientName { get; set; } = string.Empty;
-    [Required] public string PhoneNumber { get; set; } = string.Empty;
     public string? StaffName { get; set; }
-    public int DurationSeconds { get; set; }
-    public int Direction { get; set; }
+    [Required] public string CallCode { get; set; } = string.Empty;
+    public string? ExtensionCode { get; set; }
+    [Required] public string PhoneNumber { get; set; } = string.Empty;
     public int Status { get; set; }
-    public string? Notes { get; set; }
+    public int Provider { get; set; }
+    public DateTime CalledAt { get; set; }
 }
 
 public class GetCallLogListInput
 {
-    public Guid? BranchId { get; set; }
-    public int? Direction { get; set; }
-    public int? Status { get; set; }
-    public string? Filter { get; set; }
+    public DateTime? FromDate { get; set; }
+    public DateTime? ToDate { get; set; }
+    public Guid? StaffId { get; set; }
     public int MaxResultCount { get; set; } = 20;
     public int SkipCount { get; set; }
 }

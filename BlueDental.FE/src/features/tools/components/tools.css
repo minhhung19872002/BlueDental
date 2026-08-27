@@ -1,0 +1,130 @@
+/* ── Công cụ ─────────────────────────────────────────────────────────────── */
+
+/* An integration screen with no endpoint behind it yet. */
+.tools-empty {
+  padding: 44px 20px;
+  text-align: center;
+}
+
+.tools-empty-title {
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--bd-ink);
+}
+
+.tools-empty-body {
+  margin: 6px auto 0;
+  max-width: 420px;
+  font-size: 13px;
+  color: var(--bd-muted);
+}
+
+/* The reference puts its "Tạo cấu hình" / "Tạo phân công" at the row's end. */
+.bd-tools-toolbar-end {
+  margin-left: auto;
+}
+
+/* ── Cấu hình gọi thoại dialog: provider card beside the fields ──────────── */
+
+.bd-call-dialog-grid {
+  display: grid;
+  grid-template-columns: 168px minmax(0, 1fr);
+  gap: 20px;
+}
+
+.bd-call-provider-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 18px 12px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-card, 10px);
+  background: var(--bd-bg-soft, #f8fafc);
+  cursor: pointer;
+  font: inherit;
+}
+
+.bd-call-provider-card--active {
+  border-color: var(--bd-primary, #1677ff);
+  background: #fff;
+}
+
+.bd-call-provider-name {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--bd-ink);
+}
+
+.bd-call-provider-kind {
+  font-size: 12px;
+  color: var(--bd-muted);
+}
+
+/* Right column of the call config dialog: fields stacked with breathing room. */
+.bd-call-dialog-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Trạng thái row in the call dialogs: label left, switch right. */
+.bd-call-dialog-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13.5px;
+  color: var(--bd-ink);
+}
+
+.bd-call-dialog-switch .ant-form-item {
+  margin-bottom: 0;
+}
+
+@media (max-width: 640px) {
+  .bd-call-dialog-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Fields stacked in the message-template modal. */
+.bd-dialog-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── Zalo OA connection panel ────────────────────────────────────────────── */
+
+.bd-zalo-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 48px 0;
+  text-align: center;
+}
+
+.bd-zalo-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--bd-bg);
+  font-size: 32px;
+}
+
+.bd-zalo-title {
+  margin-bottom: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--bd-ink);
+}
+
+.bd-zalo-status {
+  margin-bottom: 16px;
+}

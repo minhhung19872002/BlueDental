@@ -198,6 +198,12 @@ public static class BlueDentalDomainErrorCodes
         public const string DuplicateEmail = "BlueDental:Staff:0007";
     }
 
+    public static class Tools
+    {
+        public const string ConfigurationNotFound = "BlueDental:Tools:0001";
+        public const string DuplicateSip = "BlueDental:Tools:0002";
+    }
+
     public static class BranchManager
     {
         public const string DuplicateEmail = "BlueDental:BranchManager:0001";
