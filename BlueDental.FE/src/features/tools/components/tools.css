@@ -24,6 +24,49 @@
   margin-left: auto;
 }
 
+/* Label above provider cards in message config dialog. */
+.bd-msg-provider-label {
+  margin-bottom: 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--bd-ink);
+}
+
+/* ── Message config dialog: provider card with image container ───────────── */
+
+.bd-msg-provider-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: var(--bd-radius-card, 10px);
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+}
+
+.bd-msg-provider-card--active {
+  border-color: var(--bd-primary, #1677ff);
+}
+
+.bd-msg-provider-img {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  height: 120px;
+  border-radius: 8px;
+  background: #f6f8fb;
+}
+
+.bd-msg-provider-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--bd-ink);
+}
+
 /* ── Cấu hình gọi thoại dialog: provider card beside the fields ──────────── */
 
 .bd-call-dialog-grid {

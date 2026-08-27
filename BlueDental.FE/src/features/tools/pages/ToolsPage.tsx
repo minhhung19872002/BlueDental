@@ -8,6 +8,7 @@ import { CallAssignView } from "../components/CallAssignView";
 import { CallConfigView } from "../components/CallConfigView";
 import { CallListView } from "../components/CallListView";
 import { ConfigNotAvailable } from "../components/ConfigNotAvailable";
+import { MessageConfigView } from "../components/MessageConfigView";
 import { MessageLogView } from "../components/MessageLogView";
 import { MessageTemplateView } from "../components/MessageTemplateView";
 import { ZaloConfigView } from "../components/ZaloConfigView";
@@ -93,14 +94,14 @@ function MessageView() {
       <SubTabBar
         tabs={[
           { key: "config", label: t("Cấu Hình") },
-          { key: "templates", label: t("Mẫu Tin Nhắn") },
+          { key: "template", label: t("Mẫu Tin Nhắn") },
           { key: "list", label: t("Danh Sách Tin Nhắn") },
         ]}
         active={sub}
         onChange={setSub}
       />
-      {sub === "config" && <ConfigNotAvailable what={t("tin nhắn")} />}
-      {sub === "templates" && <MessageTemplateView channel={0} />}
+      {sub === "config" && <MessageConfigView />}
+      {sub === "template" && <MessageTemplateView channel={0} />}
       {sub === "list" && <MessageLogView channel={0} />}
     </>
   );

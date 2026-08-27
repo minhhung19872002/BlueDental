@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Button, Form, Input, Switch, Tag, Tooltip } from "antd";
 import { toast } from "sonner";
-import { Button, Empty, Input, Modal, Table, Tag } from "antd";
-import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
-import dayjs from "dayjs";
+import { DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
+import type { ColumnsType } from "antd/es/table";
 import {
   useCreateMessageTemplate,
   useDeleteMessageTemplate,
@@ -10,146 +10,222 @@ import {
   useUpdateMessageTemplate,
   type MessageTemplateDto,
 } from "../api/toolsApi";
+import { activeTag } from "./callCatalog";
+import { AppDialog } from "@/components/AppDialog";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { DataTable } from "@/components/DataTable";
+import { FloatingField } from "@/components/FloatingField";
+import { useDebounce } from "@/hooks/useDebounce";
+import { useTablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
+import { pagerTotal } from "@/utils/pagerTotal";
 
-const MSG_TEMPLATE_STATUS_COLORS: Record<string, string> = {
-  active: "green",
-  inactive: "default",
-};
+interface DialogProps {
+  open: boolean;
+  template: MessageTemplateDto | null;
+  channel: number;
+  onClose: () => void;
+}
+
+interface FormValues {
+  name: string;
+  content: string;
+  isActive: boolean;
+}
+
+function MessageTemplateDialog({ open, template, channel, onClose }: DialogProps) {
+  const createTemplate = useCreateMessageTemplate();
+  const updateTemplate = useUpdateMessageTemplate();
+  const [form] = Form.useForm<FormValues>();
+  const name = Form.useWatch("name", form) ?? "";
+  const content = Form.useWatch("content", form) ?? "";
+
+  useEffect(() => {
+    if (!open) return;
+    form.setFieldsValue({
+      name: template?.name ?? "",
+      content: template?.content ?? "",
+      isActive: template?.isActive ?? true,
+    });
+  }, [open, template, form]);
+
+  const pending = createTemplate.isPending || updateTemplate.isPending;
+
+  const submit = async (values: FormValues) => {
+    try {
+      if (template) {
+        await updateTemplate.mutateAsync({
+          id: template.id,
+          data: { name: values.name.trim(), content: values.content.trim() },
+        });
+        toast.success(t("Đã cập nhật mẫu tin"));
+      } else {
+        await createTemplate.mutateAsync({
+          name: values.name.trim(),
+          content: values.content.trim(),
+          channel,
+        });
+        toast.success(t("Đã tạo mẫu tin"));
+      }
+      onClose();
+    } catch {
+      // queryClient reports the failure
+    }
+  };
+
+  const canSave = name.trim().length > 0 && content.trim().length > 0;
+
+  return (
+    <AppDialog
+      open={open}
+      title={template ? t("Sửa mẫu tin nhắn") : t("Tạo mẫu tin nhắn")}
+      width={560}
+      canSave={canSave}
+      saving={pending}
+      onSave={() => form.submit()}
+      onClose={onClose}
+    >
+      <Form
+        form={form}
+        layout="vertical"
+        requiredMark={false}
+        initialValues={{ name: "", content: "", isActive: true }}
+        onFinish={(values) => void submit(values)}
+      >
+        <div className="bd-call-dialog-fields">
+          <FloatingField name="name" label={t("Tên")} required rules={[{ required: true, message: t("Vui lòng nhập tên") }]}>
+            <Input autoFocus />
+          </FloatingField>
+
+          <FloatingField name="content" label={t("Nội dung")} required rules={[{ required: true, message: t("Vui lòng nhập nội dung") }]}>
+            <Input.TextArea rows={4} />
+          </FloatingField>
+
+          <div className="bd-call-dialog-switch">
+            <span>{t("Trạng thái")}</span>
+            <Form.Item name="isActive" valuePropName="checked">
+              <Switch aria-label={t("Trạng thái")} />
+            </Form.Item>
+          </div>
+        </div>
+      </Form>
+    </AppDialog>
+  );
+}
 
 /** Mẫu tin nhắn / Mẫu ZBS — shared by Tin nhắn (channel 0) and Zalo (1). */
 export function MessageTemplateView({ channel }: { channel: number }) {
   const [keyword, setKeyword] = useState("");
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<MessageTemplateDto | null>(null);
+  const [dialog, setDialog] = useState<{ open: boolean; template: MessageTemplateDto | null }>({
+    open: false,
+    template: null,
+  });
   const [pendingDelete, setPendingDelete] = useState<MessageTemplateDto | null>(null);
-  const [name, setName] = useState("");
-  const [content, setContent] = useState("");
-  const [category, setCategory] = useState("");
 
-  const { data, isLoading } = useMessageTemplates(channel, keyword || undefined);
-  const templates = data?.items ?? [];
-  const createTemplate = useCreateMessageTemplate();
-  const updateTemplate = useUpdateMessageTemplate();
+  const pagination = useTablePagination();
+  const debouncedKeyword = useDebounce(keyword, 300);
+
+  const { data, isFetching } = useMessageTemplates(channel, debouncedKeyword.trim() || undefined);
   const deleteTemplate = useDeleteMessageTemplate();
-
-  const openCreate = () => {
-    setEditingItem(null);
-    setName("");
-    setContent("");
-    setCategory("");
-    setModalOpen(true);
-  };
-
-  const openEdit = (item: MessageTemplateDto) => {
-    setEditingItem(item);
-    setName(item.name);
-    setContent(item.content);
-    setCategory(item.category ?? "");
-    setModalOpen(true);
-  };
-
-  const handleSave = () => {
-    if (!name.trim() || !content.trim()) return;
-    if (editingItem) {
-      updateTemplate.mutate(
-        { id: editingItem.id, data: { name: name.trim(), content: content.trim(), category: category.trim() || undefined } },
-        { onSuccess: () => { setModalOpen(false); toast.success(t("Đã cập nhật mẫu tin")); } },
-      );
-    } else {
-      createTemplate.mutate(
-        { name: name.trim(), content: content.trim(), channel, category: category.trim() || undefined },
-        { onSuccess: () => { setModalOpen(false); toast.success(t("Đã tạo mẫu tin")); } },
-      );
-    }
-  };
 
   const confirmDelete = async () => {
     if (!pendingDelete) return;
     try {
       await deleteTemplate.mutateAsync(pendingDelete.id);
+      toast.success(t("Đã xoá mẫu tin"));
     } catch {
-      // Global MutationCache.onError already shows the toast
+      // queryClient reports the failure
     } finally {
       setPendingDelete(null);
     }
   };
 
-  const columns = [
-    { title: t("Tên mẫu"), dataIndex: "name", key: "name" },
-    { title: t("Nội dung"), dataIndex: "content", key: "content", ellipsis: true },
-    { title: t("Nhóm"), dataIndex: "category", key: "category", width: 120, render: (v: string | undefined) => v ?? "—" },
-    {
-      title: t("Trạng thái"), dataIndex: "isActive", key: "isActive", width: 100,
-      render: (v: boolean) => (
-        <Tag color={MSG_TEMPLATE_STATUS_COLORS[v ? "active" : "inactive"]}>
-          {v ? t("Hoạt động") : t("Tắt")}
-        </Tag>
-      ),
-    },
-    {
-      title: t("Ngày tạo"), dataIndex: "creationTime", key: "creationTime", width: 120,
-      render: (v: string) => dayjs(v).format("DD/MM/YYYY"),
-    },
-    {
-      title: t("Thao tác"), key: "actions", width: 140,
-      render: (_: unknown, record: MessageTemplateDto) => (
-        <div className="bd-cat-rowactions">
-          <Button size="small" onClick={() => openEdit(record)}>{t("Chỉnh sửa")}</Button>
-          <Button size="small" danger onClick={() => setPendingDelete(record)}>{t("Xóa")}</Button>
-        </div>
-      ),
-    },
-  ];
+  const columns = useMemo<ColumnsType<MessageTemplateDto>>(
+    () => [
+      { key: "name", title: t("Tên"), dataIndex: "name" },
+      { key: "content", title: t("Nội dung"), dataIndex: "content", ellipsis: true },
+      {
+        key: "status",
+        title: t("Trạng thái"),
+        width: 130,
+        render: (_, tpl) => {
+          const { label, color } = activeTag(tpl.isActive);
+          return <Tag color={color}>{label}</Tag>;
+        },
+      },
+      {
+        key: "actions",
+        title: t("Thao tác"),
+        width: 110,
+        align: "center",
+        render: (_, tpl) => (
+          <div className="bd-cat-rowactions">
+            <Tooltip title={t("Chỉnh sửa")}>
+              <Button
+                type="text"
+                size="small"
+                icon={<EditOutlined />}
+                aria-label={t("Chỉnh sửa {0}", tpl.name)}
+                onClick={() => setDialog({ open: true, template: tpl })}
+              />
+            </Tooltip>
+            <Tooltip title={t("Xoá")}>
+              <Button
+                type="text"
+                size="small"
+                danger
+                icon={<DeleteOutlined />}
+                aria-label={t("Xoá {0}", tpl.name)}
+                onClick={() => setPendingDelete(tpl)}
+              />
+            </Tooltip>
+          </div>
+        ),
+      },
+    ],
+    [],
+  );
 
   return (
-    <>
-      <div className="reception-card reception-card--toolbar">
-        <div className="bd-ops-toolbar">
-          <Input
-            className="bd-ops-search"
-            prefix={<SearchOutlined />}
-            placeholder={t("Tìm kiếm")}
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            allowClear
-          />
-          <Button className="bd-tools-toolbar-end" type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-            {t("Tạo mẫu tin")}
-          </Button>
-        </div>
-      </div>
-      <div className="reception-card reception-card--content">
-        <Table<MessageTemplateDto>
-          columns={columns}
-          dataSource={templates}
-          rowKey="id"
-          size="small"
-          loading={isLoading}
-          locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("Chưa có mẫu nào")} /> }}
-          pagination={{ pageSize: 20, showTotal: (total) => t("Tổng mẫu tin: {0}", total) }}
+    <div className="reception-card reception-card--content">
+      <div className="bd-ops-toolbar">
+        <Input
+          className="bd-ops-search"
+          prefix={<SearchOutlined />}
+          placeholder={t("Tìm kiếm")}
+          aria-label={t("Tìm kiếm")}
+          value={keyword}
+          allowClear
+          onChange={(e) => {
+            setKeyword(e.target.value);
+            pagination.resetToFirstPage();
+          }}
         />
+        <Button
+          className="bd-tools-toolbar-end"
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={() => setDialog({ open: true, template: null })}
+        >
+          {t("Tạo mẫu tin nhắn")}
+        </Button>
       </div>
 
-      <Modal
-        title={editingItem ? t("Sửa mẫu tin nhắn") : t("Tạo mẫu")}
-        open={modalOpen}
-        onOk={handleSave}
-        onCancel={() => setModalOpen(false)}
-        confirmLoading={createTemplate.isPending || updateTemplate.isPending}
-      >
-        <div className="bd-dialog-stack">
-          <Input placeholder={t("Tên mẫu")} value={name} onChange={(e) => setName(e.target.value)} />
-          <Input.TextArea
-            placeholder={t("Nhập nội dung")}
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={4}
-          />
-          <Input placeholder={t("Chọn nhóm")} value={category} onChange={(e) => setCategory(e.target.value)} />
-        </div>
-      </Modal>
+      <DataTable<MessageTemplateDto>
+        columns={columns}
+        dataSource={data?.items ?? []}
+        rowKey="id"
+        loading={isFetching}
+        pagination={pagination.buildConfig(data?.totalCount, pagerTotal)}
+        locale={{ emptyText: t("Chưa có mẫu tin nhắn") }}
+      />
+
+      <MessageTemplateDialog
+        open={dialog.open}
+        template={dialog.template}
+        channel={channel}
+        onClose={() => setDialog({ open: false, template: null })}
+      />
 
       <ConfirmDeleteDialog
         open={pendingDelete !== null}
@@ -159,6 +235,6 @@ export function MessageTemplateView({ channel }: { channel: number }) {
         onConfirm={() => void confirmDelete()}
         onClose={() => setPendingDelete(null)}
       />
-    </>
+    </div>
   );
 }

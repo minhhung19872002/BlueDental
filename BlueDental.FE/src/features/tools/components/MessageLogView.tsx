@@ -1,77 +1,113 @@
-import { useState } from "react";
-import { Empty, Input, Table, Tag } from "antd";
-import { SearchOutlined } from "@ant-design/icons";
-import dayjs from "dayjs";
+import { useMemo, useState } from "react";
+import { Select, Tag } from "antd";
+import type { ColumnsType } from "antd/es/table";
 import { useMessageLogs, type MessageLogDto } from "../api/toolsApi";
+import { DataTable } from "@/components/DataTable";
+import { useTablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
+import { pagerTotal } from "@/utils/pagerTotal";
 
-const MSG_STATUS_COLORS: Record<number, string> = {
-  0: "default",
-  1: "green",
-  2: "red",
-  3: "blue",
-};
+// UNKNOWN_REFERENCE_BEHAVIOR: call-log status labels and message-log status
+// labels were both unobservable (empty tables). These are placeholders that
+// mirror the BE enum values.
+const MSG_STATUS_OPTIONS = [
+  { value: 0, label: "Đang chờ", color: "default" },
+  { value: 1, label: "Đã gửi", color: "green" },
+  { value: 2, label: "Thất bại", color: "red" },
+  { value: 3, label: "Đã nhận", color: "blue" },
+];
+
+function msgStatusTag(status: number): { label: string; color: string } {
+  const found = MSG_STATUS_OPTIONS.find((o) => o.value === status);
+  return found ? { label: t(found.label), color: found.color } : { label: "—", color: "default" };
+}
+
+// UNKNOWN_REFERENCE_BEHAVIOR: "Nhà cung cấp" and "Mục tiêu" filter options
+// could not be observed (message list was empty). These are structural
+// placeholders showing the correct control shape.
 
 /** Danh sách tin nhắn — shared by Tin nhắn (channel 0) and Zalo (1). */
 export function MessageLogView({ channel }: { channel: number }) {
-  const [keyword, setKeyword] = useState("");
-  const { data, isLoading } = useMessageLogs(channel, { filter: keyword || undefined });
-  const logs = data?.items ?? [];
+  const [statusFilter, setStatusFilter] = useState<number | undefined>();
+  const pagination = useTablePagination();
 
-  const MSG_STATUS_LABELS: Record<number, string> = {
-    0: t("Đang chờ"),
-    1: t("Đã gửi"),
-    2: t("Thất bại"),
-    3: t("Đã nhận"),
-  };
+  const { data, isFetching } = useMessageLogs(channel, {
+    status: statusFilter,
+  });
 
-  const columns = [
-    {
-      title: t("Thời gian"), dataIndex: "creationTime", key: "creationTime", width: 140,
-      render: (v: string) => dayjs(v).format("DD/MM/YYYY HH:mm"),
-    },
-    { title: t("Người nhận"), dataIndex: "recipientName", key: "recipientName" },
-    { title: t("Số điện thoại"), dataIndex: "recipientPhone", key: "recipientPhone", width: 130 },
-    { title: t("Nội dung"), dataIndex: "content", key: "content", ellipsis: true },
-    {
-      title: t("Trạng thái"), dataIndex: "status", key: "status", width: 100,
-      render: (v: number) => {
-        const label = MSG_STATUS_LABELS[v] ?? "—";
-        const color = MSG_STATUS_COLORS[v] ?? "default";
-        return <Tag color={color}>{label}</Tag>;
+  const columns = useMemo<ColumnsType<MessageLogDto>>(
+    () => [
+      { key: "phone", title: t("Số điện thoại"), dataIndex: "recipientPhone", width: 140 },
+      { key: "content", title: t("Nội dung"), dataIndex: "content", ellipsis: true },
+      {
+        key: "target",
+        title: t("Mục tiêu"),
+        width: 140,
+        // UNKNOWN_REFERENCE_BEHAVIOR: what "Mục tiêu" maps to could not be
+        // determined — the list was empty. Renders the recipient name as the
+        // closest guess.
+        render: (_, log) => log.recipientName || "—",
       },
-    },
-    {
-      title: t("Thời điểm gửi"), dataIndex: "sentAt", key: "sentAt", width: 140,
-      render: (v: string | undefined) => (v ? dayjs(v).format("DD/MM/YYYY HH:mm") : "—"),
-    },
-  ];
+      {
+        key: "status",
+        title: t("Trạng thái"),
+        width: 120,
+        render: (_, log) => {
+          const { label, color } = msgStatusTag(log.status);
+          return <Tag color={color}>{label}</Tag>;
+        },
+      },
+      {
+        key: "actions",
+        title: t("Thao tác"),
+        width: 100,
+        align: "center",
+        // UNKNOWN_REFERENCE_BEHAVIOR: row actions could not be observed.
+        render: () => "—",
+      },
+    ],
+    [],
+  );
 
   return (
-    <>
-      <div className="reception-card reception-card--toolbar">
-        <div className="bd-ops-toolbar">
-          <Input
-            className="bd-ops-search"
-            prefix={<SearchOutlined />}
-            placeholder={t("Tìm kiếm")}
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            allowClear
-          />
-        </div>
-      </div>
-      <div className="reception-card reception-card--content">
-        <Table<MessageLogDto>
-          columns={columns}
-          dataSource={logs}
-          rowKey="id"
-          size="small"
-          loading={isLoading}
-          locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("Chưa có tin nhắn nào")} /> }}
-          pagination={{ pageSize: 20, showTotal: (total) => t("Tổng tin nhắn: {0}", total) }}
+    <div className="reception-card reception-card--content">
+      <div className="bd-ops-toolbar">
+        <Select
+          className="bd-ops-filter"
+          placeholder={t("Trạng thái")}
+          allowClear
+          value={statusFilter}
+          onChange={(v) => {
+            setStatusFilter(v);
+            pagination.resetToFirstPage();
+          }}
+          options={MSG_STATUS_OPTIONS.map((o) => ({ value: o.value, label: t(o.label) }))}
+          style={{ width: 160 }}
+        />
+        <Select
+          className="bd-ops-filter"
+          placeholder={t("Nhà cung cấp")}
+          allowClear
+          disabled
+          style={{ width: 160 }}
+        />
+        <Select
+          className="bd-ops-filter"
+          placeholder={t("Mục tiêu")}
+          allowClear
+          disabled
+          style={{ width: 160 }}
         />
       </div>
-    </>
+
+      <DataTable<MessageLogDto>
+        columns={columns}
+        dataSource={data?.items ?? []}
+        rowKey="id"
+        loading={isFetching}
+        pagination={pagination.buildConfig(data?.totalCount, pagerTotal)}
+        locale={{ emptyText: t("Chưa có tin nhắn") }}
+      />
+    </div>
   );
 }
