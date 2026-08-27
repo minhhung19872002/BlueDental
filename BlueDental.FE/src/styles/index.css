@@ -6979,4 +6979,10 @@ html:has(.ant-modal-wrap) {
 .bd-materials-search.ant-input-affix-wrapper { height: 42px; }
 
 /* The command at the far end of the row, opposite the tools. */
-.bd-materials-sync { margin-left: auto; }
+/* Pushed to the far right of the toolbar. Also used on the span that wraps a
+   disabled button, because a disabled button swallows its own tooltip and the
+   reason has to hang off something the pointer can still reach. */
+.bd-materials-sync {
+  margin-left: auto;
+  display: inline-flex;
+}

@@ -8,6 +8,7 @@ import { useAllocationList, type MaterialAllocationDto } from "../api/allocation
 import {
   useDeleteDepartment,
   useDepartmentList,
+  useReorderDepartments,
   type DepartmentDto,
 } from "../api/departmentApi";
 import { DepartmentDialog } from "./DepartmentDialog";
@@ -18,6 +19,9 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
 import { formatDateTime } from "@/utils/format";
+
+/** A row after "Gộp số lượng vật tư" has folded several vouchers into one. */
+type MergedAllocation = MaterialAllocationDto & { mergedCount?: number };
 
 /**
  * Phòng ban — the departments on the left, what has been issued to the selected
@@ -37,6 +41,7 @@ export function DepartmentTab() {
     department: null,
   });
   const [pendingDelete, setPendingDelete] = useState<DepartmentDto | null>(null);
+  const [merged, setMerged] = useState(false);
 
   const pagination = useTablePagination(20);
   const debouncedPanel = useDebounce(panelKeyword, 300);
@@ -44,6 +49,7 @@ export function DepartmentTab() {
 
   const departmentsQuery = useDepartmentList();
   const deleteDepartment = useDeleteDepartment();
+  const reorderDepartments = useReorderDepartments();
 
   // The endpoint takes no search, so the typed term narrows what came back.
   const departments = useMemo(() => {
@@ -60,13 +66,39 @@ export function DepartmentTab() {
     if (!selectedId) return [];
 
     const all = allocationsQuery.data?.items ?? [];
-    const term = debounced.trim().toLowerCase();
-    return term
-      ? all.filter((row: MaterialAllocationDto) =>
-          (row.inventoryItemName ?? "").toLowerCase().includes(term),
-        )
+    const terms = debounced.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const matching = terms.length
+      ? all.filter((row: MaterialAllocationDto) => {
+          const haystack = (row.inventoryItemName ?? "").toLowerCase();
+          return terms.every((term) => haystack.includes(term));
+        })
       : all;
-  }, [allocationsQuery.data, debounced, selectedId]);
+
+    if (!merged) return matching;
+
+    // One row per material, its quantities added up. Vouchers issued at
+    // different times collapse into the earliest, and the code column says how
+    // many were folded together rather than showing one of them as if it were
+    // the whole story.
+    const byMaterial = new Map<string, MaterialAllocationDto & { mergedCount: number }>();
+
+    for (const row of matching) {
+      const key = row.inventoryItemId;
+      const seen = byMaterial.get(key);
+
+      if (!seen) {
+        byMaterial.set(key, { ...row, mergedCount: 1 });
+        continue;
+      }
+
+      seen.allocatedQuantity += row.allocatedQuantity;
+      seen.confirmedRemaining += row.confirmedRemaining;
+      seen.mergedCount += 1;
+      if (row.allocationTime < seen.allocationTime) seen.allocationTime = row.allocationTime;
+    }
+
+    return [...byMaterial.values()];
+  }, [allocationsQuery.data, debounced, selectedId, merged]);
 
   const confirmDelete = async () => {
     if (!pendingDelete) return;
@@ -100,7 +132,15 @@ export function DepartmentTab() {
         width: 190,
         render: (_, row) => <span className="bd-cat-num">{formatDateTime(row.allocationTime)}</span>,
       },
-      { key: "code", title: t("Mã phân bổ"), width: 160, dataIndex: "allocationCode" },
+      {
+        key: "code",
+        title: t("Mã phân bổ"),
+        width: 160,
+        render: (_, row) => {
+          const folded = (row as MergedAllocation).mergedCount ?? 1;
+          return folded > 1 ? t("{0} phiếu", folded) : row.allocationCode;
+        },
+      },
       {
         key: "item",
         title: t("Vật tư"),
@@ -150,7 +190,7 @@ export function DepartmentTab() {
           searchPlaceholder={t("Tìm phòng ban...")}
           countNoun={t("phòng ban")}
           emptyText={t("Chưa có phòng ban")}
-          createLabel={t("Thêm phòng ban")}
+          createLabel={t("Tạo phòng ban")}
           groups={departments}
           isLoading={departmentsQuery.isLoading}
           isSearching={departmentsQuery.isFetching}
@@ -165,8 +205,12 @@ export function DepartmentTab() {
             setDialog({ open: true, department });
           }}
           onDelete={(department) => setPendingDelete(department)}
-          // Departments carry no order of their own, so the panel offers none.
-          onReorder={() => undefined}
+          onReorder={(from, to) => {
+            const ids = departments.map((row: DepartmentDto) => row.id);
+            const [moved] = ids.splice(from, 1);
+            ids.splice(to, 0, moved);
+            return reorderDepartments.mutateAsync(ids);
+          }}
         />
       </aside>
 
@@ -186,17 +230,34 @@ export function DepartmentTab() {
           />
 
           {/* "Gộp số lượng vật tư", which the reference draws as an icon button
-              at the far right of this toolbar. What it does could not be
+              at the far right of this toolbar. Its exact behaviour could not be
               observed — the reference branch has no departments and no issued
-              materials — so it is offered and disabled rather than guessed at.
-              See docs/clone/pages/materials.md. */}
-          <Tooltip title={t("Gộp số lượng vật tư")}>
-            <Button
-              className="bd-materials-sync"
-              icon={<GroupOutlined />}
-              aria-label={t("Gộp số lượng vật tư")}
-              disabled
-            />
+              materials — so this does the plain reading of the label: it folds
+              the rows to one per material with the quantities added up, and
+              changes nothing that is stored. Recorded as an assumption in
+              docs/clone/pages/materials.md. */}
+          <Tooltip
+            title={
+              !selectedId
+                ? t("Chọn phòng ban trước khi gộp")
+                : merged
+                  ? t("Bỏ gộp số lượng vật tư")
+                  : t("Gộp số lượng vật tư")
+            }
+          >
+            <span className="bd-materials-sync">
+              <Button
+                icon={<GroupOutlined />}
+                aria-label={t("Gộp số lượng vật tư")}
+                aria-pressed={merged}
+                type={merged ? "primary" : "default"}
+                disabled={!selectedId}
+                onClick={() => {
+                  setMerged((on) => !on);
+                  pagination.resetToFirstPage();
+                }}
+              />
+            </span>
           </Tooltip>
         </div>
 

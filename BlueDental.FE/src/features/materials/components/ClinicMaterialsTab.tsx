@@ -277,16 +277,16 @@ export function ClinicMaterialsTab() {
             }}
           />
 
-          <Button
-            className="bd-materials-sync"
-            icon={<SyncOutlined />}
-            // The reference offers this and leaves it disabled; BlueDental has
-            // no system to sync from, so it says so rather than pretending.
-            disabled
-            title={t("Chưa kết nối hệ thống nguồn")}
-          >
-            {t("Sync data hệ thống")}
-          </Button>
+          {/* The reference offers this and leaves it disabled too. A disabled
+              button swallows its own tooltip, so the reason hangs off a
+              wrapper the pointer can still reach. */}
+          <Tooltip title={t("Chưa kết nối hệ thống nguồn để đồng bộ")}>
+            <span className="bd-materials-sync">
+              <Button icon={<SyncOutlined />} disabled>
+                {t("Sync data hệ thống")}
+              </Button>
+            </span>
+          </Tooltip>
         </div>
 
         <div className="bd-cat-body">

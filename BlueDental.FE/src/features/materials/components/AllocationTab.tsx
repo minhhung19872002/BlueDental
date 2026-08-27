@@ -141,16 +141,18 @@ export function AllocationTab() {
           }}
         />
 
-        <Button
-          className="bd-materials-sync"
-          icon={<FileSearchOutlined />}
-          // Offered by the reference; the stock-take history it opens is not
-          // built, so it says so rather than opening nothing.
-          disabled
-          title={t("Lịch sử kiểm kho chưa được dựng")}
-        >
-          {t("Lịch sử kiểm kho")}
-        </Button>
+        {/* Offered by the reference, which has no data behind it either.
+            BlueDental keeps no record of a stock-take — confirming usage moves
+            a number and writes no history — so there is nothing for this to
+            show. A disabled button swallows its own tooltip, so the reason
+            hangs off a wrapper the pointer can still reach. */}
+        <Tooltip title={t("Chưa có dữ liệu kiểm kho để xem lịch sử")}>
+          <span className="bd-materials-sync">
+            <Button icon={<FileSearchOutlined />} disabled>
+              {t("Lịch sử kiểm kho")}
+            </Button>
+          </span>
+        </Tooltip>
       </div>
 
       <div className="bd-cat-body">

@@ -26,9 +26,9 @@ interface Props {
 /**
  * "Tạo phòng ban" — a name and a position, as the reference asks for them.
  *
- * The position is kept with the department's description for now: BlueDental's
- * Department carries no order column of its own, and adding one is a schema
- * change this screen does not need to make on its own.
+ * The position is a real column. It used to be written into the description,
+ * which could not sort and would have surfaced as a description wherever one
+ * was shown.
  */
 export function DepartmentDialog({ open, department, onClose, onCreated }: Props) {
   const createDepartment = useCreateDepartment();
@@ -41,14 +41,17 @@ export function DepartmentDialog({ open, department, onClose, onCreated }: Props
     if (!open) return;
     form.setFieldsValue({
       name: department?.name ?? "",
-      sortOrder: department?.description ?? "",
+      sortOrder: department ? String(department.sortOrder) : "",
     });
   }, [open, department, form]);
 
   const submit = async (values: FormValues) => {
+    // An empty box means "wherever" — zero, which sorts it in by name.
+    const parsed = Number.parseInt(values.sortOrder.trim(), 10);
+
     const input = {
       name: values.name.trim(),
-      description: values.sortOrder.trim() || undefined,
+      sortOrder: Number.isFinite(parsed) ? parsed : 0,
     };
 
     try {
