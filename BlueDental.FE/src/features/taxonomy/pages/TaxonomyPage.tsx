@@ -34,7 +34,7 @@ import {
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { PageTabBar } from "@/components/PageTabBar";
 import { useTablePagination } from "@/hooks/useTablePagination";
-import { countedTotal } from "../countedTotal";
+import { countedTotal } from "@/utils/countedTotal";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useBranchFilter, useCurrentBranchId, useIsAllBranches } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";

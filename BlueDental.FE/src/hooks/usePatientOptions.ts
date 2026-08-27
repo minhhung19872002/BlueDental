@@ -6,8 +6,9 @@ import type { PagedResult } from "@/types";
 /**
  * Patient lookups shared by feature folders.
  *
- * Reception and the appointment editor both need to pick an existing patient,
- * but features do not import each other, so the read-only lookup lives here.
+ * Reception, the appointment editor, CSKH and Labo all need to pick an existing
+ * patient, but features do not import each other, so the read-only lookup lives
+ * here.
  */
 export interface PatientOption {
   id: string;
@@ -16,13 +17,18 @@ export interface PatientOption {
   phone: string;
 }
 
-interface PatientResponse {
+/**
+ * The three fields a picker needs out of
+ * `BlueDental.PatientManagement.PatientListItemDto`. The name arrives already
+ * composed in Vietnamese order — this used to rebuild it from `lastName` and
+ * `firstName`, which the list stopped sending, and every picker in the app
+ * quietly went blank.
+ */
+interface PatientRow {
   id: string;
   patientCode: string;
-  firstName: string;
-  lastName: string;
-  contact?: { phoneNumber?: string | null } | null;
-  phoneNumber?: string | null;
+  fullName: string;
+  phoneNumber: string | null;
 }
 
 /**
@@ -36,16 +42,16 @@ export function usePatientOptions(keyword?: string) {
     queryKey: ["patient-options", branchId, keyword ?? ""],
     queryFn: async (): Promise<PatientOption[]> => {
       const page = await api
-        .get<PagedResult<PatientResponse>>("/v1/app/patients", {
+        .get<PagedResult<PatientRow>>("/v1/app/patients", {
           params: { branchId, filter: keyword || undefined, maxResultCount: 30 },
         })
         .then((r) => r.data);
 
-      return page.items.map((dto) => ({
-        id: dto.id,
-        name: `${dto.lastName} ${dto.firstName}`.trim(),
-        code: dto.patientCode,
-        phone: dto.contact?.phoneNumber ?? dto.phoneNumber ?? "",
+      return page.items.map((row) => ({
+        id: row.id,
+        name: row.fullName,
+        code: row.patientCode,
+        phone: row.phoneNumber ?? "",
       }));
     },
   });

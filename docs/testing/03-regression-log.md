@@ -565,3 +565,120 @@ Kết quả cuối, trên bản build production (`vite preview` 8080), backend 
 5000, PostgreSQL sạch vừa seed: **152 pass / 0 fail / 1 skip** trên đủ 29 suite
 (chạy làm hai nửa 77 + 76 vì giới hạn thời gian một lệnh). BE giữ **696/696**
 từ lần đo gần nhất.
+
+---
+
+## 2026-08-27 — Labo dựng lại theo bản gốc (đợt 1)
+
+Khảo sát bản gốc `app.nfcdental.com/labo` (chỉ đọc), rồi dựng lại khung 6
+sub-route + 3 tab danh mục. Xem `docs/clone/pages/labo.md` và mục Labo trong
+`docs/clone/api.md`.
+
+| # | Suite | Nguyên nhân | Cách sửa |
+|---|------|-----------|-----|
+| R-140 | `labo` ×2 | Đợt trước (R-136) đổi selector sang `getByRole("tab")`. Dãy lọc giờ dùng `SegmentedTabs` dùng chung — render `<button aria-pressed>`, không phải `role="tab"` | Viết lại spec theo `getByRole("button", { name })`; đồng thời mở rộng suite từ 2 lên 7 test |
+| R-141 | `labo` — xoá | Nút xác nhận trong `ConfirmDeleteDialog` có accessible name **"delete Xoá"** (alt của icon dính vào), giống R-138 | Khớp bằng `/Xoá$/`, giới hạn trong `getByRole("dialog")` vì nút xoá của dòng cũng tên "Xoá" |
+
+Lỗi thật tìm được khi dựng (không phải rot của test):
+
+- `labo-suppliers` và `labo-materials` **không có route HTTP nào** — controller
+  quy ước của ABP không sinh tiền tố `api/v1/app/...` mà client gọi, nên hai tab
+  này trả 404 cho trình duyệt. Đã thêm controller khai báo tường minh.
+- `GetLaboOrderListInput.SampleFilter` khai báo nhưng **không được áp dụng** —
+  4 chip lọc trên bảng Mẫu Labo không làm gì cả. `GetStatsAsync` lại đếm theo
+  luật khác. Nay cả hai đọc chung một cặp luật.
+- `LaboOrder` thiếu 7 thuộc tính mà migration `ExpandLaboOrder` đã tạo cột
+  (`Kind`, 5 khoá danh mục, `AttachmentUrl`) → entity, snapshot và DB lệch nhau.
+  Đã bổ sung; snapshot sửa tay theo đúng lệ của repo.
+- `LaboBiteType` / `LaboFinishLine` / `LaboRhythmType` **không có
+  `ClinicBranchId`** — bản ghi tạo ở chi nhánh này nhìn thấy từ mọi chi nhánh
+  khác. Đã bỏ 3 bảng, chuyển sang taxonomy dùng chung (`labo_bite`,
+  `labo_finish_line`, `labo_rhythm`) vốn đã có sẵn nhóm và ability subject.
+
+Kết quả, trên bản build production (`vite preview` 8080), backend thật cổng
+5019, PostgreSQL đã chạy migration mới:
+
+- `labo` **7/7 pass** — định tuyến sub-route + reload, lọc phía server, tìm kiếm
+  phía server, và vòng tạo → sửa → reload → xoá của Khớp cắn.
+- Hồi quy mức 3 (phụ thuộc dùng chung: định tuyến, taxonomy):
+  `routes` + `sidebar-navigation` + `taxonomy` + `taxonomy-groups` = **41/41
+  pass**. Màn Danh mục không hề hấn.
+- BE `Application.Tests` **484/484 pass**. FE `vitest` 3/3, `tsc` sạch,
+  `oxlint` sạch trong `features/labo`.
+
+---
+
+## 2026-08-27 (chiều) — Labo đợt 2: chỉnh theo 9 điểm phản hồi
+
+| # | Điểm | Đã làm |
+|---|------|--------|
+| 1 | Thanh công cụ Mẫu Labo thiếu ô/nút | Thêm `LaboPeriodPicker` (Ngày/Tuần/Tháng + "Chọn thời gian" disabled → stepper), nút Xuất Excel, hai combobox Chọn khách hàng / Chọn bác sĩ. BE nhận thêm `FromDate`/`ToDate`/`DentistId` |
+| 2 | Dialog tạo NCC không giống bản gốc | Dựng lại đúng bố cục: ô ảnh tròn + "Tải ảnh lên", hàng 3 (Tên*, Email*, SĐT), hàng 2 (Người liên hệ, Mã số thuế), hàng địa giới, Địa chỉ full width, Lưu khoá tới khi có đủ tên + email |
+| 3, 4 | Đường hoàn tất / Kiểu nhịp không có dữ liệu | Seed 5 đường hoàn tất + 4 kiểu nhịp (và 5 khớp cắn) cho chi nhánh 1, bộ khác cho chi nhánh 2 để còn đo cách ly |
+| 5 | Dịch vụ - vật liệu chưa giống bản gốc | Hai panel: `GroupPanel` dùng chung bên trái, bảng vật liệu bên phải. Vật liệu treo vào **nhóm phân loại**, không treo vào nhà cung cấp |
+| 6 | Pagination | Dùng `pagination.buildConfig` + `countedTotal` như /taxonomy, neo dưới đáy thẻ |
+| 7 | Ô input bị cắt khi focus | `.ant-modal-body` chừa 4px dưới cho vòng focus; footer bớt 4px nên không xê dịch gì. Sửa cho **mọi dialog** trong app |
+| 8 | Style bảng khác các trang khác | Dùng `.bd-cat-body`/`.bd-cat-card` + `DataTable` + `LetterAvatar` + chip nhóm y hệt Danh mục |
+| 9 | Tìm kiếm phải gọi backend | NCC và Vật liệu chuyển sang lọc phía server (`Filter=`, debounce 400ms, reset về trang 1). Ba tab danh mục vốn đã gọi server từ đợt 1 |
+
+Lỗi thật tìm thêm được ở đợt này:
+
+- `LaboSupplier` và `LaboMaterial` **không có `ClinicBranchId`** — giống ba bảng
+  đã bỏ ở đợt 1. Nay cả hai đều phân quyền theo chi nhánh, có kiểm tra
+  `BranchAccessChecker` ở cả đọc lẫn ghi.
+- `LaboMaterial` treo vào `SupplierId` + `Category` dạng chuỗi. Bản gốc treo vào
+  nhóm phân loại (`taxonomyId`) — nhóm của họ đặt tên theo lab nhưng là bản ghi
+  khác với danh sách nhà cung cấp (chính tả khác nhau chứng minh điều đó).
+- Migration `20260827120000` **xoá sạch 3 bảng demo labo** (vật liệu không có
+  nhóm để trỏ tới, NCC không có chi nhánh để thuộc về). DbMigrator seed lại.
+  Lưu ý: DbMigrator phải chạy với `ASPNETCORE_ENVIRONMENT=Development` thì seeder
+  demo mới chạy — chạy thiếu biến này là DB không có dữ liệu mẫu.
+
+Kết quả, trên bản build production (`vite preview` 8080), backend thật 5019:
+
+- `labo` **12/12 pass** (từ 7 lên 12: thêm period picker, dialog NCC, hai panel
+  Dịch vụ - vật liệu, tìm kiếm server ở NCC và vật liệu, và ô input không bị cắt).
+- Hồi quy mức 3: `taxonomy` + `taxonomy-groups` + `taxonomy-dialogs` +
+  `taxonomy-flat` = **31/31 pass**; `payment-qr` + `branch-isolation` +
+  `routes` = pass (một lần `/staff` đỏ do chờ, chạy lại xanh).
+- BE `Application.Tests` **484/484**, `tsc` sạch, `oxlint` sạch trong
+  `features/labo`.
+
+| # | Suite | Nguyên nhân | Trạng thái |
+|---|------|-----------|-----------|
+| R-142 | `materials` :303 | `bd_departments` đã tích 78 dòng do các lần chạy E2E trước (mỗi lần tạo một `PB PHÒNG <id>`). Select "Phòng ban nhận" tìm phía server; khi danh sách dài, Enter rơi vào option đang active cũ ("Lễ tân") chứ không phải option vừa lọc ra | **Chưa sửa — có sẵn, không do đợt này.** Đã dựng lại bản build với `src/styles/index.css` trả về nguyên trạng rồi chạy lại: vẫn đỏ y hệt. Cần dọn dữ liệu E2E hoặc sửa spec chờ đúng option, thuộc phạm vi Vật tư |
+
+### 2026-08-27 (tối) — 3 điểm chỉnh tiếp
+
+| # | Điểm | Đã làm |
+|---|------|--------|
+| 1 | Ô ảnh trong dialog NCC xấu, không cách phần dưới | 88px, nền `--bd-bg`, viền nhạt, thêm đường kẻ + 20px cách hàng field đầu tiên |
+| 2 | Lọc khách hàng / bác sĩ chạy nhưng cột trong bảng trống | **Lỗi thật**: `LaboOrderDto.PatientName` bị `Ignore()` trong AutoMapper, `DentistName`/`SupplierName`/`MaterialName` không ai gán. Lọc chạy vì lọc theo id, còn cột thì rỗng. `LaboAppService.FillNamesAsync` giờ giải tên cả 4 loại, mỗi loại một truy vấn. Seeder cũng gán `SupplierId`/`MaterialId` cho phiếu thay vì chỉ ghi tên dạng chuỗi |
+| 3 | Bảng không cần ô vuông chữ cái đầu | Bỏ `LetterAvatar` khỏi cả 5 bảng Labo |
+
+Thêm test canh điểm 2 (`a row names its customer, dentist and material`) — đọc
+thẳng ô trong bảng, đỏ ngay nếu tên lại rỗng.
+
+Kết quả: `labo` **13/13**; hồi quy `taxonomy` + `taxonomy-groups` +
+`appointment` = **24/24** (appointment dùng chung cách giải tên); BE
+**484/484**; `tsc` và `oxlint` sạch.
+
+### 2026-08-27 (tối, tiếp) — logo nhà cung cấp
+
+Ô ảnh trong dialog NCC trước đó chỉ là chỗ trống bị khoá. Nay dựng đúng như
+dialog thêm nhân viên (`/staff`): ô tròn 96px chính là nút chọn ảnh, dưới có
+"Tải ảnh lên" + "Xóa ảnh". Ảnh lưu thật lên MinIO qua
+`POST /v1/app/labo-suppliers/{id}/logo`, đọc lại qua chính API chứ không phải
+URL công khai — cùng cách staff avatar đang làm. Lưu bản ghi trước rồi mới tải
+ảnh, vì NCC mới chưa có id để treo file.
+
+Nhân tiện sửa: endpoint trả ảnh trước đây khai `image/jpeg` cho mọi file; nay
+lấy theo đuôi file đã lưu (PNG trả `image/png`). Trước đó chỉ chạy được vì
+trình duyệt tự đoán kiểu.
+
+`labo` **14/14** (thêm test tải ảnh → lưu → reload → đọc lại → xoá). BE
+**484/484**, `tsc` và `oxlint` sạch.
+
+| # | Suite | Nguyên nhân | Trạng thái |
+|---|------|-----------|-----------|
+| R-143 | `staff` :19 | Spec chờ option chi nhánh tên `Nha Khoa Đức Hạnh Premium`, nhưng DB local đang là `BlueDental - Chi nhánh chính` / `Chi nhánh 2`. Seeder chi nhánh có guard theo id nên lần đổi tên ở R-135 không cập nhật dòng đã tồn tại | **Chưa sửa — có sẵn, không do đợt này.** Không đụng gì tới màn Nhân viên; tên chi nhánh này đã hiện như vậy trong mọi ảnh chụp từ đầu phiên. Cần seed lại DB sạch hoặc cho seeder đổi tên dòng cũ |

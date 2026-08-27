@@ -5,7 +5,7 @@ import { DeleteOutlined, EditOutlined, TagOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useDeletePatientTag, usePatientTags, type PatientTagDto } from "../api/patientTagApi";
 import { FlatScreenHeader } from "./FlatScreenHeader";
-import { countedTotal } from "../countedTotal";
+import { countedTotal } from "@/utils/countedTotal";
 import { PatientTagModal } from "./PatientTagModal";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { DataTable } from "@/components/DataTable";

@@ -1,0 +1,201 @@
+/* Labo — /labo/:section
+   Reference: docs/clone/pages/labo.md. Tokens come from :root in
+   src/styles/index.css; nothing here hard-codes a colour.
+
+   The table, its card and its pager are the catalog chrome the Danh mục and
+   Vật tư screens already wear — `.bd-cat-body` / `.bd-cat-card` in
+   src/styles/index.css. Labo reuses them rather than growing a second table
+   style, so a row, a pinned action column and a footer pager look and behave
+   the same on every screen in the app. */
+
+/* ── Screen shell ────────────────────────────────────────────────────────
+   The tab row stays put and the pane below it scrolls, which needs a real
+   height rather than the min-height main's shell gives. */
+.bd-labo-page {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--bd-header-height) - 32px);
+  min-height: 420px;
+  overflow: hidden;
+  background: #fff;
+}
+
+/* ── One tab's pane ────────────────────────────────────────────────────── */
+.bd-labo-screen {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bd-bg);
+}
+
+/* Two panes side by side on Dịch vụ - vật liệu; one everywhere else. */
+.bd-labo-shell {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+}
+
+.bd-labo-aside {
+  display: none;
+  width: 272px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--bd-line);
+  background: #fff;
+}
+
+@media (min-width: 768px) {
+  .bd-labo-aside { display: block; }
+}
+
+.bd-labo-main {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────────────────
+   Search on the left, the create button on the right — the arrangement the
+   reference gives every Labo catalog. */
+.bd-labo-header {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--bd-line);
+  background: #fff;
+  padding: 12px;
+}
+
+@media (min-width: 768px) {
+  .bd-labo-header { padding: 16px 20px; }
+}
+
+/* Mẫu Labo stacks a period row over a filter row. */
+.bd-labo-header--stacked {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.bd-labo-headrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bd-labo-headgroup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Full width on a narrow window, 320px beside the create button otherwise —
+   the width the reference gives it. */
+.bd-labo-search { width: 100%; }
+
+@media (min-width: 768px) {
+  .bd-labo-search { max-width: 320px; }
+}
+
+/* The two record pickers the reference sizes alike. */
+.bd-labo-picker { width: 100%; }
+
+@media (min-width: 768px) {
+  .bd-labo-picker { width: 240px; }
+}
+
+/* ── Period control ──────────────────────────────────────────────────────
+   Ngày / Tuần / Tháng, then either the disabled "Chọn thời gian" button or a
+   stepper around the chosen period. */
+.bd-labo-period {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.bd-labo-step {
+  display: flex;
+  height: 40px;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-control);
+  background: #fff;
+}
+
+.bd-labo-step .ant-picker {
+  min-width: 150px;
+  justify-content: center;
+}
+
+/* ── Paired cells ────────────────────────────────────────────────────────
+   The reference stacks two facts in one column — a supplier over its creation
+   date, a delivery date over its status badge. */
+.bd-labo-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.bd-labo-sub {
+  font-size: 12px;
+  color: var(--bd-muted);
+}
+
+/* ── Supplier dialog ─────────────────────────────────────────────────────
+   A round logo over its own command, sitting clear of the fields below it. */
+.bd-labo-avatar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding-block: 4px 20px;
+  border-bottom: 1px solid var(--bd-line-soft);
+  margin-bottom: 20px;
+}
+
+/* The same well the staff dialog uses: the preview is the picker. */
+.bd-labo-avatar-btn {
+  display: flex;
+  width: 96px;
+  height: 96px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 0;
+  border-radius: 50%;
+  background: var(--bd-bg);
+  padding: 0;
+  cursor: pointer;
+}
+
+.bd-labo-avatar-btn svg { fill: var(--bd-faint); }
+
+.bd-labo-avatar-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bd-labo-avatar-actions { display: flex; align-items: center; gap: 8px; }
+
+/* The "Chọn nhóm" link only exists where the panel beside the table is gone. */
+.bd-labo-groupbtn { display: inline-flex; }
+
+@media (min-width: 768px) {
+  .bd-labo-groupbtn { display: none; }
+}
+
+/* The file input the well opens; it is never seen. */
+.bd-hidden { display: none; }

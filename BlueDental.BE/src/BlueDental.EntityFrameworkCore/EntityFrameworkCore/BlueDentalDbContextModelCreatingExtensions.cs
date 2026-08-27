@@ -227,7 +227,14 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.BloodType).HasMaxLength(10);
             entity.Property(x => x.Status).HasConversion<short>();
             entity.Property(x => x.Gender).HasConversion<short>();
+            entity.Property(x => x.OccupationOther).HasMaxLength(200);
+            entity.Property(x => x.InsuranceNumber).HasMaxLength(30);
+            entity.Property(x => x.ProvinceCode).HasMaxLength(20);
+            entity.Property(x => x.WardCode).HasMaxLength(20);
+            entity.Property(x => x.ExaminationReason).HasMaxLength(1000);
+            entity.Property(x => x.Note).HasMaxLength(1000);
             entity.PrimitiveCollection(x => x.TagIds).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.PrimitiveCollection(x => x.DiseaseHistoryEntryIds).UsePropertyAccessMode(PropertyAccessMode.Field);
 
             entity.OwnsOne(x => x.Contact, contact =>
             {
@@ -543,6 +550,8 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Notes).HasMaxLength(2000);
             entity.Property(x => x.EstimatedCost).HasPrecision(18, 2);
             entity.Property(x => x.RejectionReason).HasMaxLength(500);
+            entity.Property(x => x.Kind).HasConversion<short>();
+            entity.Property(x => x.AttachmentUrl).HasMaxLength(500);
             entity.HasIndex(x => x.OrderCode).IsUnique();
             entity.HasIndex(x => new { x.BranchId, x.Status });
         });
@@ -554,31 +563,15 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
             entity.Property(x => x.Phone).HasMaxLength(50);
             entity.Property(x => x.Email).HasMaxLength(256);
+            entity.Property(x => x.ContactPerson).HasMaxLength(200);
+            entity.Property(x => x.TaxCode).HasMaxLength(100);
             entity.Property(x => x.Address).HasMaxLength(500);
-        });
-
-        builder.Entity<LaboBiteType>(entity =>
-        {
-            entity.ToTable("bd_labo_bite_types");
-            entity.ConfigureByConvention();
-            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
-            entity.Property(x => x.Description).HasMaxLength(1000);
-        });
-
-        builder.Entity<LaboFinishLine>(entity =>
-        {
-            entity.ToTable("bd_labo_finish_lines");
-            entity.ConfigureByConvention();
-            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
-            entity.Property(x => x.Description).HasMaxLength(1000);
-        });
-
-        builder.Entity<LaboRhythmType>(entity =>
-        {
-            entity.ToTable("bd_labo_rhythm_types");
-            entity.ConfigureByConvention();
-            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
-            entity.Property(x => x.Description).HasMaxLength(1000);
+            entity.Property(x => x.ProvinceCode).HasMaxLength(20);
+            entity.Property(x => x.WardCode).HasMaxLength(20);
+            entity.Property(x => x.LogoFileId).HasMaxLength(400);
+            entity.Property(x => x.LogoPath).HasMaxLength(1000);
+            // The list always asks for one branch at a time.
+            entity.HasIndex(x => x.ClinicBranchId);
         });
 
         builder.Entity<LaboMaterial>(entity =>
@@ -586,8 +579,8 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.ToTable("bd_labo_materials");
             entity.ConfigureByConvention();
             entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
-            entity.Property(x => x.Category).HasMaxLength(100);
-            entity.Property(x => x.Description).HasMaxLength(1000);
+            // The table is read one branch at a time, and usually one group too.
+            entity.HasIndex(x => new { x.ClinicBranchId, x.TaxonomyId });
         });
     }
 

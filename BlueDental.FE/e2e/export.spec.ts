@@ -37,29 +37,33 @@ test.describe("Xuất file", () => {
     expect(errors.filter((e) => e.includes("exportToExcel") || e.includes("XLSX"))).toHaveLength(0);
   });
 
-  test("the patient list has a working Xuất file button with real data", async ({ page }) => {
+  test("the patient list exports the filtered list as a real workbook", async ({ page }) => {
     await page.goto("/patient");
     await assertRealApiTraffic(page, "/api/v1/app/patients");
 
-    const exportButton = page.getByRole("button", { name: "Xuất file" });
-    await expect(exportButton).toBeVisible();
+    // Narrow first: the reference exports what the screen is showing, not
+    // everything, so the request has to carry the filter with it.
+    await page.locator(".bd-patient-filters").getByRole("button", { name: "Chưa phát sinh" }).click();
 
-    const errors: string[] = [];
-    page.on("console", (msg) => {
-      if (msg.type() === "error") errors.push(msg.text());
-    });
+    const exported = page.waitForRequest(
+      (r) =>
+        r.url().includes("/api/v1/app/patients/excel") &&
+        r.url().includes("treatmentStatus=Pending"),
+    );
+    const download = page.waitForEvent("download");
 
-    await exportButton.click();
-    await page.waitForTimeout(2000);
+    await page.locator(".bd-patient-toolbar").getByRole("button", { name: "Xuất file" }).click();
 
-    expect(errors.filter((e) => e.includes("exportToExcel") || e.includes("XLSX"))).toHaveLength(0);
+    await exported;
+    // The server names the file; the browser only has to be handed one.
+    expect((await download).suggestedFilename()).toMatch(/^danh-sach-benh-nhan.*\.xlsx$/);
   });
 
   test("a prescription row has an In đơn button linked to the PDF endpoint", async ({ page }) => {
     await page.goto("/patient");
     await assertRealApiTraffic(page, "/api/v1/app/patients");
 
-    await page.locator("tr.ant-table-row").first().click();
+    await page.locator("tr.ant-table-row .bd-patient-name").first().click();
     await expect(page).toHaveURL(/\/patient\/[0-9a-f-]{36}/);
 
     await page.getByRole("tab", { name: "Đơn thuốc" }).click();

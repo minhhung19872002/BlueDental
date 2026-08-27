@@ -32,6 +32,7 @@ namespace BlueDental.Data;
 /// </summary>
 public class BlueDentalOperationsDemoSeeder(
     IRepository<Department, Guid> departmentRepository,
+    IRepository<Catalogs.Taxonomy, Guid> laboTaxonomyRepository,
     IRepository<LaboSupplier, Guid> laboSupplierRepository,
     IRepository<LaboMaterial, Guid> laboMaterialRepository,
     IRepository<LaboOrder, Guid> laboOrderRepository,
@@ -77,20 +78,25 @@ public class BlueDentalOperationsDemoSeeder(
 
     private static readonly string[] Departments = ["Lễ tân", "Trợ lý", "Điều trị", "Kho vật tư"];
 
-    private static readonly (string Name, string Phone)[] LaboSuppliers =
+    private static readonly (string Name, string Phone, string Email, string Contact)[] LaboSuppliers =
     [
-        ("Labo Nha Khoa Sài Gòn", "02838221100"),
-        ("Labo Việt Đức", "02839551122"),
-        ("Labo Kim Cương", "02837889900")
+        ("Labo Nha Khoa Sài Gòn", "02838221100", "lienhe@labosaigon.test", "Trần Minh Khoa"),
+        ("Labo Việt Đức", "02839551122", "lienhe@labovietduc.test", "Nguyễn Thu Hà"),
+        ("Labo Kim Cương", "02837889900", "lienhe@labokimcuong.test", "Lê Quốc Bảo")
     ];
 
-    private static readonly (string Name, string Category)[] LaboMaterials =
+    /// <summary>
+    /// Materials, and the classification group each is filed under. The
+    /// reference names its groups after the labs it orders from, so these do
+    /// too — they are still separate records from the supplier list.
+    /// </summary>
+    private static readonly (string Name, string Group)[] LaboMaterials =
     [
-        ("Sứ Zirconia", "Sứ"),
-        ("Sứ Emax", "Sứ"),
-        ("Kim loại Titan", "Kim loại"),
-        ("Nhựa Acrylic", "Nhựa"),
-        ("Sáp mẫu hàm", "Vật liệu mẫu")
+        ("Sứ Zirconia", "Nhóm Răng Sứ"),
+        ("Sứ Emax", "Nhóm Răng Sứ"),
+        ("Kim loại Titan", "Nhóm Kim Loại"),
+        ("Nhựa Acrylic", "Nhóm Tháo Lắp"),
+        ("Sáp mẫu hàm", "Nhóm Tháo Lắp")
     ];
 
     /// <summary>Stock, with three lines deliberately under their reorder level.</summary>
@@ -217,21 +223,43 @@ public class BlueDentalOperationsDemoSeeder(
         var suppliers = new List<LaboSupplier>();
         for (var i = 0; i < LaboSuppliers.Length; i++)
         {
-            suppliers.Add(new LaboSupplier(
-                DemoId("1100", i + 1),
+            var supplier = LaboSupplier.Create(DemoId("1100", i + 1), _branchId, LaboSuppliers[i].Name);
+            supplier.SetDetails(
                 LaboSuppliers[i].Name,
-                phone: LaboSuppliers[i].Phone,
-                address: "TP.HCM"));
+                LaboSuppliers[i].Phone,
+                LaboSuppliers[i].Email,
+                LaboSuppliers[i].Contact,
+                taxCode: null,
+                provinceCode: null,
+                wardCode: null,
+                address: "TP.HCM");
+            suppliers.Add(supplier);
         }
+
+        // A material hangs off a classification group, so the groups come first.
+        var groupNames = LaboMaterials.Select(m => m.Group).Distinct().ToList();
+        var groups = new List<Catalogs.Taxonomy>();
+        for (var i = 0; i < groupNames.Count; i++)
+        {
+            groups.Add(Catalogs.Taxonomy.Create(
+                DemoId("1103", i + 1),
+                _branchId,
+                Catalogs.TaxonomyGroups.LaboMaterial,
+                groupNames[i],
+                sortOrder: i));
+        }
+
+        var groupIdByName = groups.ToDictionary(g => g.Name, g => g.Id);
 
         var materials = new List<LaboMaterial>();
         for (var i = 0; i < LaboMaterials.Length; i++)
         {
-            materials.Add(new LaboMaterial(
+            materials.Add(LaboMaterial.Create(
                 DemoId("1101", i + 1),
+                _branchId,
+                groupIdByName[LaboMaterials[i].Group],
                 LaboMaterials[i].Name,
-                category: LaboMaterials[i].Category,
-                supplierId: suppliers[i % suppliers.Count].Id));
+                sortOrder: i));
         }
 
         var random = new Random(20260828);
@@ -250,7 +278,11 @@ public class BlueDentalOperationsDemoSeeder(
                 dentistId: staffIds[i % staffIds.Count],
                 toothNumbers: (11 + i).ToString(),
                 workDescription: LaboMaterials[i % LaboMaterials.Length].Name,
-                dueDate: today.AddDays(random.Next(2, 21)));
+                dueDate: today.AddDays(random.Next(2, 21)),
+                // Point at the records, not just their names, so the table's
+                // supplier and material columns have something to resolve.
+                supplierId: suppliers[i % suppliers.Count].Id,
+                materialId: materials[i % materials.Count].Id);
 
             // One of each state the labo screen filters on.
             if (i % 4 >= 1)
@@ -272,6 +304,7 @@ public class BlueDentalOperationsDemoSeeder(
         }
 
         await laboSupplierRepository.InsertManyAsync(suppliers, autoSave: true);
+        await laboTaxonomyRepository.InsertManyAsync(groups, autoSave: true);
         await laboMaterialRepository.InsertManyAsync(materials, autoSave: true);
         await laboOrderRepository.InsertManyAsync(orders, autoSave: true);
     }

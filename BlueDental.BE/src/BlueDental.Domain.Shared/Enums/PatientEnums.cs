@@ -16,6 +16,42 @@ public enum Gender
     PreferNotToSay = 4
 }
 
+/// <summary>
+/// Trạng thái điều trị on the patient list. Always derived from the patient's
+/// treatment slips and never stored — the reference recomputes it per payload,
+/// so a stored copy would only be a second thing to keep in step.
+/// </summary>
+public enum PatientTreatmentStatus
+{
+    /// <summary>Chưa phát sinh — no treatment slip at all.</summary>
+    None = 1,
+
+    /// <summary>Chưa phát sinh — a slip exists but no service has started.</summary>
+    Created = 2,
+
+    /// <summary>Đang điều trị.</summary>
+    InProgress = 3,
+
+    /// <summary>Hoàn tất.</summary>
+    Done = 4
+}
+
+/// <summary>
+/// The four tabs above the patient list. "Tất cả" is the absence of a filter,
+/// and "Chưa phát sinh" deliberately covers both quiet states.
+/// </summary>
+public enum PatientTreatmentFilter
+{
+    /// <summary>Chưa phát sinh — <see cref="PatientTreatmentStatus.None"/> or Created.</summary>
+    Pending = 1,
+
+    /// <summary>Đang điều trị.</summary>
+    InTreatment = 2,
+
+    /// <summary>Điều trị hoàn tất.</summary>
+    Completed = 3
+}
+
 public enum AllergyType
 {
     Medication = 1,

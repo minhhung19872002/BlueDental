@@ -47,9 +47,6 @@ public class BlueDentalApplicationAutoMapperProfile : Profile
 
         // Labo catalogs
         CreateMap<Labo.LaboSupplier, Labo.LaboSupplierDto>();
-        CreateMap<Labo.LaboBiteType, Labo.LaboBiteTypeDto>();
-        CreateMap<Labo.LaboFinishLine, Labo.LaboFinishLineDto>();
-        CreateMap<Labo.LaboRhythmType, Labo.LaboRhythmTypeDto>();
         CreateMap<Labo.LaboMaterial, Labo.LaboMaterialDto>();
 
         /* Patient Management */

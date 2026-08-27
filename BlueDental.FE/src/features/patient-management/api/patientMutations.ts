@@ -1,10 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { patientApi } from "./patientApi";
 import { patientKeys } from "./patientQueries";
-import type {
-  RegisterPatientRequest,
-  UpdatePatientRequest,
-} from "../types/patient";
+import type { RegisterPatientRequest, UpdatePatientRequest } from "../types/patient";
 
 export function useRegisterPatient() {
   const queryClient = useQueryClient();
@@ -14,6 +11,8 @@ export function useRegisterPatient() {
     mutationFn: (data: RegisterPatientRequest) => patientApi.create(data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: patientKeys.lists() });
+      // The next dialog must not reopen on the code this one just used.
+      void queryClient.invalidateQueries({ queryKey: patientKeys.codeEstimate() });
     },
   });
 }

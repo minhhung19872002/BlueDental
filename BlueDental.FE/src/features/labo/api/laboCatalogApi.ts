@@ -1,212 +1,224 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
+import { useBranchFilter, useCurrentBranchId } from "@/lib/clinicBranch";
 import type { PagedResult } from "@/types";
 
-// ── Labo Supplier ──────────────────────────────────────────────────────
+/**
+ * Nhà cung cấp Labo and Dịch vụ - vật liệu.
+ *
+ * Both lists are searched, filtered and paged on the server — the reference
+ * narrows them with a request, not by hiding rows it already fetched, and a
+ * client-side filter would only ever search the page in hand.
+ */
+
+// ── Nhà cung cấp Labo ──────────────────────────────────────────────────
+
+const SUPPLIER_BASE = "/v1/app/labo-suppliers";
 
 export interface LaboSupplierDto {
   id: string;
+  clinicBranchId: string;
   name: string;
+  phone?: string | null;
+  email?: string | null;
+  contactPerson?: string | null;
+  taxCode?: string | null;
+  address?: string | null;
+  provinceCode?: string | null;
+  wardCode?: string | null;
+  logoFileId?: string | null;
+  logoPath?: string | null;
+  isActive: boolean;
+  creationTime: string;
+  lastModificationTime?: string | null;
+}
+
+/** What the dialog sends. The reference saves the whole form at once. */
+export interface LaboSupplierInput {
+  name: string;
+  email: string;
   phone?: string;
-  email?: string;
+  contactPerson?: string;
+  taxCode?: string;
+  provinceCode?: string;
+  wardCode?: string;
   address?: string;
-  isActive: boolean;
-  creationTime: string;
-  lastModificationTime?: string;
 }
 
-export interface CreateLaboSupplierDto { name: string; phone?: string; email?: string; address?: string; }
-export interface UpdateLaboSupplierDto { name: string; phone?: string; email?: string; address?: string; }
+export interface LaboSupplierQuery {
+  filter?: string;
+  skipCount: number;
+  maxResultCount: number;
+}
 
-const laboSupplierApi = {
-  list: (params?: { filter?: string; maxResultCount?: number }): Promise<PagedResult<LaboSupplierDto>> =>
-    api.get("/v1/app/labo-suppliers", { params }).then((r) => r.data),
-  create: (data: CreateLaboSupplierDto): Promise<LaboSupplierDto> =>
-    api.post("/v1/app/labo-suppliers", data).then((r) => r.data),
-  update: (id: string, data: UpdateLaboSupplierDto): Promise<LaboSupplierDto> =>
-    api.put(`/v1/app/labo-suppliers/${id}`, data).then((r) => r.data),
-  delete: (id: string): Promise<void> =>
-    api.delete(`/v1/app/labo-suppliers/${id}`).then((r) => r.data),
+export const laboSupplierKeys = {
+  all: ["labo-suppliers"] as const,
+  list: (branchId: string | undefined, query: LaboSupplierQuery) =>
+    [
+      ...laboSupplierKeys.all,
+      branchId ?? "all",
+      query.filter?.trim() ?? "",
+      query.skipCount,
+      query.maxResultCount,
+    ] as const,
 };
 
-export function useLaboSupplierList() {
-  return useQuery({ queryKey: ["labo-suppliers"], queryFn: () => laboSupplierApi.list({ maxResultCount: 200 }) });
-}
-export function useCreateLaboSupplier() {
-  const qc = useQueryClient();
-  return useMutation({ mutationFn: (data: CreateLaboSupplierDto) => laboSupplierApi.create(data), onSuccess: () => qc.invalidateQueries({ queryKey: ["labo-suppliers"] }) });
-}
-export function useUpdateLaboSupplier() {
-  const qc = useQueryClient();
-  return useMutation({ mutationFn: ({ id, data }: { id: string; data: UpdateLaboSupplierDto }) => laboSupplierApi.update(id, data), onSuccess: () => qc.invalidateQueries({ queryKey: ["labo-suppliers"] }) });
-}
-export function useDeleteLaboSupplier() {
-  const qc = useQueryClient();
-  return useMutation({ mutationFn: (id: string) => laboSupplierApi.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ["labo-suppliers"] }) });
+export function useLaboSupplierList(query: LaboSupplierQuery) {
+  const clinicBranchId = useBranchFilter();
+
+  return useQuery({
+    queryKey: laboSupplierKeys.list(clinicBranchId, query),
+    queryFn: async (): Promise<PagedResult<LaboSupplierDto>> => {
+      const response = await api.get<PagedResult<LaboSupplierDto>>(SUPPLIER_BASE, {
+        params: {
+          ClinicBranchId: clinicBranchId,
+          Filter: query.filter?.trim() || undefined,
+          SkipCount: query.skipCount,
+          MaxResultCount: query.maxResultCount,
+        },
+      });
+      return response.data;
+    },
+    placeholderData: (previous) => previous,
+  });
 }
 
-// ── Labo Bite Type ─────────────────────────────────────────────────────
-
-export interface LaboBiteTypeDto {
-  id: string;
-  name: string;
-  description?: string;
-  isActive: boolean;
-  creationTime: string;
-  lastModificationTime?: string;
-}
-
-export interface CreateLaboBiteTypeDto { name: string; description?: string; }
-export interface UpdateLaboBiteTypeDto { name: string; description?: string; }
-
-const laboBiteTypeApi = {
-  list: (params?: { filter?: string; maxResultCount?: number }): Promise<PagedResult<LaboBiteTypeDto>> =>
-    api.get("/v1/app/labo-bite-types", { params }).then((r) => r.data),
-  create: (data: CreateLaboBiteTypeDto): Promise<LaboBiteTypeDto> =>
-    api.post("/v1/app/labo-bite-types", data).then((r) => r.data),
-  update: (id: string, data: UpdateLaboBiteTypeDto): Promise<LaboBiteTypeDto> =>
-    api.put(`/v1/app/labo-bite-types/${id}`, data).then((r) => r.data),
-  delete: (id: string): Promise<void> =>
-    api.delete(`/v1/app/labo-bite-types/${id}`).then((r) => r.data),
+/**
+ * The logo has endpoints of its own rather than travelling in the form: it is
+ * a file, the record is saved as JSON, and a form posted without one would
+ * otherwise blank a logo that had just been uploaded. Same shape as the staff
+ * avatar.
+ */
+export const laboSupplierLogoApi = {
+  upload: (id: string, file: File): Promise<string> => {
+    const form = new FormData();
+    form.append("file", file);
+    return api
+      .post<{ url: string }>(`${SUPPLIER_BASE}/${id}/logo`, form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      })
+      .then((r) => r.data.url);
+  },
+  remove: (id: string): Promise<void> =>
+    api.delete(`${SUPPLIER_BASE}/${id}/logo`).then(() => undefined),
 };
 
-export function useLaboBiteTypeList() {
-  return useQuery({ queryKey: ["labo-bite-types"], queryFn: () => laboBiteTypeApi.list({ maxResultCount: 200 }) });
-}
-export function useCreateLaboBiteType() {
-  const qc = useQueryClient();
-  return useMutation({ mutationFn: (data: CreateLaboBiteTypeDto) => laboBiteTypeApi.create(data), onSuccess: () => qc.invalidateQueries({ queryKey: ["labo-bite-types"] }) });
-}
-export function useUpdateLaboBiteType() {
-  const qc = useQueryClient();
-  return useMutation({ mutationFn: ({ id, data }: { id: string; data: UpdateLaboBiteTypeDto }) => laboBiteTypeApi.update(id, data), onSuccess: () => qc.invalidateQueries({ queryKey: ["labo-bite-types"] }) });
-}
-export function useDeleteLaboBiteType() {
-  const qc = useQueryClient();
-  return useMutation({ mutationFn: (id: string) => laboBiteTypeApi.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ["labo-bite-types"] }) });
+export function useLaboSupplierCommands() {
+  const queryClient = useQueryClient();
+  const clinicBranchId = useCurrentBranchId();
+
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: laboSupplierKeys.all });
+
+  const create = useMutation({
+    mutationFn: (input: LaboSupplierInput) =>
+      api
+        .post<LaboSupplierDto>(SUPPLIER_BASE, { ...input, clinicBranchId })
+        .then((r) => r.data),
+    onSuccess: invalidate,
+  });
+
+  const update = useMutation({
+    mutationFn: ({ id, input }: { id: string; input: LaboSupplierInput }) =>
+      api.put<LaboSupplierDto>(`${SUPPLIER_BASE}/${id}`, input).then((r) => r.data),
+    onSuccess: invalidate,
+  });
+
+  const remove = useMutation({
+    mutationFn: (id: string) => api.delete(`${SUPPLIER_BASE}/${id}`).then(() => undefined),
+    onSuccess: invalidate,
+  });
+
+  return { create, update, remove };
 }
 
-// ── Labo Finish Line ───────────────────────────────────────────────────
+// ── Dịch vụ - vật liệu ─────────────────────────────────────────────────
 
-export interface LaboFinishLineDto {
-  id: string;
-  name: string;
-  description?: string;
-  isActive: boolean;
-  creationTime: string;
-  lastModificationTime?: string;
-}
-
-export interface CreateLaboFinishLineDto { name: string; description?: string; }
-export interface UpdateLaboFinishLineDto { name: string; description?: string; }
-
-const laboFinishLineApi = {
-  list: (params?: { filter?: string; maxResultCount?: number }): Promise<PagedResult<LaboFinishLineDto>> =>
-    api.get("/v1/app/labo-finish-lines", { params }).then((r) => r.data),
-  create: (data: CreateLaboFinishLineDto): Promise<LaboFinishLineDto> =>
-    api.post("/v1/app/labo-finish-lines", data).then((r) => r.data),
-  update: (id: string, data: UpdateLaboFinishLineDto): Promise<LaboFinishLineDto> =>
-    api.put(`/v1/app/labo-finish-lines/${id}`, data).then((r) => r.data),
-  delete: (id: string): Promise<void> =>
-    api.delete(`/v1/app/labo-finish-lines/${id}`).then((r) => r.data),
-};
-
-export function useLaboFinishLineList() {
-  return useQuery({ queryKey: ["labo-finish-lines"], queryFn: () => laboFinishLineApi.list({ maxResultCount: 200 }) });
-}
-export function useCreateLaboFinishLine() {
-  const qc = useQueryClient();
-  return useMutation({ mutationFn: (data: CreateLaboFinishLineDto) => laboFinishLineApi.create(data), onSuccess: () => qc.invalidateQueries({ queryKey: ["labo-finish-lines"] }) });
-}
-export function useUpdateLaboFinishLine() {
-  const qc = useQueryClient();
-  return useMutation({ mutationFn: ({ id, data }: { id: string; data: UpdateLaboFinishLineDto }) => laboFinishLineApi.update(id, data), onSuccess: () => qc.invalidateQueries({ queryKey: ["labo-finish-lines"] }) });
-}
-export function useDeleteLaboFinishLine() {
-  const qc = useQueryClient();
-  return useMutation({ mutationFn: (id: string) => laboFinishLineApi.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ["labo-finish-lines"] }) });
-}
-
-// ── Labo Rhythm Type ───────────────────────────────────────────────────
-
-export interface LaboRhythmTypeDto {
-  id: string;
-  name: string;
-  description?: string;
-  isActive: boolean;
-  creationTime: string;
-  lastModificationTime?: string;
-}
-
-export interface CreateLaboRhythmTypeDto { name: string; description?: string; }
-export interface UpdateLaboRhythmTypeDto { name: string; description?: string; }
-
-const laboRhythmTypeApi = {
-  list: (params?: { filter?: string; maxResultCount?: number }): Promise<PagedResult<LaboRhythmTypeDto>> =>
-    api.get("/v1/app/labo-rhythm-types", { params }).then((r) => r.data),
-  create: (data: CreateLaboRhythmTypeDto): Promise<LaboRhythmTypeDto> =>
-    api.post("/v1/app/labo-rhythm-types", data).then((r) => r.data),
-  update: (id: string, data: UpdateLaboRhythmTypeDto): Promise<LaboRhythmTypeDto> =>
-    api.put(`/v1/app/labo-rhythm-types/${id}`, data).then((r) => r.data),
-  delete: (id: string): Promise<void> =>
-    api.delete(`/v1/app/labo-rhythm-types/${id}`).then((r) => r.data),
-};
-
-export function useLaboRhythmTypeList() {
-  return useQuery({ queryKey: ["labo-rhythm-types"], queryFn: () => laboRhythmTypeApi.list({ maxResultCount: 200 }) });
-}
-export function useCreateLaboRhythmType() {
-  const qc = useQueryClient();
-  return useMutation({ mutationFn: (data: CreateLaboRhythmTypeDto) => laboRhythmTypeApi.create(data), onSuccess: () => qc.invalidateQueries({ queryKey: ["labo-rhythm-types"] }) });
-}
-export function useUpdateLaboRhythmType() {
-  const qc = useQueryClient();
-  return useMutation({ mutationFn: ({ id, data }: { id: string; data: UpdateLaboRhythmTypeDto }) => laboRhythmTypeApi.update(id, data), onSuccess: () => qc.invalidateQueries({ queryKey: ["labo-rhythm-types"] }) });
-}
-export function useDeleteLaboRhythmType() {
-  const qc = useQueryClient();
-  return useMutation({ mutationFn: (id: string) => laboRhythmTypeApi.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ["labo-rhythm-types"] }) });
-}
-
-// ── Labo Material ──────────────────────────────────────────────────────
+const MATERIAL_BASE = "/v1/app/labo-materials";
 
 export interface LaboMaterialDto {
   id: string;
+  clinicBranchId: string;
+  taxonomyId: string;
+  taxonomyName?: string | null;
   name: string;
-  category?: string;
-  description?: string;
-  supplierId?: string;
+  sortOrder: number;
   isActive: boolean;
   creationTime: string;
-  lastModificationTime?: string;
+  lastModificationTime?: string | null;
 }
 
-export interface CreateLaboMaterialDto { name: string; category?: string; description?: string; supplierId?: string; }
-export interface UpdateLaboMaterialDto { name: string; category?: string; description?: string; supplierId?: string; }
+export interface LaboMaterialInput {
+  name: string;
+  taxonomyId: string;
+}
 
-const laboMaterialApi = {
-  list: (params?: { filter?: string; maxResultCount?: number }): Promise<PagedResult<LaboMaterialDto>> =>
-    api.get("/v1/app/labo-materials", { params }).then((r) => r.data),
-  create: (data: CreateLaboMaterialDto): Promise<LaboMaterialDto> =>
-    api.post("/v1/app/labo-materials", data).then((r) => r.data),
-  update: (id: string, data: UpdateLaboMaterialDto): Promise<LaboMaterialDto> =>
-    api.put(`/v1/app/labo-materials/${id}`, data).then((r) => r.data),
-  delete: (id: string): Promise<void> =>
-    api.delete(`/v1/app/labo-materials/${id}`).then((r) => r.data),
+export interface LaboMaterialQuery {
+  taxonomyId?: string;
+  filter?: string;
+  skipCount: number;
+  maxResultCount: number;
+}
+
+export const laboMaterialKeys = {
+  all: ["labo-materials"] as const,
+  list: (branchId: string | undefined, query: LaboMaterialQuery) =>
+    [
+      ...laboMaterialKeys.all,
+      branchId ?? "all",
+      query.taxonomyId ?? null,
+      query.filter?.trim() ?? "",
+      query.skipCount,
+      query.maxResultCount,
+    ] as const,
 };
 
-export function useLaboMaterialList() {
-  return useQuery({ queryKey: ["labo-materials"], queryFn: () => laboMaterialApi.list({ maxResultCount: 200 }) });
+export function useLaboMaterialList(query: LaboMaterialQuery) {
+  const clinicBranchId = useBranchFilter();
+
+  return useQuery({
+    queryKey: laboMaterialKeys.list(clinicBranchId, query),
+    queryFn: async (): Promise<PagedResult<LaboMaterialDto>> => {
+      const response = await api.get<PagedResult<LaboMaterialDto>>(MATERIAL_BASE, {
+        params: {
+          ClinicBranchId: clinicBranchId,
+          TaxonomyId: query.taxonomyId,
+          Filter: query.filter?.trim() || undefined,
+          SkipCount: query.skipCount,
+          MaxResultCount: query.maxResultCount,
+        },
+      });
+      return response.data;
+    },
+    placeholderData: (previous) => previous,
+  });
 }
-export function useCreateLaboMaterial() {
-  const qc = useQueryClient();
-  return useMutation({ mutationFn: (data: CreateLaboMaterialDto) => laboMaterialApi.create(data), onSuccess: () => qc.invalidateQueries({ queryKey: ["labo-materials"] }) });
-}
-export function useUpdateLaboMaterial() {
-  const qc = useQueryClient();
-  return useMutation({ mutationFn: ({ id, data }: { id: string; data: UpdateLaboMaterialDto }) => laboMaterialApi.update(id, data), onSuccess: () => qc.invalidateQueries({ queryKey: ["labo-materials"] }) });
-}
-export function useDeleteLaboMaterial() {
-  const qc = useQueryClient();
-  return useMutation({ mutationFn: (id: string) => laboMaterialApi.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ["labo-materials"] }) });
+
+export function useLaboMaterialCommands() {
+  const queryClient = useQueryClient();
+  const clinicBranchId = useCurrentBranchId();
+
+  // A material's group carries its own count, so both lists are refreshed.
+  const invalidate = () => {
+    void queryClient.invalidateQueries({ queryKey: laboMaterialKeys.all });
+    void queryClient.invalidateQueries({ queryKey: ["labo-catalog"] });
+  };
+
+  const create = useMutation({
+    mutationFn: (input: LaboMaterialInput) =>
+      api.post(MATERIAL_BASE, { ...input, clinicBranchId }).then(() => undefined),
+    onSuccess: invalidate,
+  });
+
+  const update = useMutation({
+    mutationFn: ({ id, input }: { id: string; input: LaboMaterialInput }) =>
+      api.put(`${MATERIAL_BASE}/${id}`, input).then(() => undefined),
+    onSuccess: invalidate,
+  });
+
+  const remove = useMutation({
+    mutationFn: (id: string) => api.delete(`${MATERIAL_BASE}/${id}`).then(() => undefined),
+    onSuccess: invalidate,
+  });
+
+  return { create, update, remove };
 }
