@@ -405,6 +405,77 @@ test.describe("Vật tư", () => {
     await expect(page.getByRole("row", { name: new RegExp(materialName) })).toBeVisible();
   });
 
+  test("every search asks the server, not the browser", async ({ page }) => {
+    /** Fails unless typing into `fill` puts the term on a real request. */
+    const expectsQuery = async (
+      endpoint: string,
+      typeIt: () => Promise<void>,
+      term: string,
+    ) => {
+      const [request] = await Promise.all([
+        page.waitForRequest(
+          (req) =>
+            req.url().includes(endpoint) &&
+            (new URL(req.url()).searchParams.get("Filter") ??
+              new URL(req.url()).searchParams.get("filter") ??
+              "").includes(term),
+          { timeout: 15_000 },
+        ),
+        typeIt(),
+      ]);
+      expect(request.method()).toBe("GET");
+    };
+
+    // ── Phân bổ vật tư: the voucher search ─────────────────────────────────
+    await page.goto("/materials/allocation");
+    await assertRealApiTraffic(page, "/api/v1/app/material-allocations");
+
+    await expectsQuery(
+      "/api/v1/app/material-allocations",
+      () => page.getByPlaceholder("Tìm phiếu phân bổ...").fill("ZZKHONGCO"),
+      "ZZKHONGCO",
+    );
+    await expect(page.getByText("Chưa có phiếu phân bổ")).toBeVisible();
+
+    // ── Phòng ban: the panel, and the materials inside one ─────────────────
+    await page.goto("/materials/department");
+    await assertRealApiTraffic(page, "/api/v1/app/departments");
+
+    await expectsQuery(
+      "/api/v1/app/departments",
+      () => page.getByPlaceholder("Tìm phòng ban...").fill("ZZKHONGCO"),
+      "ZZKHONGCO",
+    );
+    await expect(page.getByText("Không tìm thấy phòng ban phù hợp")).toBeVisible();
+
+    await page.getByPlaceholder("Tìm phòng ban...").fill("");
+    await page.getByRole("button", { name: "Phòng khám 1" }).click();
+    await expect(page.locator(".ant-table-tbody tr.ant-table-row").first()).toBeVisible();
+
+    await expectsQuery(
+      "/api/v1/app/material-allocations",
+      () => page.getByPlaceholder("Tìm vật tư...").fill("ZZKHONGCO"),
+      "ZZKHONGCO",
+    );
+
+    // ── Vật tư phòng khám: the group panel and the material list ───────────
+    await page.goto("/materials/clinic");
+    await assertRealApiTraffic(page, "/api/v1/app/taxonomies");
+
+    await expectsQuery(
+      "/api/v1/app/taxonomies",
+      () => page.getByPlaceholder("Tìm nhóm vật tư...").fill("ZZKHONGCO"),
+      "ZZKHONGCO",
+    );
+
+    await page.getByPlaceholder("Tìm nhóm vật tư...").fill("");
+    await expectsQuery(
+      "/api/v1/app/inventory-items",
+      () => page.getByPlaceholder("Tìm kiếm").fill("ZZKHONGCO"),
+      "ZZKHONGCO",
+    );
+  });
+
   test("Phân bổ vật tư scrolls inside its table, not off the card", async ({ page }) => {
     await page.goto("/materials/allocation");
     await assertRealApiTraffic(page, "/api/v1/app/material-allocations");
