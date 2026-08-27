@@ -5,6 +5,22 @@ import { t } from "@/lib/i18n";
 export interface SearchSelectOption {
   value: string;
   label: string;
+  /** When set, the option renders as a colored tag chip (Thẻ hồ sơ style). */
+  color?: string;
+}
+
+/** The reference renders tag options as colored chips with a small tag icon. */
+function renderOptionLabel(option: SearchSelectOption): React.ReactNode {
+  if (!option.color) return option.label;
+  return (
+    <span className="bd-tag-chip ss-tag-chip" style={{ backgroundColor: option.color }}>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z" />
+        <circle cx="7.5" cy="7.5" r=".5" fill="currentColor" />
+      </svg>
+      {option.label}
+    </span>
+  );
 }
 
 interface DropdownPos {
@@ -21,8 +37,12 @@ interface SearchSelectProps {
   allowClear?: boolean;
   status?: "error" | "";
   style?: React.CSSProperties;
+  /** Dropdown empty state; defaults to "Không tìm thấy kết quả". */
+  emptyText?: string;
   onChange?: (value: string | undefined) => void;
   onSearch?: (keyword: string) => void;
+  /** Reported the way AntD pickers report it, so floating-label wrappers work. */
+  onOpenChange?: (open: boolean) => void;
 }
 
 export const SearchSelect: React.FC<SearchSelectProps> = ({
@@ -33,8 +53,10 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
   allowClear = false,
   status,
   style,
+  emptyText,
   onChange,
   onSearch,
+  onOpenChange,
 }) => {
   const resolvedPlaceholder = placeholder ?? t("Tìm kiếm...");
   const [open, setOpen] = useState(false);
@@ -61,6 +83,12 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
     });
   }, []);
 
+  const closeDropdown = useCallback(() => {
+    setOpen(false);
+    setKeyword("");
+    onOpenChange?.(false);
+  }, [onOpenChange]);
+
   // Close on outside click
   useEffect(() => {
     if (!open) return;
@@ -73,13 +101,12 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
         dropdown &&
         !dropdown.contains(target)
       ) {
-        setOpen(false);
-        setKeyword("");
+        closeDropdown();
       }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
+  }, [open, closeDropdown]);
 
   // Reposition on scroll/resize
   useEffect(() => {
@@ -98,16 +125,16 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
     calcPos();
     setOpen(true);
     setKeyword("");
+    onOpenChange?.(true);
     setTimeout(() => searchRef.current?.focus(), 30);
-  }, [disabled, calcPos]);
+  }, [disabled, calcPos, onOpenChange]);
 
   const handleSelect = useCallback(
     (opt: SearchSelectOption) => {
       onChange?.(opt.value);
-      setOpen(false);
-      setKeyword("");
+      closeDropdown();
     },
-    [onChange]
+    [onChange, closeDropdown]
   );
 
   const handleClear = useCallback(
@@ -126,8 +153,7 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Escape") {
-      setOpen(false);
-      setKeyword("");
+      closeDropdown();
     }
   };
 
@@ -164,7 +190,7 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
             </div>
             <div className="ss-options">
               {filtered.length === 0 ? (
-                <div className="ss-empty">{t("Không tìm thấy kết quả")}</div>
+                <div className="ss-empty">{emptyText ?? t("Không tìm thấy kết quả")}</div>
               ) : (
                 filtered.map((opt) => (
                   <div
@@ -178,7 +204,7 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
                       handleSelect(opt);
                     }}
                   >
-                    {opt.label}
+                    {renderOptionLabel(opt)}
                   </div>
                 ))
               )}
@@ -214,7 +240,7 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
 
           <span className="ss-value">
             {selectedOption ? (
-              <span className="ss-value--selected">{selectedOption.label}</span>
+              <span className="ss-value--selected">{renderOptionLabel(selectedOption)}</span>
             ) : (
               <span className="ss-value--placeholder">{resolvedPlaceholder}</span>
             )}

@@ -48,8 +48,25 @@ public sealed class CustomerCareController(ICustomerCareAppService service) : Bl
 
     [HttpGet("excel")]
     public async Task<IActionResult> ExportAsync([FromQuery] GetCareRecordListInput input) =>
-        Excel(await service.ExportAsync(input), "cskh");
+        Excel(await service.ExportAsync(input), ExportName(input.Type));
 
     [HttpPost("{id:guid}/cancel")]
     public Task CancelAsync(Guid id, [FromBody] string reason) => service.CancelAsync(id, reason);
+
+    /// <summary>Phân nhóm CSKH — patient list with treatment/care rollups.</summary>
+    [HttpGet("grouping-patients")]
+    public Task<PagedResultDto<CareGroupingPatientDto>> GetGroupingPatientsAsync(
+        [FromQuery] GetCareGroupingPatientsInput input) =>
+        service.GetGroupingPatientsAsync(input);
+
+    /// <summary>Reference downloads e.g. <c>cskh-dac-biet.xlsx</c> — kebab per tab.</summary>
+    private static string ExportName(CareType? type) => type switch
+    {
+        CareType.AfterTreatment => "cskh-sau-dieu-tri",
+        CareType.Birthday => "cskh-sinh-nhat",
+        CareType.AppointmentReminder => "cskh-nhac-lich-hen",
+        CareType.Periodic => "cskh-dinh-ky",
+        CareType.Special => "cskh-dac-biet",
+        _ => "cskh",
+    };
 }

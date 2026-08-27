@@ -113,6 +113,7 @@ public class BlueDentalDbContext :
 
     // Notifications
     public DbSet<Notification> Notifications { get; set; }
+    public DbSet<ClinicConfigure> ClinicConfigures { get; set; }
 
     // File Management
     public DbSet<FileAttachment> FileAttachments { get; set; }
@@ -130,7 +131,6 @@ public class BlueDentalDbContext :
 
     // Customer Care
     public DbSet<CareRecord> CareRecords { get; set; }
-    public DbSet<CskhGroup> CskhGroups { get; set; }
 
     // Operations
     public DbSet<OperationCategory> OperationCategories { get; set; }

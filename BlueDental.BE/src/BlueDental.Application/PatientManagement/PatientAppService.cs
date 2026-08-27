@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Catalogs;
 using BlueDental.Organizations;
 using BlueDental.PatientManagement.Values;
 using BlueDental.Exporting;
@@ -44,13 +46,16 @@ public class PatientAppService : ApplicationService, IPatientAppService
     }
 
     private readonly IRepository<Patient, Guid> _repository;
+    private readonly IRepository<PatientTag, Guid> _tagRepository;
     private readonly ICurrentClinicBranchResolver _branchResolver;
 
     public PatientAppService(
         IRepository<Patient, Guid> repository,
+        IRepository<PatientTag, Guid> tagRepository,
         ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
+        _tagRepository = tagRepository;
         _branchResolver = branchResolver;
     }
 
@@ -77,6 +82,7 @@ public class PatientAppService : ApplicationService, IPatientAppService
         }
 
         if (input.Status.HasValue) query = query.Where(p => p.Status == input.Status.Value);
+        if (input.TagId.HasValue) query = query.Where(p => p.TagIds.Contains(input.TagId.Value));
 
         var totalCount = query.Count();
 
@@ -117,6 +123,11 @@ public class PatientAppService : ApplicationService, IPatientAppService
             contact,
             branchId,
             input.NationalId);
+
+        if (input.TagIds is { Count: > 0 })
+        {
+            patient.SetTags(await OwnBranchTagsAsync(branchId, input.TagIds));
+        }
 
         await _repository.InsertAsync(patient, autoSave: true);
         return ObjectMapper.Map<Patient, PatientDto>(patient);
@@ -160,8 +171,32 @@ public class PatientAppService : ApplicationService, IPatientAppService
         patient.UpdateDemographics(input.FirstName, input.LastName, input.DateOfBirth, input.Gender);
         var contact = new ContactInfo(input.PhoneNumber, input.Email, null);
         patient.UpdateContact(contact);
+
+        if (input.TagIds is not null)
+        {
+            patient.SetTags(await OwnBranchTagsAsync(patient.BranchId, input.TagIds));
+        }
+
         await _repository.UpdateAsync(patient, autoSave: true);
         return ObjectMapper.Map<Patient, PatientDto>(patient);
+    }
+
+    /// <summary>
+    /// Keeps only ids that exist in this branch's Thẻ hồ sơ catalog, so a
+    /// client cannot pin another branch's tag (or a random id) on a patient.
+    /// </summary>
+    private async Task<List<Guid>> OwnBranchTagsAsync(Guid branchId, List<Guid> tagIds)
+    {
+        if (tagIds.Count == 0)
+        {
+            return tagIds;
+        }
+
+        var tagQuery = await _tagRepository.GetQueryableAsync();
+        return tagQuery
+            .Where(t => t.ClinicBranchId == branchId && tagIds.Contains(t.Id))
+            .Select(t => t.Id)
+            .ToList();
     }
 
     [Authorize(BlueDentalAbilityPermissions.Patient.Update)]

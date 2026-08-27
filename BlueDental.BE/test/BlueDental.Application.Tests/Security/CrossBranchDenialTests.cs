@@ -3,6 +3,7 @@ using System.Linq;
 using System.Reflection;
 using BlueDental.Appointments;
 using BlueDental.Billing;
+using BlueDental.CustomerCare;
 using BlueDental.PatientManagement;
 using BlueDental.TreatmentManagement;
 using BlueDental.Visits;
@@ -23,6 +24,7 @@ public class CrossBranchDenialTests
         typeof(VisitAppService),
         typeof(InsuranceClaimAppService),
         typeof(TreatmentPlanAppService),
+        typeof(CustomerCareAppService),
     ];
 
     [Theory]
@@ -112,8 +114,8 @@ public class CrossBranchDenialTests
     [Fact]
     public void All_Known_Services_Should_Be_Covered()
     {
-        ServicesWithGuard.Length.ShouldBe(6,
-            "Expected 6 services with GuardBranchAccess. " +
+        ServicesWithGuard.Length.ShouldBe(7,
+            "Expected 7 services with GuardBranchAccess. " +
             "If a new service gets GuardBranchAccess, add it to ServicesWithGuard.");
     }
 

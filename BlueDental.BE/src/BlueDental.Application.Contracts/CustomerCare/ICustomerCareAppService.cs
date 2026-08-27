@@ -29,6 +29,9 @@ public interface ICustomerCareAppService : IApplicationService
     Task<CareRecordDto> MarkZaloSentAsync(Guid id);
     Task CancelAsync(Guid id, string reason);
 
-    /// <summary>"Xuất Excel" on the CSKH screen.</summary>
+    /// <summary>"Xuất Excel" on the CSKH screen — per-tab column sets.</summary>
     Task<byte[]> ExportAsync(GetCareRecordListInput input);
+
+    /// <summary>Phân nhóm CSKH tab — the patient list with care/treatment rollups.</summary>
+    Task<PagedResultDto<CareGroupingPatientDto>> GetGroupingPatientsAsync(GetCareGroupingPatientsInput input);
 }

@@ -1,0 +1,130 @@
+- dialog [ref=f4e223]:
+  - generic [ref=f4e224]:
+    - generic [ref=f4e225]: Tạo voucher khuyến mãi
+    - button "Close modal" [ref=f4e226] [cursor=pointer]
+  - generic [ref=f4e232]:
+    - generic [ref=f4e233]:
+      - generic [ref=f4e234]:
+        - text: Mã voucher
+        - generic [ref=f4e235]:
+          - generic [ref=f4e236]: NFC-
+          - generic [ref=f4e238]:
+            - textbox "Mã voucher Mã ngẫu nhiên" [ref=f4e239]:
+              - /placeholder: " "
+              - text: XLEJMKAA
+            - generic: Mã ngẫu nhiên
+          - button "Sinh mã ngẫu nhiên" [ref=f4e240] [cursor=pointer]
+        - paragraph [ref=f4e247]: Chỉ chữ in hoa, số, tối đa 16 ký tự. Để trống để tạo tự động.
+      - generic [ref=f4e248]:
+        - generic [ref=f4e249]: Tên voucher *
+        - generic [ref=f4e251]:
+          - textbox "Tên voucher * Nhập tên voucher" [ref=f4e252]:
+            - /placeholder: " "
+          - generic: Nhập tên voucher
+    - generic [ref=f4e253]:
+      - generic [ref=f4e254]: Đối tượng áp dụng *
+      - generic [ref=f4e256]:
+        - generic [ref=f4e257] [cursor=pointer]:
+          - checkbox "Khách hàng mới Khách hàng lần đầu sử dụng dịch vụ" [ref=f4e258]
+          - generic [ref=f4e259]:
+            - paragraph [ref=f4e260]: Khách hàng mới
+            - paragraph [ref=f4e261]: Khách hàng lần đầu sử dụng dịch vụ
+        - generic [ref=f4e262] [cursor=pointer]:
+          - checkbox "Khách hàng cũ Khách hàng đã từng sử dụng dịch vụ" [ref=f4e263]
+          - generic [ref=f4e264]:
+            - paragraph [ref=f4e265]: Khách hàng cũ
+            - paragraph [ref=f4e266]: Khách hàng đã từng sử dụng dịch vụ
+    - generic [ref=f4e267]:
+      - generic [ref=f4e268]: Mức giảm *
+      - generic [ref=f4e269]:
+        - generic [ref=f4e270]:
+          - button "Phần trăm (%)" [ref=f4e271] [cursor=pointer]
+          - button "Số tiền (VNĐ)" [ref=f4e272] [cursor=pointer]
+        - generic [ref=f4e275]:
+          - textbox "Mức giảm * Nhập phần trăm" [ref=f4e276]:
+            - /placeholder: " "
+            - text: "10"
+          - generic: "%"
+          - generic: Nhập phần trăm
+      - generic [ref=f4e277]:
+        - text: Giảm tối đa (VNĐ)
+        - generic [ref=f4e279]:
+          - textbox "Giảm tối đa (VNĐ) Không bắt buộc" [ref=f4e280]:
+            - /placeholder: " "
+          - generic: VND
+          - generic: Không bắt buộc
+    - generic [ref=f4e281]:
+      - generic [ref=f4e282]: Phạm vi áp dụng *
+      - generic [ref=f4e283]:
+        - generic [ref=f4e284] [cursor=pointer]:
+          - radio "Theo dịch vụ" [checked] [ref=f4e286]
+          - generic [ref=f4e289]: Theo dịch vụ
+        - generic [ref=f4e290] [cursor=pointer]:
+          - radio "Tổng kế hoạch" [ref=f4e292]
+          - generic [ref=f4e295]: Tổng kế hoạch
+    - generic [ref=f4e296]:
+      - generic [ref=f4e297]:
+        - text: Nhóm dịch vụ áp dụng
+        - generic [ref=f4e301]:
+          - combobox "Chọn nhóm..." [ref=f4e302] [cursor=pointer]
+          - generic: Chọn nhóm...
+      - generic [ref=f4e304]:
+        - generic [ref=f4e305]: Dịch vụ cụ thể
+        - paragraph [ref=f4e308]: Chưa chọn dịch vụ nào.
+        - generic [ref=f4e310]:
+          - combobox "Chọn dịch vụ..." [ref=f4e311] [cursor=pointer]
+          - generic: Chọn dịch vụ...
+    - generic [ref=f4e313]:
+      - generic [ref=f4e315]:
+        - generic: Ngày bắt đầu*
+        - textbox [ref=f4e316]:
+          - /placeholder: " "
+          - text: 26/08/2026
+        - button "Ngày bắt đầu" [ref=f4e317] [cursor=pointer]
+      - generic [ref=f4e321]:
+        - generic: Ngày hết hạn*
+        - textbox [ref=f4e322]:
+          - /placeholder: " "
+          - text: 25/09/2026
+        - button "Ngày hết hạn" [ref=f4e323] [cursor=pointer]
+    - generic [ref=f4e326]:
+      - generic [ref=f4e327]:
+        - generic [ref=f4e328]: Số lượt tối đa *
+        - generic [ref=f4e330]:
+          - textbox "Số lượt tối đa * Nhập số lượt tối đa" [ref=f4e331]:
+            - /placeholder: " "
+          - generic: Nhập số lượt tối đa
+      - generic [ref=f4e332]:
+        - generic [ref=f4e333]:
+          - generic [ref=f4e334]: Giới hạn theo ngày trong tuần
+          - switch "Bật giới hạn ngày trong tuần" [ref=f4e335] [cursor=pointer]
+        - generic [ref=f4e336]:
+          - button "T2" [disabled] [ref=f4e337]
+          - button "T3" [disabled] [ref=f4e338]
+          - button "T4" [disabled] [ref=f4e339]
+          - button "T5" [disabled] [ref=f4e340]
+          - button "T6" [disabled] [ref=f4e341]
+          - button "T7" [disabled] [ref=f4e342]
+          - button "CN" [disabled] [ref=f4e343]
+    - generic [ref=f4e344]:
+      - generic [ref=f4e345]:
+        - generic [ref=f4e346]:
+          - paragraph [ref=f4e347]: Áp dụng với các voucher khác?
+          - paragraph [ref=f4e348]: Bật để cho phép kết hợp với voucher khác trong cùng kế hoạch.
+        - switch "Áp dụng với các voucher khác" [ref=f4e349] [cursor=pointer]
+      - generic [ref=f4e350]:
+        - generic [ref=f4e351]:
+          - paragraph [ref=f4e352]: Publish cho khách hàng?
+          - paragraph [ref=f4e353]: Voucher sẽ xuất hiện trên app khách hàng ngay khi lưu.
+        - switch "Publish lên NFC Dental" [ref=f4e354] [cursor=pointer]
+    - generic [ref=f4e355]:
+      - generic [ref=f4e356]:
+        - generic [ref=f4e357]: Mô tả
+        - generic [ref=f4e358]: 0 / 100
+      - generic [ref=f4e360]:
+        - textbox "Mô tả Mô tả thêm cho voucher..." [ref=f4e361]:
+          - /placeholder: " "
+        - generic: Mô tả thêm cho voucher...
+  - generic [ref=f4e363]:
+    - button "Huỷ" [ref=f4e364] [cursor=pointer]
+    - button "Tạo voucher" [ref=f4e365] [cursor=pointer]

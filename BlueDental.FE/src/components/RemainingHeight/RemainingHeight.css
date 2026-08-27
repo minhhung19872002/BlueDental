@@ -1,0 +1,21 @@
+/* ── RemainingHeight ──────────────────────────────────────────────────────────
+   Fills the viewport below its own top edge and hands the space down as a
+   flex column: a child with `flex: 1; min-height: 0; overflow: auto` is the
+   one that scrolls, the page itself does not. */
+.remaining-height {
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh - var(--rh-top, 0px) - var(--rh-gap, 16px));
+  min-height: var(--rh-min, 320px);
+  overflow: hidden;
+}
+
+/* On small screens an inner scroller is worse than the page scrolling —
+   release the lock and let the block be as tall as its content. */
+@media (max-width: 640px) {
+  .remaining-height {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+}

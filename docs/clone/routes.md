@@ -1,7 +1,7 @@
 # Routes — Reference Application
 
-Source: https://app.nfcdental.com
-Observed: 2026-08-21 / 2026-08-22
+Source: https://app.nfcdental.com (2026-08-21/22); từ 2026-08-26
+**https://staging.nfcdental.com là reference chuẩn mới** — khảo sát sau ngày đó theo staging.
 All routes require `?branchId=<24-char-hex>` query parameter.
 
 ## Route Map
@@ -13,7 +13,7 @@ All routes require `?branchId=<24-char-hex>` query parameter.
 | /reception | Tiếp nhận | (same) | reception-01.png |
 | /patient | Danh sách bệnh nhân | (same) | patient-list.png |
 | /calendar | Lịch hẹn | (same) | calendar-main.png |
-| /cskh-grouping | CSKH - Phân nhóm | (same) | cskh-grouping.png |
+| /cskh-grouping | CSKH - Phân nhóm | ?tab=care&page=after-treatment&care_dateMode=day&care_date=YYYY-MM-DD (tab=group cho Phân nhóm; +taxonomyId khi lọc nhóm dịch vụ) | cskh-grouping.png |
 | /labo | Labo | /labo/mau-labo | labo-main.png |
 | /operations | Quản trị vận hành | /operations/overview?overviewSubTab=home | operations-main.png |
 | /report | Báo cáo | + ?report_dateMode=day&report_date=YYYY-MM-DD | report-main.png |

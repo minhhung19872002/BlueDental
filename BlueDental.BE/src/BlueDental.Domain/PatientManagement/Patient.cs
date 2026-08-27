@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using BlueDental.PatientManagement.Values;
 using Volo.Abp;
 using Volo.Abp.Domain.Entities.Auditing;
@@ -11,6 +13,8 @@ namespace BlueDental.PatientManagement;
 /// </summary>
 public class Patient : FullAuditedAggregateRoot<Guid>
 {
+    private readonly List<Guid> _tagIds = new();
+
     public string PatientCode { get; private set; } = default!;
     public string FirstName { get; private set; } = default!;
     public string LastName { get; private set; } = default!;
@@ -24,6 +28,9 @@ public class Patient : FullAuditedAggregateRoot<Guid>
     public PatientStatus Status { get; private set; }
     public Guid BranchId { get; private set; }
     public DateTimeOffset RegisteredAt { get; private set; }
+
+    /// <summary>Thẻ hồ sơ — ids from the branch's PatientTag catalog.</summary>
+    public IReadOnlyCollection<Guid> TagIds => _tagIds.AsReadOnly();
 
     protected Patient() { }
 
@@ -91,6 +98,14 @@ public class Patient : FullAuditedAggregateRoot<Guid>
     {
         BloodType = bloodType;
         MedicalAlerts = medicalAlerts;
+        return this;
+    }
+
+    /// <summary>Replaces the tag set whole — the form edits it as one picker.</summary>
+    public Patient SetTags(IEnumerable<Guid> tagIds)
+    {
+        _tagIds.Clear();
+        _tagIds.AddRange(tagIds.Distinct());
         return this;
     }
 

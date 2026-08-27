@@ -1,0 +1,543 @@
+/* ── CSKH (Chăm sóc khách hàng) ──────────────────────────────────────────────
+   Feature styles for the care board and the Phân nhóm CSKH tab. Fixed hex
+   values are the reference palette captured in docs/clone/pages/cskh-grouping.md;
+   the blue accent uses the app primary (--bd-blue) instead of the reference blue. */
+
+/* Head row: date-mode segmented control + navigator left, counters right —
+   the reference keeps everything on a single line inside the one board card. */
+.cskh-headrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Counter chips double as filters: compact tinted tiles, value over label,
+   the pressed one ringed in its colour — reference sizing, not stat cards. */
+.cskh-counters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cskh-counter {
+  cursor: pointer;
+  text-align: center;
+  font: inherit;
+  min-width: 74px;
+  padding: 7px 10px 6px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--tile-color, var(--bd-blue)) 10%, #ffffff);
+  color: var(--tile-color, var(--bd-blue));
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.cskh-counter:hover {
+  border-color: var(--tile-color, var(--bd-blue));
+}
+
+.cskh-counter--pressed {
+  border-color: var(--tile-color, var(--bd-blue));
+  box-shadow: 0 0 0 1px var(--tile-color, var(--bd-blue));
+}
+
+.cskh-counter-value {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.cskh-counter-label {
+  font-size: 11px;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+/* Counter / action palette captured from the reference. */
+.cskh-counter--total { --tile-color: var(--bd-blue); }
+.cskh-counter--success { --tile-color: #2bb673; }
+.cskh-counter--fail { --tile-color: #e5484d; }
+.cskh-counter--new { --tile-color: #f5a400; }
+.cskh-counter--zalo { --tile-color: #0068ff; }
+
+.cskh-action--phone { --action-color: #2bb673; }
+.cskh-action--message { --action-color: #f5a400; }
+.cskh-action--send { --action-color: #0068ff; }
+.cskh-action--care { --action-color: var(--bd-blue); }
+
+.cskh-color-radio--good { --label-color: #2bb673; }
+.cskh-color-radio--fair { --label-color: var(--bd-blue); }
+.cskh-color-radio--normal { --label-color: #f5a400; }
+.cskh-color-radio--complaint { --label-color: #e5484d; }
+
+/* Date-mode pills sit left of the arrows, same look as the board pill tabs. */
+.cskh-datebar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Tabs row: care-type segmented tabs left, the toolbar right on the same
+   line; when the controls do not fit they wrap below, right-aligned — the
+   same behaviour the reference shows on the busier tabs. */
+.cskh-tabsrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Toolbar group: Xuất Excel · Tìm kiếm · pickers · Tạo mới, kept together. */
+.cskh-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.cskh-toolbar-search {
+  width: 220px;
+}
+
+/* The Phân nhóm filters sit left with only search + doctor pushed right. */
+.cskh-toolbar--split {
+  margin-left: 0;
+}
+
+.cskh-toolbar--split .cskh-toolbar-search {
+  margin-left: auto;
+}
+
+.cskh-select {
+  width: 190px;
+}
+
+/* The search box keeps its magnifier, so the resting label starts after it;
+   floated, the base rule's 12px applies again. */
+.cskh-toolbar-search .floating-field:not(.floating-field--floated) .floating-field-label {
+  left: 30px;
+}
+
+/* Reference Xuất Excel: white button, blue border and blue icon + label. */
+.cskh-excel-btn.ant-btn {
+  color: var(--bd-blue);
+  border-color: color-mix(in srgb, var(--bd-blue) 45%, #ffffff);
+}
+
+/* Reference tables keep sentence-case headers on a soft blue strip — undo the
+   app-wide small-caps header treatment inside the CSKH boards only. */
+.cskh-table .ant-table-thead > tr > th {
+  text-transform: none;
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--bd-ink);
+}
+
+/* Static CSKH status badge — reference: rounded-full bg #EEF2F7 text #5A6B82. */
+.cskh-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  background: #eef2f7;
+  color: #5a6b82;
+  white-space: nowrap;
+}
+
+.cskh-badge--blue {
+  background: color-mix(in srgb, var(--bd-blue) 10%, #ffffff);
+  color: var(--bd-blue);
+}
+
+.cskh-badge--green {
+  background: color-mix(in srgb, #2bb673 12%, #ffffff);
+  color: #2bb673;
+}
+
+/* Row actions — reference: size-7 rounded-full, icon tinted, 10% hover fill. */
+.cskh-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.cskh-action {
+  display: flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--action-color, var(--bd-blue));
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.cskh-action:hover {
+  background: color-mix(in srgb, var(--action-color, var(--bd-blue)) 10%, transparent);
+}
+
+/* Patient cell: "[MÃ] - TÊN" link with a muted "Giới tính - dd/MM/yyyy" line. */
+.cskh-patient-link {
+  color: var(--bd-blue);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.cskh-patient-link:hover {
+  text-decoration: underline;
+}
+
+.cskh-patient-sub {
+  font-size: 12px;
+  color: var(--bd-muted);
+  margin-top: 2px;
+}
+
+/* Inline Ghi chú — a quiet borderless input that saves on blur. */
+.cskh-note-input.ant-input {
+  border-color: transparent;
+  background: transparent;
+  padding: 4px 8px;
+}
+
+.cskh-note-input.ant-input:hover,
+.cskh-note-input.ant-input:focus {
+  border-color: var(--bd-border);
+  background: #ffffff;
+}
+
+/* Body rows of the CSKH dialogs stack with the reference's vertical gap. */
+.bd-form-grid {
+  display: grid;
+  gap: 14px;
+}
+
+/* Care-result dialog: the two role="checkbox" rows Thành công / Thất bại —
+   bare squares with the label beside them, stacked like the reference. */
+.cskh-result-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cskh-check-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--bd-ink);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.cskh-check-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--bd-border);
+  border-radius: 4px;
+  background: #ffffff;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.cskh-check-btn:hover .cskh-check-box {
+  border-color: var(--bd-blue);
+}
+
+/* Lưu without a result: the empty squares flag the required choice. */
+.cskh-result-choices--error .cskh-check-box {
+  border-color: var(--bd-red);
+}
+
+.cskh-check-btn--checked .cskh-check-box {
+  border-color: var(--bd-blue);
+  background: var(--bd-blue);
+}
+
+.cskh-check-btn--checked .cskh-check-box::after {
+  content: "";
+  width: 9px;
+  height: 5px;
+  margin-top: -2px;
+  border-left: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  transform: rotate(-45deg);
+}
+
+/* Nhãn màu row of the base-task dialog: the label sits left, the radio group
+   is pushed to the right edge — wrapping under it once the modal narrows. */
+.cskh-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  flex-wrap: wrap;
+}
+
+/* Nhãn màu radios: each option stacks its ring above a label tinted in the
+   same colour; the chosen one gets a filled dot inside the ring. */
+.cskh-color-options {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.cskh-color-radio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 13px;
+  color: var(--label-color, var(--bd-blue));
+  cursor: pointer;
+}
+
+.cskh-color-radio .cskh-color-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 2px solid var(--label-color, var(--bd-blue));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cskh-color-radio--checked .cskh-color-dot::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--label-color, var(--bd-blue));
+}
+
+/* "Lưu tin nhắn" dialog — the reference's tinted patient bar and the two
+   selects whose labels rest on the border while the same text shows inside. */
+.cskh-patient-bar {
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bd-blue) 7%, #ffffff);
+  font-weight: 600;
+  color: var(--bd-ink);
+}
+
+.cskh-patient-bar strong {
+  color: var(--bd-blue);
+}
+
+.cskh-message-row {
+  display: flex;
+  gap: 16px;
+}
+
+.cskh-message-field {
+  flex: 1;
+  min-width: 0;
+  /* Every control in these dialogs is 40px, so the resting label centers on it. */
+  --ff-input-height: 40px;
+}
+
+/* The reference draws these triggers without the magnifier. */
+.cskh-message-field .ss-trigger > .ss-icon--search {
+  display: none;
+}
+
+/* Date/time pickers fill their floating field like every other control. */
+.cskh-message-field .ant-picker {
+  width: 100%;
+}
+
+
+/* Create dialog's first row: the reference gives the date the room and pins
+   the time column at 220px. */
+.cskh-row--datetime .cskh-message-field:last-child {
+  flex: 0 0 220px;
+}
+
+/* Quick +3/+6/+9 tháng buttons in the create dialog. */
+.cskh-quick-months {
+  display: flex;
+  gap: 8px;
+}
+
+/* Reference: 12px / 400 / #5a6b82 label on the quick-month buttons. */
+.cskh-quick-months .ant-btn {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--bd-muted);
+}
+
+/* Zalo / SMS dialogs share a small helper line. */
+.cskh-dialog-hint {
+  font-size: 12.5px;
+  color: var(--bd-muted);
+  margin: 4px 0 0;
+}
+
+/* ── Fill-screen card ─────────────────────────────────────────────────────────
+   Inside a RemainingHeight wrapper the card takes whatever is left and the
+   table body becomes the screen's only scroller — header sticky, pagination
+   pinned to the card's bottom. Same recipe the Danh mục card uses. */
+.cskh-card--fill {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* The bordered, rounded frame around the table: sized by its rows, no taller —
+   only when the rows outgrow the space left on screen does it stop at that
+   space and let the table body scroll, pagination staying at its foot. */
+.cskh-table-card {
+  display: flex;
+  flex: 0 1 auto;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-card);
+  background: #ffffff;
+}
+
+/* Ant Design wraps the table in several plain divs; every link of that chain
+   must be allowed to shrink (min-height: 0) or the scroller never caps. */
+.cskh-table-card > .ant-table-wrapper,
+.cskh-table-card > .ant-table-wrapper > .ant-spin-nested-loading,
+.cskh-table-card > .ant-table-wrapper > .ant-spin,
+.cskh-table-card .ant-spin-container,
+.cskh-table-card .ant-table,
+.cskh-table-card .ant-table-container {
+  display: flex;
+  flex: 0 1 auto;
+  min-height: 0;
+  flex-direction: column;
+}
+
+/* Whichever scroller this table ended up with — antd uses .ant-table-content
+   until a vertical scroll height is set, and .ant-table-body after. */
+.cskh-table-card .ant-table-content,
+.cskh-table-card .ant-table-body {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* The wide tabs set scroll.x, and antd then writes `overflow: auto hidden`
+   inline on the scroller — which pins it open vertically. An inline style
+   can only be answered with !important. */
+.cskh-table-card .ant-table-content { overflow: auto !important; }
+
+.cskh-table-card .ant-table-thead > tr > th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+/* The pinned Thao tác column: its header cells must outrank the body's, or
+   the rows scroll straight over the heading. Both antd spellings covered. */
+.cskh-table-card .ant-table-thead > tr > th.ant-table-cell-fix,
+.cskh-table-card .ant-table-thead > tr > th.ant-table-cell-fix-start,
+.cskh-table-card .ant-table-thead > tr > th.ant-table-cell-fix-end,
+.cskh-table-card .ant-table-thead > tr > th.ant-table-cell-fix-left,
+.cskh-table-card .ant-table-thead > tr > th.ant-table-cell-fix-right {
+  z-index: 5;
+}
+
+.cskh-table-card .ant-table-pagination.ant-pagination {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 12px 16px;
+  border-top: 1px solid var(--bd-line);
+}
+
+/* An empty table must not stack its own border on the pagination divider. */
+.cskh-table-card .ant-table-placeholder .ant-table-cell { border-bottom: 0; }
+
+/* ── Responsive (house breakpoints 1280 / 1100 / 640) ────────────────────────
+   The rows already wrap; these steps only slim the controls so they wrap
+   later, then stack them full-width once a phone-sized viewport is reached. */
+
+@media (max-width: 1280px) {
+  /* Slimmer pickers keep the busier toolbars (reminder/periodic/special:
+     Excel + search + two staff pickers + Tạo mới) on one line longer. */
+  .cskh-toolbar-search {
+    width: 180px;
+  }
+
+  .cskh-select {
+    width: 165px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .cskh-datebar {
+    gap: 8px;
+  }
+
+  /* Counter tiles tighten instead of pushing the head row to three lines. */
+  .cskh-counters {
+    gap: 6px;
+  }
+
+  .cskh-counter {
+    min-width: 64px;
+    padding: 6px 8px 5px;
+  }
+}
+
+@media (max-width: 640px) {
+  /* Toolbar controls stack full-width in source order. */
+  .cskh-toolbar {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .cskh-toolbar-search,
+  .cskh-select,
+  .cskh-toolbar .ant-btn {
+    width: 100%;
+  }
+
+  .cskh-toolbar--split .cskh-toolbar-search {
+    margin-left: 0;
+  }
+
+  /* Counter chips share the row evenly instead of ragged wrapping. */
+  .cskh-counters {
+    width: 100%;
+  }
+
+  .cskh-counter {
+    flex: 1 1 30%;
+  }
+
+  /* Dialog rows (the paired selects and the date+time row) stack. */
+  .cskh-message-row {
+    flex-direction: column;
+  }
+
+  .cskh-row--datetime .cskh-message-field:last-child {
+    flex: 1 1 auto;
+  }
+
+  .cskh-quick-months {
+    flex-wrap: wrap;
+  }
+}

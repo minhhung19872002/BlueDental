@@ -38,6 +38,9 @@ public class CareRecord : FullAuditedAggregateRoot<Guid>
     /// <summary>Nhóm CSKH — a taxonomy entry of the care-service catalog.</summary>
     public Guid? CareServiceId { get; private set; }
 
+    /// <summary>Nhắc lịch hẹn — the appointment this reminder follows up.</summary>
+    public Guid? AppointmentId { get; private set; }
+
     /// <summary>Ngày chăm sóc — when the care is due.</summary>
     public DateTimeOffset? DueAt { get; private set; }
 
@@ -65,7 +68,8 @@ public class CareRecord : FullAuditedAggregateRoot<Guid>
         string? description = null,
         DateTimeOffset? dueAt = null,
         Guid? careServiceId = null,
-        IEnumerable<Guid>? stageIds = null)
+        IEnumerable<Guid>? stageIds = null,
+        Guid? appointmentId = null)
         : base(id)
     {
         Check.NotNullOrWhiteSpace(subject, nameof(subject));
@@ -78,6 +82,7 @@ public class CareRecord : FullAuditedAggregateRoot<Guid>
         Description = description;
         DueAt = dueAt;
         CareServiceId = careServiceId;
+        AppointmentId = appointmentId;
         Status = CareStatus.New;
         Outcome = CareOutcome.NotRated;
 
@@ -95,11 +100,29 @@ public class CareRecord : FullAuditedAggregateRoot<Guid>
         return this;
     }
 
+    /// <summary>Bác sĩ điều trị — the reference's full-object PUT can change it.</summary>
+    public CareRecord AssignTreatingStaff(Guid? staffId)
+    {
+        GuardOpen();
+        AssignedStaffId = staffId;
+        return this;
+    }
+
+    /// <summary>Ngày chăm sóc — reference PUT carries <c>dateTime</c>.</summary>
+    public CareRecord SetDue(DateTimeOffset? dueAt)
+    {
+        GuardOpen();
+        DueAt = dueAt;
+        return this;
+    }
+
     public CareRecord Schedule(DateTimeOffset start, DateTimeOffset end)
     {
         GuardOpen();
 
-        if (end <= start)
+        // The reference stores scheduleStartTime == scheduleToTime for tasks
+        // created from the periodic/special dialogs, so equal endpoints are legal.
+        if (end < start)
         {
             throw new BusinessException(
                 BlueDentalDomainErrorCodes.CustomerCare.InvalidSchedule,
@@ -126,17 +149,14 @@ public class CareRecord : FullAuditedAggregateRoot<Guid>
         return this;
     }
 
-    /// <summary>Thành công — records the outcome rating shown as "Đánh giá".</summary>
+    /// <summary>
+    /// Thành công — records the outcome rating shown as "Nhãn màu".
+    /// The reference lets a base task be created already-successful with only a
+    /// colour label, so an outcome is optional here.
+    /// </summary>
     public CareRecord Succeed(CareOutcome outcome, string? resolution = null)
     {
         GuardOpen();
-
-        if (outcome == CareOutcome.NotRated)
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.CustomerCare.OutcomeRequired,
-                "Cần chọn đánh giá khi hoàn tất chăm sóc.");
-        }
 
         Status = CareStatus.Succeeded;
         Outcome = outcome;
@@ -189,6 +209,44 @@ public class CareRecord : FullAuditedAggregateRoot<Guid>
         return this;
     }
 
+    /// <summary>
+    /// Kết quả chăm sóc dialog — the reference lets staff flip a finished card
+    /// between Thành công and Thất bại, so this works on closed records too
+    /// (only a cancelled one stays frozen).
+    /// </summary>
+    public CareRecord RecordResult(bool success, string? note)
+    {
+        GuardNotCancelled();
+
+        Status = success ? CareStatus.Succeeded : CareStatus.Failed;
+        Description = note;
+        CompletedAt = DateTimeOffset.UtcNow;
+        return this;
+    }
+
+    /// <summary>
+    /// The reference's full-object PUT: a terminal status records a care
+    /// result, anything else is an inline note edit that keeps the current
+    /// status.
+    /// </summary>
+    public CareRecord ApplyResult(CareStatus? status, string? note)
+    {
+        if (status is CareStatus.Succeeded or CareStatus.Failed)
+            return RecordResult(status == CareStatus.Succeeded, note);
+        return UpdateNote(note);
+    }
+
+    /// <summary>
+    /// Inline Ghi chú editing on the care board — allowed regardless of status
+    /// because the reference saves the note on blur even for finished rows.
+    /// </summary>
+    public CareRecord UpdateNote(string? note)
+    {
+        GuardNotCancelled();
+        Description = note;
+        return this;
+    }
+
     public CareRecord LinkStages(IEnumerable<Guid> stageIds)
     {
         GuardOpen();
@@ -209,6 +267,16 @@ public class CareRecord : FullAuditedAggregateRoot<Guid>
             throw new BusinessException(
                 BlueDentalDomainErrorCodes.CustomerCare.InvalidTransition,
                 $"Phiếu chăm sóc ở trạng thái {Status} không thể thay đổi.");
+        }
+    }
+
+    private void GuardNotCancelled()
+    {
+        if (Status == CareStatus.Cancelled)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.CustomerCare.InvalidTransition,
+                "Phiếu chăm sóc đã huỷ không thể thay đổi.");
         }
     }
 }

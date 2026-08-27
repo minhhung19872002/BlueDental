@@ -183,12 +183,60 @@ See: docs/clone/pages/calendar.md
 
 ---
 
+RESOLVED 2026-08-26 — /cskh-grouping surveyed in full on staging.nfcdental.com
+(reference chuẩn mới): cả 5 care-type tab + tab Phân nhóm CSKH, toàn bộ API
+params, ma trận cột, dialogs, Excel export structure. See
+docs/clone/pages/cskh-grouping.md.
+
+UPDATE 2026-08-26 (chiều): user cho phép thử mutation với network-block
+client-side (fetch/XHR patch — POST/PUT/PATCH/DELETE không bao giờ tới server;
+reload xác nhận không persist). Kết quả: capture đủ POST /customer-care (2
+biến thể) + PUT /customer-care/{id}; nút send mở dialog "Gửi ZBS qua Zalo"
+(không gửi gì khi mở). Chi tiết: docs/clone/pages/cskh-grouping.md +
+docs/clone/api.md.
+
+What remains unknown there (all recorded in the page doc):
+
 UNKNOWN_REFERENCE_BEHAVIOR
-Page: /cskh-grouping
-Control: Entire page
-Reason: Page not yet navigated to. Route confirmed (HTTP 200) but content unknown.
+Page: /cskh-grouping (tab=care, page=remind-appointment)
+Control: Dialog "Gửi ZBS qua Zalo" — endpoint gửi thật sau khi chọn mẫu
+Reason: Chi nhánh test chưa config Zalo OA (GET /zalo-oa-templates → 400,
+không có mẫu để chọn; Gửi khi chưa chọn mẫu chỉ là validation client).
+Action taken: Mở dialog + capture GET templates. Không thể quan sát thêm.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /cskh-grouping (tab=care)
+Control: Counter "Đã gửi Zalo"
+Reason: Click chỉ đổi pressed-state, không quan sát được refetch/param (0 record).
 Action taken: NONE
-See: docs/clone/pages/cskh-grouping.md
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /cskh-grouping (tab=group)
+Control: Filter "Thẻ tag" — param name khi chọn
+Reason: Chi nhánh test không có tag nào ("Không có thẻ tag").
+Action taken: NONE
+Local status (2026-08-27): dropdown lấy option từ danh mục Thẻ hồ sơ
+(GET /v1/app/patient-tags, IsActive=true) theo chỉ định của user. Bệnh nhân
+nay mang `TagIds` (uuid[] trên bd_patients, migration AddPatientTagIds, gán
+qua multi-select "Phân loại Tag" trong form bệnh nhân, id lạ/khác chi nhánh
+bị lọc bỏ server-side); grouping-patients và GET /v1/app/patients lọc thật
+theo tagId. Param name gốc vẫn chưa xác minh được — local chọn `tagId`.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /cskh-grouping (tab=care)
+Control: Dialog "Lưu tin nhắn" — request submit cuối
+Reason: Combobox "Cấu hình" rỗng trên chi nhánh test → validation chặn submit.
+Action taken: Dialog + data endpoints đã quan sát; submit không thể trigger.
+Local status (2026-08-27): 2 data endpoints đã implement + seed; nút Gửi
+validate Cấu hình rồi toast placeholder. Quay lại implement send khi có
+cấu hình gửi thật (yêu cầu user).
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /cskh-grouping (tab=group, dialog file-heart)
+Control: Nhãn màu "Khá" — giá trị colorCode
+Reason: Chỉ capture được green (Tốt) / orange (Bình thường) / red (Khiếu nại);
+"blue" cho Khá là suy luận từ pattern + màu hiển thị #2671D8.
+Action taken: Inferred "blue".
 
 ---
 

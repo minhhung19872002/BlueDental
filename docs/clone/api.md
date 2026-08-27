@@ -365,4 +365,70 @@ Also observed: `/voucher?branchId=<id>` route (not in sidebar nav).
 | 6 | /voucher page route | In network but not in sidebar nav |
 | 7 | Invoices/billing endpoints | Not triggered |
 | 8 | Prescription endpoints | Not triggered |
-| 9 | CSKH endpoints | Not triggered |
+| 9 | ~~CSKH endpoints~~ | RESOLVED 2026-08-26 — see "Customer Care (CSKH)" section below |
+
+---
+
+## Customer Care (CSKH) — observed 2026-08-26 on staging.nfcdental.com
+
+> staging.nfcdental.com là reference chuẩn mới từ 2026-08-26. API base: `https://api.staging.nfcdental.com/api/v1`.
+> Chi tiết đầy đủ (ma trận tab/cột/filter): docs/clone/pages/cskh-grouping.md
+
+```
+GET /customer-care?branchId=&type=<afterTreatment|happyBirthday|reminder|recurring|special>
+    &isDeleted=false&overview=false&hydrate=compact
+    &sortBy=<dateTime|scheduleStartTime>&sortDirection=<asc|desc>
+    &startTime=<iso>&toTime=<iso>            ← afterTreatment/happyBirthday/reminder
+    &scheduleStartTime=<iso>&scheduleToTime=<iso>  ← recurring/special
+    [&status=new|success|fail][&staffId=][&careStaffId=][&q=]
+    &page=1&take=20                                          → list
+
+GET /customer-care-stats?<same params, no page/take/status>  → 5 counters
+
+GET /customer-care/export?<same params, no page/take/hydrate> → file xlsx
+    (1 sheet "Chăm sóc khách hàng", không style, cột per-tab — xem page doc)
+
+GET /customer-care?patientId=&type=base,recurring,special&page=1&take=100
+    ← lịch sử CSKH trong dialog "Thông tin tổng quan"
+
+POST /call-sessions/make-a-call              ← nút phone (staging trả 400)
+
+# Mutations (capture 2026-08-26 qua network-block client-side — KHÔNG gửi tới server)
+POST /customer-care                           ← Tạo mới (periodic/special) VÀ file-heart tab group
+    # Tạo mới (dialog Tạo công việc mới ở tab care):
+    { "patientId": "<id>", "staffId": null, "careStaffId": null,
+      "dateTime": "<iso>", "scheduleStartTime": "<iso>", "scheduleToTime": "<iso>",  # cả 3 = ngày+giờ chọn
+      "subject": "Customer Care - special",   # auto "Customer Care - <type>"
+      "type": "special|recurring", "note": "<string>", "status": "new", "branchId": "<id>" }
+    # File-heart tab group (dialog Tạo công việc mới bản phân nhóm):
+    { "patientId": "<id>", "staffId": null, "careStaffId": null,
+      "dateTime": "<ngày chọn, giờ=now>", "scheduleStartTime": "=dateTime", "scheduleToTime": "=dateTime+1h",
+      "subject": "<Tiêu đề nhập tay>", "type": "base", "note": "<string>", "status": "success",
+      "colorCode": "green|blue|orange|red",   # Tốt/Khá(inferred)/Bình thường/Khiếu nại
+      "branchId": "<id>" }
+
+PUT /customer-care/{id}                       ← ghi chú inline (blur) VÀ dialog kết quả chăm sóc
+    { "patientId": "<id>", "staffId": "<id|null>", "dateTime": "<iso>", "subject": "<string>",
+      "type": "<type>", "note": "<string>", "scheduleStartTime": "<iso>", "scheduleToTime": "<iso>",
+      "status": "new|success|fail", "stageIds": [], "careStaffId": null }
+    # PUT gửi FULL object; có stageIds, KHÔNG có branchId (POST ngược lại)
+
+GET /zalo-oa-templates?branchId=&perPage=100  ← dialog "Gửi ZBS qua Zalo" (400 nếu chưa config Zalo OA)
+
+GET /sender-sms-templates?perPage=50&page=1&search=          ← dialog Lưu tin nhắn
+GET /clinic-configure?perPage=50&page=1&search=&module=sms&isEnabled=true
+    # Local mirror (2026-08-27): /api/v1/app/sender-sms-templates + /api/v1/app/clinic-configure
+    # (ABP paging skipCount/maxResultCount/filter). Templates = Tools.MessageTemplate (Channel=Sms,
+    # IsActive); configures = bd_clinic_configures. Submit gửi tin: chưa implement (UNKNOWN).
+GET /patient-treatments?patientId=&page=1&take=20&sortBy=createdAt&sortDirection=desc
+GET /patient-stages?patientId=&stageIds=&page=1&take=1
+GET /staff/list?page=1&perPage=20&status=active&isResigned=false&branchId=&isDoctor=true
+
+# Tab Phân nhóm CSKH (tab=group)
+GET /patients?page=&perPage=&branchId=&excludeTreatmentNone=true
+    [&taxonomyId=][&birthdayDate=yyyy-MM-dd][&staffId=][&q=]  → list bệnh nhân
+GET /taxonomy/?group=care_service&branchId=&perPage=100       → Nhóm dịch vụ
+GET /medical-record/tag/list?branchId=&page=1&perPage=20&orderBy=order → Thẻ tag
+```
+
+Patients item (sanitized): `{ id, name, code, phone, hasZalo, dateOfBirth, branchId, branchName, treatmentStatus: "created|in-progress|done", staffIds[], totalDebt, totalRevenue, totalAmount, serviceNames[], staffNames[], schedule{ nextAppointmentDate, currentAppointmentDate, currentTreatmentDate }, lastAppointmentDate, lastTreatmentDate, createdAt }`

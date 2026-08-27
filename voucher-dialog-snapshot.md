@@ -1,0 +1,107 @@
+- dialog "Tạo voucher khuyến mãi":
+  - generic [ref=f1e757]:
+    - button "Đóng" [active] [ref=f1e758] [cursor=pointer]:
+      - generic "Đóng" [ref=f1e759]:
+        - img "close" [ref=f1e760]
+    - heading "Tạo voucher khuyến mãi" [level=2] [ref=f1e765]
+    - generic [ref=f1e767]:
+      - generic [ref=f1e768]:
+        - tablist [ref=f1e769]:
+          - generic [ref=f1e771]:
+            - tab "Tạo theo số lượng" [selected] [ref=f1e773] [cursor=pointer]
+            - tab "Tạo một lượt" [ref=f1e775] [cursor=pointer]
+        - tabpanel "Tạo theo số lượng" [ref=f1e778]:
+          - generic [ref=f1e779]:
+            - generic [ref=f1e780]:
+              - generic [ref=f1e787]:
+                - generic [ref=f1e788]: HN-
+                - generic [ref=f1e789]:
+                  - textbox "Mã ngẫu nhiên" [ref=f1e790]:
+                    - /placeholder: " "
+                    - text: 8ZYU93SP
+                  - button "Tạo mã ngẫu nhiên" [ref=f1e792] [cursor=pointer]
+              - generic: Mã ngẫu nhiên
+            - generic [ref=f1e799]:
+              - textbox "Nhập tên voucher *" [ref=f1e805]:
+                - /placeholder: " "
+              - generic:
+                - text: Nhập tên voucher
+                - generic: "*"
+            - generic [ref=f1e806]:
+              - spinbutton "Nhập số lượt tối đa *" [ref=f1e813]
+              - generic:
+                - text: Nhập số lượt tối đa
+                - generic: "*"
+            - generic [ref=f1e814]: Chỉ chữ in hoa, số, dấu gạch ngang. Để trống để tạo tự động.
+      - generic [ref=f1e815]:
+        - generic [ref=f1e816]:
+          - generic [ref=f1e823]:
+            - textbox "Ngày bắt đầu *" [ref=f1e824]:
+              - /placeholder: " "
+              - text: 26/08/2026
+            - button "Xóa":
+              - img "close-circle"
+          - generic:
+            - text: Ngày bắt đầu
+            - generic: "*"
+        - generic [ref=f1e825]:
+          - generic [ref=f1e832]:
+            - textbox "Ngày hết hạn *" [ref=f1e833]:
+              - /placeholder: " "
+              - text: 25/09/2026
+            - button "Xóa":
+              - img "close-circle"
+          - generic:
+            - text: Ngày hết hạn
+            - generic: "*"
+      - generic [ref=f1e834]:
+        - radiogroup "segmented control" [ref=f1e835]:
+          - generic [ref=f1e836]:
+            - generic [ref=f1e837] [cursor=pointer]:
+              - radio "%" [checked]
+              - generic "%" [ref=f1e838]
+            - generic [ref=f1e839] [cursor=pointer]:
+              - radio "VNĐ"
+              - generic "VNĐ" [ref=f1e840]
+        - generic [ref=f1e841]:
+          - spinbutton "Mức giảm *" [ref=f1e848]: "10"
+          - generic:
+            - text: Mức giảm
+            - generic: "*"
+        - generic [ref=f1e849]:
+          - spinbutton "Giảm tối đa (VNĐ)" [ref=f1e856]
+          - generic: Giảm tối đa (VNĐ)
+      - generic [ref=f1e857]: Phạm vi áp dụng *
+      - radiogroup [ref=f1e859]:
+        - generic [ref=f1e860] [cursor=pointer]:
+          - radio "Theo dịch vụ" [checked] [ref=f1e862]
+          - generic [ref=f1e863]: Theo dịch vụ
+        - generic [ref=f1e864] [cursor=pointer]:
+          - radio "Tổng kế hoạch" [ref=f1e866]
+          - generic [ref=f1e867]: Tổng kế hoạch
+      - generic [ref=f1e868]:
+        - generic [ref=f1e869]:
+          - combobox "Tìm dịch vụ hoặc nhóm dịch vụ..." [ref=f1e878]
+          - generic: Tìm dịch vụ hoặc nhóm dịch vụ...
+        - button "Chọn theo dịch vụ" [ref=f1e879] [cursor=pointer]
+      - generic [ref=f1e882]:
+        - generic [ref=f1e883]:
+          - generic [ref=f1e884]: Giới hạn theo ngày trong tuần
+          - switch [ref=f1e885] [cursor=pointer]
+        - generic [ref=f1e888]:
+          - button "T2" [disabled] [ref=f1e889]
+          - button "T3" [disabled] [ref=f1e890]
+          - button "T4" [disabled] [ref=f1e891]
+          - button "T5" [disabled] [ref=f1e892]
+          - button "T6" [disabled] [ref=f1e893]
+          - button "T7" [disabled] [ref=f1e894]
+          - button "CN" [disabled] [ref=f1e895]
+      - generic [ref=f1e897]:
+        - generic [ref=f1e898]:
+          - generic [ref=f1e899]: Áp dụng với các voucher khác?
+          - generic [ref=f1e900]: Bật để cho phép kết hợp với voucher khác trong cùng kế hoạch.
+        - switch [ref=f1e901] [cursor=pointer]
+      - textbox "Mô tả thêm cho voucher..." [ref=f1e909]
+    - button "save Tạo voucher" [ref=f1e912] [cursor=pointer]:
+      - img "save" [ref=f1e914]
+      - generic [ref=f1e917]: Tạo voucher

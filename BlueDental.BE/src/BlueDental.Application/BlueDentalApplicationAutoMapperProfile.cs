@@ -52,9 +52,6 @@ public class BlueDentalApplicationAutoMapperProfile : Profile
         CreateMap<Labo.LaboRhythmType, Labo.LaboRhythmTypeDto>();
         CreateMap<Labo.LaboMaterial, Labo.LaboMaterialDto>();
 
-        // Customer Care
-        CreateMap<CustomerCare.CskhGroup, CustomerCare.CskhGroupDto>();
-
         /* Patient Management */
         CreateMap<Patient, PatientDto>()
             .ForMember(d => d.PhoneNumber, opt => opt.MapFrom(s => s.Contact.PhoneNumber))
@@ -97,6 +94,8 @@ public class BlueDentalApplicationAutoMapperProfile : Profile
 
         /* Notifications */
         CreateMap<Notification, NotificationDto>();
+        CreateMap<Tools.MessageTemplate, SmsTemplateDto>();
+        CreateMap<ClinicConfigure, ClinicConfigureDto>();
 
         /* Visits */
         CreateMap<Visit, VisitDto>()

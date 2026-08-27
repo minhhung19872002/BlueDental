@@ -19,7 +19,7 @@ import { useTreatmentPlanList, usePatientPrescriptions } from "@/features/treatm
 import { TreatmentPlanPanel } from "@/features/treatment-management/components/TreatmentPlanPanel";
 import { INVOICE_STATUS, usePatientInvoices } from "@/features/billing/api/index";
 import { usePatientLaboOrders } from "@/features/labo/api/laboApi";
-import { useCareRecordList } from "@/features/cskh/api/careApi";
+import { careStatusLabels, careTypeLabels, useCareRecordList } from "@/features/cskh/api/careApi";
 import {
   usePatientAdviseSummary,
   usePatientAdvises,
@@ -721,12 +721,12 @@ export function PatientProfilePage() {
             dataSource={patientCareRecords.map((r) => ({
               id: r.id,
               careDate: r.dueAt ?? r.creationTime,
-              careStatus: r.status,
-              group: r.type,
+              careStatus: careStatusLabels()[r.status],
+              group: careTypeLabels()[r.type],
               serviceName: r.subject,
               content: r.description ?? "—",
-              doctorName: "—",
-              staffName: "—",
+              doctorName: r.assignedStaffName ?? "—",
+              staffName: r.careStaffName ?? "—",
               rating: r.resolution ?? "—",
             }))}
             pagination={{ pageSize: 20, showTotal: (total) => `0 / ${total}` }}

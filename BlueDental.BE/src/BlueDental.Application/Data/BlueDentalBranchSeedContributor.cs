@@ -18,8 +18,8 @@ namespace BlueDental.Data;
 /// branch and a single account. <c>branch2</c> is the user who must be refused
 /// another branch's data; <c>manager</c> is the user who may switch between both
 /// branches, which is the only way the header's branch switcher can be exercised
-/// end to end (<c>admin</c> is assigned to the first branch, so it never sees the
-/// second one on offer).
+/// end to end (<c>admin</c> holds no assignment rows and is therefore clinic-wide
+/// as well, with the first branch only as its home/default branch).
 ///
 /// Only runs in Development; production seeding of real staff is an operator task.
 /// </summary>

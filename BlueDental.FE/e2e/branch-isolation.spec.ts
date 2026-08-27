@@ -10,9 +10,11 @@ import { BRANCH2_USER, MANAGER_USER, login, TEST_USER } from "./fixtures/auth";
  * With no branch named, the list narrows to the account's own branches.
  *
  * Seeded (Development only):
- *   branch 1111…  — "admin", assigned to this branch
- *   branch 2222…  — "branch2", assigned to this branch
- *   no assignment — "manager", and therefore clinic-wide
+ *   branch 1111…  — home branch of "admin" (which holds NO assignment rows:
+ *                   an empty assignment set means no limit, so admin is
+ *                   clinic-wide by design)
+ *   branch 2222…  — "branch2", assigned to this branch and nothing else
+ *   no assignment — "manager", and therefore clinic-wide too
  */
 const BRANCH_ONE = "11111111-1111-1111-1111-111111111111";
 const BRANCH_TWO = "22222222-2222-2222-2222-222222222222";
@@ -51,17 +53,18 @@ test.describe("Branch isolation", () => {
     expect(r2.status).toBe(200);
   });
 
-  test("a branch-scoped account is refused another branch outright", async ({ page }) => {
-    // admin is assigned to branch one, so branch two is not merely filtered
-    // out — asking for it is refused, which is what keeps a crafted request
-    // from enumerating another branch.
+  test("the admin account is clinic-wide, so any branch answers it", async ({ page }) => {
+    // The seeder deliberately strips admin's assignment rows: an empty set
+    // means no branch limit, so branch two must answer 200 here even though
+    // admin's home branch is branch one. The refusal path for a genuinely
+    // branch-scoped account is guarded by the "branch2" tests below.
     await login(page);
 
-    const refused = await apiCall(
+    const allowed = await apiCall(
       page,
       `/api/v1/app/taxonomies?clinicBranchId=${BRANCH_TWO}&group=care_service`,
     );
-    expect(refused.status).toBe(403);
+    expect(allowed.status).toBe(200);
   });
 
   test("a branch-scoped user only sees their own branch data", async ({ page }) => {

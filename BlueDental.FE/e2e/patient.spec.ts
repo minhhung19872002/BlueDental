@@ -38,7 +38,9 @@ test.describe("Bệnh nhân", () => {
 
     await page.getByRole("row", { name: new RegExp(fullName) }).click();
     await expect(page).toHaveURL(/\/patient\/[0-9a-f-]{36}/);
-    await expect(page.getByText(fullName)).toBeVisible();
+    // The profile repeats the name (breadcrumb, header, visit rows) — assert
+    // the header specifically, which is unique.
+    await expect(page.locator(".pt-head-name")).toHaveText(fullName);
   });
 
   test("records tooth surfaces on the consulting chart", async ({ page }) => {

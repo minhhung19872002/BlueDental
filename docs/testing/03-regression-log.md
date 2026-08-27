@@ -489,3 +489,37 @@ biết.
 
 FE: **43/43** (rich-image, operations, taxonomy ×3) trên bản build production.
 
+## 2026-08-26 — Chạy toàn bộ suite: dữ liệu demo mòn dần, và 10 spec lạc hậu
+
+Chạy đủ 29 suite lần đầu: 136 pass / 14 fail. Điều tra từng lỗi thay vì sửa mù:
+
+**Nhóm 1 — dữ liệu demo bị bào mòn (7 lỗi operations-reports + patient +
+rich-image + cskh):** database dev đã sống qua hàng trăm lượt e2e; các test
+xoá mềm/sửa dần dữ liệu seed nên nhiều màn không còn gì để hiện. Dựng lại
+sạch: `DROP DATABASE` → `CREATE` → DbMigrator. Sau khi dựng lại, cả nhóm xanh
+mà **không sửa một dòng code nào** — đúng là data, không phải regression.
+
+**Bẫy đo được khi dựng lại:** `BlueDentalBranchSeedContributor` và
+`BlueDentalDemoSeedContributor` kiểm tra `ASPNETCORE_ENVIRONMENT == "Development"`
+— chạy DbMigrator **không đặt biến này** thì chi nhánh 2 và tài khoản
+branch2/manager bị bỏ qua **im lặng**, và 8 test cụm chi nhánh chết ở màn login.
+Phải chạy: `$env:ASPNETCORE_ENVIRONMENT = "Development"; dotnet run --project
+src/BlueDental.DbMigrator`. Seeder idempotent nên chạy lại an toàn.
+
+**Nhóm 2 — spec lạc hậu so với thay đổi đã commit có chủ đích (9 lỗi, sửa spec
+chứ không sửa app):**
+
+| # | Spec | Vì sao đỏ | Sửa |
+|---|------|-----------|-----|
+| R-117 | `branch-isolation` :54 | Commit `4cb0e1f` chủ đích cho admin **toàn phòng khám** (seeder xoá hết assignment; tập rỗng = không giới hạn) — test còn chờ 403 khi admin hỏi chi nhánh 2 | Viết lại thành guard cho hành vi mới: admin phải nhận **200**; đường 403 vẫn được canh bởi các test dùng `branch2` |
+| R-118 | `branch-switcher` ×3 | Commit `bdb9e3f` đổi tên chi nhánh seed thành "Nha Khoa Đức Hạnh Premium" (± " - Chi nhánh 2"). Tên chi nhánh 1 là **tiền tố** của tên chi nhánh 2, nên mọi `getByText` phải `exact: true` kẻo trúng cả hai. Test "menu bị giới hạn" phải chuyển sang đăng nhập `branch2` vì admin giờ thấy cả hai | Hằng tên + `exact: true` toàn spec; test đầu đổi tài khoản |
+| R-119 | `labo` ×2 | Pill lọc render `role="tab"` trong `role="tablist"`, không phải button | `getByRole("tab")` |
+| R-120 | `sidebar-navigation` ×2 | Sidebar giờ mở rộng mặc định — biến thể mở rộng chỉ có `title`, không có `aria-label`; nhãn cũng đổi ("Danh sách bệnh nhân"→"Bệnh nhân", "Nhân viên"→"Nhân sự") | Selector theo `[title=…]`, nhãn mới |
+| R-121 | `staff` | Dialog dựng lại bằng `FloatingField`: không còn placeholder, thêm 2 select bắt buộc (Nhóm quyền, Chi nhánh); xoá đi qua `ConfirmDeleteDialog` | Viết lại spec: `getByLabel` theo `<label htmlFor>`; chọn option theo `[title=…]` vì dropdown đã đóng có thể còn nằm trong DOM không mang class `-hidden`; nút xoá có accessible name **"delete Xoá"** (alt của icon dính vào) nên khớp bằng `/Xoá$/` |
+| R-122 | `patient` :41 | Trang hồ sơ giờ lặp tên bệnh nhân 3 chỗ (breadcrumb `[MRN] – TÊN`, header, bảng lượt khám) → `getByText(tên)` vi phạm strict mode | Khẳng định vào `.pt-head-name` — chỗ duy nhất |
+
+Kết quả cuối, trên bản build production (`vite preview` 8080), backend thật cổng
+5000, PostgreSQL sạch vừa seed: **152 pass / 0 fail / 1 skip** trên đủ 29 suite
+(chạy làm hai nửa 77 + 76 vì giới hạn thời gian một lệnh). BE giữ **696/696**
+từ lần đo gần nhất.
+

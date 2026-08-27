@@ -16,6 +16,7 @@ import { usePatientList } from "../api/patientQueries";
 import { patientApi } from "../api/patientApi";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { useDebounce } from "@/hooks/useDebounce";
+import { usePatientTagOptions } from "@/hooks/usePatientTagOptions";
 import { formatDate, formatDateTime, formatVND } from "@/utils/format";
 import { exportToExcel } from "@/utils/exportExcel";
 import { SearchSelect } from "@/components/SearchSelect";
@@ -54,13 +55,16 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
   const [keyword, setKeyword] = useState("");
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("All");
   const [selectedDoctorId, setSelectedDoctorId] = useState<string | undefined>();
+  const [selectedTagId, setSelectedTagId] = useState<string | undefined>();
   const debouncedKeyword = useDebounce(keyword);
   const pagination = useTablePagination(20);
+  const patientTags = usePatientTagOptions();
 
   const { data, isLoading } = usePatientList({
     keyword: debouncedKeyword || undefined,
     status: filterStatus === "All" ? undefined : filterStatus,
     doctorId: selectedDoctorId,
+    tagId: selectedTagId,
     skipCount: pagination.skipCount,
     maxResultCount: pagination.maxResultCount,
   });
@@ -79,6 +83,7 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
         keyword: debouncedKeyword || undefined,
         status: filterStatus === "All" ? undefined : filterStatus,
         doctorId: selectedDoctorId,
+        tagId: selectedTagId,
         maxResultCount: 10000,
       });
       exportToExcel(
@@ -414,11 +419,14 @@ export function PatientListView({ onAdd, onRowClick, onEdit }: Props) {
               style={{ width: 180 }}
             />
             <SearchSelect
-              value={undefined}
+              value={selectedTagId}
               placeholder={t("Phân loại theo Tag")}
               allowClear
-              options={[]}
-              onChange={() => {}}
+              options={patientTags.data ?? []}
+              onChange={(v) => {
+                setSelectedTagId(v);
+                pagination.resetToFirstPage();
+              }}
               style={{ width: 180 }}
             />
           </div>

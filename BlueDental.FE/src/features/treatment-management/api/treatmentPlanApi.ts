@@ -4,25 +4,21 @@ import type { PagedResult } from "@/types";
 import type { DiscountType, ToothSelectionDto } from "./consultingApi";
 
 import { t } from "@/lib/i18n";
-/** Matches BlueDental.TreatmentManagement.TreatmentPlanStatus. */
-export const PLAN_STATUS = {
-  Draft: 1,
-  PendingApproval: 2,
-  Approved: 3,
-  InProgress: 4,
-  Completed: 5,
-  Cancelled: 6,
-} as const;
-export type TreatmentPlanStatus = (typeof PLAN_STATUS)[keyof typeof PLAN_STATUS];
+import { PLAN_STATUS, planStatusLabels, type TreatmentPlanStatus } from "@/utils/planStatus";
 
-export const planStatusConfig = (): Record<TreatmentPlanStatus, { label: string; color: string }> => ({
-  [PLAN_STATUS.Draft]: { label: t("Nháp"), color: "default" },
-  [PLAN_STATUS.PendingApproval]: { label: t("Chờ duyệt"), color: "gold" },
-  [PLAN_STATUS.Approved]: { label: t("Đã duyệt"), color: "blue" },
-  [PLAN_STATUS.InProgress]: { label: t("Đang điều trị"), color: "processing" },
-  [PLAN_STATUS.Completed]: { label: t("Hoàn thành"), color: "green" },
-  [PLAN_STATUS.Cancelled]: { label: t("Đã huỷ"), color: "red" },
-});
+export { PLAN_STATUS, type TreatmentPlanStatus };
+
+export const planStatusConfig = (): Record<TreatmentPlanStatus, { label: string; color: string }> => {
+  const labels = planStatusLabels();
+  return {
+    [PLAN_STATUS.Draft]: { label: labels[PLAN_STATUS.Draft], color: "default" },
+    [PLAN_STATUS.PendingApproval]: { label: labels[PLAN_STATUS.PendingApproval], color: "gold" },
+    [PLAN_STATUS.Approved]: { label: labels[PLAN_STATUS.Approved], color: "blue" },
+    [PLAN_STATUS.InProgress]: { label: labels[PLAN_STATUS.InProgress], color: "processing" },
+    [PLAN_STATUS.Completed]: { label: labels[PLAN_STATUS.Completed], color: "green" },
+    [PLAN_STATUS.Cancelled]: { label: labels[PLAN_STATUS.Cancelled], color: "red" },
+  };
+};
 
 /** Matches BlueDental.TreatmentManagement.TreatmentServiceStatus. */
 export const SERVICE_LINE_STATUS = {

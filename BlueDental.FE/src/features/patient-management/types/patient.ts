@@ -28,6 +28,8 @@ export interface PatientDto {
   nationalId: string | null;
   status: PatientStatusCode;
   branchId: string;
+  /** Thẻ hồ sơ ids from the branch's PatientTag catalog. */
+  tagIds: string[];
   creationTime: string;
   lastModificationTime: string | null;
 }
@@ -65,6 +67,8 @@ export interface RegisterPatientRequest {
   phoneNumber?: string;
   email?: string;
   nationalId?: string;
+  /** On update: omit = keep the current tags; a list replaces them whole. */
+  tagIds?: string[];
 }
 
 export type UpdatePatientRequest = Partial<RegisterPatientRequest>;

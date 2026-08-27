@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import dayjs from "dayjs";
 import { useRegisterPatient, useUpdatePatient } from "../api/patientMutations";
+import { usePatientTagOptions } from "@/hooks/usePatientTagOptions";
 import { extractApiError } from "@/lib/apiError";
 import type { PatientDto } from "../types/patient";
 import { t } from "@/lib/i18n";
@@ -22,6 +23,7 @@ function createPatientSchema(t: Translate) {
     gender: z.enum(["male", "female", "other"]).optional(),
     dateOfBirth: z.string().optional(),
     email: z.string().email(t("Email không hợp lệ")).optional().or(z.literal("")),
+    tagIds: z.array(z.string()).optional(),
     address: z.string().optional(),
     notes: z.string().optional(),
     medicalHistory: z.string().optional(),
@@ -46,6 +48,7 @@ interface Props {
 export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props) {
   const schema = useMemo(() => createPatientSchema(t), [t]);
   const isEdit = Boolean(patient);
+  const patientTags = usePatientTagOptions();
   const [infoTab, setInfoTab] = useState("basic");
   const [sourceType, setSourceType] = useState<string | undefined>();
 
@@ -91,6 +94,7 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
       gender: "male",
       dateOfBirth: "",
       email: "",
+      tagIds: [],
       address: "",
       notes: "",
       medicalHistory: "",
@@ -111,6 +115,7 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
         gender: GENDER_BY_CODE[patient.gender] ?? "other",
         dateOfBirth: patient.dateOfBirth,
         email: patient.email ?? "",
+        tagIds: patient.tagIds ?? [],
       });
     } else if (open && !patient) {
       reset();
@@ -137,6 +142,7 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
         gender: values.gender ?? "male",
         dateOfBirth: values.dateOfBirth ?? "",
         email: values.email,
+        tagIds: values.tagIds ?? [],
       };
       if (isEdit && patient) {
         await updateMutation.mutateAsync(payload);
@@ -224,6 +230,26 @@ export function PatientEditorModal({ open, patient, onClose, onSuccess }: Props)
                 control={control}
                 render={({ field }) => (
                   <Input.TextArea {...field} rows={3} placeholder={t("Lý do khám bệnh...")} maxLength={1000} />
+                )}
+              />
+            </Form.Item>
+
+            <Form.Item label={t("Phân loại Tag")}>
+              <Controller
+                name="tagIds"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    {...field}
+                    mode="multiple"
+                    allowClear
+                    placeholder={t("Chọn thẻ hồ sơ")}
+                    style={{ width: "100%" }}
+                    options={patientTags.data ?? []}
+                    filterOption={(input, option) =>
+                      ((option?.label as string) ?? "").toLowerCase().includes(input.toLowerCase())
+                    }
+                  />
                 )}
               />
             </Form.Item>

@@ -3,7 +3,7 @@ import { SALES_CATEGORY, type ServiceLineRow } from "../api/operationReportApi";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 import { formatMoney } from "./formatMoney";
-import { formatDate } from "@/utils/format";
+import { formatDash as dash, formatDate } from "@/utils/format";
 
 /**
  * The columns Hoàn thành theo dịch vụ and Truy cập share.
@@ -40,9 +40,6 @@ function classificationCell(row: ServiceLineRow) {
     </span>
   );
 }
-
-const dash = (value: string | number | null | undefined) =>
-  value === null || value === undefined || value === "" ? "—" : value;
 
 /** Columns Hoàn thành theo dịch vụ shows. */
 export function serviceCompletionColumns(): ColumnsType<ServiceLineRow> {

@@ -226,6 +226,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.BloodType).HasMaxLength(10);
             entity.Property(x => x.Status).HasConversion<short>();
             entity.Property(x => x.Gender).HasConversion<short>();
+            entity.PrimitiveCollection(x => x.TagIds).UsePropertyAccessMode(PropertyAccessMode.Field);
 
             entity.OwnsOne(x => x.Contact, contact =>
             {
@@ -467,6 +468,15 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.FailureReason).HasMaxLength(500);
             entity.Property(x => x.ReferenceEntityType).HasMaxLength(100);
             entity.HasIndex(x => new { x.RecipientUserId, x.DeliveryStatus });
+        });
+
+        builder.Entity<ClinicConfigure>(entity =>
+        {
+            entity.ToTable("bd_clinic_configures");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Module).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.HasIndex(x => new { x.BranchId, x.Module, x.IsEnabled });
         });
     }
 
@@ -926,15 +936,6 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.CancellationReason).HasMaxLength(500);
             entity.HasIndex(x => new { x.ClinicBranchId, x.Department, x.Status });
             entity.HasIndex(x => x.DueDate);
-        });
-
-        builder.Entity<CskhGroup>(entity =>
-        {
-            entity.ToTable("bd_cskh_groups");
-            entity.ConfigureByConvention();
-            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
-            entity.Property(x => x.Criteria).HasMaxLength(1000);
-            entity.Property(x => x.Description).HasMaxLength(1000);
         });
 
         builder.Entity<PatientDiagnosis>(entity =>

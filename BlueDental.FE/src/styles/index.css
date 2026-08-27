@@ -135,6 +135,17 @@ button {
   background: transparent;
 }
 
+/* Ant Design names `scrollbar-color` on its table scrollers, and naming that
+   property alone makes the browser paint its own wide native bar and ignore
+   `::-webkit-scrollbar` entirely. Handing it back to `auto` app-wide gives
+   every table the same thin thumb as the rest of the app. (The Danh mục card
+   carries its own scoped copy of this reset.) */
+.ant-table-wrapper,
+.ant-table-wrapper .ant-table-content,
+.ant-table-wrapper .ant-table-body {
+  scrollbar-color: auto;
+}
+
 @keyframes bd-fade-up {
   from {
     opacity: 0;
@@ -2337,6 +2348,12 @@ button {
   text-align: center;
 }
 
+/* Tag options (Thẻ hồ sơ) render as chips; the base chip has no gap because
+   its other usages are text-only, the icon here needs one. */
+.ss-tag-chip {
+  gap: 6px;
+}
+
 /* ── Responsive ── */
 
 @media (max-width: 768px) {
@@ -4009,7 +4026,7 @@ html:has(.ant-modal-wrap) {
 }
 
 .ant-modal .ant-modal-body {
-  padding: 20px;
+  padding: 12px 20px 0;
   flex: 1;
   overflow-y: auto;
 }
@@ -5611,6 +5628,8 @@ html:has(.ant-modal-wrap) {
 .bd-tag-preview {
   display: flex;
   flex-direction: column;
+  /* The chip hugs its text; stretch would pull it the panel's full width. */
+  align-items: flex-start;
   gap: 8px;
   border-radius: 12px;
   background: var(--bd-bg);

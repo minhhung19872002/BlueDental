@@ -58,3 +58,8 @@ export function formatVND(value: number): string {
   if (value === 0) return "0";
   return value.toLocaleString("vi-VN");
 }
+
+/** Table-cell fallback — an em dash when there is no value (a 0 stays 0). */
+export function formatDash(value: string | number | null | undefined): string | number {
+  return value === null || value === undefined || value === "" ? "—" : value;
+}

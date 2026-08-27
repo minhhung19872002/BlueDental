@@ -53,32 +53,68 @@ public static class ExcelSheet
 
         headerRow++;
 
-        var columnList = columns.ToList();
-        for (var i = 0; i < columnList.Count; i++)
+        var lastRow = WriteGrid(worksheet, headerRow, columns.ToList(), rows, styledHeader: true);
+        if (lastRow > headerRow)
+        {
+            worksheet.Range(headerRow, 1, lastRow, columns.Count).SetAutoFilter();
+        }
+
+        return Save(workbook);
+    }
+
+    /// <summary>
+    /// A workbook with no title row and no styling — header on row 1, plain
+    /// cells, only column widths set. The staging CSKH export ships exactly
+    /// this shape (default Calibri 11, no bold, no fill, all values strings).
+    /// </summary>
+    public static byte[] BuildPlain<T>(
+        string sheetName,
+        IReadOnlyCollection<ExcelColumn<T>> columns,
+        IEnumerable<T> rows)
+    {
+        using var workbook = new XLWorkbook();
+        var worksheet = workbook.Worksheets.Add(SafeSheetName(sheetName));
+
+        WriteGrid(worksheet, headerRow: 1, columns.ToList(), rows, styledHeader: false);
+        return Save(workbook);
+    }
+
+    /// <summary>Header row plus one row per item; returns the last row written.</summary>
+    private static int WriteGrid<T>(
+        IXLWorksheet worksheet,
+        int headerRow,
+        List<ExcelColumn<T>> columns,
+        IEnumerable<T> rows,
+        bool styledHeader)
+    {
+        for (var i = 0; i < columns.Count; i++)
         {
             var cell = worksheet.Cell(headerRow, i + 1);
-            cell.Value = columnList[i].Header;
-            cell.Style.Font.Bold = true;
-            cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#EBF3FE");
-            worksheet.Column(i + 1).Width = columnList[i].Width;
-        }
-
-        var rowIndex = headerRow + 1;
-        foreach (var row in rows)
-        {
-            for (var i = 0; i < columnList.Count; i++)
+            cell.Value = columns[i].Header;
+            if (styledHeader)
             {
-                worksheet.Cell(rowIndex, i + 1).Value = ToCellValue(columnList[i].Value(row));
+                cell.Style.Font.Bold = true;
+                cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#EBF3FE");
             }
 
-            rowIndex++;
+            worksheet.Column(i + 1).Width = columns[i].Width;
         }
 
-        if (rowIndex > headerRow + 1)
+        var rowIndex = headerRow;
+        foreach (var row in rows)
         {
-            worksheet.Range(headerRow, 1, rowIndex - 1, columnList.Count).SetAutoFilter();
+            rowIndex++;
+            for (var i = 0; i < columns.Count; i++)
+            {
+                worksheet.Cell(rowIndex, i + 1).Value = ToCellValue(columns[i].Value(row));
+            }
         }
 
+        return rowIndex;
+    }
+
+    private static byte[] Save(XLWorkbook workbook)
+    {
         using var stream = new MemoryStream();
         workbook.SaveAs(stream);
         return stream.ToArray();

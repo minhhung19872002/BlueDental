@@ -19,10 +19,10 @@ test.describe("Labo", () => {
     // The page should render without errors.
     await expect(page.locator("body")).not.toContainText("Unexpected Application Error");
 
-    // The filter tabs should be visible.
-    await expect(page.getByRole("button", { name: /Tất Cả Mẫu/ })).toBeVisible();
-    await expect(page.getByRole("button", { name: /Mẫu Chưa Nhận/ })).toBeVisible();
-    await expect(page.getByRole("button", { name: /Mẫu Giao Trễ/ })).toBeVisible();
+    // The filter pills render as tabs inside a tablist.
+    await expect(page.getByRole("tab", { name: /Tất Cả Mẫu/ })).toBeVisible();
+    await expect(page.getByRole("tab", { name: /Mẫu Chưa Nhận/ })).toBeVisible();
+    await expect(page.getByRole("tab", { name: /Mẫu Giao Trễ/ })).toBeVisible();
   });
 
   test("the Mẫu Chưa Nhận filter re-queries the server", async ({ page }) => {
@@ -34,7 +34,7 @@ test.describe("Labo", () => {
       if (req.url().includes("/labo-orders")) requests.push(req.url());
     });
 
-    await page.getByRole("button", { name: /Mẫu Chưa Nhận/ }).click();
+    await page.getByRole("tab", { name: /Mẫu Chưa Nhận/ }).click();
 
     // Clicking the filter should trigger a new API request.
     await expect.poll(() => requests.length).toBeGreaterThan(0);

@@ -25,13 +25,13 @@ Last run: 2026-08-24, stack on `localhost:5173` (Vite) → `localhost:5019` (API
 | F-03 | Chấm công (lịch làm việc) | `VERIFIED` | `e2e/timekeeping.spec.ts` | Work day opened, shift clocked in and out through the UI |
 | F-04 | Thu chi (phiếu thu/chi + duyệt) | `VERIFIED` | `e2e/finance.spec.ts` | Pending expense excluded from Tổng chi; approval adds exactly its amount |
 | F-05 | Luân chuyển dòng tiền | `VERIFIED` | `e2e/finance.spec.ts` | Deposit moves Tổng Tiền Mặt by the deposited amount |
-| F-06 | Hồ sơ bệnh nhân (đăng ký + danh sách) | `VERIFIED` | `e2e/patient.spec.ts` | Registered through the UI, persisted, reopened from the list |
+| F-06 | Hồ sơ bệnh nhân (đăng ký + danh sách) | `DIRTY` | `e2e/patient.spec.ts` | Registered through the UI, persisted, reopened from the list. **DIRTY 2026-08-27**: patients gained `TagIds` (uuid[] + migration), a "Phân loại Tag" multi-select in the editor and a wired tag filter on the list — builds/tests green but no runtime retest yet (skipped per user) |
 | F-07 | Sơ đồ răng theo mặt | `VERIFIED` | `e2e/patient.spec.ts` | Whole-tooth, whole-jaw and clear all behave |
 | F-08 | Voucher khuyến mãi | `VERIFIED` | `e2e/voucher.spec.ts` | Draft → active → paused; percentage above 100 refused; batch "Tạo một lượt": shared config + per-card override persisted (0/30 vs 0/70), card #1 mirrors single-tab code, missing name refused (7 tests, 2026-08-26) |
 | F-09 | Chẩn đoán & Tư vấn | `VERIFIED` | `e2e/treatment-stage.spec.ts`, `e2e/treatment-plan.spec.ts` | Diagnosis and advise created, then accepted |
 | F-10 | Lịch hẹn | `VERIFIED` | `e2e/appointment.spec.ts` | Booking stored and found by a **server-side** search over every appointment (it used to filter only the fetched page); double-booking refused; day and week grids query their own range and now draw their bookings |
 | F-11 | Tiếp nhận | `VERIFIED` | `e2e/reception.spec.ts` | Visit stored through the real API; counters served by `/visits/stats` |
-| F-12 | CSKH | `VERIFIED` | `e2e/cskh.spec.ts` | Care task Chưa CS → Thành công moves the counters |
+| F-12 | CSKH | `VERIFIED` | `e2e/cskh.spec.ts` | Rebuilt 2026-08-26 for **staging.nfcdental.com** parity (new reference standard). 8 real full-stack tests on the production build: URL params (`tab`/`page`/`care_dateMode`/`care_date` with mode anchors), counters from `/stats` + status filtering, per-tab toolbar matrix, Tạo mới + inline note persisted across reload, care-result dialog (Thành công) persisted, Excel download `cskh-dac-biet-*.xlsx`, Phân nhóm CSKH (server search + base-care dialog), branch isolation via claim-scoped list **and a cross-branch create returning 404** (post-security-review guard in `CreateAsync`). See `features/customer-care.md`. **DIRTY 2026-08-27**: grouping `tagId` filter now real (patient `TagIds`) and `taxonomyId` extended to treatment-plan service-group membership — builds/tests green but no runtime retest yet (skipped per user) |
 | F-13 | Labo | `VERIFIED` | `e2e/labo.spec.ts` | Overdue sample reads late until returned |
 | F-14 | Vật tư | `VERIFIED` | `e2e/materials.spec.ts` | Supply added, stock received, status derived from expiry |
 | F-15 | Quản trị vận hành | `VERIFIED` | `e2e/operations.spec.ts` | Article draft → published; task lifecycle; department travels with the query |
@@ -71,8 +71,8 @@ image rule — is BlueDental's own design and is documented as such in
 
 | Suite | Count | Last run |
 |-------|-------|----------|
-| `BlueDental.Domain.Tests` | 178 | 2026-08-24 — pass |
-| `BlueDental.Application.Tests` | 51 | 2026-08-24 — pass |
+| `BlueDental.Domain.Tests` | 196 | 2026-08-26 — pass |
+| `BlueDental.Application.Tests` | 474 | 2026-08-26 — pass |
 | `BlueDental.EntityFrameworkCore.Tests` | 39 | 2026-08-24 — pass |
 | `BlueDental.HttpApi.Host.Tests` | 15 | 2026-08-24 — pass |
 | `BlueDental.FE` Vitest | 3 | 2026-08-24 — pass |

@@ -1,0 +1,65 @@
+/* ── SegmentedTabs ────────────────────────────────────────────────────────────
+   One bordered 40px container, the active item filled with the app primary.
+   Overflowing items scroll horizontally instead of wrapping. */
+.seg-tabs {
+  position: relative;
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  height: 40px;
+  box-sizing: border-box;
+  border: 1px solid var(--bd-border);
+  border-radius: 10px;
+  background: #ffffff;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+/* The navy fill that slides from the old active item to the new one. */
+.seg-tabs-thumb {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 0;
+  width: var(--seg-thumb-w, 0px);
+  transform: translateX(var(--seg-thumb-x, 0px));
+  border-radius: 8px;
+  background: var(--bd-blue);
+  transition: transform 0.25s ease, width 0.25s ease;
+  pointer-events: none;
+}
+
+.seg-tabs-item {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  padding: 0 14px;
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--bd-ink);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.seg-tabs-item:hover {
+  background: color-mix(in srgb, var(--bd-blue) 8%, transparent);
+  color: var(--bd-blue);
+}
+
+.seg-tabs-item--active,
+.seg-tabs-item--active:hover {
+  background: transparent;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seg-tabs-thumb {
+    transition: none;
+  }
+}

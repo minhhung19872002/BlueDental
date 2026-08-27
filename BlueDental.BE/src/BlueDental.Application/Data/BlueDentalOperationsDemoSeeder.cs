@@ -6,6 +6,7 @@ using BlueDental.CustomerCare;
 using BlueDental.Finance;
 using BlueDental.Inventory;
 using BlueDental.Labo;
+using BlueDental.Notifications;
 using BlueDental.Operations;
 using BlueDental.Organizations;
 using BlueDental.PatientManagement;
@@ -34,8 +35,8 @@ public class BlueDentalOperationsDemoSeeder(
     IRepository<LaboOrder, Guid> laboOrderRepository,
     IRepository<InventoryItem, Guid> inventoryRepository,
     IRepository<MaterialAllocation, Guid> allocationRepository,
-    IRepository<CskhGroup, Guid> cskhGroupRepository,
     IRepository<CareRecord, Guid> careRepository,
+    IRepository<TreatmentStage, Guid> stageRepository,
     IRepository<Voucher, Guid> voucherRepository,
     IRepository<TimeKeepingRecord, Guid> timekeepingRepository,
     IRepository<OperationCategory, Guid> operationCategoryRepository,
@@ -46,6 +47,7 @@ public class BlueDentalOperationsDemoSeeder(
     IRepository<CallAssignment, Guid> callAssignmentRepository,
     IRepository<CallLog, Guid> callLogRepository,
     IRepository<MessageLog, Guid> messageLogRepository,
+    IRepository<ClinicConfigure, Guid> clinicConfigureRepository,
     IRepository<CashflowCategory, Guid> cashflowCategoryRepository,
     IRepository<CashflowEntry, Guid> cashflowRepository,
     IRepository<SalesEntry, Guid> salesRepository) : ITransientDependency
@@ -83,14 +85,6 @@ public class BlueDentalOperationsDemoSeeder(
         ("VT-008", "Bông gòn y tế", "Tiêu hao", "Gói", 40_000m, 20m, 63m),
         ("VT-009", "Nước súc miệng", "Thuốc", "Chai", 95_000m, 12m, 28m),
         ("VT-010", "Ly giấy dùng một lần", "Tiêu hao", "Lốc", 30_000m, 25m, 41m)
-    ];
-
-    private static readonly (string Name, string Criteria)[] CskhGroups =
-    [
-        ("Khách VIP", "Doanh số trên 50 triệu"),
-        ("Khách mới trong tháng", "Hồ sơ tạo trong 30 ngày"),
-        ("Đang điều trị dài hạn", "Có kế hoạch điều trị đang chạy"),
-        ("Lâu chưa tái khám", "Không đến trong 6 tháng")
     ];
 
     private static readonly (string Code, string Name, decimal Value)[] Vouchers =
@@ -146,6 +140,22 @@ public class BlueDentalOperationsDemoSeeder(
         await SeedOperationsAsync(staffIds);
         await SeedToolsAsync(patients, staffIds);
         await SeedFinanceAsync(patients, staffIds);
+        await SeedMessagingConfiguresAsync();
+    }
+
+    /// <summary>The "Cấu hình" options of the CSKH "Lưu tin nhắn" dialog.</summary>
+    private async Task SeedMessagingConfiguresAsync()
+    {
+        if (await clinicConfigureRepository.AnyAsync(c => c.BranchId == _branchId))
+        {
+            return;
+        }
+
+        await clinicConfigureRepository.InsertManyAsync(
+        [
+            new ClinicConfigure(DemoId("1800", 1), _branchId, ClinicConfigure.SmsModule, "Brandname BlueDental"),
+            new ClinicConfigure(DemoId("1800", 2), _branchId, ClinicConfigure.SmsModule, "Tổng đài SMS demo")
+        ], autoSave: true);
     }
 
     private static Guid DemoId(string kind, int index) =>
@@ -294,7 +304,7 @@ public class BlueDentalOperationsDemoSeeder(
         await allocationRepository.InsertManyAsync(allocations, autoSave: true);
     }
 
-    /// <summary>Care groups, and a care record in each state the board filters on.</summary>
+    /// <summary>A care record in each state the board filters on.</summary>
     private async Task SeedCustomerCareAsync(List<Patient> patients, List<Guid> staffIds)
     {
         if (await careRepository.AnyAsync(c => c.BranchId == _branchId))
@@ -302,16 +312,12 @@ public class BlueDentalOperationsDemoSeeder(
             return;
         }
 
-        var groups = new List<CskhGroup>();
-        for (var i = 0; i < CskhGroups.Length; i++)
-        {
-            groups.Add(new CskhGroup(
-                DemoId("1300", i + 1),
-                CskhGroups[i].Name,
-                criteria: CskhGroups[i].Criteria));
-        }
-
-        await cskhGroupRepository.InsertManyAsync(groups, autoSave: true);
+        // The clinical seeder runs first, so sau-điều-trị records can point at
+        // the patient's real công đoạn — that link feeds the export's Dịch vụ.
+        var stagesByPatient = (await stageRepository.GetListAsync(
+                s => s.ClinicBranchId == _branchId))
+            .GroupBy(s => s.PatientId)
+            .ToDictionary(g => g.Key, g => g.Select(s => s.Id).ToList());
 
         var records = new List<CareRecord>();
         for (var i = 0; i < 12; i++)
@@ -333,17 +339,26 @@ public class BlueDentalOperationsDemoSeeder(
                 description: "Gọi điện hỏi thăm tình trạng của khách",
                 dueAt: DateTimeOffset.UtcNow.AddDays(i % 7));
 
-            if (i % 4 >= 1)
+            if (type == CareType.AfterTreatment
+                && stagesByPatient.TryGetValue(patients[i % patients.Count].Id, out var stageIds))
+            {
+                record.LinkStages(stageIds);
+            }
+
+            // Rotate the status against the type so every tab shows a mix —
+            // type and index both stepping by i%4 would pin each tab to one state.
+            var state = (i % 4 + i / 4) % 4;
+            if (state >= 1)
             {
                 record.MarkContacted();
             }
 
-            if (i % 4 == 2)
+            if (state == 2)
             {
-                record.Succeed(CareOutcome.Good);
+                record.Succeed(CareOutcome.Good, "Khách hài lòng, hẹn tái khám sau 6 tháng");
             }
 
-            if (i % 4 == 3)
+            if (state == 3)
             {
                 record.Fail("Khách không nghe máy");
             }
