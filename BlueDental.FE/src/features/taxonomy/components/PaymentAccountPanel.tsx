@@ -12,7 +12,7 @@ import {
   type PaymentAccountKind,
 } from "../api/paymentAccountApi";
 import { FlatScreenHeader } from "./FlatScreenHeader";
-import { countedTotal } from "../countedTotal";
+import { countedTotal } from "@/utils/countedTotal";
 import { PaymentAccountModal } from "./PaymentAccountModal";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { DataTable } from "@/components/DataTable";

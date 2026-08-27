@@ -4025,8 +4025,12 @@ html:has(.ant-modal-wrap) {
   color: var(--bd-ink);
 }
 
+/* The 4px at the bottom is the focus ring's room. The body scrolls, so with no
+   padding there the ring under the last field is clipped by the scroller and
+   the field reads as cut in half the moment it takes focus. The dialog footer
+   gives back the same 4px, so nothing else moves. */
 .ant-modal .ant-modal-body {
-  padding: 12px 20px 0;
+  padding: 12px 20px 4px;
   flex: 1;
   overflow-y: auto;
 }
@@ -4967,9 +4971,10 @@ html:has(.ant-modal-wrap) {
   color: rgba(0, 0, 0, 0.72);
 }
 
-/* The dialog footer carries a single button, so it needs no top gap of its own. */
+/* The dialog footer carries a single button, so it needs no top gap of its own.
+   12 rather than 16 because the body now keeps 4px for the focus ring. */
 .app-dialog .ant-modal-footer {
-  margin-top: 16px;
+  margin-top: 12px;
 }
 
 .bd-dialog-row {
@@ -5188,7 +5193,7 @@ html:has(.ant-modal-wrap) {
    header and onto the list underneath.
 
    :where() keeps this at zero specificity, so any rule below still wins. */
-:where(.bd-taxonomy-page, .bd-cat-screen, .app-dialog, .bd-a4-viewport)
+:where(.bd-taxonomy-page, .bd-cat-screen, .bd-labo-page, .app-dialog, .bd-a4-viewport)
   :where(p, h1, h2, h3, h4, ul, ol, figure) {
   margin: 0;
 }

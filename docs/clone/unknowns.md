@@ -758,3 +758,41 @@ Action taken: BE sở hữu prefix — hằng VoucherConsts.DefaultPrefix ("HN")
         Khi xác định được nguồn thật (cấu hình chi nhánh?) sẽ nối
         VoucherConsts vào đó.
 ```
+
+```
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /labo/mau-labo (app.nfcdental.com, khảo sát 2026-08-27)
+Control: hàng dữ liệu, nút xem chi tiết, modal "Thông tin chung", lightbox
+        "File phòng khám gửi về", và nút "Xuất Excel"
+Reason: chi nhánh duy nhất của tài khoản khảo sát (NHA KHOA ĐỨC HẠNH PREMIUM)
+        có 0 phiếu labo — GET /api/v1/orders trả data rỗng ở cả 4 tab lọc và
+        mọi khoảng thời gian. Không thể tạo phiếu trên bản gốc để xem, và
+        clinic chỉ có 1 chi nhánh nên không mượn được dữ liệu chi nhánh khác.
+Action taken: NONE trên bản gốc. Toàn bộ cấu trúc cột, ánh xạ trường, hai
+        chiều trạng thái (status / statusClinic), bảng màu badge, nội dung
+        modal chi tiết, giới hạn upload ảnh (5 ảnh × 5 MB, thư mục
+        labo/mau-labo), chốt "Chỉ được huỷ đơn hàng mới", và layout tờ in
+        PHIẾU ĐẶT HÀNG LABO đều đọc từ bundle client đã phát hành
+        (_next/static/chunks/fdc1fdcd4a190d4f.js, 371d50d53d0310c9.js) —
+        xem docs/clone/pages/labo.md §2. Cần đối chiếu lại bằng mắt khi nào
+        có chi nhánh tham chiếu thật sự có phiếu labo.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /labo/service-material (panel nhóm bên trái)
+Control: kéo-thả sắp xếp nhóm phân loại
+Reason: kéo-thả sẽ ghi thứ tự mới xuống server (mutation) nên không thử.
+        Bundle không nạp thư viện dnd cho panel này, và dialog nhóm có ô
+        "Mức độ ưu tiên" — hai dấu hiệu cho thấy thứ tự chỉ đặt bằng số,
+        khác với panel nhóm ở /taxonomy vốn có kéo-thả.
+Action taken: NONE. Tạm coi là KHÔNG có kéo-thả; nếu sau này quan sát được
+        ngược lại thì bổ sung.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /labo/supplier, /labo/bite, /labo/finish-line, /labo/nhip,
+      /labo/service-material
+Control: nút Xoá, nút Lưu trong mọi dialog, và thông báo lỗi phía server
+Reason: đều là thao tác ghi lên hệ thống production.
+Action taken: NONE. Chỉ mở dialog để đọc cấu trúc trường rồi đóng bằng X /
+        Escape. Quy tắc validate lấy từ schema Joi trong bundle
+        (xem docs/clone/pages/labo.md §3.3, §4.3, §5.2).
+```

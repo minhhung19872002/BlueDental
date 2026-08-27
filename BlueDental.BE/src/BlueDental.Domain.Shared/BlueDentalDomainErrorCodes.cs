@@ -121,6 +121,10 @@ public static class BlueDentalDomainErrorCodes
         public const string OrderNotFound = "BlueDental:Labo:0001";
         public const string InvalidTransition = "BlueDental:Labo:0002";
         public const string DuplicateOrderCode = "BlueDental:Labo:0003";
+        public const string MaterialNeedsGroup = "BlueDental:Labo:0004";
+        public const string LogoTooLarge = "BlueDental:Labo:0005";
+        public const string LogoNotAnImage = "BlueDental:Labo:0006";
+        public const string LogoNotFound = "BlueDental:Labo:0007";
     }
 
     public static class Promotions

@@ -239,6 +239,16 @@ const appRoutes: RouteObject[] = [
         ),
       },
       {
+        // Each Labo sub-screen is its own URL, exactly as in the reference, so
+        // a tab can be bookmarked and reached with the back button.
+        path: "labo/:section",
+        element: (
+          <S>
+            <LaboPage />
+          </S>
+        ),
+      },
+      {
         path: "billing",
         element: (
           <S>

@@ -95,6 +95,17 @@ public class GetLaboOrderListInput : PagedAndSortedResultRequestDto
     public LaboOrderKind? Kind { get; set; }
     public Guid? BranchId { get; set; }
     public Guid? PatientId { get; set; }
+
+    /// <summary>"Chọn bác sĩ" — the dentist the sample was ordered by.</summary>
+    public Guid? DentistId { get; set; }
+
     public LaboStatus? Status { get; set; }
     public string? Filter { get; set; }
+
+    /// <summary>
+    /// The window "Ngày / Tuần / Tháng" resolves to, read against the day the
+    /// order was raised. Both ends are inclusive of the days they name.
+    /// </summary>
+    public DateOnly? FromDate { get; set; }
+    public DateOnly? ToDate { get; set; }
 }

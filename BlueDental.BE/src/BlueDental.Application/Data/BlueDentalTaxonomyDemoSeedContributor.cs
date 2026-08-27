@@ -80,7 +80,81 @@ public class BlueDentalTaxonomyDemoSeedContributor(
 
         await SeedSuppliesSystemGroupAsync(firstBranch);
         await SeedSuppliesSystemGroupAsync(secondBranch);
+
+        await SeedLaboCatalogsAsync(firstBranch, FirstBranchLaboCatalogs());
+        await SeedLaboCatalogsAsync(secondBranch, SecondBranchLaboCatalogs());
     }
+
+    /// <summary>
+    /// Khớp cắn, Đường hoàn tất and Kiểu nhịp.
+    ///
+    /// These three are taxonomy rows in their own right rather than groups with
+    /// entries inside them — the reference files them the same way, one flat
+    /// list per <c>group</c>. See docs/clone/pages/labo.md §4.
+    ///
+    /// The priority ascends so the seeded order is the order they list in, and
+    /// a row created later still lands on top: a new row carries the default
+    /// priority and ties with the first seed, and the server breaks that tie
+    /// newest-first.
+    /// </summary>
+    private async Task SeedLaboCatalogsAsync(Guid branchId, Dictionary<string, string[]> catalogs)
+    {
+        foreach (var (group, names) in catalogs)
+        {
+            for (var index = 0; index < names.Length; index++)
+            {
+                var id = DeterministicId($"taxonomy|{branchId}|{group}|{names[index]}");
+
+                if (await ExistsAsync(taxonomyRepository, id))
+                {
+                    continue;
+                }
+
+                await taxonomyRepository.InsertAsync(
+                    Taxonomy.Create(id, branchId, group, names[index], sortOrder: index),
+                    autoSave: true);
+            }
+        }
+    }
+
+    /// <summary>Clinical vocabulary, not copied records — see the class summary.</summary>
+    private static Dictionary<string, string[]> FirstBranchLaboCatalogs() => new()
+    {
+        [TaxonomyGroups.LaboBite] =
+        [
+            "Khớp cắn chéo",
+            "Khớp cắn hở",
+            "Khớp cắn hạng I",
+            "Khớp cắn hạng II",
+            "Khớp cắn hạng III",
+        ],
+        [TaxonomyGroups.LaboFinishLine] =
+        [
+            "Bờ nghiêng",
+            "Bờ xuôi",
+            "Bờ cong",
+            "Bờ vai",
+            "Bờ vai vát",
+        ],
+        [TaxonomyGroups.LaboRhythm] =
+        [
+            "Nhịp bán yên ngựa",
+            "Nhịp yên ngựa",
+            "Nhịp hình trứng",
+            "Nhịp thoát",
+        ],
+    };
+
+    /// <summary>
+    /// Deliberately a different, shorter set: two branches holding the same
+    /// rows would hide a leak between them.
+    /// </summary>
+    private static Dictionary<string, string[]> SecondBranchLaboCatalogs() => new()
+    {
+        [TaxonomyGroups.LaboBite] = ["Khớp cắn hạng I", "Khớp cắn đối đầu"],
+        [TaxonomyGroups.LaboFinishLine] = ["Bờ vai", "Bờ lõm"],
+        [TaxonomyGroups.LaboRhythm] = ["Nhịp thoát", "Nhịp tiếp xúc"],
+    };
 
     /// <summary>
     /// The one material group the reference ships with: "Hệ thống", marked as a

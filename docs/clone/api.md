@@ -432,3 +432,426 @@ GET /medical-record/tag/list?branchId=&page=1&perPage=20&orderBy=order → Thẻ
 ```
 
 Patients item (sanitized): `{ id, name, code, phone, hasZalo, dateOfBirth, branchId, branchName, treatmentStatus: "created|in-progress|done", staffIds[], totalDebt, totalRevenue, totalAmount, serviceNames[], staffNames[], schedule{ nextAppointmentDate, currentAppointmentDate, currentTreatmentDate }, lastAppointmentDate, lastTreatmentDate, createdAt }`
+
+---
+
+# Labo — full API capture (app.nfcdental.com, read-only, 2026-08-27)
+
+Screen notes: `docs/clone/pages/labo.md`. Every path, verb and payload field
+below is taken from the shipped API client (`_next/static/chunks/`
+`91cfc74e0d6e2817.js` → `taxonomyApi`, `serviceMaterialApi`, `labOrderApi`;
+`371d50d53d0310c9.js` → `laboApi`, lab-order hooks; `a606f3013073d406.js` →
+the HTTP layer) and cross-checked against live GET traffic. **No mutating
+request was ever issued** — the write verbs are read out of the client, not
+observed on the wire, and are marked accordingly.
+
+## Transport conventions
+
+Base: `https://api.nfcdental.com/api` (client paths below start at `/v1/...`).
+
+Request headers on every call:
+
+```
+authorization: Bearer <JWT, ES256>
+x-branch-id:   <branchId>        ← branch is sent as a header AND a query param
+x-custom-lang: vi                ← drives server-side message localisation
+accept:        application/json
+```
+
+Response headers: `x-request-id`, `x-correlation-id`, `x-timestamp`,
+`x-timezone`, `x-version`, `x-repo-version`, `x-response-time`, `etag`.
+
+Every response uses one envelope:
+
+```json
+{
+  "statusCode": 200,
+  "message": "<localised, e.g. labOrder.list>",
+  "metadata": {
+    "language": "vi", "timestamp": 0, "timezone": "Asia/Ho_Chi_Minh",
+    "path": "/api/v1/...", "version": "1", "repoVersion": "8.2.2",
+    "requestId": "<uuid>", "correlationId": "<uuid>",
+    "type": "offset|cursor",
+    "count": 0, "page": 1, "perPage": 20, "totalPage": 0,
+    "hasNext": false, "hasPrevious": false,
+    "nextPage": null, "nextCursor": null,
+    "orderBy": [{ "<field>": "asc|desc" }],
+    "availableOrderBy": ["<field>"]
+  },
+  "data": [],
+  "stats": {}
+}
+```
+
+The client unwraps it as: items = `data`, pagination = `_pagination` when
+present else the fields above out of `metadata`, plus a sibling `stats` used by
+counter strips. `getData`/`postData`/`putData`/`patchData`/`deleteData` all
+return `data` unwrapped. File downloads go through a blob path that re-throws
+when the server answers `application/json` instead of a file.
+
+Sorting is always `?orderBy=<field>:<asc|desc>`; the server echoes the allowed
+fields back in `metadata.availableOrderBy`.
+
+---
+
+## 1. Lab orders — `labOrderApi`
+
+```
+GET    /v1/orders                       listOrders(params)
+GET    /v1/orders/{id}                  getOrder
+PUT    /v1/orders/{id}                  updateOrder(id, payload)        <- NOT ISSUED
+PUT    /v1/orders/{id}/update-status    updateOrderStatus(id, payload)  <- NOT ISSUED, unused by /labo
+GET    /v1/orders/export/excel          exportExcel(params)
+
+GET    /v1/clinic-orders                listClinicOrders
+POST   /v1/clinic-orders                createClinicOrder + header Idempotency-Key: <uuid>  <- NOT ISSUED
+GET    /v1/clinic-orders/estimate-code  estimateClinicOrderCode
+GET    /v1/clinic-orders/{id}           getClinicOrder
+GET    /v1/clinic-order-status          getClinicOrderStatus
+```
+
+`/labo/mau-labo` uses only `listOrders`, `exportExcel` and `updateOrder`.
+The `clinic-orders` family is the creation flow, which lives on the patient
+screen — note it is create-only via POST carrying an idempotency key.
+
+### List query (observed)
+
+```
+GET /api/v1/orders
+    ?page=1&perPage=20
+    &branchId=<id>
+    &orderBy=createdAt:desc
+    [&status=created|lateDelivery|delivered]
+    [&patientId=<id>]
+    [&staffId=<id>]
+    [&startTime=<ISO>&toTime=<ISO>]
+```
+
+`metadata.message = "labOrder.list"`,
+`availableOrderBy = ["createdAt","updatedAt","estimatedDeliveryDate"]`.
+Export re-sends the same object with `page` and `perPage` deleted.
+
+### Item shape
+
+Structure only — the surveyed branch holds 0 lab orders, so this is read from
+the client's row mapper rather than from a live payload.
+
+```json
+{
+  "id": "<string>",
+  "status":       "created|received|processing|completed|delivered|canceled|guarantee|continue|lateDelivery|replaced",
+  "statusClinic": "<same code set>",
+  "createdAt": "<ISO>",
+  "estimatedDeliveryDate": "<ISO>",
+  "note": "<string>",
+  "serviceTreatment": "<string>",
+  "toothColor": "<string>",
+  "toothContents": ["<string>"],
+  "patientId": "<string>",
+  "staffId": "<string>",
+  "patient":    { "id": "<string>", "code": "<string>", "name": "<string>", "phone": "<string>", "address": "<string>", "dateOfBirth": "<ISO>" },
+  "staff":      { "id": "<string>", "name": "<string>" },
+  "labo":       { "id": "<string>", "name": "<string>" },
+  "material":   { "id": "<string>", "name": "<string>" },
+  "service":    { "id": "<string>", "name": "<string>" },
+  "finishLine": { "name": "<string>" },
+  "biteJoint":  { "name": "<string>" },
+  "bridges":    { "name": "<string>" },
+  "clinic":     { "name": "<string>" },
+  "images":     [{ "id": "<string>", "name": "<string>", "fileName": "<string>", "cdnUrl": "<string>", "completedUrl": "<string>", "url": "<string>", "path": "<string>" }],
+  "imageLabos": [{ "id": "<string>", "key": "<string>", "name": "<string>", "cdnUrl": "<string>", "completedUrl": "<string>", "url": "<string>", "path": "<string>" }],
+  "imageLaboIds": ["<string>"]
+}
+```
+
+Image URL resolution is `cdnUrl ?? completedUrl ?? url ?? path`; a null result
+drops the image from the gallery. `images` feeds the table's
+"File phòng khám gửi về" lightbox; `imageLabos` feeds the detail modal's
+editable attachments.
+
+### Update payload (read from the client, never sent)
+
+```
+PUT /v1/orders/{id}
+{ "status": "<code>", "imageLaboIds": ["<mediaId>"] }
+```
+
+Nothing else on `/labo` is editable. Success toast
+`Cập nhật phiếu Labo thành công`; failure `Không thể cập nhật phiếu Labo`.
+On success the client invalidates `labOrders.all`, `labOrders.detail(id)`,
+`clinic-orders`, `clinic-order-status` and `treatmentServices.all`.
+
+---
+
+## 2. Lab suppliers — `laboApi` (base `/v1/labos/`)
+
+```
+GET    /v1/labos/            list(params)          cursor-paged
+GET    /v1/labos/list        listOffset(params)    offset-paged  <- what /labo/supplier uses
+GET    /v1/labos/{id}        detail
+POST   /v1/labos/            create(payload)       <- NOT ISSUED
+PUT    /v1/labos/{id}        update(id, payload)   <- NOT ISSUED
+DELETE /v1/labos/{id}        delete(id)            <- NOT ISSUED
+```
+
+### List query (observed)
+
+```
+GET /api/v1/labos/list?branchId=<id>[&search=<q>]&orderBy=updatedAt:desc&page=1&perPage=20
+```
+
+`availableOrderBy = ["name","createdAt","updatedAt"]`.
+`search` is debounced 400 ms and capped at 100 characters.
+
+### Item shape (observed, values redacted)
+
+```json
+{
+  "id": "<string>",
+  "name": "<string>",
+  "phoneNumber": "<string|null>",
+  "contactPerson": "<string|null>",
+  "email": "<string|null>",
+  "taxCode": "<string|null>",
+  "address": "<string|null>",
+  "city": "<province code, e.g. 79>",
+  "district": "<district code, e.g. 766>",
+  "ward": "<ward code, e.g. 27001>",
+  "addressFull": "<string|null, composed server-side from address + ward + district + city>",
+  "code": "<string|null>",
+  "logoFileId": "<string|null>",
+  "logoPath": "<string|null>",
+  "clinicId": "<string>",
+  "branchId": "<string>",
+  "isDeleted": false,
+  "createdAt": "<ISO>", "createdBy": "<userId>",
+  "updatedAt": "<ISO>", "updatedBy": "<userId>"
+}
+```
+
+### Create / update payload (read from the client, never sent)
+
+```json
+{
+  "name": "<string, 2..100, required>",
+  "email": "<email, max 100, required>",
+  "phoneNumber": "<string|undefined, max 15, digits>",
+  "contactPerson": "<string|undefined, 2..100>",
+  "taxCode": "<string|undefined, max 100>",
+  "city": "<province code|undefined>",
+  "district": "<district code|undefined>",
+  "ward": "<ward code|undefined>",
+  "address": "<string|undefined, max 100>",
+  "logoFileId": "<string|undefined>",
+  "logoPath": "<string|undefined>",
+  "branchId": "<string>"
+}
+```
+
+Empty strings become `undefined` before sending. The dialog's own state keys
+differ from the wire keys: `phone → phoneNumber`, `contact → contactPerson`,
+`provinceCode → city`, `districtCode → district`, `wardCode → ward`.
+
+---
+
+## 3. Taxonomy — `taxonomyApi` (base `/v1/taxonomy/`)
+
+Backs Khớp cắn, Đường hoàn tất, Kiểu nhịp **and** the Dịch vụ - vật liệu group
+panel — the same collection `/taxonomy` uses.
+
+```
+GET    /v1/taxonomy/                 list(params)          cursor-paged
+GET    /v1/taxonomy/list             listOffset(params)    offset-paged
+POST   /v1/taxonomy/                 create(payload)       <- NOT ISSUED
+PUT    /v1/taxonomy/{id}             update(id, payload)   <- NOT ISSUED
+DELETE /v1/taxonomy/{id}             delete(id)            <- NOT ISSUED
+PATCH  /v1/taxonomy/reorder          reorder(payload)      <- NOT ISSUED, unused by /labo
+PATCH  /v1/taxonomy/reorder-items    reorderItems(payload) <- NOT ISSUED, unused by /labo
+```
+
+### Observed queries
+
+```
+# bite / finish-line / nhip
+GET /api/v1/taxonomy/list?group=joint|line|bridge&branchId=<id>[&search=<q>]
+    &orderBy=createdAt:desc&page=1&perPage=20
+
+# Dịch vụ - vật liệu, left panel (infinite scroll)
+GET /api/v1/taxonomy/?group=serviceMaterial&branchId=<id>
+    &orderBy=order:asc&perPage=20&includeCount=true
+```
+
+`availableOrderBy = ["name","order","createdAt","updatedAt"]`.
+`includeCount=true` adds `itemCount` to each row. The cursor form returns
+`metadata.type = "cursor"` and no `page`/`totalPage`.
+
+### Item shape (observed, values redacted)
+
+```json
+{
+  "id": "<string>",
+  "name": "<string>",
+  "alias": "<string, server-generated: name + ' - ' + 10 random chars>",
+  "color": null,
+  "description": null,
+  "group": "joint|line|bridge|serviceMaterial|material|service|tooth",
+  "subGroup": null,
+  "ownerType": null,
+  "clinicId": "<string>",
+  "branchId": "<string>",
+  "laboId": "<string|null>",
+  "isSystem": false,
+  "order": 0,
+  "externalId": null,
+  "createdAt": "<ISO>", "createdBy": "<userId|null>",
+  "updatedAt": "<ISO>", "updatedBy": "<userId|null>",
+  "isDeleted": false,
+  "itemCount": 0
+}
+```
+
+### Payloads (read from the client, never sent)
+
+```json
+// create
+{ "name": "<string, 1..100>", "group": "<group>", "branchId": "<string>", "order": 0 }
+
+// update - taxonomyId is repeated inside the body as well as in the path
+{ "taxonomyId": "<id>", "name": "<string>", "group": "<group>", "branchId": "<string>", "order": 0 }
+```
+
+On the three simple tabs `order` on create is `max(order visible on the current
+page) + 1`, and on update the row's existing `order` is sent back unchanged.
+On the service-material group dialog `order` comes from the
+"Mức độ ưu tiên" field.
+
+### Labo taxonomy groups
+
+| group | Meaning | Surfaced on /labo |
+|-------|---------|-------------------|
+| `joint` | Khớp cắn Labo | yes — `/labo/bite` |
+| `line` | Đường hoàn tất | yes — `/labo/finish-line` |
+| `bridge` | Kiểu nhịp Labo | yes — `/labo/nhip` |
+| `serviceMaterial` | Dịch vụ - vật liệu (group) | yes — left panel |
+| `material` | Vật liệu Labo | no |
+| `service` | Dịch vụ | no |
+| `tooth` | Màu răng | no |
+
+---
+
+## 4. Service materials — `serviceMaterialApi`
+
+Base `/v1/taxonomy/service-materials`. Unlike the others it puts the verb in
+the path:
+
+```
+GET    /v1/taxonomy/service-materials/list           list(params)
+POST   /v1/taxonomy/service-materials/create         create(payload)      <- NOT ISSUED
+PUT    /v1/taxonomy/service-materials/update/{id}    update(id, payload)  <- NOT ISSUED
+DELETE /v1/taxonomy/service-materials/delete/{id}    delete(id)           <- NOT ISSUED
+```
+
+### Observed query
+
+```
+GET /api/v1/taxonomy/service-materials/list
+    ?branchId=<id>[&taxonomyId=<groupId>][&search=<q>]&page=1&perPage=20
+```
+
+### Item shape (observed, values redacted)
+
+```json
+{
+  "id": "<string>",
+  "name": "<string>",
+  "alias": "<string, server-generated>",
+  "taxonomyId": "<taxonomy id>",
+  "taxonomy": { "id": "<string>", "name": "<string>" },
+  "taxonomyName": "<string>",
+  "clinicId": "<string>",
+  "order": 0,
+  "isDeleted": false,
+  "createdAt": "<ISO>", "createdBy": "<userId|null>",
+  "updatedAt": "<ISO>", "updatedBy": "<userId|null>"
+}
+```
+
+The item carries **no `branchId`** — scoping rides on the parent taxonomy.
+
+### Payload (read from the client, never sent)
+
+```json
+{ "name": "<string, 1..100>", "taxonomyId": "<group id>", "branchId": "<string>" }
+```
+
+Same body for create and update.
+
+---
+
+## 5. Supporting endpoints used by /labo
+
+```
+# Patient combobox on Mẫu Labo (paged, server-searched)
+GET /api/v1/patients?page=<n>&perPage=20&q=<search>&branchId=<id>
+    item: { id, name, code, phone, hasZalo, dateOfBirth, branchId, branchName,
+            treatmentStatus, staffIds[], totalDebt, totalRevenue, totalAmount,
+            serviceNames[], staffNames[], lastAppointmentDate,
+            lastTreatmentDate, createdAt }
+    option label = "[" + code + "] - " + name ; option value = id -> sent as patientId
+
+# Doctor combobox on Mẫu Labo
+GET /api/v1/staff/list?page=1&perPage=20&status=active&isResigned=false
+    &branchId=<id>&isDoctor=true
+    item: { id, fullName, email, phoneNumber, role, clinic, status, createdAt,
+            avatarUrl, address, isDeleted, isStaff, isResigned, isDoctor,
+            isDentalAssistant, isPhysician, morningStartTime, morningEndTime,
+            afternoonStartTime, afternoonEndTime, branchIds[] }
+    the client filters again on status === "active" && !isResigned
+    option value = id -> sent as staffId
+
+# Address cascade in the supplier dialog
+GET /api/v1/country/province                          -> 63 items
+GET /api/v1/country/province/{provinceCode}/district
+GET /api/v1/country/district/{districtCode}/ward
+    item: { id, code, fullName, createdAt, updatedAt }
+    option label = fullName ; option value = code ; the supplier row stores the code
+
+# Permissions, read once at boot and used to gate every labo control
+GET /api/v1/user/me/permissions
+{
+  "roleType": "clinicAdmin",
+  "roleName": "<string>",
+  "abilities": [ { "subject": "<subject>", "action": ["read","create","update","delete","export"] } ]
+}
+    labo subjects: laboTemplate, laboSupplier, laboBite, laboFinishLine,
+                   laboRhythm, laboMaterial
+
+# Branch list, used by the branch switcher
+GET /api/v1/branch/public
+    item: { id, name, taxCode, email, contactPerson, phoneNumber, cityId,
+            districtId, wardId, clinicId, branchCode, logoFileId, avatarUrl,
+            address, createdAt, updatedAt }
+```
+
+## 6. Media upload
+
+The order detail modal and the supplier dialog both defer their uploads: files
+go to S3 first, then the returned `{ mediaId, url }` pairs are folded into the
+save payload.
+
+| Screen | folder | max files | max size | accept | type |
+|--------|--------|-----------|----------|--------|------|
+| Mẫu Labo detail | `labo/mau-labo` | 5 | 5 MB | `image/*` | — |
+| Nhà cung cấp dialog | `labo/supplier` | 1 | 5 MB | `image/*` | `avatar` |
+
+The upload endpoint itself was **not** captured — uploading would write to
+production storage. `UNKNOWN_REFERENCE_BEHAVIOR`.
+
+## 7. Session expiry
+
+Any 401 that cannot be refreshed via `POST /api/auth/refresh` (a Next.js route
+on the app origin, not the API host) raises a blocking modal:
+title `Phiên đăng nhập đã hết hạn`, body
+`Phiên làm việc của bạn đã hết hạn. Vui lòng đăng nhập lại để tiếp tục.`,
+single full-width button `Đồng ý` which routes to `/signin`. No close button,
+no click-outside.

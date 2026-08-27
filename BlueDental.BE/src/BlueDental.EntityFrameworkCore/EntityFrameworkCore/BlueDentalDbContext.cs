@@ -124,9 +124,6 @@ public class BlueDentalDbContext :
     // Labo
     public DbSet<LaboOrder> LaboOrders { get; set; }
     public DbSet<LaboSupplier> LaboSuppliers { get; set; }
-    public DbSet<LaboBiteType> LaboBiteTypes { get; set; }
-    public DbSet<LaboFinishLine> LaboFinishLines { get; set; }
-    public DbSet<LaboRhythmType> LaboRhythmTypes { get; set; }
     public DbSet<LaboMaterial> LaboMaterials { get; set; }
 
     // Customer Care
