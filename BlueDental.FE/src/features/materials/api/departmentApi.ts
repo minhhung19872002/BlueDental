@@ -27,7 +27,10 @@ export interface UpdateDepartmentDto {
 }
 
 const departmentApi = {
-  list: (params?: { filter?: string; maxResultCount?: number }): Promise<PagedResult<DepartmentDto>> =>
+  list: (params?: {
+    filter?: string;
+    maxResultCount?: number;
+  }): Promise<PagedResult<DepartmentDto>> =>
     api.get("/v1/app/departments", { params }).then((r) => r.data),
   create: (data: CreateDepartmentDto): Promise<DepartmentDto> =>
     api.post("/v1/app/departments", data).then((r) => r.data),
@@ -40,8 +43,20 @@ const departmentApi = {
     api.put("/v1/app/departments/reorder", { ids }).then((r) => r.data),
 };
 
-export function useDepartmentList() {
-  return useQuery({ queryKey: ["departments"], queryFn: () => departmentApi.list({ maxResultCount: 200 }) });
+/**
+ * The branch's departments, narrowed on the server.
+ *
+ * The filter goes into the query key as well as the request, so a typed term is
+ * a real round trip rather than a sweep over whatever the first page happened
+ * to contain — which quietly missed anything past it.
+ */
+export function useDepartmentList(filter?: string) {
+  const term = filter?.trim() || undefined;
+
+  return useQuery({
+    queryKey: ["departments", term],
+    queryFn: () => departmentApi.list({ filter: term, maxResultCount: 200 }),
+  });
 }
 
 export function useCreateDepartment() {

@@ -28,27 +28,12 @@ export function AllocationTab() {
   const pagination = useTablePagination(20);
   const debounced = useDebounce(keyword, 300);
 
-  const query = useAllocationList();
+  // Searched on the server: it used to sweep whatever the first page held, so
+  // a voucher past it could not be found at all.
+  const query = useAllocationList(undefined, debounced);
   const deleteAllocation = useDeleteAllocation();
 
-  // The endpoint takes no search, so a typed term narrows what came back. The
-  // list is one branch's vouchers, not a table that needs paging on the server.
-  const rows = useMemo(() => {
-    const all = query.data?.items ?? [];
-    const term = debounced.trim().toLowerCase();
-    if (!term) return all;
-
-    return all.filter((row: MaterialAllocationDto) =>
-      [
-        row.allocationCode,
-        row.departmentName,
-        row.performerName,
-        ...row.items.map((item) => item.name),
-      ]
-        .filter(Boolean)
-        .some((field) => String(field).toLowerCase().includes(term)),
-    );
-  }, [query.data, debounced]);
+  const rows = query.data?.items ?? [];
 
   const confirmDelete = async () => {
     if (!pendingDelete) return;

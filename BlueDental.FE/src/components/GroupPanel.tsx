@@ -54,6 +54,8 @@ interface Props<TGroup extends PanelGroup> {
   countNoun?: string;
   /** What an empty panel says, e.g. "Chưa có phòng ban". */
   emptyText?: string;
+  /** What a search with no match says, e.g. "Không tìm thấy phòng ban phù hợp". */
+  notFoundText?: string;
   /** Names the "+" for a screen reader, e.g. "Thêm phòng ban". */
   createLabel?: string;
 }
@@ -223,6 +225,7 @@ export function GroupPanel<TGroup extends PanelGroup>({
   searchPlaceholder,
   countNoun,
   emptyText,
+  notFoundText,
   createLabel,
 }: Props<TGroup>) {
   /** A search shows part of the catalog, so positions in it are not the order. */
@@ -303,7 +306,7 @@ export function GroupPanel<TGroup extends PanelGroup>({
             <FolderOpenOutlined className="bd-icon--xl" aria-hidden="true" />
             <p className="bd-cat-hint bd-cat-hint--13">
               {keyword
-                ? t("Không tìm thấy nhóm phù hợp")
+                ? (notFoundText ?? t("Không tìm thấy nhóm phù hợp"))
                 : (emptyText ?? t("Chưa có nhóm nào"))}
             </p>
           </div>

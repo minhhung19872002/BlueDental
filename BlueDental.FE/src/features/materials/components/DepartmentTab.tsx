@@ -72,20 +72,18 @@ export function DepartmentTab() {
   const debouncedPanel = useDebounce(panelKeyword, 300);
   const debounced = useDebounce(keyword, 300);
 
-  const departmentsQuery = useDepartmentList();
+  // Searched on the server, as the reference searches it.
+  const departmentsQuery = useDepartmentList(debouncedPanel);
   const deleteDepartment = useDeleteDepartment();
   const reorderDepartments = useReorderDepartments();
 
-  // The endpoint takes no search, so the typed term narrows what came back.
-  const departments = useMemo(() => {
-    const all = departmentsQuery.data?.items ?? [];
-    const term = debouncedPanel.trim().toLowerCase();
-    return term
-      ? all.filter((row: DepartmentDto) => row.name.toLowerCase().includes(term))
-      : all;
-  }, [departmentsQuery.data, debouncedPanel]);
+  const departments = useMemo(
+    () => departmentsQuery.data?.items ?? [],
+    [departmentsQuery.data],
+  );
 
-  const allocationsQuery = useAllocationList(selectedId ?? undefined);
+  // The term goes to the server, which narrows to the vouchers that mention it.
+  const allocationsQuery = useAllocationList(selectedId ?? undefined, debounced);
 
   /**
    * One row per material per voucher — the reference flattens the vouchers out,
@@ -112,6 +110,10 @@ export function DepartmentTab() {
       }
     }
 
+    // The server has already narrowed this to the vouchers that mention the
+    // term. A voucher carries several materials, though, so its other lines
+    // come back with it — this keeps the rows to the ones actually searched
+    // for, rather than showing whatever else happened to travel alongside.
     const terms = debounced.trim().toLowerCase().split(/\s+/).filter(Boolean);
     if (!terms.length) return flattened;
 
@@ -310,6 +312,7 @@ export function DepartmentTab() {
           searchPlaceholder={t("Tìm phòng ban...")}
           countNoun={t("phòng ban")}
           emptyText={t("Chưa có phòng ban")}
+          notFoundText={t("Không tìm thấy phòng ban phù hợp")}
           createLabel={t("Tạo phòng ban")}
           groups={departments}
           isLoading={departmentsQuery.isLoading}

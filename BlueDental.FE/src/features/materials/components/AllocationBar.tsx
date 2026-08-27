@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Button, Select, Tooltip } from "antd";
 import { CloseOutlined, InfoCircleOutlined, SlidersOutlined } from "@ant-design/icons";
 import { useDepartmentList, type DepartmentDto } from "../api/departmentApi";
+import { useDebounce } from "@/hooks/useDebounce";
 import { t } from "@/lib/i18n";
 
 /** The two notes the reference hangs off the ⓘ beside "Phân bổ". */
@@ -35,7 +37,12 @@ export function AllocationBar({
   onClear,
   onAllocate,
 }: Props) {
-  const departmentsQuery = useDepartmentList();
+  // Typed into, this asks the server rather than sifting a page already
+  // fetched — which would silently miss any department past it.
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
+
+  const departmentsQuery = useDepartmentList(debouncedSearch);
   const departments = departmentsQuery.data?.items ?? [];
 
   // The reference names the first two and counts the rest.
@@ -70,10 +77,17 @@ export function AllocationBar({
         aria-label={t("Phòng ban nhận")}
         value={departmentId ?? undefined}
         onChange={(value) => onDepartmentChange(value ?? null)}
-        loading={departmentsQuery.isLoading}
+        loading={departmentsQuery.isFetching}
         showSearch
         allowClear
-        optionFilterProp="label"
+        // The server has already narrowed the list, so the browser must not
+        // narrow it again — its idea of a match is not the server's.
+        filterOption={false}
+        searchValue={search}
+        onSearch={setSearch}
+        notFoundContent={
+          departmentsQuery.isFetching ? t("Đang tìm…") : t("Không tìm thấy phòng ban")
+        }
         options={departments.map((department: DepartmentDto) => ({
           value: department.id,
           label: department.name,
