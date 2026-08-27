@@ -44,8 +44,8 @@ function Muted({ children }: { children: ReactNode }) {
 }
 
 /** Dịch vụ and Bác sĩ: two lines of a comma list, the rest behind the tooltip. */
-function NameList({ names }: { names: string[] }) {
-  if (names.length === 0) return <Dash />;
+function NameList({ names }: { names: string[] | undefined }) {
+  if (!names || names.length === 0) return <Dash />;
 
   const text = names.join(", ");
   return (

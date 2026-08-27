@@ -54,8 +54,8 @@ export function formatCurrency(value: number): string {
 }
 
 /** Format VND amount as dot-separated number without symbol (e.g. 24.000.000) */
-export function formatVND(value: number): string {
-  if (value === 0) return "0";
+export function formatVND(value: number | null | undefined): string {
+  if (!value) return "0";
   return value.toLocaleString("vi-VN");
 }
 
