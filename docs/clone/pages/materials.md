@@ -27,6 +27,12 @@ segmented control.
 |---------|----------------|
 | Material groups | `GET /api/v1/taxonomy/?group=supplies&includeCount=true` |
 | Materials | `GET /api/v1/supplies/list` |
+| Departments | `GET /api/v1/departments/list?perPage=20&branchId=…&orderBy=order&page=1` |
+
+The department response advertises `availableOrderBy: ["name","order","createdAt","updatedAt"]`
+and is requested with `orderBy=order`, so a department carries a position of its
+own — which is why BlueDental gives `Department` a `SortOrder` column and orders
+the panel by it. Its dialog collects that as "Số thứ tự".
 
 The groups are ordinary taxonomy groups under the `supplies` slug — the same
 collection Danh mục's panel reads — which is why BlueDental shares one panel and
@@ -109,8 +115,8 @@ Panel on the left, table on the right.
 | Empty | "Chưa có phòng ban" |
 
 Toolbar: `Tìm vật tư...` on the left; at the far right an **icon-only outlined
-button** (a stacked-layers glyph). The 2026-08-22 pass recorded its label as
-"Gộp số lượng vật tư".
+button** (a stacked-layers glyph) whose `aria-label` reads "Gộp số lượng vật tư".
+The "+" beside the panel search is labelled "Tạo phòng ban".
 
 Columns: Thời gian phân bổ · Mã phân bổ · Vật tư · SL được phát ·
 SL còn lại (đã duyệt) · Kiểm kho · Người thực hiện · Ghi chú · Thao tác
@@ -128,10 +134,22 @@ Department dialog — 500px: `Tên phòng ban *` and `Số thứ tự`, one `Lư
 | 3 | How "Cảnh báo hết hạn" renders when a material is near expiry | No rows | Shown as the plain day count |
 | 4 | Row action buttons | No rows | Edit + delete, as every other BlueDental table |
 | 5 | `Sync data hệ thống` | Disabled on the reference too | Offered, disabled |
-| 6 | `Lịch sử kiểm kho` destination | Enabled on the reference, but not followed — clicking could not be shown to be read-only | Offered, disabled, with a title saying it is not built |
-| 7 | `Gộp số lượng vật tư` | Icon-only; no departments or issued materials to act on | Offered, disabled |
+| 6 | `Lịch sử kiểm kho` destination | Enabled on the reference, but not followed — clicking could not be shown to be read-only | Offered, disabled. BlueDental records no stock-take at all — confirming usage moves a number and writes no history — so there is nothing for it to show. The reason is on a tooltip, because a disabled button swallows its own |
+| 7 | `Gộp số lượng vật tư` — what it actually does | No departments and no issued materials on the reference, and the control is a plain `<button>` with no href to follow. Clicking a control named "merge" on the reference is not a read, so it was not clicked | **Assumed**, not observed: it folds the table to one row per material with the quantities added up, and writes nothing. The folded row's code cell reads "N phiếu" instead of one voucher's code. If the reference turns out to merge stored records instead, only a local view has to change |
 | 8 | `Kiểm kho` column contents | No rows; BlueDental stores no stock-take against an allocation | Renders "—" |
 | 9 | Whether the reference pages materials on the server | Never more than zero rows | BlueDental pages on the server |
+
+## Local sample data
+
+The reference branch is empty on all three sections, so nothing there can be
+copied and nothing here would be visible either. `BlueDentalMaterialsDemoSeeder`
+fills a development database with invented Vietnamese supplies: three groups,
+five departments, thirteen materials and twenty vouchers.
+
+Stock and expiry are picked so Trạng thái shows all five of its values, and the
+vouchers go round-robin over the departments drawing on two materials each — so
+every department has rows and "Gộp số lượng vật tư" always has something to
+fold. Deterministic ids and a fixed RNG seed, so a re-run changes nothing.
 
 ## Known divergences
 

@@ -486,6 +486,10 @@ FE: **44/44** trên bản build production.
 | R-120 | **Thêm vật tư báo lỗi `BlueDental:Inventory:0004`** | Ô "Số lượng" để trống là hợp lệ trên bản gốc, nhưng về tới `CreateAsync` nó thành 0 và bị đẩy thẳng vào `ReceiveStock` → `AddStock` từ chối nhập 0 → **hỏng cả lần lưu** vì một ô người dùng cố ý bỏ trống | Nhập kho lúc tạo được viết như thể lần nào cũng có hàng về | Tách phần ngày của `ReceiveStock` ra `SetShelfLife`; lúc tạo chỉ cộng kho khi thực sự có số lượng, còn ngày thì luôn ghi. Endpoint nhập kho riêng vẫn giữ nguyên ràng buộc | `materials.spec.ts` ("saves a material with no quantity") |
 | R-121 | Tìm vật tư phân biệt hoa thường, và chết khi có dấu cách | `Contains()` trên PostgreSQL chạy **phân biệt hoa thường**, nên gõ "gang tay" không ra "Găng Tay". Cụm có dấu cách lại càng không ra, vì cả cụm phải khớp nguyên văn | Viết bộ lọc riêng thay vì dùng helper đã có | Dùng `SearchTerms` — đúng helper mà tìm kiếm bên Danh mục đã dùng: trim, hạ chữ thường, tách từ, mỗi từ phải xuất hiện đâu đó trong tên hoặc mã | `materials.spec.ts` (tìm bằng chuỗi có đệm khoảng trắng, chữ thường, **sai thứ tự từ**) |
 | R-122 | Xoá nhóm vật tư / phòng ban **không hỏi lại** | Từ menu ⋯ bấm "Xoá" là xoá luôn, trong khi xoá một nhóm là kéo theo cả vật tư trong nhóm. Mọi chỗ xoá khác trên các màn này đều hỏi qua `ConfirmDeleteDialog` | Dựng panel dùng chung nhưng nối thẳng `onDelete` vào mutation | Cả hai tab hỏi lại, nêu đúng tên bản ghi, nút xác nhận đỏ; xoá đúng mục đang chọn thì bỏ chọn luôn | `materials.spec.ts` (huỷ thì còn, xác nhận thì mất và mất cả sau khi tải lại — cho cả nhóm vật tư lẫn phòng ban) |
+| R-123 | **Phòng ban và phiếu phân bổ không lọc theo chi nhánh** | `DepartmentAppService.GetListAsync` và `MaterialAllocationAppService.GetListAsync` đọc toàn bộ bảng: chi nhánh nào cũng thấy phòng ban và phiếu của chi nhánh khác. `CreateAsync` của phòng ban lại không gán `BranchId` nào cả | Hai service này viết trước khi có `ICurrentClinicBranchResolver`, và không có test nào chạm tới chúng | Cả hai lọc theo chi nhánh hiện tại; sửa/xoá một bản ghi của chi nhánh khác trả `EntityNotFound` thay vì cho qua | `materials.spec.ts`; `branch-isolation.spec.ts` giữ nguyên |
+| R-124 | **Phiếu phân bổ bị đóng dấu bằng id người dùng thay cho id chi nhánh** | `new MaterialAllocation(..., CurrentUser.Id ?? Guid.Empty, ...)` — tham số thứ 5 của constructor là `branchId`. Mọi phiếu tạo qua API mang id người lập ở cột chi nhánh, nên không thuộc chi nhánh nào | Hai `Guid` cạnh nhau trong danh sách tham số, không có tên gọi ở chỗ gọi | Truyền `_branchResolver.GetRequiredClinicBranchId()` | `materials.spec.ts` (danh sách lọc theo chi nhánh nên phiếu sai chi nhánh sẽ biến mất) |
+| R-125 | "Số thứ tự" của phòng ban bị ghi vào cột mô tả | Bản gốc gọi `/departments/list?orderBy=order` và trả `availableOrderBy: ["name","order",...]` — phòng ban **có** thứ tự riêng. Bản mình không có cột đó nên nhét con số vào `Description`: không sắp xếp được, và sẽ lòi ra ở bất cứ chỗ nào hiện mô tả | Dựng dialog trước khi soi kỹ API bản gốc | Thêm cột `SortOrder` (migration `20260827090000`), danh sách sắp theo `SortOrder` rồi tới tên, và panel kéo-thả được như panel nhóm vật tư | `materials.spec.ts` ("keeps a department's position as a position") |
+| R-126 | Seeder chết vì trùng khoá chính sau khi xoá mềm | `BlueDentalOperationsDemoSeeder` kiểm tra bằng `AnyAsync` thuần — không thấy dòng đã xoá mềm nên báo "chưa seed" rồi insert lại đúng khoá cũ. Xoá "Kho vật tư" trên giao diện là lần seed sau hỏng hẳn | Đúng cái bẫy đã sửa ở các seeder khác, còn sót lại ở đây (9 chỗ) | Gom về `AnySeededAsync` có tắt bộ lọc xoá mềm | Chạy lại `DbMigrator` trên DB đang có dòng bị xoá mềm |
 
 **Đính chính một điều tôi từng nói sai:** trong các commit trước tôi ghi hai test
 `BlueDentalAbilitiesTests` là "lỗi có sẵn trên nhánh". Đo lại lần này: chúng
@@ -498,7 +502,17 @@ FE: **43/43** (rich-image, operations, taxonomy ×3) trên bản build productio
 Vật tư (2026-08-26): **35/35** trên bản build production — 4 test `materials.spec.ts`
 cộng **31 test Danh mục** chạy lại vì `GroupPanel` nay dùng chung cho cả hai màn.
 
-Sau khi sửa R-120…R-122: `materials.spec.ts` lên **6/6**. BE `Domain.Tests`
+Sau khi sửa R-120…R-126: `materials.spec.ts` lên **8/8**, và chạy kèm
+`operations.spec.ts` + `taxonomy-groups.spec.ts` (**29/30**) vì phần phòng ban
+và bộ lọc chi nhánh dùng chung.
+
+Một test đỏ, **không phải do đợt sửa này**: `branch-isolation.spec.ts:54` bắt
+`admin` phải bị từ chối chi nhánh 2 (403), nhưng seeder **cố ý** không gán
+`StaffBranchAssignment` cho `admin` — có ghi rõ lý do trong
+`BlueDentalDataSeedContributor.AssignAdminToDefaultBranchAsync`: gán vào là bộ
+chuyển chi nhánh trên header chỉ còn một chi nhánh. Tiền đề của test mâu thuẫn
+với seeder; để nguyên, vì quyết định `admin` có bị giới hạn chi nhánh hay không
+là chuyện sản phẩm, không phải chuyện của màn Vật tư. BE `Domain.Tests`
 **195/196** — test đỏ duy nhất là `BlueDentalAbilitiesTests` đã đỏ sẵn từ `main`
 (commit `4cb0e1f` thêm subject `chatbotKnowledge` mà không nâng con số 84).
 Không đụng tới nó: test đó tồn tại để khoá danh sách quyền theo đúng những gì

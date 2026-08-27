@@ -81,7 +81,7 @@ test.describe("Vật tư", () => {
     // Nothing is selected yet, so the table says to pick one.
     await expect(page.getByText("Chọn phòng ban để xem vật tư đã phân bổ")).toBeVisible();
 
-    await page.getByRole("button", { name: "Thêm phòng ban" }).click();
+    await page.getByRole("button", { name: "Tạo phòng ban" }).click();
 
     const dialog = page.getByRole("dialog");
     await dialog.getByLabel(/Tên phòng ban/).fill(departmentName);
@@ -184,6 +184,83 @@ test.describe("Vật tư", () => {
 
     await page.reload();
     await expect(page.getByRole("button", { name: groupName })).toBeHidden();
+  });
+
+  test("keeps a department's position as a position, not a description", async ({ page }) => {
+    const id = runId();
+    const later = `ZZ SAU ${id}`;
+    const sooner = `ZZ TRUOC ${id}`;
+
+    await page.goto("/materials/department");
+    await assertRealApiTraffic(page, "/api/v1/app/departments");
+
+    const create = async (name: string, position: string) => {
+      await page.getByRole("button", { name: "Tạo phòng ban" }).click();
+      const dialog = page.getByRole("dialog");
+      await dialog.getByLabel(/Tên phòng ban/).fill(name);
+      await dialog.getByLabel(/Số thứ tự/).fill(position);
+      await dialog.getByRole("button", { name: /Lưu$/ }).click();
+      await expect(dialog).toBeHidden({ timeout: 10_000 });
+    };
+
+    // Created in the wrong order on purpose: the position, not the moment of
+    // creation, decides where each lands.
+    await create(later, "92");
+    await create(sooner, "91");
+
+    const positionsOf = async () => {
+      const names = await page.locator(".bd-group-name").allInnerTexts();
+      return [names.indexOf(sooner), names.indexOf(later)];
+    };
+
+    let [first, second] = await positionsOf();
+    expect(first).toBeGreaterThanOrEqual(0);
+    expect(first).toBeLessThan(second);
+
+    // It survives a reload — the number reached its own column rather than
+    // being written into the description.
+    await page.reload();
+    await expect(page.getByRole("button", { name: sooner })).toBeVisible();
+    [first, second] = await positionsOf();
+    expect(first).toBeLessThan(second);
+
+    // Reopening shows the number back, which it could not if it had been lost.
+    await page.locator(`[data-group-menu="${sooner}"]`).click();
+    await page.getByRole("menuitem", { name: "Chỉnh sửa" }).click();
+    await expect(page.getByRole("dialog").getByLabel(/Số thứ tự/)).toHaveValue("91");
+  });
+
+  test("Gộp số lượng vật tư folds a department's vouchers and adds them up", async ({
+    page,
+  }) => {
+    await page.goto("/materials/department");
+    await assertRealApiTraffic(page, "/api/v1/app/departments");
+
+    // A seeded department: four vouchers drawn from two materials.
+    await page.getByRole("button", { name: "Phòng khám 1" }).click();
+
+    const rows = page.locator(".ant-table-tbody tr.ant-table-row");
+    await expect(rows).toHaveCount(4);
+
+    const quantityOf = async (index: number) =>
+      Number((await rows.nth(index).locator("td").nth(3).innerText()).trim());
+
+    const before = await Promise.all([0, 1, 2, 3].map(quantityOf));
+    const total = before.reduce((sum, value) => sum + value, 0);
+
+    await page.getByRole("button", { name: "Gộp số lượng vật tư" }).click();
+
+    // One row per material, and nothing is lost in the folding.
+    await expect(rows).toHaveCount(2);
+    const after = await Promise.all([0, 1].map(quantityOf));
+    expect(after.reduce((sum, value) => sum + value, 0)).toBe(total);
+
+    // The code column says what a folded row stands for.
+    await expect(rows.first()).toContainText("2 phiếu");
+
+    // It is a view, not a write: turning it off brings the vouchers back.
+    await page.getByRole("button", { name: "Gộp số lượng vật tư" }).click();
+    await expect(rows).toHaveCount(4);
   });
 
   test("Phân bổ vật tư lists real vouchers with no group panel", async ({ page }) => {
