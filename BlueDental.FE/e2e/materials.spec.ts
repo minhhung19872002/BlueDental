@@ -236,11 +236,11 @@ test.describe("Vật tư", () => {
     await page.goto("/materials/department");
     await assertRealApiTraffic(page, "/api/v1/app/departments");
 
-    // A seeded department: four vouchers drawn from two materials.
+    // A seeded department that has been issued materials more than once.
     await page.getByRole("button", { name: "Phòng khám 1" }).click();
 
     const rows = page.locator(".ant-table-tbody tr.ant-table-row");
-    await expect(rows).toHaveCount(4);
+    await expect(rows.first()).toBeVisible();
 
     // The stylesheet upper-cases headings, and allInnerTexts reports what is
     // rendered — so compare on a common footing.
@@ -251,23 +251,26 @@ test.describe("Vật tư", () => {
 
     expect(await headings()).toContain("sl được phát");
 
-    // One cell per row — rows.locator("td") would flatten every row's cells
-    // into one list and nth() would then pick a single cell out of the lot.
-    const columnTotal = async (column: number) => {
-      const count = await rows.count();
-      let sum = 0;
-      for (let index = 0; index < count; index++) {
-        sum += Number((await rows.nth(index).locator("td").nth(column).innerText()).trim());
-      }
-      return sum;
-    };
+    // Read the detail out rather than assuming how much was seeded: other
+    // tests issue and cancel vouchers, so the counts are not fixed.
+    const detail = await rows.evaluateAll((list) =>
+      list.map((row) => {
+        const cells = [...row.querySelectorAll("td")].map((c) => c.textContent?.trim() ?? "");
+        return { name: cells[2], quantity: Number(cells[3]) };
+      }),
+    );
+    expect(detail.length).toBeGreaterThan(1);
 
-    const total = await columnTotal(3);
+    const perMaterial = new Map<string, { total: number; times: number }>();
+    for (const line of detail) {
+      const seen = perMaterial.get(line.name) ?? { total: 0, times: 0 };
+      perMaterial.set(line.name, { total: seen.total + line.quantity, times: seen.times + 1 });
+    }
 
     await page.getByRole("button", { name: "Gộp số lượng vật tư" }).click();
 
     // Not the same rows folded — a different table, asking different questions.
-    await expect(rows).toHaveCount(2);
+    await expect(rows).toHaveCount(perMaterial.size);
     expect(await headings()).toEqual([
       "vật tư",
       "tổng sl phân bổ",
@@ -276,13 +279,24 @@ test.describe("Vật tư", () => {
       "lần phân bổ gần nhất",
     ]);
 
-    // Nothing is lost on the way across.
-    expect(await columnTotal(1)).toBe(total);
-    await expect(rows.first()).toContainText("2 lần");
+    // Every material's total and count survive the crossing.
+    const summary = await rows.evaluateAll((list) =>
+      list.map((row) => {
+        const cells = [...row.querySelectorAll("td")].map((c) => c.textContent?.trim() ?? "");
+        return { name: cells[0], total: Number(cells[1]), times: cells[3] };
+      }),
+    );
+
+    for (const line of summary) {
+      const expected = perMaterial.get(line.name);
+      expect(expected, `${line.name} should have been in the detail view`).toBeDefined();
+      expect(line.total).toBe(expected!.total);
+      expect(line.times).toBe(`${expected!.times} lần`);
+    }
 
     // It is a view, not a write: turning it off brings the vouchers back.
     await page.getByRole("button", { name: "Gộp số lượng vật tư" }).click();
-    await expect(rows).toHaveCount(4);
+    await expect(rows).toHaveCount(detail.length);
     expect(await headings()).toContain("sl được phát");
   });
 
@@ -335,8 +349,15 @@ test.describe("Vật tư", () => {
     // Nothing can be issued until a department is named.
     await expect(bar.getByRole("button", { name: "Phân bổ", exact: true })).toBeDisabled();
 
-    await bar.getByLabel("Phòng ban nhận").click();
-    await page.getByTitle(departmentName, { exact: true }).click();
+    // antd renders a hidden a11y twin of every option, so clicking by role can
+    // land on the unclickable one. Filtering and taking the active option is
+    // both closer to what a person does and unambiguous.
+    const department = bar.getByLabel("Phòng ban nhận");
+    await department.click();
+    await department.fill(departmentName);
+    await expect(page.locator(`.ant-select-item-option[title="${departmentName}"]`)).toBeVisible();
+    await department.press("Enter");
+    await expect(bar).toContainText(departmentName);
     await bar.getByRole("button", { name: "Phân bổ", exact: true }).click();
 
     const allocate = page.getByRole("dialog");
@@ -361,8 +382,10 @@ test.describe("Vật tư", () => {
     await page.goto("/materials/allocation");
     const voucher = page.getByRole("row", { name: new RegExp(materialName) });
     await expect(voucher).toBeVisible();
-    // The reference prints each line as "name: qty".
-    await expect(voucher).toContainText(`${materialName}: 15`);
+    // The name is the "Vật tư" column's job; this column is the number alone,
+    // with the full "name: qty" kept on the title for a voucher of several.
+    await expect(voucher.getByRole("cell", { name: "15", exact: true })).toBeVisible();
+    await expect(voucher.locator('[title="' + materialName + ': 15"]')).toBeAttached();
     await expect(voucher).toContainText(departmentName);
     // PB + the date + a counter that restarts each day.
     await expect(voucher).toContainText(/PB\d{8}\d{4}/);

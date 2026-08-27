@@ -243,4 +243,5 @@ fold. Deterministic ids and a fixed RNG seed, so a re-run changes nothing.
 
 | # | Difference | Why |
 |---|-----------|-----|
+| 0 | "SL được phân bổ" and "SL confirm còn lại" show the numbers alone; the reference repeats each material's name in front of them | Asked for. The "Vật tư" column beside them already lists the names in the same order, so they read across; the full "name: qty" stays on the title for a voucher of several |
 | 1 | Table footer reads `Hiển thị … ` then `20 / trang`; the reference puts the page-size select first and labels its pager `‹ Trước` / `Sau ›` | Comes from the shared `DataTable` footer every BlueDental screen uses, including the accepted Danh mục screen (CLAUDE.md §17). Not changed for one screen. |
