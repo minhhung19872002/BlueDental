@@ -5,7 +5,9 @@ using System.Threading.Tasks;
 using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
+using Volo.Abp;
 using Volo.Abp.Application.Dtos;
+using Volo.Abp.Data;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Entities;
 using Volo.Abp.Domain.Repositories;
@@ -19,17 +21,20 @@ public class MaterialAllocationAppService : ApplicationService, IMaterialAllocat
     private readonly IRepository<InventoryItem, Guid> _inventoryItemRepository;
     private readonly IRepository<Department, Guid> _departmentRepository;
     private readonly ICurrentClinicBranchResolver _branchResolver;
+    private readonly IDataFilter<ISoftDelete> _softDeleteFilter;
 
     public MaterialAllocationAppService(
         IRepository<MaterialAllocation, Guid> repository,
         IRepository<InventoryItem, Guid> inventoryItemRepository,
         IRepository<Department, Guid> departmentRepository,
-        ICurrentClinicBranchResolver branchResolver)
+        ICurrentClinicBranchResolver branchResolver,
+        IDataFilter<ISoftDelete> softDeleteFilter)
     {
         _repository = repository;
         _inventoryItemRepository = inventoryItemRepository;
         _departmentRepository = departmentRepository;
         _branchResolver = branchResolver;
+        _softDeleteFilter = softDeleteFilter;
     }
 
     [Authorize(BlueDentalPermissions.Inventory.View)]
@@ -85,7 +90,7 @@ public class MaterialAllocationAppService : ApplicationService, IMaterialAllocat
 
         var allocation = new MaterialAllocation(
             GuidGenerator.Create(),
-            await NextCodeAsync(branchId),
+            await NextCodeAsync(),
             input.DepartmentId,
             branchId,
             input.PerformerName ?? CurrentUser.Name ?? CurrentUser.UserName,
@@ -156,17 +161,45 @@ public class MaterialAllocationAppService : ApplicationService, IMaterialAllocat
     /// <summary>
     /// The reference numbers its vouchers PB + the date + a counter that starts
     /// again each day — PB202608270001.
+    ///
+    /// <para>
+    /// The next number comes off the highest one already used, not off a count
+    /// of them. A count assumes an unbroken run from one, which nothing
+    /// guarantees: seeded vouchers carry their own numbering, and a deleted one
+    /// leaves a gap. Either way a count hands back a number already taken.
+    /// </para>
+    ///
+    /// <para>
+    /// Soft-deleted vouchers still hold their code in the unique index, so they
+    /// have to be counted among the taken — hence the disabled filter.
+    /// </para>
     /// </summary>
-    private async Task<string> NextCodeAsync(Guid branchId)
+    private async Task<string> NextCodeAsync()
     {
-        var today = Clock.Now.Date;
-        var prefix = $"PB{today:yyyyMMdd}";
-
+        var prefix = $"PB{Clock.Now:yyyyMMdd}";
         var queryable = await _repository.GetQueryableAsync();
-        var todayCount = queryable.Count(x =>
-            x.BranchId == branchId && x.AllocationCode.StartsWith(prefix));
 
-        return $"{prefix}{todayCount + 1:D4}";
+        List<string> taken;
+        using (_softDeleteFilter.Disable())
+        {
+            // The code is unique across the whole clinic, so the run of numbers
+            // is too — this deliberately does not narrow to one branch.
+            taken = queryable
+                .Where(x => x.AllocationCode.StartsWith(prefix))
+                .Select(x => x.AllocationCode)
+                .ToList();
+        }
+
+        var next = 1;
+        foreach (var code in taken)
+        {
+            if (int.TryParse(code[prefix.Length..], out var used) && used >= next)
+            {
+                next = used + 1;
+            }
+        }
+
+        return $"{prefix}{next:D4}";
     }
 
     private async Task<MaterialAllocation> GetInBranchAsync(Guid id)
