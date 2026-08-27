@@ -17,9 +17,9 @@ test.describe("Công đoạn điều trị", () => {
     await page.goto("/patient");
     await assertRealApiTraffic(page, "/api/v1/app/patients");
 
-    const firstRow = page.locator("tr.ant-table-row").first();
-    await expect(firstRow).toBeVisible();
-    await firstRow.click();
+    const firstName = page.locator("tr.ant-table-row .bd-patient-name").first();
+    await expect(firstName).toBeVisible();
+    await firstName.click();
     await expect(page).toHaveURL(/\/patient\/[0-9a-f-]{36}/);
   }
 

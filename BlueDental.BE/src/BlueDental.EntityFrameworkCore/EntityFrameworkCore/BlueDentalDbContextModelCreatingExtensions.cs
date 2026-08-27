@@ -227,7 +227,14 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.BloodType).HasMaxLength(10);
             entity.Property(x => x.Status).HasConversion<short>();
             entity.Property(x => x.Gender).HasConversion<short>();
+            entity.Property(x => x.OccupationOther).HasMaxLength(200);
+            entity.Property(x => x.InsuranceNumber).HasMaxLength(30);
+            entity.Property(x => x.ProvinceCode).HasMaxLength(20);
+            entity.Property(x => x.WardCode).HasMaxLength(20);
+            entity.Property(x => x.ExaminationReason).HasMaxLength(1000);
+            entity.Property(x => x.Note).HasMaxLength(1000);
             entity.PrimitiveCollection(x => x.TagIds).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.PrimitiveCollection(x => x.DiseaseHistoryEntryIds).UsePropertyAccessMode(PropertyAccessMode.Field);
 
             entity.OwnsOne(x => x.Contact, contact =>
             {

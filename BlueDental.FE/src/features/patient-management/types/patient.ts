@@ -1,7 +1,5 @@
 export type Gender = "male" | "female" | "other";
 
-export type PatientStatus = "NoActivity" | "InTreatment" | "Completed";
-
 /** Matches BlueDental.PatientManagement.Gender (numeric on the wire). */
 export const GENDER = { Male: 1, Female: 2, Other: 3, PreferNotToSay: 4 } as const;
 export type GenderCode = (typeof GENDER)[keyof typeof GENDER];
@@ -11,9 +9,20 @@ export const PATIENT_STATUS = { Active: 1, Inactive: 2, Deceased: 3, Transferred
 export type PatientStatusCode = (typeof PATIENT_STATUS)[keyof typeof PATIENT_STATUS];
 
 /**
- * Mirrors BlueDental.PatientManagement.PatientDto exactly. The UI shape lives in
- * PatientListItem / Patient and is produced by the adapters — the two drifted
- * apart before, which crashed the list as soon as a patient existed.
+ * Matches BlueDental.PatientManagement.PatientTreatmentStatus. Derived server
+ * side from the patient's treatment slips — never stored, never sent back.
+ */
+export const TREATMENT_STATUS = { None: 1, Created: 2, InProgress: 3, Done: 4 } as const;
+export type TreatmentStatusCode = (typeof TREATMENT_STATUS)[keyof typeof TREATMENT_STATUS];
+
+/** The four tabs above the list. "All" is the absence of a filter. */
+export type TreatmentTab = "All" | "Completed" | "InTreatment" | "Pending";
+
+/**
+ * Mirrors BlueDental.PatientManagement.PatientDto — the whole record, as the
+ * hồ sơ dialog edits it. The table speaks {@link PatientListItem} instead;
+ * the two drifted apart before, which crashed the list as soon as a patient
+ * existed, so neither derives from the other.
  */
 export interface PatientDto {
   id: string;
@@ -21,64 +30,115 @@ export interface PatientDto {
   firstName: string;
   lastName: string;
   fullName: string;
-  dateOfBirth: string;
+  /** Null when the front desk registered the patient without one. */
+  dateOfBirth: string | null;
   gender: GenderCode;
   phoneNumber: string | null;
   email: string | null;
   nationalId: string | null;
   status: PatientStatusCode;
   branchId: string;
-  /** Thẻ hồ sơ ids from the branch's PatientTag catalog. */
+
+  sourceTaxonomyId: string | null;
+  sourceEntryId: string | null;
+  occupationEntryId: string | null;
+  occupationOther: string | null;
+  insuranceNumber: string | null;
+  /** Số nhà/ Đường — the street line only. */
+  address: string | null;
+  provinceCode: string | null;
+  wardCode: string | null;
+  examinationReason: string | null;
+  note: string | null;
+
   tagIds: string[];
+  diseaseHistoryEntryIds: string[];
+
   creationTime: string;
   lastModificationTime: string | null;
 }
 
+/**
+ * Mirrors BlueDental.PatientManagement.PatientListItemDto — one table row,
+ * rollup included.
+ */
 export interface PatientListItem {
   id: string;
-  code: string;
+  patientCode: string;
   fullName: string;
-  createdAt: string;
   dateOfBirth: string | null;
-  gender: Gender;
-  phone: string;
-  email: string | null;
-  status: PatientStatus;
-  serviceName: string | null;
-  doctorName: string | null;
+  phoneNumber: string | null;
+  treatmentStatus: TreatmentStatusCode;
+  serviceNames: string[];
+  staffNames: string[];
   totalAmount: number;
-  collectedAmount: number;
-  debtAmount: number;
+  totalRevenue: number;
+  totalDebt: number;
   nextAppointmentAt: string | null;
   lastVisitAt: string | null;
+  creationTime: string;
+}
+
+/** The code the "Tạo hồ sơ" dialog opens with, split as it renders it. */
+export interface PatientCodeEstimate {
+  /** The fixed half, e.g. "BD26" — shown greyed and not editable. */
+  prefix: string;
+  /** The editable half, e.g. "0013". */
+  sequence: string;
+  code: string;
+}
+
+export interface PhoneAvailability {
+  exists: boolean;
+  patientName: string | null;
+  patientCode: string | null;
 }
 
 /**
  * Mirrors BlueDental.PatientManagement.RegisterPatientDto. The server takes
- * `phoneNumber` (not `phone`), a real `dateOfBirth` and the branch the patient
- * belongs to, so those names must match exactly or the request 400s.
+ * `phoneNumber` (not `phone`) and a real `dateOfBirth`, so these names must
+ * match exactly or the request 400s.
  */
 export interface RegisterPatientRequest {
   firstName: string;
   lastName: string;
-  /** "YYYY-MM-DD" — the server binds this to DateOnly. */
-  dateOfBirth: string;
+  /** "YYYY-MM-DD", or null — the server binds this to DateOnly?. */
+  dateOfBirth: string | null;
   gender: Gender;
   phoneNumber?: string;
   email?: string;
   nationalId?: string;
-  /** On update: omit = keep the current tags; a list replaces them whole. */
+  /** Omit to keep the code the server suggests. */
+  patientCode?: string;
+
+  sourceTaxonomyId?: string | null;
+  sourceEntryId?: string | null;
+  occupationEntryId?: string | null;
+  occupationOther?: string | null;
+  insuranceNumber?: string | null;
+  address?: string | null;
+  provinceCode?: string | null;
+  wardCode?: string | null;
+  examinationReason?: string | null;
+  note?: string | null;
+
+  /** On update: omit = keep what is stored; a list replaces it whole. */
   tagIds?: string[];
+  diseaseHistoryEntryIds?: string[];
 }
 
-export type UpdatePatientRequest = Partial<RegisterPatientRequest>;
+export type UpdatePatientRequest = RegisterPatientRequest;
 
+/** Every filter the list can narrow by, exactly as the server names them. */
 export interface PatientListQuery {
-  keyword?: string;
-  status?: PatientStatus | "All";
-  doctorId?: string;
-  serviceCategory?: string;
+  filter?: string;
+  treatmentStatus?: Exclude<TreatmentTab, "All">;
+  staffId?: string;
+  serviceTaxonomyId?: string;
   tagId?: string;
+  /** ISO instants bounding the Ngày/Tuần/Tháng window. */
+  fromDate?: string;
+  toDate?: string;
   skipCount?: number;
   maxResultCount?: number;
 }
@@ -88,7 +148,6 @@ export interface PagedResult<T> {
   totalCount: number;
 }
 
-/** Client-side enriched patient with computed fields. */
 /**
  * UI view model for a single patient. Deliberately not `extends PatientDto` —
  * the screens speak in `code`/`phone`/`createdAt` while the server speaks in
@@ -101,17 +160,18 @@ export interface Patient {
   firstName: string;
   lastName: string;
   fullName: string;
-  dateOfBirth: string;
+  dateOfBirth: string | null;
   gender: Gender;
   phone: string;
   email: string | null;
   nationalId: string | null;
-  status: PatientStatus;
+  /** Record lifecycle. Treatment state lives on the list row, not here. */
+  status: PatientStatusCode;
   branchId: string;
   createdAt: string;
-  age: number;
+  /** Null when no birth date was recorded. */
+  age: number | null;
   initials: string;
-  /** Not served by the API yet — kept so detail views can render a placeholder. */
   address: string | null;
   medicalHistory: string | null;
   allergies: string[];

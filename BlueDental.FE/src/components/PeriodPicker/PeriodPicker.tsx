@@ -3,28 +3,36 @@ import { CalendarOutlined, LeftOutlined, RightOutlined } from "@ant-design/icons
 import dayjs, { type Dayjs } from "dayjs";
 import { SegmentedTabs } from "@/components/SegmentedTabs";
 import { t } from "@/lib/i18n";
+import "./PeriodPicker.css";
 
 /** Ngày / Tuần / Tháng, or nothing at all — the reference starts with nothing. */
-export type LaboPeriodMode = "day" | "week" | "month";
+export type PeriodMode = "day" | "week" | "month";
 
-export interface LaboPeriod {
-  mode: LaboPeriodMode | null;
+export interface Period {
+  mode: PeriodMode | null;
   anchor: Date;
 }
 
 interface Props {
-  value: LaboPeriod;
-  onChange: (next: LaboPeriod) => void;
+  value: Period;
+  onChange: (next: Period) => void;
+  /**
+   * Lets a second click on the active mode clear it, as the patient list does —
+   * the tabs there are how the date filter is turned off again. Screens whose
+   * reference has no way back to "no period" leave this off.
+   */
+  clearableMode?: boolean;
+  className?: string;
 }
 
 /** The picker granularity each mode opens at. */
-const PICKER_OF: Record<LaboPeriodMode, "date" | "week" | "month"> = {
+const PICKER_OF: Record<PeriodMode, "date" | "week" | "month"> = {
   day: "date",
   week: "week",
   month: "month",
 };
 
-const STEP_LABEL: Record<LaboPeriodMode, { back: string; forward: string }> = {
+const STEP_LABEL: Record<PeriodMode, { back: string; forward: string }> = {
   day: { back: "Ngày trước", forward: "Ngày kế tiếp" },
   week: { back: "Tuần trước", forward: "Tuần kế tiếp" },
   month: { back: "Tháng trước", forward: "Tháng kế tiếp" },
@@ -39,7 +47,7 @@ function modeOptions() {
 }
 
 /** How the reference labels the window being read. */
-export function formatLaboPeriod(mode: LaboPeriodMode, anchor: Date): string {
+export function formatPeriod(mode: PeriodMode, anchor: Date): string {
   const at = dayjs(anchor);
   if (mode === "day") return at.format("DD/MM/YYYY");
   if (mode === "month") return at.format("MM/YYYY");
@@ -49,7 +57,7 @@ export function formatLaboPeriod(mode: LaboPeriodMode, anchor: Date): string {
 }
 
 /** The inclusive window a mode and its anchor resolve to. */
-export function laboPeriodRange(period: LaboPeriod): { from: string; to: string } | null {
+export function periodRange(period: Period): { from: string; to: string } | null {
   if (!period.mode) return null;
 
   const at = dayjs(period.anchor);
@@ -62,33 +70,43 @@ export function laboPeriodRange(period: LaboPeriod): { from: string; to: string 
 }
 
 /**
- * The date control above Mẫu Labo.
+ * Ngày / Tuần / Tháng and the window they read.
  *
  * Two states, as the reference has them: until a mode is chosen there is one
  * disabled "Chọn thời gian" button and no date filter is sent; choosing one
  * swaps it for a stepper around the period being read.
+ *
+ * Shared rather than feature-local — Mẫu Labo and the patient list both wear
+ * it, and a feature may not reach into another feature's folder.
  */
-export function LaboPeriodPicker({ value, onChange }: Props) {
+export function PeriodPicker({ value, onChange, clearableMode, className }: Props) {
   const step = (direction: -1 | 1) => {
     if (!value.mode) return;
     const unit = value.mode === "day" ? "day" : value.mode;
     onChange({ ...value, anchor: dayjs(value.anchor).add(direction, unit).toDate() });
   };
 
+  const handleModeChange = (mode: string) => {
+    const next = clearableMode && mode === value.mode ? null : (mode as PeriodMode);
+    // Re-anchoring on today is what the reference does: switching mode always
+    // lands on the period containing now, never on a stale week from last month.
+    onChange({ mode: next, anchor: next === value.mode ? value.anchor : new Date() });
+  };
+
   return (
-    <div className="bd-labo-period">
+    <div className={["bd-period", className].filter(Boolean).join(" ")}>
       <SegmentedTabs
         items={modeOptions()}
         activeKey={value.mode ?? ""}
-        onChange={(mode) => onChange({ ...value, mode: mode as LaboPeriodMode })}
+        onChange={handleModeChange}
       />
 
       {value.mode === null ? (
-        <Button disabled icon={<CalendarOutlined />}>
+        <Button disabled icon={<CalendarOutlined />} className="bd-period-empty">
           {t("Chọn thời gian")}
         </Button>
       ) : (
-        <div className="bd-labo-step">
+        <div className="bd-period-step">
           <Button
             type="text"
             aria-label={t(STEP_LABEL[value.mode].back)}
@@ -105,7 +123,7 @@ export function LaboPeriodPicker({ value, onChange }: Props) {
             variant="borderless"
             suffixIcon={null}
             prefix={<CalendarOutlined aria-hidden="true" />}
-            format={() => formatLaboPeriod(value.mode as LaboPeriodMode, value.anchor)}
+            format={() => formatPeriod(value.mode as PeriodMode, value.anchor)}
             aria-label={t("Chọn thời gian")}
             onChange={(next: Dayjs | null) => {
               if (next) onChange({ ...value, anchor: next.toDate() });

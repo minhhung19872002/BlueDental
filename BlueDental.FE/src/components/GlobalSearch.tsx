@@ -65,7 +65,7 @@ export function GlobalSearch({ open, onClose }: Props) {
 
   const enabled = debounced.trim().length >= MIN_QUERY;
   const { data, isFetching } = usePatientList({
-    keyword: enabled ? debounced.trim() : undefined,
+    filter: enabled ? debounced.trim() : undefined,
     maxResultCount: 8,
   });
 
@@ -130,7 +130,7 @@ export function GlobalSearch({ open, onClose }: Props) {
                   <span className="app-search-hit-text">
                     <span className="app-search-hit-name">{hit.fullName}</span>
                     <span className="app-search-hit-meta">
-                      {[hit.code, hit.phone, hit.serviceName].filter(Boolean).join(" · ")}
+                      {[hit.patientCode, hit.phoneNumber, hit.serviceNames[0]].filter(Boolean).join(" · ")}
                     </span>
                   </span>
                   <span className="app-search-hit-arrow">→</span>

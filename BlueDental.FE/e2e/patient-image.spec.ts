@@ -16,7 +16,7 @@ test.describe("Hình ảnh bệnh nhân", () => {
     await page.goto("/patient");
     await assertRealApiTraffic(page, "/api/v1/app/patients");
 
-    await page.locator("tr.ant-table-row").first().click();
+    await page.locator("tr.ant-table-row .bd-patient-name").first().click();
     await expect(page).toHaveURL(/\/patient\/[0-9a-f-]{36}/);
 
     await page.getByRole("tab", { name: "Hình ảnh" }).click();

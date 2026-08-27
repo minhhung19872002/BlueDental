@@ -270,7 +270,11 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         {
             var month = input.BirthdayDate.Value.Month;
             var day = input.BirthdayDate.Value.Day;
-            query = query.Where(p => p.DateOfBirth.Month == month && p.DateOfBirth.Day == day);
+            // A patient registered without a birth date has no birthday to greet.
+            query = query.Where(p =>
+                p.DateOfBirth.HasValue
+                && p.DateOfBirth.Value.Month == month
+                && p.DateOfBirth.Value.Day == day);
         }
 
         if (input.StaffId.HasValue)

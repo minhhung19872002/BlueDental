@@ -31,7 +31,7 @@ import {
   type PatientAdviseStatus,
 } from "@/features/treatment-management/api/consultingApi";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
-import type { PatientStatus } from "../types/patient";
+import { PATIENT_STATUS, type PatientStatusCode } from "../types/patient";
 import {
   useTreatmentStages,
   STAGE_STATUS,
@@ -138,16 +138,17 @@ export function PatientProfilePage() {
     return (words[0][0] + words[words.length - 1][0]).toUpperCase();
   })();
 
-  // The design's banner carries tags. There is no tag field on a patient, and
-  // the card here used to print a hardcoded "Chỉnh Nha" on everyone, so the
-  // slot shows the status the record actually has.
-  const PATIENT_STATUS_LABELS: Record<PatientStatus, string> = {
-    NoActivity: t("Chưa phát sinh"),
-    InTreatment: t("Đang điều trị"),
-    Completed: t("Điều trị hoàn tất"),
+  // The design's banner carries tags. The card here used to print a hardcoded
+  // "Chỉnh Nha" on everyone, so the slot shows the record's own lifecycle —
+  // treatment state belongs to the list row, which derives it from the slips.
+  const PATIENT_STATUS_LABELS: Record<PatientStatusCode, string> = {
+    [PATIENT_STATUS.Active]: t("Đang theo dõi"),
+    [PATIENT_STATUS.Inactive]: t("Ngừng theo dõi"),
+    [PATIENT_STATUS.Deceased]: t("Đã mất"),
+    [PATIENT_STATUS.Transferred]: t("Đã chuyển viện"),
   };
   const patientStatusLabel =
-    PATIENT_STATUS_LABELS[patient?.status ?? "NoActivity"] ?? t("Chưa phát sinh");
+    PATIENT_STATUS_LABELS[patient?.status ?? PATIENT_STATUS.Active] ?? t("Đang theo dõi");
 
   const branchId = useCurrentBranchId();
   const consultingParams = { patientId: id ?? "", clinicBranchId: branchId, maxResultCount: 50 };

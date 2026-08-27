@@ -2932,10 +2932,14 @@ button {
 }
 
 /* A stray wide child should scroll its own box, never the document. */
+/* `clip`, not `hidden`: `overflow-x: hidden` turns body into a scroll container,
+   and `position: sticky` inside one sticks to a box that never scrolls — which
+   silently disables every sticky header in the app. `clip` cuts the same
+   horizontal overflow without creating that container. */
 html,
 body {
   max-width: 100%;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* ── Staff roster (ported from the design's Nhân sự screen) ─────────────── */

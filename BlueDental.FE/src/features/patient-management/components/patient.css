@@ -1,0 +1,574 @@
+/* Bệnh nhân — /patient và hộp thoại hồ sơ
+   Reference: docs/clone/pages/patient-list.md.
+
+   Three stacked blocks, exactly as the reference stacks them: a white toolbar
+   card, a transparent filter row whose controls each carry their own border,
+   and the table card. Colours are the app's own --bd-* tokens, so the screen
+   reads as part of BlueDental rather than repeating the reference's palette. */
+
+.bd-patient-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── Compact toolbar ─────────────────────────────────────────────────────
+   Slides down over the table once the real toolbar has scrolled away, so the
+   period, the filters and the two commands stay reachable. It occupies no
+   space of its own — the row below keeps its position either way. */
+
+.bd-patient-sticky {
+  position: sticky;
+  top: var(--bd-header-height);
+  z-index: 20;
+  display: flex;
+  height: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  overflow: visible;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius);
+  background: #fff;
+  padding: 0 8px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-8px);
+  transition: opacity 0.2s ease, transform 0.2s ease, height 0.2s ease, padding 0.2s ease;
+}
+
+.bd-patient-sticky--in {
+  height: auto;
+  padding: 8px;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+  box-shadow: var(--bd-shadow-pop);
+}
+
+/* Off screen it is an empty box; it must not swallow the row it covers. */
+.bd-patient-sticky:not(.bd-patient-sticky--in) {
+  border-color: transparent;
+}
+
+/* ── Toolbar card ────────────────────────────────────────────────────────
+   Period control and search on the left, the two commands on the right. */
+
+.bd-patient-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius);
+  background: #fff;
+  padding: 8px;
+}
+
+.bd-patient-toolbar-left {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.bd-patient-toolbar-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.bd-patient-search.ant-input-affix-wrapper {
+  width: 280px;
+  height: 40px;
+  border-radius: var(--bd-radius-control);
+}
+
+/* ── Filter row ──────────────────────────────────────────────────────────
+   Not a card: the reference leaves the row transparent and lets each control
+   draw its own box. */
+
+.bd-patient-filters {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.bd-patient-filter {
+  width: 180px;
+}
+
+.bd-patient-filter--wide {
+  width: 240px;
+}
+
+/* A picker with a search icon needs its resting label to start after the icon;
+   floated, the label moves onto the border and goes back to the field's edge. */
+.floating-field:has(.ss-wrapper) .floating-field-label {
+  left: 38px;
+}
+
+.floating-field--floated:has(.ss-wrapper) .floating-field-label {
+  left: 12px;
+}
+
+/* The label is the field's name at rest and on its border once floated, so the
+   control's own placeholder would only ever be a second copy of it. */
+.floating-field .ss-value--placeholder {
+  opacity: 0;
+}
+
+/* ── Table card ──────────────────────────────────────────────────────────
+   One rounded, clipped card holding the scroller and the pager. */
+
+.bd-patient-tablecard {
+  position: relative;
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-card);
+  background: #fff;
+  box-shadow: var(--bd-shadow-lift);
+}
+
+/* The whole card dims under one spinner while a filter is being applied, so
+   the rows stay readable instead of collapsing to an empty state mid-typing. */
+.bd-patient-loading {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--bd-radius-card);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(1px);
+  inset: 0;
+}
+
+.bd-patient-tablecard .ant-table-wrapper,
+.bd-patient-tablecard .ant-spin-nested-loading,
+.bd-patient-tablecard .ant-spin-container {
+  min-height: 0;
+  flex: 1;
+}
+
+.bd-patient-tablecard .ant-table {
+  background: transparent;
+}
+
+/* Geometry from the reference — a 40px strip, 16px gutters — but the app's own
+   header typography (11.5px small caps), which every other BlueDental table
+   wears. Matching the reference's 14px here would make this the one table that
+   looks different from the rest of the product. */
+.bd-patient-tablecard .ant-table-thead > tr > th {
+  height: 40px;
+  border-bottom: 1px solid var(--bd-border);
+  background: var(--bd-bg);
+  padding: 8px 16px;
+  white-space: nowrap;
+}
+
+.bd-patient-tablecard .ant-table-thead > tr > th::before {
+  display: none;
+}
+
+.bd-patient-tablecard .ant-table-tbody > tr > td {
+  height: 56px;
+  border-bottom: 1px solid var(--bd-border);
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--bd-ink);
+}
+
+.bd-patient-tablecard .ant-table-tbody > tr:hover > td {
+  background: var(--bd-bg);
+}
+
+/* ── Cells ───────────────────────────────────────────────────────────── */
+
+/* "[BD260012] – NGUYỄN VĂN A" as one link, truncated rather than wrapped. */
+.bd-patient-name {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--bd-blue);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bd-patient-name:hover {
+  color: var(--bd-blue);
+  text-decoration: underline;
+}
+
+/* Everything the reference greys: dates, empty dashes, secondary text. */
+.bd-patient-dim {
+  color: var(--bd-muted);
+}
+
+/* Dịch vụ and Bác sĩ hold a list. The reference lets two lines wrap and stops
+   there; a patient with a dozen slips would otherwise stretch one row down the
+   whole screen. The full list stays available as the cell's tooltip. */
+.bd-patient-list {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.bd-patient-money {
+  font-variant-numeric: tabular-nums;
+}
+
+.bd-patient-money--in {
+  color: var(--bd-green);
+  font-weight: 600;
+}
+
+.bd-patient-money--due {
+  color: var(--bd-red);
+  font-weight: 600;
+}
+
+.bd-patient-status {
+  display: inline-block;
+  border-radius: var(--bd-radius-pill);
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.bd-patient-status--pending {
+  background: var(--bd-line-soft);
+  color: var(--bd-muted);
+}
+
+.bd-patient-status--active {
+  background: var(--bd-blue-pale);
+  color: var(--bd-blue);
+}
+
+.bd-patient-status--done {
+  background: var(--bd-green-pale);
+  color: var(--bd-green);
+}
+
+.bd-patient-rowactions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+/* The empty row the reference gives a fixed height, so the card does not
+   shrink to a sliver when a filter matches nothing. */
+.bd-patient-empty {
+  display: flex;
+  height: 128px;
+  align-items: center;
+  justify-content: center;
+  color: var(--bd-muted);
+  font-size: 14px;
+}
+
+/* The height above is the whole row; Ant's own padding would add to it. */
+.bd-patient-tablecard .ant-table-placeholder > td {
+  padding: 0;
+}
+
+.bd-patient-tablecard .ant-table-placeholder .ant-table-cell {
+  border-bottom: 0;
+}
+
+/* ── Pager ───────────────────────────────────────────────────────────────
+   The app's own table pager — count, page-size select, then the page buttons
+   pushed right — laid out by the shared rules in styles/index.css. Only the
+   two things this screen does differently are set here: the reference names
+   its previous/next buttons rather than showing bare arrows, and those labels
+   need more room than the 32px square the shared rules give them. */
+
+.bd-patient-tablecard .ant-pagination-prev,
+.bd-patient-tablecard .ant-pagination-next {
+  width: auto;
+  min-width: 0;
+}
+
+.bd-patient-tablecard .ant-pagination-prev .ant-btn,
+.bd-patient-tablecard .ant-pagination-next .ant-btn {
+  display: inline-flex;
+  height: 32px;
+  align-items: center;
+  gap: 4px;
+  color: var(--bd-muted);
+}
+
+.bd-patient-tablecard .ant-pagination-disabled .ant-btn {
+  color: var(--bd-faint);
+}
+
+.bd-patient-pager-count {
+  color: var(--bd-muted);
+  font-size: 14px;
+}
+
+.bd-patient-pager-count b {
+  color: var(--bd-ink);
+  font-weight: 600;
+}
+
+/* ── Bộ lọc popover ──────────────────────────────────────────────────────
+   The condensed panel the reference offers once the toolbar has scrolled off,
+   and on a narrow window where the filter row cannot fit. */
+
+.bd-patient-filterpop {
+  width: min(92vw, 680px);
+}
+
+.bd-patient-filterpop-head {
+  border-bottom: 1px solid var(--bd-border);
+  padding: 12px 16px;
+}
+
+.bd-patient-filterpop-head h3 {
+  color: var(--bd-ink);
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.bd-patient-filterpop-body {
+  display: flex;
+  max-height: min(72vh, 640px);
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.bd-patient-filterpop-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bd-patient-filterpop-label {
+  color: var(--bd-muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.bd-patient-filterpop-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.bd-patient-filterpop-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--bd-border);
+  padding: 12px 16px;
+}
+
+@media (max-width: 640px) {
+  .bd-patient-filterpop-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ── Narrow windows ──────────────────────────────────────────────────────
+   The reference stacks the toolbar into one column and lets every control run
+   the full width; the filter row goes the same way. */
+
+@media (max-width: 1100px) {
+  .bd-patient-toolbar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bd-patient-toolbar-actions {
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 640px) {
+  .bd-patient-toolbar-left,
+  .bd-patient-toolbar-actions,
+  .bd-patient-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .bd-patient-search.ant-input-affix-wrapper,
+  .bd-patient-filter,
+  .bd-patient-filter--wide {
+    width: 100%;
+  }
+}
+
+/* ── Hộp thoại hồ sơ ─────────────────────────────────────────────────────
+   Three columns on a wide window, two at tablet width, one on a phone — the
+   arrangement the reference gives "Tạo hồ sơ" and "Chỉnh sửa hồ sơ". */
+
+.bd-patient-dialog .ant-form-item {
+  margin-bottom: 16px;
+}
+
+/* Every control in the dialog fills its column; a date picker does not by
+   default, and a short one next to full-width inputs reads as broken. */
+.bd-patient-dialog .ant-picker {
+  width: 100%;
+}
+
+/* The two fields that are shown rather than asked for — the created date and
+   the fixed country — wear the same well the reference gives them. */
+.bd-patient-dialog input[readonly] {
+  background: var(--bd-bg);
+  color: var(--bd-muted);
+  cursor: default;
+}
+
+/* The greyed, fixed half of the customer code, sitting inside the field. */
+.bd-patient-codeprefix {
+  color: var(--bd-faint);
+  user-select: none;
+}
+
+/* "IN HOA" hangs directly under the name it rewrites. */
+.bd-patient-upper.ant-form-item {
+  margin-top: -8px;
+  margin-bottom: 16px;
+}
+
+/* The source picker and its quick-add share one row. */
+.bd-patient-sourcerow {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.bd-patient-sourcerow > .floating-field {
+  min-width: 0;
+  flex: 1;
+}
+
+.bd-patient-sourcerow > .ant-btn {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+
+.bd-patient-dupe.ant-alert {
+  margin-bottom: 16px;
+}
+
+.bd-patient-gender .ant-form-item-label > label {
+  color: var(--bd-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* The two pills over column two. */
+.bd-patient-subtabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.bd-patient-subtab {
+  border: 0;
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-line-soft);
+  padding: 8px 16px;
+  color: var(--bd-muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.bd-patient-subtab:hover {
+  background: var(--bd-blue-pale);
+  color: var(--bd-blue);
+}
+
+.bd-patient-subtab--active,
+.bd-patient-subtab--active:hover {
+  background: var(--bd-blue);
+  color: #fff;
+}
+
+/* ── Tiểu sử bệnh ────────────────────────────────────────────────────── */
+
+.bd-patient-history {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bd-patient-history-title {
+  color: var(--bd-muted);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin: 0 0 4px;
+}
+
+.bd-patient-history-group {
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-sm);
+  overflow: hidden;
+}
+
+.bd-patient-history-head {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: var(--bd-bg);
+  padding: 10px 16px;
+  color: var(--bd-ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.bd-patient-history-head:hover {
+  background: var(--bd-line-soft);
+}
+
+.bd-patient-history-count {
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-blue-pale);
+  padding: 0 8px;
+  color: var(--bd-blue);
+  font-size: 12px;
+  margin-inline-start: auto;
+}
+
+.bd-patient-history-body {
+  display: flex;
+  max-height: 192px;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  padding: 8px 16px 12px;
+}

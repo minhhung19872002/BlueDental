@@ -10,12 +10,8 @@ import {
   type LaboOrderDto,
   type LaboSampleFilter,
 } from "../api/laboApi";
-import {
-  LaboPeriodPicker,
-  laboPeriodRange,
-  type LaboPeriod,
-} from "./LaboPeriodPicker";
 import { DataTable } from "@/components/DataTable";
+import { PeriodPicker, periodRange, type Period } from "@/components/PeriodPicker";
 import { SegmentedTabs } from "@/components/SegmentedTabs";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -57,13 +53,13 @@ function sampleTabs() {
 
 export function LaboOrdersScreen() {
   const [tab, setTab] = useState<SampleTabKey>("all");
-  const [period, setPeriod] = useState<LaboPeriod>({ mode: null, anchor: new Date() });
+  const [period, setPeriod] = useState<Period>({ mode: null, anchor: new Date() });
   const [patientId, setPatientId] = useState<string | undefined>();
   const [dentistId, setDentistId] = useState<string | undefined>();
   const [patientKeyword, setPatientKeyword] = useState("");
 
   const pagination = useTablePagination(20);
-  const range = laboPeriodRange(period);
+  const range = periodRange(period);
 
   const debouncedPatientKeyword = useDebounce(patientKeyword, 300);
   const patientOptions = usePatientOptions(debouncedPatientKeyword);
@@ -188,7 +184,7 @@ export function LaboOrdersScreen() {
     <div className="bd-labo-screen">
       <div className="bd-labo-header bd-labo-header--stacked">
         <div className="bd-labo-headrow">
-          <LaboPeriodPicker
+          <PeriodPicker
             value={period}
             onChange={(next) => refilter(() => setPeriod(next))}
           />

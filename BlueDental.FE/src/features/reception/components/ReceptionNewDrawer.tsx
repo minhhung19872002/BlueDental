@@ -8,7 +8,7 @@ import { useCreateReception } from "../api/receptionMutations";
 import { usePatientList } from "@/features/patient-management/api/patientQueries";
 import { useDebounce } from "@/hooks/useDebounce";
 import { SearchSelect } from "@/components/SearchSelect";
-import { PatientEditorModal } from "@/features/patient-management/components/PatientEditorModal";
+import { PatientEditorDialog } from "@/features/patient-management/components/PatientEditorDialog";
 import type { RefType } from "../types/reception";
 import { t } from "@/lib/i18n";
 
@@ -55,7 +55,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
   const debouncedPatientKeyword = useDebounce(patientKeyword);
 
   const { data: patientData } = usePatientList({
-    keyword: debouncedPatientKeyword || undefined,
+    filter: debouncedPatientKeyword || undefined,
     maxResultCount: 20,
   });
 
@@ -83,7 +83,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
     if (patient) {
       setValue("patientName", patient.fullName, { shouldValidate: true });
       setValue("patientId", patient.id);
-      setSelectedPhone(patient.phone ?? "---");
+      setSelectedPhone(patient.phoneNumber ?? "---");
     }
   };
 
@@ -145,7 +145,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
                   placeholder={t("Tìm kiếm khách hàng")}
                   options={(patientData?.items ?? []).map((p) => ({
                     value: p.id,
-                    label: `[${p.code}] - ${p.fullName.toUpperCase()}`,
+                    label: `[${p.patientCode}] - ${p.fullName.toUpperCase()}`,
                   }))}
                   onSearch={setPatientKeyword}
                   onChange={(val) => {
@@ -264,16 +264,20 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
         </div>
       </div>
 
-      <PatientEditorModal
-        open={newPatientOpen}
-        onClose={() => setNewPatientOpen(false)}
-        onSuccess={() => {
-          // The list this drawer searches refetches on its own; clearing the
-          // keyword puts the newest records back in view.
-          setNewPatientOpen(false);
-          setPatientKeyword("");
-        }}
-      />
+      {/* Mounted only while open so the dialog's own catalog lookups are not
+          fetched behind a drawer nobody has asked for a new patient from. */}
+      {newPatientOpen && (
+        <PatientEditorDialog
+          open
+          patient={null}
+          onClose={() => {
+            // The list this drawer searches refetches on its own; clearing the
+            // keyword puts the newest records back in view.
+            setNewPatientOpen(false);
+            setPatientKeyword("");
+          }}
+        />
+      )}
     </Modal>
   );
 };
