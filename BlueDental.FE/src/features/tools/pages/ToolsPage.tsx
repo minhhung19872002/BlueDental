@@ -7,7 +7,7 @@ import { cn } from "@/lib/cn";
 import { CallAssignView } from "../components/CallAssignView";
 import { CallConfigView } from "../components/CallConfigView";
 import { CallListView } from "../components/CallListView";
-import { ConfigNotAvailable } from "../components/ConfigNotAvailable";
+import { InvoiceConfigView } from "../components/InvoiceConfigView";
 import { MessageConfigView } from "../components/MessageConfigView";
 import { MessageLogView } from "../components/MessageLogView";
 import { MessageTemplateView } from "../components/MessageTemplateView";
@@ -71,7 +71,7 @@ function CallView() {
   };
 
   return (
-    <>
+    <div className="bd-tools-card">
       <SubTabBar
         tabs={[
           { key: "config", label: t("Cấu Hình") },
@@ -82,7 +82,7 @@ function CallView() {
         onChange={changeSub}
       />
       {sub === "assign" ? <CallAssignView /> : sub === "history" ? <CallListView /> : <CallConfigView />}
-    </>
+    </div>
   );
 }
 
@@ -90,7 +90,7 @@ function MessageView() {
   const [sub, setSub] = useState("config");
 
   return (
-    <>
+    <div className="bd-tools-card">
       <SubTabBar
         tabs={[
           { key: "config", label: t("Cấu Hình") },
@@ -103,7 +103,7 @@ function MessageView() {
       {sub === "config" && <MessageConfigView />}
       {sub === "template" && <MessageTemplateView channel={0} />}
       {sub === "list" && <MessageLogView channel={0} />}
-    </>
+    </div>
   );
 }
 
@@ -111,7 +111,7 @@ function ZaloView() {
   const [sub, setSub] = useState("config");
 
   return (
-    <>
+    <div className="bd-tools-card">
       <SubTabBar
         tabs={[
           { key: "config", label: t("Cấu Hình") },
@@ -124,7 +124,20 @@ function ZaloView() {
       {sub === "config" && <ZaloConfigView />}
       {sub === "templates" && <MessageTemplateView channel={1} />}
       {sub === "list" && <MessageLogView channel={1} />}
-    </>
+    </div>
+  );
+}
+
+function InvoiceView() {
+  return (
+    <div className="bd-tools-card">
+      <SubTabBar
+        tabs={[{ key: "config", label: t("Cấu Hình") }]}
+        active="config"
+        onChange={() => {}}
+      />
+      <InvoiceConfigView />
+    </div>
   );
 }
 
@@ -139,21 +152,23 @@ export function ToolsPage() {
         subtitle={t("Gọi thoại, tin nhắn, Zalo OA và hoá đơn điện tử")}
       />
 
-      <PageTabBar
-        label={t("Công cụ")}
-        activeKey={category}
-        tabs={[
-          { key: "call", label: t("Gọi thoại"), to: "/tools/call" },
-          { key: "message", label: t("Tin nhắn"), to: "/tools/message" },
-          { key: "zalo-oa", label: t("Zalo OA"), to: "/tools/zalo-oa" },
-          { key: "invoice", label: t("Hóa đơn"), to: "/tools/invoice" },
-        ]}
-      />
+      <div className="bd-tools-shell">
+        <PageTabBar
+          label={t("Công cụ")}
+          activeKey={category}
+          tabs={[
+            { key: "call", label: t("Gọi thoại"), to: "/tools/call" },
+            { key: "message", label: t("Tin nhắn"), to: "/tools/message" },
+            { key: "zalo-oa", label: t("Zalo OA"), to: "/tools/zalo-oa" },
+            { key: "invoice", label: t("Hóa đơn"), to: "/tools/invoice" },
+          ]}
+        />
 
-      {category === "call" && <CallView />}
-      {category === "message" && <MessageView />}
-      {category === "zalo-oa" && <ZaloView />}
-      {category === "invoice" && <ConfigNotAvailable what={t("hoá đơn điện tử")} />}
+        {category === "call" && <CallView />}
+        {category === "message" && <MessageView />}
+        {category === "zalo-oa" && <ZaloView />}
+        {category === "invoice" && <InvoiceView />}
+      </div>
     </div>
   );
 }

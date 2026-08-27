@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Button, Form, Input, Switch, Tag, Tooltip } from "antd";
+import { useEffect, useMemo, useState } from "react";
+import { Button, Form, Input, Select, Switch, Tag, Tooltip } from "antd";
 import { DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { activeTag } from "./callCatalog";
@@ -9,24 +9,45 @@ import { FloatingField } from "@/components/FloatingField";
 import { t } from "@/lib/i18n";
 import { pagerTotal } from "@/utils/pagerTotal";
 
-// UNKNOWN_REFERENCE_BEHAVIOR: The reference's message config table was empty
-// ("Hiển thị 0 trên 0 cấu hình"). The dialog layout mirrors the screenshot:
-// provider card (FPT) on the left, fields on the right. The BE has no
-// message-configurations endpoint yet — the dialog is structural only.
+// UNKNOWN_REFERENCE_BEHAVIOR: The reference's invoice config table had 2 rows
+// ("Quang Vinh" and "Thuế Hồ Nai") with provider "MISA" and module "Hóa đơn".
+// The BE has no invoice-configurations endpoint yet — the dialog is structural only.
 
-interface MessageConfigRow {
+interface InvoiceConfigRow {
   id: string;
   name: string;
+  branchName: string;
+  module: string;
   provider: string;
   isActive: boolean;
 }
 
-// ── Provider cards — placeholder; only FPT observed ─────────────────────────
-const MSG_PROVIDERS = [{ value: 0, label: "FPT" }];
+const INV_PROVIDERS = [{ value: 0, label: "Misa" }];
 
-function MessageConfigDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+interface DialogProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+function InvoiceConfigDialog({ open, onClose }: DialogProps) {
   const [form] = Form.useForm();
   const provider = Form.useWatch("provider", form) ?? 0;
+
+  useEffect(() => {
+    if (!open) return;
+    form.setFieldsValue({
+      provider: 0,
+      name: "",
+      branchId: "",
+      appId: "",
+      taxCode: "",
+      username: "",
+      password: "",
+      taxByService: false,
+      taxByPeriod: false,
+      isActive: true,
+    });
+  }, [open, form]);
 
   return (
     <AppDialog
@@ -42,12 +63,16 @@ function MessageConfigDialog({ open, onClose }: { open: boolean; onClose: () => 
         form={form}
         layout="vertical"
         requiredMark={false}
-        initialValues={{ provider: 0, name: "", brandName: "", customerCode: "", secretKey: "", isActive: true }}
+        initialValues={{
+          provider: 0, name: "", branchId: "", appId: "",
+          taxCode: "", username: "", password: "",
+          taxByService: false, taxByPeriod: false, isActive: true,
+        }}
       >
         <div className="bd-inv-dialog-grid">
           <div>
             <div className="bd-msg-provider-label">{t("Nhà cung cấp")}</div>
-            {MSG_PROVIDERS.map((item) => (
+            {INV_PROVIDERS.map((item) => (
               <button
                 key={item.value}
                 type="button"
@@ -61,21 +86,34 @@ function MessageConfigDialog({ open, onClose }: { open: boolean; onClose: () => 
                 onClick={() => form.setFieldValue("provider", item.value)}
               >
                 <span className="bd-msg-provider-img">
-                  {/* UNKNOWN_REFERENCE_BEHAVIOR: exact FPT logo asset URL
+                  {/* UNKNOWN_REFERENCE_BEHAVIOR: exact MISA logo asset URL
                       could not be safely extracted. Using inline SVG text
                       placeholder until a proper logo is sourced. */}
-                  <svg viewBox="0 0 80 40" width="80" height="40" aria-label={item.label}>
+                  <svg viewBox="0 0 100 50" width="100" height="50" aria-label={item.label}>
                     <text
                       x="50%"
-                      y="50%"
+                      y="38%"
                       dominantBaseline="central"
                       textAnchor="middle"
-                      fill="#E8491C"
+                      fill="#1a1a1a"
                       fontFamily="Arial, sans-serif"
                       fontWeight="700"
-                      fontSize="26"
+                      fontSize="28"
                     >
-                      {item.label}
+                      MISA
+                    </text>
+                    <text
+                      x="50%"
+                      y="76%"
+                      dominantBaseline="central"
+                      textAnchor="middle"
+                      fill="#888"
+                      fontFamily="Arial, sans-serif"
+                      fontWeight="400"
+                      fontSize="7"
+                      letterSpacing="1"
+                    >
+                      TIN CẬY·TIỆN ÍCH·TÂN TÌNH
                     </text>
                   </svg>
                 </span>
@@ -92,17 +130,41 @@ function MessageConfigDialog({ open, onClose }: { open: boolean; onClose: () => 
               <Input autoFocus />
             </FloatingField>
 
-            <FloatingField name="brandName" label={t("Tên thương hiệu")}>
+            {/* UNKNOWN_REFERENCE_BEHAVIOR: "Chi nhánh" options source is
+                unknown — not the clinic branches. Placeholder until clarified. */}
+            <FloatingField name="branchId" label={t("Chi nhánh")}>
+              <Select options={[]} />
+            </FloatingField>
+
+            <FloatingField name="appId" label={t("App ID")}>
               <Input />
             </FloatingField>
 
-            <FloatingField name="customerCode" label={t("Mã khách hàng")}>
+            <FloatingField name="taxCode" label={t("Mã số thuế")}>
               <Input />
             </FloatingField>
 
-            <FloatingField name="secretKey" label={t("Mã bí mật")}>
+            <FloatingField name="username" label={t("Tên đăng nhập")}>
+              <Input />
+            </FloatingField>
+
+            <FloatingField name="password" label={t("Mật khẩu")}>
               <Input.Password autoComplete="new-password" />
             </FloatingField>
+
+            <div className="bd-call-dialog-switch">
+              <span>{t("Tính thuế theo dịch vụ")}</span>
+              <Form.Item name="taxByService" valuePropName="checked">
+                <Switch aria-label={t("Tính thuế theo dịch vụ")} />
+              </Form.Item>
+            </div>
+
+            <div className="bd-call-dialog-switch">
+              <span>{t("Tính thuế theo giai đoạn")}</span>
+              <Form.Item name="taxByPeriod" valuePropName="checked">
+                <Switch aria-label={t("Tính thuế theo giai đoạn")} />
+              </Form.Item>
+            </div>
 
             <div className="bd-call-dialog-switch">
               <span>{t("Trạng thái")}</span>
@@ -117,14 +179,26 @@ function MessageConfigDialog({ open, onClose }: { open: boolean; onClose: () => 
   );
 }
 
-/** Cấu Hình — message provider configurations (FPT, etc.). */
-export function MessageConfigView() {
+/** Cấu Hình — invoice provider configurations (MISA, etc.). */
+export function InvoiceConfigView() {
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const columns = useMemo<ColumnsType<MessageConfigRow>>(
+  const columns = useMemo<ColumnsType<InvoiceConfigRow>>(
     () => [
       { key: "name", title: t("Tên"), dataIndex: "name" },
-      { key: "provider", title: t("Nhà cung cấp"), dataIndex: "provider" },
+      { key: "branch", title: t("Tên chi nhánh"), dataIndex: "branchName" },
+      {
+        key: "module",
+        title: t("Mô đun"),
+        width: 120,
+        render: (_, row) => <Tag color="blue">{row.module}</Tag>,
+      },
+      {
+        key: "provider",
+        title: t("Nhà cung cấp"),
+        width: 140,
+        render: (_, row) => <Tag>{row.provider}</Tag>,
+      },
       {
         key: "status",
         title: t("Trạng thái"),
@@ -174,7 +248,7 @@ export function MessageConfigView() {
         </Button>
       </div>
 
-      <DataTable<MessageConfigRow>
+      <DataTable<InvoiceConfigRow>
         columns={columns}
         dataSource={[]}
         rowKey="id"
@@ -183,7 +257,7 @@ export function MessageConfigView() {
         locale={{ emptyText: t("Chưa có cấu hình nào") }}
       />
 
-      <MessageConfigDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
+      <InvoiceConfigDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
     </div>
   );
 }

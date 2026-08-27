@@ -100,7 +100,7 @@ export function CallConfigDialog({ open, config, onClose }: Props) {
     <AppDialog
       open={open}
       title={t("Cấu hình")}
-      width={640}
+      width={772}
       canSave={canSave}
       saving={pending}
       onSave={() => form.submit()}
@@ -113,23 +113,42 @@ export function CallConfigDialog({ open, config, onClose }: Props) {
         initialValues={{ name: "", branchId: "", provider: 0, apiKey: "", secretKey: "", isActive: true }}
         onFinish={(values) => void submit(values)}
       >
-        <div className="bd-call-dialog-grid">
+        <div className="bd-inv-dialog-grid">
           <div>
+            <div className="bd-msg-provider-label">{t("Nhà cung cấp")}</div>
             {CALL_PROVIDERS.map((item) => (
               <button
                 key={item.value}
                 type="button"
                 className={[
-                  "bd-call-provider-card",
-                  item.value === provider && "bd-call-provider-card--active",
+                  "bd-msg-provider-card",
+                  item.value === provider && "bd-msg-provider-card--active",
                 ]
                   .filter(Boolean)
                   .join(" ")}
                 aria-pressed={item.value === provider}
                 onClick={() => form.setFieldValue("provider", item.value)}
               >
-                <span className="bd-call-provider-name">{item.label}</span>
-                <span className="bd-call-provider-kind">{t("Tổng đài")}</span>
+                <span className="bd-msg-provider-img">
+                  {/* UNKNOWN_REFERENCE_BEHAVIOR: exact Voip24h logo asset URL
+                      could not be safely extracted. Using inline SVG text
+                      placeholder until a proper logo is sourced. */}
+                  <svg viewBox="0 0 100 40" width="100" height="40" aria-label={item.label}>
+                    <text
+                      x="50%"
+                      y="50%"
+                      dominantBaseline="central"
+                      textAnchor="middle"
+                      fill="#1677ff"
+                      fontFamily="Arial, sans-serif"
+                      fontWeight="700"
+                      fontSize="18"
+                    >
+                      {item.label}
+                    </text>
+                  </svg>
+                </span>
+                <span className="bd-msg-provider-name">{item.label}</span>
               </button>
             ))}
             <Form.Item name="provider" hidden>

@@ -1,3 +1,31 @@
+/* ── Công cụ: shell wrapping tabbar + sub-tabs + content ────────────────── */
+
+.bd-tools-shell {
+  background: #ffffff;
+  border-radius: var(--bd-radius);
+  box-shadow: var(--bd-shadow-card);
+}
+
+.bd-tools-shell > .bd-tabbar {
+  border: none;
+  border-bottom: 1px solid var(--bd-border);
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.bd-tools-card > .bd-tools-subtabs {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--bd-border);
+}
+
+.bd-tools-card > .reception-card,
+.bd-tools-shell .reception-card {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
 /* ── Công cụ ─────────────────────────────────────────────────────────────── */
 
 /* An integration screen with no endpoint behind it yet. */
@@ -65,6 +93,20 @@
   font-size: 13px;
   font-weight: 500;
   color: var(--bd-ink);
+}
+
+/* ── Invoice config dialog: provider 50% / fields 50% ───────────────────── */
+
+.bd-inv-dialog-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 640px) {
+  .bd-inv-dialog-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ── Cấu hình gọi thoại dialog: provider card beside the fields ──────────── */

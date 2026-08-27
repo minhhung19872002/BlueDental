@@ -22,8 +22,10 @@ export function RouteErrorBoundary() {
     </Space>
   );
 
+  let content: React.ReactNode;
+
   if (isRouteErrorResponse(error) && error.status === NOT_FOUND_STATUS) {
-    return (
+    content = (
       <Result
         status="404"
         title={t("Không tìm thấy trang")}
@@ -31,10 +33,8 @@ export function RouteErrorBoundary() {
         extra={recoveryActions}
       />
     );
-  }
-
-  if (isRouteErrorResponse(error)) {
-    return (
+  } else if (isRouteErrorResponse(error)) {
+    content = (
       <Result
         status="error"
         title={t("Không mở được trang")}
@@ -42,14 +42,20 @@ export function RouteErrorBoundary() {
         extra={recoveryActions}
       />
     );
+  } else {
+    content = (
+      <Result
+        status="500"
+        title={t("Đã xảy ra lỗi ngoài dự kiến")}
+        subTitle={t("Hệ thống không hiển thị được nội dung của trang này. Vui lòng tải lại trang.")}
+        extra={recoveryActions}
+      />
+    );
   }
 
   return (
-    <Result
-      status="500"
-      title={t("Đã xảy ra lỗi ngoài dự kiến")}
-      subTitle={t("Hệ thống không hiển thị được nội dung của trang này. Vui lòng tải lại trang.")}
-      extra={recoveryActions}
-    />
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
+      {content}
+    </div>
   );
 }
