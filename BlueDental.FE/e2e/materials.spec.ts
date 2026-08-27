@@ -230,7 +230,7 @@ test.describe("Vật tư", () => {
     await expect(page.getByRole("dialog").getByLabel(/Số thứ tự/)).toHaveValue("91");
   });
 
-  test("Gộp số lượng vật tư folds a department's vouchers and adds them up", async ({
+  test("Gộp số lượng vật tư swaps the table for a per-material summary", async ({
     page,
   }) => {
     await page.goto("/materials/department");
@@ -242,25 +242,88 @@ test.describe("Vật tư", () => {
     const rows = page.locator(".ant-table-tbody tr.ant-table-row");
     await expect(rows).toHaveCount(4);
 
-    const quantityOf = async (index: number) =>
-      Number((await rows.nth(index).locator("td").nth(3).innerText()).trim());
+    // The stylesheet upper-cases headings, and allInnerTexts reports what is
+    // rendered — so compare on a common footing.
+    const headings = async () =>
+      (await page.locator(".ant-table thead th").allInnerTexts()).map((h) =>
+        h.trim().toLocaleLowerCase("vi"),
+      );
 
-    const before = await Promise.all([0, 1, 2, 3].map(quantityOf));
-    const total = before.reduce((sum, value) => sum + value, 0);
+    expect(await headings()).toContain("sl được phát");
+
+    // One cell per row — rows.locator("td") would flatten every row's cells
+    // into one list and nth() would then pick a single cell out of the lot.
+    const columnTotal = async (column: number) => {
+      const count = await rows.count();
+      let sum = 0;
+      for (let index = 0; index < count; index++) {
+        sum += Number((await rows.nth(index).locator("td").nth(column).innerText()).trim());
+      }
+      return sum;
+    };
+
+    const total = await columnTotal(3);
 
     await page.getByRole("button", { name: "Gộp số lượng vật tư" }).click();
 
-    // One row per material, and nothing is lost in the folding.
+    // Not the same rows folded — a different table, asking different questions.
     await expect(rows).toHaveCount(2);
-    const after = await Promise.all([0, 1].map(quantityOf));
-    expect(after.reduce((sum, value) => sum + value, 0)).toBe(total);
+    expect(await headings()).toEqual([
+      "vật tư",
+      "tổng sl phân bổ",
+      "tổng còn lại (đã duyệt)",
+      "số lần phân bổ",
+      "lần phân bổ gần nhất",
+    ]);
 
-    // The code column says what a folded row stands for.
-    await expect(rows.first()).toContainText("2 phiếu");
+    // Nothing is lost on the way across.
+    expect(await columnTotal(1)).toBe(total);
+    await expect(rows.first()).toContainText("2 lần");
 
     // It is a view, not a write: turning it off brings the vouchers back.
     await page.getByRole("button", { name: "Gộp số lượng vật tư" }).click();
     await expect(rows).toHaveCount(4);
+    expect(await headings()).toContain("sl được phát");
+  });
+
+  test("Phân bổ vật tư scrolls inside its table, not off the card", async ({ page }) => {
+    await page.goto("/materials/allocation");
+    await assertRealApiTraffic(page, "/api/v1/app/material-allocations");
+
+    await expect(page.locator(".ant-table-tbody tr.ant-table-row").first()).toBeVisible();
+
+    // This tab has no side panel, so it used to take its height from its own
+    // content: 1406px of table inside a 726px frame, on a page that clips.
+    // Everything past the fold was unreachable — no scrollbar, no way down.
+    const fits = await page.evaluate(() => {
+      const plain = document.querySelector(".bd-materials-plain");
+      const parent = plain?.parentElement;
+      if (!plain || !parent) return null;
+      return {
+        plain: Math.round(plain.getBoundingClientRect().height),
+        parent: Math.round(parent.getBoundingClientRect().height),
+      };
+    });
+    expect(fits).not.toBeNull();
+    expect(fits!.plain).toBeLessThanOrEqual(fits!.parent + 1);
+
+    // The rows scroll within the table, and the last one can be reached.
+    const reached = await page.evaluate(async () => {
+      const scroller = document.querySelector(".ant-table-content, .ant-table-body");
+      if (!scroller) return null;
+      scroller.scrollTop = scroller.scrollHeight;
+      await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+
+      const rows = document.querySelectorAll(".ant-table-tbody tr.ant-table-row");
+      const last = rows[rows.length - 1]?.getBoundingClientRect();
+      const pager = document.querySelector(".ant-pagination")?.getBoundingClientRect();
+      return {
+        scrollable: scroller.scrollHeight > scroller.clientHeight,
+        lastRowInView: !!last && last.bottom <= window.innerHeight,
+        pagerInView: !!pager && pager.bottom <= window.innerHeight,
+      };
+    });
+    expect(reached).toEqual({ scrollable: true, lastRowInView: true, pagerInView: true });
   });
 
   test("Phân bổ vật tư lists real vouchers with no group panel", async ({ page }) => {

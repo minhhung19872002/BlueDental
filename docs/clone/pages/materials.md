@@ -28,6 +28,8 @@ segmented control.
 | Material groups | `GET /api/v1/taxonomy/?group=supplies&includeCount=true` |
 | Materials | `GET /api/v1/supplies/list` |
 | Departments | `GET /api/v1/departments/list?perPage=20&branchId=…&orderBy=order&page=1` |
+| Allocation vouchers | `useSupplyAllocationList({ branchId, departmentId?, search?, orderBy: "createdAt", perPage })` |
+| Stock-take confirmations | `useSupplyAllocationConfirmList({ branchId, departmentId?, status?, orderBy: "createdAt", perPage })` |
 
 The department response advertises `availableOrderBy: ["name","order","createdAt","updatedAt"]`
 and is requested with `orderBy=order`, so a department carries a position of its
@@ -125,6 +127,65 @@ Empty: "Chọn phòng ban để xem vật tư đã phân bổ".
 
 Department dialog — 500px: `Tên phòng ban *` and `Số thứ tự`, one `Lưu`.
 
+## How the three sections hang together
+
+Read out of the reference's own client bundle (`_next/static/chunks/…`), which
+is a static asset and needs no interaction to read. This is the shape BlueDental
+does **not** yet have, and it is what makes the three tabs one feature rather
+than three lists.
+
+**A voucher carries many materials.** An allocation is
+`{ id, code, departmentId, departmentName, branchId, userName, note, createdAt,
+items: [{ supplyId, name, qty, confirmedQty }] }` — one voucher, one department,
+**several supply lines**. That is why Phân bổ vật tư renders "Vật tư" as
+`items.map(i => i.name).join(", ")` and "SL được phân bổ" as
+`items.map(i => `${i.name}: ${i.qty}`).join(", ")`, each clamped to one line
+with the full string on the `title`.
+
+**Kiểm kho is a separate collection.** Confirmations are their own records,
+keyed by `allocationId:supplyId`, carrying a `status` (`"pending"` among them)
+and a `createdAt`. The screen keeps only the latest per pair. From that fall out:
+
+- the "Kiểm kho" column on Phòng ban (a status tone per line),
+- `confirmedQty`, which is what "SL còn lại (đã duyệt)" shows and why it reads
+  "—" until a confirmation is approved,
+- a `pendingCount` per material and a `${n} vật tư chờ duyệt` amber pill above
+  the department table,
+- a badge on each voucher's action icon in Phân bổ vật tư,
+- and `Lịch sử kiểm kho`, which opens that queue: tabs with counts, an
+  infinite-scrolling list of `ConfirmCard`s (`max-h-[420px]`), and the empty
+  wordings "Không có xác nhận nào chờ duyệt" and "Chưa có phòng ban nào gửi xác
+  nhận kiểm kho". The button turns amber when something is pending and the
+  account holds `materials:approve`.
+
+**BlueDental's model differs**: one `MaterialAllocation` carries exactly one
+material, and there is no confirmation record at all — `ConfirmUsage` moves a
+number and writes no history. So the "Kiểm kho" column has nothing to show, the
+action columns the reference puts on both tables are absent, and `Lịch sử kiểm
+kho` has no queue to open. Closing that gap means a `MaterialAllocationItem`
+child collection and a confirmation entity with an approval step; it is a
+feature in its own right, not a detail of these screens.
+
+## Gộp số lượng vật tư
+
+A pure view toggle — `onClick: () => setMerged(v => !v)`, no request. It swaps
+the **whole column set**, rather than folding the detail rows:
+
+| Column | Alignment | Notes |
+|--------|-----------|-------|
+| Vật tư | left | material name |
+| Tổng SL phân bổ | right | teal `#107569`, semibold |
+| Tổng còn lại (đã duyệt) | right | amber `#B45309`; "—" when nothing confirmed; a `${n} chờ duyệt` pill when any are pending |
+| Số lần phân bổ | right | rendered `{n} lần` |
+| Lần phân bổ gần nhất | left | formatted datetime, or "—" |
+| Chi nhánh | left | only in the multi-branch view |
+
+Active, the button turns teal (`border-[#107569] bg-[#E6F4F2] text-[#107569]`)
+and its tooltip becomes "Xem chi tiết phân bổ".
+
+BlueDental draws the first five; the pending pill and the branch column wait on
+the confirmation records and the multi-branch view respectively.
+
 ## UNKNOWN_REFERENCE_BEHAVIOR
 
 | # | Control / behaviour | Reason | Action taken |
@@ -135,8 +196,8 @@ Department dialog — 500px: `Tên phòng ban *` and `Số thứ tự`, one `Lư
 | 4 | Row action buttons | No rows | Edit + delete, as every other BlueDental table |
 | 5 | `Sync data hệ thống` | Disabled on the reference too | Offered, disabled |
 | 6 | `Lịch sử kiểm kho` destination | Enabled on the reference, but not followed — clicking could not be shown to be read-only | Offered, disabled. BlueDental records no stock-take at all — confirming usage moves a number and writes no history — so there is nothing for it to show. The reason is on a tooltip, because a disabled button swallows its own |
-| 7 | `Gộp số lượng vật tư` — what it actually does | No departments and no issued materials on the reference, and the control is a plain `<button>` with no href to follow. Clicking a control named "merge" on the reference is not a read, so it was not clicked | **Assumed**, not observed: it folds the table to one row per material with the quantities added up, and writes nothing. The folded row's code cell reads "N phiếu" instead of one voucher's code. If the reference turns out to merge stored records instead, only a local view has to change |
-| 8 | `Kiểm kho` column contents | No rows; BlueDental stores no stock-take against an allocation | Renders "—" |
+| 7 | ~~`Gộp số lượng vật tư`~~ — **resolved 2026-08-27** | Read out of the reference's client bundle rather than clicked | Built to match: a view toggle that swaps the column set. See "Gộp số lượng vật tư" above |
+| 8 | `Kiểm kho` column contents — **partly resolved 2026-08-27** | The reference's shape is now known (a confirmation record per `allocationId:supplyId` with a status), but no confirmation was ever seen with data in it, so the tones and wordings per status are still unobserved | Renders "—". BlueDental has no confirmation record to show |
 | 9 | Whether the reference pages materials on the server | Never more than zero rows | BlueDental pages on the server |
 
 ## Local sample data
