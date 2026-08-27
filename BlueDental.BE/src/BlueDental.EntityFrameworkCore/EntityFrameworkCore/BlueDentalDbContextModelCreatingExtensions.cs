@@ -76,6 +76,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.ConfigureByConvention();
             entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
             entity.Property(x => x.Description).HasMaxLength(1000);
+            entity.HasIndex(x => new { x.BranchId, x.SortOrder });
         });
     }
 

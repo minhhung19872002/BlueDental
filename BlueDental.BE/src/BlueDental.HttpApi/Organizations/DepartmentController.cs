@@ -27,4 +27,8 @@ public sealed class DepartmentController(IDepartmentAppService service) : BlueDe
 
     [HttpDelete("{id:guid}")]
     public Task DeleteAsync(Guid id) => service.DeleteAsync(id);
+
+    [HttpPut("reorder")]
+    public Task ReorderAsync([FromBody] ReorderDepartmentsDto input) =>
+        service.ReorderAsync(input);
 }
