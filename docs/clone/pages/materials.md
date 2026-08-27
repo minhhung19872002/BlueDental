@@ -158,13 +158,40 @@ and a `createdAt`. The screen keeps only the latest per pair. From that fall out
   nhận kiểm kho". The button turns amber when something is pending and the
   account holds `materials:approve`.
 
-**BlueDental's model differs**: one `MaterialAllocation` carries exactly one
-material, and there is no confirmation record at all — `ConfirmUsage` moves a
-number and writes no history. So the "Kiểm kho" column has nothing to show, the
-action columns the reference puts on both tables are absent, and `Lịch sử kiểm
-kho` has no queue to open. Closing that gap means a `MaterialAllocationItem`
-child collection and a confirmation entity with an approval step; it is a
-feature in its own right, not a detail of these screens.
+**Built 2026-08-27.** A `MaterialAllocation` now carries a
+`MaterialAllocationItem` per material, so a voucher issues a whole selection at
+once. Issuing takes the material off the clinic's shelf and cancelling the
+voucher puts it back. Codes follow the reference's shape — `PB` + the date + a
+counter that restarts each day, e.g. `PB202608270001`.
+
+**Still not built**: the confirmation records themselves. BlueDental stores a
+`ConfirmedQuantity` per line and no history of how it got there, so there is no
+pending state, no approval step, and no queue for `Lịch sử kiểm kho` to open.
+The "Kiểm kho" column therefore reads "Chưa kiểm" until a remaining figure comes
+back for that line, rather than showing the reference's status tones.
+
+## Phân bổ — the flow
+
+Ticking materials in Vật tư phòng khám raises a bar over the table:
+
+- an X labelled "Bỏ chọn", then "{n} vật tư đã chọn" with the first two names
+  and `, +N` for the rest;
+- the receiving department (the reference also names a branch here; BlueDental
+  issues within the branch already showing in the header, so it does not repeat
+  the question);
+- "Phân bổ", disabled until a department is named;
+- an ⓘ labelled "Lưu ý phân bổ" carrying two notes verbatim: *"Vật tư sẽ được
+  phân bổ trực tiếp từ kho tổng về chi nhánh hoặc phòng ban nhận."* and *"Số
+  lượng phân bổ tối đa dựa trên số lượng còn lại chưa phân bổ của vật tư."*
+
+"Phân bổ" opens **"Phân bổ vật tư" / "Nhập số lượng phân bổ cho từng vật tư"**
+(1100px, body capped at `42vh`): one row per material showing "Tồn kho: {n}" and
+a − / input / + stepper starting at 1, a "Ghi chú đợt phân bổ..." for the whole
+issue, and a footer reading "{n} vật tư" against "Huỷ" and "Xác nhận".
+
+Each line is capped at what the clinic holds. Below one it says "SL phải ≥ 1";
+above stock, "Vượt tồn kho ({n})" — and "Xác nhận" stays disabled while any line
+is wrong.
 
 ## Gộp số lượng vật tư
 
@@ -191,13 +218,13 @@ the confirmation records and the multi-branch view respectively.
 | # | Control / behaviour | Reason | Action taken |
 |---|---------------------|--------|--------------|
 | 1 | What the leading checkbox enables once rows are ticked | No rows on the reference; no bulk bar appeared with the header checkbox alone | Column drawn, selection tracked, no bulk action invented |
-| 2 | Status badge wording and colours | No rows | BlueDental derives status from stock and expiry (`InventoryItem.StatusAsOf`) and styles it itself |
+| 2 | Status badge — **resolved 2026-08-27** | Read out of the bundle: the reference derives it from quantity alone — `≤0` "Hết hàng", `≤50` "Sắp hết", otherwise "Còn hàng" — and treats expiry as a separate flag | BlueDental keeps its own rule (`InventoryItem.StatusAsOf`), which folds expiry into the same column and uses each material's reorder level rather than a fixed 50. Same three labels, different thresholds — recorded as a divergence rather than changed, because the reorder level is a column the user sets |
 | 3 | How "Cảnh báo hết hạn" renders when a material is near expiry | No rows | Shown as the plain day count |
 | 4 | Row action buttons | No rows | Edit + delete, as every other BlueDental table |
 | 5 | `Sync data hệ thống` | Disabled on the reference too | Offered, disabled |
 | 6 | `Lịch sử kiểm kho` destination | Enabled on the reference, but not followed — clicking could not be shown to be read-only | Offered, disabled. BlueDental records no stock-take at all — confirming usage moves a number and writes no history — so there is nothing for it to show. The reason is on a tooltip, because a disabled button swallows its own |
 | 7 | ~~`Gộp số lượng vật tư`~~ — **resolved 2026-08-27** | Read out of the reference's client bundle rather than clicked | Built to match: a view toggle that swaps the column set. See "Gộp số lượng vật tư" above |
-| 8 | `Kiểm kho` column contents — **partly resolved 2026-08-27** | The reference's shape is now known (a confirmation record per `allocationId:supplyId` with a status), but no confirmation was ever seen with data in it, so the tones and wordings per status are still unobserved | Renders "—". BlueDental has no confirmation record to show |
+| 8 | `Kiểm kho` status tones — **partly resolved 2026-08-27** | The shape is known (a confirmation record per `allocationId:supplyId` with a status) and "Chưa kiểm" was seen on a real row, but no confirmation with data was ever observed, so the remaining tones and wordings are unknown | Reads "Chưa kiểm" until a remaining figure comes back for the line, then "Đã kiểm" |
 | 9 | Whether the reference pages materials on the server | Never more than zero rows | BlueDental pages on the server |
 
 ## Local sample data

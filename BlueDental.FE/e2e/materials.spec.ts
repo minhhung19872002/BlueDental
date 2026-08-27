@@ -286,6 +286,102 @@ test.describe("Vật tư", () => {
     expect(await headings()).toContain("sl được phát");
   });
 
+  test("issues a material to a department, and it lands on all three tabs", async ({
+    page,
+  }) => {
+    const id = runId();
+    const groupName = `NHÓM PB E2E ${id}`;
+    const materialName = `Vật tư PB E2E ${id}`;
+    const departmentName = `PB PHÒNG ${id}`;
+
+    // ── A department to receive it ──────────────────────────────────────────
+    await page.goto("/materials/department");
+    await assertRealApiTraffic(page, "/api/v1/app/departments");
+
+    await page.getByRole("button", { name: "Tạo phòng ban" }).click();
+    let dialog = page.getByRole("dialog");
+    await dialog.getByLabel(/Tên phòng ban/).fill(departmentName);
+    await dialog.getByRole("button", { name: /Lưu$/ }).click();
+    await expect(dialog).toBeHidden({ timeout: 10_000 });
+
+    // ── A material with stock to issue ──────────────────────────────────────
+    await page.goto("/materials/clinic");
+    await page.getByRole("button", { name: "Thêm nhóm phân loại" }).click();
+    dialog = page.getByRole("dialog");
+    await dialog.getByLabel(/Tên phân loại/).fill(groupName);
+    await dialog.getByRole("button", { name: /Lưu$/ }).click();
+    await expect(page.getByRole("button", { name: groupName })).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
+
+    await page.getByRole("button", { name: /Thêm vật tư/ }).click();
+    dialog = page.getByRole("dialog");
+    await dialog.getByLabel(/^Tên vật tư/).fill(materialName);
+    await dialog.getByLabel(/Số lượng/).fill("40");
+    await dialog.getByRole("button", { name: /Lưu$/ }).click();
+    await expect(dialog).toBeHidden({ timeout: 10_000 });
+
+    const row = page.getByRole("row", { name: new RegExp(materialName) });
+    await expect(row).toContainText("40");
+
+    // ── Tick it, name the department, issue 15 ──────────────────────────────
+    await row.getByRole("checkbox").check();
+
+    const bar = page.getByRole("region", { name: "Phân bổ vật tư đã chọn" });
+    await expect(bar).toContainText("1 vật tư đã chọn");
+    await expect(bar).toContainText(materialName);
+
+    // Nothing can be issued until a department is named.
+    await expect(bar.getByRole("button", { name: "Phân bổ", exact: true })).toBeDisabled();
+
+    await bar.getByLabel("Phòng ban nhận").click();
+    await page.getByTitle(departmentName, { exact: true }).click();
+    await bar.getByRole("button", { name: "Phân bổ", exact: true }).click();
+
+    const allocate = page.getByRole("dialog");
+    await expect(allocate).toContainText("Nhập số lượng phân bổ cho từng vật tư");
+    // The stock is the cap, and the reference says so on the line itself.
+    await expect(allocate).toContainText("Tồn kho:");
+    await expect(allocate).toContainText("40");
+
+    const quantity = allocate.getByLabel(`Số lượng phân bổ ${materialName}`);
+    await quantity.fill("99");
+    await expect(allocate).toContainText("Vượt tồn kho (40)");
+    await expect(allocate.getByRole("button", { name: /Xác nhận/ })).toBeDisabled();
+
+    await quantity.fill("15");
+    await allocate.getByRole("button", { name: /Xác nhận/ }).click();
+    await expect(allocate).toBeHidden({ timeout: 10_000 });
+
+    // ── The clinic's shelf is 15 lighter ────────────────────────────────────
+    await expect(page.getByRole("row", { name: new RegExp(materialName) })).toContainText("25");
+
+    // ── The voucher is on Phân bổ vật tư ────────────────────────────────────
+    await page.goto("/materials/allocation");
+    const voucher = page.getByRole("row", { name: new RegExp(materialName) });
+    await expect(voucher).toBeVisible();
+    // The reference prints each line as "name: qty".
+    await expect(voucher).toContainText(`${materialName}: 15`);
+    await expect(voucher).toContainText(departmentName);
+    // PB + the date + a counter that restarts each day.
+    await expect(voucher).toContainText(/PB\d{8}\d{4}/);
+
+    // ── And on the receiving department ─────────────────────────────────────
+    await page.goto("/materials/department");
+    await page.getByRole("button", { name: departmentName }).click();
+
+    const issued = page.getByRole("row", { name: new RegExp(materialName) });
+    await expect(issued).toBeVisible();
+    await expect(issued).toContainText("15");
+    // No stock-take has come back, so it reads as unchecked.
+    await expect(issued).toContainText("Chưa kiểm");
+
+    // It survives a reload — the voucher reached PostgreSQL.
+    await page.reload();
+    await expect(page.getByRole("row", { name: new RegExp(materialName) })).toBeVisible();
+  });
+
   test("Phân bổ vật tư scrolls inside its table, not off the card", async ({ page }) => {
     await page.goto("/materials/allocation");
     await assertRealApiTraffic(page, "/api/v1/app/material-allocations");

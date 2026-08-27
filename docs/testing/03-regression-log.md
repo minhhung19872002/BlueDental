@@ -492,6 +492,7 @@ FE: **44/44** trên bản build production.
 | R-126 | Seeder chết vì trùng khoá chính sau khi xoá mềm | `BlueDentalOperationsDemoSeeder` kiểm tra bằng `AnyAsync` thuần — không thấy dòng đã xoá mềm nên báo "chưa seed" rồi insert lại đúng khoá cũ. Xoá "Kho vật tư" trên giao diện là lần seed sau hỏng hẳn | Đúng cái bẫy đã sửa ở các seeder khác, còn sót lại ở đây (9 chỗ) | Gom về `AnySeededAsync` có tắt bộ lọc xoá mềm | Chạy lại `DbMigrator` trên DB đang có dòng bị xoá mềm |
 | R-127 | **Bảng Phân bổ vật tư không giới hạn chiều cao** | Tab này không có panel nên không đi qua `.bd-taxonomy-shell` (chỗ duy nhất đặt `height: 100%`). `.bd-materials-plain` vì thế cao theo nội dung: đo được **1406px nằm trong khung 726px**, mà trang thì `overflow: hidden` → phần dưới bị nuốt, không thanh cuộn, không cách nào tới. Đúng loại lỗi R-113 | Chép layout từ tab có panel nhưng bỏ mất chỗ nhận chiều cao | `.bd-materials-plain` tự nhận `height: 100%` | `materials.spec.ts` ("scrolls inside its table") — đo `plain <= parent`, cuộn tới đáy rồi khẳng định **dòng cuối và pager nằm trong khung nhìn** |
 | R-128 | "Gộp số lượng vật tư" gộp sai kiểu | Tôi đoán nó gộp các dòng chi tiết lại và cộng số lượng, giữ nguyên bộ cột. Đọc thẳng bundle của bản gốc thì nó **đổi hẳn bộ cột**: Vật tư / Tổng SL phân bổ / Tổng còn lại (đã duyệt) / Số lần phân bổ / Lần phân bổ gần nhất | Không quan sát được vì bản gốc không có dữ liệu, và không dám bấm một nút tên "Gộp" trên production | Đọc `_next/static/chunks/*.js` — tài nguyên tĩnh, chỉ GET, không tương tác. Dựng lại đúng bộ cột đó, đúng màu (xanh mòng két `#107569` / hổ phách `#B45309`), tooltip đổi thành "Xem chi tiết phân bổ" khi bật | `materials.spec.ts` ("swaps the table for a per-material summary" — khẳng định **đúng 5 tiêu đề cột**, tổng không đổi khi đổi khung nhìn, tắt đi thì dòng chi tiết quay lại) |
+| R-129 | **Ba tab Vật tư không nối với nhau** | Bản gốc: một phiếu phân bổ mang **nhiều** vật tư, xuất đi là **trừ tồn kho**, và cùng dữ liệu đó hiện ở cả ba tab. Bản mình: mỗi phiếu đúng một vật tư, tạo phiếu không đụng gì tới tồn kho, và không có đường nào từ màn vật tư sang phân bổ — ba cái bảng rời nhau | Dựng ba tab theo thứ tự bản gốc vẽ, nhưng chưa bóc được luồng nối chúng vì bản gốc không có dữ liệu | Thêm `MaterialAllocationItem` (migration `20260827100000`, chuyển dữ liệu cũ sang thành phiếu một dòng). Tick vật tư → thanh nổi chọn phòng ban → dialog nhập số lượng từng thứ, chặn ở mức tồn kho → tạo phiếu, **trừ kho**; xoá phiếu thì **hoàn kho**. Mã phiếu theo đúng bản gốc: `PB` + ngày + số đếm reset mỗi ngày | `materials.spec.ts` ("issues a material to a department, and it lands on all three tabs" — đi hết một vòng: tạo vật tư 40, xuất 15, kho còn 25, phiếu hiện ở tab phân bổ dạng `tên: 15`, và ở tab phòng ban kèm "Chưa kiểm", còn sau khi tải lại) |
 
 **Đính chính một điều tôi từng nói sai:** trong các commit trước tôi ghi hai test
 `BlueDentalAbilitiesTests` là "lỗi có sẵn trên nhánh". Đo lại lần này: chúng
@@ -504,7 +505,7 @@ FE: **43/43** (rich-image, operations, taxonomy ×3) trên bản build productio
 Vật tư (2026-08-26): **35/35** trên bản build production — 4 test `materials.spec.ts`
 cộng **31 test Danh mục** chạy lại vì `GroupPanel` nay dùng chung cho cả hai màn.
 
-Sau khi sửa R-120…R-128: `materials.spec.ts` lên **9/9**, và chạy kèm
+Sau khi sửa R-120…R-129: `materials.spec.ts` lên **10/10**, và chạy kèm
 `operations.spec.ts` + `taxonomy-groups.spec.ts` (**29/30**) vì phần phòng ban
 và bộ lọc chi nhánh dùng chung.
 
@@ -520,3 +521,8 @@ là chuyện sản phẩm, không phải chuyện của màn Vật tư. BE `Doma
 Không đụng tới nó: test đó tồn tại để khoá danh sách quyền theo đúng những gì
 quan sát được trên bản gốc, mà `chatbotKnowledge` thì không có trong
 `docs/clone/permissions.md`.
+
+Còn một test chập chờn, cũng không phải do đợt này: `operations.spec.ts` —
+"an image in an article is stored beside it, not inside it" đỏ khi chạy chung cả
+ba bộ, xanh khi chạy riêng. Nhiều khả năng là thời gian upload lên MinIO; đợt sửa
+này không đụng tới rich text.
