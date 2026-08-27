@@ -361,7 +361,7 @@ export function DepartmentTab() {
               !selectedId
                 ? t("Chọn phòng ban trước khi gộp")
                 : merged
-                  ? t("Bỏ gộp số lượng vật tư")
+                  ? t("Xem chi tiết phân bổ")
                   : t("Gộp số lượng vật tư")
             }
           >

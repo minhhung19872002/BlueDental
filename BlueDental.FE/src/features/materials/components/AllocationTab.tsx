@@ -95,12 +95,18 @@ export function AllocationTab() {
       {
         key: "allocated",
         title: t("SL được phân bổ"),
-        width: 240,
+        width: 170,
+        align: "right",
+        // Numbers only. The reference repeats each material's name here, but
+        // the column beside it already lists them in this same order, so the
+        // names read across rather than being said twice. The full "name: qty"
+        // stays on the title for anything ambiguous.
         render: (_, row) => {
+          const quantities = row.items.map((item) => item.quantity).join(", ");
           const detail = row.items.map((item) => `${item.name}: ${item.quantity}`).join(", ");
           return (
-            <span className="bd-mat-issued bd-alloc-clamp" title={detail}>
-              {detail || "—"}
+            <span className="bd-cat-num bd-mat-issued bd-alloc-clamp" title={detail}>
+              {quantities || "—"}
             </span>
           );
         },
@@ -108,18 +114,23 @@ export function AllocationTab() {
       {
         key: "remaining",
         title: t("SL confirm còn lại"),
-        width: 240,
-        // Only the lines a stock-take has come back for, as "name: left/out".
+        width: 190,
+        align: "right",
+        // Only the lines a stock-take has come back for, as "left/out" — the
+        // ratio is the point, so it stays; the name does not.
         render: (_, row) => {
           const confirmed = row.items.filter((item) => item.confirmedQuantity !== null);
           if (confirmed.length === 0) return "—";
 
+          const ratios = confirmed
+            .map((item) => `${item.confirmedQuantity}/${item.quantity}`)
+            .join(", ");
           const detail = confirmed
             .map((item) => `${item.name}: ${item.confirmedQuantity}/${item.quantity}`)
             .join(", ");
           return (
-            <span className="bd-mat-remaining bd-alloc-clamp" title={detail}>
-              {detail}
+            <span className="bd-cat-num bd-mat-remaining bd-alloc-clamp" title={detail}>
+              {ratios}
             </span>
           );
         },
@@ -199,7 +210,7 @@ export function AllocationTab() {
             dataSource={rows}
             rowKey="id"
             loading={query.isFetching}
-            scroll={{ x: 1700 }}
+            scroll={{ x: 1550 }}
             pagination={pagination.buildConfig(rows.length, (total, shown) =>
               total === 0
                 ? t("Hiển thị 0 trên 0")
