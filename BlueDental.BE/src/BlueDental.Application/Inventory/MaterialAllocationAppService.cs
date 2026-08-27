@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
@@ -14,34 +15,43 @@ public class MaterialAllocationAppService : ApplicationService, IMaterialAllocat
 {
     private readonly IRepository<MaterialAllocation, Guid> _repository;
     private readonly IRepository<InventoryItem, Guid> _inventoryItemRepository;
-    private readonly IRepository<Organizations.Department, Guid> _departmentRepository;
+    private readonly IRepository<Department, Guid> _departmentRepository;
+    private readonly ICurrentClinicBranchResolver _branchResolver;
 
     public MaterialAllocationAppService(
         IRepository<MaterialAllocation, Guid> repository,
         IRepository<InventoryItem, Guid> inventoryItemRepository,
-        IRepository<Organizations.Department, Guid> departmentRepository)
+        IRepository<Department, Guid> departmentRepository,
+        ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
         _inventoryItemRepository = inventoryItemRepository;
         _departmentRepository = departmentRepository;
+        _branchResolver = branchResolver;
     }
 
     [Authorize(BlueDentalPermissions.Inventory.View)]
     public async Task<PagedResultDto<MaterialAllocationDto>> GetListAsync(GetMaterialAllocationListInput input)
     {
+        // Vouchers belong to a branch. Without this every branch read every
+        // other branch's allocations.
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
         var queryable = await _repository.GetQueryableAsync();
+        queryable = queryable.Where(x => x.BranchId == branchId);
 
         if (input.DepartmentId.HasValue)
         {
             queryable = queryable.Where(x => x.DepartmentId == input.DepartmentId.Value);
         }
 
-        if (!string.IsNullOrWhiteSpace(input.Filter))
+        // Every word typed has to appear somewhere in the row, in any order and
+        // whatever the casing — the same rule the rest of the app searches by.
+        foreach (var term in SearchTerms.From(input.Filter))
         {
-            var filter = input.Filter.ToLowerInvariant();
             queryable = queryable.Where(x =>
-                x.AllocationCode.ToLower().Contains(filter) ||
-                (x.PerformerName != null && x.PerformerName.ToLower().Contains(filter)));
+                x.AllocationCode.ToLower().Contains(term) ||
+                (x.PerformerName != null && x.PerformerName.ToLower().Contains(term)) ||
+                (x.Note != null && x.Note.ToLower().Contains(term)));
         }
 
         var totalCount = queryable.Count();
@@ -87,7 +97,10 @@ public class MaterialAllocationAppService : ApplicationService, IMaterialAllocat
             allocationCode,
             input.InventoryItemId,
             input.DepartmentId,
-            CurrentUser.Id ?? Guid.Empty,
+            // This slot is the branch. It used to be handed CurrentUser.Id, so
+            // every voucher was stamped with the person who raised it and
+            // belonged to no branch at all.
+            _branchResolver.GetRequiredClinicBranchId(),
             input.AllocatedQuantity,
             input.PerformerName,
             input.Note);
@@ -99,6 +112,15 @@ public class MaterialAllocationAppService : ApplicationService, IMaterialAllocat
     [Authorize(BlueDentalPermissions.Inventory.Manage)]
     public async Task DeleteAsync(Guid id)
     {
-        await _repository.DeleteAsync(id);
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
+        var entity = await _repository.GetAsync(id);
+
+        if (entity.BranchId != branchId)
+        {
+            throw new Volo.Abp.Domain.Entities.EntityNotFoundException(
+                typeof(MaterialAllocation), id);
+        }
+
+        await _repository.DeleteAsync(entity);
     }
 }
