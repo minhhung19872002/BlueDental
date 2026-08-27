@@ -6944,10 +6944,16 @@ html:has(.ant-modal-wrap) {
 
 /* The two sections with a panel reuse the catalog shell; this is the one that
    has none, so it supplies its own padding. */
+/* The panelled tabs get their height from .bd-taxonomy-shell; this one has no
+   panel and so has to claim it itself. Without the height it grew to its
+   content — 1406px inside a 726px parent — and the page, which clips, simply
+   swallowed everything past the fold: no scrollbar, no way down. Same fault as
+   R-113. */
 .bd-materials-plain {
   display: flex;
   flex: 1;
   flex-direction: column;
+  height: 100%;
   min-height: 0;
   padding: 16px;
 }
@@ -6979,6 +6985,12 @@ html:has(.ant-modal-wrap) {
 .bd-materials-search.ant-input-affix-wrapper { height: 42px; }
 
 /* The command at the far end of the row, opposite the tools. */
+/* The reference picks these two figures out in colour: what went out in teal,
+   what is confirmed still there in amber. */
+.bd-mat-issued { color: #107569; font-weight: 600; }
+.bd-mat-remaining { color: #b45309; font-weight: 600; }
+.bd-mat-code { color: var(--bd-blue); font-weight: 500; }
+
 /* Pushed to the far right of the toolbar. Also used on the span that wraps a
    disabled button, because a disabled button swallows its own tooltip and the
    reason has to hang off something the pointer can still reach. */
