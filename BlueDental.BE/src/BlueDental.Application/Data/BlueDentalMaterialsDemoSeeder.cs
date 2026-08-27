@@ -236,6 +236,10 @@ public class BlueDentalMaterialsDemoSeeder(
         var departments = departmentIds.Keys.ToList();
         var materials = itemIds.Keys.ToList();
 
+        // Voucher codes are unique clinic-wide, so the two seeded branches need
+        // different runs of numbers on the same day.
+        var branchOffset = branchId == BlueDentalDataSeedContributor.DefaultBranchId ? 0 : 50;
+
         for (var index = 0; index < Vouchers; index++)
         {
             var id = DeterministicId($"allocation|{branchId}|{index}");
@@ -266,27 +270,28 @@ public class BlueDentalMaterialsDemoSeeder(
 
             var allocation = new MaterialAllocation(
                 id,
-                // Same shape the app generates on a real save, and spread over
-                // recent days so the vouchers do not all read as raised in one
-                // minute. The suffix comes off the deterministic id, which
-                // already encodes the branch — the column is unique across the
-                // whole clinic, so a plain running number collided between the
-                // two seeded branches.
-                $"PB-{raisedAt:yyyyMMdd}-{id.ToString("N")[..6].ToUpperInvariant()}",
-                itemIds[material],
+                // The shape the app generates on a real save — PB, the date, and
+                // a counter that restarts each day. The counter is offset by the
+                // branch because the column is unique across the whole clinic
+                // and the two seeded branches would otherwise collide.
+                $"PB{raisedAt:yyyyMMdd}{(branchOffset + round) * 10 + slot + 1:D4}",
                 departmentIds[department],
                 branchId,
-                quantity,
                 Performers[random.Next(Performers.Length)],
                 Notes[random.Next(Notes.Length)],
                 raisedAt);
 
-            // Some fully confirmed, some partly, some untouched — so "SL confirm
-            // còn lại" is not a copy of the column beside it.
-            var used = random.Next(0, quantity + 1);
-            if (used > 0)
+            allocation.AddItem(
+                DeterministicId($"allocation-item|{branchId}|{index}"),
+                itemIds[material],
+                material,
+                quantity);
+
+            // Some confirmed, some not — so "SL còn lại (đã duyệt)" is neither a
+            // copy of the column beside it nor empty everywhere.
+            if (random.Next(0, 3) > 0)
             {
-                allocation.ConfirmUsage(used);
+                allocation.ConfirmRemaining(itemIds[material], random.Next(0, (int)quantity + 1));
             }
 
             await allocationRepository.InsertAsync(allocation, autoSave: true);

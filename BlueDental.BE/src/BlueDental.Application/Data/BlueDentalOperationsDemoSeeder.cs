@@ -300,15 +300,17 @@ public class BlueDentalOperationsDemoSeeder(
         var allocations = new List<MaterialAllocation>();
         for (var i = 0; i < 6; i++)
         {
-            allocations.Add(new MaterialAllocation(
+            var material = items[i % items.Count];
+            var allocation = new MaterialAllocation(
                 DemoId("1201", i + 1),
-                $"PB26-{i + 1:D4}",
-                items[i % items.Count].Id,
+                $"PB26{i + 1:D4}",
                 departmentIds[i % departmentIds.Count],
                 _branchId,
-                allocatedQuantity: 2 + i,
                 performerName: "Kho vật tư",
-                note: "Cấp phát định kỳ"));
+                note: "Cấp phát định kỳ");
+
+            allocation.AddItem(DemoId("1202", i + 1), material.Id, material.Name, 2 + i);
+            allocations.Add(allocation);
         }
 
         await allocationRepository.InsertManyAsync(allocations, autoSave: true);

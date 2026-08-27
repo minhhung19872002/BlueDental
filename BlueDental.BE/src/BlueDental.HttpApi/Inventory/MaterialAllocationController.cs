@@ -22,6 +22,11 @@ public sealed class MaterialAllocationController(IMaterialAllocationAppService s
     public Task<MaterialAllocationDto> CreateAsync([FromBody] CreateMaterialAllocationDto input) =>
         service.CreateAsync(input);
 
+    [HttpPost("{id:guid}/confirm-remaining")]
+    public Task<MaterialAllocationDto> ConfirmRemainingAsync(
+        Guid id,
+        [FromBody] ConfirmAllocationRemainingDto input) => service.ConfirmRemainingAsync(id, input);
+
     [HttpDelete("{id:guid}")]
     public Task DeleteAsync(Guid id) => service.DeleteAsync(id);
 }

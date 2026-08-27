@@ -91,9 +91,9 @@ public class BlueDentalApplicationAutoMapperProfile : Profile
 
         /* Inventory */
         CreateMap<InventoryItem, InventoryItemDto>();
-        CreateMap<MaterialAllocation, MaterialAllocationDto>()
-            .ForMember(d => d.InventoryItemName, opt => opt.Ignore())
-            .ForMember(d => d.DepartmentName, opt => opt.Ignore());
+        // MaterialAllocation is mapped by hand in its app service: the
+        // department name lives on another aggregate, and each line carries the
+        // name it was issued under rather than the material's name today.
 
         /* Notifications */
         CreateMap<Notification, NotificationDto>();
