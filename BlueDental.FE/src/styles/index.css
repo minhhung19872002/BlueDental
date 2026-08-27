@@ -5755,6 +5755,24 @@ html:has(.ant-modal-wrap) {
   color: var(--bd-blue-dark);
 }
 
+/* A seeded group. The reference tints the whole row amber and puts an ⓘ where
+   a normal row keeps its ⋯ menu. Selection still wins, so an active system
+   group reads as selected rather than as merely seeded. */
+.bd-group-row--system {
+  background: var(--bd-amber-pale);
+}
+
+.bd-group-row--system.bd-group-row--active {
+  background: var(--bd-blue-pale);
+}
+
+.bd-group-system-mark {
+  flex: none;
+  padding: 0 6px;
+  color: var(--bd-amber);
+  font-size: 15px;
+}
+
 .bd-group-row--dragging {
   background: #fff;
   box-shadow: 0 0 0 2px var(--bd-blue-light);
@@ -6387,7 +6405,9 @@ html:has(.ant-modal-wrap) {
   height: 100%;
   min-height: 0;
   padding: 16px 20px;
-  overflow: hidden;
+  /* The table below claims a minimum height, so on a short window the screen
+     has to be able to scroll rather than crushing it. */
+  overflow: hidden auto;
 }
 
 /* The period switch sits at the right-hand end of the row above the report. */
@@ -6804,7 +6824,21 @@ html:has(.ant-modal-wrap) {
    the same way the calendar keeps its header and scrolls its grid. */
 .bd-ops-report-screen .bd-cat-card {
   flex: 1;
-  min-height: 0;
+  /* Enough rows to be worth reading. Where the figures above take most of the
+     height there is little left, and a table showing two rows is not a table;
+     below this the screen scrolls instead. */
+  min-height: 420px;
+}
+
+/* A report wide enough to pan sideways needs a bar big enough to take hold of;
+   the 10px one that suits a page is fiddly under a table this wide. */
+.bd-ops-report-screen .ant-table-content::-webkit-scrollbar {
+  height: 14px;
+}
+
+.bd-ops-report-screen .ant-table-content::-webkit-scrollbar-thumb {
+  border-width: 3px;
+  min-width: 48px;
 }
 
 /* With no filters to sit opposite, the figure stands alone at the start. */
@@ -6923,4 +6957,224 @@ html:has(.ant-modal-wrap) {
 
 @media (min-width: 768px) {
   .bd-ops-main > .bd-cat-header--bar { display: none; }
+}
+
+/* ── Vật tư ─────────────────────────────────────────────────────────────── */
+
+/* The two sections with a panel reuse the catalog shell; this is the one that
+   has none, so it supplies its own padding. */
+/* The panelled tabs get their height from .bd-taxonomy-shell; this one has no
+   panel and so has to claim it itself. Without the height it grew to its
+   content — 1406px inside a 726px parent — and the page, which clips, simply
+   swallowed everything past the fold: no scrollbar, no way down. Same fault as
+   R-113. */
+.bd-materials-plain {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 16px;
+}
+
+.bd-materials-toolbar {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--bd-line);
+  background: #fff;
+  padding: 16px;
+}
+
+.bd-materials-plain > .bd-materials-toolbar {
+  border-bottom: 0;
+  padding: 0 0 16px;
+}
+
+.bd-materials-toolbar .ant-btn { height: 42px; }
+
+.bd-materials-search {
+  flex: 1;
+  min-width: 240px;
+  max-width: 420px;
+}
+
+.bd-materials-search.ant-input-affix-wrapper { height: 42px; }
+
+/* The command at the far end of the row, opposite the tools. */
+/* ── Phân bổ vật tư ─────────────────────────────────────────────────────────
+   The bar that rises from the bottom once materials are ticked, and the
+   quantity form it opens. The reference floats both over the table rather than
+   pushing it up, so the selection stays in view while you name the department. */
+.bd-alloc-host { position: relative; }
+
+.bd-alloc-dock {
+  position: absolute;
+  right: 0;
+  bottom: 16px;
+  left: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+  padding: 0 16px;
+  pointer-events: none;
+}
+
+.bd-alloc-bar {
+  display: flex;
+  width: 100%;
+  max-width: 1100px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid rgb(255 255 255 / 60%);
+  border-radius: 16px;
+  background: rgb(255 255 255 / 96%);
+  box-shadow: 0 6px 20px rgb(27 42 65 / 12%);
+  backdrop-filter: blur(16px) saturate(180%);
+  pointer-events: auto;
+}
+
+.bd-alloc-bar-count {
+  display: flex;
+  min-width: 150px;
+  align-items: center;
+  gap: 8px;
+}
+
+.bd-alloc-bar-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--bd-ink);
+}
+
+.bd-alloc-bar-names {
+  margin: 0;
+  max-width: 200px;
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--bd-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bd-alloc-bar-divider {
+  width: 1px;
+  height: 32px;
+  background: rgb(27 42 65 / 10%);
+}
+
+.bd-alloc-bar-dept { min-width: 220px; }
+
+.bd-alloc-notes ul {
+  margin: 4px 0 0;
+  padding-left: 16px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.bd-alloc-lines {
+  display: flex;
+  max-height: 42vh;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+
+.bd-alloc-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--bd-line);
+  border-radius: 12px;
+  background: var(--bd-bg-soft, #fcfdfe);
+}
+
+.bd-alloc-line-name {
+  margin: 0;
+  overflow: hidden;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--bd-ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bd-alloc-line-stock {
+  margin: 0;
+  font-size: 12px;
+  color: var(--bd-muted);
+}
+
+.bd-alloc-empty { color: var(--bd-red, #dc2626); font-weight: 500; }
+.bd-alloc-error { color: var(--bd-red, #dc2626); font-weight: 500; }
+
+.bd-alloc-stepper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bd-alloc-qty { width: 72px; text-align: center; }
+
+.bd-alloc-note { margin-top: 12px; }
+
+.bd-alloc-count { font-size: 13px; color: var(--bd-muted); }
+
+.bd-alloc-chip { margin: 0; }
+
+/* A voucher's materials read as one line, with the whole list on the title. */
+.bd-alloc-clamp {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bd-alloc-unchecked { color: var(--bd-muted); }
+
+/* The dialog's own head and foot, which carry more than Danh mục's do. */
+.bd-modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bd-modal-subtitle {
+  margin: 2px 0 0;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--bd-muted);
+}
+
+.bd-modal-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bd-modal-foot-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* The reference picks these two figures out in colour: what went out in teal,
+   what is confirmed still there in amber. */
+.bd-mat-issued { color: #107569; font-weight: 600; }
+.bd-mat-remaining { color: #b45309; font-weight: 600; }
+.bd-mat-code { color: var(--bd-blue); font-weight: 500; }
+
+/* Pushed to the far right of the toolbar. Also used on the span that wraps a
+   disabled button, because a disabled button swallows its own tooltip and the
+   reason has to hang off something the pointer can still reach. */
+.bd-materials-sync {
+  margin-left: auto;
+  display: inline-flex;
 }

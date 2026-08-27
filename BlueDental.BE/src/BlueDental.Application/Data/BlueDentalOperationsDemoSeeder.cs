@@ -15,6 +15,8 @@ using BlueDental.Timekeeping;
 using BlueDental.TreatmentManagement;
 using BlueDental.Timekeeping.Values;
 using BlueDental.Tools;
+using Volo.Abp.Data;
+using Volo.Abp;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Domain.Repositories;
 
@@ -50,8 +52,26 @@ public class BlueDentalOperationsDemoSeeder(
     IRepository<ClinicConfigure, Guid> clinicConfigureRepository,
     IRepository<CashflowCategory, Guid> cashflowCategoryRepository,
     IRepository<CashflowEntry, Guid> cashflowRepository,
-    IRepository<SalesEntry, Guid> salesRepository) : ITransientDependency
+    IRepository<SalesEntry, Guid> salesRepository,
+    IDataFilter<ISoftDelete> softDeleteFilter) : ITransientDependency
 {
+    /// <summary>
+    /// A soft-deleted row still holds its primary key, so a plain AnyAsync —
+    /// which cannot see it — reports "nothing seeded yet" and the insert then
+    /// fails on a duplicate. Deleting a seeded department through the UI used
+    /// to break this seeder for good.
+    /// </summary>
+    private async Task<bool> AnySeededAsync<TEntity>(
+        IRepository<TEntity, Guid> repository,
+        System.Linq.Expressions.Expression<Func<TEntity, bool>> predicate)
+        where TEntity : class, Volo.Abp.Domain.Entities.IEntity<Guid>
+    {
+        using (softDeleteFilter.Disable())
+        {
+            return await repository.AnyAsync(predicate);
+        }
+    }
+
     private readonly Guid _branchId = BlueDentalDataSeedContributor.DefaultBranchId;
 
     private static readonly string[] Departments = ["Lễ tân", "Trợ lý", "Điều trị", "Kho vật tư"];
@@ -171,7 +191,7 @@ public class BlueDentalOperationsDemoSeeder(
             var id = DemoId("1000", i + 1);
             ids.Add(id);
 
-            if (!await departmentRepository.AnyAsync(d => d.Id == id))
+            if (!await AnySeededAsync(departmentRepository, d => d.Id == id))
             {
                 missing.Add(new Department(id, Departments[i], branchId: _branchId));
             }
@@ -188,7 +208,7 @@ public class BlueDentalOperationsDemoSeeder(
     /// <summary>Suppliers, materials, and orders spread over the labo workflow.</summary>
     private async Task SeedLaboAsync(List<Patient> patients, List<Guid> staffIds)
     {
-        if (await laboOrderRepository.AnyAsync(o => o.BranchId == _branchId))
+        if (await AnySeededAsync(laboOrderRepository, o => o.BranchId == _branchId))
         {
             return;
         }
@@ -261,7 +281,7 @@ public class BlueDentalOperationsDemoSeeder(
     /// </summary>
     private async Task SeedInventoryAsync(List<Guid> departmentIds)
     {
-        if (await inventoryRepository.AnyAsync(i => i.BranchId == _branchId))
+        if (await AnySeededAsync(inventoryRepository, i => i.BranchId == _branchId))
         {
             return;
         }
@@ -290,15 +310,17 @@ public class BlueDentalOperationsDemoSeeder(
         var allocations = new List<MaterialAllocation>();
         for (var i = 0; i < 6; i++)
         {
-            allocations.Add(new MaterialAllocation(
+            var material = items[i % items.Count];
+            var allocation = new MaterialAllocation(
                 DemoId("1201", i + 1),
-                $"PB26-{i + 1:D4}",
-                items[i % items.Count].Id,
+                $"PB26{i + 1:D4}",
                 departmentIds[i % departmentIds.Count],
                 _branchId,
-                allocatedQuantity: 2 + i,
                 performerName: "Kho vật tư",
-                note: "Cấp phát định kỳ"));
+                note: "Cấp phát định kỳ");
+
+            allocation.AddItem(DemoId("1202", i + 1), material.Id, material.Name, 2 + i);
+            allocations.Add(allocation);
         }
 
         await allocationRepository.InsertManyAsync(allocations, autoSave: true);
@@ -307,7 +329,7 @@ public class BlueDentalOperationsDemoSeeder(
     /// <summary>A care record in each state the board filters on.</summary>
     private async Task SeedCustomerCareAsync(List<Patient> patients, List<Guid> staffIds)
     {
-        if (await careRepository.AnyAsync(c => c.BranchId == _branchId))
+        if (await AnySeededAsync(careRepository, c => c.BranchId == _branchId))
         {
             return;
         }
@@ -371,7 +393,7 @@ public class BlueDentalOperationsDemoSeeder(
 
     private async Task SeedVouchersAsync()
     {
-        if (await voucherRepository.AnyAsync(v => v.ClinicBranchId == _branchId))
+        if (await AnySeededAsync(voucherRepository, v => v.ClinicBranchId == _branchId))
         {
             return;
         }
@@ -419,7 +441,7 @@ public class BlueDentalOperationsDemoSeeder(
     /// <summary>Yesterday's finished shifts and today's, half of them checked in.</summary>
     private async Task SeedTimekeepingAsync(List<Guid> staffIds)
     {
-        if (await timekeepingRepository.AnyAsync(t => t.ClinicBranchId == _branchId))
+        if (await AnySeededAsync(timekeepingRepository, t => t.ClinicBranchId == _branchId))
         {
             return;
         }
@@ -486,7 +508,7 @@ public class BlueDentalOperationsDemoSeeder(
     /// <summary>The operations handbook: categories, articles and open tasks.</summary>
     private async Task SeedOperationsAsync(List<Guid> staffIds)
     {
-        if (await operationsArticleRepository.AnyAsync(a => a.ClinicBranchId == _branchId))
+        if (await AnySeededAsync(operationsArticleRepository, a => a.ClinicBranchId == _branchId))
         {
             return;
         }
@@ -561,7 +583,7 @@ public class BlueDentalOperationsDemoSeeder(
     /// <summary>Call lists, call history and message history for Công cụ.</summary>
     private async Task SeedToolsAsync(List<Patient> patients, List<Guid> staffIds)
     {
-        if (await callLogRepository.AnyAsync(c => c.ClinicBranchId == _branchId))
+        if (await AnySeededAsync(callLogRepository, c => c.ClinicBranchId == _branchId))
         {
             return;
         }
@@ -640,7 +662,7 @@ public class BlueDentalOperationsDemoSeeder(
     /// </summary>
     private async Task SeedFinanceAsync(List<Patient> patients, List<Guid> staffIds)
     {
-        if (await salesRepository.AnyAsync(s => s.ClinicBranchId == _branchId))
+        if (await AnySeededAsync(salesRepository, s => s.ClinicBranchId == _branchId))
         {
             return;
         }

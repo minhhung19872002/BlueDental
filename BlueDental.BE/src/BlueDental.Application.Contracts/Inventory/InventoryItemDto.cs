@@ -54,6 +54,17 @@ public class CreateInventoryItemDto
     public string? Supplier { get; set; }
     public string? Origin { get; set; }
     public Guid BranchId { get; set; }
+
+    /// <summary>The stock the item arrives with. Zero is a perfectly good answer.</summary>
+    public decimal Quantity { get; set; }
+
+    /// <summary>Ngày nhập kho. Unset means it has not been received yet.</summary>
+    public DateOnly? StockedAt { get; set; }
+
+    public DateOnly? ExpiryDate { get; set; }
+
+    /// <summary>How many days before expiry to start warning. The reference defaults to 15.</summary>
+    public int? ExpiryWarningDays { get; set; }
 }
 
 public class UpdateInventoryItemDto

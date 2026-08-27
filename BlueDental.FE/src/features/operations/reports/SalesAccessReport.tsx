@@ -8,7 +8,8 @@ import {
 } from "../api/operationReportApi";
 import { OperationsPeriodBar } from "./OperationsPeriodBar";
 import { OperationsStatCards, type StatCard } from "./OperationsStatCards";
-import { salesAccessColumns } from "./serviceLineColumns";
+import { salesAccessColumns, serviceLineSpanKeys } from "./serviceLineColumns";
+import { rowSpansBy } from "./rowSpans";
 import { usePeriodRange } from "./usePeriodRange";
 import { DataTable } from "@/components/DataTable";
 import { useTablePagination } from "@/hooks/useTablePagination";
@@ -79,7 +80,19 @@ export function SalesAccessReport() {
     [stats, category],
   );
 
-  const columns = useMemo(() => salesAccessColumns(), []);
+  const rows = useMemo(() => query.data?.items ?? [], [query.data]);
+
+  // Grouped by day, then by patient within the day, as the reference groups it.
+  const columns = useMemo(() => {
+    const [date, patient] = rowSpansBy(rows, serviceLineSpanKeys());
+    const positions = new Map(rows.map((row, index) => [row, index] as const));
+
+    return salesAccessColumns({
+      indexOf: (row) => positions.get(row) ?? 0,
+      date,
+      patient,
+    });
+  }, [rows]);
 
   return (
     <div className="bd-ops-report-screen">
@@ -92,7 +105,7 @@ export function SalesAccessReport() {
       <div className="bd-cat-card">
         <DataTable<ServiceLineRow>
           columns={columns}
-          dataSource={query.data?.items ?? []}
+          dataSource={rows}
           rowKey="id"
           loading={query.isFetching}
           scroll={{ x: 3600 }}

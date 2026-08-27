@@ -17,7 +17,8 @@ import {
 } from "../api/operationReportApi";
 import { OperationsPeriodBar } from "./OperationsPeriodBar";
 import { OperationsStatCards, type StatCard } from "./OperationsStatCards";
-import { serviceCompletionColumns } from "./serviceLineColumns";
+import { serviceCompletionColumns, serviceLineSpanKeys } from "./serviceLineColumns";
+import { rowSpansBy } from "./rowSpans";
 import { usePeriodRange } from "./usePeriodRange";
 import { DataTable } from "@/components/DataTable";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -113,7 +114,19 @@ export function ServiceCompletionReport() {
     ];
   }, [stats]);
 
-  const columns = useMemo(() => serviceCompletionColumns(), []);
+  const rows = useMemo(() => query.data?.items ?? [], [query.data]);
+
+  // Grouped by day, then by patient within the day, as the reference groups it.
+  const columns = useMemo(() => {
+    const [date, patient] = rowSpansBy(rows, serviceLineSpanKeys());
+    const positions = new Map(rows.map((row, index) => [row, index] as const));
+
+    return serviceCompletionColumns({
+      indexOf: (row) => positions.get(row) ?? 0,
+      date,
+      patient,
+    });
+  }, [rows]);
 
   /**
    * The rows on screen, as a spreadsheet.
@@ -229,7 +242,7 @@ export function ServiceCompletionReport() {
       <div className="bd-cat-card">
         <DataTable<ServiceLineRow>
           columns={columns}
-          dataSource={query.data?.items ?? []}
+          dataSource={rows}
           rowKey="id"
           loading={query.isFetching}
           scroll={{ x: 2800 }}

@@ -8,15 +8,29 @@ export interface DepartmentDto {
   description?: string;
   branchId?: string;
   isActive: boolean;
+  /** Where it sits in the panel; the reference orders its list by this. */
+  sortOrder: number;
   creationTime: string;
   lastModificationTime?: string;
 }
 
-export interface CreateDepartmentDto { name: string; description?: string; }
-export interface UpdateDepartmentDto { name: string; description?: string; }
+export interface CreateDepartmentDto {
+  name: string;
+  description?: string;
+  sortOrder?: number;
+}
+
+export interface UpdateDepartmentDto {
+  name: string;
+  description?: string;
+  sortOrder?: number;
+}
 
 const departmentApi = {
-  list: (params?: { filter?: string; maxResultCount?: number }): Promise<PagedResult<DepartmentDto>> =>
+  list: (params?: {
+    filter?: string;
+    maxResultCount?: number;
+  }): Promise<PagedResult<DepartmentDto>> =>
     api.get("/v1/app/departments", { params }).then((r) => r.data),
   create: (data: CreateDepartmentDto): Promise<DepartmentDto> =>
     api.post("/v1/app/departments", data).then((r) => r.data),
@@ -24,10 +38,25 @@ const departmentApi = {
     api.put(`/v1/app/departments/${id}`, data).then((r) => r.data),
   delete: (id: string): Promise<void> =>
     api.delete(`/v1/app/departments/${id}`).then((r) => r.data),
+  // One call carries the whole order, so a drag is one round trip.
+  reorder: (ids: string[]): Promise<void> =>
+    api.put("/v1/app/departments/reorder", { ids }).then((r) => r.data),
 };
 
-export function useDepartmentList() {
-  return useQuery({ queryKey: ["departments"], queryFn: () => departmentApi.list({ maxResultCount: 200 }) });
+/**
+ * The branch's departments, narrowed on the server.
+ *
+ * The filter goes into the query key as well as the request, so a typed term is
+ * a real round trip rather than a sweep over whatever the first page happened
+ * to contain — which quietly missed anything past it.
+ */
+export function useDepartmentList(filter?: string) {
+  const term = filter?.trim() || undefined;
+
+  return useQuery({
+    queryKey: ["departments", term],
+    queryFn: () => departmentApi.list({ filter: term, maxResultCount: 200 }),
+  });
 }
 
 export function useCreateDepartment() {
@@ -43,4 +72,12 @@ export function useUpdateDepartment() {
 export function useDeleteDepartment() {
   const qc = useQueryClient();
   return useMutation({ mutationFn: (id: string) => departmentApi.delete(id), onSuccess: () => qc.invalidateQueries({ queryKey: ["departments"] }) });
+}
+
+export function useReorderDepartments() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) => departmentApi.reorder(ids),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["departments"] }),
+  });
 }

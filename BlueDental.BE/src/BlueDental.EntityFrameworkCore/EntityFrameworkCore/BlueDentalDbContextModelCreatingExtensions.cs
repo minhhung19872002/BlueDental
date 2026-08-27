@@ -76,6 +76,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.ConfigureByConvention();
             entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
             entity.Property(x => x.Description).HasMaxLength(1000);
+            entity.HasIndex(x => new { x.BranchId, x.SortOrder });
         });
     }
 
@@ -445,12 +446,29 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.ToTable("bd_material_allocations");
             entity.ConfigureByConvention();
             entity.Property(x => x.AllocationCode).HasMaxLength(50).IsRequired();
-            entity.Property(x => x.AllocatedQuantity).HasPrecision(18, 3);
-            entity.Property(x => x.ConfirmedRemaining).HasPrecision(18, 3);
             entity.Property(x => x.PerformerName).HasMaxLength(200);
             entity.Property(x => x.Note).HasMaxLength(1000);
             entity.HasIndex(x => x.AllocationCode).IsUnique();
             entity.HasIndex(x => new { x.DepartmentId, x.AllocationTime });
+            entity.Ignore(x => x.TotalQuantity);
+
+            entity.HasMany(x => x.Items)
+                .WithOne()
+                .HasForeignKey(x => x.MaterialAllocationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.Navigation(x => x.Items).AutoInclude();
+        });
+
+        builder.Entity<MaterialAllocationItem>(entity =>
+        {
+            entity.ToTable("bd_material_allocation_items");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Quantity).HasPrecision(18, 3);
+            entity.Property(x => x.ConfirmedQuantity).HasPrecision(18, 3);
+            entity.HasIndex(x => x.MaterialAllocationId);
+            entity.HasIndex(x => x.InventoryItemId);
         });
     }
 

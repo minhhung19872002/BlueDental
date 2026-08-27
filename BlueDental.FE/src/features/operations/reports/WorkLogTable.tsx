@@ -3,6 +3,7 @@ import type { ColumnsType } from "antd/es/table";
 import type { WorkLogRow } from "../api/operationReportApi";
 import { ACTION_LABELS } from "./WorkLogReport";
 import { formatMoney } from "./formatMoney";
+import { rowSpansBy } from "./rowSpans";
 import { DataTable } from "@/components/DataTable";
 import type { TablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
@@ -26,39 +27,14 @@ function clockOf(value: string | null | undefined): string {
 }
 
 /**
- * How many rows each cell has to span.
- *
- * The first row of a block carries the span and the rest carry zero, which is
- * how a table drops a cell entirely. Computed over the page as it arrives:
- * the server pages by item, so a block can be cut in half by a page boundary
- * and the spans have to follow what is actually on screen.
- */
-function spansOf(rows: WorkLogRow[]) {
-  const visit = new Array<number>(rows.length).fill(0);
-  const action = new Array<number>(rows.length).fill(0);
-
-  let visitStart = 0;
-  let actionStart = 0;
-
-  rows.forEach((row, index) => {
-    const newVisit = index === 0 || row.visitKey !== rows[index - 1].visitKey;
-    const newAction = newVisit || row.action !== rows[index - 1].action;
-
-    if (newVisit) visitStart = index;
-    if (newAction) actionStart = index;
-
-    visit[visitStart] += 1;
-    action[actionStart] += 1;
-  });
-
-  return { visit, action };
-}
-
-/**
  * The Báo cáo table: one block per visit, one group per action inside it.
  */
 export function WorkLogTable({ rows, loading, totalCount, pagination, showTotal }: Props) {
-  const spans = useMemo(() => spansOf(rows), [rows]);
+  // One block per visit, and inside it one per kind of action.
+  const [visitSpans, actionSpans] = useMemo(
+    () => rowSpansBy(rows, [(row) => row.visitKey, (row) => String(row.action)]),
+    [rows],
+  );
   const indexOf = useMemo(
     () => new Map(rows.map((row, index) => [row, index] as const)),
     [rows],
@@ -70,7 +46,7 @@ export function WorkLogTable({ rows, loading, totalCount, pagination, showTotal 
         key: "visit",
         title: t("Ngày / Khách hàng"),
         width: 260,
-        onCell: (row) => ({ rowSpan: spans.visit[indexOf.get(row) ?? 0] }),
+        onCell: (row) => ({ rowSpan: visitSpans[indexOf.get(row) ?? 0] }),
         render: (_, row) => (
           <div className="bd-ops-visit">
             <span className="bd-cat-num">{formatDate(row.visitDate)}</span>
@@ -109,9 +85,9 @@ export function WorkLogTable({ rows, loading, totalCount, pagination, showTotal 
         key: "action",
         title: t("Hành động"),
         width: 200,
-        onCell: (row) => ({ rowSpan: spans.action[indexOf.get(row) ?? 0] }),
+        onCell: (row) => ({ rowSpan: actionSpans[indexOf.get(row) ?? 0] }),
         render: (_, row) => {
-          const count = spans.action[indexOf.get(row) ?? 0];
+          const count = actionSpans[indexOf.get(row) ?? 0];
           return (
             <span className="bd-ops-action">
               {t(ACTION_LABELS[row.action])} ({count})
@@ -152,7 +128,7 @@ export function WorkLogTable({ rows, loading, totalCount, pagination, showTotal 
         ),
       },
     ],
-    [spans, indexOf],
+    [visitSpans, actionSpans, indexOf],
   );
 
   return (

@@ -103,15 +103,36 @@ public class InventoryItem : FullAuditedAggregateRoot<Guid>
         int? expiryWarningDays = null)
     {
         AddStock(quantity);
+        return SetShelfLife(stockedAt, expiryDate, expiryWarningDays);
+    }
 
-        if (expiryDate.HasValue && expiryDate.Value < stockedAt)
+    /// <summary>
+    /// The dates a material keeps, with no stock arriving alongside them.
+    ///
+    /// A material can be catalogued before any of it is held — the reference
+    /// leaves "Số lượng" optional — so recording when it was stocked and when
+    /// it expires must not require a receipt. AddStock still refuses a
+    /// quantity of zero; that guard belongs to stock, not to shelf life.
+    /// </summary>
+    public InventoryItem SetShelfLife(
+        DateOnly? stockedAt,
+        DateOnly? expiryDate = null,
+        int? expiryWarningDays = null)
+    {
+        var against = stockedAt ?? StockedAt;
+
+        if (expiryDate.HasValue && against.HasValue && expiryDate.Value < against.Value)
         {
             throw new BusinessException(
                 BlueDentalDomainErrorCodes.Inventory.InvalidExpiry,
                 "Hạn sử dụng phải sau ngày nhập kho.");
         }
 
-        StockedAt = stockedAt;
+        if (stockedAt.HasValue)
+        {
+            StockedAt = stockedAt.Value;
+        }
+
         ExpiryDate = expiryDate;
 
         if (expiryWarningDays.HasValue)
