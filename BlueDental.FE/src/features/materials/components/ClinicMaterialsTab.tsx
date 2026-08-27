@@ -13,6 +13,8 @@ import type { ColumnsType } from "antd/es/table";
 import { toast } from "sonner";
 import { useDeleteSupply, useSupplies, type SupplyDto } from "../api/suppliesApi";
 import { SUPPLIES_GROUP } from "../materialsTabs";
+import { AllocationBar } from "./AllocationBar";
+import { AllocationDialog, type AllocationDraftLine } from "./AllocationDialog";
 import { MaterialDialog } from "./MaterialDialog";
 import { MaterialGroupDialog } from "./MaterialGroupDialog";
 import { MaterialStatusTag } from "./MaterialStatusTag";
@@ -56,6 +58,8 @@ export function ClinicMaterialsTab() {
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [pendingGroupDelete, setPendingGroupDelete] = useState<TaxonomyGroup | null>(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [allocateTo, setAllocateTo] = useState<string | null>(null);
+  const [allocateOpen, setAllocateOpen] = useState(false);
 
   const pagination = useTablePagination(20);
   const debouncedGroups = useDebounce(groupKeyword, 300);
@@ -225,8 +229,22 @@ export function ClinicMaterialsTab() {
     [],
   );
 
+  // The ticked rows, in the order the table shows them. Paging away from a
+  // ticked row would otherwise lose it silently.
+  const selectedMaterials = materials.filter((row: SupplyDto) =>
+    selectedRowKeys.includes(row.id),
+  );
+
+  const allocationLines: AllocationDraftLine[] = selectedMaterials.map((row: SupplyDto) => ({
+    inventoryItemId: row.id,
+    name: row.name,
+    onHand: row.quantityOnHand,
+  }));
+
   return (
-    <div className="bd-taxonomy-shell">
+    // Positioned so the selection bar can float over the table rather than
+    // pushing it up. Scoped here: .bd-taxonomy-shell is shared with Danh mục.
+    <div className="bd-taxonomy-shell bd-alloc-host">
       <aside className="bd-taxonomy-aside">
         <GroupPanel
           title={t("Nhóm vật tư")}
@@ -317,6 +335,29 @@ export function ClinicMaterialsTab() {
           </div>
         </div>
       </main>
+
+      {selectedRowKeys.length > 0 ? (
+        <div className="bd-alloc-dock">
+          <AllocationBar
+            selectedNames={selectedMaterials.map((row: SupplyDto) => row.name)}
+            departmentId={allocateTo}
+            onDepartmentChange={setAllocateTo}
+            onClear={() => setSelectedRowKeys([])}
+            onAllocate={() => setAllocateOpen(true)}
+          />
+        </div>
+      ) : null}
+
+      <AllocationDialog
+        open={allocateOpen}
+        lines={allocationLines}
+        departmentId={allocateTo}
+        onClose={() => setAllocateOpen(false)}
+        onAllocated={() => {
+          setSelectedRowKeys([]);
+          setAllocateTo(null);
+        }}
+      />
 
       <MaterialGroupDialog
         open={groupDialog.open}

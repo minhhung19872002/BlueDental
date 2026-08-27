@@ -39,7 +39,12 @@ export function AllocationTab() {
     if (!term) return all;
 
     return all.filter((row: MaterialAllocationDto) =>
-      [row.allocationCode, row.inventoryItemName, row.departmentName, row.performerName]
+      [
+        row.allocationCode,
+        row.departmentName,
+        row.performerName,
+        ...row.items.map((item) => item.name),
+      ]
         .filter(Boolean)
         .some((field) => String(field).toLowerCase().includes(term)),
     );
@@ -66,26 +71,58 @@ export function AllocationTab() {
         width: 190,
         render: (_, row) => <span className="bd-cat-num">{formatDateTime(row.allocationTime)}</span>,
       },
-      { key: "code", title: t("Mã phân bổ"), width: 160, dataIndex: "allocationCode" },
+      {
+        key: "code",
+        title: t("Mã phân bổ"),
+        width: 180,
+        render: (_, row) => <span className="bd-mat-code">{row.allocationCode}</span>,
+      },
       {
         key: "item",
         title: t("Vật tư"),
-        width: 200,
-        render: (_, row) => row.inventoryItemName ?? "—",
+        width: 220,
+        // A voucher carries several materials, so the reference lists their
+        // names on one line and hangs the whole list off the title.
+        render: (_, row) => {
+          const names = row.items.map((item) => item.name).join(", ");
+          return (
+            <span className="bd-cat-medium bd-alloc-clamp" title={names}>
+              {names || "—"}
+            </span>
+          );
+        },
       },
       {
         key: "allocated",
         title: t("SL được phân bổ"),
-        width: 170,
-        align: "right",
-        render: (_, row) => <span className="bd-cat-num">{row.allocatedQuantity}</span>,
+        width: 240,
+        render: (_, row) => {
+          const detail = row.items.map((item) => `${item.name}: ${item.quantity}`).join(", ");
+          return (
+            <span className="bd-mat-issued bd-alloc-clamp" title={detail}>
+              {detail || "—"}
+            </span>
+          );
+        },
       },
       {
         key: "remaining",
         title: t("SL confirm còn lại"),
-        width: 180,
-        align: "right",
-        render: (_, row) => <span className="bd-cat-num">{row.confirmedRemaining}</span>,
+        width: 240,
+        // Only the lines a stock-take has come back for, as "name: left/out".
+        render: (_, row) => {
+          const confirmed = row.items.filter((item) => item.confirmedQuantity !== null);
+          if (confirmed.length === 0) return "—";
+
+          const detail = confirmed
+            .map((item) => `${item.name}: ${item.confirmedQuantity}/${item.quantity}`)
+            .join(", ");
+          return (
+            <span className="bd-mat-remaining bd-alloc-clamp" title={detail}>
+              {detail}
+            </span>
+          );
+        },
       },
       {
         key: "department",
@@ -162,7 +199,7 @@ export function AllocationTab() {
             dataSource={rows}
             rowKey="id"
             loading={query.isFetching}
-            scroll={{ x: 1500 }}
+            scroll={{ x: 1700 }}
             pagination={pagination.buildConfig(rows.length, (total, shown) =>
               total === 0
                 ? t("Hiển thị 0 trên 0")

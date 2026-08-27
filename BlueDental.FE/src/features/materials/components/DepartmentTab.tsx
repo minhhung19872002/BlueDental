@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Button, Input, Tooltip } from "antd";
+import { Button, Input, Tag, Tooltip } from "antd";
 import { GroupOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { toast } from "sonner";
-import { useAllocationList, type MaterialAllocationDto } from "../api/allocationApi";
+import { useAllocationList } from "../api/allocationApi";
 import {
   useDeleteDepartment,
   useDepartmentList,
@@ -19,6 +19,20 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
 import { formatDateTime } from "@/utils/format";
+
+/** One material on one voucher, which is the row this table shows. */
+interface AllocationLine {
+  id: string;
+  allocationId: string;
+  allocationCode: string;
+  allocatedAt: string;
+  performerName?: string;
+  note?: string;
+  supplyId: string;
+  name: string;
+  quantity: number;
+  confirmedQuantity: number | null;
+}
 
 /**
  * One material's whole story in this department, which is what the reference
@@ -73,19 +87,38 @@ export function DepartmentTab() {
 
   const allocationsQuery = useAllocationList(selectedId ?? undefined);
 
-  const rows = useMemo(() => {
+  /**
+   * One row per material per voucher — the reference flattens the vouchers out,
+   * because what a department wants to see is materials, not paperwork.
+   */
+  const rows = useMemo<AllocationLine[]>(() => {
     if (!selectedId) return [];
 
-    const all = allocationsQuery.data?.items ?? [];
-    const terms = debounced.trim().toLowerCase().split(/\s+/).filter(Boolean);
-    const matching = terms.length
-      ? all.filter((row: MaterialAllocationDto) => {
-          const haystack = (row.inventoryItemName ?? "").toLowerCase();
-          return terms.every((term) => haystack.includes(term));
-        })
-      : all;
+    const flattened: AllocationLine[] = [];
+    for (const voucher of allocationsQuery.data?.items ?? []) {
+      for (const item of voucher.items) {
+        flattened.push({
+          id: `${voucher.id}:${item.inventoryItemId}`,
+          allocationId: voucher.id,
+          allocationCode: voucher.allocationCode,
+          allocatedAt: voucher.allocationTime,
+          performerName: voucher.performerName,
+          note: voucher.note,
+          supplyId: item.inventoryItemId,
+          name: item.name,
+          quantity: item.quantity,
+          confirmedQuantity: item.confirmedQuantity,
+        });
+      }
+    }
 
-    return matching;
+    const terms = debounced.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    if (!terms.length) return flattened;
+
+    return flattened.filter((line) => {
+      const haystack = line.name.toLowerCase();
+      return terms.every((term) => haystack.includes(term));
+    });
   }, [allocationsQuery.data, debounced, selectedId]);
 
   /**
@@ -95,26 +128,28 @@ export function DepartmentTab() {
   const summaries = useMemo<MaterialSummary[]>(() => {
     const byMaterial = new Map<string, MaterialSummary>();
 
-    for (const row of rows) {
-      const seen = byMaterial.get(row.inventoryItemId);
+    for (const line of rows) {
+      const seen = byMaterial.get(line.supplyId);
 
       if (!seen) {
-        byMaterial.set(row.inventoryItemId, {
-          supplyId: row.inventoryItemId,
-          name: row.inventoryItemName ?? "—",
-          totalQuantity: row.allocatedQuantity,
-          totalConfirmed: row.confirmedRemaining,
+        byMaterial.set(line.supplyId, {
+          supplyId: line.supplyId,
+          name: line.name,
+          totalQuantity: line.quantity,
+          totalConfirmed: line.confirmedQuantity,
           allocationCount: 1,
-          latestAllocatedAt: row.allocationTime,
+          latestAllocatedAt: line.allocatedAt,
         });
         continue;
       }
 
-      seen.totalQuantity += row.allocatedQuantity;
-      seen.totalConfirmed = (seen.totalConfirmed ?? 0) + row.confirmedRemaining;
+      seen.totalQuantity += line.quantity;
+      if (line.confirmedQuantity !== null) {
+        seen.totalConfirmed = (seen.totalConfirmed ?? 0) + line.confirmedQuantity;
+      }
       seen.allocationCount += 1;
-      if (row.allocationTime > seen.latestAllocatedAt) {
-        seen.latestAllocatedAt = row.allocationTime;
+      if (line.allocatedAt > seen.latestAllocatedAt) {
+        seen.latestAllocatedAt = line.allocatedAt;
       }
     }
 
@@ -145,52 +180,58 @@ export function DepartmentTab() {
     pagination.resetToFirstPage();
   };
 
-  const columns = useMemo<ColumnsType<MaterialAllocationDto>>(
+  const columns = useMemo<ColumnsType<AllocationLine>>(
     () => [
       {
-        key: "allocationTime",
+        key: "allocatedAt",
         title: t("Thời gian phân bổ"),
         width: 190,
-        render: (_, row) => <span className="bd-cat-num">{formatDateTime(row.allocationTime)}</span>,
+        render: (_, row) => <span className="bd-cat-num">{formatDateTime(row.allocatedAt)}</span>,
       },
       {
         key: "code",
         title: t("Mã phân bổ"),
-        width: 160,
+        width: 180,
         render: (_, row) => <span className="bd-mat-code">{row.allocationCode || "—"}</span>,
       },
       {
-        key: "item",
+        key: "name",
         title: t("Vật tư"),
-        width: 200,
-        render: (_, row) => row.inventoryItemName ?? "—",
+        width: 220,
+        render: (_, row) => <span className="bd-cat-medium">{row.name}</span>,
       },
       {
         key: "issued",
         title: t("SL được phát"),
         width: 150,
         align: "right",
-        render: (_, row) => (
-          <span className="bd-cat-num bd-mat-issued">{row.allocatedQuantity}</span>
-        ),
+        render: (_, row) => <span className="bd-cat-num bd-mat-issued">{row.quantity}</span>,
       },
       {
         key: "remaining",
         title: t("SL còn lại (đã duyệt)"),
         width: 190,
         align: "right",
-        render: (_, row) => (
-          <span className="bd-cat-num bd-mat-remaining">{row.confirmedRemaining}</span>
-        ),
+        render: (_, row) =>
+          row.confirmedQuantity === null ? (
+            "—"
+          ) : (
+            <span className="bd-cat-num bd-mat-remaining">{row.confirmedQuantity}</span>
+          ),
       },
       {
         key: "stocktake",
         title: t("Kiểm kho"),
         width: 140,
-        // The reference shows a stock-take column here; BlueDental keeps no
-        // stock-take against an allocation yet, so it reads as empty rather
-        // than inventing a number.
-        render: () => "—",
+        // The reference shows a status here. BlueDental keeps no stock-take
+        // record of its own, so a line simply reads as not yet checked until a
+        // remaining figure comes back for it.
+        render: (_, row) =>
+          row.confirmedQuantity === null ? (
+            <Tag className="bd-alloc-unchecked">{t("Chưa kiểm")}</Tag>
+          ) : (
+            <Tag color="green">{t("Đã kiểm")}</Tag>
+          ),
       },
       {
         key: "performer",
@@ -360,7 +401,7 @@ export function DepartmentTab() {
                 locale={{ emptyText: emptyText }}
               />
             ) : (
-              <DataTable<MaterialAllocationDto>
+              <DataTable<AllocationLine>
                 columns={columns}
                 dataSource={rows}
                 rowKey="id"
