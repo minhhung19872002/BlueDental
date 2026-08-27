@@ -42,7 +42,8 @@ public class BlueDentalDemoSeedContributor(
     IConfiguration configuration,
     BlueDentalClinicalDemoSeeder clinicalSeeder,
     BlueDentalOperationsDemoSeeder operationsSeeder,
-    BlueDentalReportsDemoSeeder reportsSeeder) : IDataSeedContributor, ITransientDependency
+    BlueDentalReportsDemoSeeder reportsSeeder,
+    BlueDentalMaterialsDemoSeeder materialsSeeder) : IDataSeedContributor, ITransientDependency
 {
     /// <summary>
     /// The calendar picks its columns from whoever holds this role. Without it
@@ -164,6 +165,12 @@ public class BlueDentalDemoSeedContributor(
         // Depth for the Vận hành reports: the same chain, spread over two
         // months so a date filter has something to filter.
         await reportsSeeder.SeedAsync(patients, dentistIds.Concat(staffIds).ToList());
+
+        // Vật tư. The reference branch is empty on all three of its sections,
+        // so there is nothing to compare against — this is what makes them
+        // show anything at all locally.
+        await materialsSeeder.SeedAsync(BlueDentalDataSeedContributor.DefaultBranchId);
+        await materialsSeeder.SeedAsync(BlueDentalBranchSeedContributor.SecondBranchId);
     }
 
     /// <summary>

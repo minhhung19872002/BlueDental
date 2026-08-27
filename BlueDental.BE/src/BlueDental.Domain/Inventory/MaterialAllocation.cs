@@ -25,7 +25,10 @@ public class MaterialAllocation : FullAuditedAggregateRoot<Guid>
         Guid branchId,
         decimal allocatedQuantity,
         string? performerName = null,
-        string? note = null)
+        string? note = null,
+        // A voucher is sometimes written up after the fact, so when it happened
+        // is not always when it was recorded.
+        DateTime? allocationTime = null)
         : base(id)
     {
         AllocationCode = allocationCode;
@@ -36,7 +39,7 @@ public class MaterialAllocation : FullAuditedAggregateRoot<Guid>
         ConfirmedRemaining = allocatedQuantity;
         PerformerName = performerName;
         Note = note;
-        AllocationTime = DateTime.UtcNow;
+        AllocationTime = allocationTime ?? DateTime.UtcNow;
     }
 
     public void UpdateNote(string? note) => Note = note;
