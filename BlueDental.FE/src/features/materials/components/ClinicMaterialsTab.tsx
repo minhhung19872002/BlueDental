@@ -29,6 +29,7 @@ import {
   type TaxonomyGroup,
 } from "@/hooks/useTaxonomyGroups";
 import { t } from "@/lib/i18n";
+import { useBranchFilter } from "@/lib/clinicBranch";
 import { formatDate, formatVND } from "@/utils/format";
 
 type PendingDelete = { id: string; name: string };
@@ -61,6 +62,7 @@ export function ClinicMaterialsTab() {
   const [allocateTo, setAllocateTo] = useState<string | null>(null);
   const [allocateOpen, setAllocateOpen] = useState(false);
 
+  const branchId = useBranchFilter();
   const pagination = useTablePagination(20);
   const debouncedGroups = useDebounce(groupKeyword, 300);
   const debounced = useDebounce(keyword, 300);
@@ -70,6 +72,7 @@ export function ClinicMaterialsTab() {
   const { remove: removeGroup, reorder } = useTaxonomyGroupCommands(SUPPLIES_GROUP);
 
   const suppliesQuery = useSupplies({
+    branchId,
     taxonomyId: selectedGroupId ?? undefined,
     filter: debounced.trim() || undefined,
     skipCount: pagination.skipCount,

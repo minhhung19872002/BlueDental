@@ -43,7 +43,7 @@ public class MaterialAllocationAppService : ApplicationService, IMaterialAllocat
     {
         // Vouchers belong to a branch. Without this every branch read every
         // other branch's allocations.
-        var branchId = _branchResolver.GetRequiredClinicBranchId();
+        var branchId = input.BranchId ?? _branchResolver.GetRequiredClinicBranchId();
         var queryable = await _repository.GetQueryableAsync();
         queryable = queryable.Where(x => x.BranchId == branchId);
 

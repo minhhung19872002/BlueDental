@@ -6,6 +6,7 @@ import { useScrolledPast } from "@/hooks/useScrolledPast";
 import { useServiceGroupOptions } from "@/hooks/useServiceGroupOptions";
 import { useStaffOptions } from "@/hooks/useStaffOptions";
 import { extractApiError } from "@/lib/apiError";
+import { useBranchFilter } from "@/lib/clinicBranch";
 import { patientApi } from "../api/patientApi";
 import { usePatientDto, usePatientList } from "../api/patientQueries";
 import { usePatientListFilters } from "../hooks/usePatientListFilters";
@@ -26,6 +27,7 @@ type Editing = { mode: "closed" } | { mode: "create" } | { mode: "edit"; id: str
  * the rows to presentational pieces. See docs/clone/pages/patient-list.md.
  */
 export function PatientManagementPage() {
+  const branchId = useBranchFilter();
   const filters = usePatientListFilters();
   const [editing, setEditing] = useState<Editing>({ mode: "closed" });
   const [exporting, setExporting] = useState(false);
@@ -40,6 +42,7 @@ export function PatientManagementPage() {
   const query = usePatientList({
     ...filters.toQuery(),
     filter: debouncedKeyword.trim() || undefined,
+    branchId,
     skipCount: (filters.page - 1) * filters.pageSize,
     maxResultCount: filters.pageSize,
   });
@@ -65,6 +68,7 @@ export function PatientManagementPage() {
       await patientApi.exportExcel({
         ...filters.toQuery(),
         filter: debouncedKeyword.trim() || undefined,
+        branchId,
       });
     } catch (error) {
       toast.error(extractApiError(error));

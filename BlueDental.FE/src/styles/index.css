@@ -1428,30 +1428,40 @@ button {
 
 /* ── Segmented — global 40px wrapper / 29px items / primary active ── */
 .ant-segmented {
+  height: 40px;
   padding: 4px;
   background: var(--bd-bg);
   border: 1px solid var(--bd-line);
   border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
 }
 
 .ant-segmented .ant-segmented-item {
+  height: 29px;
+  min-height: 29px;
   border-radius: 7px;
   font-size: 13px;
   font-weight: 500;
   color: var(--bd-muted);
-  transition: color 0.2s;
+  padding: 0 14px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .ant-segmented .ant-segmented-item-label {
-  min-height: 29px;
-  line-height: 29px;
-  padding: 0 14px;
+  min-height: unset;
+  line-height: 1;
+  padding: 0;
 }
 
-.ant-segmented .ant-segmented-item-selected,
-.ant-segmented .ant-segmented-item-selected .ant-segmented-item-label {
-  color: #ffffff !important;
+.ant-segmented .ant-segmented-item-selected {
+  background: var(--bd-blue);
+  color: #ffffff;
   font-weight: 600;
+  box-shadow: 0 1px 3px rgba(28, 53, 102, 0.3);
 }
 
 .ant-segmented .ant-segmented-item:hover:not(.ant-segmented-item-selected) {
@@ -1461,7 +1471,7 @@ button {
 .ant-segmented .ant-segmented-thumb {
   background: var(--bd-blue);
   border-radius: 7px;
-  box-shadow: 0 1px 3px rgba(28, 53, 102, 0.3);
+  height: 29px;
 }
 
 .ant-modal .ant-modal-title {
@@ -1537,7 +1547,216 @@ button {
   margin-inline-end: auto;
 }
 
-/* Reception CSS moved to features/reception/components/reception.css */
+/* ── Shared page-layout classes ─────────────────────────────────────────────
+   Used by reception, staff, appointments, voucher, report, tools, CSKH,
+   identity, audit-logs and other pages. Keep here in index.css.
+   Reception-specific classes (.rc-*, .rn-*) live in reception.css. */
+
+.reception-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.reception-card {
+  background: #ffffff;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius);
+  padding: 16px 20px;
+  box-shadow: var(--bd-shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.reception-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.reception-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.reception-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.reception-filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.reception-filter-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.reception-status-pills {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: #ffffff;
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid #DCE3EE;
+  height: 40px;
+}
+
+.reception-status-pill {
+  background: none;
+  border: 1px solid transparent;
+  height: 29px;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  line-height: 29px;
+}
+
+.reception-status-pill:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.reception-status-pill--active {
+  background: var(--bd-blue);
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+.reception-status-pill--active:hover {
+  background: var(--bd-blue);
+  color: #ffffff;
+}
+
+.reception-counter-cards {
+  flex: 1 1 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
+.reception-counter-card {
+  display: flex;
+  flex-direction: column;
+  padding: 14px 16px;
+  background: #ffffff;
+  border: 1px solid var(--bd-border);
+  border-top: 3px solid var(--counter-color);
+  border-radius: 14px;
+  line-height: 1.2;
+}
+
+.reception-counter-value {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.8px;
+  line-height: 1.2;
+  color: var(--counter-color);
+}
+
+.reception-counter-label {
+  font-size: 12px;
+  font-weight: 400;
+  margin-top: 2px;
+  color: var(--bd-muted);
+}
+
+.reception-card--toolbar {
+  padding: 10px 16px;
+}
+
+.reception-card--tabs {
+  padding: 10px 16px;
+}
+
+.reception-card--content {
+  padding: 16px;
+  min-height: 120px;
+}
+
+.reception-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 0;
+}
+
+.reception-card-grid-wrapper {
+  min-height: 120px;
+}
+
+.reception-card-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 960px) {
+  .reception-card-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.reception-content {
+  background: #ffffff;
+  border-radius: 12px;
+}
+
+.reception-empty {
+  padding: 80px 24px;
+  text-align: center;
+  background: #ffffff;
+  border-radius: 12px;
+}
+
+.reception-empty-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #E0F2FE;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  font-size: 24px;
+  color: #0284C7;
+}
+
+.reception-empty-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #101c2c;
+  margin: 0 0 8px;
+}
+
+.reception-empty-desc {
+  font-size: 14px;
+  font-weight: 400;
+  color: #6f7c90;
+  margin: 0;
+}
 
 /* ==========================================================================
    SearchSelect — Custom dropdown component

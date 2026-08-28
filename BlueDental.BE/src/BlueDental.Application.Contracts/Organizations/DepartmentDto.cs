@@ -43,6 +43,7 @@ public class UpdateDepartmentDto
 public class GetDepartmentListInput : PagedAndSortedResultRequestDto
 {
     public string? Filter { get; set; }
+    public Guid? BranchId { get; set; }
 }
 
 public class ReorderDepartmentsDto

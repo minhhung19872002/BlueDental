@@ -12,6 +12,7 @@ import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { DataTable } from "@/components/DataTable";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useTablePagination } from "@/hooks/useTablePagination";
+import { useBranchFilter } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { formatDateTime } from "@/utils/format";
 
@@ -25,12 +26,13 @@ export function AllocationTab() {
   const [keyword, setKeyword] = useState("");
   const [pendingDelete, setPendingDelete] = useState<MaterialAllocationDto | null>(null);
 
+  const branchId = useBranchFilter();
   const pagination = useTablePagination(20);
   const debounced = useDebounce(keyword, 300);
 
   // Searched on the server: it used to sweep whatever the first page held, so
   // a voucher past it could not be found at all.
-  const query = useAllocationList(undefined, debounced);
+  const query = useAllocationList(branchId, undefined, debounced);
   const deleteAllocation = useDeleteAllocation();
 
   const rows = query.data?.items ?? [];

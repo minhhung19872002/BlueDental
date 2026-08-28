@@ -67,6 +67,7 @@ public class GetMaterialAllocationListInput : PagedAndSortedResultRequestDto
 {
     public string? Filter { get; set; }
     public Guid? DepartmentId { get; set; }
+    public Guid? BranchId { get; set; }
 }
 
 public interface IMaterialAllocationAppService : IApplicationService

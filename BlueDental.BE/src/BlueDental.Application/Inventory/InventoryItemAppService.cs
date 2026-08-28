@@ -77,7 +77,7 @@ public class InventoryItemAppService : ApplicationService, IInventoryItemAppServ
     [Authorize(BlueDentalPermissions.Inventory.View)]
     public async Task<PagedResultDto<InventoryItemDto>> GetListAsync(GetInventoryItemListInput input)
     {
-        var branchId = _branchResolver.GetRequiredClinicBranchId();
+        var branchId = input.BranchId ?? _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
         query = query.Where(i => i.BranchId == branchId);
 
@@ -229,7 +229,7 @@ public class InventoryItemAppService : ApplicationService, IInventoryItemAppServ
     [Authorize(BlueDentalPermissions.Inventory.View)]
     public async Task<InventoryStatsDto> GetStatsAsync(GetInventoryItemListInput input)
     {
-        var branchId = _branchResolver.GetRequiredClinicBranchId();
+        var branchId = input.BranchId ?? _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
         query = query.Where(i => i.BranchId == branchId);
 

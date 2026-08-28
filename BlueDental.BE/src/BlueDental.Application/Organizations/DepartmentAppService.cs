@@ -30,7 +30,7 @@ public class DepartmentAppService : ApplicationService, IDepartmentAppService
         // Departments belong to a branch. This used to read them all, so every
         // branch saw every other branch's departments — and created its own
         // with no branch at all.
-        var branchId = _branchResolver.GetRequiredClinicBranchId();
+        var branchId = input.BranchId ?? _branchResolver.GetRequiredClinicBranchId();
         var queryable = await _repository.GetQueryableAsync();
         queryable = queryable.Where(x => x.BranchId == branchId);
 
