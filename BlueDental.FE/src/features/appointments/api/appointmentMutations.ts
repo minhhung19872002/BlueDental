@@ -38,6 +38,19 @@ export function useUpdateAppointment(id: string) {
   });
 }
 
+export function useDeleteAppointment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ["appointments", "delete"],
+    mutationFn: (id: string) => appointmentApi.delete(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: appointmentKeys.lists(),
+      });
+    },
+  });
+}
+
 export function useCancelAppointment() {
   const queryClient = useQueryClient();
   return useMutation({
