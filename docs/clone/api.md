@@ -855,3 +855,97 @@ title `Phiên đăng nhập đã hết hạn`, body
 `Phiên làm việc của bạn đã hết hạn. Vui lòng đăng nhập lại để tiếp tục.`,
 single full-width button `Đồng ý` which routes to `/signin`. No close button,
 no click-outside.
+
+
+---
+
+# Chi tiết bệnh nhân — Lịch hẹn & Chẩn đoán/Tư vấn (capture 2026-08-28)
+
+Transport is the one described under "Labo — full API capture": bearer JWT,
+`x-branch-id`, `x-custom-lang: vi`, and the `{statusCode, message, metadata,
+data}` envelope.
+
+## Lịch hẹn tab
+
+```
+GET /api/v1/schedules
+      ?patientId=<id>&branchId=<id>&page=1&take=20
+      &sortBy=startTime&sortDirection=desc&rootSchedule=true
+GET /api/v1/schedules/schedule_stats
+      ?patientId=<id>&branchId=<id>&rootSchedule=true
+      &startTime=2000-01-01&toTime=2099-12-31
+GET /api/v1/schedules/stats-by-time?...&dataType=logs
+GET /api/v1/schedule-logs?patientId=<id>&page=1&take=20&fromDate=&toDate=
+GET /api/v1/schedule-logs/stats?patientId=<id>&fromDate=&toDate=
+```
+
+`schedule_stats` answered `data: []` for a patient with no appointments, so the
+per-status shape is unknown; the four counters read 0 from it.
+
+## Tạo lịch hẹn dialog
+
+```
+GET /api/v1/time-keepings/doctors/work-status?branchId=<id>&date=YYYY-MM-DD
+GET /api/v1/schedules?branchId=<id>&page=1&take=100&startTime=<d>&toTime=<d>
+GET /api/v1/patients?page=1&perPage=20&ids=<id>&branchId=<id>
+```
+
+`doctors/work-status` row:
+
+```json
+{
+  "staffId": "<id>", "fullName": "<string>", "role": "<string>",
+  "date": "<YYYY-MM-DD>", "timeKeepingId": null, "status": null,
+  "scheduleStatus": null, "canBookAppointment": true,
+  "hasCheckedIn": false, "hasCheckedOut": false,
+  "checkIn": null, "checkOut": null, "note": null
+}
+```
+
+## Chẩn đoán & Tư vấn tab
+
+```
+GET /api/v1/patients/<id>
+GET /api/v1/patient-images?patientId=<id>&take=25&page=1
+GET /api/v1/patient-diagnoses?patientId=<id>&page=1&take=20
+GET /api/v1/patient-advises?patientId=<id>&page=1&status=created&take=20
+      &sortBy=sortOrder&sortDirection=asc
+GET /api/v1/advise-groups?patientId=<id>&take=20&sortBy=createdAt&sortDirection=asc
+GET /api/v1/voucher/available?customerTarget=returning
+GET /api/v1/taxonomy/?group=consulting_data&perPage=20&branchId=<id>
+```
+
+`patient-diagnoses` row:
+
+```json
+{
+  "id": "<id>", "patientId": "<id>", "staffId": "<id>", "staffSecondId": null,
+  "diagnosisId": "<id>", "clinicId": "<id>",
+  "content": [{ "code": 10, "selected": true }],
+  "note": "<string>", "contentDiagnosis": null, "code": "<string>",
+  "status": "created", "hasTreatmentService": false,
+  "createdAt": "<iso>", "updatedAt": "<iso>",
+  "staff": { "id": "<id>", "name": "<string>", "isResigned": false },
+  "staffSecond": null,
+  "diagnosis": { "id": "<id>", "name": "<string>", "isDeleted": false, "content": null }
+}
+```
+
+`content[].code` is a tooth code; `10` renders as "Nguyên hàm". The row's two
+paired columns are drawn from `staff` / `staffSecond` (second missing shows
+`Chưa cập nhật` in red) and from the tooth list over `diagnosis.name`.
+
+## BlueDental equivalents
+
+| Reference | BlueDental |
+|---|---|
+| `GET /v1/schedules?patientId&branchId` | `GET /api/v1/app/appointments?patientId&skipCount&maxResultCount` |
+| `GET /v1/schedules?branchId&startTime&toTime` | same, with `fromDate` / `toDate` |
+| `GET /v1/time-keepings/doctors/work-status` | `GET /api/v1/app/staff` filtered to dentists (no work status yet) |
+| `GET /v1/patient-diagnoses` | `GET /api/v1/app/patient-diagnoses` |
+| `GET /v1/patient-advises` | `GET /api/v1/app/patient-advises` (+ `/summary`) |
+| `GET /v1/taxonomy/?group=consulting_data` | `GET /api/v1/app/catalog-entries?group=consulting_data` |
+
+`POST` / `PUT /api/v1/app/appointments` now carry `notes` and `color`
+(`AppointmentColor`: 1 Default, 2 Green, 3 Orange, 4 Red) alongside
+`chiefComplaint`, `slotStart`, `slotEnd`, `dentistId`.

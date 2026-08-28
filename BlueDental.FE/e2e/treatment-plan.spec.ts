@@ -28,42 +28,54 @@ test.describe("Kế hoạch điều trị", () => {
     await openFirstPatient(page);
     await page.waitForLoadState("networkidle");
 
-    await page.getByRole("tab", { name: "Kế hoạch điều trị" }).click();
+    await page.getByRole("link", { name: "Kế hoạch điều trị" }).click();
 
-    // The tab renders TreatmentPlanPanel now, not the stand-in table it used
-    // to draw: a slip is opened from accepted consulting lines, so the action
-    // is "Tạo kế hoạch mới" and the decorative "Xem tất cả dịch vụ" is gone.
+    // The tab renders TreatmentPlanPanel: a slip is opened from accepted
+    // consulting lines, so the action is "Tạo kế hoạch mới".
     await expect(page.getByRole("button", { name: "Tạo kế hoạch mới" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Xem tất cả dịch vụ" })).toBeVisible();
 
     // Summary cards: what is being worked, and the slip behind it.
     await expect(page.getByText("Dịch vụ đang điều trị", { exact: true })).toBeVisible();
-    await expect(page.getByText("Phiếu điều trị", { exact: true })).toBeVisible();
+    await expect(page.getByText("DỊCH VỤ CÓ CÔNG ĐOẠN GẦN NHẤT", { exact: true })).toBeVisible();
 
-    // One row per service line, carrying the slip number and the service.
+    // One row per service line, on the app's own table card.
     await expect(page.getByRole("columnheader", { name: "Số phiếu" })).toBeVisible();
-    await expect(page.getByRole("columnheader", { name: "Dịch vụ" })).toBeVisible();
     await expect(page.getByRole("columnheader", { name: "Trạng thái - Tiến độ" })).toBeVisible();
+
+    // The card fills the rest of the screen, pager pinned to its bottom edge.
+    const cardBox = await page.locator(".pd-pane .bd-cat-card").boundingBox();
+    const pageBox = await page.locator(".pd-page").boundingBox();
+    expect(cardBox).not.toBeNull();
+    expect(pageBox).not.toBeNull();
+    expect(cardBox!.y + cardBox!.height).toBeGreaterThan(pageBox!.y + pageBox!.height - 8);
   });
 
   test("the treatment plan tab loads plan data from the API", async ({ page }) => {
-    await openFirstPatient(page);
-
+    // Watched from the first navigation: the record and its plan tab share a
+    // query cache, so the read may already have gone out by the time the tab
+    // is clicked. The panel reads treatment *slips* — `/patient-treatments` —
+    // not the `/treatment-plans` collection this used to watch, which is why it
+    // never saw a request.
     const requests: string[] = [];
-    page.on("request", (req) => {
-      if (req.url().includes("/treatment-plans")) requests.push(req.url());
+    page.on("response", (res) => {
+      if (res.url().includes("/patient-treatments")) requests.push(`${res.status()} ${res.url()}`);
     });
 
+    await openFirstPatient(page);
+    await page.getByRole("link", { name: "Kế hoạch điều trị" }).click();
+    await expect(page.getByRole("button", { name: "Tạo kế hoạch mới" })).toBeVisible();
     await page.waitForLoadState("networkidle");
 
-    // The treatment plan API should have been called during page load.
     expect(requests.length).toBeGreaterThan(0);
+    expect(requests.every((line) => line.startsWith("200"))).toBeTruthy();
   });
 
   test("the invoice tab renders its layout", async ({ page }) => {
     await openFirstPatient(page);
     await page.waitForLoadState("networkidle");
 
-    await page.getByRole("tab", { name: "Hóa đơn" }).click();
+    await page.getByRole("link", { name: "Hóa đơn" }).click();
     await expect(page.locator("body")).not.toContainText("Unexpected Application Error");
   });
 
@@ -71,7 +83,7 @@ test.describe("Kế hoạch điều trị", () => {
     await openFirstPatient(page);
     await page.waitForLoadState("networkidle");
 
-    await page.getByRole("tab", { name: "Chẩn đoán & Tư vấn" }).click();
+    await page.getByRole("link", { name: "Chẩn đoán & Tư vấn" }).click();
     await expect(page.locator("body")).not.toContainText("Unexpected Application Error");
   });
 });

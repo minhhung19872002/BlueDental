@@ -19,6 +19,7 @@ public class AppointmentDto : FullAuditedEntityDto<Guid>
     public AppointmentType Type { get; set; }
     public string? ChiefComplaint { get; set; }
     public string? Notes { get; set; }
+    public AppointmentColor Color { get; set; }
 }
 
 public class CreateAppointmentDto
@@ -31,6 +32,8 @@ public class CreateAppointmentDto
     public DateTimeOffset SlotEnd { get; set; }
     public AppointmentType Type { get; set; }
     public string? ChiefComplaint { get; set; }
+    public string? Notes { get; set; }
+    public AppointmentColor Color { get; set; } = AppointmentColor.Default;
 }
 
 public class UpdateAppointmentDto
@@ -39,6 +42,8 @@ public class UpdateAppointmentDto
     public DateTimeOffset SlotEnd { get; set; }
     public Guid? DentistId { get; set; }
     public string? ChiefComplaint { get; set; }
+    public string? Notes { get; set; }
+    public AppointmentColor Color { get; set; } = AppointmentColor.Default;
 }
 
 public class CancelAppointmentDto

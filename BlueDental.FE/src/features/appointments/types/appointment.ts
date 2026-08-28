@@ -7,6 +7,13 @@ export type AppointmentStatus =
   | "noShow";
 
 /**
+ * "Màu lịch hẹn" — the four swatches the booking dialog offers. It tints the
+ * card on the calendar and carries no workflow meaning; the workflow is
+ * {@link AppointmentStatus}. Mirrors BlueDental.Appointments.AppointmentColor.
+ */
+export type AppointmentColor = "default" | "green" | "orange" | "red";
+
+/**
  * What the screens work with. The server speaks its own shape
  * (DentistId / SlotStart / numeric status); see appointmentAdapters.
  */
@@ -22,6 +29,7 @@ export interface AppointmentDto {
   status: AppointmentStatus;
   reason: string | null;
   notes: string | null;
+  color: AppointmentColor;
   createdAt: string;
 }
 
@@ -34,6 +42,7 @@ export interface CreateAppointmentRequest {
   endTime: string;
   reason?: string;
   notes?: string;
+  color?: AppointmentColor;
 }
 
 export type UpdateAppointmentRequest = Partial<CreateAppointmentRequest> & {

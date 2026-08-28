@@ -22,6 +22,19 @@ public enum AppointmentType
     Orthodontic = 7
 }
 
+/// <summary>
+/// The four swatches the reference offers under "Màu lịch hẹn". It tints the
+/// card on the calendar and carries no meaning of its own — the workflow lives
+/// in <see cref="AppointmentStatus"/>.
+/// </summary>
+public enum AppointmentColor
+{
+    Default = 1,
+    Green = 2,
+    Orange = 3,
+    Red = 4
+}
+
 public enum CancellationReason
 {
     PatientRequest = 1,

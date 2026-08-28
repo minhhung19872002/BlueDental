@@ -226,7 +226,9 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
             slot,
             input.Type,
             input.ProcedureId,
-            input.ChiefComplaint);
+            input.ChiefComplaint,
+            input.Notes,
+            input.Color);
 
         await _repository.InsertAsync(appointment, autoSave: true);
         return await ToDtoAsync(appointment);
@@ -239,6 +241,11 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         GuardBranchAccess(appointment);
         var slot = new AppointmentSlot(input.SlotStart, input.SlotEnd);
         appointment.Reschedule(slot, input.DentistId);
+
+        // Rescheduling only moves the slot. The booking form edits the reason,
+        // the note and the colour in the same submit, and those were being
+        // dropped on the floor — the dialog appeared to save and changed nothing.
+        appointment.SetDetails(input.ChiefComplaint, input.Notes, input.Color);
         await _repository.UpdateAsync(appointment, autoSave: true);
         return await ToDtoAsync(appointment);
     }

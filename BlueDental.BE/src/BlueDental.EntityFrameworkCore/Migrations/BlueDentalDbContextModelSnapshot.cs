@@ -46,6 +46,9 @@ namespace BlueDental.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<short>("Color")
+                        .HasColumnType("smallint");
+
                     b.Property<DateTimeOffset?>("CompletedAt")
                         .HasColumnType("timestamp with time zone");
 

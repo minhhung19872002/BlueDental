@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { Button, Card, Empty, Image, Popconfirm, Space, Typography } from "antd";
-import { DeleteOutlined, UploadOutlined } from "@ant-design/icons";
+import { Button, Image, Popconfirm, Select, Space, Spin, Typography } from "antd";
+import { DeleteOutlined, PictureOutlined, UploadOutlined } from "@ant-design/icons";
 import {
   useDeletePatientImage,
   usePatientImages,
@@ -11,6 +11,7 @@ import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { extractApiError } from "@/lib/apiError";
 import { formatDateTime } from "@/utils/format";
 import { t } from "@/lib/i18n";
+import { useTreatmentStages } from "@/features/treatment-management/api/stageApi";
 
 const { Text } = Typography;
 
@@ -28,13 +29,19 @@ export function PatientImagePanel({ patientId }: PatientImagePanelProps) {
   const branchId = useCurrentBranchId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [stageId, setStageId] = useState<string>();
 
   const { data, isLoading } = usePatientImages(patientId, branchId);
+  const stages =
+    useTreatmentStages({ patientId, clinicBranchId: branchId, maxResultCount: 200 }).data?.items ??
+    [];
 
   const uploadImage = useUploadPatientImage();
   const deleteImage = useDeletePatientImage();
 
-  const images = data?.items ?? [];
+  const images = (data?.items ?? []).filter(
+    (image) => !stageId || image.treatmentStageId === stageId,
+  );
 
   const handleFile = async (file: File) => {
     setUploading(true);
@@ -50,8 +57,8 @@ export function PatientImagePanel({ patientId }: PatientImagePanelProps) {
   };
 
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+    <div className="pd-images">
+      <div className="pd-image-controls">
         {/* A plain input keeps the upload a real multipart POST. */}
         <input
           ref={inputRef}
@@ -64,35 +71,48 @@ export function PatientImagePanel({ patientId }: PatientImagePanelProps) {
             if (file) void handleFile(file);
           }}
         />
+        <Select
+          allowClear
+          placeholder={t("Giai đoạn điều trị")}
+          value={stageId}
+          onChange={setStageId}
+          options={stages.map((stage) => ({ value: stage.id, label: stage.name }))}
+        />
         <Button
-          type="primary"
           icon={<UploadOutlined />}
           loading={uploading}
           onClick={() => inputRef.current?.click()}
         >
-          {t("Thêm ảnh")}
+          {t("Tải ảnh")}
         </Button>
       </div>
 
-      <Card size="small" loading={isLoading}>
-        {images.length === 0 ? (
-          <Empty description={t("Chưa có hình ảnh")} image={Empty.PRESENTED_IMAGE_SIMPLE} />
+      <div
+        className={
+          images.length === 0 ? "pd-image-gallery pd-image-gallery--empty" : "pd-image-gallery"
+        }
+      >
+        {isLoading ? (
+          <Spin />
+        ) : images.length === 0 ? (
+          <div>
+            <PictureOutlined />
+            <strong>{t("Không có ảnh trong bộ lọc đã chọn")}</strong>
+            <span>{t("Hãy đổi bộ lọc hoặc tải thêm ảnh để tiếp tục.")}</span>
+          </div>
         ) : (
-          <div
-            style={{ display: "flex", flexWrap: "wrap", gap: 12 }}
-            data-testid="patient-image-grid"
-          >
+          <div className="pd-image-grid" data-testid="patient-image-grid">
             {images.map((image) => (
-              <div key={image.id} style={{ width: 180 }}>
+              <div key={image.id} className="pd-image-item">
                 <Image
                   // The server already returns an app-relative path, prefix and all.
                   src={image.url}
                   alt={image.fileName}
-                  width={180}
+                  width="100%"
                   height={140}
                   style={{ objectFit: "cover", borderRadius: 8 }}
                 />
-                <div style={{ marginTop: 4 }}>
+                <div className="pd-image-meta">
                   <Text ellipsis style={{ fontSize: 12, display: "block" }}>
                     {image.fileName}
                   </Text>
@@ -119,7 +139,7 @@ export function PatientImagePanel({ patientId }: PatientImagePanelProps) {
             ))}
           </div>
         )}
-      </Card>
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using BlueDental.Appointments.Values;
 using Volo.Abp;
 using Xunit;
@@ -74,5 +74,70 @@ public class AppointmentTests
 
         // Cannot start directly from Requested
         Assert.Throws<BusinessException>(() => appointment.Start());
+    }
+
+    [Fact]
+    public void Should_Open_With_Default_Colour_And_Carry_The_Note()
+    {
+        var appointment = new Appointment(
+            Guid.NewGuid(),
+            _patientId,
+            _dentistId,
+            _branchId,
+            _slot,
+            AppointmentType.Consultation,
+            null,
+            "Kiem tra rang",
+            "Benh nhan hen buoi chieu");
+
+        Assert.Equal(AppointmentColor.Default, appointment.Color);
+        Assert.Equal("Benh nhan hen buoi chieu", appointment.Notes);
+    }
+
+    /// <summary>
+    /// The booking form edits the reason, the note and the colour in the same
+    /// submit as it moves the slot. Rescheduling alone used to be everything the
+    /// update did, so those three were silently dropped.
+    /// </summary>
+    [Fact]
+    public void SetDetails_Should_Revise_Reason_Note_And_Colour()
+    {
+        var appointment = new Appointment(
+            Guid.NewGuid(),
+            _patientId,
+            _dentistId,
+            _branchId,
+            _slot,
+            AppointmentType.Consultation,
+            null,
+            "Kham tong quat");
+
+        appointment.SetDetails("Nieng rang", "Goi truoc mot ngay", AppointmentColor.Green);
+
+        Assert.Equal("Nieng rang", appointment.ChiefComplaint);
+        Assert.Equal("Goi truoc mot ngay", appointment.Notes);
+        Assert.Equal(AppointmentColor.Green, appointment.Color);
+    }
+
+    [Fact]
+    public void SetDetails_Should_Be_Allowed_In_Any_Status()
+    {
+        var appointment = new Appointment(
+            Guid.NewGuid(),
+            _patientId,
+            _dentistId,
+            _branchId,
+            _slot,
+            AppointmentType.Consultation);
+
+        appointment.Confirm();
+        appointment.CheckIn();
+        appointment.Start();
+
+        appointment.SetDetails("Da doi", null, AppointmentColor.Red);
+
+        Assert.Equal("Da doi", appointment.ChiefComplaint);
+        Assert.Equal(AppointmentColor.Red, appointment.Color);
+        Assert.Equal(AppointmentStatus.InProgress, appointment.Status);
     }
 }

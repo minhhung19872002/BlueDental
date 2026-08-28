@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using BlueDental.PatientManagement;
 using BlueDental.PatientManagement.Values;
 using Volo.Abp;
@@ -26,14 +26,29 @@ public class PatientTests
     }
 
     [Fact]
-    public void Register_Should_Throw_When_FirstName_Empty()
+    public void Register_Should_Throw_When_LastName_Empty()
     {
+        // Only the family name is required: the dialog collects one "Họ và tên"
+        // and a single-word name is a whole name, not half of one. This asserted
+        // the opposite until the /patient rebuild changed the rule.
         Assert.Throws<ArgumentException>(() =>
             Patient.Register(
                 Guid.NewGuid(), "BN2026002",
-                "", "Nguyễn",
+                "An", "",
                 new DateOnly(1990, 1, 1), Gender.Female,
                 ValidContact, Guid.NewGuid()));
+    }
+
+    [Fact]
+    public void Register_Should_Accept_A_Single_Word_Name()
+    {
+        var patient = Patient.Register(
+            Guid.NewGuid(), "BN2026003",
+            "", "Nguyễn",
+            new DateOnly(1990, 1, 1), Gender.Female,
+            ValidContact, Guid.NewGuid());
+
+        Assert.Equal("Nguyễn", patient.FullName);
     }
 
     [Fact]
@@ -71,6 +86,7 @@ public class PatientTests
             new DateOnly(1995, 3, 10), Gender.Male,
             ValidContact, Guid.NewGuid());
 
-        Assert.Equal("An Nguyễn Văn", patient.FullName);
+        // Vietnamese order: family name first, given name last.
+        Assert.Equal("Nguyễn Văn An", patient.FullName);
     }
 }

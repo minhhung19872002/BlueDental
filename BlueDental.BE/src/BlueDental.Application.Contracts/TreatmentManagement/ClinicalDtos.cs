@@ -36,6 +36,7 @@ public class PatientDiagnosisDto : FullAuditedEntityDto<Guid>
 
     public string? DiagnosisName { get; set; }
     public string? StaffName { get; set; }
+    public string? SecondStaffName { get; set; }
 }
 
 public class CreatePatientDiagnosisDto
@@ -98,6 +99,8 @@ public class PatientAdviseDto : FullAuditedEntityDto<Guid>
 
     public string? ServiceName { get; set; }
     public string? StaffName { get; set; }
+    public string? SecondStaffName { get; set; }
+    public string? DiagnosisName { get; set; }
 }
 
 public class CreatePatientAdviseDto

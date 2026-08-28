@@ -1,6 +1,7 @@
 import dayjs from "dayjs";
 import type {
   Appointment,
+  AppointmentColor,
   AppointmentListQuery,
   AppointmentStatus,
   CreateAppointmentRequest,
@@ -27,6 +28,7 @@ export interface ServerAppointmentDto {
   type: number;
   chiefComplaint: string | null;
   notes: string | null;
+  color: number;
   creationTime: string;
 }
 
@@ -85,6 +87,21 @@ const STATUS_COLORS: Record<AppointmentStatus, string> = {
 /** BlueDental.Appointments.AppointmentType — Examination is the everyday one. */
 const DEFAULT_APPOINTMENT_TYPE = 2;
 
+/** Matches BlueDental.Appointments.AppointmentColor. */
+const SERVER_COLOR: Record<AppointmentColor, number> = {
+  default: 1,
+  green: 2,
+  orange: 3,
+  red: 4,
+};
+
+const COLOR_BY_CODE: Record<number, AppointmentColor> = {
+  1: "default",
+  2: "green",
+  3: "orange",
+  4: "red",
+};
+
 export function adaptAppointment(dto: ServerAppointmentDto): Appointment {
   const status = STATUS_BY_CODE[dto.status] ?? "scheduled";
 
@@ -100,6 +117,7 @@ export function adaptAppointment(dto: ServerAppointmentDto): Appointment {
     status,
     reason: dto.chiefComplaint,
     notes: dto.notes,
+    color: COLOR_BY_CODE[dto.color] ?? "default",
     createdAt: dto.creationTime,
     statusColor: STATUS_COLORS[status],
     statusLabel: statusLabels()[status],
@@ -138,6 +156,8 @@ export function toCreateRequest(request: CreateAppointmentRequest): Record<strin
     slotEnd: toInstant(request.endTime),
     type: DEFAULT_APPOINTMENT_TYPE,
     chiefComplaint: request.reason,
+    notes: request.notes,
+    color: SERVER_COLOR[request.color ?? "default"],
   };
 }
 
@@ -147,5 +167,7 @@ export function toUpdateRequest(request: UpdateAppointmentRequest): Record<strin
     slotEnd: toInstant(request.endTime),
     dentistId: request.doctorId,
     chiefComplaint: request.reason,
+    notes: request.notes,
+    color: SERVER_COLOR[request.color ?? "default"],
   };
 }

@@ -1,6 +1,20 @@
 import { useState } from "react";
-import { Button, Card, Col, Row, Space, Table, Tag, Typography } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import {
+  Button,
+  Card,
+  Checkbox,
+  Col,
+  Form,
+  Input,
+  Modal,
+  Popover,
+  Row,
+  Select,
+  Space,
+  Tag,
+  Typography,
+} from "antd";
+import { PlusOutlined, SettingOutlined } from "@ant-design/icons";
 import type { TableColumnsType } from "antd";
 import {
   planStatusConfig,
@@ -14,7 +28,7 @@ import {
   type TreatmentServiceDto,
 } from "../api/treatmentPlanApi";
 import { usePatientAdvises } from "../api/consultingQueries";
-import { ADVISE_STATUS } from "../api/consultingApi";
+import { ADVISE_STATUS, formatTeeth } from "../api/consultingApi";
 import { useDentistList } from "@/features/staff/api/staffQueries";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { toast } from "sonner";
@@ -22,6 +36,11 @@ import { extractApiError } from "@/lib/apiError";
 import { downloadFile } from "@/lib/download";
 import { formatDate, formatVND } from "@/utils/format";
 import { t } from "@/lib/i18n";
+import { DataTable } from "@/components/DataTable";
+import { useStaffOptions } from "@/hooks/useStaffOptions";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { countedTotal } from "@/utils/countedTotal";
+import { StageModal } from "./StageModal";
 
 const { Text } = Typography;
 
@@ -50,10 +69,22 @@ interface PlanRow extends TreatmentServiceDto {
 export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
   const branchId = useCurrentBranchId();
   const [opening, setOpening] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [allOpen, setAllOpen] = useState(false);
+  const [columnsOpen, setColumnsOpen] = useState(false);
+  const pagination = useTablePagination(20);
+  const [stageOpen, setStageOpen] = useState(false);
+  const [form] = Form.useForm<{
+    dentistId: string;
+    consultantStaffId: string;
+    title?: string;
+    adviseIds?: string[];
+  }>();
 
   const { data: plans, isLoading } = useTreatmentPlans(patientId, branchId);
   const { data: advises } = usePatientAdvises({ patientId });
   const { data: dentists } = useDentistList();
+  const staff = useStaffOptions().data ?? [];
 
   const openPlan = useOpenTreatmentPlan();
   const completeLine = useCompleteServiceLine();
@@ -89,20 +120,21 @@ export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
   };
 
   const handleOpenPlan = async () => {
-    const dentistId = dentists?.[0]?.id;
-    if (!dentistId) {
-      toast.error(t("Chưa có bác sĩ để tiếp nhận kế hoạch"));
-      return;
-    }
+    const values = await form.validateFields();
 
     setOpening(true);
     try {
       await openPlan.mutateAsync({
         patientId,
         clinicBranchId: branchId,
-        dentistId,
+        dentistId: values.dentistId,
+        consultantStaffId: values.consultantStaffId,
+        title: values.title,
+        adviseIds: values.adviseIds,
       });
       toast.success(t("Đã tạo kế hoạch điều trị"));
+      setCreateOpen(false);
+      form.resetFields();
     } catch (error) {
       toast.error(extractApiError(error));
     } finally {
@@ -111,14 +143,22 @@ export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
   };
 
   const columns: TableColumnsType<PlanRow> = [
-    { title: t("Số phiếu"), dataIndex: "planCode", key: "planCode", width: 90 },
     {
-      title: t("Dịch vụ"),
-      dataIndex: "serviceName",
-      key: "serviceName",
-      width: 200,
-      render: (value: string | null, row) => value ?? row.code,
+      title: t("Thêm công đoạn"),
+      key: "add-stage",
+      width: 120,
+      align: "center",
+      render: () => (
+        <Button
+          type="text"
+          size="small"
+          icon={<PlusOutlined />}
+          aria-label={t("Thêm công đoạn")}
+          onClick={() => setStageOpen(true)}
+        />
+      ),
     },
+    { title: t("Số phiếu"), dataIndex: "planCode", key: "planCode", width: 90 },
     {
       title: t("Bác sĩ tiếp nhận"),
       dataIndex: "dentistName",
@@ -179,7 +219,9 @@ export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
       width: 120,
       align: "right",
       render: (_, row) => (
-        <Text style={{ color: "#1f8a63" }}>{formatVND(row.planPayment.totalPaid)} {t("đ")}</Text>
+        <Text style={{ color: "#1f8a63" }}>
+          {formatVND(row.planPayment.totalPaid)} {t("đ")}
+        </Text>
       ),
     },
     {
@@ -195,7 +237,9 @@ export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
       width: 120,
       align: "right",
       render: (_, row) => (
-        <Text style={{ color: "#ef4d4d" }}>{formatVND(row.planPayment.totalDue)} {t("đ")}</Text>
+        <Text style={{ color: "#ef4d4d" }}>
+          {formatVND(row.planPayment.totalDue)} {t("đ")}
+        </Text>
       ),
     },
     {
@@ -262,39 +306,30 @@ export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
   ];
 
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 16 }}>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          loading={opening}
-          disabled={acceptedCount === 0}
-          onClick={handleOpenPlan}
-        >
-          {t("Tạo kế hoạch mới")}
-        </Button>
+    <div className="pd-treatment-plan">
+      <div className="pd-record-toolbar">
+        <Space>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            loading={opening}
+            onClick={() => setCreateOpen(true)}
+          >
+            {t("Tạo kế hoạch mới")}
+          </Button>
+          <Button onClick={() => setAllOpen(true)}>{t("Xem tất cả dịch vụ")}</Button>
+        </Space>
       </div>
 
-      <Row gutter={12} style={{ marginBottom: 16 }}>
+      <Row gutter={12} className="pd-plan-cards">
         <Col span={12}>
           <Card
             size="small"
-            style={{ borderLeft: "4px solid #1c3566" }}
+            className="pd-plan-card pd-plan-card--blue"
             data-testid="plan-active-services"
           >
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span
-                style={{
-                  background: "#1c3566",
-                  color: "#fff",
-                  borderRadius: 12,
-                  padding: "2px 10px",
-                  fontWeight: 700,
-                  fontSize: 14,
-                }}
-              >
-                {activeServices.length}
-              </span>
+              <span className="pd-plan-count">{activeServices.length}</span>
               <div>
                 <div style={{ fontWeight: 600, fontSize: 13, color: "#101c2c" }}>
                   {t("Dịch vụ đang điều trị")}
@@ -311,11 +346,11 @@ export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
         <Col span={12}>
           <Card
             size="small"
-            style={{ borderLeft: "4px solid #1f8a63" }}
+            className="pd-plan-card pd-plan-card--green"
             data-testid="plan-slip-count"
           >
             <div style={{ fontWeight: 600, fontSize: 13, color: "#101c2c", marginBottom: 4 }}>
-              {t("Phiếu điều trị")}
+              {t("DỊCH VỤ CÓ CÔNG ĐOẠN GẦN NHẤT")}
             </div>
             <div style={{ fontSize: 12, color: "#98a4b4" }}>
               {slips.length === 0
@@ -333,20 +368,162 @@ export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
         </Col>
       </Row>
 
-      <Card size="small">
-        <Table<PlanRow>
+      <div className="pd-column-action">
+        <Popover
+          open={columnsOpen}
+          onOpenChange={setColumnsOpen}
+          placement="bottomRight"
+          trigger="click"
+          content={
+            <div className="pd-column-popover">
+              <strong>{t("Cột hiển thị")}</strong>
+              {columns.slice(0, 8).map((column, index) => (
+                <Checkbox defaultChecked key={String(column.key ?? index)}>
+                  {String(column.title ?? "")}
+                </Checkbox>
+              ))}
+              <Button type="primary" block onClick={() => setColumnsOpen(false)}>
+                {t("Lưu")}
+              </Button>
+            </div>
+          }
+        >
+          <Button icon={<SettingOutlined />}>{t("Cột hiển thị")}</Button>
+        </Popover>
+      </div>
+      <div className="bd-cat-card">
+        <DataTable<PlanRow>
           size="small"
           rowKey="id"
           loading={isLoading}
           columns={columns}
-          dataSource={rows}
-          pagination={false}
-          scroll={{ x: 1500 }}
-          locale={{
-            emptyText: <span style={{ color: "#98a4b4" }}>{t("Chưa có kế hoạch điều trị")}</span>,
-          }}
+          dataSource={rows.slice(pagination.skipCount, pagination.skipCount + pagination.pageSize)}
+          locale={{ emptyText: t("Chưa có kế hoạch điều trị") }}
+          pagination={pagination.buildConfig(rows.length, countedTotal(t("kế hoạch")))}
         />
-      </Card>
+      </div>
+
+      <Modal
+        open={createOpen}
+        title={t("Tạo kế hoạch điều trị")}
+        width={1060}
+        okText={t("Lưu")}
+        cancelText={t("Hủy")}
+        confirmLoading={opening}
+        onOk={() => void handleOpenPlan()}
+        onCancel={() => setCreateOpen(false)}
+        destroyOnHidden
+        className="pd-plan-dialog"
+      >
+        <Form form={form} layout="vertical">
+          <div className="pd-plan-dialog-grid">
+            <Form.Item
+              name="consultantStaffId"
+              label={t("Tư vấn viên 1")}
+              rules={[{ required: true, message: t("Vui lòng chọn tư vấn viên") }]}
+            >
+              <Select
+                showSearch
+                optionFilterProp="label"
+                options={staff}
+                placeholder={t("Chọn tư vấn viên")}
+              />
+            </Form.Item>
+            <Form.Item
+              name="dentistId"
+              label={t("Bác sĩ chẩn đoán")}
+              rules={[{ required: true, message: t("Vui lòng chọn bác sĩ") }]}
+            >
+              <Select
+                showSearch
+                optionFilterProp="label"
+                options={(dentists ?? []).map((item) => ({ value: item.id, label: item.name }))}
+              />
+            </Form.Item>
+            <Form.Item name="title" label={t("Tên kế hoạch")}>
+              <Input placeholder={t("Nhập tên kế hoạch điều trị")} />
+            </Form.Item>
+            <Form.Item name="adviseIds" label={t("Dịch vụ tư vấn")} className="pd-plan-dialog-wide">
+              <Select
+                mode="multiple"
+                showSearch
+                optionFilterProp="label"
+                placeholder={t("Tìm dịch vụ mới")}
+                options={(advises?.items ?? []).map((item) => ({
+                  value: item.id,
+                  label: `${item.serviceName ?? item.code} · ${formatTeeth(item.teeth)}`,
+                }))}
+              />
+            </Form.Item>
+            <Form.Item label={t("Thông tin thanh toán")} className="pd-plan-dialog-wide">
+              <div className="pd-plan-payment-preview">
+                <span>
+                  {t("Tổng tiền dịch vụ")}: <b>0 đ</b>
+                </span>
+                <span>
+                  {t("Giảm giá")}: <b>0 đ</b>
+                </span>
+                <span>
+                  {t("Thành tiền")}: <b>0 đ</b>
+                </span>
+              </div>
+            </Form.Item>
+          </div>
+        </Form>
+      </Modal>
+      <StageModal open={stageOpen} patientId={patientId} onClose={() => setStageOpen(false)} />
+
+      <Modal
+        open={allOpen}
+        title={t("Tất cả dịch vụ điều trị")}
+        width={980}
+        footer={
+          <Button type="primary" onClick={() => setAllOpen(false)}>
+            {t("Đóng")}
+          </Button>
+        }
+        onCancel={() => setAllOpen(false)}
+        destroyOnHidden
+      >
+        <DataTable<PlanRow>
+          rowKey="id"
+          size="small"
+          dataSource={rows}
+          totalCount={rows.length}
+          pageSize={20}
+          columns={[
+            {
+              title: t("Dịch vụ"),
+              dataIndex: "serviceName",
+              render: (value: string | null, row) => value ?? row.code,
+            },
+            { title: t("Chẩn đoán"), render: () => "—" },
+            {
+              title: t("Bác sĩ"),
+              dataIndex: "dentistName",
+              render: (value: string | null) => value ?? "—",
+            },
+            {
+              title: t("Trạng thái"),
+              dataIndex: "status",
+              render: (value: PlanRow["status"]) => serviceLineStatusConfig()[value].label,
+            },
+            {
+              title: t("Đơn giá"),
+              dataIndex: "price",
+              align: "right",
+              render: (value: number) => `${formatVND(value)} đ`,
+            },
+            {
+              title: t("Thành tiền"),
+              dataIndex: "effectiveAmount",
+              align: "right",
+              render: (value: number) => `${formatVND(value)} đ`,
+            },
+          ]}
+          locale={{ emptyText: t("Chưa có dịch vụ điều trị") }}
+        />
+      </Modal>
     </div>
   );
 }

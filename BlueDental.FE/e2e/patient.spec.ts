@@ -124,9 +124,13 @@ test.describe("Bệnh nhân", () => {
 
     // Trạng thái
     const byStatus = page.waitForRequest(
-      (r) => r.url().includes("/api/v1/app/patients?") && r.url().includes("treatmentStatus=Pending"),
+      (r) =>
+        r.url().includes("/api/v1/app/patients?") && r.url().includes("treatmentStatus=Pending"),
     );
-    await page.locator(".bd-patient-filters").getByRole("button", { name: "Chưa phát sinh" }).click();
+    await page
+      .locator(".bd-patient-filters")
+      .getByRole("button", { name: "Chưa phát sinh" })
+      .click();
     await byStatus;
 
     // Bác sĩ
@@ -205,14 +209,15 @@ test.describe("Bệnh nhân", () => {
     await panel.getByRole("button", { name: "Đang điều trị" }).click();
     const applied = page.waitForRequest(
       (r) =>
-        r.url().includes("/api/v1/app/patients?") && r.url().includes("treatmentStatus=InTreatment"),
+        r.url().includes("/api/v1/app/patients?") &&
+        r.url().includes("treatmentStatus=InTreatment"),
     );
     await panel.getByRole("button", { name: "Lưu" }).click();
     await applied;
 
-    await expect(
-      page.locator(".bd-patient-filters .seg-tabs-item--active"),
-    ).toHaveText("Đang điều trị");
+    await expect(page.locator(".bd-patient-filters .seg-tabs-item--active")).toHaveText(
+      "Đang điều trị",
+    );
   });
 
   test("the name and the eye both open the patient's record", async ({ page }) => {
@@ -226,24 +231,174 @@ test.describe("Bệnh nhân", () => {
     await expect(page).toHaveURL(/\/patient\/[0-9a-f-]{36}/);
   });
 
+  test("the patient detail keeps all ten tabs in the URL-driven layout", async ({ page }) => {
+    await page.goto("/patient");
+    await assertRealApiTraffic(page, "/api/v1/app/patients");
+    await page
+      .locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name")
+      .first()
+      .click();
+
+    await expect(page.locator(".pd-profile-card")).toBeVisible();
+    await expect(page.locator(".pd-money")).toHaveCount(6);
+    await expect(
+      page.getByRole("navigation", { name: "Chi tiết bệnh nhân" }).getByRole("link"),
+    ).toHaveCount(10);
+
+    await page.getByRole("button", { name: "Nhãn bệnh nhân" }).click();
+    await expect(page.getByPlaceholder("Tìm tag")).toBeVisible();
+    await page.getByRole("button", { name: "Nhãn bệnh nhân" }).click();
+
+    await page.getByRole("button", { name: "Tạo Tái khám" }).click();
+    const recallDialog = page.getByRole("dialog", { name: "Tạo tái khám" });
+    await expect(recallDialog.getByText("Chưa có dịch vụ hoàn tất")).toBeVisible();
+    await recallDialog.getByRole("button", { name: "Đóng" }).click();
+
+    await page.locator(".pd-table-toolbar").getByRole("button", { name: "Thanh toán" }).click();
+    const paymentDialog = page.getByRole("dialog", { name: "Thanh toán" });
+    await expect(paymentDialog.getByText("Tổng tiền:")).toBeVisible();
+    await paymentDialog.getByRole("button", { name: "Đóng", exact: true }).last().click();
+
+    await page.getByRole("button", { name: "Tạo lịch hẹn mới" }).click();
+    const appointmentDialog = page.getByRole("dialog", { name: "Tạo lịch hẹn" });
+    await expect(appointmentDialog).toBeVisible();
+    // The reference offers only the X here, so that is the only way out.
+    await appointmentDialog.getByRole("button", { name: "Đóng" }).click();
+    await expect(appointmentDialog).toBeHidden();
+
+    await page.getByRole("link", { name: "Hóa đơn" }).click();
+    await expect(page).toHaveURL(/tab=invoice/);
+    await expect(page.getByRole("columnheader", { name: "MÃ HÓA ĐƠN" })).toBeVisible();
+
+    await page.getByRole("link", { name: "Hồ sơ" }).click();
+    await expect(page).not.toHaveURL(/tab=/);
+    await expect(page.locator(".pd-profile-card")).toBeVisible();
+  });
+
+  test("the Hồ sơ card states the visit facts the way the reference states them", async ({
+    page,
+  }) => {
+    await page.goto("/patient");
+    await assertRealApiTraffic(page, "/api/v1/app/patients");
+    await page
+      .locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name")
+      .first()
+      .click();
+
+    // Each note is one line — "label: value" — not a stacked label over a value.
+    for (const label of ["Tiểu sử bệnh:", "Về KH:", "Nguồn đến:"]) {
+      await expect(page.locator(".pd-fact").getByText(label, { exact: false })).toBeVisible();
+    }
+
+    // "Lịch hẹn gần nhất" is the nearest appointment, past or future, and it
+    // carries the reception steps under it. A patient between visits used to
+    // get an empty card because only future appointments counted.
+    const card = page.locator(".pd-next-appointment");
+    const hasAppointment = await card.locator(".pd-appt-facts").isVisible();
+
+    if (hasAppointment) {
+      for (const label of ["Ngày:", "Giờ hẹn:", "Bác sĩ:", "Nội dung:"]) {
+        await expect(card.getByText(label, { exact: true })).toBeVisible();
+      }
+      await expect(card.getByText("Tiếp nhận", { exact: true })).toBeVisible();
+      await expect(card.locator(".pd-appt-steps > li")).toHaveCount(3);
+    } else {
+      await expect(card.getByText("Chưa có lịch hẹn sắp tới")).toBeVisible();
+    }
+  });
+
   test("records tooth surfaces on the consulting chart", async ({ page }) => {
     await page.goto("/patient");
     await assertRealApiTraffic(page, "/api/v1/app/patients");
 
-    await page.locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name").first().click();
+    await page
+      .locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name")
+      .first()
+      .click();
     await expect(page).toHaveURL(/\/patient\/[0-9a-f-]{36}/);
 
-    await page.getByRole("tab", { name: "Chẩn đoán & Tư vấn" }).click();
+    await page.getByRole("link", { name: "Chẩn đoán & Tư vấn" }).click();
+
+    // The current reference keeps the diagnosis editor collapsed until + is
+    // pressed, so the dental chart must not be mounted before that action.
+    await expect(page.locator("[data-testid=diagnosis-form]")).toHaveCount(0);
+    await page.locator(".pd-diagnosis-card .pd-card-title").getByRole("button").click();
+    await expect(page.locator("[data-testid=diagnosis-form]")).toBeVisible();
 
     // Initially no teeth selected.
-    await expect(page.getByText("Chưa chọn răng")).toBeVisible();
+    await expect(page.getByText("Răng đã chọn: —")).toBeVisible();
 
     // Click tooth 11 via its aria-label (SVG <g role="button" aria-label="Răng 11 — …">).
     await page.getByRole("button", { name: /Răng 11/ }).click();
-    await expect(page.getByText(/Đã chọn:.*11/)).toBeVisible();
+    await expect(page.getByText(/Răng đã chọn:.*11/)).toBeVisible();
 
     // Click tooth 11 again to deselect (toggle).
     await page.getByRole("button", { name: /Răng 11/ }).click();
-    await expect(page.getByText("Chưa chọn răng")).toBeVisible();
+    await expect(page.getByText("Răng đã chọn: —")).toBeVisible();
+  });
+
+  test("Chẩn đoán & Tư vấn carries the reference's panels, columns and totals", async ({
+    page,
+  }) => {
+    await page.goto("/patient");
+    await assertRealApiTraffic(page, "/api/v1/app/patients");
+    await page
+      .locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name")
+      .first()
+      .click();
+    // The consulting-data catalogue is read from the real API as the tab opens.
+    const catalogue = page.waitForResponse(
+      (res) =>
+        res.url().includes("/api/v1/app/catalog-entries") &&
+        res.url().includes("consulting_data"),
+    );
+    await page.getByRole("link", { name: "Chẩn đoán & Tư vấn" }).click();
+    await expect(page).toHaveURL(/tab=consulting/);
+    expect((await catalogue).ok()).toBeTruthy();
+
+    // Three stacked commands over the drop zone, with the reference's labels.
+    const tools = page.locator(".pd-image-tools");
+    for (const label of ["Thêm ảnh", "Danh sách ảnh", "Danh mục"]) {
+      await expect(tools.getByRole("button", { name: label })).toBeVisible();
+    }
+
+    await tools.getByRole("button", { name: "Danh mục" }).click();
+    await expect(page.getByText("Dữ liệu tư vấn")).toBeVisible();
+    await page.keyboard.press("Escape");
+
+    // "Danh sách ảnh" is the reference's "Chọn ảnh hiển thị" dialog.
+    await tools.getByRole("button", { name: "Danh sách ảnh" }).click();
+    const picker = page.getByRole("dialog", { name: "Chọn ảnh hiển thị" });
+    await expect(picker.getByRole("button", { name: "Chọn tất cả" })).toBeVisible();
+    await picker.getByRole("button", { name: "Xong" }).click();
+    await expect(picker).toBeHidden();
+
+    // The diagnosis card carries the reference's six columns.
+    for (const header of ["SỐ PHIẾU", "BÁC SĨ CHẨN ĐOÁN 1", "CHẨN ĐOÁN 2", "RĂNG", "GHI CHÚ"]) {
+      await expect(
+        page.locator(".pd-diagnosis-card").getByRole("columnheader", { name: header }),
+      ).toBeVisible();
+    }
+
+    // The consulting sheet: column chooser, the reference's columns, the total
+    // block and its four commands.
+    const advise = page.locator(".pd-advise-card");
+    await advise.getByRole("button", { name: "Cột hiển thị" }).click();
+    const chooser = page.getByText("Cấu hình cột");
+    await expect(chooser).toBeVisible();
+
+    // Turning a column off takes it out of the table.
+    await expect(advise.getByRole("columnheader", { name: "GHI CHÚ TƯ VẤN" })).toBeVisible();
+    await page.getByRole("switch").last().click();
+    await expect(advise.getByRole("columnheader", { name: "GHI CHÚ TƯ VẤN" })).toBeHidden();
+    await page.keyboard.press("Escape");
+
+    await expect(advise.getByText("TỔNG KẾ HOẠCH")).toBeVisible();
+    await expect(advise.getByText("Tổng thành tiền:")).toBeVisible();
+    await expect(advise.getByRole("button", { name: "%", exact: true })).toBeVisible();
+    await expect(advise.getByRole("button", { name: "VNĐ", exact: true })).toBeVisible();
+    for (const label of ["Thêm kế hoạch điều trị", "Tạo báo giá", "In phiếu tư vấn"]) {
+      await expect(advise.getByRole("button", { name: label })).toBeVisible();
+    }
   });
 });

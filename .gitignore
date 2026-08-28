@@ -67,3 +67,16 @@ BlueDental.FE/playwright-report/
 
 # Playwright MCP browser artifacts (snapshots, console logs from local testing)
 .playwright-mcp/
+
+# Skills dropped into the workspace by tooling — not part of the application.
+.claude/skills/
+
+# Markdown is kept out of source control from here on. This does NOT untrack the
+# documentation CLAUDE.md requires (docs/clone, docs/testing, the rules): git
+# ignores .gitignore for files it already tracks, so those keep working.
+*.md
+!CLAUDE.md
+!AGENTS.md
+!docs/**/*.md
+!.claude/rules/*.md
+!.claude/agents/*.md

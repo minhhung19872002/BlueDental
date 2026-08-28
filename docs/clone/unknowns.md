@@ -796,3 +796,46 @@ Action taken: NONE. Chỉ mở dialog để đọc cấu trúc trường rồi �
         Escape. Quy tắc validate lấy từ schema Joi trong bundle
         (xem docs/clone/pages/labo.md §3.3, §4.3, §5.2).
 ```
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /patient/<id>?tab=appointment — dialog "Tạo lịch hẹn", khối "Lịch đã hẹn"
+Control: nút tròn "Đổi cách xem" (chỉ hiện ở chế độ Ngày)
+Reason: bấm nút là thao tác đọc, đã bấm và chụp lại được: icon đổi từ dạng
+        hàng sang dạng cột, và lưới lùi sang phải chừa một cột nhãn ~200px.
+        Nhưng ngày đang xem không có lịch hẹn nào nên không thấy được nội
+        dung hai bố cục khác nhau ra sao. Không tạo lịch trên bản gốc để thử.
+Action taken: NONE thêm trên bản gốc. BlueDental tạm hiểu là "một làn chung"
+        đổi sang "mỗi bác sĩ một làn", vì cột nhãn xuất hiện đúng chỗ đó.
+        Cần xem lại khi có ngày thật sự có lịch.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /patient/<id>?tab=appointment — dialog "Tạo lịch hẹn"
+Control: nút "Lưu", nút "+ Thêm ngay" trong thẻ Ghi chú
+Reason: đều ghi dữ liệu lên hệ thống production.
+Action taken: NONE. Chỉ mở dialog, mở dropdown bác sĩ, đổi Ngày/Tuần/Tháng
+        rồi đóng bằng X. Cấu trúc trường, kích thước và bảng màu đọc từ DOM
+        và computed style — xem docs/clone/pages/patient-detail.md.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /patient/<id>?tab=appointment
+Control: nút "Lịch sử thay đổi"
+Reason: chưa mở được để đọc cấu trúc bảng; bản gốc lấy dữ liệu từ
+        GET /api/v1/schedule-logs (đã bắt được ở tab, có phân trang và
+        /stats), nhưng cột hiển thị thì chưa quan sát.
+Action taken: NONE. BlueDental tạm liệt kê lịch hẹn của bệnh nhân kèm dấu
+        thời gian audit mà API trả về, và ghi rõ đây là chỗ khác bản gốc.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /patient/<id>?tab=consulting — bảng "Phiếu tư vấn"
+Control: tay nắm kéo-thả ở cột đầu, và nút "Lưu" trong popover "Cấu hình cột"
+Reason: cả hai đều ghi thứ tự / cấu hình cột xuống server.
+Action taken: NONE. Đã đọc được danh sách cột và dạng công tắc bật/tắt trong
+        popover. BlueDental chưa dựng tay nắm kéo-thả vì chưa có endpoint sắp
+        xếp; cấu hình cột hiện chỉ giữ trong phiên.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /patient/<id>?tab=consulting — thao tác trên dòng chẩn đoán
+Control: nút lịch (biểu tượng calendar) giữa "Tạo Dịch Vụ" và nút xoá
+Reason: không bấm vì có khả năng mở luồng tạo lịch hẹn rồi ghi dữ liệu.
+Action taken: NONE. BlueDental hiểu là mở dialog đặt lịch cho bệnh nhân đó,
+        điền sẵn lý do từ tên chẩn đoán. Cần xác nhận lại.

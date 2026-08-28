@@ -20,6 +20,7 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
     public AppointmentType Type { get; private set; }
     public string? ChiefComplaint { get; private set; }
     public string? Notes { get; private set; }
+    public AppointmentColor Color { get; private set; }
     public CancellationReason? CancellationReason { get; private set; }
     public string? CancellationNote { get; private set; }
     public DateTimeOffset? CheckedInAt { get; private set; }
@@ -36,7 +37,9 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         AppointmentSlot slot,
         AppointmentType type,
         Guid? procedureId = null,
-        string? chiefComplaint = null)
+        string? chiefComplaint = null,
+        string? notes = null,
+        AppointmentColor color = AppointmentColor.Default)
         : base(id)
     {
         PatientId = patientId;
@@ -46,7 +49,22 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         Type = type;
         ProcedureId = procedureId;
         ChiefComplaint = chiefComplaint;
+        Notes = notes;
+        Color = color;
         Status = AppointmentStatus.Requested;
+    }
+
+    /// <summary>
+    /// The three fields the booking form may revise without moving the slot:
+    /// what the visit is for, the note beside it and the colour it is drawn in.
+    /// None of them is part of the workflow, so any status may be edited.
+    /// </summary>
+    public Appointment SetDetails(string? chiefComplaint, string? notes, AppointmentColor color)
+    {
+        ChiefComplaint = chiefComplaint;
+        Notes = notes;
+        Color = color;
+        return this;
     }
 
     public Appointment Confirm()

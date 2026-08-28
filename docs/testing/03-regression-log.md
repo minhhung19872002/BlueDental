@@ -682,3 +682,52 @@ trình duyệt tự đoán kiểu.
 | # | Suite | Nguyên nhân | Trạng thái |
 |---|------|-----------|-----------|
 | R-143 | `staff` :19 | Spec chờ option chi nhánh tên `Nha Khoa Đức Hạnh Premium`, nhưng DB local đang là `BlueDental - Chi nhánh chính` / `Chi nhánh 2`. Seeder chi nhánh có guard theo id nên lần đổi tên ở R-135 không cập nhật dòng đã tồn tại | **Chưa sửa — có sẵn, không do đợt này.** Không đụng gì tới màn Nhân viên; tên chi nhánh này đã hiện như vậy trong mọi ảnh chụp từ đầu phiên. Cần seed lại DB sạch hoặc cho seeder đổi tên dòng cũ |
+
+### 2026-08-28 — chi tiết bệnh nhân: dialog lịch hẹn, tab Chẩn đoán & Tư vấn, khung bảng chung
+
+Rà soát bản gốc ở chế độ **chỉ đọc** (`?tab=appointment`, `?tab=consulting`),
+ghi lại trong `docs/clone/pages/patient-detail.md` và `docs/clone/api.md`.
+Không tạo/sửa/xoá bất cứ bản ghi nào trên bản gốc; các nút ghi dữ liệu ghi vào
+`docs/clone/unknowns.md`.
+
+**Retest level 3** — thay đổi chạm vào layer dùng chung (`useCatalogOptions`,
+`.pd-page` / `.pd-pane`, hợp đồng `AppointmentDto`).
+
+#### Đã dựng
+
+| Việc | Nội dung |
+|---|---|
+| Khung bảng | `.pd-page` giữ chiều cao khung nhìn, `.pd-pane` cuộn, `.pd-pane--fill` truyền chiều cao xuống thẻ. **Cả 9 tab có bảng** chuyển sang `.bd-cat-card` — đúng khung bảng của `/taxonomy` và `/labo`: tiêu đề dính, dòng cuộn, phân trang neo đáy thẻ **kể cả khi không có dữ liệu** |
+| Tạo lịch hẹn | Dựng lại theo bản gốc: 1240px, 3 cột form, `Màu lịch hẹn` 4 ô, thẻ `Ghi chú` với `+ Thêm ngay`, và khối "Lịch đã hẹn" đọc lịch thật của chi nhánh theo Ngày / Tuần / Tháng |
+| Chẩn đoán & Tư vấn | 3 nút trên ô ảnh đúng nhãn và đúng hành vi bản gốc; bảng chẩn đoán ghép đôi dữ liệu mỗi ô và có đủ 3 nút thao tác; phiếu tư vấn đủ 13 cột sau `Cấu hình cột`; khối TỔNG KẾ HOẠCH với %/VNĐ và 4 lệnh |
+
+#### Lỗi thật tìm được và đã sửa
+
+| # | Lỗi | Cách sửa |
+|---|-----|----------|
+| 1 | Sửa lịch hẹn rồi bấm Lưu **tạo thêm một lịch mới** — modal luôn gọi `create` | Gọi `update` khi có `appointmentId`; có test canh |
+| 2 | `AppointmentAppService.UpdateAsync` chỉ gọi `Reschedule`, **bỏ rơi `ChiefComplaint`** | Thêm `Appointment.SetDetails(chiefComplaint, notes, color)` |
+| 3 | `Notes` chưa bao giờ được gửi lên ở cả create lẫn update — ô Ghi chú lưu xong là mất | Đưa vào cả 2 DTO và cả 2 adapter |
+| 4 | Lịch hẹn không có màu | Thêm enum `AppointmentColor` + migration `20260828090000_AddAppointmentColor` (viết tay theo lệ của repo) |
+| 5 | `PatientDiagnosisDto.StaffName` / `DiagnosisName` khai mà **không ai gán** → 3 cột luôn hiện dấu gạch | `FillNamesAsync`, mỗi loại một truy vấn; thêm `SecondStaffName` |
+| 6 | `PatientAdviseDto` tương tự, lại thiếu hẳn `SecondStaffName` / `DiagnosisName` → 4 cột của bản gốc không vẽ được | Như trên |
+| 7 | `/v1/app/consulting-data` và `/v1/app/prescription-templates` **không tồn tại** — 404 mỗi lần vào tab, hai picker luôn rỗng | Đọc qua `/v1/app/catalog-entries` theo group; `CatalogOption` thêm `content` để mẫu đơn thuốc vẫn điền được |
+| 8 | `prescription.spec.ts` và `patient-image.spec.ts` còn dùng `role="tab"` — thanh tab của chi tiết bệnh nhân là link từ lần dựng lại `/patient` | Sửa selector sang link + kiểm tra `aria-current`, thêm test bảng/gallery chiếm hết trang |
+
+#### Kết quả chạy thật (bản build production, `vite preview` :8080, API :5019)
+
+- `patient` **13/13** (thêm test layout tab Chẩn đoán & Tư vấn)
+- `patient-appointment` **3/3** (mới)
+- `appointment` **3/3**, `patient-image` **3/3**, `prescription` **3/3**
+- `labo` **14/14**, `finance` pass
+- Quét cả 10 tab chi tiết bệnh nhân: 0 lỗi console, không tràn ngang, thẻ bảng
+  chạm đáy trang ở mọi tab có bảng
+- `tsc` sạch; `oxlint` sạch trong `features/appointments` và
+  `features/patient-management`
+
+| # | Suite | Nguyên nhân | Trạng thái |
+|---|------|-----------|-----------|
+| R-144 | `cskh` :166 và :210 | Dialog "Tạo công việc mới" không tìm thấy combobox `Chọn khách hàng`; dialog file-heart tương tự | **Chưa sửa — có sẵn, không do đợt này.** Đã dựng worktree ở đúng commit `87d2314`, build lại và chạy: **đỏ y hệt 2 test đó**. Nằm ngoài phạm vi đợt này (màn CSKH), cần rà riêng |
+| R-145 | `Domain.Tests` — `PatientTests.FullName_Should_Combine_First_And_Last`, `…Register_Should_Throw_When_FirstName_Empty` | Hai assertion cũ còn theo luật trước lần dựng lại `/patient` (commit `87d2314`): `FullName` nay là **họ trước tên sau** (`Nguyễn Văn An`), và chỉ **họ** là bắt buộc — dialog chỉ có một ô "Họ và tên", tên một chữ là một cái tên trọn vẹn | **Đã sửa.** Sửa assertion cho khớp hành vi đã chốt, thêm một test cho tên một chữ. `Domain.Tests` **200/200** |
+| R-146 | `HttpApi.Host.Tests` — `ControllerConventionTests.All_Routes_Should_Start_With_Api_V1_App` | `MessagingController` khai route đúng bằng `api/v1/app`, không có phần đuôi | **Chưa sửa — có sẵn, không do đợt này.** Không đụng gì tới Messaging trong đợt này |
+
