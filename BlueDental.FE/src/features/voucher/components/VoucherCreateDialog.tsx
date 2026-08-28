@@ -4,6 +4,7 @@ import { Button, ConfigProvider, Form, Modal, Tabs } from "antd";
 import { SaveOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
 import { extractApiError } from "@/lib/apiError";
+import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { voucherDialogTheme } from "@/theme";
 import {
   useCreateVoucher,
@@ -85,6 +86,7 @@ export function VoucherCreateDialog({ open, onClose }: Props) {
   const [form] = Form.useForm<VoucherFormValues>();
   const [tab, setTab] = useState<"single" | "batch">("single");
 
+  const branchId = useCurrentBranchId();
   const createVoucher = useCreateVoucher();
   const createBatch = useCreateVoucherBatch();
   const isPending = createVoucher.isPending || createBatch.isPending;
@@ -154,6 +156,7 @@ export function VoucherCreateDialog({ open, onClose }: Props) {
           prefix: prefixValue,
           code: values.code || undefined,
           name: values.name,
+          branchId,
         };
         await createVoucher.mutateAsync(input);
         toast.success(t("Đã tạo voucher"));
@@ -169,6 +172,7 @@ export function VoucherCreateDialog({ open, onClose }: Props) {
           count: items.length,
           configureAll: batch.configAll,
           items: items.map((it) => toBatchItem(it, batch.configAll)),
+          branchId,
         };
         await createBatch.mutateAsync(input);
         toast.success(t("Đã tạo {0} voucher", items.length));
@@ -178,7 +182,7 @@ export function VoucherCreateDialog({ open, onClose }: Props) {
     } catch (error) {
       toast.error(extractApiError(error));
     }
-  }, [form, tab, batch, createVoucher, createBatch, prefixLabel, resetAll, onClose]);
+  }, [form, tab, batch, branchId, createVoucher, createBatch, prefixLabel, resetAll, onClose]);
 
   const handleClose = useCallback(() => {
     resetAll();

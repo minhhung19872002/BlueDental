@@ -17,13 +17,16 @@ namespace BlueDental.Promotions;
 public class VoucherAppService : ApplicationService, IVoucherAppService
 {
     private readonly IRepository<Voucher, Guid> _repository;
+    private readonly BranchAccessChecker _branchAccess;
     private readonly ICurrentClinicBranchResolver _branchResolver;
 
     public VoucherAppService(
         IRepository<Voucher, Guid> repository,
+        BranchAccessChecker branchAccess,
         ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
+        _branchAccess = branchAccess;
         _branchResolver = branchResolver;
     }
 
@@ -45,17 +48,20 @@ public class VoucherAppService : ApplicationService, IVoucherAppService
     [Authorize(BlueDentalPermissions.Promotions.View)]
     public async Task<VoucherDto> GetAsync(Guid id)
     {
-        return MapToDto(await _repository.GetAsync(id));
+        var voucher = await _repository.GetAsync(id);
+        await GuardBranchAccessAsync(voucher);
+        return MapToDto(voucher);
     }
 
     [Authorize(BlueDentalPermissions.Promotions.View)]
     public async Task<List<VoucherDto>> GetAvailableAsync(GetAvailableVouchersInput input)
     {
-        var branchId = _branchResolver.GetRequiredClinicBranchId();
+        var branchFilter = await _branchAccess.ResolveFilterAsync(input.ClinicBranchId);
         var onDate = input.OnDate ?? DateOnly.FromDateTime(Clock.Now);
         var query = await _repository.GetQueryableAsync();
 
-        query = query.Where(x => x.ClinicBranchId == branchId || x.ClinicBranchId == null);
+        if (branchFilter.Count > 0)
+            query = query.Where(x => branchFilter.Contains(x.ClinicBranchId!.Value) || x.ClinicBranchId == null);
 
         return query
             .Where(x => x.Status == VoucherStatus.Active && x.IsPublished)
@@ -80,7 +86,9 @@ public class VoucherAppService : ApplicationService, IVoucherAppService
     [Authorize(BlueDentalPermissions.Promotions.Manage)]
     public async Task<VoucherDto> CreateAsync(CreateVoucherDto input)
     {
-        var branchId = _branchResolver.GetRequiredClinicBranchId();
+        var ownBranchId = _branchResolver.GetRequiredClinicBranchId();
+        var branchId = await _branchAccess.ResolveWriteTargetAsync(
+            input.BranchId ?? Guid.Empty, ownBranchId);
         var code = ComposeFullCode(input.Prefix, string.IsNullOrWhiteSpace(input.Code)
             ? GenerateRandomCode()
             : input.Code.Trim().ToUpperInvariant());
@@ -108,7 +116,9 @@ public class VoucherAppService : ApplicationService, IVoucherAppService
             throw new BusinessException(BlueDentalDomainErrorCodes.Promotions.InvalidUsageLimit,
                 "Batch count must be between 1 and 100.");
 
-        var branchId = _branchResolver.GetRequiredClinicBranchId();
+        var ownBranchId = _branchResolver.GetRequiredClinicBranchId();
+        var branchId = await _branchAccess.ResolveWriteTargetAsync(
+            input.BranchId ?? Guid.Empty, ownBranchId);
         var vouchers = new List<Voucher>();
         var codesInBatch = new HashSet<string>();
 
@@ -166,6 +176,7 @@ public class VoucherAppService : ApplicationService, IVoucherAppService
     public async Task<VoucherDto> UpdateAsync(Guid id, UpdateVoucherDto input)
     {
         var voucher = await _repository.GetAsync(id);
+        await GuardBranchAccessAsync(voucher);
 
         // A prefix in the payload is adopted (healing pre-prefix vouchers on
         // their next edit); blank keeps the stored one.
@@ -219,6 +230,7 @@ public class VoucherAppService : ApplicationService, IVoucherAppService
     public async Task<VoucherDto> PublishAsync(Guid id)
     {
         var voucher = await _repository.GetAsync(id);
+        await GuardBranchAccessAsync(voucher);
         voucher.Publish();
         await _repository.UpdateAsync(voucher, autoSave: true);
         return MapToDto(voucher);
@@ -228,6 +240,7 @@ public class VoucherAppService : ApplicationService, IVoucherAppService
     public async Task<VoucherDto> UnpublishAsync(Guid id)
     {
         var voucher = await _repository.GetAsync(id);
+        await GuardBranchAccessAsync(voucher);
         voucher.Unpublish();
         await _repository.UpdateAsync(voucher, autoSave: true);
         return MapToDto(voucher);
@@ -237,6 +250,7 @@ public class VoucherAppService : ApplicationService, IVoucherAppService
     public async Task<VoucherRedemptionResultDto> RedeemAsync(Guid id, RedeemVoucherInput input)
     {
         var voucher = await _repository.GetAsync(id);
+        await GuardBranchAccessAsync(voucher);
         var onDate = input.OnDate ?? DateOnly.FromDateTime(Clock.Now);
 
         var discount = voucher.Redeem(onDate, input.OrderAmount);
@@ -257,7 +271,9 @@ public class VoucherAppService : ApplicationService, IVoucherAppService
     [Authorize(BlueDentalPermissions.Promotions.Manage)]
     public async Task DeleteAsync(Guid id)
     {
-        await _repository.DeleteAsync(id, autoSave: true);
+        var voucher = await _repository.GetAsync(id);
+        await GuardBranchAccessAsync(voucher);
+        await _repository.DeleteAsync(voucher, autoSave: true);
     }
 
     [Authorize(BlueDentalPermissions.Promotions.Manage)]
@@ -279,10 +295,11 @@ public class VoucherAppService : ApplicationService, IVoucherAppService
 
     private async Task<IQueryable<Voucher>> BuildQueryAsync(GetVoucherListInput input)
     {
-        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
+        var branchFilter = await _branchAccess.ResolveFilterAsync(input.BranchId);
         var query = await _repository.GetQueryableAsync();
 
-        query = query.Where(x => x.ClinicBranchId == clinicBranchId || x.ClinicBranchId == null);
+        if (branchFilter.Count > 0)
+            query = query.Where(x => branchFilter.Contains(x.ClinicBranchId!.Value) || x.ClinicBranchId == null);
 
         if (!string.IsNullOrWhiteSpace(input.Status))
         {
@@ -407,6 +424,12 @@ public class VoucherAppService : ApplicationService, IVoucherAppService
         VoucherStatus.OutOfUses => "out_of_uses",
         _ => "active"
     };
+
+    private async Task GuardBranchAccessAsync(Voucher entity)
+    {
+        if (entity.ClinicBranchId.HasValue && !await _branchAccess.IsAllowedAsync(entity.ClinicBranchId.Value))
+            throw new Volo.Abp.Domain.Entities.EntityNotFoundException(typeof(Voucher), entity.Id);
+    }
 
     private static VoucherDto MapToDto(Voucher entity) => new()
     {
