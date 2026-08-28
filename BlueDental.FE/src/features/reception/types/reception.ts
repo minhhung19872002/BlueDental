@@ -53,8 +53,10 @@ export interface ReceptionItem {
 
 export interface ReceptionFilter {
   status?: ReceptionStatus;
+  counterFilter?: keyof ReceptionCounters;
   keyword?: string;
   doctorId?: string;
+  branchId?: string;
   date?: string;
   /** Which window around `date` the board is showing. Defaults to one day. */
   viewMode?: "day" | "week" | "month";
@@ -92,4 +94,7 @@ export interface CreateReceptionInput {
   refType: RefType;
   notes?: string;
   services?: string[];
+  scheduledAt?: string;
+  estimatedDurationMinutes?: number;
+  overrideBranchId?: string;
 }

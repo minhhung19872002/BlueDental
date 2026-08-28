@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useMemo } from "react";
+import { Segmented } from "antd";
 import { SearchSelect } from "@/components/SearchSelect";
 import { t } from "@/lib/i18n";
 import type {
@@ -13,12 +14,16 @@ interface DoctorOption {
   title: string;
 }
 
+type CounterKey = keyof ReceptionCounters;
+
 interface ReceptionStatusTabsProps {
   activeTab: ReceptionStatus;
+  activeCounter?: CounterKey;
   metrics?: ReceptionMetrics;
   selectedDoctorId?: string;
   doctors?: DoctorOption[];
   onChange: (status: ReceptionStatus) => void;
+  onCounterClick?: (counter: CounterKey) => void;
   onDoctorSelect?: (doctorId: string | undefined) => void;
 }
 
@@ -34,44 +39,51 @@ const TAB_CONFIGS: TabConfig[] = [
   { key: "Completed",      countKey: "completedCount" },
 ];
 
-interface CounterConfig {
+interface StatChipConfig {
   key: keyof ReceptionCounters;
-  /** Token driving the card's top band and its number. */
-  colorVar: string;
+  bg: string;
+  border: string;
+  color: string;
 }
 
-/**
- * The design colours each counter by status and carries that one colour into
- * both the top band and the number. The values are the brand tokens rather
- * than the Tailwind-ish hexes that were inlined here before.
- */
-const COUNTER_CONFIGS: CounterConfig[] = [
-  { key: "scheduledCount", colorVar: "var(--bd-blue)" },
-  { key: "arrivedCount",   colorVar: "var(--bd-green-bright)" },
-  { key: "cancelledCount", colorVar: "var(--bd-red)" },
-  { key: "lateCount",      colorVar: "var(--bd-gold-deep)" },
-  { key: "temporaryCount", colorVar: "var(--bd-purple)" },
-  { key: "convertedCount", colorVar: "var(--bd-teal)" },
+const STAT_CHIP_CONFIGS: StatChipConfig[] = [
+  { key: "scheduledCount", bg: "#DCEBFA", border: "#BFD6F6", color: "#1E5BB0" },
+  { key: "arrivedCount",   bg: "#DDF3E7", border: "#BDE8CF", color: "#1F7A45" },
+  { key: "cancelledCount", bg: "#FBE0E0", border: "#F3BABA", color: "#B93832" },
+  { key: "lateCount",      bg: "#F7E7C2", border: "#E8CF92", color: "#9A6A10" },
+  { key: "temporaryCount", bg: "#F9E3CC", border: "#E8C19B", color: "#B7611F" },
+  { key: "convertedCount", bg: "#D5ECF7", border: "#AAD7EA", color: "#176F99" },
 ];
+
+const TAB_LABELS: Record<ReceptionStatus, string> = {
+  All:            "Tất cả",
+  WaitingForExam: "Chờ khám",
+  InProgress:     "Đang khám",
+  Completed:      "Hoàn thành",
+};
 
 export const ReceptionStatusTabs: React.FC<ReceptionStatusTabsProps> = ({
   activeTab,
+  activeCounter,
   metrics,
   selectedDoctorId,
   doctors = [],
   onChange,
+  onCounterClick,
   onDoctorSelect,
 }) => {
   const counters = metrics?.counters;
 
-  const tabLabel: Record<ReceptionStatus, string> = {
-    All:            t("Tất cả"),
-    WaitingForExam: t("Chờ khám"),
-    InProgress:     t("Đang khám"),
-    Completed:      t("Hoàn thành"),
-  };
+  const segmentedOptions = useMemo(
+    () =>
+      TAB_CONFIGS.map((tab) => ({
+        value: tab.key,
+        label: `${t(TAB_LABELS[tab.key])} (${metrics?.[tab.countKey] ?? 0})`,
+      })),
+    [metrics],
+  );
 
-  const counterLabel: Record<keyof ReceptionCounters, string> = {
+  const chipLabel: Record<keyof ReceptionCounters, string> = {
     scheduledCount: t("Đã hẹn"),
     arrivedCount:   t("Đã đến"),
     cancelledCount: t("Huỷ hẹn"),
@@ -82,25 +94,12 @@ export const ReceptionStatusTabs: React.FC<ReceptionStatusTabsProps> = ({
 
   return (
     <div className="reception-filter-row">
-      {/* Left: status pills + doctor filter */}
       <div className="reception-filter-left">
-        <div className="reception-status-pills">
-          {TAB_CONFIGS.map((tab) => {
-            const count = metrics?.[tab.countKey] ?? 0;
-            const isActive = activeTab === tab.key;
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                data-testid={`reception-metric-${tab.key}`}
-                className={`reception-status-pill ${isActive ? "reception-status-pill--active" : ""}`}
-                onClick={() => onChange(tab.key)}
-              >
-                {tabLabel[tab.key]} ({count})
-              </button>
-            );
-          })}
-        </div>
+        <Segmented
+          value={activeTab}
+          options={segmentedOptions}
+          onChange={(val) => onChange(val as ReceptionStatus)}
+        />
 
         <SearchSelect
           value={selectedDoctorId}
@@ -112,20 +111,35 @@ export const ReceptionStatusTabs: React.FC<ReceptionStatusTabsProps> = ({
         />
       </div>
 
-      {/* Right: 6 counter cards */}
-      <div className="reception-counter-cards">
-        {COUNTER_CONFIGS.map((c) => (
-          <div
-            key={c.key}
-            className="reception-counter-card"
-            style={{ "--counter-color": c.colorVar } as React.CSSProperties}
-          >
-            <span className="reception-counter-value">
-              {counters?.[c.key] ?? 0}
-            </span>
-            <span className="reception-counter-label">{counterLabel[c.key]}</span>
-          </div>
-        ))}
+      <div className="reception-stat-chips">
+        {STAT_CHIP_CONFIGS.map((c) => {
+          const isActive = activeCounter === c.key;
+          return (
+            <button
+              key={c.key}
+              type="button"
+              className={["reception-stat-chip-btn", isActive && "reception-stat-chip-btn--active"].filter(Boolean).join(" ")}
+              aria-pressed={isActive}
+              onClick={() => onCounterClick?.(c.key)}
+            >
+              <div
+                className="reception-stat-chip"
+                style={{
+                  "--chip-bg": c.bg,
+                  "--chip-border": c.border,
+                  "--chip-color": c.color,
+                } as React.CSSProperties}
+              >
+                <span className="reception-stat-chip-value">
+                  {counters?.[c.key] ?? 0}
+                </span>
+                <span className="reception-stat-chip-label">
+                  {chipLabel[c.key]}
+                </span>
+              </div>
+            </button>
+          );
+        })}
       </div>
     </div>
   );

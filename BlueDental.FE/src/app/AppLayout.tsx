@@ -172,6 +172,18 @@ export function AppLayout() {
 
   useEffect(() => {
     setMobileMenuOpen(false);
+
+    const branchId = useBranchStore.getState().currentBranchId;
+    const url = new URL(window.location.href);
+    if (branchId) {
+      if (url.searchParams.get("branchId") !== branchId) {
+        url.searchParams.set("branchId", branchId);
+        window.history.replaceState(null, "", url.toString());
+      }
+    } else if (url.searchParams.has("branchId")) {
+      url.searchParams.delete("branchId");
+      window.history.replaceState(null, "", url.toString());
+    }
   }, [location.pathname]);
 
   const handleKeyDown = useCallback(

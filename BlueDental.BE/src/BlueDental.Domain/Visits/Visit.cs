@@ -15,8 +15,12 @@ public class Visit : FullAuditedAggregateRoot<Guid>
     public string? Notes { get; private set; }
     public DateTimeOffset ScheduledAt { get; private set; }
     public DateTimeOffset? CheckedInAt { get; private set; }
+    public DateTimeOffset? StartedAt { get; private set; }
     public DateTimeOffset? CompletedAt { get; private set; }
     public string? CancellationReason { get; private set; }
+
+    /// <summary>Estimated duration of the visit in minutes.</summary>
+    public int? EstimatedDurationMinutes { get; private set; }
 
     /// <summary>What reception recorded at the end of the visit, once known.</summary>
     public VisitOutcome? Outcome { get; private set; }
@@ -31,7 +35,8 @@ public class Visit : FullAuditedAggregateRoot<Guid>
         Guid branchId,
         DateTimeOffset scheduledAt,
         Guid? dentistId = null,
-        string? chiefComplaint = null)
+        string? chiefComplaint = null,
+        int? estimatedDurationMinutes = null)
         : base(id)
     {
         PatientId = patientId;
@@ -39,6 +44,7 @@ public class Visit : FullAuditedAggregateRoot<Guid>
         DentistId = dentistId;
         ScheduledAt = scheduledAt;
         ChiefComplaint = chiefComplaint;
+        EstimatedDurationMinutes = estimatedDurationMinutes;
         Status = VisitStatus.Scheduled;
     }
 
@@ -70,6 +76,16 @@ public class Visit : FullAuditedAggregateRoot<Guid>
             throw new BusinessException(BlueDentalDomainErrorCodes.Visits.InvalidTransition,
                 $"Cannot start a visit in status {Status}.");
         Status = VisitStatus.InProgress;
+        StartedAt = DateTimeOffset.UtcNow;
+        return this;
+    }
+
+    public Visit ReassignDentist(Guid dentistId)
+    {
+        if (Status is VisitStatus.Cancelled or VisitStatus.NoShow)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Visits.InvalidTransition,
+                $"Cannot reassign dentist for a visit in status {Status}.");
+        DentistId = dentistId;
         return this;
     }
 

@@ -1,53 +1,48 @@
 import React, { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Modal, Button, Input } from "antd";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { Modal, Button, Input, InputNumber, Form, Select, TimePicker } from "antd";
+import dayjs, { type Dayjs } from "dayjs";
+import { FloatingField } from "@/components/FloatingField";
 import { useCreateReception } from "../api/receptionMutations";
 import { usePatientList } from "@/features/patient-management/api/patientQueries";
 import { useDebounce } from "@/hooks/useDebounce";
-import { SearchSelect } from "@/components/SearchSelect";
 import { PatientEditorDialog } from "@/features/patient-management/components/PatientEditorDialog";
+import type { PatientDto } from "@/features/patient-management/types/patient";
 import type { RefType } from "../types/reception";
 import { t } from "@/lib/i18n";
-
-/** The translator, so helpers below can take it as a parameter. */
-type Translate = (vietnamese: string, ...params: (string | number)[]) => string;
-
-function createSchema(t: Translate) {
-  return z.object({
-    patientId: z.string().optional(),
-    patientName: z.string().min(1, t("Vui lòng chọn khách hàng")),
-    phoneNumber: z.string().optional(),
-    doctorId: z.string().min(1, t("Vui lòng chọn bác sĩ")),
-    appointmentHour: z.string().optional(),
-    appointmentMinute: z.string().optional(),
-    notes: z.string().optional(),
-  });
-}
-
-type FormValues = z.infer<ReturnType<typeof createSchema>>;
 
 interface DoctorOption {
   id: string;
   name: string;
   title: string;
+  branchIds?: string[];
 }
 
 interface ReceptionNewDrawerProps {
   open: boolean;
   doctors: DoctorOption[];
+  branchId?: string;
+  /** The date selected on the toolbar calendar — combined with the time picker. */
+  scheduledDate: Dayjs;
   onClose: () => void;
 }
 
+interface FormValues {
+  patientId?: string;
+  doctorId?: string;
+  appointmentTime: Dayjs;
+  durationMinutes: number;
+  notes?: string;
+}
 
 export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
   open,
   doctors,
+  branchId,
+  scheduledDate,
   onClose,
 }) => {
-  const schema = useMemo(() => createSchema(t), [t]);
+  const [form] = Form.useForm<FormValues>();
   const createMutation = useCreateReception();
   const [selectedPhone, setSelectedPhone] = useState<string>("---");
   const [patientKeyword, setPatientKeyword] = useState("");
@@ -55,53 +50,69 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
   const debouncedPatientKeyword = useDebounce(patientKeyword);
 
   const { data: patientData } = usePatientList({
+    branchId,
     filter: debouncedPatientKeyword || undefined,
     maxResultCount: 20,
   });
 
-  const {
-    control,
-    handleSubmit,
-    reset,
-    setValue,
-    formState: { errors },
-  } = useForm<FormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: {
-      patientId: undefined,
-      patientName: "",
-      phoneNumber: "",
-      doctorId: undefined,
-      appointmentHour: new Date().getHours().toString().padStart(2, "0"),
-      appointmentMinute: "00",
-      notes: "",
-    },
-  });
+  const patientOptions = useMemo(
+    () =>
+      (patientData?.items ?? []).map((p) => ({
+        value: p.id,
+        label: `[${p.patientCode}] - ${p.fullName.toUpperCase()}`,
+        phone: p.phoneNumber,
+        name: p.fullName,
+      })),
+    [patientData],
+  );
 
   const handlePatientChange = (patientId: string) => {
-    const patient = patientData?.items.find((p) => p.id === patientId);
+    const patient = patientOptions.find((p) => p.value === patientId);
     if (patient) {
-      setValue("patientName", patient.fullName, { shouldValidate: true });
-      setValue("patientId", patient.id);
-      setSelectedPhone(patient.phoneNumber ?? "---");
+      setSelectedPhone(patient.phone ?? "---");
     }
   };
 
-  const onSubmit = (data: FormValues) => {
+  const handlePatientCreated = (created: PatientDto) => {
+    form.setFieldValue("patientId", created.id);
+    setSelectedPhone(created.phoneNumber ?? "---");
+    setPatientKeyword(created.fullName ?? "");
+  };
+
+  const resolveBranchId = (doctorId?: string): string | undefined => {
+    if (branchId) return undefined;
+    const doctor = doctors.find((d) => d.id === doctorId);
+    return doctor?.branchIds?.[0];
+  };
+
+  const handleSubmit = async () => {
+    const data = await form.validateFields();
+    const patient = patientOptions.find((p) => p.value === data.patientId);
+
+    const time = data.appointmentTime ?? dayjs();
+    const scheduledAt = scheduledDate
+      .hour(time.hour())
+      .minute(time.minute())
+      .second(0)
+      .toISOString();
+
     createMutation.mutate(
       {
+        overrideBranchId: resolveBranchId(data.doctorId),
         patientId: data.patientId,
-        patientName: data.patientName,
-        phoneNumber: data.phoneNumber ?? "",
-        doctorId: data.doctorId,
+        patientName: patient?.name ?? "",
+        phoneNumber: patient?.phone ?? "",
+        doctorId: data.doctorId ?? "",
         refType: "Self" as RefType,
         notes: data.notes,
         services: [t("Khám tư vấn ban đầu")],
+        scheduledAt,
+        estimatedDurationMinutes: data.durationMinutes,
       },
       {
         onSuccess: () => {
           toast.success(t("Tạo tiếp nhận thành công!"));
-          reset();
+          form.resetFields();
           setSelectedPhone("---");
           onClose();
         },
@@ -113,7 +124,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
   };
 
   const handleClose = () => {
-    reset();
+    form.resetFields();
     setSelectedPhone("---");
     onClose();
   };
@@ -124,158 +135,121 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
       open={open}
       onCancel={handleClose}
       footer={null}
-      width={620}
+      width={772}
       centered
+      destroyOnHidden
       styles={{
         header: { paddingBottom: 8 },
         body: { paddingTop: 8 },
       }}
     >
-      <div className="rn-form">
-        {/* Patient select + Tạo Mới */}
-        <div className="rn-row">
-          <div className="rn-field rn-field--flex1">
-            <label className="rn-label rn-label--required">{t("Khách hàng")}</label>
-            <Controller
-              name="patientId"
-              control={control}
-              render={({ field }) => (
-                <SearchSelect
-                  value={field.value || undefined}
-                  placeholder={t("Tìm kiếm khách hàng")}
-                  options={(patientData?.items ?? []).map((p) => ({
-                    value: p.id,
-                    label: `[${p.patientCode}] - ${p.fullName.toUpperCase()}`,
-                  }))}
+      <Form
+        form={form}
+        layout="vertical"
+        initialValues={{
+          appointmentTime: dayjs(),
+          durationMinutes: 30,
+        }}
+      >
+        <div className="rn-form">
+          {/* Patient select + Tạo Mới */}
+          <div className="rn-row">
+            <div className="rn-field rn-field--flex1">
+              <FloatingField
+                label={t("Khách hàng")}
+                name="patientId"
+                required
+                rules={[{ required: true, message: t("Vui lòng chọn khách hàng") }]}
+              >
+                <Select
+                  showSearch
+                  filterOption={false}
                   onSearch={setPatientKeyword}
-                  onChange={(val) => {
-                    field.onChange(val ?? "");
-                    if (val) handlePatientChange(val);
-                  }}
-                  status={errors.patientName ? "error" : ""}
+                  onChange={(val: string) => handlePatientChange(val)}
+                  options={patientOptions.map((p) => ({
+                    value: p.value,
+                    label: p.label,
+                  }))}
                 />
-              )}
-            />
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", flexShrink: 0 }}>
-            <span style={{ display: "block", height: 21, marginBottom: 4 }} />
-            {/* Beside the search: for a caller who is not on file yet. Opens the
-                same editor the patient list uses, so the record is created the
-                one way rather than a second one. */}
+              </FloatingField>
+            </div>
             <Button
               type="primary"
-              style={{ height: 40, fontWeight: 600 }}
+              className="rn-create-btn"
               onClick={() => setNewPatientOpen(true)}
             >
               {t("Tạo Mới")}
             </Button>
           </div>
-        </div>
 
-        {/* Phone */}
-        <div className="rn-phone-row">
-          <span className="rn-phone-label">{t("Số điện thoại:")}</span>
-          <span className="rn-phone-value">{selectedPhone}</span>
-        </div>
+          {/* Phone */}
+          <div className="rn-phone-row">
+            <span className="rn-phone-label">{t("Số điện thoại:")}</span>
+            <span className="rn-phone-value">{selectedPhone}</span>
+          </div>
 
-        {/* Doctor select */}
-        <div className="rn-field">
-          <label className="rn-label">{t("Bác sĩ điều trị")}</label>
-          <Controller
+          {/* Doctor select */}
+          <FloatingField
+            label={t("Bác sĩ điều trị")}
             name="doctorId"
-            control={control}
-            render={({ field }) => (
-              <SearchSelect
-                value={field.value || undefined}
-                placeholder={t("Chọn bác sĩ")}
-                options={doctors.map((d) => ({ value: d.id, label: d.name }))}
-                onChange={(val) => field.onChange(val ?? "")}
-                status={errors.doctorId ? "error" : ""}
-              />
-            )}
-          />
-          {errors.doctorId && <span className="rn-error">{errors.doctorId.message}</span>}
-        </div>
-
-        {/* Time row */}
-        <div className="rn-time-row">
-          <div className="rn-field rn-field--flex1">
-            <label className="rn-label">{t("Giờ hẹn")}</label>
-            <Controller
-              name="appointmentHour"
-              control={control}
-              render={({ field }) => (
-                <Input
-                  {...field}
-                  style={{ height: 40 }}
-                  suffix={
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10"/><path d="M12 6v6h4"/>
-                    </svg>
-                  }
-                />
-              )}
-            />
-          </div>
-          <div className="rn-field rn-field--flex1">
-            <label className="rn-label">{t("Phút")}</label>
-            <Controller
-              name="appointmentMinute"
-              control={control}
-              render={({ field }) => (
-                <Input {...field} style={{ height: 40 }} />
-              )}
-            />
-          </div>
-        </div>
-
-        {/* Notes */}
-        <div className="rn-field">
-          <Controller
-            name="notes"
-            control={control}
-            render={({ field }) => (
-              <Input.TextArea
-                {...field}
-                rows={4}
-                placeholder={t("Nội dung đặt lịch")}
-                style={{ resize: "none" }}
-              />
-            )}
-          />
-        </div>
-
-        {/* Footer */}
-        <div className="rn-footer">
-          <Button
-            type="primary"
-            loading={createMutation.isPending}
-            onClick={handleSubmit(onSubmit)}
-            style={{ background: "var(--bd-blue)", height: 40, fontWeight: 600, paddingLeft: 20, paddingRight: 20 }}
-            icon={
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-                <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
-              </svg>
-            }
+            rules={[{ required: true, message: t("Vui lòng chọn bác sĩ") }]}
           >
-            {t("Lưu")}
-          </Button>
-        </div>
-      </div>
+            <Select
+              showSearch
+              filterOption={(input, option) =>
+                (option?.label as string ?? "").toLowerCase().includes(input.toLowerCase())
+              }
+              options={doctors.map((d) => ({ value: d.id, label: d.name }))}
+            />
+          </FloatingField>
 
-      {/* Mounted only while open so the dialog's own catalog lookups are not
-          fetched behind a drawer nobody has asked for a new patient from. */}
+          {/* Time + duration */}
+          <div className="rn-time-row">
+            <div className="rn-field rn-field--flex1">
+              <FloatingField label={t("Giờ hẹn")} name="appointmentTime">
+                <TimePicker format="HH:mm" style={{ width: "100%" }} />
+              </FloatingField>
+            </div>
+            <div className="rn-field rn-field--flex1">
+              <FloatingField label={t("Phút")} name="durationMinutes">
+                <InputNumber min={5} max={480} step={5} style={{ width: "100%" }} />
+              </FloatingField>
+            </div>
+          </div>
+
+          {/* Notes */}
+          <FloatingField label={t("Nội dung đặt lịch")} name="notes">
+            <Input.TextArea rows={4} style={{ resize: "none" }} />
+          </FloatingField>
+
+          {/* Footer */}
+          <div className="rn-footer">
+            <Button
+              type="primary"
+              loading={createMutation.isPending}
+              onClick={handleSubmit}
+              style={{ background: "var(--bd-blue)", height: 40, fontWeight: 600, paddingLeft: 20, paddingRight: 20 }}
+              icon={
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                  <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+                </svg>
+              }
+            >
+              {t("Lưu")}
+            </Button>
+          </div>
+        </div>
+      </Form>
+
       {newPatientOpen && (
         <PatientEditorDialog
           open
           patient={null}
           onClose={() => {
-            // The list this drawer searches refetches on its own; clearing the
-            // keyword puts the newest records back in view.
             setNewPatientOpen(false);
-            setPatientKeyword("");
           }}
+          onCreated={handlePatientCreated}
         />
       )}
     </Modal>

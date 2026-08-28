@@ -14,11 +14,15 @@ public class VisitDto : FullAuditedEntityDto<Guid>
     public string? Notes { get; set; }
     public DateTimeOffset ScheduledAt { get; set; }
     public DateTimeOffset? CheckedInAt { get; set; }
+    public DateTimeOffset? StartedAt { get; set; }
     public DateTimeOffset? CompletedAt { get; set; }
     public string? CancellationReason { get; set; }
+    public int? EstimatedDurationMinutes { get; set; }
     public VisitOutcome? Outcome { get; set; }
     public DateTimeOffset? OutcomeRecordedAt { get; set; }
     public string? PatientName { get; set; }
+    public string? PatientPhone { get; set; }
+    public int? PatientYearOfBirth { get; set; }
     public string? DentistName { get; set; }
 }
 
@@ -29,6 +33,7 @@ public class CreateVisitDto
     public Guid? DentistId { get; set; }
     public DateTimeOffset ScheduledAt { get; set; }
     public string? ChiefComplaint { get; set; }
+    public int? EstimatedDurationMinutes { get; set; }
 }
 
 public class UpdateVisitDto
@@ -42,6 +47,11 @@ public class UpdateVisitDto
 public class RecordVisitOutcomeDto
 {
     public VisitOutcome Outcome { get; set; }
+}
+
+public class ReassignDentistDto
+{
+    public Guid DentistId { get; set; }
 }
 
 public class GetVisitListInput : PagedAndSortedResultRequestDto

@@ -1,4 +1,5 @@
 import { Empty, Spin } from "antd";
+import dayjs from "dayjs";
 import { useNavigate } from "react-router-dom";
 import { useReceptionList } from "@/features/reception/api/receptionQueries";
 import type { ReceptionStatus } from "@/features/reception/types/reception";
@@ -17,9 +18,12 @@ const STATUS_LOOK: Partial<Record<ReceptionStatus, { label: string; color: strin
 /** Today's visits that are not finished yet, in the design's compact row form. */
 export function OngoingReceptionsCard() {
   const navigate = useNavigate();
-  const { data, isLoading } = useReceptionList({});
+  const { data, isLoading } = useReceptionList({
+    date: dayjs().format("YYYY-MM-DD"),
+    viewMode: "day",
+  });
 
-  const rows = (data?.items ?? [])
+  const rows = (data?.pages.flatMap((p) => p.items) ?? [])
     .filter((item) => item.status !== "Completed")
     .slice(0, MAX_ROWS);
 

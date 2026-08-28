@@ -4,6 +4,7 @@ import type {
   AppointmentCounterType,
   AppointmentOutcome,
   CreateReceptionInput,
+  ReceptionCounters,
   ReceptionFilter,
   ReceptionItem,
   ReceptionMetrics,
@@ -31,19 +32,20 @@ const TAB_STATUSES: Record<Exclude<ReceptionStatus, "All">, number[]> = {
   Completed: [VISIT_STATUS.Completed],
 };
 
+const COUNTER_STATUSES: Record<keyof ReceptionCounters, number[]> = {
+  scheduledCount: [VISIT_STATUS.Scheduled],
+  arrivedCount: [VISIT_STATUS.CheckedIn, VISIT_STATUS.InProgress, VISIT_STATUS.Completed],
+  cancelledCount: [VISIT_STATUS.Cancelled],
+  lateCount: [VISIT_STATUS.NoShow],
+  temporaryCount: [],
+  convertedCount: [],
+};
+
 function mapStatusFromBe(beStatus: unknown): ReceptionStatus {
   switch (beStatus) {
     case VISIT_STATUS.InProgress: return "InProgress";
     case VISIT_STATUS.Completed: return "Completed";
     default: return "WaitingForExam";
-  }
-}
-
-function mapStatusToBe(status: ReceptionStatus): string {
-  switch (status) {
-    case "InProgress": return "start";
-    case "Completed": return "complete";
-    default: return "check-in";
   }
 }
 
@@ -57,6 +59,19 @@ const OUTCOME_BY_VALUE: Record<number, AppointmentOutcome> = {
   3: "TransferDoctor",
   4: "Revisit",
 };
+
+const OUTCOME_TO_VALUE: Record<string, number> = {
+  EndTreatment: 1,
+  FollowUp: 2,
+  TransferDoctor: 3,
+  Revisit: 4,
+};
+
+function formatStepTime(iso: string | undefined | null): string | undefined {
+  if (!iso) return undefined;
+  const d = dayjs(iso);
+  return d.isValid() ? d.format("HH:mm") : undefined;
+}
 
 function mapOutcome(raw: unknown): AppointmentOutcome {
   if (typeof raw === "number") return OUTCOME_BY_VALUE[raw] ?? null;
@@ -123,21 +138,37 @@ function mapVisitDto(dto: Record<string, unknown>): ReceptionItem {
     // reads `scheduledAt` because `slotStart` belongs to the appointment
     // contract and was never on this response.
     arrivalTime: ((dto.scheduledAt as string) ?? (dto.checkedInAt as string) ?? ""),
+    step1Time: formatStepTime(dto.checkedInAt as string | undefined),
+    step2Time: formatStepTime(dto.startedAt as string | undefined),
+    step3Time: formatStepTime(dto.completedAt as string | undefined),
     createdAt: (dto.creationTime as string) || new Date().toISOString(),
-    // The server stores the outcome as its enum name, which is the same set of
-    // values the reception buttons use.
     selectedOutcome: mapOutcome(dto.outcome),
+    patientYearOfBirth: (dto.patientYearOfBirth as number) ?? undefined,
   };
 }
 
 export const receptionApi = {
-  async getList(filter: ReceptionFilter = {}): Promise<{ items: ReceptionItem[]; total: number }> {
+  async getList(
+    filter: ReceptionFilter = {},
+    skipCount = 0,
+    maxResultCount = 20,
+  ): Promise<{ items: ReceptionItem[]; total: number }> {
+    let statuses: number[] | undefined;
+    if (filter.counterFilter) {
+      const mapped = COUNTER_STATUSES[filter.counterFilter];
+      statuses = mapped.length > 0 ? mapped : [-1];
+    } else if (filter.status && filter.status !== "All") {
+      statuses = TAB_STATUSES[filter.status];
+    }
+
     const res = await api.get("/v1/app/visits", {
       params: {
-        keyword: filter.keyword,
+        branchId: filter.branchId,
+        filter: filter.keyword,
         dentistId: filter.doctorId,
-        statuses: filter.status && filter.status !== "All" ? TAB_STATUSES[filter.status] : undefined,
-        maxResultCount: 50,
+        statuses,
+        skipCount,
+        maxResultCount,
         ...dateWindow(filter),
       },
     });
@@ -149,7 +180,7 @@ export const receptionApi = {
     // The server counts the same window the list is showing. This used to page
     // the rows back and call every one of them arrived.
     const res = await api.get("/v1/app/visits/stats", {
-      params: dateWindow(filter),
+      params: { branchId: filter.branchId, ...dateWindow(filter) },
     });
     const stats = res.data ?? {};
 
@@ -174,16 +205,15 @@ export const receptionApi = {
       patientId: input.patientId ?? null,
       dentistId: input.doctorId,
       branchId: input.branchId,
-      scheduledAt: new Date().toISOString(),
+      scheduledAt: input.scheduledAt ?? new Date().toISOString(),
       chiefComplaint: input.notes,
+      estimatedDurationMinutes: input.estimatedDurationMinutes ?? null,
     });
     return mapVisitDto(res.data as Record<string, unknown>);
   },
 
-  async updateStatus(id: string, status: ReceptionStatus): Promise<ReceptionItem> {
-    const action = mapStatusToBe(status);
-    const res = await api.post(`/v1/app/visits/${id}/${action}`);
-    return mapVisitDto(res.data as Record<string, unknown>);
+  async updateStatus(id: string, action: "check-in" | "start" | "complete"): Promise<void> {
+    await api.post(`/v1/app/visits/${id}/${action}`);
   },
 
   /**
@@ -192,10 +222,18 @@ export const receptionApi = {
    * outcome field to begin with.
    */
   async updateOutcome(id: string, outcome: string): Promise<void> {
-    await api.post(`/v1/app/visits/${id}/outcome`, { outcome });
+    const numericOutcome = OUTCOME_TO_VALUE[outcome];
+    if (numericOutcome == null) return;
+    await api.post(`/v1/app/visits/${id}/outcome`, { outcome: numericOutcome });
   },
 
   async updateDoctor(id: string, doctorId: string): Promise<void> {
-    await api.put(`/v1/app/visits/${id}`, { dentistId: doctorId });
+    await api.post(`/v1/app/visits/${id}/reassign-dentist`, { dentistId: doctorId });
+  },
+
+  async cancel(id: string, reason: string): Promise<void> {
+    await api.post(`/v1/app/visits/${id}/cancel`, JSON.stringify(reason), {
+      headers: { "Content-Type": "application/json" },
+    });
   },
 };

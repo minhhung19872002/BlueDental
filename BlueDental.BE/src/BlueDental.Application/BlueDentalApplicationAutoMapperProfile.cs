@@ -97,6 +97,8 @@ public class BlueDentalApplicationAutoMapperProfile : Profile
         /* Visits */
         CreateMap<Visit, VisitDto>()
             .ForMember(d => d.PatientName, opt => opt.Ignore())
+            .ForMember(d => d.PatientPhone, opt => opt.Ignore())
+            .ForMember(d => d.PatientYearOfBirth, opt => opt.Ignore())
             .ForMember(d => d.DentistName, opt => opt.Ignore());
 
         /* Labo */

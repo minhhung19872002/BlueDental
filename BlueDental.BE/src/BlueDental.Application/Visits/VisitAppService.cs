@@ -22,17 +22,20 @@ public class VisitAppService : ApplicationService, IVisitAppService
     private readonly IRepository<Patient, Guid> _patientRepository;
     private readonly IIdentityUserRepository _userRepository;
     private readonly ICurrentClinicBranchResolver _branchResolver;
+    private readonly BranchAccessChecker _branchAccess;
 
     public VisitAppService(
         IRepository<Visit, Guid> repository,
         IRepository<Patient, Guid> patientRepository,
         IIdentityUserRepository userRepository,
-        ICurrentClinicBranchResolver branchResolver)
+        ICurrentClinicBranchResolver branchResolver,
+        BranchAccessChecker branchAccess)
     {
         _repository = repository;
         _patientRepository = patientRepository;
         _userRepository = userRepository;
         _branchResolver = branchResolver;
+        _branchAccess = branchAccess;
     }
 
     /// <summary>
@@ -50,9 +53,9 @@ public class VisitAppService : ApplicationService, IVisitAppService
 
         var patientIds = entities.Select(v => v.PatientId).Distinct().ToList();
         var patientQuery = await _patientRepository.GetQueryableAsync();
-        var patients = (await AsyncExecuter.ToListAsync(
-                patientQuery.Where(p => patientIds.Contains(p.Id))))
-            .ToDictionary(p => p.Id, p => (p.LastName + " " + p.FirstName).Trim());
+        var patientList = await AsyncExecuter.ToListAsync(
+            patientQuery.Where(p => patientIds.Contains(p.Id)));
+        var patients = patientList.ToDictionary(p => p.Id);
 
         var dentistIds = entities
             .Where(v => v.DentistId.HasValue)
@@ -67,7 +70,12 @@ public class VisitAppService : ApplicationService, IVisitAppService
 
         for (var i = 0; i < entities.Count; i++)
         {
-            dtos[i].PatientName = patients.GetValueOrDefault(entities[i].PatientId);
+            var patient = patients.GetValueOrDefault(entities[i].PatientId);
+            dtos[i].PatientName = patient != null
+                ? (patient.LastName + " " + patient.FirstName).Trim()
+                : null;
+            dtos[i].PatientPhone = patient?.Contact?.PhoneNumber;
+            dtos[i].PatientYearOfBirth = patient?.DateOfBirth?.Year;
             dtos[i].DentistName = entities[i].DentistId.HasValue
                 ? dentists.GetValueOrDefault(entities[i].DentistId!.Value)
                 : null;
@@ -115,11 +123,11 @@ public class VisitAppService : ApplicationService, IVisitAppService
     {
         var query = await _repository.GetQueryableAsync();
 
-        // The caller does not get to choose the branch — it comes from the
-        // signed-in user, which is what closes the IDOR the audit found. An
-        // explicit BranchId is only honoured when it is the user's own.
-        var branchId = _branchResolver.GetRequiredClinicBranchId();
-        query = query.Where(v => v.BranchId == branchId);
+        var branchFilter = await _branchAccess.ResolveFilterAsync(input.BranchId);
+        if (branchFilter.Count > 0)
+        {
+            query = query.Where(v => branchFilter.Contains(v.BranchId));
+        }
 
         if (input.PatientId.HasValue)
             query = query.Where(v => v.PatientId == input.PatientId.Value);
@@ -139,10 +147,20 @@ public class VisitAppService : ApplicationService, IVisitAppService
 
         if (!string.IsNullOrWhiteSpace(input.Filter))
         {
-            var filter = input.Filter.Trim();
+            var filter = input.Filter.Trim().ToLower();
+            var patientQuery = await _patientRepository.GetQueryableAsync();
+            var matchingPatientIds = patientQuery
+                .Where(p =>
+                    p.FirstName.ToLower().Contains(filter)
+                    || p.LastName.ToLower().Contains(filter)
+                    || p.PatientCode.ToLower().Contains(filter)
+                    || (p.Contact != null && p.Contact.PhoneNumber != null && p.Contact.PhoneNumber.Contains(filter)))
+                .Select(p => p.Id);
+
             query = query.Where(v =>
-                (v.ChiefComplaint != null && v.ChiefComplaint.Contains(filter))
-                || (v.Notes != null && v.Notes.Contains(filter)));
+                (v.ChiefComplaint != null && v.ChiefComplaint.ToLower().Contains(filter))
+                || (v.Notes != null && v.Notes.ToLower().Contains(filter))
+                || matchingPatientIds.Contains(v.PatientId));
         }
 
         return query;
@@ -152,7 +170,7 @@ public class VisitAppService : ApplicationService, IVisitAppService
     public async Task<VisitDto> GetAsync(Guid id)
     {
         var visit = await _repository.GetAsync(id);
-        GuardBranchAccess(visit);
+        await GuardBranchAccessAsync(visit);
 
         var dto = ObjectMapper.Map<Visit, VisitDto>(visit);
         await FillNamesAsync([visit], [dto]);
@@ -162,14 +180,16 @@ public class VisitAppService : ApplicationService, IVisitAppService
     [Authorize(BlueDentalPermissions.Visits.Create)]
     public async Task<VisitDto> CreateAsync(CreateVisitDto input)
     {
-        var branchId = _branchResolver.GetRequiredClinicBranchId();
+        var branchId = await _branchAccess.ResolveWriteTargetAsync(
+            input.BranchId, _branchResolver.GetRequiredClinicBranchId());
         var visit = new Visit(
             GuidGenerator.Create(),
             input.PatientId,
             branchId,
             input.ScheduledAt,
             input.DentistId,
-            input.ChiefComplaint);
+            input.ChiefComplaint,
+            input.EstimatedDurationMinutes);
         await _repository.InsertAsync(visit, autoSave: true);
         return ObjectMapper.Map<Visit, VisitDto>(visit);
     }
@@ -178,7 +198,7 @@ public class VisitAppService : ApplicationService, IVisitAppService
     public async Task<VisitDto> UpdateAsync(Guid id, UpdateVisitDto input)
     {
         var visit = await _repository.GetAsync(id);
-        GuardBranchAccess(visit);
+        await GuardBranchAccessAsync(visit);
         visit.Update(input.DentistId, input.ScheduledAt, input.ChiefComplaint, input.Notes);
         await _repository.UpdateAsync(visit, autoSave: true);
         return ObjectMapper.Map<Visit, VisitDto>(visit);
@@ -188,7 +208,7 @@ public class VisitAppService : ApplicationService, IVisitAppService
     public async Task CheckInAsync(Guid id)
     {
         var visit = await _repository.GetAsync(id);
-        GuardBranchAccess(visit);
+        await GuardBranchAccessAsync(visit);
         visit.CheckIn();
         await _repository.UpdateAsync(visit, autoSave: true);
     }
@@ -197,7 +217,7 @@ public class VisitAppService : ApplicationService, IVisitAppService
     public async Task StartAsync(Guid id)
     {
         var visit = await _repository.GetAsync(id);
-        GuardBranchAccess(visit);
+        await GuardBranchAccessAsync(visit);
         visit.Start();
         await _repository.UpdateAsync(visit, autoSave: true);
     }
@@ -206,7 +226,7 @@ public class VisitAppService : ApplicationService, IVisitAppService
     public async Task CompleteAsync(Guid id, string? notes)
     {
         var visit = await _repository.GetAsync(id);
-        GuardBranchAccess(visit);
+        await GuardBranchAccessAsync(visit);
         visit.Complete(notes);
         await _repository.UpdateAsync(visit, autoSave: true);
     }
@@ -215,7 +235,7 @@ public class VisitAppService : ApplicationService, IVisitAppService
     public async Task CancelAsync(Guid id, string reason)
     {
         var visit = await _repository.GetAsync(id);
-        GuardBranchAccess(visit);
+        await GuardBranchAccessAsync(visit);
         visit.Cancel(reason);
         await _repository.UpdateAsync(visit, autoSave: true);
     }
@@ -224,7 +244,7 @@ public class VisitAppService : ApplicationService, IVisitAppService
     public async Task MarkNoShowAsync(Guid id)
     {
         var visit = await _repository.GetAsync(id);
-        GuardBranchAccess(visit);
+        await GuardBranchAccessAsync(visit);
         visit.MarkNoShow();
         await _repository.UpdateAsync(visit, autoSave: true);
     }
@@ -238,16 +258,24 @@ public class VisitAppService : ApplicationService, IVisitAppService
     public async Task<VisitDto> RecordOutcomeAsync(Guid id, RecordVisitOutcomeDto input)
     {
         var visit = await _repository.GetAsync(id);
-        GuardBranchAccess(visit);
+        await GuardBranchAccessAsync(visit);
         visit.RecordOutcome(input.Outcome);
         await _repository.UpdateAsync(visit, autoSave: true);
         return ObjectMapper.Map<Visit, VisitDto>(visit);
     }
 
-    private void GuardBranchAccess(Visit entity)
+    [Authorize(BlueDentalPermissions.Visits.Workflow)]
+    public async Task ReassignDentistAsync(Guid id, Guid dentistId)
     {
-        var branchId = _branchResolver.GetRequiredClinicBranchId();
-        if (entity.BranchId != branchId)
+        var visit = await _repository.GetAsync(id);
+        await GuardBranchAccessAsync(visit);
+        visit.ReassignDentist(dentistId);
+        await _repository.UpdateAsync(visit, autoSave: true);
+    }
+
+    private async Task GuardBranchAccessAsync(Visit entity)
+    {
+        if (!await _branchAccess.IsAllowedAsync(entity.BranchId))
             throw new EntityNotFoundException(typeof(Visit), entity.Id);
     }
 }

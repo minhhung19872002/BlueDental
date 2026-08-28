@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
-import { Button, Spin } from "antd";
-import { DownloadOutlined, FormOutlined } from "@ant-design/icons";
+import { Spin } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
+import { ConfirmCancelDialog } from "@/components/ConfirmCancelDialog";
 import { ReceptionToolbar } from "../components/ReceptionToolbar";
 import { ReceptionStatusTabs } from "../components/ReceptionStatusTabs";
-import { ReceptionGrid } from "../components/ReceptionGrid";
+import { ReceptionCard } from "../components/ReceptionCard";
 import { ReceptionEmptyState } from "../components/ReceptionEmptyState";
 import { ReceptionNewDrawer } from "../components/ReceptionNewDrawer";
 import {
@@ -13,16 +13,22 @@ import {
   useReceptionMetrics,
   useReceptionDoctors,
 } from "../api/receptionQueries";
-import { useUpdateReceptionStatus, useUpdateReceptionOutcome, useUpdateReceptionDoctor } from "../api/receptionMutations";
+import {
+  useUpdateReceptionStatus,
+  useUpdateReceptionOutcome,
+  useUpdateReceptionDoctor,
+  useCancelReception,
+} from "../api/receptionMutations";
 import { t } from "@/lib/i18n";
-import { PageHeader } from "@/components/PageHeader";
-import { exportToExcel } from "@/utils/exportExcel";
-import { formatClock, formatVND } from "@/utils/format";
+import { useBranchFilter } from "@/lib/clinicBranch";
+import { useDebounce } from "@/hooks/useDebounce";
 import type {
   ReceptionStatus,
   ReceptionFilter,
+  ReceptionCounters,
   AppointmentOutcome,
 } from "../types/reception";
+import "../components/reception.css";
 
 type ViewMode = "day" | "week" | "month";
 
@@ -33,29 +39,68 @@ export const ReceptionPage: React.FC = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("day");
   const [currentDate, setCurrentDate] = useState<Dayjs>(dayjs());
+  const [activeCounter, setActiveCounter] = useState<keyof ReceptionCounters | undefined>();
+  const [cancelTarget, setCancelTarget] = useState<{ id: string; name: string } | null>(null);
+  const branchId = useBranchFilter();
+  const debouncedKeyword = useDebounce(keyword);
 
   const filter: ReceptionFilter = {
     status: activeTab,
-    keyword,
+    counterFilter: activeCounter,
+    keyword: debouncedKeyword,
     doctorId: selectedDoctorId,
+    branchId,
     date: currentDate.format("YYYY-MM-DD"),
     viewMode,
   };
 
-  const { data: listData, isLoading: listLoading } = useReceptionList(filter);
-  // The counters read the same window as the list, minus the status tab.
-  const { data: metrics } = useReceptionMetrics({ date: filter.date, viewMode });
-  const { data: doctors = [] } = useReceptionDoctors();
+  const {
+    data: listData,
+    isLoading: listLoading,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useReceptionList(filter);
+  const { data: metrics } = useReceptionMetrics({ date: filter.date, viewMode, branchId });
+  const { data: doctors = [] } = useReceptionDoctors(branchId);
   const updateStatusMutation = useUpdateReceptionStatus();
   const updateOutcomeMutation = useUpdateReceptionOutcome();
   const updateDoctorMutation = useUpdateReceptionDoctor();
+  const cancelMutation = useCancelReception();
 
-  const handleStatusChange = (id: string, newStatus: ReceptionStatus) => {
+  const items = useMemo(
+    () => listData?.pages.flatMap((p) => p.items) ?? [],
+    [listData],
+  );
+
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  const handleIntersect = useCallback(
+    (entries: IntersectionObserverEntry[]) => {
+      if (entries[0]?.isIntersecting && hasNextPage && !isFetchingNextPage) {
+        fetchNextPage();
+      }
+    },
+    [hasNextPage, isFetchingNextPage, fetchNextPage],
+  );
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(handleIntersect, {
+      rootMargin: "200px",
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [handleIntersect]);
+
+  const handleStatusChange = (id: string, action: "check-in" | "start" | "complete") => {
     updateStatusMutation.mutate(
-      { id, status: newStatus },
+      { id, action },
       {
         onSuccess: () => {
-          toast.success(t("Cập nhật trạng thái tiếp nhận thành công!"));
+          const labels = { "check-in": t("Đã đến"), start: t("Bắt đầu khám"), complete: t("Hoàn tất") };
+          toast.success(labels[action]);
         },
         onError: (err) => {
           toast.error(err.message || t("Cập nhật trạng thái thất bại"));
@@ -73,92 +118,61 @@ export const ReceptionPage: React.FC = () => {
   };
 
   const handleCancel = (id: string) => {
-    handleStatusChange(id, "All");
+    const item = items.find((i) => i.id === id);
+    setCancelTarget({ id, name: item?.patientName ?? "" });
   };
 
-  const items = listData?.items ?? [];
-
-  // The design's "Xuất file" writes the rows currently on screen, so the
-  // export follows whatever tab, date, doctor and search are in effect.
-  const handleExport = () => {
-    exportToExcel(
-      items,
-      [
-        {
-          header: t("Giờ"),
-          key: "arrivalTime",
-          format: (v) => (typeof v === "string" ? formatClock(v) : ""),
+  const handleCancelConfirm = (reason: string) => {
+    if (!cancelTarget) return;
+    cancelMutation.mutate(
+      { id: cancelTarget.id, reason },
+      {
+        onSuccess: () => {
+          toast.success(t("Đã huỷ lịch hẹn"));
+          setCancelTarget(null);
         },
-        { header: t("Khách hàng"), key: "patientName" },
-        { header: t("Số điện thoại"), key: "patientPhone" },
-        {
-          header: t("Dịch vụ"),
-          key: "services",
-          format: (v) => (Array.isArray(v) ? v.join(", ") : ""),
+        onError: (err) => {
+          toast.error(err.message || t("Huỷ lịch thất bại"));
         },
-        { header: t("Bác sĩ"), key: "doctorName" },
-        { header: t("Trạng thái"), key: "status" },
-        {
-          header: t("Còn phải thu"),
-          key: "totalDue",
-          format: (v) => formatVND(Number(v ?? 0)),
-        },
-      ],
-      `tiep-nhan-${currentDate.format("YYYY-MM-DD")}`,
+      },
     );
+  };
+
+  const handleCounterClick = (counter: keyof ReceptionCounters) => {
+    setActiveCounter((prev) => {
+      if (prev === counter) return undefined;
+      setActiveTab("All");
+      return counter;
+    });
   };
 
   return (
     <div className="reception-page">
-      <PageHeader
-        title={t("Tiếp nhận")}
-        subtitle={t("Luồng khách trong ngày {0}", currentDate.format("DD/MM/YYYY"))}
-        actions={
-          <>
-            <Button
-              icon={<DownloadOutlined />}
-              disabled={items.length === 0}
-              onClick={handleExport}
-            >
-              {t("Xuất file")}
-            </Button>
-            <Button
-              type="primary"
-              icon={<FormOutlined />}
-              onClick={() => setDrawerOpen(true)}
-            >
-              {t("Tạo tiếp nhận")}
-            </Button>
-          </>
-        }
-      />
-
-      {/* Card 1: toolbar */}
       <div className="reception-card reception-card--toolbar">
         <ReceptionToolbar
           keyword={keyword}
           viewMode={viewMode}
           currentDate={currentDate}
           onSearchChange={setKeyword}
-          onDoctorSelect={setSelectedDoctorId}
           onViewModeChange={setViewMode}
           onDateChange={setCurrentDate}
+          onCreateClick={() => setDrawerOpen(true)}
         />
       </div>
 
-      {/* Card 2: status tabs + counters */}
       <div className="reception-card reception-card--tabs">
         <ReceptionStatusTabs
           activeTab={activeTab}
+          activeCounter={activeCounter}
           metrics={metrics}
           selectedDoctorId={selectedDoctorId}
           doctors={doctors}
-          onChange={setActiveTab}
+          onChange={(status) => { setActiveTab(status); setActiveCounter(undefined); }}
+          onCounterClick={handleCounterClick}
           onDoctorSelect={setSelectedDoctorId}
         />
       </div>
 
-      {/* Card 3: the list, as the design draws its lists */}
       <div className="reception-card-grid-wrapper">
         {listLoading ? (
           <div className="reception-loading">
@@ -167,20 +181,45 @@ export const ReceptionPage: React.FC = () => {
         ) : items.length === 0 ? (
           <ReceptionEmptyState />
         ) : (
-          <ReceptionGrid
-            items={items}
-            doctors={doctors}
-            onOutcomeChange={handleOutcomeChange}
-            onDoctorChange={handleDoctorChange}
-            onCancel={handleCancel}
-          />
+          <>
+            <div className="reception-card-grid">
+              {items.map((item) => (
+                <ReceptionCard
+                  key={item.id}
+                  item={item}
+                  doctors={doctors}
+                  onStatusChange={handleStatusChange}
+                  onOutcomeChange={handleOutcomeChange}
+                  onDoctorChange={handleDoctorChange}
+                  onCancel={handleCancel}
+                />
+              ))}
+            </div>
+            <div ref={sentinelRef} className="reception-scroll-sentinel">
+              {isFetchingNextPage && (
+                <div className="reception-loading reception-loading--more">
+                  <Spin />
+                </div>
+              )}
+            </div>
+          </>
         )}
       </div>
 
       <ReceptionNewDrawer
         open={drawerOpen}
         doctors={doctors}
+        branchId={branchId}
+        scheduledDate={currentDate}
         onClose={() => setDrawerOpen(false)}
+      />
+
+      <ConfirmCancelDialog
+        open={!!cancelTarget}
+        name={cancelTarget?.name ?? ""}
+        pending={cancelMutation.isPending}
+        onConfirm={handleCancelConfirm}
+        onClose={() => setCancelTarget(null)}
       />
     </div>
   );

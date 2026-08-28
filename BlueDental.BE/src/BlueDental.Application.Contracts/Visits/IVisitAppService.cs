@@ -18,4 +18,5 @@ public interface IVisitAppService : IApplicationService
     Task CancelAsync(Guid id, string reason);
     Task MarkNoShowAsync(Guid id);
     Task<VisitDto> RecordOutcomeAsync(Guid id, RecordVisitOutcomeDto input);
+    Task ReassignDentistAsync(Guid id, Guid dentistId);
 }

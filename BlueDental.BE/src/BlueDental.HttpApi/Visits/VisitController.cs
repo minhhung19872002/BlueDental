@@ -49,4 +49,8 @@ public sealed class VisitController(IVisitAppService service) : BlueDentalContro
     [HttpPost("{id:guid}/outcome")]
     public Task<VisitDto> RecordOutcomeAsync(Guid id, [FromBody] RecordVisitOutcomeDto input) =>
         service.RecordOutcomeAsync(id, input);
+
+    [HttpPost("{id:guid}/reassign-dentist")]
+    public Task ReassignDentistAsync(Guid id, [FromBody] ReassignDentistDto input) =>
+        service.ReassignDentistAsync(id, input.DentistId);
 }
