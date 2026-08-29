@@ -38,6 +38,16 @@ export function useCalendarState() {
     setCurrentDate((d) => d.add(dir, unit));
   };
 
+  const workSchedule = searchParams.get("workSchedule") as "builder" | null;
+
+  const setWorkSchedule = (v: "builder" | null) => {
+    setSearchParams((params) => {
+      if (v) params.set("workSchedule", v);
+      else params.delete("workSchedule");
+      return params;
+    });
+  };
+
   return {
     topTab,
     setTopTab,
@@ -46,5 +56,7 @@ export function useCalendarState() {
     currentDate,
     setCurrentDate,
     navigateDate,
+    workSchedule,
+    setWorkSchedule,
   };
 }

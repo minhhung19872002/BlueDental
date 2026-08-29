@@ -1,4 +1,5 @@
 using BlueDental.Promotions;
+using BlueDental.Timekeeping;
 using Microsoft.Extensions.DependencyInjection;
 using Volo.Abp;
 using Volo.Abp.Account;
@@ -46,5 +47,6 @@ public class BlueDentalApplicationModule : AbpModule
     public override async Task OnApplicationInitializationAsync(ApplicationInitializationContext context)
     {
         await context.AddBackgroundWorkerAsync<VoucherExpirationWorker>();
+        await context.AddBackgroundWorkerAsync<TimekeepingEndOfDayWorker>();
     }
 }

@@ -363,6 +363,7 @@ public class StaffAppService(
             Email = user.Email,
             PhoneNumber = user.PhoneNumber,
             IsActive = user.IsActive,
+            CreationTime = user.CreationTime,
             RoleNames = roles.ToList(),
             BranchIds = assignments.Select(a => a.ClinicBranchId).ToList(),
 

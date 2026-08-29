@@ -4,6 +4,7 @@
 .seg-tabs {
   position: relative;
   display: inline-flex;
+  align-items: center;
   gap: 2px;
   padding: 3px;
   height: 40px;
@@ -12,8 +13,6 @@
   border-radius: 10px;
   background: #ffffff;
   max-width: 100%;
-  overflow-x: auto;
-  scrollbar-width: thin;
 }
 
 /* The navy fill that slides from the old active item to the new one. */

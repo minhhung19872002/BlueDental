@@ -125,11 +125,6 @@ const AuditLogPage = lazy(() =>
   })),
 );
 
-const TimekeepingPage = lazy(() =>
-  import("@/features/timekeeping/pages/TimekeepingPage").then((m) => ({
-    default: m.TimekeepingPage,
-  })),
-);
 
 const SettingsPage = lazy(() =>
   import("@/features/settings/pages/SettingsPage").then((m) => ({
@@ -391,15 +386,7 @@ const appRoutes: RouteObject[] = [
         ),
       },
       // ── Billing ──
-      // ── Timekeeping ──
-      {
-        path: "timekeeping",
-        element: (
-          <S>
-            <TimekeepingPage />
-          </S>
-        ),
-      },
+      // ── Timekeeping (embedded in calendar page via ?tab=timekeeping) ──
       // ── Display preferences ──
       // This used to be declared as a second "settings" route, which React
       // Router never reached because the clinic settings above already claimed

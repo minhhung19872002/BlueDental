@@ -2,6 +2,11 @@
 
 public static class BlueDentalDomainErrorCodes
 {
+    public static class Authorization
+    {
+        public const string CrossBranchAccess = "BlueDental:Authorization:0001";
+    }
+
     public static class Organizations
     {
         public const string BranchNotFound = "BlueDental:Organizations:0001";
@@ -165,6 +170,7 @@ public static class BlueDentalDomainErrorCodes
         public const string NoOpenShift = "BlueDental:Timekeeping:0008";
         public const string InvalidOvertime = "BlueDental:Timekeeping:0009";
         public const string DuplicateDayRecord = "BlueDental:Timekeeping:0010";
+        public const string PastDayAttendance = "BlueDental:Timekeeping:0011";
     }
 
     public static class CustomerCare

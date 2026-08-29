@@ -66,9 +66,9 @@ public class TimeKeepingRecord : FullAuditedAggregateRoot<Guid>
     }
 
     /// <summary>Đăng kí làm.</summary>
-    public TimeKeepingRecord RegisterWorking()
+    public TimeKeepingRecord RegisterWorking(bool force = false)
     {
-        if (HasAnyAttendance)
+        if (!force && HasAnyAttendance)
         {
             throw new BusinessException(
                 BlueDentalDomainErrorCodes.Timekeeping.RegistrationLocked,
@@ -87,9 +87,9 @@ public class TimeKeepingRecord : FullAuditedAggregateRoot<Guid>
     }
 
     /// <summary>Đăng kí nghỉ.</summary>
-    public TimeKeepingRecord RegisterDayOff(string? reason = null)
+    public TimeKeepingRecord RegisterDayOff(string? reason = null, bool force = false)
     {
-        if (HasAnyAttendance)
+        if (!force && HasAnyAttendance)
         {
             throw new BusinessException(
                 BlueDentalDomainErrorCodes.Timekeeping.RegistrationLocked,
@@ -99,6 +99,13 @@ public class TimeKeepingRecord : FullAuditedAggregateRoot<Guid>
         Registration = WorkRegistration.DayOff;
         LeaveReason = reason;
         Status = AttendanceStatus.OnLeave;
+
+        if (force && HasAnyAttendance)
+        {
+            MorningShift = new WorkShift(MorningShift.Kind, MorningShift.PlannedStart, MorningShift.PlannedEnd);
+            AfternoonShift = new WorkShift(AfternoonShift.Kind, AfternoonShift.PlannedStart, AfternoonShift.PlannedEnd);
+        }
+
         return this;
     }
 
@@ -145,6 +152,46 @@ public class TimeKeepingRecord : FullAuditedAggregateRoot<Guid>
 
         Status = AttendanceStatus.Abandoned;
         Note = note;
+        return this;
+    }
+
+    /// <summary>
+    /// Vắng không báo trước — registered Working but never checked in.
+    /// Applied by the end-of-day job for no-show staff.
+    /// </summary>
+    public TimeKeepingRecord MarkNoShow(string? note = null)
+    {
+        if (HasAnyAttendance)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Timekeeping.RegistrationLocked,
+                "Cannot mark as no-show after attendance has been recorded.");
+        }
+
+        Status = AttendanceStatus.Abandoned;
+        Note = note;
+        return this;
+    }
+
+    public TimeKeepingRecord ResetRegistration(bool force = false)
+    {
+        if (!force && HasAnyAttendance)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Timekeeping.RegistrationLocked,
+                "Cannot reset registration after attendance has been recorded.");
+        }
+
+        Registration = WorkRegistration.NotRegistered;
+        LeaveReason = null;
+        Status = AttendanceStatus.NotStarted;
+
+        if (force && HasAnyAttendance)
+        {
+            MorningShift = new WorkShift(MorningShift.Kind, MorningShift.PlannedStart, MorningShift.PlannedEnd);
+            AfternoonShift = new WorkShift(AfternoonShift.Kind, AfternoonShift.PlannedStart, AfternoonShift.PlannedEnd);
+        }
+
         return this;
     }
 

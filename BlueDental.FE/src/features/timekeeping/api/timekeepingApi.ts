@@ -94,13 +94,34 @@ export interface AttendanceInput {
   recordedByStaffId?: string;
 }
 
+export interface UpdateInfoInput {
+  note?: string | null;
+  morningStart?: string;
+  morningEnd?: string;
+  afternoonStart?: string;
+  afternoonEnd?: string;
+  morningEnabled?: boolean;
+  afternoonEnabled?: boolean;
+  overtimeMinutes?: number | null;
+}
+
+export interface BulkRegisterItem {
+  staffId: string;
+  workDate: string;
+  registration: WorkRegistration;
+}
+
+export interface BulkRegisterInput {
+  items: BulkRegisterItem[];
+}
+
 const BASE = "/v1/app/time-keepings";
 
 export const timekeepingApi = {
   list: (params: GetTimeKeepingListInput): Promise<PagedResult<TimeKeepingRecordDto>> =>
     api.get<PagedResult<TimeKeepingRecordDto>>(BASE, { params }).then((r) => r.data),
 
-  summary: (clinicBranchId: string, workDate: string): Promise<TimeKeepingSummaryDto> =>
+  summary: (clinicBranchId: string | undefined, workDate: string): Promise<TimeKeepingSummaryDto> =>
     api
       .get<TimeKeepingSummaryDto>(`${BASE}/summary`, { params: { clinicBranchId, workDate } })
       .then((r) => r.data),
@@ -119,4 +140,10 @@ export const timekeepingApi = {
 
   checkOut: (id: string, input: AttendanceInput): Promise<TimeKeepingRecordDto> =>
     api.post<TimeKeepingRecordDto>(`${BASE}/${id}/check-out`, input).then((r) => r.data),
+
+  updateInfo: (id: string, input: UpdateInfoInput): Promise<TimeKeepingRecordDto> =>
+    api.put<TimeKeepingRecordDto>(`${BASE}/${id}/info`, input).then((r) => r.data),
+
+  bulkRegister: (input: BulkRegisterInput): Promise<number> =>
+    api.post<number>(`${BASE}/bulk-register`, input).then((r) => r.data),
 };

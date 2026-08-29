@@ -50,6 +50,14 @@ public sealed class TimeKeepingController(ITimeKeepingAppService service) : Blue
     public Task<TimeKeepingRecordDto> AddOvertimeAsync(Guid id, [FromBody] AddOvertimeInput input) =>
         service.AddOvertimeAsync(id, input);
 
+    [HttpPut("{id:guid}/info")]
+    public Task<TimeKeepingRecordDto> UpdateInfoAsync(Guid id, [FromBody] UpdateInfoInput input) =>
+        service.UpdateInfoAsync(id, input);
+
+    [HttpPost("bulk-register")]
+    public Task<int> BulkRegisterAsync([FromBody] BulkRegisterInput input) =>
+        service.BulkRegisterAsync(input);
+
     [HttpPost("close-abandoned")]
     public Task<int> CloseAbandonedShiftsAsync(
         [FromQuery] Guid clinicBranchId, [FromQuery] DateOnly workDate) =>

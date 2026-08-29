@@ -10,6 +10,7 @@ export interface StaffDto {
   email: string | null;
   phoneNumber: string | null;
   isActive: boolean;
+  creationTime: string;
   roleNames: string[];
   branchIds: string[];
 

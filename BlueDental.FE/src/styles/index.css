@@ -1453,7 +1453,7 @@ button {
 
 .ant-segmented .ant-segmented-item-label {
   min-height: unset;
-  line-height: 1;
+  line-height: normal;
   padding: 0;
 }
 

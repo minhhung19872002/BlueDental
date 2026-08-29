@@ -13,6 +13,7 @@ import { AppointmentEditorModal } from "../components/AppointmentEditorModal";
 import { CalendarFabs } from "../components/CalendarFabs";
 import { CalendarControlPanel } from "../components/CalendarControlPanel";
 import { TimekeepingBoard } from "@/features/timekeeping/components/TimekeepingBoard";
+import { WorkScheduleBuilder } from "@/features/timekeeping/components/WorkScheduleBuilder";
 import { useCalendarState } from "../hooks/useCalendarState";
 import { useCalendarFilters } from "../hooks/useCalendarFilters";
 import { useStatusCounts } from "../hooks/useStatusCounts";
@@ -210,58 +211,67 @@ export function AppointmentCalendarPage() {
           </>
         )}
 
-        <div className="cal-grid-wrap">
-          {state.topTab === "customer" ? (
-            <>
-              {state.viewMode === "day" && (
-                <DayViewGrid
-                  currentDate={state.currentDate}
-                  doctors={doctors}
-                  slotMinutes={filters.slotMinutes}
-                  keyword={filters.keyword}
-                  doctorIds={filters.doctorIds}
-                  statusFilter={filters.statusFilter}
-                  selectedIds={selectedIds}
-                  onCellClick={handleCellClick}
-                  onCardAction={handleCardAction}
-                />
-              )}
-              {state.viewMode === "week" && (
-                <WeekViewCalendar
-                  currentDate={state.currentDate}
-                  slotMinutes={filters.slotMinutes}
-                  keyword={filters.keyword}
-                  doctorIds={filters.doctorIds}
-                  statusFilter={filters.statusFilter}
-                  selectedIds={selectedIds}
-                  onCellClick={(dayIdx, slotIdx) => {
-                    setInitialDate(
-                      state.currentDate.startOf("week").add(dayIdx, "day").format("YYYY-MM-DD"),
-                    );
-                    setEditId(null);
-                    setAddOpen(true);
-                    void slotIdx;
-                  }}
-                  onCardAction={handleCardAction}
-                />
-              )}
-              {state.viewMode === "month" && (
-                <MonthViewCalendar
-                  currentDate={state.currentDate}
-                  keyword={filters.keyword}
-                  doctorIds={filters.doctorIds}
-                  statusFilter={filters.statusFilter}
-                  onDayClick={(day) => {
-                    state.setCurrentDate(() => day);
-                    state.setViewMode("day");
-                  }}
-                />
-              )}
-            </>
-          ) : (
-            <TimekeepingBoard currentDate={state.currentDate} />
-          )}
-        </div>
+        {state.topTab === "customer" ? (
+          <div className="cal-grid-wrap">
+            {state.viewMode === "day" && (
+              <DayViewGrid
+                currentDate={state.currentDate}
+                doctors={doctors}
+                slotMinutes={filters.slotMinutes}
+                keyword={filters.keyword}
+                doctorIds={filters.doctorIds}
+                statusFilter={filters.statusFilter}
+                selectedIds={selectedIds}
+                onCellClick={handleCellClick}
+                onCardAction={handleCardAction}
+              />
+            )}
+            {state.viewMode === "week" && (
+              <WeekViewCalendar
+                currentDate={state.currentDate}
+                slotMinutes={filters.slotMinutes}
+                keyword={filters.keyword}
+                doctorIds={filters.doctorIds}
+                statusFilter={filters.statusFilter}
+                selectedIds={selectedIds}
+                onCellClick={(dayIdx, slotIdx) => {
+                  setInitialDate(
+                    state.currentDate.startOf("week").add(dayIdx, "day").format("YYYY-MM-DD"),
+                  );
+                  setEditId(null);
+                  setAddOpen(true);
+                  void slotIdx;
+                }}
+                onCardAction={handleCardAction}
+              />
+            )}
+            {state.viewMode === "month" && (
+              <MonthViewCalendar
+                currentDate={state.currentDate}
+                keyword={filters.keyword}
+                doctorIds={filters.doctorIds}
+                statusFilter={filters.statusFilter}
+                onDayClick={(day) => {
+                  state.setCurrentDate(() => day);
+                  state.setViewMode("day");
+                }}
+              />
+            )}
+          </div>
+        ) : state.workSchedule === "builder" ? (
+          <WorkScheduleBuilder
+            currentDate={state.currentDate}
+            onBack={() => state.setWorkSchedule(null)}
+          />
+        ) : (
+          <TimekeepingBoard
+            currentDate={state.currentDate}
+            viewMode={state.viewMode}
+            onViewModeChange={state.setViewMode}
+            onDateChange={(d) => state.setCurrentDate(() => d)}
+            onOpenBuilder={() => state.setWorkSchedule("builder")}
+          />
+        )}
       </div>
 
       <AppointmentEditorModal
