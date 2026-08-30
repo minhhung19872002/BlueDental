@@ -1,31 +1,32 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { toast } from "sonner";
-import { Modal, Button, Input, DatePicker, TimePicker } from "antd";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import dayjs from "dayjs";
+import { AppDialog } from "@/components/AppDialog";
 import { useCreateAppointment } from "../api/appointmentMutations";
-import { SearchSelect } from "@/components/SearchSelect";
 import { usePatientOptions } from "@/hooks/usePatientOptions";
 import { useDentistList } from "@/features/staff/api/staffQueries";
+import { useClinicBranches } from "@/features/organizations/api";
+import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
-
-/** One appointment slot, matching the calendar grid. */
-const SLOT_MINUTES = 30;
+import { extractApiError } from "@/lib/apiError";
+import { APPT_COLORS } from "./AppointmentColorPicker";
+import { AppointmentEditorForm, type AppointmentEditorValues } from "./AppointmentEditorForm";
 
 const buildSchema = () =>
   z.object({
-  patientId: z.string().min(1, t("Vui lòng chọn khách hàng")),
-  doctorId: z.string().min(1, t("Vui lòng chọn bác sĩ")),
-  date: z.string().min(1, t("Vui lòng chọn ngày")),
-  startTime: z.string().min(1, t("Vui lòng chọn giờ bắt đầu")),
-  endTime: z.string().optional(),
-  reason: z.string().optional(),
-  notes: z.string().optional(),
-});
-
-type FormValues = z.infer<ReturnType<typeof buildSchema>>;
+    patientId: z.string().min(1, t("Vui lòng chọn bệnh nhân")),
+    branchId: z.string().min(1, t("Vui lòng chọn chi nhánh")),
+    doctorId: z.string().min(1, t("Vui lòng chọn bác sĩ")),
+    date: z.string().min(1, t("Vui lòng chọn ngày")),
+    startTime: z.string().min(1, t("Vui lòng chọn giờ hẹn")),
+    durationMinutes: z.number().int().min(15),
+    content: z.string().optional().default(""),
+    color: z.string().optional().default(APPT_COLORS[0].value),
+    notes: z.string().optional().default(""),
+  });
 
 interface Props {
   open: boolean;
@@ -36,44 +37,70 @@ interface Props {
   onSuccess?: () => void;
 }
 
-export function AppointmentEditorModal({ open, appointmentId, initialDate, onClose, onSuccess }: Props) {
+export function AppointmentEditorModal({
+  open,
+  appointmentId,
+  initialDate,
+  onClose,
+  onSuccess,
+}: Props) {
   const isEdit = Boolean(appointmentId);
   const createMutation = useCreateAppointment();
+  const currentBranchId = useCurrentBranchId();
 
   const { data: patients } = usePatientOptions();
   const { data: dentists } = useDentistList();
+  const { data: branches } = useClinicBranches(true);
 
-  const { control, handleSubmit, reset, formState: { errors } } = useForm<FormValues>({
+  const patientOptions = useMemo(
+    () => (patients ?? []).map((p) => ({ value: p.id, label: `[${p.code}] - ${p.name.toUpperCase()}` })),
+    [patients],
+  );
+  const doctorOptions = useMemo(
+    () => (dentists ?? []).map((d) => ({ value: d.id, label: d.name })),
+    [dentists],
+  );
+  const branchOptions = useMemo(
+    () => (branches ?? []).map((b) => ({ value: b.id, label: b.name })),
+    [branches],
+  );
+
+  const { control, handleSubmit, reset, setValue, formState: { errors, isValid } } = useForm<AppointmentEditorValues>({
     resolver: zodResolver(buildSchema()),
     defaultValues: {
       patientId: "",
+      branchId: currentBranchId,
       doctorId: "",
       date: initialDate ?? dayjs().format("YYYY-MM-DD"),
       startTime: "",
-      endTime: "",
-      reason: "",
+      durationMinutes: 30,
+      content: "",
+      color: APPT_COLORS[0].value,
       notes: "",
     },
   });
+
+  const watchedDoctorId = useWatch({ control, name: "doctorId" });
+  const watchedDate = useWatch({ control, name: "date" });
+  const watchedNotes = useWatch({ control, name: "notes" });
 
   useEffect(() => {
     if (!open) reset();
   }, [open, reset]);
 
-  const onSubmit = (data: FormValues) => {
+  const onSubmit = (data: AppointmentEditorValues) => {
     const startDateTime = `${data.date}T${data.startTime}:00`;
-
-    // A slot must end after it starts, so an unset end falls back to one slot long.
-    const endTime = data.endTime || dayjs(startDateTime).add(SLOT_MINUTES, "minute").format("HH:mm");
-    const endDateTime = `${data.date}T${endTime}:00`;
+    const endDateTime = dayjs(startDateTime).add(data.durationMinutes, "minute").format(`${data.date}THH:mm:00`);
 
     createMutation.mutate(
       {
         patientId: data.patientId,
         doctorId: data.doctorId,
+        branchId: data.branchId,
         startTime: startDateTime,
         endTime: endDateTime,
-        reason: data.reason || undefined,
+        reason: data.content || undefined,
+        color: data.color || undefined,
         notes: data.notes || undefined,
       },
       {
@@ -84,155 +111,34 @@ export function AppointmentEditorModal({ open, appointmentId, initialDate, onClo
           onClose();
         },
         onError: (err) => {
-          toast.error((err as Error).message || t("Tạo lịch hẹn thất bại"));
+          toast.error(extractApiError(err));
         },
       },
     );
   };
 
-  const fieldStyle = { marginBottom: 12 };
-  const labelStyle = { fontSize: 13, fontWeight: 500, color: "#41505f", display: "block", marginBottom: 4 };
-  const requiredMark = <span style={{ color: "#ef4d4d", marginLeft: 2 }}>*</span>;
-
   return (
-    <Modal
+    <AppDialog
       open={open}
-      title={isEdit ? t("Chỉnh sửa lịch hẹn") : t("Tạo lịch hẹn mới")}
-      onCancel={onClose}
-      width={580}
-      footer={
-        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-          <Button onClick={onClose}>{t("Hủy")}</Button>
-          <Button
-            type="primary"
-            loading={createMutation.isPending}
-            onClick={handleSubmit(onSubmit)}
-            style={{ background: "#1c3566" }}
-          >
-            {isEdit ? t("Cập nhật") : t("Lưu lịch hẹn")}
-          </Button>
-        </div>
-      }
+      title={isEdit ? t("Chỉnh sửa lịch hẹn") : t("Tạo lịch hẹn")}
+      width="calc(100vw - 80px)"
+      className="appt-editor-dialog"
+      canSave={isValid && !createMutation.isPending}
+      saving={createMutation.isPending}
+      onSave={handleSubmit(onSubmit)}
+      onClose={onClose}
     >
-      <div style={{ paddingTop: 8 }}>
-        {/* Patient */}
-        <div style={fieldStyle}>
-          <label style={labelStyle}>{t("Khách hàng")}{requiredMark}</label>
-          <Controller
-            name="patientId"
-            control={control}
-            render={({ field }) => (
-              <SearchSelect
-                value={field.value || undefined}
-                placeholder={t("Tìm kiếm khách hàng...")}
-                options={(patients ?? []).map((p) => ({
-                  value: p.id,
-                  label: `[${p.code}] - ${p.name.toUpperCase()}`,
-                }))}
-                onChange={(v) => field.onChange(v ?? "")}
-                status={errors.patientId ? "error" : ""}
-              />
-            )}
-          />
-          {errors.patientId && <span style={{ color: "#ef4d4d", fontSize: 12 }}>{errors.patientId.message}</span>}
-        </div>
-
-        {/* Doctor */}
-        <div style={fieldStyle}>
-          <label style={labelStyle}>{t("Bác sĩ")}{requiredMark}</label>
-          <Controller
-            name="doctorId"
-            control={control}
-            render={({ field }) => (
-              <SearchSelect
-                value={field.value || undefined}
-                placeholder={t("Chọn bác sĩ")}
-                options={(dentists ?? []).map((d) => ({ value: d.id, label: d.name }))}
-                onChange={(v) => field.onChange(v ?? "")}
-                status={errors.doctorId ? "error" : ""}
-              />
-            )}
-          />
-          {errors.doctorId && <span style={{ color: "#ef4d4d", fontSize: 12 }}>{errors.doctorId.message}</span>}
-        </div>
-
-        {/* Date + Time row */}
-        <div style={{ display: "flex", gap: 12, ...fieldStyle }}>
-          <div style={{ flex: 1 }}>
-            <label style={labelStyle}>{t("Ngày hẹn")}{requiredMark}</label>
-            <Controller
-              name="date"
-              control={control}
-              render={({ field }) => (
-                <DatePicker
-                  value={field.value ? dayjs(field.value) : null}
-                  onChange={(d) => field.onChange(d ? d.format("YYYY-MM-DD") : "")}
-                  format="DD/MM/YYYY"
-                  style={{ width: "100%", height: 40 }}
-                  status={errors.date ? "error" : ""}
-                />
-              )}
-            />
-          </div>
-          <div style={{ flex: 1 }}>
-            <label style={labelStyle}>{t("Giờ bắt đầu")}{requiredMark}</label>
-            <Controller
-              name="startTime"
-              control={control}
-              render={({ field }) => (
-                <TimePicker
-                  value={field.value ? dayjs(`2000-01-01 ${field.value}`) : null}
-                  onChange={(t) => field.onChange(t ? t.format("HH:mm") : "")}
-                  format="HH:mm"
-                  minuteStep={30}
-                  style={{ width: "100%", height: 40 }}
-                  status={errors.startTime ? "error" : ""}
-                />
-              )}
-            />
-          </div>
-          <div style={{ flex: 1 }}>
-            <label style={labelStyle}>{t("Giờ kết thúc")}</label>
-            <Controller
-              name="endTime"
-              control={control}
-              render={({ field }) => (
-                <TimePicker
-                  value={field.value ? dayjs(`2000-01-01 ${field.value}`) : null}
-                  onChange={(t) => field.onChange(t ? t.format("HH:mm") : "")}
-                  format="HH:mm"
-                  minuteStep={30}
-                  style={{ width: "100%", height: 40 }}
-                />
-              )}
-            />
-          </div>
-        </div>
-
-        {/* Reason */}
-        <div style={fieldStyle}>
-          <label style={labelStyle}>{t("Lý do khám")}</label>
-          <Controller
-            name="reason"
-            control={control}
-            render={({ field }) => (
-              <Input {...field} placeholder={t("Nhập lý do khám")} style={{ height: 40 }} />
-            )}
-          />
-        </div>
-
-        {/* Notes */}
-        <div style={fieldStyle}>
-          <label style={labelStyle}>{t("Ghi chú")}</label>
-          <Controller
-            name="notes"
-            control={control}
-            render={({ field }) => (
-              <Input.TextArea {...field} rows={3} placeholder={t("Nội dung ghi chú")} style={{ resize: "none" }} />
-            )}
-          />
-        </div>
-      </div>
-    </Modal>
+      <AppointmentEditorForm
+        control={control}
+        errors={errors}
+        setValue={setValue}
+        patientOptions={patientOptions}
+        branchOptions={branchOptions}
+        doctorOptions={doctorOptions}
+        watchedDoctorId={watchedDoctorId}
+        watchedDate={watchedDate}
+        watchedNotes={watchedNotes}
+      />
+    </AppDialog>
   );
 }

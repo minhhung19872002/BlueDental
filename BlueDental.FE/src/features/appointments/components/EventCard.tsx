@@ -87,7 +87,11 @@ export const EventCard = React.memo(function EventCard({
   onAction,
 }: EventCardProps) {
   const navigate = useNavigate();
-  const look = STATUS_LOOK[appointment.status];
+  const baseLook = STATUS_LOOK[appointment.status];
+  const customColor = appointment.color;
+  const look = customColor
+    ? { ...baseLook, border: customColor, bg: `${customColor}18`, text: customColor }
+    : baseLook;
   const code = appointment.id.slice(0, 8).toUpperCase();
   const patientName = appointment.patientName?.trim() || t("Lịch hẹn");
   const start = dayjs(appointment.startTime);

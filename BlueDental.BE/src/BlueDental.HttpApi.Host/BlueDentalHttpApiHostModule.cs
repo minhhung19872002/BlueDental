@@ -1,3 +1,4 @@
+using System.Net;
 using BlueDental.EntityFrameworkCore;
 using BlueDental.Hubs;
 using BlueDental.Security;
@@ -9,6 +10,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 using Volo.Abp;
 using Volo.Abp.Account.Web;
+using Volo.Abp.AspNetCore.ExceptionHandling;
 using Volo.Abp.AspNetCore.Mvc;
 using Volo.Abp.AspNetCore.Mvc.AntiForgery;
 using Volo.Abp.AspNetCore.Serilog;
@@ -80,6 +82,7 @@ public class BlueDentalHttpApiHostModule : AbpModule
         ConfigureClock();
         ConfigureDataProtection(context, configuration);
         ConfigureAntiForgery();
+        ConfigureExceptionStatusCodes();
 
         context.Services.AddSignalR(options =>
         {
@@ -244,6 +247,15 @@ public class BlueDentalHttpApiHostModule : AbpModule
         Configure<AbpAntiForgeryOptions>(options =>
         {
             options.AutoValidate = false;
+        });
+    }
+
+    private void ConfigureExceptionStatusCodes()
+    {
+        Configure<AbpExceptionHttpStatusCodeOptions>(options =>
+        {
+            options.Map(BlueDentalDomainErrorCodes.Appointments.ConflictingSlot, HttpStatusCode.Conflict);
+            options.Map(BlueDentalDomainErrorCodes.Appointments.PatientAlreadyBooked, HttpStatusCode.Conflict);
         });
     }
 

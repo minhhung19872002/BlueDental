@@ -22,6 +22,7 @@ export interface AppointmentDto {
   status: AppointmentStatus;
   reason: string | null;
   notes: string | null;
+  color: string | null;
   createdAt: string;
 }
 
@@ -34,6 +35,7 @@ export interface CreateAppointmentRequest {
   endTime: string;
   reason?: string;
   notes?: string;
+  color?: string;
 }
 
 export type UpdateAppointmentRequest = Partial<CreateAppointmentRequest> & {

@@ -19,6 +19,7 @@ public class AppointmentDto : FullAuditedEntityDto<Guid>
     public AppointmentType Type { get; set; }
     public string? ChiefComplaint { get; set; }
     public string? Notes { get; set; }
+    public string? Color { get; set; }
 }
 
 public class CreateAppointmentDto
@@ -31,6 +32,8 @@ public class CreateAppointmentDto
     public DateTimeOffset SlotEnd { get; set; }
     public AppointmentType Type { get; set; }
     public string? ChiefComplaint { get; set; }
+    public string? Color { get; set; }
+    public string? Notes { get; set; }
 }
 
 public class UpdateAppointmentDto

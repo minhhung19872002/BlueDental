@@ -261,6 +261,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.ChiefComplaint).HasMaxLength(500);
             entity.Property(x => x.Notes).HasMaxLength(2000);
             entity.Property(x => x.CancellationNote).HasMaxLength(500);
+            entity.Property(x => x.Color).HasMaxLength(20);
 
             entity.OwnsOne(x => x.Slot, slot =>
             {

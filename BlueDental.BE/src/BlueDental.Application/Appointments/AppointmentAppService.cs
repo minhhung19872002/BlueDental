@@ -107,14 +107,19 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
 
         var totalCount = await AsyncExecuter.CountAsync(query);
 
-        // Chronological, with Id breaking the tie so paging stays stable — two
-        // appointments in the same slot used to be able to swap between pages.
-        var items = await AsyncExecuter.ToListAsync(
-            query
-                .OrderBy(a => a.Slot.Start)
-                .ThenBy(a => a.Id)
-                .Skip(input.SkipCount)
-                .Take(input.MaxResultCount));
+        // Calendar queries (Date / FromDate / ToDate) are naturally bounded by
+        // their time range, so return all matches without paging. Only apply
+        // Skip/Take for open-ended list requests (e.g. search).
+        var hasDateFilter = input.Date.HasValue || input.FromDate.HasValue || input.ToDate.HasValue;
+
+        var ordered = query
+            .OrderBy(a => a.Slot.Start)
+            .ThenBy(a => a.Id);
+
+        var items = hasDateFilter
+            ? await AsyncExecuter.ToListAsync(ordered)
+            : await AsyncExecuter.ToListAsync(
+                ordered.Skip(input.SkipCount).Take(input.MaxResultCount));
 
         var dtos = ObjectMapper.Map<List<Appointment>, List<AppointmentDto>>(items);
         await FillNamesAsync(items, dtos);
@@ -226,7 +231,9 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
             slot,
             input.Type,
             input.ProcedureId,
-            input.ChiefComplaint);
+            input.ChiefComplaint,
+            input.Color,
+            input.Notes);
 
         await _repository.InsertAsync(appointment, autoSave: true);
         return await ToDtoAsync(appointment);

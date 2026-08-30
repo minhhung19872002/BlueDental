@@ -20,6 +20,7 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
     public AppointmentType Type { get; private set; }
     public string? ChiefComplaint { get; private set; }
     public string? Notes { get; private set; }
+    public string? Color { get; private set; }
     public CancellationReason? CancellationReason { get; private set; }
     public string? CancellationNote { get; private set; }
     public DateTimeOffset? CheckedInAt { get; private set; }
@@ -36,7 +37,9 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         AppointmentSlot slot,
         AppointmentType type,
         Guid? procedureId = null,
-        string? chiefComplaint = null)
+        string? chiefComplaint = null,
+        string? color = null,
+        string? notes = null)
         : base(id)
     {
         PatientId = patientId;
@@ -46,6 +49,8 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         Type = type;
         ProcedureId = procedureId;
         ChiefComplaint = chiefComplaint;
+        Color = color;
+        Notes = notes;
         Status = AppointmentStatus.Requested;
     }
 

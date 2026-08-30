@@ -27,6 +27,7 @@ export interface ServerAppointmentDto {
   type: number;
   chiefComplaint: string | null;
   notes: string | null;
+  color: string | null;
   creationTime: string;
 }
 
@@ -100,6 +101,7 @@ export function adaptAppointment(dto: ServerAppointmentDto): Appointment {
     status,
     reason: dto.chiefComplaint,
     notes: dto.notes,
+    color: dto.color,
     createdAt: dto.creationTime,
     statusColor: STATUS_COLORS[status],
     statusLabel: statusLabels()[status],
@@ -138,6 +140,8 @@ export function toCreateRequest(request: CreateAppointmentRequest): Record<strin
     slotEnd: toInstant(request.endTime),
     type: DEFAULT_APPOINTMENT_TYPE,
     chiefComplaint: request.reason,
+    color: request.color,
+    notes: request.notes,
   };
 }
 
