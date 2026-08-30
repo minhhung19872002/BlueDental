@@ -10,6 +10,7 @@ import { DayViewGrid, type DayViewDoctor } from "../components/DayViewGrid";
 import { WeekViewCalendar } from "../components/WeekViewCalendar";
 import { MonthViewCalendar } from "../components/MonthViewCalendar";
 import { AppointmentEditorModal } from "../components/AppointmentEditorModal";
+import { TempAppointmentEditorModal } from "../components/TempAppointmentEditorModal";
 import { CalendarFabs } from "../components/CalendarFabs";
 import { CalendarControlPanel } from "../components/CalendarControlPanel";
 import { TimekeepingBoard } from "@/features/timekeeping/components/TimekeepingBoard";
@@ -40,6 +41,7 @@ export function AppointmentCalendarPage() {
   const counts = useStatusCounts(dayAppointments?.items ?? []);
 
   const [addOpen, setAddOpen] = useState(false);
+  const [tempOpen, setTempOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [initialDate, setInitialDate] = useState<string | undefined>();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -180,7 +182,7 @@ export function AppointmentCalendarPage() {
               onToggleSlot={filters.toggleSlotMinutes}
               onExport={handleExport}
               onCreateAppointment={() => { setEditId(null); setAddOpen(true); }}
-              onCreateTemp={() => { /* TODO: TempAppointmentModal */ }}
+              onCreateTemp={() => setTempOpen(true)}
               onFullscreen={() => setFullscreen(true)}
             />
 
@@ -282,6 +284,13 @@ export function AppointmentCalendarPage() {
         onSuccess={() => { setAddOpen(false); setEditId(null); }}
       />
 
+      <TempAppointmentEditorModal
+        open={tempOpen}
+        initialDate={state.currentDate.format("YYYY-MM-DD")}
+        onClose={() => setTempOpen(false)}
+        onSuccess={() => setTempOpen(false)}
+      />
+
       <ConfirmDeleteDialog
         open={deleteTarget !== null}
         noun={t("lịch hẹn")}
@@ -299,7 +308,7 @@ export function AppointmentCalendarPage() {
         <>
           <CalendarFabs
             onExitFullscreen={() => setFullscreen(false)}
-            onCreateTemp={() => { /* TODO */ }}
+            onCreateTemp={() => setTempOpen(true)}
             onCreateAppointment={() => { setEditId(null); setAddOpen(true); }}
             onTogglePanel={() => setPanelOpen((v) => !v)}
             filterCount={filters.filterCount}
@@ -315,7 +324,7 @@ export function AppointmentCalendarPage() {
             slotMinutes={filters.slotMinutes}
             onToggleSlot={filters.toggleSlotMinutes}
             onCreateAppointment={() => { setEditId(null); setAddOpen(true); }}
-            onCreateTemp={() => { /* TODO */ }}
+            onCreateTemp={() => setTempOpen(true)}
             onExport={handleExport}
             keyword={filters.keyword}
             onKeywordChange={filters.setKeyword}

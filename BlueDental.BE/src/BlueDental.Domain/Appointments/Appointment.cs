@@ -27,6 +27,12 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
     public DateTimeOffset? StartedAt { get; private set; }
     public DateTimeOffset? CompletedAt { get; private set; }
 
+    public bool IsTemporary { get; private set; }
+    public string? PatientName { get; private set; }
+    public string? PatientPhone { get; private set; }
+    public Guid? SourceTaxonomyId { get; private set; }
+    public Guid? SourceEntryId { get; private set; }
+
     protected Appointment() { }
 
     public Appointment(
@@ -52,6 +58,39 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         Color = color;
         Notes = notes;
         Status = AppointmentStatus.Requested;
+    }
+
+    public static Appointment CreateTemporary(
+        Guid id,
+        string patientName,
+        string? patientPhone,
+        Guid branchId,
+        AppointmentSlot slot,
+        Guid? dentistId = null,
+        Guid? sourceTaxonomyId = null,
+        Guid? sourceEntryId = null,
+        string? color = null,
+        string? notes = null)
+    {
+        Check.NotNullOrWhiteSpace(patientName, nameof(patientName));
+
+        return new Appointment
+        {
+            Id = id,
+            PatientId = Guid.Empty,
+            DentistId = dentistId ?? Guid.Empty,
+            BranchId = branchId,
+            Slot = slot,
+            Type = AppointmentType.Consultation,
+            Status = AppointmentStatus.Requested,
+            IsTemporary = true,
+            PatientName = patientName,
+            PatientPhone = patientPhone,
+            SourceTaxonomyId = sourceTaxonomyId,
+            SourceEntryId = sourceEntryId,
+            Color = color,
+            Notes = notes,
+        };
     }
 
     public Appointment Confirm()

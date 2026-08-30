@@ -44,7 +44,7 @@ function EvtTooltipContent({ appt }: { appt: Appointment }) {
   return (
     <div className="mcal-tooltip">
       <div className="mcal-tooltip-doctor">{appt.doctorName}</div>
-      <div>{t("Khách hàng")}: {appt.patientName}</div>
+      <div>{t("Khách hàng")}: {appt.patientCode ? `[${appt.patientCode}] - ${appt.patientName}` : appt.patientName}</div>
       <div>{start.format("DD/MM/YYYY HH:mm")} – {end.format("HH:mm")} ({dur} {t("phút")})</div>
       <div>{t("Trạng thái")}: {appt.statusLabel}</div>
       {appt.reason && <div>"{appt.reason}"</div>}
@@ -85,7 +85,8 @@ function TimeView({ appointments, slots }: { appointments: Appointment[]; slots:
           {appointments.map((appt) => {
             const start = dayjs(appt.startTime);
             const end = dayjs(appt.endTime);
-            const label = `${appt.doctorName} — [${appt.patientName.split(" - ").pop()}] ${appt.reason || ""}`;
+            const patientLabel = appt.patientCode ? `[${appt.patientCode}] - ${appt.patientName}` : appt.patientName;
+            const label = `${appt.doctorName} — ${patientLabel}`;
             return <EvtBlock key={appt.id} appt={appt} label={label} />;
           })}
         </div>
@@ -124,7 +125,8 @@ function DoctorView({ appointments, slots }: { appointments: Appointment[]; slot
               <div key={s} className="mcal-day-slot" />
             ))}
             {doc.appts.map((appt) => {
-              const label = `[${appt.patientName.split(" - ").pop()}] ${appt.reason || ""}`;
+              const patientLabel = appt.patientCode ? `[${appt.patientCode}] - ${appt.patientName}` : appt.patientName;
+              const label = `${patientLabel} ${appt.reason || ""}`;
               return <EvtBlock key={appt.id} appt={appt} label={label} />;
             })}
           </div>

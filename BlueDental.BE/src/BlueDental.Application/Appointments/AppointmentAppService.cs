@@ -102,7 +102,8 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
                 (a.ChiefComplaint != null && a.ChiefComplaint.Contains(filter))
                 || (a.Notes != null && a.Notes.Contains(filter))
                 || matchedPatients.Contains(a.PatientId)
-                || matchedStaff.Contains(a.DentistId));
+                || matchedStaff.Contains(a.DentistId)
+                || (a.IsTemporary && a.PatientName != null && a.PatientName.Contains(filter)));
         }
 
         var totalCount = await AsyncExecuter.CountAsync(query);
@@ -141,8 +142,8 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
             return;
         }
 
-        var patientIds = entities.Select(a => a.PatientId).Distinct().ToList();
-        var dentistIds = entities.Select(a => a.DentistId).Distinct().ToList();
+        var patientIds = entities.Where(a => !a.IsTemporary).Select(a => a.PatientId).Distinct().ToList();
+        var dentistIds = entities.Where(a => a.DentistId != Guid.Empty).Select(a => a.DentistId).Distinct().ToList();
         var procedureIds = entities
             .Where(a => a.ProcedureId.HasValue)
             .Select(a => a.ProcedureId!.Value)
@@ -154,7 +155,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
                 patientQuery.Where(p => patientIds.Contains(p.Id))))
             .ToDictionary(
                 p => p.Id,
-                p => ((p.LastName + " " + p.FirstName).Trim(), p.Contact.PhoneNumber));
+                p => (Name: (p.LastName + " " + p.FirstName).Trim(), Phone: p.Contact.PhoneNumber, Code: p.PatientCode));
 
         var users = await _userRepository.GetListByIdsAsync(dentistIds);
         var dentists = users.ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
@@ -173,10 +174,22 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
             var entity = entities[i];
             var dto = dtos[i];
 
-            var patient = patients.GetValueOrDefault(entity.PatientId);
-            dto.PatientName = patient.Item1;
-            dto.PatientPhone = patient.Item2;
-            dto.DentistName = dentists.GetValueOrDefault(entity.DentistId);
+            if (entity.IsTemporary)
+            {
+                dto.PatientName = entity.PatientName ?? "";
+                dto.PatientPhone = entity.PatientPhone;
+            }
+            else
+            {
+                var patient = patients.GetValueOrDefault(entity.PatientId);
+                dto.PatientCode = patient.Code;
+                dto.PatientName = patient.Name;
+                dto.PatientPhone = patient.Phone;
+            }
+
+            dto.DentistName = entity.DentistId != Guid.Empty
+                ? dentists.GetValueOrDefault(entity.DentistId)
+                : null;
             dto.ProcedureName = entity.ProcedureId.HasValue
                 ? procedures.GetValueOrDefault(entity.ProcedureId.Value)
                 : null;
@@ -232,6 +245,36 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
             input.Type,
             input.ProcedureId,
             input.ChiefComplaint,
+            input.Color,
+            input.Notes);
+
+        await _repository.InsertAsync(appointment, autoSave: true);
+        return await ToDtoAsync(appointment);
+    }
+
+    [Authorize(BlueDentalAbilityPermissions.Appointment.Create)]
+    public async Task<AppointmentDto> CreateTempAsync(CreateTempAppointmentDto input)
+    {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
+        var slot = new AppointmentSlot(input.SlotStart, input.SlotEnd);
+
+        if (input.DentistId.HasValue
+            && await _conflictChecker.HasDentistConflictAsync(input.DentistId.Value, slot))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Appointments.ConflictingSlot,
+                "The dentist already has an appointment in this time slot.");
+        }
+
+        var appointment = Appointment.CreateTemporary(
+            GuidGenerator.Create(),
+            input.PatientName,
+            input.PatientPhone,
+            branchId,
+            slot,
+            input.DentistId,
+            input.SourceTaxonomyId,
+            input.SourceEntryId,
             input.Color,
             input.Notes);
 

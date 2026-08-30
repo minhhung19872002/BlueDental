@@ -103,8 +103,9 @@ export function AppointmentListPage() {
           columns={[
             {
               title: t("Bệnh nhân"),
-              dataIndex: "patientName",
               key: "patientName",
+              render: (_: unknown, row: Appointment) =>
+                row.patientCode ? `[${row.patientCode}] - ${row.patientName}` : row.patientName,
             },
             {
               title: t("Bác sĩ"),

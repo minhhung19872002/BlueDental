@@ -60,7 +60,7 @@ function MiniWeekCard({ appointment: a }: { appointment: Appointment }) {
   return (
     <div className="mcal-week-card" style={{ borderLeftColor: a.color || a.statusColor }}>
       <div className="mcal-week-card-row1">
-        <span className="mcal-week-card-title">{a.patientName}</span>
+        <span className="mcal-week-card-title">{a.patientCode ? `[${a.patientCode}] - ${a.patientName}` : a.patientName}</span>
         <button type="button" className="mcal-week-card-menu"><EllipsisOutlined /></button>
       </div>
       {a.patientPhone && <div className="mcal-week-card-phone">{a.patientPhone}</div>}

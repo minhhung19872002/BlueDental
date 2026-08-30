@@ -6,6 +6,7 @@ namespace BlueDental.Appointments;
 public class AppointmentDto : FullAuditedEntityDto<Guid>
 {
     public Guid PatientId { get; set; }
+    public string? PatientCode { get; set; }
     public string PatientName { get; set; } = default!;
     public string? PatientPhone { get; set; }
     public Guid DentistId { get; set; }
@@ -20,6 +21,24 @@ public class AppointmentDto : FullAuditedEntityDto<Guid>
     public string? ChiefComplaint { get; set; }
     public string? Notes { get; set; }
     public string? Color { get; set; }
+
+    public bool IsTemporary { get; set; }
+    public Guid? SourceTaxonomyId { get; set; }
+    public Guid? SourceEntryId { get; set; }
+}
+
+public class CreateTempAppointmentDto
+{
+    public string PatientName { get; set; } = default!;
+    public string? PatientPhone { get; set; }
+    public Guid? DentistId { get; set; }
+    public Guid BranchId { get; set; }
+    public DateTimeOffset SlotStart { get; set; }
+    public DateTimeOffset SlotEnd { get; set; }
+    public Guid? SourceTaxonomyId { get; set; }
+    public Guid? SourceEntryId { get; set; }
+    public string? Color { get; set; }
+    public string? Notes { get; set; }
 }
 
 public class CreateAppointmentDto

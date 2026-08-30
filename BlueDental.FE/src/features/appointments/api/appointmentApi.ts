@@ -3,12 +3,14 @@ import type {
   Appointment,
   AppointmentListQuery,
   CreateAppointmentRequest,
+  CreateTempAppointmentRequest,
   PagedResult,
   UpdateAppointmentRequest,
 } from "../types/appointment";
 import {
   adaptAppointment,
   toCreateRequest,
+  toCreateTempRequest,
   toServerQuery,
   toUpdateRequest,
   type ServerAppointmentDto,
@@ -36,6 +38,11 @@ export const appointmentApi = {
   create: (data: CreateAppointmentRequest): Promise<Appointment> =>
     api
       .post<ServerAppointmentDto>(BASE, toCreateRequest(data))
+      .then((r) => adaptAppointment(r.data)),
+
+  createTemp: (data: CreateTempAppointmentRequest): Promise<Appointment> =>
+    api
+      .post<ServerAppointmentDto>(`${BASE}/temp`, toCreateTempRequest(data))
       .then((r) => adaptAppointment(r.data)),
 
   update: (id: string, data: UpdateAppointmentRequest): Promise<Appointment> =>

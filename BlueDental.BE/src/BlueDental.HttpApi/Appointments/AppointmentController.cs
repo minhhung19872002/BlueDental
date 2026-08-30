@@ -24,6 +24,10 @@ public sealed class AppointmentController(IAppointmentAppService service) : Blue
     public Task<AppointmentDto> CreateAsync([FromBody] CreateAppointmentDto input) =>
         service.CreateAsync(input);
 
+    [HttpPost("temp")]
+    public Task<AppointmentDto> CreateTempAsync([FromBody] CreateTempAppointmentDto input) =>
+        service.CreateTempAsync(input);
+
     [HttpPut("{id:guid}")]
     public Task<AppointmentDto> UpdateAsync(Guid id, [FromBody] UpdateAppointmentDto input) =>
         service.UpdateAsync(id, input);

@@ -4,6 +4,7 @@ import { appointmentApi } from "./appointmentApi";
 import { appointmentKeys } from "./appointmentQueries";
 import type {
   CreateAppointmentRequest,
+  CreateTempAppointmentRequest,
   UpdateAppointmentRequest,
 } from "../types/appointment";
 
@@ -13,6 +14,20 @@ export function useCreateAppointment() {
     mutationKey: ["appointments", "create"],
     mutationFn: (data: CreateAppointmentRequest) =>
       appointmentApi.create(data),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: appointmentKeys.lists(),
+      });
+    },
+  });
+}
+
+export function useCreateTempAppointment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ["appointments", "createTemp"],
+    mutationFn: (data: CreateTempAppointmentRequest) =>
+      appointmentApi.createTemp(data),
     onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: appointmentKeys.lists(),

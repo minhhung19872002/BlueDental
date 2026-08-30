@@ -10,6 +10,7 @@ public interface IAppointmentAppService : IApplicationService
     Task<PagedResultDto<AppointmentDto>> GetListAsync(GetAppointmentListInput input);
     Task<AppointmentDto> GetAsync(Guid id);
     Task<AppointmentDto> CreateAsync(CreateAppointmentDto input);
+    Task<AppointmentDto> CreateTempAsync(CreateTempAppointmentDto input);
     Task<AppointmentDto> UpdateAsync(Guid id, UpdateAppointmentDto input);
     Task<AppointmentDto> ConfirmAsync(Guid id);
     Task<AppointmentDto> CancelAsync(Guid id, CancelAppointmentDto input);

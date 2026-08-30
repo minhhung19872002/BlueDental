@@ -92,8 +92,10 @@ export const EventCard = React.memo(function EventCard({
   const look = customColor
     ? { ...baseLook, border: customColor, bg: `${customColor}18`, text: customColor }
     : baseLook;
-  const code = appointment.id.slice(0, 8).toUpperCase();
   const patientName = appointment.patientName?.trim() || t("Lịch hẹn");
+  const displayLabel = appointment.patientCode
+    ? `[${appointment.patientCode}] - ${patientName}`
+    : patientName;
   const start = dayjs(appointment.startTime);
   const end = dayjs(appointment.endTime);
   const durationMinutes = end.diff(start, "minute");
@@ -178,7 +180,7 @@ export const EventCard = React.memo(function EventCard({
             }
           }}
         >
-          [{code}] - {patientName}
+          {displayLabel}
         </a>
         <Dropdown
           menu={{ items: menuItems, onClick: handleMenuClick }}

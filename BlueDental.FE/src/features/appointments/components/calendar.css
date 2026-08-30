@@ -1058,6 +1058,18 @@ body.cal-fullscreen .cal-grid-wrap {
 
 .appt-label-accent { color: var(--bd-red, #ef4d4d); }
 
+.appt-date-display {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  border: 1px solid var(--bd-line, #e5e7eb);
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--bd-text);
+  background: var(--bd-bg-soft, #f9fafb);
+}
+
 .appt-field-error {
   color: var(--bd-red, #ef4d4d);
   font-size: 12px;

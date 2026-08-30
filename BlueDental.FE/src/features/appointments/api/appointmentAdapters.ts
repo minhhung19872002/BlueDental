@@ -4,6 +4,7 @@ import type {
   AppointmentListQuery,
   AppointmentStatus,
   CreateAppointmentRequest,
+  CreateTempAppointmentRequest,
   UpdateAppointmentRequest,
 } from "../types/appointment";
 import { statusPaletteOf } from "@/theme/index";
@@ -14,6 +15,7 @@ import { t } from "@/lib/i18n";
 export interface ServerAppointmentDto {
   id: string;
   patientId: string;
+  patientCode: string | null;
   patientName: string;
   patientPhone: string | null;
   dentistId: string;
@@ -29,6 +31,9 @@ export interface ServerAppointmentDto {
   notes: string | null;
   color: string | null;
   creationTime: string;
+  isTemporary: boolean;
+  sourceTaxonomyId: string | null;
+  sourceEntryId: string | null;
 }
 
 /** Matches BlueDental.Appointments.AppointmentStatus. */
@@ -92,6 +97,7 @@ export function adaptAppointment(dto: ServerAppointmentDto): Appointment {
   return {
     id: dto.id,
     patientId: dto.patientId,
+    patientCode: dto.patientCode,
     patientName: dto.patientName,
     patientPhone: dto.patientPhone ?? "",
     doctorId: dto.dentistId,
@@ -103,6 +109,7 @@ export function adaptAppointment(dto: ServerAppointmentDto): Appointment {
     notes: dto.notes,
     color: dto.color,
     createdAt: dto.creationTime,
+    isTemporary: dto.isTemporary,
     statusColor: STATUS_COLORS[status],
     statusLabel: statusLabels()[status],
     durationMinutes: dayjs(dto.slotEnd).diff(dayjs(dto.slotStart), "minute"),
@@ -142,6 +149,21 @@ export function toCreateRequest(request: CreateAppointmentRequest): Record<strin
     chiefComplaint: request.reason,
     color: request.color,
     notes: request.notes,
+  };
+}
+
+export function toCreateTempRequest(request: CreateTempAppointmentRequest): Record<string, unknown> {
+  return {
+    patientName: request.patientName,
+    patientPhone: request.patientPhone || undefined,
+    dentistId: request.doctorId || undefined,
+    branchId: request.branchId ?? DEFAULT_BRANCH_ID,
+    slotStart: toInstant(request.startTime),
+    slotEnd: toInstant(request.endTime),
+    sourceTaxonomyId: request.sourceTaxonomyId || undefined,
+    sourceEntryId: request.sourceEntryId || undefined,
+    color: request.color || undefined,
+    notes: request.notes || undefined,
   };
 }
 

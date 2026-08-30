@@ -262,6 +262,8 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Notes).HasMaxLength(2000);
             entity.Property(x => x.CancellationNote).HasMaxLength(500);
             entity.Property(x => x.Color).HasMaxLength(20);
+            entity.Property(x => x.PatientName).HasMaxLength(200);
+            entity.Property(x => x.PatientPhone).HasMaxLength(20);
 
             entity.OwnsOne(x => x.Slot, slot =>
             {
@@ -272,6 +274,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => new { x.DentistId, x.Status });
             entity.HasIndex(x => new { x.PatientId, x.Status });
             entity.HasIndex(x => new { x.BranchId, x.Status });
+            entity.HasIndex(x => new { x.BranchId, x.IsTemporary });
         });
     }
 

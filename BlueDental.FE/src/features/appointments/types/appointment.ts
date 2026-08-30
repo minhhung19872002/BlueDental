@@ -13,6 +13,7 @@ export type AppointmentStatus =
 export interface AppointmentDto {
   id: string;
   patientId: string;
+  patientCode: string | null;
   patientName: string;
   patientPhone: string;
   doctorId: string;
@@ -24,6 +25,7 @@ export interface AppointmentDto {
   notes: string | null;
   color: string | null;
   createdAt: string;
+  isTemporary: boolean;
 }
 
 export interface CreateAppointmentRequest {
@@ -59,6 +61,19 @@ export interface AppointmentListQuery {
 export interface PagedResult<T> {
   items: T[];
   totalCount: number;
+}
+
+export interface CreateTempAppointmentRequest {
+  patientName: string;
+  patientPhone?: string;
+  doctorId?: string;
+  branchId: string;
+  startTime: string;
+  endTime: string;
+  sourceTaxonomyId?: string;
+  sourceEntryId?: string;
+  color?: string;
+  notes?: string;
 }
 
 /** Client-enriched appointment */
