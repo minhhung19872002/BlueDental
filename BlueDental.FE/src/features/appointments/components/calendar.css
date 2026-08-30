@@ -190,7 +190,8 @@
 /* ── Day view grid ────────────────────────────────────────────────── */
 
 .cal-day-scroll {
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   max-height: 100%;
 }
 
@@ -225,19 +226,16 @@
   background: #fff;
   border-bottom: 1px solid #E5E7EB;
   border-left: 1px solid #E5E7EB;
-  padding: 0 8px;
+  padding: 0 6px;
   font-size: 16px;
   font-weight: 500;
   color: #1B2A41;
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 4px;
   height: 38px;
+  min-width: 0;
 }
 
 .cal-day-doctor-count {
@@ -312,22 +310,27 @@
   overflow: hidden;
 }
 
-/* Hover / selected expand: card grows to show full content */
+/* Hover / selected expand: card grows to show full content.
+   height: auto !important overrides inline style so positioner
+   grows to contain the expanded card — keeps hover hit-area
+   covering the full expanded content, preventing hover-fight
+   with cards below. */
 .cal-day-card-positioner:hover,
 .cal-day-card-positioner:has(.evt-card--selected) {
-  z-index: 20;
+  z-index: 50;
+  height: auto !important;
 }
 
 .cal-day-card-positioner:hover .evt-card,
 .cal-day-card-positioner:has(.evt-card--selected) .evt-card {
   height: auto;
-  min-height: 100%;
+  overflow: visible;
   box-shadow: rgba(0, 0, 0, 0.15) 0px 4px 16px 0px;
 }
 
-/* ── Doctor scroll button ─────────────────────────────────────────── */
+/* ── Doctor page navigation buttons ──────────────────────────────── */
 
-.cal-doctor-scroll-btn {
+.cal-day-page-btn {
   width: 28px;
   height: 28px;
   border-radius: 999px;
@@ -340,17 +343,25 @@
   justify-content: center;
   padding: 0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 15;
+  flex-shrink: 0;
+  z-index: 11;
 }
 
-.cal-doctor-scroll-btn--prev { left: 4px; }
-.cal-doctor-scroll-btn--next { right: 4px; }
-
-.cal-doctor-scroll-btn:hover {
+.cal-day-page-btn:hover {
   background: #f1f5f9;
+}
+
+.cal-day-page-spacer {
+  width: 28px;
+  flex-shrink: 0;
+}
+
+.cal-day-doctor-name {
+  flex: 1;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ── Week view ────────────────────────────────────────────────────── */
@@ -814,6 +825,14 @@ body.cal-fullscreen .cal-grid-wrap {
 
 .evt-card-title:hover {
   text-decoration: underline;
+}
+
+.evt-card-title--static {
+  cursor: default;
+}
+
+.evt-card-title--static:hover {
+  text-decoration: none;
 }
 
 .evt-card-menu {

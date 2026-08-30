@@ -15,6 +15,16 @@ interface StatusLook {
   badgeText: string;
 }
 
+function hexToOpaqueTint(hex: string, alpha = 0.094): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const mr = Math.round(r * alpha + 255 * (1 - alpha));
+  const mg = Math.round(g * alpha + 255 * (1 - alpha));
+  const mb = Math.round(b * alpha + 255 * (1 - alpha));
+  return `#${mr.toString(16).padStart(2, "0")}${mg.toString(16).padStart(2, "0")}${mb.toString(16).padStart(2, "0")}`;
+}
+
 const STATUS_LOOK: Record<AppointmentStatus, StatusLook> = {
   scheduled: {
     border: "#1565C0",
@@ -90,7 +100,7 @@ export const EventCard = React.memo(function EventCard({
   const baseLook = STATUS_LOOK[appointment.status];
   const customColor = appointment.color;
   const look = customColor
-    ? { ...baseLook, border: customColor, bg: `${customColor}18`, text: customColor }
+    ? { ...baseLook, border: customColor, bg: hexToOpaqueTint(customColor), text: customColor }
     : baseLook;
   const patientName = appointment.patientName?.trim() || t("Lịch hẹn");
   const displayLabel = appointment.patientCode
@@ -150,12 +160,17 @@ export const EventCard = React.memo(function EventCard({
     onAction?.(info.key, appointment.id);
   }, [onAction, appointment.id]);
 
+  const EMPTY_GUID = "00000000-0000-0000-0000-000000000000";
+  const canNavigateToPatient = !appointment.isTemporary
+    && appointment.patientId
+    && appointment.patientId !== EMPTY_GUID;
+
   const handlePatientClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    if (appointment.patientId) {
+    if (canNavigateToPatient) {
       navigate(`/patient/${appointment.patientId}`);
     }
-  }, [navigate, appointment.patientId]);
+  }, [navigate, appointment.patientId, canNavigateToPatient]);
 
   return (
     <div
@@ -168,20 +183,24 @@ export const EventCard = React.memo(function EventCard({
     >
       {/* Row 1: [CODE] - Patient name + ⋮ menu */}
       <div className="evt-card-row1">
-        <a
-          className="evt-card-title"
-          onClick={handlePatientClick}
-          role="link"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              handlePatientClick(e as unknown as React.MouseEvent);
-            }
-          }}
-        >
-          {displayLabel}
-        </a>
+        {canNavigateToPatient ? (
+          <a
+            className="evt-card-title"
+            onClick={handlePatientClick}
+            role="link"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handlePatientClick(e as unknown as React.MouseEvent);
+              }
+            }}
+          >
+            {displayLabel}
+          </a>
+        ) : (
+          <span className="evt-card-title evt-card-title--static">{displayLabel}</span>
+        )}
         <Dropdown
           menu={{ items: menuItems, onClick: handleMenuClick }}
           trigger={["click"]}

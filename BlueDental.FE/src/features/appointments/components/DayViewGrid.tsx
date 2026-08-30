@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useRef, useEffect, useCallback } from "react";
 import dayjs from "dayjs";
 import { useAppointmentList } from "../api/appointmentQueries";
 import type { AppointmentDto } from "../types/appointment";
@@ -56,6 +56,21 @@ export function DayViewGrid({
   const totalSlots = ((DAY_END_H - DAY_START_H) * 60) / slotMinutes;
   const totalHeight = totalSlots * slotH;
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+  const [page, setPage] = useState(0);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width ?? 0;
+      setContainerWidth(w);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const { data: appointments } = useAppointmentList({
     date: currentDate.format("YYYY-MM-DD"),
     maxResultCount: 500,
@@ -68,6 +83,31 @@ export function DayViewGrid({
     const set = new Set(doctorIds);
     return doctors.filter((d) => set.has(d.id));
   }, [doctors, doctorIds]);
+
+  const doctorsPerPage = useMemo(() => {
+    if (containerWidth <= 0) return visibleDoctors.length || 1;
+    const available = containerWidth - TIME_COL_W;
+    return Math.max(1, Math.floor(available / DOCTOR_COL_W));
+  }, [containerWidth, visibleDoctors.length]);
+
+  const totalPages = Math.max(1, Math.ceil(visibleDoctors.length / doctorsPerPage));
+
+  const safePage = Math.min(page, totalPages - 1);
+  useEffect(() => {
+    if (page !== safePage) setPage(safePage);
+  }, [page, safePage]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [doctorIds, doctors]);
+
+  const pageDoctors = useMemo(() => {
+    const start = safePage * doctorsPerPage;
+    return visibleDoctors.slice(start, start + doctorsPerPage);
+  }, [visibleDoctors, safePage, doctorsPerPage]);
+
+  const handlePrev = useCallback(() => setPage((p) => Math.max(0, p - 1)), []);
+  const handleNext = useCallback(() => setPage((p) => Math.min(totalPages - 1, p + 1)), [totalPages]);
 
   const visibleBookings = useMemo(() => {
     const needle = keyword.trim().toLowerCase();
@@ -108,22 +148,23 @@ export function DayViewGrid({
     [totalSlots],
   );
 
-  const colCount = Math.max(visibleDoctors.length, 1);
-  const gridCols = `${TIME_COL_W}px repeat(${colCount}, minmax(${DOCTOR_COL_W}px, 1fr))`;
+  const colCount = Math.max(pageDoctors.length, 1);
+  const gridCols = `${TIME_COL_W}px repeat(${colCount}, 1fr)`;
 
   return (
-    <div className="cal-day-scroll">
+    <div className="cal-day-scroll" ref={containerRef}>
       <div
         className="cal-day-grid"
-        style={{
-          gridTemplateColumns: gridCols,
-          minWidth: TIME_COL_W + colCount * DOCTOR_COL_W,
-        }}
+        style={{ gridTemplateColumns: gridCols }}
       >
         <DayViewHeader
-          doctors={visibleDoctors}
+          doctors={pageDoctors}
           countsByDoctor={countsByDoctor}
           timeColWidth={TIME_COL_W}
+          canPrev={safePage > 0}
+          canNext={safePage < totalPages - 1}
+          onPrev={handlePrev}
+          onNext={handleNext}
         />
 
         {/* Time labels column */}
@@ -150,7 +191,7 @@ export function DayViewGrid({
         </div>
 
         {/* Doctor columns with absolute-positioned cards */}
-        {visibleDoctors.map((doc) => {
+        {pageDoctors.map((doc) => {
           const docBookings = bookingsByDoctor.get(doc.id) ?? [];
           return (
             <div key={doc.id} className="cal-day-doctor-col" style={{ height: totalHeight }}>
@@ -202,7 +243,7 @@ export function DayViewGrid({
         })}
 
         {/* Empty column if no doctors */}
-        {visibleDoctors.length === 0 && (
+        {pageDoctors.length === 0 && (
           <div className="cal-day-doctor-col" style={{ height: totalHeight }}>
             {slots.map((slotIdx) => {
               const isHour = slotMinutes === 30 ? slotIdx % 2 === 0 : slotIdx % 4 === 0;
