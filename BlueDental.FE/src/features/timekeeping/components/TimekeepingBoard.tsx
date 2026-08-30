@@ -172,7 +172,7 @@ export function TimekeepingBoard({ currentDate, viewMode, onViewModeChange, onDa
       </div>
 
       {/* Row 2 — reuses cal-toolbar-row2 */}
-      <div className="cal-toolbar-row2">
+      <div className="cal-toolbar-row2 tk-toolbar-row2">
         <div className="cal-toolbar-row2-left">
           <FloatingLabel label={t("Tìm kiếm")} floated={Boolean(keyword)}>
             <Input

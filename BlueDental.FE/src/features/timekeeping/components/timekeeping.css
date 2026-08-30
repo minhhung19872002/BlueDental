@@ -15,12 +15,12 @@
 
 /* ── Search input inside cal-toolbar-row2 ────────────────────────── */
 
-.cal-toolbar-row2-left .floating-field {
+.tk-toolbar-row2 .floating-field {
   flex: 1;
   max-width: 320px;
 }
 
-.cal-toolbar-row2-left .ant-input-affix-wrapper {
+.tk-toolbar-row2 .ant-input-affix-wrapper {
   border-radius: 8px;
   width: 100%;
 }
