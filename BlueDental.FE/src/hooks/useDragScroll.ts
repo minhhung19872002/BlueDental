@@ -1,3 +1,5 @@
+const GRAB_SCROLL_SELECTORS = '.ant-table-content, .ant-table-body, .appt-mini-cal-content, .wsb-table-scroll';
+
 export const initTableGrabScroll = () => {
   let isGrabbing = false;
   let startX = 0;
@@ -5,7 +7,7 @@ export const initTableGrabScroll = () => {
   let currentContainer: HTMLElement | null = null;
 
   const updateScrollClasses = () => {
-    const containers = document.querySelectorAll('.ant-table-content, .ant-table-body');
+    const containers = document.querySelectorAll(GRAB_SCROLL_SELECTORS);
     containers.forEach((container) => {
       const el = container as HTMLElement;
       if (el.scrollWidth > el.clientWidth) {
@@ -30,13 +32,9 @@ export const initTableGrabScroll = () => {
   });
 
   const getScrollContainer = (target: HTMLElement): HTMLElement | null => {
-    const tableContent = target.closest('.ant-table-content.has-horizontal-scroll') as HTMLElement;
-    if (tableContent) return tableContent;
-
-    const tableBody = target.closest('.ant-table-body.has-horizontal-scroll') as HTMLElement;
-    if (tableBody) return tableBody;
-
-    return null;
+    return target.closest(
+      GRAB_SCROLL_SELECTORS.split(', ').map(s => `${s}.has-horizontal-scroll`).join(', ')
+    ) as HTMLElement | null;
   };
 
   const isInteractiveElement = (target: HTMLElement): boolean => {
