@@ -120,15 +120,6 @@ public class BlueDentalPermissionDefinitionProvider : PermissionDefinitionProvid
         reportPerm.AddChild(BlueDentalPermissions.Reporting.Generate, L("Permission:Reporting.Generate"));
         reportPerm.AddChild(BlueDentalPermissions.Reporting.Export, L("Permission:Reporting.Export"));
 
-        // Visits
-        var visitPerm = myGroup.AddPermission(
-            BlueDentalPermissions.Visits.Default,
-            L("Permission:Visits"));
-        visitPerm.AddChild(BlueDentalPermissions.Visits.View, L("Permission:Visits.View"));
-        visitPerm.AddChild(BlueDentalPermissions.Visits.Create, L("Permission:Visits.Create"));
-        visitPerm.AddChild(BlueDentalPermissions.Visits.Edit, L("Permission:Visits.Edit"));
-        visitPerm.AddChild(BlueDentalPermissions.Visits.Workflow, L("Permission:Visits.Workflow"));
-
         // Labo Orders
         var laboPerm = myGroup.AddPermission(
             BlueDentalPermissions.LaboOrders.Default,

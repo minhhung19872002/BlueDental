@@ -115,12 +115,6 @@ public static class BlueDentalDomainErrorCodes
         public const string DeliveryFailed = "BlueDental:Notification:0002";
     }
 
-    public static class Visits
-    {
-        public const string VisitNotFound = "BlueDental:Visit:0001";
-        public const string InvalidTransition = "BlueDental:Visit:0002";
-    }
-
     public static class Labo
     {
         public const string OrderNotFound = "BlueDental:Labo:0001";

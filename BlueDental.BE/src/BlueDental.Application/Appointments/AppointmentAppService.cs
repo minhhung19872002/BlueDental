@@ -46,6 +46,48 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     [Authorize(BlueDentalAbilityPermissions.Appointment.Read)]
     public async Task<PagedResultDto<AppointmentDto>> GetListAsync(GetAppointmentListInput input)
     {
+        var query = await FilteredQueryAsync(input);
+        var totalCount = await AsyncExecuter.CountAsync(query);
+
+        var hasDateFilter = input.Date.HasValue || input.FromDate.HasValue || input.ToDate.HasValue;
+
+        var ordered = query
+            .OrderBy(a => a.Slot.Start)
+            .ThenBy(a => a.Id);
+
+        var items = hasDateFilter
+            ? await AsyncExecuter.ToListAsync(ordered)
+            : await AsyncExecuter.ToListAsync(
+                ordered.Skip(input.SkipCount).Take(input.MaxResultCount));
+
+        var dtos = ObjectMapper.Map<List<Appointment>, List<AppointmentDto>>(items);
+        await FillNamesAsync(items, dtos);
+
+        return new PagedResultDto<AppointmentDto>(totalCount, dtos);
+    }
+
+    [Authorize(BlueDentalAbilityPermissions.Appointment.Read)]
+    public async Task<AppointmentStatsDto> GetStatsAsync(GetAppointmentListInput input)
+    {
+        var query = await FilteredQueryAsync(input, skipTextSearch: true);
+        var all = await AsyncExecuter.ToListAsync(query.Select(a => new { a.Status, a.IsTemporary }));
+
+        return new AppointmentStatsDto
+        {
+            Requested = all.Count(a => a.Status == AppointmentStatus.Requested),
+            Confirmed = all.Count(a => a.Status == AppointmentStatus.Confirmed),
+            CheckedIn = all.Count(a => a.Status == AppointmentStatus.CheckedIn),
+            InProgress = all.Count(a => a.Status == AppointmentStatus.InProgress),
+            Completed = all.Count(a => a.Status == AppointmentStatus.Completed),
+            Cancelled = all.Count(a => a.Status == AppointmentStatus.Cancelled),
+            NoShow = all.Count(a => a.Status == AppointmentStatus.NoShow),
+            Temporary = all.Count(a => a.IsTemporary),
+        };
+    }
+
+    private async Task<IQueryable<Appointment>> FilteredQueryAsync(
+        GetAppointmentListInput input, bool skipTextSearch = false)
+    {
         var branchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
 
@@ -53,9 +95,14 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         if (input.PatientId.HasValue) query = query.Where(a => a.PatientId == input.PatientId.Value);
         if (input.DentistId.HasValue) query = query.Where(a => a.DentistId == input.DentistId.Value);
         if (input.Status.HasValue) query = query.Where(a => a.Status == input.Status.Value);
+        if (input.Statuses is { Count: > 0 })
+        {
+            var statuses = input.Statuses;
+            query = query.Where(a => statuses.Contains(a.Status));
+        }
 
-        // The calendar asks for one day or one week; without this the grids were
-        // fed every appointment the clinic has ever had.
+        if (input.IsTemporary.HasValue) query = query.Where(a => a.IsTemporary == input.IsTemporary.Value);
+
         if (input.Date.HasValue)
         {
             var from = ToInstant(input.Date.Value);
@@ -77,18 +124,15 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
             }
         }
 
-        if (!string.IsNullOrWhiteSpace(input.Filter))
+        if (!skipTextSearch && !string.IsNullOrWhiteSpace(input.Filter))
         {
-            var filter = input.Filter.Trim();
+            var filter = input.Filter.Trim().ToLower();
 
-            // The list search box offers "bệnh nhân, bác sĩ, lý do khám", but the
-            // appointment row only holds ids. Matching names has to start from
-            // the people, then narrow the appointments to them — filtering the
-            // fetched page instead would only ever search the page on screen.
             var patientQuery = await _patientRepository.GetQueryableAsync();
             var matchedPatients = await AsyncExecuter.ToListAsync(
                 patientQuery
-                    .Where(p => p.FirstName.Contains(filter) || p.LastName.Contains(filter))
+                    .Where(p => p.FirstName.ToLower().Contains(filter)
+                                || p.LastName.ToLower().Contains(filter))
                     .Select(p => p.Id));
 
             var matchedStaff = (await _userRepository.GetListAsync())
@@ -99,33 +143,14 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
                 .ToList();
 
             query = query.Where(a =>
-                (a.ChiefComplaint != null && a.ChiefComplaint.Contains(filter))
-                || (a.Notes != null && a.Notes.Contains(filter))
+                (a.ChiefComplaint != null && a.ChiefComplaint.ToLower().Contains(filter))
+                || (a.Notes != null && a.Notes.ToLower().Contains(filter))
                 || matchedPatients.Contains(a.PatientId)
                 || matchedStaff.Contains(a.DentistId)
-                || (a.IsTemporary && a.PatientName != null && a.PatientName.Contains(filter)));
+                || (a.IsTemporary && a.PatientName != null && a.PatientName.ToLower().Contains(filter)));
         }
 
-        var totalCount = await AsyncExecuter.CountAsync(query);
-
-        // Calendar queries (Date / FromDate / ToDate) are naturally bounded by
-        // their time range, so return all matches without paging. Only apply
-        // Skip/Take for open-ended list requests (e.g. search).
-        var hasDateFilter = input.Date.HasValue || input.FromDate.HasValue || input.ToDate.HasValue;
-
-        var ordered = query
-            .OrderBy(a => a.Slot.Start)
-            .ThenBy(a => a.Id);
-
-        var items = hasDateFilter
-            ? await AsyncExecuter.ToListAsync(ordered)
-            : await AsyncExecuter.ToListAsync(
-                ordered.Skip(input.SkipCount).Take(input.MaxResultCount));
-
-        var dtos = ObjectMapper.Map<List<Appointment>, List<AppointmentDto>>(items);
-        await FillNamesAsync(items, dtos);
-
-        return new PagedResultDto<AppointmentDto>(totalCount, dtos);
+        return query;
     }
 
     /// <summary>
@@ -155,7 +180,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
                 patientQuery.Where(p => patientIds.Contains(p.Id))))
             .ToDictionary(
                 p => p.Id,
-                p => (Name: (p.LastName + " " + p.FirstName).Trim(), Phone: p.Contact.PhoneNumber, Code: p.PatientCode));
+                p => (Name: (p.LastName + " " + p.FirstName).Trim(), Phone: p.Contact.PhoneNumber, Code: p.PatientCode, YearOfBirth: p.DateOfBirth.HasValue ? p.DateOfBirth.Value.Year : (int?)null));
 
         var users = await _userRepository.GetListByIdsAsync(dentistIds);
         var dentists = users.ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
@@ -185,6 +210,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
                 dto.PatientCode = patient.Code;
                 dto.PatientName = patient.Name;
                 dto.PatientPhone = patient.Phone;
+                dto.PatientYearOfBirth = patient.YearOfBirth;
             }
 
             dto.DentistName = entity.DentistId != Guid.Empty
@@ -367,6 +393,26 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         var appointment = await _repository.GetAsync(id);
         GuardBranchAccess(appointment);
         appointment.MarkNoShow();
+        await _repository.UpdateAsync(appointment, autoSave: true);
+        return await ToDtoAsync(appointment);
+    }
+
+    [Authorize(BlueDentalAbilityPermissions.Appointment.Update)]
+    public async Task<AppointmentDto> AssignDentistAsync(Guid id, AssignDentistDto input)
+    {
+        var appointment = await _repository.GetAsync(id);
+        GuardBranchAccess(appointment);
+        appointment.AssignDentist(input.DentistId);
+        await _repository.UpdateAsync(appointment, autoSave: true);
+        return await ToDtoAsync(appointment);
+    }
+
+    [Authorize(BlueDentalAbilityPermissions.Appointment.Update)]
+    public async Task<AppointmentDto> SetOutcomeAsync(Guid id, SetOutcomeDto input)
+    {
+        var appointment = await _repository.GetAsync(id);
+        GuardBranchAccess(appointment);
+        appointment.SetOutcome(input.Outcome);
         await _repository.UpdateAsync(appointment, autoSave: true);
         return await ToDtoAsync(appointment);
     }

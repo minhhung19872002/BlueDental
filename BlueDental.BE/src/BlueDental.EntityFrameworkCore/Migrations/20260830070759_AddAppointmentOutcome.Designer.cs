@@ -13,8 +13,8 @@ using Volo.Abp.EntityFrameworkCore;
 namespace BlueDental.Migrations
 {
     [DbContext(typeof(BlueDentalDbContext))]
-    [Migration("20260828020652_AddEstimatedDurationMinutesToVisit")]
-    partial class AddEstimatedDurationMinutesToVisit
+    [Migration("20260830070759_AddAppointmentOutcome")]
+    partial class AddAppointmentOutcome
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -48,6 +48,10 @@ namespace BlueDental.Migrations
                     b.Property<string>("ChiefComplaint")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Color")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<DateTimeOffset?>("CompletedAt")
                         .HasColumnType("timestamp with time zone");
@@ -89,6 +93,9 @@ namespace BlueDental.Migrations
                         .HasDefaultValue(false)
                         .HasColumnName("IsDeleted");
 
+                    b.Property<bool>("IsTemporary")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTime?>("LastModificationTime")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("LastModificationTime");
@@ -101,10 +108,27 @@ namespace BlueDental.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
+                    b.Property<short?>("Outcome")
+                        .HasColumnType("smallint");
+
                     b.Property<Guid>("PatientId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("PatientName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("PatientPhone")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<Guid?>("ProcedureId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SourceEntryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SourceTaxonomyId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset?>("StartedAt")
@@ -117,6 +141,8 @@ namespace BlueDental.Migrations
                         .HasColumnType("smallint");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BranchId", "IsTemporary");
 
                     b.HasIndex("BranchId", "Status");
 
@@ -5257,107 +5283,6 @@ namespace BlueDental.Migrations
                     b.HasIndex("TreatmentServiceId", "SequenceNumber");
 
                     b.ToTable("bd_treatment_stages", (string)null);
-                });
-
-            modelBuilder.Entity("BlueDental.Visits.Visit", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("BranchId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("CancellationReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<DateTimeOffset?>("CheckedInAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ChiefComplaint")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<DateTimeOffset?>("CompletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ConcurrencyStamp")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)")
-                        .HasColumnName("ConcurrencyStamp");
-
-                    b.Property<DateTime>("CreationTime")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("CreationTime");
-
-                    b.Property<Guid?>("CreatorId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("CreatorId");
-
-                    b.Property<Guid?>("DeleterId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("DeleterId");
-
-                    b.Property<DateTime?>("DeletionTime")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("DeletionTime");
-
-                    b.Property<Guid?>("DentistId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int?>("EstimatedDurationMinutes")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("ExtraProperties")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("ExtraProperties");
-
-                    b.Property<bool>("IsDeleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false)
-                        .HasColumnName("IsDeleted");
-
-                    b.Property<DateTime?>("LastModificationTime")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("LastModificationTime");
-
-                    b.Property<Guid?>("LastModifierId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("LastModifierId");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
-                    b.Property<short?>("Outcome")
-                        .HasColumnType("smallint");
-
-                    b.Property<DateTimeOffset?>("OutcomeRecordedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("PatientId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("ScheduledAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTimeOffset?>("StartedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<short>("Status")
-                        .HasColumnType("smallint");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BranchId", "Status");
-
-                    b.HasIndex("PatientId", "ScheduledAt");
-
-                    b.ToTable("bd_visits", (string)null);
                 });
 
             modelBuilder.Entity("Volo.Abp.AuditLogging.AuditLog", b =>

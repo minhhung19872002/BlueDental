@@ -18,6 +18,10 @@ public sealed class AppointmentController(IAppointmentAppService service) : Blue
     public Task<PagedResultDto<AppointmentDto>> GetListAsync(
         [FromQuery] GetAppointmentListInput input) => service.GetListAsync(input);
 
+    [HttpGet("stats")]
+    public Task<AppointmentStatsDto> GetStatsAsync(
+        [FromQuery] GetAppointmentListInput input) => service.GetStatsAsync(input);
+
     [HttpGet("{id:guid}")]
     public Task<AppointmentDto> GetAsync(Guid id) => service.GetAsync(id);
 
@@ -52,6 +56,14 @@ public sealed class AppointmentController(IAppointmentAppService service) : Blue
 
     [HttpPost("{id:guid}/no-show")]
     public Task<AppointmentDto> MarkNoShowAsync(Guid id) => service.MarkNoShowAsync(id);
+
+    [HttpPost("{id:guid}/assign-dentist")]
+    public Task<AppointmentDto> AssignDentistAsync(Guid id, [FromBody] AssignDentistDto input) =>
+        service.AssignDentistAsync(id, input);
+
+    [HttpPost("{id:guid}/set-outcome")]
+    public Task<AppointmentDto> SetOutcomeAsync(Guid id, [FromBody] SetOutcomeDto input) =>
+        service.SetOutcomeAsync(id, input);
 
     [HttpDelete("{id:guid}")]
     public Task DeleteAsync(Guid id) => service.DeleteAsync(id);

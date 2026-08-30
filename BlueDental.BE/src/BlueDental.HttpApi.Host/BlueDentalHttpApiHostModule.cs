@@ -256,6 +256,17 @@ public class BlueDentalHttpApiHostModule : AbpModule
         {
             options.Map(BlueDentalDomainErrorCodes.Appointments.ConflictingSlot, HttpStatusCode.Conflict);
             options.Map(BlueDentalDomainErrorCodes.Appointments.PatientAlreadyBooked, HttpStatusCode.Conflict);
+
+            options.Map(BlueDentalDomainErrorCodes.Appointments.InvalidTransition, HttpStatusCode.UnprocessableEntity);
+            options.Map(BlueDentalDomainErrorCodes.TreatmentManagement.InvalidPlanTransition, HttpStatusCode.UnprocessableEntity);
+            options.Map(BlueDentalDomainErrorCodes.TreatmentManagement.InvalidDiagnosisTransition, HttpStatusCode.UnprocessableEntity);
+            options.Map(BlueDentalDomainErrorCodes.TreatmentManagement.InvalidAdviseTransition, HttpStatusCode.UnprocessableEntity);
+            options.Map(BlueDentalDomainErrorCodes.TreatmentManagement.InvalidStageTransition, HttpStatusCode.UnprocessableEntity);
+            options.Map(BlueDentalDomainErrorCodes.Billing.InvalidInvoiceTransition, HttpStatusCode.UnprocessableEntity);
+            options.Map(BlueDentalDomainErrorCodes.Labo.InvalidTransition, HttpStatusCode.UnprocessableEntity);
+            options.Map(BlueDentalDomainErrorCodes.Promotions.InvalidVoucherTransition, HttpStatusCode.UnprocessableEntity);
+            options.Map(BlueDentalDomainErrorCodes.CustomerCare.InvalidTransition, HttpStatusCode.UnprocessableEntity);
+            options.Map(BlueDentalDomainErrorCodes.Operations.InvalidTaskTransition, HttpStatusCode.UnprocessableEntity);
         });
     }
 

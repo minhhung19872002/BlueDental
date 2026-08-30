@@ -6,7 +6,7 @@ using BlueDental.Billing;
 using BlueDental.CustomerCare;
 using BlueDental.PatientManagement;
 using BlueDental.TreatmentManagement;
-using BlueDental.Visits;
+
 using Shouldly;
 using Volo.Abp;
 using Volo.Abp.Domain.Entities;
@@ -21,7 +21,7 @@ public class CrossBranchDenialTests
         typeof(AppointmentAppService),
         typeof(PatientAppService),
         typeof(InvoiceAppService),
-        typeof(VisitAppService),
+
         typeof(InsuranceClaimAppService),
         typeof(TreatmentPlanAppService),
         typeof(CustomerCareAppService),

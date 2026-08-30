@@ -7,7 +7,7 @@ using BlueDental.Catalogs;
 using BlueDental.PatientManagement;
 using BlueDental.TreatmentManagement;
 using BlueDental.TreatmentManagement.Values;
-using BlueDental.Visits;
+
 using Volo.Abp.DependencyInjection;
 using Volo.Abp;
 using Volo.Abp.Data;
@@ -28,7 +28,7 @@ namespace BlueDental.Data;
 public class BlueDentalClinicalDemoSeeder(
     IRepository<Taxonomy, Guid> taxonomyRepository,
     IRepository<CatalogEntry, Guid> catalogRepository,
-    IRepository<Visit, Guid> visitRepository,
+
     IRepository<PatientDiagnosis, Guid> diagnosisRepository,
     IRepository<PatientAdvise, Guid> adviseRepository,
     IRepository<TreatmentPlan, Guid> planRepository,
@@ -89,7 +89,7 @@ public class BlueDentalClinicalDemoSeeder(
         }
 
         var catalog = await EnsureCatalogAsync();
-        await SeedVisitsAsync(patients, dentistIds);
+
         await SeedTreatmentChainAsync(patients, dentistIds, catalog);
         await SeedConsultingRecordsAsync(patients, dentistIds, catalog);
         await SeedPaymentsAsync(patients, dentistIds);
@@ -204,77 +204,6 @@ public class BlueDentalClinicalDemoSeeder(
         }
 
         return ids;
-    }
-
-    /// <summary>
-    /// Tiếp nhận reads visits rather than appointments, so an empty visit table
-    /// leaves that screen blank however full the diary is. Lays down a week of
-    /// finished visits and a board for today that is still being worked.
-    /// </summary>
-    private async Task SeedVisitsAsync(List<Patient> patients, List<Guid> dentistIds)
-    {
-        if (await visitRepository.AnyAsync(v => v.BranchId == _branchId))
-        {
-            return;
-        }
-
-        var random = new Random(20260825);
-        var offsetSpan = BlueDentalDemoSeedContributor.ClinicOffset;
-        var today = BlueDentalDemoSeedContributor.ClinicToday;
-        var visits = new List<Visit>();
-
-        for (var dayOffset = -7; dayOffset <= 0; dayOffset++)
-        {
-            var day = today.AddDays(dayOffset);
-            if (day.DayOfWeek == DayOfWeek.Sunday)
-            {
-                continue;
-            }
-
-            var count = dayOffset == 0 ? 9 : random.Next(4, 8);
-
-            for (var i = 0; i < count; i++)
-            {
-                var patient = patients[random.Next(patients.Count)];
-                var start = new DateTimeOffset(day.AddHours(8).AddMinutes(30 * i), offsetSpan)
-                    .ToUniversalTime();
-
-                var visit = new Visit(
-                    DemoId("0100", visits.Count + 1),
-                    patient.Id,
-                    _branchId,
-                    start,
-                    dentistIds[random.Next(dentistIds.Count)],
-                    "Khám định kỳ");
-
-                if (dayOffset < 0)
-                {
-                    visit.CheckIn();
-                    visit.Start();
-                    visit.Complete();
-                }
-                else
-                {
-                    // Today: some waiting, some in the chair, some already done.
-                    var roll = random.Next(100);
-                    visit.CheckIn();
-
-                    if (roll >= 40)
-                    {
-                        visit.Start();
-                    }
-
-                    if (roll >= 75)
-                    {
-                        visit.Complete();
-                    }
-                }
-
-                visits.Add(visit);
-            }
-        }
-
-        await visitRepository.InsertManyAsync(visits, autoSave: true);
     }
 
     /// <summary>

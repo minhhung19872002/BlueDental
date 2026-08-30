@@ -49,6 +49,8 @@ export interface ReceptionItem {
   step3Time?: string;
   selectedOutcome?: AppointmentOutcome;
   createdAt: string;
+  isTemporary?: boolean;
+  color?: string | null;
 }
 
 export interface ReceptionFilter {

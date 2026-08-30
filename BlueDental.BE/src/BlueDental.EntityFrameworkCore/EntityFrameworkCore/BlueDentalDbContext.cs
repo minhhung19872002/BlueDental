@@ -14,7 +14,6 @@ using BlueDental.Promotions;
 using BlueDental.Timekeeping;
 using BlueDental.Tools;
 using BlueDental.TreatmentManagement;
-using BlueDental.Visits;
 using Microsoft.EntityFrameworkCore;
 using Volo.Abp.AuditLogging.EntityFrameworkCore;
 using Volo.Abp.BackgroundJobs.EntityFrameworkCore;
@@ -117,9 +116,6 @@ public class BlueDentalDbContext :
 
     // File Management
     public DbSet<FileAttachment> FileAttachments { get; set; }
-
-    // Visits (Reception)
-    public DbSet<Visit> Visits { get; set; }
 
     // Labo
     public DbSet<LaboOrder> LaboOrders { get; set; }

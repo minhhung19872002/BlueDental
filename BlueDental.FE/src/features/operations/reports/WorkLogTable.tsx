@@ -27,12 +27,12 @@ function clockOf(value: string | null | undefined): string {
 }
 
 /**
- * The Báo cáo table: one block per visit, one group per action inside it.
+ * The Báo cáo table: one block per appointment, one group per action inside it.
  */
 export function WorkLogTable({ rows, loading, totalCount, pagination, showTotal }: Props) {
-  // One block per visit, and inside it one per kind of action.
-  const [visitSpans, actionSpans] = useMemo(
-    () => rowSpansBy(rows, [(row) => row.visitKey, (row) => String(row.action)]),
+  // One block per appointment, and inside it one per kind of action.
+  const [appointmentSpans, actionSpans] = useMemo(
+    () => rowSpansBy(rows, [(row) => row.appointmentKey, (row) => String(row.action)]),
     [rows],
   );
   const indexOf = useMemo(
@@ -46,10 +46,10 @@ export function WorkLogTable({ rows, loading, totalCount, pagination, showTotal 
         key: "visit",
         title: t("Ngày / Khách hàng"),
         width: 260,
-        onCell: (row) => ({ rowSpan: visitSpans[indexOf.get(row) ?? 0] }),
+        onCell: (row) => ({ rowSpan: appointmentSpans[indexOf.get(row) ?? 0] }),
         render: (_, row) => (
           <div className="bd-ops-visit">
-            <span className="bd-cat-num">{formatDate(row.visitDate)}</span>
+            <span className="bd-cat-num">{formatDate(row.appointmentDate)}</span>
             <span className="bd-ops-patient-name">
               [{row.patientCode}] - {row.patientName}
             </span>
@@ -128,7 +128,7 @@ export function WorkLogTable({ rows, loading, totalCount, pagination, showTotal 
         ),
       },
     ],
-    [visitSpans, actionSpans, indexOf],
+    [appointmentSpans, actionSpans, indexOf],
   );
 
   return (
@@ -137,7 +137,7 @@ export function WorkLogTable({ rows, loading, totalCount, pagination, showTotal 
         className="bd-ops-worklog"
         columns={columns}
         dataSource={rows}
-        rowKey={(row) => `${row.visitKey}-${row.action}-${row.occurredAt}-${row.subject}`}
+        rowKey={(row) => `${row.appointmentKey}-${row.action}-${row.occurredAt}-${row.subject}`}
         loading={loading}
         pagination={pagination.buildConfig(totalCount, showTotal)}
         locale={{ emptyText: t("Không có dữ liệu") }}

@@ -97,18 +97,18 @@ public class SalesAccessInput : OperationsReportInput
 /// <summary>
 /// One line of Báo cáo — who did what to whom, and what it was worth.
 ///
-/// The screen groups these: one block per visit, and inside it one group per
+/// The screen groups these: one block per appointment, and inside it one group per
 /// action. Both keys travel with the row so the grouping survives paging, which
 /// the reference does by item and not by block.
 /// </summary>
 public class WorkLogRowDto
 {
     /// <summary>One patient on one day — the block this row belongs to.</summary>
-    public string VisitKey { get; set; } = string.Empty;
+    public string AppointmentKey { get; set; } = string.Empty;
 
     public DateTime OccurredAt { get; set; }
     /// <summary>The day of the block, whatever time the row itself carries.</summary>
-    public DateTime VisitDate { get; set; }
+    public DateTime AppointmentDate { get; set; }
     public string PatientCode { get; set; } = string.Empty;
     public string PatientName { get; set; } = string.Empty;
 

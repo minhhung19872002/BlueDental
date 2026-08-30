@@ -1,7 +1,14 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { receptionApi } from "./receptionApi";
-import type { CreateReceptionInput, AppointmentOutcome } from "../types/reception";
+import type { AppointmentOutcome, CreateReceptionInput } from "../types/reception";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
+import { appointmentKeys } from "@/features/appointments/api/appointmentQueries";
+
+function invalidateAll(queryClient: ReturnType<typeof useQueryClient>) {
+  void queryClient.invalidateQueries({ queryKey: ["receptions"] });
+  void queryClient.invalidateQueries({ queryKey: ["receptionMetrics"] });
+  void queryClient.invalidateQueries({ queryKey: appointmentKeys.lists() });
+}
 
 export function useCreateReception() {
   const queryClient = useQueryClient();
@@ -10,10 +17,7 @@ export function useCreateReception() {
   return useMutation({
     mutationFn: (input: CreateReceptionInput) =>
       receptionApi.create({ ...input, branchId: input.overrideBranchId ?? branchId }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["receptions"] });
-      queryClient.invalidateQueries({ queryKey: ["receptionMetrics"] });
-    },
+    onSuccess: () => invalidateAll(queryClient),
   });
 }
 
@@ -23,32 +27,7 @@ export function useUpdateReceptionStatus() {
   return useMutation({
     mutationFn: ({ id, action }: { id: string; action: "check-in" | "start" | "complete" }) =>
       receptionApi.updateStatus(id, action),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["receptions"] });
-      queryClient.invalidateQueries({ queryKey: ["receptionMetrics"] });
-    },
-  });
-}
-
-export function useUpdateReceptionOutcome() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, outcome }: { id: string; outcome: AppointmentOutcome }) =>
-      receptionApi.updateOutcome(id, outcome ?? ""),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["receptions"] });
-    },
-  });
-}
-
-export function useUpdateReceptionDoctor() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, doctorId }: { id: string; doctorId: string }) =>
-      receptionApi.updateDoctor(id, doctorId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["receptions"] });
-    },
+    onSuccess: () => invalidateAll(queryClient),
   });
 }
 
@@ -57,9 +36,24 @@ export function useCancelReception() {
   return useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) =>
       receptionApi.cancel(id, reason),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["receptions"] });
-      queryClient.invalidateQueries({ queryKey: ["receptionMetrics"] });
-    },
+    onSuccess: () => invalidateAll(queryClient),
+  });
+}
+
+export function useAssignReceptionDentist() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, dentistId }: { id: string; dentistId: string }) =>
+      receptionApi.assignDentist(id, dentistId),
+    onSuccess: () => invalidateAll(queryClient),
+  });
+}
+
+export function useSetReceptionOutcome() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, outcome }: { id: string; outcome: NonNullable<AppointmentOutcome> }) =>
+      receptionApi.setOutcome(id, outcome),
+    onSuccess: () => invalidateAll(queryClient),
   });
 }

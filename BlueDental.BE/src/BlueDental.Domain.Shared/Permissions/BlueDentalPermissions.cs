@@ -125,15 +125,6 @@ public static class BlueDentalPermissions
         public const string Export = Default + ".Export";
     }
 
-    public static class Visits
-    {
-        public const string Default = GroupName + ".Visits";
-        public const string View = Default + ".View";
-        public const string Create = Default + ".Create";
-        public const string Edit = Default + ".Edit";
-        public const string Workflow = Default + ".Workflow";
-    }
-
     public static class LaboOrders
     {
         public const string Default = GroupName + ".LaboOrders";

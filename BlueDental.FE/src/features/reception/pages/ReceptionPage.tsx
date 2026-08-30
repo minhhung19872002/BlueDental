@@ -15,9 +15,9 @@ import {
 } from "../api/receptionQueries";
 import {
   useUpdateReceptionStatus,
-  useUpdateReceptionOutcome,
-  useUpdateReceptionDoctor,
   useCancelReception,
+  useAssignReceptionDentist,
+  useSetReceptionOutcome,
 } from "../api/receptionMutations";
 import { t } from "@/lib/i18n";
 import { useBranchFilter } from "@/lib/clinicBranch";
@@ -61,12 +61,12 @@ export const ReceptionPage: React.FC = () => {
     isFetchingNextPage,
     fetchNextPage,
   } = useReceptionList(filter);
-  const { data: metrics } = useReceptionMetrics({ date: filter.date, viewMode, branchId });
+  const { data: metrics } = useReceptionMetrics({ date: filter.date, viewMode, branchId, doctorId: selectedDoctorId });
   const { data: doctors = [] } = useReceptionDoctors(branchId);
   const updateStatusMutation = useUpdateReceptionStatus();
-  const updateOutcomeMutation = useUpdateReceptionOutcome();
-  const updateDoctorMutation = useUpdateReceptionDoctor();
   const cancelMutation = useCancelReception();
+  const assignDentistMutation = useAssignReceptionDentist();
+  const setOutcomeMutation = useSetReceptionOutcome();
 
   const items = useMemo(
     () => listData?.pages.flatMap((p) => p.items) ?? [],
@@ -109,14 +109,6 @@ export const ReceptionPage: React.FC = () => {
     );
   };
 
-  const handleOutcomeChange = (id: string, outcome: AppointmentOutcome) => {
-    updateOutcomeMutation.mutate({ id, outcome });
-  };
-
-  const handleDoctorChange = (id: string, doctorId: string) => {
-    updateDoctorMutation.mutate({ id, doctorId });
-  };
-
   const handleCancel = (id: string) => {
     const item = items.find((i) => i.id === id);
     setCancelTarget({ id, name: item?.patientName ?? "" });
@@ -133,6 +125,29 @@ export const ReceptionPage: React.FC = () => {
         },
         onError: (err) => {
           toast.error(err.message || t("Huỷ lịch thất bại"));
+        },
+      },
+    );
+  };
+
+  const handleOutcomeChange = (id: string, outcome: AppointmentOutcome) => {
+    if (!outcome) return;
+    setOutcomeMutation.mutate(
+      { id, outcome },
+      {
+        onError: (err) => {
+          toast.error(err.message || t("Cập nhật kết quả thất bại"));
+        },
+      },
+    );
+  };
+
+  const handleDoctorChange = (id: string, doctorId: string) => {
+    assignDentistMutation.mutate(
+      { id, dentistId: doctorId },
+      {
+        onError: (err) => {
+          toast.error(err.message || t("Chuyển bác sĩ thất bại"));
         },
       },
     );
@@ -189,9 +204,9 @@ export const ReceptionPage: React.FC = () => {
                   item={item}
                   doctors={doctors}
                   onStatusChange={handleStatusChange}
+                  onCancel={handleCancel}
                   onOutcomeChange={handleOutcomeChange}
                   onDoctorChange={handleDoctorChange}
-                  onCancel={handleCancel}
                 />
               ))}
             </div>

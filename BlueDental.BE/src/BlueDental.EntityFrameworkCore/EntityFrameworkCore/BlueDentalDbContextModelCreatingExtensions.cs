@@ -17,7 +17,7 @@ using BlueDental.Finance;
 using BlueDental.Promotions;
 using BlueDental.Timekeeping;
 using BlueDental.TreatmentManagement;
-using BlueDental.Visits;
+
 using Microsoft.EntityFrameworkCore;
 using Volo.Abp;
 using Volo.Abp.EntityFrameworkCore.Modeling;
@@ -39,7 +39,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
         ConfigureInventory(builder);
         ConfigureNotifications(builder);
         ConfigureFileManagement(builder);
-        ConfigureVisits(builder);
+
         ConfigureLabo(builder);
         ConfigureCustomerCare(builder);
         ConfigureOperations(builder);
@@ -258,6 +258,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Status).HasConversion<short>();
             entity.Property(x => x.Type).HasConversion<short>();
             entity.Property(x => x.CancellationReason).HasConversion<short>();
+            entity.Property(x => x.Outcome).HasConversion<short>();
             entity.Property(x => x.ChiefComplaint).HasMaxLength(500);
             entity.Property(x => x.Notes).HasMaxLength(2000);
             entity.Property(x => x.CancellationNote).HasMaxLength(500);
@@ -521,22 +522,6 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Description).HasMaxLength(500);
             entity.Property(x => x.OwnerEntityType).HasMaxLength(100).IsRequired();
             entity.HasIndex(x => new { x.OwnerEntityType, x.OwnerEntityId });
-        });
-    }
-
-    private static void ConfigureVisits(ModelBuilder builder)
-    {
-        builder.Entity<Visit>(entity =>
-        {
-            entity.ToTable("bd_visits");
-            entity.ConfigureByConvention();
-            entity.Property(x => x.Status).HasConversion<short>();
-            entity.Property(x => x.ChiefComplaint).HasMaxLength(500);
-            entity.Property(x => x.Notes).HasMaxLength(2000);
-            entity.Property(x => x.CancellationReason).HasMaxLength(500);
-            entity.Property(x => x.Outcome).HasConversion<short?>();
-            entity.HasIndex(x => new { x.BranchId, x.Status });
-            entity.HasIndex(x => new { x.PatientId, x.ScheduledAt });
         });
     }
 

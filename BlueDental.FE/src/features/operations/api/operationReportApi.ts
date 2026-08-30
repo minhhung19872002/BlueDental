@@ -38,8 +38,8 @@ interface Paged<T> {
 
 export interface WorkLogRow {
   /** One patient on one day — the block this row is drawn inside. */
-  visitKey: string;
-  visitDate: string;
+  appointmentKey: string;
+  appointmentDate: string;
   arrivedAt?: string | null;
   startedAt?: string | null;
   completedAt?: string | null;

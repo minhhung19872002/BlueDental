@@ -26,6 +26,7 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
     public DateTimeOffset? CheckedInAt { get; private set; }
     public DateTimeOffset? StartedAt { get; private set; }
     public DateTimeOffset? CompletedAt { get; private set; }
+    public AppointmentOutcome? Outcome { get; private set; }
 
     public bool IsTemporary { get; private set; }
     public string? PatientName { get; private set; }
@@ -117,7 +118,13 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
 
     public Appointment CheckIn()
     {
-        EnsureStatus(AppointmentStatus.Confirmed, nameof(CheckIn));
+        if (Status is not (AppointmentStatus.Requested or AppointmentStatus.Confirmed))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Appointments.InvalidTransition,
+                $"Cannot perform 'CheckIn' on appointment with status '{Status}'. Expected 'Requested' or 'Confirmed'.");
+        }
+
         Status = AppointmentStatus.CheckedIn;
         CheckedInAt = DateTimeOffset.UtcNow;
         return this;
@@ -167,6 +174,32 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         Slot = newSlot;
         if (newDentistId.HasValue) DentistId = newDentistId.Value;
         Status = AppointmentStatus.Confirmed;
+        return this;
+    }
+
+    public Appointment AssignDentist(Guid dentistId)
+    {
+        if (Status is AppointmentStatus.Completed or AppointmentStatus.Cancelled)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Appointments.InvalidTransition,
+                $"Cannot reassign dentist on an appointment in status {Status}.");
+        }
+
+        DentistId = dentistId;
+        return this;
+    }
+
+    public Appointment SetOutcome(AppointmentOutcome outcome)
+    {
+        if (Status is AppointmentStatus.Cancelled)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Appointments.InvalidTransition,
+                $"Cannot set outcome on a cancelled appointment.");
+        }
+
+        Outcome = outcome;
         return this;
     }
 
