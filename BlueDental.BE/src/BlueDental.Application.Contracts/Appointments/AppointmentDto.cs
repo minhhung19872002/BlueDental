@@ -61,6 +61,14 @@ public class UpdateAppointmentDto
     public DateTimeOffset SlotEnd { get; set; }
     public Guid? DentistId { get; set; }
     public string? ChiefComplaint { get; set; }
+    public string? Notes { get; set; }
+    public string? Color { get; set; }
+
+    // Temp appointment fields
+    public string? PatientName { get; set; }
+    public string? PatientPhone { get; set; }
+    public Guid? SourceTaxonomyId { get; set; }
+    public Guid? SourceEntryId { get; set; }
 }
 
 public class CancelAppointmentDto

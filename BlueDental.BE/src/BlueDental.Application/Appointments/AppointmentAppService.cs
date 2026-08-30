@@ -204,9 +204,15 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         return dto;
     }
 
-    /// <summary>Slots are stored as UTC instants, so a calendar day starts at UTC midnight.</summary>
+    private static readonly TimeSpan ClinicUtcOffset = TimeSpan.FromHours(7);
+
+    /// <summary>
+    /// A calendar day in the clinic's local time (UTC+7), returned as a UTC instant.
+    /// E.g. 2026-08-30 → 2026-08-29T17:00:00+00:00 (midnight UTC+7 expressed as UTC).
+    /// </summary>
     private static DateTimeOffset ToInstant(DateOnly date) =>
-        new(date.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+        new DateTimeOffset(date.ToDateTime(TimeOnly.MinValue), ClinicUtcOffset)
+            .ToUniversalTime();
 
     [Authorize(BlueDentalAbilityPermissions.Appointment.Read)]
     public async Task<AppointmentDto> GetAsync(Guid id)
@@ -289,6 +295,18 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         GuardBranchAccess(appointment);
         var slot = new AppointmentSlot(input.SlotStart, input.SlotEnd);
         appointment.Reschedule(slot, input.DentistId);
+        appointment.UpdateDetails(input.ChiefComplaint, input.Notes, input.Color);
+
+        if (appointment.IsTemporary)
+        {
+            if (!string.IsNullOrWhiteSpace(input.PatientName))
+            {
+                appointment.UpdateTempPatientInfo(input.PatientName, input.PatientPhone);
+            }
+
+            appointment.UpdateSourceInfo(input.SourceTaxonomyId, input.SourceEntryId);
+        }
+
         await _repository.UpdateAsync(appointment, autoSave: true);
         return await ToDtoAsync(appointment);
     }
@@ -351,6 +369,24 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         appointment.MarkNoShow();
         await _repository.UpdateAsync(appointment, autoSave: true);
         return await ToDtoAsync(appointment);
+    }
+
+    [Authorize(BlueDentalAbilityPermissions.Appointment.Delete)]
+    public async Task DeleteAsync(Guid id)
+    {
+        var appointment = await _repository.GetAsync(id);
+        GuardBranchAccess(appointment);
+        await _repository.DeleteAsync(appointment, autoSave: true);
+    }
+
+    [Authorize(BlueDentalAbilityPermissions.Appointment.Delete)]
+    public async Task DeleteManyAsync(List<Guid> ids)
+    {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
+        var query = await _repository.GetQueryableAsync();
+        var appointments = await AsyncExecuter.ToListAsync(
+            query.Where(a => ids.Contains(a.Id) && a.BranchId == branchId));
+        await _repository.DeleteManyAsync(appointments, autoSave: true);
     }
 
     private void GuardBranchAccess(Appointment entity)

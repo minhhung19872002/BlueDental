@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Input } from "antd";
 import { PlusOutlined, CloseOutlined, CheckOutlined } from "@ant-design/icons";
 import { Controller, type Control, type UseFormSetValue } from "react-hook-form";
@@ -9,29 +9,49 @@ interface Props {
   control: Control<AppointmentEditorValues>;
   setValue: UseFormSetValue<AppointmentEditorValues>;
   notesValue: string;
+  isEdit?: boolean;
 }
 
-export function AppointmentFormRight({ control, setValue, notesValue }: Props) {
+export function AppointmentFormRight({ control, setValue, notesValue, isEdit }: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
+  const [editingExisting, setEditingExisting] = useState(false);
+  const autoOpened = useRef(false);
+
+  useEffect(() => {
+    if (isEdit && notesValue && !autoOpened.current) {
+      autoOpened.current = true;
+      setDraft(notesValue);
+      setEditingExisting(true);
+      setEditing(true);
+    }
+  }, [isEdit, notesValue]);
+
   const hasNotes = Boolean(notesValue);
 
   const handleAdd = () => {
     setDraft("");
+    setEditingExisting(false);
     setEditing(true);
   };
 
   const handleConfirm = () => {
     if (draft.trim()) {
-      const combined = notesValue ? `${notesValue}\n${draft.trim()}` : draft.trim();
-      setValue("notes", combined);
+      if (editingExisting) {
+        setValue("notes", draft.trim());
+      } else {
+        const combined = notesValue ? `${notesValue}\n${draft.trim()}` : draft.trim();
+        setValue("notes", combined);
+      }
     }
     setDraft("");
+    setEditingExisting(false);
     setEditing(false);
   };
 
   const handleCancel = () => {
     setDraft("");
+    setEditingExisting(false);
     setEditing(false);
   };
 

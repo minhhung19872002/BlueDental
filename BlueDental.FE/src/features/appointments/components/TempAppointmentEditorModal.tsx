@@ -5,7 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import dayjs from "dayjs";
 import { AppDialog } from "@/components/AppDialog";
-import { useCreateTempAppointment } from "../api/appointmentMutations";
+import { useCreateTempAppointment, useUpdateAppointment } from "../api/appointmentMutations";
+import { useAppointment } from "../api/appointmentQueries";
 import { useDentistList } from "@/features/staff/api/staffQueries";
 import { useClinicBranches } from "@/features/organizations/api";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
@@ -31,15 +32,25 @@ const buildSchema = () =>
 
 interface Props {
   open: boolean;
+  appointmentId?: string | null;
   initialDate?: string;
   onClose: () => void;
   onSuccess?: () => void;
 }
 
-export function TempAppointmentEditorModal({ open, initialDate, onClose, onSuccess }: Props) {
+export function TempAppointmentEditorModal({
+  open,
+  appointmentId,
+  initialDate,
+  onClose,
+  onSuccess,
+}: Props) {
+  const isEdit = Boolean(appointmentId);
   const createMutation = useCreateTempAppointment();
+  const updateMutation = useUpdateAppointment(appointmentId ?? "");
   const currentBranchId = useCurrentBranchId();
 
+  const { data: existingAppt } = useAppointment(appointmentId ?? "");
   const { data: dentists } = useDentistList();
   const { data: branches } = useClinicBranches(true);
 
@@ -74,48 +85,97 @@ export function TempAppointmentEditorModal({ open, initialDate, onClose, onSucce
   const watchedSourceTaxonomyId = useWatch({ control, name: "sourceTaxonomyId" });
 
   useEffect(() => {
-    if (!open) reset();
-  }, [open, reset]);
+    if (!open) {
+      reset();
+      return;
+    }
+    if (isEdit && existingAppt) {
+      const start = dayjs(existingAppt.startTime);
+      const end = dayjs(existingAppt.endTime);
+      reset({
+        patientName: existingAppt.patientName ?? "",
+        patientPhone: existingAppt.patientPhone ?? "",
+        branchId: currentBranchId,
+        doctorId: existingAppt.doctorId ?? "",
+        date: start.format("YYYY-MM-DD"),
+        startTime: start.format("HH:mm"),
+        durationMinutes: end.diff(start, "minute"),
+        sourceTaxonomyId: existingAppt.sourceTaxonomyId ?? "",
+        sourceEntryId: existingAppt.sourceEntryId ?? "",
+        color: existingAppt.color ?? APPT_COLORS[0].value,
+        notes: existingAppt.notes ?? "",
+      });
+    }
+  }, [open, isEdit, existingAppt, reset, currentBranchId]);
+
+  const activeMutation = isEdit ? updateMutation : createMutation;
 
   const onSubmit = (data: TempAppointmentFormValues) => {
     const startDateTime = `${data.date}T${data.startTime}:00`;
     const endDateTime = dayjs(startDateTime).add(data.durationMinutes, "minute").format(`${data.date}THH:mm:00`);
 
-    createMutation.mutate(
-      {
-        patientName: data.patientName,
-        patientPhone: data.patientPhone || undefined,
-        doctorId: data.doctorId || undefined,
-        branchId: data.branchId,
-        startTime: startDateTime,
-        endTime: endDateTime,
-        sourceTaxonomyId: data.sourceTaxonomyId || undefined,
-        sourceEntryId: data.sourceEntryId || undefined,
-        color: data.color || undefined,
-        notes: data.notes || undefined,
-      },
-      {
-        onSuccess: () => {
-          toast.success(t("Tạo lịch tạm thành công!"));
-          reset();
-          onSuccess?.();
-          onClose();
+    if (isEdit) {
+      updateMutation.mutate(
+        {
+          doctorId: data.doctorId || undefined,
+          startTime: startDateTime,
+          endTime: endDateTime,
+          patientName: data.patientName,
+          patientPhone: data.patientPhone ?? "",
+          color: data.color ?? "",
+          notes: data.notes ?? "",
+          sourceTaxonomyId: data.sourceTaxonomyId || undefined,
+          sourceEntryId: data.sourceEntryId || undefined,
         },
-        onError: (err) => {
-          toast.error(extractApiError(err));
+        {
+          onSuccess: () => {
+            toast.success(t("Cập nhật lịch tạm thành công!"));
+            reset();
+            onSuccess?.();
+            onClose();
+          },
+          onError: (err) => {
+            toast.error(extractApiError(err));
+          },
         },
-      },
-    );
+      );
+    } else {
+      createMutation.mutate(
+        {
+          patientName: data.patientName,
+          patientPhone: data.patientPhone || undefined,
+          doctorId: data.doctorId || undefined,
+          branchId: data.branchId,
+          startTime: startDateTime,
+          endTime: endDateTime,
+          sourceTaxonomyId: data.sourceTaxonomyId || undefined,
+          sourceEntryId: data.sourceEntryId || undefined,
+          color: data.color || undefined,
+          notes: data.notes || undefined,
+        },
+        {
+          onSuccess: () => {
+            toast.success(t("Tạo lịch tạm thành công!"));
+            reset();
+            onSuccess?.();
+            onClose();
+          },
+          onError: (err) => {
+            toast.error(extractApiError(err));
+          },
+        },
+      );
+    }
   };
 
   return (
     <AppDialog
       open={open}
-      title={t("Tạo lịch tạm")}
+      title={isEdit ? t("Chỉnh sửa lịch tạm") : t("Tạo lịch tạm")}
       width="calc(100vw - 80px)"
       className="appt-editor-dialog"
-      canSave={isValid && !createMutation.isPending}
-      saving={createMutation.isPending}
+      canSave={isValid && !activeMutation.isPending}
+      saving={activeMutation.isPending}
       onSave={handleSubmit(onSubmit)}
       onClose={onClose}
     >

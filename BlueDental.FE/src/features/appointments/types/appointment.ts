@@ -26,6 +26,8 @@ export interface AppointmentDto {
   color: string | null;
   createdAt: string;
   isTemporary: boolean;
+  sourceTaxonomyId: string | null;
+  sourceEntryId: string | null;
 }
 
 export interface CreateAppointmentRequest {
@@ -40,9 +42,21 @@ export interface CreateAppointmentRequest {
   color?: string;
 }
 
-export type UpdateAppointmentRequest = Partial<CreateAppointmentRequest> & {
+export interface UpdateAppointmentRequest {
+  patientId?: string;
+  doctorId?: string;
+  branchId?: string;
+  startTime?: string;
+  endTime?: string;
+  reason?: string;
+  notes?: string;
+  color?: string;
   status?: AppointmentStatus;
-};
+  patientName?: string;
+  patientPhone?: string;
+  sourceTaxonomyId?: string;
+  sourceEntryId?: string;
+}
 
 export interface AppointmentListQuery {
   date?: string;

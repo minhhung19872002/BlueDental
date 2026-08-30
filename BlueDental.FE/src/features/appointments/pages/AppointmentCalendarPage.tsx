@@ -20,7 +20,7 @@ import { useCalendarFilters } from "../hooks/useCalendarFilters";
 import { useStatusCounts } from "../hooks/useStatusCounts";
 import { useDentistList } from "@/features/staff/api/staffQueries";
 import { useAppointmentList } from "../api/appointmentQueries";
-import { useDeleteAppointment } from "../api/appointmentMutations";
+import { useDeleteAppointment, useDeleteManyAppointments } from "../api/appointmentMutations";
 import { exportToExcel } from "@/utils/exportExcel";
 import { t } from "@/lib/i18n";
 import "../components/calendar.css";
@@ -43,6 +43,7 @@ export function AppointmentCalendarPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [tempOpen, setTempOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [editTempId, setEditTempId] = useState<string | null>(null);
   const [initialDate, setInitialDate] = useState<string | undefined>();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleteTarget, setDeleteTarget] = useState<"single" | "multi" | null>(null);
@@ -61,6 +62,7 @@ export function AppointmentCalendarPage() {
   }, [fullscreen]);
 
   const deleteMutation = useDeleteAppointment();
+  const deleteManyMutation = useDeleteManyAppointments();
 
   const handleExport = () => {
     exportToExcel(
@@ -105,15 +107,13 @@ export function AppointmentCalendarPage() {
       });
     } else if (deleteTarget === "multi") {
       const ids = [...selectedIds];
-      for (const id of ids) {
-        await deleteMutation.mutateAsync(id);
-      }
+      await deleteManyMutation.mutateAsync(ids);
       toast.success(t("Đã xoá {0} lịch hẹn").replace("{0}", String(ids.length)));
       setSelectedIds(new Set());
     }
     setDeleteTarget(null);
     setDeleteSingleId(null);
-  }, [deleteTarget, deleteSingleId, selectedIds, deleteMutation]);
+  }, [deleteTarget, deleteSingleId, selectedIds, deleteMutation, deleteManyMutation]);
 
   const handleCancelDelete = useCallback(() => {
     setDeleteTarget(null);
@@ -122,10 +122,17 @@ export function AppointmentCalendarPage() {
 
   const handleCardAction = useCallback((action: string, id: string) => {
     switch (action) {
-      case "edit":
-        setEditId(id);
-        setAddOpen(true);
+      case "edit": {
+        const appt = dayAppointments?.items?.find((a) => a.id === id);
+        if (appt?.isTemporary) {
+          setEditTempId(id);
+          setTempOpen(true);
+        } else {
+          setEditId(id);
+          setAddOpen(true);
+        }
         break;
+      }
       case "select-delete":
         setSelectedIds((prev) => {
           const next = new Set(prev);
@@ -144,7 +151,7 @@ export function AppointmentCalendarPage() {
         handleDeleteSingle(id);
         break;
     }
-  }, [handleDeleteSingle]);
+  }, [handleDeleteSingle, dayAppointments]);
 
   const handleClearSelection = useCallback(() => {
     setSelectedIds(new Set());
@@ -203,7 +210,7 @@ export function AppointmentCalendarPage() {
                     type="button"
                     className="cal-selection-btn cal-selection-btn--danger"
                     onClick={handleDeleteSelected}
-                    disabled={deleteMutation.isPending}
+                    disabled={deleteMutation.isPending || deleteManyMutation.isPending}
                   >
                     {t("Xoá {0} mục").replace("{0}", String(selectedIds.size))}
                   </button>
@@ -286,9 +293,10 @@ export function AppointmentCalendarPage() {
 
       <TempAppointmentEditorModal
         open={tempOpen}
+        appointmentId={editTempId}
         initialDate={state.currentDate.format("YYYY-MM-DD")}
-        onClose={() => setTempOpen(false)}
-        onSuccess={() => setTempOpen(false)}
+        onClose={() => { setTempOpen(false); setEditTempId(null); }}
+        onSuccess={() => { setTempOpen(false); setEditTempId(null); }}
       />
 
       <ConfirmDeleteDialog
@@ -299,7 +307,7 @@ export function AppointmentCalendarPage() {
             ? t("{0} mục").replace("{0}", String(selectedIds.size))
             : t("này")
         }
-        pending={deleteMutation.isPending}
+        pending={deleteMutation.isPending || deleteManyMutation.isPending}
         onConfirm={handleConfirmDelete}
         onClose={handleCancelDelete}
       />

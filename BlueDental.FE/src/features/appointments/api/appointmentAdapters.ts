@@ -110,6 +110,8 @@ export function adaptAppointment(dto: ServerAppointmentDto): Appointment {
     color: dto.color,
     createdAt: dto.creationTime,
     isTemporary: dto.isTemporary,
+    sourceTaxonomyId: dto.sourceTaxonomyId,
+    sourceEntryId: dto.sourceEntryId,
     statusColor: STATUS_COLORS[status],
     statusLabel: statusLabels()[status],
     durationMinutes: dayjs(dto.slotEnd).diff(dayjs(dto.slotStart), "minute"),
@@ -173,5 +175,11 @@ export function toUpdateRequest(request: UpdateAppointmentRequest): Record<strin
     slotEnd: toInstant(request.endTime),
     dentistId: request.doctorId,
     chiefComplaint: request.reason,
+    notes: request.notes,
+    color: request.color,
+    patientName: request.patientName,
+    patientPhone: request.patientPhone,
+    sourceTaxonomyId: request.sourceTaxonomyId || undefined,
+    sourceEntryId: request.sourceEntryId || undefined,
   };
 }

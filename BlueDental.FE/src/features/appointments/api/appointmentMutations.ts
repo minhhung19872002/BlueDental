@@ -66,6 +66,19 @@ export function useDeleteAppointment() {
   });
 }
 
+export function useDeleteManyAppointments() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ["appointments", "deleteMany"],
+    mutationFn: (ids: string[]) => appointmentApi.deleteMany(ids),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: appointmentKeys.lists(),
+      });
+    },
+  });
+}
+
 export function useCancelAppointment() {
   const queryClient = useQueryClient();
   return useMutation({

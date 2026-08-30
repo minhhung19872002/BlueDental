@@ -26,6 +26,7 @@ interface Props {
   watchedDoctorId: string;
   watchedDate: string;
   watchedNotes: string;
+  isEdit?: boolean;
 }
 
 export function AppointmentEditorForm({
@@ -38,6 +39,7 @@ export function AppointmentEditorForm({
   watchedDoctorId,
   watchedDate,
   watchedNotes,
+  isEdit,
 }: Props) {
   return (
     <div className="appt-editor-body">
@@ -53,7 +55,7 @@ export function AppointmentEditorForm({
           errors={errors}
           doctorOptions={doctorOptions}
         />
-        <AppointmentFormRight control={control} setValue={setValue} notesValue={watchedNotes} />
+        <AppointmentFormRight control={control} setValue={setValue} notesValue={watchedNotes} isEdit={isEdit} />
       </div>
       <AppointmentMiniCalendar date={watchedDate} doctorId={watchedDoctorId} />
     </div>

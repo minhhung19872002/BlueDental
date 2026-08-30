@@ -55,4 +55,7 @@ export const appointmentApi = {
 
   delete: (id: string): Promise<void> =>
     api.delete(`${BASE}/${id}`).then(() => undefined),
+
+  deleteMany: (ids: string[]): Promise<void> =>
+    api.delete(BASE, { data: ids }).then(() => undefined),
 };

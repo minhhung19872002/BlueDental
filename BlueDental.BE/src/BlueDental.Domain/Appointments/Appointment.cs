@@ -170,6 +170,35 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         return this;
     }
 
+    public Appointment UpdateDetails(
+        string? chiefComplaint = null,
+        string? notes = null,
+        string? color = null)
+    {
+        ChiefComplaint = chiefComplaint;
+        Notes = notes;
+        Color = color;
+        return this;
+    }
+
+    public Appointment UpdateTempPatientInfo(string patientName, string? patientPhone)
+    {
+        if (!IsTemporary)
+            throw new BusinessException("BlueDental:Appointment:0010", "Cannot update patient info on a non-temporary appointment.");
+
+        Check.NotNullOrWhiteSpace(patientName, nameof(patientName));
+        PatientName = patientName;
+        PatientPhone = patientPhone;
+        return this;
+    }
+
+    public Appointment UpdateSourceInfo(Guid? sourceTaxonomyId, Guid? sourceEntryId)
+    {
+        SourceTaxonomyId = sourceTaxonomyId;
+        SourceEntryId = sourceEntryId;
+        return this;
+    }
+
     private void EnsureStatus(AppointmentStatus expected, string operation)
     {
         if (Status != expected)

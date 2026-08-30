@@ -5,7 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import dayjs from "dayjs";
 import { AppDialog } from "@/components/AppDialog";
-import { useCreateAppointment } from "../api/appointmentMutations";
+import { useCreateAppointment, useUpdateAppointment } from "../api/appointmentMutations";
+import { useAppointment } from "../api/appointmentQueries";
 import { usePatientOptions } from "@/hooks/usePatientOptions";
 import { useDentistList } from "@/features/staff/api/staffQueries";
 import { useClinicBranches } from "@/features/organizations/api";
@@ -46,8 +47,10 @@ export function AppointmentEditorModal({
 }: Props) {
   const isEdit = Boolean(appointmentId);
   const createMutation = useCreateAppointment();
+  const updateMutation = useUpdateAppointment(appointmentId ?? "");
   const currentBranchId = useCurrentBranchId();
 
+  const { data: existingAppt } = useAppointment(appointmentId ?? "");
   const { data: patients } = usePatientOptions();
   const { data: dentists } = useDentistList();
   const { data: branches } = useClinicBranches(true);
@@ -85,36 +88,80 @@ export function AppointmentEditorModal({
   const watchedNotes = useWatch({ control, name: "notes" });
 
   useEffect(() => {
-    if (!open) reset();
-  }, [open, reset]);
+    if (!open) {
+      reset();
+      return;
+    }
+    if (isEdit && existingAppt) {
+      const start = dayjs(existingAppt.startTime);
+      const end = dayjs(existingAppt.endTime);
+      reset({
+        patientId: existingAppt.patientId,
+        branchId: currentBranchId,
+        doctorId: existingAppt.doctorId,
+        date: start.format("YYYY-MM-DD"),
+        startTime: start.format("HH:mm"),
+        durationMinutes: end.diff(start, "minute"),
+        content: existingAppt.reason ?? "",
+        color: existingAppt.color ?? APPT_COLORS[0].value,
+        notes: existingAppt.notes ?? "",
+      });
+    }
+  }, [open, isEdit, existingAppt, reset, currentBranchId]);
+
+  const activeMutation = isEdit ? updateMutation : createMutation;
 
   const onSubmit = (data: AppointmentEditorValues) => {
     const startDateTime = `${data.date}T${data.startTime}:00`;
     const endDateTime = dayjs(startDateTime).add(data.durationMinutes, "minute").format(`${data.date}THH:mm:00`);
 
-    createMutation.mutate(
-      {
-        patientId: data.patientId,
-        doctorId: data.doctorId,
-        branchId: data.branchId,
-        startTime: startDateTime,
-        endTime: endDateTime,
-        reason: data.content || undefined,
-        color: data.color || undefined,
-        notes: data.notes || undefined,
-      },
-      {
-        onSuccess: () => {
-          toast.success(t("Tạo lịch hẹn thành công!"));
-          reset();
-          onSuccess?.();
-          onClose();
+    if (isEdit) {
+      updateMutation.mutate(
+        {
+          doctorId: data.doctorId,
+          startTime: startDateTime,
+          endTime: endDateTime,
+          reason: data.content ?? "",
+          color: data.color ?? "",
+          notes: data.notes ?? "",
         },
-        onError: (err) => {
-          toast.error(extractApiError(err));
+        {
+          onSuccess: () => {
+            toast.success(t("Cập nhật lịch hẹn thành công!"));
+            reset();
+            onSuccess?.();
+            onClose();
+          },
+          onError: (err) => {
+            toast.error(extractApiError(err));
+          },
         },
-      },
-    );
+      );
+    } else {
+      createMutation.mutate(
+        {
+          patientId: data.patientId,
+          doctorId: data.doctorId,
+          branchId: data.branchId,
+          startTime: startDateTime,
+          endTime: endDateTime,
+          reason: data.content || undefined,
+          color: data.color || undefined,
+          notes: data.notes || undefined,
+        },
+        {
+          onSuccess: () => {
+            toast.success(t("Tạo lịch hẹn thành công!"));
+            reset();
+            onSuccess?.();
+            onClose();
+          },
+          onError: (err) => {
+            toast.error(extractApiError(err));
+          },
+        },
+      );
+    }
   };
 
   return (
@@ -123,8 +170,8 @@ export function AppointmentEditorModal({
       title={isEdit ? t("Chỉnh sửa lịch hẹn") : t("Tạo lịch hẹn")}
       width="calc(100vw - 80px)"
       className="appt-editor-dialog"
-      canSave={isValid && !createMutation.isPending}
-      saving={createMutation.isPending}
+      canSave={isValid && !activeMutation.isPending}
+      saving={activeMutation.isPending}
       onSave={handleSubmit(onSubmit)}
       onClose={onClose}
     >
@@ -138,6 +185,7 @@ export function AppointmentEditorModal({
         watchedDoctorId={watchedDoctorId}
         watchedDate={watchedDate}
         watchedNotes={watchedNotes}
+        isEdit={isEdit}
       />
     </AppDialog>
   );

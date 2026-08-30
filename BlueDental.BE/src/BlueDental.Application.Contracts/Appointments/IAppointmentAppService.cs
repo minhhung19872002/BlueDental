@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
@@ -18,4 +19,6 @@ public interface IAppointmentAppService : IApplicationService
     Task<AppointmentDto> StartAsync(Guid id);
     Task<AppointmentDto> CompleteAsync(Guid id, CompleteAppointmentDto input);
     Task<AppointmentDto> MarkNoShowAsync(Guid id);
+    Task DeleteAsync(Guid id);
+    Task DeleteManyAsync(List<Guid> ids);
 }

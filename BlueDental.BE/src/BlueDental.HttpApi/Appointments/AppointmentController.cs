@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using BlueDental.Controllers;
 using Microsoft.AspNetCore.Authorization;
@@ -51,4 +52,10 @@ public sealed class AppointmentController(IAppointmentAppService service) : Blue
 
     [HttpPost("{id:guid}/no-show")]
     public Task<AppointmentDto> MarkNoShowAsync(Guid id) => service.MarkNoShowAsync(id);
+
+    [HttpDelete("{id:guid}")]
+    public Task DeleteAsync(Guid id) => service.DeleteAsync(id);
+
+    [HttpDelete]
+    public Task DeleteManyAsync([FromBody] List<Guid> ids) => service.DeleteManyAsync(ids);
 }
