@@ -17,7 +17,7 @@ using BlueDental.Finance;
 using BlueDental.Promotions;
 using BlueDental.Timekeeping;
 using BlueDental.TreatmentManagement;
-using BlueDental.Visits;
+
 using Microsoft.EntityFrameworkCore;
 using Volo.Abp;
 using Volo.Abp.EntityFrameworkCore.Modeling;
@@ -39,7 +39,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
         ConfigureInventory(builder);
         ConfigureNotifications(builder);
         ConfigureFileManagement(builder);
-        ConfigureVisits(builder);
+
         ConfigureLabo(builder);
         ConfigureCustomerCare(builder);
         ConfigureOperations(builder);
@@ -259,9 +259,13 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Type).HasConversion<short>();
             entity.Property(x => x.Color).HasConversion<short>();
             entity.Property(x => x.CancellationReason).HasConversion<short>();
+            entity.Property(x => x.Outcome).HasConversion<short>();
             entity.Property(x => x.ChiefComplaint).HasMaxLength(500);
             entity.Property(x => x.Notes).HasMaxLength(2000);
             entity.Property(x => x.CancellationNote).HasMaxLength(500);
+            entity.Property(x => x.Color).HasMaxLength(20);
+            entity.Property(x => x.PatientName).HasMaxLength(200);
+            entity.Property(x => x.PatientPhone).HasMaxLength(20);
 
             entity.OwnsOne(x => x.Slot, slot =>
             {
@@ -272,6 +276,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => new { x.DentistId, x.Status });
             entity.HasIndex(x => new { x.PatientId, x.Status });
             entity.HasIndex(x => new { x.BranchId, x.Status });
+            entity.HasIndex(x => new { x.BranchId, x.IsTemporary });
         });
     }
 
@@ -518,22 +523,6 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Description).HasMaxLength(500);
             entity.Property(x => x.OwnerEntityType).HasMaxLength(100).IsRequired();
             entity.HasIndex(x => new { x.OwnerEntityType, x.OwnerEntityId });
-        });
-    }
-
-    private static void ConfigureVisits(ModelBuilder builder)
-    {
-        builder.Entity<Visit>(entity =>
-        {
-            entity.ToTable("bd_visits");
-            entity.ConfigureByConvention();
-            entity.Property(x => x.Status).HasConversion<short>();
-            entity.Property(x => x.ChiefComplaint).HasMaxLength(500);
-            entity.Property(x => x.Notes).HasMaxLength(2000);
-            entity.Property(x => x.CancellationReason).HasMaxLength(500);
-            entity.Property(x => x.Outcome).HasConversion<short?>();
-            entity.HasIndex(x => new { x.BranchId, x.Status });
-            entity.HasIndex(x => new { x.PatientId, x.ScheduledAt });
         });
     }
 
@@ -1039,29 +1028,38 @@ public static class BlueDentalDbContextModelCreatingExtensions
 
     private static void ConfigureTools(ModelBuilder builder)
     {
+        builder.Entity<CallConfiguration>(entity =>
+        {
+            entity.ToTable("bd_call_configurations");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.ApiKey).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.SecretKey).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Provider).HasConversion<short>();
+            entity.HasIndex(x => x.ClinicBranchId);
+        });
+
         builder.Entity<CallAssignment>(entity =>
         {
             entity.ToTable("bd_call_assignments");
             entity.ConfigureByConvention();
-            entity.Property(x => x.PatientName).HasMaxLength(200).IsRequired();
-            entity.Property(x => x.PhoneNumber).HasMaxLength(50).IsRequired();
-            entity.Property(x => x.Notes).HasMaxLength(1000);
-            entity.Property(x => x.Status).HasConversion<short>();
+            entity.Property(x => x.Sip).HasMaxLength(100).IsRequired();
             entity.HasIndex(x => x.StaffId);
-            entity.HasIndex(x => x.PatientId);
+            entity.HasIndex(x => x.CallConfigurationId);
+            entity.HasIndex(x => new { x.ClinicBranchId, x.Sip });
         });
 
         builder.Entity<CallLog>(entity =>
         {
             entity.ToTable("bd_call_logs");
             entity.ConfigureByConvention();
-            entity.Property(x => x.PatientName).HasMaxLength(200).IsRequired();
-            entity.Property(x => x.PhoneNumber).HasMaxLength(50).IsRequired();
             entity.Property(x => x.StaffName).HasMaxLength(200);
-            entity.Property(x => x.Notes).HasMaxLength(1000);
-            entity.Property(x => x.Direction).HasConversion<short>();
+            entity.Property(x => x.CallCode).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.ExtensionCode).HasMaxLength(100);
+            entity.Property(x => x.PhoneNumber).HasMaxLength(20).IsRequired();
             entity.Property(x => x.Status).HasConversion<short>();
-            entity.HasIndex(x => x.CreationTime);
+            entity.Property(x => x.Provider).HasConversion<short>();
+            entity.HasIndex(x => new { x.ClinicBranchId, x.CalledAt });
         });
 
         builder.Entity<MessageTemplate>(entity =>

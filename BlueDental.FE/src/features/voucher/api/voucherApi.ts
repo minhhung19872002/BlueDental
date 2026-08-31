@@ -78,6 +78,7 @@ export interface CreateVoucherInput {
   isDaysOfWeekLimited: boolean;
   daysOfWeek: number[];
   displayOnNfcDental: boolean;
+  branchId?: string;
 }
 
 /**
@@ -128,6 +129,7 @@ export interface CreateVoucherBatchInput {
   isDaysOfWeekLimited: boolean;
   daysOfWeek: number[];
   displayOnNfcDental: boolean;
+  branchId?: string;
 }
 
 /** The server-owned prefix shown before every voucher code. */
@@ -165,6 +167,7 @@ const voucherApi = {
   list: (params: {
     status?: string;
     filter?: string;
+    branchId?: string;
     skipCount?: number;
     maxResultCount?: number;
   }): Promise<PagedResult<VoucherDto>> =>
@@ -205,17 +208,18 @@ const voucherApi = {
 
 export const voucherKeys = {
   all: ["vouchers"] as const,
-  list: (status?: string, filter?: string) =>
-    [...voucherKeys.all, "list", status ?? "", filter ?? ""] as const,
+  list: (status?: string, filter?: string, branchId?: string) =>
+    [...voucherKeys.all, "list", status ?? "", filter ?? "", branchId ?? ""] as const,
 };
 
-export function useVouchers(status?: string, filter?: string) {
+export function useVouchers(status?: string, filter?: string, branchId?: string) {
   return useQuery({
-    queryKey: voucherKeys.list(status, filter),
+    queryKey: voucherKeys.list(status, filter, branchId),
     queryFn: () =>
       voucherApi.list({
         status: status || undefined,
         filter: filter || undefined,
+        branchId: branchId || undefined,
         maxResultCount: 100,
       }),
   });

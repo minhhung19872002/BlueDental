@@ -7,19 +7,13 @@ export type AppointmentStatus =
   | "noShow";
 
 /**
- * "Màu lịch hẹn" — the four swatches the booking dialog offers. It tints the
- * card on the calendar and carries no workflow meaning; the workflow is
- * {@link AppointmentStatus}. Mirrors BlueDental.Appointments.AppointmentColor.
- */
-export type AppointmentColor = "default" | "green" | "orange" | "red";
-
-/**
  * What the screens work with. The server speaks its own shape
  * (DentistId / SlotStart / numeric status); see appointmentAdapters.
  */
 export interface AppointmentDto {
   id: string;
   patientId: string;
+  patientCode: string | null;
   patientName: string;
   patientPhone: string;
   doctorId: string;
@@ -29,8 +23,11 @@ export interface AppointmentDto {
   status: AppointmentStatus;
   reason: string | null;
   notes: string | null;
-  color: AppointmentColor;
+  color: string | null;
   createdAt: string;
+  isTemporary: boolean;
+  sourceTaxonomyId: string | null;
+  sourceEntryId: string | null;
 }
 
 export interface CreateAppointmentRequest {
@@ -42,12 +39,24 @@ export interface CreateAppointmentRequest {
   endTime: string;
   reason?: string;
   notes?: string;
-  color?: AppointmentColor;
+  color?: string;
 }
 
-export type UpdateAppointmentRequest = Partial<CreateAppointmentRequest> & {
+export interface UpdateAppointmentRequest {
+  patientId?: string;
+  doctorId?: string;
+  branchId?: string;
+  startTime?: string;
+  endTime?: string;
+  reason?: string;
+  notes?: string;
+  color?: string;
   status?: AppointmentStatus;
-};
+  patientName?: string;
+  patientPhone?: string;
+  sourceTaxonomyId?: string;
+  sourceEntryId?: string;
+}
 
 export interface AppointmentListQuery {
   date?: string;
@@ -66,6 +75,19 @@ export interface AppointmentListQuery {
 export interface PagedResult<T> {
   items: T[];
   totalCount: number;
+}
+
+export interface CreateTempAppointmentRequest {
+  patientName: string;
+  patientPhone?: string;
+  doctorId?: string;
+  branchId: string;
+  startTime: string;
+  endTime: string;
+  sourceTaxonomyId?: string;
+  sourceEntryId?: string;
+  color?: string;
+  notes?: string;
 }
 
 /** Client-enriched appointment */

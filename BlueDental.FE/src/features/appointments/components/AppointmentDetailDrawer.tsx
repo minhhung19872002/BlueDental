@@ -34,7 +34,7 @@ export function AppointmentDetailDrawer({ appointmentId, onClose }: Props) {
       {appointment && (
         <Descriptions column={1} size="small" bordered>
           <Descriptions.Item label={t("Bệnh nhân")}>
-            {appointment.patientName}
+            {appointment.patientCode ? `[${appointment.patientCode}] - ${appointment.patientName}` : appointment.patientName}
           </Descriptions.Item>
           <Descriptions.Item label={t("Điện thoại")}>
             {appointment.patientPhone}

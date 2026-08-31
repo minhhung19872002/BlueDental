@@ -10,7 +10,7 @@ using BlueDental.Organizations;
 using BlueDental.PatientManagement;
 using BlueDental.Reporting;
 using BlueDental.TreatmentManagement;
-using BlueDental.Visits;
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shouldly;
@@ -104,14 +104,6 @@ public class ControllerConventionTests
     {
         var controller = typeof(InvoiceController);
         controller.GetCustomAttribute<RouteAttribute>()!.Template.ShouldBe("api/v1/app/invoices");
-        controller.GetCustomAttribute<AuthorizeAttribute>().ShouldNotBeNull();
-    }
-
-    [Fact]
-    public void VisitController_Should_Exist_And_Be_Properly_Configured()
-    {
-        var controller = typeof(VisitController);
-        controller.GetCustomAttribute<RouteAttribute>()!.Template.ShouldContain("visit");
         controller.GetCustomAttribute<AuthorizeAttribute>().ShouldNotBeNull();
     }
 

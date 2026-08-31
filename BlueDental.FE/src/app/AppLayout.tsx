@@ -172,6 +172,25 @@ export function AppLayout() {
 
   useEffect(() => {
     setMobileMenuOpen(false);
+
+    const storeBranchId = useBranchStore.getState().currentBranchId;
+    const url = new URL(window.location.href);
+    const urlBranchId = url.searchParams.get("branchId");
+
+    if (urlBranchId && urlBranchId !== storeBranchId) {
+      useBranchStore.getState().setCurrentBranchId(urlBranchId);
+      return;
+    }
+
+    if (storeBranchId) {
+      if (urlBranchId !== storeBranchId) {
+        url.searchParams.set("branchId", storeBranchId);
+        window.history.replaceState(null, "", url.toString());
+      }
+    } else if (url.searchParams.has("branchId")) {
+      url.searchParams.delete("branchId");
+      window.history.replaceState(null, "", url.toString());
+    }
   }, [location.pathname]);
 
   const handleKeyDown = useCallback(

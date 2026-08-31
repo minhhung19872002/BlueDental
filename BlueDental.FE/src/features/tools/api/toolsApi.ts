@@ -2,37 +2,126 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import type { PagedResult } from "@/types";
 
+// ── Call Configuration ────────────────────────────────────────────────────
+
+// "Mã bí mật" is write-only: the server never sends it back, so the DTO the
+// list reads has no secretKey field at all.
+export interface CallConfigurationDto {
+  id: string;
+  branchId: string;
+  branchName: string;
+  name: string;
+  provider: number;
+  apiKey: string;
+  isActive: boolean;
+  creationTime: string;
+}
+
+export interface CreateCallConfigurationDto {
+  branchId: string;
+  name: string;
+  provider: number;
+  apiKey: string;
+  secretKey: string;
+  isActive: boolean;
+}
+
+export interface UpdateCallConfigurationDto {
+  name: string;
+  provider: number;
+  apiKey: string;
+  /** Blank keeps the stored secret — the client never sees it. */
+  secretKey?: string;
+  isActive: boolean;
+}
+
+export function useCallConfigurations(params?: {
+  filter?: string;
+  skipCount?: number;
+  maxResultCount?: number;
+}) {
+  return useQuery({
+    queryKey: ["call-configurations", params],
+    queryFn: () =>
+      api
+        .get<PagedResult<CallConfigurationDto>>("/v1/app/tools/call-configurations", { params })
+        .then((r) => r.data),
+  });
+}
+
+export function useCreateCallConfiguration() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: CreateCallConfigurationDto) =>
+      api.post<CallConfigurationDto>("/v1/app/tools/call-configurations", data).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["call-configurations"] }),
+  });
+}
+
+export function useUpdateCallConfiguration() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateCallConfigurationDto }) =>
+      api.put<CallConfigurationDto>(`/v1/app/tools/call-configurations/${id}`, data).then((r) => r.data),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["call-configurations"] });
+      // Assignments show the configuration's name and provider.
+      void qc.invalidateQueries({ queryKey: ["call-assignments"] });
+    },
+  });
+}
+
+export function useDeleteCallConfiguration() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/v1/app/tools/call-configurations/${id}`),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["call-configurations"] });
+      void qc.invalidateQueries({ queryKey: ["call-assignments"] });
+    },
+  });
+}
+
 // ── Call Assignment ───────────────────────────────────────────────────────
 
+/** A SIP extension handed to a staff member under one configuration. */
 export interface CallAssignmentDto {
   id: string;
-  patientId: string;
+  sip: string;
+  callConfigurationId: string;
+  configurationName: string;
   staffId: string;
-  patientName: string;
-  phoneNumber: string;
-  staffName?: string;
-  notes?: string;
-  status: number;
-  calledAt?: string;
+  staffName: string;
+  provider: number;
+  isActive: boolean;
   creationTime: string;
 }
 
 export interface CreateCallAssignmentDto {
-  patientId: string;
+  branchId: string;
+  sip: string;
+  callConfigurationId: string;
   staffId: string;
-  patientName: string;
-  phoneNumber: string;
-  notes?: string;
+  isActive: boolean;
 }
 
-export function useCallAssignments(params?: { status?: number; staffId?: string; filter?: string }) {
+export interface UpdateCallAssignmentDto {
+  sip: string;
+  callConfigurationId: string;
+  staffId: string;
+  isActive: boolean;
+}
+
+export function useCallAssignments(params?: {
+  filter?: string;
+  skipCount?: number;
+  maxResultCount?: number;
+}) {
   return useQuery({
     queryKey: ["call-assignments", params],
     queryFn: () =>
       api
-        .get<PagedResult<CallAssignmentDto>>("/v1/app/tools/call-assignments", {
-          params: { ...params, maxResultCount: 100 },
-        })
+        .get<PagedResult<CallAssignmentDto>>("/v1/app/tools/call-assignments", { params })
         .then((r) => r.data),
   });
 }
@@ -46,11 +135,11 @@ export function useCreateCallAssignment() {
   });
 }
 
-export function useUpdateCallAssignmentStatus() {
+export function useUpdateCallAssignment() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, status, notes }: { id: string; status: number; notes?: string }) =>
-      api.put<CallAssignmentDto>(`/v1/app/tools/call-assignments/${id}/status`, { status, notes }).then((r) => r.data),
+    mutationFn: ({ id, data }: { id: string; data: UpdateCallAssignmentDto }) =>
+      api.put<CallAssignmentDto>(`/v1/app/tools/call-assignments/${id}`, data).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["call-assignments"] }),
   });
 }
@@ -65,37 +154,33 @@ export function useDeleteCallAssignment() {
 
 // ── Call Log ──────────────────────────────────────────────────────────────
 
+/** One PBX call, as the provider recorded it. Read-only in the reference. */
 export interface CallLogDto {
   id: string;
-  patientId?: string;
   staffId?: string;
-  patientName: string;
-  phoneNumber: string;
   staffName?: string;
-  durationSeconds: number;
-  direction: number;
+  branchName: string;
+  callCode: string;
+  extensionCode?: string;
+  phoneNumber: string;
   status: number;
-  notes?: string;
-  creationTime: string;
+  provider: number;
+  calledAt: string;
 }
 
-export function useCallLogs(params?: { direction?: number; status?: number; filter?: string }) {
+export function useCallLogs(params?: {
+  fromDate?: string;
+  toDate?: string;
+  staffId?: string;
+  skipCount?: number;
+  maxResultCount?: number;
+}) {
   return useQuery({
     queryKey: ["call-logs", params],
     queryFn: () =>
       api
-        .get<PagedResult<CallLogDto>>("/v1/app/tools/call-logs", {
-          params: { ...params, maxResultCount: 100 },
-        })
+        .get<PagedResult<CallLogDto>>("/v1/app/tools/call-logs", { params })
         .then((r) => r.data),
-  });
-}
-
-export function useDeleteCallLog() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => api.delete(`/v1/app/tools/call-logs/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["call-logs"] }),
   });
 }
 

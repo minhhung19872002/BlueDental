@@ -1,65 +1,69 @@
 import { useMemo } from "react";
-import { Button, Input } from "antd";
-import { SearchOutlined, PlusOutlined } from "@ant-design/icons";
 import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
 
 import { useAppointmentList } from "../api/appointmentQueries";
-import type { AppointmentDto, AppointmentStatus } from "../types/appointment";
-import { t } from "@/lib/i18n";
+import type { AppointmentDto } from "../types/appointment";
+import { EventCard } from "./EventCard";
+import { STATUS_GROUPS } from "../hooks/useStatusCounts";
 
-const SLOT_MINUTES = 30;
 const DAY_START_H = 6;
 const DAY_END_H = 22;
-const TOTAL_SLOTS = ((DAY_END_H - DAY_START_H) * 60) / SLOT_MINUTES;
-const SLOT_H = 28;
-const TIME_COL_W = 52;
+const SLOT_H_30 = 25;
+const SLOT_H_15 = 38;
 
-function slotTime(slotIndex: number): string {
-  const totalMinutes = DAY_START_H * 60 + slotIndex * SLOT_MINUTES;
-  const h = Math.floor(totalMinutes / 60).toString().padStart(2, "0");
+const DAY_NAMES = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
+
+function getSlotH(slotMinutes: 15 | 30): number {
+  return slotMinutes === 15 ? SLOT_H_15 : SLOT_H_30;
+}
+
+function slotTime(slotIndex: number, slotMinutes: number): string {
+  const totalMinutes = DAY_START_H * 60 + slotIndex * slotMinutes;
+  const h = Math.floor(totalMinutes / 60)
+    .toString()
+    .padStart(2, "0");
   const m = (totalMinutes % 60).toString().padStart(2, "0");
   return `${h}:${m}`;
 }
 
-const DAY_LABELS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+function minutesToPx(minutes: number, slotMinutes: number, slotH: number): number {
+  return (minutes / slotMinutes) * slotH;
+}
 
 interface Props {
   currentDate: Dayjs;
-  doctors?: { id: string; name: string }[];
-  keyword?: string;
-  onKeywordChange?: (v: string) => void;
-  onCreateAppointment?: () => void;
+  slotMinutes?: 15 | 30;
+  keyword: string;
+  doctorIds?: string[];
+  statusFilter?: string;
+  selectedIds?: Set<string>;
   onCellClick?: (dayOffset: number, slotIndex: number) => void;
-  onSelectAppointment?: (id: string) => void;
+  onCardAction?: (action: string, id: string) => void;
 }
-
-/** Same card colours as the day grid, so a status reads identically in both. */
-const WEEK_CARD_LOOK: Record<AppointmentStatus, { bg: string; border: string; text: string }> = {
-  scheduled:  { bg: "#eaf0fa", border: "#1c3566", text: "#1c3566" },
-  confirmed:  { bg: "#e6f5ef", border: "#1f8a63", text: "var(--bd-green)" },
-  inProgress: { bg: "#fdf3e2", border: "#dd9426", text: "#9a6412" },
-  completed:  { bg: "#e6f5ef", border: "#25a97a", text: "var(--bd-green)" },
-  cancelled:  { bg: "#fdeeee", border: "#ef4d4d", text: "#c33" },
-  noShow:     { bg: "#efedf6", border: "#6f63a3", text: "#544a80" },
-};
 
 export function WeekViewCalendar({
   currentDate,
-  keyword = "",
-  onKeywordChange,
-  onCreateAppointment,
+  slotMinutes = 30,
+  keyword,
+  doctorIds,
+  statusFilter,
+  selectedIds,
   onCellClick,
-  onSelectAppointment,
+  onCardAction,
 }: Props) {
   const weekStart = currentDate.startOf("week");
+  const today = dayjs();
+  const slotH = getSlotH(slotMinutes);
+  const totalSlots = ((DAY_END_H - DAY_START_H) * 60) / slotMinutes;
+  const totalHeight = totalSlots * slotH;
 
   const days = useMemo(
     () => Array.from({ length: 7 }, (_, i) => weekStart.add(i, "day")),
     [weekStart],
   );
 
-  const slots = useMemo(() => Array.from({ length: TOTAL_SLOTS }, (_, i) => i), []);
+  const slots = useMemo(() => Array.from({ length: totalSlots }, (_, i) => i), [totalSlots]);
 
   const { data: appointments } = useAppointmentList({
     fromDate: weekStart.format("YYYY-MM-DD"),
@@ -67,241 +71,144 @@ export function WeekViewCalendar({
     maxResultCount: 500,
   });
 
-  /** Bookings per day column and half-hour slot; a slot can hold several. */
-  const bookingsByCell = useMemo(() => {
-    const map = new Map<string, AppointmentDto[]>();
+  const allBookings = useMemo(() => appointments?.items ?? [], [appointments]);
 
-    for (const appointment of appointments?.items ?? []) {
-      const start = dayjs(appointment.startTime);
-      const dayIndex = start.diff(weekStart.startOf("day"), "day");
-      const slotIndex = Math.floor(
-        (start.hour() * 60 + start.minute() - DAY_START_H * 60) / SLOT_MINUTES,
+  const visibleBookings = useMemo(() => {
+    const needle = keyword.trim().toLowerCase();
+    const chipGroup = STATUS_GROUPS.find((g) => g.key === statusFilter);
+
+    return allBookings.filter((a: AppointmentDto) => {
+      if (doctorIds && doctorIds.length > 0 && !doctorIds.includes(a.doctorId)) return false;
+      if (chipGroup && chipGroup.statuses.length > 0 && !chipGroup.statuses.includes(a.status))
+        return false;
+      if (!needle) return true;
+      return (
+        a.patientName?.toLowerCase().includes(needle) ||
+        a.reason?.toLowerCase().includes(needle) ||
+        a.doctorName?.toLowerCase().includes(needle)
       );
+    });
+  }, [allBookings, doctorIds, statusFilter, keyword]);
 
-      if (dayIndex < 0 || dayIndex >= 7 || slotIndex < 0 || slotIndex >= TOTAL_SLOTS) {
-        continue;
-      }
-
-      const key = `${dayIndex}-${slotIndex}`;
-      const bucket = map.get(key);
-      if (bucket) bucket.push(appointment);
-      else map.set(key, [appointment]);
+  const countByDay = useMemo(() => {
+    const counts = new Map<number, number>();
+    for (const appt of visibleBookings) {
+      const dayIdx = dayjs(appt.startTime).diff(weekStart.startOf("day"), "day");
+      if (dayIdx >= 0 && dayIdx < 7) counts.set(dayIdx, (counts.get(dayIdx) ?? 0) + 1);
     }
+    return counts;
+  }, [visibleBookings, weekStart]);
 
+  const bookingsByDay = useMemo(() => {
+    const map = new Map<number, AppointmentDto[]>();
+    for (const appt of visibleBookings) {
+      const dayIdx = dayjs(appt.startTime).diff(weekStart.startOf("day"), "day");
+      if (dayIdx < 0 || dayIdx >= 7) continue;
+      const bucket = map.get(dayIdx);
+      if (bucket) bucket.push(appt);
+      else map.set(dayIdx, [appt]);
+    }
     return map;
-  }, [appointments, weekStart]);
-  const isHourStart = (slotIdx: number) => slotIdx % 2 === 0;
-  const today = dayjs();
+  }, [visibleBookings, weekStart]);
+
+  const slotsPerHour = 60 / slotMinutes;
+  const isHourStart = (idx: number) => idx % slotsPerHour === 0;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
-      {/* Toolbar */}
-      <div style={{ display: "flex", gap: 8, padding: "10px 16px", borderBottom: "1px solid #e2e8f0", background: "#fff" }}>
-        <Input
-          prefix={<SearchOutlined />}
-          placeholder={t("Tìm bệnh nhân...")}
-          value={keyword}
-          onChange={(e) => onKeywordChange?.(e.target.value)}
-          style={{ width: 220 }}
-          allowClear
-        />
-        <Button type="primary" icon={<PlusOutlined />} onClick={onCreateAppointment}>
-          {t("Tạo lịch hẹn")}
-        </Button>
-      </div>
-
-      {/* Day header row */}
-      <div
-        style={{
-          display: "flex",
-          borderBottom: "2px solid #e2e8f0",
-          background: "#fff",
-          position: "sticky",
-          top: 0,
-          zIndex: 10,
-        }}
-      >
-        {/* Time gutter */}
-        <div style={{ width: TIME_COL_W, flexShrink: 0, background: "var(--bd-bg-soft)" }} />
+    <div className="cal-week-scroll">
+      <div className="cal-week-grid">
+        {/* Header row */}
+        <div className="cal-week-time-header">
+          <div className="cal-week-time-header-label">Giờ/Ngày</div>
+        </div>
         {days.map((day, i) => {
           const isToday = day.isSame(today, "day");
           return (
             <div
               key={i}
-              style={{
-                flex: 1,
-                textAlign: "center",
-                padding: "8px 4px",
-                borderLeft: "1px solid #e2e8f0",
-                background: isToday ? "#eaf0fa" : "#fff",
-              }}
+              className={["cal-week-day-header", isToday && "cal-week-day-header--today"]
+                .filter(Boolean)
+                .join(" ")}
             >
-              <div style={{ fontSize: 11, color: "#98a4b4", fontWeight: 500 }}>{DAY_LABELS[day.day()]}</div>
-              <div
-                style={{
-                  fontSize: 16,
-                  fontWeight: 700,
-                  color: isToday ? "#1c3566" : "#101c2c",
-                  lineHeight: 1.2,
-                }}
-              >
-                {day.format("DD")}
+              <div className="cal-week-day-date">{day.format("DD/MM")}</div>
+              <div className="cal-week-day-name">
+                {DAY_NAMES[day.day()]} ({countByDay.get(i) ?? 0})
               </div>
-              <div style={{ fontSize: 11, color: "#98a4b4" }}>{day.format("MM/YYYY")}</div>
             </div>
           );
         })}
-      </div>
 
-      {/* Grid body */}
-      <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
-        <div style={{ display: "flex", minHeight: TOTAL_SLOTS * SLOT_H }}>
-          {/* Time column */}
-          <div style={{ width: TIME_COL_W, flexShrink: 0, background: "var(--bd-bg-soft)", borderRight: "1px solid #e2e8f0" }}>
-            {slots.map((slotIdx) => (
-              <div
-                key={slotIdx}
-                style={{
-                  height: SLOT_H,
-                  display: "flex",
-                  alignItems: "flex-start",
-                  justifyContent: "flex-end",
-                  paddingRight: 6,
-                  paddingTop: 2,
-                  borderBottom: isHourStart(slotIdx) ? "1px solid #e2e8f0" : "1px dashed #f4f6fa",
-                  boxSizing: "border-box",
-                }}
-              >
-                {isHourStart(slotIdx) && (
-                  <span style={{ fontSize: 10, color: "#98a4b4", fontVariantNumeric: "tabular-nums" }}>
-                    {slotTime(slotIdx)}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Day columns */}
-          {days.map((day, dayIdx) => {
-            const isToday = day.isSame(today, "day");
+        {/* Time labels column */}
+        <div className="cal-week-time-col">
+          {slots.map((slotIdx) => {
+            const showLabel = slotMinutes === 15 || isHourStart(slotIdx);
             return (
               <div
-                key={dayIdx}
+                key={slotIdx}
+                className={["cal-week-time-cell-abs", !showLabel && "cal-week-time-cell-abs--half"]
+                  .filter(Boolean)
+                  .join(" ")}
                 style={{
-                  flex: 1,
-                  borderLeft: "1px solid #e2e8f0",
-                  background: isToday ? "#FAFBFF" : "#fff",
-                  position: "relative",
+                  height: slotH,
+                  borderBottom: isHourStart(slotIdx) ? "1px solid #E5E7EB" : "1px dashed #f0f2f5",
                 }}
               >
-                {slots.map((slotIdx) => (
-                  <div
-                    key={slotIdx}
-                    onClick={() => onCellClick?.(dayIdx, slotIdx)}
-                    data-testid={
-                      bookingsByCell.has(`${dayIdx}-${slotIdx}`) ? "calendar-booking" : undefined
-                    }
-                    style={{
-                      height: SLOT_H,
-                      borderBottom: isHourStart(slotIdx) ? "1px solid #e2e8f0" : "1px dashed #f4f6fa",
-                      cursor: "pointer",
-                      transition: "background 0.1s",
-                      boxSizing: "border-box",
-                      overflow: "hidden",
-                    }}
-                    onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLDivElement).style.background = "#eaf0fa";
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLDivElement).style.background = "transparent";
-                    }}
-                  >
-                    {(() => {
-                      const inSlot = bookingsByCell.get(`${dayIdx}-${slotIdx}`) ?? [];
-                      // The row is one slot tall, so cards share its width rather
-                      // than stacking on top of each other; the tail collapses.
-                      const shown = inSlot.slice(0, 2);
-                      const hidden = inSlot.length - shown.length;
-
-                      if (inSlot.length === 0) return null;
-
-                      return (
-                        <div style={{ display: "flex", alignItems: "stretch", height: "100%" }}>
-                          {shown.map((booking) => {
-                            const look = WEEK_CARD_LOOK[booking.status];
-                            const title =
-                              booking.patientName?.trim() ||
-                              booking.reason?.trim() ||
-                              t("Lịch hẹn");
-
-                            return (
-                              <div
-                                key={booking.id}
-                                role="button"
-                                tabIndex={0}
-                                title={`${dayjs(booking.startTime).format("HH:mm")} · ${title}`}
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  onSelectAppointment?.(booking.id);
-                                }}
-                                onKeyDown={(event) => {
-                                  if (event.key === "Enter" || event.key === " ") {
-                                    event.preventDefault();
-                                    event.stopPropagation();
-                                    onSelectAppointment?.(booking.id);
-                                  }
-                                }}
-                                style={{
-                                  flex: 1,
-                                  minWidth: 0,
-                                  margin: "1px 2px",
-                                  padding: "1px 4px",
-                                  borderRadius: 4,
-                                  borderLeft: `3px solid ${look.border}`,
-                                  background: look.bg,
-                                  color: look.text,
-                                  fontSize: 10,
-                                  lineHeight: "12px",
-                                  fontWeight: 600,
-                                  overflow: "hidden",
-                                  whiteSpace: "nowrap",
-                                  textOverflow: "ellipsis",
-                                }}
-                              >
-                                {title}
-                              </div>
-                            );
-                          })}
-                          {hidden > 0 && (
-                            <span
-                              title={inSlot
-                                .slice(2)
-                                .map((b) => b.patientName || t("Lịch hẹn"))
-                                .join(", ")}
-                              style={{
-                                alignSelf: "center",
-                                margin: "0 3px 0 1px",
-                                padding: "0 4px",
-                                borderRadius: 8,
-                                background: "#e2e8f0",
-                                color: "#41505f",
-                                fontSize: 9,
-                                fontWeight: 700,
-                                whiteSpace: "nowrap",
-                              }}
-                            >
-                              +{hidden}
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })()}
-                  </div>
-                ))}
+                {showLabel ? slotTime(slotIdx, slotMinutes) : ""}
               </div>
             );
           })}
         </div>
+
+        {/* Day columns with absolute-positioned cards */}
+        {days.map((day, dayIdx) => {
+          const isToday = day.isSame(today, "day");
+          const dayBookings = bookingsByDay.get(dayIdx) ?? [];
+          return (
+            <div
+              key={dayIdx}
+              className={["cal-week-day-col", isToday && "cal-week-day-col--today"]
+                .filter(Boolean)
+                .join(" ")}
+              style={{ height: totalHeight }}
+            >
+              {/* Background slot lines */}
+              {slots.map((slotIdx) => (
+                <div
+                  key={slotIdx}
+                  className={[
+                    "cal-day-slot-bg",
+                    isHourStart(slotIdx) ? "cal-day-cell--hour" : "cal-day-cell--half",
+                  ].join(" ")}
+                  style={{ height: slotH }}
+                  onClick={() => onCellClick?.(dayIdx, slotIdx)}
+                />
+              ))}
+              {/* Appointment cards overlay */}
+              {dayBookings.map((appt) => {
+                const s = dayjs(appt.startTime);
+                const e = dayjs(appt.endTime);
+                const startMin = s.hour() * 60 + s.minute() - DAY_START_H * 60;
+                const endMin = e.hour() * 60 + e.minute() - DAY_START_H * 60;
+                const top = minutesToPx(Math.max(startMin, 0), slotMinutes, slotH);
+                const height = minutesToPx(
+                  Math.min(endMin, (DAY_END_H - DAY_START_H) * 60) - Math.max(startMin, 0),
+                  slotMinutes,
+                  slotH,
+                );
+                if (height <= 0) return null;
+                return (
+                  <div key={appt.id} className="cal-day-card-positioner" style={{ top, height }}>
+                    <EventCard
+                      appointment={appt}
+                      selected={selectedIds?.has(appt.id)}
+                      onAction={onCardAction}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -2,6 +2,11 @@
 
 public static class BlueDentalDomainErrorCodes
 {
+    public static class Authorization
+    {
+        public const string CrossBranchAccess = "BlueDental:Authorization:0001";
+    }
+
     public static class Organizations
     {
         public const string BranchNotFound = "BlueDental:Organizations:0001";
@@ -110,12 +115,6 @@ public static class BlueDentalDomainErrorCodes
         public const string DeliveryFailed = "BlueDental:Notification:0002";
     }
 
-    public static class Visits
-    {
-        public const string VisitNotFound = "BlueDental:Visit:0001";
-        public const string InvalidTransition = "BlueDental:Visit:0002";
-    }
-
     public static class Labo
     {
         public const string OrderNotFound = "BlueDental:Labo:0001";
@@ -165,6 +164,7 @@ public static class BlueDentalDomainErrorCodes
         public const string NoOpenShift = "BlueDental:Timekeeping:0008";
         public const string InvalidOvertime = "BlueDental:Timekeeping:0009";
         public const string DuplicateDayRecord = "BlueDental:Timekeeping:0010";
+        public const string PastDayAttendance = "BlueDental:Timekeeping:0011";
     }
 
     public static class CustomerCare
@@ -200,6 +200,12 @@ public static class BlueDentalDomainErrorCodes
         public const string AvatarTooLarge = "BlueDental:Staff:0005";
         public const string AvatarNotFound = "BlueDental:Staff:0006";
         public const string DuplicateEmail = "BlueDental:Staff:0007";
+    }
+
+    public static class Tools
+    {
+        public const string ConfigurationNotFound = "BlueDental:Tools:0001";
+        public const string DuplicateSip = "BlueDental:Tools:0002";
     }
 
     public static class BranchManager

@@ -28,6 +28,7 @@ export interface UpdateDepartmentDto {
 
 const departmentApi = {
   list: (params?: {
+    branchId?: string;
     filter?: string;
     maxResultCount?: number;
   }): Promise<PagedResult<DepartmentDto>> =>
@@ -50,12 +51,12 @@ const departmentApi = {
  * a real round trip rather than a sweep over whatever the first page happened
  * to contain — which quietly missed anything past it.
  */
-export function useDepartmentList(filter?: string) {
+export function useDepartmentList(filter?: string, branchId?: string) {
   const term = filter?.trim() || undefined;
 
   return useQuery({
-    queryKey: ["departments", term],
-    queryFn: () => departmentApi.list({ filter: term, maxResultCount: 200 }),
+    queryKey: ["departments", branchId, term],
+    queryFn: () => departmentApi.list({ branchId, filter: term, maxResultCount: 200 }),
   });
 }
 

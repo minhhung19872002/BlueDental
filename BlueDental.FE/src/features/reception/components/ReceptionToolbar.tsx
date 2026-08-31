@@ -1,6 +1,6 @@
 import React from "react";
-import { Input, Segmented } from "antd";
-import { SearchOutlined } from "@ant-design/icons";
+import { Button, Input, Segmented } from "antd";
+import { SearchOutlined, FormOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 import { DateNavigator, type DateNavigatorMode } from "@/components/DateNavigator";
 import { t } from "@/lib/i18n";
@@ -12,9 +12,9 @@ interface ReceptionToolbarProps {
   viewMode?: ViewMode;
   currentDate?: Dayjs;
   onSearchChange: (value: string) => void;
-  onDoctorSelect: (doctorId: string | undefined) => void;
   onViewModeChange?: (mode: ViewMode) => void;
   onDateChange?: (date: Dayjs) => void;
+  onCreateClick?: () => void;
 }
 
 export const ReceptionToolbar: React.FC<ReceptionToolbarProps> = ({
@@ -24,6 +24,7 @@ export const ReceptionToolbar: React.FC<ReceptionToolbarProps> = ({
   onSearchChange,
   onViewModeChange,
   onDateChange,
+  onCreateClick,
 }) => {
   const date = currentDate ?? dayjs();
 
@@ -65,6 +66,16 @@ export const ReceptionToolbar: React.FC<ReceptionToolbarProps> = ({
           allowClear
           style={{ flex: 1, minWidth: 160 }}
         />
+      </div>
+
+      <div className="reception-toolbar-right">
+        <Button
+          type="primary"
+          icon={<FormOutlined />}
+          onClick={onCreateClick}
+        >
+          {t("Tạo tiếp nhận")}
+        </Button>
       </div>
     </div>
   );

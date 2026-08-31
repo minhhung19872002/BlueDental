@@ -1313,14 +1313,18 @@ button {
   overflow-x: auto;
 }
 
-/* Grab to scroll — only when table has horizontal overflow */
+/* Grab to scroll — any container with horizontal overflow */
 .ant-table-content.has-horizontal-scroll,
-.ant-table-body.has-horizontal-scroll {
+.ant-table-body.has-horizontal-scroll,
+.appt-mini-cal-content.has-horizontal-scroll,
+.wsb-table-scroll.has-horizontal-scroll {
   cursor: grab;
 }
 
 .ant-table-content.is-grabbing,
-.ant-table-body.is-grabbing {
+.ant-table-body.is-grabbing,
+.appt-mini-cal-content.is-grabbing,
+.wsb-table-scroll.is-grabbing {
   cursor: grabbing;
   user-select: none;
 }
@@ -1453,7 +1457,7 @@ button {
 
 .ant-segmented .ant-segmented-item-label {
   min-height: unset;
-  line-height: 1;
+  line-height: normal;
   padding: 0;
 }
 
@@ -1547,7 +1551,10 @@ button {
   margin-inline-end: auto;
 }
 
-/* ── Reception page ── */
+/* ── Shared page-layout classes ─────────────────────────────────────────────
+   Used by reception, staff, appointments, voucher, report, tools, CSKH,
+   identity, audit-logs and other pages. Keep here in index.css.
+   Reception-specific classes (.rc-*, .rn-*) live in reception.css. */
 
 .reception-page {
   display: flex;
@@ -1607,23 +1614,23 @@ button {
   display: flex;
   align-items: center;
   gap: 2px;
-  background: #f1f5f9;
+  background: #ffffff;
   padding: 4px;
-  border-radius: 10px;
-  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  border: 1px solid #DCE3EE;
   height: 40px;
 }
 
 .reception-status-pill {
   background: none;
-  border: none;
+  border: 1px solid transparent;
   height: 29px;
   padding: 0 14px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   color: #64748b;
   cursor: pointer;
-  border-radius: 7px;
+  border-radius: 8px;
   transition: all 0.15s ease;
   white-space: nowrap;
   line-height: 29px;
@@ -1635,21 +1642,18 @@ button {
 }
 
 .reception-status-pill--active {
-  background: var(--bd-primary);
+  background: var(--bd-blue);
   color: #ffffff;
   font-weight: 600;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  box-shadow: none;
 }
 
 .reception-status-pill--active:hover {
-  background: #185BBA;
+  background: var(--bd-blue);
   color: #ffffff;
 }
 
 .reception-counter-cards {
-  /* The design gives the counters their own full-width line under the pills.
-     As a flex child of .reception-filter-row they would otherwise shrink to
-     min-content and auto-fit would collapse to a single column. */
   flex: 1 1 100%;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -1657,8 +1661,6 @@ button {
   min-width: 0;
 }
 
-/* The design's counter: a white card topped by a 3px band in the status
-   colour, its number large and in that same colour, the label muted below. */
 .reception-counter-card {
   display: flex;
   flex-direction: column;
@@ -1719,328 +1721,6 @@ button {
   .reception-card-grid {
     grid-template-columns: 1fr 1fr;
   }
-
-}
-
-/* ── ReceptionCard ── */
-
-.rc-wrapper {
-  position: relative;
-  height: 100%;
-}
-
-.rc-cancel-btn {
-  position: absolute;
-  top: 8px;
-  right: 12px;
-  z-index: 10;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 1px solid #F4B4B7;
-  background: #fff;
-  color: #D64545;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s, color 0.15s;
-}
-
-.rc-cancel-btn:hover {
-  border-color: #E56B6F;
-  background: #FFF3F3;
-  color: #B92F32;
-}
-
-.rc-card {
-  background: #fff;
-  border: 1px solid #DCE3EE;
-  border-radius: 16px;
-  height: 100%;
-  padding: 16px 0;
-  transition: border-color 0.15s;
-}
-
-.rc-content {
-  padding: 12px 16px;
-}
-
-.rc-grid {
-  display: grid;
-  gap: 16px;
-  grid-template-columns: 1fr;
-}
-
-@media (min-width: 1280px) {
-  .rc-grid {
-    grid-template-columns: 180px minmax(0, 1fr) 130px;
-    align-items: center;
-    gap: 12px;
-  }
-
-}
-
-@media (min-width: 1536px) {
-  .rc-grid {
-    grid-template-columns: 180px minmax(0, 1fr) 150px;
-  }
-
-}
-
-/* Col 1 */
-.rc-col-info {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.rc-header-row {
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  gap: 10px;
-  overflow: hidden;
-}
-
-.rc-ticket {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 700;
-  color: #1B2A41;
-  min-width: 0;
-  overflow: hidden;
-}
-
-.rc-ticket span {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.rc-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 20px;
-  padding: 0 10px;
-  border-radius: 9999px;
-  font-size: 12px;
-  font-weight: 500;
-  white-space: nowrap;
-  flex-shrink: 0;
-  line-height: 1;
-}
-
-.rc-patient-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  color: #1B2A41;
-  min-width: 0;
-}
-
-.rc-patient-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--bd-blue, var(--bd-blue));
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  cursor: pointer;
-}
-
-.rc-patient-name:hover {
-  text-decoration: underline;
-}
-
-.rc-details {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.rc-detail-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  font-size: 14px;
-  color: #1B2A41;
-}
-
-.rc-detail-text {
-  font-size: 14px;
-  color: #1B2A41;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.rc-detail-bold {
-  font-weight: 600;
-}
-
-.rc-detail-notes {
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-/* Col 2 */
-.rc-col-progress {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-width: 0;
-}
-
-@media (min-width: 1280px) {
-  .rc-col-progress {
-    padding: 0 4px;
-    align-items: center;
-  }
-
-}
-
-.rc-steps {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  width: 100%;
-}
-
-.rc-step {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  text-align: center;
-  cursor: not-allowed;
-  background: none;
-  border: none;
-  padding: 0;
-}
-
-.rc-step-track {
-  display: flex;
-  width: 100%;
-  align-items: center;
-}
-
-.rc-step-line {
-  height: 2px;
-  flex: 1;
-  border-radius: 9999px;
-}
-
-.rc-step-line--invisible {
-  visibility: hidden;
-}
-
-.rc-step-line--idle {
-  background: #e2e8f0;
-}
-
-.rc-step-line--done {
-  background: var(--bd-blue);
-}
-
-.rc-step-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #1B2A41;
-  margin: 0;
-}
-
-.rc-step-time {
-  font-size: 12px;
-  color: #1B2A41;
-  margin: 0;
-}
-
-.rc-doctor-select {
-  width: 100%;
-}
-
-@media (min-width: 1280px) {
-  .rc-doctor-select {
-    max-width: 340px;
-  }
-
-}
-
-@media (min-width: 1536px) {
-  .rc-doctor-select {
-    max-width: 380px;
-  }
-
-}
-
-/* Col 3 */
-.rc-col-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-@media (min-width: 1280px) {
-  .rc-col-actions {
-    margin-left: auto;
-    min-width: 220px;
-    justify-self: end;
-  }
-
-}
-
-.rc-outcome-btn {
-  display: flex;
-  width: 100%;
-  align-items: center;
-  gap: 10px;
-  border-radius: 9999px;
-  padding: 8px 12px;
-  font-size: 13px;
-  font-weight: 500;
-  border: none;
-  background: transparent;
-  color: #1B2A41;
-  cursor: pointer;
-  transition: background 0.15s;
-  text-align: left;
-}
-
-.rc-outcome-btn:hover {
-  background: #eef2f7;
-}
-
-.rc-outcome-btn--selected {
-  background: #DCE9FF;
-  color: var(--bd-blue);
-  font-weight: 600;
-}
-
-.rc-outcome-btn--selected:hover {
-  background: #C8D9F9;
-}
-
-.rc-outcome-btn span {
-  line-height: 1;
-}
-
-.rc-outcome-icon {
-  flex-shrink: 0;
-  color: #D0D8E5;
-}
-
-.rc-outcome-icon--selected {
-  flex-shrink: 0;
-  color: var(--bd-blue);
-}
-
-.rc-icon-top {
-  flex-shrink: 0;
-  margin-top: 2px;
 }
 
 .reception-content {
@@ -2080,85 +1760,6 @@ button {
   font-weight: 400;
   color: #6f7c90;
   margin: 0;
-}
-
-/* ── Reception New Modal ── */
-
-.rn-form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.rn-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.rn-field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.rn-field--flex1 {
-  flex: 1;
-  min-width: 0;
-}
-
-.rn-phone-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: #101c2c;
-  padding: 2px 0;
-}
-
-.rn-phone-label {
-  color: #6f7c90;
-}
-
-.rn-phone-value {
-  font-weight: 500;
-  color: #101c2c;
-}
-
-.rn-time-row {
-  display: flex;
-  gap: 12px;
-}
-
-.rn-label {
-  display: block;
-  font-size: 13px;
-  color: #6f7c90;
-  font-weight: 500;
-  margin-bottom: 4px;
-}
-
-.rn-label--required::after {
-  content: " *";
-  color: #ef4d4d;
-}
-
-.rn-select-placeholder {
-  display: flex;
-  align-items: center;
-  color: #98a4b4;
-  font-size: 14px;
-}
-
-.rn-error {
-  font-size: 12px;
-  color: #ef4d4d;
-}
-
-.rn-footer {
-  display: flex;
-  justify-content: flex-end;
-  padding-top: 4px;
 }
 
 /* ==========================================================================
@@ -4506,25 +4107,7 @@ html:has(.ant-modal-wrap) {
   background: #fdeeee;
 }
 
-/* ── Tools: screens whose integration is not wired yet ──────────────────── */
-
-.tools-empty {
-  padding: 44px 20px;
-  text-align: center;
-}
-
-.tools-empty-title {
-  font-size: 15px;
-  font-weight: 650;
-  color: var(--bd-ink);
-}
-
-.tools-empty-body {
-  margin: 6px auto 0;
-  max-width: 420px;
-  font-size: 13px;
-  color: var(--bd-muted);
-}
+/* Tools' own styles moved to features/tools/components/tools.css. */
 
 /* ── FloatingField ── */
 .floating-field {
@@ -4572,6 +4155,11 @@ html:has(.ant-modal-wrap) {
   right: auto;
   overflow: visible;
   background: #fff;
+}
+
+/* When Input has a prefix icon, shift the resting label past it */
+.floating-field:not(.floating-field--floated):has(.ant-input-prefix) .floating-field-label {
+  left: 32px;
 }
 
 /* Hide Select placeholder when label is in resting position */

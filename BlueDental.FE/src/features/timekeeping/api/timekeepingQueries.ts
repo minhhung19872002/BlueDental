@@ -2,8 +2,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   timekeepingApi,
   type AttendanceInput,
+  type BulkRegisterInput,
   type GetTimeKeepingListInput,
   type OpenWorkDayInput,
+  type TimeKeepingRecordDto,
+  type UpdateInfoInput,
 } from "./timekeepingApi";
 
 export const timekeepingKeys = {
@@ -21,17 +24,17 @@ export function useTimeKeepingList(params: GetTimeKeepingListInput) {
   });
 }
 
-export function useTimeKeepingSummary(clinicBranchId: string, workDate: string) {
+export function useTimeKeepingSummary(clinicBranchId: string | undefined, workDate: string) {
   return useQuery({
-    queryKey: timekeepingKeys.summary(clinicBranchId, workDate),
+    queryKey: timekeepingKeys.summary(clinicBranchId ?? "all", workDate),
     queryFn: () => timekeepingApi.summary(clinicBranchId, workDate),
-    enabled: Boolean(clinicBranchId && workDate),
+    enabled: Boolean(workDate),
   });
 }
 
 /** Invalidates both the board and its KPI bar after any attendance change. */
-function useAttendanceMutation<TVariables>(
-  mutationFn: (variables: TVariables) => Promise<unknown>,
+function useAttendanceMutation<TVariables, TData = unknown>(
+  mutationFn: (variables: TVariables) => Promise<TData>,
 ) {
   const queryClient = useQueryClient();
 
@@ -66,5 +69,17 @@ export function useCheckIn() {
 export function useCheckOut() {
   return useAttendanceMutation(({ id, input }: { id: string; input: AttendanceInput }) =>
     timekeepingApi.checkOut(id, input),
+  );
+}
+
+export function useUpdateInfo() {
+  return useAttendanceMutation(({ id, input }: { id: string; input: UpdateInfoInput }) =>
+    timekeepingApi.updateInfo(id, input),
+  );
+}
+
+export function useBulkRegister() {
+  return useAttendanceMutation((input: BulkRegisterInput) =>
+    timekeepingApi.bulkRegister(input),
   );
 }

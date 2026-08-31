@@ -125,11 +125,6 @@ const AuditLogPage = lazy(() =>
   })),
 );
 
-const TimekeepingPage = lazy(() =>
-  import("@/features/timekeeping/pages/TimekeepingPage").then((m) => ({
-    default: m.TimekeepingPage,
-  })),
-);
 
 const SettingsPage = lazy(() =>
   import("@/features/settings/pages/SettingsPage").then((m) => ({
@@ -353,6 +348,16 @@ const appRoutes: RouteObject[] = [
           </S>
         ),
       },
+      {
+        // Each tool category is its own URL, as the reference has it, so a
+        // screen can be bookmarked and reached with the back button.
+        path: "tools/:category",
+        element: (
+          <S>
+            <ToolsPage />
+          </S>
+        ),
+      },
       // ── Dashboard (Tổng quan — the design's first screen) ──
       {
         path: "dashboard",
@@ -381,15 +386,7 @@ const appRoutes: RouteObject[] = [
         ),
       },
       // ── Billing ──
-      // ── Timekeeping ──
-      {
-        path: "timekeeping",
-        element: (
-          <S>
-            <TimekeepingPage />
-          </S>
-        ),
-      },
+      // ── Timekeeping (embedded in calendar page via ?tab=timekeeping) ──
       // ── Display preferences ──
       // This used to be declared as a second "settings" route, which React
       // Router never reached because the clinic settings above already claimed

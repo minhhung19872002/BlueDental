@@ -1,0 +1,493 @@
+/* ── Reception-specific styles ──
+   Shared layout classes (.reception-page, .reception-card, .reception-status-pill,
+   etc.) live in src/styles/index.css because 10+ features use them. */
+
+/* ── Stat chips (reference: stat.html) ── */
+
+.reception-stat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-width: max-content;
+}
+
+.reception-stat-chip-btn {
+  outline: none;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 2px;
+  background: none;
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+
+.reception-stat-chip-btn:focus-visible {
+  box-shadow: 0 0 0 2px rgba(38, 113, 216, 0.25);
+}
+
+.reception-stat-chip-btn--active {
+  box-shadow: 0 0 0 2px rgba(38, 113, 216, 0.25);
+  border-radius: 10px;
+}
+
+.reception-stat-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 74px;
+  min-width: 52px;
+  padding: 8px 0;
+  border-radius: 6px;
+  border: 1px solid var(--chip-border);
+  background: var(--chip-bg);
+  color: var(--chip-color);
+  text-align: center;
+  line-height: 1.25;
+}
+
+.reception-stat-chip-value {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.reception-stat-chip-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.reception-loading--more {
+  padding: 24px 0;
+}
+
+.reception-scroll-sentinel {
+  min-height: 1px;
+}
+
+/* ── ReceptionCard ── */
+
+.rc-wrapper {
+  position: relative;
+  height: 100%;
+}
+
+.rc-cancel-btn {
+  position: absolute;
+  top: 4px;
+  right: 12px;
+  z-index: 10;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid #F4B4B7;
+  background: #fff;
+  color: #D64545;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.rc-cancel-btn:hover {
+  border-color: #E56B6F;
+  background: #FFF3F3;
+  color: #B92F32;
+}
+
+.rc-card {
+  background: #fff;
+  border: 1px solid #DCE3EE;
+  border-radius: 16px;
+  height: 100%;
+  padding: 16px 0;
+  transition: border-color 0.15s;
+  overflow: hidden;
+}
+
+.rc-content {
+  padding: 12px 16px;
+}
+
+.rc-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 1280px) {
+  .rc-grid {
+    grid-template-columns: 180px minmax(0, 1fr) 130px;
+    align-items: center;
+    gap: 12px;
+  }
+}
+
+@media (min-width: 1536px) {
+  .rc-grid {
+    grid-template-columns: 180px minmax(0, 1fr) 150px;
+  }
+}
+
+/* Col 1 */
+.rc-col-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rc-header-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.rc-cancel-btn + .rc-card .rc-col-actions {
+  padding-top: 14px;
+}
+
+.rc-ticket {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1B2A41;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.rc-ticket span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rc-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  padding: 0 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.rc-patient-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: #1B2A41;
+  min-width: 0;
+}
+
+.rc-patient-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--bd-blue);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+}
+
+.rc-patient-name:hover {
+  text-decoration: underline;
+}
+
+.rc-details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rc-detail-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  color: #1B2A41;
+}
+
+.rc-detail-text {
+  font-size: 14px;
+  color: #1B2A41;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rc-detail-bold {
+  font-weight: 600;
+}
+
+.rc-detail-notes {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Col 2 */
+.rc-col-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+@media (min-width: 1280px) {
+  .rc-col-progress {
+    padding: 0 4px;
+    align-items: center;
+  }
+}
+
+.rc-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  width: 100%;
+}
+
+.rc-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  cursor: not-allowed;
+  background: none;
+  border: none;
+  padding: 0;
+  opacity: 1;
+}
+
+.rc-step--clickable {
+  cursor: pointer;
+}
+
+.rc-step--clickable:hover .rc-step-label {
+  text-decoration: underline;
+}
+
+.rc-step-track {
+  display: flex;
+  width: 100%;
+  align-items: center;
+}
+
+.rc-step-line {
+  height: 2px;
+  flex: 1;
+  border-radius: 9999px;
+}
+
+.rc-step-line--invisible {
+  visibility: hidden;
+}
+
+.rc-step-line--idle {
+  background: #e2e8f0;
+}
+
+.rc-step-line--done {
+  background: var(--bd-blue);
+}
+
+.rc-step-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1B2A41;
+  margin: 0;
+}
+
+.rc-step-time {
+  font-size: 12px;
+  color: #1B2A41;
+  margin: 0;
+}
+
+.rc-doctor-select {
+  width: 100%;
+}
+
+@media (min-width: 1280px) {
+  .rc-doctor-select {
+    max-width: 340px;
+  }
+}
+
+@media (min-width: 1536px) {
+  .rc-doctor-select {
+    max-width: 380px;
+  }
+}
+
+/* Col 3 */
+.rc-col-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+@media (min-width: 1280px) {
+  .rc-col-actions {
+    margin-left: auto;
+    min-width: 220px;
+    justify-self: end;
+  }
+}
+
+.rc-outcome-btn {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  border-radius: 9999px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  background: transparent;
+  color: #1B2A41;
+  cursor: pointer;
+  transition: background 0.15s;
+  text-align: left;
+}
+
+.rc-outcome-btn:hover:not(:disabled) {
+  background: #eef2f7;
+}
+
+.rc-outcome-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.rc-outcome-btn--selected {
+  background: #DCE9FF;
+  color: var(--bd-blue);
+  font-weight: 600;
+}
+
+.rc-outcome-btn--selected:hover {
+  background: #C8D9F9;
+}
+
+.rc-outcome-btn span {
+  line-height: 1;
+}
+
+.rc-outcome-icon {
+  flex-shrink: 0;
+  color: #D0D8E5;
+}
+
+.rc-outcome-icon--selected {
+  flex-shrink: 0;
+  color: var(--bd-blue);
+}
+
+.rc-icon-top {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* ── Reception New Modal ── */
+
+.rn-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rn-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rn-create-btn {
+  height: 40px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.rn-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rn-field--flex1 {
+  flex: 1;
+  min-width: 0;
+}
+
+.rn-phone-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #101c2c;
+  padding: 2px 0;
+}
+
+.rn-phone-label {
+  color: #6f7c90;
+}
+
+.rn-phone-value {
+  font-weight: 500;
+  color: #101c2c;
+}
+
+.rn-time-row {
+  display: flex;
+  gap: 12px;
+}
+
+.rn-label {
+  display: block;
+  font-size: 13px;
+  color: #6f7c90;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.rn-label--required::after {
+  content: " *";
+  color: #ef4d4d;
+}
+
+.rn-select-placeholder {
+  display: flex;
+  align-items: center;
+  color: #98a4b4;
+  font-size: 14px;
+}
+
+.rn-error {
+  font-size: 12px;
+  color: #ef4d4d;
+}
+
+.rn-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 4px;
+}

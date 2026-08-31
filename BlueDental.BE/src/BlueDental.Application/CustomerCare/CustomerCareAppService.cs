@@ -35,6 +35,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
     private readonly IRepository<Taxonomy, Guid> _taxonomyRepository;
     private readonly IRepository<CatalogEntry, Guid> _catalogRepository;
     private readonly IIdentityUserRepository _userRepository;
+    private readonly BranchAccessChecker _branchAccess;
     private readonly ICurrentClinicBranchResolver _branchResolver;
 
     public CustomerCareAppService(
@@ -47,6 +48,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         IRepository<Taxonomy, Guid> taxonomyRepository,
         IRepository<CatalogEntry, Guid> catalogRepository,
         IIdentityUserRepository userRepository,
+        BranchAccessChecker branchAccess,
         ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
@@ -58,6 +60,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         _taxonomyRepository = taxonomyRepository;
         _catalogRepository = catalogRepository;
         _userRepository = userRepository;
+        _branchAccess = branchAccess;
         _branchResolver = branchResolver;
     }
 
@@ -107,7 +110,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
     public async Task<CareRecordDto> GetAsync(Guid id)
     {
         var record = await _repository.GetAsync(id);
-        GuardBranchAccess(record);
+        await GuardBranchAccessAsync(record);
 
         var dto = ObjectMapper.Map<CareRecord, CareRecordDto>(record);
         await FillAsync([record], [dto]);
@@ -117,10 +120,9 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
     [Authorize(BlueDentalPermissions.CustomerCare.Create)]
     public async Task<CareRecordDto> CreateAsync(CreateCareRecordDto input)
     {
-        var branchId = _branchResolver.GetRequiredClinicBranchId();
+        var ownBranchId = _branchResolver.GetRequiredClinicBranchId();
+        var branchId = await _branchAccess.ResolveWriteTargetAsync(input.BranchId, ownBranchId);
 
-        // A care record hydrates the patient's PHI later, so the patient must
-        // belong to the caller's branch; a foreign id reads as not-found.
         var patient = await _patientRepository.GetAsync(input.PatientId);
         if (patient.BranchId != branchId)
             throw new EntityNotFoundException(typeof(Patient), input.PatientId);
@@ -156,7 +158,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
     public async Task<CareRecordDto> UpdateAsync(Guid id, UpdateCareRecordDto input)
     {
         var record = await _repository.GetAsync(id);
-        GuardBranchAccess(record);
+        await GuardBranchAccessAsync(record);
 
         record.ApplyResult(input.Status, input.Description);
 
@@ -192,7 +194,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
     public async Task<CareRecordDto> MarkContactedAsync(Guid id)
     {
         var record = await _repository.GetAsync(id);
-        GuardBranchAccess(record);
+        await GuardBranchAccessAsync(record);
         record.MarkContacted();
         await _repository.UpdateAsync(record, autoSave: true);
         return ObjectMapper.Map<CareRecord, CareRecordDto>(record);
@@ -202,7 +204,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
     public async Task<CareRecordDto> SucceedAsync(Guid id, SucceedCareRecordDto input)
     {
         var record = await _repository.GetAsync(id);
-        GuardBranchAccess(record);
+        await GuardBranchAccessAsync(record);
         record.Succeed(input.Outcome, input.Resolution);
         await _repository.UpdateAsync(record, autoSave: true);
         return ObjectMapper.Map<CareRecord, CareRecordDto>(record);
@@ -212,7 +214,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
     public async Task<CareRecordDto> FailAsync(Guid id, FailCareRecordDto input)
     {
         var record = await _repository.GetAsync(id);
-        GuardBranchAccess(record);
+        await GuardBranchAccessAsync(record);
         record.Fail(input.Reason);
         await _repository.UpdateAsync(record, autoSave: true);
         return ObjectMapper.Map<CareRecord, CareRecordDto>(record);
@@ -222,7 +224,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
     public async Task<CareRecordDto> MarkZaloSentAsync(Guid id)
     {
         var record = await _repository.GetAsync(id);
-        GuardBranchAccess(record);
+        await GuardBranchAccessAsync(record);
         record.MarkZaloSent();
         await _repository.UpdateAsync(record, autoSave: true);
         return ObjectMapper.Map<CareRecord, CareRecordDto>(record);
@@ -232,7 +234,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
     public async Task CancelAsync(Guid id, string reason)
     {
         var record = await _repository.GetAsync(id);
-        GuardBranchAccess(record);
+        await GuardBranchAccessAsync(record);
         record.Cancel(reason);
         await _repository.UpdateAsync(record, autoSave: true);
     }
@@ -257,9 +259,10 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
     public async Task<PagedResultDto<CareGroupingPatientDto>> GetGroupingPatientsAsync(
         GetCareGroupingPatientsInput input)
     {
-        var branchId = _branchResolver.GetRequiredClinicBranchId();
-        var query = (await _patientRepository.GetQueryableAsync())
-            .Where(p => p.BranchId == branchId);
+        var branchFilter = await _branchAccess.ResolveFilterAsync(input.BranchId);
+        var query = (await _patientRepository.GetQueryableAsync());
+        if (branchFilter.Count > 0)
+            query = query.Where(p => branchFilter.Contains(p.BranchId));
 
         if (!string.IsNullOrWhiteSpace(input.Filter))
         {
@@ -281,28 +284,40 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         {
             var staffId = input.StaffId.Value;
             var planQuery = await _planRepository.GetQueryableAsync();
-            query = query.Where(p => planQuery.Any(t =>
-                t.BranchId == branchId && t.DentistId == staffId && t.PatientId == p.Id));
+            query = branchFilter.Count > 0
+                ? query.Where(p => planQuery.Any(t =>
+                    branchFilter.Contains(t.BranchId) && t.DentistId == staffId && t.PatientId == p.Id))
+                : query.Where(p => planQuery.Any(t =>
+                    t.DentistId == staffId && t.PatientId == p.Id));
         }
 
         if (input.TaxonomyId.HasValue)
         {
-            // Nhóm dịch vụ — a patient matches when their treatment plans hold a
-            // service belonging to that care-service group, or a care record was
-            // filed directly under the group (documented assumption; the reference
-            // filter's exact semantics were not observable).
             var taxonomyId = input.TaxonomyId.Value;
             var careQuery = await _repository.GetQueryableAsync();
             var planQuery = await _planRepository.GetQueryableAsync();
-            var groupServiceIds = (await _catalogRepository.GetQueryableAsync())
-                .Where(c => c.ClinicBranchId == branchId && c.TaxonomyId == taxonomyId)
-                .Select(c => c.Id);
+            var catalogQuery = (await _catalogRepository.GetQueryableAsync())
+                .Where(c => c.TaxonomyId == taxonomyId);
+            if (branchFilter.Count > 0)
+                catalogQuery = catalogQuery.Where(c => branchFilter.Contains(c.ClinicBranchId));
+            var groupServiceIds = catalogQuery.Select(c => c.Id);
 
-            query = query.Where(p =>
-                planQuery.Any(t => t.BranchId == branchId && t.PatientId == p.Id
-                    && t.Services.Any(s => groupServiceIds.Contains(s.ServiceId)))
-                || careQuery.Any(r =>
-                    r.BranchId == branchId && r.CareServiceId == taxonomyId && r.PatientId == p.Id));
+            if (branchFilter.Count > 0)
+            {
+                query = query.Where(p =>
+                    planQuery.Any(t => branchFilter.Contains(t.BranchId) && t.PatientId == p.Id
+                        && t.Services.Any(s => groupServiceIds.Contains(s.ServiceId)))
+                    || careQuery.Any(r =>
+                        branchFilter.Contains(r.BranchId) && r.CareServiceId == taxonomyId && r.PatientId == p.Id));
+            }
+            else
+            {
+                query = query.Where(p =>
+                    planQuery.Any(t => t.PatientId == p.Id
+                        && t.Services.Any(s => groupServiceIds.Contains(s.ServiceId)))
+                    || careQuery.Any(r =>
+                        r.CareServiceId == taxonomyId && r.PatientId == p.Id));
+            }
         }
 
         if (input.TagId.HasValue)
@@ -324,7 +339,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
 
         return new PagedResultDto<CareGroupingPatientDto>(
             totalCount,
-            await BuildGroupingRowsAsync(branchId, patients));
+            await BuildGroupingRowsAsync(branchFilter, patients));
     }
 
     /* ------------------------------------------------------------------ */
@@ -332,9 +347,10 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
     private async Task<IQueryable<CareRecord>> FilteredQueryAsync(
         GetCareRecordListInput input, bool applyStatus)
     {
-        var branchId = _branchResolver.GetRequiredClinicBranchId();
-        var query = (await _repository.GetQueryableAsync())
-            .Where(r => r.BranchId == branchId);
+        var branchFilter = await _branchAccess.ResolveFilterAsync(input.BranchId);
+        var query = (await _repository.GetQueryableAsync());
+        if (branchFilter.Count > 0)
+            query = query.Where(r => branchFilter.Contains(r.BranchId));
 
         if (input.PatientId.HasValue)
             query = query.Where(r => r.PatientId == input.PatientId.Value);
@@ -366,10 +382,11 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
 
         if (!string.IsNullOrWhiteSpace(input.Filter))
         {
-            var matchedIds = (await _patientRepository.GetQueryableAsync())
-                .Where(p => p.BranchId == branchId)
-                .Where(PatientMatches(input.Filter))
-                .Select(p => p.Id);
+            var patientQuery = (await _patientRepository.GetQueryableAsync())
+                .Where(PatientMatches(input.Filter));
+            if (branchFilter.Count > 0)
+                patientQuery = patientQuery.Where(p => branchFilter.Contains(p.BranchId));
+            var matchedIds = patientQuery.Select(p => p.Id);
             query = query.Where(r => matchedIds.Contains(r.PatientId));
         }
 
@@ -405,7 +422,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
             return;
         }
 
-        var branchId = _branchResolver.GetRequiredClinicBranchId();
+        var branchIds = entities.Select(r => r.BranchId).Distinct().ToList();
         var patientIds = entities.Select(r => r.PatientId).Distinct().ToList();
 
         var patientQuery = await _patientRepository.GetQueryableAsync();
@@ -459,9 +476,11 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         var stageServiceNames = new Dictionary<Guid, string>();
         if (stageIds.Count > 0)
         {
-            var stageQuery = await _stageRepository.GetQueryableAsync();
+            var stageQuery = (await _stageRepository.GetQueryableAsync())
+                .Where(s => stageIds.Contains(s.Id));
+            if (branchIds.Count > 0)
+                stageQuery = stageQuery.Where(s => branchIds.Contains(s.ClinicBranchId));
             stageServices = stageQuery
-                .Where(s => s.ClinicBranchId == branchId && stageIds.Contains(s.Id))
                 .Select(s => new { s.Id, s.ServiceId })
                 .ToDictionary(s => s.Id, s => s.ServiceId);
 
@@ -475,7 +494,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
             }
         }
 
-        var nextAppointments = await NextAppointmentsAsync(branchId, patientIds);
+        var nextAppointments = await NextAppointmentsAsync(branchIds, patientIds);
 
         for (var i = 0; i < entities.Count; i++)
         {
@@ -519,14 +538,15 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         }
     }
 
-    /// <summary>Lịch hẹn sắp tới — each patient's soonest future appointment.</summary>
     private async Task<Dictionary<Guid, DateTimeOffset>> NextAppointmentsAsync(
-        Guid branchId, IReadOnlyCollection<Guid> patientIds)
+        IReadOnlyList<Guid> branchIds, IReadOnlyCollection<Guid> patientIds)
     {
         var now = DateTimeOffset.UtcNow;
-        var appointmentQuery = await _appointmentRepository.GetQueryableAsync();
+        var appointmentQuery = (await _appointmentRepository.GetQueryableAsync())
+            .Where(a => patientIds.Contains(a.PatientId));
+        if (branchIds.Count > 0)
+            appointmentQuery = appointmentQuery.Where(a => branchIds.Contains(a.BranchId));
         return appointmentQuery
-            .Where(a => a.BranchId == branchId && patientIds.Contains(a.PatientId))
             .Where(a => a.Slot.Start > now)
             .Where(a => a.Status != AppointmentStatus.Cancelled && a.Status != AppointmentStatus.NoShow)
             .Select(a => new { a.PatientId, a.Slot.Start })
@@ -536,7 +556,7 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
     }
 
     private async Task<List<CareGroupingPatientDto>> BuildGroupingRowsAsync(
-        Guid branchId, IReadOnlyList<Patient> patients)
+        IReadOnlyList<Guid> branchFilter, IReadOnlyList<Patient> patients)
     {
         if (patients.Count == 0)
         {
@@ -546,8 +566,10 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         var patientIds = patients.Select(p => p.Id).ToList();
 
         var planQuery = await _planRepository.WithDetailsAsync(t => t.Services);
-        var plans = (await AsyncExecuter.ToListAsync(
-                planQuery.Where(t => t.BranchId == branchId && patientIds.Contains(t.PatientId))))
+        var filteredPlanQuery = planQuery.Where(t => patientIds.Contains(t.PatientId));
+        if (branchFilter.Count > 0)
+            filteredPlanQuery = filteredPlanQuery.Where(t => branchFilter.Contains(t.BranchId));
+        var plans = (await AsyncExecuter.ToListAsync(filteredPlanQuery))
             .GroupBy(t => t.PatientId)
             .ToDictionary(g => g.Key, g => g.ToList());
 
@@ -576,14 +598,16 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
             : (await _userRepository.GetListByIdsAsync(dentistIds))
                 .ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
 
-        var paymentQuery = await _paymentRepository.GetQueryableAsync();
+        var paymentQuery = (await _paymentRepository.GetQueryableAsync())
+            .Where(p => patientIds.Contains(p.PatientId));
+        if (branchFilter.Count > 0)
+            paymentQuery = paymentQuery.Where(p => branchFilter.Contains(p.ClinicBranchId));
         var revenue = paymentQuery
-            .Where(p => p.ClinicBranchId == branchId && patientIds.Contains(p.PatientId))
             .ToList()
             .GroupBy(p => p.PatientId)
             .ToDictionary(g => g.Key, g => g.Sum(p => p.SignedAmount));
 
-        var nextAppointments = await NextAppointmentsAsync(branchId, patientIds);
+        var nextAppointments = await NextAppointmentsAsync(branchFilter, patientIds);
 
         return patients.Select(patient =>
         {
@@ -637,10 +661,9 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
             : CareTreatmentStatus.InProgress;
     }
 
-    private void GuardBranchAccess(CareRecord entity)
+    private async Task GuardBranchAccessAsync(CareRecord entity)
     {
-        var branchId = _branchResolver.GetRequiredClinicBranchId();
-        if (entity.BranchId != branchId)
+        if (!await _branchAccess.IsAllowedAsync(entity.BranchId))
             throw new EntityNotFoundException(typeof(CareRecord), entity.Id);
     }
 }

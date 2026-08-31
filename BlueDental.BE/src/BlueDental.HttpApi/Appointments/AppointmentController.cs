@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using BlueDental.Controllers;
 using Microsoft.AspNetCore.Authorization;
@@ -17,12 +18,20 @@ public sealed class AppointmentController(IAppointmentAppService service) : Blue
     public Task<PagedResultDto<AppointmentDto>> GetListAsync(
         [FromQuery] GetAppointmentListInput input) => service.GetListAsync(input);
 
+    [HttpGet("stats")]
+    public Task<AppointmentStatsDto> GetStatsAsync(
+        [FromQuery] GetAppointmentListInput input) => service.GetStatsAsync(input);
+
     [HttpGet("{id:guid}")]
     public Task<AppointmentDto> GetAsync(Guid id) => service.GetAsync(id);
 
     [HttpPost]
     public Task<AppointmentDto> CreateAsync([FromBody] CreateAppointmentDto input) =>
         service.CreateAsync(input);
+
+    [HttpPost("temp")]
+    public Task<AppointmentDto> CreateTempAsync([FromBody] CreateTempAppointmentDto input) =>
+        service.CreateTempAsync(input);
 
     [HttpPut("{id:guid}")]
     public Task<AppointmentDto> UpdateAsync(Guid id, [FromBody] UpdateAppointmentDto input) =>
@@ -47,4 +56,18 @@ public sealed class AppointmentController(IAppointmentAppService service) : Blue
 
     [HttpPost("{id:guid}/no-show")]
     public Task<AppointmentDto> MarkNoShowAsync(Guid id) => service.MarkNoShowAsync(id);
+
+    [HttpPost("{id:guid}/assign-dentist")]
+    public Task<AppointmentDto> AssignDentistAsync(Guid id, [FromBody] AssignDentistDto input) =>
+        service.AssignDentistAsync(id, input);
+
+    [HttpPost("{id:guid}/set-outcome")]
+    public Task<AppointmentDto> SetOutcomeAsync(Guid id, [FromBody] SetOutcomeDto input) =>
+        service.SetOutcomeAsync(id, input);
+
+    [HttpDelete("{id:guid}")]
+    public Task DeleteAsync(Guid id) => service.DeleteAsync(id);
+
+    [HttpDelete]
+    public Task DeleteManyAsync([FromBody] List<Guid> ids) => service.DeleteManyAsync(ids);
 }

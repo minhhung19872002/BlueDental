@@ -9,6 +9,7 @@ import {
 } from "../api/voucherApi";
 import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
+import { useBranchFilter } from "@/lib/clinicBranch";
 import { PageHeader } from "@/components/PageHeader";
 import { VoucherToolbar } from "../components/VoucherToolbar";
 import { VoucherTable } from "../components/VoucherTable";
@@ -22,9 +23,11 @@ export function VoucherPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<VoucherDto | null>(null);
 
+  const branchId = useBranchFilter();
   const { data: page, isLoading } = useVouchers(
     statusFilter || undefined,
     keyword,
+    branchId,
   );
 
   const publishVoucher = usePublishVoucher();

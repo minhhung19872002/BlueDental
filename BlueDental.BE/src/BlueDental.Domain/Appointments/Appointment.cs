@@ -20,12 +20,19 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
     public AppointmentType Type { get; private set; }
     public string? ChiefComplaint { get; private set; }
     public string? Notes { get; private set; }
-    public AppointmentColor Color { get; private set; }
+    public string? Color { get; private set; }
     public CancellationReason? CancellationReason { get; private set; }
     public string? CancellationNote { get; private set; }
     public DateTimeOffset? CheckedInAt { get; private set; }
     public DateTimeOffset? StartedAt { get; private set; }
     public DateTimeOffset? CompletedAt { get; private set; }
+    public AppointmentOutcome? Outcome { get; private set; }
+
+    public bool IsTemporary { get; private set; }
+    public string? PatientName { get; private set; }
+    public string? PatientPhone { get; private set; }
+    public Guid? SourceTaxonomyId { get; private set; }
+    public Guid? SourceEntryId { get; private set; }
 
     protected Appointment() { }
 
@@ -38,8 +45,8 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         AppointmentType type,
         Guid? procedureId = null,
         string? chiefComplaint = null,
-        string? notes = null,
-        AppointmentColor color = AppointmentColor.Default)
+        string? color = null,
+        string? notes = null)
         : base(id)
     {
         PatientId = patientId;
@@ -49,22 +56,42 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         Type = type;
         ProcedureId = procedureId;
         ChiefComplaint = chiefComplaint;
-        Notes = notes;
         Color = color;
+        Notes = notes;
         Status = AppointmentStatus.Requested;
     }
 
-    /// <summary>
-    /// The three fields the booking form may revise without moving the slot:
-    /// what the visit is for, the note beside it and the colour it is drawn in.
-    /// None of them is part of the workflow, so any status may be edited.
-    /// </summary>
-    public Appointment SetDetails(string? chiefComplaint, string? notes, AppointmentColor color)
+    public static Appointment CreateTemporary(
+        Guid id,
+        string patientName,
+        string? patientPhone,
+        Guid branchId,
+        AppointmentSlot slot,
+        Guid? dentistId = null,
+        Guid? sourceTaxonomyId = null,
+        Guid? sourceEntryId = null,
+        string? color = null,
+        string? notes = null)
     {
-        ChiefComplaint = chiefComplaint;
-        Notes = notes;
-        Color = color;
-        return this;
+        Check.NotNullOrWhiteSpace(patientName, nameof(patientName));
+
+        return new Appointment
+        {
+            Id = id,
+            PatientId = Guid.Empty,
+            DentistId = dentistId ?? Guid.Empty,
+            BranchId = branchId,
+            Slot = slot,
+            Type = AppointmentType.Consultation,
+            Status = AppointmentStatus.Requested,
+            IsTemporary = true,
+            PatientName = patientName,
+            PatientPhone = patientPhone,
+            SourceTaxonomyId = sourceTaxonomyId,
+            SourceEntryId = sourceEntryId,
+            Color = color,
+            Notes = notes,
+        };
     }
 
     public Appointment Confirm()
@@ -91,7 +118,13 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
 
     public Appointment CheckIn()
     {
-        EnsureStatus(AppointmentStatus.Confirmed, nameof(CheckIn));
+        if (Status is not (AppointmentStatus.Requested or AppointmentStatus.Confirmed))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Appointments.InvalidTransition,
+                $"Cannot perform 'CheckIn' on appointment with status '{Status}'. Expected 'Requested' or 'Confirmed'.");
+        }
+
         Status = AppointmentStatus.CheckedIn;
         CheckedInAt = DateTimeOffset.UtcNow;
         return this;
@@ -141,6 +174,61 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         Slot = newSlot;
         if (newDentistId.HasValue) DentistId = newDentistId.Value;
         Status = AppointmentStatus.Confirmed;
+        return this;
+    }
+
+    public Appointment AssignDentist(Guid dentistId)
+    {
+        if (Status is AppointmentStatus.Completed or AppointmentStatus.Cancelled)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Appointments.InvalidTransition,
+                $"Cannot reassign dentist on an appointment in status {Status}.");
+        }
+
+        DentistId = dentistId;
+        return this;
+    }
+
+    public Appointment SetOutcome(AppointmentOutcome outcome)
+    {
+        if (Status is AppointmentStatus.Cancelled)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Appointments.InvalidTransition,
+                $"Cannot set outcome on a cancelled appointment.");
+        }
+
+        Outcome = outcome;
+        return this;
+    }
+
+    public Appointment UpdateDetails(
+        string? chiefComplaint = null,
+        string? notes = null,
+        string? color = null)
+    {
+        ChiefComplaint = chiefComplaint;
+        Notes = notes;
+        Color = color;
+        return this;
+    }
+
+    public Appointment UpdateTempPatientInfo(string patientName, string? patientPhone)
+    {
+        if (!IsTemporary)
+            throw new BusinessException("BlueDental:Appointment:0010", "Cannot update patient info on a non-temporary appointment.");
+
+        Check.NotNullOrWhiteSpace(patientName, nameof(patientName));
+        PatientName = patientName;
+        PatientPhone = patientPhone;
+        return this;
+    }
+
+    public Appointment UpdateSourceInfo(Guid? sourceTaxonomyId, Guid? sourceEntryId)
+    {
+        SourceTaxonomyId = sourceTaxonomyId;
+        SourceEntryId = sourceEntryId;
         return this;
     }
 

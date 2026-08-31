@@ -174,6 +174,9 @@ public class UpdatePatientDto
 
 public class GetPatientListInput : PagedAndSortedResultRequestDto
 {
+    /// <summary>Override branch scope — when set, filters by this branch instead of the user's own.</summary>
+    public Guid? BranchId { get; set; }
+
     /// <summary>Tìm kiếm — matches name, patient code or phone.</summary>
     public string? Filter { get; set; }
 

@@ -44,3 +44,11 @@ public enum CancellationReason
     PatientNoResponse = 5,
     Other = 6
 }
+
+public enum AppointmentOutcome
+{
+    EndTreatment = 1,
+    FollowUp = 2,
+    TransferDoctor = 3,
+    Revisit = 4
+}

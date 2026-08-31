@@ -19,7 +19,7 @@ import { RevenueBarChart } from "../components/RevenueBarChart";
 import { DoctorsOnDutyCard } from "../components/DoctorsOnDutyCard";
 import { LowStockCard } from "../components/LowStockCard";
 import { OngoingReceptionsCard } from "../components/OngoingReceptionsCard";
-import { AppointmentEditorModal } from "@/features/appointments/components/AppointmentEditorModal";
+import { AppointmentEditorModal } from "@/features/appointments";
 import { t } from "@/lib/i18n";
 
 export function DashboardPage() {

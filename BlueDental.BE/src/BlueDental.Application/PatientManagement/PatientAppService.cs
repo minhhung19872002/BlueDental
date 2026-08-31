@@ -63,7 +63,7 @@ public class PatientAppService : ApplicationService, IPatientAppService
     [Authorize(BlueDentalAbilityPermissions.Patient.Read)]
     public async Task<PagedResultDto<PatientListItemDto>> GetListAsync(GetPatientListInput input)
     {
-        var branchId = _branchResolver.GetRequiredClinicBranchId();
+        var branchId = input.BranchId ?? _branchResolver.GetRequiredClinicBranchId();
         var page = await ReadPageAsync(input, branchId, input.SkipCount, input.MaxResultCount);
         return new PagedResultDto<PatientListItemDto>(page.TotalCount, page.Items);
     }

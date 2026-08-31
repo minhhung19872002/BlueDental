@@ -47,6 +47,7 @@ public class BlueDentalOperationsDemoSeeder(
     IRepository<OperationsArticle, Guid> operationsArticleRepository,
     IRepository<OperationsTask, Guid> operationsTaskRepository,
     IRepository<MessageTemplate, Guid> messageTemplateRepository,
+    IRepository<CallConfiguration, Guid> callConfigurationRepository,
     IRepository<CallAssignment, Guid> callAssignmentRepository,
     IRepository<CallLog, Guid> callLogRepository,
     IRepository<MessageLog, Guid> messageLogRepository,
@@ -616,11 +617,10 @@ public class BlueDentalOperationsDemoSeeder(
     /// <summary>Call lists, call history and message history for Công cụ.</summary>
     private async Task SeedToolsAsync(List<Patient> patients, List<Guid> staffIds)
     {
-        if (await AnySeededAsync(callLogRepository, c => c.ClinicBranchId == _branchId))
-        {
-            return;
-        }
-
+        // No single guard here: each table below checks for itself, so a run
+        // that finds the templates already in place still fills an emptied
+        // call table. The ids are deterministic (DemoId), so rows built but
+        // not inserted can still be referenced.
         var templates = new List<MessageTemplate>();
         for (var i = 0; i < MessageTemplates.Length; i++)
         {
@@ -632,6 +632,17 @@ public class BlueDentalOperationsDemoSeeder(
                 i % 2 == 0 ? MessageChannelType.Sms : MessageChannelType.Zalo,
                 "Chăm sóc khách hàng"));
         }
+
+        // One PBX connection the SIP assignments below hang off. The key pair
+        // is obviously fake — the demo never dials out.
+        var configuration = new CallConfiguration(
+            DemoId("1704", 1),
+            _branchId,
+            "Tổng đài Voip24h",
+            CallProvider.Voip24h,
+            apiKey: "demo-api-key",
+            secretKey: "demo-secret-key",
+            isActive: true);
 
         var random = new Random(20260829);
         var assignments = new List<CallAssignment>();
@@ -649,25 +660,23 @@ public class BlueDentalOperationsDemoSeeder(
                 assignments.Add(new CallAssignment(
                     DemoId("1701", i + 1),
                     _branchId,
-                    patient.Id,
+                    sip: $"{101 + i}",
+                    configuration.Id,
                     staffIds[i % staffIds.Count],
-                    patientName,
-                    phone,
-                    "Nhắc lịch tái khám"));
+                    isActive: i % 5 != 4));
             }
 
             callLogs.Add(new CallLog(
                 DemoId("1702", i + 1),
                 _branchId,
-                patient.Id,
                 staffIds[i % staffIds.Count],
-                patientName,
-                phone,
                 staffName: "Lễ tân",
-                durationSeconds: random.Next(0, 240),
-                direction: i % 3 == 0 ? CallDirection.Inbound : CallDirection.Outbound,
+                callCode: $"CALL26-{i + 1:D4}",
+                extensionCode: $"{101 + (i % 6)}",
+                phoneNumber: phone,
                 status: (CallLogStatus)(i % 3),
-                notes: null));
+                provider: CallProvider.Voip24h,
+                calledAt: BlueDentalDemoSeedContributor.ClinicToday.AddDays(-(i % 4)).AddMinutes(-random.Next(60, 540))));
 
             messageLogs.Add(new MessageLog(
                 DemoId("1703", i + 1),
@@ -683,10 +692,30 @@ public class BlueDentalOperationsDemoSeeder(
                 i % 4 == 3 ? "Số thuê bao không tồn tại" : null));
         }
 
-        await messageTemplateRepository.InsertManyAsync(templates, autoSave: true);
-        await callAssignmentRepository.InsertManyAsync(assignments, autoSave: true);
-        await callLogRepository.InsertManyAsync(callLogs, autoSave: true);
-        await messageLogRepository.InsertManyAsync(messageLogs, autoSave: true);
+        if (!await AnySeededAsync(messageTemplateRepository, t => t.ClinicBranchId == _branchId))
+        {
+            await messageTemplateRepository.InsertManyAsync(templates, autoSave: true);
+        }
+
+        if (!await AnySeededAsync(callConfigurationRepository, c => c.ClinicBranchId == _branchId))
+        {
+            await callConfigurationRepository.InsertAsync(configuration, autoSave: true);
+        }
+
+        if (!await AnySeededAsync(callAssignmentRepository, a => a.ClinicBranchId == _branchId))
+        {
+            await callAssignmentRepository.InsertManyAsync(assignments, autoSave: true);
+        }
+
+        if (!await AnySeededAsync(callLogRepository, c => c.ClinicBranchId == _branchId))
+        {
+            await callLogRepository.InsertManyAsync(callLogs, autoSave: true);
+        }
+
+        if (!await AnySeededAsync(messageLogRepository, m => m.ClinicBranchId == _branchId))
+        {
+            await messageLogRepository.InsertManyAsync(messageLogs, autoSave: true);
+        }
     }
 
     /// <summary>

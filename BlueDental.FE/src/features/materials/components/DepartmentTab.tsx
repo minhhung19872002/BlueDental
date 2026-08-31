@@ -17,6 +17,7 @@ import { DataTable } from "@/components/DataTable";
 import { GroupPanel } from "@/components/GroupPanel";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useTablePagination } from "@/hooks/useTablePagination";
+import { useBranchFilter } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { formatDateTime } from "@/utils/format";
 
@@ -68,12 +69,13 @@ export function DepartmentTab() {
   const [pendingDelete, setPendingDelete] = useState<DepartmentDto | null>(null);
   const [merged, setMerged] = useState(false);
 
+  const branchId = useBranchFilter();
   const pagination = useTablePagination(20);
   const debouncedPanel = useDebounce(panelKeyword, 300);
   const debounced = useDebounce(keyword, 300);
 
   // Searched on the server, as the reference searches it.
-  const departmentsQuery = useDepartmentList(debouncedPanel);
+  const departmentsQuery = useDepartmentList(debouncedPanel, branchId);
   const deleteDepartment = useDeleteDepartment();
   const reorderDepartments = useReorderDepartments();
 
@@ -83,7 +85,7 @@ export function DepartmentTab() {
   );
 
   // The term goes to the server, which narrows to the vouchers that mention it.
-  const allocationsQuery = useAllocationList(selectedId ?? undefined, debounced);
+  const allocationsQuery = useAllocationList(branchId, selectedId ?? undefined, debounced);
 
   /**
    * One row per material per voucher — the reference flattens the vouchers out,

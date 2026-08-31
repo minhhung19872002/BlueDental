@@ -13,6 +13,7 @@ public class StaffDto : EntityDto<Guid>
     public string? Email { get; set; }
     public string? PhoneNumber { get; set; }
     public bool IsActive { get; set; }
+    public DateTime CreationTime { get; set; }
     public List<string> RoleNames { get; set; } = [];
 
     /// <summary>Branches this staff member is limited to; empty means clinic-wide.</summary>

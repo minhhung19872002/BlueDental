@@ -4,6 +4,7 @@ import { appointmentApi } from "./appointmentApi";
 import { appointmentKeys } from "./appointmentQueries";
 import type {
   CreateAppointmentRequest,
+  CreateTempAppointmentRequest,
   UpdateAppointmentRequest,
 } from "../types/appointment";
 
@@ -13,6 +14,20 @@ export function useCreateAppointment() {
     mutationKey: ["appointments", "create"],
     mutationFn: (data: CreateAppointmentRequest) =>
       appointmentApi.create(data),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: appointmentKeys.lists(),
+      });
+    },
+  });
+}
+
+export function useCreateTempAppointment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ["appointments", "createTemp"],
+    mutationFn: (data: CreateTempAppointmentRequest) =>
+      appointmentApi.createTemp(data),
     onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: appointmentKeys.lists(),
@@ -31,6 +46,32 @@ export function useUpdateAppointment(id: string) {
       void queryClient.invalidateQueries({
         queryKey: appointmentKeys.detail(id),
       });
+      void queryClient.invalidateQueries({
+        queryKey: appointmentKeys.lists(),
+      });
+    },
+  });
+}
+
+export function useDeleteAppointment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ["appointments", "delete"],
+    mutationFn: (id: string) => appointmentApi.delete(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: appointmentKeys.lists(),
+      });
+    },
+  });
+}
+
+export function useDeleteManyAppointments() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ["appointments", "deleteMany"],
+    mutationFn: (ids: string[]) => appointmentApi.deleteMany(ids),
+    onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: appointmentKeys.lists(),
       });

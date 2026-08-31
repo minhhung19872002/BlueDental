@@ -3,12 +3,14 @@ import type {
   Appointment,
   AppointmentListQuery,
   CreateAppointmentRequest,
+  CreateTempAppointmentRequest,
   PagedResult,
   UpdateAppointmentRequest,
 } from "../types/appointment";
 import {
   adaptAppointment,
   toCreateRequest,
+  toCreateTempRequest,
   toServerQuery,
   toUpdateRequest,
   type ServerAppointmentDto,
@@ -38,6 +40,11 @@ export const appointmentApi = {
       .post<ServerAppointmentDto>(BASE, toCreateRequest(data))
       .then((r) => adaptAppointment(r.data)),
 
+  createTemp: (data: CreateTempAppointmentRequest): Promise<Appointment> =>
+    api
+      .post<ServerAppointmentDto>(`${BASE}/temp`, toCreateTempRequest(data))
+      .then((r) => adaptAppointment(r.data)),
+
   update: (id: string, data: UpdateAppointmentRequest): Promise<Appointment> =>
     api
       .put<ServerAppointmentDto>(`${BASE}/${id}`, toUpdateRequest(data))
@@ -45,4 +52,10 @@ export const appointmentApi = {
 
   cancel: (id: string, reason: CancellationReason, note?: string): Promise<void> =>
     api.post(`${BASE}/${id}/cancel`, { reason, note }).then(() => undefined),
+
+  delete: (id: string): Promise<void> =>
+    api.delete(`${BASE}/${id}`).then(() => undefined),
+
+  deleteMany: (ids: string[]): Promise<void> =>
+    api.delete(BASE, { data: ids }).then(() => undefined),
 };

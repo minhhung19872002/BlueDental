@@ -1,76 +1,68 @@
-import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import { Button, Segmented } from "antd";
-import { PillTabs } from "@/components/PillTabs";
-import dayjs, { type Dayjs } from "dayjs";
-import { LeftOutlined, RightOutlined, DownloadOutlined, PlusOutlined } from "@ant-design/icons";
-import { PageHeader } from "@/components/PageHeader";
-import { DayViewCalendar, type DayViewDoctor } from "../components/DayViewCalendar";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import dayjs from "dayjs";
+import { toast } from "sonner";
+
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { CalendarUnderlineTabs } from "../components/CalendarUnderlineTabs";
+import { CalendarToolbarRow1 } from "../components/CalendarToolbarRow1";
+import { CalendarToolbarRow2 } from "../components/CalendarToolbarRow2";
+import { DayViewGrid, type DayViewDoctor } from "../components/DayViewGrid";
 import { WeekViewCalendar } from "../components/WeekViewCalendar";
 import { MonthViewCalendar } from "../components/MonthViewCalendar";
 import { AppointmentEditorModal } from "../components/AppointmentEditorModal";
-import { AppointmentDetailDrawer } from "../components/AppointmentDetailDrawer";
+import { TempAppointmentEditorModal } from "../components/TempAppointmentEditorModal";
+import { CalendarFabs } from "../components/CalendarFabs";
+import { CalendarControlPanel } from "../components/CalendarControlPanel";
+import { TimekeepingBoard } from "@/features/timekeeping/components/TimekeepingBoard";
+import { WorkScheduleBuilder } from "@/features/timekeeping/components/WorkScheduleBuilder";
+import { useCalendarState } from "../hooks/useCalendarState";
+import { useCalendarFilters } from "../hooks/useCalendarFilters";
+import { useStatusCounts } from "../hooks/useStatusCounts";
 import { useDentistList } from "@/features/staff/api/staffQueries";
 import { useAppointmentList } from "../api/appointmentQueries";
+import { useDeleteAppointment, useDeleteManyAppointments } from "../api/appointmentMutations";
 import { exportToExcel } from "@/utils/exportExcel";
-import { TimekeepingBoard } from "@/features/timekeeping/components/TimekeepingBoard";
 import { t } from "@/lib/i18n";
-
-type ViewMode = "day" | "week" | "month";
-
-// Placeholder names, shown only while the staff API is unreachable. People's
-// names are not UI text, so they stay out of the translation overlay.
-const FALLBACK_DOCTORS: DayViewDoctor[] = [
-  { id: "1", name: "BS Khanh",   appointmentCount: 0 },
-  { id: "2", name: "BS Tiên",    appointmentCount: 0 },
-  { id: "3", name: "BS Hương 4", appointmentCount: 0 },
-  { id: "4", name: "BS Hương",   appointmentCount: 0 },
-  { id: "5", name: "BS Tới 10",  appointmentCount: 0 },
-  { id: "6", name: "BS Tới 3",   appointmentCount: 0 },
-  { id: "7", name: "BS Tới 1",   appointmentCount: 0 },
-  { id: "8", name: "BS Tới",     appointmentCount: 0 },
-];
+import "../components/calendar.css";
 
 export function AppointmentCalendarPage() {
+  const state = useCalendarState();
+  const filters = useCalendarFilters();
   const { data: dentistData } = useDentistList();
-  const doctors: DayViewDoctor[] = dentistData
-    ? dentistData.map((d) => ({ id: d.id, name: d.name }))
-    : FALLBACK_DOCTORS;
-  // The reference keeps this tab in the URL (/calendar?tab=timekeeping), so a
-  // link to the work schedule board is shareable and survives a reload.
-  const [searchParams, setSearchParams] = useSearchParams();
-  const topTab = searchParams.get("tab") === "timekeeping" ? "work" : "customer";
-  const setTopTab = (key: string) => {
-    setSearchParams((params) => {
-      if (key === "work") {
-        params.set("tab", "timekeeping");
-      } else {
-        params.delete("tab");
-      }
-      return params;
-    });
-  };
-  const [viewMode, setViewMode] = useState<ViewMode>("day");
+  const doctors: DayViewDoctor[] = useMemo(
+    () => (dentistData ?? []).map((d) => ({ id: d.id, name: d.name })),
+    [dentistData],
+  );
 
-  // The date lives in the URL too, so a day (or a work-schedule board) can be
-  // linked to and survives a reload.
-  const currentDate = dayjs(searchParams.get("date") ?? undefined);
-  const setCurrentDate = (updater: (d: Dayjs) => Dayjs) => {
-    setSearchParams((params) => {
-      params.set("date", updater(dayjs(params.get("date") ?? undefined)).format("YYYY-MM-DD"));
-      return params;
-    });
-  };
-  const [keyword, setKeyword] = useState("");
-  const [addOpen, setAddOpen] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [initialDate, setInitialDate] = useState<string | undefined>();
-
-  // The design's "Xuất file" writes the day being viewed.
   const { data: dayAppointments } = useAppointmentList({
-    date: currentDate.format("YYYY-MM-DD"),
+    date: state.currentDate.format("YYYY-MM-DD"),
     maxResultCount: 500,
   });
+  const counts = useStatusCounts(dayAppointments?.items ?? []);
+
+  const [addOpen, setAddOpen] = useState(false);
+  const [tempOpen, setTempOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editTempId, setEditTempId] = useState<string | null>(null);
+  const [initialDate, setInitialDate] = useState<string | undefined>();
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleteTarget, setDeleteTarget] = useState<"single" | "multi" | null>(null);
+  const [deleteSingleId, setDeleteSingleId] = useState<string | null>(null);
+  const [fullscreen, setFullscreen] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(false);
+
+  useEffect(() => {
+    if (fullscreen) {
+      document.body.classList.add("cal-fullscreen");
+    } else {
+      document.body.classList.remove("cal-fullscreen");
+      setPanelOpen(false);
+    }
+    return () => document.body.classList.remove("cal-fullscreen");
+  }, [fullscreen]);
+
+  const deleteMutation = useDeleteAppointment();
+  const deleteManyMutation = useDeleteManyAppointments();
 
   const handleExport = () => {
     exportToExcel(
@@ -78,158 +70,283 @@ export function AppointmentCalendarPage() {
       [
         { header: t("Bệnh nhân"), key: "patientName" },
         { header: t("Bác sĩ"), key: "doctorName" },
-        {
-          header: t("Bắt đầu"),
-          key: "startTime",
-          format: (v) => (v ? dayjs(String(v)).format("DD/MM/YYYY HH:mm") : ""),
-        },
-        {
-          header: t("Kết thúc"),
-          key: "endTime",
-          format: (v) => (v ? dayjs(String(v)).format("HH:mm") : ""),
-        },
+        { header: t("Bắt đầu"), key: "startTime", format: (v) => (v ? dayjs(String(v)).format("DD/MM/YYYY HH:mm") : "") },
+        { header: t("Kết thúc"), key: "endTime", format: (v) => (v ? dayjs(String(v)).format("HH:mm") : "") },
         { header: t("Trạng thái"), key: "status" },
         { header: t("Lý do"), key: "reason" },
       ],
-      `lich-hen-${currentDate.format("YYYY-MM-DD")}`,
+      `lich-hen-${state.currentDate.format("YYYY-MM-DD")}`,
     );
   };
 
-  const navigateDate = (dir: -1 | 1) => {
-    const unit = viewMode === "day" ? "day" : viewMode === "week" ? "week" : "month";
-    setCurrentDate((d) => d.add(dir, unit));
-  };
-
-  const displayDate = () => {
-    if (viewMode === "day") return currentDate.format("DD/MM/YYYY");
-    if (viewMode === "week") {
-      const start = currentDate.startOf("week").format("DD/MM");
-      const end = currentDate.endOf("week").format("DD/MM/YYYY");
-      return `${start} – ${end}`;
-    }
-    return currentDate.format("MM/YYYY");
-  };
-
   const handleCellClick = (doctorId: string, slotIndex: number) => {
-    setInitialDate(currentDate.format("YYYY-MM-DD"));
+    setInitialDate(state.currentDate.format("YYYY-MM-DD"));
     setAddOpen(true);
     void doctorId;
     void slotIndex;
   };
 
+  const handleDeleteSingle = useCallback((id: string) => {
+    setDeleteSingleId(id);
+    setDeleteTarget("single");
+  }, []);
+
+  const handleDeleteSelected = useCallback(() => {
+    if (selectedIds.size === 0) return;
+    setDeleteTarget("multi");
+  }, [selectedIds.size]);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (deleteTarget === "single" && deleteSingleId) {
+      await deleteMutation.mutateAsync(deleteSingleId);
+      toast.success(t("Đã xoá lịch hẹn"));
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(deleteSingleId);
+        return next;
+      });
+    } else if (deleteTarget === "multi") {
+      const ids = [...selectedIds];
+      await deleteManyMutation.mutateAsync(ids);
+      toast.success(t("Đã xoá {0} lịch hẹn").replace("{0}", String(ids.length)));
+      setSelectedIds(new Set());
+    }
+    setDeleteTarget(null);
+    setDeleteSingleId(null);
+  }, [deleteTarget, deleteSingleId, selectedIds, deleteMutation, deleteManyMutation]);
+
+  const handleCancelDelete = useCallback(() => {
+    setDeleteTarget(null);
+    setDeleteSingleId(null);
+  }, []);
+
+  const handleCardAction = useCallback((action: string, id: string) => {
+    switch (action) {
+      case "edit": {
+        const appt = dayAppointments?.items?.find((a) => a.id === id);
+        if (appt?.isTemporary) {
+          setEditTempId(id);
+          setTempOpen(true);
+        } else {
+          setEditId(id);
+          setAddOpen(true);
+        }
+        break;
+      }
+      case "select-delete":
+        setSelectedIds((prev) => {
+          const next = new Set(prev);
+          next.add(id);
+          return next;
+        });
+        break;
+      case "deselect":
+        setSelectedIds((prev) => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+        break;
+      case "delete":
+        handleDeleteSingle(id);
+        break;
+    }
+  }, [handleDeleteSingle, dayAppointments]);
+
+  const handleClearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
   return (
     <>
-      <div className="reception-page">
-        <PageHeader
-          title={t("Lịch hẹn khách hàng")}
-          subtitle={t(
-            "Kéo thẻ hẹn sang ô khác để đổi bác sĩ hoặc giờ · bấm ô trống để tạo mới",
-          )}
-          actions={
-            <>
-              <Button icon={<DownloadOutlined />} onClick={handleExport}>
-                {t("Xuất file")}
-              </Button>
-              <Button type="primary" icon={<PlusOutlined />} onClick={() => setAddOpen(true)}>
-                {t("Tạo lịch hẹn mới")}
-              </Button>
-            </>
-          }
+      <div className="cal-page">
+        <CalendarUnderlineTabs
+          activeTab={state.topTab}
+          onChange={state.setTopTab}
         />
 
-        {/* Top-level switcher — the design uses pills here, not a tab row. */}
-        <div className="reception-card reception-card--tabs">
-          <PillTabs
-            activeKey={topTab}
-            onChange={setTopTab}
-            items={[
-              { key: "customer", label: t("Lịch hẹn khách hàng") },
-              { key: "work",     label: t("Lịch làm việc") },
-            ]}
-          />
-        </div>
+        {state.topTab === "customer" && (
+          <>
+            <CalendarToolbarRow1
+              viewMode={state.viewMode}
+              onViewModeChange={state.setViewMode}
+              currentDate={state.currentDate}
+              onDateChange={(d) => state.setCurrentDate(() => d)}
+              onNavigate={state.navigateDate}
+              counts={counts}
+              statusFilter={filters.statusFilter}
+              onStatusToggle={filters.toggleStatus}
+            />
 
-        {/* Toolbar: view mode + date nav */}
-        <div className="reception-card reception-card--toolbar">
-          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          <Segmented
-            value={viewMode}
-            onChange={(v) => setViewMode(v as ViewMode)}
-            options={[
-              { label: t("Ngày"),  value: "day" },
-              { label: t("Tuần"),  value: "week" },
-              { label: t("Tháng"), value: "month" },
-            ]}
-            style={{ fontWeight: 500 }}
-          />
+            <CalendarToolbarRow2
+              keyword={filters.keyword}
+              onKeywordChange={filters.setKeyword}
+              doctorIds={filters.doctorIds}
+              onDoctorChange={filters.setDoctorIds}
+              doctors={doctors}
+              viewMode={state.viewMode}
+              slotMinutes={filters.slotMinutes}
+              onToggleSlot={filters.toggleSlotMinutes}
+              onExport={handleExport}
+              onCreateAppointment={() => { setEditId(null); setAddOpen(true); }}
+              onCreateTemp={() => setTempOpen(true)}
+              onFullscreen={() => setFullscreen(true)}
+            />
 
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <Button type="text" size="small" icon={<LeftOutlined />} onClick={() => navigateDate(-1)} />
-            <span style={{ minWidth: 120, textAlign: "center", fontWeight: 600, fontSize: 14, color: "#101c2c" }}>
-              {displayDate()}
-            </span>
-            <Button type="text" size="small" icon={<RightOutlined />} onClick={() => navigateDate(1)} />
-            </div>
+            {selectedIds.size > 0 && (
+              <div className="cal-selection-bar">
+                <span className="cal-selection-label">
+                  {t("Đã chọn {0} lịch hẹn").replace("{0}", String(selectedIds.size))}
+                </span>
+                <div className="cal-selection-actions">
+                  <button
+                    type="button"
+                    className="cal-selection-btn"
+                    onClick={handleClearSelection}
+                  >
+                    {t("Bỏ chọn")}
+                  </button>
+                  <button
+                    type="button"
+                    className="cal-selection-btn cal-selection-btn--danger"
+                    onClick={handleDeleteSelected}
+                    disabled={deleteMutation.isPending || deleteManyMutation.isPending}
+                  >
+                    {t("Xoá {0} mục").replace("{0}", String(selectedIds.size))}
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {state.topTab === "customer" ? (
+          <div className="cal-grid-wrap">
+            {state.viewMode === "day" && (
+              <DayViewGrid
+                currentDate={state.currentDate}
+                doctors={doctors}
+                slotMinutes={filters.slotMinutes}
+                keyword={filters.keyword}
+                doctorIds={filters.doctorIds}
+                statusFilter={filters.statusFilter}
+                selectedIds={selectedIds}
+                onCellClick={handleCellClick}
+                onCardAction={handleCardAction}
+              />
+            )}
+            {state.viewMode === "week" && (
+              <WeekViewCalendar
+                currentDate={state.currentDate}
+                slotMinutes={filters.slotMinutes}
+                keyword={filters.keyword}
+                doctorIds={filters.doctorIds}
+                statusFilter={filters.statusFilter}
+                selectedIds={selectedIds}
+                onCellClick={(dayIdx, slotIdx) => {
+                  setInitialDate(
+                    state.currentDate.startOf("week").add(dayIdx, "day").format("YYYY-MM-DD"),
+                  );
+                  setEditId(null);
+                  setAddOpen(true);
+                  void slotIdx;
+                }}
+                onCardAction={handleCardAction}
+              />
+            )}
+            {state.viewMode === "month" && (
+              <MonthViewCalendar
+                currentDate={state.currentDate}
+                keyword={filters.keyword}
+                doctorIds={filters.doctorIds}
+                statusFilter={filters.statusFilter}
+                onDayClick={(day) => {
+                  state.setCurrentDate(() => day);
+                  state.setViewMode("day");
+                }}
+              />
+            )}
           </div>
-        </div>
-
-        {/* Calendar grid — switches by viewMode */}
-        <div className="reception-card calendar-grid-card">
-          {topTab === "customer" ? (
-            <>
-              {viewMode === "day" && (
-                <DayViewCalendar
-                  currentDate={currentDate}
-                  doctors={doctors}
-                  onDateChange={navigateDate}
-                  onCellClick={handleCellClick}
-                  keyword={keyword}
-                  onKeywordChange={setKeyword}
-                  onSelectAppointment={setSelectedId}
-                />
-              )}
-              {viewMode === "week" && (
-                <WeekViewCalendar
-                  currentDate={currentDate}
-                  doctors={doctors}
-                  keyword={keyword}
-                  onKeywordChange={setKeyword}
-                  onCreateAppointment={() => setAddOpen(true)}
-                  onSelectAppointment={setSelectedId}
-                  onCellClick={(dayIdx, slotIdx) => {
-                    setInitialDate(currentDate.startOf("week").add(dayIdx, "day").format("YYYY-MM-DD"));
-                    setAddOpen(true);
-                    void slotIdx;
-                  }}
-                />
-              )}
-              {viewMode === "month" && (
-                <MonthViewCalendar
-                  currentDate={currentDate}
-                  onDayClick={(day) => {
-                    setCurrentDate(() => day);
-                    setViewMode("day");
-                  }}
-                />
-              )}
-            </>
-          ) : (
-            <TimekeepingBoard currentDate={currentDate} />
-          )}
-        </div>
+        ) : state.workSchedule === "builder" ? (
+          <WorkScheduleBuilder
+            currentDate={state.currentDate}
+            onBack={() => state.setWorkSchedule(null)}
+          />
+        ) : (
+          <TimekeepingBoard
+            currentDate={state.currentDate}
+            viewMode={state.viewMode}
+            onViewModeChange={state.setViewMode}
+            onDateChange={(d) => state.setCurrentDate(() => d)}
+            onOpenBuilder={() => state.setWorkSchedule("builder")}
+          />
+        )}
       </div>
 
       <AppointmentEditorModal
         open={addOpen}
+        appointmentId={editId}
         initialDate={initialDate}
-        onClose={() => setAddOpen(false)}
-        onSuccess={() => setAddOpen(false)}
+        onClose={() => { setAddOpen(false); setEditId(null); }}
+        onSuccess={() => { setAddOpen(false); setEditId(null); }}
       />
 
-      <AppointmentDetailDrawer
-        appointmentId={selectedId}
-        onClose={() => setSelectedId(null)}
+      <TempAppointmentEditorModal
+        open={tempOpen}
+        appointmentId={editTempId}
+        initialDate={state.currentDate.format("YYYY-MM-DD")}
+        onClose={() => { setTempOpen(false); setEditTempId(null); }}
+        onSuccess={() => { setTempOpen(false); setEditTempId(null); }}
       />
+
+      <ConfirmDeleteDialog
+        open={deleteTarget !== null}
+        noun={t("lịch hẹn")}
+        name={
+          deleteTarget === "multi"
+            ? t("{0} mục").replace("{0}", String(selectedIds.size))
+            : t("này")
+        }
+        pending={deleteMutation.isPending || deleteManyMutation.isPending}
+        onConfirm={handleConfirmDelete}
+        onClose={handleCancelDelete}
+      />
+
+      {fullscreen && (
+        <>
+          <CalendarFabs
+            onExitFullscreen={() => setFullscreen(false)}
+            onCreateTemp={() => setTempOpen(true)}
+            onCreateAppointment={() => { setEditId(null); setAddOpen(true); }}
+            onTogglePanel={() => setPanelOpen((v) => !v)}
+            filterCount={filters.filterCount}
+          />
+          <CalendarControlPanel
+            open={panelOpen}
+            onClose={() => setPanelOpen(false)}
+            viewMode={state.viewMode}
+            onViewModeChange={state.setViewMode}
+            currentDate={state.currentDate}
+            onDateChange={(d) => state.setCurrentDate(() => d)}
+            onNavigate={state.navigateDate}
+            slotMinutes={filters.slotMinutes}
+            onToggleSlot={filters.toggleSlotMinutes}
+            onCreateAppointment={() => { setEditId(null); setAddOpen(true); }}
+            onCreateTemp={() => setTempOpen(true)}
+            onExport={handleExport}
+            keyword={filters.keyword}
+            onKeywordChange={filters.setKeyword}
+            doctorIds={filters.doctorIds}
+            onDoctorChange={filters.setDoctorIds}
+            doctors={doctors}
+            counts={counts}
+            statusFilter={filters.statusFilter}
+            onStatusToggle={filters.toggleStatus}
+            filterCount={filters.filterCount}
+            onClearFilters={filters.clearAll}
+          />
+        </>
+      )}
     </>
   );
 }

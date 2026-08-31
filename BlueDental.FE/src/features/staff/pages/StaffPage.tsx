@@ -252,7 +252,7 @@ export function StaffPage() {
       </div>
 
       <div className="reception-card reception-card--tabs desktop-only">
-        <div style={{ display: "flex", gap: 0 }}>
+        <div style={{ display: "flex", gap: 4 }}>
           {statusTabs().map((tab) => (
             <button
               key={tab.key}

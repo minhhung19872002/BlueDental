@@ -33,6 +33,7 @@ export interface CreateMaterialAllocationDto {
 
 const allocationApi = {
   list: (params?: {
+    branchId?: string;
     filter?: string;
     departmentId?: string;
     maxResultCount?: number;
@@ -44,10 +45,10 @@ const allocationApi = {
     api.delete(`/v1/app/material-allocations/${id}`).then((r) => r.data),
 };
 
-export function useAllocationList(departmentId?: string, filter?: string) {
+export function useAllocationList(branchId?: string, departmentId?: string, filter?: string) {
   return useQuery({
-    queryKey: ["material-allocations", departmentId, filter],
-    queryFn: () => allocationApi.list({ departmentId, filter, maxResultCount: 200 }),
+    queryKey: ["material-allocations", branchId, departmentId, filter],
+    queryFn: () => allocationApi.list({ branchId, departmentId, filter, maxResultCount: 200 }),
   });
 }
 

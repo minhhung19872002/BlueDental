@@ -8,7 +8,7 @@ using BlueDental.Organizations;
 using BlueDental.PatientManagement;
 using BlueDental.Permissions;
 using BlueDental.TreatmentManagement;
-using BlueDental.Visits;
+using BlueDental.Appointments;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
@@ -39,7 +39,7 @@ public class OperationsReportAppService(
     IRepository<TreatmentStage, Guid> stageRepository,
     IRepository<PatientPayment, Guid> paymentRepository,
     IRepository<Invoice, Guid> invoiceRepository,
-    IRepository<Visit, Guid> visitRepository,
+    IRepository<Appointment, Guid> appointmentRepository,
     IRepository<Patient, Guid> patientRepository,
     IRepository<CatalogEntry, Guid> catalogRepository,
     IRepository<Taxonomy, Guid> taxonomyRepository,
@@ -204,11 +204,10 @@ public class OperationsReportAppService(
         var staff = await StaffNamesAsync();
         var catalog = await CatalogNamesAsync();
 
-        // The three steps under a patient's name come from their visit that day.
-        var visits = (await visitRepository.GetListAsync())
+        var visits = (await appointmentRepository.GetListAsync())
             .Where(v => InScope(branchIds, v.BranchId))
-            .GroupBy(v => (v.PatientId, v.ScheduledAt.Date))
-            .ToDictionary(g => g.Key, g => g.OrderBy(v => v.ScheduledAt).First());
+            .GroupBy(v => (v.PatientId, v.Slot.Start.Date))
+            .ToDictionary(g => g.Key, g => g.OrderBy(v => v.Slot.Start).First());
 
         var rows = new List<WorkLogRowDto>();
 
@@ -222,16 +221,16 @@ public class OperationsReportAppService(
 
             return new WorkLogRowDto
             {
-                VisitKey = $"{patientId:N}-{day:yyyyMMdd}",
+                AppointmentKey = $"{patientId:N}-{day:yyyyMMdd}",
                 OccurredAt = at,
-                VisitDate = day,
+                AppointmentDate = day,
                 PatientCode = patient?.Code ?? string.Empty,
                 PatientName = patient?.Name ?? string.Empty,
                 ArrivedAt = visit?.CheckedInAt?.DateTime,
                 // The visit records no separate "in progress" stamp, so the step
                 // is only known to have been reached, never when.
-                StartedAt = visit is not null && visit.Status >= VisitStatus.InProgress
-                    && visit.Status != VisitStatus.Cancelled
+                StartedAt = visit is not null && visit.Status >= AppointmentStatus.InProgress
+                    && visit.Status != AppointmentStatus.Cancelled
                     ? visit.CheckedInAt?.DateTime
                     : null,
                 CompletedAt = visit?.CompletedAt?.DateTime,
@@ -293,13 +292,12 @@ public class OperationsReportAppService(
                 p.Method.ToString(), p.Note, p.Amount,
                 p.PaidAt.DateTime.ToString("HH:mm dd/MM"))));
 
-        // Visits are the Tiếp nhận line of the log.
         rows.AddRange(visits.Values
-            .Where(v => Within(v.ScheduledAt.DateTime, window))
+            .Where(v => Within(v.Slot.Start.DateTime, window))
             .Select(v => Row(
-                v.ScheduledAt.DateTime, v.PatientId, v.DentistId, WorkLogAction.Reception,
+                v.Slot.Start.DateTime, v.PatientId, v.DentistId, WorkLogAction.Reception,
                 v.ChiefComplaint ?? string.Empty, v.Notes, 0m,
-                v.ScheduledAt.DateTime.ToString("HH:mm dd/MM"))));
+                v.Slot.Start.DateTime.ToString("HH:mm dd/MM"))));
 
         if (input.Actions.Count > 0)
         {
@@ -317,8 +315,8 @@ public class OperationsReportAppService(
         // Grouped in the order the screen draws them: newest visit first, and
         // inside a visit the actions stay together.
         rows = rows
-            .OrderByDescending(r => r.VisitDate)
-            .ThenBy(r => r.VisitKey)
+            .OrderByDescending(r => r.AppointmentDate)
+            .ThenBy(r => r.AppointmentKey)
             .ThenBy(r => r.Action)
             .ThenBy(r => r.OccurredAt)
             .ToList();

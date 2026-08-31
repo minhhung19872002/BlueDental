@@ -20,6 +20,7 @@ interface Props {
   /** Null opens "Tạo hồ sơ"; a record opens "Chỉnh sửa hồ sơ". */
   patient: PatientDto | null;
   onClose: () => void;
+  onCreated?: (patient: PatientDto) => void;
 }
 
 export interface PatientFormValues {
@@ -85,7 +86,7 @@ function splitPatientCode(code: string): { prefix: string; sequence: string } {
  * The save stays disabled until a name and a valid phone are in, which is what
  * the reference greys its own out on.
  */
-export function PatientEditorDialog({ open, patient, onClose }: Props) {
+export function PatientEditorDialog({ open, patient, onClose, onCreated }: Props) {
   const [form] = Form.useForm<PatientFormValues>();
   const [tab, setTab] = useState<"basic" | "history">("basic");
   const [diseaseHistoryEntryIds, setDiseaseHistoryEntryIds] = useState<string[]>([]);
@@ -208,8 +209,12 @@ export function PatientEditorDialog({ open, patient, onClose }: Props) {
     };
 
     try {
-      if (patient) await update.mutateAsync(payload);
-      else await create.mutateAsync(payload);
+      if (patient) {
+        await update.mutateAsync(payload);
+      } else {
+        const created = await create.mutateAsync(payload);
+        onCreated?.(created);
+      }
 
       toast.success(patient ? t("Đã cập nhật hồ sơ") : t("Đã tạo hồ sơ"));
       onClose();

@@ -46,6 +46,48 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     [Authorize(BlueDentalAbilityPermissions.Appointment.Read)]
     public async Task<PagedResultDto<AppointmentDto>> GetListAsync(GetAppointmentListInput input)
     {
+        var query = await FilteredQueryAsync(input);
+        var totalCount = await AsyncExecuter.CountAsync(query);
+
+        var hasDateFilter = input.Date.HasValue || input.FromDate.HasValue || input.ToDate.HasValue;
+
+        var ordered = query
+            .OrderBy(a => a.Slot.Start)
+            .ThenBy(a => a.Id);
+
+        var items = hasDateFilter
+            ? await AsyncExecuter.ToListAsync(ordered)
+            : await AsyncExecuter.ToListAsync(
+                ordered.Skip(input.SkipCount).Take(input.MaxResultCount));
+
+        var dtos = ObjectMapper.Map<List<Appointment>, List<AppointmentDto>>(items);
+        await FillNamesAsync(items, dtos);
+
+        return new PagedResultDto<AppointmentDto>(totalCount, dtos);
+    }
+
+    [Authorize(BlueDentalAbilityPermissions.Appointment.Read)]
+    public async Task<AppointmentStatsDto> GetStatsAsync(GetAppointmentListInput input)
+    {
+        var query = await FilteredQueryAsync(input, skipTextSearch: true);
+        var all = await AsyncExecuter.ToListAsync(query.Select(a => new { a.Status, a.IsTemporary }));
+
+        return new AppointmentStatsDto
+        {
+            Requested = all.Count(a => a.Status == AppointmentStatus.Requested),
+            Confirmed = all.Count(a => a.Status == AppointmentStatus.Confirmed),
+            CheckedIn = all.Count(a => a.Status == AppointmentStatus.CheckedIn),
+            InProgress = all.Count(a => a.Status == AppointmentStatus.InProgress),
+            Completed = all.Count(a => a.Status == AppointmentStatus.Completed),
+            Cancelled = all.Count(a => a.Status == AppointmentStatus.Cancelled),
+            NoShow = all.Count(a => a.Status == AppointmentStatus.NoShow),
+            Temporary = all.Count(a => a.IsTemporary),
+        };
+    }
+
+    private async Task<IQueryable<Appointment>> FilteredQueryAsync(
+        GetAppointmentListInput input, bool skipTextSearch = false)
+    {
         var branchId = _branchResolver.GetRequiredClinicBranchId();
         var query = await _repository.GetQueryableAsync();
 
@@ -53,9 +95,14 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         if (input.PatientId.HasValue) query = query.Where(a => a.PatientId == input.PatientId.Value);
         if (input.DentistId.HasValue) query = query.Where(a => a.DentistId == input.DentistId.Value);
         if (input.Status.HasValue) query = query.Where(a => a.Status == input.Status.Value);
+        if (input.Statuses is { Count: > 0 })
+        {
+            var statuses = input.Statuses;
+            query = query.Where(a => statuses.Contains(a.Status));
+        }
 
-        // The calendar asks for one day or one week; without this the grids were
-        // fed every appointment the clinic has ever had.
+        if (input.IsTemporary.HasValue) query = query.Where(a => a.IsTemporary == input.IsTemporary.Value);
+
         if (input.Date.HasValue)
         {
             var from = ToInstant(input.Date.Value);
@@ -77,18 +124,15 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
             }
         }
 
-        if (!string.IsNullOrWhiteSpace(input.Filter))
+        if (!skipTextSearch && !string.IsNullOrWhiteSpace(input.Filter))
         {
-            var filter = input.Filter.Trim();
+            var filter = input.Filter.Trim().ToLower();
 
-            // The list search box offers "bệnh nhân, bác sĩ, lý do khám", but the
-            // appointment row only holds ids. Matching names has to start from
-            // the people, then narrow the appointments to them — filtering the
-            // fetched page instead would only ever search the page on screen.
             var patientQuery = await _patientRepository.GetQueryableAsync();
             var matchedPatients = await AsyncExecuter.ToListAsync(
                 patientQuery
-                    .Where(p => p.FirstName.Contains(filter) || p.LastName.Contains(filter))
+                    .Where(p => p.FirstName.ToLower().Contains(filter)
+                                || p.LastName.ToLower().Contains(filter))
                     .Select(p => p.Id));
 
             var matchedStaff = (await _userRepository.GetListAsync())
@@ -99,27 +143,14 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
                 .ToList();
 
             query = query.Where(a =>
-                (a.ChiefComplaint != null && a.ChiefComplaint.Contains(filter))
-                || (a.Notes != null && a.Notes.Contains(filter))
+                (a.ChiefComplaint != null && a.ChiefComplaint.ToLower().Contains(filter))
+                || (a.Notes != null && a.Notes.ToLower().Contains(filter))
                 || matchedPatients.Contains(a.PatientId)
-                || matchedStaff.Contains(a.DentistId));
+                || matchedStaff.Contains(a.DentistId)
+                || (a.IsTemporary && a.PatientName != null && a.PatientName.ToLower().Contains(filter)));
         }
 
-        var totalCount = await AsyncExecuter.CountAsync(query);
-
-        // Chronological, with Id breaking the tie so paging stays stable — two
-        // appointments in the same slot used to be able to swap between pages.
-        var items = await AsyncExecuter.ToListAsync(
-            query
-                .OrderBy(a => a.Slot.Start)
-                .ThenBy(a => a.Id)
-                .Skip(input.SkipCount)
-                .Take(input.MaxResultCount));
-
-        var dtos = ObjectMapper.Map<List<Appointment>, List<AppointmentDto>>(items);
-        await FillNamesAsync(items, dtos);
-
-        return new PagedResultDto<AppointmentDto>(totalCount, dtos);
+        return query;
     }
 
     /// <summary>
@@ -136,8 +167,8 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
             return;
         }
 
-        var patientIds = entities.Select(a => a.PatientId).Distinct().ToList();
-        var dentistIds = entities.Select(a => a.DentistId).Distinct().ToList();
+        var patientIds = entities.Where(a => !a.IsTemporary).Select(a => a.PatientId).Distinct().ToList();
+        var dentistIds = entities.Where(a => a.DentistId != Guid.Empty).Select(a => a.DentistId).Distinct().ToList();
         var procedureIds = entities
             .Where(a => a.ProcedureId.HasValue)
             .Select(a => a.ProcedureId!.Value)
@@ -149,7 +180,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
                 patientQuery.Where(p => patientIds.Contains(p.Id))))
             .ToDictionary(
                 p => p.Id,
-                p => ((p.LastName + " " + p.FirstName).Trim(), p.Contact.PhoneNumber));
+                p => (Name: (p.LastName + " " + p.FirstName).Trim(), Phone: p.Contact.PhoneNumber, Code: p.PatientCode, YearOfBirth: p.DateOfBirth.HasValue ? p.DateOfBirth.Value.Year : (int?)null));
 
         var users = await _userRepository.GetListByIdsAsync(dentistIds);
         var dentists = users.ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
@@ -168,10 +199,23 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
             var entity = entities[i];
             var dto = dtos[i];
 
-            var patient = patients.GetValueOrDefault(entity.PatientId);
-            dto.PatientName = patient.Item1;
-            dto.PatientPhone = patient.Item2;
-            dto.DentistName = dentists.GetValueOrDefault(entity.DentistId);
+            if (entity.IsTemporary)
+            {
+                dto.PatientName = entity.PatientName ?? "";
+                dto.PatientPhone = entity.PatientPhone;
+            }
+            else
+            {
+                var patient = patients.GetValueOrDefault(entity.PatientId);
+                dto.PatientCode = patient.Code;
+                dto.PatientName = patient.Name;
+                dto.PatientPhone = patient.Phone;
+                dto.PatientYearOfBirth = patient.YearOfBirth;
+            }
+
+            dto.DentistName = entity.DentistId != Guid.Empty
+                ? dentists.GetValueOrDefault(entity.DentistId)
+                : null;
             dto.ProcedureName = entity.ProcedureId.HasValue
                 ? procedures.GetValueOrDefault(entity.ProcedureId.Value)
                 : null;
@@ -186,9 +230,15 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         return dto;
     }
 
-    /// <summary>Slots are stored as UTC instants, so a calendar day starts at UTC midnight.</summary>
+    private static readonly TimeSpan ClinicUtcOffset = TimeSpan.FromHours(7);
+
+    /// <summary>
+    /// A calendar day in the clinic's local time (UTC+7), returned as a UTC instant.
+    /// E.g. 2026-08-30 → 2026-08-29T17:00:00+00:00 (midnight UTC+7 expressed as UTC).
+    /// </summary>
     private static DateTimeOffset ToInstant(DateOnly date) =>
-        new(date.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+        new DateTimeOffset(date.ToDateTime(TimeOnly.MinValue), ClinicUtcOffset)
+            .ToUniversalTime();
 
     [Authorize(BlueDentalAbilityPermissions.Appointment.Read)]
     public async Task<AppointmentDto> GetAsync(Guid id)
@@ -227,8 +277,38 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
             input.Type,
             input.ProcedureId,
             input.ChiefComplaint,
-            input.Notes,
-            input.Color);
+            input.Color,
+            input.Notes);
+
+        await _repository.InsertAsync(appointment, autoSave: true);
+        return await ToDtoAsync(appointment);
+    }
+
+    [Authorize(BlueDentalAbilityPermissions.Appointment.Create)]
+    public async Task<AppointmentDto> CreateTempAsync(CreateTempAppointmentDto input)
+    {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
+        var slot = new AppointmentSlot(input.SlotStart, input.SlotEnd);
+
+        if (input.DentistId.HasValue
+            && await _conflictChecker.HasDentistConflictAsync(input.DentistId.Value, slot))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Appointments.ConflictingSlot,
+                "The dentist already has an appointment in this time slot.");
+        }
+
+        var appointment = Appointment.CreateTemporary(
+            GuidGenerator.Create(),
+            input.PatientName,
+            input.PatientPhone,
+            branchId,
+            slot,
+            input.DentistId,
+            input.SourceTaxonomyId,
+            input.SourceEntryId,
+            input.Color,
+            input.Notes);
 
         await _repository.InsertAsync(appointment, autoSave: true);
         return await ToDtoAsync(appointment);
@@ -241,11 +321,18 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         GuardBranchAccess(appointment);
         var slot = new AppointmentSlot(input.SlotStart, input.SlotEnd);
         appointment.Reschedule(slot, input.DentistId);
+        appointment.UpdateDetails(input.ChiefComplaint, input.Notes, input.Color);
 
-        // Rescheduling only moves the slot. The booking form edits the reason,
-        // the note and the colour in the same submit, and those were being
-        // dropped on the floor — the dialog appeared to save and changed nothing.
-        appointment.SetDetails(input.ChiefComplaint, input.Notes, input.Color);
+        if (appointment.IsTemporary)
+        {
+            if (!string.IsNullOrWhiteSpace(input.PatientName))
+            {
+                appointment.UpdateTempPatientInfo(input.PatientName, input.PatientPhone);
+            }
+
+            appointment.UpdateSourceInfo(input.SourceTaxonomyId, input.SourceEntryId);
+        }
+
         await _repository.UpdateAsync(appointment, autoSave: true);
         return await ToDtoAsync(appointment);
     }
@@ -308,6 +395,44 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         appointment.MarkNoShow();
         await _repository.UpdateAsync(appointment, autoSave: true);
         return await ToDtoAsync(appointment);
+    }
+
+    [Authorize(BlueDentalAbilityPermissions.Appointment.Update)]
+    public async Task<AppointmentDto> AssignDentistAsync(Guid id, AssignDentistDto input)
+    {
+        var appointment = await _repository.GetAsync(id);
+        GuardBranchAccess(appointment);
+        appointment.AssignDentist(input.DentistId);
+        await _repository.UpdateAsync(appointment, autoSave: true);
+        return await ToDtoAsync(appointment);
+    }
+
+    [Authorize(BlueDentalAbilityPermissions.Appointment.Update)]
+    public async Task<AppointmentDto> SetOutcomeAsync(Guid id, SetOutcomeDto input)
+    {
+        var appointment = await _repository.GetAsync(id);
+        GuardBranchAccess(appointment);
+        appointment.SetOutcome(input.Outcome);
+        await _repository.UpdateAsync(appointment, autoSave: true);
+        return await ToDtoAsync(appointment);
+    }
+
+    [Authorize(BlueDentalAbilityPermissions.Appointment.Delete)]
+    public async Task DeleteAsync(Guid id)
+    {
+        var appointment = await _repository.GetAsync(id);
+        GuardBranchAccess(appointment);
+        await _repository.DeleteAsync(appointment, autoSave: true);
+    }
+
+    [Authorize(BlueDentalAbilityPermissions.Appointment.Delete)]
+    public async Task DeleteManyAsync(List<Guid> ids)
+    {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
+        var query = await _repository.GetQueryableAsync();
+        var appointments = await AsyncExecuter.ToListAsync(
+            query.Where(a => ids.Contains(a.Id) && a.BranchId == branchId));
+        await _repository.DeleteManyAsync(appointments, autoSave: true);
     }
 
     private void GuardBranchAccess(Appointment entity)

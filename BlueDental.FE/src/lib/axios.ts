@@ -1,5 +1,6 @@
 import axios from "axios";
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { useBranchStore } from "@/lib/clinicBranch";
 
 export const api = axios.create({
   baseURL: "/api",
@@ -28,6 +29,12 @@ api.interceptors.request.use((config) => {
   if (config.data instanceof FormData) {
     config.headers.set("Content-Type", false);
   }
+
+  const branchId = useBranchStore.getState().currentBranchId;
+  if (branchId) {
+    config.headers.set("X-Clinic-Branch-Id", branchId);
+  }
+
   return config;
 });
 

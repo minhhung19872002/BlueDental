@@ -6,8 +6,8 @@ import { t } from "@/lib/i18n";
 interface Props {
   open: boolean;
   title: string;
-  /** Modal width in pixels, as Ant Design takes it. */
-  width?: number;
+  /** Modal width — number (px) or CSS string like "calc(100vw - 80px)". */
+  width?: number | string;
   /** Extra class on the modal, next to the shared app-dialog styling. */
   className?: string;
   /** Disables the save button — a form that cannot be submitted yet. */

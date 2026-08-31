@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Folder,
   UserRound,
@@ -24,6 +25,7 @@ interface ReceptionCardProps {
   doctors?: { id: string; name: string; title: string }[];
   onOutcomeChange?: (id: string, outcome: AppointmentOutcome) => void;
   onDoctorChange?: (id: string, doctorId: string) => void;
+  onStatusChange?: (id: string, action: "check-in" | "start" | "complete") => void;
   onCancel?: (id: string) => void;
 }
 
@@ -58,8 +60,11 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
   doctors = [],
   onOutcomeChange,
   onDoctorChange,
+  onStatusChange,
   onCancel,
 }) => {
+  const navigate = useNavigate();
+
   const badgeLabel: Record<AppointmentCounterType, string> = {
     Scheduled: t("Đã hẹn"),
     Arrived:   t("Đã đến"),
@@ -84,7 +89,15 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
   const step2Done = !!item.step2Time;
   const step3Done = !!item.step3Time;
 
+  const isCancelled = item.counterStatus === "Cancelled";
+  const isNoShow = item.counterStatus === "Late";
+
+  const canCheckIn = !step1Done && !isCancelled && !isNoShow;
+  const canStart = step1Done && !step2Done && !isCancelled && !isNoShow;
+  const canComplete = step2Done && !step3Done && !isCancelled && !isNoShow;
+
   const getCardStyle = (): React.CSSProperties => {
+    if (isCancelled) return { background: "#FBE0E0", borderColor: "#F3BABA" };
     if (step3Done) return { background: "#EAF8EF", borderColor: "#41AE63" };
     if (step1Done) return { background: "#EAF3FF", borderColor: "#5A95F5" };
     return {};
@@ -112,16 +125,20 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
     return "#DCE3EE";
   };
 
+  const showCancel = !isCancelled && item.status !== "Completed" && !step3Done;
+
   return (
     <div className="rc-wrapper">
-      <button
-        type="button"
-        className="rc-cancel-btn"
-        aria-label={t("Hủy lịch")}
-        onClick={() => onCancel?.(item.id)}
-      >
-        <CalendarX size={16} />
-      </button>
+      {showCancel && (
+        <button
+          type="button"
+          className="rc-cancel-btn"
+          aria-label={t("Hủy lịch")}
+          onClick={() => onCancel?.(item.id)}
+        >
+          <CalendarX size={16} />
+        </button>
+      )}
 
       <div className="rc-card" style={getCardStyle()}>
         <div className="rc-content">
@@ -145,10 +162,14 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
 
               <div className="rc-patient-row">
                 <UserRound size={20} className="rc-icon-top" aria-hidden />
-                <div className="rc-patient-name">
+                <button
+                  type="button"
+                  className="rc-patient-name rc-patient-name--link"
+                  onClick={() => item.patientId && navigate(`/patient/${item.patientId}?tab=appointment`)}
+                >
                   {item.patientName}
                   {item.patientYearOfBirth ? ` (${item.patientYearOfBirth})` : ""}
-                </div>
+                </button>
               </div>
 
               <div className="rc-details">
@@ -178,7 +199,12 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
             {/* Col 2: progress steps + doctor select */}
             <div className="rc-col-progress">
               <div className="rc-steps">
-                <button type="button" disabled className="rc-step">
+                <button
+                  type="button"
+                  disabled={!canCheckIn}
+                  className={`rc-step ${canCheckIn ? "rc-step--clickable" : ""}`}
+                  onClick={canCheckIn ? () => onStatusChange?.(item.id, "check-in") : undefined}
+                >
                   <div className="rc-step-track">
                     <div className="rc-step-line rc-step-line--invisible" />
                     <div style={getStepCircleStyle(0, step1Done)}>
@@ -192,7 +218,12 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
                   <p className="rc-step-time">{item.step1Time || "--:--"}</p>
                 </button>
 
-                <button type="button" disabled className="rc-step">
+                <button
+                  type="button"
+                  disabled={!canStart}
+                  className={`rc-step ${canStart ? "rc-step--clickable" : ""}`}
+                  onClick={canStart ? () => onStatusChange?.(item.id, "start") : undefined}
+                >
                   <div className="rc-step-track">
                     <div className="rc-step-line" style={{ background: getLineColor(0, 1) }} />
                     <div style={getStepCircleStyle(1, step2Done)}>
@@ -206,7 +237,12 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
                   <p className="rc-step-time">{item.step2Time || "--:--"}</p>
                 </button>
 
-                <button type="button" disabled className="rc-step">
+                <button
+                  type="button"
+                  disabled={!canComplete}
+                  className={`rc-step ${canComplete ? "rc-step--clickable" : ""}`}
+                  onClick={canComplete ? () => onStatusChange?.(item.id, "complete") : undefined}
+                >
                   <div className="rc-step-track">
                     <div className="rc-step-line" style={{ background: step2Done ? STEP_COLORS[2] : "#DCE3EE" }} />
                     <div style={getStepCircleStyle(2, step3Done)}>
@@ -225,6 +261,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
                 <SearchSelect
                   value={item.doctorId || undefined}
                   placeholder={t("Chọn bác sĩ")}
+                  disabled={isCancelled}
                   options={doctors.map((d) => ({ value: d.id, label: d.name }))}
                   onChange={(val) => val && onDoctorChange?.(item.id, val)}
                 />
@@ -240,6 +277,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
                     key={key}
                     type="button"
                     className={`rc-outcome-btn ${isSelected ? "rc-outcome-btn--selected" : ""}`}
+                    disabled={isCancelled}
                     onClick={() => onOutcomeChange?.(item.id, key)}
                   >
                     {isSelected ? (

@@ -131,6 +131,7 @@ export type UpdatePatientRequest = RegisterPatientRequest;
 
 /** Every filter the list can narrow by, exactly as the server names them. */
 export interface PatientListQuery {
+  branchId?: string;
   filter?: string;
   treatmentStatus?: Exclude<TreatmentTab, "All">;
   staffId?: string;

@@ -1,10 +1,10 @@
 import dayjs from "dayjs";
 import type {
   Appointment,
-  AppointmentColor,
   AppointmentListQuery,
   AppointmentStatus,
   CreateAppointmentRequest,
+  CreateTempAppointmentRequest,
   UpdateAppointmentRequest,
 } from "../types/appointment";
 import { statusPaletteOf } from "@/theme/index";
@@ -15,6 +15,7 @@ import { t } from "@/lib/i18n";
 export interface ServerAppointmentDto {
   id: string;
   patientId: string;
+  patientCode: string | null;
   patientName: string;
   patientPhone: string | null;
   dentistId: string;
@@ -28,8 +29,11 @@ export interface ServerAppointmentDto {
   type: number;
   chiefComplaint: string | null;
   notes: string | null;
-  color: number;
+  color: string | null;
   creationTime: string;
+  isTemporary: boolean;
+  sourceTaxonomyId: string | null;
+  sourceEntryId: string | null;
 }
 
 /** Matches BlueDental.Appointments.AppointmentStatus. */
@@ -87,27 +91,13 @@ const STATUS_COLORS: Record<AppointmentStatus, string> = {
 /** BlueDental.Appointments.AppointmentType — Examination is the everyday one. */
 const DEFAULT_APPOINTMENT_TYPE = 2;
 
-/** Matches BlueDental.Appointments.AppointmentColor. */
-const SERVER_COLOR: Record<AppointmentColor, number> = {
-  default: 1,
-  green: 2,
-  orange: 3,
-  red: 4,
-};
-
-const COLOR_BY_CODE: Record<number, AppointmentColor> = {
-  1: "default",
-  2: "green",
-  3: "orange",
-  4: "red",
-};
-
 export function adaptAppointment(dto: ServerAppointmentDto): Appointment {
   const status = STATUS_BY_CODE[dto.status] ?? "scheduled";
 
   return {
     id: dto.id,
     patientId: dto.patientId,
+    patientCode: dto.patientCode,
     patientName: dto.patientName,
     patientPhone: dto.patientPhone ?? "",
     doctorId: dto.dentistId,
@@ -117,8 +107,11 @@ export function adaptAppointment(dto: ServerAppointmentDto): Appointment {
     status,
     reason: dto.chiefComplaint,
     notes: dto.notes,
-    color: COLOR_BY_CODE[dto.color] ?? "default",
+    color: dto.color,
     createdAt: dto.creationTime,
+    isTemporary: dto.isTemporary,
+    sourceTaxonomyId: dto.sourceTaxonomyId,
+    sourceEntryId: dto.sourceEntryId,
     statusColor: STATUS_COLORS[status],
     statusLabel: statusLabels()[status],
     durationMinutes: dayjs(dto.slotEnd).diff(dayjs(dto.slotStart), "minute"),
@@ -156,8 +149,23 @@ export function toCreateRequest(request: CreateAppointmentRequest): Record<strin
     slotEnd: toInstant(request.endTime),
     type: DEFAULT_APPOINTMENT_TYPE,
     chiefComplaint: request.reason,
+    color: request.color,
     notes: request.notes,
-    color: SERVER_COLOR[request.color ?? "default"],
+  };
+}
+
+export function toCreateTempRequest(request: CreateTempAppointmentRequest): Record<string, unknown> {
+  return {
+    patientName: request.patientName,
+    patientPhone: request.patientPhone || undefined,
+    dentistId: request.doctorId || undefined,
+    branchId: request.branchId ?? DEFAULT_BRANCH_ID,
+    slotStart: toInstant(request.startTime),
+    slotEnd: toInstant(request.endTime),
+    sourceTaxonomyId: request.sourceTaxonomyId || undefined,
+    sourceEntryId: request.sourceEntryId || undefined,
+    color: request.color || undefined,
+    notes: request.notes || undefined,
   };
 }
 
@@ -168,6 +176,10 @@ export function toUpdateRequest(request: UpdateAppointmentRequest): Record<strin
     dentistId: request.doctorId,
     chiefComplaint: request.reason,
     notes: request.notes,
-    color: SERVER_COLOR[request.color ?? "default"],
+    color: request.color,
+    patientName: request.patientName,
+    patientPhone: request.patientPhone,
+    sourceTaxonomyId: request.sourceTaxonomyId || undefined,
+    sourceEntryId: request.sourceEntryId || undefined,
   };
 }

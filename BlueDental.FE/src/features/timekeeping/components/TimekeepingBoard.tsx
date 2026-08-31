@@ -1,244 +1,79 @@
 import { useMemo, useState } from "react";
-import { Button, Empty, Input, Spin, Switch, Tag, Tooltip } from "antd";
-import { toast } from "sonner";
-import type { Dayjs } from "dayjs";
+import { Button, Empty, Input, Popover, Spin } from "antd";
+import { SearchOutlined, CalendarOutlined, InfoCircleOutlined } from "@ant-design/icons";
+import dayjs, { type Dayjs } from "dayjs";
+
+import { Segmented } from "antd";
+import { DateNavigator } from "@/components/DateNavigator/DateNavigator";
+import { TimekeepingStatChips } from "./TimekeepingStatChips";
+import { TimekeepingStaffCard } from "./TimekeepingStaffCard";
+import { TimekeepingWeekHeader } from "./TimekeepingWeekHeader";
+import { FloatingLabel } from "@/components/FloatingLabel";
 import {
-  useCheckIn,
-  useCheckOut,
-  useOpenWorkDay,
-  useRegisterDayOff,
-  useRegisterWorking,
   useTimeKeepingList,
   useTimeKeepingSummary,
 } from "../api/timekeepingQueries";
-import { useStaffList } from "@/features/staff/api/staffQueries";
-import { extractApiError } from "@/lib/apiError";
 import {
-  ATTENDANCE_STATUS,
   WORK_REGISTRATION,
-  type AttendanceStatus,
+  ATTENDANCE_STATUS,
+  WORK_SHIFT_KIND,
   type TimeKeepingRecordDto,
-  type WorkShiftDto,
-  type WorkShiftKind,
 } from "../api/timekeepingApi";
-import { useCurrentBranchId } from "@/lib/clinicBranch";
+import { useStaffList } from "@/features/staff/api/staffQueries";
+import { useCurrentBranchId, useBranchFilter } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
+import type { ViewMode } from "@/features/appointments/hooks/useCalendarState";
+import "./timekeeping.css";
 
-/** The translator, so helpers below can take it as a parameter. */
-type Translate = (vietnamese: string, ...params: (string | number)[]) => string;
+function AttendanceGuideContent() {
+  return (
+    <div className="tk-guide">
+      <p className="tk-guide-title">{t("Hướng dẫn điểm danh")}</p>
+      <ol className="tk-guide-list">
+        <li>
+          <strong>{t("Đăng ký lịch:")}</strong>{" "}
+          {t("mỗi ngày chọn Làm việc hoặc Nghỉ.")}
+        </li>
+        <li>
+          <strong>{t("Điểm danh (khi đi làm):")}</strong>{" "}
+          {t("bấm lần lượt 4 bước — Vào ca (check-in) → Ca sáng → Vào ca chiều → Kết ca (check-out).")}
+        </li>
+        <li>
+          <strong>{t("Chỉ điểm danh trong ngày:")}</strong>{" "}
+          {t("thao tác Vào ca / Kết ca chỉ thực hiện được trong")}
+          {" "}<strong>{t("ngày hôm đó")}</strong>
+          {"; "}{t("ngày đã qua không tự sửa được (trừ quản lý có quyền).")}
+        </li>
+        <li>
+          <strong>{t("Vắng không báo trước:")}</strong>{" "}
+          {t("đã đăng ký Làm việc nhưng không Vào ca → cuối ngày hệ thống tự đánh dấu Vắng.")}
+        </li>
+      </ol>
+      <hr className="tk-guide-divider" />
+      <p className="tk-guide-legend">
+        {t("Trạng thái:")} 🟢 {t("Làm việc")} · ⚪ {t("Không điểm danh")} · 🔴 {t("Vắng")}
+      </p>
+    </div>
+  );
+}
 
-interface TimekeepingBoardProps {
+interface Props {
   currentDate: Dayjs;
+  viewMode: ViewMode;
+  onViewModeChange: (v: ViewMode) => void;
+  onDateChange: (date: Dayjs) => void;
+  onOpenBuilder: () => void;
 }
 
-function getStatusConfig(t: Translate): Record<AttendanceStatus, { label: string; color: string }> {
-  return {
-    [ATTENDANCE_STATUS.NotStarted]: { label: t("Chưa vào ca"), color: "default" },
-    [ATTENDANCE_STATUS.Working]: { label: t("Đang làm việc"), color: "processing" },
-    [ATTENDANCE_STATUS.Completed]: { label: t("Hoàn thành"), color: "success" },
-    [ATTENDANCE_STATUS.Abandoned]: { label: t("Nghỉ ngang"), color: "error" },
-    [ATTENDANCE_STATUS.OnLeave]: { label: t("Nghỉ"), color: "warning" },
-  };
-}
-
-/** "08:00:00" -> "08:00" */
-function formatPlanned(time: string): string {
-  return time.slice(0, 5);
-}
-
-/** ISO timestamp -> "08:05", or the reference's "--" placeholder. */
-function formatStamp(value: string | null): string {
-  if (!value) return "--";
-  const date = new Date(value);
-  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
-}
-
-function formatDuration(totalMinutes: number): string {
-  if (totalMinutes <= 0) return "--:--";
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
-}
-
-function StatTile({ value, label }: { value: string | number; label: string }) {
-  return (
-    <div style={{ minWidth: 110 }}>
-      <div style={{ fontSize: 22, fontWeight: 700, color: "var(--bd-ink)", lineHeight: 1.2 }}>{value}</div>
-      <div style={{ fontSize: 12, color: "var(--bd-muted)" }}>{label}</div>
-    </div>
-  );
-}
-
-function ShiftRow({
-  shift,
-  disabled,
-  onCheckIn,
-  onCheckOut,
-}: {
-  shift: WorkShiftDto;
-  disabled: boolean;
-  onCheckIn: (kind: WorkShiftKind) => void;
-  onCheckOut: (kind: WorkShiftKind) => void;
-}) {
-  const canCheckIn = !shift.checkedInAt;
-  const action = canCheckIn ? () => onCheckIn(shift.kind) : () => onCheckOut(shift.kind);
-  const actionLabel = canCheckIn ? t("Vào ca") : shift.isOpen ? t("Ra ca") : t("Đã ra ca");
-  const clickable = !disabled && (canCheckIn || shift.isOpen);
-
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 8,
-        padding: "4px 0",
-      }}
-    >
-      <span style={{ fontSize: 13, color: "var(--bd-sub)", minWidth: 96 }}>
-        {formatPlanned(shift.plannedStart)} - {formatPlanned(shift.plannedEnd)}
-      </span>
-      <span style={{ fontSize: 13, color: "var(--bd-muted)", minWidth: 84, textAlign: "center" }}>
-        {formatStamp(shift.checkedInAt)} / {formatStamp(shift.checkedOutAt)}
-      </span>
-      <Tooltip title={disabled ? t("Nhân viên đã đăng ký nghỉ") : undefined}>
-        <button
-          type="button"
-          disabled={!clickable}
-          onClick={clickable ? action : undefined}
-          style={{
-            border: "1px solid var(--bd-line)",
-            borderRadius: 6,
-            background: clickable ? "#fff" : "var(--bd-bg)",
-            color: clickable ? "var(--bd-ink)" : "var(--bd-faint)",
-            fontSize: 12,
-            padding: "2px 10px",
-            cursor: clickable ? "pointer" : "not-allowed",
-          }}
-        >
-          {actionLabel}
-        </button>
-      </Tooltip>
-    </div>
-  );
-}
-
-function StaffCard({ record }: { record: TimeKeepingRecordDto }) {
-  const registerWorking = useRegisterWorking();
-  const registerDayOff = useRegisterDayOff();
-  const checkIn = useCheckIn();
-  const checkOut = useCheckOut();
-
-  const isDayOff = record.registration === WORK_REGISTRATION.DayOff;
-  const status = getStatusConfig(t)[record.status];
-
-  const handleRegistrationChange = (checked: boolean) => {
-    const mutation = checked ? registerWorking.mutateAsync(record.id) : registerDayOff.mutateAsync({ id: record.id });
-    void mutation.catch(() => toast.error(t("Không thể đổi đăng ký sau khi đã chấm công.")));
-  };
-
-  const handleCheckIn = (shift: WorkShiftKind) => {
-    void checkIn
-      .mutateAsync({ id: record.id, input: { shift } })
-      .catch(() => toast.error(t("Không thể vào ca.")));
-  };
-
-  const handleCheckOut = (shift: WorkShiftKind) => {
-    void checkOut
-      .mutateAsync({ id: record.id, input: { shift } })
-      .catch(() => toast.error(t("Không thể ra ca.")));
-  };
-
-  return (
-    <div
-      style={{
-        border: "1px solid var(--bd-line)",
-        borderRadius: 10,
-        padding: 12,
-        background: "#fff",
-        display: "flex",
-        flexDirection: "column",
-        gap: 8,
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Switch
-            size="small"
-            checked={record.registration === WORK_REGISTRATION.Working}
-            checkedChildren="ON"
-            unCheckedChildren="OFF"
-            onChange={handleRegistrationChange}
-          />
-          <div>
-            <div style={{ fontWeight: 600, color: "var(--bd-ink)" }}>
-              {record.staffName ?? t("Nhân viên")}
-            </div>
-            <div style={{ fontSize: 12, color: "var(--bd-muted)" }}>
-              {t("Vị trí")}: {record.staffPosition ?? t("Nhân viên")}
-            </div>
-          </div>
-        </div>
-        <div style={{ textAlign: "right" }}>
-          <div style={{ fontWeight: 600, color: "var(--bd-ink)" }}>
-            {formatDuration(record.totalWorkedMinutes)}
-          </div>
-          <Tag color={status.color} style={{ marginInlineEnd: 0, marginTop: 2 }}>
-            {status.label}
-          </Tag>
-        </div>
-      </div>
-
-      <div style={{ borderTop: "1px dashed var(--bd-line)", paddingTop: 6 }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            fontSize: 11,
-            fontWeight: 600,
-            color: "var(--bd-faint)",
-            letterSpacing: 0.4,
-          }}
-        >
-          <span>{t("LỊCH LÀM VIỆC")}</span>
-          <span>{t("VÀO CA - RA CA")}</span>
-          <span />
-        </div>
-        <ShiftRow
-          shift={record.morningShift}
-          disabled={isDayOff}
-          onCheckIn={handleCheckIn}
-          onCheckOut={handleCheckOut}
-        />
-        <ShiftRow
-          shift={record.afternoonShift}
-          disabled={isDayOff}
-          onCheckIn={handleCheckIn}
-          onCheckOut={handleCheckOut}
-        />
-      </div>
-
-      {record.overtimeMinutes > 0 && (
-        <div style={{ fontSize: 12, color: "var(--bd-muted)" }}>
-          {t("Tăng ca")}: {formatDuration(record.overtimeMinutes)}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/**
- * "Lịch làm việc" board — KPI bar plus one attendance card per staff member,
- * matching the reference layout at /calendar?tab=timekeeping.
- */
-export function TimekeepingBoard({ currentDate }: TimekeepingBoardProps) {
+export function TimekeepingBoard({ currentDate, viewMode, onViewModeChange, onDateChange, onOpenBuilder }: Props) {
   const branchId = useCurrentBranchId();
+  const branchFilter = useBranchFilter();
   const workDate = currentDate.format("YYYY-MM-DD");
   const [keyword, setKeyword] = useState("");
 
-  const { data: summary } = useTimeKeepingSummary(branchId, workDate);
+  const { data: summary } = useTimeKeepingSummary(branchFilter, workDate);
   const { data, isLoading } = useTimeKeepingList({
-    clinicBranchId: branchId,
+    clinicBranchId: branchFilter,
     fromDate: workDate,
     toDate: workDate,
     maxResultCount: 100,
@@ -247,109 +82,162 @@ export function TimekeepingBoard({ currentDate }: TimekeepingBoardProps) {
   const { data: staffPage, isLoading: staffLoading } = useStaffList({
     maxResultCount: 100,
     isActive: true,
+    branchId: branchFilter,
   });
-  const openWorkDay = useOpenWorkDay();
-
-  /**
-   * Attendance cards only exist once a work day has been opened for each staff
-   * member. The reference opens the day as part of its own scheduling; here it is
-   * an explicit action so nothing is created behind the user's back.
-   */
-  const handleOpenWorkDay = async () => {
-    const staff = staffPage?.items ?? [];
-
-    if (staff.length === 0) {
-      toast.error(t("Chưa có nhân viên nào đang làm việc."));
-      return;
-    }
-
-    try {
-      // One request per person, but issued together: waiting for each in turn
-      // made opening the day take as long as the roster is.
-      await Promise.all(
-        staff.map((member) =>
-          openWorkDay.mutateAsync({
-            staffId: member.id,
-            clinicBranchId: branchId,
-            workDate,
-          }),
-        ),
-      );
-      toast.success(t("Đã mở ngày làm việc cho {0} nhân viên", staff.length));
-    } catch (error) {
-      toast.error(extractApiError(error));
-    }
-  };
-
   const records = useMemo(() => {
-    const items = data?.items ?? [];
-    if (!keyword.trim()) return items;
+    const tkItems = data?.items ?? [];
+    const staffItems = staffPage?.items ?? [];
+
+    const tkByStaffId = new Map(tkItems.map((r) => [r.staffId, r]));
+
+    const merged: TimeKeepingRecordDto[] = staffItems
+      .filter((staff) => !staff.creationTime || dayjs(staff.creationTime).format("YYYY-MM-DD") <= workDate)
+      .map((staff) => {
+      const existing = tkByStaffId.get(staff.id);
+      if (existing) return existing;
+
+      const ms = staff.morningStartTime ?? "08:00:00";
+      const me = staff.morningEndTime ?? "12:00:00";
+      const as = staff.afternoonStartTime ?? "13:00:00";
+      const ae = staff.afternoonEndTime ?? "17:00:00";
+
+      const buildShift = (kind: 1 | 2, start: string, end: string) => ({
+        kind,
+        plannedStart: start,
+        plannedEnd: end,
+        checkedInAt: null,
+        checkedOutAt: null,
+        plannedMinutes: 240,
+        workedMinutes: 0,
+        isOpen: false,
+      });
+
+      return {
+        id: `virtual-${staff.id}`,
+        staffId: staff.id,
+        clinicBranchId: branchId,
+        workDate,
+        registration: WORK_REGISTRATION.NotRegistered,
+        status: ATTENDANCE_STATUS.NotStarted,
+        morningShift: buildShift(WORK_SHIFT_KIND.Morning, ms, me),
+        afternoonShift: buildShift(WORK_SHIFT_KIND.Afternoon, as, ae),
+        overtimeMinutes: 0,
+        totalWorkedMinutes: 0,
+        leaveReason: null,
+        note: null,
+        recordedByStaffId: null,
+        staffName: staff.fullName || staff.userName,
+        staffPosition: staff.roleNames[0] ?? null,
+      };
+    });
+
+    for (const tk of tkItems) {
+      if (!staffItems.some((s) => s.id === tk.staffId)) {
+        merged.push(tk);
+      }
+    }
+
+    if (!keyword.trim()) return merged;
     const needle = keyword.trim().toLowerCase();
-    return items.filter((r) => (r.staffName ?? "").toLowerCase().includes(needle));
-  }, [data, keyword]);
+    return merged.filter((r) => (r.staffName ?? "").toLowerCase().includes(needle));
+  }, [data, staffPage, keyword, branchId, branchFilter, workDate]);
+
+  const staffCreationDates = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const s of staffPage?.items ?? []) {
+      map.set(s.id, dayjs(s.creationTime).format("YYYY-MM-DD"));
+    }
+    return map;
+  }, [staffPage]);
 
   return (
-    <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 16 }}>
-      <div
-        data-testid="timekeeping-kpis"
-        style={{
-          display: "flex",
-          gap: 24,
-          flexWrap: "wrap",
-          padding: "12px 16px",
-          background: "#fff",
-          border: "1px solid var(--bd-line)",
-          borderRadius: 10,
-        }}
-      >
-        <StatTile value={summary?.totalStaff ?? 0} label={t("Tổng CBNV")} />
-        <StatTile value={summary?.registeredWorking ?? 0} label={t("Đăng kí làm")} />
-        <StatTile value={summary?.registeredDayOff ?? 0} label={t("Đăng kí nghỉ")} />
-        <StatTile value={summary?.currentlyWorking ?? 0} label={t("Đang làm việc")} />
-        <StatTile value={summary?.abandoned ?? 0} label={t("Nghỉ ngang")} />
-        <StatTile value={formatDuration(summary?.totalOvertimeMinutes ?? 0)} label={t("Giờ tăng ca")} />
-      </div>
-
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        <Input.Search
-          allowClear
-          placeholder={t("Tìm kiếm...")}
-          value={keyword}
-          onChange={(e) => setKeyword(e.target.value)}
-          style={{ maxWidth: 320 }}
+    <>
+      {/* Row 1 — reuses cal-toolbar-row1 so it's flush with the tab bar */}
+      <div className="cal-toolbar-row1">
+        <Segmented
+          value={viewMode}
+          onChange={(v) => onViewModeChange(v as ViewMode)}
+          options={[
+            { label: t("Ngày"), value: "day" },
+            { label: t("Tuần"), value: "week" },
+            { label: t("Tháng"), value: "month", disabled: true },
+          ]}
         />
-        {/* Until the roster arrives there is nobody to open the day for, and
-            the click used to fall through to an error toast — which read as the
-            button doing nothing at all. */}
-        <Button
-          type="primary"
-          loading={openWorkDay.isPending || staffLoading}
-          disabled={staffLoading || (staffPage?.items?.length ?? 0) === 0}
-          onClick={handleOpenWorkDay}
-        >
-          {t("Mở ngày làm việc")}
-        </Button>
+        <DateNavigator
+          value={currentDate}
+          mode={viewMode}
+          onChange={onDateChange}
+        />
+        <TimekeepingStatChips summary={summary} />
       </div>
 
-      {isLoading ? (
-        <div style={{ padding: 48, textAlign: "center" }}>
-          <Spin />
+      {/* Row 2 — reuses cal-toolbar-row2 */}
+      <div className="cal-toolbar-row2 tk-toolbar-row2">
+        <div className="cal-toolbar-row2-left">
+          <FloatingLabel label={t("Tìm kiếm")} floated={Boolean(keyword)}>
+            <Input
+              prefix={<SearchOutlined style={{ color: "#98a4b4" }} />}
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              allowClear
+              maxLength={100}
+            />
+          </FloatingLabel>
+          <Popover
+            content={<AttendanceGuideContent />}
+            trigger="hover"
+            placement="bottomLeft"
+            overlayClassName="tk-guide-popover"
+            overlayInnerStyle={{ background: "#1B2A41", padding: 16, borderRadius: 10 }}
+            overlayStyle={{ maxWidth: 380 }}
+          >
+            <button
+              type="button"
+              className="tk-info-btn"
+              aria-label={t("Hướng dẫn điểm danh")}
+            >
+              <InfoCircleOutlined style={{ fontSize: 20 }} />
+            </button>
+          </Popover>
         </div>
-      ) : records.length === 0 ? (
-        <Empty description={t("Chưa có dữ liệu chấm công cho ngày này")} />
-      ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
-            gap: 12,
-          }}
-        >
-          {records.map((record) => (
-            <StaffCard key={record.id} record={record} />
-          ))}
+        <div className="cal-toolbar-row2-right">
+          <Button
+            type="primary"
+            icon={<CalendarOutlined />}
+            onClick={onOpenBuilder}
+          >
+            {t("Lịch làm việc")}
+          </Button>
         </div>
+      </div>
+
+      {/* Week header */}
+      {viewMode === "week" && (
+        <TimekeepingWeekHeader currentDate={currentDate} onDayClick={onDateChange} />
       )}
-    </div>
+
+      {/* Grid — reuses cal-grid-wrap for bottom rounding */}
+      <div className="cal-grid-wrap">
+        <div className="tk-board">
+          {isLoading || staffLoading ? (
+            <div className="tk-empty">
+              <Spin />
+            </div>
+          ) : records.length === 0 ? (
+            <Empty description={t("Chưa có dữ liệu chấm công cho ngày này")} />
+          ) : (
+            <div className="tk-grid">
+              {records.map((record) => (
+                <TimekeepingStaffCard
+                  key={record.id}
+                  record={record}
+                  staffCreationDate={staffCreationDates.get(record.staffId)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </>
   );
 }

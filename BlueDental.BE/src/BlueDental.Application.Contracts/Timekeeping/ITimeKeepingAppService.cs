@@ -24,7 +24,14 @@ public interface ITimeKeepingAppService : IApplicationService
     Task<TimeKeepingRecordDto> CheckInAsync(Guid id, AttendanceInput input);
     Task<TimeKeepingRecordDto> CheckOutAsync(Guid id, AttendanceInput input);
     Task<TimeKeepingRecordDto> AddOvertimeAsync(Guid id, AddOvertimeInput input);
+    Task<TimeKeepingRecordDto> UpdateInfoAsync(Guid id, UpdateInfoInput input);
 
     /// <summary>Closes every shift still open on the given day as "nghỉ ngang".</summary>
     Task<int> CloseAbandonedShiftsAsync(Guid clinicBranchId, DateOnly workDate);
+
+    /// <summary>
+    /// Bulk-sets Registration for many staff×day combinations (Work Schedule Builder).
+    /// Creates records if they do not exist. Skips cells where attendance is already recorded.
+    /// </summary>
+    Task<int> BulkRegisterAsync(BulkRegisterInput input);
 }

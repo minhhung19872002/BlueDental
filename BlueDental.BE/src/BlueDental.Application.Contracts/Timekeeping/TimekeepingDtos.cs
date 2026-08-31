@@ -100,3 +100,27 @@ public class AddOvertimeInput
 {
     public int Minutes { get; set; }
 }
+
+public class UpdateInfoInput
+{
+    public string? Note { get; set; }
+    public TimeOnly? MorningStart { get; set; }
+    public TimeOnly? MorningEnd { get; set; }
+    public TimeOnly? AfternoonStart { get; set; }
+    public TimeOnly? AfternoonEnd { get; set; }
+    public bool MorningEnabled { get; set; } = true;
+    public bool AfternoonEnabled { get; set; } = true;
+    public int? OvertimeMinutes { get; set; }
+}
+
+public class BulkRegisterItem
+{
+    public Guid StaffId { get; set; }
+    public DateOnly WorkDate { get; set; }
+    public WorkRegistration Registration { get; set; }
+}
+
+public class BulkRegisterInput
+{
+    public List<BulkRegisterItem> Items { get; set; } = new();
+}

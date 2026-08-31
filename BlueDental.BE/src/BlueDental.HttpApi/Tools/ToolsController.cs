@@ -13,6 +13,24 @@ namespace BlueDental.Tools;
 [Route("api/v1/app/tools")]
 public sealed class ToolsController(IToolsAppService service) : BlueDentalController
 {
+    // ── Call Configuration ────────────────────────────────────────────────
+
+    [HttpGet("call-configurations")]
+    public Task<PagedResultDto<CallConfigurationDto>> GetCallConfigurationListAsync(
+        [FromQuery] GetCallConfigurationListInput input) => service.GetCallConfigurationListAsync(input);
+
+    [HttpPost("call-configurations")]
+    public Task<CallConfigurationDto> CreateCallConfigurationAsync(CreateCallConfigurationDto input) =>
+        service.CreateCallConfigurationAsync(input);
+
+    [HttpPut("call-configurations/{id}")]
+    public Task<CallConfigurationDto> UpdateCallConfigurationAsync(
+        Guid id, UpdateCallConfigurationDto input) =>
+        service.UpdateCallConfigurationAsync(id, input);
+
+    [HttpDelete("call-configurations/{id}")]
+    public Task DeleteCallConfigurationAsync(Guid id) => service.DeleteCallConfigurationAsync(id);
+
     // ── Call Assignment ───────────────────────────────────────────────────
 
     [HttpGet("call-assignments")]
@@ -23,10 +41,10 @@ public sealed class ToolsController(IToolsAppService service) : BlueDentalContro
     public Task<CallAssignmentDto> CreateCallAssignmentAsync(CreateCallAssignmentDto input) =>
         service.CreateCallAssignmentAsync(input);
 
-    [HttpPut("call-assignments/{id}/status")]
-    public Task<CallAssignmentDto> UpdateCallAssignmentStatusAsync(
-        Guid id, UpdateCallAssignmentStatusDto input) =>
-        service.UpdateCallAssignmentStatusAsync(id, input);
+    [HttpPut("call-assignments/{id}")]
+    public Task<CallAssignmentDto> UpdateCallAssignmentAsync(
+        Guid id, UpdateCallAssignmentDto input) =>
+        service.UpdateCallAssignmentAsync(id, input);
 
     [HttpDelete("call-assignments/{id}")]
     public Task DeleteCallAssignmentAsync(Guid id) => service.DeleteCallAssignmentAsync(id);
@@ -40,9 +58,6 @@ public sealed class ToolsController(IToolsAppService service) : BlueDentalContro
     [HttpPost("call-logs")]
     public Task<CallLogDto> CreateCallLogAsync(CreateCallLogDto input) =>
         service.CreateCallLogAsync(input);
-
-    [HttpDelete("call-logs/{id}")]
-    public Task DeleteCallLogAsync(Guid id) => service.DeleteCallLogAsync(id);
 
     // ── Message Template ──────────────────────────────────────────────────
 

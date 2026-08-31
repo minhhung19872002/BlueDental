@@ -18,6 +18,7 @@ export function useAppointmentList(params: AppointmentListQuery) {
   });
 }
 
+
 export function useAppointment(id: string) {
   return useQuery({
     queryKey: appointmentKeys.detail(id),
