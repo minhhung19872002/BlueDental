@@ -10,9 +10,10 @@ interface Props {
   errors: FieldErrors<AppointmentEditorValues>;
   patientOptions: { value: string; label: string }[];
   branchOptions: { value: string; label: string }[];
+  lockPatient?: boolean;
 }
 
-export function AppointmentFormLeft({ control, errors, patientOptions, branchOptions }: Props) {
+export function AppointmentFormLeft({ control, errors, patientOptions, branchOptions, lockPatient }: Props) {
   return (
     <div>
       {/* Patient */}
@@ -30,6 +31,7 @@ export function AppointmentFormLeft({ control, errors, patientOptions, branchOpt
               options={patientOptions}
               onChange={(v) => field.onChange(v ?? "")}
               status={errors.patientId ? "error" : ""}
+              disabled={lockPatient}
             />
           )}
         />
@@ -48,6 +50,7 @@ export function AppointmentFormLeft({ control, errors, patientOptions, branchOpt
               placeholder={t("Chọn chi nhánh")}
               options={branchOptions}
               onChange={(v) => field.onChange(v ?? "")}
+              disabled={lockPatient}
             />
           )}
         />

@@ -24,16 +24,23 @@ const buildSchema = () =>
     date: z.string().min(1, t("Vui lòng chọn ngày")),
     startTime: z.string().min(1, t("Vui lòng chọn giờ hẹn")),
     durationMinutes: z.number().int().min(15),
-    content: z.string().optional().default(""),
-    color: z.string().optional().default(APPT_COLORS[0].value),
-    notes: z.string().optional().default(""),
+    content: z.string(),
+    color: z.string(),
+    notes: z.string(),
   });
 
 interface Props {
   open: boolean;
   appointmentId?: string | null;
+  initialPatientId?: string;
+  initialDoctorId?: string;
   initialDate?: string;
   initialTime?: string;
+  initialEndTime?: string;
+  initialReason?: string;
+  initialNotes?: string;
+  initialColor?: string | null;
+  lockPatient?: boolean;
   onClose: () => void;
   onSuccess?: () => void;
 }
@@ -41,7 +48,15 @@ interface Props {
 export function AppointmentEditorModal({
   open,
   appointmentId,
+  initialPatientId,
+  initialDoctorId,
   initialDate,
+  initialTime,
+  initialEndTime,
+  initialReason,
+  initialNotes,
+  initialColor,
+  lockPatient,
   onClose,
   onSuccess,
 }: Props) {
@@ -68,18 +83,26 @@ export function AppointmentEditorModal({
     [branches],
   );
 
+  const durationFromProps = useMemo(() => {
+    if (!initialTime || !initialEndTime) return 30;
+    const start = dayjs(`2000-01-01 ${initialTime}`);
+    const end = dayjs(`2000-01-01 ${initialEndTime}`);
+    const diff = end.diff(start, "minute");
+    return diff > 0 ? diff : 30;
+  }, [initialTime, initialEndTime]);
+
   const { control, handleSubmit, reset, setValue, formState: { errors, isValid } } = useForm<AppointmentEditorValues>({
     resolver: zodResolver(buildSchema()),
     defaultValues: {
-      patientId: "",
+      patientId: initialPatientId ?? "",
       branchId: currentBranchId,
-      doctorId: "",
+      doctorId: initialDoctorId ?? "",
       date: initialDate ?? dayjs().format("YYYY-MM-DD"),
-      startTime: "",
-      durationMinutes: 30,
-      content: "",
-      color: APPT_COLORS[0].value,
-      notes: "",
+      startTime: initialTime ?? "",
+      durationMinutes: durationFromProps,
+      content: initialReason ?? "",
+      color: initialColor ?? APPT_COLORS[0].value,
+      notes: initialNotes ?? "",
     },
   });
 
@@ -106,8 +129,20 @@ export function AppointmentEditorModal({
         color: existingAppt.color ?? APPT_COLORS[0].value,
         notes: existingAppt.notes ?? "",
       });
+    } else if (!isEdit) {
+      reset({
+        patientId: initialPatientId ?? "",
+        branchId: currentBranchId,
+        doctorId: initialDoctorId ?? "",
+        date: initialDate ?? dayjs().format("YYYY-MM-DD"),
+        startTime: initialTime ?? "",
+        durationMinutes: durationFromProps,
+        content: initialReason ?? "",
+        color: initialColor ?? APPT_COLORS[0].value,
+        notes: initialNotes ?? "",
+      });
     }
-  }, [open, isEdit, existingAppt, reset, currentBranchId]);
+  }, [open, isEdit, existingAppt, reset, currentBranchId, initialPatientId, initialDoctorId, initialDate, initialTime, durationFromProps, initialReason, initialColor, initialNotes]);
 
   const activeMutation = isEdit ? updateMutation : createMutation;
 
@@ -186,6 +221,7 @@ export function AppointmentEditorModal({
         watchedDate={watchedDate}
         watchedNotes={watchedNotes}
         isEdit={isEdit}
+        lockPatient={lockPatient}
       />
     </AppDialog>
   );

@@ -27,6 +27,7 @@ interface Props {
   watchedDate: string;
   watchedNotes: string;
   isEdit?: boolean;
+  lockPatient?: boolean;
 }
 
 export function AppointmentEditorForm({
@@ -40,6 +41,7 @@ export function AppointmentEditorForm({
   watchedDate,
   watchedNotes,
   isEdit,
+  lockPatient,
 }: Props) {
   return (
     <div className="appt-editor-body">
@@ -49,6 +51,7 @@ export function AppointmentEditorForm({
           errors={errors}
           patientOptions={patientOptions}
           branchOptions={branchOptions}
+          lockPatient={lockPatient}
         />
         <AppointmentFormCenter
           control={control}
