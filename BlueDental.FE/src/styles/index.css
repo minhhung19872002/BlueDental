@@ -960,16 +960,61 @@ button {
   color: var(--bd-primary);
 }
 
-.app-header-icon-btn .app-header-notif-dot {
+/* The design counts what is waiting rather than only flagging that something
+   is, and breathes a ring while it does. */
+.app-header-icon-btn .app-header-notif-count {
   position: absolute;
-  right: -4px;
   top: -4px;
-  width: 9px;
-  height: 9px;
-  border-radius: 9999px;
+  right: -4px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 9px;
   background: var(--bd-red);
-  border: 1.5px solid #fff;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
   animation: ringPulse 2.2s ease infinite;
+}
+
+/* The language control names the language it is on. */
+.app-header-lang {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 11px;
+  border: 1px solid #e3e7f5;
+  border-radius: 10px;
+  background: #fff;
+  color: #242b47;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.app-header-lang:hover {
+  border-color: var(--bd-primary);
+  color: var(--bd-primary);
+}
+
+/* Name over role, as the design stacks them. */
+.app-header-user-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  min-width: 0;
+}
+
+.app-header-user-role {
+  font-size: 10.5px;
+  color: #78819c;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .app-header-user {
@@ -2285,7 +2330,8 @@ button {
 /* The header crowds long before the tablet breakpoint: at 1240 the clinic
    tagline goes, which is what the design does, so the search keeps its room. */
 @media (max-width: 1240px) {
-  .app-header-clinic-tagline {
+  .app-header-clinic-tagline,
+  .app-header-user-role {
     display: none;
   }
 }

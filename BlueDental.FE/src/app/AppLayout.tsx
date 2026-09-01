@@ -26,12 +26,30 @@ import { authApi } from "@/features/auth/api";
 import { brand, SIDEBAR_WIDTH, SIDEBAR_EXPANDED_WIDTH } from "@/theme/index";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { useClinicBranches } from "@/features/organizations/api";
+import { useMyNotifications } from "@/features/notifications/api";
 import { useBranchStore } from "@/lib/clinicBranch";
 
 interface NavItem {
   key: string;
   icon: React.ReactNode;
   label: string;
+}
+
+/**
+ * Roles arrive as their technical names. The ones the seeder creates are
+ * already Vietnamese and pass through; these are the ABP-flavoured ones.
+ */
+const ROLE_LABELS: Record<string, string> = {
+  admin: "Quản trị viên",
+  dentist: "Bác sĩ",
+  nurse: "Điều dưỡng",
+  receptionist: "Lễ tân",
+  accountant: "Kế toán",
+};
+
+function roleLabel(role: string | undefined, t: Translate): string {
+  if (!role) return t("Người dùng");
+  return ROLE_LABELS[role.toLowerCase()] ?? role;
 }
 
 /** The rail's own wordmark — the header carries the clinic's full name. */
@@ -164,6 +182,12 @@ export function AppLayout() {
   const location = useLocation();
   const user = useAuthStore((s) => s.user);
   const clearAuth = useAuthStore((s) => s.clearAuth);
+
+  /* The bell says how many are waiting; the block under the name says who you
+     are signed in as. Both come from what is already loaded. */
+  const { data: notifications } = useMyNotifications();
+  const unreadCount = (notifications?.items ?? []).filter((n) => !n.isRead).length;
+  const userRole = roleLabel(user?.roles?.[0], t);
 
   const logoutMutation = useMutation({
     mutationFn: authApi.logout,
@@ -377,6 +401,7 @@ export function AppLayout() {
 
         {/* Main nav */}
         <nav className="sidebar-nav-main" ref={railListRef}>
+          {sidebarExpanded && <div className="sidebar-nav-heading">MENU</div>}
           {mainNav(t).map((item) => (
             <SidebarNavItem
               key={item.key}
@@ -480,14 +505,19 @@ export function AppLayout() {
 
             <div className="app-header-actions">
               <Popover content={langContent} trigger="click" placement="bottomRight" arrow={false}>
-                <button type="button" className="app-header-icon-btn" aria-label={t("Ngôn ngữ")}>
-                  <GlobalOutlined style={{ fontSize: 18 }} />
+                <button type="button" className="app-header-lang" aria-label={t("Ngôn ngữ")}>
+                  <GlobalOutlined style={{ fontSize: 16 }} />
+                  <span>{language.toUpperCase()}</span>
                 </button>
               </Popover>
 
               <button type="button" className="app-header-icon-btn" aria-label={t("Thông báo")}>
                 <BellOutlined style={{ fontSize: 18 }} />
-                <span className="app-header-notif-dot" />
+                {unreadCount > 0 && (
+                  <span className="app-header-notif-count">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
               </button>
 
               <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
@@ -495,7 +525,10 @@ export function AppLayout() {
                   <Avatar size={32} className="app-header-avatar">
                     {initialsOf(user?.name)}
                   </Avatar>
-                  <span className="app-header-user-name">{user?.name ?? "Admin"}</span>
+                  <span className="app-header-user-text">
+                    <span className="app-header-user-name">{user?.name ?? "Admin"}</span>
+                    <span className="app-header-user-role">{userRole}</span>
+                  </span>
                   <DownOutlined style={{ fontSize: 14, color: "#78819c" }} />
                 </div>
               </Dropdown>
