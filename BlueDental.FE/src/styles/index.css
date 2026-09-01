@@ -943,6 +943,13 @@ button {
   opacity: 0.82;
 }
 
+.app-header-avatar.ant-avatar {
+  background: linear-gradient(140deg, #6366f1, #22d3ee);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .app-header-user-name {
   font-size: 12.5px;
   font-weight: 600;
@@ -2212,6 +2219,14 @@ button {
     display: none;
   }
 
+}
+
+/* The header crowds long before the tablet breakpoint: at 1240 the clinic
+   tagline goes, which is what the design does, so the search keeps its room. */
+@media (max-width: 1240px) {
+  .app-header-clinic-tagline {
+    display: none;
+  }
 }
 
 /* ── Reduced motion ── */

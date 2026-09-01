@@ -15,7 +15,7 @@ interface StatusLook {
   badgeText: string;
 }
 
-function hexToOpaqueTint(hex: string, alpha = 0.094): string {
+function hexToOpaqueTint(hex: string, alpha = 0.122): string {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
@@ -25,54 +25,59 @@ function hexToOpaqueTint(hex: string, alpha = 0.094): string {
   return `#${mr.toString(16).padStart(2, "0")}${mg.toString(16).padStart(2, "0")}${mb.toString(16).padStart(2, "0")}`;
 }
 
+/*
+ * The design's own statusColor map. Each fill is that colour at 0x1f over
+ * white and stays fully opaque: a translucent card lets the calendar's grid
+ * lines read straight through it.
+ */
 const STATUS_LOOK: Record<AppointmentStatus, StatusLook> = {
   scheduled: {
-    border: "#1565C0",
-    bg: "#E3F2FD",
-    text: "#1565C0",
-    badgeBg: "#E3F2FD",
-    badgeBorder: "rgba(21,101,192,0.3)",
-    badgeText: "#1565C0",
+    border: "#6366f1",
+    bg: "#eceefe",
+    text: "#6366f1",
+    badgeBg: "#eceefe",
+    badgeBorder: "rgba(99,102,241,0.3)",
+    badgeText: "#6366f1",
   },
   confirmed: {
-    border: "#1565C0",
-    bg: "#E3F2FD",
-    text: "#1565C0",
-    badgeBg: "#E3F2FD",
-    badgeBorder: "rgba(21,101,192,0.3)",
-    badgeText: "#1565C0",
+    border: "#6366f1",
+    bg: "#eceefe",
+    text: "#6366f1",
+    badgeBg: "#eceefe",
+    badgeBorder: "rgba(99,102,241,0.3)",
+    badgeText: "#6366f1",
   },
   inProgress: {
-    border: "#2E7D32",
-    bg: "#E8F5E9",
-    text: "#2E7D32",
-    badgeBg: "#E8F5E9",
-    badgeBorder: "rgba(46,125,50,0.3)",
-    badgeText: "#2E7D32",
+    border: "#6366f1",
+    bg: "#eceefe",
+    text: "#6366f1",
+    badgeBg: "#eceefe",
+    badgeBorder: "rgba(99,102,241,0.3)",
+    badgeText: "#6366f1",
   },
   completed: {
-    border: "#16A34A",
-    bg: "#E8F5E9",
-    text: "#16A34A",
-    badgeBg: "#DCFCE7",
-    badgeBorder: "rgba(22,163,74,0.3)",
-    badgeText: "#16A34A",
+    border: "#0e9f6e",
+    bg: "#e7f6f1",
+    text: "#0e9f6e",
+    badgeBg: "#e7f6f1",
+    badgeBorder: "rgba(14,159,110,0.3)",
+    badgeText: "#0e9f6e",
   },
   cancelled: {
-    border: "#EF4444",
-    bg: "#FEE2E2",
-    text: "#EF4444",
-    badgeBg: "#FEE2E2",
-    badgeBorder: "rgba(239,68,68,0.3)",
-    badgeText: "#EF4444",
+    border: "#d98b0f",
+    bg: "#fbf3e4",
+    text: "#d98b0f",
+    badgeBg: "#fbf3e4",
+    badgeBorder: "rgba(217,139,15,0.3)",
+    badgeText: "#d98b0f",
   },
   noShow: {
-    border: "#C08A1B",
-    bg: "#FBF1DA",
-    text: "#C08A1B",
-    badgeBg: "#FBF1DA",
-    badgeBorder: "rgba(192,138,27,0.3)",
-    badgeText: "#C08A1B",
+    border: "#e5484d",
+    bg: "#fdeef0",
+    text: "#e5484d",
+    badgeBg: "#fdeef0",
+    badgeBorder: "rgba(229,72,77,0.3)",
+    badgeText: "#e5484d",
   },
 };
 

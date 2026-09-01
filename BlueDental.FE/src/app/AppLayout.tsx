@@ -480,10 +480,7 @@ export function AppLayout() {
 
               <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
                 <div className="app-header-user" role="button" tabIndex={0} aria-label={t("Tài khoản người dùng")}>
-                  <Avatar
-                    size={32}
-                    style={{ backgroundColor: brand.blue, fontSize: 13, fontWeight: 700 }}
-                  >
+                  <Avatar size={32} className="app-header-avatar">
                     {initialsOf(user?.name)}
                   </Avatar>
                   <span className="app-header-user-name">{user?.name ?? "Admin"}</span>
