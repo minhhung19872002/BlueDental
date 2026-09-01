@@ -33,7 +33,7 @@ const STATUS_COLORS: Record<ToothStatus, string> = {
   healthy: "#ffffff",
   treated: "#a5b4fc",
   decayed: "#f2b6b8",
-  missing: "#EEEEEE",
+  missing: "#f0f2fa",
   implant: "#a7e0c9",
   crown: "#fbe6a8",
   bridge: "#c9b6f2",
@@ -43,7 +43,7 @@ const STATUS_STROKE: Record<ToothStatus, string> = {
   healthy: "#a5b4fc",
   treated: "#6366f1",
   decayed: "#cf3c41",
-  missing: "#BDBDBD",
+  missing: "#c3c9d8",
   implant: "#0e9f6e",
   crown: "#d98b0f",
   bridge: "#7c5ce0",
@@ -241,7 +241,7 @@ export function DentalChartView({
           y1={upperY - 4}
           x2={TOTAL_W / 2}
           y2={lowerY + TOOTH_H + 4}
-          stroke="#C5D5E4"
+          stroke="#c3c9d8"
           strokeWidth={1.5}
           strokeDasharray="4,3"
         />
@@ -262,7 +262,7 @@ export function DentalChartView({
           fontSize={10.5}
           fontWeight={700}
           letterSpacing={1.2}
-          fill="#7d8a9c"
+          fill="#7d85a5"
           fontFamily="inherit"
           style={{ textTransform: "uppercase" }}
         >
@@ -275,7 +275,7 @@ export function DentalChartView({
           fontSize={10.5}
           fontWeight={700}
           letterSpacing={1.2}
-          fill="#7d8a9c"
+          fill="#7d85a5"
           fontFamily="inherit"
           style={{ textTransform: "uppercase" }}
         >

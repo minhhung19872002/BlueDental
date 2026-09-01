@@ -95,7 +95,7 @@ function InvoiceConfigDialog({ open, onClose }: DialogProps) {
                       y="38%"
                       dominantBaseline="central"
                       textAnchor="middle"
-                      fill="#1a1a1a"
+                      fill="#171c33"
                       fontFamily="Arial, sans-serif"
                       fontWeight="700"
                       fontSize="28"

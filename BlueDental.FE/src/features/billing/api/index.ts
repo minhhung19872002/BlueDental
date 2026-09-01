@@ -23,7 +23,7 @@ export const invoiceStatusConfig = (): Record<
   [INVOICE_STATUS.PartiallyPaid]: { label: t("Thu một phần"), color: "#d98b0f" },
   [INVOICE_STATUS.Paid]: { label: t("Đã thanh toán"), color: "#0e9f6e" },
   [INVOICE_STATUS.Overdue]: { label: t("Quá hạn"), color: "#e5484d" },
-  [INVOICE_STATUS.Voided]: { label: t("Đã huỷ"), color: "#7d8a9c" },
+  [INVOICE_STATUS.Voided]: { label: t("Đã huỷ"), color: "#7d85a5" },
   [INVOICE_STATUS.Refunded]: { label: t("Đã hoàn tiền"), color: "#7c5ce0" },
 });
 

@@ -76,7 +76,7 @@
 }
 
 .bd-msg-provider-card--active {
-  border-color: var(--bd-primary, #1677ff);
+  border-color: var(--bd-primary, #6366f1);
 }
 
 .bd-msg-provider-img {
@@ -85,7 +85,7 @@
   justify-content: center;
   width: 120px;
   height: 120px;
-  border-radius: 8px;
+  border-radius: 10px;
   background: #eef1fb;
 }
 
@@ -126,13 +126,13 @@
   padding: 18px 12px;
   border: 1px solid var(--bd-line);
   border-radius: var(--bd-radius-card, 10px);
-  background: var(--bd-bg-soft, #f8fafc);
+  background: var(--bd-bg-soft, #f7f8fd);
   cursor: pointer;
   font: inherit;
 }
 
 .bd-call-provider-card--active {
-  border-color: var(--bd-primary, #1677ff);
+  border-color: var(--bd-primary, #6366f1);
   background: #fff;
 }
 

@@ -536,7 +536,7 @@ function CashflowTab({ period }: { period: PeriodRange }) {
 
       {(stats?.pendingExpenseCount ?? 0) > 0 && (
         <div className="reception-card" style={{ padding: "10px 16px", marginBottom: 12 }}>
-          <Text style={{ fontSize: 13, color: "#B45309" }}>
+          <Text style={{ fontSize: 13, color: "#d98b0f" }}>
             {t("{0} phiếu chi đang chờ duyệt ({1} đ) — chưa được tính vào tổng chi.", stats?.pendingExpenseCount ?? 0, formatVND(stats?.pendingExpense ?? 0))}
           </Text>
         </div>

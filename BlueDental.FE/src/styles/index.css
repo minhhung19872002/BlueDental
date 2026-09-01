@@ -103,9 +103,9 @@
   --fc-button-text-color: #fff;
   --fc-button-bg-color: var(--bd-blue-light);
   --fc-button-border-color: var(--bd-blue-light);
-  --fc-button-hover-bg-color: #1e2b37;
-  --fc-button-hover-border-color: #1a252f;
-  --fc-button-active-bg-color: #1a252f;
+  --fc-button-hover-bg-color: #171c33;
+  --fc-button-hover-border-color: #171c33;
+  --fc-button-active-bg-color: #171c33;
   --fc-button-active-border-color: var(--bd-blue-dark);
   --fc-event-bg-color: var(--bd-blue-light);
   --fc-event-border-color: var(--bd-blue-light);
@@ -294,8 +294,8 @@ button {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cdd7e3;
-  border-radius: 8px;
+  background: #cdd3e8;
+  border-radius: 10px;
   border: 3px solid transparent;
   background-clip: content-box;
 }
@@ -724,7 +724,7 @@ button {
   display: inline-flex;
   gap: 0;
   border: 1px solid var(--bd-line-soft);
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 4px;
 }
 
@@ -840,7 +840,7 @@ button {
   font-size: 11px;
   font-weight: 400;
   color: #78819c;
-  background: #f4f6fa;
+  background: #f7f8fd;
   border: 1px solid #e7eaf6;
   border-radius: 4px;
   padding: 2px 6px;
@@ -1033,7 +1033,7 @@ button {
   align-items: center;
   gap: 12px;
   padding: 10px 8px;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   transition: background 0.15s;
 }
@@ -1401,7 +1401,7 @@ button {
   margin: 18px 0 0;
   font-size: 15px;
   line-height: 1.6;
-  color: #bcc8da;
+  color: #b9c2dd;
 }
 
 .login-stats {
@@ -1534,7 +1534,7 @@ button {
   width: 40px;
   height: 40px;
   border: 1px solid var(--bd-blue-pale);
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--bd-blue-pale);
   color: var(--bd-blue);
   cursor: pointer;
@@ -1595,7 +1595,7 @@ button {
   cursor: default;
 }
 
-/* The design's header strip: 11.5px small caps on #fafbfd. Its rows carry
+/* The design's header strip: 11.5px small caps on #f7f8fd. Its rows carry
    20px of padding at the card's edge and a 12px gap between columns, so a
    table cell takes half that gap on each side and the outer cells make up the
    edge. That keeps the design's rhythm without widening every column. */
@@ -1865,7 +1865,7 @@ button {
   gap: 2px;
   background: #ffffff;
   padding: 4px;
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid #e7eaf6;
   height: 40px;
 }
@@ -1877,9 +1877,9 @@ button {
   padding: 0 14px;
   font-size: 12px;
   font-weight: 500;
-  color: #64748b;
+  color: #5c6484;
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: 10px;
   transition: all 0.15s ease;
   white-space: nowrap;
   line-height: 29px;
@@ -1887,7 +1887,7 @@ button {
 
 .reception-status-pill:hover {
   background: #e7eaf6;
-  color: #1e293b;
+  color: #171c33;
 }
 
 .reception-status-pill--active {
@@ -1988,13 +1988,13 @@ button {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: #E0F2FE;
+  background: #e2f2f9;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 16px;
   font-size: 24px;
-  color: #0284C7;
+  color: #0e94d0;
 }
 
 .reception-empty-title {
@@ -2029,7 +2029,7 @@ button {
   height: 40px;
   padding: 0 12px;
   border: 1px solid #e7eaf6;
-  border-radius: 8px;
+  border-radius: 10px;
   background: #fff;
   cursor: pointer;
   transition: border-color 0.15s, box-shadow 0.15s;
@@ -2051,7 +2051,7 @@ button {
 }
 
 .ss-wrapper--disabled .ss-trigger {
-  background: #f4f6fa;
+  background: #f7f8fd;
   cursor: not-allowed;
   opacity: 0.7;
 }
@@ -2127,7 +2127,7 @@ button {
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  border-bottom: 1px solid #eef2f7;
+  border-bottom: 1px solid #f0f2fa;
   overflow: hidden;
 }
 
@@ -2188,7 +2188,7 @@ button {
 }
 
 .ss-option--selected:hover {
-  background: #DBEAFE;
+  background: #eef0ff;
 }
 
 .ss-empty {
@@ -2389,7 +2389,15 @@ button {
   width: 100%;
   max-width: 46px;
   border-radius: 8px 8px 4px 4px;
-  transition: height 0.3s ease;
+  transform-origin: bottom;
+  animation: barGrow 0.6s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
+  transition:
+    height 0.3s ease,
+    filter 0.15s ease;
+}
+
+.dash-bar:hover {
+  filter: brightness(1.12) drop-shadow(0 6px 14px rgba(99, 102, 241, 0.45));
 }
 
 .dash-bar-value {
@@ -2995,7 +3003,7 @@ body {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: #f3f4f6;
+  background: #f0f2fa;
   cursor: pointer;
   flex-shrink: 0;
 }
@@ -3307,7 +3315,7 @@ body {
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   transition: background 0.15s;
 }
@@ -4099,7 +4107,7 @@ html:has(.ant-modal-wrap) {
 
 .app-search-hit:hover,
 .app-search-hit:focus-visible {
-  background: #f5f8fd;
+  background: #f7f8fd;
   outline: none;
 }
 
@@ -4141,7 +4149,7 @@ html:has(.ant-modal-wrap) {
 }
 
 .app-search-hit-arrow {
-  color: #b3bdc9;
+  color: #b9c2dd;
   flex: none;
 }
 
@@ -4258,7 +4266,7 @@ html:has(.ant-modal-wrap) {
   padding: 0 10px;
   border: 1px solid var(--bd-line);
   background: #ffffff;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 11.5px;
   font-weight: 600;
   color: var(--bd-blue);
@@ -4269,7 +4277,7 @@ html:has(.ant-modal-wrap) {
 
 .dg-action:hover {
   border-color: var(--bd-blue);
-  background: #f2f6fd;
+  background: #f7f8fd;
 }
 
 .dg-empty {
@@ -4361,7 +4369,7 @@ html:has(.ant-modal-wrap) {
 .rec-cancel:hover {
   border-color: var(--bd-red);
   color: var(--bd-red);
-  background: #fdeeee;
+  background: #fce9ea;
 }
 
 /* Tools' own styles moved to features/tools/components/tools.css. */
@@ -4380,7 +4388,7 @@ html:has(.ant-modal-wrap) {
   display: flex;
   align-items: center;
   font-size: 14px;
-  color: #9ca3af;
+  color: #99a0bd;
   pointer-events: none;
   transition: all 0.15s ease;
   background: transparent;
@@ -4677,7 +4685,7 @@ html:has(.ant-modal-wrap) {
   height: 30px;
   border: 1px solid var(--bd-line);
   background: #ffffff;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   font-size: 15px;
   line-height: 1;
@@ -4853,8 +4861,8 @@ html:has(.ant-modal-wrap) {
   overflow: auto;
   padding: 16px;
   border: 1px solid var(--bd-line);
-  border-radius: 8px;
-  background: #e9edf3;
+  border-radius: 10px;
+  background: #e7eaf6;
 }
 
 .bd-a4-page {
@@ -5021,7 +5029,7 @@ html:has(.ant-modal-wrap) {
   border-bottom: 1px dotted #000;
   border-radius: 0;
   padding: 2px 4px;
-  background: #fffde7;
+  background: #faf1e2;
   color: #000;
   font: inherit;
   font-size: 14px;
@@ -5034,7 +5042,7 @@ html:has(.ant-modal-wrap) {
   font-style: italic;
 }
 
-.bd-a4-cellinput:focus { background: #fff9c4; }
+.bd-a4-cellinput:focus { background: #faf1e2; }
 
 /* Tailwind's preflight used to zero the browser's own margins on headings and
    paragraphs. It went with Tailwind, and main's reset only covers box-sizing
@@ -5108,7 +5116,7 @@ html:has(.ant-modal-wrap) {
 
 .bd-primary-text { color: var(--bd-blue); }
 
-.bd-danger-text { color: #d4380d; cursor: pointer; }
+.bd-danger-text { color: #cf3c41; cursor: pointer; }
 
 .bd-danger-text:disabled { opacity: 0.4; cursor: not-allowed; }
 
@@ -5547,7 +5555,7 @@ html:has(.ant-modal-wrap) {
   height: 96px;
   flex-shrink: 0;
   border: 1px solid var(--bd-line);
-  border-radius: 8px;
+  border-radius: 10px;
   background: #fff;
   object-fit: contain;
 }
@@ -5559,7 +5567,7 @@ html:has(.ant-modal-wrap) {
   align-items: center;
   gap: 8px;
   border: 1px dashed var(--bd-line);
-  border-radius: 8px;
+  border-radius: 10px;
   background: none;
   padding: 12px 16px;
   font-size: 14px;
@@ -5578,9 +5586,9 @@ html:has(.ant-modal-wrap) {
 /* Matches the shading the sheet gives every fillable cell, so the legend and
    the form cannot drift apart. */
 .bd-a4-swatch {
-  border: 1px dotted #d48806;
+  border: 1px dotted #d98b0f;
   border-radius: 2px;
-  background: #fffde7;
+  background: #faf1e2;
   padding-inline: 4px;
 }
 
@@ -5594,7 +5602,7 @@ html:has(.ant-modal-wrap) {
   width: 100%;
   align-items: center;
   gap: 10px;
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 10px 12px;
   text-align: left;
   color: var(--bd-muted);
@@ -5686,7 +5694,7 @@ html:has(.ant-modal-wrap) {
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 13px;
   font-weight: 700;
   color: #fff;
@@ -6413,7 +6421,7 @@ html:has(.ant-modal-wrap) {
   font-size: 16px;
 }
 
-.bd-ops-stat-icon--teal { background: #e6f5ef; color: var(--bd-green); }
+.bd-ops-stat-icon--teal { background: #e3f6ef; color: var(--bd-green); }
 .bd-ops-stat-icon--blue { background: var(--bd-blue-pale); color: var(--bd-blue); }
 .bd-ops-stat-icon--amber { background: var(--bd-amber-pale); color: var(--bd-amber); }
 .bd-ops-stat-icon--green { background: var(--bd-green-pale); color: var(--bd-green); }
@@ -6947,7 +6955,7 @@ html:has(.ant-modal-wrap) {
   padding: 8px 12px;
   border: 1px solid var(--bd-line);
   border-radius: 12px;
-  background: var(--bd-bg-soft, #fcfdfe);
+  background: var(--bd-bg-soft, #f7f8fd);
 }
 
 .bd-alloc-line-name {
@@ -7022,8 +7030,8 @@ html:has(.ant-modal-wrap) {
 
 /* The reference picks these two figures out in colour: what went out in teal,
    what is confirmed still there in amber. */
-.bd-mat-issued { color: #107569; font-weight: 600; }
-.bd-mat-remaining { color: #b45309; font-weight: 600; }
+.bd-mat-issued { color: #0e9f6e; font-weight: 600; }
+.bd-mat-remaining { color: #d98b0f; font-weight: 600; }
 .bd-mat-code { color: var(--bd-blue); font-weight: 500; }
 
 /* Pushed to the far right of the toolbar. Also used on the span that wraps a

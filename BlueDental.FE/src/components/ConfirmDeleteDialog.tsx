@@ -50,7 +50,7 @@ export function ConfirmDeleteDialog({ open, noun, name, pending, onConfirm, onCl
       <p style={{ margin: 0 }}>
         {tRich("Bạn có chắc muốn xoá {0} {1} không?", noun, <strong>{name}</strong>)}
       </p>
-      <p style={{ margin: "4px 0 0", color: "var(--bd-text-muted, #8c8c8c)", fontSize: 13 }}>
+      <p style={{ margin: "4px 0 0", color: "var(--bd-text-muted, #7d85a5)", fontSize: 13 }}>
         {t("Hành động này không thể hoàn tác.")}
       </p>
     </Modal>

@@ -15,7 +15,7 @@ export function PendingActionsCard() {
         </div>
         <div
           className="stat-card-icon"
-          style={{ background: "#FFF3E0", color: brand.amber }}
+          style={{ background: "#faf1e2", color: brand.amber }}
         >
           <ExclamationCircleOutlined />
         </div>

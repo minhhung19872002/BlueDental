@@ -20,12 +20,12 @@ function formatDuration(totalMinutes: number): string {
 }
 
 const CHIPS: ChipConfig[] = [
-  { key: "totalStaff", label: () => t("Tổng CBNV"), border: "#c7cdfb", bg: "#eef0ff", color: "#1E5BB0" },
-  { key: "registeredWorking", label: () => t("Đăng kí làm"), border: "#BDE8CF", bg: "#e3f6ef", color: "#1F7A45" },
-  { key: "registeredDayOff", label: () => t("Đăng kí nghỉ"), border: "#f7c6c8", bg: "#fdeced", color: "#cf3c41" },
-  { key: "currentlyWorking", label: () => t("Đang làm việc"), border: "#BDE8CF", bg: "#e3f6ef", color: "#1F7A45" },
-  { key: "abandoned", label: () => t("Nghỉ ngang"), border: "#f7c6c8", bg: "#fdeced", color: "#cf3c41", showAlert: true, tooltip: () => t("Nhân viên bị hệ thống ghi nhận vắng không báo trước hoặc đã vào ca nhưng qua hết ngày vẫn chưa bấm kết ca.") },
-  { key: "totalOvertimeMinutes", label: () => t("Giờ tăng ca"), border: "#E8CF92", bg: "#F7E7C2", color: "#9A6A10", format: formatDuration },
+  { key: "totalStaff", label: () => t("Tổng CBNV"), border: "#c8cafa", bg: "#eceefd", color: "#6366f1" },
+  { key: "registeredWorking", label: () => t("Đăng kí làm"), border: "#abddcc", bg: "#e2f4ee", color: "#0e9f6e" },
+  { key: "registeredDayOff", label: () => t("Đăng kí nghỉ"), border: "#f2d6ab", bg: "#faf1e2", color: "#d98b0f" },
+  { key: "currentlyWorking", label: () => t("Đang làm việc"), border: "#abddcc", bg: "#e2f4ee", color: "#0e9f6e" },
+  { key: "abandoned", label: () => t("Nghỉ ngang"), border: "#f2d6ab", bg: "#faf1e2", color: "#d98b0f", showAlert: true, tooltip: () => t("Nhân viên bị hệ thống ghi nhận vắng không báo trước hoặc đã vào ca nhưng qua hết ngày vẫn chưa bấm kết ca.") },
+  { key: "totalOvertimeMinutes", label: () => t("Giờ tăng ca"), border: "#f6bfc1", bg: "#fce9ea", color: "#e5484d", format: formatDuration },
 ];
 
 const AlertIcon = () => (

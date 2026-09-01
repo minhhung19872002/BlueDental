@@ -59,17 +59,17 @@
 .cskh-counter--total { --tile-color: var(--bd-blue); }
 .cskh-counter--success { --tile-color: #0e9f6e; }
 .cskh-counter--fail { --tile-color: #e5484d; }
-.cskh-counter--new { --tile-color: #f5a400; }
-.cskh-counter--zalo { --tile-color: #0068ff; }
+.cskh-counter--new { --tile-color: #d98b0f; }
+.cskh-counter--zalo { --tile-color: #6366f1; }
 
 .cskh-action--phone { --action-color: #0e9f6e; }
-.cskh-action--message { --action-color: #f5a400; }
-.cskh-action--send { --action-color: #0068ff; }
+.cskh-action--message { --action-color: #d98b0f; }
+.cskh-action--send { --action-color: #6366f1; }
 .cskh-action--care { --action-color: var(--bd-blue); }
 
 .cskh-color-radio--good { --label-color: #0e9f6e; }
 .cskh-color-radio--fair { --label-color: var(--bd-blue); }
-.cskh-color-radio--normal { --label-color: #f5a400; }
+.cskh-color-radio--normal { --label-color: #d98b0f; }
 .cskh-color-radio--complaint { --label-color: #e5484d; }
 
 /* Date-mode pills sit left of the arrows, same look as the board pill tabs. */
@@ -139,7 +139,7 @@
   color: var(--bd-ink);
 }
 
-/* Static CSKH status badge — reference: rounded-full bg #EEF2F7 text #5A6B82. */
+/* Static CSKH status badge — reference: rounded-full bg #f0f2fa text #5c6484. */
 .cskh-badge {
   display: inline-flex;
   align-items: center;
@@ -147,8 +147,8 @@
   padding: 4px 12px;
   font-size: 12px;
   font-weight: 500;
-  background: #eef2f7;
-  color: #5a6b82;
+  background: #f0f2fa;
+  color: #5c6484;
   white-space: nowrap;
 }
 
@@ -333,7 +333,7 @@
    selects whose labels rest on the border while the same text shows inside. */
 .cskh-patient-bar {
   padding: 10px 14px;
-  border-radius: 8px;
+  border-radius: 10px;
   background: color-mix(in srgb, var(--bd-blue) 7%, #ffffff);
   font-weight: 600;
   color: var(--bd-ink);
@@ -378,7 +378,7 @@
   gap: 8px;
 }
 
-/* Reference: 12px / 400 / #5a6b82 label on the quick-month buttons. */
+/* Reference: 12px / 400 / #5c6484 label on the quick-month buttons. */
 .cskh-quick-months .ant-btn {
   font-size: 12px;
   font-weight: 400;

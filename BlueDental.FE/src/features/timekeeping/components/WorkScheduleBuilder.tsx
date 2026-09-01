@@ -427,7 +427,7 @@ export function WorkScheduleBuilder({ currentDate, onBack }: Props) {
       <div className="wsb-help">
         <strong style={{ color: "#0e9f6e" }}>{t("Làm")}</strong>
         {" / "}
-        <strong style={{ color: "#7C5CFC" }}>{t("Làm nửa buổi")}</strong>
+        <strong style={{ color: "#7c5ce0" }}>{t("Làm nửa buổi")}</strong>
         {" "}
         {t("chỉ tính khi nhân viên đã vào ca. Ngày chưa vào ca để trống; quá khứ không vào ca sẽ hiện Vắng.")}
       </div>

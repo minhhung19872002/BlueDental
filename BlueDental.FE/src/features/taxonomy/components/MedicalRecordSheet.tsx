@@ -40,7 +40,7 @@ const PAGE_HEIGHT = 1053;
 /** Space between the sheets, matching the reference's stack. */
 const PAGE_GAP = 16;
 
-/** #FFFDE7 — the yellow the reference shades every editable cell with. */
+/** #faf1e2 — the yellow the reference shades every editable cell with. */
 const EDITABLE = "bd-a4-cellinput";
 
 /** A rule the clinic writes on by hand: dotted, no shading, not editable. */

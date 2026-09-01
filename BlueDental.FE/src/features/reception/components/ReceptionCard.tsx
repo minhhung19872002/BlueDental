@@ -36,15 +36,15 @@ interface CounterBadgeStyle {
 }
 
 const COUNTER_STATUS_STYLE: Record<AppointmentCounterType, CounterBadgeStyle> = {
-  Scheduled: { bg: "#eef0ff", border: "#c7cdfb", color: "#1E5BB0" },
-  Arrived:   { bg: "#E9F8EE", border: "#B9E6C9", color: "#237B4B" },
-  Cancelled: { bg: "#fdeced", border: "#f7c6c8", color: "#cf3c41" },
-  Late:      { bg: "#FBEBCB", border: "#FBEBCB", color: "#9A680F" },
-  Temporary: { bg: "#F9E3CC", border: "#E8C19B", color: "#B7611F" },
-  Converted: { bg: "#D5ECF7", border: "#AAD7EA", color: "#176F99" },
+  Scheduled: { bg: "#eceefd", border: "#c8cafa", color: "#6366f1" },
+  Arrived:   { bg: "#e2f4ee", border: "#abddcc", color: "#0e9f6e" },
+  Cancelled: { bg: "#faf1e2", border: "#f2d6ab", color: "#d98b0f" },
+  Late:      { bg: "#fce9ea", border: "#f6bfc1", color: "#e5484d" },
+  Temporary: { bg: "#efebfb", border: "#d1c6f4", color: "#7c5ce0" },
+  Converted: { bg: "#e2f2f9", border: "#abd9ee", color: "#0e94d0" },
 };
 
-const STEP_COLORS = ["#5A95F5", "#F4A62A", "#41AE63"] as const;
+const STEP_COLORS = ["#6366f1", "#d98b0f", "#0e9f6e"] as const;
 
 type NonNullOutcome = Exclude<AppointmentOutcome, null>;
 
@@ -98,8 +98,8 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
 
   const getCardStyle = (): React.CSSProperties => {
     if (isCancelled) return { background: "#fdeced", borderColor: "#f7c6c8" };
-    if (step3Done) return { background: "#EAF8EF", borderColor: "#41AE63" };
-    if (step1Done) return { background: "#EAF3FF", borderColor: "#5A95F5" };
+    if (step3Done) return { background: "#e2f4ee", borderColor: "#0e9f6e" };
+    if (step1Done) return { background: "#eef0ff", borderColor: "#6366f1" };
     return {};
   };
 

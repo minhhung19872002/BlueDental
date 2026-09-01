@@ -286,5 +286,5 @@ export const CARD_LOOK: Record<AppointmentStatus, { bg: string; border: string; 
   inProgress: { bg: "#e3f6ef", border: "#0e9f6e", text: "#0e9f6e" },
   completed:  { bg: "#e3f6ef", border: "#0e9f6e", text: "#0e9f6e" },
   cancelled:  { bg: "#fdeced", border: "#e5484d", text: "#e5484d" },
-  noShow:     { bg: "#FBF1DA", border: "#d98b0f", text: "#d98b0f" },
+  noShow:     { bg: "#faf1e2", border: "#d98b0f", text: "#d98b0f" },
 };

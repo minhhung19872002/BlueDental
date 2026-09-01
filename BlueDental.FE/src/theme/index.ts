@@ -97,7 +97,7 @@ export const themeConfig: ThemeConfig = {
     Menu: {
       itemBg: "transparent",
       subMenuItemBg: "transparent",
-      itemColor: "#aeb6dd",
+      itemColor: "#b9c2dd",
       itemHoverBg: "rgba(255,255,255,.08)",
       itemHoverColor: "#ffffff",
       itemSelectedBg: brand.blue,
@@ -246,8 +246,8 @@ export const HEADER_HEIGHT = 66;
 export const statusPalette = {
   scheduled: { label: "Đã đặt lịch", bg: "#eef0ff", color: "#6366f1" },
   confirmed: { label: "Đã xác nhận", bg: "#e3f6ef", color: "#0e9f6e" },
-  inProgress: { label: "Đang khám", bg: "#FFF8E1", color: "#E65100" },
+  inProgress: { label: "Đang khám", bg: "#faf1e2", color: "#d98b0f" },
   completed: { label: "Hoàn thành", bg: "#e3f6ef", color: "#0e9f6e" },
-  cancelled: { label: "Đã hủy", bg: "#FFEBEE", color: "#cf3c41" },
-  noShow: { label: "Không đến", bg: "#F3E5F5", color: "#7c5ce0" },
+  cancelled: { label: "Đã hủy", bg: "#fce9ea", color: "#cf3c41" },
+  noShow: { label: "Không đến", bg: "#efebfb", color: "#7c5ce0" },
 } as const;

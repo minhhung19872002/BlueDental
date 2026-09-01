@@ -139,7 +139,7 @@ export function CallConfigDialog({ open, config, onClose }: Props) {
                       y="50%"
                       dominantBaseline="central"
                       textAnchor="middle"
-                      fill="#1677ff"
+                      fill="#6366f1"
                       fontFamily="Arial, sans-serif"
                       fontWeight="700"
                       fontSize="18"

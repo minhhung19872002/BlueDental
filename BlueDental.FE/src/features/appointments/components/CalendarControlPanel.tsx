@@ -12,12 +12,12 @@ import type { Dayjs } from "dayjs";
 import { t } from "@/lib/i18n";
 
 const STATUS_CHIPS = [
-  { key: "scheduled", label: () => t("Đã hẹn"), bg: "#eef0ff", border: "#c7cdfb", color: "#1E5BB0" },
-  { key: "arrived", label: () => t("Đã đến"), bg: "#e3f6ef", border: "#BDE8CF", color: "#1F7A45" },
-  { key: "cancelled", label: () => t("Huỷ hẹn"), bg: "#fdeced", border: "#f7c6c8", color: "#cf3c41" },
-  { key: "late", label: () => t("Trễ hẹn"), bg: "#F7E7C2", border: "#E8CF92", color: "#9A6A10" },
-  { key: "temporary", label: () => t("Lịch tạm"), bg: "#F9E3CC", border: "#E8C19B", color: "#B7611F" },
-  { key: "converted", label: () => t("Chuyển đổi"), bg: "#D5ECF7", border: "#AAD7EA", color: "#176F99" },
+  { key: "scheduled", label: () => t("Đã hẹn"), bg: "#eceefd", border: "#c8cafa", color: "#6366f1" },
+  { key: "arrived", label: () => t("Đã đến"), bg: "#e2f4ee", border: "#abddcc", color: "#0e9f6e" },
+  { key: "cancelled", label: () => t("Huỷ hẹn"), bg: "#faf1e2", border: "#f2d6ab", color: "#d98b0f" },
+  { key: "late", label: () => t("Trễ hẹn"), bg: "#fce9ea", border: "#f6bfc1", color: "#e5484d" },
+  { key: "temporary", label: () => t("Lịch tạm"), bg: "#efebfb", border: "#d1c6f4", color: "#7c5ce0" },
+  { key: "converted", label: () => t("Chuyển đổi"), bg: "#e2f2f9", border: "#abd9ee", color: "#0e94d0" },
 ] as const;
 
 interface Props {

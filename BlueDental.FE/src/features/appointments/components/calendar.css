@@ -55,7 +55,7 @@
 .cal-counter-btn {
   outline: none;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 2px;
   background: none;
   cursor: pointer;
@@ -153,7 +153,7 @@
 .cal-selection-btn {
   height: 32px;
   padding: 0 16px;
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid #e7eaf6;
   background: #fff;
   color: #414a6b;
@@ -164,7 +164,7 @@
 }
 
 .cal-selection-btn:hover {
-  background: #f1f5f9;
+  background: #f0f2fa;
 }
 
 .cal-selection-btn--danger {
@@ -205,7 +205,7 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  background: #fafbfd;
+  background: #f7f8fd;
   border-bottom: 1px solid #e7eaf6;
   border-right: 1px solid #e7eaf6;
   padding: 8px 4px;
@@ -252,7 +252,7 @@
   font-size: 12px;
   color: #171c33;
   font-weight: 500;
-  background: #fafbfd;
+  background: #f7f8fd;
   font-variant-numeric: tabular-nums;
   box-sizing: border-box;
 }
@@ -285,7 +285,7 @@
 }
 
 .cal-day-cell--even {
-  background: #fafbfd;
+  background: #f7f8fd;
 }
 
 .cal-day-cell--odd {
@@ -348,7 +348,7 @@
 }
 
 .cal-day-page-btn:hover {
-  background: #f1f5f9;
+  background: #f0f2fa;
 }
 
 .cal-day-page-spacer {
@@ -413,7 +413,7 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  background: #fafbfd;
+  background: #f7f8fd;
   border-bottom: 1px solid #e7eaf6;
   border-right: 1px solid #e7eaf6;
   height: auto;
@@ -444,10 +444,10 @@
   font-size: 12px;
   color: #171c33;
   font-weight: 500;
-  background: #fafbfd;
+  background: #f7f8fd;
   font-variant-numeric: tabular-nums;
   box-sizing: border-box;
-  background: #fafbfd;
+  background: #f7f8fd;
   box-sizing: border-box;
 }
 
@@ -465,7 +465,7 @@
 }
 
 .cal-week-day-col--today {
-  background: #FAFBFF;
+  background: #f7f8fd;
 }
 
 /* ── Month view ───────────────────────────────────────────────────── */
@@ -481,7 +481,7 @@
   text-align: center;
   font-size: 14px;
   font-weight: 500;
-  color: #5A6B82;
+  color: #5c6484;
   border-bottom: 1px solid #e7eaf6;
 }
 
@@ -559,7 +559,7 @@ body.cal-fullscreen .cal-grid-wrap {
 }
 
 .cal-fab--create {
-  background: #22C55E;
+  background: #0e9f6e;
 }
 
 .cal-fab--filter {
@@ -640,11 +640,11 @@ body.cal-fullscreen .cal-grid-wrap {
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  color: #6B7280;
+  color: #5c6484;
 }
 
 .cal-panel-close:hover {
-  background: #f1f5f9;
+  background: #f0f2fa;
   color: #171c33;
 }
 
@@ -718,7 +718,7 @@ body.cal-fullscreen .cal-grid-wrap {
 .cal-panel-filter-label {
   font-size: 12px;
   font-weight: 600;
-  color: #64748b;
+  color: #5c6484;
   margin-bottom: 4px;
   display: block;
 }
@@ -741,7 +741,7 @@ body.cal-fullscreen .cal-grid-wrap {
   padding: 6px 12px;
   font-size: 12px;
   font-weight: 500;
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid var(--chip-border);
   background: var(--chip-bg);
   color: var(--chip-color);
@@ -845,7 +845,7 @@ body.cal-fullscreen .cal-grid-wrap {
   border: 0;
   background: transparent;
   cursor: pointer;
-  color: #6B7280;
+  color: #5c6484;
   border-radius: 4px;
   padding: 0;
 }
@@ -884,13 +884,13 @@ body.cal-fullscreen .cal-grid-wrap {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #424242;
+  color: #171c33;
 }
 
 .evt-card-label {
   font-size: 12px;
   font-weight: 500;
-  color: #424242;
+  color: #171c33;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -933,7 +933,7 @@ body.cal-fullscreen .cal-grid-wrap {
 }
 
 .evt-card-badge--completed {
-  --badge-bg: #DCFCE7;
+  --badge-bg: #e3f6ef;
   --badge-border: rgba(22, 163, 74, 0.3);
   --badge-text: #0e9f6e;
 }
@@ -945,7 +945,7 @@ body.cal-fullscreen .cal-grid-wrap {
 }
 
 .evt-card-badge--noShow {
-  --badge-bg: #FBF1DA;
+  --badge-bg: #faf1e2;
   --badge-border: rgba(192, 138, 27, 0.3);
   --badge-text: #d98b0f;
 }
@@ -954,7 +954,7 @@ body.cal-fullscreen .cal-grid-wrap {
 
 .cal-month-cell {
   border: 0;
-  background: #f9fafb;
+  background: #f7f8fd;
   border-right: 1px solid #e7eaf6;
   border-bottom: 1px solid #e7eaf6;
   padding: 8px 12px;
@@ -968,7 +968,7 @@ body.cal-fullscreen .cal-grid-wrap {
 }
 
 .cal-month-cell:hover {
-  background: #f1f5f9;
+  background: #f0f2fa;
 }
 
 .cal-month-cell--outside {
@@ -1086,7 +1086,7 @@ body.cal-fullscreen .cal-grid-wrap {
   border-radius: 6px;
   font-size: 14px;
   color: var(--bd-text);
-  background: var(--bd-bg-soft, #f9fafb);
+  background: var(--bd-bg-soft, #f7f8fd);
 }
 
 .appt-field-error {
@@ -1205,7 +1205,7 @@ body.cal-fullscreen .cal-grid-wrap {
 }
 
 .appt-notes-action-btn--cancel {
-  color: #6B7280;
+  color: #5c6484;
 }
 
 .appt-notes-action-btn--cancel:hover {
@@ -1219,8 +1219,8 @@ body.cal-fullscreen .cal-grid-wrap {
 }
 
 .appt-notes-action-btn--confirm:hover {
-  background: #DBEAFE;
-  color: #1D4ED8;
+  background: #eef0ff;
+  color: #4f46e5;
   border-color: #6366f1;
 }
 
@@ -1307,7 +1307,7 @@ body.cal-fullscreen .cal-grid-wrap {
   position: sticky;
   top: 0;
   z-index: 2;
-  background: #fafbfd;
+  background: #f7f8fd;
 }
 
 .mcal-day-corner {
@@ -1350,7 +1350,7 @@ body.cal-fullscreen .cal-grid-wrap {
   text-overflow: ellipsis;
   display: flex;
   align-items: center;
-  background: #fafbfd;
+  background: #f7f8fd;
 }
 
 .mcal-day-slots {
@@ -1367,7 +1367,7 @@ body.cal-fullscreen .cal-grid-wrap {
 }
 
 .mcal-day-slot:nth-child(even) {
-  background: #fafbfd;
+  background: #f7f8fd;
 }
 
 .mcal-day-evt {
@@ -1375,7 +1375,7 @@ body.cal-fullscreen .cal-grid-wrap {
   top: 3px;
   bottom: 3px;
   border-radius: 4px;
-  background: #dbeafe;
+  background: #eef0ff;
   border-left: 3px solid #6366f1;
   padding: 2px 6px;
   display: flex;
@@ -1387,7 +1387,7 @@ body.cal-fullscreen .cal-grid-wrap {
 .mcal-day-evt-text {
   font-size: 11px;
   font-weight: 500;
-  color: #1e40af;
+  color: #4f46e5;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1517,7 +1517,7 @@ body.cal-fullscreen .cal-grid-wrap {
   border: 0;
   background: none;
   cursor: pointer;
-  color: #6B7280;
+  color: #5c6484;
   border-radius: 4px;
   padding: 0;
   display: inline-flex;

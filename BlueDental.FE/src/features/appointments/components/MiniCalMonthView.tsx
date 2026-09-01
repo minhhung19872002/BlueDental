@@ -20,7 +20,7 @@ const STATUS_GROUPS: {
     key: "arrived",
     label: "Đã đến",
     icon: <CheckCircleOutlined />,
-    color: "#22C55E",
+    color: "#0e9f6e",
     match: (s) => s === "inProgress" || s === "completed",
   },
   {

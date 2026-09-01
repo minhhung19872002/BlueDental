@@ -84,9 +84,9 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  border: 1px solid #F4B4B7;
+  border: 1px solid #f6bfc1;
   background: #fff;
-  color: #D64545;
+  color: #e5484d;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -95,9 +95,9 @@
 }
 
 .rc-cancel-btn:hover {
-  border-color: #E56B6F;
-  background: #FFF3F3;
-  color: #B92F32;
+  border-color: #e5484d;
+  background: #fce9ea;
+  color: #cf3c41;
 }
 
 .rc-card {
@@ -192,20 +192,24 @@
   min-width: 0;
 }
 
-.rc-patient-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--bd-blue);
-  overflow: hidden;
+/*
+ * The name is a button, so two blanket rules outrank a single class here: the
+ * nowrap that keeps chips on one line, and a display reset. Naming the row as
+ * well wins both back, and only then can the two-line clamp do its job.
+ */
+.rc-patient-row .rc-patient-name {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
-  /* Without this the button keeps its content width and the clamp never
-     bites, so a long name runs off the card instead of ending in an
-     ellipsis. */
+  line-clamp: 2;
+  overflow: hidden;
+  white-space: normal;
+  overflow-wrap: anywhere;
   min-width: 0;
   flex: 1;
-  overflow-wrap: anywhere;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--bd-blue);
   cursor: pointer;
   background: none;
   border: none;
@@ -376,7 +380,7 @@
 }
 
 .rc-outcome-btn:hover:not(:disabled) {
-  background: #eef2f7;
+  background: #f0f2fa;
 }
 
 .rc-outcome-btn:disabled {
@@ -385,13 +389,13 @@
 }
 
 .rc-outcome-btn--selected {
-  background: #DCE9FF;
+  background: #eef0ff;
   color: var(--bd-blue);
   font-weight: 600;
 }
 
 .rc-outcome-btn--selected:hover {
-  background: #C8D9F9;
+  background: #c8cafa;
 }
 
 .rc-outcome-btn span {
@@ -400,7 +404,7 @@
 
 .rc-outcome-icon {
   flex-shrink: 0;
-  color: #D0D8E5;
+  color: #dde2f2;
 }
 
 .rc-outcome-icon--selected {

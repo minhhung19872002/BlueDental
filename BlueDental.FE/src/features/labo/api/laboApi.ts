@@ -33,8 +33,8 @@ export type LaboOrderKind = (typeof LABO_ORDER_KIND)[keyof typeof LABO_ORDER_KIN
  * See docs/clone/pages/labo.md §2.5.
  */
 export const LABO_STATUS_TONE = {
-  red: { bg: "#FCE9EC", color: "#E5484D" },
-  green: { bg: "#E6F4EA", color: "#1F9254" },
+  red: { bg: "#fce9ea", color: "#E5484D" },
+  green: { bg: "#e2f4ee", color: "#0e9f6e" },
   gray: { bg: "#f7f8fd", color: "#171c33" },
 } as const;
 

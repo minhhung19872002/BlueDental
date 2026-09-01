@@ -39,7 +39,7 @@
 .date-navigator .date-navigator-arrow.ant-btn.ant-btn-default:focus,
 .date-navigator .date-navigator-arrow.ant-btn.ant-btn-default:active {
   color: var(--bd-ink) !important;
-  background: #f9f7f5 !important;
+  background: #f7f8fd !important;
   border-color: transparent !important;
   box-shadow: none !important;
 }
@@ -61,7 +61,7 @@
 }
 
 .date-navigator-display-wrapper:hover {
-  background: #f9f7f5;
+  background: #f7f8fd;
 }
 
 .date-navigator-icon {
@@ -268,7 +268,7 @@
   padding: 10px 4px;
   border: none;
   background: none;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 13px;
   color: var(--bd-ink);
   cursor: pointer;

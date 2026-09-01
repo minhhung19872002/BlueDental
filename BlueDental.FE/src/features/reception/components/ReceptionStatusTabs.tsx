@@ -47,12 +47,12 @@ interface StatChipConfig {
 }
 
 const STAT_CHIP_CONFIGS: StatChipConfig[] = [
-  { key: "scheduledCount", bg: "#eef0ff", border: "#c7cdfb", color: "#1E5BB0" },
-  { key: "arrivedCount",   bg: "#e3f6ef", border: "#BDE8CF", color: "#1F7A45" },
-  { key: "cancelledCount", bg: "#fdeced", border: "#f7c6c8", color: "#cf3c41" },
-  { key: "lateCount",      bg: "#F7E7C2", border: "#E8CF92", color: "#9A6A10" },
-  { key: "temporaryCount", bg: "#F9E3CC", border: "#E8C19B", color: "#B7611F" },
-  { key: "convertedCount", bg: "#D5ECF7", border: "#AAD7EA", color: "#176F99" },
+  { key: "scheduledCount", bg: "#eceefd", border: "#c8cafa", color: "#6366f1" },
+  { key: "arrivedCount",   bg: "#e2f4ee", border: "#abddcc", color: "#0e9f6e" },
+  { key: "cancelledCount", bg: "#faf1e2", border: "#f2d6ab", color: "#d98b0f" },
+  { key: "lateCount",      bg: "#fce9ea", border: "#f6bfc1", color: "#e5484d" },
+  { key: "temporaryCount", bg: "#efebfb", border: "#d1c6f4", color: "#7c5ce0" },
+  { key: "convertedCount", bg: "#e2f2f9", border: "#abd9ee", color: "#0e94d0" },
 ];
 
 const TAB_LABELS: Record<ReceptionStatus, string> = {
