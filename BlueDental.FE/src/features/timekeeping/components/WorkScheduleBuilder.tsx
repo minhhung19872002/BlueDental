@@ -19,7 +19,7 @@ import {
   type TimeKeepingRecordDto,
 } from "../api/timekeepingApi";
 import { useStaffList } from "@/features/staff/api/staffQueries";
-import { useCurrentBranchId, useBranchFilter } from "@/lib/clinicBranch";
+import { useBranchFilter } from "@/lib/clinicBranch";
 import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
 
@@ -64,7 +64,6 @@ interface Props {
 }
 
 export function WorkScheduleBuilder({ currentDate, onBack }: Props) {
-  const branchId = useCurrentBranchId();
   const branchFilter = useBranchFilter();
   const [builderMonth, setBuilderMonth] = useState(() => currentDate.startOf("month"));
   const [keyword, setKeyword] = useState("");

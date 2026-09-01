@@ -24,9 +24,9 @@ const buildSchema = () =>
     date: z.string().min(1, t("Vui lòng chọn ngày")),
     startTime: z.string().min(1, t("Vui lòng chọn giờ hẹn")),
     durationMinutes: z.number().int().min(15),
-    content: z.string().optional().default(""),
-    color: z.string().optional().default(APPT_COLORS[0].value),
-    notes: z.string().optional().default(""),
+    content: z.string(),
+    color: z.string(),
+    notes: z.string(),
   });
 
 interface Props {

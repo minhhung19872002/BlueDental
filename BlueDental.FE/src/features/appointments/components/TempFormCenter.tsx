@@ -13,7 +13,7 @@ interface Props {
   watchedSourceTaxonomyId: string;
 }
 
-export function TempFormCenter({ control, errors, doctorOptions, watchedSourceTaxonomyId }: Props) {
+export function TempFormCenter({ control, doctorOptions, watchedSourceTaxonomyId }: Props) {
   const { data: sourceGroups } = useTaxonomyGroupOptions(CATALOG_GROUP.Source);
   const { data: sourceEntries } = useCatalogOptions(CATALOG_GROUP.Source);
 

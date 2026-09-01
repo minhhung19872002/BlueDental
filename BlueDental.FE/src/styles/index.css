@@ -8,71 +8,97 @@
      height. Two lines of subtitle: the longer catalog names wrap. */
   --bd-catalog-header-height: 158px;
 
-  --bd-font: "Google Sans", "Be Vietnam Pro", system-ui, -apple-system, sans-serif;
+  --bd-font: "Be Vietnam Pro", system-ui, -apple-system, sans-serif;
 
-  /* Brand — navy primary, synced with ref app structure. */
-  --bd-blue: #1c3566;
-  --bd-blue-dark: #142a54;
-  --bd-blue-light: #6f8ec4;
-  --bd-blue-pale: #e3f0ff;
-  --bd-blue-pale-hover: #d5e5f8;
-  --bd-navy: #1b2a41;
+  /* ---------------------------------------------------------------------
+     Đức Hạnh Premium v2 — light glass + indigo neon.
+     Semantic names kept from v1 so the whole sheet re-points at once.
+     --------------------------------------------------------------------- */
+
+  /* Brand — indigo primary, cyan accent. */
+  --bd-blue: #6366f1;
+  --bd-blue-dark: #4f46e5;
+  --bd-blue-light: #a5b4fc;
+  --bd-blue-pale: #eef0ff;
+  --bd-blue-pale-hover: #e0e4ff;
+  --bd-navy: #232a56;
+  --bd-primary: #6366f1;
+  --bd-accent: #22d3ee;
+  --bd-violet: #8b5cf6;
+
+  /* The one CTA fill: every primary button and active nav pill uses it. */
+  --bd-cta: linear-gradient(120deg, #6366f1, #8b5cf6 55%, #22d3ee 130%);
 
   /* Text ramp, darkest to faintest. */
-  --bd-ink: #1b2a41;
-  --bd-body: #1b2a41;
-  --bd-sub: #41505f;
-  --bd-muted: #5a6b82;
-  --bd-faint: #98a4b4;
-  --bd-dim: #7d8a9c;
+  --bd-ink: #171c33;
+  --bd-body: #171c33;
+  --bd-title: #22285c;
+  --bd-sub: #414a6b;
+  --bd-muted: #5c6484;
+  --bd-faint: #99a0bd;
+  --bd-dim: #7d85a5;
 
   /* Surfaces and rules. */
-  --bd-line: #dce3ee;
-  --bd-line-soft: #eef2f7;
-  --bd-border: #dce3ee;
-  --bd-bg: #f6f8fb;
-  --bd-bg-soft: #fafbfd;
-  --bd-bg-head: #fafbfd;
+  --bd-line: #e7eaf6;
+  --bd-line-soft: #f0f2fa;
+  --bd-border: #e7eaf6;
+  --bd-bg: #eef1fb;
+  --bd-bg-soft: #f7f8fd;
+  --bd-bg-head: #f7f8fd;
+  --bd-card: #ffffff;
+
+  /* Header glass — the only blurred surface; cards stay opaque. */
+  --bd-glass: rgba(255, 255, 255, 0.82);
+  --bd-glass-blur: 20px;
+
+  /* Sidebar — floats free of the viewport edge. */
+  --bd-sidebar-grad: linear-gradient(165deg, #232a56, #2c3a7a);
 
   /* Status accents. */
-  --bd-gold: #f4b740;
-  --bd-gold-deep: #dd9426;
+  --bd-green: #0e9f6e;
+  --bd-green-bright: #0e9f6e;
+  --bd-success: #0e9f6e;
+  --bd-gold: #d98b0f;
+  --bd-gold-deep: #d98b0f;
+  --bd-amber: #d98b0f;
   --bd-red: #e5484d;
-  --bd-red-dark: #d43b3b;
-  --bd-amber: #dd9426;
-  --bd-green: #2bb673;
-  --bd-green-bright: #25a97a;
-  --bd-purple: #6f63a3;
-  --bd-teal: #3d7fa8;
+  --bd-red-dark: #cf3c41;
+  --bd-info: #0e94d0;
+  --bd-teal: #0e94d0;
+  --bd-purple: #7c5ce0;
   --bd-pink: #bf5a8c;
 
   /* Status tints — the fill behind a status accent. */
-  --bd-green-pale: #e6f5ef;
-  --bd-amber-pale: #fdf3e2;
-  --bd-red-pale: #fdeeee;
-  --bd-purple-pale: #efedf6;
+  --bd-green-pale: #e3f6ef;
+  --bd-amber-pale: #fbf1de;
+  --bd-red-pale: #fdeced;
+  --bd-purple-pale: #f0ebfc;
+  --bd-info-pale: #e2f2fb;
 
-  /* Shape — ref uses 0.5rem (8px) base radius. */
-  --bd-radius: 8px;
-  --bd-radius-control: 8px;
-  --bd-radius-nav: 11px;
-  --bd-radius-pill: 20px;
-  --bd-radius-sm: 6px;
-  --bd-radius-card: 12px;
+  /* Shape — v2 rounds much harder than v1's 8px. */
+  --bd-radius: 12px;
+  --bd-radius-control: 12px;
+  --bd-radius-nav: 14px;
+  --bd-radius-pill: 999px;
+  --bd-radius-sm: 9px;
+  --bd-radius-card: 20px;
+  --bd-radius-header: 18px;
+  --bd-radius-sidebar: 24px;
 
-  --bd-shadow-card: 0 1px 2px rgba(38, 113, 216, 0.06);
-  --bd-shadow-lift: 0 2px 6px rgba(27, 42, 65, 0.06);
-  --bd-shadow-pop: 0 6px 16px rgba(27, 42, 65, 0.08);
-  --bd-shadow-modal: 0 12px 32px rgba(27, 42, 65, 0.12);
-  --bd-shadow-focus: 0 0 0 3px rgba(38, 113, 216, 0.25);
+  --bd-shadow-card: 0 2px 10px rgba(35, 42, 86, 0.05);
+  --bd-shadow-lift: 0 6px 18px rgba(35, 42, 86, 0.08);
+  --bd-shadow-pop: 0 12px 28px rgba(35, 42, 86, 0.1);
+  --bd-shadow-modal: 0 24px 60px rgba(35, 42, 86, 0.18);
+  --bd-shadow-focus: 0 0 0 3px rgba(99, 102, 241, 0.22);
+  --bd-shadow-glow: 0 10px 30px rgba(99, 102, 241, 0.28);
 
   --bd-sidebar-width: 76px;
   --bd-sidebar-expanded-width: 236px;
+  --bd-sidebar-margin: 14px;
   --bd-header-height: 66px;
-  --bd-sidebar-bg: #1b2a41;
-  --bd-primary: #1c3566;
+  --bd-header-top: 12px;
+  --bd-sidebar-bg: #232a56;
 
-  /* FullCalendar — synced with ref app */
   --fc-border-color: var(--bd-border);
   --fc-button-text-color: #fff;
   --fc-button-bg-color: var(--bd-blue-light);
@@ -105,6 +131,109 @@ body {
   font-family: var(--bd-font);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* The app ground: three coloured pools drifting behind everything. Fixed, so
+   it never scrolls with content, and inert so it never eats a click. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: -20%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(42% 38% at 18% 22%, rgba(99, 102, 241, 0.18), transparent 68%),
+    radial-gradient(38% 34% at 82% 18%, rgba(34, 211, 238, 0.16), transparent 66%),
+    radial-gradient(46% 42% at 62% 82%, rgba(139, 92, 246, 0.15), transparent 70%);
+  animation: meshDrift 16s ease-in-out infinite alternate;
+}
+
+@keyframes meshDrift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(2.5%, -2%, 0) scale(1.06);
+  }
+  100% {
+    transform: translate3d(-2%, 2.5%, 0) scale(1.03);
+  }
+}
+
+/* ---- v2 motion vocabulary -------------------------------------------- */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Chart columns grow out of the axis, not the middle. */
+@keyframes barGrow {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes ringPulse {
+  0%,
+  70%,
+  100% {
+    transform: rotate(0deg);
+  }
+  10%,
+  30%,
+  50% {
+    transform: rotate(-11deg);
+  }
+  20%,
+  40%,
+  60% {
+    transform: rotate(11deg);
+  }
+}
+
+@keyframes floatY {
+  from {
+    transform: translateY(-3px);
+  }
+  to {
+    transform: translateY(3px);
+  }
+}
+
+/* Everyone who asked for less motion gets none of the ambient kind. */
+@media (prefers-reduced-motion: reduce) {
+  body::before {
+    animation: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 input,

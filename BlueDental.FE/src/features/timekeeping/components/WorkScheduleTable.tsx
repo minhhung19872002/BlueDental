@@ -61,7 +61,6 @@ export function WorkScheduleTable({
   staff,
   getCellKind,
   onCellClick,
-  dayOffCount,
   selectedStaff,
   allSelected,
   onStaffSelect,

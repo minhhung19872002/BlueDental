@@ -2,41 +2,51 @@ import type { ThemeConfig } from "antd";
 
 import { t } from "@/lib/i18n";
 export const brand = {
-  blue: "#1c3566",
-  blueDark: "#142a54",
-  blueMid: "#1c3566",
-  blueLight: "#6f8ec4",
-  bluePale: "#e7f0fb",
-  greenPale: "#e6f5ef",
-  amberPale: "#fdf3e2",
-  redPale: "#fdeeee",
-  purplePale: "#efedf6",
-  navy: "#1b2a41",
-  ink: "#1b2a41",
-  body: "#1b2a41",
-  primary: "#1c3566",
-  sub: "#41505f",
-  muted: "#5a6b82",
-  faint: "#98a4b4",
-  dim: "#7d8a9c",
-  line: "#dce3ee",
-  lineSoft: "#eef2f7",
-  border: "#dce3ee",
-  bg: "#f6f8fb",
-  bgSoft: "#fafbfd",
-  bgHead: "#fafbfd",
-  gold: "#f4b740",
-  goldDeep: "#dd9426",
+  /* Đức Hạnh Premium v2 — indigo primary, cyan accent.
+     Kept in sync with the --bd-* tokens in src/styles/index.css. */
+  blue: "#6366f1",
+  blueDark: "#4f46e5",
+  blueMid: "#6366f1",
+  blueLight: "#a5b4fc",
+  bluePale: "#eef0ff",
+  greenPale: "#e3f6ef",
+  amberPale: "#fbf1de",
+  redPale: "#fdeced",
+  purplePale: "#f0ebfc",
+  navy: "#232a56",
+  ink: "#171c33",
+  body: "#171c33",
+  title: "#22285c",
+  primary: "#6366f1",
+  accent: "#22d3ee",
+  violet: "#8b5cf6",
+  sub: "#414a6b",
+  muted: "#5c6484",
+  faint: "#99a0bd",
+  dim: "#7d85a5",
+  line: "#e7eaf6",
+  lineSoft: "#f0f2fa",
+  border: "#e7eaf6",
+  bg: "#eef1fb",
+  bgSoft: "#f7f8fd",
+  bgHead: "#f7f8fd",
+  gold: "#d98b0f",
+  goldDeep: "#d98b0f",
   red: "#e5484d",
-  redDark: "#d43b3b",
-  amber: "#dd9426",
-  green: "#2bb673",
-  greenBright: "#25a97a",
-  teal: "#3d7fa8",
-  purple: "#6f63a3",
+  redDark: "#cf3c41",
+  amber: "#d98b0f",
+  green: "#0e9f6e",
+  greenBright: "#0e9f6e",
+  teal: "#0e94d0",
+  info: "#0e94d0",
+  purple: "#7c5ce0",
   pink: "#bf5a8c",
-  success: "#2bb673",
+  success: "#0e9f6e",
 } as const;
+
+/* The single CTA fill: primary buttons and the active nav pill. */
+export const CTA_GRADIENT =
+  "linear-gradient(120deg, #6366f1, #8b5cf6 55%, #22d3ee 130%)";
 
 export const statusPaletteOf = () => ({
   scheduled: { label: t("Đã đặt lịch"), bg: brand.bluePale, color: brand.blue },
@@ -48,13 +58,13 @@ export const statusPaletteOf = () => ({
 });
 
 export const FONT_FAMILY =
-  "'Google Sans', 'Be Vietnam Pro', system-ui, -apple-system, sans-serif";
+  "'Be Vietnam Pro', system-ui, -apple-system, sans-serif";
 
 export const themeConfig: ThemeConfig = {
   token: {
     colorPrimary: brand.blue,
     colorLink: brand.blue,
-    colorLinkHover: "#2c3e50",
+    colorLinkHover: brand.blueDark,
     colorInfo: brand.blue,
     colorSuccess: brand.success,
     colorWarning: brand.goldDeep,
@@ -63,7 +73,7 @@ export const themeConfig: ThemeConfig = {
     colorBorder: brand.line,
     colorBorderSecondary: brand.border,
     controlHeight: 40,
-    borderRadius: 8,
+    borderRadius: 12,
     fontFamily: FONT_FAMILY,
     colorBgLayout: brand.bg,
     fontSize: 13,
@@ -76,24 +86,24 @@ export const themeConfig: ThemeConfig = {
      * Hành động list, where every option is chosen to begin with.
      */
     controlItemBgActive: brand.bluePale,
-    controlItemBgActiveHover: "#dce7f7",
+    controlItemBgActiveHover: brand.bluePale,
   },
   components: {
     Layout: {
-      siderBg: "#1b2a41",
+      siderBg: brand.navy,
       headerBg: "#ffffff",
       bodyBg: brand.bg,
     },
     Menu: {
       itemBg: "transparent",
       subMenuItemBg: "transparent",
-      itemColor: "#93a3ba",
+      itemColor: "#aeb6dd",
       itemHoverBg: "rgba(255,255,255,.08)",
       itemHoverColor: "#ffffff",
       itemSelectedBg: brand.blue,
       itemSelectedColor: "#ffffff",
       itemHeight: 40,
-      itemBorderRadius: 11,
+      itemBorderRadius: 14,
       iconSize: 19,
     },
     Table: {
@@ -110,8 +120,8 @@ export const themeConfig: ThemeConfig = {
     Card: {
       paddingLG: 20,
       colorBorderSecondary: brand.border,
-      borderRadiusLG: 12,
-      boxShadowTertiary: "0 1px 2px rgba(38,113,216,.06)",
+      borderRadiusLG: 20,
+      boxShadowTertiary: "0 2px 10px rgba(35,42,86,.05)",
     },
     Breadcrumb: {
       fontSize: 12.5,
@@ -121,39 +131,39 @@ export const themeConfig: ThemeConfig = {
     },
     Button: {
       fontWeight: 600,
-      primaryShadow: "0 2px 6px rgba(27,42,65,.06)",
+      primaryShadow: "0 10px 30px rgba(99,102,241,.28)",
       defaultShadow: "none",
-      borderRadius: 8,
+      borderRadius: 12,
       controlHeight: 40,
       controlHeightLG: 46,
       defaultBorderColor: brand.line,
       defaultColor: brand.body,
     },
     Input: {
-      activeShadow: "0 0 0 3px rgba(38,113,216,.25)",
+      activeShadow: "0 0 0 3px rgba(99,102,241,.22)",
       activeBorderColor: brand.blue,
       hoverBorderColor: brand.blue,
-      borderRadius: 8,
+      borderRadius: 12,
       controlHeight: 40,
       controlHeightLG: 48,
       colorBgContainer: "#ffffff",
     },
     Select: {
-      borderRadius: 8,
+      borderRadius: 12,
       controlHeight: 40,
       optionSelectedBg: brand.bluePale,
     },
     Modal: {
-      borderRadiusLG: 12,
+      borderRadiusLG: 20,
       headerBg: "#ffffff",
       contentBg: "#ffffff",
-      boxShadow: "0 12px 32px rgba(27,42,65,.12)",
+      boxShadow: "0 24px 60px rgba(35,42,86,.18)",
     },
     Drawer: {
       colorBgElevated: "#ffffff",
     },
     Tag: {
-      borderRadiusSM: 20,
+      borderRadiusSM: 999,
       defaultBg: brand.bgSoft,
       defaultColor: brand.sub,
     },
@@ -170,11 +180,11 @@ export const themeConfig: ThemeConfig = {
       itemColor: brand.muted,
       trackBg: brand.bg,
       trackPadding: 4,
-      borderRadius: 10,
+      borderRadius: 12,
     },
     Pagination: {
       itemActiveBg: brand.blue,
-      borderRadius: 8,
+      borderRadius: 12,
     },
   },
 };

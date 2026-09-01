@@ -21,7 +21,6 @@ export function CalendarToolbarRow1({
   onViewModeChange,
   currentDate,
   onDateChange,
-  onNavigate,
   counts,
   statusFilter,
   onStatusToggle,

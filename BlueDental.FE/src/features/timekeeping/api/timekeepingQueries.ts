@@ -5,7 +5,6 @@ import {
   type BulkRegisterInput,
   type GetTimeKeepingListInput,
   type OpenWorkDayInput,
-  type TimeKeepingRecordDto,
   type UpdateInfoInput,
 } from "./timekeepingApi";
 

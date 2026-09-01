@@ -83,8 +83,6 @@ function TimeView({ appointments, slots }: { appointments: Appointment[]; slots:
             <div key={s} className="mcal-day-slot" />
           ))}
           {appointments.map((appt) => {
-            const start = dayjs(appt.startTime);
-            const end = dayjs(appt.endTime);
             const patientLabel = appt.patientCode ? `[${appt.patientCode}] - ${appt.patientName}` : appt.patientName;
             const label = `${appt.doctorName} — ${patientLabel}`;
             return <EvtBlock key={appt.id} appt={appt} label={label} />;
