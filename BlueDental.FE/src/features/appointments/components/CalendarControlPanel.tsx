@@ -12,9 +12,9 @@ import type { Dayjs } from "dayjs";
 import { t } from "@/lib/i18n";
 
 const STATUS_CHIPS = [
-  { key: "scheduled", label: () => t("Đã hẹn"), bg: "#DCEBFA", border: "#BFD6F6", color: "#1E5BB0" },
-  { key: "arrived", label: () => t("Đã đến"), bg: "#DDF3E7", border: "#BDE8CF", color: "#1F7A45" },
-  { key: "cancelled", label: () => t("Huỷ hẹn"), bg: "#FBE0E0", border: "#F3BABA", color: "#B93832" },
+  { key: "scheduled", label: () => t("Đã hẹn"), bg: "#eef0ff", border: "#c7cdfb", color: "#1E5BB0" },
+  { key: "arrived", label: () => t("Đã đến"), bg: "#e3f6ef", border: "#BDE8CF", color: "#1F7A45" },
+  { key: "cancelled", label: () => t("Huỷ hẹn"), bg: "#fdeced", border: "#f7c6c8", color: "#cf3c41" },
   { key: "late", label: () => t("Trễ hẹn"), bg: "#F7E7C2", border: "#E8CF92", color: "#9A6A10" },
   { key: "temporary", label: () => t("Lịch tạm"), bg: "#F9E3CC", border: "#E8C19B", color: "#B7611F" },
   { key: "converted", label: () => t("Chuyển đổi"), bg: "#D5ECF7", border: "#AAD7EA", color: "#176F99" },
@@ -160,7 +160,7 @@ export function CalendarControlPanel({
                 <div className="cal-panel-filter-field">
                   <span className="cal-panel-filter-label">{t("Tìm kiếm")}</span>
                   <Input
-                    prefix={<SearchOutlined style={{ color: "#98a4b4" }} />}
+                    prefix={<SearchOutlined style={{ color: "#99a0bd" }} />}
                     value={keyword}
                     onChange={(e) => onKeywordChange(e.target.value)}
                     allowClear

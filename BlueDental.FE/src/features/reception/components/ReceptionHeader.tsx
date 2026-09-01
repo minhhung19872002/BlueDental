@@ -68,7 +68,7 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
             style={{
               borderRadius: 16,
               boxShadow: "0 4px 20px rgba(15, 23, 42, 0.04)",
-              border: "1px solid #E2E8F0",
+              border: "1px solid #e7eaf6",
               background: "#FFFFFF",
             }}
             styles={{ body: { padding: "16px 20px" } }}
@@ -109,7 +109,7 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
             style={{
               borderRadius: 16,
               boxShadow: "0 4px 20px rgba(15, 23, 42, 0.04)",
-              border: "1px solid #E2E8F0",
+              border: "1px solid #e7eaf6",
               background: "#FFFFFF",
             }}
             styles={{ body: { padding: "16px 20px" } }}
@@ -150,7 +150,7 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
             style={{
               borderRadius: 16,
               boxShadow: "0 4px 20px rgba(15, 23, 42, 0.04)",
-              border: "1px solid #E2E8F0",
+              border: "1px solid #e7eaf6",
               background: "#FFFFFF",
             }}
             styles={{ body: { padding: "16px 20px" } }}
@@ -191,7 +191,7 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
             style={{
               borderRadius: 16,
               boxShadow: "0 4px 20px rgba(15, 23, 42, 0.04)",
-              border: "1px solid #E2E8F0",
+              border: "1px solid #e7eaf6",
               background: "#FFFFFF",
             }}
             styles={{ body: { padding: "16px 20px" } }}

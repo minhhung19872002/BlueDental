@@ -176,7 +176,7 @@ export function TimekeepingBoard({ currentDate, viewMode, onViewModeChange, onDa
         <div className="cal-toolbar-row2-left">
           <FloatingLabel label={t("Tìm kiếm")} floated={Boolean(keyword)}>
             <Input
-              prefix={<SearchOutlined style={{ color: "#98a4b4" }} />}
+              prefix={<SearchOutlined style={{ color: "#99a0bd" }} />}
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               allowClear

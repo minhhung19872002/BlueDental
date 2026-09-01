@@ -339,7 +339,7 @@ export function WorkScheduleBuilder({ currentDate, onBack }: Props) {
           <div className="wsb-toolbar-search">
             <FloatingLabel label={t("Tìm nhân viên...")} floated={Boolean(keyword)}>
               <Input
-                prefix={<SearchOutlined style={{ color: "#98a4b4" }} />}
+                prefix={<SearchOutlined style={{ color: "#99a0bd" }} />}
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 allowClear
@@ -403,15 +403,15 @@ export function WorkScheduleBuilder({ currentDate, onBack }: Props) {
       <div className="wsb-legend-bar">
         <div className="wsb-legend-items">
           <span className="wsb-legend-item">
-            <span className="wsb-legend-dot" style={{ background: "#16A34A" }} />
+            <span className="wsb-legend-dot" style={{ background: "#0e9f6e" }} />
             {t("Làm")}
           </span>
           <span className="wsb-legend-item">
-            <span className="wsb-legend-dot" style={{ background: "#DC2626" }} />
+            <span className="wsb-legend-dot" style={{ background: "#cf3c41" }} />
             {t("Nghỉ")}
           </span>
           <span className="wsb-legend-item">
-            <span className="wsb-legend-dot" style={{ background: "#F59E0B" }} />
+            <span className="wsb-legend-dot" style={{ background: "#d98b0f" }} />
             {t("Vắng mặt không báo trước")}
           </span>
           <span className="wsb-legend-item">
@@ -425,7 +425,7 @@ export function WorkScheduleBuilder({ currentDate, onBack }: Props) {
       </div>
 
       <div className="wsb-help">
-        <strong style={{ color: "#16A34A" }}>{t("Làm")}</strong>
+        <strong style={{ color: "#0e9f6e" }}>{t("Làm")}</strong>
         {" / "}
         <strong style={{ color: "#7C5CFC" }}>{t("Làm nửa buổi")}</strong>
         {" "}

@@ -27,7 +27,7 @@ const STATUS_GROUPS: {
     key: "cancelled",
     label: "Đã huỷ",
     icon: <CloseCircleOutlined />,
-    color: "#EF4444",
+    color: "#e5484d",
     match: (s) => s === "cancelled" || s === "noShow",
   },
   {

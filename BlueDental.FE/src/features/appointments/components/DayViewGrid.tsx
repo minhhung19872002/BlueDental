@@ -181,7 +181,7 @@ export function DayViewGrid({
                 ].filter(Boolean).join(" ")}
                 style={{
                   height: slotH,
-                  borderBottom: isHour ? "1px solid #E5E7EB" : "1px dashed #f0f2f5",
+                  borderBottom: isHour ? "1px solid #e7eaf6" : "1px dashed #f7f8fd",
                 }}
               >
                 {showLabel ? getSlotTime(slotIdx, slotMinutes) : ""}

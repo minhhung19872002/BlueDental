@@ -200,6 +200,12 @@
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+  /* Without this the button keeps its content width and the clamp never
+     bites, so a long name runs off the card instead of ending in an
+     ellipsis. */
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
   cursor: pointer;
   background: none;
   border: none;
@@ -301,7 +307,7 @@
 }
 
 .rc-step-line--idle {
-  background: #e2e8f0;
+  background: #e7eaf6;
 }
 
 .rc-step-line--done {
@@ -443,17 +449,17 @@
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  color: #101c2c;
+  color: #171c33;
   padding: 2px 0;
 }
 
 .rn-phone-label {
-  color: #6f7c90;
+  color: #78819c;
 }
 
 .rn-phone-value {
   font-weight: 500;
-  color: #101c2c;
+  color: #171c33;
 }
 
 .rn-time-row {
@@ -464,26 +470,26 @@
 .rn-label {
   display: block;
   font-size: 13px;
-  color: #6f7c90;
+  color: #78819c;
   font-weight: 500;
   margin-bottom: 4px;
 }
 
 .rn-label--required::after {
   content: " *";
-  color: #ef4d4d;
+  color: #e5484d;
 }
 
 .rn-select-placeholder {
   display: flex;
   align-items: center;
-  color: #98a4b4;
+  color: #99a0bd;
   font-size: 14px;
 }
 
 .rn-error {
   font-size: 12px;
-  color: #ef4d4d;
+  color: #e5484d;
 }
 
 .rn-footer {

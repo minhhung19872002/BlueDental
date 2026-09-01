@@ -31,22 +31,22 @@ interface Props {
 
 const STATUS_COLORS: Record<ToothStatus, string> = {
   healthy: "#ffffff",
-  treated: "#90CAF9",
-  decayed: "#EF9A9A",
+  treated: "#a5b4fc",
+  decayed: "#f2b6b8",
   missing: "#EEEEEE",
-  implant: "#A5D6A7",
-  crown: "#FFF59D",
-  bridge: "#CE93D8",
+  implant: "#a7e0c9",
+  crown: "#fbe6a8",
+  bridge: "#c9b6f2",
 };
 
 const STATUS_STROKE: Record<ToothStatus, string> = {
-  healthy: "#90CAF9",
-  treated: "#1565C0",
-  decayed: "#C62828",
+  healthy: "#a5b4fc",
+  treated: "#6366f1",
+  decayed: "#cf3c41",
   missing: "#BDBDBD",
-  implant: "#2E7D32",
-  crown: "#F57F17",
-  bridge: "#6A1B9A",
+  implant: "#0e9f6e",
+  crown: "#d98b0f",
+  bridge: "#7c5ce0",
 };
 
 // Upper jaw: 18→11 (right to left for display), then 21→28 (left to right)
@@ -114,7 +114,7 @@ function ToothCell({
   const isMissing = status === "missing";
   const fill = selected ? "#6366f1" : STATUS_COLORS[status];
   const stroke = selected ? "#4f52e0" : STATUS_STROKE[status];
-  const numberFill = selected ? "#4f52e0" : isMissing ? "#98a4b4" : "#78819c";
+  const numberFill = selected ? "#4f52e0" : isMissing ? "#99a0bd" : "#78819c";
   const isUpper = jaw === "upper";
 
   const numberY = isUpper ? TOOTH_H + LABEL_H - 3 : LABEL_H - 4;

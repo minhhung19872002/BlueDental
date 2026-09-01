@@ -34,6 +34,9 @@ interface NavItem {
   label: string;
 }
 
+/** The rail's own wordmark — the header carries the clinic's full name. */
+const CLINIC_SHORT_NAME = "Đức Hạnh Premium";
+
 /** Translator type, so the builders below stay readable. */
 type Translate = (vietnamese: string) => string;
 
@@ -253,6 +256,9 @@ export function AppLayout() {
   const clinicName = user?.clinicName ?? "NHA KHOA ĐỨC HẠNH PREMIUM";
   const clinicLogoUrl = user?.clinicLogoUrl ?? "/logo.png";
   const clinicTagline = user?.clinicTagline ?? "Kiến Tạo Nụ Cười - Giá Trị Bền Vững";
+  /* The rail is 236px wide, so it takes the short form of the name; the
+     header beside it carries the full one from the clinic record. */
+  const clinicShortName = CLINIC_SHORT_NAME;
   const sidebarWidth = sidebarExpanded ? SIDEBAR_EXPANDED_WIDTH : SIDEBAR_WIDTH;
 
   const queryClient = useQueryClient();
@@ -353,7 +359,7 @@ export function AppLayout() {
           </div>
           {sidebarExpanded && (
             <div className="sidebar-logo-text">
-              <span className="sidebar-logo-name">BlueDental</span>
+              <span className="sidebar-logo-name">{clinicShortName}</span>
               <span className="sidebar-logo-sub">{t("Quản trị vận hành")}</span>
             </div>
           )}
@@ -462,7 +468,7 @@ export function AppLayout() {
               <button type="button" className="app-header-branch">
                 <span className="app-header-branch-dot" />
                 <span className="app-header-branch-name">{selectedBranchName}</span>
-                <DownOutlined style={{ fontSize: 14, color: "#6f7c90" }} />
+                <DownOutlined style={{ fontSize: 14, color: "#78819c" }} />
               </button>
             </Popover>
 
@@ -484,7 +490,7 @@ export function AppLayout() {
                     {initialsOf(user?.name)}
                   </Avatar>
                   <span className="app-header-user-name">{user?.name ?? "Admin"}</span>
-                  <DownOutlined style={{ fontSize: 14, color: "#6f7c90" }} />
+                  <DownOutlined style={{ fontSize: 14, color: "#78819c" }} />
                 </div>
               </Dropdown>
             </div>

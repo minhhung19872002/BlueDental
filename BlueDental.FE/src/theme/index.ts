@@ -243,10 +243,10 @@ export const SIDEBAR_EXPANDED_WIDTH = 236;
 export const HEADER_HEIGHT = 66;
 
 export const statusPalette = {
-  scheduled: { label: "Đã đặt lịch", bg: "#E3F2FD", color: "#1565C0" },
-  confirmed: { label: "Đã xác nhận", bg: "#E8F5E9", color: "#2E7D32" },
+  scheduled: { label: "Đã đặt lịch", bg: "#eef0ff", color: "#6366f1" },
+  confirmed: { label: "Đã xác nhận", bg: "#e3f6ef", color: "#0e9f6e" },
   inProgress: { label: "Đang khám", bg: "#FFF8E1", color: "#E65100" },
-  completed: { label: "Hoàn thành", bg: "#E8F5E9", color: "#2E7D32" },
-  cancelled: { label: "Đã hủy", bg: "#FFEBEE", color: "#C62828" },
-  noShow: { label: "Không đến", bg: "#F3E5F5", color: "#6A1B9A" },
+  completed: { label: "Hoàn thành", bg: "#e3f6ef", color: "#0e9f6e" },
+  cancelled: { label: "Đã hủy", bg: "#FFEBEE", color: "#cf3c41" },
+  noShow: { label: "Không đến", bg: "#F3E5F5", color: "#7c5ce0" },
 } as const;

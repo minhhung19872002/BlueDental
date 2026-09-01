@@ -598,7 +598,7 @@ export function PatientProfilePage() {
             {[
               { label: t("Đơn hàng mới"), count: 0, bg: "var(--bd-green-pale)", text: "var(--bd-green)", border: "var(--bd-green)" },
               { label: t("Tiếp tục công đoạn"), count: 0, bg: "var(--bd-amber-pale)", text: "#D97706", border: "var(--bd-gold-deep)" },
-              { label: t("Bảo hành"), count: 0, bg: "var(--bd-red-pale)", text: "#DC2626", border: "var(--bd-red)" },
+              { label: t("Bảo hành"), count: 0, bg: "var(--bd-red-pale)", text: "#cf3c41", border: "var(--bd-red)" },
             ].map((c) => (
               <button
                 key={c.label}

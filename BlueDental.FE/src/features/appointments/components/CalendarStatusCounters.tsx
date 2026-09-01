@@ -9,9 +9,9 @@ interface CounterConfig {
 }
 
 const COUNTERS: CounterConfig[] = [
-  { key: "scheduled", label: () => t("Đã hẹn"), border: "#BFD6F6", bg: "#DCEBFA", color: "#1E5BB0" },
-  { key: "arrived", label: () => t("Đã đến"), border: "#BDE8CF", bg: "#DDF3E7", color: "#1F7A45" },
-  { key: "cancelled", label: () => t("Huỷ hẹn"), border: "#F3BABA", bg: "#FBE0E0", color: "#B93832" },
+  { key: "scheduled", label: () => t("Đã hẹn"), border: "#c7cdfb", bg: "#eef0ff", color: "#1E5BB0" },
+  { key: "arrived", label: () => t("Đã đến"), border: "#BDE8CF", bg: "#e3f6ef", color: "#1F7A45" },
+  { key: "cancelled", label: () => t("Huỷ hẹn"), border: "#f7c6c8", bg: "#fdeced", color: "#cf3c41" },
   { key: "late", label: () => t("Trễ hẹn"), border: "#E8CF92", bg: "#F7E7C2", color: "#9A6A10" },
   { key: "temporary", label: () => t("Lịch tạm"), border: "#E8C19B", bg: "#F9E3CC", color: "#B7611F" },
   { key: "converted", label: () => t("Chuyển đổi"), border: "#AAD7EA", bg: "#D5ECF7", color: "#176F99" },

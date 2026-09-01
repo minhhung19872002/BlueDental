@@ -12,7 +12,7 @@ const PALETTE = [
   "#8B5CF6", // 0 — assumption
   "#3B82F6", // 1 — observed (A, I)
   "#06B6D4", // 2 — assumption
-  "#F59E0B", // 3 — observed (S)
+  "#d98b0f", // 3 — observed (S)
   "#F43F5E", // 4 — observed (T)
   "#10B981", // 5 — observed (M)
   "#6366F1", // 6 — assumption

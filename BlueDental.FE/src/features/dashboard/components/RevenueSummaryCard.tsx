@@ -15,7 +15,7 @@ export function RevenueSummaryCard() {
         </div>
         <div
           className="stat-card-icon"
-          style={{ background: "#E8F5E9", color: brand.green }}
+          style={{ background: "#e3f6ef", color: brand.green }}
         >
           <DollarOutlined />
         </div>

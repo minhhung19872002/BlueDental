@@ -47,9 +47,9 @@ interface StatChipConfig {
 }
 
 const STAT_CHIP_CONFIGS: StatChipConfig[] = [
-  { key: "scheduledCount", bg: "#DCEBFA", border: "#BFD6F6", color: "#1E5BB0" },
-  { key: "arrivedCount",   bg: "#DDF3E7", border: "#BDE8CF", color: "#1F7A45" },
-  { key: "cancelledCount", bg: "#FBE0E0", border: "#F3BABA", color: "#B93832" },
+  { key: "scheduledCount", bg: "#eef0ff", border: "#c7cdfb", color: "#1E5BB0" },
+  { key: "arrivedCount",   bg: "#e3f6ef", border: "#BDE8CF", color: "#1F7A45" },
+  { key: "cancelledCount", bg: "#fdeced", border: "#f7c6c8", color: "#cf3c41" },
   { key: "lateCount",      bg: "#F7E7C2", border: "#E8CF92", color: "#9A6A10" },
   { key: "temporaryCount", bg: "#F9E3CC", border: "#E8C19B", color: "#B7611F" },
   { key: "convertedCount", bg: "#D5ECF7", border: "#AAD7EA", color: "#176F99" },

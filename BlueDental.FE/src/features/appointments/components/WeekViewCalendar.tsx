@@ -150,7 +150,7 @@ export function WeekViewCalendar({
                   .join(" ")}
                 style={{
                   height: slotH,
-                  borderBottom: isHourStart(slotIdx) ? "1px solid #E5E7EB" : "1px dashed #f0f2f5",
+                  borderBottom: isHourStart(slotIdx) ? "1px solid #e7eaf6" : "1px dashed #f7f8fd",
                 }}
               >
                 {showLabel ? slotTime(slotIdx, slotMinutes) : ""}

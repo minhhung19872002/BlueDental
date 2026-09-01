@@ -82,7 +82,7 @@ export function PatientDebtHistoryPanel({ patientId }: PatientDebtHistoryPanelPr
       width: 140,
       align: "right",
       render: (value: number, row) => (
-        <Text style={{ color: row.kind === PAYMENT_KIND.Refund ? "#ef4d4d" : "#1f8a63" }}>
+        <Text style={{ color: row.kind === PAYMENT_KIND.Refund ? "#e5484d" : "#0e9f6e" }}>
           {row.kind === PAYMENT_KIND.Refund ? "-" : "+"}
           {formatVND(value)} {t("đ")}
         </Text>
@@ -120,7 +120,7 @@ export function PatientDebtHistoryPanel({ patientId }: PatientDebtHistoryPanelPr
         columns={columns}
         dataSource={rows}
         pagination={{ pageSize: 20, showTotal: (total) => t("Hiển thị {0} trên {1} giao dịch", rows.length, total) }}
-        locale={{ emptyText: <span style={{ color: "#98a4b4" }}>{t("Chưa có lịch sử dư nợ")}</span> }}
+        locale={{ emptyText: <span style={{ color: "#99a0bd" }}>{t("Chưa có lịch sử dư nợ")}</span> }}
       />
     </Card>
   );

@@ -22,7 +22,7 @@ export function StatusBadge({ status }: Props) {
     <Tag
       style={{
         background: palette?.bg ?? "#f4f6fa",
-        color: palette?.color ?? "#6f7c90",
+        color: palette?.color ?? "#78819c",
         border: "none",
       }}
     >

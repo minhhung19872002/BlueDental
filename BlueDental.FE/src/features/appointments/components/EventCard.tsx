@@ -281,10 +281,10 @@ export const EventCard = React.memo(function EventCard({
 });
 
 export const CARD_LOOK: Record<AppointmentStatus, { bg: string; border: string; text: string }> = {
-  scheduled:  { bg: "#E3F2FD", border: "#1565C0", text: "#1565C0" },
-  confirmed:  { bg: "#E3F2FD", border: "#1565C0", text: "#1565C0" },
-  inProgress: { bg: "#E8F5E9", border: "#2E7D32", text: "#2E7D32" },
-  completed:  { bg: "#E8F5E9", border: "#16A34A", text: "#16A34A" },
-  cancelled:  { bg: "#FEE2E2", border: "#EF4444", text: "#EF4444" },
-  noShow:     { bg: "#FBF1DA", border: "#C08A1B", text: "#C08A1B" },
+  scheduled:  { bg: "#eef0ff", border: "#6366f1", text: "#6366f1" },
+  confirmed:  { bg: "#eef0ff", border: "#6366f1", text: "#6366f1" },
+  inProgress: { bg: "#e3f6ef", border: "#0e9f6e", text: "#0e9f6e" },
+  completed:  { bg: "#e3f6ef", border: "#0e9f6e", text: "#0e9f6e" },
+  cancelled:  { bg: "#fdeced", border: "#e5484d", text: "#e5484d" },
+  noShow:     { bg: "#FBF1DA", border: "#d98b0f", text: "#d98b0f" },
 };

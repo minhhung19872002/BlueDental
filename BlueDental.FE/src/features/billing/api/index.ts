@@ -18,11 +18,11 @@ export const invoiceStatusConfig = (): Record<
   InvoiceStatus,
   { label: string; color: string }
 > => ({
-  [INVOICE_STATUS.Draft]: { label: t("Nháp"), color: "#6f7c90" },
+  [INVOICE_STATUS.Draft]: { label: t("Nháp"), color: "#78819c" },
   [INVOICE_STATUS.Issued]: { label: t("Đã phát hành"), color: "#6366f1" },
   [INVOICE_STATUS.PartiallyPaid]: { label: t("Thu một phần"), color: "#d98b0f" },
-  [INVOICE_STATUS.Paid]: { label: t("Đã thanh toán"), color: "#1f8a63" },
-  [INVOICE_STATUS.Overdue]: { label: t("Quá hạn"), color: "#ef4d4d" },
+  [INVOICE_STATUS.Paid]: { label: t("Đã thanh toán"), color: "#0e9f6e" },
+  [INVOICE_STATUS.Overdue]: { label: t("Quá hạn"), color: "#e5484d" },
   [INVOICE_STATUS.Voided]: { label: t("Đã huỷ"), color: "#7d8a9c" },
   [INVOICE_STATUS.Refunded]: { label: t("Đã hoàn tiền"), color: "#7c5ce0" },
 });

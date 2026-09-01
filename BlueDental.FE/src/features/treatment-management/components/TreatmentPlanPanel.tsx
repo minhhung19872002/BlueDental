@@ -179,7 +179,7 @@ export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
       width: 120,
       align: "right",
       render: (_, row) => (
-        <Text style={{ color: "#1f8a63" }}>{formatVND(row.planPayment.totalPaid)} {t("đ")}</Text>
+        <Text style={{ color: "#0e9f6e" }}>{formatVND(row.planPayment.totalPaid)} {t("đ")}</Text>
       ),
     },
     {
@@ -195,7 +195,7 @@ export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
       width: 120,
       align: "right",
       render: (_, row) => (
-        <Text style={{ color: "#ef4d4d" }}>{formatVND(row.planPayment.totalDue)} {t("đ")}</Text>
+        <Text style={{ color: "#e5484d" }}>{formatVND(row.planPayment.totalDue)} {t("đ")}</Text>
       ),
     },
     {
@@ -296,10 +296,10 @@ export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
                 {activeServices.length}
               </span>
               <div>
-                <div style={{ fontWeight: 600, fontSize: 13, color: "#101c2c" }}>
+                <div style={{ fontWeight: 600, fontSize: 13, color: "#171c33" }}>
                   {t("Dịch vụ đang điều trị")}
                 </div>
-                <div style={{ fontSize: 12, color: "#98a4b4" }}>
+                <div style={{ fontSize: 12, color: "#99a0bd" }}>
                   {activeServices.length === 0
                     ? t("Chưa có dịch vụ đang điều trị")
                     : activeServices.map((s) => s.serviceName ?? s.code).join(", ")}
@@ -311,13 +311,13 @@ export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
         <Col span={12}>
           <Card
             size="small"
-            style={{ borderLeft: "4px solid #1f8a63" }}
+            style={{ borderLeft: "4px solid #0e9f6e" }}
             data-testid="plan-slip-count"
           >
-            <div style={{ fontWeight: 600, fontSize: 13, color: "#101c2c", marginBottom: 4 }}>
+            <div style={{ fontWeight: 600, fontSize: 13, color: "#171c33", marginBottom: 4 }}>
               {t("Phiếu điều trị")}
             </div>
-            <div style={{ fontSize: 12, color: "#98a4b4" }}>
+            <div style={{ fontSize: 12, color: "#99a0bd" }}>
               {slips.length === 0
                 ? acceptedCount === 0
                   ? t("Chưa có phiếu — hãy chốt phiếu tư vấn trước")
@@ -343,7 +343,7 @@ export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
           pagination={false}
           scroll={{ x: 1500 }}
           locale={{
-            emptyText: <span style={{ color: "#98a4b4" }}>{t("Chưa có kế hoạch điều trị")}</span>,
+            emptyText: <span style={{ color: "#99a0bd" }}>{t("Chưa có kế hoạch điều trị")}</span>,
           }}
         />
       </Card>

@@ -36,9 +36,9 @@ interface CounterBadgeStyle {
 }
 
 const COUNTER_STATUS_STYLE: Record<AppointmentCounterType, CounterBadgeStyle> = {
-  Scheduled: { bg: "#DCEBFA", border: "#BFD6F6", color: "#1E5BB0" },
+  Scheduled: { bg: "#eef0ff", border: "#c7cdfb", color: "#1E5BB0" },
   Arrived:   { bg: "#E9F8EE", border: "#B9E6C9", color: "#237B4B" },
-  Cancelled: { bg: "#FBE0E0", border: "#F3BABA", color: "#B93832" },
+  Cancelled: { bg: "#fdeced", border: "#f7c6c8", color: "#cf3c41" },
   Late:      { bg: "#FBEBCB", border: "#FBEBCB", color: "#9A680F" },
   Temporary: { bg: "#F9E3CC", border: "#E8C19B", color: "#B7611F" },
   Converted: { bg: "#D5ECF7", border: "#AAD7EA", color: "#176F99" },
@@ -97,7 +97,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
   const canComplete = step2Done && !step3Done && !isCancelled && !isNoShow;
 
   const getCardStyle = (): React.CSSProperties => {
-    if (isCancelled) return { background: "#FBE0E0", borderColor: "#F3BABA" };
+    if (isCancelled) return { background: "#fdeced", borderColor: "#f7c6c8" };
     if (step3Done) return { background: "#EAF8EF", borderColor: "#41AE63" };
     if (step1Done) return { background: "#EAF3FF", borderColor: "#5A95F5" };
     return {};

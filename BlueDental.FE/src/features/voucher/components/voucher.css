@@ -51,7 +51,7 @@
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
-  border: 1px solid var(--bd-border, #e2e8f0);
+  border: 1px solid var(--bd-border, #e7eaf6);
   border-radius: 8px;
   font-size: 13px;
 }
@@ -586,7 +586,7 @@
 
 .voucher-exclusive-card {
   background: var(--bd-bg-soft, #f8fafc);
-  border: 1px solid var(--bd-border, #e5e7eb);
+  border: 1px solid var(--bd-border, #e7eaf6);
   border-radius: var(--bd-radius-card, 8px);
   padding: 12px 16px;
   margin-bottom: 16px;
@@ -645,7 +645,7 @@
 }
 
 .voucher-batch-card {
-  border: 1px solid var(--bd-border, #e5e7eb);
+  border: 1px solid var(--bd-border, #e7eaf6);
   border-radius: var(--bd-radius-card, 8px);
   padding: 8px 10px;
   cursor: pointer;

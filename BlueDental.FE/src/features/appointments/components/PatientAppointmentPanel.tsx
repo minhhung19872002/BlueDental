@@ -14,9 +14,9 @@ interface PatientAppointmentPanelProps {
 
 /** The counters the reference shows above a patient's appointment list. */
 const counters = (): { status: AppointmentStatus; label: string; color: string; bg: string }[] => [
-  { status: "scheduled", label: t("Đã hẹn"), color: "#6366f1", bg: "#eaf0fa" },
-  { status: "confirmed", label: t("Đã xác nhận"), color: "#1f8a63", bg: "#e6f5ef" },
-  { status: "cancelled", label: t("Đã huỷ"), color: "#ef4d4d", bg: "var(--bd-red-pale)" },
+  { status: "scheduled", label: t("Đã hẹn"), color: "#6366f1", bg: "#eef0ff" },
+  { status: "confirmed", label: t("Đã xác nhận"), color: "#0e9f6e", bg: "#e6f5ef" },
+  { status: "cancelled", label: t("Đã huỷ"), color: "#e5484d", bg: "var(--bd-red-pale)" },
   { status: "noShow", label: t("Trễ hẹn"), color: "#d98b0f", bg: "var(--bd-amber-pale)" },
 ];
 

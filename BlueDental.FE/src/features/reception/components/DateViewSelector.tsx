@@ -62,7 +62,7 @@ export const DateViewSelector: React.FC = () => {
         background: "#FFFFFF",
         padding: "8px 16px",
         borderRadius: 12,
-        border: "1px solid #E2E8F0",
+        border: "1px solid #e7eaf6",
         boxShadow: "0 2px 8px rgba(15, 23, 42, 0.03)",
       }}
     >
