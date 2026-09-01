@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   Avatar,
@@ -261,6 +261,16 @@ export function AppLayout() {
   const clinicShortName = CLINIC_SHORT_NAME;
   const sidebarWidth = sidebarExpanded ? SIDEBAR_EXPANDED_WIDTH : SIDEBAR_WIDTH;
 
+  /*
+   * On a short window the rail's list scrolls, and the page you are on can sit
+   * below the fold — so bring the chosen item into view when it changes.
+   */
+  const railListRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const chosen = railListRef.current?.querySelector(".sidebar-nav-item--active");
+    chosen?.scrollIntoView({ block: "nearest" });
+  }, [location.pathname]);
+
   const queryClient = useQueryClient();
   const { data: branches } = useClinicBranches(true);
   const currentBranchId = useBranchStore((s) => s.currentBranchId);
@@ -366,7 +376,7 @@ export function AppLayout() {
         </div>
 
         {/* Main nav */}
-        <nav className="sidebar-nav-main">
+        <nav className="sidebar-nav-main" ref={railListRef}>
           {mainNav(t).map((item) => (
             <SidebarNavItem
               key={item.key}

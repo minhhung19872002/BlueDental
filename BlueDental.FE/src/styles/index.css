@@ -471,8 +471,18 @@ button {
 }
 
 /* Nav containers */
+/*
+ * The list, not the rail, is what scrolls.
+ *
+ * The rail is a fixed-height flex column that clips, so this needs min-height:
+ * 0 to be allowed to shrink below its content — without it the list kept its
+ * full 664px inside a 438px slot and the last few items were simply cut off.
+ */
 .sidebar-nav-main {
   flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 10px 10px 12px;
   display: flex;
   flex-direction: column;
