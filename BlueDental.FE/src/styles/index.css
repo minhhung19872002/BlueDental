@@ -95,7 +95,7 @@
   --bd-sidebar-width: 76px;
   --bd-sidebar-expanded-width: 236px;
   --bd-sidebar-margin: 14px;
-  --bd-header-height: 66px;
+  --bd-header-height: 62px;
   --bd-header-top: 12px;
   --bd-sidebar-bg: #232a56;
 
@@ -138,25 +138,22 @@ body {
 body::before {
   content: "";
   position: fixed;
-  inset: -20%;
+  inset: 0;
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(42% 38% at 18% 22%, rgba(99, 102, 241, 0.18), transparent 68%),
-    radial-gradient(38% 34% at 82% 18%, rgba(34, 211, 238, 0.16), transparent 66%),
-    radial-gradient(46% 42% at 62% 82%, rgba(139, 92, 246, 0.15), transparent 70%);
+    radial-gradient(640px at 12% 8%, #eceefe, transparent 62%),
+    radial-gradient(760px at 88% 14%, rgba(34, 211, 238, 0.12), transparent 62%),
+    radial-gradient(900px at 50% 105%, rgba(167, 139, 250, 0.1), transparent 62%);
   animation: meshDrift 16s ease-in-out infinite alternate;
 }
 
 @keyframes meshDrift {
-  0% {
+  from {
     transform: translate3d(0, 0, 0) scale(1);
   }
-  50% {
-    transform: translate3d(2.5%, -2%, 0) scale(1.06);
-  }
-  100% {
-    transform: translate3d(-2%, 2.5%, 0) scale(1.03);
+  to {
+    transform: translate3d(0, -30px, 0) scale(1.06);
   }
 }
 
@@ -165,18 +162,16 @@ body::before {
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(6px);
   }
   to {
     opacity: 1;
-    transform: none;
   }
 }
 
 @keyframes popIn {
   from {
     opacity: 0;
-    transform: scale(0.96) translateY(8px);
+    transform: translateY(10px) scale(0.985);
   }
   to {
     opacity: 1;
@@ -184,7 +179,19 @@ body::before {
   }
 }
 
-/* Chart columns grow out of the axis, not the middle. */
+@keyframes countUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Chart columns grow out of the axis, not the middle — pair with
+   `transform-origin: bottom` on the element. */
 @keyframes barGrow {
   from {
     transform: scaleY(0);
@@ -194,31 +201,64 @@ body::before {
   }
 }
 
+/* The unread badge breathes a ring outward; it does not rock. */
 @keyframes ringPulse {
-  0%,
-  70%,
+  0% {
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 9px rgba(99, 102, 241, 0);
+  }
   100% {
-    transform: rotate(0deg);
-  }
-  10%,
-  30%,
-  50% {
-    transform: rotate(-11deg);
-  }
-  20%,
-  40%,
-  60% {
-    transform: rotate(11deg);
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
   }
 }
 
 @keyframes floatY {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes shimmer {
   from {
-    transform: translateY(-3px);
+    background-position: -400px 0;
   }
   to {
-    transform: translateY(3px);
+    background-position: 400px 0;
   }
+}
+
+/* Every button dips on press; the transition list is the design's own. */
+button {
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    background 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease,
+    filter 0.16s ease;
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+input,
+select {
+  transition:
+    border-color 0.16s ease,
+    background 0.16s ease;
+}
+
+/* A chip that wraps reads as two broken chips. */
+.app-main button,
+.app-header button {
+  white-space: nowrap;
 }
 
 /* Everyone who asked for less motion gets none of the ambient kind. */
@@ -290,21 +330,42 @@ button {
 
 /* ── Sidebar ── */
 
+/* The shell is a row, not a fixed rail with an offset beside it: the rail is
+   an ordinary flex child, so it can float free of the viewport edge. */
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+  align-items: stretch;
+}
+
 .app-sidebar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  height: 100vh;
-  background: var(--bd-sidebar-bg);
-  border-right: 0;
+  width: var(--bd-rail-width, var(--bd-sidebar-expanded-width));
+  flex: 0 0 auto;
+  background: var(--bd-sidebar-grad);
+  border: 1px solid var(--bd-border);
+  color: #fff;
   display: flex;
   flex-direction: column;
+  position: sticky;
+  top: var(--bd-sidebar-margin);
+  height: calc(100vh - (var(--bd-sidebar-margin) * 2));
+  margin: var(--bd-sidebar-margin) 0 var(--bd-sidebar-margin) var(--bd-sidebar-margin);
+  border-radius: var(--bd-radius-sidebar);
+  box-shadow: 0 30px 60px -30px rgba(44, 58, 122, 0.7);
   z-index: 100;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   transition: width 0.2s ease;
+}
+
+/* The rail's own list scrolls; the rail itself never does. */
+.app-sidebar > nav {
   scrollbar-width: none;
   -ms-overflow-style: none;
+}
+
+.app-sidebar > nav::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 .app-sidebar::-webkit-scrollbar {
@@ -313,6 +374,8 @@ button {
 }
 
 .app-main {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -399,7 +462,7 @@ button {
   font-size: 9.5px;
   font-weight: 700;
   letter-spacing: 1.6px;
-  color: var(--bd-gold);
+  color: var(--bd-accent);
 }
 
 .sidebar-nav-bottom {
@@ -414,12 +477,20 @@ button {
 .sidebar-nav-item {
   display: flex;
   align-items: center;
+  gap: 12px;
   width: 100%;
+  padding: 10px 12px;
   border: none;
+  border-radius: var(--bd-radius-nav);
   background: transparent;
-  color: #93a3ba;
+  color: #78819c;
+  font-size: 13px;
+  font-weight: 400;
   cursor: pointer;
-  transition: background 0.18s ease, color 0.18s ease;
+  text-align: left;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease;
   text-decoration: none;
   outline: none;
 }
@@ -427,6 +498,11 @@ button {
 .sidebar-nav-item:hover {
   background: rgba(255, 255, 255, 0.08);
   color: #ffffff;
+}
+
+/* Collapsed, the rail is icons only, so they centre. */
+.app-sidebar .sidebar-nav-item--collapsed {
+  justify-content: center;
 }
 
 /* Collapsed item — a centred icon on the narrow rail. */
@@ -451,7 +527,7 @@ button {
 
 /* Active state — the design's navy→gold sweep, white text. */
 .sidebar-nav-item--active {
-  background: linear-gradient(90deg, rgba(28, 53, 102, 0.95), rgba(253, 191, 79, 0.72)) !important;
+  background: linear-gradient(100deg, #6366f1, #7c5ce0 60%, #22d3ee 140%) !important;
   color: #ffffff !important;
   font-weight: 600;
   box-shadow: none;
@@ -506,19 +582,33 @@ button {
 
 /* ── Header ── */
 
+/* The one blurred surface in the app: a pane of glass floating over the mesh.
+   Cards stay opaque so text never sits on a moving ground. */
 .app-header {
   display: flex;
   align-items: center;
   gap: 14px;
   height: var(--bd-header-height);
+  flex: 0 0 auto;
+  margin: 14px 18px 0;
   padding: 0 22px;
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border-bottom: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-header);
+  background: var(--bd-glass);
+  backdrop-filter: blur(var(--bd-glass-blur));
+  -webkit-backdrop-filter: blur(var(--bd-glass-blur));
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 0 20px 44px -30px rgba(76, 81, 191, 0.45);
   position: sticky;
-  top: 0;
-  z-index: 40;
+  top: var(--bd-header-top);
+  z-index: 30;
+}
+
+/* Page bodies fade in on route change rather than snapping. */
+.app-content {
+  flex: 1;
+  min-width: 0;
+  padding: 22px 22px 40px;
+  animation: fadeIn 0.22s ease;
 }
 
 .app-header-left {
@@ -1201,11 +1291,15 @@ button {
   grid-template-columns: 1.05fr 0.95fr;
 }
 
-/* Navy panel with the design's two soft light wells. */
+/* Navy panel, lit by an indigo well top-right and a cyan one bottom-left. */
 .login-aside {
-  background: var(--bd-navy);
+  background:
+    radial-gradient(800px at 80% -10%, rgba(99, 102, 241, 0.55), transparent 60%),
+    radial-gradient(700px at 0% 110%, rgba(34, 211, 238, 0.4), transparent 60%),
+    var(--bd-navy);
   color: #fff;
-  padding: 56px 60px;
+  padding: 44px 60px;
+  gap: 36px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -1226,7 +1320,7 @@ button {
   height: 520px;
   top: -160px;
   right: -160px;
-  background: radial-gradient(circle, rgba(28, 53, 102, 0.5), transparent 70%);
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.5), transparent 70%);
 }
 
 .login-aside::after {
@@ -1234,7 +1328,7 @@ button {
   height: 420px;
   bottom: -140px;
   left: -120px;
-  background: radial-gradient(circle, rgba(253, 191, 79, 0.42), transparent 70%);
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.45), transparent 70%);
 }
 
 .login-brand {
@@ -1249,8 +1343,9 @@ button {
   height: 46px;
   border-radius: 50%;
   object-fit: cover;
-  border: 1.5px solid rgba(253, 191, 79, 0.5);
+  border: 1.5px solid rgba(34, 211, 238, 0.55);
   flex: 0 0 auto;
+  animation: floatY 5s ease-in-out infinite;
 }
 
 .login-brand-name {
@@ -1340,15 +1435,15 @@ button {
   height: 48px;
   border: 0;
   border-radius: 11px;
-  background: linear-gradient(120deg, var(--bd-navy), var(--bd-gold));
+  background: linear-gradient(120deg, #6366f1, #22d3ee);
   font-size: 14.5px;
   font-weight: 600;
-  box-shadow: 0 10px 24px -12px rgba(28, 53, 102, 0.9);
+  box-shadow: 0 10px 24px -12px rgba(99, 102, 241, 0.95);
   margin-top: 4px;
 }
 
 .login-submit.ant-btn-primary:not(:disabled):hover {
-  background: linear-gradient(120deg, var(--bd-navy), var(--bd-gold));
+  background: linear-gradient(120deg, #6366f1, #22d3ee);
   filter: brightness(1.06);
 }
 
@@ -1373,8 +1468,9 @@ button {
 .login-form .ant-input {
   height: 46px;
   padding: 0 14px;
+  border: 1px solid #e3e7f5;
   border-radius: 11px;
-  background: var(--bd-bg-soft);
+  background: #f6f8fe;
   font-size: 14px;
 }
 
@@ -6903,4 +6999,184 @@ html:has(.ant-modal-wrap) {
 .bd-materials-sync {
   margin-left: auto;
   display: inline-flex;
+}
+
+/* ==========================================================================
+   v2 component vocabulary — every measure below is the design file's own.
+   ========================================================================== */
+
+/* ---- Page header ----------------------------------------------------- */
+
+.bd-page-title {
+  font-size: 23px;
+  font-weight: 700;
+  letter-spacing: -0.6px;
+  color: var(--bd-title);
+}
+
+.bd-page-sub {
+  margin-top: 3px;
+  font-size: 13px;
+  color: #6a7390;
+}
+
+/* ---- Buttons --------------------------------------------------------- */
+
+.bd-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid #e3e7f5;
+  border-radius: 10px;
+  background: #fff;
+  color: #242b47;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.bd-btn:hover {
+  border-color: var(--bd-primary);
+  color: var(--bd-primary);
+}
+
+/* The one CTA fill. It lifts on hover and dips on press. */
+.bd-btn--cta {
+  padding: 0 15px;
+  border: 0;
+  background: var(--bd-cta);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 8px 18px -10px rgba(99, 102, 241, 0.95);
+}
+
+.bd-btn--cta:hover {
+  color: #fff;
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px -10px rgba(99, 102, 241, 0.65);
+}
+
+/* ---- Card ------------------------------------------------------------ */
+
+/* Opaque on purpose: the mesh drifts underneath, and text must not swim. */
+.bd-card {
+  background: var(--bd-card);
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-card);
+  padding: 20px;
+}
+
+.bd-card__title {
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.bd-card__divider {
+  border-bottom: 1px solid #eef0f9;
+}
+
+/* ---- KPI tile -------------------------------------------------------- */
+
+.bd-kpi {
+  background: var(--bd-card);
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-card);
+  padding: 17px 18px;
+  box-shadow: 0 6px 20px -14px rgba(44, 58, 122, 0.22);
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.bd-kpi:hover {
+  transform: translateY(-4px);
+  border-color: rgba(99, 102, 241, 0.5);
+  box-shadow: 0 24px 44px -22px rgba(99, 102, 241, 0.4);
+}
+
+.bd-kpi__value {
+  margin-top: 10px;
+  font-size: 27px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  animation: countUp 0.5s ease backwards;
+}
+
+.bd-kpi__label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6a7390;
+}
+
+.bd-kpi__sub {
+  margin-top: 3px;
+  font-size: 11.5px;
+  color: #78819c;
+}
+
+/* ---- Badge / chip ---------------------------------------------------- */
+
+/* A chip that wraps reads as two broken chips, so it never wraps. */
+.bd-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: var(--bd-radius-pill);
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ---- Chart column ---------------------------------------------------- */
+
+.bd-bar {
+  width: 100%;
+  max-width: 46px;
+  border-radius: 8px 8px 4px 4px;
+  transform-origin: bottom;
+  animation: barGrow 0.6s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
+  transition: filter 0.15s ease;
+}
+
+.bd-bar:hover {
+  filter: brightness(1.12) drop-shadow(0 6px 14px rgba(99, 102, 241, 0.45));
+}
+
+/* ---- Appointment card ------------------------------------------------ */
+
+/*
+ * The status tint is laid over an opaque white base, never used alone: on a
+ * translucent fill the calendar's grid lines read straight through the card.
+ * Set --appt-color to the status colour.
+ */
+.bd-appt {
+  /* 0x1f/0xff of the status colour, the design's own `+ '1f'` alpha suffix. */
+  background:
+    linear-gradient(
+      color-mix(in srgb, var(--appt-color, #6366f1) 12%, transparent),
+      color-mix(in srgb, var(--appt-color, #6366f1) 12%, transparent)
+    ),
+    #ffffff;
+  border-left: 3px solid var(--appt-color, #6366f1);
+  border-radius: 9px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.bd-appt:hover {
+  filter: brightness(0.98);
+}
+
+/* ---- Modal ----------------------------------------------------------- */
+
+.bd-modal-surface {
+  background: #fff;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-card);
+  box-shadow: var(--bd-shadow-modal);
+  animation: popIn 0.16s ease;
 }

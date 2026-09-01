@@ -337,9 +337,11 @@ export function AppLayout() {
   );
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f4f6fa" }}>
+    /* The rail and the content column are siblings in a row: the rail floats
+       clear of the viewport edge, so nothing can be offset against it. */
+    <div className="app-shell" style={{ "--bd-rail-width": `${sidebarWidth}px` } as React.CSSProperties}>
       {/* ── Sidebar ── */}
-      <aside className="app-sidebar" style={{ width: sidebarWidth }}>
+      <aside className="app-sidebar">
         {/* Logo area */}
         <div className={`sidebar-logo-area ${!sidebarExpanded ? "sidebar-logo-area--collapsed" : ""}`}>
           <div className="sidebar-logo-img-wrap">
@@ -382,10 +384,7 @@ export function AppLayout() {
       </aside>
 
       {/* ── Main area ── */}
-      <div
-        className="app-main"
-        style={{ marginLeft: sidebarWidth, transition: "margin-left 0.2s" }}
-      >
+      <div className="app-main">
         {/* ── Header ── */}
         <header className="app-header">
           <div className="app-header-left">
@@ -495,7 +494,7 @@ export function AppLayout() {
           </div>
         </header>
 
-        <main style={{ padding: 16, minHeight: 280 }}>
+        <main className="app-content">
           <Outlet />
         </main>
       </div>

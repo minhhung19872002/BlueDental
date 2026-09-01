@@ -67,3 +67,6 @@ BlueDental.FE/playwright-report/
 
 # Playwright MCP browser artifacts (snapshots, console logs from local testing)
 .playwright-mcp/
+
+# Working copy of the Claude Design project, pulled for reference.
+.design-ref/
