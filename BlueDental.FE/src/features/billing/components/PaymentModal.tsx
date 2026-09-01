@@ -78,6 +78,7 @@ export function PaymentModal({ open, invoice, onClose }: Props) {
       onCancel={onClose}
       destroyOnHidden
       width={460}
+      className="pay-modal"
       /* Money coming in is green in the design, not the navy primary. */
       okButtonProps={{ className: "btn-confirm-money" }}
     >

@@ -4683,6 +4683,11 @@ html:has(.ant-modal-wrap) {
 }
 
 /* Confirming a payment is green in the design, where other primaries are navy. */
+/*
+ * Taking money is the one confirm the design does not paint with the CTA
+ * gradient: its payment dialog uses a flat success green while every other
+ * dialog — appointment, patient, material, voucher — keeps the gradient.
+ */
 .ant-btn.btn-confirm-money,
 .ant-btn.btn-confirm-money:not(:disabled):hover {
   background: var(--bd-green);
@@ -4692,6 +4697,36 @@ html:has(.ant-modal-wrap) {
 
 .ant-btn.btn-confirm-money:not(:disabled):hover {
   filter: brightness(1.06);
+}
+
+/* The design gives the payment dialog's footer two buttons that share the
+   full width, the confirm a little wider than the way out. */
+.pay-modal .ant-modal-footer {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.pay-modal .ant-modal-footer .ant-btn {
+  height: 44px;
+  margin: 0;
+  border-radius: 11px;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.pay-modal .ant-modal-footer .ant-btn-default {
+  flex: 1;
+  color: #3c445f;
+}
+
+.pay-modal .ant-modal-footer .ant-btn-default:not(:disabled):hover {
+  border-color: #78819c;
+  color: #3c445f;
+}
+
+.pay-modal .ant-modal-footer .btn-confirm-money {
+  flex: 1.4;
 }
 
 
