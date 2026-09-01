@@ -164,7 +164,7 @@
    and chip styles pick the accent up without their own overrides. */
 .voucher-dialog,
 .voucher-service-dropdown {
-  --vc-accent: #2563eb;
+  --vc-accent: #6366f1;
   --vc-price: #f97316;
   --bd-blue: var(--vc-accent);
   --ff-input-height: 40px;

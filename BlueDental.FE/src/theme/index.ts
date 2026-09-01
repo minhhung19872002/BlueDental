@@ -189,10 +189,11 @@ export const themeConfig: ThemeConfig = {
   },
 };
 
-/* The voucher dialog on the ref keeps a bright Tailwind blue accent instead of
-   the navy the rest of the app uses. Kept in sync with --vc-accent in
+/* The reference app gave the voucher dialog a brighter blue than the rest of
+   the screens; v2 does not, so this is now the ordinary primary. Kept as its
+   own name because the dialog still themes itself, in sync with --vc-accent in
    features/voucher/components/voucher.css. */
-const voucherAccent = "#2563eb";
+const voucherAccent = "#6366f1";
 
 export const voucherDialogTheme: ThemeConfig = {
   token: {
