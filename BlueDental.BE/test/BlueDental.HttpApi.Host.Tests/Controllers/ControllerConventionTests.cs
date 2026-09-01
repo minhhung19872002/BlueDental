@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using BlueDental.Appointments;
@@ -13,6 +15,7 @@ using BlueDental.TreatmentManagement;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Routing;
 using Shouldly;
 using Volo.Abp;
 using Xunit;
@@ -73,13 +76,40 @@ public class ControllerConventionTests
     [Fact]
     public void All_Routes_Should_Start_With_Api_V1_App()
     {
+        // What matters is the URL a caller reaches, which is the class template
+        // joined to the action's own. A controller whose actions sit on
+        // unrelated nouns carries the bare prefix and names the noun per action;
+        // that still lands under api/v1/app/.
         var nonCompliant = AllControllers()
-            .Select(t => new { Name = t.Name, Route = t.GetCustomAttribute<RouteAttribute>()?.Template })
-            .Where(x => x.Route != null && !x.Route.StartsWith("api/v1/app/"))
+            .SelectMany(EffectiveRoutes)
+            .Where(x => !x.Route.StartsWith("api/v1/app/"))
             .Select(x => $"{x.Name}: {x.Route}")
             .ToList();
 
         nonCompliant.ShouldBeEmpty();
+    }
+
+    private static IEnumerable<(string Name, string Route)> EffectiveRoutes(Type controller)
+    {
+        var classTemplate = controller.GetCustomAttribute<RouteAttribute>()?.Template;
+        if (classTemplate == null) yield break;
+
+        var actionTemplates = controller
+            .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+            .SelectMany(m => m.GetCustomAttributes<HttpMethodAttribute>())
+            .Select(a => a.Template)
+            .Where(t => !string.IsNullOrWhiteSpace(t))
+            .Distinct()
+            .ToList();
+
+        if (actionTemplates.Count == 0)
+        {
+            yield return (controller.Name, classTemplate);
+            yield break;
+        }
+
+        foreach (var action in actionTemplates)
+            yield return (controller.Name, $"{classTemplate.TrimEnd('/')}/{action!.TrimStart('/')}");
     }
 
     [Fact]

@@ -174,8 +174,9 @@ public class UpdatePatientDto
 
 public class GetPatientListInput : PagedAndSortedResultRequestDto
 {
-    /// <summary>Override branch scope — when set, filters by this branch instead of the user's own.</summary>
-    public Guid? BranchId { get; set; }
+    // No BranchId here on purpose. The branch in view travels in the
+    // X-Clinic-Branch-Id header and is resolved server-side; letting the body
+    // name a branch too would be an unchecked way past that scope.
 
     /// <summary>Tìm kiếm — matches name, patient code or phone.</summary>
     public string? Filter { get; set; }

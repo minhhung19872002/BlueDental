@@ -1,10 +1,12 @@
 using System;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using BlueDental.Appointments;
 using BlueDental.Billing;
 using BlueDental.CustomerCare;
 using BlueDental.PatientManagement;
+using BlueDental.Promotions;
 using BlueDental.TreatmentManagement;
 
 using Shouldly;
@@ -21,19 +23,42 @@ public class CrossBranchDenialTests
         typeof(AppointmentAppService),
         typeof(PatientAppService),
         typeof(InvoiceAppService),
-
         typeof(InsuranceClaimAppService),
         typeof(TreatmentPlanAppService),
         typeof(CustomerCareAppService),
+        typeof(VoucherAppService),
     ];
+
+    /// <summary>
+    /// The guard is sync where the branch is known from the request header and
+    /// async where it has to be looked up, so both names count. What is being
+    /// asserted is the shape of the check, not what it is called.
+    /// </summary>
+    private static MethodInfo? FindGuard(Type serviceType)
+        => serviceType.GetMethod("GuardBranchAccess", BindingFlags.NonPublic | BindingFlags.Instance)
+           ?? serviceType.GetMethod("GuardBranchAccessAsync", BindingFlags.NonPublic | BindingFlags.Instance);
+
+    /// <summary>
+    /// An async method's own body is only the state-machine kickoff; the
+    /// throw lives in the generated MoveNext, so scan that instead.
+    /// </summary>
+    private static MethodBase BodyToScan(MethodInfo method)
+    {
+        var asyncAttr = method.GetCustomAttribute<AsyncStateMachineAttribute>();
+        if (asyncAttr is null) return method;
+
+        var moveNext = asyncAttr.StateMachineType.GetMethod(
+            "MoveNext",
+            BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+
+        return moveNext ?? (MethodBase)method;
+    }
 
     [Theory]
     [MemberData(nameof(GetServiceTypes))]
     public void GuardBranchAccess_Should_Exist(Type serviceType)
     {
-        var method = serviceType.GetMethod(
-            "GuardBranchAccess",
-            BindingFlags.NonPublic | BindingFlags.Instance);
+        var method = FindGuard(serviceType);
 
         method.ShouldNotBeNull(
             $"{serviceType.Name} must have a private GuardBranchAccess method");
@@ -43,15 +68,14 @@ public class CrossBranchDenialTests
     [MemberData(nameof(GetServiceTypes))]
     public void GuardBranchAccess_Should_Throw_EntityNotFoundException_Not_BusinessException(Type serviceType)
     {
-        var method = serviceType.GetMethod(
-            "GuardBranchAccess",
-            BindingFlags.NonPublic | BindingFlags.Instance)!;
+        var method = FindGuard(serviceType)!;
+        var scanned = BodyToScan(method);
 
-        var body = method.GetMethodBody();
+        var body = scanned.GetMethodBody();
         body.ShouldNotBeNull();
 
         var il = body.GetILAsByteArray()!;
-        var module = method.Module;
+        var module = scanned.Module;
 
         var referencedCtorTypes = new System.Collections.Generic.List<Type>();
 
@@ -85,9 +109,7 @@ public class CrossBranchDenialTests
     [MemberData(nameof(GetServiceTypes))]
     public void GuardBranchAccess_Should_Accept_Entity_Parameter(Type serviceType)
     {
-        var method = serviceType.GetMethod(
-            "GuardBranchAccess",
-            BindingFlags.NonPublic | BindingFlags.Instance)!;
+        var method = FindGuard(serviceType)!;
 
         var parameters = method.GetParameters();
         parameters.Length.ShouldBe(1,
@@ -102,9 +124,7 @@ public class CrossBranchDenialTests
     [MemberData(nameof(GetServiceTypes))]
     public void GuardBranchAccess_Should_Be_Private(Type serviceType)
     {
-        var method = serviceType.GetMethod(
-            "GuardBranchAccess",
-            BindingFlags.NonPublic | BindingFlags.Instance)!;
+        var method = FindGuard(serviceType)!;
 
         method.IsPrivate.ShouldBeTrue(
             $"{serviceType.Name}.GuardBranchAccess must be private — " +

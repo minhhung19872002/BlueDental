@@ -26,14 +26,31 @@ public class PatientTests
     }
 
     [Fact]
-    public void Register_Should_Throw_When_FirstName_Empty()
+    public void Register_Should_Throw_When_LastName_Empty()
     {
         Assert.Throws<ArgumentException>(() =>
             Patient.Register(
                 Guid.NewGuid(), "BN2026002",
-                "", "Nguyễn",
+                "An", "",
                 new DateOnly(1990, 1, 1), Gender.Female,
                 ValidContact, Guid.NewGuid()));
+    }
+
+    /// <summary>
+    /// The dialog collects one "Họ và tên" field, so a single-word name lands
+    /// wholly in <c>LastName</c> and the given name is left empty. That is a
+    /// complete name, not half of one, and must register.
+    /// </summary>
+    [Fact]
+    public void Register_Should_Allow_Empty_FirstName()
+    {
+        var patient = Patient.Register(
+            Guid.NewGuid(), "BN2026002",
+            "", "Nguyễn",
+            new DateOnly(1990, 1, 1), Gender.Female,
+            ValidContact, Guid.NewGuid());
+
+        Assert.Equal("Nguyễn", patient.FullName);
     }
 
     [Fact]
@@ -63,7 +80,7 @@ public class PatientTests
     }
 
     [Fact]
-    public void FullName_Should_Combine_First_And_Last()
+    public void FullName_Should_Read_Family_Name_First()
     {
         var patient = Patient.Register(
             Guid.NewGuid(), "BN2026005",
@@ -71,6 +88,6 @@ public class PatientTests
             new DateOnly(1995, 3, 10), Gender.Male,
             ValidContact, Guid.NewGuid());
 
-        Assert.Equal("An Nguyễn Văn", patient.FullName);
+        Assert.Equal("Nguyễn Văn An", patient.FullName);
     }
 }
