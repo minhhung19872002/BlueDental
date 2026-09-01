@@ -77,12 +77,13 @@
 
   /* Shape — v2 rounds much harder than v1's 8px. */
   --bd-radius: 12px;
-  --bd-radius-control: 12px;
+  --bd-radius-control: 10px;
   --bd-radius-nav: 14px;
   --bd-radius-pill: 999px;
   --bd-radius-sm: 9px;
   --bd-radius-card: 20px;
   --bd-radius-header: 18px;
+  --bd-radius-modal: 18px;
   --bd-radius-sidebar: 24px;
 
   --bd-shadow-card: 0 2px 10px rgba(35, 42, 86, 0.05);
@@ -617,8 +618,8 @@ button {
   padding: 0 22px;
   border-radius: var(--bd-radius-header);
   background: var(--bd-glass);
-  backdrop-filter: blur(var(--bd-glass-blur));
   -webkit-backdrop-filter: blur(var(--bd-glass-blur));
+  backdrop-filter: blur(var(--bd-glass-blur));
   border: 1px solid rgba(255, 255, 255, 0.95);
   box-shadow: 0 20px 44px -30px rgba(76, 81, 191, 0.45);
   position: sticky;
@@ -987,9 +988,9 @@ button {
 .app-search-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(21, 42, 82, 0.45);
-  backdrop-filter: blur(3px);
+  background: rgba(35, 42, 86, 0.4);
   -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
   z-index: 1000;
   display: flex;
   align-items: flex-start;
@@ -1005,7 +1006,7 @@ button {
   border-radius: 18px;
   overflow: hidden;
   box-shadow: var(--bd-shadow-modal);
-  animation: bd-pop-in 0.18s ease;
+  animation: popIn 0.18s ease;
 }
 
 /* Search icon, a borderless field, then the Esc key — one row, as drawn. */
@@ -1173,7 +1174,7 @@ button {
 .page-card {
   background: #fff;
   border: 1px solid var(--bd-border);
-  border-radius: var(--bd-radius);
+  border-radius: var(--bd-radius-card);
   box-shadow: var(--bd-shadow-card);
   padding: 20px;
 }
@@ -1836,7 +1837,7 @@ button {
 .reception-card {
   background: #ffffff;
   border: 1px solid var(--bd-border);
-  border-radius: var(--bd-radius);
+  border-radius: var(--bd-radius-card);
   padding: 16px 20px;
   box-shadow: var(--bd-shadow-card);
   display: flex;
@@ -2299,7 +2300,7 @@ button {
 .kpi-card {
   background: #fff;
   border: 1px solid var(--bd-border);
-  border-radius: var(--bd-radius);
+  border-radius: var(--bd-radius-card);
   box-shadow: var(--bd-shadow-card);
   padding: 17px 18px;
 }
@@ -2841,7 +2842,7 @@ body {
 .staff-card {
   background: #fff;
   border: 1px solid var(--bd-border);
-  border-radius: var(--bd-radius);
+  border-radius: var(--bd-radius-card);
   box-shadow: var(--bd-shadow-card);
   padding: 18px;
   display: flex;
@@ -3536,7 +3537,7 @@ body {
   padding: 10px 12px;
   background: rgb(238 244 251);
   border: 1px solid rgb(238 244 251);
-  border-radius: var(--bd-radius);
+  border-radius: var(--bd-radius-control);
 }
 
 .perm-group--top > .perm-group-header:hover {
@@ -3549,7 +3550,7 @@ body {
   padding: 8px 12px;
   background: rgb(248 251 255);
   border: 1px solid rgb(227 235 247);
-  border-radius: var(--bd-radius);
+  border-radius: var(--bd-radius-control);
   margin-top: 4px;
 }
 
@@ -3853,26 +3854,13 @@ body {
 
 }
 
-@keyframes bd-pop-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px) scale(0.985);
-  }
-
-  to {
-    opacity: 1;
-    transform: none;
-  }
-
-}
-
 /* The design tints the backdrop navy and blurs what is behind it, rather than
    using a neutral scrim. */
 .ant-modal-mask,
 .ant-drawer-mask {
-  background: rgba(21, 42, 82, 0.45) !important;
-  backdrop-filter: blur(3px);
+  background: rgba(35, 42, 86, 0.4) !important;
   -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
 }
 
 html:has(.ant-modal-wrap) {
@@ -3892,12 +3880,20 @@ html:has(.ant-modal-wrap) {
   max-height: 100vh;
 }
 
+/*
+ * Dialogs are the one surface besides the header the design blurs — cards stay
+ * opaque, these do not. Ant Design 6 renames the shell, so both are named.
+ */
 .ant-modal .ant-modal-content,
 .ant-modal .ant-modal-container {
-  border-radius: 18px;
+  border-radius: var(--bd-radius-modal);
   padding: 0;
-  box-shadow: var(--bd-shadow-modal);
-  animation: bd-pop-in 0.18s ease;
+  background: rgba(255, 255, 255, 0.96);
+  -webkit-backdrop-filter: blur(22px);
+  backdrop-filter: blur(22px);
+  border: 1px solid #fff;
+  box-shadow: 0 30px 70px -20px rgba(35, 42, 86, 0.4);
+  animation: popIn 0.18s ease;
   max-height: calc(100vh - 64px);
   display: flex;
   flex-direction: column;
@@ -4465,7 +4461,7 @@ html:has(.ant-modal-wrap) {
 .pt-head {
   background: #ffffff;
   border: 1px solid var(--bd-border);
-  border-radius: var(--bd-radius);
+  border-radius: var(--bd-radius-card);
   padding: 18px 20px;
   display: flex;
   align-items: center;
@@ -4589,7 +4585,7 @@ html:has(.ant-modal-wrap) {
 .identity-tabs > .pill-tabs-row {
   background: #ffffff;
   border: 1px solid var(--bd-border);
-  border-radius: var(--bd-radius);
+  border-radius: var(--bd-radius-control);
   box-shadow: var(--bd-shadow-card);
   padding: 14px 16px;
 }
@@ -6133,7 +6129,7 @@ html:has(.ant-modal-wrap) {
   display: flex;
   flex-direction: column;
   border: 1px solid var(--bd-line);
-  border-radius: var(--bd-radius);
+  border-radius: var(--bd-radius-card);
   background: #fff;
   height: 100%;
   min-height: 0;
@@ -6571,7 +6567,7 @@ html:has(.ant-modal-wrap) {
 /* A sub-tab the reference itself has not built. */
 .bd-ops-construction {
   border: 1px dashed var(--bd-line);
-  border-radius: var(--bd-radius);
+  border-radius: var(--bd-radius-card);
   background: #fff;
   padding: 56px 24px;
   color: var(--bd-muted);
@@ -7272,11 +7268,13 @@ html:has(.ant-modal-wrap) {
 /* ---- Modal ----------------------------------------------------------- */
 
 .bd-modal-surface {
-  background: #fff;
-  border: 1px solid var(--bd-border);
-  border-radius: var(--bd-radius-card);
-  box-shadow: var(--bd-shadow-modal);
-  animation: popIn 0.16s ease;
+  background: rgba(255, 255, 255, 0.96);
+  -webkit-backdrop-filter: blur(22px);
+  backdrop-filter: blur(22px);
+  border: 1px solid #fff;
+  border-radius: var(--bd-radius-modal);
+  box-shadow: 0 30px 70px -20px rgba(35, 42, 86, 0.4);
+  animation: popIn 0.18s ease;
 }
 
 /* ---- Form fields ------------------------------------------------------ */
@@ -7436,10 +7434,9 @@ html:has(.ant-modal-wrap) {
 
 /* ---- Remaining v2 motion ---------------------------------------------- */
 
-/* Dialogs arrive rather than appear. */
-.ant-modal .ant-modal-content,
+/* Drawers arrive rather than appear; dialogs get theirs with their surface. */
 .ant-drawer-content {
-  animation: popIn 0.16s ease;
+  animation: popIn 0.18s ease;
 }
 
 /* Progress bars carry a cyan glow along the filled part. */
