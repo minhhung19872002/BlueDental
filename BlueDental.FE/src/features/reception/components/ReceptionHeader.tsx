@@ -79,7 +79,7 @@ export const ReceptionHeader: React.FC<ReceptionHeaderProps> = ({
                   width: 46,
                   height: 46,
                   borderRadius: 14,
-                  background: "rgba(38, 113, 216, 0.1)",
+                  background: "rgba(99, 102, 241, 0.1)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",

@@ -46,7 +46,7 @@
 }
 
 .tk-info-btn:focus-visible {
-  box-shadow: 0 0 0 3px rgba(38, 113, 216, 0.25);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
 }
 
 /* ── Board grid ─────────────────────────────────────────────────────── */
@@ -259,7 +259,7 @@
   border-radius: 999px;
   border: 1px solid transparent;
   background: #fff;
-  box-shadow: 0 2px 8px rgba(27, 42, 65, 0.14);
+  box-shadow: 0 2px 8px rgba(35, 42, 86, 0.14);
   transition: transform 0.3s ease-out, left 0.3s ease-out;
   transform: translateY(-50%);
 }
@@ -282,7 +282,7 @@
 }
 
 .tk-toggle-btn:focus-visible {
-  box-shadow: 0 0 0 3px rgba(38, 113, 216, 0.25);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
 }
 
 .tk-toggle-btn:disabled {
@@ -374,7 +374,7 @@
 }
 
 .tk-timeline-circle:focus-visible {
-  box-shadow: 0 0 0 3px rgba(38, 113, 216, 0.25);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
 }
 
 .tk-timeline-circle svg {
@@ -479,7 +479,7 @@
 }
 
 .tk-more-btn:focus-visible {
-  box-shadow: 0 0 0 3px rgba(38, 113, 216, 0.25);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
 }
 
 .tk-more-btn:disabled {
@@ -535,7 +535,7 @@
   border-color: var(--bd-primary);
   background: var(--bd-primary);
   color: #fff;
-  box-shadow: 0 1px 3px rgba(28, 53, 102, 0.3);
+  box-shadow: 0 1px 3px rgba(99, 102, 241, 0.3);
 }
 
 .tk-week-header-cell--active:hover {
@@ -1081,7 +1081,7 @@
 }
 
 .wsb-cell:hover:not(:disabled) {
-  border-color: rgba(38, 113, 216, 0.4);
+  border-color: rgba(99, 102, 241, 0.4);
   background: #EEF5FF;
 }
 

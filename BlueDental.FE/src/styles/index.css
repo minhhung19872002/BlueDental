@@ -408,7 +408,7 @@ button {
   justify-content: center;
   border-radius: 50%;
   background: transparent;
-  border: 1.5px solid rgba(253, 191, 79, 0.45);
+  border: 1.5px solid rgba(34, 211, 238, 0.5);
   overflow: hidden;
   min-width: 36px;
 }
@@ -534,8 +534,9 @@ button {
   transform: none;
 }
 
+/* Hovering the chosen item only lightens its label — the fill stays the CTA
+   gradient, so it must not be re-declared here. */
 .sidebar-nav-item--active:hover {
-  background: linear-gradient(90deg, rgba(28, 53, 102, 1), rgba(253, 191, 79, 0.82)) !important;
   color: #ffffff !important;
 }
 
@@ -624,10 +625,10 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--bd-line);
+  border: 1px solid #e3e7f5;
   border-radius: 9px;
   background: #fff;
-  color: var(--bd-sub);
+  color: #3c445f;
   cursor: pointer;
   transition: all 0.15s;
   padding: 0;
@@ -1713,7 +1714,7 @@ button {
   background: var(--bd-blue);
   color: #ffffff;
   font-weight: 600;
-  box-shadow: 0 1px 3px rgba(28, 53, 102, 0.3);
+  box-shadow: 0 1px 3px rgba(99, 102, 241, 0.3);
 }
 
 .ant-segmented .ant-segmented-item:hover:not(.ant-segmented-item-selected) {
@@ -2042,7 +2043,7 @@ button {
 }
 
 .ss-wrapper--open .ss-trigger {
-  box-shadow: 0 0 0 2px rgba(38, 113, 216, 0.15);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
 }
 
 .ss-wrapper--error .ss-trigger {
@@ -3102,7 +3103,7 @@ body {
 
 .settings-branch-card:hover {
   border-color: color-mix(in srgb, var(--bd-primary) 30%, transparent);
-  box-shadow: 0 2px 8px rgba(28, 53, 102, 0.06);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.06);
 }
 
 .settings-branch-card-header {
@@ -3167,7 +3168,7 @@ body {
 
 .settings-role-card:hover {
   border-color: color-mix(in srgb, var(--bd-primary) 30%, transparent);
-  box-shadow: 0 2px 8px rgba(28, 53, 102, 0.06);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.06);
 }
 
 .settings-role-card-left {
@@ -4107,7 +4108,7 @@ html:has(.ant-modal-wrap) {
   height: 34px;
   flex: none;
   border-radius: 11px;
-  background: rgba(28, 53, 102, .08);
+  background: rgba(99, 102, 241, .08);
   color: var(--bd-blue);
   display: grid;
   place-items: center;
@@ -4442,13 +4443,13 @@ html:has(.ant-modal-wrap) {
   flex-wrap: wrap;
 }
 
-/* Rounded square, not a circle — the design's navy-to-gold sweep. */
+/* Rounded square, not a circle — the design's indigo-to-cyan wash. */
 .pt-head-avatar {
   width: 58px;
   height: 58px;
   flex: 0 0 auto;
   border-radius: 18px;
-  background: linear-gradient(140deg, var(--bd-blue), var(--bd-gold));
+  background: linear-gradient(140deg, var(--bd-primary), var(--bd-accent));
   color: #ffffff;
   display: grid;
   place-items: center;
@@ -4732,12 +4733,13 @@ html:has(.ant-modal-wrap) {
   overflow: hidden;
 }
 
-/* The design fills the bar with the navy-to-gold sweep. */
+/* The design fills the bar with the indigo-to-cyan sweep, glowing cyan. */
 .tp-bar-fill {
   display: block;
   height: 100%;
   border-radius: 6px;
-  background: linear-gradient(90deg, var(--bd-blue), var(--bd-gold));
+  background: linear-gradient(90deg, var(--bd-primary), var(--bd-accent));
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.55);
 }
 
 /* ── Month grid (the design's Lịch hẹn month view) ───────────────────────── */

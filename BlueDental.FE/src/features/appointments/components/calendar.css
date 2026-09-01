@@ -63,11 +63,11 @@
 }
 
 .cal-counter-btn:focus-visible {
-  box-shadow: 0 0 0 2px rgba(38, 113, 216, 0.25);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
 }
 
 .cal-counter-btn--active {
-  box-shadow: 0 0 0 2px rgba(38, 113, 216, 0.3);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3);
 }
 
 .cal-counter {
