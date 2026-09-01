@@ -682,3 +682,32 @@ trình duyệt tự đoán kiểu.
 | # | Suite | Nguyên nhân | Trạng thái |
 |---|------|-----------|-----------|
 | R-143 | `staff` :19 | Spec chờ option chi nhánh tên `Nha Khoa Đức Hạnh Premium`, nhưng DB local đang là `BlueDental - Chi nhánh chính` / `Chi nhánh 2`. Seeder chi nhánh có guard theo id nên lần đổi tên ở R-135 không cập nhật dòng đã tồn tại | **Chưa sửa — có sẵn, không do đợt này.** Không đụng gì tới màn Nhân viên; tên chi nhánh này đã hiện như vậy trong mọi ảnh chụp từ đầu phiên. Cần seed lại DB sạch hoặc cho seeder đổi tên dòng cũ |
+
+---
+
+### 2026-09-01 — Đức Hạnh Premium v2 (restyle giao diện)
+
+Đổi lớp giao diện toàn bộ FE theo `BlueDental v2.dc.html` (đọc qua Claude Design
+MCP). Không đụng logic nghiệp vụ, route hay API. Token `--bd-*` và `brand` đổi
+sang indigo/cyan, khung đổi từ rail `position: fixed` + `margin-left` sang flex
+row (rail nổi bo 24px, header kính bo 18px, nền mesh), sơ đồ răng vẽ lại theo
+hình giải phẫu, bảng màu trạng thái lịch hẹn theo `statusColor` của design.
+
+Hai bảng màu **cố ý không đổi** vì chúng được ghi xuống DB, không phải đọc từ
+stylesheet: `APPT_COLORS` (màu lịch hẹn) và bảng màu Thẻ hồ sơ trong
+`PatientTagModal`. Đổi sẽ làm mọi bản ghi cũ mồ côi khỏi picker. Bảng thứ hai
+còn nằm trong `/taxonomy` (mục 17).
+
+Đã verify: `tsc -b --noEmit` sạch, `oxlint` 0 error, `vitest` 3/3, build
+production sạch, và soi thật trên trình duyệt sau khi đăng nhập (Tổng quan,
+Tiếp nhận, Lịch hẹn, Bệnh nhân + hồ sơ, Thanh toán, Labo, Voucher, Báo cáo,
+Cài đặt, Danh mục).
+
+| # | Suite | Nguyên nhân | Trạng thái |
+|---|------|-----------|-----------|
+| R-144 | tất cả e2e chạy qua `127.0.0.1:8080` | Một ứng dụng khác (FoodSafe) đang bind `127.0.0.1:8080` (IPv4) trong khi `vite preview` của BlueDental nằm ở `localhost` → `::1` (IPv6). Playwright lấy `baseURL` mặc định là `127.0.0.1:8080` nên đăng nhập vào **nhầm ứng dụng**; cả 31 test taxonomy fail giống hệt nhau ở ~21,6s (timeout của `login`) | **Không phải lỗi mã.** Chạy lại với `E2E_BASE_URL` trỏ cổng trống thì đăng nhập được. Khi chạy e2e cần kiểm cổng trước |
+| R-145 | `taxonomy*` (31), `payment-qr` (3) | Nút "Thêm …" bị `disabled` với title "Chọn một chi nhánh cụ thể trước khi thêm". Tài khoản `admin` sau `DbMigrator` **không có** dòng nào trong `bd_staff_branch_assignments` → là tài khoản toàn phòng khám → header mặc định "Tất cả chi nhánh". Các spec đăng nhập rồi thêm ngay, không chọn chi nhánh | **Chưa sửa — có sẵn, không do đợt này.** Guard này vào từ `baf5934` (25/08), trước đợt restyle. Đã kiểm bằng tay: chọn chi nhánh xong thì nút bật và `/taxonomy` chạy đúng. Cần spec tự chọn chi nhánh, hoặc seed cho `admin` một phân công chi nhánh |
+| R-146 | `branch-isolation` :40, `branch-switcher` :35 | Spec dùng tài khoản `manager`; DB local chỉ có `admin` và `branch2` | **Chưa sửa — thiếu seed.** `MANAGER_USER` trong `e2e/fixtures/auth.ts` chưa được `DbMigrator` tạo |
+
+Ghi chú: R-143 (tên chi nhánh lệch) nay đã hết — sau lần migrate này DB đã có
+đúng `Nha Khoa Đức Hạnh Premium` và `… - Chi nhánh 2`.
