@@ -4060,6 +4060,7 @@ html:has(.ant-modal-wrap) {
 /* The design tints this strip blue rather than neutral grey, so the amount
    still owed reads as a notice rather than as another field. */
 .pay-summary {
+  font-size: 12.5px;
   margin-bottom: 18px;
   padding: 13px 14px;
   border: 1px solid color-mix(in srgb, var(--bd-blue) 12%, #ffffff);
@@ -7309,11 +7310,16 @@ html:has(.ant-modal-wrap) {
   color: #3c445f;
 }
 
-/* Ant Design's own controls, brought to the same shape inside a dialog. */
-.bd-dialog .ant-input,
-.bd-dialog .ant-input-affix-wrapper,
-.bd-dialog .ant-select .ant-select-selector,
-.bd-dialog .ant-picker {
+/*
+ * Ant Design's controls, brought to the field the design draws: a 42px box on
+ * a faint fill that turns white at focus. Scoped to dialogs, and kept off the
+ * printed A4 sheet, which sets its own boxes.
+ */
+.ant-modal .ant-input,
+.ant-modal .ant-input-affix-wrapper,
+.ant-modal .ant-input-number,
+.ant-modal .ant-select:not(.ant-select-multiple) .ant-select-selector,
+.ant-modal .ant-picker {
   height: 42px;
   border-color: #e3e7f5;
   border-radius: 10px;
@@ -7321,12 +7327,45 @@ html:has(.ant-modal-wrap) {
   font-size: 13px;
 }
 
-.bd-dialog .ant-input:focus,
-.bd-dialog .ant-input-affix-wrapper:focus-within,
-.bd-dialog .ant-select-focused .ant-select-selector,
-.bd-dialog .ant-picker-focused {
+.ant-modal .ant-input-affix-wrapper > .ant-input,
+.ant-modal .ant-input-number .ant-input-number-input {
+  height: auto;
+  border: 0;
+  background: transparent;
+}
+
+.ant-modal .ant-input:focus,
+.ant-modal .ant-input-affix-wrapper:focus-within,
+.ant-modal .ant-input-number-focused,
+.ant-modal .ant-select-focused .ant-select-selector,
+.ant-modal .ant-picker-focused {
   border-color: var(--bd-primary);
   background: #fff;
+}
+
+.ant-modal textarea.ant-input {
+  height: auto;
+  min-height: 42px;
+  padding: 10px 13px;
+}
+
+/* The A4 medical-record sheet draws its own boxes; leave it alone. */
+.ant-modal .mr-sheet .ant-input,
+.ant-modal .mr-sheet .ant-input-affix-wrapper,
+.ant-modal .mr-sheet textarea.ant-input {
+  height: auto;
+  border-radius: 0;
+  background: transparent;
+}
+
+/* Dialog chrome, to the design's numbers. */
+.ant-modal .ant-modal-title {
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.ant-modal .ant-modal-body {
+  padding: 20px;
 }
 
 /* ---- Tabs / pills / pagination ---------------------------------------- */
