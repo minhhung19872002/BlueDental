@@ -27,29 +27,13 @@ import { brand, SIDEBAR_WIDTH, SIDEBAR_EXPANDED_WIDTH } from "@/theme/index";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { useClinicBranches } from "@/features/organizations/api";
 import { useMyNotifications } from "@/features/notifications/api";
+import { roleLabel } from "@/utils/roleLabel";
 import { useBranchStore } from "@/lib/clinicBranch";
 
 interface NavItem {
   key: string;
   icon: React.ReactNode;
   label: string;
-}
-
-/**
- * Roles arrive as their technical names. The ones the seeder creates are
- * already Vietnamese and pass through; these are the ABP-flavoured ones.
- */
-const ROLE_LABELS: Record<string, string> = {
-  admin: "Quản trị viên",
-  dentist: "Bác sĩ",
-  nurse: "Điều dưỡng",
-  receptionist: "Lễ tân",
-  accountant: "Kế toán",
-};
-
-function roleLabel(role: string | undefined, t: Translate): string {
-  if (!role) return t("Người dùng");
-  return ROLE_LABELS[role.toLowerCase()] ?? role;
 }
 
 /** The rail's own wordmark — the header carries the clinic's full name. */
@@ -187,7 +171,7 @@ export function AppLayout() {
      are signed in as. Both come from what is already loaded. */
   const { data: notifications } = useMyNotifications();
   const unreadCount = (notifications?.items ?? []).filter((n) => !n.isRead).length;
-  const userRole = roleLabel(user?.roles?.[0], t);
+  const userRole = roleLabel(user?.roles?.[0], t("Người dùng"));
 
   const logoutMutation = useMutation({
     mutationFn: authApi.logout,

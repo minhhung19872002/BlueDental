@@ -1,6 +1,5 @@
 import { Spin } from "antd";
 import { useRevenueSeries, REVENUE_DAYS } from "../api/dashboardQueries";
-import { brand } from "@/theme/index";
 import { t } from "@/lib/i18n";
 
 const MILLION = 1_000_000;
@@ -27,23 +26,25 @@ export function RevenueBarChart() {
         </div>
       ) : (
         <div className="dash-chart">
-          {bars.map((bar) => {
+          {bars.map((bar, i) => {
             const heightPct = Math.max((bar.amount / peak) * 100, 2);
             const millions = bar.amount / MILLION;
+            /* The design lights the last column and greys the rest, and names
+               it Hôm nay rather than by its weekday. */
+            const isToday = i === bars.length - 1;
             return (
               <div key={bar.date} className="dash-bar-col">
                 <span className="dash-bar-value">
-                  {millions >= 1 ? millions.toFixed(1) : millions > 0 ? "<1" : "0"}
+                  {millions >= 1 ? `${millions.toFixed(1)} tr` : millions > 0 ? "<1 tr" : "0"}
                 </span>
                 <div
-                  className="dash-bar"
-                  style={{
-                    height: `${heightPct}%`,
-                    background: bar.amount > 0 ? brand.blue : brand.lineSoft,
-                  }}
+                  className={`dash-bar${isToday ? " dash-bar--today" : ""}`}
+                  style={{ height: `${heightPct}%` }}
                   title={`${bar.date}: ${bar.amount.toLocaleString("vi-VN")} ₫`}
                 />
-                <span className="dash-bar-label">{bar.weekday}</span>
+                <span className="dash-bar-label">
+                  {isToday ? t("Hôm nay") : bar.weekday}
+                </span>
               </div>
             );
           })}
