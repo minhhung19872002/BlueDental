@@ -34,7 +34,7 @@ const STATUS_GROUPS: {
     key: "scheduled",
     label: "Đã hẹn",
     icon: <ClockCircleOutlined />,
-    color: "#2671D8",
+    color: "#6366f1",
     match: (s) => s === "scheduled" || s === "confirmed",
   },
 ];

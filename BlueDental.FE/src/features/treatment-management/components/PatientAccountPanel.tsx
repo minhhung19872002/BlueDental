@@ -68,10 +68,10 @@ export function PatientAccountPanel({ patientId }: PatientAccountPanelProps) {
   const tiles = [
     { label: t("Tổng phiếu"), value: account?.payment.totalPrice ?? 0, testId: "acc-total", color: "#101c2c" },
     { label: t("Đã thanh toán"), value: account?.payment.totalPaid ?? 0, testId: "acc-paid", color: "#1f8a63" },
-    { label: t("Hoàn tiền"), value: account?.payment.totalRefund ?? 0, testId: "acc-refund", color: "#dd9426" },
+    { label: t("Hoàn tiền"), value: account?.payment.totalRefund ?? 0, testId: "acc-refund", color: "#d98b0f" },
     { label: t("Còn lại"), value: account?.payment.totalDue ?? 0, testId: "acc-due", color: "#ef4d4d" },
     { label: t("Phải thu"), value: account?.payment.debt ?? 0, testId: "acc-debt", color: "#ef4d4d" },
-    { label: t("Đang giữ hộ"), value: account?.heldForPatient ?? 0, testId: "acc-held", color: "#1c3566" },
+    { label: t("Đang giữ hộ"), value: account?.heldForPatient ?? 0, testId: "acc-held", color: "#6366f1" },
   ];
 
   const handleSubmit = async () => {

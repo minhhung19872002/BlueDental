@@ -279,13 +279,13 @@ export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
         <Col span={12}>
           <Card
             size="small"
-            style={{ borderLeft: "4px solid #1c3566" }}
+            style={{ borderLeft: "4px solid #6366f1" }}
             data-testid="plan-active-services"
           >
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <span
                 style={{
-                  background: "#1c3566",
+                  background: "#6366f1",
                   color: "#fff",
                   borderRadius: 12,
                   padding: "2px 10px",

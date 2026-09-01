@@ -188,7 +188,7 @@ export function TimekeepingBoard({ currentDate, viewMode, onViewModeChange, onDa
             trigger="hover"
             placement="bottomLeft"
             overlayClassName="tk-guide-popover"
-            overlayInnerStyle={{ background: "#1B2A41", padding: 16, borderRadius: 10 }}
+            overlayInnerStyle={{ background: "#171c33", padding: 16, borderRadius: 10 }}
             overlayStyle={{ maxWidth: 380 }}
           >
             <button

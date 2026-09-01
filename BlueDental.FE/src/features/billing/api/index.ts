@@ -19,12 +19,12 @@ export const invoiceStatusConfig = (): Record<
   { label: string; color: string }
 > => ({
   [INVOICE_STATUS.Draft]: { label: t("Nháp"), color: "#6f7c90" },
-  [INVOICE_STATUS.Issued]: { label: t("Đã phát hành"), color: "#1c3566" },
-  [INVOICE_STATUS.PartiallyPaid]: { label: t("Thu một phần"), color: "#dd9426" },
+  [INVOICE_STATUS.Issued]: { label: t("Đã phát hành"), color: "#6366f1" },
+  [INVOICE_STATUS.PartiallyPaid]: { label: t("Thu một phần"), color: "#d98b0f" },
   [INVOICE_STATUS.Paid]: { label: t("Đã thanh toán"), color: "#1f8a63" },
   [INVOICE_STATUS.Overdue]: { label: t("Quá hạn"), color: "#ef4d4d" },
   [INVOICE_STATUS.Voided]: { label: t("Đã huỷ"), color: "#7d8a9c" },
-  [INVOICE_STATUS.Refunded]: { label: t("Đã hoàn tiền"), color: "#6f63a3" },
+  [INVOICE_STATUS.Refunded]: { label: t("Đã hoàn tiền"), color: "#7c5ce0" },
 });
 
 /** Matches BlueDental.Billing.PaymentMethod. */

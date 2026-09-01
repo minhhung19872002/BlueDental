@@ -47,8 +47,8 @@ export function MobileFilterDrawer({
           wrapper: { borderRadius: "16px 16px 0 0", overflow: "hidden" },
           content: { borderRadius: "16px 16px 0 0" },
           body: { padding: "20px 16px 0", display: "flex", flexDirection: "column", gap: 24 },
-          header: { padding: "12px 16px", borderBottom: "1px solid #DCE3EE" },
-          footer: { padding: "12px 16px", borderTop: "1px solid #DCE3EE" },
+          header: { padding: "12px 16px", borderBottom: "1px solid #e7eaf6" },
+          footer: { padding: "12px 16px", borderTop: "1px solid #e7eaf6" },
         }}
         footer={
           <div className="mobile-filter-footer">

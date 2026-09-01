@@ -57,17 +57,17 @@
 
 /* Counter / action palette captured from the reference. */
 .cskh-counter--total { --tile-color: var(--bd-blue); }
-.cskh-counter--success { --tile-color: #2bb673; }
+.cskh-counter--success { --tile-color: #0e9f6e; }
 .cskh-counter--fail { --tile-color: #e5484d; }
 .cskh-counter--new { --tile-color: #f5a400; }
 .cskh-counter--zalo { --tile-color: #0068ff; }
 
-.cskh-action--phone { --action-color: #2bb673; }
+.cskh-action--phone { --action-color: #0e9f6e; }
 .cskh-action--message { --action-color: #f5a400; }
 .cskh-action--send { --action-color: #0068ff; }
 .cskh-action--care { --action-color: var(--bd-blue); }
 
-.cskh-color-radio--good { --label-color: #2bb673; }
+.cskh-color-radio--good { --label-color: #0e9f6e; }
 .cskh-color-radio--fair { --label-color: var(--bd-blue); }
 .cskh-color-radio--normal { --label-color: #f5a400; }
 .cskh-color-radio--complaint { --label-color: #e5484d; }
@@ -158,8 +158,8 @@
 }
 
 .cskh-badge--green {
-  background: color-mix(in srgb, #2bb673 12%, #ffffff);
-  color: #2bb673;
+  background: color-mix(in srgb, #0e9f6e 12%, #ffffff);
+  color: #0e9f6e;
 }
 
 /* Row actions — reference: size-7 rounded-full, icon tinted, 10% hover fill. */

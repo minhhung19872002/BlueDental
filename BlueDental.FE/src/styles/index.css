@@ -1842,7 +1842,7 @@ button {
   background: #ffffff;
   padding: 4px;
   border-radius: 8px;
-  border: 1px solid #DCE3EE;
+  border: 1px solid #e7eaf6;
   height: 40px;
 }
 
@@ -4376,7 +4376,7 @@ html:has(.ant-modal-wrap) {
   height: auto;
   transform: translateY(-50%);
   font-size: 12px;
-  color: var(--bd-blue, #2671d8);
+  color: var(--bd-blue, #6366f1);
   right: auto;
   overflow: visible;
   background: #fff;
@@ -7179,4 +7179,135 @@ html:has(.ant-modal-wrap) {
   border-radius: var(--bd-radius-card);
   box-shadow: var(--bd-shadow-modal);
   animation: popIn 0.16s ease;
+}
+
+/* ---- Form fields ------------------------------------------------------ */
+
+/*
+ * Dialog fields: a 42px box on a faint fill that turns white once focused.
+ * Login uses a taller 46px variant of the same shape.
+ */
+.bd-field {
+  width: 100%;
+  height: 42px;
+  padding: 0 13px;
+  border: 1px solid #e3e7f5;
+  border-radius: 10px;
+  background: #f6f8fe;
+  font-size: 13px;
+  color: var(--bd-ink);
+  outline: none;
+}
+
+.bd-field:focus,
+.bd-field:focus-within {
+  border-color: var(--bd-primary);
+  background: #fff;
+}
+
+.bd-field-label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #3c445f;
+}
+
+/* Ant Design's own controls, brought to the same shape inside a dialog. */
+.bd-dialog .ant-input,
+.bd-dialog .ant-input-affix-wrapper,
+.bd-dialog .ant-select .ant-select-selector,
+.bd-dialog .ant-picker {
+  height: 42px;
+  border-color: #e3e7f5;
+  border-radius: 10px;
+  background: #f6f8fe;
+  font-size: 13px;
+}
+
+.bd-dialog .ant-input:focus,
+.bd-dialog .ant-input-affix-wrapper:focus-within,
+.bd-dialog .ant-select-focused .ant-select-selector,
+.bd-dialog .ant-picker-focused {
+  border-color: var(--bd-primary);
+  background: #fff;
+}
+
+/* ---- Tabs / pills / pagination ---------------------------------------- */
+
+/*
+ * One shape for every "choose one of these" control the design draws:
+ * white with a hairline when resting, solid indigo when chosen.
+ */
+.bd-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 13px;
+  border: 1px solid #e3e7f5;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #3c445f;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.bd-pill:hover {
+  border-color: var(--bd-primary);
+}
+
+.bd-pill--on {
+  border-color: var(--bd-primary);
+  background: var(--bd-primary);
+  color: #fff;
+  font-weight: 600;
+}
+
+.bd-pill--on:hover {
+  color: #fff;
+}
+
+/* ---- Status palette ---------------------------------------------------- */
+
+/*
+ * The design's own statusColor map. Used as --appt-color on a card, or as the
+ * text/tint pair on a badge.
+ */
+.bd-status--scheduled,
+.bd-status--in-progress {
+  --status-color: #6366f1;
+}
+
+.bd-status--arrived,
+.bd-status--done {
+  --status-color: #0e9f6e;
+}
+
+.bd-status--cancelled,
+.bd-status--waiting {
+  --status-color: #d98b0f;
+}
+
+.bd-status--late {
+  --status-color: #e5484d;
+}
+
+.bd-status--temp {
+  --status-color: #7c5ce0;
+}
+
+.bd-status--converted {
+  --status-color: #0e94d0;
+}
+
+.bd-status--none {
+  --status-color: #78819c;
+}
+
+.bd-status {
+  color: var(--status-color, #6366f1);
+  background: color-mix(in srgb, var(--status-color, #6366f1) 12%, #ffffff);
 }

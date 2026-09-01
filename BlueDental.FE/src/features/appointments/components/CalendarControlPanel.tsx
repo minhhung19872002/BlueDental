@@ -83,7 +83,7 @@ export function CalendarControlPanel({
       <div className="cal-panel" ref={panelRef}>
         <div className="cal-panel-header">
           <div className="cal-panel-header-left">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#2671D8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z" />
             </svg>
             <span className="cal-panel-title">{t("Bảng điều khiển")}</span>

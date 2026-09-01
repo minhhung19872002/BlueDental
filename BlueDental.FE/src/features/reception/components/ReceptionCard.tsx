@@ -107,7 +107,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
     width: 32,
     height: 32,
     borderRadius: "50%",
-    border: done ? `1px solid ${STEP_COLORS[stepIndex]}` : "1px solid #DCE3EE",
+    border: done ? `1px solid ${STEP_COLORS[stepIndex]}` : "1px solid #e7eaf6",
     background: done ? STEP_COLORS[stepIndex] : "#fff",
     color: done ? "#fff" : "var(--bd-muted)",
     display: "flex",
@@ -122,7 +122,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
     const steps = [step1Done, step2Done, step3Done];
     if (steps[fromStep] && steps[toStep]) return STEP_COLORS[toStep];
     if (steps[fromStep]) return STEP_COLORS[toStep];
-    return "#DCE3EE";
+    return "#e7eaf6";
   };
 
   const showCancel = !isCancelled && item.status !== "Completed" && !step3Done;
@@ -210,7 +210,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
                     <div style={getStepCircleStyle(0, step1Done)}>
                       {step1Done ? <Check size={14} /> : "1"}
                     </div>
-                    <div className="rc-step-line" style={{ background: step1Done ? STEP_COLORS[1] : "#DCE3EE" }} />
+                    <div className="rc-step-line" style={{ background: step1Done ? STEP_COLORS[1] : "#e7eaf6" }} />
                   </div>
                   <p className="rc-step-label" style={step1Done ? { color: STEP_COLORS[0] } : undefined}>
                     {t("Đã đến")}
@@ -229,7 +229,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
                     <div style={getStepCircleStyle(1, step2Done)}>
                       {step2Done ? <Check size={14} /> : "2"}
                     </div>
-                    <div className="rc-step-line" style={{ background: step2Done ? STEP_COLORS[2] : "#DCE3EE" }} />
+                    <div className="rc-step-line" style={{ background: step2Done ? STEP_COLORS[2] : "#e7eaf6" }} />
                   </div>
                   <p className="rc-step-label" style={step2Done ? { color: STEP_COLORS[1] } : undefined}>
                     {t("Đang khám")}
@@ -244,7 +244,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
                   onClick={canComplete ? () => onStatusChange?.(item.id, "complete") : undefined}
                 >
                   <div className="rc-step-track">
-                    <div className="rc-step-line" style={{ background: step2Done ? STEP_COLORS[2] : "#DCE3EE" }} />
+                    <div className="rc-step-line" style={{ background: step2Done ? STEP_COLORS[2] : "#e7eaf6" }} />
                     <div style={getStepCircleStyle(2, step3Done)}>
                       {step3Done ? <Check size={14} /> : "3"}
                     </div>

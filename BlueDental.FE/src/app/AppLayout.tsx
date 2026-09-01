@@ -297,7 +297,7 @@ export function AppLayout() {
       >
         <span
           className="app-popover-dot"
-          style={{ background: currentBranchId === null ? "#25a97a" : brand.faint }}
+          style={{ background: currentBranchId === null ? "#0e9f6e" : brand.faint }}
         />
         <span>{t("Tất cả chi nhánh")}</span>
       </button>
@@ -313,7 +313,7 @@ export function AppLayout() {
           >
             <span
               className="app-popover-dot"
-              style={{ background: isActive ? "#25a97a" : brand.faint }}
+              style={{ background: isActive ? "#0e9f6e" : brand.faint }}
             />
             <span>{branch.name}</span>
           </button>

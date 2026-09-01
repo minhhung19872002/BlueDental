@@ -29,7 +29,7 @@ const LOWER_LEFT = [31, 32, 33, 34, 35, 36, 37, 38];
 
 const SIZE = 30;
 const MID = SIZE / 3;
-const SELECTED_FILL = "#1c3566";
+const SELECTED_FILL = "#6366f1";
 const SURFACE_FILL = "#93C5FD";
 const EMPTY_FILL = "#FFFFFF";
 const STROKE = "#98a4b4";
