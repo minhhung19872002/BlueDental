@@ -76,7 +76,12 @@ export function PaymentModal({ open, invoice, onClose }: Props) {
       confirmLoading={recordPayment.isPending}
       onOk={() => void handleOk()}
       onCancel={onClose}
-      destroyOnHidden
+      /*
+       * Deliberately not destroyed on close. The effect above rewrites every
+       * field whenever it opens, so there is no stale state to clear, and
+       * rebuilding the form each time cost a visible pause — Ant Design's own
+       * modal code spent 43ms of forced layout on the rebuild alone.
+       */
       width={430}
       className="pay-modal"
       /* Money coming in is green in the design, not the navy primary. */
