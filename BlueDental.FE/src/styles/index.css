@@ -7326,3 +7326,27 @@ html:has(.ant-modal-wrap) {
   color: var(--status-color, #6366f1);
   background: color-mix(in srgb, var(--status-color, #6366f1) 12%, #ffffff);
 }
+
+/* ---- Dental chart ------------------------------------------------------ */
+
+/*
+ * Teeth lift away from the bite line on hover — up for the upper jaw, down
+ * for the lower — and a picked tooth sits on a soft indigo glow.
+ */
+.dental-tooth {
+  transition:
+    transform 0.15s ease,
+    filter 0.15s ease;
+}
+
+.dental-tooth--upper:hover {
+  transform: translateY(-3px);
+}
+
+.dental-tooth--lower:hover {
+  transform: translateY(3px);
+}
+
+.dental-tooth--on {
+  filter: drop-shadow(0 4px 8px rgba(99, 102, 241, 0.5));
+}

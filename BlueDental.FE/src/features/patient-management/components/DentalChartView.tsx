@@ -22,6 +22,8 @@ export interface ToothRecord {
 
 interface Props {
   teeth?: ToothRecord[];
+  /** FDI numbers currently picked out. Selected teeth fill indigo and glow. */
+  selectedTeeth?: readonly number[];
   onToothClick?: (fdi: number) => void;
   readOnly?: boolean;
   style?: CSSProperties;
@@ -54,33 +56,49 @@ const UPPER_RIGHT = [21, 22, 23, 24, 25, 26, 27, 28] as const;
 const LOWER_LEFT = [48, 47, 46, 45, 44, 43, 42, 41] as const;
 const LOWER_RIGHT = [31, 32, 33, 34, 35, 36, 37, 38] as const;
 
-const TOOTH_W = 34;
-const TOOTH_H = 42;
-const GAP = 5;
-const ROW_H = TOOTH_H + GAP;
+const TOOTH_W = 30;
+const TOOTH_H = 32;
+const GAP = 8;
+const LABEL_H = 13;
+const ROW_H = TOOTH_H + LABEL_H;
 
 /**
- * One tooth. The design writes the FDI number inside the tooth rather than
- * under it — a row of blank boxes with numbers beneath reads as a form, not a
- * mouth — and rounds the crown end more than the root end, so an upper tooth
- * and a lower one are not the same rectangle.
+ * The four crown silhouettes, by tooth type. The design draws a mouth, not a
+ * row of boxes: an incisor is a blade, a molar is a broad crown on two roots.
+ * Each path is a crown-up tooth on a 24x26 canvas; the upper jaw flips it.
  */
-/** Rectangle with per-corner radii, clockwise from the top-left. */
-function roundedRectPath(w: number, h: number, tl: number, tr: number, br: number, bl: number): string {
-  return [
-    `M ${tl} 0`,
-    `H ${w - tr}`, `A ${tr} ${tr} 0 0 1 ${w} ${tr}`,
-    `V ${h - br}`, `A ${br} ${br} 0 0 1 ${w - br} ${h}`,
-    `H ${bl}`, `A ${bl} ${bl} 0 0 1 0 ${h - bl}`,
-    `V ${tl}`, `A ${tl} ${tl} 0 0 1 ${tl} 0`,
-    "Z",
-  ].join(" ");
+const TOOTH_SHAPES = {
+  incisor:
+    "M7.5 3.5h9L15.6 14c-.4 4-1.7 7.7-2.7 9.6-.5.9-1.3.9-1.8 0-1-1.9-2.3-5.6-2.7-9.6L7.5 3.5z",
+  canine:
+    "M12 3c3.2 0 5.5 2 5.5 5l-.8 5.4c-.5 3.4-2.2 8.6-3.6 11.2-.5 1-1.7 1-2.2 0-1.4-2.6-3.1-7.8-3.6-11.2L6.5 8c0-3 2.3-5 5.5-5z",
+  premolar:
+    "M6 8.5C6 5 8.6 3 12 3s6 2 6 5.5l-.7 5.2c-.4 3-2 8.3-3.6 11-.8 1.4-2.6 1.4-3.4 0-1.6-2.7-3.2-8-3.6-11L6 8.5z",
+  molar:
+    "M4 9c0-4 3.4-6.5 8-6.5S20 5 20 9l-.7 5.5c-.3 2.3-1.2 4.2-2.2 6.8-.4 1.1-2 1-2.2-.2l-.6-3.4h-4.6l-.6 3.4c-.2 1.2-1.8 1.3-2.2.2-1-2.6-1.9-4.5-2.2-6.8L4 9z",
+} as const;
+
+/** FDI's last digit says what the tooth is: 1-2 incisor, 3 canine, 4-5 premolar. */
+function shapeOf(fdi: number): string {
+  const position = fdi % 10;
+  if (position <= 2) return TOOTH_SHAPES.incisor;
+  if (position === 3) return TOOTH_SHAPES.canine;
+  if (position <= 5) return TOOTH_SHAPES.premolar;
+  return TOOTH_SHAPES.molar;
 }
 
+/**
+ * One tooth.
+ *
+ * The upper jaw is the same silhouette flipped, so its roots point up and away
+ * from the bite line, and its FDI number sits below rather than above. A
+ * selected tooth fills indigo and lifts on a soft glow.
+ */
 function ToothCell({
   fdi,
   status,
   jaw,
+  selected,
   onClick,
   readOnly,
   ariaLabel,
@@ -88,61 +106,62 @@ function ToothCell({
   fdi: number;
   status: ToothStatus;
   jaw: "upper" | "lower";
+  selected: boolean;
   onClick?: () => void;
   readOnly?: boolean;
   ariaLabel: string;
 }) {
-  const fill = STATUS_COLORS[status];
-  const stroke = STATUS_STROKE[status];
   const isMissing = status === "missing";
-  const crownRadius = 9;
-  const rootRadius = 6;
-  const path =
-    jaw === "upper"
-      ? roundedRectPath(TOOTH_W, TOOTH_H, crownRadius, crownRadius, rootRadius, rootRadius)
-      : roundedRectPath(TOOTH_W, TOOTH_H, rootRadius, rootRadius, crownRadius, crownRadius);
+  const fill = selected ? "#6366f1" : STATUS_COLORS[status];
+  const stroke = selected ? "#4f52e0" : STATUS_STROKE[status];
+  const numberFill = selected ? "#4f52e0" : isMissing ? "#98a4b4" : "#78819c";
+  const isUpper = jaw === "upper";
+
+  const numberY = isUpper ? TOOTH_H + LABEL_H - 3 : LABEL_H - 4;
+  const toothY = isUpper ? 0 : LABEL_H;
 
   return (
     <g
+      className={`dental-tooth dental-tooth--${jaw}${selected ? " dental-tooth--on" : ""}`}
       onClick={readOnly ? undefined : onClick}
       style={{ cursor: readOnly ? "default" : "pointer" }}
       role={readOnly ? undefined : "button"}
       aria-label={ariaLabel}
+      aria-pressed={readOnly ? undefined : selected}
     >
-      <path
-        d={path}
-        fill={fill}
-        stroke={stroke}
-        strokeWidth={1.5}
-        opacity={isMissing ? 0.4 : 1}
-      />
+      <g
+        transform={
+          isUpper
+            ? `translate(${TOOTH_W}, ${toothY + TOOTH_H}) scale(-${TOOTH_W / 24}, -${TOOTH_H / 26})`
+            : `translate(0, ${toothY}) scale(${TOOTH_W / 24}, ${TOOTH_H / 26})`
+        }
+      >
+        <path
+          d={shapeOf(fdi)}
+          fill={fill}
+          stroke={stroke}
+          strokeWidth={1.3}
+          strokeLinejoin="round"
+          opacity={isMissing ? 0.4 : 1}
+        />
+      </g>
       {isMissing && (
-        <>
-          <line
-            x1={4}
-            y1={4}
-            x2={TOOTH_W - 4}
-            y2={TOOTH_H - 4}
-            stroke={stroke}
-            strokeWidth={1.5}
-          />
-          <line
-            x1={TOOTH_W - 4}
-            y1={4}
-            x2={4}
-            y2={TOOTH_H - 4}
-            stroke={stroke}
-            strokeWidth={1.5}
-          />
-        </>
+        <line
+          x1={4}
+          y1={toothY + 4}
+          x2={TOOTH_W - 4}
+          y2={toothY + TOOTH_H - 4}
+          stroke={stroke}
+          strokeWidth={1.5}
+        />
       )}
       <text
         x={TOOTH_W / 2}
-        y={TOOTH_H / 2 + 4}
+        y={numberY}
         textAnchor="middle"
-        fontSize={11.5}
+        fontSize={10}
         fontWeight={700}
-        fill={isMissing ? "#98a4b4" : "#41505f"}
+        fill={numberFill}
         fontFamily="inherit"
       >
         {fdi}
@@ -156,6 +175,7 @@ function buildRow(
   teeth: ToothRecord[],
   yOffset: number,
   jaw: "upper" | "lower",
+  selectedTeeth: readonly number[],
   toothAriaLabel: (fdi: number, status: string) => string,
   onToothClick?: (fdi: number) => void,
   readOnly?: boolean,
@@ -170,6 +190,7 @@ function buildRow(
           fdi={fdi}
           status={status}
           jaw={jaw}
+          selected={selectedTeeth.includes(fdi)}
           ariaLabel={toothAriaLabel(fdi, status)}
           onClick={() => onToothClick?.(fdi)}
           readOnly={readOnly}
@@ -187,6 +208,7 @@ const LABEL_OFFSET = 16; // room for FDI numbers below each tooth
 
 export function DentalChartView({
   teeth = [],
+  selectedTeeth = [],
   onToothClick,
   readOnly = false,
   style,
@@ -207,10 +229,10 @@ export function DentalChartView({
       >
         {/* Upper jaw */}
         <g transform={`translate(0, ${upperY})`}>
-          {buildRow(UPPER_LEFT, teeth, 0, "upper", toothAriaLabel, onToothClick, readOnly)}
+          {buildRow(UPPER_LEFT, teeth, 0, "upper", selectedTeeth, toothAriaLabel, onToothClick, readOnly)}
         </g>
         <g transform={`translate(${HALF_W + DIVIDER}, ${upperY})`}>
-          {buildRow(UPPER_RIGHT, teeth, 0, "upper", toothAriaLabel, onToothClick, readOnly)}
+          {buildRow(UPPER_RIGHT, teeth, 0, "upper", selectedTeeth, toothAriaLabel, onToothClick, readOnly)}
         </g>
 
         {/* Center line */}
@@ -226,10 +248,10 @@ export function DentalChartView({
 
         {/* Lower jaw */}
         <g transform={`translate(0, ${lowerY})`}>
-          {buildRow(LOWER_LEFT, teeth, 0, "lower", toothAriaLabel, onToothClick, readOnly)}
+          {buildRow(LOWER_LEFT, teeth, 0, "lower", selectedTeeth, toothAriaLabel, onToothClick, readOnly)}
         </g>
         <g transform={`translate(${HALF_W + DIVIDER}, ${lowerY})`}>
-          {buildRow(LOWER_RIGHT, teeth, 0, "lower", toothAriaLabel, onToothClick, readOnly)}
+          {buildRow(LOWER_RIGHT, teeth, 0, "lower", selectedTeeth, toothAriaLabel, onToothClick, readOnly)}
         </g>
 
         {/* Jaw labels */}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Button, Spin, Tag, Row, Col, Card, Table, Typography, Space, Select,
@@ -162,6 +162,12 @@ export function PatientProfilePage() {
   const handleTabChange = (key: string) => {
     setSearchParams({ tab: key });
   };
+
+  /* The chart draws a picked tooth in indigo; the page keeps the records. */
+  const selectedTeethFdis = useMemo(
+    () => selectedTeeth.map((tooth) => tooth.fdi),
+    [selectedTeeth],
+  );
 
   const handleToothClick = (fdi: number) => {
     setSelectedTeeth((prev) => {
@@ -374,6 +380,7 @@ export function PatientProfilePage() {
                 />
                 <DentalChartView
                   teeth={selectedTeeth}
+                  selectedTeeth={selectedTeethFdis}
                   onToothClick={handleToothClick}
                   style={{ marginTop: 8 }}
                 />
