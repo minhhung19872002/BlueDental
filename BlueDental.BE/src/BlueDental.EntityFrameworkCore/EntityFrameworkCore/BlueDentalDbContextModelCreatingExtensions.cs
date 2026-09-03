@@ -646,6 +646,18 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => x.TreatmentStageId);
         });
 
+        // Phieu benh an cua benh nhan
+        builder.Entity<PatientMedicalRecord>(entity =>
+        {
+            entity.ToTable("bd_patient_medical_records");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Form).HasConversion<short>();
+            entity.Property(x => x.Title).HasMaxLength(300).IsRequired();
+            entity.Property(x => x.Content).HasMaxLength(PatientMedicalRecord.MaxContentLength);
+            entity.HasIndex(x => new { x.PatientId, x.SortOrder });
+            entity.HasIndex(x => x.ClinicBranchId);
+        });
+
         // Dong dich vu cua phieu dieu tri
         builder.Entity<TreatmentService>(entity =>
         {

@@ -17,6 +17,7 @@ export const CATALOG_GROUP = {
   Diagnosis: "diagnosis",
   MedicationType: "medication_type",
   ConsultingData: "consulting_data",
+  PrescriptionTemplate: "prescription_template",
   Supplies: "supplies",
   Source: "source",
   DiseaseHistory: "disease_history",
@@ -33,6 +34,8 @@ export interface CatalogOption {
   taxonomyId: string;
   taxonomyName: string | null;
   isImageRequired: boolean;
+  /** Set for the template catalogs — the body a picked template fills in. */
+  content: string | null;
 }
 
 interface CatalogEntryResponse {
@@ -44,6 +47,7 @@ interface CatalogEntryResponse {
   taxonomyName: string | null;
   isImageRequired: boolean;
   isActive: boolean;
+  content: string | null;
 }
 
 export const catalogOptionKeys = {
@@ -73,6 +77,7 @@ export function useCatalogOptions(group: CatalogGroup) {
         taxonomyId: entry.taxonomyId,
         taxonomyName: entry.taxonomyName,
         isImageRequired: entry.isImageRequired,
+        content: entry.content ?? null,
       }));
     },
     enabled: Boolean(branchId),
@@ -118,12 +123,13 @@ export function useCreateTaxonomyGroupOption() {
   const branchId = useCurrentBranchId();
 
   return useMutation({
-    mutationFn: (input: { group: CatalogGroup; name: string }) =>
+    mutationFn: (input: { group: CatalogGroup; name: string; sortOrder?: number }) =>
       api
         .post<TaxonomyResponse>("/v1/app/taxonomies", {
           clinicBranchId: branchId,
           group: input.group,
           name: input.name,
+          sortOrder: input.sortOrder ?? 0,
         })
         .then((r) => r.data),
     onSuccess: () => {

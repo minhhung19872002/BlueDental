@@ -1,0 +1,2137 @@
+/* The screen owns the viewport height, so a tab's table can fill what is left
+   of it instead of collapsing around however many rows came back. Without a
+   real height here `flex: 1` inside a tab resolves to the content, and an
+   empty table shrank to a two-line box with white space under it. */
+.pd-page {
+  display: flex;
+  min-width: 0;
+  height: calc(100vh - var(--bd-header-height) - 32px);
+  min-height: 520px;
+  flex-direction: column;
+  overflow: hidden;
+  font-size: 14px;
+}
+.pd-page > .pd-breadcrumb,
+.pd-page > .pd-tabrow {
+  flex-shrink: 0;
+}
+/* The record's tabs wear the same pills on the same white strip every other
+   screen switches with — Danh mục, Labo, Vật tư — so the app reads as one
+   application. The reference draws a flat underlined row here instead;
+   consistency inside BlueDental wins, and the divergence is recorded in
+   docs/clone/pages/patient-detail.md.
+
+   The strip keeps the shared 12px/20px padding, so the only thing to settle
+   here is that the row scrolls sideways and the pills do not wrap. */
+.pd-page .bd-tabbar {
+  min-width: 0;
+  flex: 1;
+  overflow-x: auto;
+}
+.pd-page .bd-tabbar .pill-tabs {
+  flex-wrap: nowrap;
+}
+.pd-page .bd-tabbar .pill-tab {
+  flex: 0 0 auto;
+}
+
+.pd-loading {
+  min-height: 360px;
+  display: grid;
+  place-items: center;
+}
+.pd-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 30px;
+  color: var(--bd-ink);
+  font-size: 13px;
+}
+.pd-breadcrumb button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  color: var(--bd-blue);
+  cursor: pointer;
+  padding: 5px 0;
+}
+.pd-breadcrumb > span {
+  color: var(--bd-faint);
+}
+.pd-tabs {
+  display: flex;
+  align-items: stretch;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--bd-line);
+  background: #fff;
+  scrollbar-width: thin;
+}
+.pd-tab {
+  flex: 0 0 auto;
+  min-height: 44px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: 0 15px;
+  background: #fff;
+  color: var(--bd-sub);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.pd-tab:hover {
+  color: var(--bd-blue);
+  background: var(--bd-blue-pale);
+}
+.pd-tab--active {
+  color: var(--bd-blue);
+  border-bottom-color: var(--bd-blue);
+  background: var(--bd-blue-pale);
+  font-weight: 600;
+}
+/* Every tab is the last child of the screen, so it takes the rest of the
+   height. The default pane scrolls its own content; a tab whose content is a
+   table adds --fill and hands the height on to the card instead. */
+.pd-pane {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.pd-pane--fill {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+}
+.pd-profile-card,
+.pd-table-card,
+.pd-image-controls,
+.pd-image-gallery {
+  border: 1px solid var(--bd-border);
+  border-radius: 12px;
+  background: #fff;
+}
+.pd-profile-card {
+  display: grid;
+  grid-template-columns: minmax(400px, 1.12fr) minmax(320px, 1fr) minmax(250px, 0.8fr);
+  min-height: 282px;
+  overflow: hidden;
+}
+.pd-profile-column {
+  min-width: 0;
+  padding: 18px 20px;
+  border-left: 1px solid var(--bd-border);
+}
+.pd-profile-column:first-child {
+  border-left: 0;
+}
+.pd-profile-title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.pd-profile-title {
+  min-height: 34px;
+  margin-bottom: 12px;
+}
+.pd-profile-title > strong {
+  color: var(--bd-blue);
+  font-size: 16px;
+}
+/* The reference's tag control is a small tinted chip, 32x24, not a bordered
+   icon button — measured off its own computed styles. */
+.pd-profile-title .pd-tag-button.ant-btn {
+  width: 32px;
+  height: 24px;
+  min-width: 32px;
+  margin-left: auto;
+  border: 0;
+  border-radius: 4px;
+  background: #dcebfa;
+  color: var(--bd-link);
+  padding: 0;
+}
+.pd-profile-title .pd-tag-button.ant-btn:hover {
+  background: #d8e7fa !important;
+  color: var(--bd-blue) !important;
+}
+.pd-profile-column h3 {
+  margin: 0;
+  color: var(--bd-ink);
+  font-size: 14px;
+  font-weight: 700;
+}
+.pd-profile-column h3 {
+  display: flex;
+  align-items: center;
+  min-height: 34px;
+  gap: 4px;
+}
+/* Only the appointment column pushes its round + to the far edge; the reason
+   column keeps its + right beside the title, as the reference does. */
+.pd-next-appointment h3 {
+  justify-content: space-between;
+}
+/* The visit reason reads as one line: the day it was raised, then the reason
+   itself picked out in the accent the reference gives it. */
+.pd-reason {
+  display: flex;
+  min-height: 32px;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 18px;
+  margin: 8px 0 14px;
+  color: var(--bd-muted);
+  font-size: 14px;
+}
+.pd-reason-date {
+  color: var(--bd-sub);
+}
+.pd-reason-text {
+  color: var(--bd-gold-deep);
+  font-weight: 500;
+}
+
+/* ── One-line facts beside the reason ─────────────────────────────────── */
+.pd-fact {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin-top: 11px;
+  min-width: 0;
+}
+.pd-fact > span {
+  display: grid;
+  place-items: center;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  background: #eef4fb;
+  color: var(--bd-blue);
+}
+.pd-fact > p {
+  margin: 0;
+  padding-top: 5px;
+  min-width: 0;
+  color: var(--bd-muted);
+  font-size: 13.5px;
+}
+.pd-fact > p > b {
+  color: var(--bd-sub);
+  font-weight: 500;
+}
+
+/* ── Lịch hẹn gần nhất ────────────────────────────────────────────────── */
+.pd-appt-facts {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px 12px;
+  margin: 10px 0 0;
+}
+.pd-appt-facts dt {
+  color: var(--bd-muted);
+  font-size: 13.5px;
+}
+.pd-appt-facts dd {
+  margin: 0;
+  text-align: right;
+  color: var(--bd-sub);
+  font-size: 13.5px;
+  font-weight: 500;
+}
+.pd-appt-doctor {
+  color: var(--bd-blue);
+}
+
+.pd-appt-steps-title {
+  margin: 18px 0 0;
+  color: var(--bd-sub);
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+/* Three steps with a rule running between them, as reception draws it. */
+.pd-appt-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.pd-appt-steps > li {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+/* The connector sits behind the dots and stops at the last one. */
+.pd-appt-steps > li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 13px;
+  left: 50%;
+  width: 100%;
+  height: 1px;
+  background: var(--bd-line);
+}
+.pd-appt-step-dot {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--bd-line);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--bd-faint);
+  font-size: 12px;
+  font-weight: 600;
+}
+.pd-appt-steps > li.reached .pd-appt-step-dot {
+  border-color: var(--bd-blue);
+  background: var(--bd-blue);
+  color: #fff;
+}
+.pd-appt-step-label {
+  color: var(--bd-muted);
+  font-size: 12.5px;
+}
+.pd-appt-steps > li.reached .pd-appt-step-label {
+  color: var(--bd-sub);
+}
+.pd-appt-step-time {
+  color: var(--bd-faint);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.pd-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 15px 18px;
+}
+.pd-info {
+  display: flex;
+  align-items: flex-start;
+  min-width: 0;
+  gap: 9px;
+}
+.pd-info--wide {
+  grid-column: 1 / -1;
+}
+.pd-info > span {
+  display: grid;
+  place-items: center;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  background: #eef4fb;
+  color: var(--bd-blue);
+}
+.pd-info > div {
+  min-width: 0;
+}
+.pd-info small,
+.pd-info strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pd-info small {
+  margin-bottom: 2px;
+  color: var(--bd-faint);
+  font-size: 12px;
+}
+.pd-info strong {
+  color: var(--bd-sub);
+  font-size: 13.5px;
+  font-weight: 500;
+}
+.pd-profile-column > .pd-info {
+  margin-top: 11px;
+}
+.pd-empty-compact {
+  min-height: 170px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--bd-faint);
+  font-size: 13px;
+}
+.pd-empty-compact > .anticon {
+  font-size: 32px;
+  color: var(--bd-line);
+}
+.pd-money-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(130px, 1fr));
+  gap: 10px;
+  margin: 12px 0;
+}
+.pd-money {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 72px;
+  padding: 11px;
+  border: 1px solid var(--bd-border);
+  border-radius: 10px;
+  background: #fff;
+}
+.pd-money > span {
+  display: grid;
+  place-items: center;
+  flex: 0 0 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: color-mix(in srgb, currentColor 10%, #fff);
+  color: var(--money-tone);
+}
+.pd-money strong,
+.pd-money small {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pd-money strong {
+  color: var(--money-tone);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+.pd-money small {
+  margin-top: 3px;
+  color: var(--bd-muted);
+  font-size: 11.5px;
+}
+.pd-money--blue {
+  --money-tone: var(--bd-blue);
+}
+.pd-money--green {
+  --money-tone: var(--bd-green);
+}
+.pd-money--red {
+  --money-tone: var(--bd-red);
+}
+.pd-money--navy {
+  --money-tone: var(--bd-ink);
+}
+.pd-money--orange {
+  --money-tone: var(--bd-gold-deep);
+}
+.pd-table-card {
+  overflow: hidden;
+  padding: 14px;
+}
+.pd-table-card .ant-table-wrapper {
+  margin: 0 -14px -14px;
+}
+.pd-table-card .ant-table-thead > tr > th {
+  background: #f6f8fb;
+  color: var(--bd-sub);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.pd-table-card .ant-table-tbody > tr > td {
+  color: var(--bd-sub);
+  font-size: 13px;
+}
+.pd-table-card .ant-pagination {
+  padding: 0 14px;
+}
+.pd-table-toolbar,
+.pd-record-toolbar,
+.pd-appointment-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.pd-table-toolbar > div:last-child,
+.pd-record-toolbar > div:last-child,
+.pd-appointment-toolbar > div:last-child {
+  display: flex;
+  gap: 8px;
+}
+.pd-filter-pills,
+.pd-counter-row,
+.pd-stat-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.pd-tooth-tabs button {
+  border: 0;
+  border-radius: 16px;
+  background: #f1f4f8;
+  color: var(--bd-sub);
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+/* The reference leaves an unselected filter as plain text — only the chosen
+   one wears a chip. */
+.pd-filter-pills button {
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--bd-sub);
+  padding: 5px 16px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.pd-filter-pills button:hover {
+  color: var(--bd-blue);
+}
+.pd-filter-pills button.active,
+.pd-filter-pills button.active:hover,
+.pd-tooth-tabs button.active {
+  background: var(--bd-blue);
+  color: #fff;
+}
+.pd-tooth-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.pd-consulting {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* The reference gives the top row a fixed height and lets the page scroll,
+   rather than squeezing the two cards to whatever the rows need. */
+.pd-consulting-grid {
+  display: grid;
+  height: 600px;
+  min-height: 600px;
+  grid-template-columns: 350px minmax(0, 1fr);
+  gap: 16px;
+}
+/* The reference's image column: a white card the height of the row, with a
+   fixed 240px grey drop zone at the top and the three commands laid over it. */
+.pd-image-panel {
+  position: relative;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden auto;
+  border: 1px solid var(--bd-border);
+  border-radius: 12px;
+  background: #fff;
+  padding: 8px;
+}
+.pd-image-drop {
+  display: flex;
+  height: 240px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 12px;
+  background: #e6eaf0;
+  color: var(--bd-sub);
+  font-size: 14px;
+  font-weight: 500;
+}
+.pd-image-drop--over {
+  background: var(--bd-blue-pale);
+  color: var(--bd-blue);
+}
+.pd-image-drop > .anticon {
+  font-size: 30px;
+  color: var(--bd-faint);
+}
+/* The chosen photographs stack down the panel, each one 240px of cover — the
+   reference's own tile — and clicking one opens it full size. */
+.pd-image-shown {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+.pd-image-shown .ant-image {
+  width: 100%;
+}
+.pd-image-shown .ant-image img {
+  width: 100%;
+  height: 240px;
+  border-radius: 12px;
+  object-fit: cover;
+  cursor: pointer;
+}
+
+/* Three stacked commands, 20px in from the card's own corner. */
+.pd-image-tools {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pd-image-tools .ant-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: rgb(0 0 0 / 80%);
+  color: #fff;
+}
+.pd-image-tools .ant-btn:hover {
+  background: rgb(0 0 0 / 92%) !important;
+  color: #fff !important;
+}
+.pd-catalog-list {
+  min-width: 220px;
+  max-height: 280px;
+  overflow: auto;
+  list-style: none;
+  padding: 0;
+}
+.pd-catalog-list > li {
+  padding: 6px 0;
+  font-size: 13px;
+}
+.pd-catalog-empty {
+  color: var(--bd-faint);
+}
+.pd-image-list-empty {
+  display: grid;
+  min-height: 180px;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--bd-bg);
+  color: var(--bd-muted);
+}
+/* ── "Chọn ảnh hiển thị" ────────────────────────────────────────────────
+   Cards of 280px, grouped under the day they were taken. Measured off the
+   reference: 22px radius, 12px padding, a 254x190 cover thumbnail at 18px. */
+.pd-image-day + .pd-image-day {
+  margin-top: 20px;
+}
+.pd-image-day > h4 {
+  margin: 0 0 10px;
+  color: var(--bd-sub);
+  font-size: 12px;
+  font-weight: 600;
+}
+.pd-image-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.pd-image-card {
+  display: flex;
+  width: 280px;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px solid var(--bd-line);
+  border-radius: 22px;
+  background: #fff;
+  padding: 12px;
+  box-shadow: 0 10px 24px rgb(15 23 42 / 5%);
+}
+.pd-image-card--on {
+  border-color: var(--bd-primary);
+}
+.pd-image-thumb {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+}
+.pd-image-thumb img {
+  display: block;
+  width: 100%;
+  height: 190px;
+  object-fit: cover;
+}
+.pd-image-thumb .ant-checkbox-wrapper {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1;
+}
+.pd-image-card > b {
+  color: var(--bd-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+.pd-image-card > small {
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+.pd-image-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.pd-image-card-actions .ant-btn {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  border: 0;
+  background: var(--bd-bg);
+  color: var(--bd-sub);
+}
+.pd-image-card-actions .ant-btn.ant-btn-dangerous {
+  background: #fdecec;
+  color: var(--bd-red, #e5484d);
+}
+.pd-image-list-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ── Card chrome shared by the two consulting cards ─────────────────────── */
+.pd-card-head {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--bd-line);
+  padding: 12px 16px;
+}
+.pd-card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pd-card-title h3 {
+  margin: 0;
+  color: var(--bd-ink);
+  font-size: 16px;
+  font-weight: 700;
+}
+/* The reference's round + is 28px with a 16px glyph — AntD's circle button
+   defaults to 32, which read as too heavy beside a 16px heading. */
+.pd-card-title .ant-btn.ant-btn-circle {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+}
+.pd-card-title .ant-btn.ant-btn-circle .anticon {
+  font-size: 16px;
+}
+.pd-card-note {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  color: var(--bd-blue);
+  font-size: 12.5px;
+  text-align: center;
+}
+.pd-card-note > b {
+  font-weight: 600;
+}
+
+/* Two facts to a cell — a name over the date, teeth over the diagnosis. */
+.pd-cell-stack {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.35;
+}
+.pd-cell-stack > b {
+  color: var(--bd-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+.pd-cell-stack > span {
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+/* These sit on the same <b> as .pd-cell-stack > b, which is the more specific
+   selector — so the blue never actually rendered until this was raised to
+   match it. The reference draws both at 700, in its link blue. */
+.pd-cell-stack > b.pd-cell-link,
+.pd-code {
+  color: var(--bd-link);
+  font-weight: 700;
+}
+/* #E5484D, measured off the reference's own "Chưa cập nhật". */
+.pd-cell-stack > b.pd-cell-missing {
+  color: #e5484d;
+  font-weight: 500;
+}
+.pd-diagnosis-form {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--bd-line);
+  padding: 12px 16px;
+}
+.pd-form-row,
+.pd-form-footer {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.pd-form-row > * {
+  min-width: 0;
+  flex: 1;
+}
+.pd-form-footer {
+  justify-content: flex-end;
+  margin: 10px 0 0;
+}
+
+/* ── Phiếu tư vấn ───────────────────────────────────────────────────────── */
+.pd-advise-card {
+  flex: none;
+  min-height: 420px;
+}
+
+/* The reference gives an empty consulting sheet a box of its own rather than a
+   single blank row, so the totals below it do not ride up under the header. */
+.pd-advise-card .ant-table-placeholder .ant-table-cell {
+  height: 140px;
+}
+.pd-advise-tools {
+  display: flex;
+  flex-shrink: 0;
+  justify-content: flex-end;
+  padding: 10px 16px 0;
+}
+.pd-column-popover {
+  display: flex;
+  min-width: 240px;
+  max-height: 320px;
+  flex-direction: column;
+  gap: 2px;
+  overflow: auto;
+}
+.pd-column-popover > label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 6px 2px;
+  font-size: 13px;
+}
+/* The reference keeps the plan total in the right-hand half of the card, one
+   fact per line, with the four commands on the last line. */
+.pd-plan-summary {
+  display: grid;
+  flex-shrink: 0;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  border-top: 1px solid var(--bd-line);
+  padding: 16px;
+}
+.pd-plan-total {
+  display: flex;
+  grid-column: 2;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 13px;
+}
+.pd-plan-total > strong {
+  color: var(--bd-ink);
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+.pd-plan-total p {
+  color: var(--bd-sub);
+}
+.pd-plan-total p > b {
+  color: var(--bd-ink);
+}
+.pd-plan-figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+}
+.pd-plan-discount {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pd-plan-discount .ant-input-number {
+  width: 120px;
+}
+.pd-plan-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.pd-plan-actions .ant-select {
+  min-width: 250px;
+}
+.pd-stat {
+  display: flex;
+  min-width: 76px;
+  min-height: 58px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+}
+.pd-stat strong {
+  font-size: 18px;
+}
+.pd-stat span {
+  font-size: 10.5px;
+}
+.pd-stat--blue {
+  color: var(--bd-blue);
+  background: var(--bd-blue-pale);
+}
+.pd-stat--green {
+  color: var(--bd-green);
+  background: var(--bd-green-pale);
+}
+.pd-stat--red {
+  color: var(--bd-red);
+  background: var(--bd-red-pale);
+}
+.pd-stat--amber {
+  color: var(--bd-gold-deep);
+  background: var(--bd-amber-pale);
+}
+.pd-stat.active {
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+.pd-counter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  border: 1px solid var(--bd-line);
+  border-radius: 18px;
+  background: #f7f9fc;
+  color: var(--bd-sub);
+  padding: 4px 12px;
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.pd-counter b {
+  font-size: 14px;
+}
+.pd-counter--green {
+  color: var(--bd-green);
+  background: var(--bd-green-pale);
+  border-color: var(--bd-green);
+}
+.pd-counter--amber {
+  color: var(--bd-gold-deep);
+  background: var(--bd-amber-pale);
+  border-color: var(--bd-gold-deep);
+}
+.pd-counter--red {
+  color: var(--bd-red);
+  background: var(--bd-red-pale);
+  border-color: var(--bd-red);
+}
+.pd-record-toolbar--right {
+  justify-content: flex-end;
+}
+.pd-coming-soon {
+  display: grid;
+  min-height: 380px;
+  place-items: center;
+  border-style: dashed;
+  color: var(--bd-muted);
+}
+.pd-image-controls {
+  display: flex;
+  width: min(390px, 100%);
+  gap: 10px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+.pd-image-controls .ant-select {
+  flex: 1;
+}
+.pd-image-controls .ant-btn {
+  border-style: dashed;
+}
+.pd-image-gallery {
+  min-height: 440px;
+  overflow: auto;
+  padding: 16px;
+}
+
+/* Hình ảnh fills the tab as the table tabs do: the filter row keeps its
+   height, the gallery takes the rest and scrolls inside itself. */
+.pd-images {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+.pd-images > .pd-image-controls {
+  flex-shrink: 0;
+}
+.pd-images > .pd-image-gallery {
+  min-height: 0;
+  flex: 1;
+}
+.pd-image-gallery--empty {
+  display: grid;
+  place-items: center;
+  border-style: dashed;
+}
+.pd-image-gallery--empty > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  color: var(--bd-faint);
+  font-size: 12px;
+}
+.pd-image-gallery--empty .anticon {
+  font-size: 36px;
+  color: var(--bd-line);
+}
+.pd-image-gallery--empty strong {
+  color: var(--bd-muted);
+  font-weight: 500;
+}
+.pd-image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+.pd-image-item {
+  min-width: 0;
+  border: 1px solid var(--bd-line);
+  border-radius: 9px;
+  overflow: hidden;
+}
+.pd-image-meta {
+  padding: 5px 8px;
+}
+.pd-treatment-plan .pd-record-toolbar {
+  justify-content: flex-start;
+}
+/* Two cards side by side, each a tinted icon, an uppercase title with its
+   detail under, and the count on the far right — as the reference draws them. */
+.pd-plan-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.pd-plan-card {
+  display: flex;
+  min-height: 72px;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--bd-border);
+  border-left: 4px solid var(--card-accent);
+  border-radius: 12px;
+  background: #fff;
+  padding: 12px 16px;
+}
+.pd-plan-icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--card-tint);
+  color: var(--card-accent);
+}
+.pd-plan-card-body {
+  min-width: 0;
+  flex: 1;
+}
+.pd-plan-card-body > strong {
+  display: block;
+  color: var(--bd-ink);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.pd-plan-card-body > span {
+  display: block;
+  overflow: hidden;
+  color: var(--bd-faint);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pd-plan-card--blue {
+  --card-accent: var(--bd-blue);
+  --card-tint: var(--bd-blue-pale);
+}
+.pd-plan-card--green {
+  --card-accent: var(--bd-green);
+  --card-tint: var(--bd-green-pale);
+}
+.pd-plan-count {
+  display: grid;
+  min-width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 50%;
+  background: #f05d79;
+  color: #fff;
+  padding: 0 7px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.pd-column-action {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.pd-tag-popover .ant-popover-inner {
+  padding: 0;
+  border: 1px solid #d9e3f1;
+  border-radius: 16px;
+  overflow: hidden;
+}
+/* 258px, measured off the reference's own panel. */
+.pd-tag-picker {
+  width: 258px;
+}
+.pd-tag-picker > .ant-input-affix-wrapper {
+  width: calc(100% - 24px);
+  margin: 12px;
+  height: 38px;
+}
+.pd-tag-options {
+  border-top: 1px solid #dce3ee;
+  padding: 6px 0;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.pd-tag-options button {
+  display: flex;
+  width: 100%;
+  height: 40px;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: #fff;
+  padding: 8px 12px;
+  color: var(--bd-sub);
+  cursor: pointer;
+  text-align: left;
+}
+.pd-tag-options button:hover,
+.pd-tag-options button.selected {
+  background: #f5f8fc;
+}
+.pd-tag-options button > span {
+  max-width: 142px;
+  border-radius: 4px;
+  color: #fff;
+  padding: 3px 7px;
+  font-size: 12px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pd-tag-options button > em {
+  min-width: 0;
+  font-style: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pd-tag-empty {
+  padding: 18px;
+  color: var(--bd-faint);
+  text-align: center;
+}
+.pd-recall-head {
+  display: grid;
+  grid-template-columns: 280px 1fr 1.65fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.pd-recall-head strong {
+  border-radius: 11px;
+  background: #e9f3ff;
+  color: #1677ff;
+  padding: 13px;
+  text-align: center;
+}
+.pd-recall-empty {
+  min-height: 105px;
+  display: grid;
+  place-items: center;
+  border: 1px dashed #cbd9eb;
+  border-radius: 12px;
+  color: var(--bd-muted);
+}
+.pd-payment-dialog .ant-table-wrapper {
+  border: 1px solid #dbe5f2;
+  border-radius: 14px;
+  overflow: hidden;
+}
+.pd-payment-total {
+  display: flex;
+  justify-content: flex-end;
+  gap: 14px;
+  padding: 22px 0 8px;
+  font-size: 16px;
+}
+.pd-payment-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: -1px;
+  border: 1px solid #dbe5f2;
+  border-radius: 0 0 14px 14px;
+  background: #f7f9fc;
+  padding: 10px 14px;
+}
+.pd-payment-pager > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pd-payment-total b {
+  color: #1677ff;
+}
+.appointment-editor-fields {
+  display: grid;
+  grid-template-columns: 1.05fr 1.05fr 0.9fr;
+  gap: 20px;
+}
+.appointment-editor-column {
+  min-width: 0;
+}
+.appointment-note-column {
+  border: 1px solid var(--bd-line);
+  border-radius: 10px;
+  padding: 12px;
+}
+.appointment-note-title,
+.appointment-schedule-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.appointment-colors {
+  display: flex;
+  gap: 10px;
+}
+.appointment-colors button {
+  width: 25px;
+  height: 25px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px #ccd5e1;
+  cursor: pointer;
+}
+.appointment-colors button.selected {
+  box-shadow: 0 0 0 2px var(--bd-blue);
+}
+.appointment-schedule {
+  margin-top: 18px;
+  border: 1px solid var(--bd-line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.appointment-schedule-toolbar {
+  padding: 10px 14px;
+  background: #f7f9fc;
+}
+.appointment-time-grid {
+  display: grid;
+  grid-template-columns: repeat(20, minmax(70px, 1fr));
+  min-height: 230px;
+  overflow-x: auto;
+}
+.appointment-time-grid > div {
+  border-right: 1px solid var(--bd-line);
+}
+.appointment-time-grid span {
+  display: block;
+  border-bottom: 1px solid var(--bd-line);
+  padding: 8px;
+  color: var(--bd-muted);
+  font-size: 12px;
+  text-align: center;
+}
+.pd-history-filters {
+  display: grid;
+  grid-template-columns: 1.35fr repeat(3, 1fr) repeat(2, 1.1fr);
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.pd-column-popover {
+  display: flex;
+  width: 230px;
+  flex-direction: column;
+  gap: 10px;
+}
+.pd-column-popover > strong {
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--bd-line);
+}
+.pd-row-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.pd-plan-dialog-grid,
+.pd-prescription-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0 14px;
+}
+.pd-plan-dialog-wide {
+  grid-column: 1 / -1;
+}
+.pd-plan-payment-preview {
+  display: flex;
+  justify-content: flex-end;
+  gap: 28px;
+  border: 1px solid var(--bd-line);
+  border-radius: 8px;
+  background: #f7f9fc;
+  padding: 14px;
+}
+.pd-image-list-dialog > div {
+  min-height: 280px;
+  display: grid;
+  place-items: center;
+  color: var(--bd-faint);
+}
+.pd-dialog-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.pd-dialog-row .ant-picker {
+  width: 100%;
+}
+.pd-labo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0 14px;
+}
+.pd-labo-wide {
+  grid-column: 1 / -1;
+}
+.pd-prescription-head {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr auto;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+  border: 1px solid var(--bd-line);
+  border-radius: 9px;
+  padding: 12px;
+  background: #f8fafc;
+}
+.pd-prescription-head > div {
+  display: flex;
+  flex-direction: column;
+}
+.pd-prescription-head span {
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+.pd-counter.active {
+  box-shadow: inset 0 0 0 1px currentColor;
+  background: #e8f2ff;
+}
+
+@media (max-width: 900px) {
+  .appointment-editor-fields,
+  .pd-labo-grid,
+  .pd-plan-dialog-grid,
+  .pd-prescription-grid,
+  .pd-history-filters {
+    grid-template-columns: 1fr;
+  }
+  .pd-labo-wide,
+  .pd-plan-dialog-wide {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 1280px) {
+  .pd-profile-card {
+    grid-template-columns: minmax(380px, 1.15fr) minmax(300px, 1fr);
+  }
+  .pd-next-appointment {
+    grid-column: 1 / -1;
+    border-top: 1px solid var(--bd-border);
+    border-left: 0;
+  }
+  .pd-empty-compact {
+    min-height: 80px;
+  }
+  .pd-money-grid {
+    grid-template-columns: repeat(3, minmax(145px, 1fr));
+  }
+}
+@media (max-width: 900px) {
+  .pd-profile-card,
+  .pd-consulting-grid {
+    grid-template-columns: 1fr;
+  }
+  .pd-profile-column {
+    border-top: 1px solid var(--bd-border);
+    border-left: 0;
+  }
+  .pd-profile-column:first-child {
+    border-top: 0;
+  }
+  .pd-table-toolbar,
+  .pd-record-toolbar,
+  .pd-appointment-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .pd-record-toolbar--right {
+    align-items: flex-end;
+  }
+}
+@media (max-width: 560px) {
+  .pd-profile-card {
+    display: block;
+  }
+  .pd-info-grid,
+  .pd-money-grid {
+    grid-template-columns: 1fr;
+  }
+  .pd-money-grid {
+    gap: 7px;
+  }
+  .pd-money {
+    min-height: 60px;
+  }
+}
+
+/* Kế hoạch điều trị fills the tab the way every other table tab does: the
+   toolbar and the two summary cards keep their height, the table takes the
+   rest. */
+.pd-treatment-plan {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+}
+.pd-treatment-plan > .pd-record-toolbar,
+.pd-treatment-plan > .pd-plan-cards,
+.pd-treatment-plan > .pd-column-action {
+  flex-shrink: 0;
+  margin-bottom: 0;
+}
+
+/* Đơn thuốc fills the tab: the create button keeps its height, the list takes
+   the rest. */
+.pd-prescription-panel {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+}
+.pd-prescription-toolbar {
+  display: flex;
+  flex-shrink: 0;
+  justify-content: flex-end;
+}
+
+/* Hồ sơ fills the tab like every other: identity card and money tiles keep
+   their height, the treatment table takes the rest. */
+.pd-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.pd-profile > .pd-profile-card,
+.pd-profile > .pd-money-grid {
+  flex-shrink: 0;
+}
+.pd-profile > .bd-cat-card {
+  min-height: 240px;
+}
+.pd-profile .pd-table-toolbar {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--bd-line);
+}
+
+/* The reference's second command on Hồ sơ is an outlined blue button, not the
+   app's default grey outline. */
+.pd-btn-outline.ant-btn {
+  border-color: var(--bd-blue);
+  color: var(--bd-blue);
+}
+.pd-btn-outline.ant-btn:hover {
+  border-color: var(--bd-blue-dark) !important;
+  color: var(--bd-blue-dark) !important;
+}
+
+/* ── Tab row: the ten tabs, and the two-way view switch on its right ─────── */
+.pd-tabrow {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-radius: var(--bd-radius);
+  background: #fff;
+  padding-right: 20px;
+  box-shadow: var(--bd-shadow-card);
+}
+/* Already inside the row's own card. */
+.pd-tabrow > .bd-tabbar {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.pd-viewswitch {
+  flex-shrink: 0;
+}
+.pd-viewswitch .seg-tabs-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ==========================================================================
+   Bệnh án — the record's second view.
+   ========================================================================== */
+/* The bar floats over the sheet, so the view is the positioning context. */
+.pd-medical {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.pd-medical-grid {
+  display: grid;
+  min-height: 0;
+  flex: 1;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 16px;
+}
+
+/* ── Mục lục bệnh án ────────────────────────────────────────────────────── */
+.pd-medical-index {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--bd-border);
+  border-radius: 12px;
+  background: #fff;
+}
+.pd-medical-index-head {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--bd-line);
+  padding: 14px 16px;
+}
+.pd-medical-index-icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--bd-blue);
+  color: #fff;
+}
+.pd-medical-index-head strong {
+  display: block;
+  color: var(--bd-ink);
+  font-size: 15px;
+  font-weight: 600;
+}
+.pd-medical-index-head small {
+  color: var(--bd-muted);
+  font-size: 12.5px;
+}
+.pd-medical-forms {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  overflow: auto;
+  padding: 10px;
+  list-style: none;
+}
+/* A form row: its own header, then a card per sheet made from it. */
+.pd-medical-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-radius: 16px;
+  background: var(--form-tint);
+  padding: 8px 8px 10px;
+}
+.pd-medical-form-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pd-medical-form-icon {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--form-icon-bg);
+  color: var(--form-accent);
+}
+.pd-medical-form-head > p {
+  min-width: 0;
+  flex: 1;
+  color: var(--bd-ink);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+/* The button wears the row's own accent, as the reference tints each one. */
+.pd-medical-add.ant-btn {
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 8px;
+  background: var(--form-accent);
+  color: #fff;
+}
+.pd-medical-add.ant-btn:hover {
+  background: var(--form-accent) !important;
+  color: #fff !important;
+  filter: brightness(1.08);
+}
+
+/* ── The sheet canvas ───────────────────────────────────────────────────── */
+.pd-medical-canvas {
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--bd-border);
+  border-radius: 12px;
+  background: #fff;
+}
+.pd-medical-canvas-head {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--bd-line);
+  padding: 12px 20px;
+}
+.pd-medical-canvas-head small {
+  display: block;
+  color: var(--bd-ink);
+  font-size: 12px;
+}
+.pd-medical-canvas-head strong {
+  color: var(--bd-link);
+  font-size: 16px;
+  font-weight: 500;
+}
+.pd-medical-paper {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  overflow: auto;
+  background: var(--bd-bg);
+  padding: 16px 16px 76px;
+}
+.pd-medical-empty {
+  margin: auto;
+  max-width: 460px;
+  color: var(--bd-muted);
+  font-size: 13.5px;
+  text-align: center;
+}
+
+/* ── The bar the reference floats along the bottom ──────────────────────── */
+/* A floating pill centred over the sheet, as the reference draws it — it does
+   not span the index, and it does not take a row of its own. */
+.pd-medical-bar {
+  position: absolute;
+  bottom: 16px;
+  left: calc(50% + 168px);
+  z-index: 5;
+  display: flex;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid var(--bd-border);
+  border-radius: 12px;
+  background: #fff;
+  padding: 8px 12px;
+  box-shadow: 0 6px 16px rgb(27 42 65 / 14%);
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+/* With the index folded away the sheet takes the full width, so does the bar. */
+.pd-medical:has(.pd-medical-index--collapsed) .pd-medical-bar {
+  left: 50%;
+}
+@media (width <= 1100px) {
+  .pd-medical-bar {
+    left: 50%;
+  }
+}
+.pd-medical-zoom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--bd-sub);
+  font-size: 13px;
+}
+.pd-medical-zoom b {
+  min-width: 44px;
+  color: var(--bd-ink);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 1100px) {
+  .pd-medical-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ── The plain sheet, for the forms whose printed layout we do not have ──── */
+.pd-a4-free {
+  flex-shrink: 0;
+}
+.pd-a4-free-page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transform: scale(var(--sheet-zoom, 1));
+  transform-origin: top left;
+}
+.pd-a4-free-title {
+  color: #000;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+.pd-a4-free-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #d8d8d8;
+  padding-bottom: 12px;
+  color: #444;
+  font-size: 13px;
+}
+.pd-a4-free-tools .ant-select {
+  min-width: 240px;
+}
+.pd-a4-free-body {
+  min-height: 780px;
+  flex: 1;
+  border: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 27px,
+    #e4e4e4 27px,
+    #e4e4e4 28px
+  );
+  color: #000;
+  font: inherit;
+  font-size: 14px;
+  line-height: 28px;
+  outline: none;
+  resize: none;
+}
+.pd-a4-free-body::placeholder {
+  color: rgb(0 0 0 / 32%);
+  font-style: italic;
+}
+
+/* ── One created sheet, inside its form's row ───────────────────────────── */
+.pd-sheet-card {
+  position: relative;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  border: 2px solid #d7e0ed;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
+  transition: all 0.15s ease;
+}
+.pd-sheet-card:hover {
+  transform: translateY(-2px);
+  border-color: #b8c5d8;
+  background: #f8fafc;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 10%);
+}
+.pd-sheet-card--active {
+  border-color: var(--bd-link);
+  background: #eaf2fd;
+  box-shadow: 0 0 0 2px rgb(38 113 216 / 20%), 0 1px 2px rgb(0 0 0 / 5%);
+}
+.pd-sheet-open {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  background: none;
+  padding: 10px 0 10px 10px;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.pd-sheet-icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--form-icon-bg);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
+  color: var(--form-accent);
+}
+.pd-sheet-text {
+  min-width: 0;
+  flex: 1;
+}
+.pd-sheet-title {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--bd-ink);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.pd-sheet-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin-top: 4px;
+  color: #6e819d;
+  font-size: 11px;
+  font-weight: 500;
+}
+.pd-sheet-copy {
+  border-radius: 6px;
+  background: #e5f0ff;
+  box-shadow: inset 0 0 0 1px rgb(38 113 216 / 30%);
+  color: #1769e0;
+  padding: 2px 6px;
+  font-style: normal;
+  font-weight: 700;
+}
+.pd-sheet-check.ant-checkbox-wrapper {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+.pd-sheet-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 2px;
+  padding-top: 20px;
+  padding-right: 6px;
+}
+.pd-sheet-actions button {
+  display: grid;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  padding: 6px;
+  place-items: center;
+  color: #53657d;
+  cursor: pointer;
+}
+.pd-sheet-actions button:hover {
+  background: #eef2f7;
+  color: var(--bd-blue);
+}
+.pd-sheet-actions button:last-child:hover {
+  background: #fdecec;
+  color: var(--bd-danger, #ef4d4d);
+}
+
+/* The index collapses to give the sheet the width. */
+.pd-medical-collapse.ant-btn {
+  margin-left: auto;
+  color: var(--bd-sub);
+}
+.pd-medical-index--collapsed .pd-medical-forms {
+  display: none;
+}
+.pd-medical-index--collapsed {
+  height: auto;
+}
+
+/* ── Bìa hồ sơ bệnh án ──────────────────────────────────────────────────── */
+.pd-cover-frame {
+  border: 2px solid var(--bd-ink);
+  padding: 24px;
+}
+.pd-cover-org {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.7;
+}
+.pd-cover-orgline {
+  width: 60%;
+  text-align: center;
+}
+.pd-cover-codes {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  margin: 24px 0;
+  font-size: 13px;
+}
+.pd-cover-codes div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pd-cover-codes dt {
+  font-weight: 700;
+}
+.pd-cover-codes dd {
+  min-width: 150px;
+  border-bottom: 1px dotted var(--bd-ink);
+  text-align: center;
+}
+.pd-cover-title {
+  margin: 40px 0 6px;
+  text-align: center;
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+.pd-cover-year {
+  margin-bottom: 40px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+}
+.pd-cover-year-in {
+  width: 56px;
+}
+.pd-cover-identity p {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+.pd-cover-identity label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.pd-cover-grow {
+  flex: 1;
+  border-bottom: 1px dotted var(--bd-ink);
+}
+.pd-cover-films {
+  display: grid;
+  gap: 10px 24px;
+  margin-top: 28px;
+  grid-template-columns: 1fr 1fr;
+  font-size: 13px;
+}
+.pd-cover-films div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pd-cover-films dd {
+  flex: 1;
+}
+.pd-cover-subtitle {
+  margin: 18px 0 10px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+.pd-cover-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.pd-cover-table th,
+.pd-cover-table td {
+  border: 1px solid var(--bd-ink);
+  padding: 5px 7px;
+  text-align: left;
+  vertical-align: top;
+}
+.pd-cover-table th {
+  text-align: center;
+  font-weight: 700;
+}
+.pd-cover-num {
+  text-align: center;
+  font-weight: 700;
+}
+.pd-cover-grouprow td {
+  background: #f1f5f9;
+  font-weight: 700;
+}
+.pd-cover-tick {
+  text-align: center;
+}
+.pd-cover-signs {
+  display: grid;
+  margin-top: 28px;
+  grid-template-columns: 1fr 1fr;
+  text-align: center;
+  font-size: 12.5px;
+  line-height: 1.9;
+}
+.bd-a4-checkbox {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--bd-blue);
+}
+
+/* ── Phiếu Tư Vấn Tổng Quát ─────────────────────────────────────────────── */
+.pd-consult-head {
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.pd-consult-title {
+  margin: 22px 0 18px;
+  text-align: center;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.pd-consult-line {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 11px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.pd-rule-grow {
+  flex: 1;
+}
+.pd-consult-section {
+  margin: 18px 0 12px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+}
+.pd-consult-body {
+  margin: 14px 0 26px;
+  font-size: 13px;
+  line-height: 1.8;
+  text-align: justify;
+}
+.pd-consult-signs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  text-align: center;
+  font-size: 13px;
+}
+
+.pd-cover-date {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+}
+.pd-cover-datecell {
+  width: 46px;
+  text-align: center;
+}
+.pd-cover-received {
+  width: 150px;
+}
+.pd-cover-signdate {
+  margin-bottom: 4px;
+}
+.pd-cover-identity .pd-cover-grow {
+  flex: 1;
+  min-width: 0;
+}
+
+/* The reference gives this box room to write a paragraph in.
+   `showCount` puts the className on the affix wrapper, not on the textarea, so
+   the height has to be aimed through it — and the app pins modal inputs to a
+   single-row height, which `rows` alone never beat. */
+.pd-reason-dialog .pd-reason-input.ant-input-affix-wrapper {
+  height: auto;
+  align-items: stretch;
+}
+
+.pd-reason-dialog .pd-reason-input textarea.ant-input {
+  height: 180px;
+  min-height: 180px;
+  resize: vertical;
+}
+
+/* A column title is not a paragraph: let it set the column's width rather than
+   wrap inside it. The table already scrolls sideways when the sum overflows. */
+.pd-payment-dialog .ant-table-thead > tr > th {
+  white-space: nowrap;
+}
+
+/* The reference ticks the tags a record already carries. */
+.pd-tag-tick {
+  margin-left: auto;
+  color: var(--bd-link);
+  font-size: 12px;
+}
+

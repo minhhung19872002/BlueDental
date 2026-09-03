@@ -29,6 +29,10 @@
   /* The one CTA fill: every primary button and active nav pill uses it. */
   --bd-cta: linear-gradient(120deg, #6366f1, #8b5cf6 55%, #22d3ee 130%);
 
+  /* Link blue — what the reference draws record links on. Kept as its own token
+     rather than folded into --bd-blue, which v2 moved to indigo. */
+  --bd-link: #2671d8;
+
   /* Text ramp, darkest to faintest. */
   --bd-ink: #171c33;
   --bd-body: #171c33;
@@ -2302,6 +2306,15 @@ button {
   max-height: 240px;
   overflow-y: auto;
   padding: 4px 0;
+}
+
+/* The dropdown's escape hatch — "Khác" and whatever it needs to collect. */
+.ss-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid var(--bd-line, #e7eaf6);
+  padding: 10px 12px;
 }
 
 .ss-options::-webkit-scrollbar {
@@ -7650,4 +7663,33 @@ html:has(.ant-modal-wrap) {
 /* The rail's mark drifts, as the design has it on both rail and login. */
 .sidebar-logo-img {
   animation: floatY 5s ease-in-out infinite;
+}
+
+/* ── Mobile full-screen modals & drawers ──────────────────────────────────── */
+@media (max-width: 640px) {
+  .ant-modal-wrap {
+    align-items: stretch;
+  }
+
+  .ant-modal-wrap .ant-modal {
+    max-width: 100vw !important;
+    width: 100vw !important;
+    padding: 0 !important;
+    padding-bottom: 0 !important;
+    margin: 0 !important;
+    top: 0 !important;
+    height: 100vh !important;
+  }
+
+  .ant-modal .ant-modal-content,
+  .ant-modal .ant-modal-container {
+    border-radius: 0 !important;
+    max-height: none !important;
+    height: 100vh !important;
+  }
+
+  .ant-drawer .ant-drawer-content-wrapper {
+    width: 100vw !important;
+    max-width: 100vw !important;
+  }
 }

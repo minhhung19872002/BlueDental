@@ -53,6 +53,7 @@ public static class BlueDentalDomainErrorCodes
         public const string InvalidImageFile = "BlueDental:Patient:0006";
         public const string UnsupportedImageType = "BlueDental:Patient:0007";
         public const string PatientImageNotFound = "BlueDental:Patient:0008";
+        public const string MedicalRecordTooLarge = "BlueDental:Patient:0009";
     }
 
     public static class Appointments

@@ -4,9 +4,8 @@ import { assertRealApiTraffic, login } from "./fixtures/auth";
 /**
  * Feature: Đơn thuốc, plus the patient tabs that read other modules.
  *
- * The PrescriptionPanel component is built but NOT wired into the
- * PatientProfilePage — the tab renders an inline placeholder table.
- * These tests verify the tab renders correctly and shows API data.
+ * Every patient tab is its own route, so the switcher is a set of links and
+ * the URL is what says which pane is showing.
  */
 test.describe("Đơn thuốc", () => {
   test.beforeEach(async ({ page }) => {
@@ -27,20 +26,22 @@ test.describe("Đơn thuốc", () => {
     await openFirstPatient(page);
     await page.waitForLoadState("networkidle");
 
-    await page.getByRole("tab", { name: "Đơn thuốc" }).click();
+    await page.getByRole("link", { name: "Đơn thuốc" }).click();
+    await expect(page).toHaveURL(/tab=prescription/);
 
-    // The tab should show the table headers and the create button.
+    // The tab should show the create button and the list's own columns.
     await expect(page.getByRole("button", { name: "Tạo đơn thuốc" })).toBeVisible();
-    await expect(page.getByRole("columnheader", { name: "Thuốc" })).toBeVisible();
-    await expect(page.getByRole("columnheader", { name: "Liều dùng" })).toBeVisible();
-    await expect(page.getByRole("columnheader", { name: "Thao tác" })).toBeVisible();
+    await expect(page.getByRole("columnheader", { name: "MÃ ĐƠN THUỐC" })).toBeVisible();
+    await expect(page.getByRole("columnheader", { name: "BÁC SĨ" })).toBeVisible();
+    await expect(page.getByRole("columnheader", { name: "THAO TÁC" })).toBeVisible();
   });
 
   test("the prescription tab shows empty state when no prescriptions exist", async ({ page }) => {
     await openFirstPatient(page);
     await page.waitForLoadState("networkidle");
 
-    await page.getByRole("tab", { name: "Đơn thuốc" }).click();
+    await page.getByRole("link", { name: "Đơn thuốc" }).click();
+    await expect(page).toHaveURL(/tab=prescription/);
 
     // Either there's prescription data or an empty state — the tab shouldn't error.
     await expect(page.locator("body")).not.toContainText("Unexpected Application Error");
@@ -50,14 +51,19 @@ test.describe("Đơn thuốc", () => {
     await openFirstPatient(page);
     await page.waitForLoadState("networkidle");
 
-    // The tabs should be visible and clickable.
-    await page.getByRole("tab", { name: "Lịch hẹn" }).click();
-    await expect(page.getByRole("tab", { name: "Lịch hẹn" })).toHaveAttribute("aria-selected", "true");
-
-    await page.getByRole("tab", { name: "Labo" }).click();
-    await expect(page.getByRole("tab", { name: "Labo" })).toHaveAttribute("aria-selected", "true");
-
-    await page.getByRole("tab", { name: "Chăm sóc KH" }).click();
-    await expect(page.getByRole("tab", { name: "Chăm sóc KH" })).toHaveAttribute("aria-selected", "true");
+    // Each tab is a link that puts its own pane in the URL and marks itself
+    // as the current page.
+    for (const [label, slug] of [
+      ["Lịch hẹn", "appointment"],
+      ["Labo", "labo"],
+      ["Chăm sóc KH", "care"],
+    ] as const) {
+      await page.getByRole("link", { name: label }).click();
+      await expect(page).toHaveURL(new RegExp(`tab=${slug}`));
+      await expect(page.getByRole("link", { name: label })).toHaveAttribute(
+        "aria-current",
+        "page",
+      );
+    }
   });
 });

@@ -1,4 +1,4 @@
-namespace BlueDental.Permissions;
+﻿namespace BlueDental.Permissions;
 
 /// <summary>
 /// Compile-time permission names for every ability pair, so controllers and
@@ -849,6 +849,17 @@ public static class BlueDentalAbilityPermissions
         public const string Update = "BlueDental.treatmentImage.update";
         public const string Delete = "BlueDental.treatmentImage.delete";
         public const string Export = "BlueDental.treatmentImage.export";
+    }
+
+    /// <summary>Subject <c>patientMedicalRecord</c> — the patient's Bệnh án sheets.</summary>
+    public static class PatientMedicalRecord
+    {
+        public const string Subject = "patientMedicalRecord";
+        public const string Read = "BlueDental.patientMedicalRecord.read";
+        public const string Create = "BlueDental.patientMedicalRecord.create";
+        public const string Update = "BlueDental.patientMedicalRecord.update";
+        public const string Delete = "BlueDental.patientMedicalRecord.delete";
+        public const string Print = "BlueDental.patientMedicalRecord.print";
     }
 
     /// <summary>Subject <c>treatmentLabo</c>.</summary>

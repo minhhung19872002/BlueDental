@@ -29,30 +29,42 @@ test.describe("Lịch hẹn", () => {
     return `${dd}/${mm}/${day.getFullYear()}`;
   }
 
+  /**
+   * Opens one of the dialog's SearchSelect fields and takes its first option.
+   *
+   * SearchSelect is BlueDental's own component: the trigger carries
+   * role=combobox and the list is rendered into a portal, so the option is
+   * addressed from the page rather than from inside the dialog.
+   */
+  async function pickFirst(page: Page, label: string | RegExp): Promise<void> {
+    const field = page.locator(".appt-field").filter({ hasText: label }).first();
+    await field.getByRole("combobox").click();
+
+    const option = page.locator("#ss-portal-dropdown [role=option]").first();
+    await expect(option).toBeVisible();
+    await option.click();
+  }
+
   /** Fills the editor and saves; the caller asserts what happened. */
   async function book(page: Page, day: string, reason: string): Promise<void> {
     await page.getByRole("button", { name: /Tạo lịch hẹn/ }).first().click();
-    const dialog = page.getByRole("dialog");
+    const dialog = page.getByRole("dialog", { name: "Tạo lịch hẹn" });
 
-    // Both pickers read the real patient and staff lists. SearchSelect is
-    // BlueDental's own component, so it is driven by its roles.
-    await dialog.getByRole("combobox").first().click();
-    await page.getByRole("option").first().click();
+    // Both pickers read the real patient and staff lists.
+    await pickFirst(page, /Chọn bệnh nhân/);
+    await pickFirst(page, /Chọn bác sĩ/);
 
-    await dialog.getByRole("combobox").nth(1).click();
-    await page.getByRole("option").first().click();
-
-    // Order is Ngày hẹn, Giờ bắt đầu, Giờ kết thúc; antd commits on Enter.
-    const date = dialog.locator(".ant-picker-input input").first();
+    // antd commits a typed date or time on Enter.
+    const date = dialog.getByPlaceholder("Chọn thời điểm");
     await date.fill(day);
     await date.press("Enter");
 
-    const time = dialog.locator(".ant-picker-input input").nth(1);
+    const time = dialog.getByPlaceholder("HH:mm");
     await time.fill("09:00");
     await time.press("Enter");
 
-    await dialog.getByPlaceholder("Nhập lý do khám").fill(reason);
-    await dialog.getByRole("button", { name: /Lưu lịch hẹn/ }).click();
+    await dialog.getByPlaceholder("Nội dung đặt lịch").fill(reason);
+    await dialog.getByRole("button", { name: "Lưu" }).click();
   }
 
   /**

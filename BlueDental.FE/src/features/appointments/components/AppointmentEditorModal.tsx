@@ -5,6 +5,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import dayjs from "dayjs";
 import { AppDialog } from "@/components/AppDialog";
+// The dialog carries its own styling: it opens from the calendar *and* from a
+// patient's record, and the record's page does not import the calendar's CSS.
+// Without this the modal renders full-width with its two columns collapsed.
+import "./calendar.css";
 import { useCreateAppointment, useUpdateAppointment } from "../api/appointmentMutations";
 import { useAppointment } from "../api/appointmentQueries";
 import { usePatientOptions } from "@/hooks/usePatientOptions";
@@ -23,6 +27,9 @@ const buildSchema = () =>
     date: z.string().min(1, t("Vui lòng chọn ngày")),
     startTime: z.string().min(1, t("Vui lòng chọn giờ hẹn")),
     durationMinutes: z.number().int().min(15),
+    // Plain strings, not `.optional().default()`: that makes zod's input type
+    // differ from its output type, and react-hook-form's resolver generics then
+    // refuse the form values. The form always supplies all three.
     content: z.string(),
     color: z.string(),
     notes: z.string(),
@@ -34,6 +41,14 @@ interface Props {
   initialDate?: string;
   initialTime?: string;
   initialDoctorId?: string;
+  /**
+   * Opened from a patient's own record: the patient is already known, so the
+   * form seeds it and `lockPatient` stops it being changed — the reference
+   * greys the field out in exactly that case.
+   */
+  initialPatientId?: string;
+  initialReason?: string;
+  lockPatient?: boolean;
   onClose: () => void;
   onSuccess?: () => void;
 }
@@ -44,6 +59,9 @@ export function AppointmentEditorModal({
   initialDate,
   initialTime,
   initialDoctorId,
+  initialPatientId,
+  initialReason,
+  lockPatient,
   onClose,
   onSuccess,
 }: Props) {
@@ -108,20 +126,35 @@ export function AppointmentEditorModal({
         color: existingAppt.color ?? APPT_COLORS[0].value,
         notes: existingAppt.notes ?? "",
       });
-    } else if (!isEdit) {
-      reset({
-        patientId: "",
-        branchId: currentBranchId,
-        doctorId: initialDoctorId ?? "",
-        date: initialDate ?? dayjs().format("YYYY-MM-DD"),
-        startTime: initialTime ?? "",
-        durationMinutes: 30,
-        content: "",
-        color: APPT_COLORS[0].value,
-        notes: "",
-      });
+      return;
     }
-  }, [open, isEdit, existingAppt, reset, currentBranchId, initialDate, initialTime, initialDoctorId]);
+
+    // Creating: seed whatever the caller already knows. A patient screen knows
+    // the patient, a diagnosis row knows what the visit is for, and the
+    // calendar knows the slot and the doctor whose column was clicked.
+    reset({
+      patientId: initialPatientId ?? "",
+      branchId: currentBranchId,
+      doctorId: initialDoctorId ?? "",
+      date: initialDate ?? dayjs().format("YYYY-MM-DD"),
+      startTime: initialTime ?? "",
+      durationMinutes: 30,
+      content: initialReason ?? "",
+      color: APPT_COLORS[0].value,
+      notes: "",
+    });
+  }, [
+    open,
+    isEdit,
+    existingAppt,
+    reset,
+    currentBranchId,
+    initialPatientId,
+    initialReason,
+    initialDate,
+    initialTime,
+    initialDoctorId,
+  ]);
 
   const activeMutation = isEdit ? updateMutation : createMutation;
 
@@ -194,6 +227,7 @@ export function AppointmentEditorModal({
         watchedDate={watchedDate}
         watchedNotes={watchedNotes}
         isEdit={isEdit}
+        lockPatient={lockPatient}
       />
     </AppDialog>
   );

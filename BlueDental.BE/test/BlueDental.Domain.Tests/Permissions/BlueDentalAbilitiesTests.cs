@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using BlueDental.Permissions;
 using Xunit;
 
@@ -13,9 +13,14 @@ public class BlueDentalAbilitiesTests
     [Fact]
     public void Catalog_Should_Cover_Every_Observed_Subject()
     {
-        // 83 subjects observed on the reference + branchManager and
-        // chatbotKnowledge, which BlueDental adds.
-        Assert.Equal(85, BlueDentalAbilities.Catalog.Count);
+        // 83 subjects observed on the reference + branchManager,
+        // chatbotKnowledge and patientMedicalRecord, which BlueDental adds.
+        //
+        // patientMedicalRecord guards the patient's Bệnh án sheets. The
+        // reference's own subject name for them was not observed — only the
+        // endpoint (/patient-medical-record/files/{id}) — so the name is
+        // BlueDental's. See docs/clone/unknowns.md.
+        Assert.Equal(86, BlueDentalAbilities.Catalog.Count);
         Assert.True(BlueDentalAbilities.Catalog.ContainsKey(BlueDentalAbilities.Subjects.BranchManager));
     }
 

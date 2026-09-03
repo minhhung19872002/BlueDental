@@ -1,4 +1,5 @@
-using System;
+﻿using System;
+using System.Globalization;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -90,6 +91,10 @@ public class BlueDentalClinicalDemoSeeder(
 
         var catalog = await EnsureCatalogAsync();
 
+        // Ordered so a run is repeatable, and every patient is covered rather
+        // than an arbitrary prefix: whichever record is opened has a history.
+        patients = patients.OrderBy(p => p.PatientCode).ToList();
+
         await SeedTreatmentChainAsync(patients, dentistIds, catalog);
         await SeedConsultingRecordsAsync(patients, dentistIds, catalog);
         await SeedPaymentsAsync(patients, dentistIds);
@@ -107,6 +112,26 @@ public class BlueDentalClinicalDemoSeeder(
     /// </summary>
     internal static Guid DemoId(string kind, int index) =>
         new($"5eed{kind}-0000-4000-8000-{index:D12}");
+
+    /// <summary>
+    /// A stable id for a demo row belonging to one patient.
+    ///
+    /// Derived from the patient's own id rather than a position in a list: the
+    /// roster grows as the app is used, and an index-based id would hand an
+    /// existing row's id to a different patient the moment the order shifted.
+    /// The leading bytes carry the kind, so two kinds never collide.
+    /// </summary>
+    private static Guid DemoIdFor(string kind, Guid patientId, int sub = 0)
+    {
+        var bytes = patientId.ToByteArray();
+        var value = int.Parse(kind, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+
+        bytes[0] = (byte)(value >> 8);
+        bytes[1] = (byte)value;
+        bytes[2] = (byte)sub;
+
+        return new Guid(bytes);
+    }
 
     private async Task<DemoCatalog> EnsureCatalogAsync()
     {
@@ -216,14 +241,21 @@ public class BlueDentalClinicalDemoSeeder(
         List<Guid> dentistIds,
         DemoCatalog catalog)
     {
-        if (await planRepository.AnyAsync(p => p.BranchId == _branchId))
-        {
-            return;
-        }
+        // Decided per patient rather than for the branch: the branch-level
+        // guard meant a re-run did nothing at all, so every patient registered
+        // after the first seeding kept an empty record for ever.
+        var covered = (await planRepository.GetListAsync(p => p.BranchId == _branchId))
+            .Select(p => p.PatientId)
+            .ToHashSet();
 
         var random = new Random(20260826);
         var today = DateOnly.FromDateTime(BlueDentalDemoSeedContributor.ClinicToday);
-        var chosen = patients.Take(8).ToList();
+        var chosen = patients.Where(p => !covered.Contains(p.Id)).ToList();
+
+        if (chosen.Count == 0)
+        {
+            return;
+        }
 
         var diagnoses = new List<PatientDiagnosis>();
         var advises = new List<PatientAdvise>();
@@ -240,7 +272,7 @@ public class BlueDentalClinicalDemoSeeder(
             var tooth = new ToothSelection(Teeth[i % Teeth.Length], selected: true);
 
             var diagnosisRow = PatientDiagnosis.Record(
-                DemoId("0200", i + 1),
+                DemoIdFor("0200", patient.Id),
                 patient.Id,
                 _branchId,
                 diagnosis.Id,
@@ -251,7 +283,7 @@ public class BlueDentalClinicalDemoSeeder(
             diagnoses.Add(diagnosisRow);
 
             var advise = PatientAdvise.Offer(
-                DemoId("0201", i + 1),
+                DemoIdFor("0201", patient.Id),
                 patient.Id,
                 _branchId,
                 diagnosisRow.Id,
@@ -265,14 +297,14 @@ public class BlueDentalClinicalDemoSeeder(
                 teeth: [tooth]);
 
             var plan = TreatmentPlan.Open(
-                DemoId("0202", i + 1),
+                DemoIdFor("0202", patient.Id),
                 patient.Id,
                 dentistId,
                 _branchId,
                 $"KH26-{i + 1:D4}",
                 $"Kế hoạch {service.Name.ToLowerInvariant()}");
 
-            var lineId = DemoId("0203", i + 1);
+            var lineId = DemoIdFor("0203", patient.Id);
             var line = plan.AddService(
                 lineId, service.Id, advise.Id, service.Price, 1, DiscountType.None, 0m, [tooth]);
 
@@ -295,7 +327,7 @@ public class BlueDentalClinicalDemoSeeder(
             for (var step = 1; step <= 3; step++)
             {
                 var stage = TreatmentStage.Add(
-                    DemoId("0204", i * 10 + step),
+                    DemoIdFor("0204", patient.Id, step),
                     patient.Id,
                     _branchId,
                     plan.Id,
@@ -329,14 +361,14 @@ public class BlueDentalClinicalDemoSeeder(
             var painkiller = catalog.Medications[(i + 1) % catalog.Medications.Count];
 
             prescriptions.Add(Prescription.Issue(
-                DemoId("0205", i + 1),
+                DemoIdFor("0205", patient.Id),
                 patient.Id,
                 _branchId,
                 $"DT26-{i + 1:D4}",
                 dentistId,
                 [
                     new PrescriptionItem(
-                        DemoId("0206", i * 10 + 1),
+                        DemoIdFor("0206", patient.Id, 1),
                         medication.Id,
                         medication.Name,
                         medication.Dosage,
@@ -345,7 +377,7 @@ public class BlueDentalClinicalDemoSeeder(
                         quantity: 15,
                         instructions: "Uống sau ăn"),
                     new PrescriptionItem(
-                        DemoId("0206", i * 10 + 2),
+                        DemoIdFor("0206", patient.Id, 2),
                         painkiller.Id,
                         painkiller.Name,
                         painkiller.Dosage,
@@ -375,14 +407,18 @@ public class BlueDentalClinicalDemoSeeder(
         List<Guid> dentistIds,
         DemoCatalog catalog)
     {
-        if (await consultationRepository.AnyAsync(c => c.ClinicBranchId == _branchId))
-        {
-            return;
-        }
+        var covered = (await consultationRepository.GetListAsync(c => c.ClinicBranchId == _branchId))
+            .Select(c => c.PatientId)
+            .ToHashSet();
 
         var consultations = new List<ConsultationRecord>();
         var diagnostics = new List<DiagnosticRecord>();
-        var chosen = patients.Take(10).ToList();
+        var chosen = patients.Where(p => !covered.Contains(p.Id)).ToList();
+
+        if (chosen.Count == 0)
+        {
+            return;
+        }
 
         for (var i = 0; i < chosen.Count; i++)
         {
@@ -390,7 +426,7 @@ public class BlueDentalClinicalDemoSeeder(
             var diagnosis = catalog.Diagnoses[i % catalog.Diagnoses.Count];
 
             consultations.Add(new ConsultationRecord(
-                DemoId("0300", i + 1),
+                DemoIdFor("0300", chosen[i].Id),
                 chosen[i].Id,
                 _branchId,
                 service.Name,
@@ -400,7 +436,7 @@ public class BlueDentalClinicalDemoSeeder(
                 notes: "Khách cân nhắc chi phí"));
 
             diagnostics.Add(new DiagnosticRecord(
-                DemoId("0301", i + 1),
+                DemoIdFor("0301", chosen[i].Id),
                 $"PK26-{i + 1:D4}",
                 chosen[i].Id,
                 _branchId,
@@ -420,14 +456,18 @@ public class BlueDentalClinicalDemoSeeder(
     /// </summary>
     private async Task SeedPaymentsAsync(List<Patient> patients, List<Guid> dentistIds)
     {
-        if (await paymentRepository.AnyAsync(p => p.ClinicBranchId == _branchId))
-        {
-            return;
-        }
+        var covered = (await paymentRepository.GetListAsync(p => p.ClinicBranchId == _branchId))
+            .Select(p => p.PatientId)
+            .ToHashSet();
 
         var random = new Random(20260827);
         var payments = new List<PatientPayment>();
-        var chosen = patients.Take(12).ToList();
+        var chosen = patients.Where(p => !covered.Contains(p.Id)).ToList();
+
+        if (chosen.Count == 0)
+        {
+            return;
+        }
 
         // A payment or a refund has to name the slip it belongs to; only a
         // deposit stands on its own. So each one is hung off that patient's
@@ -453,7 +493,7 @@ public class BlueDentalClinicalDemoSeeder(
             var amount = random.Next(4, 40) * 500_000m;
 
             payments.Add(PatientPayment.Record(
-                DemoId("0400", i + 1),
+                DemoIdFor("0400", chosen[i].Id),
                 chosen[i].Id,
                 _branchId,
                 kind,

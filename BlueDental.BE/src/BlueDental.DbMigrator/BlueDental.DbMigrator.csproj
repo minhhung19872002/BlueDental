@@ -19,6 +19,8 @@
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+  
+    <PackageReference Include="Volo.Abp.BlobStoring.Minio" Version="$(AbpVersion)" />
   </ItemGroup>
 
   <ItemGroup>

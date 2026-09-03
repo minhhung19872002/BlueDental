@@ -1,4 +1,4 @@
-namespace BlueDental.Appointments;
+﻿namespace BlueDental.Appointments;
 
 public enum AppointmentStatus
 {

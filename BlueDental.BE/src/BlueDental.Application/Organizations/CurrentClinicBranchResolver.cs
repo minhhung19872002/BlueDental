@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -43,13 +43,21 @@ public class CurrentClinicBranchResolver : ICurrentClinicBranchResolver, ITransi
         }
     }
 
+    public Guid? OwnClinicBranchId
+    {
+        get
+        {
+            var claimValue = _currentUser.FindClaimValue(BlueDentalConsts.UserClinicBranchIdPropertyName);
+            return Guid.TryParse(claimValue, out var claimId) ? claimId : null;
+        }
+    }
+
     public Guid GetRequiredClinicBranchId()
     {
         var id = ClinicBranchId;
         if (id.HasValue) return id.Value;
 
-        var claimValue = _currentUser.FindClaimValue(BlueDentalConsts.UserClinicBranchIdPropertyName);
-        if (Guid.TryParse(claimValue, out var claimId)) return claimId;
+        if (OwnClinicBranchId is { } claimId) return claimId;
 
         throw new BusinessException(BlueDentalDomainErrorCodes.Organizations.BranchNotAssigned);
     }

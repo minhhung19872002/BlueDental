@@ -110,18 +110,21 @@
 }
 
 /* A picker with a search icon needs its resting label to start after the icon;
-   floated, the label moves onto the border and goes back to the field's edge. */
-.floating-field:has(.ss-wrapper) .floating-field-label {
+   floated, the label moves onto the border and goes back to the field's edge.
+   Scoped to the dialog: this file loads as its own chunk, so an unscoped rule
+   here would restyle every FloatingField in the app — but only once someone
+   has opened a patient screen. */
+.bd-patient-dialog .floating-field:has(.ss-wrapper) .floating-field-label {
   left: 38px;
 }
 
-.floating-field--floated:has(.ss-wrapper) .floating-field-label {
+.bd-patient-dialog .floating-field--floated:has(.ss-wrapper) .floating-field-label {
   left: 12px;
 }
 
 /* The label is the field's name at rest and on its border once floated, so the
    control's own placeholder would only ever be a second copy of it. */
-.floating-field .ss-value--placeholder {
+.bd-patient-dialog .floating-field .ss-value--placeholder {
   opacity: 0;
 }
 

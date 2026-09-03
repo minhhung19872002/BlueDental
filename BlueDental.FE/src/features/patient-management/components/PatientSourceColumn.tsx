@@ -1,11 +1,10 @@
 import { useMemo } from "react";
-import { Button, Checkbox, Form, Input, Select } from "antd";
+import { Button, Checkbox, Form, Input } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { FloatingField } from "@/components/FloatingField";
 import { SearchSelect } from "@/components/SearchSelect";
 import { CATALOG_GROUP, useCatalogOptions, useTaxonomyGroupOptions } from "@/hooks/useCatalogOptions";
-import { usePatientTagOptions } from "@/hooks/usePatientTagOptions";
 import { t } from "@/lib/i18n";
 
 interface Props {
@@ -32,7 +31,6 @@ export function PatientSourceColumn({
 }: Props) {
   const sourceGroups = useTaxonomyGroupOptions(CATALOG_GROUP.Source);
   const sourceEntries = useCatalogOptions(CATALOG_GROUP.Source);
-  const tags = usePatientTagOptions();
 
   const channels = useMemo(
     () =>
@@ -124,19 +122,6 @@ export function PatientSourceColumn({
 
       <FloatingField label={t("Lý do đến khám")} name="examinationReason">
         <Input.TextArea rows={3} maxLength={1000} />
-      </FloatingField>
-
-      {/* Not on the reference's dialog, which files tags from the patient's own
-          screen. Kept here because it is the only place BlueDental assigns them,
-          and "Phân loại theo Tag" on the list would match nothing without it. */}
-      <FloatingField label={t("Thẻ hồ sơ")} name="tagIds">
-        <Select
-          mode="multiple"
-          allowClear
-          options={tags.data ?? []}
-          optionFilterProp="label"
-          notFoundContent={t("Chưa có thẻ hồ sơ nào")}
-        />
       </FloatingField>
     </>
   );
