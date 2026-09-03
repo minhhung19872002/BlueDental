@@ -185,6 +185,111 @@ function UsagePicker({
   );
 }
 
+function PrescriptionLineCard({
+  line,
+  index,
+  medicines,
+  canDelete,
+  onPatch,
+  onDelete,
+}: {
+  line: Line;
+  index: number;
+  medicines: CatalogEntryDto[];
+  canDelete: boolean;
+  onPatch: (change: Partial<Line>) => void;
+  onDelete: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="bd-rx-card">
+      <div className="bd-rx-card-head">
+        <span className="bd-rx-card-num">{index + 1}</span>
+        {canDelete && (
+          <Tooltip title={t("Xoá dòng")}>
+            <Button
+              type="text"
+              size="small"
+              icon={<DeleteOutlined />}
+              className="bd-rx-card-del"
+              aria-label={t("Xoá dòng thuốc {0}", String(index + 1))}
+              onClick={onDelete}
+            />
+          </Tooltip>
+        )}
+      </div>
+      <div className="bd-rx-card-body">
+        <FloatingField label={t("Tên thuốc")}>
+          <Select
+            showSearch
+            optionFilterProp="label"
+            style={{ width: "100%" }}
+            placeholder={t("Tên thuốc")}
+            value={line.medicineEntryId || undefined}
+            onChange={(next) => onPatch({ medicineEntryId: next })}
+            options={medicines.map((m) => ({ value: m.id, label: m.name }))}
+          />
+        </FloatingField>
+        <FloatingField label={t("Ngày uống")}>
+          <InputNumber
+            min={0}
+            style={{ width: "100%" }}
+            value={line.timesPerDay}
+            onChange={(next) => onPatch({ timesPerDay: Number(next) || 0 })}
+          />
+        </FloatingField>
+        <FloatingField label={t("Mỗi lần")}>
+          <InputNumber
+            min={0}
+            step={0.5}
+            style={{ width: "100%" }}
+            value={line.amountPerTime}
+            onChange={(next) => onPatch({ amountPerTime: Number(next) || 0 })}
+          />
+        </FloatingField>
+        <FloatingField label={t("Số ngày")}>
+          <InputNumber
+            min={0}
+            style={{ width: "100%" }}
+            value={line.days}
+            onChange={(next) => onPatch({ days: Number(next) || 0 })}
+          />
+        </FloatingField>
+
+        {expanded && (
+          <>
+            <FloatingField label={t("Số lượng")}>
+              <InputNumber
+                disabled
+                style={{ width: "100%" }}
+                value={line.timesPerDay * line.amountPerTime * line.days}
+              />
+            </FloatingField>
+            <FloatingField label={t("Sử dụng")}>
+              <UsagePicker
+                value={{ usage: line.usage, otherUsage: line.otherUsage ?? null }}
+                onChange={(next) => onPatch(next)}
+              />
+            </FloatingField>
+          </>
+        )}
+
+        <button
+          type="button"
+          className="bd-rx-card-toggle"
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {expanded ? t("Rút gọn") : t("Xem thêm")}
+          <svg width="12" height="12" viewBox="0 0 12 12" className={expanded ? "bd-rx-flip" : ""}>
+            <path d="M2.5 4.5L6 8L9.5 4.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /**
  * Đơn thuốc mẫu — a name, a piece of advice, and a table of medicine lines.
  *
@@ -451,14 +556,30 @@ export function PrescriptionTemplateDialog({
           </Button>
         </div>
 
-        <Table<Line>
-          columns={columns}
-          dataSource={lines}
-          rowKey={(line, index) => line.id ?? String(index)}
-          pagination={false}
-          size="small"
-          className="bd-line-table"
-        />
+        <div className="bd-rx-table-desktop">
+          <Table<Line>
+            columns={columns}
+            dataSource={lines}
+            rowKey={(line, index) => line.id ?? String(index)}
+            pagination={false}
+            size="small"
+            className="bd-line-table"
+          />
+        </div>
+
+        <div className="bd-rx-cards-mobile">
+          {lines.map((line, index) => (
+            <PrescriptionLineCard
+              key={line.id ?? index}
+              line={line}
+              index={index}
+              medicines={medicines}
+              canDelete={lines.length > 1}
+              onPatch={(change) => patch(index, change)}
+              onDelete={() => setLines((current) => current.filter((_, at) => at !== index))}
+            />
+          ))}
+        </div>
 
         <Row gutter={[16, { xs: 20, sm: 12 }]} className="bd-mt3">
           <Col xs={24} sm={12}>

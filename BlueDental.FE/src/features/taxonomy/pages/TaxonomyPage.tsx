@@ -1,4 +1,5 @@
 import { Drawer } from "antd";
+import "../components/taxonomy.css";
 import { toast } from "sonner";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";

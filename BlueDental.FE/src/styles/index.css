@@ -6015,18 +6015,6 @@ html:has(.ant-modal-wrap) {
   height: 100%;
 }
 
-@media (max-width: 640px) {
-  .bd-svc-price-row.ant-row {
-    flex-direction: column;
-  }
-
-  .bd-svc-price-row.ant-row > .ant-col {
-    flex: none;
-    width: 100%;
-    max-width: 100%;
-  }
-}
-
 /* A checkbox with an explanation under it, the shape these tabs repeat. */
 .bd-check-list { display: flex; flex-direction: column; gap: 12px; }
 .bd-check-row { display: flex; flex-direction: column; gap: 2px; }
