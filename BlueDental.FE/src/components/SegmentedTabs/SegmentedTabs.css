@@ -3,7 +3,7 @@
    Overflowing items scroll horizontally instead of wrapping. */
 .seg-tabs {
   position: relative;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 2px;
   padding: 3px;
@@ -13,6 +13,12 @@
   border-radius: 10px;
   background: #ffffff;
   max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.seg-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 /* The navy fill that slides from the old active item to the new one. */
