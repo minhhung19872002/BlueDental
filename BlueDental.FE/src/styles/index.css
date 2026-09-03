@@ -4084,6 +4084,22 @@ html:has(.ant-modal-wrap) {
   height: 42px;
 }
 
+@media (max-width: 640px) {
+  .ant-modal-wrap .ant-modal {
+    max-width: 100vw !important;
+    width: 100vw !important;
+    margin: 0;
+    padding: 0;
+  }
+
+  .ant-modal .ant-modal-content,
+  .ant-modal .ant-modal-container {
+    border-radius: 0;
+    max-height: 100vh;
+    min-height: 100vh;
+  }
+}
+
 /* ── Thanh toán & hoá đơn ── */
 
 .billing-kpis {

@@ -188,8 +188,8 @@ export function BranchManagerEditorModal({
       <Form form={form} layout="vertical" requiredMark initialValues={{ branchIds: [] }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {/* Họ và tên + Email + Số điện thoại */}
-          <Row gutter={[16, 12]}>
-            <Col span={8}>
+          <Row gutter={[16, { xs: 20, sm: 12 }]}>
+            <Col xs={24} sm={8}>
               <FloatingField
                 name="name"
                 label={t("Họ và tên")}
@@ -199,7 +199,7 @@ export function BranchManagerEditorModal({
                 <Input />
               </FloatingField>
             </Col>
-            <Col span={8}>
+            <Col xs={24} sm={8}>
               <FloatingField
                 name="email"
                 label={t("Email")}
@@ -212,7 +212,7 @@ export function BranchManagerEditorModal({
                 <Input />
               </FloatingField>
             </Col>
-            <Col span={8}>
+            <Col xs={24} sm={8}>
               <FloatingField
                 name="phoneNumber"
                 label={t("Số điện thoại")}
@@ -231,8 +231,8 @@ export function BranchManagerEditorModal({
           </Row>
 
           {/* Chi nhánh + Địa chỉ */}
-          <Row gutter={[16, 12]}>
-            <Col span={12}>
+          <Row gutter={[16, { xs: 20, sm: 12 }]}>
+            <Col xs={24} sm={12}>
               <FloatingField
                 name="branchIds"
                 label={t("Chọn chi nhánh")}
@@ -246,7 +246,7 @@ export function BranchManagerEditorModal({
                 />
               </FloatingField>
             </Col>
-            <Col span={12}>
+            <Col xs={24} sm={12}>
               <FloatingField name="address" label={t("Địa chỉ")}>
                 <Input />
               </FloatingField>
@@ -255,8 +255,8 @@ export function BranchManagerEditorModal({
 
           {/* Mật khẩu + Nhập lại mật khẩu (only on create) */}
           {!isEditing && (
-            <Row gutter={[16, 12]}>
-              <Col span={12}>
+            <Row gutter={[16, { xs: 20, sm: 12 }]}>
+              <Col xs={24} sm={12}>
                 <FloatingField
                   name="password"
                   label={t("Mật khẩu")}
@@ -266,7 +266,7 @@ export function BranchManagerEditorModal({
                   <Input.Password />
                 </FloatingField>
               </Col>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <FloatingField
                   name="confirmPassword"
                   label={t("Nhập lại mật khẩu")}
@@ -289,8 +289,8 @@ export function BranchManagerEditorModal({
           )}
 
           {/* Tỉnh/Thành phố + Xã/Phường */}
-          <Row gutter={[16, 12]}>
-            <Col span={12}>
+          <Row gutter={[16, { xs: 20, sm: 12 }]}>
+            <Col xs={24} sm={12}>
               <FloatingField name="provinceId" label={t("Tỉnh/ Thành phố")}>
                 <Select
                   showSearch
@@ -302,7 +302,7 @@ export function BranchManagerEditorModal({
                 />
               </FloatingField>
             </Col>
-            <Col span={12}>
+            <Col xs={24} sm={12}>
               <FloatingField name="wardId" label={t("Xã/ Phường")}>
                 <Select
                   showSearch
