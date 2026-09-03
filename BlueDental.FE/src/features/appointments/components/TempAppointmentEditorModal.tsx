@@ -104,8 +104,22 @@ export function TempAppointmentEditorModal({
         color: existingAppt.color ?? APPT_COLORS[0].value,
         notes: existingAppt.notes ?? "",
       });
+    } else if (!isEdit) {
+      reset({
+        patientName: "",
+        patientPhone: "",
+        branchId: currentBranchId,
+        doctorId: "",
+        date: initialDate ?? dayjs().format("YYYY-MM-DD"),
+        startTime: "",
+        durationMinutes: 30,
+        sourceTaxonomyId: "",
+        sourceEntryId: "",
+        color: APPT_COLORS[0].value,
+        notes: "",
+      });
     }
-  }, [open, isEdit, existingAppt, reset, currentBranchId]);
+  }, [open, isEdit, existingAppt, reset, currentBranchId, initialDate]);
 
   const activeMutation = isEdit ? updateMutation : createMutation;
 
