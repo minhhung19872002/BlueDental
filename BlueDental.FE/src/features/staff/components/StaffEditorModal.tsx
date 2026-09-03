@@ -239,8 +239,8 @@ export function StaffEditorModal({
       >
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {/* Nhóm quyền + Chi nhánh */}
-        <Row gutter={[16, 12]}>
-          <Col span={12}>
+        <Row gutter={[16, { xs: 20, sm: 12 }]}>
+          <Col xs={24} sm={12}>
             <FloatingField
               name="roleNames"
               label={t("Nhóm quyền")}
@@ -253,7 +253,7 @@ export function StaffEditorModal({
               />
             </FloatingField>
           </Col>
-          <Col span={12}>
+          <Col xs={24} sm={12}>
             <FloatingField
               name="branchIds"
               label={t("Chi nhánh")}
@@ -270,8 +270,8 @@ export function StaffEditorModal({
         </Row>
 
         {/* Họ và tên + Email + Số điện thoại */}
-        <Row gutter={[16, 12]}>
-          <Col span={8}>
+        <Row gutter={[16, { xs: 20, sm: 12 }]}>
+          <Col xs={24} sm={8}>
             <FloatingField
               name="name"
               label={t("Họ và tên")}
@@ -281,7 +281,7 @@ export function StaffEditorModal({
               <Input />
             </FloatingField>
           </Col>
-          <Col span={8}>
+          <Col xs={24} sm={8}>
             <FloatingField
               name="email"
               label={t("Email")}
@@ -294,7 +294,7 @@ export function StaffEditorModal({
               <Input />
             </FloatingField>
           </Col>
-          <Col span={8}>
+          <Col xs={24} sm={8}>
             <FloatingField
               name="phoneNumber"
               label={t("Số điện thoại")}
@@ -311,8 +311,8 @@ export function StaffEditorModal({
         </Row>
 
         {/* Mật khẩu + Nhập lại mật khẩu */}
-        <Row gutter={[16, 12]}>
-          <Col span={12}>
+        <Row gutter={[16, { xs: 20, sm: 12 }]}>
+          <Col xs={24} sm={12}>
             <FloatingField
               name="password"
               label={t("Mật khẩu")}
@@ -322,7 +322,7 @@ export function StaffEditorModal({
               <Input.Password />
             </FloatingField>
           </Col>
-          <Col span={12}>
+          <Col xs={24} sm={12}>
             <FloatingField
               name="confirmPassword"
               label={t("Nhập lại mật khẩu")}
@@ -348,8 +348,8 @@ export function StaffEditorModal({
         </Row>
 
         {/* Tỉnh/Thành phố + Xã/Phường */}
-        <Row gutter={[16, 12]}>
-          <Col span={12}>
+        <Row gutter={[16, { xs: 20, sm: 12 }]}>
+          <Col xs={24} sm={12}>
             <FloatingField name="provinceId" label={t("Tỉnh/ Thành phố")}>
               <Select
                 showSearch
@@ -361,7 +361,7 @@ export function StaffEditorModal({
               />
             </FloatingField>
           </Col>
-          <Col span={12}>
+          <Col xs={24} sm={12}>
             <FloatingField name="wardId" label={t("Xã/ Phường")}>
               <Select
                 showSearch
@@ -381,8 +381,8 @@ export function StaffEditorModal({
         </FloatingField>
 
         {/* Working hours */}
-        <Row gutter={[16, 12]}>
-          <Col span={6}>
+        <Row gutter={[16, { xs: 20, sm: 12 }]}>
+          <Col xs={12} sm={6}>
             <FloatingField
               name="morningStartTime"
               label={t("Sáng: giờ vào")}
@@ -392,7 +392,7 @@ export function StaffEditorModal({
               <TimePicker format={TIME_FORMAT} style={{ width: "100%" }} />
             </FloatingField>
           </Col>
-          <Col span={6}>
+          <Col xs={12} sm={6}>
             <FloatingField
               name="morningEndTime"
               label={t("Sáng: giờ ra")}
@@ -402,7 +402,7 @@ export function StaffEditorModal({
               <TimePicker format={TIME_FORMAT} style={{ width: "100%" }} />
             </FloatingField>
           </Col>
-          <Col span={6}>
+          <Col xs={12} sm={6}>
             <FloatingField
               name="afternoonStartTime"
               label={t("Chiều: giờ vào")}
@@ -412,7 +412,7 @@ export function StaffEditorModal({
               <TimePicker format={TIME_FORMAT} style={{ width: "100%" }} />
             </FloatingField>
           </Col>
-          <Col span={6}>
+          <Col xs={12} sm={6}>
             <FloatingField
               name="afternoonEndTime"
               label={t("Chiều: giờ ra")}
