@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
+import { Spin } from "antd";
 
 import { useAppointmentList } from "../api/appointmentQueries";
 import type { AppointmentDto } from "../types/appointment";
@@ -65,7 +66,7 @@ export function WeekViewCalendar({
 
   const slots = useMemo(() => Array.from({ length: totalSlots }, (_, i) => i), [totalSlots]);
 
-  const { data: appointments } = useAppointmentList({
+  const { data: appointments, isFetching } = useAppointmentList({
     fromDate: weekStart.format("YYYY-MM-DD"),
     toDate: weekStart.add(6, "day").format("YYYY-MM-DD"),
     maxResultCount: 500,
@@ -115,6 +116,7 @@ export function WeekViewCalendar({
   const isHourStart = (idx: number) => idx % slotsPerHour === 0;
 
   return (
+    <Spin spinning={isFetching} wrapperClassName="cal-spin-wrap">
     <div className="cal-week-scroll">
       <div className="cal-week-grid">
         {/* Header row */}
@@ -211,5 +213,6 @@ export function WeekViewCalendar({
         })}
       </div>
     </div>
+    </Spin>
   );
 }

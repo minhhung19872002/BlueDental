@@ -1,5 +1,6 @@
 import { useMemo, useState, useRef, useEffect, useCallback } from "react";
 import dayjs from "dayjs";
+import { Spin } from "antd";
 import { useAppointmentList } from "../api/appointmentQueries";
 import type { AppointmentDto } from "../types/appointment";
 import type { Dayjs } from "dayjs";
@@ -71,7 +72,7 @@ export function DayViewGrid({
     return () => ro.disconnect();
   }, []);
 
-  const { data: appointments } = useAppointmentList({
+  const { data: appointments, isFetching } = useAppointmentList({
     date: currentDate.format("YYYY-MM-DD"),
     maxResultCount: 500,
   });
@@ -152,6 +153,7 @@ export function DayViewGrid({
   const gridCols = `${TIME_COL_W}px repeat(${colCount}, 1fr)`;
 
   return (
+    <Spin spinning={isFetching} wrapperClassName="cal-spin-wrap">
     <div className="cal-day-scroll" ref={containerRef}>
       <div
         className="cal-day-grid"
@@ -262,6 +264,7 @@ export function DayViewGrid({
         )}
       </div>
     </div>
+    </Spin>
   );
 }
 

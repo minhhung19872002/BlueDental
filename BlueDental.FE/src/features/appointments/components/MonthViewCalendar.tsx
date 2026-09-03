@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
+import { Spin } from "antd";
 import { useAppointmentList } from "../api/appointmentQueries";
 import type { AppointmentDto, AppointmentStatus } from "../types/appointment";
 import { t } from "@/lib/i18n";
@@ -83,7 +84,7 @@ export function MonthViewCalendar({
   const calEnd = monthEnd.endOf("week");
   const today = dayjs();
 
-  const { data } = useAppointmentList({
+  const { data, isFetching } = useAppointmentList({
     fromDate: calStart.format("YYYY-MM-DD"),
     toDate: calEnd.format("YYYY-MM-DD"),
     maxResultCount: 1000,
@@ -131,6 +132,7 @@ export function MonthViewCalendar({
   }, [calStart, calEnd]);
 
   return (
+    <Spin spinning={isFetching} wrapperClassName="cal-spin-wrap">
     <div>
       <div className="cal-month-grid">
         {WEEKDAY_LABELS.map((label) => (
@@ -172,5 +174,6 @@ export function MonthViewCalendar({
         })}
       </div>
     </div>
+    </Spin>
   );
 }
