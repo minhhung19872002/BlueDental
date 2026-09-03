@@ -153,7 +153,7 @@ export function TimekeepingBoard({ currentDate, viewMode, onViewModeChange, onDa
   return (
     <>
       {/* Row 1 — reuses cal-toolbar-row1 so it's flush with the tab bar */}
-      <div className="cal-toolbar-row1">
+      <div className="cal-toolbar-row1 tk-toolbar-row1">
         <Segmented
           value={viewMode}
           onChange={(v) => onViewModeChange(v as ViewMode)}

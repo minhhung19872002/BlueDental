@@ -178,14 +178,16 @@ export function AppointmentCalendarPage() {
           onChange={state.setTopTab}
         />
 
-        <div className="mobile-only cal-mobile-actions">
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditId(null); setInitialTime(undefined); setInitialDoctorId(undefined); setAddOpen(true); }}>
-            {t("Tạo lịch hẹn")}
-          </Button>
-          <Button icon={<PlusOutlined />} onClick={() => setTempOpen(true)}>
-            {t("Lịch tạm")}
-          </Button>
-        </div>
+        {state.topTab === "customer" && (
+          <div className="mobile-only cal-mobile-actions">
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditId(null); setInitialTime(undefined); setInitialDoctorId(undefined); setAddOpen(true); }}>
+              {t("Tạo lịch hẹn")}
+            </Button>
+            <Button icon={<PlusOutlined />} onClick={() => setTempOpen(true)}>
+              {t("Lịch tạm")}
+            </Button>
+          </div>
+        )}
 
         {state.topTab === "customer" && (
           <>
@@ -340,26 +342,28 @@ export function AppointmentCalendarPage() {
         onClose={handleCancelDelete}
       />
 
-      <div className="mobile-only cal-mobile-filter">
-        <MobileFilterDrawer
-          open={filterOpen}
-          onOpen={() => { setDraftKeyword(filters.keyword); setFilterOpen(true); }}
-          onClose={() => setFilterOpen(false)}
-          onClear={() => { setDraftKeyword(""); }}
-          onApply={() => { filters.setKeyword(draftKeyword); }}
-        >
-          <div>
-            <div className="mobile-filter-label">{t("Tìm kiếm")}</div>
-            <Input
-              prefix={<SearchOutlined />}
-              placeholder={t("Tìm bệnh nhân...")}
-              value={draftKeyword}
-              onChange={(e) => setDraftKeyword(e.target.value)}
-              allowClear
-            />
-          </div>
-        </MobileFilterDrawer>
-      </div>
+      {state.topTab === "customer" && (
+        <div className="mobile-only cal-mobile-filter">
+          <MobileFilterDrawer
+            open={filterOpen}
+            onOpen={() => { setDraftKeyword(filters.keyword); setFilterOpen(true); }}
+            onClose={() => setFilterOpen(false)}
+            onClear={() => { setDraftKeyword(""); }}
+            onApply={() => { filters.setKeyword(draftKeyword); }}
+          >
+            <div>
+              <div className="mobile-filter-label">{t("Tìm kiếm")}</div>
+              <Input
+                prefix={<SearchOutlined />}
+                placeholder={t("Tìm bệnh nhân...")}
+                value={draftKeyword}
+                onChange={(e) => setDraftKeyword(e.target.value)}
+                allowClear
+              />
+            </div>
+          </MobileFilterDrawer>
+        </div>
+      )}
 
       {fullscreen && (
         <>

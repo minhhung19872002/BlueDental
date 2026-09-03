@@ -10,7 +10,11 @@
   gap: 6px;
   flex-wrap: wrap;
   margin-left: auto;
-  --stat-chip-width: 88px;
+  --stat-chip-width: 100px;
+}
+
+.tk-stat-chips .cal-counter {
+  flex-shrink: 0;
 }
 
 /* ── Search input inside cal-toolbar-row2 ────────────────────────── */
@@ -1148,4 +1152,43 @@
 
 @media (max-width: 1100px) {
   .tk-stat-chips { margin-left: 0; flex-basis: 100%; }
+  .tk-toolbar-row2 .cal-toolbar-row2-right { margin-left: 0; flex-wrap: wrap; }
+}
+
+@media (max-width: 760px) {
+  /* Row 1: stack vertically, full-width controls */
+  .tk-toolbar-row1 {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  .tk-toolbar-row1 > .ant-segmented { width: 100%; }
+  .tk-toolbar-row1 > .ant-segmented .ant-segmented-item { flex: 1; text-align: center; }
+  .tk-toolbar-row1 > .date-navigator { width: 100%; }
+  .tk-toolbar-row1 > .date-navigator .date-navigator-display-wrapper { flex: 1; justify-content: center; }
+  .tk-stat-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 4px;
+    min-width: 0;
+    width: 100%;
+  }
+
+  /* Row 2: stack, full-width search, show button below */
+  .tk-toolbar-row2 { padding: 10px 12px; flex-direction: column; align-items: stretch; gap: 8px; }
+  .tk-toolbar-row2 .cal-toolbar-row2-left { flex: 1; }
+  .tk-toolbar-row2 .floating-field { max-width: none; }
+  .tk-toolbar-row2 .cal-toolbar-row2-right { display: flex; margin-left: 0; }
+  .tk-toolbar-row2 .cal-toolbar-row2-right .ant-btn { flex: 1; }
+
+  /* Week header: horizontal scroll */
+  .tk-week-header {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    grid-template-columns: repeat(7, 80px);
+    gap: 4px;
+    padding: 8px;
+  }
 }
