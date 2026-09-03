@@ -44,6 +44,9 @@ export function VoucherSingleTab({ form }: Props) {
           }
         />
       </FloatingField>
+      <div className="voucher-form-hint">
+        {t("Chỉ chữ in hoa, số, dấu gạch ngang. Để trống để tạo tự động.")}
+      </div>
       <FloatingField
         name="name"
         label={t("Nhập tên voucher")}
@@ -63,9 +66,6 @@ export function VoucherSingleTab({ form }: Props) {
       >
         <CurrencyInput />
       </FloatingField>
-      <div className="voucher-form-hint">
-        {t("Chỉ chữ in hoa, số, dấu gạch ngang. Để trống để tạo tự động.")}
-      </div>
     </div>
   );
 }
