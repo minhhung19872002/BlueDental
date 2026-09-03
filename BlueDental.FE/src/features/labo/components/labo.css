@@ -199,3 +199,9 @@
 
 /* The file input the well opens; it is never seen. */
 .bd-hidden { display: none; }
+
+@media (max-width: 640px) {
+  .bd-labo-headgroup .seg-tabs {
+    max-width: calc(100vw - 80px);
+  }
+}

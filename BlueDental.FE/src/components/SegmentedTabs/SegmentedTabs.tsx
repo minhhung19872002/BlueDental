@@ -36,13 +36,17 @@ export function SegmentedTabs<K extends string>({
   const [thumb, setThumb] = useState({ x: 0, w: 0 });
 
   const measureThumb = useCallback(() => {
-    const active = containerRef.current?.querySelector<HTMLElement>(".seg-tabs-item--active");
-    if (!active) return;
+    const container = containerRef.current;
+    const active = container?.querySelector<HTMLElement>(".seg-tabs-item--active");
+    if (!active || !container) return;
     setThumb((prev) =>
       prev.x === active.offsetLeft && prev.w === active.offsetWidth
         ? prev
         : { x: active.offsetLeft, w: active.offsetWidth },
     );
+    if (container.scrollWidth > container.clientWidth) {
+      active.scrollIntoView({ block: "nearest", inline: "center" });
+    }
   }, []);
 
   // Re-measure before every paint (active/labels changed) and on resize.
