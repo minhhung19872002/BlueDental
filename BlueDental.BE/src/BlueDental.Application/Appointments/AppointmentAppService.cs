@@ -320,6 +320,23 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         var appointment = await _repository.GetAsync(id);
         GuardBranchAccess(appointment);
         var slot = new AppointmentSlot(input.SlotStart, input.SlotEnd);
+        var dentistId = input.DentistId ?? appointment.DentistId;
+
+        if (await _conflictChecker.HasDentistConflictAsync(dentistId, slot, excludeAppointmentId: id))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Appointments.ConflictingSlot,
+                "The dentist already has an appointment in this time slot.");
+        }
+
+        if (appointment.PatientId != Guid.Empty
+            && await _conflictChecker.HasPatientConflictAsync(appointment.PatientId, slot, excludeAppointmentId: id))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Appointments.PatientAlreadyBooked,
+                "The patient already has an appointment in this time slot.");
+        }
+
         appointment.Reschedule(slot, input.DentistId);
         appointment.UpdateDetails(input.ChiefComplaint, input.Notes, input.Color);
 

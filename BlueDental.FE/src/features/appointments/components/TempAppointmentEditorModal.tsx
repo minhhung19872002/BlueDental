@@ -11,7 +11,6 @@ import { useDentistList } from "@/features/staff/api/staffQueries";
 import { useClinicBranches } from "@/features/organizations/api";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
-import { extractApiError } from "@/lib/apiError";
 import { APPT_COLORS } from "./AppointmentColorPicker";
 import { TempAppointmentForm, type TempAppointmentFormValues } from "./TempAppointmentForm";
 
@@ -134,9 +133,6 @@ export function TempAppointmentEditorModal({
             onSuccess?.();
             onClose();
           },
-          onError: (err) => {
-            toast.error(extractApiError(err));
-          },
         },
       );
     } else {
@@ -159,9 +155,6 @@ export function TempAppointmentEditorModal({
             reset();
             onSuccess?.();
             onClose();
-          },
-          onError: (err) => {
-            toast.error(extractApiError(err));
           },
         },
       );
