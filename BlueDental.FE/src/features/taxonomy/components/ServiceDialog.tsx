@@ -297,7 +297,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
         onFinish={(values) => void submit(values)}
       >
         <Row gutter={[16, 12]}>
-          <Col span={8}>
+          <Col xs={24} sm={8}>
             <FloatingField
               name="name"
               label={t("Dịch vụ")}
@@ -307,7 +307,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
               <Input autoFocus />
             </FloatingField>
           </Col>
-          <Col span={8}>
+          <Col xs={24} sm={8}>
             <FloatingField
               name="taxonomyId"
               label={t("Phân loại dịch vụ")}
@@ -321,7 +321,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
               />
             </FloatingField>
           </Col>
-          <Col span={8}>
+          <Col xs={24} sm={8}>
             <FloatingField name="detailName" label={t("Tên chi tiết")}>
               <Input />
             </FloatingField>
@@ -355,12 +355,12 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
         </FloatingField>
 
         <Row gutter={[16, 12]}>
-          <Col span={12}>
+          <Col xs={24} sm={12}>
             <FloatingField name="priority" label={t("Mức độ ưu tiên")}>
               <InputNumber min={0} style={{ width: "100%" }} />
             </FloatingField>
           </Col>
-          <Col span={12}>
+          <Col xs={24} sm={12}>
             <FloatingField
               name="code"
               label={t("Mã dịch vụ (để trống sẽ tự động tạo mã)")}
@@ -384,7 +384,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
             </FloatingField>
           </div>
 
-          <Row gutter={[16, 12]} align="middle">
+          <Row gutter={[16, 12]} align="middle" className="bd-svc-price-row">
             <Col flex="none">
               <Form.Item name="priceIncludesTax" noStyle>
                 <TaxSegmented />
@@ -410,17 +410,17 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
           <Row gutter={[16, 12]}>
             {/* Read-only: these two come back from the server after a save, so
                 the formula lives in one place. */}
-            <Col span={8}>
+            <Col xs={24} sm={8}>
               <FloatingField label={t("Giá sau giảm")}>
                 <Input readOnly value={saved ? formatVND(saved.priceAfterDiscount) : "—"} />
               </FloatingField>
             </Col>
-            <Col span={8}>
+            <Col xs={24} sm={8}>
               <FloatingField name="unit" label={t("Đơn vị")}>
                 <Input />
               </FloatingField>
             </Col>
-            <Col span={8}>
+            <Col xs={24} sm={8}>
               <FloatingField label={t("Thực thu từ khách (Đã gồm VAT)")}>
                 <Input readOnly value={saved ? formatVND(saved.amountCollected) : "—"} />
               </FloatingField>
@@ -504,7 +504,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
                 <div className="bd-check-list">
                   <Row gutter={[16, 8]}>
                     {WARRANTY_PRESETS.map((days) => (
-                      <Col span={8} key={days}>
+                      <Col xs={12} sm={8} key={days}>
                         <Checkbox
                           // The reference shows these as checkboxes but only one
                           // period can be in force, so picking one clears the rest.
@@ -518,7 +518,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
                   </Row>
 
                   <Row gutter={[16, 12]} className="bd-mt3">
-                    <Col span={12}>
+                    <Col xs={24} sm={12}>
                       <FloatingField name="warrantyDays" label={t("Tuỳ chỉnh")}>
                         <InputNumber min={0} style={{ width: "100%" }} />
                       </FloatingField>
