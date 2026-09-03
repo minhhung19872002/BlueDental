@@ -1,8 +1,11 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
-import { Spin } from "antd";
+import { Input, Spin } from "antd";
+import { SearchOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 import { ConfirmCancelDialog } from "@/components/ConfirmCancelDialog";
+import { MobileFilterDrawer } from "@/components/MobileFilterDrawer";
+import { SearchSelect } from "@/components/SearchSelect";
 import { ReceptionToolbar } from "../components/ReceptionToolbar";
 import { ReceptionStatusTabs } from "../components/ReceptionStatusTabs";
 import { ReceptionCard } from "../components/ReceptionCard";
@@ -41,6 +44,9 @@ export const ReceptionPage: React.FC = () => {
   const [currentDate, setCurrentDate] = useState<Dayjs>(dayjs());
   const [activeCounter, setActiveCounter] = useState<keyof ReceptionCounters | undefined>();
   const [cancelTarget, setCancelTarget] = useState<{ id: string; name: string } | null>(null);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [draftKeyword, setDraftKeyword] = useState("");
+  const [draftDoctorId, setDraftDoctorId] = useState<string | undefined>();
   const branchId = useBranchFilter();
   const debouncedKeyword = useDebounce(keyword);
 
@@ -166,6 +172,38 @@ export const ReceptionPage: React.FC = () => {
           onCounterClick={handleCounterClick}
           onDoctorSelect={setSelectedDoctorId}
         />
+      </div>
+
+      <div className="mobile-only mobile-filter-block">
+        <MobileFilterDrawer
+          open={filterOpen}
+          onOpen={() => { setDraftKeyword(keyword); setDraftDoctorId(selectedDoctorId); setFilterOpen(true); }}
+          onClose={() => setFilterOpen(false)}
+          onClear={() => { setDraftKeyword(""); setDraftDoctorId(undefined); }}
+          onApply={() => { setKeyword(draftKeyword); setSelectedDoctorId(draftDoctorId); }}
+        >
+          <div>
+            <div className="mobile-filter-label">{t("Tìm kiếm")}</div>
+            <Input
+              prefix={<SearchOutlined />}
+              placeholder={t("Tìm bệnh nhân...")}
+              value={draftKeyword}
+              onChange={(e) => setDraftKeyword(e.target.value)}
+              allowClear
+            />
+          </div>
+          <div>
+            <div className="mobile-filter-label">{t("Bác sĩ")}</div>
+            <SearchSelect
+              value={draftDoctorId}
+              placeholder={t("Bác sĩ")}
+              allowClear
+              options={doctors.map((d) => ({ value: d.id, label: d.name }))}
+              onChange={(val) => setDraftDoctorId(val)}
+              style={{ width: "100%" }}
+            />
+          </div>
+        </MobileFilterDrawer>
       </div>
 
       <div className="reception-card-grid-wrapper">

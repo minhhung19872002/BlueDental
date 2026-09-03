@@ -43,40 +43,52 @@ export const ReceptionToolbar: React.FC<ReceptionToolbarProps> = ({
   const viewOptions = [t("Ngày"), t("Tuần"), t("Tháng")];
 
   return (
-    <div className="reception-toolbar">
-      <div className="reception-toolbar-left">
-        <Segmented
-          value={viewModeToLabel(viewMode)}
-          onChange={(val) => onViewModeChange?.(labelToViewMode(val as string))}
-          options={viewOptions}
-          style={{ flexShrink: 0 }}
-        />
+    <div className="reception-toolbar-wrap">
+      <div className="reception-toolbar">
+        <div className="reception-toolbar-left">
+          <Segmented
+            value={viewModeToLabel(viewMode)}
+            onChange={(val) => onViewModeChange?.(labelToViewMode(val as string))}
+            options={viewOptions}
+            style={{ flexShrink: 0 }}
+          />
 
-        <DateNavigator
-          value={date}
-          mode={viewMode}
-          onChange={(d) => onDateChange?.(d)}
-        />
+          <DateNavigator
+            value={date}
+            mode={viewMode}
+            onChange={(d) => onDateChange?.(d)}
+          />
 
-        <Input
-          placeholder={t("Tìm bệnh nhân...")}
-          prefix={<SearchOutlined style={{ color: "#99a0bd" }} />}
-          value={keyword}
-          onChange={(e) => onSearchChange(e.target.value)}
-          allowClear
-          style={{ flex: 1, minWidth: 160 }}
-        />
+          <Input
+            className="reception-toolbar-search--inline"
+            placeholder={t("Tìm bệnh nhân...")}
+            prefix={<SearchOutlined style={{ color: "#99a0bd" }} />}
+            value={keyword}
+            onChange={(e) => onSearchChange(e.target.value)}
+            allowClear
+            style={{ flex: 1, minWidth: 160 }}
+          />
+        </div>
+
+        <div className="reception-toolbar-right">
+          <Button
+            type="primary"
+            icon={<FormOutlined />}
+            onClick={onCreateClick}
+          >
+            {t("Tạo tiếp nhận")}
+          </Button>
+        </div>
       </div>
 
-      <div className="reception-toolbar-right">
-        <Button
-          type="primary"
-          icon={<FormOutlined />}
-          onClick={onCreateClick}
-        >
-          {t("Tạo tiếp nhận")}
-        </Button>
-      </div>
+      <Input
+        className="reception-toolbar-search--block"
+        placeholder={t("Tìm bệnh nhân...")}
+        prefix={<SearchOutlined style={{ color: "#99a0bd" }} />}
+        value={keyword}
+        onChange={(e) => onSearchChange(e.target.value)}
+        allowClear
+      />
     </div>
   );
 };

@@ -65,6 +65,46 @@
   padding: 24px 0;
 }
 
+/* ── Mobile: hide doctor filter, scroll tabs & stat chips ── */
+@media (max-width: 640px) {
+  .reception-doctor-filter {
+    display: none;
+  }
+
+  .reception-filter-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .reception-filter-left {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    width: 0;
+    min-width: 100%;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .reception-filter-left::-webkit-scrollbar {
+    display: none;
+  }
+
+  .reception-filter-left .ant-segmented {
+    flex-shrink: 0;
+  }
+
+  .reception-stat-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    width: 0;
+    min-width: 100% !important;
+    padding: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+}
+
 .reception-scroll-sentinel {
   min-height: 1px;
 }

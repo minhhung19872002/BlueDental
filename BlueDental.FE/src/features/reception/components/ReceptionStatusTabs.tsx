@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useRef, useEffect } from "react";
 import { Segmented } from "antd";
 import { SearchSelect } from "@/components/SearchSelect";
 import { t } from "@/lib/i18n";
@@ -73,6 +73,16 @@ export const ReceptionStatusTabs: React.FC<ReceptionStatusTabsProps> = ({
   onDoctorSelect,
 }) => {
   const counters = metrics?.counters;
+  const filterLeftRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = filterLeftRef.current;
+    if (!container) return;
+    const active = container.querySelector<HTMLElement>(".ant-segmented-item-selected");
+    if (!active) return;
+    const left = active.offsetLeft - container.offsetWidth / 2 + active.offsetWidth / 2;
+    container.scrollTo({ left: Math.max(0, left), behavior: "smooth" });
+  }, [activeTab]);
 
   const segmentedOptions = useMemo(
     () =>
@@ -94,21 +104,23 @@ export const ReceptionStatusTabs: React.FC<ReceptionStatusTabsProps> = ({
 
   return (
     <div className="reception-filter-row">
-      <div className="reception-filter-left">
+      <div className="reception-filter-left" ref={filterLeftRef}>
         <Segmented
           value={activeTab}
           options={segmentedOptions}
           onChange={(val) => onChange(val as ReceptionStatus)}
         />
 
-        <SearchSelect
-          value={selectedDoctorId}
-          placeholder={t("Bác sĩ")}
-          allowClear
-          options={doctors.map((d) => ({ value: d.id, label: d.name }))}
-          onChange={(val) => onDoctorSelect?.(val)}
-          style={{ width: 160 }}
-        />
+        <div className="reception-doctor-filter">
+          <SearchSelect
+            value={selectedDoctorId}
+            placeholder={t("Bác sĩ")}
+            allowClear
+            options={doctors.map((d) => ({ value: d.id, label: d.name }))}
+            onChange={(val) => onDoctorSelect?.(val)}
+            style={{ width: 160 }}
+          />
+        </div>
       </div>
 
       <div className="reception-stat-chips">
