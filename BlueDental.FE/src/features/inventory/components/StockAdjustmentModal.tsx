@@ -61,9 +61,6 @@ export function StockAdjustmentModal({ open, onClose, itemId }: Props) {
           form.resetFields();
           onClose();
         },
-        onError: () => {
-          toast.error(t("Không thể điều chỉnh kho. Vui lòng thử lại."));
-        },
       },
     );
   };

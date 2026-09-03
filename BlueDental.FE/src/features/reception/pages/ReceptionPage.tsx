@@ -102,9 +102,6 @@ export const ReceptionPage: React.FC = () => {
           const labels = { "check-in": t("Đã đến"), start: t("Bắt đầu khám"), complete: t("Hoàn tất") };
           toast.success(labels[action]);
         },
-        onError: (err) => {
-          toast.error(err.message || t("Cập nhật trạng thái thất bại"));
-        },
       },
     );
   };
@@ -123,34 +120,17 @@ export const ReceptionPage: React.FC = () => {
           toast.success(t("Đã huỷ lịch hẹn"));
           setCancelTarget(null);
         },
-        onError: (err) => {
-          toast.error(err.message || t("Huỷ lịch thất bại"));
-        },
       },
     );
   };
 
   const handleOutcomeChange = (id: string, outcome: AppointmentOutcome) => {
     if (!outcome) return;
-    setOutcomeMutation.mutate(
-      { id, outcome },
-      {
-        onError: (err) => {
-          toast.error(err.message || t("Cập nhật kết quả thất bại"));
-        },
-      },
-    );
+    setOutcomeMutation.mutate({ id, outcome });
   };
 
   const handleDoctorChange = (id: string, doctorId: string) => {
-    assignDentistMutation.mutate(
-      { id, dentistId: doctorId },
-      {
-        onError: (err) => {
-          toast.error(err.message || t("Chuyển bác sĩ thất bại"));
-        },
-      },
-    );
+    assignDentistMutation.mutate({ id, dentistId: doctorId });
   };
 
   const handleCounterClick = (counter: keyof ReceptionCounters) => {

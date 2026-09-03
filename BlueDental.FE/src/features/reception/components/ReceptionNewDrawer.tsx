@@ -116,9 +116,6 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
           setSelectedPhone("---");
           onClose();
         },
-        onError: (err) => {
-          toast.error(err.message || t("Tạo tiếp nhận thất bại"));
-        },
       },
     );
   };

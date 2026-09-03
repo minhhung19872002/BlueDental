@@ -28,9 +28,6 @@ export function AccountProfilePage() {
           toast.success(t("Cập nhật thông tin thành công!"));
           setEditing(false);
         },
-        onError: () => {
-          toast.error(t("Cập nhật thất bại. Vui lòng thử lại."));
-        },
       },
     );
   };
