@@ -813,7 +813,7 @@ body.cal-fullscreen .cal-grid-wrap {
 .evt-card-title {
   font-size: 12px;
   font-weight: 600;
-  color: #6366f1;
+  color: var(--evt-text, #6366f1);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1387,7 +1387,7 @@ body.cal-fullscreen .cal-grid-wrap {
 .mcal-day-evt-text {
   font-size: 11px;
   font-weight: 500;
-  color: #4f46e5;
+  color: #6366f1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

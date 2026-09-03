@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import type React from "react";
 import { useSearchParams } from "react-router-dom";
-import { Button, Input, Tooltip } from "antd";
+import { Button, Drawer, Input, Tooltip } from "antd";
 import {
   DeleteOutlined,
   EditOutlined,
+  MenuOutlined,
   PlusOutlined,
   SearchOutlined,
   SyncOutlined,
@@ -61,6 +62,7 @@ export function ClinicMaterialsTab() {
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [allocateTo, setAllocateTo] = useState<string | null>(null);
   const [allocateOpen, setAllocateOpen] = useState(false);
+  const [groupsOpen, setGroupsOpen] = useState(false);
 
   const branchId = useBranchFilter();
   const pagination = useTablePagination(20);
@@ -89,6 +91,7 @@ export function ClinicMaterialsTab() {
       return params;
     });
     pagination.resetToFirstPage();
+    setGroupsOpen(false);
   };
 
   const confirmGroupDelete = async () => {
@@ -244,35 +247,54 @@ export function ClinicMaterialsTab() {
     onHand: row.quantityOnHand,
   }));
 
+  const groupPanel = (
+    <GroupPanel
+      title={t("Nhóm vật tư")}
+      subtitle={t("Chọn nhóm để xem vật tư")}
+      searchPlaceholder={t("Tìm nhóm vật tư...")}
+      groups={groups}
+      isLoading={groupsQuery.isLoading}
+      isSearching={groupsQuery.isFetching}
+      keyword={groupKeyword}
+      onKeywordChange={setGroupKeyword}
+      selectedId={selectedGroupId}
+      onSelect={(id) => selectGroup(id === selectedGroupId ? null : id)}
+      onCreate={() => setGroupDialog({ open: true, group: null })}
+      onRename={(group) => setGroupDialog({ open: true, group })}
+      onDelete={(group) => setPendingGroupDelete(group)}
+      onReorder={(from, to) => {
+        const ids = groups.map((group) => group.id);
+        const [moved] = ids.splice(from, 1);
+        ids.splice(to, 0, moved);
+        return reorder.mutateAsync(ids);
+      }}
+    />
+  );
+
   return (
-    // Positioned so the selection bar can float over the table rather than
-    // pushing it up. Scoped here: .bd-taxonomy-shell is shared with Danh mục.
     <div className="bd-taxonomy-shell bd-alloc-host">
       <aside className="bd-taxonomy-aside">
-        <GroupPanel
-          title={t("Nhóm vật tư")}
-          subtitle={t("Chọn nhóm để xem vật tư")}
-          searchPlaceholder={t("Tìm nhóm vật tư...")}
-          groups={groups}
-          isLoading={groupsQuery.isLoading}
-          isSearching={groupsQuery.isFetching}
-          keyword={groupKeyword}
-          onKeywordChange={setGroupKeyword}
-          selectedId={selectedGroupId}
-          onSelect={(id) => selectGroup(id === selectedGroupId ? null : id)}
-          onCreate={() => setGroupDialog({ open: true, group: null })}
-          onRename={(group) => setGroupDialog({ open: true, group })}
-          onDelete={(group) => setPendingGroupDelete(group)}
-          onReorder={(from, to) => {
-            const ids = groups.map((group) => group.id);
-            const [moved] = ids.splice(from, 1);
-            ids.splice(to, 0, moved);
-            return reorder.mutateAsync(ids);
-          }}
-        />
+        {groupPanel}
       </aside>
 
+      <Drawer
+        open={groupsOpen}
+        onClose={() => setGroupsOpen(false)}
+        placement="left"
+        size={288}
+        title={t("Nhóm vật tư")}
+        className="bd-group-drawer"
+        styles={{ body: { padding: 0 } }}
+      >
+        {groupPanel}
+      </Drawer>
+
       <main className="bd-taxonomy-main">
+        <div className="bd-cat-header bd-cat-header--bar">
+          <Button type="link" icon={<MenuOutlined />} onClick={() => setGroupsOpen(true)}>
+            {t("Chọn nhóm")}
+          </Button>
+        </div>
         <div className="bd-materials-toolbar">
           <Button
             type="primary"

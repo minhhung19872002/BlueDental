@@ -1,7 +1,7 @@
 import { t } from "@/lib/i18n";
 
 const APPT_COLORS = [
-  { value: "#2671D8", label: "Xanh dương" },
+  { value: "#6366f1", label: "Tím" },
   { value: "#22C55E", label: "Xanh lá" },
   { value: "#F59E0B", label: "Cam" },
   { value: "#EF4444", label: "Đỏ" },
