@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef, useEffect, useState } from "react";
 import dayjs, { type Dayjs } from "dayjs";
 import { Button } from "antd";
 
@@ -72,6 +72,20 @@ export function WorkScheduleTable({
   const monthLabel = `${t("Tháng")} ${month.month() + 1} / ${month.year()}`;
   const hasSelection = selectedStaff.size > 0;
 
+  const checkThRef = useRef<HTMLTableCellElement>(null);
+  const tableRef = useRef<HTMLTableElement>(null);
+  const [checkW, setCheckW] = useState(49);
+
+  useEffect(() => {
+    const el = checkThRef.current;
+    if (!el) return;
+    const measure = () => setCheckW(el.getBoundingClientRect().width);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   return (
     <div className="wsb-table-outer">
       <div className="wsb-subheader">
@@ -86,10 +100,10 @@ export function WorkScheduleTable({
       </div>
 
       <div className="wsb-table-scroll">
-      <table className="wsb-table">
+      <table className="wsb-table" ref={tableRef} style={{ "--wsb-check-w": `${checkW}px` } as React.CSSProperties}>
         <thead>
           <tr>
-            <th className="wsb-th-check" style={{ top: 0 }}>
+            <th ref={checkThRef} className="wsb-th-check" style={{ top: 0 }}>
               <input
                 type="checkbox"
                 className="wsb-checkbox"

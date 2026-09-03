@@ -927,7 +927,7 @@
 
 .wsb-th-name {
   position: sticky;
-  left: 48px;
+  left: var(--wsb-check-w, 49px);
   z-index: 40;
   width: 230px;
   height: 48px;
@@ -984,7 +984,7 @@
 
 .wsb-td-name {
   position: sticky;
-  left: 48px;
+  left: var(--wsb-check-w, 49px);
   z-index: 20;
   width: 230px;
   min-height: 48px;
@@ -1191,4 +1191,44 @@
     gap: 4px;
     padding: 8px;
   }
+
+  /* ── Work Schedule Builder ── */
+  .wsb-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  .wsb-toolbar-left {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .wsb-toolbar-search { width: 100%; }
+  .wsb-month-nav { width: 100%; }
+  .wsb-month-nav-label { flex: 1; }
+  .wsb-toolbar-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .wsb-toolbar-actions .ant-btn { flex: 1; min-width: 0; }
+
+  .wsb-legend-bar { padding: 8px 12px; }
+  .wsb-help { padding: 8px 12px; font-size: 13px; }
+
+  .wsb-table-area { padding: 8px; }
+
+  /* Subheader: stack month nav + actions */
+  .wsb-subheader { flex-wrap: wrap; padding: 10px 12px; }
+
+  /* Table: shrink sticky columns so day cells are visible */
+  .wsb-th-check,
+  .wsb-td-check { width: 32px; min-width: 32px; max-width: 32px; }
+  .wsb-th-name,
+  .wsb-td-name { width: 140px; min-width: 140px; max-width: 140px; padding: 4px 8px; }
+  .wsb-th-name { font-size: 12px; }
+  .wsb-staff-name { font-size: 13px; }
+  .wsb-staff-pos { font-size: 11px; }
+  .wsb-th-day,
+  .wsb-td-day { min-width: 48px; width: 48px; }
 }
