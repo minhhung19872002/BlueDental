@@ -80,8 +80,8 @@ export function MaterialGroupDialog({ open, group, onClose, onCreated }: Props) 
         requiredMark={false}
         onFinish={(values) => void submit(values)}
       >
-        <Row gutter={[16, 12]}>
-          <Col span={12}>
+        <Row gutter={[16, { xs: 20, sm: 12 }]}>
+          <Col xs={24} sm={12}>
             <FloatingField
               name="name"
               label={t("Tên phân loại")}
@@ -91,7 +91,7 @@ export function MaterialGroupDialog({ open, group, onClose, onCreated }: Props) 
               <Input autoFocus />
             </FloatingField>
           </Col>
-          <Col span={12}>
+          <Col xs={24} sm={12}>
             <FloatingField name="sortOrder" label={t("Mức độ ưu tiên")}>
               <Input inputMode="numeric" />
             </FloatingField>

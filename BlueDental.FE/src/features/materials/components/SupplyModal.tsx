@@ -115,8 +115,8 @@ export function SupplyModal({
       width={560}
     >
       <Form form={form} layout="vertical" requiredMark>
-        <Row gutter={12}>
-          <Col span={10}>
+        <Row gutter={[12, { xs: 20, sm: 12 }]}>
+          <Col xs={24} sm={10}>
             <Form.Item
               name="itemCode"
               label={t("Mã vật tư")}
@@ -126,7 +126,7 @@ export function SupplyModal({
               <Input disabled={isEdit} placeholder="VT001" />
             </Form.Item>
           </Col>
-          <Col span={14}>
+          <Col xs={24} sm={14}>
             <Form.Item
               name="name"
               label={t("Tên vật liệu")}
@@ -137,8 +137,8 @@ export function SupplyModal({
           </Col>
         </Row>
 
-        <Row gutter={12}>
-          <Col span={14}>
+        <Row gutter={[12, { xs: 20, sm: 12 }]}>
+          <Col xs={24} sm={14}>
             <Form.Item name="taxonomyId" label={t("Nhóm phân loại")}>
               <Select
                 allowClear
@@ -147,33 +147,33 @@ export function SupplyModal({
               />
             </Form.Item>
           </Col>
-          <Col span={10}>
+          <Col xs={24} sm={10}>
             <Form.Item name="unit" label={t("Đơn vị")}>
               <Input placeholder={t("Hộp / cái")} />
             </Form.Item>
           </Col>
         </Row>
 
-        <Row gutter={12}>
-          <Col span={12}>
+        <Row gutter={[12, { xs: 20, sm: 12 }]}>
+          <Col xs={24} sm={12}>
             <Form.Item name="unitCost" label={t("Giá nhập (đ)")}>
               <CurrencyInput />
             </Form.Item>
           </Col>
-          <Col span={12}>
+          <Col xs={24} sm={12}>
             <Form.Item name="salePrice" label={t("Giá bán (đ)")}>
               <CurrencyInput />
             </Form.Item>
           </Col>
         </Row>
 
-        <Row gutter={12}>
-          <Col span={12}>
+        <Row gutter={[12, { xs: 20, sm: 12 }]}>
+          <Col xs={24} sm={12}>
             <Form.Item name="supplier" label={t("Nhà cung cấp")}>
               <Input />
             </Form.Item>
           </Col>
-          <Col span={12}>
+          <Col xs={24} sm={12}>
             <Form.Item name="origin" label={t("Xuất xứ")}>
               <Input placeholder={t("Việt Nam")} />
             </Form.Item>

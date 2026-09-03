@@ -13,6 +13,7 @@ import { FloatingField } from "@/components/FloatingField";
 import type { TaxonomyGroup } from "@/hooks/useTaxonomyGroups";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
+import "./materials.css";
 
 /** The reference starts every new material at fifteen days' warning. */
 const DEFAULT_WARNING_DAYS = 15;
@@ -138,8 +139,8 @@ export function MaterialDialog({
         requiredMark={false}
         onFinish={(values) => void submit(values)}
       >
-        <Row gutter={[16, 12]}>
-          <Col span={12}>
+        <Row gutter={[16, { xs: 20, sm: 12 }]}>
+          <Col xs={24} sm={12}>
             <FloatingField
               name="name"
               label={t("Tên vật tư")}
@@ -149,7 +150,7 @@ export function MaterialDialog({
               <Input autoFocus />
             </FloatingField>
           </Col>
-          <Col span={12}>
+          <Col xs={24} sm={12}>
             <FloatingField
               name="taxonomyId"
               label={t("Nhóm phân loại")}
@@ -162,47 +163,47 @@ export function MaterialDialog({
             </FloatingField>
           </Col>
 
-          <Col span={12}>
+          <Col xs={24} sm={12}>
             <FloatingField name="quantity" label={t("Số lượng")}>
               <Input inputMode="numeric" />
             </FloatingField>
           </Col>
-          <Col span={12}>
+          <Col xs={24} sm={12}>
             <FloatingField name="expiryWarningDays" label={t("Cảnh báo hết hạn (ngày)")}>
               <Input inputMode="numeric" />
             </FloatingField>
           </Col>
 
-          <Col span={12}>
+          <Col xs={24} sm={12}>
             <FloatingField name="supplier" label={t("Nhà sản xuất")}>
               <Input />
             </FloatingField>
           </Col>
-          <Col span={12}>
+          <Col xs={24} sm={12}>
             <FloatingField name="origin" label={t("Xuất xứ")}>
               <Input />
             </FloatingField>
           </Col>
 
-          <Col span={12}>
+          <Col xs={24} sm={12}>
             <FloatingField name="unitCost" label={t("Giá nhập")}>
               <CurrencyInput />
             </FloatingField>
           </Col>
-          <Col span={12}>
+          <Col xs={24} sm={12}>
             <FloatingField name="salePrice" label={t("Giá bán")}>
               <CurrencyInput />
             </FloatingField>
           </Col>
 
-          <Col span={12}>
+          <Col xs={12} sm={12}>
             <FloatingField name="stockedAt" label={t("Ngày nhập kho")}>
-              <DatePicker format="DD/MM/YYYY" className="bd-full" />
+              <DatePicker format="DD/MM/YYYY" className="bd-mat-datepicker" />
             </FloatingField>
           </Col>
-          <Col span={12}>
+          <Col xs={12} sm={12}>
             <FloatingField name="expiryDate" label={t("Hạn sử dụng")}>
-              <DatePicker format="DD/MM/YYYY" className="bd-full" />
+              <DatePicker format="DD/MM/YYYY" className="bd-mat-datepicker" />
             </FloatingField>
           </Col>
         </Row>
