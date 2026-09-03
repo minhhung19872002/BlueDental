@@ -33,6 +33,7 @@ interface Props {
   appointmentId?: string | null;
   initialDate?: string;
   initialTime?: string;
+  initialDoctorId?: string;
   onClose: () => void;
   onSuccess?: () => void;
 }
@@ -41,6 +42,8 @@ export function AppointmentEditorModal({
   open,
   appointmentId,
   initialDate,
+  initialTime,
+  initialDoctorId,
   onClose,
   onSuccess,
 }: Props) {
@@ -109,16 +112,16 @@ export function AppointmentEditorModal({
       reset({
         patientId: "",
         branchId: currentBranchId,
-        doctorId: "",
+        doctorId: initialDoctorId ?? "",
         date: initialDate ?? dayjs().format("YYYY-MM-DD"),
-        startTime: "",
+        startTime: initialTime ?? "",
         durationMinutes: 30,
         content: "",
         color: APPT_COLORS[0].value,
         notes: "",
       });
     }
-  }, [open, isEdit, existingAppt, reset, currentBranchId, initialDate]);
+  }, [open, isEdit, existingAppt, reset, currentBranchId, initialDate, initialTime, initialDoctorId]);
 
   const activeMutation = isEdit ? updateMutation : createMutation;
 

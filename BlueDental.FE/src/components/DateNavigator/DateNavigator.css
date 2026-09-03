@@ -78,9 +78,7 @@
 
 /* ── Dropdown container ── */
 .date-nav-dropdown {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
+  position: fixed;
   z-index: 1050;
   background: #ffffff;
   border-radius: 12px;

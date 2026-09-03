@@ -114,8 +114,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  flex: 1;
-  min-width: 0;
+  flex-shrink: 0;
 }
 
 .cal-toolbar-row2-right {
@@ -125,6 +124,9 @@
   margin-left: auto;
   flex-shrink: 0;
 }
+
+/* Slot toggle: mobile copy hidden on desktop, desktop copy shown */
+.cal-btn-slot--mobile { display: none; }
 
 
 /* ── Selection toolbar (multi-delete mode) ───────────────────────── */
@@ -182,9 +184,11 @@
 .cal-grid-wrap {
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   background: #fff;
   border-radius: 0 0 var(--bd-radius-card) var(--bd-radius-card);
+  -webkit-overflow-scrolling: touch;
 }
 
 .cal-spin-wrap {
@@ -381,7 +385,7 @@
 
 .cal-week-grid {
   display: grid;
-  grid-template-columns: 119px repeat(7, 1fr);
+  grid-template-columns: 119px repeat(7, minmax(120px, 1fr));
   grid-template-rows: auto 1fr;
   min-width: fit-content;
 }
@@ -481,6 +485,7 @@
 .cal-month-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
+  min-width: 700px;
   background: #fff;
 }
 
@@ -777,11 +782,74 @@ body.cal-fullscreen .cal-grid-wrap {
 @media (max-width: 1100px) {
   .cal-toolbar-row1 { flex-wrap: wrap; }
   .cal-toolbar-counters { margin-left: 0; flex-basis: 100%; }
+  .cal-toolbar-row2 { flex-direction: column; align-items: stretch; }
+  .cal-toolbar-row2-right { margin-left: 0; flex-wrap: wrap; }
 }
 
-@media (max-width: 640px) {
-  .cal-toolbar-row2 { flex-direction: column; align-items: stretch; }
-  .cal-toolbar-row2-right { margin-left: 0; justify-content: flex-end; }
+@media (max-width: 760px) {
+  /* ── Row 1: stack Segmented + DateNavigator full-width, counters scroll ── */
+  .cal-toolbar-row1 { flex-direction: column; align-items: stretch; gap: 8px; padding: 10px 12px; }
+  .cal-toolbar-left { flex-direction: column; align-items: stretch; gap: 8px; flex-shrink: 1; width: 100%; }
+  .cal-toolbar-left .ant-segmented { width: 100%; }
+  .cal-toolbar-left .ant-segmented-item { flex: 1; text-align: center; }
+  .cal-toolbar-left .date-navigator { width: 100%; }
+  .cal-toolbar-left .date-navigator-display-wrapper { flex: 1; justify-content: center; }
+  .cal-toolbar-counters {
+    flex-wrap: nowrap;
+    flex-basis: auto;
+    overflow-x: auto;
+    margin-left: 0;
+    padding: 4px;
+    min-width: 0;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* ── Grid: no fixed height, page scrolls naturally ── */
+  .cal-page { height: auto; min-height: 100%; }
+  .cal-grid-wrap { flex: none; overflow-x: auto; overflow-y: visible; border-radius: 0; -webkit-overflow-scrolling: touch; }
+  .cal-day-scroll { max-height: none; overflow: visible; }
+  .cal-week-scroll { max-height: none; overflow: visible; }
+  .cal-week-grid { grid-template-columns: 60px repeat(7, minmax(176px, 1fr)); }
+
+  /* ── Mobile action buttons row (above tabs) ── */
+  .cal-mobile-actions {
+    display: flex;
+    gap: 8px;
+    padding: 10px 12px;
+    background: #fff;
+    border-bottom: 1px solid #e7eaf6;
+  }
+  .cal-mobile-actions .ant-btn { flex: 1; }
+
+  /* ── Row 2: hide action buttons, keep doctor field ── */
+  .cal-toolbar-row2 { padding: 10px 12px; }
+  .cal-toolbar-row2-right { display: none; }
+  .cal-toolbar-row2-left {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 8px;
+    flex: 1;
+  }
+  .cal-toolbar-row2-left .cal-search-field { display: none; }
+  .cal-toolbar-row2-left .cal-doctor-field { flex: 1; min-width: 0; }
+  .cal-toolbar-row2-left .cal-doctor-field .ant-select { width: 100% !important; min-width: 0 !important; }
+  .cal-btn-slot--desktop { display: none !important; }
+  .cal-btn-slot--mobile { display: inline-flex !important; flex-shrink: 0; }
+
+  /* ── Floating filter trigger ── */
+  .cal-mobile-filter {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 100;
+  }
+  .cal-mobile-filter .mobile-filter-trigger {
+    width: auto;
+    padding: 0 20px;
+    border-radius: 24px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
 }
 
 /* ── Event Card (shared day/week) ───────────────────────────────────── */
@@ -1039,6 +1107,22 @@ body.cal-fullscreen .cal-grid-wrap {
   height: calc(100vh - 20px);
   max-width: calc(100vw - 40px);
   padding-bottom: 0;
+}
+
+@media (max-width: 760px) {
+  .appt-editor-dialog.ant-modal {
+    top: 0;
+    height: 100vh;
+    max-width: 100vw;
+    margin: 0;
+  }
+
+  .appt-editor-body { height: auto; }
+
+  .appt-editor-cols {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
 }
 
 .appt-editor-dialog .ant-modal-container {
@@ -1303,6 +1387,24 @@ body.cal-fullscreen .cal-grid-wrap {
   overflow: auto;
 }
 
+@media (max-width: 760px) {
+  .appt-mini-cal { min-height: 500px; flex: none; min-width: 0; max-width: 100%; }
+  .appt-mini-cal-content { flex: none; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .appt-mini-cal-toolbar { flex-wrap: wrap; gap: 8px; }
+  .appt-mini-cal-right { flex-wrap: wrap; width: 100%; }
+  .appt-mini-cal-right .ant-segmented { width: 100%; }
+  .appt-mini-cal-right .ant-segmented-item { flex: 1; text-align: center; }
+  .appt-mini-cal-right .date-navigator { width: 100%; }
+  .appt-mini-cal-right .date-navigator-display-wrapper { flex: 1; justify-content: center; }
+  .mcal-day-row { min-height: 80px; }
+  .mcal-week { min-width: max-content; }
+  .mcal-week-header,
+  .mcal-week-body { grid-template-columns: repeat(7, 120px); }
+  .mcal-month { min-width: max-content; }
+  .mcal-month-header,
+  .mcal-month-row { grid-template-columns: repeat(7, 80px); }
+}
+
 /* ── Mini Cal — Day View ─────────────────────────────────────────────── */
 
 .mcal-day {
@@ -1437,12 +1539,12 @@ body.cal-fullscreen .cal-grid-wrap {
 .mcal-week {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  min-height: 100%;
 }
 
 .mcal-week-header {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   border-bottom: 1px solid var(--bd-line, #e7eaf6);
   position: sticky;
   top: 0;
@@ -1472,7 +1574,7 @@ body.cal-fullscreen .cal-grid-wrap {
 
 .mcal-week-body {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   flex: 1;
   min-height: 0;
 }
@@ -1483,6 +1585,8 @@ body.cal-fullscreen .cal-grid-wrap {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .mcal-week-card {
@@ -1496,6 +1600,8 @@ body.cal-fullscreen .cal-grid-wrap {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .mcal-week-card:hover {
@@ -1541,6 +1647,9 @@ body.cal-fullscreen .cal-grid-wrap {
 .mcal-week-card-phone {
   color: var(--bd-sub, #414a6b);
   font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mcal-week-card-reason {
@@ -1560,15 +1669,24 @@ body.cal-fullscreen .cal-grid-wrap {
   gap: 4px;
   margin-top: 2px;
   font-size: 11px;
+  min-width: 0;
 }
 
 .mcal-week-card-time {
   color: var(--bd-faint, #99a0bd);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .mcal-week-card-status {
   font-weight: 600;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 /* ── Mini Cal — Month View ───────────────────────────────────────────── */

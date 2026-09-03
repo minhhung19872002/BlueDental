@@ -1,8 +1,13 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import dayjs from "dayjs";
 import { toast } from "sonner";
+import { Input } from "antd";
+import { SearchOutlined } from "@ant-design/icons";
 
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { MobileFilterDrawer } from "@/components/MobileFilterDrawer";
+import { Button } from "antd";
+import { PlusOutlined } from "@ant-design/icons";
 import { CalendarUnderlineTabs } from "../components/CalendarUnderlineTabs";
 import { CalendarToolbarRow1 } from "../components/CalendarToolbarRow1";
 import { CalendarToolbarRow2 } from "../components/CalendarToolbarRow2";
@@ -45,11 +50,15 @@ export function AppointmentCalendarPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [editTempId, setEditTempId] = useState<string | null>(null);
   const [initialDate, setInitialDate] = useState<string | undefined>();
+  const [initialTime, setInitialTime] = useState<string | undefined>();
+  const [initialDoctorId, setInitialDoctorId] = useState<string | undefined>();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleteTarget, setDeleteTarget] = useState<"single" | "multi" | null>(null);
   const [deleteSingleId, setDeleteSingleId] = useState<string | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [draftKeyword, setDraftKeyword] = useState("");
 
   useEffect(() => {
     if (fullscreen) {
@@ -80,10 +89,14 @@ export function AppointmentCalendarPage() {
   };
 
   const handleCellClick = (doctorId: string, slotIndex: number) => {
+    const totalMinutes = 6 * 60 + slotIndex * filters.slotMinutes;
+    const h = Math.floor(totalMinutes / 60).toString().padStart(2, "0");
+    const m = (totalMinutes % 60).toString().padStart(2, "0");
     setInitialDate(state.currentDate.format("YYYY-MM-DD"));
+    setInitialTime(`${h}:${m}`);
+    setInitialDoctorId(doctorId);
+    setEditId(null);
     setAddOpen(true);
-    void doctorId;
-    void slotIndex;
   };
 
   const handleDeleteSingle = useCallback((id: string) => {
@@ -165,6 +178,15 @@ export function AppointmentCalendarPage() {
           onChange={state.setTopTab}
         />
 
+        <div className="mobile-only cal-mobile-actions">
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditId(null); setInitialTime(undefined); setInitialDoctorId(undefined); setAddOpen(true); }}>
+            {t("Tạo lịch hẹn")}
+          </Button>
+          <Button icon={<PlusOutlined />} onClick={() => setTempOpen(true)}>
+            {t("Lịch tạm")}
+          </Button>
+        </div>
+
         {state.topTab === "customer" && (
           <>
             <CalendarToolbarRow1
@@ -188,7 +210,7 @@ export function AppointmentCalendarPage() {
               slotMinutes={filters.slotMinutes}
               onToggleSlot={filters.toggleSlotMinutes}
               onExport={handleExport}
-              onCreateAppointment={() => { setEditId(null); setAddOpen(true); }}
+              onCreateAppointment={() => { setEditId(null); setInitialTime(undefined); setInitialDoctorId(undefined); setAddOpen(true); }}
               onCreateTemp={() => setTempOpen(true)}
               onFullscreen={() => setFullscreen(true)}
             />
@@ -244,12 +266,16 @@ export function AppointmentCalendarPage() {
                 statusFilter={filters.statusFilter}
                 selectedIds={selectedIds}
                 onCellClick={(dayIdx, slotIdx) => {
+                  const totalMinutes = 6 * 60 + slotIdx * filters.slotMinutes;
+                  const h = Math.floor(totalMinutes / 60).toString().padStart(2, "0");
+                  const m = (totalMinutes % 60).toString().padStart(2, "0");
                   setInitialDate(
                     state.currentDate.startOf("week").add(dayIdx, "day").format("YYYY-MM-DD"),
                   );
+                  setInitialTime(`${h}:${m}`);
+                  setInitialDoctorId(undefined);
                   setEditId(null);
                   setAddOpen(true);
-                  void slotIdx;
                 }}
                 onCardAction={handleCardAction}
               />
@@ -287,8 +313,10 @@ export function AppointmentCalendarPage() {
         open={addOpen}
         appointmentId={editId}
         initialDate={initialDate}
-        onClose={() => { setAddOpen(false); setEditId(null); }}
-        onSuccess={() => { setAddOpen(false); setEditId(null); }}
+        initialTime={initialTime}
+        initialDoctorId={initialDoctorId}
+        onClose={() => { setAddOpen(false); setEditId(null); setInitialTime(undefined); setInitialDoctorId(undefined); }}
+        onSuccess={() => { setAddOpen(false); setEditId(null); setInitialTime(undefined); setInitialDoctorId(undefined); }}
       />
 
       <TempAppointmentEditorModal
@@ -312,12 +340,33 @@ export function AppointmentCalendarPage() {
         onClose={handleCancelDelete}
       />
 
+      <div className="mobile-only cal-mobile-filter">
+        <MobileFilterDrawer
+          open={filterOpen}
+          onOpen={() => { setDraftKeyword(filters.keyword); setFilterOpen(true); }}
+          onClose={() => setFilterOpen(false)}
+          onClear={() => { setDraftKeyword(""); }}
+          onApply={() => { filters.setKeyword(draftKeyword); }}
+        >
+          <div>
+            <div className="mobile-filter-label">{t("Tìm kiếm")}</div>
+            <Input
+              prefix={<SearchOutlined />}
+              placeholder={t("Tìm bệnh nhân...")}
+              value={draftKeyword}
+              onChange={(e) => setDraftKeyword(e.target.value)}
+              allowClear
+            />
+          </div>
+        </MobileFilterDrawer>
+      </div>
+
       {fullscreen && (
         <>
           <CalendarFabs
             onExitFullscreen={() => setFullscreen(false)}
             onCreateTemp={() => setTempOpen(true)}
-            onCreateAppointment={() => { setEditId(null); setAddOpen(true); }}
+            onCreateAppointment={() => { setEditId(null); setInitialTime(undefined); setInitialDoctorId(undefined); setAddOpen(true); }}
             onTogglePanel={() => setPanelOpen((v) => !v)}
             filterCount={filters.filterCount}
           />
@@ -331,7 +380,7 @@ export function AppointmentCalendarPage() {
             onNavigate={state.navigateDate}
             slotMinutes={filters.slotMinutes}
             onToggleSlot={filters.toggleSlotMinutes}
-            onCreateAppointment={() => { setEditId(null); setAddOpen(true); }}
+            onCreateAppointment={() => { setEditId(null); setInitialTime(undefined); setInitialDoctorId(undefined); setAddOpen(true); }}
             onCreateTemp={() => setTempOpen(true)}
             onExport={handleExport}
             keyword={filters.keyword}

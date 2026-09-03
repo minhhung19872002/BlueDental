@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "antd";
 import { LeftOutlined, RightOutlined, CalendarOutlined } from "@ant-design/icons";
 import type { Dayjs } from "dayjs";
@@ -241,8 +242,45 @@ export const DateNavigator: React.FC<DateNavigatorProps> = ({
   style,
 }) => {
   const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number }>({ top: -9999, left: -9999 });
   const dropdownRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLDivElement>(null);
+
+  const rafRef = useRef(0);
+
+  const updatePosition = useCallback(() => {
+    if (!triggerRef.current || !dropdownRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const dropRect = dropdownRef.current.getBoundingClientRect();
+    const dropW = dropRect.width || 296;
+    const dropH = dropRect.height || 340;
+    const gap = 4;
+
+    let top = rect.bottom + gap;
+    if (top + dropH > window.innerHeight) {
+      top = rect.top - dropH - gap;
+    }
+    if (top < 8) top = 8;
+
+    let left = rect.left + rect.width / 2 - dropW / 2;
+    if (left + dropW > window.innerWidth - 8) left = window.innerWidth - dropW - 8;
+    if (left < 8) left = 8;
+
+    setPos({ top, left });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    rafRef.current = requestAnimationFrame(updatePosition);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [open, updatePosition]);
+
+  useEffect(() => {
+    if (!open || !dropdownRef.current) return;
+    const ro = new ResizeObserver(() => updatePosition());
+    ro.observe(dropdownRef.current);
+    return () => ro.disconnect();
+  }, [open, updatePosition]);
 
   useEffect(() => {
     if (!open) return;
@@ -256,9 +294,20 @@ export const DateNavigator: React.FC<DateNavigatorProps> = ({
         setOpen(false);
       }
     };
+    const scheduleUpdate = () => {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(updatePosition);
+    };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [open]);
+    window.addEventListener("scroll", scheduleUpdate, true);
+    window.addEventListener("resize", scheduleUpdate);
+    return () => {
+      cancelAnimationFrame(rafRef.current);
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("scroll", scheduleUpdate, true);
+      window.removeEventListener("resize", scheduleUpdate);
+    };
+  }, [open, updatePosition]);
 
   const handleSelect = (d: Dayjs) => {
     onChange(d);
@@ -289,8 +338,8 @@ export const DateNavigator: React.FC<DateNavigatorProps> = ({
         </span>
       </div>
 
-      {open && (
-        <div ref={dropdownRef} className="date-nav-dropdown">
+      {open && createPortal(
+        <div ref={dropdownRef} className="date-nav-dropdown" style={{ top: pos.top, left: pos.left }}>
           {mode === "month" ? (
             <MonthPickerPanel value={value} onSelect={handleSelect} />
           ) : (
@@ -301,7 +350,8 @@ export const DateNavigator: React.FC<DateNavigatorProps> = ({
               onReset={handleReset}
             />
           )}
-        </div>
+        </div>,
+        document.body,
       )}
 
       <Button
