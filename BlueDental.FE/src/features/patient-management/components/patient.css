@@ -574,3 +574,14 @@
   overflow-y: auto;
   padding: 8px 16px 12px;
 }
+
+/* Mobile: add vertical gap between stacked columns */
+@media (max-width: 991px) {
+  .bd-patient-columns > .ant-col {
+    margin-bottom: 16px;
+  }
+
+  .bd-patient-columns > .ant-col:last-child {
+    margin-bottom: 0;
+  }
+}

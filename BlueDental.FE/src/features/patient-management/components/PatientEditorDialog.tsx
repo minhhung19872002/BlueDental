@@ -257,7 +257,7 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated }: Props
           />
         )}
 
-        <Row gutter={[24, 0]}>
+        <Row gutter={[24, 0]} className="bd-patient-columns">
           <Col xs={24} md={12} lg={8}>
             <PatientSourceColumn
               codePrefix={codePrefix}
