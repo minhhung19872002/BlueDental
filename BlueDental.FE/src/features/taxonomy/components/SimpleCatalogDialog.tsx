@@ -131,8 +131,8 @@ export function SimpleCatalogDialog({
         initialValues={{ name: "", taxonomyId: "", isActive: true, isDeleted: false, priority: 0 }}
         onFinish={(values) => void submit(values)}
       >
-        <Row gutter={[16, 12]}>
-          <Col span={12}>
+        <Row gutter={[16, { xs: 20, sm: 12 }]}>
+          <Col xs={24} sm={12}>
             <FloatingField
               name="name"
               label={t("Tên {0}", noun)}
@@ -142,7 +142,7 @@ export function SimpleCatalogDialog({
               <Input autoFocus />
             </FloatingField>
           </Col>
-          <Col span={12}>
+          <Col xs={24} sm={12}>
             <FloatingField
               name="taxonomyId"
               label={t("Chọn nhóm {0}", noun)}
@@ -158,8 +158,8 @@ export function SimpleCatalogDialog({
           </Col>
         </Row>
 
-        <Row gutter={[16, 12]}>
-          <Col span={12}>
+        <Row gutter={[16, { xs: 20, sm: 12 }]}>
+          <Col xs={24} sm={12}>
             {/* One state, drawn as the reference draws it: two boxes of which
                 exactly one is ticked. Disabled while creating — a record that
                 is born deleted is not a thing anyone wants. */}
@@ -184,7 +184,7 @@ export function SimpleCatalogDialog({
               <Input />
             </Form.Item>
           </Col>
-          <Col span={12}>
+          <Col xs={24} sm={12}>
             <FloatingField name="priority" label={t("Mức độ ưu tiên")}>
               <InputNumber min={0} style={{ width: "100%" }} />
             </FloatingField>

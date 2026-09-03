@@ -424,8 +424,8 @@ export function PrescriptionTemplateDialog({
         initialValues={{ name: "", advice: "", priority: 0 }}
         onFinish={(values) => void submit(values)}
       >
-        <Row gutter={[16, 12]}>
-          <Col span={12}>
+        <Row gutter={[16, { xs: 20, sm: 12 }]}>
+          <Col xs={24} sm={12}>
             <FloatingField
               name="name"
               label={t("Tên đơn thuốc mẫu")}
@@ -435,7 +435,7 @@ export function PrescriptionTemplateDialog({
               <Input autoFocus />
             </FloatingField>
           </Col>
-          <Col span={12}>
+          <Col xs={24} sm={12}>
             <FloatingField name="advice" label={t("Lời dặn")}>
               <Input />
             </FloatingField>
@@ -460,8 +460,8 @@ export function PrescriptionTemplateDialog({
           className="bd-line-table"
         />
 
-        <Row gutter={[16, 12]} className="bd-mt3">
-          <Col span={12}>
+        <Row gutter={[16, { xs: 20, sm: 12 }]} className="bd-mt3">
+          <Col xs={24} sm={12}>
             <FloatingField name="priority" label={t("Mức độ ưu tiên")}>
               <InputNumber min={0} style={{ width: "100%" }} />
             </FloatingField>

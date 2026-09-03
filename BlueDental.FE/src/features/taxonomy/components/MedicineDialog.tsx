@@ -152,8 +152,8 @@ export function MedicineDialog({ open, entry, groups, defaultTaxonomyId, onClose
         initialValues={EMPTY}
         onFinish={(values) => void submit(values)}
       >
-        <Row gutter={[16, 12]}>
-          <Col span={12}>
+        <Row gutter={[16, { xs: 20, sm: 12 }]}>
+          <Col xs={24} sm={12}>
             <FloatingField
               name="name"
               label={t("Tên thuốc")}
@@ -163,7 +163,7 @@ export function MedicineDialog({ open, entry, groups, defaultTaxonomyId, onClose
               <Input autoFocus />
             </FloatingField>
           </Col>
-          <Col span={12}>
+          <Col xs={24} sm={12}>
             <FloatingField
               name="taxonomyId"
               label={t("Chọn nhóm thuốc")}
@@ -178,45 +178,45 @@ export function MedicineDialog({ open, entry, groups, defaultTaxonomyId, onClose
             </FloatingField>
           </Col>
 
-          <Col span={12}>
+          <Col xs={24} sm={12}>
             <FloatingField name="activeIngredient" label={t("Hoạt chất")}>
               <Input />
             </FloatingField>
           </Col>
-          <Col span={12}>
+          <Col xs={24} sm={12}>
             <FloatingField name="usage" label={t("Cách dùng")}>
               <Input />
             </FloatingField>
           </Col>
 
-          <Col span={12}>
+          <Col xs={24} sm={12}>
             <FloatingField name="purchasePrice" label={t("Giá mua")}>
               <InputNumber min={0} style={{ width: "100%" }} />
             </FloatingField>
           </Col>
-          <Col span={12}>
+          <Col xs={24} sm={12}>
             <FloatingField name="salePrice" label={t("Giá bán")}>
               <InputNumber min={0} style={{ width: "100%" }} />
             </FloatingField>
           </Col>
 
-          <Col span={12}>
+          <Col xs={24} sm={12}>
             <FloatingField name="prescriptionCode" label={t("Mã toa thuốc")}>
               <Input />
             </FloatingField>
           </Col>
-          <Col span={12}>
+          <Col xs={24} sm={12}>
             <FloatingField name="usageNote" label={t("Lưu ý sử dụng")}>
               <Input />
             </FloatingField>
           </Col>
 
-          <Col span={12}>
+          <Col xs={24} sm={12}>
             <FloatingField name="unit" label={t("Đơn vị tính")}>
               <Input />
             </FloatingField>
           </Col>
-          <Col span={12}>
+          <Col xs={24} sm={12}>
             <FloatingField name="priority" label={t("Mức độ ưu tiên")}>
               <InputNumber min={0} style={{ width: "100%" }} />
             </FloatingField>

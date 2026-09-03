@@ -138,8 +138,8 @@ export function MedicalRecordTemplateDialog({
         initialValues={{ name: "", priority: 0 }}
         onFinish={(values) => void submit(values)}
       >
-        <Row gutter={[16, 12]}>
-          <Col span={16}>
+        <Row gutter={[16, { xs: 20, sm: 12 }]}>
+          <Col xs={24} sm={16}>
             <FloatingField
               name="name"
               label={t("Tiêu đề bệnh án")}
@@ -149,7 +149,7 @@ export function MedicalRecordTemplateDialog({
               <Input autoFocus />
             </FloatingField>
           </Col>
-          <Col span={8}>
+          <Col xs={24} sm={8}>
             <FloatingField name="priority" label={t("Mức độ ưu tiên")}>
               <InputNumber min={0} style={{ width: "100%" }} />
             </FloatingField>

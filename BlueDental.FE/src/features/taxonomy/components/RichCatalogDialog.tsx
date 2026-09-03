@@ -150,8 +150,8 @@ export function RichCatalogDialog({
         }}
         onFinish={(values) => void submit(values)}
       >
-        <Row gutter={[16, 12]}>
-          <Col span={12}>
+        <Row gutter={[16, { xs: 20, sm: 12 }]}>
+          <Col xs={24} sm={12}>
             <FloatingField
               name="name"
               label={t("Tên {0}", noun)}
@@ -161,7 +161,7 @@ export function RichCatalogDialog({
               <Input autoFocus />
             </FloatingField>
           </Col>
-          <Col span={12}>
+          <Col xs={24} sm={12}>
             <FloatingField
               name="taxonomyId"
               label={t("Chọn nhóm {0}", noun)}
@@ -187,13 +187,13 @@ export function RichCatalogDialog({
           />
         </Form.Item>
 
-        <Row gutter={[16, 12]}>
-          <Col span={12}>
+        <Row gutter={[16, { xs: 20, sm: 12 }]}>
+          <Col xs={24} sm={12}>
             <FloatingField name="note" label={t("Ghi chú")}>
               <Input />
             </FloatingField>
           </Col>
-          <Col span={12}>
+          <Col xs={24} sm={12}>
             <FloatingField name="priority" label={t("Mức độ ưu tiên")}>
               <InputNumber min={0} style={{ width: "100%" }} />
             </FloatingField>

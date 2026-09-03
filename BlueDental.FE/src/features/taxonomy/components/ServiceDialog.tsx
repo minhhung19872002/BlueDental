@@ -296,7 +296,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
         initialValues={EMPTY}
         onFinish={(values) => void submit(values)}
       >
-        <Row gutter={[16, 12]}>
+        <Row gutter={[16, { xs: 20, sm: 12 }]}>
           <Col xs={24} sm={8}>
             <FloatingField
               name="name"
@@ -354,7 +354,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
           <Input.TextArea rows={3} />
         </FloatingField>
 
-        <Row gutter={[16, 12]}>
+        <Row gutter={[16, { xs: 20, sm: 12 }]}>
           <Col xs={24} sm={12}>
             <FloatingField name="priority" label={t("Mức độ ưu tiên")}>
               <InputNumber min={0} style={{ width: "100%" }} />
@@ -384,7 +384,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
             </FloatingField>
           </div>
 
-          <Row gutter={[16, 12]} align="middle" className="bd-svc-price-row">
+          <Row gutter={[16, { xs: 20, sm: 12 }]} align="middle" className="bd-svc-price-row">
             <Col flex="none">
               <Form.Item name="priceIncludesTax" noStyle>
                 <TaxSegmented />
@@ -407,7 +407,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
             </Col>
           </Row>
 
-          <Row gutter={[16, 12]}>
+          <Row gutter={[16, { xs: 20, sm: 12 }]}>
             {/* Read-only: these two come back from the server after a save, so
                 the formula lives in one place. */}
             <Col xs={24} sm={8}>
@@ -517,7 +517,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
                     ))}
                   </Row>
 
-                  <Row gutter={[16, 12]} className="bd-mt3">
+                  <Row gutter={[16, { xs: 20, sm: 12 }]} className="bd-mt3">
                     <Col xs={24} sm={12}>
                       <FloatingField name="warrantyDays" label={t("Tuỳ chỉnh")}>
                         <InputNumber min={0} style={{ width: "100%" }} />
