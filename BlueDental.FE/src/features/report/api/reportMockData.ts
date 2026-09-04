@@ -19,6 +19,8 @@ import type {
   MockOption,
   OverviewStatsVm,
   PaymentLineVm,
+  PrepaidEventType,
+  PrepaidLineVm,
   RefundLineVm,
   SalesEntryVm,
   SalesSummaryVm,
@@ -253,6 +255,41 @@ export function buildDebtLines(from: string, to: string): DebtLineVm[] {
   return lines.slice(0, 100);
 }
 
+const PREPAID_EVENTS: PrepaidEventType[] = ["deposit", "deposit", "consume", "consume", "refund"];
+
+export function buildPrepaidLines(from: string, to: string): PrepaidLineVm[] {
+  const rng = seeded(`prepaid-${from}-${to}`);
+  const days = eachDay(from, to);
+  const density = days.length > 60 ? 0.05 : 0.3;
+  const balances = new Map<string, number>();
+  const lines: PrepaidLineVm[] = [];
+  days.forEach((day, di) => {
+    if (rng.next() > density) return;
+    const label = patientLabel(rng.int(MOCK_PATIENTS.length));
+    const svc = SERVICES[rng.int(SERVICES.length)];
+    const before = balances.get(label) ?? 0;
+    // Only a patient holding a balance can consume or be refunded from it.
+    const eventType = before > 0 ? PREPAID_EVENTS[rng.int(PREPAID_EVENTS.length)] : "deposit";
+    const deposit = roundTo(svc.price * 0.5, 100_000) || 100_000;
+    const amount =
+      eventType === "deposit" ? deposit : -Math.min(before, roundTo(before * 0.6, 100_000) || before);
+    const balanceAfter = before + amount;
+    balances.set(label, balanceAfter);
+    lines.push({
+      id: `prepaid-${di}`,
+      date: day.format("YYYY-MM-DD"),
+      patientLabel: label,
+      eventType,
+      serviceName: eventType === "refund" ? "" : svc.name,
+      paymentCode: `THANHTOAN-${String(lines.length + 1).padStart(2, "0")}/TU/${day.format("YYYY")}`,
+      doctorName: doctorName(rng),
+      amount,
+      balanceAfter,
+    });
+  });
+  return lines.slice(0, 100);
+}
+
 export function buildDailyTotals(
   from: string,
   to: string,
@@ -271,12 +308,18 @@ export function buildSalesSummary(from: string, to: string): SalesSummaryVm {
   const payments = buildPaymentLines(from, to);
   const refunds = buildRefundLines(from, to);
   const debts = buildDebtLines(from, to);
+  const prepaid = buildPrepaidLines(from, to);
   const services = buildServiceLines(from, to);
   const sumBy = (ch: PaymentChannel) =>
     payments.filter((p) => p.channel === ch).reduce((s, p) => s + p.paidAmount, 0);
   const refundBy = (ch: PaymentChannel) =>
     refunds.filter((r) => r.channel === ch).reduce((s, r) => s + r.refundAmount, 0);
   const debtIncurred = debts.reduce((s, d) => s + d.debtIncurred, 0);
+  const prepaidBy = (type: PrepaidEventType) =>
+    prepaid.filter((p) => p.eventType === type).reduce((s, p) => s + Math.abs(p.amount), 0);
+  const prepaidIncurred = prepaidBy("deposit");
+  const prepaidConsumed = prepaidBy("consume");
+  const prepaidRefund = prepaidBy("refund");
   return {
     revenue: services.reduce((s, l) => s + l.totalAmount, 0),
     byCash: sumBy(PAYMENT_CHANNEL.Cash),
@@ -291,6 +334,10 @@ export function buildSalesSummary(from: string, to: string): SalesSummaryVm {
     debtIncurred,
     debtUsed: debts.reduce((s, d) => s + d.debtUsed, 0),
     debtRefund: debts.reduce((s, d) => s + d.debtRefund, 0),
+    prepaidIncurred,
+    prepaidConsumed,
+    prepaidRefund,
+    prepaidBalance: prepaidIncurred - prepaidConsumed - prepaidRefund,
   };
 }
 

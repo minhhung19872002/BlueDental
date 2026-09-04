@@ -13,6 +13,7 @@ import {
   buildDebtLines,
   buildOverviewStats,
   buildPaymentLines,
+  buildPrepaidLines,
   buildRefundLines,
   buildSalesEntries,
   buildSalesSummary,
@@ -68,6 +69,9 @@ export const useMockRefundLines = (q: RangeQuery) =>
 
 export const useMockDebtLines = (q: RangeQuery) =>
   useMock(["debt", q.fromDate, q.toDate], () => buildDebtLines(q.fromDate, q.toDate));
+
+export const useMockPrepaidLines = (q: RangeQuery) =>
+  useMock(["prepaid", q.fromDate, q.toDate], () => buildPrepaidLines(q.fromDate, q.toDate));
 
 export const useMockOverviewStats = () => useMock(["overview"], buildOverviewStats);
 

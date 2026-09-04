@@ -98,7 +98,7 @@ async function shot(page: Page, name: string, fullPage = false): Promise<void> {
 }
 
 test.describe("Báo cáo", () => {
-  test("tab Doanh số và lượt khách: bốn sub tab, đổi kỳ, xuất Excel — không ghi dữ liệu", async ({ page }) => {
+  test("tab Doanh số và lượt khách: năm sub tab, đổi kỳ, xuất Excel — không ghi dữ liệu", async ({ page }) => {
     const writes = await openReport(page);
 
     await expect(pillTab(page, "Doanh số và lượt khách")).toBeVisible();
@@ -155,6 +155,14 @@ test.describe("Báo cáo", () => {
     await pillTab(page, "Dư nợ").click();
     await expect(page.getByText("Dư nợ phát sinh").first()).toBeVisible();
     await shot(page, "report-tab1-debt", true);
+
+    // Tạm ứng is a ledger view like Dư nợ: tiles + pill + table, no overview charts.
+    await pillTab(page, "Tạm ứng").click();
+    await expect(page.getByText("Số dư tạm ứng hiện tại").first()).toBeVisible();
+    await expect(page.getByRole("columnheader", { name: "Loại sự kiện" })).toBeVisible();
+    await expect(page.getByRole("columnheader", { name: "Số dư sau" })).toBeVisible();
+    await expect(page.getByText("Thông tin lượt khách", { exact: true })).toHaveCount(0);
+    await shot(page, "report-tab1-prepaid", true);
 
     expect(writes).toEqual([]);
   });

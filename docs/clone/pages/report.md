@@ -44,6 +44,7 @@ Note: "Luân chuyển dòng tiền V2" tab shows "Tổng" (disabled) instead of 
 | 2 | Thanh toán | Payments |
 | 3 | Hoàn tiền | Refunds |
 | 4 | Dư nợ | Outstanding debt |
+| 5 | Tạm ứng | Prepaid deposits (observed 2026-09-04 on staging: 4 tiles — Tạm ứng phát sinh, Tiêu dùng tạm ứng, Hoàn tiền tạm ứng, Số dư tạm ứng hiện tại — a green "Tạm ứng" pill, no Xuất Excel, no overview charts; table columns Ngày, Khách hàng, Loại sự kiện, Dịch vụ, Phiếu thanh toán, Bác sĩ điều trị, Số tiền, Số dư sau; only the empty state was seen, so row formatting is UNKNOWN_REFERENCE_BEHAVIOR) |
 
 ### Quick Stats Bar
 - "Doanh số": current revenue value (orange solid block, label left / value right)

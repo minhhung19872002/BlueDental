@@ -6,18 +6,23 @@ import { ServiceSubTab, ServiceSubTabActions } from "./ServiceSubTab";
 import { PaymentSubTab } from "./PaymentSubTab";
 import { RefundSubTab } from "./RefundSubTab";
 import { DebtSubTab } from "./DebtSubTab";
+import { PrepaidSubTab } from "./PrepaidSubTab";
 import { ReportOverviewSection } from "./ReportOverviewSection";
 
-type SubKey = "service" | "payment" | "refund" | "debt";
+type SubKey = "service" | "payment" | "refund" | "debt" | "prepaid";
 
 const SUB_FILTERS: { key: SubKey; label: () => string }[] = [
   { key: "service", label: () => t("Khách hàng phát sinh dịch vụ") },
   { key: "payment", label: () => t("Thanh toán") },
   { key: "refund", label: () => t("Hoàn tiền") },
   { key: "debt", label: () => t("Dư nợ") },
+  { key: "prepaid", label: () => t("Tạm ứng") },
 ];
 
-/** Tab "Doanh số và lượt khách": sub-pills + the shared overview block (hidden on Dư nợ). */
+/** Dư nợ and Tạm ứng are ledger views: the reference shows only their table, no overview charts. */
+const LEDGER_SUBS: SubKey[] = ["debt", "prepaid"];
+
+/** Tab "Doanh số và lượt khách": sub-pills + the shared overview block (hidden on ledger sub tabs). */
 export function ExpenseTab(range: RangeQuery) {
   const [sub, setSub] = useState<SubKey>("service");
 
@@ -37,8 +42,9 @@ export function ExpenseTab(range: RangeQuery) {
       {sub === "payment" && <PaymentSubTab {...range} />}
       {sub === "refund" && <RefundSubTab {...range} />}
       {sub === "debt" && <DebtSubTab {...range} />}
+      {sub === "prepaid" && <PrepaidSubTab {...range} />}
 
-      {sub !== "debt" && <ReportOverviewSection range={range} />}
+      {!LEDGER_SUBS.includes(sub) && <ReportOverviewSection range={range} />}
     </div>
   );
 }

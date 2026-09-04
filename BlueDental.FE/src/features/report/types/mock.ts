@@ -93,6 +93,23 @@ export interface DebtLineVm {
   debtRefund: number;
 }
 
+/** Event kind on a prepaid (Tạm ứng) ledger line — the reference's "Loại sự kiện". */
+export type PrepaidEventType = "deposit" | "consume" | "refund";
+
+export interface PrepaidLineVm {
+  id: string;
+  date: string;
+  patientLabel: string;
+  eventType: PrepaidEventType;
+  serviceName: string;
+  paymentCode: string;
+  doctorName: string;
+  /** Signed: deposits positive, consumption / refund negative. */
+  amount: number;
+  /** Patient's prepaid balance right after this event. */
+  balanceAfter: number;
+}
+
 export interface DailyTotalVm {
   date: string;
   amount: number;
@@ -112,6 +129,10 @@ export interface SalesSummaryVm {
   debtIncurred: number;
   debtUsed: number;
   debtRefund: number;
+  prepaidIncurred: number;
+  prepaidConsumed: number;
+  prepaidRefund: number;
+  prepaidBalance: number;
 }
 
 export interface OverviewRowVm {
