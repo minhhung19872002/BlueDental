@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Organizations;
@@ -24,7 +24,11 @@ public class AccountAppService(
         var user = await userManager.GetByIdAsync(userId);
         var roles = await userManager.GetRolesAsync(user);
 
-        var clinicId = branchResolver.ClinicBranchId;
+        // The account's own branch, not just whichever one this request named:
+        // the client asks for /account/me before it has chosen a branch, so
+        // reading only the header left a branch-scoped user on "Tất cả chi
+        // nhánh" and pointed its writes at the default branch.
+        var clinicId = branchResolver.ClinicBranchId ?? branchResolver.OwnClinicBranchId;
         string? clinicName = null;
 
         string? clinicTagline = null;

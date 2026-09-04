@@ -1,4 +1,5 @@
-import { DatePicker, Form, Input, Radio } from "antd";
+import { useEffect, useState } from "react";
+import { Checkbox, DatePicker, Form, Input, Radio } from "antd";
 import dayjs from "dayjs";
 import { FloatingField } from "@/components/FloatingField";
 import { SearchSelect } from "@/components/SearchSelect";
@@ -28,6 +29,16 @@ export function PatientBasicColumn({
   onDiseaseHistoryChange,
 }: Props) {
   const occupations = useCatalogOptions(CATALOG_GROUP.Occupation);
+  const form = Form.useFormInstance();
+  const occupationOther = Form.useWatch("occupationOther", form) as string | undefined;
+  // Local, because the field is only *registered* while the box is on screen —
+  // deriving the tick from the value it registers would be circular.
+  const [otherChosen, setOtherChosen] = useState(false);
+
+  // A record that already carries free text opens with the box showing.
+  useEffect(() => {
+    if (occupationOther) setOtherChosen(true);
+  }, [occupationOther]);
 
   return (
     <>
@@ -87,12 +98,38 @@ export function PatientBasicColumn({
           <Input.TextArea rows={3} maxLength={1000} />
         </FloatingField>
 
+        {/* The list cannot cover every job, so the reference puts an "Khác"
+            escape hatch in the dropdown with a free-text box behind it. Ticking
+            it clears the chosen entry: an occupation is one or the other. */}
         <FloatingField label={t("Nghề nghiệp")} name="occupationEntryId">
           <SearchSelect
             options={(occupations.data ?? []).map((row) => ({ value: row.id, label: row.name }))}
             placeholder={t("Nghề nghiệp")}
             emptyText={t("Không tìm thấy nghề nghiệp")}
             allowClear
+            footer={
+              <>
+                <Checkbox
+                  checked={otherChosen}
+                  onChange={(event) => {
+                    const on = event.target.checked;
+                    setOtherChosen(on);
+                    // An occupation is one or the other, never both.
+                    if (on) form.setFieldValue("occupationEntryId", undefined);
+                    else form.setFieldValue("occupationOther", "");
+                  }}
+                >
+                  {t("Khác")}
+                </Checkbox>
+                <Form.Item name="occupationOther" noStyle hidden={!otherChosen}>
+                  <Input
+                    maxLength={100}
+                    placeholder={t("Vui lòng nhập")}
+                    onClick={(event) => event.stopPropagation()}
+                  />
+                </Form.Item>
+              </>
+            }
           />
         </FloatingField>
       </div>

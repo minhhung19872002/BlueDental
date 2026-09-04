@@ -75,6 +75,7 @@ public class BlueDentalDbContext :
     // Patient Management
     public DbSet<Patient> Patients { get; set; }
     public DbSet<PatientImage> PatientImages { get; set; }
+    public DbSet<PatientMedicalRecord> PatientMedicalRecords { get; set; }
 
     // Appointments
     public DbSet<Appointment> Appointments { get; set; }

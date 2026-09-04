@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Alert, Col, Form, Row } from "antd";
 import { toast } from "sonner";
 import dayjs, { type Dayjs } from "dayjs";
@@ -6,6 +6,9 @@ import { AppDialog } from "@/components/AppDialog";
 import { CATALOG_GROUP, useCreateTaxonomyGroupOption } from "@/hooks/useCatalogOptions";
 import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
+// The dialog carries its own styling: it opens from the list *and* from a
+// patient's record, and the record's page does not import the list's CSS.
+import "./patient.css";
 import { useRegisterPatient, useUpdatePatient } from "../api/patientMutations";
 import { usePatientCodeEstimate, usePhoneAvailability } from "../api/patientQueries";
 import { GENDER_BY_CODE } from "../api/patientAdapters";
@@ -32,17 +35,35 @@ export interface PatientFormValues {
   sourceTaxonomyId?: string;
   sourceEntryId?: string;
   examinationReason: string;
-  tagIds: string[];
   gender: Gender;
   dateOfBirth: Dayjs | null;
   email: string;
   note: string;
   occupationEntryId?: string;
+  /** Free text behind the occupation list's "Khác"; absent until it is ticked. */
+  occupationOther?: string;
   insuranceNumber: string;
   country: string;
   address: string;
   provinceCode?: string;
   wardCode?: string;
+}
+
+/**
+ * "Lê Thị Liên" from "LÊ THỊ LIÊN".
+ *
+ * Unticking "IN HOA" has to put the name back the way a name is written, not
+ * just stop shouting future keystrokes. Cased with the Vietnamese locale so the
+ * diacritics survive the round trip.
+ */
+function titleCaseName(name: string): string {
+  return name
+    .toLocaleLowerCase("vi")
+    .split(/(\s+)/)
+    .map((part) =>
+      /\s/.test(part) ? part : part.charAt(0).toLocaleUpperCase("vi") + part.slice(1),
+    )
+    .join("");
 }
 
 const EMPTY: PatientFormValues = {
@@ -54,12 +75,12 @@ const EMPTY: PatientFormValues = {
   sourceTaxonomyId: undefined,
   sourceEntryId: undefined,
   examinationReason: "",
-  tagIds: [],
   gender: "male",
   dateOfBirth: null,
   email: "",
   note: "",
   occupationEntryId: undefined,
+  occupationOther: "",
   insuranceNumber: "",
   country: "",
   address: "",
@@ -129,12 +150,12 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated }: Props
             sourceTaxonomyId: patient.sourceTaxonomyId ?? undefined,
             sourceEntryId: patient.sourceEntryId ?? undefined,
             examinationReason: patient.examinationReason ?? "",
-            tagIds: patient.tagIds,
             gender: GENDER_BY_CODE[patient.gender] ?? "other",
             dateOfBirth: patient.dateOfBirth ? dayjs(patient.dateOfBirth) : null,
             email: patient.email ?? "",
             note: patient.note ?? "",
             occupationEntryId: patient.occupationEntryId ?? undefined,
+            occupationOther: patient.occupationOther ?? "",
             insuranceNumber: patient.insuranceNumber ?? "",
             country: t("Việt Nam"),
             address: patient.address ?? "",
@@ -154,12 +175,28 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated }: Props
   }, [open, patient, estimate.data, form]);
 
   // "IN HOA" is a switch on the name, not a separate value — the reference
-  // rewrites the field the moment it is ticked.
+  // rewrites the field the moment it is ticked and keeps it shouting as more is
+  // typed, then puts it back when the tick is cleared.
+  //
+  // Normalising only on the *transition* matters: doing it on every keystroke
+  // would fight the front desk as they type a name in their own casing.
+  const wasUppercase = useRef(uppercase);
   useEffect(() => {
-    if (!uppercase) return;
-    const current = form.getFieldValue("fullName") as string | undefined;
-    if (current && current !== current.toUpperCase()) {
-      form.setFieldValue("fullName", current.toUpperCase());
+    const justCleared = wasUppercase.current && !uppercase;
+    wasUppercase.current = uppercase;
+
+    const current = (form.getFieldValue("fullName") as string | undefined) ?? "";
+    if (!current) return;
+
+    if (uppercase) {
+      const shouted = current.toLocaleUpperCase("vi");
+      if (shouted !== current) form.setFieldValue("fullName", shouted);
+      return;
+    }
+
+    if (justCleared) {
+      const normalised = titleCaseName(current);
+      if (normalised !== current) form.setFieldValue("fullName", normalised);
     }
   }, [uppercase, fullName, form]);
 
@@ -198,13 +235,17 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated }: Props
       sourceTaxonomyId: values.sourceTaxonomyId ?? null,
       sourceEntryId: values.sourceEntryId ?? null,
       occupationEntryId: values.occupationEntryId ?? null,
+      // Only registered once "Khác" is ticked, so it can be absent entirely.
+      occupationOther: values.occupationOther?.trim() || null,
       insuranceNumber: values.insuranceNumber.trim() || null,
       address: values.address.trim() || null,
       provinceCode: values.provinceCode ?? null,
       wardCode: values.wardCode ?? null,
       examinationReason: values.examinationReason.trim() || null,
       note: values.note.trim() || null,
-      tagIds: values.tagIds ?? [],
+      // The tag button on the record owns these; carry them through untouched
+      // rather than clearing them on every edit.
+      tagIds: patient?.tagIds ?? [],
       diseaseHistoryEntryIds,
     };
 

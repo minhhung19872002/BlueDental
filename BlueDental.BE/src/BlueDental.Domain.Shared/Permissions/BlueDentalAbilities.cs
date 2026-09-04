@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 
 namespace BlueDental.Permissions;
@@ -117,6 +117,7 @@ public static class BlueDentalAbilities
         public const string ReportTransfer = "reportTransfer";
         public const string ReportTransferCategory = "reportTransferCategory";
         public const string RolePermission = "rolePermission";
+        public const string PatientMedicalRecord = "patientMedicalRecord";
         public const string Staff = "staff";
         public const string ToolCall = "toolCall";
         public const string ToolMessage = "toolMessage";
@@ -212,6 +213,7 @@ public static class BlueDentalAbilities
         ["reportTransfer"] = [Actions.Read, Actions.Update, Actions.Delete, Actions.Deposit, Actions.Withdraw, Actions.Transfer, Actions.Export],
         ["reportTransferCategory"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete],
         ["rolePermission"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete],
+        ["patientMedicalRecord"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Print],
         ["staff"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
         ["toolCall"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
         ["toolMessage"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],

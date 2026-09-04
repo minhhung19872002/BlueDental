@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Controller, type Control, type FieldErrors } from "react-hook-form";
+import { Controller, type Control } from "react-hook-form";
 import { SearchSelect } from "@/components/SearchSelect";
 import { t } from "@/lib/i18n";
 import { AppointmentColorPicker } from "./AppointmentColorPicker";
@@ -8,7 +8,6 @@ import type { TempAppointmentFormValues } from "./TempAppointmentForm";
 
 interface Props {
   control: Control<TempAppointmentFormValues>;
-  errors: FieldErrors<TempAppointmentFormValues>;
   doctorOptions: { value: string; label: string }[];
   watchedSourceTaxonomyId: string;
 }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using BlueDental.Organizations;
 using Microsoft.Extensions.Configuration;
@@ -56,17 +56,28 @@ public class BlueDentalBranchSeedContributor(
             "Development",
             StringComparison.OrdinalIgnoreCase);
 
+    private const string SecondBranchName = "Nha Khoa Đức Hạnh Premium - Chi nhánh 2";
+
     private async Task SeedSecondBranchAsync()
     {
-        if (await branchRepository.AnyAsync(b => b.Id == SecondBranchId))
+        // Corrected rather than skipped, for the reason given on the default
+        // branch: a rename here has to reach a database that already has the row.
+        var existing = await branchRepository.FindAsync(b => b.Id == SecondBranchId);
+        if (existing is not null)
         {
+            if (existing.Name != SecondBranchName)
+            {
+                existing.SetName(SecondBranchName);
+                await branchRepository.UpdateAsync(existing, autoSave: true);
+            }
+
             return;
         }
 
         var branch = new ClinicBranch(
             id: SecondBranchId,
             code: "BD-002",
-            name: "Nha Khoa Đức Hạnh Premium - Chi nhánh 2",
+            name: SecondBranchName,
             address: "45 Lê Lợi, Quận 1, TP.HCM",
             phoneNumber: "02887654321",
             email: "cn2@bluedental.vn");

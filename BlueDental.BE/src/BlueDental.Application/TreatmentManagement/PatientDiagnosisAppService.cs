@@ -1,7 +1,8 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Catalogs;
 using BlueDental.Organizations;
 using BlueDental.TreatmentManagement.Values;
 using BlueDental.Permissions;
@@ -9,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
+using Volo.Abp.Identity;
 
 namespace BlueDental.TreatmentManagement;
 
@@ -19,13 +21,19 @@ namespace BlueDental.TreatmentManagement;
 public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisAppService
 {
     private readonly IRepository<PatientDiagnosis, Guid> _repository;
+    private readonly IRepository<CatalogEntry, Guid> _catalogRepository;
+    private readonly IIdentityUserRepository _userRepository;
     private readonly ICurrentClinicBranchResolver _branchResolver;
 
     public PatientDiagnosisAppService(
         IRepository<PatientDiagnosis, Guid> repository,
+        IRepository<CatalogEntry, Guid> catalogRepository,
+        IIdentityUserRepository userRepository,
         ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
+        _catalogRepository = catalogRepository;
+        _userRepository = userRepository;
         _branchResolver = branchResolver;
     }
 
@@ -52,7 +60,51 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
             .Take(input.MaxResultCount)
             .ToList();
 
-        return new PagedResultDto<PatientDiagnosisDto>(totalCount, items.Select(MapToDto).ToList());
+        var dtos = items.Select(MapToDto).ToList();
+        await FillNamesAsync(dtos);
+
+        return new PagedResultDto<PatientDiagnosisDto>(totalCount, dtos);
+    }
+
+    /// <summary>
+    /// A diagnosis row stores ids; the table shows names — the diagnosing
+    /// doctor, the second doctor and the diagnosis itself. Resolved in one read
+    /// per kind rather than one per row.
+    ///
+    /// Without this the DTO's three name fields went out null and the reference's
+    /// "Bác sĩ chẩn đoán 1", "Chẩn đoán 2" and "Răng" columns all read "—".
+    /// </summary>
+    private async Task FillNamesAsync(IReadOnlyList<PatientDiagnosisDto> dtos)
+    {
+        if (dtos.Count == 0)
+        {
+            return;
+        }
+
+        var staffIds = dtos
+            .SelectMany(d => new[] { (Guid?)d.StaffId, d.SecondStaffId })
+            .Where(id => id.HasValue)
+            .Select(id => id!.Value)
+            .Distinct()
+            .ToList();
+
+        var staff = (await _userRepository.GetListByIdsAsync(staffIds))
+            .ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
+
+        var diagnosisIds = dtos.Select(d => d.DiagnosisId).Distinct().ToList();
+        var diagnosisQuery = await _catalogRepository.GetQueryableAsync();
+        var diagnoses = (await AsyncExecuter.ToListAsync(
+                diagnosisQuery.Where(c => diagnosisIds.Contains(c.Id))))
+            .ToDictionary(c => c.Id, c => c.Name);
+
+        foreach (var dto in dtos)
+        {
+            dto.StaffName = staff.GetValueOrDefault(dto.StaffId);
+            dto.SecondStaffName = dto.SecondStaffId.HasValue
+                ? staff.GetValueOrDefault(dto.SecondStaffId.Value)
+                : null;
+            dto.DiagnosisName = diagnoses.GetValueOrDefault(dto.DiagnosisId);
+        }
     }
 
     [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.View)]

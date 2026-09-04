@@ -712,3 +712,472 @@ Cài đặt, Danh mục).
 Ghi chú: R-143 (tên chi nhánh lệch) nay đã hết — sau lần migrate này DB đã có
 đúng `Nha Khoa Đức Hạnh Premium` và `… - Chi nhánh 2`.
 | R-147 | `report.spec.ts` (đọc file Excel tải về) | `TypeError: XLSX.readFile is not a function` — bản ESM của `xlsx` chạy trong Node (Playwright) không gắn `fs`, nên không có `readFile` | Đọc bytes bằng `node:fs` rồi `XLSX.read(buf, { type: "buffer" })` (helper `workbookRows` trong spec). Dùng cách này cho mọi spec cần soi nội dung workbook |
+
+> **Trùng số hiệu:** nhánh này và `main` cùng đánh số từ R-144 một cách độc lập.
+> Mục R-144/R-145/R-146 **ngay bên trên** là của `main` (restyle v2). Các mục
+> R-144→R-156 trong những phần bên dưới là của nhánh chi tiết bệnh nhân và nói
+> về chuyện khác. Chưa đánh số lại để không làm sai lệch các commit đã tham
+> chiếu tới chúng.
+
+| R-143 (ĐÃ SỬA 2026-08-31) | `staff` :19 | Spec chờ option chi nhánh tên `Nha Khoa Đức Hạnh Premium`, nhưng DB local đang là `BlueDental - Chi nhánh chính` / `Chi nhánh 2`. Seeder chi nhánh có guard theo id nên lần đổi tên ở R-135 không cập nhật dòng đã tồn tại | **Chưa sửa — có sẵn, không do đợt này.** Không đụng gì tới màn Nhân viên; tên chi nhánh này đã hiện như vậy trong mọi ảnh chụp từ đầu phiên. Cần seed lại DB sạch hoặc cho seeder đổi tên dòng cũ |
+
+### 2026-08-28 — chi tiết bệnh nhân: dialog lịch hẹn, tab Chẩn đoán & Tư vấn, khung bảng chung
+
+Rà soát bản gốc ở chế độ **chỉ đọc** (`?tab=appointment`, `?tab=consulting`),
+ghi lại trong `docs/clone/pages/patient-detail.md` và `docs/clone/api.md`.
+Không tạo/sửa/xoá bất cứ bản ghi nào trên bản gốc; các nút ghi dữ liệu ghi vào
+`docs/clone/unknowns.md`.
+
+**Retest level 3** — thay đổi chạm vào layer dùng chung (`useCatalogOptions`,
+`.pd-page` / `.pd-pane`, hợp đồng `AppointmentDto`).
+
+#### Đã dựng
+
+| Việc | Nội dung |
+|---|---|
+| Khung bảng | `.pd-page` giữ chiều cao khung nhìn, `.pd-pane` cuộn, `.pd-pane--fill` truyền chiều cao xuống thẻ. **Cả 9 tab có bảng** chuyển sang `.bd-cat-card` — đúng khung bảng của `/taxonomy` và `/labo`: tiêu đề dính, dòng cuộn, phân trang neo đáy thẻ **kể cả khi không có dữ liệu** |
+| Tạo lịch hẹn | Dựng lại theo bản gốc: 1240px, 3 cột form, `Màu lịch hẹn` 4 ô, thẻ `Ghi chú` với `+ Thêm ngay`, và khối "Lịch đã hẹn" đọc lịch thật của chi nhánh theo Ngày / Tuần / Tháng |
+| Chẩn đoán & Tư vấn | 3 nút trên ô ảnh đúng nhãn và đúng hành vi bản gốc; bảng chẩn đoán ghép đôi dữ liệu mỗi ô và có đủ 3 nút thao tác; phiếu tư vấn đủ 13 cột sau `Cấu hình cột`; khối TỔNG KẾ HOẠCH với %/VNĐ và 4 lệnh |
+
+#### Lỗi thật tìm được và đã sửa
+
+| # | Lỗi | Cách sửa |
+|---|-----|----------|
+| 1 | Sửa lịch hẹn rồi bấm Lưu **tạo thêm một lịch mới** — modal luôn gọi `create` | Gọi `update` khi có `appointmentId`; có test canh |
+| 2 | `AppointmentAppService.UpdateAsync` chỉ gọi `Reschedule`, **bỏ rơi `ChiefComplaint`** | Thêm `Appointment.SetDetails(chiefComplaint, notes, color)` |
+| 3 | `Notes` chưa bao giờ được gửi lên ở cả create lẫn update — ô Ghi chú lưu xong là mất | Đưa vào cả 2 DTO và cả 2 adapter |
+| 4 | Lịch hẹn không có màu | Thêm enum `AppointmentColor` + migration `20260828090000_AddAppointmentColor` (viết tay theo lệ của repo) |
+| 5 | `PatientDiagnosisDto.StaffName` / `DiagnosisName` khai mà **không ai gán** → 3 cột luôn hiện dấu gạch | `FillNamesAsync`, mỗi loại một truy vấn; thêm `SecondStaffName` |
+| 6 | `PatientAdviseDto` tương tự, lại thiếu hẳn `SecondStaffName` / `DiagnosisName` → 4 cột của bản gốc không vẽ được | Như trên |
+| 7 | `/v1/app/consulting-data` và `/v1/app/prescription-templates` **không tồn tại** — 404 mỗi lần vào tab, hai picker luôn rỗng | Đọc qua `/v1/app/catalog-entries` theo group; `CatalogOption` thêm `content` để mẫu đơn thuốc vẫn điền được |
+| 8 | `prescription.spec.ts` và `patient-image.spec.ts` còn dùng `role="tab"` — thanh tab của chi tiết bệnh nhân là link từ lần dựng lại `/patient` | Sửa selector sang link + kiểm tra `aria-current`, thêm test bảng/gallery chiếm hết trang |
+
+#### Kết quả chạy thật (bản build production, `vite preview` :8080, API :5019)
+
+- `patient` **13/13** (thêm test layout tab Chẩn đoán & Tư vấn)
+- `patient-appointment` **3/3** (mới)
+- `appointment` **3/3**, `patient-image` **3/3**, `prescription` **3/3**
+- `labo` **14/14**, `finance` pass
+- Quét cả 10 tab chi tiết bệnh nhân: 0 lỗi console, không tràn ngang, thẻ bảng
+  chạm đáy trang ở mọi tab có bảng
+- `tsc` sạch; `oxlint` sạch trong `features/appointments` và
+  `features/patient-management`
+
+| # | Suite | Nguyên nhân | Trạng thái |
+|---|------|-----------|-----------|
+| R-144 | `cskh` :166 và :210 | Dialog "Tạo công việc mới" không tìm thấy combobox `Chọn khách hàng`; dialog file-heart tương tự | **Chưa sửa — có sẵn, không do đợt này.** Đã dựng worktree ở đúng commit `87d2314`, build lại và chạy: **đỏ y hệt 2 test đó**. Nằm ngoài phạm vi đợt này (màn CSKH), cần rà riêng |
+| R-145 | `Domain.Tests` — `PatientTests.FullName_Should_Combine_First_And_Last`, `…Register_Should_Throw_When_FirstName_Empty` | Hai assertion cũ còn theo luật trước lần dựng lại `/patient` (commit `87d2314`): `FullName` nay là **họ trước tên sau** (`Nguyễn Văn An`), và chỉ **họ** là bắt buộc — dialog chỉ có một ô "Họ và tên", tên một chữ là một cái tên trọn vẹn | **Đã sửa.** Sửa assertion cho khớp hành vi đã chốt, thêm một test cho tên một chữ. `Domain.Tests` **200/200** |
+| R-146 | `HttpApi.Host.Tests` — `ControllerConventionTests.All_Routes_Should_Start_With_Api_V1_App` | `MessagingController` khai route đúng bằng `api/v1/app`, không có phần đuôi | **Chưa sửa — có sẵn, không do đợt này.** Không đụng gì tới Messaging trong đợt này |
+
+### 2026-08-31 — rebase nhánh lên `main` (`ed46cfb`)
+
+`main` đi trước 17 commit và **đã tự làm phần lịch hẹn**: `Color` (chuỗi
+`varchar(20)` cho phép null, migration `20260829173829_AddAppointmentColor`),
+`Notes` ở cả create lẫn update, `Appointment.UpdateDetails`, lịch hẹn tạm,
+`Outcome`, và dựng lại nguyên dialog "Tạo lịch hẹn" kèm "Lịch đã hẹn".
+
+Xử lý khi rebase:
+
+| Của nhánh này | Quyết định |
+|---|---|
+| `AppointmentColor` (enum) + migration `20260828090000_AddAppointmentColor` | **Bỏ.** Trùng chức năng với main, lại trùng cả tên class migration nên không build được. Local DB phải `DROP COLUMN "Color"` và xoá dòng lịch sử migration của mình thì migration của main mới chạy |
+| `Appointment.SetDetails` | **Bỏ** — main có `UpdateDetails` |
+| `AppointmentEditorModal` (bản dựng lại), `AppointmentAgenda`, `appointment.css` | **Bỏ** — main đã có bản tương đương, tách component gọn hơn |
+| Prop `initialPatientId` / `initialReason` / `lockPatient` | **Giữ**, thêm vào dialog của main để mở từ màn bệnh nhân (ô bệnh nhân bị khoá đúng như bản gốc) |
+| Điền tên ở `PatientDiagnosisAppService` / `PatientAdviseAppService` | **Giữ** — main không đụng |
+| Toàn bộ phần chi tiết bệnh nhân (khung bảng chung, tab Chẩn đoán & Tư vấn, Hồ sơ) | **Giữ** |
+
+Nhân tiện: `main` lúc đó **không build được** — 8 lỗi `TS6133` (biến/import khai
+mà không dùng) ở `CalendarToolbarRow1`, `MiniCalDayView`, `MiniCalWeekView`,
+`TempFormCenter`/`TempAppointmentForm`, `timekeepingQueries`,
+`WorkScheduleBuilder`, `WorkScheduleTable`, cộng lỗi generic resolver của
+`react-hook-form` trong `AppointmentEditorModal`. Đã vá hết vì không build được
+thì không verify được gì.
+
+Kết quả chạy thật sau rebase (bản build production, `vite preview` :8080, API
+:5019): `patient` 12/12, `patient-appointment` 3/3, `appointment` 3/3,
+`patient-image` 3/3, `prescription` 3/3, `treatment-plan` 4/4,
+`treatment-stage` 2/2, `labo` 14/14 — **45/45**. `tsc` sạch, build xanh.
+BE: `Domain.Tests` 193/193, `EntityFrameworkCore.Tests` 35/35.
+
+| # | Suite | Nguyên nhân | Trạng thái |
+|---|------|-----------|-----------|
+| R-147 | `Application.Tests` — 6 test (`CrossBranchDenialTests` cho `CustomerCareAppService`, `PatientAppServiceContractTests.GetPatientListInput_Should_Filter_Without_Accepting_A_Branch`) | Hai service này do `main` sửa | **Chưa sửa — có sẵn trên `main`.** Đã dựng worktree ở đúng `main` và chạy: **đỏ y hệt 6 test đó** |
+
+### 2026-08-31 (chiều) — hoàn tất chi tiết bệnh nhân
+
+Rà **cả 10 tab** của bản gốc ở chế độ chỉ đọc, chụp từng tab ở 1600×900 rồi đặt
+cạnh bản local. Ảnh nằm trong `reference-private/survey-patient/`.
+
+**Retest level 3** — chạm vào layer dùng chung (thanh tab của trang, khung bảng,
+ma trận quyền).
+
+#### Đã dựng
+
+| Việc | Nội dung |
+|---|---|
+| Thanh tab | Đổi sang kiểu phẳng của bản gốc (nền tint + gạch chân), **chỉ trong `.pd-page`** để không đụng pill dùng chung ở Danh mục / Labo |
+| Công tắc `Chi tiết hồ sơ` / `Bệnh án` | Dựng bằng `SegmentedTabs` sẵn có; chế độ xem nằm trong URL (`?view=medical-record`) |
+| **Bệnh án** | Aggregate `PatientMedicalRecord` + migration `20260831060000_AddPatientMedicalRecord` + app service + controller `api/v1/app/patient-medical-records` + subject quyền `patientMedicalRecord`. Mục lục 9 biểu mẫu đúng thứ tự, chữ và **màu đo từ computed style của bản gốc**; khung giấy **dùng lại `MedicalRecordSheet`** — tờ A4 mà Danh mục đã dựng cho "Bệnh án mẫu" — thay vì viết lại |
+| Kế hoạch điều trị | Hai thẻ tổng kết dựng lại theo bản gốc (ô icon tint + tiêu đề IN HOA + badge đỏ bên phải); thêm icon mắt cho `Xem tất cả dịch vụ` |
+| Chăm sóc KH | Phân trang đếm "nhật ký" như bản gốc |
+
+Nguyên tắc "dùng lại component có sẵn" được giữ: `MedicalRecordSheet`,
+`SegmentedTabs`, `ConfirmDeleteDialog`, `DataTable`, `.bd-cat-card`, và dialog
+lịch hẹn thì lấy nguyên của `main`.
+
+#### Kết quả chạy thật (bản build production, `vite preview` :8080, API :5019)
+
+`patient` 13/13 · `patient-medical-record` **2/2 (mới)** · `patient-appointment`
+3/3 · `appointment` 3/3 · `patient-image` 3/3 · `prescription` 3/3 ·
+`treatment-plan` 4/4 · `treatment-stage` 2/2 · `labo` 14/14 → **47/47**.
+`tsc` sạch, `oxlint` sạch, build xanh.
+BE: `Domain.Tests` **193/193**, `EntityFrameworkCore.Tests` 35/35.
+
+`BlueDentalAbilitiesTests.Catalog_Should_Cover_Every_Observed_Subject` đổi từ
+85 → 86 subject vì thêm `patientMedicalRecord`; đã ghi rõ trong test là subject
+do BlueDental đặt, chưa đối chiếu được với ma trận quyền của bản gốc.
+
+#### Chưa làm, cố ý
+
+1. Chỉ vẽ được biểu mẫu số 2 (Bệnh án ngoại trú RHM) — tờ duy nhất Danh mục đã
+   dựng. 8 tờ còn lại có trong mục lục và báo rõ là chưa có bản in.
+2. Không có nút `Đồng bộ phiếu` — chưa quan sát được nó chép gì.
+3. Tiêu đề cột vẫn IN HOA (quy ước toàn app trong `index.css`), bản gốc để chữ
+   thường. Đổi sẽ đụng cả `/taxonomy` đang đóng băng.
+4. Tab Hình ảnh chiếm hết chiều cao, bản gốc để hộp ngắn — theo yêu cầu.
+5. Cột `Chăm sóc sau điều trị` ở tab Hồ sơ — cần model care gắn công đoạn.
+6. Tab Hóa đơn: **bản gốc chưa làm** ("Nội dung đang được hoàn thiện."), local
+   đang đi trước.
+
+`CrossBranchDenialTests` vẫn đỏ 6 test (R-147, có sẵn trên `main`, do
+`CustomerCareAppService` mất `GuardBranchAccess`). Service mới
+`PatientMedicalRecordAppService` theo đúng khuôn đó — `GuardBranchAccessAsync`
+private, nhận entity, ném `EntityNotFoundException` — nhưng không thêm vào danh
+sách của test vì test đó đang hỏng sẵn và việc CustomerCare có còn cần guard hay
+không là quyết định của người sửa `main`.
+
+### 2026-08-31 (tối) — chi nhánh 2 không có dữ liệu mẫu
+
+Anh báo `/patient?branchId=2222…` trống trơn. Không phải lỗi phân tách chi
+nhánh — seeder demo **chỉ gieo bệnh nhân cho chi nhánh 1**; chi nhánh 2 trước
+giờ chỉ có vật tư.
+
+| Việc | Nội dung |
+|---|---|
+| Bệnh nhân chi nhánh 2 | Gieo 8 hồ sơ tổng hợp, mã `CN26xxxx` để phân biệt với `BD26xxxx` của chi nhánh 1. Chỉ bệnh nhân — lịch hẹn, hoá đơn và chuỗi lâm sàng vẫn ở chi nhánh 1, nên hồ sơ chi nhánh 2 hiện lịch sử trống một cách trung thực chứ không mượn dữ liệu |
+| Tên chi nhánh (R-143) | Seeder chặn bằng `AnyAsync(id)` rồi `return`, nên lần đổi tên trước không bao giờ tới được DB đã có sẵn dòng đó. Nay **sửa tên dòng cũ** thay vì bỏ qua |
+
+#### Lỗi thật lộ ra khi sửa xong tên
+
+`GET /account/me` chỉ đọc chi nhánh từ header `x-branch-id`. Nhưng lần gọi đầu
+tiên của một phiên thì client **chưa chọn chi nhánh nào** nên không có header —
+kết quả là `clinicId` trả về `null`, tài khoản gắn chi nhánh 2 hiện
+"Tất cả chi nhánh" trên header, và `useCurrentBranchId()` rơi về
+`DEFAULT_BRANCH_ID` (chi nhánh 1). Nghĩa là **mọi thao tác ghi của tài khoản
+chi nhánh 2 đều nhắm vào chi nhánh 1** và bị server từ chối 403.
+
+Sửa: thêm `ICurrentClinicBranchResolver.OwnClinicBranchId` (đọc claim của tài
+khoản, không phụ thuộc request); `AccountAppService` dùng
+`ClinicBranchId ?? OwnClinicBranchId`. Lỗi này trước bị che vì
+`branch-switcher.spec.ts` đã đỏ sẵn ở bước kiểm tra tên chi nhánh, chưa chạy
+tới assertion đó.
+
+#### Kết quả chạy thật
+
+`branch-switcher` **3/3** và `branch-isolation` **5/5** (trước đó 3 đỏ) ·
+`staff` 1/1 (R-143 cũng chặn nó) · `patient` 13/13 ·
+`patient-medical-record` 2/2 · `patient-appointment` 3/3 · `appointment` 3/3 ·
+`patient-image` 3/3 · `prescription` 3/3 · `treatment-plan` 4/4 ·
+`treatment-stage` 2/2 · `labo` 14/14 → **48/48**.
+BE: `Domain.Tests` 193/193, `EntityFrameworkCore.Tests` 35/35.
+
+R-142 và R-143 **đóng**. R-144 / R-146 / R-147 vẫn mở (có sẵn trên `main`).
+
+### 2026-08-31 (khuya) — 4 điểm anh chỉ ra
+
+| # | Điểm | Nguyên nhân / cách sửa |
+|---|------|------------------------|
+| 1 | Cột đầu của bảng sát mép thẻ | Bảng ở chi tiết bệnh nhân truyền `size="small"`, các trang khác (`/labo`, `/materials`, `/taxonomy`) thì không — antd ghi đè lề 20px của `index.css` bằng 8px. **Bỏ `size="small"` ở toàn bộ 10 bảng**, không thêm CSS đè |
+| 2 | Thanh tab không đồng bộ với source | Đổi lại đúng pill của `PageTabBar` như `/materials`. Bản gốc dùng hàng gạch chân phẳng — **chọn đồng bộ nội bộ**, ghi rõ là điểm cố ý khác bản gốc |
+| 3 | Một số tab chưa có dữ liệu | Seeder lâm sàng dùng `patients.Take(8/10/12)` trên danh sách **không sắp xếp**, lại chặn theo mức chi nhánh (`AnyAsync` rồi `return`) nên chạy lại không bổ sung gì. Mở hồ sơ nào cũng có thể rơi vào 1 trong ~35 bệnh nhân trống. Nay **sắp xếp theo mã, phủ hết bệnh nhân, và bỏ qua theo từng bệnh nhân** thay vì theo chi nhánh — chạy lại là bổ sung cho bệnh nhân mới. Id của dòng demo đổi sang **suy ra từ id bệnh nhân** (`DemoIdFor`) thay vì theo vị trí trong danh sách, nếu không danh sách dài thêm là id nhảy sang bệnh nhân khác. 43/43 bệnh nhân chi nhánh 1 giờ đều có chẩn đoán, kế hoạch và thanh toán |
+| 4 | Mục lục bệnh án chưa dựng cho các mục | 8/9 biểu mẫu không quan sát được bản in trên bản gốc (phải bấm "Thêm" — là thao tác ghi). Nay mỗi mục đều tạo ra **một tờ A4 thật, viết và lưu được**: tiêu đề biểu mẫu, thân có dòng kẻ, và ô "Bắt đầu từ mẫu" lấy nội dung từ **Danh mục → Bệnh án mẫu**. Không tờ nào mạo nhận là bản in của bản gốc |
+
+Kết quả chạy thật: **56/56** (`patient` 13 · `patient-medical-record` **3** ·
+`patient-appointment` 3 · `appointment` 3 · `patient-image` 3 · `prescription` 3
+· `treatment-plan` 4 · `treatment-stage` 2 · `labo` 14 · `branch-switcher` 3 ·
+`branch-isolation` 5). `tsc` sạch, `oxlint` sạch, build xanh.
+
+### 2026-08-31 (khuya, tiếp) — 2 điểm nữa
+
+| # | Điểm | Nguyên nhân / cách sửa |
+|---|------|------------------------|
+| 1 | Thanh tab dôi khoảng trên | `.bd-tabbar` vốn có `padding: 12px 20px` vì nó là **dải trắng** trên mọi màn khác. Bản trước tôi bỏ nền và viền nhưng giữ padding, lại cộng thêm `gap: 16px` của `page-container` và `margin-bottom: 10px` của breadcrumb → dôi ~38px. Nay trả lại đúng dải trắng như `/materials`, gộp luôn công tắc Chi tiết hồ sơ / Bệnh án vào cùng thẻ, và bỏ margin thừa của breadcrumb |
+| 2 | Modal chỉnh sửa hồ sơ ở trang chi tiết khác trang list | **Lỗi thật**: `PatientEditorDialog` dùng class `.bd-patient-dialog` nằm trong `components/patient.css`, mà file đó **chỉ được import từ trang list**. Mở từ hồ sơ bệnh nhân thì dialog không có style. Nay dialog **tự import CSS của chính nó**, nên dùng ở đâu cũng đúng. Ô "Thẻ hồ sơ" vốn đã có trong dialog — nó chỉ không hiện ra vì mất style |
+| — | Nút tag cạnh tên | Dựng lại đúng bản gốc: chip 32×24, nền `#E7F0FB`, icon `#2671D8`, bo 4px (đo từ computed style), thay cho nút viền mặc định của AntD |
+
+Thêm test `patient.spec.ts › the record opens the same hồ sơ dialog the list
+opens`: mở dialog từ list, ghi lại nhãn 17 field, rồi mở từ hồ sơ bệnh nhân và
+**so khớp đúng danh sách nhãn đó** — mất CSS hay lệch field là đỏ ngay.
+
+Kết quả: **32/32** (`patient` 14 · `patient-medical-record` 3 ·
+`patient-appointment` 3 · `treatment-plan` 4 · `treatment-stage` 2 ·
+`prescription` 3 · `patient-image` 3). `tsc` sạch, `oxlint` sạch.
+
+Còn tồn (không sửa đợt này): `FloatingField` clone `onOpenChange` xuống mọi
+child, nên React cảnh báo `Unknown event handler property onOpenChange` khi
+child là `<Input>` thường. Là component dùng chung với `/taxonomy` đang đóng
+băng nên để nguyên, chỉ ghi lại.
+
+### 2026-08-31 (khuya, tiếp 2) — R-148, R-149
+
+| # | Việc | Kết luận |
+|---|------|----------|
+| R-148 | `cskh :297` — tạo chéo chi nhánh trả **403**, test đòi **404** | **Do tôi, và là sửa đúng.** `c37d9ee` (`OwnClinicBranchId`) làm tài khoản gắn chi nhánh **thật sự** mang chi nhánh của nó. Nay `BranchAccessChecker` chặn **trước khi** đọc hàng bệnh nhân → 403. Kỳ vọng 404 cũ chính là *dấu vết của lỗi*: hồi đó tài khoản chi nhánh 2 hiện như "tất cả chi nhánh" nên qua được cửa kiểm tra, rồi mới chết ở bước so `patient.BranchId`. 403 **rò rỉ ít hơn** 404: nó không nói gì về việc bệnh nhân đó có tồn tại hay không. Test nay đòi **một trong hai mã từ chối** và **thêm** phần chứng minh không có bản ghi nào được tạo — kiểm tra ở **cả hai** chi nhánh. Đồng thời sửa một lỗi có sẵn trong chính test: `${runId}` nội suy **hàm**, không phải giá trị |
+| R-149 | Chạy gộp 9 file thì có **một** test vô can đỏ, mỗi lần một test khác | **Chưa sửa — có sẵn, không do đợt này.** Ba lần chạy gộp: lần 1 `cskh :297`, lần 2 `materials :303`, lần 3 `patient :340`. **Từng cái chạy riêng đều xanh** (`materials` trọn file 11/11; `patient :340` lặp 3 lần đều xanh). Hằng số duy nhất là 2 test đỏ sẵn của R-144. Nghi vấn: test đỏ bỏ dở để lại dữ liệu/hộp thoại, làm lệch số đếm của file chạy kế tiếp — Playwright chạy 1 worker tuần tự. Cần rà riêng phần cách ly dữ liệu giữa các file, không thuộc phạm vi màn bệnh nhân |
+
+Chạy gộp `patient` · `patient-medical-record` · `patient-appointment` · `cskh` ·
+`appointment` · `branch-switcher` · `branch-isolation` · `materials` · `labo`:
+**61 xanh**, đỏ đúng 2 test R-144 (`cskh :166`, `:210` — cả hai đỏ **cả khi
+chạy riêng**, tức hỏng thật, có sẵn) cộng 1 test vô can theo R-149.
+
+`patient.css` cũng được siết lại: ba luật `.floating-field:has(.ss-wrapper)`
+trong đó vốn **không có tiền tố**. File này đóng gói thành chunk riêng
+(`PatientEditorDialog-*.css`), nên luật không tiền tố sẽ đổi dáng mọi
+`FloatingField` toàn ứng dụng — nhưng **chỉ sau khi** ai đó mở một màn bệnh
+nhân. Nay cả ba đều nằm dưới `.bd-patient-dialog`. Hiện chưa màn nào khác ghép
+`FloatingField` với `SearchSelect` nên không có lỗi nhìn thấy được; đây là bịt
+trước.
+
+### 2026-08-31 (tối) — rà soát lại Bệnh án theo phiếu thật
+
+| # | Việc | Kết luận |
+|---|------|----------|
+| R-150 | **Đổi tên phiếu xoá sạch nội dung phiếu** | **Lỗi thật, đã sửa.** `PatientMedicalRecordAppService.UpdateAsync` gọi `record.Fill(input.Content)` **vô điều kiện**. Đổi tên chỉ gửi `{title}`, nên `Content` về `null` và toàn bộ nội dung đã viết bị ghi đè thành rỗng. Nay chỉ fill khi caller thực sự gửi content; muốn xoá thì gửi tài liệu rỗng, không phải bỏ trống trường. Có test `renaming a sheet keeps what is written on it` canh lại |
+| — | Mục lục dựng sai kiểu | Phiếu vốn được tôi để thành hàng chip trên khung giấy; bản gốc lồng mỗi phiếu thành thẻ **ngay dưới biểu mẫu sinh ra nó**. Dựng lại đúng, kèm huy hiệu `Bản NN`, ngày tạo, ô tích và ba nút in/sửa/xoá |
+| — | Thiếu hai biểu mẫu | Bản gốc nay có phiếu thật nên đọc được: dựng mới **Bìa hồ sơ bệnh án** (2 mặt, đúng 20 ô tích, bảng kiểm soát hai cột) và **Phiếu Tư Vấn Tổng Quát** (không ô nhập nào — in ra điền tay, nên **Lưu** khoá) |
+| — | Thanh dưới | Đổi từ footer chạy hết chiều ngang sang **pill nổi giữa trên tờ giấy**, như bản gốc |
+
+Ba bẫy trong chính test, đã sửa (không phải lỗi sản phẩm):
+
+- Đếm thẻ ngay sau `POST` là đua với refetch. Mọi thẻ dưới cùng một biểu mẫu có
+  **cùng tiêu đề**, nên `expect(last).toContainText(tiêu đề)` không chứng minh
+  được gì — nó khớp sẵn từ trước. Nay đếm theo mốc trước/sau.
+- Test đổi tên bấm `.last()` **trước khi** thẻ mới kịp hiện, nên đổi tên nhầm
+  thẻ cũ. Nay chờ số thẻ tăng rồi mới thao tác.
+- `openMedicalRecord` chờ đúng response `GET` của danh sách, vì tab chỉ mount khi
+  mở view — đếm trước đó đọc ra 0 trên bệnh nhân đã có phiếu.
+
+Kết quả: **41 xanh** (`patient` 14, `patient-medical-record` **7**,
+`patient-appointment` 3, `treatment-plan` 4, `treatment-stage` 2,
+`prescription` 3, `patient-image` 3, `branch-isolation` 5). `tsc` sạch,
+`oxlint` sạch. `Application.Tests` **475/481** — 6 đỏ là R-147 có sẵn
+(`CustomerCareAppService` / `PatientAppService`), không đụng đợt này.
+
+### 2026-08-31 (tối, tiếp) — đối chiếu ảnh tab Chẩn đoán & Tư vấn
+
+| # | Việc | Kết luận |
+|---|------|----------|
+| R-151 | Ô "Răng" không bao giờ hiện màu xanh | **Lỗi thật, đã sửa.** `.pd-cell-link` đặt trên cùng thẻ `<b>` mà `.pd-cell-stack > b` nhắm tới; selector sau đặc hiệu hơn nên đè mất. Nâng lên `.pd-cell-stack > b.pd-cell-link` |
+| R-152 | Màu link sai tông | **Đã sửa.** Bản gốc dùng `#2671D8` cho số phiếu và ô răng; local lấy `var(--bd-blue)` = navy `#1c3566`. Thêm token `--bd-link: #2671d8` vào `:root`, áp vào **bốn chỗ đã đo**, không quét đại toàn bộ 28 chỗ dùng `--bd-blue` |
+| R-153 | "Chưa cập nhật" lệch màu | **Đã sửa.** `#d4380d`/600 sang `#E5484D`/500, đúng số đo bản gốc |
+| — | Header viết hoa, thứ tự phân trang, cỡ chữ ô | **Không sửa.** Cả ba đều là quy ước dùng chung toàn app; sửa riêng một màn là phá thống nhất nội bộ mà anh đã yêu cầu. Đã ghi số đo chính xác vào `docs/clone/pages/patient-detail.md` chờ chốt |
+| — | Rác dữ liệu test | E2E tạo bệnh nhân và không dọn; 20 hồ sơ mới nhất đều rỗng, làm lần chụp đối chiếu đầu tiên bị sai. Ghi nhận, chưa sửa |
+
+Kết quả: **46 xanh** (`patient` 14, `patient-medical-record` 7,
+`patient-appointment` 3, `treatment-plan` 4, `treatment-stage` 2,
+`prescription` 3, `patient-image` 3, `taxonomy` 10). `tsc` sạch.
+Token `--bd-link` là **thêm mới**, chưa nơi nào khác dùng, nên không đổi giao
+diện ngoài màn chi tiết bệnh nhân — `taxonomy` xanh xác nhận điều đó.
+
+### 2026-08-31 (tối, tiếp 2) — seed đủ dữ liệu bốn tab + đối chiếu cột
+
+| # | Việc | Kết luận |
+|---|------|----------|
+| R-154 | Bốn tab của hồ sơ bệnh nhân trống hoặc lệch | **Đã sửa.** Ảnh 0 → 189, hóa đơn 71 dòng/1 bệnh nhân → 197/63, labo 8/5 → 71/63, CSKH 31/11 → 161/63. Seeder mới chạy theo từng bệnh nhân thay vì theo bảng |
+| R-155 | Phiếu labo seed thiếu `SupplierId`/`MaterialId` | **Lỗi tôi tự tạo rồi tự sửa.** Cột Nhà cung cấp / Vật liệu ở `/labo/mau-labo` đọc theo id; để null thì thành "—" và `labo.spec.ts:138` đỏ. Seeder cũ đã có comment nói đúng điều này, tôi bỏ qua nó |
+| R-156 | Điều kiện idempotent sai câu hỏi | **Đã sửa.** Hỏi "bệnh nhân này đã có bản ghi nào chưa" khiến bản ghi của seeder khác chặn mất seeder này — tab CSKH của bệnh nhân demo chính vẫn đọc 0 hết. Nay kiểm **theo đúng id sẽ tạo**. Chạy migrator hai lần cho ra cùng số dòng |
+| — | `patient-image.spec.ts` khẳng định trạng thái rỗng | Chỉ đúng khi phòng khám chưa có ảnh nào. Viết lại: kiểm đúng thứ gallery đang hiện, và **ảnh phải decode được** (`naturalWidth > 0`), tức blob có thật chứ không chỉ có dòng dữ liệu |
+
+Đối chiếu cột: **Labo 10 cột · Đơn thuốc 6 · CSKH 9 (8 chip, đếm "nhật ký") ·
+Dư nợ 5** — khớp bản ghi khảo sát bản gốc. Hai chỗ số đếm nghi sai đã kiểm với
+DB và **đúng cả hai** (bệnh nhân demo thật sự có 406 lịch hẹn; chip CSKH 0 vì
+các bản ghi cũ đều chưa chăm sóc).
+
+Kết quả: **64 xanh** (`patient` 14, `patient-image` 3, `patient-medical-record`
+7, `patient-appointment` 3, `prescription` 3, `treatment-plan` 4,
+`treatment-stage` 2, `labo` 9, `billing` 5, `cskh` 8/10, `branch-isolation` 5,
+`branch-switcher` 3). Đỏ đúng 2 test R-144 có sẵn.
+
+### 2026-09-03 — rebase nhánh lên `main` (`1558c26`)
+
+`main` đi trước **26 commit**, trong đó có đợt **restyle v2 "Đức Hạnh Premium"**
+(indigo/cyan): `--bd-blue` đổi từ navy `#1c3566` sang indigo `#6366f1`, khung
+đổi sang rail nổi + header kính, bảng màu lịch hẹn đổi màu đầu.
+
+Cách làm: gộp 11 commit của nhánh thành **một** rồi mới rebase. Main đã tự sửa
+lại đúng những component tôi dựng lại (`TreatmentPlanPanel`,
+`PrescriptionPanel`, `PatientProfilePage`, `AppointmentEditorModal`), nên replay
+từng commit là phải giải cùng một file 11 lần. Một lần giải, rồi để bộ test bảo
+chứng — an toàn hơn nhiều so với giữ lịch sử vụn.
+
+Cách giải từng xung đột:
+
+| File | Quyết định |
+|---|---|
+| `index.css` | **Giữ bảng màu v2 của main.** Đó là quyết định thiết kế mới của team, không đè lên. Chỉ giữ thêm token `--bd-link: #2671d8` vì nó là *bổ sung* và CSS chi tiết bệnh nhân trỏ vào nó |
+| `PatientProfilePage` | Lấy bản của nhánh. Main vẫn đang phát triển **trang cũ** (một trang khổng lồ, `PillTabs`); bản dựng lại theo bản gốc là thứ được yêu cầu |
+| `TreatmentPlanPanel`, `PrescriptionPanel` | Lấy bản của nhánh — là superset (phân trang, cột ẩn/hiện, nhãn theo bản gốc) |
+| `AppointmentEditorModal` | Lấy bản của nhánh — mồi sẵn bệnh nhân / lý do / giờ khi mở từ hồ sơ |
+| `.gitignore`, `PatientTests.cs` | Hai bên chỉ thêm, giữ cả hai |
+| `03-regression-log.md` | Giữ cả hai phần. **Trùng số hiệu**: cả hai nhánh cùng đánh số từ R-144 độc lập; đã ghi chú ngay tại chỗ thay vì đánh số lại |
+
+**Không mất việc của người khác.** `origin/wip/patient` có 4 commit mà local
+không có; `b33dc5a` (mobile full-screen modal/drawer, 29 dòng CSS) **chưa có
+trong main** nên đã cherry-pick sang, giữ nguyên tác giả. `89a6ecd` (lockPatient)
+đã kiểm: bản trên nhánh này nối `disabled={lockPatient}` trên **file mới của
+main**, không thiếu gì so với bản cũ.
+
+Một test phải đổi theo: `patient-appointment` khẳng định swatch đầu tên
+"Xanh dương", nhưng v2 đổi màu đầu thành indigo "Tím". Nay kiểm **theo vị trí**
+(swatch đầu được chọn sẵn, và chỉ một swatch được chọn) — bảng màu là quyết định
+thiết kế, còn hành vi mới là thứ test cần giữ.
+
+Kết quả sau rebase: `tsc` sạch, `oxlint` 0 error, build production sạch,
+`dotnet build` sạch. **E2E 55/55**. **Domain.Tests 194/194**,
+**Application.Tests 485/485** — 6 test đỏ của R-147 nay đã hết, `main` sửa rồi.
+
+### 2026-09-03 — bốn điểm anh chỉ ra
+
+| # | Điểm | Nguyên nhân / cách sửa |
+|---|------|------------------------|
+| R-157 | Modal tạo lịch hẹn ở trang hồ sơ bệnh nhân hỏng: rộng hết màn, ba cột sập thành một, swatch màu thành vạch xám | **Lỗi thật.** Toàn bộ class `.appt-*` nằm trong `calendar.css`, mà file đó **chỉ trang lịch import**. Mở từ hồ sơ bệnh nhân là không có style. Nay modal **tự import CSS của nó** — đúng cách đã áp cho `PatientEditorDialog` ở R-1xx trước |
+| R-158 | Dialog "Thêm loại nguồn đến" thiếu Mức độ ưu tiên | Thêm field (mặc định 0) và nối `sortOrder` qua `useCreateTaxonomyGroupOption` xuống API. DTO backend `CreateTaxonomyDto.SortOrder` vốn đã có |
+| R-159 | Bỏ tick IN HOA vẫn để nguyên "LÊ THỊ LIÊN" | Nay chuẩn hoá về "Lê Thị Liên". Quan trọng: chỉ làm khi **chuyển trạng thái** tick → bỏ tick. Bản đầu tôi để effect chạy mỗi lần gõ, nó ghi đè tên lễ tân đang nhập và làm đỏ hai test đăng ký |
+| R-160 | Dialog có field "Thẻ hồ sơ" mà trang đích không có | Bỏ field. Tag nay do **nút tag trên hồ sơ** quản, nên khi sửa hồ sơ phải **giữ nguyên** tag cũ (`patient?.tagIds`) chứ không xoá |
+| R-161 | Select nghề nghiệp thiếu option "Khác" | Thêm slot `footer` cho `SearchSelect` dùng chung, và dựng "Khác" + ô nhập tự do ghi vào `occupationOther`. Hai bẫy: field chỉ **đăng ký** khi ô hiện ra nên `useWatch` không thể là nguồn của tick (vòng lặp) — nay tick là state cục bộ, field luôn đăng ký qua `hidden`; và submit phải chịu được field vắng mặt (`values.occupationOther?.trim()`), nếu không `undefined.trim()` làm chết cả nút Lưu |
+| R-162 | Nút tag: rà soát logic | **Lỗi thật.** Picker lấy tag theo **bộ lọc header**; với tài khoản toàn phòng khám header là "Tất cả chi nhánh" nên nó chào cả tag của chi nhánh khác — gắn nhầm được. Nay lấy theo `patient.branchId` |
+| R-163 | Ô "Thêm lý do đến khám" quá thấp | `rows={8}` vô tác dụng: `index.css` ghim mọi textarea trong modal ở `min-height: 42px`. Thêm nữa, `showCount` khiến `className` rơi vào **wrapper** chứ không phải `<textarea>`. Nhắm qua wrapper xuống textarea, cao 180px |
+
+Ghi chú không sửa lần này: danh sách tag và nghề nghiệp đầy bản ghi rác do e2e
+tạo ("Thẻ E2E …", "Thợ …") — các spec tạo dữ liệu và không dọn. Không phải lỗi
+sản phẩm nhưng làm dropdown khó nhìn.
+
+Thêm 6 test canh: modal lịch hẹn **có style khi mở từ hồ sơ** (ba cột nằm ngang,
+không xếp chồng), IN HOA đi và về, dialog nguồn đến có Mức độ ưu tiên, dropdown
+nghề nghiệp có Khác và mở được ô nhập, ô lý do cao > 140px, và request tag mang
+đúng chi nhánh của bệnh nhân. Test cũ đòi field "Thẻ hồ sơ" nay đảo lại: dialog
+**không được** có field đó.
+
+Kết quả: **49 xanh** (`patient` 19, `patient-appointment` 4,
+`patient-medical-record` 7, `patient-image` 3, `appointment` 5,
+`treatment-plan` 4, `treatment-stage` 2, `prescription` 3, `taxonomy-flat` 2).
+`tsc` sạch, build sạch.
+
+### 2026-09-03 (tiếp) — ba điểm nữa
+
+| # | Điểm | Nguyên nhân / cách sửa |
+|---|------|------------------------|
+| R-164 | Hai field ở dialog "Thêm loại nguồn đến" xếp dọc | Dựng lại theo đúng cách Danh mục bố trí dialog nhóm của nó (`Row gutter={[16, 12]}`, `Col span 15/9`), và nới dialog 420 → 520 cho đủ chỗ |
+| R-165 | Modal Thanh toán: tiêu đề cột xuống hàng | Hai cột hẹp hơn chính tiêu đề của nó (`Mã thanh toán` 130, `Phương thức thanh toán` 180). Nới lên 150/215 **và** cấm xuống hàng ở `th`. Nhưng chỉ nới thôi thì cột `Thao tác` ghim phải đè lên và **cắt** tiêu đề cuối — nên nới luôn modal lên `min(1320px, 100vw - 48px)` cho tổng 1260px của tám cột vừa đủ |
+| R-166 | Nút tag: chưa thấy UI chọn tag | **Không tái hiện được.** Thử trên bản build production **và** dev server :5173, cả chi nhánh 1 (53 tag) lẫn chi nhánh 2 (4 tag) — popover mở đúng cả bốn lần. Nghi bundle cũ ở máy anh. Nhưng đối chiếu lại ảnh bản gốc thì thấy một thiếu sót thật: tag đang gắn chỉ đổi nền, **không có dấu tích** như bản gốc. Đã thêm |
+
+Thêm 3 test: hai field nguồn đến **cùng hàng** (so toạ độ, không chỉ so sự tồn
+tại), mọi tiêu đề cột modal Thanh toán **một dòng và không bị cắt**
+(`scrollWidth > clientWidth`), và tag đã gắn **hiện dấu tích**.
+
+Một bẫy trong test: nút "Thanh toán" trùng tên với mục sidebar, `.last()` bắt
+nhầm. Nay nhắm đúng nút của hồ sơ (`.pd-page .pd-btn-outline`).
+
+Kết quả: **46 xanh** (`patient` 22, `patient-appointment` 4,
+`patient-medical-record` 7, `patient-image` 3, `appointment` 5,
+`treatment-plan` 4, `taxonomy-flat` 5, `billing` 5). `tsc` sạch, `oxlint` 0 lỗi.
+
+### 2026-09-03 (tiếp 2) — R-166 đóng: đo bảng chọn tag trên bản gốc
+
+Trước đó tôi không tái hiện được và đoán là bundle cũ. Nay đã đăng nhập bản gốc
+và **đo thật** (chỉ đọc, không bấm tag nào). Popover ở bản gốc mở bình thường —
+nên phần "bấm ra trống" vẫn không tái hiện được. Nhưng đo xong thì lộ **bốn
+khác biệt thật**, đã sửa:
+
+| Chỗ | Bản gốc | BlueDental (trước) |
+|---|---|---|
+| Hướng mở | `bottomLeft`, mép trái thẳng mép nút | `bottomRight` — mở lệch hẳn sang trái |
+| Khoảng hở | 9px, **không mũi tên** | 16px, AntD chừa chỗ cho mũi tên |
+| Bề rộng / dòng | 258px / 40px | 260px / 34px |
+| Nền nút | `#DCEBFA` | `#e7f0fb` |
+
+Đo lại sau khi sửa: **258 / 8 / lệch 4 / dòng 40** so với **258 / 9 / lệch 1 /
+40** của bản gốc.
+
+Hai bẫy trong test đo, đã sửa:
+
+- Đo ngay khi popover *visible* thì đọc ra **206px** — AntD phóng popover từ
+  `scale(0.8)`, và 258 × 0.8 = 206. Nay `expect.poll` cho tới khi nó đứng yên.
+- Test tiêu đề cột modal Thanh toán đỏ khi chạy chung: viewport mặc định hẹp hơn
+  1260px nên cột `Thao tác` ghim phải che tiêu đề cuối. **Bản gốc cũng vậy** —
+  nên test cố định khổ đủ rộng thay vì khẳng định điều bản gốc không giữ.
+
+Kết quả: **42 xanh** (`patient` 22, `patient-appointment` 4,
+`patient-medical-record` 7, `patient-image` 3, `appointment` 5,
+`taxonomy-flat` 5 và `billing` 5 — trừ vài test trùng). `tsc` sạch, `oxlint` 0 lỗi.
+
+### 2026-09-03 (tiếp 3) — soi lại tab Chẩn đoán & Tư vấn trên bản gốc
+
+| # | Điểm | Kết luận |
+|---|------|----------|
+| R-167 | Nút "+" của "Tạo chẩn đoán" to quá | **Đã sửa.** Bản gốc: vòng **28×28**, icon **16px**, nhãn **16px/700**. BlueDental dùng nút tròn mặc định AntD (32px) và nhãn 600. Ép về đúng số đo |
+| — | Hành vi panel ảnh | **Không phải lỗi.** Ba nút (`Thêm ảnh` → chọn file, `Danh sách ảnh` → modal "Chọn ảnh hiển thị" với `Chọn tất cả`/`Xong`, `Danh mục` → popover "Dữ liệu tư vấn") **đã dựng đúng từ trước**, nối dữ liệu thật, và **đã có test** từ trước. Đo lại toàn bộ số đo panel (thẻ 350px, vùng thả `#E6EAF0` 240px, nút 36×36 bo 6 cách 4px) — **khớp hết** |
+| — | `.pd-card-title` bị tách rời | Luật của nó nằm ở hai chỗ cách nhau 500 dòng (một khối dùng chung ở trên, một override ở dưới), nên nửa trên là code chết với selector này. Gộp về một chỗ tự đủ |
+
+Thêm phép đo vào test có sẵn: nút "+" phải **28×28**, tiêu đề **700**, thẻ ảnh
+**350px**, vùng thả **240px** nền `rgb(230,234,240)`, nút công cụ **36px**.
+
+Ghi rõ một chỗ **cố ý khác**: vòng "+" bản gốc `#2671D8`, BlueDental dùng indigo
+primary của v2 cho thống nhất sau đợt restyle — chỉ khác màu, kích thước đã khớp.
+
+Kết quả: **41 xanh** (`patient` 22, `patient-appointment` 4, `patient-image` 3,
+`patient-medical-record` 7, `treatment-plan` 4, `treatment-stage` 2 — trừ trùng).
+`tsc` sạch, `oxlint` 0 lỗi.
+
+### 2026-09-03 (tiếp 4) — panel ảnh tab Chẩn đoán & Tư vấn
+
+| # | Điểm | Cách sửa |
+|---|------|----------|
+| R-168 | Ảnh tải lên xong không hiện | Trạng thái đổi từ "danh sách được chọn" sang **"danh sách bị ẩn"**. Mặc định rỗng nên ảnh vừa có là hiện ngay; `Chọn tất cả` xoá danh sách ẩn |
+| R-169 | Modal "Chọn ảnh hiển thị" sai hoàn toàn | Trước là lưới `Checkbox.Group` thả ảnh nguyên cỡ, tràn ra ngoài. Dựng lại theo số đo bản gốc: nhóm theo ngày chụp, thẻ **280px** bo 22 đệm 12 viền xanh khi chọn, ảnh **254×190** `cover` bo 18, ô tích đè góc ảnh, tên + giờ, hai nút tròn kéo/xoá |
+| R-170 | Ảnh được chọn không hiện ngoài panel | Xếp dọc, mỗi tấm **240px** `object-fit: cover` bo 12, cách 8px — đúng tile của bản gốc |
+| R-171 | Tải ảnh không có loading | Nút "Thêm ảnh" quay, vùng thả đổi thành `Spin` khi `uploadImage.isPending` |
+| R-172 | Bấm ảnh không xem được | Dùng `Image.PreviewGroup` của AntD: overlay có đếm `1 / 3`, chuyển ảnh, xoay/lật/zoom. Bản gốc dùng lightGallery; ở đây dùng component sẵn có của app thay vì thêm thư viện |
+
+Ba bẫy khi viết test, đã sửa:
+
+- Bệnh nhân đầu danh sách **không có ảnh** (là hồ sơ do e2e tạo, seeder chạy
+  trước đó). Helper nay hỏi API lấy một ảnh bất kỳ rồi mở đúng hồ sơ ấy.
+- Hồ sơ đó có thể ở **chi nhánh khác** → thiếu `branchId` là 404 và trang không
+  vẽ panel. Lấy `clinicBranchId` ngay trong DTO ảnh mang theo.
+- Đo bề rộng thẻ ngay khi modal *visible* đọc ra **56px** — AntD phóng modal từ
+  `scale(0.2)`, mà 280 × 0.2 = 56. Nay `expect.poll` cho tới khi đứng yên.
+
+Kết quả: **41 xanh**. Hai test đỏ khi chạy gộp (`patient-appointment` :161 và
+`patient` :215) **xanh khi chạy riêng** — đúng kiểu nhiễu giữa file đã ghi ở
+R-149, không do đợt này. `tsc` sạch, `oxlint` 0 lỗi.
+
+### 2026-09-03 (tiếp 5) — gộp thành `feat(wip)` và rebase lên `main` (`8e470e9`)
+
+`main` đi trước **15 commit**. Gộp 8 commit của nhánh thành **một** `feat(wip)`
+rồi rebase — như lần trước, để chỉ phải giải xung đột một lần thay vì tám.
+
+Chỉ **một** file xung đột, 3 chỗ, đều ở `AppointmentEditorModal`: main thêm
+`initialDoctorId` (mở từ cột bác sĩ trên lịch thì mồi sẵn bác sĩ), nhánh này
+thêm `initialPatientId` / `initialReason` / `lockPatient` (mở từ hồ sơ bệnh nhân
+thì mồi sẵn bệnh nhân và khoá ô lại). Hai bên **bổ sung cho nhau** nên giữ cả
+bốn: hàm `reset` khi tạo mới nay mồi cả bác sĩ, bệnh nhân lẫn lý do.
+
+Commit gộp giữ `Co-Authored-By` của anh Danh — nó bao gồm cả commit mobile
+full-screen styles (`b33dc5a`) đã cherry-pick từ lần rebase trước.
+
+Kiểm chứng sau rebase: `tsc` sạch, `oxlint` 0 lỗi, build FE sạch,
+`dotnet build` sạch, migration chạy xong (main không thêm migration nào).
+**E2E 46/46**. **Domain.Tests 194/194**, **Application.Tests 485/485**.
+

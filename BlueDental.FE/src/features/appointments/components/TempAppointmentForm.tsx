@@ -43,7 +43,6 @@ export function TempAppointmentForm({
         <TempFormLeft control={control} errors={errors} />
         <TempFormCenter
           control={control}
-          errors={errors}
           doctorOptions={doctorOptions}
           watchedSourceTaxonomyId={watchedSourceTaxonomyId}
         />

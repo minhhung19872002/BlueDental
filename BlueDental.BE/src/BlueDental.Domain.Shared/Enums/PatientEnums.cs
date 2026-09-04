@@ -74,3 +74,38 @@ public enum ToothStatus
     Impacted = 9,
     Unerupted = 10
 }
+
+/// <summary>
+/// The printed forms "Mục lục bệnh án" offers, in the reference's own order and
+/// wording. The layout of each is printed on the sheet; only the cells the
+/// clinic fills in are stored, so this enum names the form and nothing else.
+/// </summary>
+public enum MedicalRecordForm
+{
+    /// <summary>1. Bìa hồ sơ bệnh án</summary>
+    Cover = 1,
+
+    /// <summary>2. Bệnh án ngoại trú Răng Hàm Mặt</summary>
+    OutpatientDental = 2,
+
+    /// <summary>3. Bệnh án chỉnh nha</summary>
+    Orthodontic = 3,
+
+    /// <summary>4. Phiếu Tư Vấn Tổng Quát</summary>
+    GeneralConsultation = 4,
+
+    /// <summary>5. Phiếu tư vấn và xác nhận đồng ý điều trị</summary>
+    TreatmentConsent = 5,
+
+    /// <summary>6. Giấy đồng ý thực hiện phẫu thuật/thủ thuật</summary>
+    SurgeryConsent = 6,
+
+    /// <summary>7. Phiếu phẫu thuật/thủ thuật</summary>
+    SurgeryRecord = 7,
+
+    /// <summary>8. Phiếu theo dõi điều trị</summary>
+    TreatmentFollowUp = 8,
+
+    /// <summary>9. Phiếu chăm sóc</summary>
+    CareSheet = 9,
+}

@@ -57,6 +57,7 @@ export interface PatientDiagnosisDto {
   teeth: ToothSelectionDto[];
   diagnosisName: string | null;
   staffName: string | null;
+  secondStaffName: string | null;
   creationTime: string;
 }
 
@@ -88,6 +89,8 @@ export interface PatientAdviseDto {
   effectiveAmount: number;
   serviceName: string | null;
   staffName: string | null;
+  secondStaffName: string | null;
+  diagnosisName: string | null;
   creationTime: string;
 }
 

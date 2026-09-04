@@ -16,8 +16,16 @@ export interface PatientTagOption {
   color: string;
 }
 
-export function usePatientTagOptions() {
-  const clinicBranchId = useBranchFilter();
+/**
+ * The tags that may be put on a record.
+ *
+ * Pass `branchId` when the answer belongs to one record: the header's filter
+ * reads "every branch" for a clinic-wide account, and a patient must not be
+ * offered another branch's tags.
+ */
+export function usePatientTagOptions(branchId?: string) {
+  const headerBranchId = useBranchFilter();
+  const clinicBranchId = branchId ?? headerBranchId;
 
   return useQuery({
     queryKey: ["patient-tag-options", clinicBranchId],

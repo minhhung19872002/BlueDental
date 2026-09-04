@@ -823,3 +823,100 @@ Control: dialog "Thêm mục" của Danh mục sổ quỹ
 Reason: không mở. Cột bảng là Tên danh mục / Mã màu / Thao tác nên bản local
       dựng form Tên danh mục* + Mã màu (ColorPicker).
 Action taken: NONE.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /patient/<id>?tab=appointment — dialog "Tạo lịch hẹn", khối "Lịch đã hẹn"
+Control: nút tròn "Đổi cách xem" (chỉ hiện ở chế độ Ngày)
+Reason: bấm nút là thao tác đọc, đã bấm và chụp lại được: icon đổi từ dạng
+        hàng sang dạng cột, và lưới lùi sang phải chừa một cột nhãn ~200px.
+        Nhưng ngày đang xem không có lịch hẹn nào nên không thấy được nội
+        dung hai bố cục khác nhau ra sao. Không tạo lịch trên bản gốc để thử.
+Action taken: NONE thêm trên bản gốc. ĐÃ GIẢI ĐÁP (2026-08-31): dialog lịch hẹn
+        trên `main` dựng nút này thành công tắc "Xem theo giờ" / "Xem theo bác
+        sĩ" — đúng cách hiểu "một làn chung" đổi sang "mỗi bác sĩ một làn".
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /patient/<id>?tab=appointment — dialog "Tạo lịch hẹn"
+Control: nút "Lưu", nút "+ Thêm ngay" trong thẻ Ghi chú
+Reason: đều ghi dữ liệu lên hệ thống production.
+Action taken: NONE. Chỉ mở dialog, mở dropdown bác sĩ, đổi Ngày/Tuần/Tháng
+        rồi đóng bằng X. Cấu trúc trường, kích thước và bảng màu đọc từ DOM
+        và computed style — xem docs/clone/pages/patient-detail.md.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /patient/<id>?tab=appointment
+Control: nút "Lịch sử thay đổi"
+Reason: chưa mở được để đọc cấu trúc bảng; bản gốc lấy dữ liệu từ
+        GET /api/v1/schedule-logs (đã bắt được ở tab, có phân trang và
+        /stats), nhưng cột hiển thị thì chưa quan sát.
+Action taken: NONE. BlueDental tạm liệt kê lịch hẹn của bệnh nhân kèm dấu
+        thời gian audit mà API trả về, và ghi rõ đây là chỗ khác bản gốc.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /patient/<id>?tab=consulting — bảng "Phiếu tư vấn"
+Control: tay nắm kéo-thả ở cột đầu, và nút "Lưu" trong popover "Cấu hình cột"
+Reason: cả hai đều ghi thứ tự / cấu hình cột xuống server.
+Action taken: NONE. Đã đọc được danh sách cột và dạng công tắc bật/tắt trong
+        popover. BlueDental chưa dựng tay nắm kéo-thả vì chưa có endpoint sắp
+        xếp; cấu hình cột hiện chỉ giữ trong phiên.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /patient/<id>?tab=consulting — thao tác trên dòng chẩn đoán
+Control: nút lịch (biểu tượng calendar) giữa "Tạo Dịch Vụ" và nút xoá
+Reason: không bấm vì có khả năng mở luồng tạo lịch hẹn rồi ghi dữ liệu.
+Action taken: NONE. BlueDental hiểu là mở dialog đặt lịch cho bệnh nhân đó,
+        điền sẵn lý do từ tên chẩn đoán. Cần xác nhận lại.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /patient/<id> — chế độ xem "Bệnh án"
+Control: nút "Đồng bộ phiếu" ở thanh dưới
+Reason: nút này ghi dữ liệu vào phiếu (nhiều khả năng chép thông tin bệnh nhân
+        vào phần Hành chính của tờ A4). Không bấm trên bản gốc.
+Action taken: NONE. BlueDental chưa dựng nút này; các ô hành chính vẫn nhập tay.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /patient/<id> — chế độ xem "Bệnh án"
+Control: bản in của 8 biểu mẫu còn lại (1, 3, 4, 5, 6, 7, 8, 9)
+Reason: phải bấm "Thêm" mới thấy được bố cục từng tờ, mà "Thêm" là thao tác ghi.
+Action taken: NONE. BlueDental liệt kê đủ 9 biểu mẫu đúng thứ tự và màu, nhưng
+        chỉ vẽ được tờ số 2 (Bệnh án ngoại trú RHM) — tờ mà Danh mục đã dựng.
+        Thêm 8 tờ kia sẽ báo rõ là chưa có bản in, không mở trang trắng.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /patient/<id> — phân quyền cho Bệnh án
+Control: tên subject phân quyền của bản gốc cho phiếu bệnh án
+Reason: chỉ quan sát được endpoint (/patient-medical-record/files/{id}), không
+        đọc được ma trận quyền của bản gốc cho mục này.
+Action taken: NONE. BlueDental tự đặt subject `patientMedicalRecord`
+        (read/create/update/delete/print). Cần đối chiếu lại nếu xem được ma
+        trận quyền của bản gốc.
+
+## UNKNOWN_REFERENCE_BEHAVIOR — ô tích trên thẻ phiếu bệnh án
+
+Page: /patient/{id} -> Bệnh án -> Mục lục bệnh án
+Control: ô tích ở góc trên mỗi thẻ phiếu
+Reason: Bấm được, nhưng không quan sát được nó dùng để làm gì — không có nút nào
+  đổi trạng thái theo nó trong lúc khảo sát, và thử các thao tác đi kèm thì có
+  khả năng ghi vào hệ thống thật.
+Action taken: NONE
+BlueDental: dùng ô tích để chọn phiếu đem in và lọc chế độ "Toàn bộ". Đây là
+  **suy đoán**, không phải hành vi đã đo.
+
+## UNKNOWN_REFERENCE_BEHAVIOR — nút "Đồng bộ phiếu"
+
+Page: /patient/{id} -> Bệnh án -> thanh dưới
+Control: "Đồng bộ phiếu"
+Reason: Tên gợi ý nó chép thông tin bệnh nhân vào các ô đầu phiếu, nhưng bấm là
+  ghi vào phiếu thật.
+Action taken: NONE
+BlueDental: không dựng nút này.
+
+## UNKNOWN_REFERENCE_BEHAVIOR — nút kéo sắp xếp ảnh trong "Chọn ảnh hiển thị"
+
+Page: /patient/{id}?tab=consulting -> Danh sách ảnh
+Control: nút tròn hình tay kéo ở góc dưới phải mỗi thẻ ảnh
+Reason: Kéo thả để đổi thứ tự sẽ ghi thứ tự mới lên hệ thống thật.
+Action taken: NONE
+BlueDental: dựng nút cho đúng hình, nhưng **chưa nối** chức năng kéo — thứ tự
+  ảnh chưa được lưu.
+

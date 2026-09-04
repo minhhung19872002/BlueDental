@@ -43,6 +43,11 @@ interface SearchSelectProps {
   onSearch?: (keyword: string) => void;
   /** Reported the way AntD pickers report it, so floating-label wrappers work. */
   onOpenChange?: (open: boolean) => void;
+  /**
+   * Rendered under the options, inside the dropdown. The reference puts an
+   * "Khác" escape hatch there for lists that cannot cover every answer.
+   */
+  footer?: React.ReactNode;
 }
 
 export const SearchSelect: React.FC<SearchSelectProps> = ({
@@ -57,6 +62,7 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
   onChange,
   onSearch,
   onOpenChange,
+  footer,
 }) => {
   const resolvedPlaceholder = placeholder ?? t("Tìm kiếm...");
   const [open, setOpen] = useState(false);
@@ -209,6 +215,7 @@ export const SearchSelect: React.FC<SearchSelectProps> = ({
                 ))
               )}
             </div>
+            {footer ? <div className="ss-footer">{footer}</div> : null}
           </div>,
           document.body
         )

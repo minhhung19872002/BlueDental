@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -43,7 +43,8 @@ public class BlueDentalDemoSeedContributor(
     BlueDentalClinicalDemoSeeder clinicalSeeder,
     BlueDentalOperationsDemoSeeder operationsSeeder,
     BlueDentalReportsDemoSeeder reportsSeeder,
-    BlueDentalMaterialsDemoSeeder materialsSeeder) : IDataSeedContributor, ITransientDependency
+    BlueDentalMaterialsDemoSeeder materialsSeeder,
+    BlueDentalPatientTabsDemoSeeder patientTabsSeeder) : IDataSeedContributor, ITransientDependency
 {
     /// <summary>
     /// The calendar picks its columns from whoever holds this role. Without it
@@ -134,6 +135,9 @@ public class BlueDentalDemoSeedContributor(
 
     private readonly Guid _branchId = BlueDentalDataSeedContributor.DefaultBranchId;
 
+    /// <summary>How many synthetic patients the second branch gets.</summary>
+    private const int SecondBranchPatientCount = 8;
+
     public async Task SeedAsync(DataSeedContext context)
     {
         var patients = await patientRepository.GetListAsync(p => p.BranchId == _branchId);
@@ -151,8 +155,13 @@ public class BlueDentalDemoSeedContributor(
 
         if (patients.Count == 0)
         {
-            patients = await SeedPatientsAsync();
+            patients = await SeedPatientsAsync(_branchId, "BD26", 0, DemoPatients.Length);
         }
+
+        // The second branch needs a roster of its own, or every screen opened
+        // with ?branchId=2222… is empty and there is nothing to look at — and
+        // nothing for branch isolation to actually isolate.
+        await SeedSecondBranchPatientsAsync();
 
         await SeedAppointmentsAsync(patients, dentistIds);
         await SeedInvoicesAsync();
@@ -161,6 +170,11 @@ public class BlueDentalDemoSeedContributor(
         // fills in whatever an earlier one could not.
         await clinicalSeeder.SeedAsync(patients, dentistIds);
         await operationsSeeder.SeedAsync(patients, dentistIds.Concat(staffIds).ToList());
+
+        // Hình ảnh, Hóa đơn, Labo and Chăm sóc KH, per patient. Invoices above
+        // are raised from completed appointments, and only one patient has a
+        // completed run — so without this every other Hóa đơn tab is blank.
+        await patientTabsSeeder.SeedAsync(patients, dentistIds.Concat(staffIds).ToList());
 
         // Depth for the Vận hành reports: the same chain, spread over two
         // months so a date filter has something to filter.
@@ -178,19 +192,23 @@ public class BlueDentalDemoSeedContributor(
     /// roster of synthetic ones — invented names, invented numbers — so the
     /// diary, the billing and the clinical chain all have someone to hang off.
     /// </summary>
-    private async Task<List<Patient>> SeedPatientsAsync()
+    private async Task<List<Patient>> SeedPatientsAsync(
+        Guid branchId,
+        string codePrefix,
+        int from,
+        int count)
     {
-        var random = new Random(20260831);
+        var random = new Random(20260831 + branchId.GetHashCode());
         var patients = new List<Patient>();
 
-        for (var i = 0; i < DemoPatients.Length; i++)
+        for (var i = from; i < from + count; i++)
         {
-            var (lastName, firstName, gender) = DemoPatients[i];
+            var (lastName, firstName, gender) = DemoPatients[i % DemoPatients.Length];
             var birthYear = 1965 + random.Next(0, 40);
 
             patients.Add(Patient.Register(
                 guidGenerator.Create(),
-                $"BD26{9000 + i:D4}",
+                $"{codePrefix}{9000 + i:D4}",
                 firstName,
                 lastName,
                 new DateOnly(birthYear, 1 + random.Next(0, 12), 1 + random.Next(0, 27)),
@@ -199,11 +217,29 @@ public class BlueDentalDemoSeedContributor(
                     $"09{random.Next(10, 99)}{i:D6}",
                     null,
                     $"{10 + i} Nguyễn Huệ, Quận 1, TP.HCM"),
-                _branchId));
+                branchId));
         }
 
         await patientRepository.InsertManyAsync(patients, autoSave: true);
         return patients;
+    }
+
+    /// <summary>
+    /// A short roster for the second branch, with codes of its own so a row is
+    /// recognisable at a glance. Only the patients: the clinical chain, the
+    /// diary and the billing stay on the first branch, so a second-branch
+    /// record honestly shows an empty history rather than borrowed one.
+    /// </summary>
+    private async Task SeedSecondBranchPatientsAsync()
+    {
+        var branchId = BlueDentalBranchSeedContributor.SecondBranchId;
+
+        if (await patientRepository.CountAsync(p => p.BranchId == branchId) > 0)
+        {
+            return;
+        }
+
+        await SeedPatientsAsync(branchId, "CN26", 4, SecondBranchPatientCount);
     }
 
     private bool IsDevelopment() =>

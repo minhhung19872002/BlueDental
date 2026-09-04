@@ -301,6 +301,8 @@ test.describe("CSKH", () => {
     for (const item of own.items) expect(item.branchId).toBe(BRANCH_ONE);
 
     const foreignPatientId = await firstPatientId(page);
+    // `runId` is a function; the marker has to be the value it returns.
+    const marker = `cross-branch ${runId()}`;
 
     await page.context().clearCookies();
     await login(page, BRANCH2_USER);
@@ -309,15 +311,36 @@ test.describe("CSKH", () => {
     expect(other.status).toBe(200);
     for (const item of other.items) expect(item.branchId).not.toBe(BRANCH_ONE);
 
-    // Filing a care record against another branch's patient reads as not-found,
-    // so a known foreign patient id cannot be used to hydrate that patient's PHI.
+    // Filing a care record against another branch's patient is refused, so a
+    // known foreign patient id cannot be used to hydrate that patient's PHI.
+    //
+    // This is a 403, not the 404 it once was. The branch check runs before the
+    // patient row is read, so the refusal says nothing at all about whether
+    // that patient exists — it leaks strictly less than the old not-found,
+    // which was returned only after loading the patient. It used to be a 404
+    // because a branch-scoped account did not actually carry its branch and so
+    // passed the check; that was the bug fixed in c37d9ee.
     const crossCreate = await apiPost(page, "/api/v1/app/care-records", {
       patientId: foreignPatientId,
       branchId: BRANCH_ONE,
       type: 5,
-      subject: `cross-branch ${runId}`,
+      subject: marker,
     });
-    expect(crossCreate.status).toBe(404);
+    expect([403, 404]).toContain(crossCreate.status);
+
+    // Refused, and nothing was written: the subject exists on neither branch.
+    const afterOwn = await apiGet(page, "/api/v1/app/care-records?maxResultCount=200");
+    expect(afterOwn.items.some((r: { subject: string }) => r.subject.includes(marker))).toBe(false);
+
+    await page.context().clearCookies();
+    await login(page);
+    const afterForeign = await apiGet(page, "/api/v1/app/care-records?maxResultCount=200");
+    expect(afterForeign.items.some((r: { subject: string }) => r.subject.includes(marker))).toBe(
+      false,
+    );
+
+    await page.context().clearCookies();
+    await login(page, BRANCH2_USER);
 
     // The page itself still works on their own (empty) branch.
     await page.goto("/cskh-grouping");

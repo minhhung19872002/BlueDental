@@ -27,35 +27,36 @@ test.describe("Công đoạn điều trị", () => {
     await openFirstPatient(page);
     await page.waitForLoadState("networkidle");
 
-    await page.getByRole("tab", { name: "Chẩn đoán & Tư vấn" }).click();
+    await page.getByRole("link", { name: "Chẩn đoán & Tư vấn" }).click();
 
-    // Dental chart should be visible.
-    await expect(page.getByText("Biểu đồ răng")).toBeVisible();
+    // The two cards the reference puts on this tab.
+    await expect(page.getByRole("heading", { name: "Tạo chẩn đoán" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Phiếu tư vấn", exact: true })).toBeVisible();
 
-    // The chart tabs should be present.
-    await expect(page.getByRole("tab", { name: "Chọn Răng" })).toBeVisible();
-    await expect(page.getByRole("tab", { name: "Hàm Trên" })).toBeVisible();
-
-    // Diagnosis records table headers.
-    await expect(page.getByText("Phiếu chẩn đoán", { exact: true })).toBeVisible();
-
-    // Advise records table.
-    await expect(page.getByText("Phiếu tư vấn", { exact: true })).toBeVisible();
+    // The chart lives inside the diagnosis editor, which opens on +.
+    await page.locator(".pd-diagnosis-card .pd-card-title").getByRole("button").click();
+    await expect(page.getByRole("button", { name: "Chọn Răng" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Hàm Trên" })).toBeVisible();
   });
 
   test("the dental chart on the diagnosis tab responds to tooth clicks", async ({ page }) => {
     await openFirstPatient(page);
     await page.waitForLoadState("networkidle");
 
-    await page.getByRole("tab", { name: "Chẩn đoán & Tư vấn" }).click();
+    await page.getByRole("link", { name: "Chẩn đoán & Tư vấn" }).click();
+    await page.locator(".pd-diagnosis-card .pd-card-title").getByRole("button").click();
 
     // Click a tooth and verify the selection text updates.
     const tooth11 = page.getByRole("button", { name: /Răng 11/ });
     await tooth11.click();
-    await expect(page.getByText(/Đã chọn:.*11/)).toBeVisible();
+    await expect(page.getByText(/Răng đã chọn:.*11/)).toBeVisible();
 
     // Click again to deselect.
     await tooth11.click();
-    await expect(page.getByText("Chưa chọn răng")).toBeVisible();
+    await expect(page.getByText("Răng đã chọn: —")).toBeVisible();
+
+    // "Hàm Trên" fills the whole upper jaw in one go.
+    await page.getByRole("button", { name: "Hàm Trên" }).click();
+    await expect(page.getByText(/Răng đã chọn:.*18.*28/)).toBeVisible();
   });
 });

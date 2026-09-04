@@ -7,6 +7,16 @@ export type AppointmentStatus =
   | "noShow";
 
 /**
+ * "Màu lịch hẹn" — the four swatches the booking dialog offers.
+ *
+ * The server stores the colour as a free string, so the swatch key is what
+ * travels: it round-trips unchanged and reads for itself in the database. A
+ * colour outside this set is still accepted on the wire and falls back to
+ * "default" when drawn.
+ */
+export type AppointmentColor = "default" | "green" | "orange" | "red";
+
+/**
  * What the screens work with. The server speaks its own shape
  * (DentistId / SlotStart / numeric status); see appointmentAdapters.
  */
