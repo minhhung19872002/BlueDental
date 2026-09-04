@@ -4598,9 +4598,17 @@ html:has(.ant-modal-wrap) {
   background: #fff;
 }
 
-/* When Input has a prefix icon, shift the resting label past it */
-.floating-field:not(.floating-field--floated):has(.ant-input-prefix) .floating-field-label {
-  left: 32px;
+/* When the control shows a prefix icon (Input / Select / DatePicker prefix,
+   or SearchSelect's magnifier), shift the resting label past it so the two
+   never overlap. The offset is padding + icon + gap of each control. */
+.floating-field:not(.floating-field--floated):has(.ant-input-prefix) .floating-field-label,
+.floating-field:not(.floating-field--floated):has(.ant-select-prefix) .floating-field-label,
+.floating-field:not(.floating-field--floated):has(.ant-picker-prefix) .floating-field-label {
+  left: var(--ff-prefix-offset, 32px);
+}
+
+.floating-field:not(.floating-field--floated):has(.ss-icon--search) .floating-field-label {
+  left: var(--ff-prefix-offset, 34px);
 }
 
 /* Hide Select placeholder when label is in resting position */

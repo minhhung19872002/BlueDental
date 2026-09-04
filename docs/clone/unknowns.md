@@ -796,3 +796,30 @@ Action taken: NONE. Chỉ mở dialog để đọc cấu trúc trường rồi �
         Escape. Quy tắc validate lấy từ schema Joi trong bundle
         (xem docs/clone/pages/labo.md §3.3, §4.3, §5.2).
 ```
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /report (tab Quản lý thu chi, tab Luân chuyển dòng tiền V2)
+Control: nút Lưu trong các dialog "Thêm khoản thu", "Thêm danh mục thu nhập",
+      "Tạo giao dịch nạp / rút / luân chuyển"; các nút Chỉnh sửa / Xóa /
+      Duyệt / Từ chối trên từng dòng
+Reason: đều ghi dữ liệu lên production. Chỉ mở dialog để đọc cấu trúc trường
+      rồi đóng bằng Escape; không nhập, không bấm Lưu.
+Action taken: NONE. Bản local dựng modal cùng cấu trúc trường, submit chỉ hiện
+      toast demo (không có API ghi). Validate phía server, thông báo lỗi và
+      hộp xác nhận xóa/duyệt: chưa biết.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /report?reportTab=cashflow (sub Chi phí)
+Control: dialog "Thêm mới" của tab Chi phí
+Reason: chỉ mở dialog của tab Thu nhập ("Thêm khoản thu": Ngày tạo | Ngày
+      thực thu*, Chọn nhân viên | Chọn khách hàng, Số tiền*, Hình thức |
+      Người nộp | Mục thu*, Nội dung thu). Bản chi được suy ra bằng cách đổi
+      thu→chi và "Người nộp"→"Người nhận".
+Action taken: NONE. Cần quan sát lại khi có dịp an toàn.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /report?reportTab=cashflow-v2 (sub Danh mục)
+Control: dialog "Thêm mục" của Danh mục sổ quỹ
+Reason: không mở. Cột bảng là Tên danh mục / Mã màu / Thao tác nên bản local
+      dựng form Tên danh mục* + Mã màu (ColorPicker).
+Action taken: NONE.

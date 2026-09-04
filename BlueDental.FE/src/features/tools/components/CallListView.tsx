@@ -1,14 +1,14 @@
 import { useMemo, useState } from "react";
-import { Tag } from "antd";
+import { Segmented, Tag } from "antd";
 import dayjs from "dayjs";
 import type { ColumnsType } from "antd/es/table";
 import { useCallLogs, type CallLogDto } from "../api/toolsApi";
 import { callLogStatusTag, providerLabel } from "./callCatalog";
 import { DataTable } from "@/components/DataTable";
-import { PeriodBar } from "@/components/PeriodBar";
+import { DateNavigator } from "@/components/DateNavigator";
 import { StaffFilter } from "@/components/StaffFilter";
 import { useTablePagination } from "@/hooks/useTablePagination";
-import { periodBounds, toIsoDate, usePeriodRange } from "@/hooks/usePeriodRange";
+import { periodBounds, toIsoDate, usePeriodRange, periodOptions } from "@/hooks/usePeriodRange";
 import { t } from "@/lib/i18n";
 import { pagerTotal } from "@/utils/pagerTotal";
 
@@ -80,7 +80,19 @@ export function CallListView() {
   return (
     <div className="reception-card reception-card--content">
       <div className="bd-ops-toolbar">
-        <PeriodBar range={range} periods={["day", "week", "month"]} />
+        <div className="bd-ops-period">
+          <Segmented
+            value={range.period}
+            options={periodOptions().filter((o) => (["day", "week", "month"] as string[]).includes(o.key)).map((o) => ({ value: o.key, label: o.label }))}
+            onChange={(val) => range.setPeriod(val as "day" | "week" | "month")}
+            style={{ flexShrink: 0 }}
+          />
+          <DateNavigator
+            value={dayjs(range.anchor)}
+            mode={range.period === "year" ? "month" : range.period}
+            onChange={(d) => range.setAnchor(d.toDate())}
+          />
+        </div>
         <StaffFilter
           label={t("Nhân viên")}
           value={staffId}

@@ -54,6 +54,17 @@ export const cashHoldingLabels = (): Record<CashHolding, string> => ({
   [CASH_HOLDING.CustomerPrepaid]: t("Giữ hộ khách"),
 });
 
+/**
+ * "Hình thức" of a cash movement: "Tiền mặt → Chuyển khoản" for a transfer,
+ * the single holding for a deposit/withdrawal, "—" when neither side is set.
+ */
+export function formatCashMovement(fromHolding: CashHolding | null, toHolding: CashHolding | null): string {
+  const labels = cashHoldingLabels();
+  const label = (value: CashHolding | null) => (value === null ? "—" : labels[value]);
+  if (fromHolding !== null && toHolding !== null) return `${label(fromHolding)} → ${label(toHolding)}`;
+  return label(fromHolding ?? toHolding);
+}
+
 export interface SalesEntryDto {
   id: string;
   clinicBranchId: string;

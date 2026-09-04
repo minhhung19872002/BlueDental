@@ -530,7 +530,7 @@ export function AppLayout() {
         open={mobileMenuOpen}
         onClose={() => setMobileMenuOpen(false)}
         placement="left"
-        width={260}
+        size={260}
         closable={false}
         styles={{
           body: { padding: 0, background: "var(--bd-sidebar-bg)", display: "flex", flexDirection: "column", height: "100%" },

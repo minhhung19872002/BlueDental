@@ -1,217 +1,171 @@
-import { useEffect, useState } from "react";
-import { DatePicker, Form, Input, Modal, Select } from "antd";
-import { toast } from "sonner";
-import dayjs from "dayjs";
+import { useCallback, useEffect, useMemo } from "react";
+import { Col, DatePicker, Form, Input, Row, Select } from "antd";
+import dayjs, { type Dayjs } from "dayjs";
+import { AppDialog } from "@/components/AppDialog";
+import { CurrencyInput } from "@/components/CurrencyInput";
+import { FloatingField } from "@/components/FloatingField";
+import { FloatingLabel } from "@/components/FloatingLabel";
+import { SearchSelect } from "@/components/SearchSelect";
+import { t } from "@/lib/i18n";
 import {
   PAYMENT_CHANNEL,
-  PAYMENT_CHANNEL_LABELS,
+  paymentChannelLabels,
   SALES_ENTRY_TYPE,
-  useCashflowCategories,
-  useCreateCashflowCategory,
-  useCreateSalesEntry,
-  useUpdateSalesEntry,
   type PaymentChannel,
-  type SalesEntryDto,
   type SalesEntryType,
 } from "../api/financeApi";
-import { useCurrentBranchId } from "@/lib/clinicBranch";
-import { useAuthStore } from "@/features/auth/store/authStore";
-import { extractApiError } from "@/lib/apiError";
-import { CurrencyInput } from "@/components/CurrencyInput";
-import { t } from "@/lib/i18n";
+import {
+  notifyDemoAction,
+  useMockCategories,
+  useMockPatientOptions,
+  useMockStaffOptions,
+} from "../api/reportMockQueries";
+import type { SalesEntryVm } from "../types/mock";
 
-interface SalesEntryModalProps {
+interface Props {
   open: boolean;
-  entry: SalesEntryDto | null;
+  entry: SalesEntryVm | null;
   /** Only used when creating — an existing voucher keeps its own type. */
   defaultType: SalesEntryType;
   onClose: () => void;
 }
 
-interface SalesEntryFormValues {
-  type: SalesEntryType;
-  categoryId: string;
-  amount: number;
+interface FormValues {
+  paidDate: Dayjs;
+  staffId?: string;
+  patientId?: string;
+  amount?: number;
   channel: PaymentChannel;
-  description: string;
-  entryDate: dayjs.Dayjs;
+  payer?: string;
+  categoryId: string;
+  description?: string;
 }
 
-const CHANNEL_OPTIONS = Object.entries(PAYMENT_CHANNEL_LABELS).map(([value, label]) => ({
-  value: Number(value) as PaymentChannel,
-  label,
-}));
+const MODAL_CHANNELS: PaymentChannel[] = [PAYMENT_CHANNEL.Cash, PAYMENT_CHANNEL.Banking, PAYMENT_CHANNEL.Card];
 
-export function SalesEntryModal({ open, entry, defaultType, onClose }: SalesEntryModalProps) {
-  const [form] = Form.useForm<SalesEntryFormValues>();
-  const branchId = useCurrentBranchId();
-  const currentUserId = useAuthStore((s) => s.user?.id);
-  const [newCategoryName, setNewCategoryName] = useState("");
+/** Labels that differ between thu (income) and chi (expense) vouchers. */
+const COPY: Record<SalesEntryType, { create: () => string; edit: () => string; paidDate: () => string; payer: () => string; category: () => string; description: () => string }> = {
+  [SALES_ENTRY_TYPE.Income]: {
+    create: () => t("Thêm khoản thu"),
+    edit: () => t("Sửa khoản thu"),
+    paidDate: () => t("Ngày thực thu"),
+    payer: () => t("Người nộp"),
+    category: () => t("Mục thu"),
+    description: () => t("Nội dung thu"),
+  },
+  [SALES_ENTRY_TYPE.Expense]: {
+    create: () => t("Thêm chi phí"),
+    edit: () => t("Sửa khoản chi"),
+    paidDate: () => t("Ngày thực chi"),
+    payer: () => t("Người nhận"),
+    category: () => t("Mục chi"),
+    description: () => t("Nội dung chi"),
+  },
+};
 
-  const createEntry = useCreateSalesEntry();
-  const updateEntry = useUpdateSalesEntry();
-  const createCategory = useCreateCashflowCategory();
-
-  const { data: categoryPage } = useCashflowCategories(branchId, false);
+/**
+ * "Thêm khoản thu" / "Thêm chi phí" — the reference's grid: created date +
+ * paid date, staff + customer (thu) or payee (chi), amount (its own row for
+ * thu, alongside channel + category for chi), description.
+ */
+export function SalesEntryModal({ open, entry, defaultType, onClose }: Props) {
+  const [form] = Form.useForm<FormValues>();
+  const type = entry?.type ?? defaultType;
+  const copy = COPY[type];
   const isEdit = entry !== null;
-  const type = Form.useWatch("type", form) ?? entry?.type ?? defaultType;
+  const isIncome = type === SALES_ENTRY_TYPE.Income;
 
-  // Income and expense keep separate category lists, as on the reference.
-  const categories = (categoryPage?.items ?? []).filter((c) => c.type === type);
+  const { data: staff = [] } = useMockStaffOptions();
+  const { data: patients = [] } = useMockPatientOptions();
+  const { data: allCategories = [] } = useMockCategories();
+  const categories = useMemo(() => allCategories.filter((c) => c.type === type), [allCategories, type]);
+  const channelLabels = useMemo(paymentChannelLabels, []);
 
   useEffect(() => {
     if (!open) return;
-
-    form.setFieldsValue({
-      type: entry?.type ?? defaultType,
-      categoryId: entry?.categoryId ?? undefined,
-      amount: entry?.amount ?? undefined,
-      channel: entry?.channel ?? PAYMENT_CHANNEL.Cash,
-      description: entry?.description ?? "",
-      entryDate: dayjs(entry?.entryDate ?? undefined),
-    });
-  }, [open, entry, defaultType, form]);
-
-  const handleAddCategory = async () => {
-    const name = newCategoryName.trim();
-    if (!name) return;
-
-    try {
-      const created = await createCategory.mutateAsync({
-        clinicBranchId: branchId,
-        name,
-        type,
-        appliesToTransfers: false,
+    form.resetFields();
+    if (entry) {
+      form.setFieldsValue({
+        paidDate: dayjs(entry.paidDate),
+        amount: entry.amount,
+        channel: entry.channel,
+        description: entry.description,
+        categoryId: allCategories.find((c) => c.name === entry.categoryName)?.id,
       });
-      form.setFieldValue("categoryId", created.id);
-      setNewCategoryName("");
-      toast.success(t("Đã thêm mục thu chi"));
-    } catch (error) {
-      toast.error(extractApiError(error));
     }
-  };
+  }, [open, entry, form, allCategories]);
 
-  const handleSubmit = async () => {
-    const values = await form.validateFields();
+  const handleFinish = useCallback(() => {
+    notifyDemoAction(isEdit && entry ? t("Sửa phiếu {0}", entry.code) : copy.create());
+    onClose();
+  }, [isEdit, entry, copy, onClose]);
 
-    if (!currentUserId) {
-      toast.error(t("Không xác định được người dùng hiện tại."));
-      return;
-    }
-
-    const entryDate = values.entryDate.format("YYYY-MM-DD");
-
-    try {
-      if (isEdit) {
-        await updateEntry.mutateAsync({
-          id: entry.id,
-          input: {
-            categoryId: values.categoryId,
-            amount: values.amount,
-            channel: values.channel,
-            description: values.description,
-            entryDate,
-          },
-        });
-        toast.success(t("Đã cập nhật phiếu"));
-      } else {
-        await createEntry.mutateAsync({
-          clinicBranchId: branchId,
-          type: values.type,
-          categoryId: values.categoryId,
-          staffId: currentUserId,
-          amount: values.amount,
-          channel: values.channel,
-          description: values.description,
-          entryDate,
-        });
-        toast.success(
-          values.type === SALES_ENTRY_TYPE.Expense
-            ? t("Đã tạo phiếu chi — đang chờ duyệt")
-            : t("Đã tạo phiếu thu"),
-        );
-      }
-
-      onClose();
-    } catch (error) {
-      toast.error(extractApiError(error));
-    }
-  };
+  // Thu: staff + customer, full-width amount, then channel + payer + category.
+  // Chi has no customer, so the payee takes that slot and amount + channel +
+  // category share one row (stacked on mobile).
+  const payerField = (
+    <FloatingField name="payer" label={copy.payer()}>
+      <Input />
+    </FloatingField>
+  );
 
   return (
-    <Modal
-      open={open}
-      title={isEdit ? t("Sửa phiếu {0}", entry.code) : t("Tạo phiếu thu chi")}
-      okText={isEdit ? t("Lưu") : t("Tạo")}
-      cancelText={t("Huỷ")}
-      confirmLoading={createEntry.isPending || updateEntry.isPending}
-      onOk={handleSubmit}
-      onCancel={onClose}
-      destroyOnHidden
-    >
-      <Form form={form} layout="vertical" requiredMark>
-        <Form.Item name="type" label={t("Loại phiếu")} rules={[{ required: true }]}>
-          <Select
-            disabled={isEdit}
-            options={[
-              { value: SALES_ENTRY_TYPE.Income, label: t("Phiếu thu") },
-              { value: SALES_ENTRY_TYPE.Expense, label: t("Phiếu chi (cần duyệt)") },
-            ]}
-            onChange={() => form.setFieldValue("categoryId", undefined)}
-          />
-        </Form.Item>
-
-        <Form.Item
-          name="categoryId"
-          label={t("Mục thu chi")}
-          rules={[{ required: true, message: t("Vui lòng chọn mục") }]}
-        >
-          <Select
-            placeholder={categories.length === 0 ? t("Chưa có mục — thêm bên dưới") : t("Chọn mục")}
-            options={categories.map((c) => ({ value: c.id, label: c.name }))}
-            popupRender={(menu) => (
-              <>
-                {menu}
-                <div style={{ display: "flex", gap: 8, padding: 8 }}>
-                  <Input
-                    placeholder={t("Thêm mục mới")}
-                    value={newCategoryName}
-                    onChange={(e) => setNewCategoryName(e.target.value)}
-                    onPressEnter={handleAddCategory}
-                  />
-                </div>
-              </>
+    <AppDialog open={open} title={isEdit ? copy.edit() : copy.create()} width={772} canSave onSave={() => form.submit()} onClose={onClose}>
+      <Form
+        form={form}
+        layout="vertical"
+        requiredMark={false}
+        initialValues={{ paidDate: dayjs(), channel: PAYMENT_CHANNEL.Cash }}
+        onFinish={handleFinish}
+      >
+        <Row gutter={[16, 12]}>
+          <Col xs={24} md={12}>
+            <FloatingLabel label={t("Ngày tạo")} floated>
+              <DatePicker className="report-full-width" value={dayjs(entry?.entryDate)} format="DD/MM/YYYY" disabled />
+            </FloatingLabel>
+          </Col>
+          <Col xs={24} md={12}>
+            <FloatingField name="paidDate" label={copy.paidDate()} required rules={[{ required: true, message: t("Vui lòng chọn ngày") }]}>
+              <DatePicker className="report-full-width" format="DD/MM/YYYY" allowClear={false} />
+            </FloatingField>
+          </Col>
+          <Col xs={24} md={12}>
+            <FloatingField name="staffId" label={t("Chọn nhân viên")}>
+              <SearchSelect options={staff} allowClear />
+            </FloatingField>
+          </Col>
+          <Col xs={24} md={12}>
+            {isIncome ? (
+              <FloatingField name="patientId" label={t("Chọn khách hàng")}>
+                <SearchSelect options={patients} allowClear />
+              </FloatingField>
+            ) : (
+              payerField
             )}
-          />
-        </Form.Item>
-
-        <Form.Item
-          name="amount"
-          label={t("Số tiền (đ)")}
-          rules={[
-            { required: true, message: t("Vui lòng nhập số tiền") },
-            { type: "number", min: 1, message: t("Số tiền phải lớn hơn 0") },
-          ]}
-        >
-          <CurrencyInput />
-        </Form.Item>
-
-        <Form.Item name="channel" label={t("Hình thức")} rules={[{ required: true }]}>
-          <Select options={CHANNEL_OPTIONS} />
-        </Form.Item>
-
-        <Form.Item
-          name="description"
-          label={t("Nội dung")}
-          rules={[{ required: true, message: t("Vui lòng nhập nội dung") }]}
-        >
-          <Input.TextArea rows={2} placeholder={t("Nội dung thu / chi")} />
-        </Form.Item>
-
-        <Form.Item name="entryDate" label={t("Ngày")} rules={[{ required: true }]}>
-          <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
-        </Form.Item>
+          </Col>
+          <Col xs={24} md={isIncome ? 24 : 8}>
+            <FloatingField name="amount" label={t("Số tiền")} required rules={[{ required: true, type: "number", min: 1, message: t("Số tiền phải lớn hơn 0") }]}>
+              <CurrencyInput />
+            </FloatingField>
+          </Col>
+          <Col xs={24} md={8}>
+            <FloatingField name="channel" label={t("Hình thức")}>
+              <Select options={MODAL_CHANNELS.map((c) => ({ value: c, label: channelLabels[c] }))} />
+            </FloatingField>
+          </Col>
+          {isIncome ? <Col xs={24} md={8}>{payerField}</Col> : null}
+          <Col xs={24} md={8}>
+            <FloatingField name="categoryId" label={copy.category()} required rules={[{ required: true, message: t("Vui lòng chọn mục") }]}>
+              <SearchSelect options={categories.map((c) => ({ value: c.id, label: c.name }))} />
+            </FloatingField>
+          </Col>
+          <Col xs={24}>
+            <FloatingField name="description" label={copy.description()}>
+              <Input.TextArea rows={4} />
+            </FloatingField>
+          </Col>
+        </Row>
       </Form>
-    </Modal>
+    </AppDialog>
   );
 }

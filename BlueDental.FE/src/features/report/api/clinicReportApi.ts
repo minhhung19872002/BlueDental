@@ -14,10 +14,20 @@ export interface PaymentStatSummaryDto {
   refundByCard: number;
   totalIncome: number;
   totalExpense: number;
+  totalIncomeByCash: number;
+  totalIncomeByBanking: number;
+  totalExpenseByCash: number;
+  totalExpenseByBanking: number;
   totalOutstandingDebt: number;
+  totalRefundOutstandingDebt: number;
+  totalArisingOutstandingDebt: number;
+  totalArisingPrepaid: number;
   totalPrepaid: number;
+  totalDebtTopup: number;
+  totalReplaceCarryoverOutstandingDebt: number;
   totalActualReceived: number;
   patientVisits: number;
+  appointmentCount: number;
 }
 
 export interface PatientHistoryRowDto {

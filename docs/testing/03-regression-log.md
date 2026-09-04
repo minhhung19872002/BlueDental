@@ -711,3 +711,4 @@ Cài đặt, Danh mục).
 
 Ghi chú: R-143 (tên chi nhánh lệch) nay đã hết — sau lần migrate này DB đã có
 đúng `Nha Khoa Đức Hạnh Premium` và `… - Chi nhánh 2`.
+| R-147 | `report.spec.ts` (đọc file Excel tải về) | `TypeError: XLSX.readFile is not a function` — bản ESM của `xlsx` chạy trong Node (Playwright) không gắn `fs`, nên không có `readFile` | Đọc bytes bằng `node:fs` rồi `XLSX.read(buf, { type: "buffer" })` (helper `workbookRows` trong spec). Dùng cách này cho mọi spec cần soi nội dung workbook |
