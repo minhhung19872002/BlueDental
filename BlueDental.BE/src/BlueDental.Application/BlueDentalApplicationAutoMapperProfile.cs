@@ -61,6 +61,13 @@ public class BlueDentalApplicationAutoMapperProfile : Profile
             .ForMember(d => d.DentistName, opt => opt.Ignore())
             .ForMember(d => d.ProcedureName, opt => opt.Ignore());
 
+        CreateMap<AppointmentChangeLog, AppointmentChangeLogDto>()
+            .ForMember(d => d.ChangedFields, opt => opt.Ignore())
+            .ForMember(d => d.Before, opt => opt.Ignore())
+            .ForMember(d => d.After, opt => opt.Ignore())
+            .ForMember(d => d.Diff, opt => opt.Ignore());
+        CreateMap<AppointmentSnapshot, AppointmentSnapshotDto>();
+
         /* Treatment Management */
         CreateMap<TreatmentPlan, TreatmentPlanDto>()
             .ForMember(d => d.PatientName, opt => opt.Ignore())

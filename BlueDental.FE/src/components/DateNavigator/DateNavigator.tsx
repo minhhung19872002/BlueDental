@@ -4,6 +4,8 @@ import { Button } from "antd";
 import { LeftOutlined, RightOutlined, CalendarOutlined } from "@ant-design/icons";
 import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
+import { t } from "@/lib/i18n";
+import { endOfWeek, startOfWeek, type WeekStart } from "@/utils/week";
 import "./DateNavigator.css";
 
 export type DateNavigatorMode = "day" | "week" | "month";
@@ -12,6 +14,8 @@ interface DateNavigatorProps {
   value: Dayjs;
   mode: DateNavigatorMode;
   onChange: (date: Dayjs) => void;
+  /** Sunday or Monday; left out, the dayjs locale decides (Monday in vi). */
+  weekStartsOn?: WeekStart;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -21,15 +25,21 @@ function stepDate(date: Dayjs, mode: DateNavigatorMode, dir: 1 | -1): Dayjs {
   return dir === 1 ? date.add(1, unit) : date.subtract(1, unit);
 }
 
-function formatDisplay(date: Dayjs, mode: DateNavigatorMode): string {
+function formatDisplay(date: Dayjs, mode: DateNavigatorMode, weekStartsOn?: WeekStart): string {
   if (mode === "day") return date.format("DD/MM/YYYY");
   if (mode === "week") {
-    return `${date.startOf("week").format("DD/MM")} - ${date.endOf("week").format("DD/MM/YYYY")}`;
+    return `${startOfWeek(date, weekStartsOn).format("DD/MM")} - ${endOfWeek(date, weekStartsOn).format("DD/MM/YYYY")}`;
   }
   return date.format("MM/YYYY");
 }
 
-const WEEKDAYS = ["Th 2", "Th 3", "Th 4", "Th 5", "Th 6", "Th 7", "CN"];
+/** Indexed like dayjs's day(): Sunday first. */
+const WEEKDAY_LABELS = ["CN", "Th 2", "Th 3", "Th 4", "Th 5", "Th 6", "Th 7"];
+
+/** The header row, read from whichever day opens the week. */
+function weekdayHeaders(firstDay: number): string[] {
+  return WEEKDAY_LABELS.map((_, i) => WEEKDAY_LABELS[(firstDay + i) % 7]);
+}
 
 const MONTH_NAMES = [
   "Tháng Một", "Tháng Hai", "Tháng Ba", "Tháng Tư",
@@ -43,11 +53,10 @@ const MONTHS_SHORT = [
   "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12",
 ];
 
-function getCalendarDays(year: number, month: number) {
+function getCalendarDays(year: number, month: number, weekStartsOn?: WeekStart) {
   const firstDay = dayjs().year(year).month(month).startOf("month");
-  const startOfWeek = firstDay.startOf("week");
   const days: Dayjs[] = [];
-  let current = startOfWeek;
+  let current = startOfWeek(firstDay, weekStartsOn);
   for (let i = 0; i < 42; i++) {
     days.push(current);
     current = current.add(1, "day");
@@ -60,22 +69,25 @@ function CalendarPanel({
   mode,
   onSelect,
   onReset,
+  weekStartsOn,
 }: {
   value: Dayjs;
   mode: "day" | "week";
   onSelect: (d: Dayjs) => void;
   onReset: () => void;
+  weekStartsOn?: WeekStart;
 }) {
   const [viewYear, setViewYear] = useState(value.year());
   const [viewMonth, setViewMonth] = useState(value.month());
   const [hoveredWeekStart, setHoveredWeekStart] = useState<string | null>(null);
   const [hoveredDay, setHoveredDay] = useState<string | null>(null);
 
-  const days = getCalendarDays(viewYear, viewMonth);
+  const days = getCalendarDays(viewYear, viewMonth, weekStartsOn);
   const today = dayjs().startOf("day");
+  const headers = weekdayHeaders(startOfWeek(today, weekStartsOn).day());
 
-  const selectedWeekStart = value.startOf("week");
-  const selectedWeekEnd = value.endOf("week");
+  const selectedWeekStart = startOfWeek(value, weekStartsOn);
+  const selectedWeekEnd = endOfWeek(value, weekStartsOn);
 
   const handlePrev = () => {
     const d = dayjs().year(viewYear).month(viewMonth).subtract(1, "month");
@@ -104,7 +116,7 @@ function CalendarPanel({
       </div>
 
       <div className="date-nav-weekdays">
-        {WEEKDAYS.map((wd) => (
+        {headers.map((wd) => (
           <div key={wd} className="date-nav-weekday">{wd}</div>
         ))}
       </div>
@@ -123,7 +135,7 @@ function CalendarPanel({
               (d.isAfter(selectedWeekStart, "day") || d.isSame(selectedWeekStart, "day")) &&
               (d.isBefore(selectedWeekEnd, "day") || d.isSame(selectedWeekEnd, "day"));
 
-            const weekStartKey = d.startOf("week").format("YYYY-MM-DD");
+            const weekStartKey = startOfWeek(d, weekStartsOn).format("YYYY-MM-DD");
             const inHoveredWeek = hoveredWeekStart === weekStartKey && !inSelectedWeek;
             const isHoveredDay = hoveredDay === d.format("YYYY-MM-DD") && !inSelectedWeek;
 
@@ -178,7 +190,7 @@ function CalendarPanel({
 
       <div className="date-nav-panel-footer">
         <button type="button" className="date-nav-reset" onClick={onReset}>
-          {mode === "week" ? "Tuần này" : "Đặt lại"}
+          {mode === "week" ? t("Tuần này") : t("Đặt lại")}
         </button>
       </div>
     </div>
@@ -238,6 +250,7 @@ export const DateNavigator: React.FC<DateNavigatorProps> = ({
   value,
   mode,
   onChange,
+  weekStartsOn,
   className,
   style,
 }) => {
@@ -334,7 +347,7 @@ export const DateNavigator: React.FC<DateNavigatorProps> = ({
       >
         <CalendarOutlined className="date-navigator-icon" />
         <span className="date-navigator-label">
-          {formatDisplay(value, mode)}
+          {formatDisplay(value, mode, weekStartsOn)}
         </span>
       </div>
 
@@ -348,6 +361,7 @@ export const DateNavigator: React.FC<DateNavigatorProps> = ({
               mode={mode}
               onSelect={handleSelect}
               onReset={handleReset}
+              weekStartsOn={weekStartsOn}
             />
           )}
         </div>,

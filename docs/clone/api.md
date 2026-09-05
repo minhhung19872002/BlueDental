@@ -175,10 +175,50 @@ GET  /api/v1/advise-groups
 
 ### Patient Images
 
+Đo 2026-09-05 (xem `pages/patient-detail.md` → Tab 5). Chỉ GET được quan sát
+thật; POST/PUT/DELETE lấy từ bundle client, **không** gọi trên bản gốc.
+
 ```
 GET  /api/v1/patient-images
      ?patientId=<id>&take=25&page=1
+     [&type=before|after]            ← lọc "Giai đoạn điều trị"
 ```
+
+Response (cấu trúc):
+
+```
+{
+  "data": [
+    {
+      "id": "<string>", "patientId": "<string>", "clinicId": "<string>",
+      "type": "before" | "after",
+      "ordering": <number>,          // 1-based, thứ tự trong ngày
+      "note": <string|null>,
+      "createdAt": "<iso>", "createdBy": "<string>",
+      "imageId": "<string>",
+      "image": { "id", "name": "<file name>", "url", "cdnUrl", "mime",
+                 "extension", "size": <bytes>, ... }
+    }
+  ],
+  "metadata": { "count", "page", "perPage", "totalPage", "hasNext", "hasPrevious" }
+}
+```
+
+```
+POST /api/v1/patient-images/upload      (multipart/form-data)
+     patientId=<id>  type=before|after  file=<binary>
+     [note=<string>] [ordering=<number>]
+     → trả về 1 bản ghi như trên
+
+PUT  /api/v1/patient-images/reorder     (json)
+     { "id": "<imageId>", "ordering": <vị trí đích, 1-based> }
+     → server xếp lại các ảnh còn lại: UNKNOWN_REFERENCE_BEHAVIOR
+
+DELETE /api/v1/patient-images/{id}
+```
+
+Quyền (ability subject `treatmentImage`): `read` xem, `create` tải,
+`update` kéo sắp xếp, `delete` xoá.
 
 ---
 
@@ -878,6 +918,58 @@ GET /api/v1/schedules/stats-by-time?...&dataType=logs
 GET /api/v1/schedule-logs?patientId=<id>&page=1&take=20&fromDate=&toDate=
 GET /api/v1/schedule-logs/stats?patientId=<id>&fromDate=&toDate=
 ```
+
+### `schedule-logs` → BlueDental (Lịch sử thay đổi lịch hẹn, 2026-09-05)
+
+Observed read-only on staging, `?tab=appointment` → "Lịch sử thay đổi". The
+dialog reads two endpoints with the same filter set: the list (paged) and the
+stats behind the cards. Filter controls seen: week navigator, Hành động,
+Trạng thái, Nguồn, actor (name / username), keyword, "Chỉ hiển thị thay đổi
+quan trọng". Each row carries `before` / `after` snapshots, the changed field
+names, actor (name, username, role), IP, user agent, source and a timestamp.
+
+Local equivalents (branch-scoped, permission `Appointment.Read`):
+
+```
+GET /api/v1/app/appointment-change-log
+      ?patientId=<id>&fromDate=YYYY-MM-DD&toDate=YYYY-MM-DD
+      &actions=<1..5>&actions=<1..5>&statuses=<n>&statuses=<n>&sources=<1..7>
+      &actor=<string>&keyword=<string>&importantOnly=<bool>
+      &skipCount=0&maxResultCount=20
+      → { items: AppointmentChangeLogDto[], totalCount }
+GET /api/v1/app/appointment-change-log/stats  (same filters, no paging)
+      → { total, important, byAction{}, byStatusTo{}, bySource{} }
+```
+
+`action`: 1 Created · 2 Updated · 3 StatusChanged · 4 Cancelled · 5 Deleted.
+`source`: 1 Web · 2 Mobile · 3 Api · 4 Import · 5 System · 6 Ai · 7 Webhook.
+The three pick-lists in the dialog are multi-selects, so `actions`,
+`statuses` and `sources` are repeated keys (`actions=1&actions=2`); the
+single-valued `action` / `status` / `source` are still accepted. `statuses`
+also expands the dialog's groups: "Đã đến" is CheckedIn, InProgress and
+Completed. `byStatusTo` leaves creations out, as the reference
+shows no "Đã hẹn" card for a patient whose only rows are creations. Existing
+appointments were backfilled with one "Tạo mới" row each by
+`BlueDentalAppointmentChangeLogBackfillSeeder`.
+
+Row shape details, all matched against the staging rows (2026-09-05):
+
+- A "Tạo mới" row has `changedFields: []` (the reference leaves "Thay đổi"
+  empty for creations) while its `diff` still lists every field that was set,
+  starting with `id`, `startTime`, `toTime` — the "Before → After" column reads
+  `+ id · + startTime · + toTime`.
+- An "Cập nhật" row lists the raw field keys (`status, content`) and the diff
+  carries `before` / `after` per field. A value that was never set and one saved
+  back as `""` are the same thing and are not logged.
+- The `stats` dictionaries are keyed by enum **name** (`"Created"`,
+  `"Confirmed"`, `"Web"`), which is how System.Text.Json writes an enum-keyed
+  dictionary; the client maps names (or numeric codes) to its buckets.
+- Rows written through the UI carry `source: 1` (Web), the caller's IP and the
+  browser / OS parsed from the user agent; backfilled rows carry `source: 5`
+  (System) and no client details.
+- Editing through "Chỉnh sửa lịch hẹn" also moves a `Requested` appointment to
+  `Confirmed` (the aggregate's `Reschedule` does so), so such a row reads
+  `status, content` even when only the content was typed.
 
 `schedule_stats` answered `data: []` for a patient with no appointments, so the
 per-status shape is unknown; the four counters read 0 from it.

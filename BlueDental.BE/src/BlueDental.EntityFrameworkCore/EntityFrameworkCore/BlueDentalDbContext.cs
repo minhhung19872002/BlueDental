@@ -1,4 +1,4 @@
-﻿using BlueDental.Appointments;
+using BlueDental.Appointments;
 using BlueDental.Billing;
 using BlueDental.Catalogs;
 using BlueDental.CustomerCare;
@@ -79,6 +79,7 @@ public class BlueDentalDbContext :
 
     // Appointments
     public DbSet<Appointment> Appointments { get; set; }
+    public DbSet<AppointmentChangeLog> AppointmentChangeLogs { get; set; }
 
     // Treatment Management
     public DbSet<TreatmentPlan> TreatmentPlans { get; set; }

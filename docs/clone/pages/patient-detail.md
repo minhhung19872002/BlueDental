@@ -297,21 +297,95 @@ Text: "Hiển thị 0 trên 0 lịch hẹn"
 URL: `?tab=image`
 Screenshot: reference-private/survey/patient-detail-image.png
 
+Đo lại **2026-09-05** trên staging, hồ sơ có 3 ảnh cùng một ngày. Nguồn: DOM +
+computed styles + bundle client (module `patient-images`). Chỉ thao tác không
+ghi: mở dropdown, chọn lọc, bấm "Xóa lọc", mở overlay xem ảnh, bấm "Tải ảnh"
+để xem nó mở gì (không chọn file). **Không kéo, không xoá, không tải.**
+
 ### Toolbar
 
-| Control | Type | Notes |
-|---------|------|-------|
-| Giai đoạn điều trị | Combobox/dropdown | Filter by treatment phase |
-| Tải ảnh | Button | Upload image — UNKNOWN_REFERENCE_BEHAVIOR (mutating — not clicked) |
+`section` bo **16px**, viền `#DCE3EE`, nền trắng, đệm **8px**, rộng theo nội
+dung (`w-fit`, 368×44 phần trong). Các control cách nhau **12px**:
 
-### Content Area
+| Control | Kích thước | Ghi chú |
+|---|---|---|
+| Select **Giai đoạn điều trị** (floating label) | 230×40, bo 8px, viền `#DCE3EE`, chữ 14px, chevron 16px | Nhãn nằm trong ô khi rỗng, nổi lên viền (`#5A6B82`/80, 500) khi có giá trị. Đúng **2** lựa chọn: `Trước điều trị` (`before`), `Sau điều trị` (`after`). **Không có giá trị mặc định** — mở tab là "tất cả". |
+| Nút **Xóa lọc** (`aria-label`) | 40×40, bo 12px, viền `#DCE3EE`, nền trong suốt, icon lucide `x` 16px, chữ `#1B2A41` | **Chỉ hiện khi đã chọn** một giai đoạn. Bấm → về "tất cả". |
+| Nút **Tải ảnh** | 126×44, bo 12px, viền **đứt** `#B9C4D4`, chữ `#2671D8` 14px/500, icon lucide `image-plus` 28px, hover nền `#E7F0FB` | Chỉ hiện với quyền `treatmentImage.create`. Bấm → mở **hộp chọn file của hệ điều hành** ngay (`accept=image/jpeg,image/jpg,image/png`, `multiple`), không có dialog trung gian. Khi đang xử lý: chữ đổi "Đang tải", disabled. |
 
-Empty state text: "Không có ảnh trong bộ lọc đã chọn"
-Empty state subtext: "Hãy đổi bộ lọc hoặc tải thêm ảnh để tiếp tục."
+Bộ lọc **không** ghi vào URL. Chọn giai đoạn → gọi lại API có `&type=`; "Xóa
+lọc" → về query không `type` (không gọi lại nếu cache còn).
 
-Image gallery layout when populated: UNKNOWN_REFERENCE_BEHAVIOR
+### Dữ liệu
 
----
+```
+GET /api/v1/patient-images?patientId=<id>&take=25&page=1[&type=before|after]
+```
+
+- Infinite scroll: sentinel 16px cuối danh sách, "Đang tải thêm…" khi tải trang sau.
+- Ảnh gộp theo **ngày** của `createdAt` (`YYYY-MM-DD`), ngày mới nhất trên cùng.
+  Trong ngày giữ **thứ tự API trả** (API trả `ordering` 1, 2, 3 tăng dần).
+- Client lọc thêm một lần nữa theo `type`; `type` khác `before`/`after` xếp
+  vào `other` ("Khác").
+- Có lớp phủ loading (spinner) khi đang fetch / tải / sắp xếp / xoá. Khi rỗng
+  mà đang tải: ô rỗng in "Đang tải dữ liệu…".
+
+### Timeline theo ngày
+
+Khối ngoài `space-y-5 relative`, có **đường dọc 1px** `#D6E6F7` chạy suốt
+chiều cao tại **left 133px** (mobile: 19px). Mỗi ngày là `section` grid
+`190px | 1fr`, gap **24px**:
+
+| Phần | Bản gốc |
+|---|---|
+| Cột trái | rộng 134px, cao tối thiểu 48px, `position: relative` |
+| Nhãn ngày | nền `#BFC3CB`, chữ trắng **14px/500**, đệm `2px 4px`, đặt `left: 28px`, canh giữa dọc; đuôi mũi tên là ô vuông **18px** xoay 45° cùng màu, `right: -8px`, `z-index: -1` |
+| Chấm | tròn **20px**, viền trắng 2px, nền `#D6E6F7`, bóng nhẹ, tại `right: -9px` (đè lên đường dọc); trong là chấm **16px** `#3E8AD8` |
+| Số ảnh | `p` 14px `#5A6B82`, `padding: 0 0 8px 24px`, `max-width 120px`: "N ảnh" |
+| Cột phải | hàng thẻ **ngang** `flex gap-4 overflow-x-auto`, bo **24px**, viền `#DCE3EE`, nền `#F8FBFF`, đệm `16px 16px 20px`, scrollbar mỏng; đây là vùng thả (droppable, `direction: horizontal`) |
+
+### Thẻ ảnh (`article`)
+
+| Phần | Bản gốc |
+|---|---|
+| Thẻ | **280px**, không co, `flex-col gap-3`, bo **22px**, viền `#DCE3EE`, nền trắng, đệm **12px**, bóng `0 10px 24px rgba(15,23,42,.05)`; đang kéo: viền `#2671D8`, bóng `0 18px 36px rgba(38,113,216,.16)` |
+| Ảnh | nút `aria-label="Xem ảnh <tên file>"` bọc `img` tỉ lệ **4:3**, rộng hết thẻ (254×190), `object-cover`, bo **18px**, hover `scale(1.01)` |
+| Tên file | 14px/600 `#1B2A41`, 1 dòng (`line-clamp-1`) |
+| Thời gian | 12px `#5A6B82`, `dd/MM/yyyy HH:mm` (theo `createdAt`) |
+| Hàng nút | căn phải, gap 8px, `margin-top: auto`. Ba nút tròn **36px**: kéo (`grip-vertical`, viền `#DCE3EE`, nền trắng, chữ `#5A6B82`, hover nền `#F6F8FB` chữ `#1B2A41`), xem (`eye`, viền `#DCE3EE`, chữ `#2671D8`, hover chữ `#1E5BB0`), xoá (`trash-2`, nền `#FFF1F1`, chữ `#E5484D`, hover nền `#FFE2E2`, không viền). Icon 16px. |
+| Tooltip | "Sắp xếp ảnh" / "Xem ảnh" / "Xóa ảnh" |
+
+Nút kéo chỉ hiện với quyền `treatmentImage.update`, nút xoá với
+`treatmentImage.delete`.
+
+### Hành động
+
+- **Xem** (nút mắt hoặc bấm ảnh): overlay lightGallery toàn màn hình, nền đen.
+  Toolbar phải: Vẽ chú thích · Xoay phải · Xoay trái · Lật ngang · Lật dọc ·
+  Zoom xa · Zoom gần · Đóng; mũi tên "Ảnh trước"/"Ảnh sau" hai bên; tên file
+  dưới ảnh; đếm "1 / N"; dải thumbnail **160×96** cách 10px ở đáy, thumb đang
+  xem viền xanh. Danh sách trong overlay = **mọi ảnh đang hiển thị (mọi ngày)**,
+  mở tại ảnh được bấm. Esc đóng.
+- **Kéo sắp xếp**: react-beautiful-dnd, kéo ngang **trong cùng một ngày**
+  (thả sang ngày khác bị bỏ qua). Thả → `PUT /api/v1/patient-images/reorder`
+  body `{ id, ordering: <vị trí đích, tính từ 1> }`, xong invalidate danh sách.
+  Không kéo trên bản gốc — server xếp lại các ảnh còn lại thế nào là
+  UNKNOWN_REFERENCE_BEHAVIOR (xem `unknowns.md`).
+- **Xoá**: modal xác nhận, tiêu đề "Xác nhận xoá ảnh", nội dung "Bạn có chắc
+  muốn xoá ảnh này không?", `DELETE /api/v1/patient-images/{id}`, toast
+  "Đã xoá ảnh" / lỗi "Không thể xoá ảnh". Không bấm trên bản gốc.
+- **Tải ảnh**: lọc `image/*`; tối đa **10 file/lần** (nhiều hơn → toast lỗi
+  nhưng vẫn tải 10 file đầu); client **resize** về tối đa 1600×1600, giới hạn
+  5 MB; `type` gửi lên = giai đoạn đang lọc, chưa lọc → `before`; tải **tuần
+  tự** từng file `POST /api/v1/patient-images/upload` (multipart `patientId`,
+  `type`, `file`, tuỳ chọn `note`, `ordering`); lỗi → toast "Không thể tải ảnh".
+
+### Rỗng
+
+Khung bo **28px**, viền **đứt** `#D6E6F7`, nền `#F8FBFF`, đệm `64px 24px`, canh
+giữa: "Không có ảnh trong bộ lọc đã chọn" (15px/600 `#1B2A41`) và "Hãy đổi bộ
+lọc hoặc tải thêm ảnh để tiếp tục." (13px `#5A6B82`, cách 4px). Không có icon.
+Khung **không** kéo dài hết màn hình — chiều cao theo nội dung.
 
 ---
 
@@ -747,9 +821,43 @@ logged as unknown: it toggles between "Xem theo giờ" and "Xem theo bác sĩ".
 
 - **No drag handle** on the consulting sheet: reordering advises is not
   implemented, and a handle that does nothing is worse than none.
-- **`Lịch sử thay đổi`** lists the patient's appointments with the audit stamps
-  the API returns. The reference reads a real `schedule-logs` collection;
-  BlueDental has no per-change log yet.
+- **`Lịch sử thay đổi`** (rebuilt 2026-09-05 from a read-only look at staging)
+  now reads a real per-change log, `appointment-change-log`, written on every
+  appointment create / update / status change / cancel / delete. Observed
+  structure, matched locally: title "LỊCH SỬ THAY ĐỔI LỊCH HẸN" + subtitle
+  (title 17px under the modal top, first stat card 30px under the subtitle
+  at 1600×900; an empty week swaps the cards for a dashed grey bar "Chưa có
+  thao tác nào trong khoảng thời gian này.");
+  stat cards (Tổng, then one per action and per resulting status **only when
+  its count is above zero**: flex-1, min 112 × 62, radius 12, teal border for
+  Tạo mới, orange for Cập nhật / Trễ hẹn); a 36px filter row (week navigator,
+  three 160px **multi-selects** — Hành động, Trạng thái, Nguồn; chosen values
+  as small tags, the overflow folded into "+n" (tag styling is BlueDental's,
+  see unknowns) —, two text boxes, a bordered checkbox "Chỉ hiển thị thay
+  đổi quan trọng", "Xóa lọc" once anything is set); a grey Bảng / Dòng thời
+  gian switch with a white active tab and "Xuất dữ liệu" (CSV / Excel / JSON);
+  the table (th 40px grey, td 12×16 padding) with Thời gian · Loại · Thay đổi ·
+  Before → After · Trạng thái · Người (letter avatar) · Nguồn · chevron; the
+  expanded panel (re-measured 2026-09-05: 16px of grey around white cards,
+  radius 12, 16px padding, 16px apart) — a bordered strip with the action
+  badge, THÔNG TIN, LỊCH HẸN and the time on the right; NGƯỜI THỰC HIỆN (28px
+  pale-blue circle avatar with blue initials, name 13/600 over the role,
+  then "Loại: Người dùng" on its own line); THÔNG TIN TRUY CẬP as three
+  icon rows (globe IP, device "Chrome trên Windows" — browser and OS names
+  only, no versions —, server Nguồn) with bold labels and blue values;
+  SO SÁNH TRƯỚC / SAU with one line per field: "# Ghi chú" in a 152px column,
+  a 26px red-edged TRƯỚC box, an arrow, a green-edged SAU box; CÁC TRƯỜNG BỊ
+  ẢNH HƯỞNG chips; and a last card in two columns — Schedule (id in a grey
+  mono pill) / Trạng thái, Actor / IP, Trình duyệt / Hệ điều hành; the
+  timeline groups rows by day ("05 THÁNG 9 2026",
+  "n mục") and opens the same panel inline; footer "Hiển thị a–b trên n lịch
+  sử" with "‹ Trước / Sau ›" under the table, only "Hiển thị n lịch sử" under
+  the timeline, which loads its next page of 20 on scroll (BlueDental's own:
+  the reference's timeline was seen with one page only); the week runs
+  Sunday to Saturday. Vietnamese labels for actions, statuses and
+  sources are the reference's. Component: `features/appointments/components/history/`.
+  The reference's export was broken while observed, so the three formats are
+  BlueDental's own full-column output.
 
 ---
 

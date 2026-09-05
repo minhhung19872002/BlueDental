@@ -26,6 +26,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     private readonly IIdentityUserRepository _userRepository;
     private readonly AppointmentConflictChecker _conflictChecker;
     private readonly ICurrentClinicBranchResolver _branchResolver;
+    private readonly AppointmentChangeRecorder _changeRecorder;
 
     public AppointmentAppService(
         IRepository<Appointment, Guid> repository,
@@ -33,8 +34,10 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         IRepository<DentalProcedure, Guid> procedureRepository,
         IIdentityUserRepository userRepository,
         AppointmentConflictChecker conflictChecker,
-        ICurrentClinicBranchResolver branchResolver)
+        ICurrentClinicBranchResolver branchResolver,
+        AppointmentChangeRecorder changeRecorder)
     {
+        _changeRecorder = changeRecorder;
         _repository = repository;
         _patientRepository = patientRepository;
         _procedureRepository = procedureRepository;
@@ -230,6 +233,16 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         return dto;
     }
 
+    /// <summary>
+    /// The appointment as the history will remember it, names included, so a
+    /// later rename of a doctor or patient does not rewrite the past.
+    /// </summary>
+    private async Task<AppointmentSnapshot> SnapshotAsync(Appointment appointment)
+    {
+        var dto = await ToDtoAsync(appointment);
+        return AppointmentSnapshot.From(appointment, dto.DentistName, dto.PatientName, dto.PatientPhone);
+    }
+
     private static readonly TimeSpan ClinicUtcOffset = TimeSpan.FromHours(7);
 
     /// <summary>
@@ -281,6 +294,8 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
             input.Notes);
 
         await _repository.InsertAsync(appointment, autoSave: true);
+        await _changeRecorder.RecordAsync(
+            AppointmentChangeAction.Created, appointment, null, await SnapshotAsync(appointment));
         return await ToDtoAsync(appointment);
     }
 
@@ -311,6 +326,8 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
             input.Notes);
 
         await _repository.InsertAsync(appointment, autoSave: true);
+        await _changeRecorder.RecordAsync(
+            AppointmentChangeAction.Created, appointment, null, await SnapshotAsync(appointment));
         return await ToDtoAsync(appointment);
     }
 
@@ -319,6 +336,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     {
         var appointment = await _repository.GetAsync(id);
         GuardBranchAccess(appointment);
+        var before = await SnapshotAsync(appointment);
         var slot = new AppointmentSlot(input.SlotStart, input.SlotEnd);
         var dentistId = input.DentistId ?? appointment.DentistId;
 
@@ -351,6 +369,8 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         }
 
         await _repository.UpdateAsync(appointment, autoSave: true);
+        await _changeRecorder.RecordAsync(
+            AppointmentChangeAction.Updated, appointment, before, await SnapshotAsync(appointment));
         return await ToDtoAsync(appointment);
     }
 
@@ -359,8 +379,11 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     {
         var appointment = await _repository.GetAsync(id);
         GuardBranchAccess(appointment);
+        var before = await SnapshotAsync(appointment);
         appointment.Confirm();
         await _repository.UpdateAsync(appointment, autoSave: true);
+        await _changeRecorder.RecordAsync(
+            AppointmentChangeAction.StatusChanged, appointment, before, await SnapshotAsync(appointment));
         return await ToDtoAsync(appointment);
     }
 
@@ -369,8 +392,11 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     {
         var appointment = await _repository.GetAsync(id);
         GuardBranchAccess(appointment);
+        var before = await SnapshotAsync(appointment);
         appointment.Cancel(input.Reason, input.Note);
         await _repository.UpdateAsync(appointment, autoSave: true);
+        await _changeRecorder.RecordAsync(
+            AppointmentChangeAction.Cancelled, appointment, before, await SnapshotAsync(appointment));
         return await ToDtoAsync(appointment);
     }
 
@@ -379,8 +405,11 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     {
         var appointment = await _repository.GetAsync(id);
         GuardBranchAccess(appointment);
+        var before = await SnapshotAsync(appointment);
         appointment.CheckIn();
         await _repository.UpdateAsync(appointment, autoSave: true);
+        await _changeRecorder.RecordAsync(
+            AppointmentChangeAction.StatusChanged, appointment, before, await SnapshotAsync(appointment));
         return await ToDtoAsync(appointment);
     }
 
@@ -389,8 +418,11 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     {
         var appointment = await _repository.GetAsync(id);
         GuardBranchAccess(appointment);
+        var before = await SnapshotAsync(appointment);
         appointment.Start();
         await _repository.UpdateAsync(appointment, autoSave: true);
+        await _changeRecorder.RecordAsync(
+            AppointmentChangeAction.StatusChanged, appointment, before, await SnapshotAsync(appointment));
         return await ToDtoAsync(appointment);
     }
 
@@ -399,8 +431,11 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     {
         var appointment = await _repository.GetAsync(id);
         GuardBranchAccess(appointment);
+        var before = await SnapshotAsync(appointment);
         appointment.Complete(input.Notes);
         await _repository.UpdateAsync(appointment, autoSave: true);
+        await _changeRecorder.RecordAsync(
+            AppointmentChangeAction.StatusChanged, appointment, before, await SnapshotAsync(appointment));
         return await ToDtoAsync(appointment);
     }
 
@@ -409,8 +444,11 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     {
         var appointment = await _repository.GetAsync(id);
         GuardBranchAccess(appointment);
+        var before = await SnapshotAsync(appointment);
         appointment.MarkNoShow();
         await _repository.UpdateAsync(appointment, autoSave: true);
+        await _changeRecorder.RecordAsync(
+            AppointmentChangeAction.StatusChanged, appointment, before, await SnapshotAsync(appointment));
         return await ToDtoAsync(appointment);
     }
 
@@ -419,8 +457,11 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     {
         var appointment = await _repository.GetAsync(id);
         GuardBranchAccess(appointment);
+        var before = await SnapshotAsync(appointment);
         appointment.AssignDentist(input.DentistId);
         await _repository.UpdateAsync(appointment, autoSave: true);
+        await _changeRecorder.RecordAsync(
+            AppointmentChangeAction.Updated, appointment, before, await SnapshotAsync(appointment));
         return await ToDtoAsync(appointment);
     }
 
@@ -429,8 +470,11 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     {
         var appointment = await _repository.GetAsync(id);
         GuardBranchAccess(appointment);
+        var before = await SnapshotAsync(appointment);
         appointment.SetOutcome(input.Outcome);
         await _repository.UpdateAsync(appointment, autoSave: true);
+        await _changeRecorder.RecordAsync(
+            AppointmentChangeAction.Updated, appointment, before, await SnapshotAsync(appointment));
         return await ToDtoAsync(appointment);
     }
 
@@ -439,7 +483,9 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     {
         var appointment = await _repository.GetAsync(id);
         GuardBranchAccess(appointment);
+        var before = await SnapshotAsync(appointment);
         await _repository.DeleteAsync(appointment, autoSave: true);
+        await _changeRecorder.RecordAsync(AppointmentChangeAction.Deleted, appointment, before, null);
     }
 
     [Authorize(BlueDentalAbilityPermissions.Appointment.Delete)]
@@ -449,7 +495,17 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         var query = await _repository.GetQueryableAsync();
         var appointments = await AsyncExecuter.ToListAsync(
             query.Where(a => ids.Contains(a.Id) && a.BranchId == branchId));
+        var snapshots = new List<(Appointment Appointment, AppointmentSnapshot Before)>();
+        foreach (var appointment in appointments)
+        {
+            snapshots.Add((appointment, await SnapshotAsync(appointment)));
+        }
+
         await _repository.DeleteManyAsync(appointments, autoSave: true);
+        foreach (var (appointment, before) in snapshots)
+        {
+            await _changeRecorder.RecordAsync(AppointmentChangeAction.Deleted, appointment, before, null);
+        }
     }
 
     private void GuardBranchAccess(Appointment entity)

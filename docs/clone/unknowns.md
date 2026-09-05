@@ -843,14 +843,14 @@ Action taken: NONE. Chỉ mở dialog, mở dropdown bác sĩ, đổi Ngày/Tu�
         rồi đóng bằng X. Cấu trúc trường, kích thước và bảng màu đọc từ DOM
         và computed style — xem docs/clone/pages/patient-detail.md.
 
-UNKNOWN_REFERENCE_BEHAVIOR
-Page: /patient/<id>?tab=appointment
-Control: nút "Lịch sử thay đổi"
-Reason: chưa mở được để đọc cấu trúc bảng; bản gốc lấy dữ liệu từ
-        GET /api/v1/schedule-logs (đã bắt được ở tab, có phân trang và
-        /stats), nhưng cột hiển thị thì chưa quan sát.
-Action taken: NONE. BlueDental tạm liệt kê lịch hẹn của bệnh nhân kèm dấu
-        thời gian audit mà API trả về, và ghi rõ đây là chỗ khác bản gốc.
+RESOLVED 2026-09-05 — nút "Lịch sử thay đổi" (/patient/<id>?tab=appointment)
+        Đã mở được trên staging (chỉ đọc) với một bệnh nhân có sẵn lịch sử:
+        thẻ thống kê, hàng lọc, bảng / dòng thời gian, panel mở rộng và
+        footer đều đã đọc từ DOM + computed style; ghi ở
+        docs/clone/pages/patient-detail.md và docs/clone/api.md. Còn chưa
+        rõ: nút "Xuất dữ liệu" của bản gốc đang lỗi khi quan sát, nên nội
+        dung file xuất là của BlueDental tự định nghĩa (CSV / Excel / JSON đủ
+        cột). Không thao tác ghi nào được thực hiện trên bản gốc.
 
 UNKNOWN_REFERENCE_BEHAVIOR
 Page: /patient/<id>?tab=consulting — bảng "Phiếu tư vấn"
@@ -919,4 +919,49 @@ Reason: Kéo thả để đổi thứ tự sẽ ghi thứ tự mới lên hệ t
 Action taken: NONE
 BlueDental: dựng nút cho đúng hình, nhưng **chưa nối** chức năng kéo — thứ tự
   ảnh chưa được lưu.
+
+
+## UNKNOWN_REFERENCE_BEHAVIOR — sắp xếp lại ảnh phía server (tab Hình ảnh)
+
+Page: /patient/{id}?tab=image
+Control: nút kéo (grip) trên thẻ ảnh — thả vào vị trí mới trong cùng ngày
+Reason: Bundle cho thấy client chỉ gửi `PUT /patient-images/reorder
+  { id, ordering: <vị trí đích> }` cho **một** ảnh. Server đẩy các ảnh còn lại
+  trong ngày như thế nào (dồn lên / đổi chỗ / để trùng ordering) không quan sát
+  được vì kéo là ghi dữ liệu thật.
+Action taken: NONE
+BlueDental: đọc là "chuyển ảnh tới vị trí đích, các ảnh còn lại cùng ngày dồn
+  lại theo thứ tự cũ" (giống danh sách kéo-thả thông thường) và đánh số lại
+  1..N trong ngày đó. Đây là **suy đoán**.
+
+## UNKNOWN_REFERENCE_BEHAVIOR — xoá ảnh (tab Hình ảnh)
+
+Page: /patient/{id}?tab=image
+Control: nút thùng rác đỏ trên thẻ ảnh
+Reason: Mở modal "Xác nhận xoá ảnh" rồi xoá thật. Không bấm nên chưa thấy nhãn
+  nút xác nhận của modal (bundle không truyền `confirmLabel`, dùng mặc định
+  của component dùng chung).
+Action taken: NONE
+BlueDental: dùng modal xác nhận chung của app, nút "Xoá".
+
+## UNKNOWN_REFERENCE_BEHAVIOR — tải ảnh (tab Hình ảnh)
+
+Page: /patient/{id}?tab=image
+Control: nút "Tải ảnh" (đã xác nhận nó mở hộp chọn file, không có dialog)
+Reason: Không chọn file nên không thấy server kiểm tra gì thêm (kích thước,
+  định dạng) ngoài những gì client tự làm (resize 1600px, tối đa 5 MB, 10
+  file/lần, chỉ jpeg/png).
+Action taken: NONE
+BlueDental: giữ giới hạn client như bản gốc; server nhận jpeg/png/webp tối đa
+  20 MB như hiện tại.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: Patient detail → Lịch hẹn → "Lịch sử thay đổi" modal
+Control: Hành động / Trạng thái / Nguồn multi-selects
+Reason: The boxes are multi-selects (reported by the product owner), but how the
+reference draws several chosen values inside the 160px box (tags, "+n",
+comma list) and whether its query repeats the key per value were not
+observed. Local: small tags, overflow folded into "+n", repeated keys.
+Action taken: NONE
 

@@ -63,6 +63,42 @@ function freeDay(runSuffix: string, offsetDays: number): string {
   return `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
 }
 
+/**
+ * The tab pages twenty rows at a time and the seeded patient already has more
+ * than that, so the row just booked may sit on a later page: walk the pager
+ * until it shows up.
+ */
+async function findRow(page: Page, reason: string) {
+  const row = page.locator("tbody tr", { hasText: reason }).first();
+  for (let hop = 0; hop < 10; hop += 1) {
+    if (await row.isVisible()) return row;
+    const next = page.locator(".ant-pagination-next").first();
+    if ((await next.getAttribute("aria-disabled")) === "true") break;
+    const loaded = page.waitForResponse(
+      (res) => res.url().includes("/api/v1/app/appointments") && res.request().method() === "GET",
+    );
+    await next.click();
+    await loaded;
+  }
+  await expect(row).toBeVisible();
+  return row;
+}
+
+/** Walks every page of the tab and fails if any row still carries `reason`. */
+async function expectNoRow(page: Page, reason: string) {
+  await expect(page.locator(".pd-appointment-card tbody tr.ant-table-row").first()).toBeVisible();
+  for (let hop = 0; hop < 10; hop += 1) {
+    await expect(page.locator("tbody tr", { hasText: reason })).toHaveCount(0);
+    const next = page.locator(".ant-pagination-next").first();
+    if ((await next.getAttribute("aria-disabled")) === "true") return;
+    const loaded = page.waitForResponse(
+      (res) => res.url().includes("/api/v1/app/appointments") && res.request().method() === "GET",
+    );
+    await next.click();
+    await loaded;
+  }
+}
+
 test.describe("Lịch hẹn của bệnh nhân", () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
@@ -219,4 +255,46 @@ test.describe("Lịch hẹn của bệnh nhân", () => {
     const last = await cols.last().boundingBox();
     expect(last!.x).toBeGreaterThan(first!.x + first!.width - 4);
   });
+
+  test("deleting asks first, Huỷ keeps the row, and Xoá removes it for real", async ({ page }) => {
+    const id = runId();
+    const reason = `E2E xoá ${id}`;
+
+    await openAppointmentTab(page);
+    await page.getByRole("button", { name: "Tạo lịch hẹn mới" }).click();
+    const create = page.getByRole("dialog", { name: "Tạo lịch hẹn" });
+    await chooseSlot(create, freeDay(id, 3), "11:15");
+    await pickFirstDoctor(page);
+    await create.getByPlaceholder("Nội dung đặt lịch").fill(reason);
+    await create.getByRole("button", { name: "Lưu" }).click();
+    await expect(create).toBeHidden();
+
+    const row = await findRow(page, reason);
+
+    // Pencil and red bin side by side, as on the reference; the bin asks first,
+    // with the reference's own words, and Huỷ changes nothing.
+    await row.getByRole("button", { name: "Xoá lịch hẹn" }).click();
+    const dialog = page.getByRole("dialog", { name: "Xoá lịch hẹn" });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText("Bạn có chắc muốn xoá lịch hẹn này không?")).toBeVisible();
+    await expect(dialog.getByText("Hành động này không thể hoàn tác.")).toBeVisible();
+    await dialog.getByRole("button", { name: "Huỷ" }).click();
+    await expect(dialog).toBeHidden();
+    await expect(row).toBeVisible();
+
+    // Xoá goes to the server; the row is gone at once and after a reload.
+    await row.getByRole("button", { name: "Xoá lịch hẹn" }).click();
+    const deleted = page.waitForResponse(
+      (res) =>
+        res.url().includes("/api/v1/app/appointments/") && res.request().method() === "DELETE",
+    );
+    await dialog.getByRole("button", { name: "Xoá" }).click();
+    expect((await deleted).ok()).toBeTruthy();
+    await expect(dialog).toBeHidden();
+    await expect(page.locator("tbody tr", { hasText: reason })).toHaveCount(0);
+
+    await page.reload();
+    await expectNoRow(page, reason);
+  });
+
 });

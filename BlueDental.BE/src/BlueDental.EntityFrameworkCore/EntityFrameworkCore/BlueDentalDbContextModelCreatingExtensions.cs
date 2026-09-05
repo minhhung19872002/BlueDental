@@ -1,4 +1,4 @@
-﻿using BlueDental.Appointments;
+using BlueDental.Appointments;
 using BlueDental.Appointments.Values;
 using BlueDental.Billing;
 using BlueDental.Billing.Values;
@@ -276,6 +276,29 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => new { x.PatientId, x.Status });
             entity.HasIndex(x => new { x.BranchId, x.Status });
             entity.HasIndex(x => new { x.BranchId, x.IsTemporary });
+        });
+
+        builder.Entity<AppointmentChangeLog>(entity =>
+        {
+            entity.ToTable("bd_appointment_change_logs");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Action).HasConversion<short>();
+            entity.Property(x => x.Source).HasConversion<short>();
+            entity.Property(x => x.StatusBefore).HasConversion<short>();
+            entity.Property(x => x.StatusAfter).HasConversion<short>();
+            entity.Property(x => x.ChangedFields).HasMaxLength(500);
+            entity.Property(x => x.ChangesJson).IsRequired();
+            entity.Property(x => x.ActorName).HasMaxLength(200);
+            entity.Property(x => x.ActorUserName).HasMaxLength(256);
+            entity.Property(x => x.ActorRole).HasMaxLength(100);
+            entity.Property(x => x.IpAddress).HasMaxLength(64);
+            entity.Property(x => x.Browser).HasMaxLength(100);
+            entity.Property(x => x.OperatingSystem).HasMaxLength(100);
+            entity.Property(x => x.UserAgent).HasMaxLength(512);
+
+            entity.HasIndex(x => new { x.PatientId, x.OccurredAt });
+            entity.HasIndex(x => x.AppointmentId);
+            entity.HasIndex(x => new { x.BranchId, x.OccurredAt });
         });
     }
 

@@ -1,0 +1,981 @@
+/* ── Lịch sử thay đổi lịch hẹn ───────────────────────────────────────────────
+   The dialog behind "Lịch sử thay đổi" on a patient's Lịch hẹn tab. Colours the
+   reference paints its badges and cards in are named once here; everything
+   structural comes from the --bd-* tokens. */
+
+.ah-modal {
+  --ah-ink: #1b2a41;
+  --ah-muted: #5a6b82;
+  --ah-line: #dce3ee;
+  --ah-line-soft: #e5eaf1;
+  --ah-panel: #f6f8fb;
+
+  --ah-green: #047857;
+  --ah-green-dot: #10b981;
+  --ah-green-bg: #ecfdf5;
+  --ah-green-line: #99f6e4;
+  --ah-orange: #c2410c;
+  --ah-orange-dot: #f97316;
+  --ah-orange-bg: #fff7ed;
+  --ah-orange-line: #fed7aa;
+  --ah-blue: #1d4ed8;
+  --ah-blue-dot: #3b82f6;
+  --ah-blue-bg: #eef2ff;
+  --ah-blue-line: #bfdbfe;
+  --ah-red: #b91c1c;
+  --ah-red-dot: #ef4444;
+  --ah-red-bg: #fef2f2;
+  --ah-red-line: #fecaca;
+  --ah-gray: #374151;
+  --ah-gray-dot: #6b7280;
+  --ah-gray-bg: #f3f4f6;
+  --ah-gray-line: #e5e7eb;
+
+  top: 0;
+  width: calc(100vw - 32px) !important;
+  max-width: none;
+  margin: 0;
+  padding-bottom: 0;
+}
+
+/* Full screen: 16px of page around a dialog that never scrolls as a whole.
+   The stat cards, filters and toolbar take their own height; the bordered
+   panel below them takes everything that is left. */
+/* Ant Design 6 names the shell .ant-modal-container (5 called it -content);
+   both are listed so the height holds across the upgrade. */
+.ah-modal .ant-modal-container,
+.ah-modal .ant-modal-content {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 32px);
+  max-height: calc(100vh - 32px);
+  padding: 0;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  color: var(--ah-ink);
+}
+
+/* Measured on the reference at 1600×900: the title sits 17px under the top
+   edge and the first stat card 30px under the subtitle. */
+.ah-modal .ant-modal-header {
+  flex: none;
+  margin: 0;
+  padding: 8px 24px 16px;
+  border-bottom: 0;
+}
+
+.ah-modal .ant-modal-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  padding: 14px 24px 24px;
+  overflow: hidden;
+}
+
+.ah-title {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 24px;
+  text-transform: uppercase;
+  color: var(--ah-ink);
+}
+
+.ah-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.ah-panel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid var(--ah-line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.ah-panel[hidden] {
+  display: none;
+}
+
+.ah-panel-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* ── Stat cards ─────────────────────────────────────────────────────────── */
+
+.ah-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+/* The reference's quiet bar is dashed, the same grey as the panel behind it. */
+.ah-stats-empty {
+  margin-bottom: 12px;
+  padding: 12px 16px;
+  border: 1px dashed var(--ah-line);
+  border-radius: 12px;
+  background: var(--ah-panel);
+  box-sizing: border-box;
+  font-size: 13px;
+  color: var(--ah-muted);
+}
+
+.ah-stat {
+  display: flex;
+  flex: 1 1 112px;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 112px;
+  height: 62px;
+  padding: 8px 12px;
+  border: 1px solid var(--ah-line);
+  border-radius: 12px;
+  background: var(--bd-card);
+  box-sizing: border-box;
+}
+
+.ah-stat-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--ah-muted);
+}
+
+.ah-stat-value {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 26px;
+  color: var(--ah-ink);
+}
+
+.ah-stat--green { border-color: var(--ah-green-line); }
+.ah-stat--green .ah-stat-value { color: var(--ah-green); }
+.ah-stat--orange { border-color: var(--ah-orange-line); }
+.ah-stat--orange .ah-stat-value { color: var(--ah-orange); }
+.ah-stat--blue { border-color: var(--ah-blue-line); }
+.ah-stat--blue .ah-stat-value { color: var(--ah-blue); }
+.ah-stat--red { border-color: var(--ah-red-line); }
+.ah-stat--red .ah-stat-value { color: var(--ah-red); }
+
+/* ── Filter row ─────────────────────────────────────────────────────────── */
+
+.ah-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ah-filters .ah-week {
+  height: 36px;
+}
+
+.ah-select {
+  width: 160px;
+}
+
+.ah-modal .ah-select .ant-select-selector {
+  height: 36px !important;
+  border-color: var(--ah-line);
+  border-radius: 8px;
+}
+
+.ah-modal .ah-select .ant-select-selection-placeholder,
+.ah-modal .ah-select .ant-select-selection-item {
+  line-height: 34px !important;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.ah-modal .ah-select .ant-select-selection-placeholder {
+  color: rgba(90, 107, 130, 0.8);
+}
+
+/* Multi-select: picked values are small tags on one 36px line, "+n" when they overflow. */
+.ah-modal .ah-select.ant-select-multiple .ant-select-selector {
+  padding: 0 32px 0 6px;
+  background: #fff;
+}
+
+.ah-modal .ah-select.ant-select-multiple .ant-select-selection-overflow {
+  height: 34px;
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+.ah-modal .ah-select.ant-select-multiple .ant-select-selection-placeholder {
+  left: 12px;
+}
+
+.ah-modal .ah-select.ant-select-multiple .ant-select-selection-item {
+  height: 24px;
+  margin: 0 4px 0 0;
+  padding: 0 6px 0 8px;
+  border: 1px solid var(--ah-line);
+  border-radius: 6px;
+  background: var(--ah-panel);
+  line-height: 22px !important;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ah-ink);
+}
+
+.ah-modal .ah-select.ant-select-multiple .ant-select-selection-item-remove {
+  font-size: 10px;
+  color: var(--ah-muted);
+}
+
+.ah-modal .ah-input {
+  width: 200px;
+  height: 36px;
+  border-color: var(--ah-line);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.ah-modal .ah-input--wide {
+  width: 220px;
+}
+
+.ah-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--ah-line);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ah-ink);
+  cursor: pointer;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.ah-check:hover {
+  background: var(--ah-panel);
+}
+
+.ah-modal .ah-clear.ant-btn {
+  height: 36px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ah-muted);
+}
+
+/* ── View switch + export ───────────────────────────────────────────────── */
+
+.ah-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+/* The reference's switch is a grey pill with a white active tab, not the
+   navy one the app uses elsewhere; SegmentedTabs is reskinned here only. */
+.ah-toolbar .seg-tabs {
+  height: 36px;
+  padding: 3px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--ah-panel);
+}
+
+.ah-toolbar .seg-tabs-thumb {
+  border-radius: 6px;
+  background: var(--bd-card);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.ah-toolbar .seg-tabs-item {
+  padding: 2px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ah-muted);
+}
+
+.ah-toolbar .seg-tabs-item--active {
+  color: var(--ah-ink);
+}
+
+.ah-modal .ah-toolbar .ant-btn {
+  height: 36px;
+  border-color: var(--ah-line);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* ── Badges ─────────────────────────────────────────────────────────────── */
+
+.ah-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border: 1px solid var(--ah-gray-line);
+  border-radius: var(--bd-radius-pill);
+  background: var(--ah-gray-bg);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 15px;
+  color: var(--ah-gray);
+  white-space: nowrap;
+}
+
+.ah-badge--green { border-color: var(--ah-green-line); background: var(--ah-green-bg); color: var(--ah-green); }
+.ah-badge--orange { border-color: var(--ah-orange-line); background: var(--ah-orange-bg); color: var(--ah-orange); }
+.ah-badge--blue { border-color: var(--ah-blue-line); background: var(--ah-blue-bg); color: var(--ah-blue); }
+.ah-badge--red { border-color: var(--ah-red-line); background: var(--ah-red-bg); color: var(--ah-red); }
+
+.ah-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ah-gray-dot);
+}
+
+.ah-dot--lg {
+  width: 10px;
+  height: 10px;
+}
+
+.ah-dot--green { background: var(--ah-green-dot); }
+.ah-dot--orange { background: var(--ah-orange-dot); }
+.ah-dot--blue { background: var(--ah-blue-dot); }
+.ah-dot--red { background: var(--ah-red-dot); }
+
+.ah-source {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  border-radius: var(--bd-radius-pill);
+  background: var(--ah-blue-bg);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--ah-blue);
+}
+
+.ah-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  border-radius: var(--bd-radius-pill);
+  background: var(--ah-gray-bg);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 20px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ah-gray);
+}
+
+.ah-pill--blue { background: var(--ah-blue-bg); color: var(--ah-blue); }
+
+.ah-status {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ah-muted);
+}
+
+.ah-status--green { color: var(--ah-green); }
+.ah-status--orange { color: var(--ah-orange); }
+.ah-status--blue { color: var(--ah-blue); }
+.ah-status--red { color: var(--ah-red); }
+
+/* ── Table ──────────────────────────────────────────────────────────────── */
+
+.ah-modal .ah-table .ant-table {
+  font-size: 14px;
+  color: var(--ah-ink);
+}
+
+.ah-modal .ah-table .ant-table {
+  border-radius: 0;
+}
+
+.ah-modal .ah-table .ant-table-thead > tr > th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 40px;
+  padding: 8px 16px;
+  background: var(--ah-panel);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ah-muted);
+}
+
+.ah-modal .ah-table .ant-table-thead > tr > th::before {
+  display: none;
+}
+
+.ah-modal .ah-table .ant-table-tbody > tr > td {
+  padding: 12px 16px;
+  font-size: 14px;
+  line-height: 20px;
+  vertical-align: middle;
+}
+
+.ah-modal .ah-table .ant-table-tbody > tr.ah-expanded-row > td {
+  padding: 0;
+  background: var(--ah-panel);
+}
+
+.ah-time {
+  white-space: nowrap;
+}
+
+.ah-fields,
+.ah-diff-summary {
+  font-size: 13px;
+  color: var(--ah-ink);
+  word-break: break-word;
+}
+
+.ah-actor {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ah-actor-name {
+  font-weight: 500;
+}
+
+/* The reference's history avatars are a pale blue circle with blue initials,
+   whatever the letter, unlike the coloured squares on the list screens. */
+.ah-modal .ah-avatar {
+  width: 28px;
+  height: 28px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 50%;
+  background-color: var(--ah-blue-bg) !important;
+  color: var(--ah-blue);
+}
+
+.ah-modal .ah-avatar--sm {
+  width: 22px;
+  height: 22px;
+  font-size: 10px;
+}
+
+.ah-modal .ah-expand.ant-btn {
+  color: var(--ah-muted);
+}
+
+/* ── Detail panel ───────────────────────────────────────────────────────── */
+/* Measured on the reference's expanded row: 16px of grey around white cards
+   (radius 12, 16px padding, 16px apart); the badge strip is a card of its own. */
+
+.ah-detail {
+  --ah-value: #1e40af;
+  padding: 16px;
+  background: var(--ah-panel);
+}
+
+.ah-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 8px 16px;
+  margin-bottom: 16px;
+  border: 1px solid var(--ah-line-soft);
+  border-radius: 12px;
+  background: var(--bd-card);
+  box-sizing: border-box;
+}
+
+.ah-detail-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.ah-detail-when {
+  font-size: 12px;
+  color: var(--ah-muted);
+}
+
+.ah-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.ah-card {
+  padding: 16px;
+  border: 1px solid var(--ah-line-soft);
+  border-radius: 12px;
+  background: var(--bd-card);
+}
+
+.ah-card--diff,
+.ah-card--fields {
+  margin-bottom: 16px;
+}
+
+.ah-card-title {
+  margin: 0 0 14px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ah-muted);
+}
+
+.ah-card-empty {
+  font-size: 13px;
+  color: var(--ah-muted);
+}
+
+.ah-person {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.ah-person-name {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--ah-ink);
+}
+
+.ah-person-sub {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--ah-muted);
+}
+
+.ah-person-kind {
+  font-size: 12px;
+  color: var(--ah-muted);
+}
+
+.ah-person-kind-value {
+  font-weight: 500;
+  color: var(--ah-ink);
+}
+
+.ah-access {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.ah-access li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 16px;
+}
+
+.ah-access svg {
+  flex: none;
+  color: var(--ah-muted);
+}
+
+.ah-access-label {
+  font-weight: 600;
+  color: var(--ah-ink);
+}
+
+.ah-access-value {
+  color: var(--ah-value);
+  word-break: break-word;
+}
+
+.ah-diff-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Field name, before, arrow, after — all on one line. */
+.ah-diff-row {
+  display: grid;
+  grid-template-columns: 152px 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+}
+
+.ah-diff-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ah-ink);
+}
+
+.ah-diff-field svg {
+  flex: none;
+  color: var(--ah-muted);
+}
+
+.ah-diff-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 26px;
+  padding: 4px 10px;
+  border-left: 3px solid var(--ah-gray-dot);
+  border-radius: 4px;
+  background: var(--ah-gray-bg);
+  box-sizing: border-box;
+}
+
+.ah-diff-box--before {
+  border-left-color: var(--ah-red-dot);
+  background: var(--ah-red-bg);
+}
+
+.ah-diff-box--after {
+  border-left-color: var(--ah-green-dot);
+  background: var(--ah-green-bg);
+}
+
+.ah-diff-tag {
+  flex: none;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ah-diff-box--before .ah-diff-tag {
+  color: var(--ah-red);
+}
+
+.ah-diff-box--after .ah-diff-tag {
+  color: var(--ah-green);
+}
+
+.ah-diff-value {
+  font-size: 12px;
+  color: var(--ah-value);
+  word-break: break-word;
+}
+
+.ah-diff-arrow {
+  color: var(--ah-muted);
+}
+
+.ah-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ah-chip {
+  display: inline-flex;
+  padding: 2px 10px;
+  border-radius: var(--bd-radius-pill);
+  background: var(--ah-blue-bg);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ah-blue);
+}
+
+/* The raw facts, two columns: Schedule / Trạng thái, Actor / IP, Trình duyệt / Hệ điều hành. */
+.ah-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 24px;
+  font-size: 12px;
+}
+
+.ah-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  line-height: 16px;
+}
+
+.ah-meta-label {
+  flex: none;
+  font-weight: 600;
+  color: var(--ah-ink);
+}
+
+.ah-meta-value {
+  color: var(--ah-value);
+  word-break: break-word;
+}
+
+.ah-meta code {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--ah-gray-bg);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: var(--ah-muted);
+  word-break: break-all;
+}
+
+/* ── Timeline ───────────────────────────────────────────────────────────── */
+
+.ah-timeline {
+  padding: 12px 16px;
+}
+
+.ah-timeline--loading {
+  opacity: 0.6;
+}
+
+.ah-tl-group {
+  margin-bottom: 16px;
+}
+
+.ah-tl-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.ah-tl-date {
+  display: inline-flex;
+  padding: 4px 12px;
+  border-radius: var(--bd-radius-pill);
+  background: var(--ah-blue-bg);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ah-blue);
+}
+
+.ah-tl-count {
+  font-size: 12px;
+  color: var(--ah-muted);
+}
+
+.ah-tl-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ah-tl-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--ah-line-soft);
+  border-radius: 12px;
+  background: var(--bd-card);
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ah-tl-item:hover {
+  background: var(--ah-panel);
+}
+
+.ah-tl-item--open {
+  border-color: var(--ah-blue-line);
+}
+
+.ah-tl-time {
+  flex: none;
+  width: 44px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ah-ink);
+}
+
+.ah-tl-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ah-tl-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.ah-tl-actor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ah-ink);
+}
+
+.ah-tl-right {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--ah-muted);
+}
+
+.ah-tl-chevron {
+  transition: transform 0.2s ease;
+}
+
+.ah-tl-chevron--open {
+  transform: rotate(90deg);
+}
+
+.ah-tl-detail {
+  margin-top: 6px;
+  border: 1px solid var(--ah-line-soft);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.ah-empty {
+  padding: 40px 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ah-muted);
+}
+
+/* The empty card: a bordered box of fixed height, not the full panel. */
+.ah-empty-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 220px;
+  border: 1px solid var(--ah-line);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.ah-empty-icon {
+  margin-bottom: 6px;
+  font-size: 30px;
+  color: var(--ah-muted);
+}
+
+.ah-empty-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ah-ink);
+}
+
+.ah-empty-hint {
+  font-size: 12px;
+  color: var(--ah-muted);
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
+
+.ah-footer {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--ah-line);
+  background: var(--bd-card);
+  font-size: 13px;
+  color: var(--ah-muted);
+}
+
+.ah-pager-word {
+  padding: 0 6px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.ah-modal .ah-pager .ant-pagination-item-active {
+  border-color: var(--bd-blue);
+  background: var(--bd-blue);
+}
+
+.ah-modal .ah-pager .ant-pagination-item-active a {
+  color: #fff;
+}
+
+/* ── Narrow screens ─────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .ah-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ah-diff-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .ah-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .ah-diff-arrow {
+    transform: rotate(90deg);
+    justify-self: center;
+  }
+
+  .ah-select,
+  .ah-modal .ah-input,
+  .ah-modal .ah-input--wide {
+    width: 100%;
+  }
+}
+
+/* ---- Timeline: load more on scroll ------------------------------------ */
+
+.ah-tl-sentinel {
+  height: 1px;
+}
+
+.ah-tl-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 0;
+  font-size: 12px;
+  color: var(--ah-muted);
+}

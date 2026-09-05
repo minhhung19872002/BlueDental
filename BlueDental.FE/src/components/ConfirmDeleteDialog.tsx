@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Button, Modal } from "antd";
 import { DeleteOutlined } from "@ant-design/icons";
 import { t, tRich } from "@/lib/i18n";
@@ -6,8 +7,12 @@ interface Props {
   open: boolean;
   /** Lowercase noun of what is being deleted, e.g. "nhóm", "thẻ hồ sơ". */
   noun: string;
-  /** Name of the record, shown in bold inside the question. */
-  name: string;
+  /** Name of the record, shown in bold inside the question. Not needed when `question` is given. */
+  name?: string;
+  /** Heading, when the reference titles the dialog differently from "Xác nhận xoá {noun}". */
+  title?: string;
+  /** The question line, when the reference words it differently; the "cannot be undone" line stays. */
+  question?: ReactNode;
   pending?: boolean;
   onConfirm: () => void;
   onClose: () => void;
@@ -21,11 +26,20 @@ interface Props {
  * The colour is the point — a delete is the one action on these screens that
  * cannot be taken back, so it does not get the same button as save.
  */
-export function ConfirmDeleteDialog({ open, noun, name, pending, onConfirm, onClose }: Props) {
+export function ConfirmDeleteDialog({
+  open,
+  noun,
+  name,
+  title,
+  question,
+  pending,
+  onConfirm,
+  onClose,
+}: Props) {
   return (
     <Modal
       open={open}
-      title={<h2 className="bd-modal-title">{t("Xác nhận xoá {0}", noun)}</h2>}
+      title={<h2 className="bd-modal-title">{title ?? t("Xác nhận xoá {0}", noun)}</h2>}
       onCancel={onClose}
       width={440}
       destroyOnHidden
@@ -48,7 +62,7 @@ export function ConfirmDeleteDialog({ open, noun, name, pending, onConfirm, onCl
       }
     >
       <p style={{ margin: 0 }}>
-        {tRich("Bạn có chắc muốn xoá {0} {1} không?", noun, <strong>{name}</strong>)}
+        {question ?? tRich("Bạn có chắc muốn xoá {0} {1} không?", noun, <strong>{name}</strong>)}
       </p>
       <p style={{ margin: "4px 0 0", color: "var(--bd-text-muted, #7d85a5)", fontSize: 13 }}>
         {t("Hành động này không thể hoàn tác.")}

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -44,7 +44,8 @@ public class BlueDentalDemoSeedContributor(
     BlueDentalOperationsDemoSeeder operationsSeeder,
     BlueDentalReportsDemoSeeder reportsSeeder,
     BlueDentalMaterialsDemoSeeder materialsSeeder,
-    BlueDentalPatientTabsDemoSeeder patientTabsSeeder) : IDataSeedContributor, ITransientDependency
+    BlueDentalPatientTabsDemoSeeder patientTabsSeeder,
+    BlueDentalAppointmentChangeLogBackfillSeeder changeLogBackfill) : IDataSeedContributor, ITransientDependency
 {
     /// <summary>
     /// The calendar picks its columns from whoever holds this role. Without it
@@ -185,6 +186,10 @@ public class BlueDentalDemoSeedContributor(
         // show anything at all locally.
         await materialsSeeder.SeedAsync(BlueDentalDataSeedContributor.DefaultBranchId);
         await materialsSeeder.SeedAsync(BlueDentalBranchSeedContributor.SecondBranchId);
+
+        // Demo appointments are inserted straight into the table, past the app
+        // service, so they get their opening history row here.
+        await changeLogBackfill.BackfillAsync();
     }
 
     /// <summary>

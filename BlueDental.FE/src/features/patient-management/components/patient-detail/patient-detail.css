@@ -1299,13 +1299,6 @@
   font-size: 12px;
   text-align: center;
 }
-.pd-history-filters {
-  display: grid;
-  grid-template-columns: 1.35fr repeat(3, 1fr) repeat(2, 1.1fr);
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 14px;
-}
 .pd-column-popover {
   display: flex;
   width: 230px;
@@ -1320,6 +1313,13 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
+}
+/* Pencil + red bin in one Thao tác cell, as the Lịch hẹn table has them. */
+.pd-icon-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
 }
 .pd-plan-dialog-grid,
 .pd-prescription-grid {
@@ -1389,8 +1389,7 @@
   .appointment-editor-fields,
   .pd-labo-grid,
   .pd-plan-dialog-grid,
-  .pd-prescription-grid,
-  .pd-history-filters {
+  .pd-prescription-grid {
     grid-template-columns: 1fr;
   }
   .pd-labo-wide,

@@ -1,16 +1,23 @@
 import { useState } from "react";
-import { Button, Tooltip, type TableColumnsType } from "antd";
-import { CalendarOutlined, EditOutlined, HistoryOutlined } from "@ant-design/icons";
-import dayjs from "dayjs";
+import { Button } from "antd";
+import { CalendarOutlined, HistoryOutlined } from "@ant-design/icons";
+import { toast } from "sonner";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { DataTable } from "@/components/DataTable";
-import { StatusBadge } from "@/components/StatusBadge";
 import { AppointmentEditorModal } from "@/features/appointments/components/AppointmentEditorModal";
+import { AppointmentHistoryModal } from "@/features/appointments/components/history/AppointmentHistoryModal";
+import { useDeleteAppointment } from "@/features/appointments/api/appointmentMutations";
 import { useAppointmentList } from "@/features/appointments/api/appointmentQueries";
-import type { Appointment, AppointmentStatus } from "@/features/appointments/types/appointment";
+import type { Appointment } from "@/features/appointments/types/appointment";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
 import { countedTotal } from "@/utils/countedTotal";
-import { PatientScheduleHistoryModal } from "./PatientScheduleHistoryModal";
+import {
+  APPOINTMENT_GROUPS,
+  buildAppointmentColumns,
+  inAppointmentGroup,
+  type AppointmentGroupKey,
+} from "./patientAppointmentColumns";
 
 /**
  * Lịch hẹn.
@@ -20,40 +27,21 @@ import { PatientScheduleHistoryModal } from "./PatientScheduleHistoryModal";
  * /cskh-grouping. The counters double as filters, as they do on every other
  * BlueDental screen that has them.
  */
-
-/** The reference's four groups, and which server statuses land in each. */
-const GROUPS = [
-  { key: "scheduled", label: "Đã hẹn", tone: "blue", of: ["scheduled", "confirmed"] },
-  { key: "arrived", label: "Đã đến", tone: "green", of: ["inProgress", "completed"] },
-  { key: "cancelled", label: "Đã huỷ", tone: "red", of: ["cancelled"] },
-  { key: "late", label: "Trễ hẹn", tone: "amber", of: ["noShow"] },
-] as const;
-
-type GroupKey = (typeof GROUPS)[number]["key"];
-
-const STATUS_TONES: Record<AppointmentStatus, { label: string; bg: string; color: string }> = {
-  scheduled: { label: "Đã hẹn", bg: "#e3f2fd", color: "#1565c0" },
-  confirmed: { label: "Đã hẹn", bg: "#e3f2fd", color: "#1565c0" },
-  inProgress: { label: "Đã đến", bg: "#e8f5e9", color: "#2e7d32" },
-  completed: { label: "Đã đến", bg: "#e8f5e9", color: "#2e7d32" },
-  cancelled: { label: "Đã huỷ", bg: "#ffebee", color: "#c62828" },
-  noShow: { label: "Trễ hẹn", bg: "#fff3e0", color: "#ef6c00" },
-};
-
 export function PatientAppointmentTab({ patientId }: { patientId: string }) {
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<Appointment | null>(null);
+  const [deleting, setDeleting] = useState<Appointment | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [group, setGroup] = useState<GroupKey | null>(null);
+  const [group, setGroup] = useState<AppointmentGroupKey | null>(null);
 
   const pagination = useTablePagination(20);
+  const remove = useDeleteAppointment();
 
   // Every appointment of this patient, for the four counters. They count the
   // whole record, not the page on screen.
   const all = useAppointmentList({ patientId, maxResultCount: 500 });
   const everything = all.data?.items ?? [];
 
-  const chosen = GROUPS.find((item) => item.key === group);
   const page = useAppointmentList({
     patientId,
     skipCount: pagination.skipCount,
@@ -61,68 +49,29 @@ export function PatientAppointmentTab({ patientId }: { patientId: string }) {
   });
 
   const rows = (page.data?.items ?? []).filter(
-    (row) => !chosen || (chosen.of as readonly string[]).includes(row.status),
+    (row) => !group || inAppointmentGroup(group, row.status),
   );
-  const totalCount = chosen
-    ? everything.filter((row) => (chosen.of as readonly string[]).includes(row.status)).length
+  const totalCount = group
+    ? everything.filter((row) => inAppointmentGroup(group, row.status)).length
     : page.data?.totalCount ?? 0;
 
-  const columns: TableColumnsType<Appointment> = [
-    {
-      title: t("Ngày/ Giờ"),
-      dataIndex: "startTime",
-      width: 200,
-      render: (value: string, row) => (
-        <div className="pd-cell-stack">
-          <b>{dayjs(value).format("DD/MM/YYYY")}</b>
-          <span>
-            {dayjs(value).format("HH:mm")} – {dayjs(row.endTime).format("HH:mm")}
-          </span>
-        </div>
-      ),
-    },
-    { title: t("Bác sĩ phụ trách"), dataIndex: "doctorName", width: 220 },
-    {
-      title: t("Nội dung"),
-      dataIndex: "reason",
-      render: (value: string | null) => value ?? "—",
-    },
-    {
-      title: t("Ghi chú"),
-      dataIndex: "notes",
-      render: (value: string | null) => value ?? "—",
-    },
-    {
-      title: t("Trạng thái"),
-      dataIndex: "status",
-      width: 150,
-      render: (value: AppointmentStatus) => {
-        const tone = STATUS_TONES[value];
-        return <StatusBadge label={t(tone.label)} bg={tone.bg} color={tone.color} />;
-      },
-    },
-    {
-      title: t("Thao tác"),
-      key: "actions",
-      width: 110,
-      align: "center",
-      fixed: "right",
-      render: (_, row) => (
-        <Tooltip title={t("Chỉnh sửa lịch hẹn")}>
-          <Button
-            type="text"
-            icon={<EditOutlined />}
-            aria-label={t("Chỉnh sửa lịch hẹn")}
-            onClick={() => setEditing(row)}
-          />
-        </Tooltip>
-      ),
-    },
-  ];
+  const columns = buildAppointmentColumns({ onEdit: setEditing, onDelete: setDeleting });
 
   const refresh = () => {
     void page.refetch();
     void all.refetch();
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleting) return;
+    try {
+      await remove.mutateAsync(deleting.id);
+      toast.success(t("Đã xoá lịch hẹn"));
+      setDeleting(null);
+      refresh();
+    } catch {
+      // queryClient reports the failure; the dialog stays open to retry.
+    }
   };
 
   return (
@@ -130,7 +79,7 @@ export function PatientAppointmentTab({ patientId }: { patientId: string }) {
       <div className="reception-card reception-card--content pd-appointment-card">
         <div className="pd-appointment-toolbar">
           <div className="pd-stat-row">
-            {GROUPS.map((item) => (
+            {APPOINTMENT_GROUPS.map((item) => (
               <button
                 type="button"
                 key={item.key}
@@ -144,8 +93,7 @@ export function PatientAppointmentTab({ patientId }: { patientId: string }) {
                 }
               >
                 <strong>
-                  {everything.filter((row) => (item.of as readonly string[]).includes(row.status))
-                    .length}
+                  {everything.filter((row) => inAppointmentGroup(item.key, row.status)).length}
                 </strong>
                 <span>{t(item.label)}</span>
               </button>
@@ -192,9 +140,21 @@ export function PatientAppointmentTab({ patientId }: { patientId: string }) {
         onSuccess={refresh}
       />
 
-      <PatientScheduleHistoryModal
+      {/* The reference's wording: a bare "Xoá lịch hẹn" heading and no record
+          name in the question — an appointment has no name to pick out. */}
+      <ConfirmDeleteDialog
+        open={Boolean(deleting)}
+        noun={t("lịch hẹn")}
+        title={t("Xoá lịch hẹn")}
+        question={t("Bạn có chắc muốn xoá lịch hẹn này không?")}
+        pending={remove.isPending}
+        onConfirm={handleConfirmDelete}
+        onClose={() => setDeleting(null)}
+      />
+
+      <AppointmentHistoryModal
         open={historyOpen}
-        appointments={everything}
+        patientId={patientId}
         onClose={() => setHistoryOpen(false)}
       />
     </section>
