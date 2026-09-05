@@ -126,7 +126,11 @@ public class BlueDentalPatientTabsDemoSeeder(
                     bytes.LongLength,
                     staffIds[(index + shot) % staffIds.Count],
                     takenBase.AddDays(index % 30).AddHours(shot),
-                    note: label));
+                    note: label,
+                    // The last shot of each patient is an after-treatment one, so
+                    // the "Giai đoạn điều trị" filter has something on both sides.
+                    type: shot == Shots.Length - 1 ? PatientImageType.After : PatientImageType.Before,
+                    ordering: shot + 1));
             }
         }
 

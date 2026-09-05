@@ -1181,3 +1181,32 @@ Kiểm chứng sau rebase: `tsc` sạch, `oxlint` 0 lỗi, build FE sạch,
 `dotnet build` sạch, migration chạy xong (main không thêm migration nào).
 **E2E 46/46**. **Domain.Tests 194/194**, **Application.Tests 485/485**.
 
+
+### 2026-09-05 — dựng lại tab Hình ảnh theo bản gốc (F-24)
+
+Người dùng báo tab `/patient/:id?tab=image` không giống staging. Đo lại bản
+gốc (đọc-chỉ, không bấm gì có thể ghi) và ghi vào `patient-detail.md` Tab 5,
+rồi dựng lại từ đầu:
+
+- **BE**: `PatientImage` thêm `Type` (`Before`/`After`) và `Ordering`; migration
+  `20260905100000_AddPatientImageTypeAndOrdering`; list lọc theo `type`, sắp
+  `Ordering desc, TakenAt desc`; thêm `PUT /patient-images/reorder`. Domain
+  test 11, mapping test 3 — xanh.
+- **Lỗi tìm thấy khi chạy e2e**: nút "Tải ảnh" không hiện vì
+  `GET /account/current-user` luôn trả `permissions: []` — trước giờ không màn
+  nào dùng `hasPermission` nên không ai thấy. `AccountAppService` giờ hỏi
+  `IPermissionChecker` cho toàn bộ quyền đã định nghĩa. Đây là thay đổi dùng
+  chung → chạy thêm Level 3 (auth, branch-isolation, rich-image, patient).
+- **FE**: xoá `PatientImagePanel`; thêm `components/patient-detail/image/`
+  (toolbar, timeline theo ngày, card, viewer tự dựng thay lightGallery vì bản
+  thương mại, lớp vẽ chú thích canvas) + hooks `usePatientImageGallery`
+  / `Upload` / `Reorder` / `Permissions` / `useImageViewer`; kéo-thả bằng
+  `@dnd-kit` trong cùng ngày. CSS riêng `patient-image.css`, tab không còn
+  kéo giãn hết màn hình (bản gốc là hộp ngắn).
+- **Playwright** `patient-image.spec.ts` viết lại: 5/5 xanh trên `vite preview`
+  8080 với backend thật. Lỗi vặt khi viết test: option của AntD Select phải
+  bấm qua `.ant-select-dropdown .ant-select-item-option` (list `role=option`
+  bị ẩn); toast "Đã xoá ảnh" xuất hiện hai lần → `.first()`; test cách ly chi
+  nhánh không dùng biến chung vì worker khởi động lại sau test đỏ.
+- Bản gốc: "Giai đoạn điều trị" là hằng 2 giá trị trong bundle, không phải
+  danh mục — giữ nguyên hằng ở FE.

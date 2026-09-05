@@ -115,6 +115,7 @@
     "BlueDental:Patient:0006": "Kích thước ảnh không hợp lệ.",
     "BlueDental:Patient:0007": "Định dạng ảnh không được hỗ trợ.",
     "BlueDental:Patient:0008": "Không tìm thấy ảnh.",
+    "BlueDental:Patient:0010": "Vị trí ảnh không hợp lệ.",
     "BlueDental:Appointment:InvalidSlot": "Lịch hẹn phải kết thúc sau khi bắt đầu.",
     "BlueDental:Appointment:SlotTooLong": "Thời lượng lịch hẹn vượt quá mức cho phép.",
     "BlueDental:Auth:ChangePasswordFailed": "Không đổi được mật khẩu.",

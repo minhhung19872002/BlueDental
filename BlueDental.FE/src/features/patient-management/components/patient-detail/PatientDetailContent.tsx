@@ -1,8 +1,8 @@
 import type { PatientDto } from "../../types/patient";
-import { PatientImagePanel } from "../PatientImagePanel";
 import { TreatmentPlanPanel } from "@/features/treatment-management/components/TreatmentPlanPanel";
 import { PatientAppointmentTab } from "./PatientAppointmentTab";
 import { PatientConsultingTab } from "./PatientConsultingTab";
+import { PatientImageTab } from "./image/PatientImageTab";
 import { PatientDebtTab } from "./PatientDebtTab";
 import { PatientProfileTab } from "./PatientProfileTab";
 import {
@@ -32,8 +32,8 @@ export function PatientDetailContent({ activeTab, patient }: Props) {
       return <PatientAppointmentTab patientId={id} />;
     case "image":
       return (
-        <section className="pd-pane pd-pane--fill">
-          <PatientImagePanel patientId={id} />
+        <section className="pd-pane">
+          <PatientImageTab patientId={id} />
         </section>
       );
     case "labo":

@@ -1,71 +1,199 @@
-import { expect, test, type Page } from "@playwright/test";
-import { assertRealApiTraffic, login } from "./fixtures/auth";
+import { expect, test, type Locator, type Page } from "@playwright/test";
+import { assertRealApiTraffic, BRANCH2_USER, login, runId } from "./fixtures/auth";
 
 /**
- * Feature: Hình ảnh bệnh nhân.
+ * Feature F-24: tab "Hình ảnh" of the patient record.
  *
- * The tab is reached the way the screen offers it — every patient tab is its
- * own route, so the switcher is a set of links, not an ARIA tablist.
+ * Runs against the real backend: pictures are uploaded to MinIO through the
+ * API, reordered with a PUT, deleted with a DELETE, and every claim is checked
+ * again after a reload so it is the database talking, not the cache.
+ *
+ * The tests share one run: the first uploads two pictures whose names carry
+ * the run id, the later ones view, drag, and finally delete them, so the
+ * patient is left as it was found. `workers: 1` keeps that order.
  */
+
+const BRANCH_ONE = "11111111-1111-1111-1111-111111111111";
+const IMAGES_API = "/api/v1/app/patient-images";
+
+/** A 16×16 PNG — the smallest thing the server will accept as a picture. */
+const PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAAAAAA6mKC9AAAAGUlEQVR42mNgAIL/QIBMkypAqX4YGATuAADA/X+BdAueyAAAAABJRU5ErkJggg==",
+  "base64",
+);
+
+const id = runId();
+const FIRST = `truoc-a-${id}.png`;
+const SECOND = `truoc-b-${id}.png`;
+
+function todayKey(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
+async function openImageTab(page: Page): Promise<void> {
+  await page.goto("/patient");
+  await assertRealApiTraffic(page, "/api/v1/app/patients");
+
+  await page.locator("tr.ant-table-row .bd-patient-name").first().click();
+  await expect(page).toHaveURL(/\/patient\/[0-9a-f-]{36}/);
+
+  await page.getByRole("link", { name: "Hình ảnh" }).click();
+  await expect(page).toHaveURL(/tab=image/);
+  await assertRealApiTraffic(page, IMAGES_API);
+}
+
+async function chooseStage(page: Page, stage: "Trước điều trị" | "Sau điều trị"): Promise<void> {
+  await page.getByRole("combobox", { name: "Giai đoạn điều trị" }).click();
+  await page.locator(".ant-select-dropdown .ant-select-item-option", { hasText: stage }).click();
+  await assertRealApiTraffic(page, "type=");
+}
+
+function card(page: Page, fileName: string): Locator {
+  return page.getByTestId("patient-image-card").filter({ hasText: fileName });
+}
+
 test.describe("Hình ảnh bệnh nhân", () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
   });
 
-  async function openImageTab(page: Page): Promise<void> {
-    await page.goto("/patient");
-    await assertRealApiTraffic(page, "/api/v1/app/patients");
-
-    await page.locator("tr.ant-table-row .bd-patient-name").first().click();
-    await expect(page).toHaveURL(/\/patient\/[0-9a-f-]{36}/);
-
-    await page.getByRole("link", { name: "Hình ảnh" }).click();
-    await expect(page).toHaveURL(/tab=image/);
-  }
-
-  test("the image tab shows the upload button, and the gallery reflects the record", async ({
-    page,
-  }) => {
+  test("uploads two pictures into today's group under the chosen stage", async ({ page }) => {
     await openImageTab(page);
-
     await expect(page.getByRole("button", { name: "Tải ảnh" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Xóa lọc" })).toBeHidden();
 
-    // This used to assert the empty state outright, which only held while the
-    // demo clinic had no photographs at all. Every seeded patient carries some
-    // now, and the tab opens on whichever record is first — so assert on what
-    // the gallery is actually showing rather than on one of the two outcomes.
-    const grid = page.getByTestId("patient-image-grid");
-    const empty = page.getByText("Không có ảnh trong bộ lọc đã chọn");
-    await expect(grid.or(empty).first()).toBeVisible();
+    await chooseStage(page, "Trước điều trị");
+    await expect(page.getByRole("button", { name: "Xóa lọc" })).toBeVisible();
 
-    if (await grid.isVisible()) {
-      // A card names its file and shows the image the server stored, not a
-      // broken thumbnail — the blob has to exist behind the row.
-      const first = page.locator(".pd-image-item").first();
-      await expect(first).toBeVisible();
-      await expect(first.locator("img").first()).toHaveJSProperty("complete", true);
-      await expect
-        .poll(async () => first.locator("img").first().evaluate((i: HTMLImageElement) => i.naturalWidth))
-        .toBeGreaterThan(0);
+    const uploaded = page.waitForResponse(
+      (res) => res.url().includes(IMAGES_API) && res.request().method() === "POST" && res.ok(),
+    );
+    await page.getByTestId("patient-image-input").setInputFiles([
+      { name: FIRST, mimeType: "image/png", buffer: PNG },
+      { name: SECOND, mimeType: "image/png", buffer: PNG },
+    ]);
+    await uploaded;
+
+    await expect(card(page, FIRST)).toBeVisible({ timeout: 15_000 });
+    await expect(card(page, SECOND)).toBeVisible();
+
+    // Both land in today's group, and the day's count includes them.
+    const today = page.getByTestId("patient-image-day").filter({ has: card(page, FIRST) });
+    await expect(today).toHaveAttribute("data-day", todayKey());
+    await expect(today.getByText(/^\d+ ảnh$/)).toBeVisible();
+    await expect(today).toContainText(SECOND);
+
+    // The picture the card shows is the blob the server stored.
+    const img = card(page, FIRST).locator("img");
+    await expect.poll(() => img.evaluate((i: HTMLImageElement) => i.naturalWidth)).toBeGreaterThan(0);
+
+    // They were tagged "before", so the "after" filter hides them…
+    await chooseStage(page, "Sau điều trị");
+    await expect(card(page, FIRST)).toBeHidden();
+
+    // …and clearing the filter brings everything back.
+    await page.getByRole("button", { name: "Xóa lọc" }).click();
+    await expect(page.getByRole("button", { name: "Xóa lọc" })).toBeHidden();
+    await expect(card(page, FIRST)).toBeVisible();
+
+    await page.reload();
+    await expect(card(page, FIRST)).toBeVisible({ timeout: 15_000 });
+    await expect(card(page, SECOND)).toBeVisible();
+  });
+
+  test("the eye opens the viewer on that picture, and the arrows walk the set", async ({ page }) => {
+    await openImageTab(page);
+    await card(page, FIRST).getByRole("button", { name: "Xem ảnh", exact: true }).click();
+
+    const viewer = page.getByRole("dialog", { name: "Xem ảnh" });
+    await expect(viewer).toBeVisible();
+    await expect(viewer.getByRole("status")).toHaveText(FIRST);
+    await expect(viewer.getByTestId("patient-image-counter")).toHaveText(/^\d+ \/ \d+$/);
+
+    await viewer.getByRole("button", { name: "Ảnh sau" }).click();
+    await expect(viewer.getByRole("status")).not.toHaveText(FIRST);
+    await viewer.getByRole("button", { name: "Ảnh trước" }).click();
+    await expect(viewer.getByRole("status")).toHaveText(FIRST);
+
+    await expect(viewer.getByRole("button", { name: "Zoom xa" })).toBeDisabled();
+    await viewer.getByRole("button", { name: "Zoom gần" }).click();
+    await expect(viewer.getByRole("button", { name: "Zoom xa" })).toBeEnabled();
+
+    await page.keyboard.press("Escape");
+    await expect(viewer).toBeHidden();
+  });
+
+  test("dragging a card by its grip reorders the day, and the order survives a reload", async ({ page }) => {
+    await openImageTab(page);
+
+    const first = card(page, FIRST);
+    const second = card(page, SECOND);
+    const grip = second.getByRole("button", { name: "Sắp xếp ảnh" });
+    const from = await grip.boundingBox();
+    const to = await first.getByRole("button", { name: "Sắp xếp ảnh" }).boundingBox();
+    expect(from).not.toBeNull();
+    expect(to).not.toBeNull();
+
+    const reordered = page.waitForResponse(
+      (res) => res.url().includes(`${IMAGES_API}/reorder`) && res.request().method() === "PUT",
+    );
+    await page.mouse.move(from!.x + from!.width / 2, from!.y + from!.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(from!.x - 20, from!.y + from!.height / 2, { steps: 4 });
+    await page.mouse.move(to!.x + to!.width / 2 - 40, to!.y + to!.height / 2, { steps: 12 });
+    await page.mouse.up();
+    expect((await reordered).ok()).toBeTruthy();
+
+    const orderOf = async () => {
+      const names = await page.getByTestId("patient-image-card").locator(".pi-card-name").allTextContents();
+      return names.indexOf(SECOND) < names.indexOf(FIRST);
+    };
+    await expect.poll(orderOf).toBe(true);
+
+    await page.reload();
+    await expect(first).toBeVisible({ timeout: 15_000 });
+    await expect.poll(orderOf).toBe(true);
+  });
+
+  test("deleting asks first, then the picture is gone for good", async ({ page }) => {
+    await openImageTab(page);
+
+    for (const name of [SECOND, FIRST]) {
+      await card(page, name).getByRole("button", { name: "Xóa ảnh" }).click();
+      const dialog = page.getByRole("dialog").filter({ hasText: "Xác nhận xoá ảnh" });
+      await expect(dialog).toContainText("Bạn có chắc muốn xoá ảnh này không?");
+
+      const deleted = page.waitForResponse(
+        (res) => res.url().includes(IMAGES_API) && res.request().method() === "DELETE",
+      );
+      await dialog.getByRole("button", { name: "Xoá" }).click();
+      expect((await deleted).ok()).toBeTruthy();
+      await expect(page.getByText("Đã xoá ảnh").first()).toBeVisible();
+      await expect(card(page, name)).toBeHidden();
     }
+
+    await page.reload();
+    await expect(page.getByTestId("patient-image-tab")).toBeVisible();
+    await assertRealApiTraffic(page, IMAGES_API);
+    await expect(card(page, FIRST)).toBeHidden();
+    await expect(card(page, SECOND)).toBeHidden();
   });
 
-  test("the image tab filter controls are present", async ({ page }) => {
-    await openImageTab(page);
+  test("a branch-scoped account cannot read another branch's pictures", async ({ page }) => {
+    await login(page, BRANCH2_USER);
 
-    // The treatment phase filter should be visible.
-    await expect(page.getByText("Giai đoạn điều trị")).toBeVisible();
-  });
-
-  test("the gallery fills the rest of the screen", async ({ page }) => {
-    await openImageTab(page);
-
-    const gallery = page.locator(".pd-image-gallery");
-    const galleryBox = await gallery.boundingBox();
-    const pageBox = await page.locator(".pd-page").boundingBox();
-
-    expect(galleryBox).not.toBeNull();
-    expect(pageBox).not.toBeNull();
-    expect(galleryBox!.y + galleryBox!.height).toBeGreaterThan(pageBox!.y + pageBox!.height - 8);
+    // The list is scoped like every other branch resource: naming a branch the
+    // account is not assigned to is refused outright, not answered empty.
+    const status = await page.evaluate(
+      async ([api, branch]) => {
+        const res = await fetch(`${api}?clinicBranchId=${branch}`, {
+          headers: { accept: "application/json" },
+        });
+        return res.status;
+      },
+      [IMAGES_API, BRANCH_ONE] as const,
+    );
+    expect(status).toBe(403);
   });
 });

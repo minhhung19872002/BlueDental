@@ -817,8 +817,8 @@ the same shape as BlueDental's own `.bd-cat-card`.
 - **`.pd-page` owns the viewport height** (`calc(100vh - header - 32px)`,
   `overflow: hidden`), `.pd-pane` is the scrolling pane, and `.pd-pane--fill`
   hands the height down to the card. Every table tab — Chẩn đoán & Tư vấn, Kế
-  hoạch điều trị, Lịch hẹn, Hình ảnh, Labo, Đơn thuốc, Chăm sóc KH, Hóa đơn,
-  Lịch sử dư nợ — now uses the app's own `.bd-cat-card`, so the header stays
+  hoạch điều trị, Lịch hẹn, Labo, Đơn thuốc, Chăm sóc KH, Hóa đơn, Lịch sử dư
+  nợ — now uses the app's own `.bd-cat-card`, so the header stays
   put, the rows scroll and the pager sits on the card's bottom edge **even with
   no rows**. The bespoke `.pd-table-card` chrome is gone from those tabs.
 - **Tạo lịch hẹn** rebuilt to the layout above, including the colour swatches,
@@ -1022,9 +1022,11 @@ the far right: `DỊCH VỤ ĐANG ĐIỀU TRỊ` and `DỊCH VỤ CÓ CÔNG ĐO�
    Labo, Vật tư — and staying consistent inside the application was chosen over
    matching the reference on this one row. It sits on the same white strip
    `/materials` uses, sharing the card with the Chi tiết hồ sơ / Bệnh án switch.
-5. **Hình ảnh fills the tab.** The reference's gallery is a short box with white
-   space under it; here it takes the rest of the screen, which is what was asked
-   for and what every other tab now does.
+5. **Hình ảnh follows the reference again.** On 2026-08-28 the gallery was
+   stretched to fill the screen; on 2026-09-05 the tab was rebuilt to the
+   measurements in *Tab 5* above — content-height toolbar and day timeline,
+   280px cards, drag-to-reorder within a day, a free in-house viewer in place of
+   lightGallery — so it is once more a short box with white space under it.
 6. **`Chăm sóc sau điều trị`** column on the Hồ sơ table still needs care
    records tied to a treatment stage, which BlueDental does not model. A column
    that could only ever say "Chưa chăm sóc" would state something it cannot know.

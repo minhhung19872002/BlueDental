@@ -3841,6 +3841,9 @@ namespace BlueDental.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<int>("Ordering")
+                        .HasColumnType("integer");
+
                     b.Property<Guid>("PatientId")
                         .HasColumnType("uuid");
 
@@ -3853,6 +3856,9 @@ namespace BlueDental.Migrations
                     b.Property<DateTimeOffset>("TakenAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<short>("Type")
+                        .HasColumnType("smallint");
+
                     b.Property<Guid?>("TreatmentPlanId")
                         .HasColumnType("uuid");
 
@@ -3862,6 +3868,8 @@ namespace BlueDental.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("TreatmentStageId");
+
+                    b.HasIndex("PatientId", "Ordering");
 
                     b.HasIndex("PatientId", "TakenAt");
 

@@ -43,6 +43,16 @@ public class PatientImage : FullAuditedAggregateRoot<Guid>
 
     public DateTimeOffset TakenAt { get; private set; }
 
+    /// <summary>Giai đoạn điều trị the image documents.</summary>
+    public PatientImageType Type { get; private set; } = PatientImageType.Before;
+
+    /// <summary>
+    /// 1-based position in the patient's sequence of images. Uploads append at
+    /// the end, so the sequence follows time until the user drags a card; the
+    /// tab groups by day and orders each day's cards by this value.
+    /// </summary>
+    public int Ordering { get; private set; } = 1;
+
     protected PatientImage() { }
 
     public static PatientImage Attach(
@@ -57,10 +67,13 @@ public class PatientImage : FullAuditedAggregateRoot<Guid>
         DateTimeOffset takenAt,
         Guid? treatmentPlanId = null,
         Guid? treatmentStageId = null,
-        string? note = null)
+        string? note = null,
+        PatientImageType type = PatientImageType.Before,
+        int ordering = 1)
     {
         Check.NotNullOrWhiteSpace(blobName, nameof(blobName));
         Check.NotNullOrWhiteSpace(fileName, nameof(fileName));
+        CheckOrdering(ordering);
 
         if (sizeBytes <= 0 || sizeBytes > MaxSizeBytes)
         {
@@ -89,7 +102,9 @@ public class PatientImage : FullAuditedAggregateRoot<Guid>
             TakenAt = takenAt,
             TreatmentPlanId = treatmentPlanId,
             TreatmentStageId = treatmentStageId,
-            Note = note
+            Note = note,
+            Type = type,
+            Ordering = ordering
         };
     }
 
@@ -108,5 +123,23 @@ public class PatientImage : FullAuditedAggregateRoot<Guid>
     {
         Note = note;
         return this;
+    }
+
+    /// <summary>Puts the image at a new position in its patient's sequence.</summary>
+    public PatientImage MoveTo(int ordering)
+    {
+        CheckOrdering(ordering);
+        Ordering = ordering;
+        return this;
+    }
+
+    private static void CheckOrdering(int ordering)
+    {
+        if (ordering < 1)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.PatientManagement.InvalidImageOrdering,
+                "An image position starts at 1.");
+        }
     }
 }

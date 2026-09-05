@@ -108,9 +108,7 @@
   overflow: hidden;
 }
 .pd-profile-card,
-.pd-table-card,
-.pd-image-controls,
-.pd-image-gallery {
+.pd-table-card {
   border: 1px solid var(--bd-border);
   border-radius: 12px;
   background: #fff;
@@ -975,75 +973,6 @@
   place-items: center;
   border-style: dashed;
   color: var(--bd-muted);
-}
-.pd-image-controls {
-  display: flex;
-  width: min(390px, 100%);
-  gap: 10px;
-  padding: 12px;
-  margin-bottom: 12px;
-}
-.pd-image-controls .ant-select {
-  flex: 1;
-}
-.pd-image-controls .ant-btn {
-  border-style: dashed;
-}
-.pd-image-gallery {
-  min-height: 440px;
-  overflow: auto;
-  padding: 16px;
-}
-
-/* Hình ảnh fills the tab as the table tabs do: the filter row keeps its
-   height, the gallery takes the rest and scrolls inside itself. */
-.pd-images {
-  display: flex;
-  min-height: 0;
-  flex: 1;
-  flex-direction: column;
-}
-.pd-images > .pd-image-controls {
-  flex-shrink: 0;
-}
-.pd-images > .pd-image-gallery {
-  min-height: 0;
-  flex: 1;
-}
-.pd-image-gallery--empty {
-  display: grid;
-  place-items: center;
-  border-style: dashed;
-}
-.pd-image-gallery--empty > div {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 7px;
-  color: var(--bd-faint);
-  font-size: 12px;
-}
-.pd-image-gallery--empty .anticon {
-  font-size: 36px;
-  color: var(--bd-line);
-}
-.pd-image-gallery--empty strong {
-  color: var(--bd-muted);
-  font-weight: 500;
-}
-.pd-image-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 12px;
-}
-.pd-image-item {
-  min-width: 0;
-  border: 1px solid var(--bd-line);
-  border-radius: 9px;
-  overflow: hidden;
-}
-.pd-image-meta {
-  padding: 5px 8px;
 }
 .pd-treatment-plan .pd-record-toolbar {
   justify-content: flex-start;

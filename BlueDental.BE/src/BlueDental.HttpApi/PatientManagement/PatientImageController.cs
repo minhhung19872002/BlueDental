@@ -31,7 +31,8 @@ public sealed class PatientImageController(IPatientImageAppService service) : Bl
         [FromForm] Guid clinicBranchId,
         [FromForm] Guid? treatmentPlanId,
         [FromForm] Guid? treatmentStageId,
-        [FromForm] string? note)
+        [FromForm] string? note,
+        [FromForm] PatientImageType? type)
     {
         return service.UploadAsync(new UploadPatientImageDto
         {
@@ -40,6 +41,7 @@ public sealed class PatientImageController(IPatientImageAppService service) : Bl
             TreatmentPlanId = treatmentPlanId,
             TreatmentStageId = treatmentStageId,
             Note = note,
+            Type = type ?? PatientImageType.Before,
             File = new RemoteStreamContent(
                 file.OpenReadStream(),
                 file.FileName,
@@ -54,6 +56,10 @@ public sealed class PatientImageController(IPatientImageAppService service) : Bl
         var stream = await service.GetContentAsync(id);
         return File(stream, "application/octet-stream");
     }
+
+    /// <summary>Reference: <c>PUT /patient-images/reorder</c>.</summary>
+    [HttpPut("reorder")]
+    public Task ReorderAsync([FromBody] ReorderPatientImageDto input) => service.ReorderAsync(input);
 
     [HttpDelete("{id:guid}")]
     public Task DeleteAsync(Guid id) => service.DeleteAsync(id);

@@ -53,10 +53,17 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
             query = query.Where(x => x.PatientId == input.PatientId.Value);
         if (input.TreatmentStageId.HasValue)
             query = query.Where(x => x.TreatmentStageId == input.TreatmentStageId.Value);
+        if (input.Type.HasValue)
+            query = query.Where(x => x.Type == input.Type.Value);
 
+        // Newest first, so a page at a time reads back through the days the way
+        // the tab scrolls. Ordering follows upload time until a card is dragged,
+        // and dragging only moves a card among the cards of its own day, so the
+        // sequence never interleaves days.
         var totalCount = query.Count();
         var items = query
-            .OrderByDescending(x => x.TakenAt)
+            .OrderByDescending(x => x.Ordering)
+            .ThenByDescending(x => x.TakenAt)
             .Skip(input.SkipCount)
             .Take(input.MaxResultCount)
             .ToList();
@@ -78,6 +85,7 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
 
         var id = GuidGenerator.Create();
         var blobName = $"patients/{input.PatientId}/{id}{Path.GetExtension(input.File.FileName)}";
+        var ordering = await NextOrderingAsync(input.PatientId, input.ClinicBranchId);
 
         await using var stream = input.File.GetStream();
         using var buffer = new MemoryStream();
@@ -98,7 +106,9 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
             Clock.Now,
             input.TreatmentPlanId,
             input.TreatmentStageId,
-            input.Note);
+            input.Note,
+            input.Type,
+            ordering);
 
         buffer.Position = 0;
         await _blobContainer.SaveAsync(blobName, buffer, overrideExisting: true);
@@ -115,6 +125,41 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
         return await _blobContainer.GetAsync(image.BlobName);
     }
 
+    /// <summary>
+    /// Moves one image to a position and renumbers the patient's sequence 1..N
+    /// around it, so the stored order never has gaps or ties. The position is
+    /// clamped to the sequence rather than rejected: a client that dragged onto
+    /// a card deleted in the meantime still lands somewhere sensible.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.TreatmentImage.Update)]
+    public async Task ReorderAsync(ReorderPatientImageDto input)
+    {
+        var moved = await LoadAsync(input.Id);
+
+        var sequence = (await _repository.GetListAsync(x =>
+                x.PatientId == moved.PatientId && x.ClinicBranchId == moved.ClinicBranchId))
+            .OrderBy(x => x.Ordering)
+            .ThenBy(x => x.TakenAt)
+            .ToList();
+
+        sequence.RemoveAll(x => x.Id == moved.Id);
+        var target = Math.Clamp(input.Ordering, 1, sequence.Count + 1);
+        sequence.Insert(target - 1, moved);
+
+        var changed = new List<PatientImage>();
+        for (var index = 0; index < sequence.Count; index++)
+        {
+            var position = index + 1;
+            if (sequence[index].Ordering == position)
+                continue;
+
+            changed.Add(sequence[index].MoveTo(position));
+        }
+
+        if (changed.Count > 0)
+            await _repository.UpdateManyAsync(changed, autoSave: true);
+    }
+
     [Authorize(BlueDentalAbilityPermissions.TreatmentImage.Delete)]
     public async Task DeleteAsync(Guid id)
     {
@@ -122,6 +167,17 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
 
         await _repository.DeleteAsync(id, autoSave: true);
         await _blobContainer.DeleteAsync(image.BlobName);
+    }
+
+    private async Task<int> NextOrderingAsync(Guid patientId, Guid clinicBranchId)
+    {
+        var query = await _repository.GetQueryableAsync();
+        var last = query
+            .Where(x => x.PatientId == patientId && x.ClinicBranchId == clinicBranchId)
+            .Select(x => (int?)x.Ordering)
+            .Max();
+
+        return (last ?? 0) + 1;
     }
 
     private async Task<PatientImage> LoadAsync(Guid id)
@@ -159,6 +215,8 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
             Note = x.Note,
             StaffId = x.StaffId,
             TakenAt = x.TakenAt,
+            Type = x.Type,
+            Ordering = x.Ordering,
             Url = $"/api/v1/app/patient-images/{x.Id}/content",
             StaffName = staffNames.TryGetValue(x.StaffId, out var staff) ? staff : null,
             CreationTime = x.CreationTime,

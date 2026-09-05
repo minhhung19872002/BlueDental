@@ -9,6 +9,7 @@ import { usePatientDto } from "../api/patientQueries";
 import { PatientDetailContent } from "../components/patient-detail/PatientDetailContent";
 import { PatientMedicalRecordTab } from "../components/patient-detail/PatientMedicalRecordTab";
 import "../components/patient-detail/patient-detail.css";
+import "../components/patient-detail/image/patient-image.css";
 
 const PATIENT_TABS = [
   ["profile", "Hồ sơ"],

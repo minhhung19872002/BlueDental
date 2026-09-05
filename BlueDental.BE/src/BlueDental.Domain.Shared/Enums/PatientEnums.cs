@@ -109,3 +109,17 @@ public enum MedicalRecordForm
     /// <summary>9. Phiếu chăm sóc</summary>
     CareSheet = 9,
 }
+
+/// <summary>
+/// Giai đoạn điều trị of a patient image. The reference offers exactly these
+/// two values in its "Giai đoạn điều trị" filter (a bundle constant, not a
+/// catalog), and every upload is tagged with the one the filter is set to.
+/// </summary>
+public enum PatientImageType
+{
+    /// <summary>Trước điều trị.</summary>
+    Before = 1,
+
+    /// <summary>Sau điều trị.</summary>
+    After = 2
+}

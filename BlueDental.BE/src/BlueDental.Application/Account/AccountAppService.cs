@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Organizations;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Services;
+using Volo.Abp.Authorization.Permissions;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Identity;
 
@@ -14,7 +16,9 @@ namespace BlueDental.Account;
 public class AccountAppService(
     IdentityUserManager userManager,
     ICurrentClinicBranchResolver branchResolver,
-    IRepository<ClinicBranch, Guid> branchRepository) : ApplicationService, IAccountAppService
+    IRepository<ClinicBranch, Guid> branchRepository,
+    IPermissionDefinitionManager permissionDefinitionManager,
+    IPermissionChecker permissionChecker) : ApplicationService, IAccountAppService
 {
     public async Task<CurrentUserDto> GetCurrentUserAsync()
     {
@@ -51,9 +55,31 @@ public class AccountAppService(
             ClinicLogoUrl = null,
             ClinicTagline = clinicTagline,
             Roles = roles.ToList(),
-            Permissions = [],
+            Permissions = await GetGrantedPermissionsAsync(),
             PasswordMustChange = false,
         };
+    }
+
+    /// <summary>
+    /// Every defined permission the caller holds, so the client can show or
+    /// hide a control the way the server would answer it. The server still
+    /// checks each call; this list only spares the user a refused click.
+    /// </summary>
+    private async Task<List<string>> GetGrantedPermissionsAsync()
+    {
+        var defined = (await permissionDefinitionManager.GetPermissionsAsync())
+            .Select(p => p.Name)
+            .Distinct()
+            .ToArray();
+        if (defined.Length == 0)
+            return [];
+
+        var result = await permissionChecker.IsGrantedAsync(defined);
+        return result.Result
+            .Where(r => r.Value == PermissionGrantResult.Granted)
+            .Select(r => r.Key)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToList();
     }
 
     public async Task ChangePasswordAsync(ChangePasswordInput input)
