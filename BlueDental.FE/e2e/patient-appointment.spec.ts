@@ -73,8 +73,11 @@ test.describe("Lịch hẹn của bệnh nhân", () => {
   }) => {
     await openAppointmentTab(page);
 
-    const card = page.locator(".pd-pane .bd-cat-card");
+    // One card holds the counters, the commands and the table, as /cskh-grouping does.
+    const card = page.locator(".pd-pane .pd-appointment-card");
     await expect(card).toBeVisible();
+    await expect(card.locator(".pd-stat-row")).toBeVisible();
+    await expect(card.locator(".bd-cat-card")).toBeVisible();
 
     // The card runs to the bottom of the page, with or without rows.
     const cardBox = await card.boundingBox();

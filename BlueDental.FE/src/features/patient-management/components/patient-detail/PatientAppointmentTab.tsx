@@ -15,9 +15,10 @@ import { PatientScheduleHistoryModal } from "./PatientScheduleHistoryModal";
 /**
  * Lịch hẹn.
  *
- * Four counters over the app's own table card, then the two commands the
- * reference puts on the right. The counters double as filters, as they do on
- * every other BlueDental screen that has them.
+ * One white card holds the four counters, the two commands the reference puts
+ * on the right, and the bordered table under them — the board layout of
+ * /cskh-grouping. The counters double as filters, as they do on every other
+ * BlueDental screen that has them.
  */
 
 /** The reference's four groups, and which server statuses land in each. */
@@ -126,49 +127,51 @@ export function PatientAppointmentTab({ patientId }: { patientId: string }) {
 
   return (
     <section className="pd-pane pd-pane--fill">
-      <div className="pd-appointment-toolbar">
-        <div className="pd-stat-row">
-          {GROUPS.map((item) => (
-            <button
-              type="button"
-              key={item.key}
-              aria-pressed={group === item.key}
-              className={`pd-stat pd-stat--${item.tone}${group === item.key ? " active" : ""}`}
-              onClick={() =>
-                setGroup((current) => {
-                  pagination.resetToFirstPage();
-                  return current === item.key ? null : item.key;
-                })
-              }
-            >
-              <strong>
-                {everything.filter((row) => (item.of as readonly string[]).includes(row.status))
-                  .length}
-              </strong>
-              <span>{t(item.label)}</span>
-            </button>
-          ))}
+      <div className="reception-card reception-card--content pd-appointment-card">
+        <div className="pd-appointment-toolbar">
+          <div className="pd-stat-row">
+            {GROUPS.map((item) => (
+              <button
+                type="button"
+                key={item.key}
+                aria-pressed={group === item.key}
+                className={`pd-stat pd-stat--${item.tone}${group === item.key ? " active" : ""}`}
+                onClick={() =>
+                  setGroup((current) => {
+                    pagination.resetToFirstPage();
+                    return current === item.key ? null : item.key;
+                  })
+                }
+              >
+                <strong>
+                  {everything.filter((row) => (item.of as readonly string[]).includes(row.status))
+                    .length}
+                </strong>
+                <span>{t(item.label)}</span>
+              </button>
+            ))}
+          </div>
+
+          <div>
+            <Button icon={<HistoryOutlined />} onClick={() => setHistoryOpen(true)}>
+              {t("Lịch sử thay đổi")}
+            </Button>
+            <Button type="primary" icon={<CalendarOutlined />} onClick={() => setCreating(true)}>
+              {t("Tạo lịch hẹn mới")}
+            </Button>
+          </div>
         </div>
 
-        <div>
-          <Button icon={<HistoryOutlined />} onClick={() => setHistoryOpen(true)}>
-            {t("Lịch sử thay đổi")}
-          </Button>
-          <Button type="primary" icon={<CalendarOutlined />} onClick={() => setCreating(true)}>
-            {t("Tạo lịch hẹn mới")}
-          </Button>
+        <div className="bd-cat-card">
+          <DataTable<Appointment>
+            rowKey="id"
+            loading={page.isFetching}
+            columns={columns}
+            dataSource={rows}
+            locale={{ emptyText: t("Không có dữ liệu") }}
+            pagination={pagination.buildConfig(totalCount, countedTotal(t("lịch hẹn")))}
+          />
         </div>
-      </div>
-
-      <div className="bd-cat-card">
-        <DataTable<Appointment>
-          rowKey="id"
-          loading={page.isFetching}
-          columns={columns}
-          dataSource={rows}
-          locale={{ emptyText: t("Không có dữ liệu") }}
-          pagination={pagination.buildConfig(totalCount, countedTotal(t("lịch hẹn")))}
-        />
       </div>
 
       <AppointmentEditorModal

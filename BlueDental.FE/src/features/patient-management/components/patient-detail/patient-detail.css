@@ -464,6 +464,24 @@
   display: flex;
   gap: 8px;
 }
+/* Lịch hẹn: the counters, the two commands and the bordered table share one
+   white card, laid out the way /cskh-grouping lays out its board — the card
+   fills the tab, the table inside is sized by its rows and scrolls only once
+   they outgrow the card. */
+.pd-appointment-card {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.pd-appointment-card > .pd-appointment-toolbar {
+  flex-shrink: 0;
+  margin: 0;
+}
+.pd-appointment-card > .bd-cat-card {
+  flex: 0 1 auto;
+  border-radius: var(--bd-radius-card);
+  box-shadow: none;
+}
 .pd-filter-pills,
 .pd-counter-row,
 .pd-stat-row {

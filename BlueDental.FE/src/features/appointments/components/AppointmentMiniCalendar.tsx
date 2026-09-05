@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Segmented, Tooltip } from "antd";
 import { MenuOutlined, TableOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
@@ -20,6 +20,15 @@ export function AppointmentMiniCalendar({ date, doctorId }: Props) {
   const [mode, setMode] = useState<DateNavigatorMode>("day");
   const [daySubMode, setDaySubMode] = useState<DaySubMode>("time");
   const [viewDate, setViewDate] = useState<Dayjs>(() => (date ? dayjs(date) : dayjs()));
+
+  // Follow the form's "Ngày hẹn". In edit mode that value arrives only once
+  // the appointment has been read back, after this diary has already mounted
+  // on today — so the seed above is not enough, the diary has to move with it.
+  useEffect(() => {
+    if (date && dayjs(date).isValid()) {
+      setViewDate(dayjs(date));
+    }
+  }, [date]);
 
   const queryParams = useMemo(() => {
     const base = { doctorId: doctorId || undefined, maxResultCount: 500 };
