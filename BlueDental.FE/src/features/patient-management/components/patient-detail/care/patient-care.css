@@ -1,0 +1,300 @@
+/* ── Chăm sóc KH tab (patient detail) ─────────────────────────────────────
+   Measured on the reference at 1600px: eight 82×52 counters, a rule between
+   the ratings and the groups, a primary "+ CSKH đặc biệt" on the right, then
+   a bordered card with the log and a "N / trang" pager. */
+
+.pc-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.pc-chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pc-chips-divider {
+  width: 1px;
+  height: 32px;
+  margin: 0 8px;
+  background: #dce3ee;
+}
+
+.pc-chip {
+  --pc-chip-border: #ccd6e5;
+  --pc-chip-bg: #e8eef7;
+  --pc-chip-fg: #34445a;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 82px;
+  min-width: 65px;
+  height: 52px;
+  padding: 0 6px;
+  border: 1px solid var(--pc-chip-border);
+  border-radius: 6px;
+  background: var(--pc-chip-bg);
+  color: var(--pc-chip-fg);
+  font: inherit;
+  cursor: pointer;
+}
+.pc-chip--green {
+  --pc-chip-border: #bde8cf;
+  --pc-chip-bg: #ddf3e7;
+  --pc-chip-fg: #1f7a45;
+}
+.pc-chip--blue {
+  --pc-chip-border: #bfd6f6;
+  --pc-chip-bg: #dcebfa;
+  --pc-chip-fg: #1e5bb0;
+}
+.pc-chip--amber {
+  --pc-chip-border: #e8cf92;
+  --pc-chip-bg: #f7e7c2;
+  --pc-chip-fg: #9a6a10;
+}
+.pc-chip--red {
+  --pc-chip-border: #f3baba;
+  --pc-chip-bg: #fbe0e0;
+  --pc-chip-fg: #b93832;
+}
+.pc-chip--active {
+  box-shadow:
+    0 0 0 2px #fff,
+    0 0 0 3px var(--bd-blue, #2671d8);
+}
+.pc-chip-count {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.pc-chip-label {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.pc-add {
+  height: 40px;
+}
+
+/* ── Log card ────────────────────────────────────────────────────────────── */
+
+.pc-tab > .pc-card {
+  flex: 0 1 auto;
+  border: 1px solid #dce3ee;
+  border-radius: 16px;
+  box-shadow: 0 2px 6px rgba(27, 42, 65, 0.06);
+}
+/* The shared header rule shouts in 11.5px capitals; this one reads in
+   sentence case on a single line, with a rule between every column. */
+.pc-tab .pc-card .ant-table-thead > tr > th {
+  height: 40px;
+  padding: 8px 16px;
+  background: #f6f8fb;
+  color: #5a6b82;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+}
+.pc-tab .pc-card .ant-table-tbody > tr > td {
+  height: 64px;
+  padding: 12px 16px;
+  color: var(--bd-text, #1b2a41);
+  font-size: 14px;
+}
+.pc-tab .pc-card .ant-table.ant-table-bordered > .ant-table-container {
+  border-inline-start: 0;
+  border-top: 0;
+}
+
+/* Pager: "20 / trang" first, then the count; the worded page buttons on the
+   right need more than the shared 32px square. */
+.pc-tab .pc-card .ant-table-pagination .ant-pagination-options {
+  order: -2;
+  margin-inline-end: 12px;
+}
+.pc-tab .pc-card .ant-table-pagination .ant-pagination-total-text {
+  order: -1;
+  margin-inline-end: auto;
+  color: #5a6b82;
+}
+.pc-tab .pc-card .ant-table-pagination .ant-pagination-total-text b {
+  color: var(--bd-text, #1b2a41);
+  font-weight: 600;
+}
+.pc-tab .pc-card .ant-pagination-prev,
+.pc-tab .pc-card .ant-pagination-next {
+  width: auto;
+  min-width: 0;
+}
+.pc-tab .pc-card .ant-pagination-prev .ant-btn,
+.pc-tab .pc-card .ant-pagination-next .ant-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  color: #5a6b82;
+}
+.pc-tab .pc-card .ant-pagination-disabled .ant-btn {
+  color: #a3aebf;
+}
+
+.pc-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+  background: rgb(244, 244, 245);
+  color: rgb(119, 119, 119);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pc-content-text {
+  max-width: 360px;
+  margin: 0;
+  font-size: 13px;
+  white-space: pre-wrap;
+}
+.pc-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--bd-blue, #2671d8);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.pc-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--pc-rating);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.pc-rating-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.pc-rating--good,
+.pc-rating-radio--good {
+  --pc-rating: #2bb673;
+}
+.pc-rating--fair,
+.pc-rating-radio--fair {
+  --pc-rating: #2671d8;
+}
+.pc-rating--normal,
+.pc-rating-radio--normal {
+  --pc-rating: #f5a400;
+}
+.pc-rating--complaint,
+.pc-rating-radio--complaint {
+  --pc-rating: #e5484d;
+}
+
+.pc-actions {
+  display: flex;
+  gap: 4px;
+}
+
+/* ── Chăm sóc khách hàng dialog ──────────────────────────────────────────── */
+
+.pc-dialog .ant-modal-title,
+.pc-detail-dialog .ant-modal-title {
+  font-size: 22px;
+  font-weight: 700;
+}
+.pc-dialog textarea.ant-input {
+  resize: none;
+}
+/* The two locked selects read as locked: grey fill, muted text. */
+.pc-static-field .ss-wrapper--disabled .ss-trigger {
+  border-color: #e3e8f0;
+  background: #f3f6fa;
+  color: #a6b1be;
+  opacity: 1;
+}
+.pc-form-row {
+  display: grid;
+  grid-template-columns: 1fr 128px;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.pc-form-row .ant-picker {
+  width: 100%;
+}
+.pc-form-divider {
+  height: 0;
+  margin: 4px 0 16px;
+  border: 0;
+  border-top: 1px solid #dce3ee;
+}
+.pc-rating-field-label {
+  display: block;
+  margin-bottom: 8px;
+  color: #34445a;
+  font-size: 12px;
+  font-weight: 500;
+}
+.pc-rating-item {
+  margin-bottom: 0;
+}
+.pc-rating-radios {
+  display: flex;
+  gap: 24px;
+}
+.pc-rating-radio.ant-radio-wrapper {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+}
+.pc-rating-radio.ant-radio-wrapper > span:last-child {
+  padding: 0;
+  color: var(--pc-rating);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* ── Chi tiết phiếu ──────────────────────────────────────────────────────── */
+
+.pc-detail-row {
+  margin-bottom: 10px;
+}
+.pc-detail-row:last-child {
+  margin-bottom: 0;
+}
+.pc-detail-label {
+  display: block;
+  margin-bottom: 2px;
+  color: #5a6b82;
+  font-size: 12px;
+}
+.pc-detail-value {
+  margin: 0;
+  color: var(--bd-text, #1b2a41);
+  font-size: 14px;
+  white-space: pre-wrap;
+}

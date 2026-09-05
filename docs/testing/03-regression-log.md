@@ -1242,3 +1242,35 @@ Ba báo cáo nối tiếp của người dùng sau khi nghiệm thu F-24:
   qua khi mục tiêu nằm trong khung ảnh, thanh trên, mũi tên, thanh bút, dải
   thumbnail hay popover; test bấm vào ảnh (còn mở) rồi bấm góc sân khấu (đóng).
 - `patient-image.spec.ts` 5/5 xanh trên `vite preview` 8080, backend thật.
+
+### 2026-09-05 — dựng lại tab Chăm sóc KH trong hồ sơ bệnh nhân (F-37)
+
+Khảo sát chỉ đọc trên staging (`?tab=care`, chủ dự án cho phép bấm Xoá để xem
+dialog, **không** bấm xác nhận) rồi dựng lại tab theo bản gốc + 5 câu trả lời
+của chủ dự án: NV chăm sóc = người đăng nhập (khoá), Họ và tên khoá, bản ghi
+đã đóng vẫn sửa, 4 mức hài lòng mặc định Khá, payload lưu theo PUT của bản gốc.
+
+Mức retest: **2** (BE + FE của một feature; `ConfirmDeleteDialog` dùng lại,
+không đổi). Kết quả:
+
+- BE: `Application.Tests` lọc CustomerCare + Patient **70/70** xanh (thêm
+  filter `outcome`, stats theo loại, `DELETE` soft delete có guard chi nhánh).
+- FE: `tsc -b` + eslint sạch, `vite build` OK.
+- `e2e/patient-care.spec.ts` trên bản build production (:8080 → :5000 →
+  PostgreSQL): **2/2** xanh (16,2 s lần đầu, 13,0 s sau khi chỉnh CSS).
+
+Bẫy gặp phải, ghi để khỏi lặp:
+
+- AntD ẩn pager khi `total = 0` → assertion "nhật ký" phải nằm sau khi đã có
+  dòng, không đặt ở test trang trống.
+- Nút đóng modal AntD dưới locale vi tên là **"Đóng"**, không phải "Close".
+- Test dài (tạo → lọc → xem → sửa → reload → xoá → reload) cần
+  `test.setTimeout(120_000)`; lần đỏ để lại dòng "E2E chăm sóc …" nên spec
+  có `deleteLeftovers()` chạy trước khi đo counter.
+- CSS toàn app: th viết hoa 11.5px và pager đặt `total-text` order -2 /
+  `options` order -1 → tab phải override trong `patient-care.css`; tiêu đề
+  modal chung 16px → tab đặt 22px/700 cho hai dialog của mình.
+
+Ảnh đối chiếu: `reference-private/survey/staging/patient-care-2026-09-05/0[1-6]-*.png`
+vs ảnh local chụp cùng viewport 1600×900. Lệch còn lại: chrome chung (sidebar,
+màu primary) và dialog xoá dùng chung 440px/14px so với ~380px/16px.

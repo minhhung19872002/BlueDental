@@ -17,6 +17,9 @@ public interface ICustomerCareAppService : IApplicationService
     Task<CareRecordDto> CreateAsync(CreateCareRecordDto input);
     Task<CareRecordDto> UpdateAsync(Guid id, UpdateCareRecordDto input);
 
+    /// <summary>Xoá lượt chăm sóc — soft delete from the patient's care tab.</summary>
+    Task DeleteAsync(Guid id);
+
     /// <summary>Đã liên hệ khách.</summary>
     Task<CareRecordDto> MarkContactedAsync(Guid id);
 

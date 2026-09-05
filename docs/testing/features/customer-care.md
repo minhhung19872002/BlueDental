@@ -216,3 +216,47 @@ Evidence: BE solution builds clean; `Application.Tests` filtered to
 CustomerCare + Patient: 81/81 green; FE `tsc -b` clean. Browser retest
 deliberately skipped in that session per the user ("k cần test ở
 conversation này") — feature marked `DIRTY` pending a runtime pass.
+
+## Patient-detail care tab rebuilt (2026-09-05) — F-37
+
+The "Chăm sóc KH" tab on `/patient/:id?tab=care` was rebuilt from a read-only
+survey of `staging.nfcdental.com` (captures in
+`reference-private/survey/staging/patient-care-2026-09-05/`, structure in
+`docs/clone/pages/patient-detail.md`, Tab 8). The owner's answers fixed the
+open points: Nhân viên chăm sóc is the logged-in user and stays locked on
+create and edit, Họ và tên is locked, closed records stay editable, the four
+satisfaction levels are Tốt / Khá / Bình thường / Khiếu nại with Khá as the
+default, and the save payload mirrors the reference's PUT
+(`status: success` + `colorCode` → `status: Succeeded` + `outcome`).
+
+Backend (`CustomerCareAppService`): `Outcome` filter on `GetListAsync`,
+per-type counts (`special`, `periodic`, `base`) on the stats DTO, `outcome`
+on `UpdateCareRecordDto`, `Rate(CareOutcome)` on the aggregate, and
+`DeleteAsync` (soft delete, `Manage` permission, cross-branch → 404) exposed as
+`DELETE /api/v1/app/care-records/{id}`. Contract tests cover the filter, the
+stats and the delete guard; the CustomerCare + Patient application suite is
+70/70 green.
+
+Frontend: `features/patient-management/components/patient-detail/care/`
+(`PatientCareTab`, `CareStatChips`, `careColumns`, `PatientCareDialog`,
+`CareRatingField`, `CareDetailDialog`, `patient-care.css`); the old inline tab
+and dialog left `PatientRecordTabs.tsx` / `PatientRecordDialogs.tsx`.
+`careApi.ts` gained `outcome` on the inputs, the three type counters and
+`useDeleteCareRecord`.
+
+Evidence — `e2e/patient-care.spec.ts`, real stack (`vite preview` :8080 →
+host :5000 → PostgreSQL), **2/2 green** (13 s):
+
+1. counters, columns and pager match the reference;
+2. create with Tốt → row appears, Đã chăm sóc / Tốt / Đặc biệt each +1 →
+   Khiếu nại chip (`outcome=4`) hides the row, Tốt chip (`outcome=1`) shows it,
+   clicking Tốt again clears → Chi tiết phiếu shows title / note /
+   `dd/MM/yyyy HH:mm:ss` → edit to Khiếu nại (PUT) → reload → persisted, Tốt
+   back to baseline → Xoá → confirm text → DELETE → reload → gone, Đã chăm sóc
+   back to baseline.
+
+Visual compare at 1600px against captures 02–06: header, column rules, pager
+order and wording, rating colours, dialog title size and locked-select fill
+now match. Remaining deviations: the app's navy sidebar and purple primary
+button, and the shared `ConfirmDeleteDialog` (440px, 14px question) against
+the reference's ~380px / 16px. Retest level 2.

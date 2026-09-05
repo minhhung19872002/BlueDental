@@ -101,6 +101,9 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
                 Fair = g.Count(r => r.Outcome == CareOutcome.Fair),
                 Normal = g.Count(r => r.Outcome == CareOutcome.Normal),
                 Complaint = g.Count(r => r.Outcome == CareOutcome.Complaint),
+                Special = g.Count(r => r.Type == CareType.Special),
+                Periodic = g.Count(r => r.Type == CareType.Periodic),
+                Base = g.Count(r => r.Type == CareType.Base),
             }));
 
         return stats ?? new CareStatsDto();
@@ -165,14 +168,19 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         if (input.Subject != null && input.Subject != record.Subject)
             record.UpdateContent(input.Subject, record.Description);
 
-        if (input.AssignedStaffId != record.AssignedStaffId && !record.IsClosed)
+        // The patient's care tab edits finished records (date, doctor, rating);
+        // the entity itself refuses only a cancelled one.
+        if (input.AssignedStaffId != record.AssignedStaffId)
             record.AssignTreatingStaff(input.AssignedStaffId);
 
         if (input.CareStaffId.HasValue && input.CareStaffId != record.CareStaffId)
             record.AssignCareStaff(input.CareStaffId.Value);
 
-        if (input.DueAt.HasValue && input.DueAt != record.DueAt && !record.IsClosed)
+        if (input.DueAt.HasValue && input.DueAt != record.DueAt)
             record.SetDue(input.DueAt);
+
+        if (input.Outcome.HasValue && input.Outcome != record.Outcome)
+            record.Rate(input.Outcome.Value);
 
         if (input.ScheduledStart.HasValue && input.ScheduledEnd.HasValue
             && (input.ScheduledStart != record.ScheduledStart || input.ScheduledEnd != record.ScheduledEnd))
@@ -188,6 +196,18 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         var dto = ObjectMapper.Map<CareRecord, CareRecordDto>(record);
         await FillAsync([record], [dto]);
         return dto;
+    }
+
+    /// <summary>
+    /// Xoá lượt chăm sóc — soft delete (ABP full audit), so the record leaves
+    /// every list and counter but stays in the table for the audit trail.
+    /// </summary>
+    [Authorize(BlueDentalPermissions.CustomerCare.Manage)]
+    public async Task DeleteAsync(Guid id)
+    {
+        var record = await _repository.GetAsync(id);
+        await GuardBranchAccessAsync(record);
+        await _repository.DeleteAsync(record, autoSave: true);
     }
 
     [Authorize(BlueDentalPermissions.CustomerCare.Manage)]
@@ -358,6 +378,8 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
             query = query.Where(r => r.Status == input.Status.Value);
         if (input.Type.HasValue)
             query = query.Where(r => r.Type == input.Type.Value);
+        if (input.Outcome.HasValue)
+            query = query.Where(r => r.Outcome == input.Outcome.Value);
         if (input.CareStaffId.HasValue)
             query = query.Where(r => r.CareStaffId == input.CareStaffId.Value);
         if (input.AssignedStaffId.HasValue)

@@ -93,6 +93,12 @@ public class UpdateCareRecordDto
     /// <summary>Null = keep current status; Succeeded/Failed = care-result dialog.</summary>
     public CareStatus? Status { get; set; }
 
+    /// <summary>
+    /// Mức độ hài lòng — the patient's care tab edits the rating of a finished
+    /// record (reference <c>colorCode</c> on the full-object PUT). Null keeps it.
+    /// </summary>
+    public CareOutcome? Outcome { get; set; }
+
     public List<Guid>? StageIds { get; set; }
 }
 
@@ -102,6 +108,10 @@ public class GetCareRecordListInput : PagedAndSortedResultRequestDto
     public Guid? PatientId { get; set; }
     public CareStatus? Status { get; set; }
     public CareType? Type { get; set; }
+
+    /// <summary>Đánh giá chip on the patient's care tab (reference <c>colorCode</c>).</summary>
+    public CareOutcome? Outcome { get; set; }
+
     public Guid? CareStaffId { get; set; }
     public Guid? AssignedStaffId { get; set; }
 
@@ -144,6 +154,11 @@ public class CareStatsDto
     public int Fair { get; set; }
     public int Normal { get; set; }
     public int Complaint { get; set; }
+
+    /// <summary>Nhóm breakdown on the patient's care tab: Đặc biệt · Định kỳ · Cơ bản.</summary>
+    public int Special { get; set; }
+    public int Periodic { get; set; }
+    public int Base { get; set; }
 }
 
 /// <summary>

@@ -32,6 +32,9 @@ public sealed class CustomerCareController(ICustomerCareAppService service) : Bl
     public Task<CareRecordDto> UpdateAsync(Guid id, [FromBody] UpdateCareRecordDto input) =>
         service.UpdateAsync(id, input);
 
+    [HttpDelete("{id:guid}")]
+    public Task DeleteAsync(Guid id) => service.DeleteAsync(id);
+
     [HttpPost("{id:guid}/contacted")]
     public Task<CareRecordDto> MarkContactedAsync(Guid id) => service.MarkContactedAsync(id);
 

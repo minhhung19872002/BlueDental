@@ -515,51 +515,149 @@ Screenshots: `reference-private/survey/staging/prescription-tab.png`,
 
 ## Tab 8: Chăm sóc KH (Customer Care)
 
-URL: `?tab=care`
+URL: `?tab=care` — khảo sát lại 2026-09-05 trên staging, viewport 1600×900.
+Ảnh: `reference-private/survey/staging/patient-care-2026-09-05/01..06-*.png`.
 
-### Top Summary Bar — Care Status Counters (8 filter buttons)
+### API (cookie auth)
 
-| # | Button (VI) | English |
-|---|------------|---------|
-| 1 | N Đã chăm sóc | N Cared for |
-| 2 | N Tốt | N Good |
-| 3 | N Khá | N Fairly good |
-| 4 | N Bình thường | N Normal |
-| 5 | N Khiếu nại | N Complaints |
-| 6 | N Đặc biệt | N Special |
-| 7 | N Định kỳ | N Periodic |
-| 8 | N Cơ bản | N Basic |
+| Khi nào | Request |
+|---|---|
+| Mở tab | `GET /customer-care?patientId=&isDeleted=false&overview=false&page=1&take=20` |
+| Mở tab | `GET /customer-care-stats?patientId=&isDeleted=false&overview=false` |
+| Bấm chip Đã chăm sóc | list + `&status=success` |
+| Bấm chip Tốt / Khá / Bình thường / Khiếu nại | list + `&colorCode=green|blue|orange|red` |
+| Bấm chip Đặc biệt / Định kỳ / Cơ bản | list + `&type=special|recurring|base` |
+| Bấm lại chip đang chọn | bỏ filter (list không tham số thêm) |
+| Mở dialog sửa / tạo | `GET /staff/list?...&isDoctor=true` (403 với tài khoản staging này) |
 
-Button top-right: "CSKH đặc biệt" — UNKNOWN_REFERENCE_BEHAVIOR
+Chip là **single-select** (`aria-pressed`), đổi chip không gọi lại stats; stats
+chỉ tải một lần khi mở tab.
 
-### Table Columns (9 columns)
+Stats shape: `{ color:{green,red,orange,blue,total}, status:{new,success,fail,total},
+type:{happyBirthday,afterTreatment,reminder,recurring,special,base,total}, zalo }`.
 
-| # | Column (VI) | English |
-|---|------------|---------|
-| 1 | Ngày chăm sóc | Care date |
-| 2 | Trạng thái CSKH | Care status |
-| 3 | Nhóm | Group/category |
-| 4 | Dịch vụ | Service |
-| 5 | Nội dung | Content (with "Chi tiết" expand button) |
-| 6 | Bác sĩ điều trị | Treating doctor |
-| 7 | Nhân viên chăm sóc | Care staff |
-| 8 | Đánh giá | Rating |
-| 9 | Thao tác | Actions (Chỉnh sửa + Xoá) |
+Record shape (structure only): `id, patientId, branchId, staffId (Bác sĩ điều trị),
+careStaffId, dateTime, scheduleStartTime, scheduleToTime, type
+(afterTreatment|happyBirthday|reminder|recurring|special|base), status
+(new|success|fail), subject, note, code ("CARE/…"), formattedDate,
+colorCode (green|blue|orange|red|null), taxonomyId, stageIds[], patientDetails,
+staffDetails{name}, careStaffDetails{name}|null, patientStages[{serviceDetails{name}}]`.
 
-Pagination text: "Hiển thị N–N trên N nhật ký"
+Contract POST/PUT: xem `docs/clone/pages/cskh-grouping.md` (không thử mutation từ tab này).
 
-**Care groups (Nhóm) observed from real data:**
-- Chúc mừng sinh nhật (Birthday greeting)
-- Nhắc lịch hẹn (Appointment reminder)
-- Sau điều trị (Post-treatment)
+### Toolbar
 
-**Care status values observed:**
-- Chưa chăm sóc (Not yet cared for)
-- (Others: Đã chăm sóc presumed)
+`flex justify-between items-center`, mb 16. Hàng chip gap 8; **một vạch dọc** giữa
+"Khiếu nại" và "Đặc biệt" (khoảng cách 25px thay vì 8).
 
-**Rating values (Đánh giá) observed:**
-- Khá (Fairly good)
-- (Others: Tốt, Bình thường, Khiếu nại, Đặc biệt, Định kỳ, Cơ bản)
+Chip: `button[aria-pressed]` 82×52 (min-w 65), `rounded-md border py-2`, xếp dọc:
+số `16px/700`, nhãn `11px/500`. Khi pressed: `ring-1 ring-[#2671D8] ring-offset-2`
+(box-shadow trắng 2px + #2671D8 3px). Không hover state.
+
+| Chip | Nguồn số | border / bg / text |
+|---|---|---|
+| Đã chăm sóc | `status.success` | #CCD6E5 / #E8EEF7 / #34445A |
+| Tốt | `color.green` | #BDE8CF / #DDF3E7 / #1F7A45 |
+| Khá | `color.blue` | #BFD6F6 / #DCEBFA / #1E5BB0 |
+| Bình thường | `color.orange` | #E8CF92 / #F7E7C2 / #9A6A10 |
+| Khiếu nại | `color.red` | #F3BABA / #FBE0E0 / #B93832 |
+| Đặc biệt | `type.special` | như Khiếu nại (đỏ) |
+| Định kỳ | `type.recurring` | như Đã chăm sóc (xám xanh) |
+| Cơ bản | `type.base` | như Tốt (xanh lá) |
+
+Nút phải: "CSKH đặc biệt" — primary gradient, h-40 rounded-lg px-4, 14px/500,
+icon lucide `plus` → mở dialog **Chăm sóc khách hàng** (tạo mới, xem dưới).
+Không còn UNKNOWN.
+
+### Bảng
+
+Card `rounded-[16px] border #DCE3EE bg-white shadow 0 2px 6px rgba(27,42,65,.06)`.
+th `h-10 bg-#F6F8FB 14px/500 #5A6B82 px-4 py-2 sticky top`. td `h-14 px-4 py-3
+14px #1B2A41 border-r #DCE3EE`, hàng cao 67.
+
+| Cột | min-w | Nội dung |
+|---|---|---|
+| Ngày chăm sóc | 140 | `dateTime` → `dd/MM/yyyy` |
+| Trạng thái CSKH | 140 | badge `inline-flex h-8 rounded-lg border px-2 12px/600`, bg rgb(244,244,245) text rgb(119,119,119), icon lucide `clock` stroke 3 cho "Chưa chăm sóc" |
+| Nhóm | 120 | nhãn type ("Sau điều trị", …) |
+| Dịch vụ | 160 | `patientStages[].serviceDetails.name` nối ", " (giữ trùng) |
+| Nội dung | 220 | `note` 13px pre-wrap max-w 360 + nút "Chi tiết" 12px/500 #2671D8 hover underline → dialog Chi tiết phiếu |
+| Bác sĩ điều trị | 150 | `staffDetails.name` |
+| Nhân viên chăm sóc | 160 | `careStaffDetails?.name ?? "Không có"` |
+| Đánh giá | 130 | chấm `size-3 rounded-full` + nhãn 13px/500; `colorCode` null → hiển thị "Khá" xanh #2671D8 |
+| Thao tác | w 70, sticky right, bóng trái | Chỉnh sửa (lucide `pencil`, size-7, text-label) + Xoá (lucide `trash-2`, #E5484D) |
+
+Empty: một `td colSpan=9 h-32 text-center 14px #5A6B82` "Không có dữ liệu".
+
+Pagination: select `5/10/20/25/50/100 " / trang"`, text "Hiển thị **N** trên **M**
+nhật ký" (N = số dòng trang hiện tại), nút Trước / 1 / Sau.
+
+### Dialog "Chi tiết phiếu" (nút Chi tiết)
+
+500px, radius 16, header 24px/600 pad 12/12/12/24 border-b, body pad 12 24 24.
+Mỗi field: nhãn 12px text-label + giá trị:
+
+- Tiêu đề = `"CSKH " + nhãn type` (ví dụ "CSKH Sau điều trị"), không phải `subject`
+- Nhân viên chăm sóc = tên hoặc "-"
+- Thời gian = `dd/MM/yyyy HH:mm:ss`
+- Ghi chú lần chăm sóc = `note` (pre-wrap)
+
+### Dialog sửa "Cập nhật chăm sóc khách hàng" / tạo "Chăm sóc khách hàng"
+
+500×595, form id `patient-care-form`, cùng bố cục cho cả hai:
+
+1. Hàng: **Ngày chăm sóc\*** (text `dd/MM/yyyy` + icon `calendar-days`) | **Giờ chăm sóc\*** (w-32, `HH:mm` + icon `clock`)
+2. **Họ và tên\*** combobox disabled = `"<code> - <name>"`
+3. Textarea floating-label **Ghi chú lần chăm sóc** (`name=note`, maxlength 500)
+4. `<hr>`
+5. **Bác sĩ tiếp nhận** combobox có icon search (nguồn `staff/list?isDoctor=true`)
+6. **Nhân viên chăm sóc\*** combobox **disabled = user đang đăng nhập**
+7. **Mức độ hài lòng\*** — 4 radio xếp cột (radio trên, nhãn màu 12px/500 dưới):
+   Tốt #2BB673, Khá #2671D8 (mặc định), Bình thường #F5A400, Khiếu nại #E5484D
+8. Footer `flex justify-end`: nút **Lưu** 100×40, icon lucide `save`
+
+Tạo mới: mặc định ngày/giờ hiện tại, ghi chú trống, bác sĩ trống, Khá.
+Sửa: điền từ record (dateTime, note, staffId, colorCode).
+
+### Dialog xác nhận xoá (nút Xoá — `06-delete-confirm.png`)
+
+Bấm Xoá được chủ dự án cho phép (2026-09-05), **không** bấm xác nhận. Dialog
+~380px, radius 16: tiêu đề **Xóa lượt chăm sóc** (18px/600), câu hỏi 16px
+"Bạn có chắc chắn muốn xóa lượt chăm sóc này không?", dòng phụ 14px màu nhạt
+"Hành động này không thể hoàn tác.", footer phải: **Huỷ** (outline) · **Xóa** (đỏ).
+
+UNKNOWN_REFERENCE_BEHAVIOR — request sau nút Xóa: không bấm. Giả định soft
+delete (`isDeleted=true`, list luôn gọi `isDeleted=false`).
+
+Body PUT do chủ dự án cung cấp (2026-09-05), cấu trúc:
+`{ patientId, staffId, careStaffId, dateTime, scheduleStartTime, scheduleToTime,
+type:"afterTreatment", subject:"Customer Care - afterTreatment", note,
+colorCode:"blue", status:"success", branchId }` — POST giả định tương tự
+(UNKNOWN, không thử).
+
+### Quyết định triển khai BlueDental (2026-09-05, theo trả lời của chủ dự án)
+
+- **Nhân viên chăm sóc** = người đang đăng nhập, khoá ở cả dialog tạo lẫn sửa;
+  **Họ và tên** khoá. Bản ghi đã đóng vẫn sửa được (không khoá theo trạng thái).
+- **Mức độ hài lòng**: đúng 4 mức Tốt / Khá / Bình thường / Khiếu nại, mặc định
+  Khá; `outcome` null hiển thị "Khá" xanh như bản gốc hiển thị `colorCode` null.
+- Lưu gửi `status: Succeeded (3)` + `outcome` — tương ứng `status:"success"` +
+  `colorCode` của bản gốc; vì thế mọi bản ghi từ tab này đều lên chip "Đã chăm sóc".
+- Chip → **một** tham số server-side trên `GET /api/v1/app/care-records`:
+  `status=3`, `outcome=1|2|3|4`, `type=5|4|6`; `GET …/stats` trả thêm
+  `special` / `periodic` / `base`. Đổi chip không gọi lại stats.
+- Xoá: `DELETE /api/v1/app/care-records/{id}` (soft delete, cần quyền Manage,
+  chặn chéo chi nhánh) sau `ConfirmDeleteDialog` dùng chung — dialog nhà 440px,
+  câu hỏi 14px, hơi khác ~380px/16px của bản gốc (quy ước toàn app, không sửa riêng).
+- Cột Nhóm của bản ghi Đặc biệt hiển thị "CSKH đặc biệt" (nhãn của module CSKH);
+  bản gốc chỉ có bản ghi Sau điều trị nên nhãn thật cho loại này chưa quan sát
+  được — xem `docs/clone/unknowns.md`.
+- Đo pixel trên `02-care-tab-1600.png`: th bg `#f6f8fb` chữ `#5a6b82` 14px/500
+  không viết hoa, viền cột `#dce3ee`, pager bg `#f6f8fb` thứ tự "N / trang" →
+  "Hiển thị **N** trên **M** nhật ký" → Trước / 1 / Sau (nút có chữ). Select
+  khoá trong dialog: bg `#f3f6fa`, chữ `#a6b1be`; tiêu đề dialog 22px/700.
+- Lệch còn lại là chrome chung: sidebar navy, nút primary tím của app thay cho
+  xanh `#2671D8`.
 
 ---
 
@@ -968,7 +1066,7 @@ the far right: `DỊCH VỤ ĐANG ĐIỀU TRỊ` and `DỊCH VỤ CÓ CÔNG ĐO�
 | Hình ảnh | `Giai đoạn điều trị` select + `Tải ảnh`; dashed gallery card, "Không có ảnh trong bộ lọc đã chọn" | matches |
 | Labo | three chips (Đơn hàng mới / Tiếp tục công đoạn / Bảo hành), `Tạo phiếu Labo`, ten columns | matches |
 | Đơn thuốc | `+ Tạo đơn thuốc`; Mã đơn thuốc · Bác sĩ · Chẩn đoán · Tái khám · Ngày tạo · Thao tác | matches |
-| Chăm sóc KH | eight chips, `+ CSKH đặc biệt`, nine columns, pager counts "nhật ký" | matches |
+| Chăm sóc KH | eight chips, `+ CSKH đặc biệt`, nine columns, pager counts "nhật ký"; Chi tiết phiếu / Cập nhật / Xóa lượt chăm sóc dialogs | matches (rebuilt 2026-09-05; house chrome and the shared 440px confirm dialog are the only deviations) |
 | Lịch sử dư nợ | Ngày giao dịch · Loại · Số tiền · Nhân viên · Ghi chú | matches |
 | **Hóa đơn** | **`Nội dung đang được hoàn thiện.`** — not built on the reference | BlueDental already has a real invoice table, so it is **ahead**; left as it is |
 

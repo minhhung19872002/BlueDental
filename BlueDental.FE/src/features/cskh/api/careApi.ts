@@ -146,6 +146,7 @@ export interface UpdateCareRecordInput {
   scheduledStart?: string;
   scheduledEnd?: string;
   status?: CareStatus;
+  outcome?: CareOutcome;
   stageIds?: string[];
 }
 
@@ -155,6 +156,7 @@ export interface GetCareRecordListInput {
   branchId?: string;
   patientId?: string;
   status?: CareStatus;
+  outcome?: CareOutcome;
   type?: CareType;
   careStaffId?: string;
   assignedStaffId?: string;
@@ -173,6 +175,9 @@ export interface CareStatsDto {
   fair: number;
   normal: number;
   complaint: number;
+  special: number;
+  periodic: number;
+  base: number;
 }
 
 export interface GetCareGroupingPatientsInput {
@@ -217,6 +222,9 @@ const careApi = {
 
   update: (id: string, input: UpdateCareRecordInput): Promise<CareRecordDto> =>
     api.put<CareRecordDto>(`${BASE}/${id}`, input).then((r) => r.data),
+
+  /** Soft delete — the record leaves every list but stays in the database. */
+  remove: (id: string): Promise<void> => api.delete(`${BASE}/${id}`).then(() => undefined),
 
   groupingPatients: (
     params: GetCareGroupingPatientsInput,
@@ -275,6 +283,10 @@ export function useUpdateCareRecord() {
     const { id, ...body } = input;
     return careApi.update(id, body);
   });
+}
+
+export function useDeleteCareRecord() {
+  return useCareMutation(careApi.remove);
 }
 
 /** Reference downloads e.g. cskh-dac-biet.xlsx; the server names the file. */

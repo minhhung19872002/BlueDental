@@ -92,10 +92,13 @@ public class CareRecord : FullAuditedAggregateRoot<Guid>
         }
     }
 
-    /// <summary>Assigns the staff member who will make the call.</summary>
+    /// <summary>
+    /// Assigns the staff member who made (or will make) the call. The patient's
+    /// care tab edits finished records too, so only a cancelled one refuses.
+    /// </summary>
     public CareRecord AssignCareStaff(Guid careStaffId)
     {
-        GuardOpen();
+        GuardNotCancelled();
         CareStaffId = careStaffId;
         return this;
     }
@@ -103,7 +106,7 @@ public class CareRecord : FullAuditedAggregateRoot<Guid>
     /// <summary>Bác sĩ điều trị — the reference's full-object PUT can change it.</summary>
     public CareRecord AssignTreatingStaff(Guid? staffId)
     {
-        GuardOpen();
+        GuardNotCancelled();
         AssignedStaffId = staffId;
         return this;
     }
@@ -111,8 +114,19 @@ public class CareRecord : FullAuditedAggregateRoot<Guid>
     /// <summary>Ngày chăm sóc — reference PUT carries <c>dateTime</c>.</summary>
     public CareRecord SetDue(DateTimeOffset? dueAt)
     {
-        GuardOpen();
+        GuardNotCancelled();
         DueAt = dueAt;
+        return this;
+    }
+
+    /// <summary>
+    /// Mức độ hài lòng — re-rates a record without touching its status. The
+    /// patient's care tab lets staff correct the rating of a finished record.
+    /// </summary>
+    public CareRecord Rate(CareOutcome outcome)
+    {
+        GuardNotCancelled();
+        Outcome = outcome;
         return this;
     }
 

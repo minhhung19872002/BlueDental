@@ -37,6 +37,7 @@ public class CustomerCareAppServiceContractTests
     [InlineData("GetAsync")]
     [InlineData("CreateAsync")]
     [InlineData("UpdateAsync")]
+    [InlineData("DeleteAsync")]
     [InlineData("MarkContactedAsync")]
     [InlineData("SucceedAsync")]
     [InlineData("FailAsync")]
@@ -52,6 +53,7 @@ public class CustomerCareAppServiceContractTests
     [Theory]
     [InlineData("GetAsync")]
     [InlineData("UpdateAsync")]
+    [InlineData("DeleteAsync")]
     [InlineData("MarkContactedAsync")]
     [InlineData("SucceedAsync")]
     [InlineData("FailAsync")]
@@ -74,6 +76,44 @@ public class CustomerCareAppServiceContractTests
         var property = typeof(UpdateCareRecordDto).GetProperty("Status");
         property.ShouldNotBeNull();
         property.PropertyType.ShouldBe(typeof(CareStatus?));
+    }
+
+    /// <summary>Deleting is a Manage-level action, never View.</summary>
+    [Fact]
+    public void DeleteAsync_Should_Require_Manage_Permission()
+    {
+        var method = _serviceType.GetMethod("DeleteAsync");
+        method.ShouldNotBeNull();
+        method.GetCustomAttribute<AuthorizeAttribute>()!.Policy
+            .ShouldBe(BlueDental.Permissions.BlueDentalPermissions.CustomerCare.Manage);
+    }
+
+    /// <summary>The patient's care tab edits Mức độ hài lòng through the PUT.</summary>
+    [Fact]
+    public void UpdateDto_Should_Carry_Optional_Outcome()
+    {
+        var property = typeof(UpdateCareRecordDto).GetProperty("Outcome");
+        property.ShouldNotBeNull();
+        property.PropertyType.ShouldBe(typeof(CareOutcome?));
+    }
+
+    /// <summary>Đánh giá chips send <c>outcome=</c> the way the reference sends colorCode.</summary>
+    [Fact]
+    public void ListInput_Should_Carry_Optional_Outcome_Filter()
+    {
+        var property = typeof(GetCareRecordListInput).GetProperty("Outcome");
+        property.ShouldNotBeNull();
+        property.PropertyType.ShouldBe(typeof(CareOutcome?));
+    }
+
+    /// <summary>The patient's care tab shows three Nhóm counters next to the ratings.</summary>
+    [Fact]
+    public void StatsDto_Should_Carry_Per_Type_Counts()
+    {
+        foreach (var name in new[] { "Special", "Periodic", "Base", "Good", "Fair", "Normal", "Complaint" })
+        {
+            typeof(CareStatsDto).GetProperty(name).ShouldNotBeNull($"CareStatsDto must expose {name}");
+        }
     }
 
     /// <summary>Base tasks are created already-successful with a colour label.</summary>
@@ -187,5 +227,33 @@ public class CareRecordBehaviorTests
         var record = NewRecord(CareType.Base).Succeed(CareOutcome.NotRated);
         record.Status.ShouldBe(CareStatus.Succeeded);
         record.Outcome.ShouldBe(CareOutcome.NotRated);
+    }
+
+    /// <summary>The patient's care tab corrects the rating of a finished record.</summary>
+    [Fact]
+    public void Rate_Should_Change_Outcome_Of_A_Succeeded_Record_Without_Touching_Status()
+    {
+        var record = NewRecord().Succeed(CareOutcome.Fair);
+
+        record.Rate(CareOutcome.Complaint);
+
+        record.Status.ShouldBe(CareStatus.Succeeded);
+        record.Outcome.ShouldBe(CareOutcome.Complaint);
+    }
+
+    /// <summary>…and so do the date and the doctor; only a cancelled record is frozen.</summary>
+    [Fact]
+    public void Finished_Record_Should_Accept_New_Due_Date_And_Doctor_But_Cancelled_Should_Not()
+    {
+        var at = DateTimeOffset.UtcNow;
+        var doctor = Guid.NewGuid();
+        var record = NewRecord().Succeed(CareOutcome.Good).SetDue(at).AssignTreatingStaff(doctor);
+
+        record.DueAt.ShouldBe(at);
+        record.AssignedStaffId.ShouldBe(doctor);
+
+        var cancelled = NewRecord().Cancel("khách không còn nhu cầu");
+        Should.Throw<BusinessException>(() => cancelled.SetDue(at));
+        Should.Throw<BusinessException>(() => cancelled.Rate(CareOutcome.Good));
     }
 }

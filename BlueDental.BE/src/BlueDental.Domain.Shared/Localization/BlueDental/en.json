@@ -1854,6 +1854,22 @@
     "Quan trọng": "Important",
     "Mã lịch hẹn": "Appointment ID",
     "Thời gian hẹn": "Appointment time",
-    "Lịch sử thay đổi": "Change history"
+    "Lịch sử thay đổi": "Change history",
+    "Xóa lượt chăm sóc": "Delete care entry",
+    "Bạn có chắc chắn muốn xóa lượt chăm sóc này không?": "Are you sure you want to delete this care entry?",
+    "lượt chăm sóc": "care entry",
+    "Đã xoá lượt chăm sóc": "Care entry deleted",
+    "Chi tiết phiếu": "Entry details",
+    "Mức độ hài lòng": "Satisfaction level",
+    "Đã chăm sóc": "Cared for",
+    "Đặc biệt": "Special",
+    "Cơ bản": "Basic",
+    "Bộ lọc chăm sóc": "Care filters",
+    "Cập nhật chăm sóc khách hàng": "Update customer care",
+    "Hiển thị {0} trên {1} nhật ký": "Showing {0} of {1} entries",
+    "Đã tạo nội dung chăm sóc": "Care entry created",
+    "Đã cập nhật nội dung chăm sóc": "Care entry updated",
+    "Vui lòng chọn ngày chăm sóc": "Please select a care date",
+    "Vui lòng chọn giờ chăm sóc": "Please select a care time"
   }
 }

@@ -10,6 +10,7 @@ import { PatientDetailContent } from "../components/patient-detail/PatientDetail
 import { PatientMedicalRecordTab } from "../components/patient-detail/PatientMedicalRecordTab";
 import "../components/patient-detail/patient-detail.css";
 import "../components/patient-detail/image/patient-image.css";
+import "../components/patient-detail/care/patient-care.css";
 
 const PATIENT_TABS = [
   ["profile", "Hồ sơ"],

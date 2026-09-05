@@ -1030,3 +1030,24 @@ Control: pencil / trash on a note row inside the edit dialog's "Ghi chú" card
 Reason: Not clicked — editing or deleting a note would mutate production.
 Action taken: NONE
 BlueDental: notes are shown read-only in the dialog for now.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}?tab=care
+Control: "Nhóm" column for a record of type special / recurring / base
+Reason: The staging patient surveyed on 2026-09-05 only carried afterTreatment
+  records ("Sau điều trị"); creating a record of another type would mutate
+  production, so the label the reference prints for those types is unobserved.
+Action taken: NONE
+BlueDental: prints the CSKH module's group label ("CSKH đặc biệt", "Định kỳ",
+  "CSKH cơ bản").
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}?tab=care
+Control: "Xóa" inside the "Xóa lượt chăm sóc" confirm dialog
+Reason: Opening the dialog was approved by the owner; confirming would delete a
+  production record, so the request behind it was not observed.
+Action taken: NONE (dialog dismissed with Huỷ)
+BlueDental: DELETE /api/v1/app/care-records/{id}, soft delete, Manage
+  permission, branch-guarded.
