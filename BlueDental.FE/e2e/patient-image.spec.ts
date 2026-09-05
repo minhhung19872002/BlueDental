@@ -120,6 +120,37 @@ test.describe("Hình ảnh bệnh nhân", () => {
     await viewer.getByRole("button", { name: "Zoom gần" }).click();
     await expect(viewer.getByRole("button", { name: "Zoom xa" })).toBeEnabled();
 
+    // The pen: its palette opens above the black backdrop, and a colour sticks.
+    await viewer.getByRole("button", { name: "Vẽ chú thích" }).click();
+    await viewer.getByRole("button", { name: "Đổi màu hoặc độ dày nét vẽ" }).click();
+    const palette = page.locator(".ant-popover:visible");
+    await expect(palette).toBeVisible();
+    const swatches = palette.getByRole("button", { pressed: false });
+    await swatches.first().click();
+    await expect(palette.getByRole("button", { pressed: true })).toHaveCount(1);
+    const topmost = await palette.evaluate((el) => {
+      const box = el.getBoundingClientRect();
+      const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+      return hit !== null && el.contains(hit);
+    });
+    expect(topmost).toBe(true);
+    await expect(palette.getByLabel("Màu tùy chọn")).toBeAttached();
+
+    // A stroke can be undone, and putting the pen away wipes the drawing.
+    const canvas = viewer.locator(".pi-annotation--active");
+    const stage = await canvas.boundingBox();
+    expect(stage).not.toBeNull();
+    await page.mouse.move(stage!.x + stage!.width / 2, stage!.y + stage!.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(stage!.x + stage!.width / 2 + 80, stage!.y + stage!.height / 2 + 40, { steps: 5 });
+    await page.mouse.up();
+    const undo = viewer.getByRole("button", { name: "Hoàn tác nét vẽ" });
+    await expect(undo).toBeEnabled();
+    await viewer.getByRole("button", { name: "Tắt chế độ vẽ" }).click();
+    await viewer.getByRole("button", { name: "Vẽ chú thích" }).click();
+    await expect(undo).toBeDisabled();
+    await viewer.getByRole("button", { name: "Tắt chế độ vẽ" }).click();
+
     await page.keyboard.press("Escape");
     await expect(viewer).toBeHidden();
   });
@@ -173,9 +204,13 @@ test.describe("Hình ảnh bệnh nhân", () => {
       await expect(card(page, name)).toBeHidden();
     }
 
+    // Arm the wait before the reload so the list request cannot slip past it.
+    const relisted = page.waitForResponse(
+      (res) => res.url().includes(IMAGES_API) && res.request().method() === "GET",
+    );
     await page.reload();
+    expect((await relisted).ok()).toBeTruthy();
     await expect(page.getByTestId("patient-image-tab")).toBeVisible();
-    await assertRealApiTraffic(page, IMAGES_API);
     await expect(card(page, FIRST)).toBeHidden();
     await expect(card(page, SECOND)).toBeHidden();
   });

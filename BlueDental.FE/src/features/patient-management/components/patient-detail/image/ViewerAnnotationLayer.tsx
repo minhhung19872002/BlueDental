@@ -13,14 +13,22 @@ interface Stroke {
   points: Point[];
 }
 
-/** Pen colours offered in the palette; data, not styling. */
-const PEN_COLORS = ["#e5484d", "#f5a524", "#0e9f6e", "#2671d8", "#ffffff", "#171c33"];
+/** Preset pen colours, in the reference's order; the last swatch is a free pick. */
+const PEN_COLORS = ["#2563eb", "#ef4444", "#f59e0b", "#10b981", "#8b5cf6", "#1f2937"];
 const PEN_SIZES = { min: 1, max: 20 };
 
 interface Props {
   /** The pen is out: the layer takes the pointer and shows its controls. */
   active: boolean;
   onExit: () => void;
+}
+
+/**
+ * The viewer sits above every other layer of the page, so a popup left in
+ * `body` would be hidden behind it: the palette is mounted inside the viewer.
+ */
+function popupContainerOf(trigger: HTMLElement): HTMLElement {
+  return trigger.closest<HTMLElement>(".pi-viewer") ?? document.body;
 }
 
 function paint(canvas: HTMLCanvasElement, strokes: Stroke[]) {
@@ -52,7 +60,7 @@ function paint(canvas: HTMLCanvasElement, strokes: Stroke[]) {
 export function ViewerAnnotationLayer({ active, onExit }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [strokes, setStrokes] = useState<Stroke[]>([]);
-  const [color, setColor] = useState(PEN_COLORS[0] ?? "#e5484d");
+  const [color, setColor] = useState(PEN_COLORS[0] ?? "#2563eb");
   const [size, setSize] = useState(4);
   const current = useRef<Stroke | null>(null);
 
@@ -96,6 +104,13 @@ export function ViewerAnnotationLayer({ active, onExit }: Props) {
     if (stroke) setStrokes((all) => [...all, stroke]);
   };
   const undo = () => setStrokes((all) => all.slice(0, -1));
+  /** Putting the pen away wipes the drawing, as the reference does. */
+  const handleExit = () => {
+    current.current = null;
+    setStrokes([]);
+    onExit();
+  };
+  const isCustomColor = !PEN_COLORS.includes(color);
 
   const palette = (
     <div className="pi-pen-palette">
@@ -111,6 +126,19 @@ export function ViewerAnnotationLayer({ active, onExit }: Props) {
             onClick={() => setColor(swatch)}
           />
         ))}
+        <label
+          className={["pi-pen-swatch", "pi-pen-swatch--custom", isCustomColor && "pi-pen-swatch--active"]
+            .filter(Boolean)
+            .join(" ")}
+          style={{ "--pi-swatch": isCustomColor ? color : "transparent" } as CSSProperties}
+        >
+          <input
+            type="color"
+            aria-label={t("Màu tùy chọn")}
+            value={color}
+            onChange={(event) => setColor(event.target.value)}
+          />
+        </label>
       </div>
       <label className="pi-pen-size">
         <span>{t("Độ dày")}</span>
@@ -138,7 +166,7 @@ export function ViewerAnnotationLayer({ active, onExit }: Props) {
       />
       {active && (
         <div className="pi-pen-tools" role="toolbar" aria-label={t("Vẽ chú thích")}>
-          <Popover content={palette} trigger="click" placement="bottom">
+          <Popover content={palette} trigger="click" placement="bottom" getPopupContainer={popupContainerOf}>
             <Tooltip title={t("Đổi màu hoặc độ dày nét vẽ")}>
               <button type="button" className="pi-pen-tool" aria-label={t("Đổi màu hoặc độ dày nét vẽ")}>
                 <Palette size={18} />
@@ -151,7 +179,7 @@ export function ViewerAnnotationLayer({ active, onExit }: Props) {
             </button>
           </Tooltip>
           <Tooltip title={t("Tắt chế độ vẽ")}>
-            <button type="button" className="pi-pen-tool" aria-label={t("Tắt chế độ vẽ")} onClick={onExit}>
+            <button type="button" className="pi-pen-tool" aria-label={t("Tắt chế độ vẽ")} onClick={handleExit}>
               <PenOff size={18} />
             </button>
           </Tooltip>

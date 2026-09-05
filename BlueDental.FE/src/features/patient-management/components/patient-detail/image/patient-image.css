@@ -525,6 +525,22 @@
   border-color: var(--bd-link);
   box-shadow: 0 0 0 2px rgba(38, 113, 216, 0.25);
 }
+/* The free pick: a rainbow ring until a colour is chosen, then that colour. */
+.pi-pen-swatch--custom {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(var(--pi-swatch), var(--pi-swatch)),
+    conic-gradient(#ef4444, #f59e0b, #10b981, #2563eb, #8b5cf6, #ef4444);
+}
+.pi-pen-swatch--custom input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
 .pi-pen-size {
   display: flex;
   align-items: center;
