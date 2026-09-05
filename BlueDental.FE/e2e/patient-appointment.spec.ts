@@ -60,7 +60,7 @@ async function pickFirstDoctor(page: Page): Promise<string> {
  * until it shows up.
  */
 async function findRow(page: Page, reason: string) {
-  await expect(page.locator(".pd-appointment-card tbody tr.ant-table-row").first()).toBeVisible();
+  await expect(page.locator(".pd-appointment-tab tbody tr.ant-table-row").first()).toBeVisible();
   const row = page.locator("tbody tr", { hasText: reason }).first();
   for (let hop = 0; hop < 10; hop += 1) {
     if (await row.isVisible()) return row;
@@ -79,7 +79,7 @@ async function findRow(page: Page, reason: string) {
 
 /** Walks every page of the tab and fails if any row still carries `reason`. */
 async function expectNoRow(page: Page, reason: string) {
-  await expect(page.locator(".pd-appointment-card tbody tr.ant-table-row").first()).toBeVisible();
+  await expect(page.locator(".pd-appointment-tab tbody tr.ant-table-row").first()).toBeVisible();
   for (let hop = 0; hop < 10; hop += 1) {
     await expect(page.locator("tbody tr", { hasText: reason })).toHaveCount(0);
     const next = page.locator(".ant-pagination-next").first();
@@ -119,23 +119,25 @@ test.describe("Lịch hẹn của bệnh nhân", () => {
     await login(page);
   });
 
-  test("the tab fills the screen and keeps the pager on the card's bottom edge", async ({
+  test("the tab fills the screen with a bare toolbar over the table card", async ({
     page,
   }) => {
     await openAppointmentTab(page);
 
-    // One card holds the counters, the commands and the table, as /cskh-grouping does.
-    const card = page.locator(".pd-pane .pd-appointment-card");
-    await expect(card).toBeVisible();
-    await expect(card.locator(".pd-stat-row")).toBeVisible();
-    await expect(card.locator(".bd-cat-card")).toBeVisible();
+    // The counters and commands sit straight on the pane, the table in its own
+    // bordered card under them — the Chăm sóc KH layout, with no outer card.
+    const tab = page.locator(".pd-pane.pd-appointment-tab");
+    await expect(tab).toBeVisible();
+    await expect(tab.locator(".pd-appointment-toolbar .pd-stat-row")).toBeVisible();
+    await expect(tab.locator(":scope > .bd-cat-card")).toBeVisible();
+    await expect(tab.locator(".reception-card")).toHaveCount(0);
 
-    // The card runs to the bottom of the page, with or without rows.
-    const cardBox = await card.boundingBox();
+    // The pane runs to the bottom of the page, with or without rows.
+    const tabBox = await tab.boundingBox();
     const pageBox = await page.locator(".pd-page").boundingBox();
-    expect(cardBox).not.toBeNull();
+    expect(tabBox).not.toBeNull();
     expect(pageBox).not.toBeNull();
-    expect(cardBox!.y + cardBox!.height).toBeGreaterThan(pageBox!.y + pageBox!.height - 8);
+    expect(tabBox!.y + tabBox!.height).toBeGreaterThan(pageBox!.y + pageBox!.height - 8);
 
     // Four counters, in the reference's order.
     for (const label of ["Đã hẹn", "Đã đến", "Đã huỷ", "Trễ hẹn"]) {
