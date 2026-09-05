@@ -4625,7 +4625,8 @@ html:has(.ant-modal-wrap) {
 }
 
 /* Hide Select placeholder when label is in resting position */
-.floating-field:not(.floating-field--floated) .ant-select-selection-placeholder {
+.floating-field:not(.floating-field--floated) .ant-select-selection-placeholder,
+.floating-field:not(.floating-field--floated) .ss-value--placeholder {
   opacity: 0;
 }
 

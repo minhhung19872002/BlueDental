@@ -53,8 +53,7 @@ export function PatientListFilters({ filters, options, onChange, layout = "row" 
       >
         <SearchSelect
           value={filters.staffId}
-          options={options.doctors}
-          placeholder={t("Chọn bác sĩ")}
+          options={options.doctors}
           emptyText={t("Không tìm thấy bác sĩ")}
           allowClear
           onChange={(staffId) => onChange({ staffId })}
@@ -68,8 +67,7 @@ export function PatientListFilters({ filters, options, onChange, layout = "row" 
       >
         <SearchSelect
           value={filters.serviceTaxonomyId}
-          options={options.serviceGroups}
-          placeholder={t("Chọn dịch vụ")}
+          options={options.serviceGroups}
           emptyText={t("Không tìm thấy phân loại dịch vụ")}
           allowClear
           onChange={(serviceTaxonomyId) => onChange({ serviceTaxonomyId })}
@@ -83,8 +81,7 @@ export function PatientListFilters({ filters, options, onChange, layout = "row" 
       >
         <SearchSelect
           value={filters.tagId}
-          options={options.tags}
-          placeholder={t("Chọn tag")}
+          options={options.tags}
           emptyText={t("Không tìm thấy tag")}
           allowClear
           onChange={(tagId) => onChange({ tagId })}
