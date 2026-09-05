@@ -26,6 +26,26 @@ const id = runId();
 const FIRST = `truoc-a-${id}.png`;
 const SECOND = `truoc-b-${id}.png`;
 
+/**
+ * A 1600×1200 PNG painted in the browser: big enough that any zoom spills
+ * past the stage, which is what the drag-to-pan check needs.
+ */
+async function bigPng(page: Page): Promise<Buffer> {
+  const base64 = await page.evaluate(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1600;
+    canvas.height = 1200;
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("no 2d context");
+    context.fillStyle = "#2671d8";
+    context.fillRect(0, 0, 1600, 1200);
+    context.fillStyle = "#ffffff";
+    context.fillRect(200, 200, 1200, 800);
+    return canvas.toDataURL("image/png").split(",")[1] ?? "";
+  });
+  return Buffer.from(base64, "base64");
+}
+
 function todayKey(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
@@ -70,7 +90,7 @@ test.describe("Hình ảnh bệnh nhân", () => {
       (res) => res.url().includes(IMAGES_API) && res.request().method() === "POST" && res.ok(),
     );
     await page.getByTestId("patient-image-input").setInputFiles([
-      { name: FIRST, mimeType: "image/png", buffer: PNG },
+      { name: FIRST, mimeType: "image/png", buffer: await bigPng(page) },
       { name: SECOND, mimeType: "image/png", buffer: PNG },
     ]);
     await uploaded;
@@ -116,9 +136,45 @@ test.describe("Hình ảnh bệnh nhân", () => {
     await viewer.getByRole("button", { name: "Ảnh trước" }).click();
     await expect(viewer.getByRole("status")).toHaveText(FIRST);
 
-    await expect(viewer.getByRole("button", { name: "Zoom xa" })).toBeDisabled();
-    await viewer.getByRole("button", { name: "Zoom gần" }).click();
-    await expect(viewer.getByRole("button", { name: "Zoom xa" })).toBeEnabled();
+    // Zoom: the button scales the picture, a zoomed picture drags about, the
+    // wheel zooms too, and a double-click brings it back to rest.
+    const frame = viewer.getByTestId("patient-image-frame");
+    const zoomOf = () => frame.evaluate((el) => Number(getComputedStyle(el).getPropertyValue("--pi-zoom")));
+    const panOf = () => frame.evaluate((el) => getComputedStyle(el).getPropertyValue("--pi-pan-y").trim());
+    const scaleOf = () => frame.evaluate((el) => new DOMMatrix(getComputedStyle(el).transform).a);
+    const zoomIn = viewer.getByRole("button", { name: "Zoom gần" });
+    const zoomOut = viewer.getByRole("button", { name: "Zoom xa" });
+    // Nothing to drag until the picture itself has arrived.
+    await expect
+      .poll(() => frame.locator("img").evaluate((el) => (el as HTMLImageElement).complete && (el as HTMLImageElement).naturalWidth > 0))
+      .toBe(true);
+    await expect(zoomOut).toBeDisabled();
+    await zoomIn.click();
+    await expect(zoomOut).toBeEnabled();
+    await expect.poll(zoomOf).toBe(1.5);
+    await expect.poll(scaleOf).toBe(1.5);
+
+    // The picture is now taller than its stage (the stage is wide, the
+    // picture 4:3), so it drags up and down but stays put sideways.
+    await expect(frame).toHaveClass(/pi-viewer-frame--pannable/);
+    const box = await frame.boundingBox();
+    expect(box).not.toBeNull();
+    await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2 - 60, { steps: 4 });
+    await page.mouse.up();
+    await expect.poll(panOf).not.toBe("0px");
+
+    await frame.dblclick();
+    await expect.poll(zoomOf).toBe(1);
+    await expect.poll(panOf).toBe("0px");
+    await expect(zoomOut).toBeDisabled();
+
+    await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+    await page.mouse.wheel(0, -100);
+    await expect.poll(zoomOf).toBe(1.25);
+    await page.mouse.wheel(0, 100);
+    await expect.poll(zoomOf).toBe(1);
 
     // The pen: its palette opens above the black backdrop, and a colour sticks.
     await viewer.getByRole("button", { name: "Vẽ chú thích" }).click();

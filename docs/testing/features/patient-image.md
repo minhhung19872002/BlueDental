@@ -39,6 +39,18 @@ GET    /api/v1/app/account/current-user        (permissions the tab keys off)
   server answers.
 - The viewer is the app's own: zoom / rotate / flip / annotate are client-side
   and never sent to the server.
+- Zoom, like lightGallery's zoom plugin on the reference: the buttons step by
+  0.5 between 1× and 4×, the wheel over the stage steps by 0.25 (and never
+  scrolls the page), a double-click goes to 2× and back. A zoomed picture is
+  dragged about with the pointer, clamped so an edge never passes the middle
+  of the stage, and the offset resets when the zoom returns to 1×.
+- The pen's palette opens above the black backdrop (mounted inside the viewer,
+  not in `body`, which sits under it), offers the reference's six colours plus
+  a free colour picker last, and a thickness slider. "Hoàn tác nét vẽ" removes
+  the last stroke; "Tắt chế độ vẽ" wipes the whole drawing.
+- Strokes live in the picture's own pixels, on a canvas inside the picture's
+  frame, so they zoom, rotate, flip and pan with it, and a stroke drawn while
+  zoomed or rotated lands under the pointer.
 
 ## Acceptance evidence
 
@@ -51,7 +63,13 @@ and `BlueDental.EntityFrameworkCore.Tests/PatientManagement/PatientImageMappingT
    today's group with a count, that the `<img>` really decoded, that "Sau điều
    trị" hides them and "Xóa lọc" brings them back, then reloads
 2. opens the viewer from the eye button, checks caption and "1 / N" counter,
-   walks with "Ảnh sau" / "Ảnh trước", zooms, closes with Escape
+   walks with "Ảnh sau" / "Ảnh trước"; waits for the (1600×1200, painted in
+   the browser) picture to decode, zooms to 1.5× with the button, drags it up
+   and sees the pan offset move, double-clicks back to 1× with the offset
+   reset, wheels to 1.25× and back; takes the pen out, opens the palette and
+   proves it is the topmost element, picks a colour, finds the custom picker,
+   draws a stroke, sees undo enabled, puts the pen away and takes it out again
+   to find the drawing gone; closes with Escape
 3. drags the second card's grip onto the first, waits for `PUT /reorder`, and
    proves the order after a reload
 4. deletes both through the confirmation dialog, sees the toast, reloads and

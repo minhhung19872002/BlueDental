@@ -1210,3 +1210,32 @@ rồi dựng lại từ đầu:
   nhánh không dùng biến chung vì worker khởi động lại sau test đỏ.
 - Bản gốc: "Giai đoạn điều trị" là hằng 2 giá trị trong bundle, không phải
   danh mục — giữ nguyên hằng ở FE.
+
+### 2026-09-05 — viewer tab Hình ảnh: bảng màu, zoom/kéo, nét vẽ theo ảnh (F-24)
+
+Ba báo cáo nối tiếp của người dùng sau khi nghiệm thu F-24:
+
+- **"Đổi màu hoặc độ dày nét vẽ" bấm không thấy gì**: Popover AntD gắn vào
+  `body` ở z-index 1030, viewer ở 1100 nên bảng màu nằm dưới nền đen. Đo bằng
+  `elementFromPoint` để xác nhận, sửa bằng `getPopupContainer` gắn vào
+  `.pi-viewer`. Bảng màu theo bản gốc: 6 màu cố định + ô cuối là ô chọn màu
+  tự do (`<input type="color">`), và "Tắt chế độ vẽ" xoá toàn bộ nét đã vẽ.
+- **Chưa xử lý zoom**: thêm zoom bằng bánh xe (bước 0.25, chặn cuộn trang
+  bằng listener native `passive: false` vì `onWheel` của React là passive),
+  double-click 2×/về 1×, kéo ảnh khi đã phóng (`useViewerPan`, kẹp trong
+  khung, reset offset khi về 1×). Con trỏ `grab`/`grabbing`, tắt transition
+  khi đang kéo.
+- **Nét vẽ không phóng theo ảnh**: canvas nằm ngoài khung nên đứng yên khi
+  ảnh phóng/xoay. Chuyển canvas vào trong `.pi-viewer-frame`, toạ độ con trỏ
+  đổi về pixel ảnh bằng nghịch đảo `DOMMatrix` của khung quanh tâm; tách
+  `useViewerAnnotation` (state nét vẽ, màu, độ dày) + `ViewerAnnotationCanvas`
+  + `ViewerPenTools`. Kiểm bằng ảnh chụp: nét vẽ khi đã phóng 2× và xoay vẫn
+  nằm đúng dưới con trỏ.
+- **Lỗi vặt khi viết test**: ảnh PNG 16 px phóng 4× vẫn lọt trong khung nên
+  không kéo được → test vẽ PNG 1600×1200 ngay trong trình duyệt; ở viewport
+  1280×720 ảnh 4:3 chỉ tràn theo chiều dọc nên phải kéo lên/xuống (kéo ngang
+  bị kẹp về 0 là đúng); phải chờ `<img>` decode xong và transform ổn định
+  trước khi kéo vì khung chưa có ảnh đo ra 0×0. Không được bấm Escape để đóng
+  bảng màu — Escape đóng cả viewer. Sau mỗi lần test đỏ, ảnh `truoc-a/b-*` còn
+  sót trên bệnh nhân đầu tiên phải xoá qua UI local trước khi chạy lại.
+- `patient-image.spec.ts` 5/5 xanh trên `vite preview` 8080, backend thật.

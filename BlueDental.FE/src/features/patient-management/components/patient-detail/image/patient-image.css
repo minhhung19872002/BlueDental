@@ -382,13 +382,22 @@
   overflow: hidden;
 }
 .pi-viewer-frame {
+  position: relative;
   display: grid;
   place-items: center;
   max-width: 100%;
   max-height: 100%;
-  transform: rotate(var(--pi-rotate, 0deg)) scale(var(--pi-flip-x, 1), var(--pi-flip-y, 1))
-    scale(var(--pi-zoom, 1));
+  transform: translate(var(--pi-pan-x, 0px), var(--pi-pan-y, 0px)) rotate(var(--pi-rotate, 0deg))
+    scale(var(--pi-flip-x, 1), var(--pi-flip-y, 1)) scale(var(--pi-zoom, 1));
   transition: transform 0.3s ease;
+  touch-action: none;
+}
+.pi-viewer-frame--pannable {
+  cursor: grab;
+}
+.pi-viewer-frame--panning {
+  cursor: grabbing;
+  transition: none;
 }
 .pi-viewer-frame img {
   display: block;
@@ -458,7 +467,7 @@
   object-fit: cover;
 }
 
-/* ---- Annotation ---- */
+/* ---- Annotation: the canvas lies on the picture, inside its frame ---- */
 .pi-annotation {
   position: absolute;
   inset: 0;
