@@ -1238,4 +1238,7 @@ Ba báo cáo nối tiếp của người dùng sau khi nghiệm thu F-24:
   trước khi kéo vì khung chưa có ảnh đo ra 0×0. Không được bấm Escape để đóng
   bảng màu — Escape đóng cả viewer. Sau mỗi lần test đỏ, ảnh `truoc-a/b-*` còn
   sót trên bệnh nhân đầu tiên phải xoá qua UI local trước khi chạy lại.
+- **Bấm vùng đen chưa đóng viewer**: thêm `onClick` ở gốc `.pi-viewer`, bỏ
+  qua khi mục tiêu nằm trong khung ảnh, thanh trên, mũi tên, thanh bút, dải
+  thumbnail hay popover; test bấm vào ảnh (còn mở) rồi bấm góc sân khấu (đóng).
 - `patient-image.spec.ts` 5/5 xanh trên `vite preview` 8080, backend thật.

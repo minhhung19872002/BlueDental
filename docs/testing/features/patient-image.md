@@ -48,6 +48,9 @@ GET    /api/v1/app/account/current-user        (permissions the tab keys off)
   not in `body`, which sits under it), offers the reference's six colours plus
   a free colour picker last, and a thickness slider. "Hoàn tác nét vẽ" removes
   the last stroke; "Tắt chế độ vẽ" wipes the whole drawing.
+- The viewer closes on Escape, on the × button, and on a click on the black
+  backdrop; a click on the picture, the bars, the arrows, the pen tools or
+  the thumbnails does not close it.
 - Strokes live in the picture's own pixels, on a canvas inside the picture's
   frame, so they zoom, rotate, flip and pan with it, and a stroke drawn while
   zoomed or rotated lands under the pointer.
@@ -69,7 +72,8 @@ and `BlueDental.EntityFrameworkCore.Tests/PatientManagement/PatientImageMappingT
    reset, wheels to 1.25× and back; takes the pen out, opens the palette and
    proves it is the topmost element, picks a colour, finds the custom picker,
    draws a stroke, sees undo enabled, puts the pen away and takes it out again
-   to find the drawing gone; closes with Escape
+   to find the drawing gone; closes with Escape, reopens, clicks the picture
+   (stays open) and then the backdrop (closes)
 3. drags the second card's grip onto the first, waits for `PUT /reorder`, and
    proves the order after a reload
 4. deletes both through the confirmation dialog, sees the toast, reloads and

@@ -1,4 +1,4 @@
-import { useEffect, useRef, type CSSProperties } from "react";
+import { useEffect, useRef, type CSSProperties, type MouseEvent } from "react";
 import { createPortal } from "react-dom";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { t } from "@/lib/i18n";
@@ -24,8 +24,13 @@ interface Props {
  * name under it, a "1 / N" counter, and the thumbnail strip along the foot.
  * The wheel zooms, a zoomed picture drags, a double-click zooms in and back,
  * and the annotation canvas rides inside the frame so strokes follow it all.
- * Rendered into `body` so no panel's overflow can clip it.
+ * A click on the black backdrop closes it, as lightGallery does on the
+ * reference. Rendered into `body` so no panel's overflow can clip it.
  */
+
+/** The parts of the viewer that are not backdrop: a click on them is theirs. */
+const SOLID_PARTS = ".pi-viewer-frame, .pi-viewer-top, .pi-viewer-nav, .pi-pen-tools, .pi-viewer-thumbs, .ant-popover";
+
 export function PatientImageViewer({ images, initialIndex, onClose }: Props) {
   const viewer = useImageViewer(images.length, initialIndex, onClose);
   const annotation = useViewerAnnotation();
@@ -43,6 +48,11 @@ export function PatientImageViewer({ images, initialIndex, onClose }: Props) {
   /** A drawing belongs to one picture: moving on wipes it. */
   const { clear } = annotation;
   useEffect(() => clear(), [clear, viewer.index]);
+
+  const handleBackdropClick = (event: MouseEvent<HTMLDivElement>) => {
+    if (!(event.target instanceof Element) || event.target.closest(SOLID_PARTS)) return;
+    onClose();
+  };
 
   if (!image) return null;
 
@@ -67,6 +77,7 @@ export function PatientImageViewer({ images, initialIndex, onClose }: Props) {
       aria-label={t("Xem ảnh")}
       tabIndex={-1}
       data-testid="patient-image-viewer"
+      onClick={handleBackdropClick}
     >
       <div className="pi-viewer-top">
         <span className="pi-viewer-counter" data-testid="patient-image-counter">

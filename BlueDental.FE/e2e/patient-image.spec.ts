@@ -209,6 +209,14 @@ test.describe("Hình ảnh bệnh nhân", () => {
 
     await page.keyboard.press("Escape");
     await expect(viewer).toBeHidden();
+
+    // A click on the black backdrop closes it too; one on the picture does not.
+    await card(page, FIRST).getByRole("button", { name: "Xem ảnh", exact: true }).click();
+    await expect(viewer).toBeVisible();
+    await frame.locator("img").click();
+    await expect(viewer).toBeVisible();
+    await viewer.locator(".pi-viewer-stage").click({ position: { x: 8, y: 8 } });
+    await expect(viewer).toBeHidden();
   });
 
   test("dragging a card by its grip reorders the day, and the order survives a reload", async ({ page }) => {
