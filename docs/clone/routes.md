@@ -108,7 +108,7 @@ External link:
 
 | Route | Screen | Where it comes from |
 |-------|--------|---------------------|
-| /billing | Thanh toán & hoá đơn | The Claude Design file `BlueDental.dc.html`, which gives invoices a clinic-wide screen. The reference keeps invoices only under `/patient/:id?tab=invoice`. |
+| /billing | Thanh toán & hoá đơn | The Claude Design file `BlueDental.dc.html`, which gives invoices a clinic-wide screen. The reference keeps invoices only under `/patient/:id?tab=invoice`, so since 2026-09-05 this route is reachable by URL only and has no sidebar entry. |
 | /settings | Cài đặt phòng khám | Same design file; reached from the account menu. |
 | /dashboard | Tổng quan | BlueDental's own, kept for internal use. |
 

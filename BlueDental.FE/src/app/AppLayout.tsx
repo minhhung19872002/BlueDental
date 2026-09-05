@@ -70,13 +70,16 @@ function NavIcon({ d }: { d: string }) {
  * `plan` ("Điều trị") is in that list but has no artboard of its own and no
  * route here — treatment lives inside a patient's record — so it is left out
  * rather than added as a link that goes nowhere.
+ *
+ * `billing` ("Thanh toán") is also left out: the reference has no such sidebar
+ * entry (payments live under a patient's record), so the `/billing` route stays
+ * reachable by URL only.
  */
 const NAV_ICON_PATHS = {
   dashboard: "M4 13h6V4H4v9zm10 7h6v-9h-6v9zM4 20h6v-4H4v4zm10-11h6V4h-6v5z",
   reception: "M4 20v-2a4 4 0 014-4h8a4 4 0 014 4v2M12 3a4 4 0 100 8 4 4 0 000-8z",
   calendar: "M3 9h18M7 3v4m10-4v4M5 5h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z",
   patients: "M16 20v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 3a4 4 0 100 8 4 4 0 000-8zm11 17v-2a4 4 0 00-3-3.87",
-  billing: "M3 10h18M3 7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7zm4 8h4",
   materials: "M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8",
   staff: "M17 21v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2M10 3a4 4 0 100 8 4 4 0 000-8zM21 8v6m3-3h-6",
   labo: "M9 3h6v5l4 9a3 3 0 01-3 4H8a3 3 0 01-3-4l4-9V3z",
@@ -96,7 +99,6 @@ const mainNav = (t: Translate): NavItem[] => [
   { key: "/reception", icon: <NavIcon d={NAV_ICON_PATHS.reception} />, label: t("Tiếp nhận") },
   { key: "/calendar", icon: <NavIcon d={NAV_ICON_PATHS.calendar} />, label: t("Lịch hẹn") },
   { key: "/patient", icon: <NavIcon d={NAV_ICON_PATHS.patients} />, label: t("Bệnh nhân") },
-  { key: "/billing", icon: <NavIcon d={NAV_ICON_PATHS.billing} />, label: t("Thanh toán") },
   { key: "/materials", icon: <NavIcon d={NAV_ICON_PATHS.materials} />, label: t("Vật tư") },
   { key: "/staff", icon: <NavIcon d={NAV_ICON_PATHS.staff} />, label: t("Nhân sự") },
   { key: "/labo", icon: <NavIcon d={NAV_ICON_PATHS.labo} />, label: t("Labo") },
