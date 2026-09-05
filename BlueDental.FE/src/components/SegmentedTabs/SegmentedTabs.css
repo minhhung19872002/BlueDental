@@ -40,6 +40,11 @@
   position: relative;
   z-index: 1;
   flex: none;
+  /* Fill the padded inner height (32px) so the hover tint matches the thumb
+     instead of hugging the 22px text line. */
+  align-self: stretch;
+  display: inline-flex;
+  align-items: center;
   border: none;
   background: transparent;
   border-radius: 10px;

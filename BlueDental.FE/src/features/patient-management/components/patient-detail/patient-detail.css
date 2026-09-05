@@ -1540,8 +1540,6 @@
   flex-shrink: 0;
 }
 .pd-viewswitch .seg-tabs-item {
-  display: inline-flex;
-  align-items: center;
   gap: 6px;
 }
 
