@@ -1,10 +1,14 @@
-export type AppointmentStatus =
-  | "scheduled"
-  | "confirmed"
-  | "inProgress"
-  | "completed"
-  | "cancelled"
-  | "noShow";
+/** Every status the server reports, in workflow order. */
+export const APPOINTMENT_STATUSES = [
+  "scheduled",
+  "confirmed",
+  "inProgress",
+  "completed",
+  "cancelled",
+  "noShow",
+] as const;
+
+export type AppointmentStatus = (typeof APPOINTMENT_STATUSES)[number];
 
 /**
  * "Màu lịch hẹn" — the four swatches the booking dialog offers.

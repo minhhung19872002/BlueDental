@@ -70,6 +70,18 @@ public class UpdateAppointmentDto
     public string? Notes { get; set; }
     public string? Color { get; set; }
 
+    /// <summary>
+    /// The edit dialog's Trạng thái. Cancelled or NoShow moves the appointment
+    /// there in the same save; Requested or Confirmed puts a cancelled or late
+    /// one back on the book. A value in the appointment's current group changes
+    /// nothing, the arrival statuses are refused. Left null, the status is not
+    /// touched at all.
+    /// </summary>
+    public AppointmentStatus? Status { get; set; }
+
+    /// <summary>Why, when <see cref="Status"/> is Cancelled; defaults to the patient asking.</summary>
+    public CancellationReason? CancellationReason { get; set; }
+
     // Temp appointment fields
     public string? PatientName { get; set; }
     public string? PatientPhone { get; set; }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -9,15 +9,18 @@ import { AppDialog } from "@/components/AppDialog";
 // patient's record, and the record's page does not import the calendar's CSS.
 // Without this the modal renders full-width with its two columns collapsed.
 import "./calendar.css";
-import { useCreateAppointment, useUpdateAppointment } from "../api/appointmentMutations";
 import { useAppointment } from "../api/appointmentQueries";
+import { useSaveAppointment } from "../hooks/useSaveAppointment";
+import { APPOINTMENT_STATUSES } from "../types/appointment";
+import type { AppointmentEditorValues } from "../types/appointmentEditor";
 import { usePatientOptions } from "@/hooks/usePatientOptions";
 import { useDentistList } from "@/features/staff/api/staffQueries";
 import { useClinicBranches } from "@/features/organizations/api";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { APPT_COLORS } from "./AppointmentColorPicker";
-import { AppointmentEditorForm, type AppointmentEditorValues } from "./AppointmentEditorForm";
+import { AppointmentEditorForm } from "./AppointmentEditorForm";
+import { STATUS_GROUP } from "./appointmentStatusOptions";
 
 const buildSchema = () =>
   z.object({
@@ -33,6 +36,7 @@ const buildSchema = () =>
     content: z.string(),
     color: z.string(),
     notes: z.string(),
+    status: z.enum(APPOINTMENT_STATUSES),
   });
 
 interface Props {
@@ -66,8 +70,7 @@ export function AppointmentEditorModal({
   onSuccess,
 }: Props) {
   const isEdit = Boolean(appointmentId);
-  const createMutation = useCreateAppointment();
-  const updateMutation = useUpdateAppointment(appointmentId ?? "");
+  const { save, saving } = useSaveAppointment(appointmentId);
   const currentBranchId = useCurrentBranchId();
 
   const { data: existingAppt } = useAppointment(appointmentId ?? "");
@@ -100,6 +103,7 @@ export function AppointmentEditorModal({
       content: "",
       color: APPT_COLORS[0].value,
       notes: "",
+      status: "scheduled",
     },
   });
 
@@ -107,12 +111,19 @@ export function AppointmentEditorModal({
   const watchedDate = useWatch({ control, name: "date" });
   const watchedNotes = useWatch({ control, name: "notes" });
 
+  // The create seed runs once per opening. Anything that settles late — the
+  // branch store, an option list — must not reset the form under a user who
+  // has already picked a date.
+  const seeded = useRef(false);
+
   useEffect(() => {
     if (!open) {
+      seeded.current = false;
       reset();
       return;
     }
-    if (isEdit && existingAppt) {
+    if (isEdit) {
+      if (!existingAppt) return;
       const start = dayjs(existingAppt.startTime);
       const end = dayjs(existingAppt.endTime);
       reset({
@@ -125,6 +136,7 @@ export function AppointmentEditorModal({
         content: existingAppt.reason ?? "",
         color: existingAppt.color ?? APPT_COLORS[0].value,
         notes: existingAppt.notes ?? "",
+        status: STATUS_GROUP[existingAppt.status],
       });
       return;
     }
@@ -132,6 +144,8 @@ export function AppointmentEditorModal({
     // Creating: seed whatever the caller already knows. A patient screen knows
     // the patient, a diagnosis row knows what the visit is for, and the
     // calendar knows the slot and the doctor whose column was clicked.
+    if (seeded.current) return;
+    seeded.current = true;
     reset({
       patientId: initialPatientId ?? "",
       branchId: currentBranchId,
@@ -142,6 +156,7 @@ export function AppointmentEditorModal({
       content: initialReason ?? "",
       color: APPT_COLORS[0].value,
       notes: "",
+      status: "scheduled",
     });
   }, [
     open,
@@ -156,63 +171,28 @@ export function AppointmentEditorModal({
     initialDoctorId,
   ]);
 
-  const activeMutation = isEdit ? updateMutation : createMutation;
-
-  const onSubmit = (data: AppointmentEditorValues) => {
-    const startDateTime = `${data.date}T${data.startTime}:00`;
-    const endDateTime = dayjs(startDateTime).add(data.durationMinutes, "minute").format(`${data.date}THH:mm:00`);
-
-    if (isEdit) {
-      updateMutation.mutate(
-        {
-          doctorId: data.doctorId,
-          startTime: startDateTime,
-          endTime: endDateTime,
-          reason: data.content ?? "",
-          color: data.color ?? "",
-          notes: data.notes ?? "",
-        },
-        {
-          onSuccess: () => {
-            toast.success(t("Cập nhật lịch hẹn thành công!"));
-            reset();
-            onSuccess?.();
-            onClose();
-          },
-        },
-      );
-    } else {
-      createMutation.mutate(
-        {
-          patientId: data.patientId,
-          doctorId: data.doctorId,
-          branchId: data.branchId,
-          startTime: startDateTime,
-          endTime: endDateTime,
-          reason: data.content || undefined,
-          color: data.color || undefined,
-          notes: data.notes || undefined,
-        },
-        {
-          onSuccess: () => {
-            toast.success(t("Tạo lịch hẹn thành công!"));
-            reset();
-            onSuccess?.();
-            onClose();
-          },
-        },
-      );
+  const onSubmit = async (data: AppointmentEditorValues) => {
+    try {
+      await save(data);
+    } catch {
+      return; // queryClient has already reported it; the dialog stays open.
     }
+    toast.success(isEdit ? t("Cập nhật lịch hẹn thành công!") : t("Tạo lịch hẹn thành công!"));
+    reset();
+    onSuccess?.();
+    onClose();
   };
 
   return (
     <AppDialog
       open={open}
-      title={isEdit ? t("Chỉnh sửa lịch hẹn") : t("Tạo lịch hẹn")}
+      // The reference titles the two differently: "Tạo" for a new booking,
+      // "Cập nhật" once it exists.
+      title={isEdit ? t("Cập nhật lịch hẹn") : t("Tạo lịch hẹn")}
       width="calc(100vw - 80px)"
       className="appt-editor-dialog"
-      canSave={isValid && !activeMutation.isPending}
-      saving={activeMutation.isPending}
+      canSave={isValid && !saving}
+      saving={saving}
       onSave={handleSubmit(onSubmit)}
       onClose={onClose}
     >
@@ -227,6 +207,7 @@ export function AppointmentEditorModal({
         watchedDate={watchedDate}
         watchedNotes={watchedNotes}
         isEdit={isEdit}
+        currentStatus={existingAppt?.status}
         lockPatient={lockPatient}
       />
     </AppDialog>

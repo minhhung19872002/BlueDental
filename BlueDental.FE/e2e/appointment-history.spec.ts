@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
+import { assertRealApiTraffic, freeSlot, login, runId } from "./fixtures/auth";
 
 /**
  * Feature: "Lịch sử thay đổi" — the change log behind a patient's Lịch hẹn tab.
@@ -25,14 +25,16 @@ async function openAppointmentTab(page: Page) {
   await expect(page).toHaveURL(/tab=appointment/);
 }
 
-async function chooseSlot(dialog: ReturnType<Page["getByRole"]>, day: string, time: string) {
+async function chooseSlot(dialog: ReturnType<Page["getByRole"]>, { day, time }: ReturnType<typeof freeSlot>) {
   const date = dialog.getByPlaceholder("Chọn thời điểm");
   await date.fill(day);
   await date.press("Enter");
+  await expect(date).toHaveValue(day);
 
   const clock = dialog.getByPlaceholder("HH:mm");
   await clock.fill(time);
   await clock.press("Enter");
+  await expect(clock).toHaveValue(time);
 }
 
 async function pickFirstDoctor(page: Page) {
@@ -43,19 +45,12 @@ async function pickFirstDoctor(page: Page) {
   await option.click();
 }
 
-/** A day with nothing on it, different per run so re-runs do not collide. */
-function freeDay(runSuffix: string, offsetDays: number): string {
-  const date = new Date();
-  date.setDate(date.getDate() + 400 + (Number(runSuffix) % 300) + offsetDays);
-  return `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
-}
-
 /** Books one appointment through the real dialog and returns its reason text. */
-async function bookAppointment(page: Page, id: string, offsetDays: number, time: string) {
+async function bookAppointment(page: Page, id: string, offsetDays: number) {
   const reason = `E2E lịch sử ${id}`;
   await page.getByRole("button", { name: "Tạo lịch hẹn mới" }).click();
   const dialog = page.getByRole("dialog", { name: "Tạo lịch hẹn" });
-  await chooseSlot(dialog, freeDay(id, offsetDays), time);
+  await chooseSlot(dialog, freeSlot(id, offsetDays));
   await pickFirstDoctor(page);
   await dialog.getByPlaceholder("Nội dung đặt lịch").fill(reason);
 
@@ -130,7 +125,7 @@ test.describe("Lịch sử thay đổi lịch hẹn", () => {
   }) => {
     const id = runId();
     await openAppointmentTab(page);
-    const reason = await bookAppointment(page, id, 3, "10:15");
+    const reason = await bookAppointment(page, id, 3);
 
     const dialog = await openHistory(page);
 
@@ -174,11 +169,11 @@ test.describe("Lịch sử thay đổi lịch hẹn", () => {
   }) => {
     const id = runId();
     await openAppointmentTab(page);
-    const reason = await bookAppointment(page, id, 4, "11:30");
+    const reason = await bookAppointment(page, id, 4);
 
     const row = await findAppointmentRow(page, reason);
     await row.getByRole("button", { name: "Chỉnh sửa lịch hẹn" }).click();
-    const edit = page.getByRole("dialog", { name: "Chỉnh sửa lịch hẹn" });
+    const edit = page.getByRole("dialog", { name: "Cập nhật lịch hẹn" });
     const updated = `${reason} v2`;
     // The form is reset once the appointment arrives; type only after that.
     await expect(edit.getByPlaceholder("Nội dung đặt lịch")).toHaveValue(reason);
@@ -240,7 +235,7 @@ test.describe("Lịch sử thay đổi lịch hẹn", () => {
   test("the timeline groups the same rows by day and opens the detail inline", async ({ page }) => {
     const id = runId();
     await openAppointmentTab(page);
-    await bookAppointment(page, id, 5, "14:00");
+    await bookAppointment(page, id, 5);
 
     const dialog = await openHistory(page);
     await dialog.getByText("Dòng thời gian", { exact: true }).click();
@@ -290,7 +285,7 @@ test.describe("Lịch sử thay đổi lịch hẹn", () => {
   }) => {
     const id = runId();
     await openAppointmentTab(page);
-    await bookAppointment(page, id, 6, "15:30");
+    await bookAppointment(page, id, 6);
 
     const dialog = await openHistory(page);
     await expect(dialog.getByTestId("ah-stats")).toContainText("Tổng thao tác");

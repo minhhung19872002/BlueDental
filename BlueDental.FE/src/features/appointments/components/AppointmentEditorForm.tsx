@@ -1,20 +1,10 @@
 import type { Control, FieldErrors, UseFormSetValue } from "react-hook-form";
+import type { AppointmentStatus } from "../types/appointment";
+import type { AppointmentEditorValues } from "../types/appointmentEditor";
 import { AppointmentFormLeft } from "./AppointmentFormLeft";
 import { AppointmentFormCenter } from "./AppointmentFormCenter";
 import { AppointmentFormRight } from "./AppointmentFormRight";
 import { AppointmentMiniCalendar } from "./AppointmentMiniCalendar";
-
-export interface AppointmentEditorValues {
-  patientId: string;
-  branchId: string;
-  doctorId: string;
-  date: string;
-  startTime: string;
-  durationMinutes: number;
-  content: string;
-  color: string;
-  notes: string;
-}
 
 interface Props {
   control: Control<AppointmentEditorValues>;
@@ -27,6 +17,8 @@ interface Props {
   watchedDate: string;
   watchedNotes: string;
   isEdit?: boolean;
+  /** The stored status of the appointment being edited; drives Trạng thái. */
+  currentStatus?: AppointmentStatus;
   /** Opened from a patient's record: the patient is fixed. */
   lockPatient?: boolean;
 }
@@ -42,6 +34,7 @@ export function AppointmentEditorForm({
   watchedDate,
   watchedNotes,
   isEdit,
+  currentStatus,
   lockPatient,
 }: Props) {
   return (
@@ -59,7 +52,13 @@ export function AppointmentEditorForm({
           errors={errors}
           doctorOptions={doctorOptions}
         />
-        <AppointmentFormRight control={control} setValue={setValue} notesValue={watchedNotes} isEdit={isEdit} />
+        <AppointmentFormRight
+          control={control}
+          setValue={setValue}
+          notesValue={watchedNotes}
+          isEdit={isEdit}
+          currentStatus={currentStatus}
+        />
       </div>
       <AppointmentMiniCalendar date={watchedDate} doctorId={watchedDoctorId} />
     </div>

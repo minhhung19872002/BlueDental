@@ -3,16 +3,33 @@ import { Input } from "antd";
 import { PlusOutlined, CloseOutlined, CheckOutlined } from "@ant-design/icons";
 import { Controller, type Control, type UseFormSetValue } from "react-hook-form";
 import { t } from "@/lib/i18n";
-import type { AppointmentEditorValues } from "./AppointmentEditorForm";
+import type { AppointmentStatus } from "../types/appointment";
+import type { AppointmentEditorValues } from "../types/appointmentEditor";
+import { AppointmentStatusField } from "./AppointmentStatusField";
 
-interface Props {
+interface NotesProps {
   control: Control<AppointmentEditorValues>;
   setValue: UseFormSetValue<AppointmentEditorValues>;
   notesValue: string;
   isEdit?: boolean;
 }
 
-export function AppointmentFormRight({ control, setValue, notesValue, isEdit }: Props) {
+interface Props extends NotesProps {
+  /** The stored status while editing; absent for a new booking. */
+  currentStatus?: AppointmentStatus;
+}
+
+/** The third column: Trạng thái when editing, then the Ghi chú card. */
+export function AppointmentFormRight({ currentStatus, ...notes }: Props) {
+  return (
+    <div>
+      {currentStatus && <AppointmentStatusField control={notes.control} currentStatus={currentStatus} />}
+      <AppointmentNotesPanel {...notes} />
+    </div>
+  );
+}
+
+function AppointmentNotesPanel({ control, setValue, notesValue, isEdit }: NotesProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const [editingExisting, setEditingExisting] = useState(false);

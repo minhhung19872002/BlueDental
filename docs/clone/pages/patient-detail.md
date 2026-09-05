@@ -270,7 +270,7 @@ Screenshot: reference-private/survey/patient-detail-appointment.png
 | Button | Style | Notes |
 |--------|-------|-------|
 | Lịch sử thay đổi | Secondary/outline | View change history |
-| Tạo lịch hẹn mới | Primary blue | UNKNOWN_REFERENCE_BEHAVIOR — opens create form |
+| Tạo lịch hẹn mới | Primary blue | Opens the **Tạo lịch hẹn** dialog — see survey pass 2026-08-28 (2), §2 |
 
 ### Table Columns (6 columns)
 
@@ -281,7 +281,7 @@ Screenshot: reference-private/survey/patient-detail-appointment.png
 | 3 | Nội dung | Appointment content/purpose |
 | 4 | Ghi chú | Notes |
 | 5 | Trạng thái | Status badge |
-| 6 | Thao tác | Action buttons |
+| 6 | Thao tác | Pencil (opens **Cập nhật lịch hẹn**) and a red trash (confirm) — see survey pass 2026-09-05 |
 
 Empty state: "Không có dữ liệu"
 
@@ -458,6 +458,59 @@ URL: `?tab=prescription`
 Empty state: "Không có dữ liệu"
 Pagination text: "Hiển thị 0 trên 0"
 
+### "Thêm đơn thuốc" dialog (observed 2026-09-05 on staging, read-only)
+
+Opening "Tạo đơn thuốc" adds `&create=true` to the URL (the dialog is
+URL-driven; reloading the URL reopens it). Closing with Escape or "Hủy" drops
+the flag. Opening fires two reads, and the medicine picker a third:
+
+| Request | Purpose |
+|---|---|
+| `GET /api/v1/medicine-template/list?branchId=&page=1&perPage=20` | prescription templates ("Chọn đơn thuốc mẫu") |
+| `GET /api/v1/staff/list?page=1&perPage=20&status=active&isResigned=false&branchId=&isDoctor=true` | doctors ("Chọn bác sĩ*") |
+| `GET /api/v1/medicine-template/medicines?branchId=&limit=20` | medicines for "Tên thuốc*" (cursor-paged, fired when the picker opens) |
+
+Dialog geometry: 897×829 at (16,16); content column x=40, width 843.
+Title "Thêm đơn thuốc" + close X.
+
+Layout, top to bottom:
+
+1. **Patient block** — avatar, `[code] - name`, "Giới tính: <Nam/Nữ> -
+   dd/MM/yyyy - N tuổi", "Tiểu sử bệnh: <names | Chưa có dữ liệu>",
+   "Liên hệ: <phone>".
+2. **Row**: combobox "Chọn đơn thuốc mẫu" (611×40, searchable) + primary
+   button "Thêm loại thuốc" (180×40). The button is a plain navigation to
+   `/taxonomy/medicine?branchId=` (no sub-dialog; the unsaved slip is lost).
+3. **Row**: combobox "Chọn bác sĩ*" (h40, required) · textarea "Nhập chẩn
+   đoán" (h96, free text — not the diagnosis catalog).
+4. **Row**: textbox "Nhập lời dặn" (h40) · checkbox "Lưu đơn thuốc mẫu".
+5. **Row**: combobox "Điều trị" (floating label, searchable; options
+   "Điều trị ngoại trú" — default — and "Điều trị nội trú") · date input
+   "Tái khám" with calendar button (react-day-picker style popover, Vietnamese
+   month header "Tháng Chín 2026", Mon-first `Th 2 … CN`, days before today
+   disabled).
+6. Outlined button "Thêm mới" (122×40, right-aligned) — appends a line.
+7. **Line table** — columns and widths: Tên thuốc (208) · Ngày uống (102) ·
+   Mỗi lần (90) · Số ngày (90) · Số lượng (90, disabled = Ngày uống × Mỗi lần
+   × Số ngày) · Sử dụng (221) · delete (40). One default line: "Tên thuốc*"
+   combobox (searchable listbox, "Tìm kiếm" box, "Không tìm thấy dữ liệu"
+   when empty), 1 / 1 / 1 / 1, button "Sử dụng".
+   The table has its own pager: page-size select `5 / 10 / 20 / 25 / 50 /
+   100 " / trang"` (default 20), "Hiển thị 1 trên 1", Trước / 1 / Sau.
+8. **"Sử dụng" popover** — checkboxes Sau khi ăn · Trước khi ăn · Trong khi
+   ăn · Sau khi thức dậy · Trước khi ngủ · Khác; ticking Khác reveals a
+   required textbox "Vui lòng nhập*" (error "Vui lòng nhập giá trị!", "Lưu"
+   disabled until filled). Same widget as the Đơn thuốc mẫu dialog on
+   `/taxonomy/prescription-template`.
+9. Footer: "Hủy" (60×40) · primary "Lưu" (100×40).
+
+Not observed (see unknowns): the POST payload, what the template pick fills
+(staging has no templates), row actions on saved slips (no patient with a
+prescription reachable on staging or production), print layout.
+
+Screenshots: `reference-private/survey/staging/prescription-tab.png`,
+`reference-private/survey/staging/prescription-create-dialog.png`.
+
 ---
 
 ## Tab 8: Chăm sóc KH (Customer Care)
@@ -549,14 +602,14 @@ Pagination text: "Hiển thị 0 trên 0 giao dịch"
 | 4 | Tab 3 "Thêm công đoạn" button action | Not clicked — mutating |
 | 5 | Tab 3 "DT01" plan slip click — detail view | Not clicked (read-only observation only) |
 | 3 | Edit patient button | Mutating — not clicked |
-| 4 | "Tạo lịch hẹn mới" form fields | Form not opened |
+| 4 | "Tạo lịch hẹn mới" form fields | Resolved: create dialog in survey pass 2026-08-28 (2) §2, edit dialog and row actions in survey pass 2026-09-05 |
 | 5 | "Tải ảnh" behavior | File upload — mutating |
 | 6 | "Lịch sử thay đổi" modal content | Not clicked |
 | 7 | Image gallery layout | No images to observe |
 | 8 | Dental chart SVG in tab 2 | Not captured in snapshot |
 | 9 | "Tạo phiếu Labo" form fields | Form not opened |
 | 10 | Labo row action buttons | No data rows to observe |
-| 11 | "Tạo đơn thuốc" form fields | Form not opened |
+| 11 | ~~"Tạo đơn thuốc" form fields~~ | RESOLVED 2026-09-05 — dialog documented under Tab 7; POST payload, template fill and saved-row actions remain unknown |
 | 12 | "CSKH đặc biệt" button behavior | Not clicked |
 | 13 | Hóa đơn tab actual content | Feature not yet implemented ("đang hoàn thiện") |
 | 14 | Debt history transaction types (Loại column) | No data rows |
@@ -1290,3 +1343,35 @@ Nút xoá trên thẻ nối vào `useDeletePatientImage` đã có sẵn.
 **Chưa làm:** nút kéo sắp xếp mới chỉ có hình. Bản gốc lưu thứ tự ở đâu thì chưa
 quan sát được — ghi vào `unknowns.md`.
 
+
+---
+
+## Survey pass 2026-09-05 — Lịch hẹn row actions and the edit dialog
+
+Observed read-only on staging from the user's screenshots; nothing that could
+save was pressed on the reference, and no patient data is recorded here.
+
+### Thao tác column
+
+Two icon buttons per row: a pencil (edit) and a red trash. The trash opens a
+confirm dialog:
+
+| Part | Reference |
+|------|-----------|
+| Title | `Xoá lịch hẹn` |
+| Body | `Bạn có chắc muốn xoá lịch hẹn này không?` over `Hành động này không thể hoàn tác.` |
+| Footer | `Huỷ` (outline) · `Xoá` (red) |
+
+### "Cập nhật lịch hẹn" dialog
+
+The pencil opens the same shell and three columns as **Tạo lịch hẹn** (§2 of
+the 2026-08-28 (2) pass), titled **Cập nhật lịch hẹn**, fields pre-filled.
+Column 3 starts with a **Trạng thái** select above the `Ghi chú` card. On a
+`Trễ hẹn` appointment it offered exactly two options, `Đã huỷ` and `Trễ hẹn`,
+the current one ticked. The status is saved by the same `Lưu` as the rest.
+
+BlueDental: the select always offers `Đã hẹn` · `Đã huỷ` · `Trễ hẹn`, in that
+order, and shows `Đã đến` only as the current value of a visit that arrived
+(the user's decision, 2026-09-05, so a cancelled or late appointment can be put
+back on the book from the same dialog). What the reference offers for a booked
+or cancelled appointment is in `unknowns.md`.

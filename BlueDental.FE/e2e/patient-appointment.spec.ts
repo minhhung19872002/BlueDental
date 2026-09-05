@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
+import { assertRealApiTraffic, freeSlot, login, runId } from "./fixtures/auth";
 
 /**
  * Feature: "Tạo lịch hẹn" — the booking dialog on a patient's Lịch hẹn tab.
@@ -30,14 +30,16 @@ async function openAppointmentTab(page: Page) {
  * around the current hour — the server rejects a clash, correctly. Each run
  * therefore picks a day of its own, far enough out that nothing else is there.
  */
-async function chooseSlot(dialog: ReturnType<Page["getByRole"]>, day: string, time: string) {
+async function chooseSlot(dialog: ReturnType<Page["getByRole"]>, { day, time }: ReturnType<typeof freeSlot>) {
   const date = dialog.getByPlaceholder("Chọn thời điểm");
   await date.fill(day);
   await date.press("Enter");
+  await expect(date).toHaveValue(day);
 
   const clock = dialog.getByPlaceholder("HH:mm");
   await clock.fill(time);
   await clock.press("Enter");
+  await expect(clock).toHaveValue(time);
 }
 
 /** Takes the first doctor out of the dialog's SearchSelect, by its portal list. */
@@ -53,22 +55,12 @@ async function pickFirstDoctor(page: Page): Promise<string> {
 }
 
 /**
- * A day far enough out that the seed data has nothing on it, and different on
- * every run so a re-run does not collide with the appointment the last one
- * left behind — the server rejects a double booking, correctly.
- */
-function freeDay(runSuffix: string, offsetDays: number): string {
-  const date = new Date();
-  date.setDate(date.getDate() + 400 + (Number(runSuffix) % 300) + offsetDays);
-  return `${String(date.getDate()).padStart(2, "0")}/${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
-}
-
-/**
  * The tab pages twenty rows at a time and the seeded patient already has more
  * than that, so the row just booked may sit on a later page: walk the pager
  * until it shows up.
  */
 async function findRow(page: Page, reason: string) {
+  await expect(page.locator(".pd-appointment-card tbody tr.ant-table-row").first()).toBeVisible();
   const row = page.locator("tbody tr", { hasText: reason }).first();
   for (let hop = 0; hop < 10; hop += 1) {
     if (await row.isVisible()) return row;
@@ -79,6 +71,7 @@ async function findRow(page: Page, reason: string) {
     );
     await next.click();
     await loaded;
+    await expect(page.locator(".ant-pagination-item-active").first()).toHaveText(String(hop + 2));
   }
   await expect(row).toBeVisible();
   return row;
@@ -97,6 +90,28 @@ async function expectNoRow(page: Page, reason: string) {
     await next.click();
     await loaded;
   }
+}
+
+/** Opens Trạng thái in the edit dialog and returns what it offers, top to bottom. */
+async function openStatusOptions(page: Page, dialog: ReturnType<Page["getByRole"]>) {
+  await dialog.locator(".appt-status-select").click();
+  const options = page.locator(".ant-select-dropdown:visible .ant-select-item-option");
+  await expect(options.first()).toBeVisible();
+  return (await options.allInnerTexts()).map((text) => text.trim());
+}
+
+async function chooseStatus(page: Page, label: string) {
+  await page.locator(`.ant-select-dropdown:visible .ant-select-item-option[title="${label}"]`).click();
+}
+
+/** Lưu on the edit dialog; the one PUT it makes must succeed. */
+async function saveEdit(page: Page, dialog: ReturnType<Page["getByRole"]>) {
+  const updated = page.waitForResponse(
+    (res) => res.url().includes("/api/v1/app/appointments/") && res.request().method() === "PUT",
+  );
+  await dialog.getByRole("button", { name: "Lưu" }).click();
+  expect((await updated).ok()).toBeTruthy();
+  await expect(dialog).toBeHidden();
 }
 
 test.describe("Lịch hẹn của bệnh nhân", () => {
@@ -165,7 +180,7 @@ test.describe("Lịch hẹn của bệnh nhân", () => {
     await expect(dialog.locator(".appt-color-swatch--selected")).toHaveCount(1);
 
     // Fill the form the way the reference does.
-    await chooseSlot(dialog, freeDay(id, 1), "08:15");
+    await chooseSlot(dialog, freeSlot(id, 1));
     const doctorName = await pickFirstDoctor(page);
 
     await dialog.getByPlaceholder("Nội dung đặt lịch").fill(reason);
@@ -191,8 +206,7 @@ test.describe("Lịch hẹn của bệnh nhân", () => {
 
     // Reload: the row, its note and its doctor all came from PostgreSQL.
     await page.reload();
-    const row = page.locator("tbody tr", { hasText: reason });
-    await expect(row).toBeVisible();
+    const row = await findRow(page, reason);
     await expect(row).toContainText(note);
     await expect(row).toContainText(doctorName);
   });
@@ -204,17 +218,16 @@ test.describe("Lịch hẹn của bệnh nhân", () => {
     await openAppointmentTab(page);
     await page.getByRole("button", { name: "Tạo lịch hẹn mới" }).click();
     const create = page.getByRole("dialog", { name: "Tạo lịch hẹn" });
-    await chooseSlot(create, freeDay(id, 2), "09:45");
+    await chooseSlot(create, freeSlot(id, 2));
     await pickFirstDoctor(page);
     await create.getByPlaceholder("Nội dung đặt lịch").fill(reason);
     await create.getByRole("button", { name: "Lưu" }).click();
     await expect(create).toBeHidden();
 
-    const row = page.locator("tbody tr", { hasText: reason });
-    await expect(row).toBeVisible();
+    const row = await findRow(page, reason);
 
     await row.getByRole("button", { name: "Chỉnh sửa lịch hẹn" }).click();
-    const edit = page.getByRole("dialog", { name: "Chỉnh sửa lịch hẹn" });
+    const edit = page.getByRole("dialog", { name: "Cập nhật lịch hẹn" });
     await expect(edit).toBeVisible();
 
     // The dialog opens on what is already stored, not on empty defaults.
@@ -231,8 +244,10 @@ test.describe("Lịch hẹn của bệnh nhân", () => {
     await expect(edit).toBeHidden();
 
     // One row, not two: `updated` starts with `reason`, so a save that created a
-    // second appointment instead of updating the first would match twice here.
+    // second appointment instead of updating the first would match twice on the
+    // page the row sits on (the list is sorted by time, so both would share it).
     await page.reload();
+    await findRow(page, updated);
     await expect(page.locator("tbody tr", { hasText: reason })).toHaveCount(1);
     await expect(page.locator("tbody tr", { hasText: updated })).toHaveCount(1);
   });
@@ -263,7 +278,7 @@ test.describe("Lịch hẹn của bệnh nhân", () => {
     await openAppointmentTab(page);
     await page.getByRole("button", { name: "Tạo lịch hẹn mới" }).click();
     const create = page.getByRole("dialog", { name: "Tạo lịch hẹn" });
-    await chooseSlot(create, freeDay(id, 3), "11:15");
+    await chooseSlot(create, freeSlot(id, 3));
     await pickFirstDoctor(page);
     await create.getByPlaceholder("Nội dung đặt lịch").fill(reason);
     await create.getByRole("button", { name: "Lưu" }).click();
@@ -297,4 +312,75 @@ test.describe("Lịch hẹn của bệnh nhân", () => {
     await expectNoRow(page, reason);
   });
 
+  test("Trạng thái in the edit dialog always offers booked, cancelled and late, and each sticks", async ({
+    page,
+  }) => {
+    const id = runId();
+    const reason = `E2E trạng thái ${id}`;
+    const status = (dialog: ReturnType<Page["getByRole"]>) => dialog.locator(".appt-status-select");
+
+    await openAppointmentTab(page);
+    await page.getByRole("button", { name: "Tạo lịch hẹn mới" }).click();
+    const create = page.getByRole("dialog", { name: "Tạo lịch hẹn" });
+    await chooseSlot(create, freeSlot(id, 4));
+    await pickFirstDoctor(page);
+    await create.getByPlaceholder("Nội dung đặt lịch").fill(reason);
+    await create.getByRole("button", { name: "Lưu" }).click();
+    await expect(create).toBeHidden();
+
+    // The dialog is titled as the reference titles it, and the select opens
+    // on the status the row shows, offering the same three whatever it is.
+    let row = await findRow(page, reason);
+    await expect(row).toContainText("Đã hẹn");
+    await row.getByRole("button", { name: "Chỉnh sửa lịch hẹn" }).click();
+    const edit = page.getByRole("dialog", { name: "Cập nhật lịch hẹn" });
+    await expect(edit).toBeVisible();
+    await expect(status(edit)).toContainText("Đã hẹn");
+    expect(await openStatusOptions(page, edit)).toEqual(["Đã hẹn", "Đã huỷ", "Trễ hẹn"]);
+    await chooseStatus(page, "Trễ hẹn");
+    await saveEdit(page, edit);
+    row = page.locator("tbody tr", { hasText: reason }).first();
+    await expect(row).toContainText("Trễ hẹn");
+
+    // Stored: still late after a reload, and the select says so.
+    await page.reload();
+    row = await findRow(page, reason);
+    await expect(row).toContainText("Trễ hẹn");
+    await row.getByRole("button", { name: "Chỉnh sửa lịch hẹn" }).click();
+    await expect(edit).toBeVisible();
+    await expect(status(edit)).toContainText("Trễ hẹn");
+    expect(await openStatusOptions(page, edit)).toEqual(["Đã hẹn", "Đã huỷ", "Trễ hẹn"]);
+    await chooseStatus(page, "Trễ hẹn");
+
+    // Changing only the wording keeps it late: a save must not re-book it.
+    await edit.getByPlaceholder("Nội dung đặt lịch").fill(`${reason} sửa`);
+    await saveEdit(page, edit);
+    row = page.locator("tbody tr", { hasText: reason }).first();
+    await expect(row).toContainText(`${reason} sửa`);
+    await expect(row).toContainText("Trễ hẹn");
+
+    // Đã huỷ goes through the same save, and sticks.
+    await row.getByRole("button", { name: "Chỉnh sửa lịch hẹn" }).click();
+    await expect(edit).toBeVisible();
+    await openStatusOptions(page, edit);
+    await chooseStatus(page, "Đã huỷ");
+    await saveEdit(page, edit);
+    await expect(page.locator("tbody tr", { hasText: reason }).first()).toContainText("Đã huỷ");
+
+    // And a cancelled one goes back on the book from the same select.
+    await page.reload();
+    row = await findRow(page, reason);
+    await expect(row).toContainText("Đã huỷ");
+    await row.getByRole("button", { name: "Chỉnh sửa lịch hẹn" }).click();
+    await expect(edit).toBeVisible();
+    await expect(status(edit)).toContainText("Đã huỷ");
+    expect(await openStatusOptions(page, edit)).toEqual(["Đã hẹn", "Đã huỷ", "Trễ hẹn"]);
+    await chooseStatus(page, "Đã hẹn");
+    await saveEdit(page, edit);
+    await expect(page.locator("tbody tr", { hasText: reason }).first()).toContainText("Đã hẹn");
+
+    await page.reload();
+    row = await findRow(page, reason);
+    await expect(row).toContainText("Đã hẹn");
+  });
 });

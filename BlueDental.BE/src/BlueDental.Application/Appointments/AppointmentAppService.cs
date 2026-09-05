@@ -355,8 +355,13 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
                 "The patient already has an appointment in this time slot.");
         }
 
+        var statusBefore = appointment.Status;
         appointment.Reschedule(slot, input.DentistId);
         appointment.UpdateDetails(input.ChiefComplaint, input.Notes, input.Color);
+        if (input.Status is { } status)
+        {
+            appointment.ChangeStatus(status, input.CancellationReason ?? CancellationReason.PatientRequest);
+        }
 
         if (appointment.IsTemporary)
         {
@@ -370,8 +375,21 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
 
         await _repository.UpdateAsync(appointment, autoSave: true);
         await _changeRecorder.RecordAsync(
-            AppointmentChangeAction.Updated, appointment, before, await SnapshotAsync(appointment));
+            ActionFor(statusBefore, appointment.Status), appointment, before, await SnapshotAsync(appointment));
         return await ToDtoAsync(appointment);
+    }
+
+    /// <summary>
+    /// An edit that also moved the status is logged as that move, the way the
+    /// dedicated endpoints log it: "cancelled" for Đã huỷ, a status change for
+    /// Trễ hẹn or for putting one back on the book, "updated" otherwise.
+    /// </summary>
+    private static AppointmentChangeAction ActionFor(AppointmentStatus before, AppointmentStatus after)
+    {
+        if (after == before) return AppointmentChangeAction.Updated;
+        return after == AppointmentStatus.Cancelled
+            ? AppointmentChangeAction.Cancelled
+            : AppointmentChangeAction.StatusChanged;
     }
 
     [Authorize(BlueDentalAbilityPermissions.Appointment.Update)]

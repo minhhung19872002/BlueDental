@@ -177,6 +177,8 @@ export function toUpdateRequest(request: UpdateAppointmentRequest): Record<strin
     chiefComplaint: request.reason,
     notes: request.notes,
     color: request.color,
+    // Trạng thái from the edit dialog; left out, the server leaves it alone.
+    status: request.status ? CODE_BY_STATUS[request.status] : undefined,
     patientName: request.patientName,
     patientPhone: request.patientPhone,
     sourceTaxonomyId: request.sourceTaxonomyId || undefined,

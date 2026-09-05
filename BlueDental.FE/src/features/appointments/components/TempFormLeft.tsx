@@ -1,6 +1,6 @@
-import { DatePicker, Input, InputNumber, TimePicker } from "antd";
+import { Input, InputNumber } from "antd";
 import { Controller, type Control, type FieldErrors } from "react-hook-form";
-import dayjs from "dayjs";
+import { ClockPicker, DayPicker } from "@/components/StringPickers";
 import { t } from "@/lib/i18n";
 import type { TempAppointmentFormValues } from "./TempAppointmentForm";
 
@@ -57,9 +57,9 @@ export function TempFormLeft({ control, errors }: Props) {
           name="date"
           control={control}
           render={({ field }) => (
-            <DatePicker
-              value={field.value ? dayjs(field.value) : null}
-              onChange={(d) => field.onChange(d ? d.format("YYYY-MM-DD") : "")}
+            <DayPicker
+              value={field.value}
+              onChange={field.onChange}
               format="DD/MM/YYYY"
               style={{ width: "100%", height: 40 }}
               status={errors.date ? "error" : ""}
@@ -76,9 +76,9 @@ export function TempFormLeft({ control, errors }: Props) {
             name="startTime"
             control={control}
             render={({ field }) => (
-              <TimePicker
-                value={field.value ? dayjs(`2000-01-01 ${field.value}`) : null}
-                onChange={(v) => field.onChange(v ? v.format("HH:mm") : "")}
+              <ClockPicker
+                value={field.value}
+                onChange={field.onChange}
                 format="HH:mm"
                 minuteStep={5}
                 style={{ width: "100%", height: 40 }}

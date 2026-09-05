@@ -1226,6 +1226,11 @@ body.cal-fullscreen .cal-grid-wrap {
 
 /* ── Notes Panel ─────────────────────────────────────────────────────── */
 
+/* Trạng thái — sits above the notes card, in the edit dialog only. */
+.appt-status-select {
+  width: 100%;
+}
+
 .appt-notes-panel {
   border: 1px solid var(--bd-line, #e7eaf6);
   border-radius: var(--bd-radius, 8px);

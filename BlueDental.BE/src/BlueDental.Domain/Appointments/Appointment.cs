@@ -160,11 +160,21 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         return this;
     }
 
+    /// <summary>
+    /// Moves the booking to another slot or dentist. The status is not
+    /// touched: the edit dialog states the status it wants through
+    /// <see cref="ChangeStatus"/>, so a late appointment moved to next week is
+    /// still late until someone says otherwise. Only a visit that is in the
+    /// chair or over cannot move; a cancelled or late one may be moved and
+    /// put back on the book in the same save.
+    /// </summary>
     public Appointment Reschedule(AppointmentSlot newSlot, Guid? newDentistId = null)
     {
-        if (Status is AppointmentStatus.Completed
-            or AppointmentStatus.Cancelled
-            or AppointmentStatus.InProgress)
+        var moved = !Slot.ValueEquals(newSlot)
+            || (newDentistId.HasValue && newDentistId.Value != DentistId);
+        if (!moved) return this;
+
+        if (Status is AppointmentStatus.InProgress or AppointmentStatus.Completed)
         {
             throw new BusinessException(
                 BlueDentalDomainErrorCodes.Appointments.InvalidTransition,
@@ -173,7 +183,6 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
 
         Slot = newSlot;
         if (newDentistId.HasValue) DentistId = newDentistId.Value;
-        Status = AppointmentStatus.Confirmed;
         return this;
     }
 
@@ -189,6 +198,61 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         DentistId = dentistId;
         return this;
     }
+
+    /// <summary>
+    /// The edit dialog's Trạng thái select, which always offers Đã hẹn, Đã huỷ
+    /// and Trễ hẹn. Naming the group the appointment is already in changes
+    /// nothing. Cancelling and marking late go through their own transitions;
+    /// Đã hẹn puts a cancelled or late appointment back on the book. Arrival
+    /// is recorded by reception, so the dialog can neither set an arrival
+    /// status nor undo one.
+    /// </summary>
+    public Appointment ChangeStatus(AppointmentStatus target, CancellationReason cancellationReason)
+    {
+        if (GroupOf(target) == GroupOf(Status)) return this;
+
+        return target switch
+        {
+            AppointmentStatus.Cancelled => Cancel(cancellationReason),
+            AppointmentStatus.NoShow => (Status == AppointmentStatus.Cancelled ? Restore() : this).MarkNoShow(),
+            AppointmentStatus.Requested or AppointmentStatus.Confirmed => Restore(),
+            _ => throw new BusinessException(
+                BlueDentalDomainErrorCodes.Appointments.InvalidTransition,
+                $"Cannot move an appointment to {target} from the edit dialog."),
+        };
+    }
+
+    /// <summary>
+    /// Puts a cancelled or late appointment back on the book as Confirmed and
+    /// forgets why it was cancelled. A visit that arrived is not undone here.
+    /// </summary>
+    public Appointment Restore()
+    {
+        if (Status is not (AppointmentStatus.Cancelled or AppointmentStatus.NoShow))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Appointments.InvalidTransition,
+                $"Cannot restore an appointment in status {Status}.");
+        }
+
+        Status = AppointmentStatus.Confirmed;
+        CancellationReason = null;
+        CancellationNote = null;
+        return this;
+    }
+
+    /// <summary>
+    /// The four groups the patient screen counts: booked, arrived, cancelled,
+    /// late. Requested and Confirmed are both "Đã hẹn"; CheckedIn, InProgress
+    /// and Completed are all "Đã đến".
+    /// </summary>
+    private static int GroupOf(AppointmentStatus status) => status switch
+    {
+        AppointmentStatus.Requested or AppointmentStatus.Confirmed => 0,
+        AppointmentStatus.CheckedIn or AppointmentStatus.InProgress or AppointmentStatus.Completed => 1,
+        AppointmentStatus.Cancelled => 2,
+        _ => 3,
+    };
 
     public Appointment SetOutcome(AppointmentOutcome outcome)
     {

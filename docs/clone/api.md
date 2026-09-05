@@ -404,7 +404,7 @@ Also observed: `/voucher?branchId=<id>` route (not in sidebar nav).
 | 5 | Pagination: cursor vs offset | Appears offset-based (page + perPage) |
 | 6 | /voucher page route | In network but not in sidebar nav |
 | 7 | Invoices/billing endpoints | Not triggered |
-| 8 | Prescription endpoints | Not triggered |
+| 8 | ~~Prescription endpoints~~ | PARTLY RESOLVED 2026-09-05 — reads captured, see "Prescriptions (Đơn thuốc)" section below; POST not observed |
 | 9 | ~~CSKH endpoints~~ | RESOLVED 2026-08-26 — see "Customer Care (CSKH)" section below |
 
 ---
@@ -1042,6 +1042,20 @@ paired columns are drawn from `staff` / `staffSecond` (second missing shows
 (`AppointmentColor`: 1 Default, 2 Green, 3 Orange, 4 Red) alongside
 `chiefComplaint`, `slotStart`, `slotEnd`, `dentistId`.
 
+`PUT /api/v1/app/appointments/{id}` also takes `status` and
+`cancellationReason` (2026-09-05) — the edit dialog's Trạng thái, saved with
+the other fields. `status` 1 or 2 (Đã hẹn) puts a cancelled or late
+appointment back on the book as Confirmed and clears its cancellation; 6
+cancels it with `cancellationReason` (default 1, PatientRequest); 7 marks it
+late. The arrival statuses 3–5 are refused, and a value in the appointment's
+current group changes nothing. Moving the slot or the dentist no longer
+changes the status by itself. The change log records the save as Cancelled,
+StatusChanged or Updated accordingly. The reference's PUT payload for this
+dialog was not captured: saving it would mutate production.
+
+`DELETE /api/v1/app/appointments/{id}` backs the red trash on the Lịch hẹn
+tab (confirm dialog first); the change log keeps a Deleted row.
+
 ## Bệnh án (capture 2026-08-31)
 
 ```
@@ -1064,3 +1078,45 @@ BlueDental equivalent:
 `content` is the filled cells as a JSON object; the printed layout is not
 stored. `form` is `MedicalRecordForm` (1 Cover … 9 CareSheet).
 
+---
+
+## Prescriptions (Đơn thuốc) — observed 2026-09-05 (staging, read-only)
+
+Patient tab `?tab=prescription`:
+
+```
+GET /api/v1/prescriptions?patientId=<id>&page=1&take=20
+→ { statusCode: 200, message: "Lấy danh sách đơn thuốc thành công.",
+    metadata: { totalPage, count, page, perPage, hasNext, hasPrevious, type: "offset" },
+    data: [] }
+```
+
+Row shape not observed (every reachable patient had `data: []`).
+
+"Thêm đơn thuốc" dialog (`&create=true`):
+
+```
+GET /api/v1/medicine-template/list?branchId=<id>&page=1&perPage=20
+→ offset page, message "Lấy danh sách mẫu thuốc thành công", data: []   (templates)
+
+GET /api/v1/staff/list?page=1&perPage=20&status=active&isResigned=false&branchId=<id>&isDoctor=true
+→ offset page; item: { id, fullName, email, phoneNumber, role, clinic, status,
+    avatarUrl, isDoctor, isDentalAssistant, isPhysician, branchIds[], ... }
+
+GET /api/v1/medicine-template/medicines?branchId=<id>&limit=20
+→ { metadata: { perPage: 20, hasNext, type: "cursor" }, data: [] }          (medicines)
+```
+
+The medicine picker is a searchable listbox; whether typing re-queries the
+server (`keyword`/`search` param) was not observed. `POST /prescriptions`
+(save) was not issued — reference is read-only.
+
+BlueDental equivalent:
+
+| Reference | BlueDental |
+|---|---|
+| `GET /prescriptions?patientId=` | `GET /api/v1/app/prescriptions?patientId=&clinicBranchId=` |
+| `GET /medicine-template/list` | `GET /api/v1/app/catalog-entries?group=prescription_template` |
+| `GET /medicine-template/medicines` | `GET /api/v1/app/catalog-entries?group=medication_type` |
+| `GET /staff/list?isDoctor=true` | existing dentist list hook (`useDentistList`) |
+| (save) | `POST /api/v1/app/prescriptions` |

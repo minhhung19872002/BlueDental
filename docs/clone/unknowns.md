@@ -965,3 +965,68 @@ comma list) and whether its query repeats the key per value were not
 observed. Local: small tags, overflow folded into "+n", repeated keys.
 Action taken: NONE
 
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}?tab=prescription&create=true ("Thêm đơn thuốc")
+Control: "Lưu" (submit) and the "Lưu đơn thuốc mẫu" checkbox
+Reason: Saving is a POST on the reference; not clicked. The request payload,
+  validation messages (beyond "Chọn bác sĩ*" and "Tên thuốc*" being required),
+  the generated code format and what "Lưu đơn thuốc mẫu" stores (name of the
+  template? whole slip?) were not observed.
+Action taken: NONE
+BlueDental: POST /api/v1/app/prescriptions with { staffId, diagnosisText,
+  note, treatmentType, followUpDate, saveAsTemplate, items[] }; when
+  saveAsTemplate is on, a prescription_template catalog entry is created with
+  the lines and the lời dặn, named after the diagnosis (assumption).
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}?tab=prescription&create=true
+Control: combobox "Chọn đơn thuốc mẫu"
+Reason: Staging branch has no templates, so what a pick fills (lines only, or
+  lines + lời dặn) and whether it replaces or appends lines was not observed.
+Action taken: NONE (opened the empty list only)
+BlueDental: picking a template replaces the lines with the template lines and
+  fills "Nhập lời dặn" from the template content (assumption).
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}?tab=prescription
+Control: "Thao tác" column of saved prescriptions
+Reason: No patient with a prescription was reachable on staging (both
+  branches) or production (first page of patients), so the row actions
+  (edit / print / delete?) and their dialogs were not seen.
+Action taken: NONE
+BlueDental: Sửa (reopens the same dialog) · In (PDF) · Xoá with confirm —
+  assumption, to be revisited when a slip exists on the reference.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}?tab=prescription&create=true
+Control: "Tên thuốc*" search box
+Reason: Typing into the picker was not done; whether the search hits
+  /medicine-template/medicines again with a keyword or filters the 20 loaded
+  rows client-side is unknown.
+Action taken: NONE
+BlueDental: client-side filter over the branch medicine catalog (≤200 rows).
+
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}?tab=appointment
+Control: "Trạng thái" select in the "Cập nhật lịch hẹn" dialog
+Reason: Seen once, on a Trễ hẹn appointment, offering Đã huỷ and Trễ hẹn.
+  Which options a booked, arrived or cancelled appointment gets, and whether a
+  cancelled one can be edited or restored at all, was not observed — opening
+  more rows risked nothing, but no such rows were at hand and saving is out.
+Action taken: NONE (dialog closed without saving)
+BlueDental: always Đã hẹn · Đã huỷ · Trễ hẹn (user decision 2026-09-05);
+  Đã hẹn on a cancelled or late row puts it back on the book as Confirmed.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}?tab=appointment
+Control: pencil / trash on a note row inside the edit dialog's "Ghi chú" card
+Reason: Not clicked — editing or deleting a note would mutate production.
+Action taken: NONE
+BlueDental: notes are shown read-only in the dialog for now.

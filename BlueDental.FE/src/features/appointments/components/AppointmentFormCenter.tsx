@@ -3,7 +3,7 @@ import { Controller, type Control, type FieldErrors } from "react-hook-form";
 import { SearchSelect } from "@/components/SearchSelect";
 import { t } from "@/lib/i18n";
 import { AppointmentColorPicker } from "./AppointmentColorPicker";
-import type { AppointmentEditorValues } from "./AppointmentEditorForm";
+import type { AppointmentEditorValues } from "../types/appointmentEditor";
 
 interface Props {
   control: Control<AppointmentEditorValues>;
