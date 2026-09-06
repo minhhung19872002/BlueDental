@@ -88,6 +88,10 @@ public static class BlueDentalDomainErrorCodes
         public const string InvalidStageSequence = "BlueDental:Treatment:0017";
         public const string InvalidStageTransition = "BlueDental:Treatment:0018";
         public const string StageImageRequired = "BlueDental:Treatment:0019";
+        public const string EmptyPrescription = "BlueDental:Treatment:0021";
+        public const string DuplicatePrescriptionMedicine = "BlueDental:Treatment:0022";
+        public const string InvalidPrescriptionLine = "BlueDental:Treatment:0023";
+        public const string PrescriptionTemplateNameRequired = "BlueDental:Treatment:0024";
     }
 
     public static class Billing

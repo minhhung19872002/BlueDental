@@ -5715,11 +5715,6 @@ html:has(.ant-modal-wrap) {
 /* The drawer holds the frame; the list inside the panel is what scrolls. */
 .bd-group-drawer .ant-drawer-body { overflow: hidden; }
 
-/* ── Đơn thuốc mẫu: the "Sử dụng" multi-select ──────────────────────────── */
-.bd-usage-picker { display: flex; flex-direction: column; gap: 6px; min-width: 200px; }
-
-.bd-usage-trigger { width: 100%; text-align: left; overflow: hidden; text-overflow: ellipsis; }
-
 /* ── Nhãn bệnh nhân ─────────────────────────────────────────────────────── */
 .bd-tag-preview {
   display: flex;
@@ -6166,29 +6161,6 @@ html:has(.ant-modal-wrap) {
 .bd-cat-name--deleted {
   text-decoration: line-through;
   color: var(--bd-muted);
-}
-
-/* ── Đơn thuốc mẫu: the "Sử dụng" picker ─────────────────────────────────── */
-
-/* Nothing is committed until "Lưu", so the popover needs room for the written
-   usage and its own footer. */
-.bd-usage-other { margin-top: 4px; }
-
-.bd-usage-error {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin: 4px 0 0;
-  font-size: 12px;
-  color: #e5484d;
-}
-
-.bd-usage-footer {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 8px;
-  border-top: 1px solid var(--bd-line);
-  padding-top: 8px;
 }
 
 /* ── Vận hành ───────────────────────────────────────────────────────────── */

@@ -1,0 +1,267 @@
+/* ── Đơn thuốc tab: toolbar over the slip table ───────────────────────── */
+.rx-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.rx-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.rx-empty-pager {
+  display: flex;
+  justify-content: flex-end;
+  margin: 16px 0;
+}
+
+/* ── Dialog: patient block ────────────────────────────────────────────── */
+.rx-patient {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.rx-patient-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--bd-line, #e5e7eb);
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 30px;
+  flex: none;
+}
+
+.rx-patient-name {
+  margin: 0 0 6px;
+  font-size: 20px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--bd-ink);
+}
+
+.rx-patient-line {
+  margin: 0;
+  font-size: 13px;
+  line-height: 25px;
+}
+
+/* ── Dialog chrome: the reference's 1024px sheet — 22px title, 24px body,
+   40px controls, a rule over the footer. Scoped so no other dialog moves. ── */
+.rx-dialog {
+  --ff-input-height: 40px;
+}
+
+.ant-modal.rx-dialog .ant-modal-header {
+  padding: 16px 24px;
+}
+
+.ant-modal.rx-dialog .ant-modal-title {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.ant-modal.rx-dialog .ant-modal-close {
+  top: 18px;
+  inset-inline-end: 20px;
+}
+
+.ant-modal.rx-dialog .ant-modal-body {
+  padding: 24px 24px 4px;
+}
+
+.ant-modal.rx-dialog .ant-modal-footer {
+  padding: 16px 24px 20px;
+}
+
+.rx-dialog .ant-modal-footer .ant-btn {
+  height: 40px;
+}
+
+/* Hủy 60×40, Lưu 100×40 on the reference. */
+.rx-dialog .ant-modal-footer .ant-btn-default {
+  padding: 0 16px;
+}
+
+.rx-dialog .ant-modal-footer .ant-btn-primary {
+  padding: 0 27px;
+}
+
+/* The app's dialogs stand their fields 42px tall; this one keeps the
+   reference's 40px, the same selectors as the global rule so it wins by order. */
+.ant-modal.rx-dialog .ant-input:not(textarea):not(.ant-input-affix-wrapper .ant-input),
+.ant-modal.rx-dialog .ant-input-affix-wrapper,
+.ant-modal.rx-dialog .ant-input-number,
+.ant-modal.rx-dialog .ant-input-number-input,
+.ant-modal.rx-dialog .ant-picker,
+.ant-modal.rx-dialog .ant-select-single .ant-select-selector,
+.ant-modal.rx-dialog .ant-select-single {
+  height: 40px;
+}
+
+/* The reference's secondary buttons — Hủy, Thêm mới — are a pale blue fill. */
+.rx-dialog .ant-modal-footer .ant-btn-default,
+.rx-dialog .bd-rx-add {
+  background: var(--bd-blue-pale);
+  border-color: var(--bd-blue-pale-hover);
+  color: var(--bd-primary);
+}
+
+.rx-dialog .ant-modal-footer .ant-btn-default:hover,
+.rx-dialog .bd-rx-add:hover {
+  background: var(--bd-blue-pale-hover);
+  border-color: var(--bd-blue-light);
+  color: var(--bd-blue-dark);
+}
+
+.rx-dialog .bd-rx-add {
+  height: 40px;
+  padding: 0 18px;
+}
+
+/* ── Dialog: the two-column form ──────────────────────────────────────── */
+.rx-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px 20px;
+  margin-bottom: 24px;
+}
+
+@media (min-width: 1024px) {
+  .rx-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+.rx-cell > * + * {
+  margin-top: 24px;
+}
+
+.rx-cell > .rx-patient + * {
+  margin-top: 20px;
+}
+
+.rx-cell .ant-form-item {
+  margin-bottom: 0;
+}
+
+.rx-dialog textarea.ant-input {
+  min-height: 96px;
+}
+
+.rx-required {
+  color: var(--bd-danger, #ef4d4d);
+}
+
+/* Template picker beside "Thêm loại thuốc"; the reference leaves the last
+   44px of the column empty. */
+.rx-template-row {
+  display: flex;
+  gap: 12px;
+  padding-right: 44px;
+}
+
+.rx-template-row .ant-select {
+  flex: 1;
+  min-width: 0;
+}
+
+.rx-template-row .ant-btn {
+  flex: none;
+  width: 180px;
+  height: 40px;
+}
+
+@media (max-width: 640px) {
+  .rx-template-row {
+    flex-direction: column;
+    padding-right: 0;
+  }
+
+  .rx-template-row .ant-btn {
+    width: 100%;
+  }
+}
+
+/* Checkbox "Lưu đơn thuốc mẫu" + the template name field: stacked on narrow
+   screens, side by side on desktop. */
+.rx-template-save-row {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (min-width: 1024px) {
+  .rx-template-save-row {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+.rx-template-save-row > .ant-form-item {
+  flex: none;
+  margin-bottom: 0;
+}
+
+.rx-template-save-row > .floating-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.rx-full {
+  width: 100%;
+}
+
+/* ── Dialog: the line table sits in its own rounded frame, pager inside ── */
+.rx-dialog .bd-rx-table-desktop {
+  margin-top: 12px;
+  border: 1px solid var(--bd-line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.rx-dialog .bd-line-table .ant-table-thead > tr > th {
+  background: var(--bd-bg-soft);
+  color: var(--bd-ink);
+  font-size: 13.5px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  padding: 10px 8px !important;
+}
+
+.rx-dialog .bd-line-table .ant-table-tbody > tr > td {
+  padding: 9px 8px !important;
+}
+
+.rx-dialog .bd-line-table .ant-table-thead > tr > th:first-child,
+.rx-dialog .bd-line-table .ant-table-tbody > tr > td:first-child {
+  padding-left: 16px !important;
+}
+
+.rx-dialog .bd-line-table .ant-table-thead > tr > th:last-child,
+.rx-dialog .bd-line-table .ant-table-tbody > tr > td:last-child {
+  padding-right: 16px !important;
+}
+
+/* "20 / trang" first, then "Hiển thị n trên m", the page buttons on the right. */
+.rx-dialog .bd-line-table .ant-table-pagination.ant-pagination {
+  display: flex;
+  align-items: center;
+  margin: 12px 16px 16px;
+}
+
+/* Ant Design already orders the total text at -2; the size picker goes ahead of it. */
+.rx-dialog .bd-line-table .ant-pagination-options {
+  order: -3;
+  margin-inline: 0 12px;
+}
+
+.rx-dialog .bd-line-table .ant-pagination-total-text {
+  margin-inline-end: auto;
+}

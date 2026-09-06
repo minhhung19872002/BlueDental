@@ -1,25 +1,21 @@
-import { Button, Checkbox, Col, Form, Input, InputNumber, Popover, Row, Select, Table, Tooltip } from "antd";
+import { Col, Form, Input, InputNumber, Row } from "antd";
 import { toast } from "sonner";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-  DeleteOutlined,
-  ExclamationCircleOutlined,
-  PlusOutlined,
-  SaveOutlined,
-} from "@ant-design/icons";
-import type { ColumnsType } from "antd/es/table";
-import {
-  PRESCRIPTION_USAGE,
   TAXONOMY_GROUP,
   useCatalogEntries,
   useCreateCatalogEntry,
   useUpdateCatalogEntry,
   type CatalogEntryDto,
-  type PrescriptionTemplateLineDto,
   type TaxonomyDto,
 } from "../api/taxonomyApi";
 import { AppDialog } from "@/components/AppDialog";
 import { FloatingField } from "@/components/FloatingField";
+import {
+  EMPTY_PRESCRIPTION_LINE,
+  PrescriptionLineEditor,
+  type PrescriptionLine,
+} from "@/components/prescription-lines";
 import { useBranchFilter, useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 
@@ -37,266 +33,6 @@ interface Props {
   onClose: () => void;
 }
 
-type Line = Omit<PrescriptionTemplateLineDto, "quantity" | "medicineName">;
-
-const EMPTY_LINE: Line = {
-  medicineEntryId: "",
-  timesPerDay: 1,
-  amountPerTime: 1,
-  days: 1,
-  usage: 0,
-  otherUsage: null,
-};
-
-/** The six choices the reference lists, in its order. */
-function usageOptions(): { flag: number; label: string }[] {
-  return [
-    { flag: PRESCRIPTION_USAGE.AfterMeal, label: t("Sau khi ăn") },
-    { flag: PRESCRIPTION_USAGE.BeforeMeal, label: t("Trước khi ăn") },
-    { flag: PRESCRIPTION_USAGE.DuringMeal, label: t("Trong khi ăn") },
-    { flag: PRESCRIPTION_USAGE.AfterWakingUp, label: t("Sau khi thức dậy") },
-    { flag: PRESCRIPTION_USAGE.BeforeSleep, label: t("Trước khi ngủ") },
-    { flag: PRESCRIPTION_USAGE.Other, label: t("Khác") },
-  ];
-}
-
-/** What one line stores for "Sử dụng": the chosen flags, plus the written-out
- * text when "Khác" is among them. */
-interface UsageValue {
-  usage: number;
-  otherUsage: string | null;
-}
-
-function usageLabel({ usage, otherUsage }: UsageValue): string {
-  const picked = usageOptions()
-    .filter((option) => (usage & option.flag) !== 0)
-    .map((option) =>
-      // "Khác" reads as whatever was written for it.
-      option.flag === PRESCRIPTION_USAGE.Other && otherUsage ? otherUsage : option.label,
-    );
-
-  return picked.length === 0 ? t("Sử dụng") : picked.join(", ");
-}
-
-/**
- * "Sử dụng" — a multi-select, the way the reference builds it.
- *
- * Nothing leaves this popover until "Lưu" is pressed: the boxes edit a draft,
- * so a half-made choice never reaches the line behind it. Ticking "Khác" asks
- * for the usage in words and will not save without it, as the reference does.
- */
-function UsagePicker({
-  value,
-  onChange,
-}: {
-  value: UsageValue;
-  onChange: (next: UsageValue) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState<UsageValue>(value);
-  const [error, setError] = useState<string | null>(null);
-
-  // Re-opening starts from what is actually stored, not from an abandoned draft.
-  const show = (next: boolean) => {
-    if (next) {
-      setDraft(value);
-      setError(null);
-    }
-    setOpen(next);
-  };
-
-  const wantsOther = (draft.usage & PRESCRIPTION_USAGE.Other) !== 0;
-
-  const commit = () => {
-    if (wantsOther && !draft.otherUsage?.trim()) {
-      setError(t("Vui lòng nhập giá trị!"));
-      return;
-    }
-
-    onChange({
-      usage: draft.usage,
-      otherUsage: wantsOther ? (draft.otherUsage?.trim() ?? null) : null,
-    });
-    setOpen(false);
-  };
-
-  const content = (
-    <div className="bd-usage-picker">
-      {usageOptions().map((option) => {
-        const checked = (draft.usage & option.flag) !== 0;
-        return (
-          <Checkbox
-            key={option.flag}
-            checked={checked}
-            onChange={(event) =>
-              setDraft((current) => ({
-                ...current,
-                usage: event.target.checked
-                  ? current.usage | option.flag
-                  : current.usage & ~option.flag,
-              }))
-            }
-          >
-            {option.label}
-          </Checkbox>
-        );
-      })}
-
-      {wantsOther && (
-        <div className="bd-usage-other">
-          <Input
-            autoFocus
-            status={error ? "error" : undefined}
-            placeholder={t("Vui lòng nhập")}
-            aria-label={t("Cách sử dụng khác")}
-            value={draft.otherUsage ?? ""}
-            onChange={(event) => {
-              setDraft((current) => ({ ...current, otherUsage: event.target.value }));
-              if (error) setError(null);
-            }}
-            onPressEnter={commit}
-          />
-          {error && (
-            <p role="alert" className="bd-usage-error">
-              <ExclamationCircleOutlined aria-hidden="true" /> {error}
-            </p>
-          )}
-        </div>
-      )}
-
-      <div className="bd-usage-footer">
-        <Button type="primary" size="small" icon={<SaveOutlined />} onClick={commit}>
-          {t("Lưu")}
-        </Button>
-      </div>
-    </div>
-  );
-
-  return (
-    <Popover
-      content={content}
-      trigger="click"
-      placement="bottomLeft"
-      open={open}
-      onOpenChange={show}
-    >
-      <Button className="bd-usage-trigger">{usageLabel(value)}</Button>
-    </Popover>
-  );
-}
-
-function PrescriptionLineCard({
-  line,
-  index,
-  medicines,
-  canDelete,
-  onPatch,
-  onDelete,
-}: {
-  line: Line;
-  index: number;
-  medicines: CatalogEntryDto[];
-  canDelete: boolean;
-  onPatch: (change: Partial<Line>) => void;
-  onDelete: () => void;
-}) {
-  const [expanded, setExpanded] = useState(false);
-
-  return (
-    <div className="bd-rx-card">
-      <div className="bd-rx-card-head">
-        <span className="bd-rx-card-num">{index + 1}</span>
-        {canDelete && (
-          <Tooltip title={t("Xoá dòng")}>
-            <Button
-              type="text"
-              size="small"
-              icon={<DeleteOutlined />}
-              className="bd-rx-card-del"
-              aria-label={t("Xoá dòng thuốc {0}", String(index + 1))}
-              onClick={onDelete}
-            />
-          </Tooltip>
-        )}
-      </div>
-      <div className="bd-rx-card-body">
-        <FloatingField label={t("Tên thuốc")}>
-          <Select
-            showSearch
-            optionFilterProp="label"
-            style={{ width: "100%" }}
-            placeholder={t("Tên thuốc")}
-            value={line.medicineEntryId || undefined}
-            onChange={(next) => onPatch({ medicineEntryId: next })}
-            options={medicines.map((m) => ({ value: m.id, label: m.name }))}
-          />
-        </FloatingField>
-        <FloatingField label={t("Ngày uống")}>
-          <InputNumber
-            min={0}
-            style={{ width: "100%" }}
-            value={line.timesPerDay}
-            onChange={(next) => onPatch({ timesPerDay: Number(next) || 0 })}
-          />
-        </FloatingField>
-        <FloatingField label={t("Mỗi lần")}>
-          <InputNumber
-            min={0}
-            step={0.5}
-            style={{ width: "100%" }}
-            value={line.amountPerTime}
-            onChange={(next) => onPatch({ amountPerTime: Number(next) || 0 })}
-          />
-        </FloatingField>
-        <FloatingField label={t("Số ngày")}>
-          <InputNumber
-            min={0}
-            style={{ width: "100%" }}
-            value={line.days}
-            onChange={(next) => onPatch({ days: Number(next) || 0 })}
-          />
-        </FloatingField>
-
-        {expanded && (
-          <>
-            <FloatingField label={t("Số lượng")}>
-              <InputNumber
-                disabled
-                style={{ width: "100%" }}
-                value={line.timesPerDay * line.amountPerTime * line.days}
-              />
-            </FloatingField>
-            <FloatingField label={t("Sử dụng")}>
-              <UsagePicker
-                value={{ usage: line.usage, otherUsage: line.otherUsage ?? null }}
-                onChange={(next) => onPatch(next)}
-              />
-            </FloatingField>
-          </>
-        )}
-
-        <button
-          type="button"
-          className="bd-rx-card-toggle"
-          onClick={() => setExpanded((v) => !v)}
-        >
-          {expanded ? t("Rút gọn") : t("Xem thêm")}
-          <svg width="12" height="12" viewBox="0 0 12 12" className={expanded ? "bd-rx-flip" : ""}>
-            <path d="M2.5 4.5L6 8L9.5 4.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/**
- * Đơn thuốc mẫu — a name, a piece of advice, and a table of medicine lines.
- *
- * "Số lượng" is shown disabled and derived from the three numbers beside it,
- * exactly as the reference does, so the stored template can never carry a
- * quantity that disagrees with its own dose.
- */
 export function PrescriptionTemplateDialog({
   open,
   entry,
@@ -319,7 +55,7 @@ export function PrescriptionTemplateDialog({
 
   const [form] = Form.useForm<FormValues>();
   const name = Form.useWatch("name", form) ?? "";
-  const [lines, setLines] = useState<Line[]>([EMPTY_LINE]);
+  const [lines, setLines] = useState<PrescriptionLine[]>([{ ...EMPTY_PRESCRIPTION_LINE }]);
 
   useEffect(() => {
     if (!open) return;
@@ -339,16 +75,11 @@ export function PrescriptionTemplateDialog({
             usage: line.usage,
             otherUsage: line.otherUsage ?? null,
           }))
-        : [EMPTY_LINE],
+        : [{ ...EMPTY_PRESCRIPTION_LINE }],
     );
   }, [open, entry, form]);
 
   const pending = createEntry.isPending || updateEntry.isPending;
-
-  const patch = (index: number, change: Partial<Line>) =>
-    setLines((current) =>
-      current.map((line, at) => (at === index ? { ...line, ...change } : line)),
-    );
 
   // Read through a ref for the same reason the other dialogs do: a refetch
   // must not change what a save is about to write.
@@ -400,118 +131,6 @@ export function PrescriptionTemplateDialog({
     }
   };
 
-  const columns = useMemo<ColumnsType<Line>>(
-    () => [
-      {
-        key: "medicine",
-        title: t("Tên thuốc"),
-        width: 260,
-        render: (_, line, index) => (
-          <Select
-            showSearch
-            optionFilterProp="label"
-            style={{ width: "100%" }}
-            aria-label={t("Tên thuốc")}
-            placeholder={t("Chọn thuốc")}
-            value={line.medicineEntryId || undefined}
-            onChange={(next) => patch(index, { medicineEntryId: next })}
-            options={medicines.map((medicine) => ({
-              value: medicine.id,
-              label: medicine.name,
-            }))}
-          />
-        ),
-      },
-      {
-        key: "timesPerDay",
-        title: t("Ngày uống"),
-        width: 120,
-        render: (_, line, index) => (
-          <InputNumber
-            min={0}
-            style={{ width: "100%" }}
-            aria-label={t("Ngày uống")}
-            value={line.timesPerDay}
-            onChange={(next) => patch(index, { timesPerDay: Number(next) || 0 })}
-          />
-        ),
-      },
-      {
-        key: "amountPerTime",
-        title: t("Mỗi lần"),
-        width: 110,
-        render: (_, line, index) => (
-          <InputNumber
-            min={0}
-            step={0.5}
-            style={{ width: "100%" }}
-            aria-label={t("Mỗi lần")}
-            value={line.amountPerTime}
-            onChange={(next) => patch(index, { amountPerTime: Number(next) || 0 })}
-          />
-        ),
-      },
-      {
-        key: "days",
-        title: t("Số ngày"),
-        width: 110,
-        render: (_, line, index) => (
-          <InputNumber
-            min={0}
-            style={{ width: "100%" }}
-            aria-label={t("Số ngày")}
-            value={line.days}
-            onChange={(next) => patch(index, { days: Number(next) || 0 })}
-          />
-        ),
-      },
-      {
-        key: "quantity",
-        title: t("Số lượng"),
-        width: 110,
-        render: (_, line) => (
-          <InputNumber
-            disabled
-            style={{ width: "100%" }}
-            aria-label={t("Số lượng")}
-            value={line.timesPerDay * line.amountPerTime * line.days}
-          />
-        ),
-      },
-      {
-        key: "usage",
-        title: t("Sử dụng"),
-        width: 200,
-        render: (_, line, index) => (
-          <UsagePicker
-            value={{ usage: line.usage, otherUsage: line.otherUsage ?? null }}
-            onChange={(next) => patch(index, next)}
-          />
-        ),
-      },
-      {
-        key: "remove",
-        title: "",
-        width: 60,
-        align: "center",
-        render: (_, __, index) => (
-          <Tooltip title={t("Xoá dòng")}>
-            <Button
-              type="text"
-              danger
-              size="small"
-              icon={<DeleteOutlined />}
-              aria-label={t("Xoá dòng thuốc {0}", String(index + 1))}
-              disabled={lines.length === 1}
-              onClick={() => setLines((current) => current.filter((_, at) => at !== index))}
-            />
-          </Tooltip>
-        ),
-      },
-    ],
-    [lines.length, medicines],
-  );
-
   return (
     <AppDialog
       open={open}
@@ -547,39 +166,7 @@ export function PrescriptionTemplateDialog({
           </Col>
         </Row>
 
-        <div className="bd-row-end bd-mb2">
-          <Button
-            icon={<PlusOutlined />}
-            onClick={() => setLines((current) => [...current, { ...EMPTY_LINE }])}
-          >
-            {t("Thêm mới")}
-          </Button>
-        </div>
-
-        <div className="bd-rx-table-desktop">
-          <Table<Line>
-            columns={columns}
-            dataSource={lines}
-            rowKey={(line, index) => line.id ?? String(index)}
-            pagination={false}
-            size="small"
-            className="bd-line-table"
-          />
-        </div>
-
-        <div className="bd-rx-cards-mobile">
-          {lines.map((line, index) => (
-            <PrescriptionLineCard
-              key={line.id ?? index}
-              line={line}
-              index={index}
-              medicines={medicines}
-              canDelete={lines.length > 1}
-              onPatch={(change) => patch(index, change)}
-              onDelete={() => setLines((current) => current.filter((_, at) => at !== index))}
-            />
-          ))}
-        </div>
+        <PrescriptionLineEditor lines={lines} medicines={medicines} onChange={setLines} />
 
         <Row gutter={[16, { xs: 20, sm: 12 }]} className="bd-mt3">
           <Col xs={24} sm={12}>

@@ -371,23 +371,25 @@ public class BlueDentalClinicalDemoSeeder(
                         DemoIdFor("0206", patient.Id, 1),
                         medication.Id,
                         medication.Name,
-                        medication.Dosage,
-                        medication.Frequency,
-                        durationDays: 5,
-                        quantity: 15,
-                        instructions: "Uống sau ăn"),
+                        timesPerDay: 3,
+                        amountPerTime: 1m,
+                        days: 5,
+                        PrescriptionUsage.AfterMeal,
+                        otherUsage: null,
+                        sortOrder: 0),
                     new PrescriptionItem(
                         DemoIdFor("0206", patient.Id, 2),
                         painkiller.Id,
                         painkiller.Name,
-                        painkiller.Dosage,
-                        painkiller.Frequency,
-                        durationDays: 3,
-                        quantity: 6,
-                        instructions: "Uống khi đau")
+                        timesPerDay: 2,
+                        amountPerTime: 1m,
+                        days: 3,
+                        PrescriptionUsage.Other,
+                        otherUsage: "Uống khi đau",
+                        sortOrder: 1)
                 ],
-                patientDiagnosisId: diagnosisRow.Id,
                 diagnosisText: diagnosis.Name,
+                note: "Uống đủ liều, tái khám đúng hẹn.",
                 followUpDate: today.AddDays(random.Next(7, 30))));
         }
 

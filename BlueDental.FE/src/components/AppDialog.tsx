@@ -26,6 +26,8 @@ interface Props {
    * see below — so this is opt-in, for the screens whose reference shows one.
    */
   cancelLabel?: string;
+  /** Centres the dialog in the viewport instead of hanging it from the top. */
+  centered?: boolean;
   onSave: () => void;
   onClose: () => void;
   children: ReactNode;
@@ -53,6 +55,7 @@ export function AppDialog({
   titleExtra,
   footerLeft,
   cancelLabel,
+  centered,
   onSave,
   onClose,
   children,
@@ -72,6 +75,7 @@ export function AppDialog({
       }
       onCancel={onClose}
       width={width}
+      centered={centered}
       destroyOnHidden
       mask={{ closable: false }}
       className={["app-dialog", className].filter(Boolean).join(" ")}

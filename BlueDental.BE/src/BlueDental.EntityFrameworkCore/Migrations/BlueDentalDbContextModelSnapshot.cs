@@ -5006,23 +5006,20 @@ namespace BlueDental.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
-                    b.Property<Guid?>("PatientDiagnosisId")
-                        .HasColumnType("uuid");
-
                     b.Property<Guid>("PatientId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("StaffId")
                         .HasColumnType("uuid");
 
-                    b.Property<short>("Status")
+                    b.Property<short>("TreatmentType")
                         .HasColumnType("smallint");
 
                     b.HasKey("Id");
 
                     b.HasIndex("Code");
 
-                    b.HasIndex("ClinicBranchId", "Status");
+                    b.HasIndex("ClinicBranchId", "IssuedAt");
 
                     b.HasIndex("PatientId", "IssuedAt");
 
@@ -5034,22 +5031,11 @@ namespace BlueDental.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("Dosage")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                    b.Property<decimal>("AmountPerTime")
+                        .HasColumnType("numeric(18,2)");
 
-                    b.Property<int>("DurationDays")
+                    b.Property<int>("Days")
                         .HasColumnType("integer");
-
-                    b.Property<string>("Frequency")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("Instructions")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
 
                     b.Property<Guid>("MedicationId")
                         .HasColumnType("uuid");
@@ -5059,15 +5045,25 @@ namespace BlueDental.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");
 
+                    b.Property<string>("OtherUsage")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<Guid>("PrescriptionId")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("Quantity")
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TimesPerDay")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Usage")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PrescriptionId");
+                    b.HasIndex("PrescriptionId", "SortOrder");
 
                     b.ToTable("bd_prescription_items", (string)null);
                 });

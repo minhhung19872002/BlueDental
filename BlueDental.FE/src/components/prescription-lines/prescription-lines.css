@@ -1,0 +1,164 @@
+/* ── Prescription lines: table on desktop, cards on mobile ─────────────── */
+
+.bd-rx-cards-mobile { display: none; }
+
+@media (max-width: 640px) {
+  .bd-rx-table-desktop { display: none; }
+  .bd-rx-cards-mobile { display: flex; flex-direction: column; gap: 16px; }
+}
+
+.bd-rx-card {
+  border: 2px solid var(--bd-primary, #4361ee);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.bd-rx-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: var(--bd-primary, #4361ee);
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.bd-rx-card-del {
+  color: #fff !important;
+}
+
+.bd-rx-card-del:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
+.bd-rx-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+}
+
+.bd-rx-card-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--bd-ink);
+}
+
+.bd-rx-card-toggle svg {
+  transition: transform 0.2s;
+}
+
+.bd-rx-flip {
+  transform: rotate(180deg);
+}
+
+/* Controls fill their table cell / card row; antd renders them inline-block. */
+.bd-rx-full { width: 100%; }
+
+/* ── "Sử dụng": a select-looking trigger over a checkbox sheet ────────── */
+
+/* Same box as the selects beside it in the line table: the dialog's control
+   height, a hairline, the control radius; a placeholder tone until a usage is
+   picked; primary on hover and while the sheet is open, as a select does. */
+.bd-usage-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  height: var(--ff-input-height, 42px);
+  padding: 0 11px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-control);
+  background: #fff;
+  color: var(--bd-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.bd-usage-trigger:hover,
+.bd-usage-trigger--open {
+  border-color: var(--bd-primary);
+}
+
+.bd-usage-trigger--open,
+.bd-usage-trigger:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--bd-primary) 12%, transparent);
+}
+
+.bd-usage-trigger--empty .bd-usage-trigger-text {
+  color: rgba(23, 28, 51, 0.25);
+}
+
+.bd-usage-trigger-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bd-usage-trigger-arrow {
+  flex: none;
+  font-size: 12px;
+  color: rgba(23, 28, 51, 0.25);
+  transition: transform 0.2s;
+}
+
+.bd-usage-trigger--open .bd-usage-trigger-arrow {
+  transform: rotate(180deg);
+}
+
+/* The app's popover shell keeps 4px for its menus, so the sheet carries its
+   own room. Nothing is committed until "Lưu", so it also needs space for the
+   written usage and its own footer. */
+.bd-usage-popover .ant-popover-container {
+  padding: 0;
+  border-radius: var(--bd-radius-control);
+  box-shadow: 0 12px 32px -8px rgba(35, 42, 86, 0.25);
+}
+
+.bd-usage-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 240px;
+  padding: 14px 16px 12px;
+}
+
+.bd-usage-picker .ant-checkbox-wrapper {
+  font-size: 13.5px;
+}
+
+.bd-usage-other {
+  margin-top: 2px;
+}
+
+.bd-usage-error {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #e5484d;
+}
+
+.bd-usage-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin: 4px -16px 0;
+  padding: 10px 16px 0;
+  border-top: 1px solid var(--bd-line);
+}

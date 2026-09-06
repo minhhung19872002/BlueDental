@@ -1243,6 +1243,64 @@ Ba báo cáo nối tiếp của người dùng sau khi nghiệm thu F-24:
   thumbnail hay popover; test bấm vào ảnh (còn mở) rồi bấm góc sân khấu (đóng).
 - `patient-image.spec.ts` 5/5 xanh trên `vite preview` 8080, backend thật.
 
+## 2026-09-05 — Đơn thuốc: dựng lại tab theo bản gốc staging
+
+Người dùng báo tab "Đơn thuốc" của hồ sơ bệnh nhân làm sai. Soi bản gốc
+(staging, chỉ đọc: mở dialog, không lưu) rồi hỏi chủ sản phẩm ba điểm không
+quan sát được (Thao tác = Sửa/Xóa; tích "Lưu đơn thuốc mẫu" hiện ô "Tên đơn
+thuốc mẫu"; phạm vi = tạo/sửa/xoá). Dựng lại cả BE lẫn FE.
+
+| # | Điểm | Cách sửa |
+|---|------|----------|
+| R-173 | Dòng thuốc cũ chỉ có tên + số lượng + cách dùng tự do | `bd_prescription_items` dựng lại: `TimesPerDay` · `AmountPerTime` · `Days` · `Usage` (cờ) · `OtherUsage`; `Quantity` là tích ba số, tính ở domain. Migration `20260905120000_RebuildPrescriptionLines` |
+| R-174 | Không có cách lưu đơn thành mẫu | `saveAsTemplate` + `templateName` trên POST/PUT: tạo `CatalogEntry` nhóm `prescription_template` mang dòng thuốc và lời dặn; `e2e/prescription.spec.ts` (real stack) khẳng định mẫu xuất hiện trong danh mục và chọn lại được prefill đủ dòng thuốc + lời dặn |
+| R-175 | Dialog cũ không giống bản gốc | `PrescriptionDialog` mới: khối bệnh nhân (tên · giới tính/ngày sinh/tuổi · tiểu sử bệnh · liên hệ), chọn mẫu + "Thêm loại thuốc", bác sĩ bắt buộc, chẩn đoán, lời dặn, tích mẫu → ô tên, Điều trị, Tái khám, bảng dòng thuốc có phân trang |
+| R-176 | Dialog đóng mở không theo URL | Bản gốc gắn `&create=true`; local `useSearchParams` set/xoá cờ, mở thẳng URL thì dialog hiện, link các tab khác không mang cờ theo |
+| R-177 | Widget dòng thuốc nằm kẹt trong dialog Đơn thuốc mẫu | Nhấc ra `src/components/prescription-lines/` (`PrescriptionLineEditor`, `PrescriptionLineCard`, `UsagePicker`), dialog danh mục dùng lại — không đụng hành vi, 38 spec taxonomy/payment-qr/branch chạy lại xanh trên bản build |
+| R-178 | Bảng rỗng mất dòng "Hiển thị 0 trên 0" | antd giấu pager khi `total = 0`; tab tự vẽ `Pagination` dưới bảng rỗng cho khớp bản gốc |
+| R-179 | Widget dòng thuốc vẽ **cả** bảng desktop lẫn thẻ mobile rồi giấu một bên bằng CSS → mỗi dòng có hai ô "Tên thuốc"/"Ngày uống"… trong DOM, Playwright strict mode đỏ ở cả spec Đơn thuốc lẫn `taxonomy-dialogs` | `useMediaQuery("(max-width: 640px)")` (hook mới `src/hooks/useMediaQuery.ts`): chỉ dựng bảng **hoặc** thẻ, không cả hai. Bỏ luôn 11 `style={{ width: "100%" }}` thừa kế từ dialog Đơn thuốc mẫu → class `bd-rx-full` |
+
+Bẫy khi viết test, đã sửa:
+
+- Mỗi dòng thuốc từng vẽ **hai lần** (hàng bảng cho desktop, thẻ cho màn hẹp)
+  nên `getByLabel("Tên thuốc")` trúng hai combobox → sửa tận gốc ở R-179,
+  spec chỉ cần `{ exact: true }`.
+- Nút xác nhận xoá có icon nên tên truy cập là `"delete Xoá"` → regex `/Xoá$/`,
+  giống nút Lưu (`"save Lưu"`).
+- Bấm mở combobox rồi chờ option thỉnh thoảng đỏ (dropdown đóng lại kịp trước
+  khi click); gõ tên vào ô tìm kiếm rồi mới chọn thì ổn định — 3 lần chạy liên
+  tiếp đều 5/5.
+- Test đỏ giữa chừng để lại đơn thuốc trên bệnh nhân đầu danh sách; xoá qua UI
+  local trước khi chụp ảnh so sánh.
+
+Kết quả: `prescription.spec.ts` **5/5** (×3 lần), 38 spec danh mục xanh; BE
+Domain 250 · Application 508 · EF 51 xanh; DbMigrator áp migration thành công.
+Ảnh so sánh: `reference-private/survey/staging/prescription-*.png` vs
+`reference-private/survey/local/prescription-*.png` — lệch còn lại là quy tắc
+toàn app (màu primary, cỡ tiêu đề AppDialog, nút Lưu bị khoá khi thiếu dữ liệu),
+ghi ở `docs/clone/pages/patient-detail.md`.
+
+### 2026-09-05 (tiếp) — chạy lại đủ bộ danh mục sau R-179
+
+Bộ `taxonomy*.spec.ts` + `payment-qr` + `branch-*` trên bản build production
+(`vite preview`, cổng 8080): **42 test: 39 xanh, 3 đỏ** (lần chạy cuối 38 xanh + `taxonomy-groups.spec.ts:163`
+"says it is saving" đỏ vì máy đang chạy song song bộ test BE của phiên khác,
+chạy lại riêng `--repeat-each 3` → 3/3 xanh). Ba test đỏ chạy lại
+riêng vẫn đỏ, nên đã dựng bản build sạch của `HEAD` (`20c4815`, `git archive`
+ra scratchpad, bundle `index-DGvaXNg9.js` khác bundle của nhánh làm việc)
+và chạy đúng ba test đó trên bản HEAD: **cả ba vẫn đỏ y hệt** → đỏ từ trước,
+không do Đơn thuốc. Ghi lại để không ai sửa nhầm vào spec đã chốt:
+
+| Test | Lý do đo được | Thuộc về |
+|------|---------------|----------|
+| `taxonomy-dialogs.spec.ts:152` "stores its lines and works out the quantity" và `:207` "Khác asks for the usage in words" | `page.locator(".ant-select-item-option", { hasText })` bấm **ngay** sau khi mở combobox Tên thuốc; danh sách thuốc chi nhánh 1 đã dồn hơn 40 dòng (cặn e2e) nên rc-virtual-list bật, Playwright `scrollIntoView` trong lúc dropdown còn đang animate làm list cuộn qua item 9–15 rồi lặp "element is outside of the viewport" đến hết 30 s. Thử cùng flow nhưng chờ 500 ms sau khi mở (spec probe, đã xoá) → bấm trúng, test xanh | Bẫy timing trong spec + cặn dữ liệu e2e; **không** phải widget dòng thuốc (Select giống hệt bản cũ, đỏ cả ở HEAD) |
+| `taxonomy.spec.ts:277` "a phone-width window scrolls the page" | Spec đòi `document.documentElement.scrollHeight > innerHeight`, nhưng từ shell v2 (`f7b5993`, 2026-09-02) `.app-content` là scroller (`overflow-y: auto`) nên document không cuộn nữa | Shell CSS toàn app, ngoài phạm vi Đơn thuốc |
+
+Không sửa hai spec chốt trong đợt này (mục 17 CLAUDE.md); cách sửa hợp lý khi
+tới lượt: dropdown thuốc → gõ tên vào ô tìm kiếm rồi mới chọn (như spec Đơn
+thuốc), và xoá cặn thuốc e2e; phone-width → đo `main.app-content` thay cho
+`documentElement`.
+
 ### 2026-09-05 — dựng lại tab Chăm sóc KH trong hồ sơ bệnh nhân (F-37)
 
 Khảo sát chỉ đọc trên staging (`?tab=care`, chủ dự án cho phép bấm Xoá để xem

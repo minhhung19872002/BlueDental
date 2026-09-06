@@ -88,16 +88,6 @@ public sealed class PrescriptionController(IPrescriptionAppService service) : Bl
     public Task<PrescriptionDto> UpdateAsync(Guid id, [FromBody] UpdatePrescriptionDto input) =>
         service.UpdateAsync(id, input);
 
-    [HttpPost("{id:guid}/dispense")]
-    public Task<PrescriptionDto> DispenseAsync(Guid id) => service.DispenseAsync(id);
-
-    [HttpPost("{id:guid}/cancel")]
-    public Task<PrescriptionDto> CancelAsync(Guid id) => service.CancelAsync(id);
-
-    [HttpGet("{id:guid}/pdf")]
-    public async Task<IActionResult> ExportPdfAsync(Guid id) =>
-        Pdf(await service.ExportPdfAsync(id), $"don-thuoc-{id}");
-
     [HttpDelete("{id:guid}")]
     public Task DeleteAsync(Guid id) => service.DeleteAsync(id);
 }

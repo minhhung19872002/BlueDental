@@ -36,6 +36,23 @@ export interface CatalogOption {
   isImageRequired: boolean;
   /** Set for the template catalogs — the body a picked template fills in. */
   content: string | null;
+  /** Lời dặn on a Đơn thuốc mẫu; the note of anything else. */
+  description: string | null;
+  /** The medicine lines of a Đơn thuốc mẫu; empty for every other catalog. */
+  prescriptionLines: CatalogPrescriptionLine[];
+}
+
+/** One line of a Đơn thuốc mẫu as the catalog API returns it. */
+export interface CatalogPrescriptionLine {
+  id: string;
+  medicineEntryId: string;
+  medicineName: string | null;
+  timesPerDay: number;
+  amountPerTime: number;
+  days: number;
+  /** Flags of PRESCRIPTION_USAGE. */
+  usage: number;
+  otherUsage: string | null;
 }
 
 interface CatalogEntryResponse {
@@ -48,6 +65,8 @@ interface CatalogEntryResponse {
   isImageRequired: boolean;
   isActive: boolean;
   content: string | null;
+  description?: string | null;
+  prescriptionLines?: CatalogPrescriptionLine[];
 }
 
 export const catalogOptionKeys = {
@@ -78,6 +97,8 @@ export function useCatalogOptions(group: CatalogGroup) {
         taxonomyName: entry.taxonomyName,
         isImageRequired: entry.isImageRequired,
         content: entry.content ?? null,
+        description: entry.description ?? null,
+        prescriptionLines: entry.prescriptionLines ?? [],
       }));
     },
     enabled: Boolean(branchId),

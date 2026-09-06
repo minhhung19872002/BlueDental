@@ -1,127 +1,145 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
+import { useCurrentBranchId } from "@/lib/clinicBranch";
+import { t } from "@/lib/i18n";
+import { catalogOptionKeys } from "@/hooks/useCatalogOptions";
 import type { PagedResult } from "@/types";
 
-import { t } from "@/lib/i18n";
-/** Matches BlueDental.TreatmentManagement.PrescriptionStatus. */
-export const PRESCRIPTION_STATUS = {
-  Active: 1,
-  Dispensed: 2,
-  Expired: 3,
-  Cancelled: 4,
-} as const;
-export type PrescriptionStatus =
-  (typeof PRESCRIPTION_STATUS)[keyof typeof PRESCRIPTION_STATUS];
+/** Matches BlueDental.TreatmentManagement.PrescriptionTreatmentType. */
+export const PRESCRIPTION_TREATMENT_TYPE = { Outpatient: 1, Inpatient: 2 } as const;
+export type PrescriptionTreatmentType =
+  (typeof PRESCRIPTION_TREATMENT_TYPE)[keyof typeof PRESCRIPTION_TREATMENT_TYPE];
 
-export const prescriptionStatusConfig = (): Record<
-  PrescriptionStatus,
-  { label: string; color: string }
-> => ({
-  [PRESCRIPTION_STATUS.Active]: { label: t("Chưa phát"), color: "processing" },
-  [PRESCRIPTION_STATUS.Dispensed]: { label: t("Đã phát"), color: "green" },
-  [PRESCRIPTION_STATUS.Expired]: { label: t("Hết hạn"), color: "default" },
-  [PRESCRIPTION_STATUS.Cancelled]: { label: t("Đã huỷ"), color: "red" },
-});
+/** "Điều trị" options in the reference's order — ngoại trú is the default. */
+export function treatmentTypeOptions(): { value: PrescriptionTreatmentType; label: string }[] {
+  return [
+    { value: PRESCRIPTION_TREATMENT_TYPE.Outpatient, label: t("Điều trị ngoại trú") },
+    { value: PRESCRIPTION_TREATMENT_TYPE.Inpatient, label: t("Điều trị nội trú") },
+  ];
+}
 
+/** Mirrors BlueDental.TreatmentManagement.PrescriptionItemDto. */
 export interface PrescriptionItemDto {
   id: string;
   medicationId: string;
   medicationName: string;
-  dosage: string;
-  frequency: string;
-  durationDays: number;
+  timesPerDay: number;
+  amountPerTime: number;
+  days: number;
+  /** Computed by the server: timesPerDay × amountPerTime × days. */
   quantity: number;
-  instructions: string | null;
+  /** Flags of PRESCRIPTION_USAGE. */
+  usage: number;
+  otherUsage: string | null;
+  sortOrder: number;
 }
 
+/** Mirrors BlueDental.TreatmentManagement.PrescriptionDto. */
 export interface PrescriptionDto {
   id: string;
   patientId: string;
   clinicBranchId: string;
   code: string;
   staffId: string;
-  patientDiagnosisId: string | null;
+  staffName: string | null;
   diagnosisText: string | null;
-  followUpDate: string | null;
   note: string | null;
-  status: PrescriptionStatus;
+  treatmentType: PrescriptionTreatmentType;
+  /** "YYYY-MM-DD" or null. */
+  followUpDate: string | null;
   issuedAt: string;
   items: PrescriptionItemDto[];
-  staffName: string | null;
   creationTime: string;
+  lastModificationTime: string | null;
 }
 
-export interface CreatePrescriptionItemInput {
+/** Mirrors CreatePrescriptionItemDto — one medicine line as sent. */
+export interface PrescriptionLineInput {
   medicationId: string;
-  dosage: string;
-  frequency: string;
-  durationDays: number;
-  quantity: number;
-  instructions?: string;
+  timesPerDay: number;
+  amountPerTime: number;
+  days: number;
+  usage: number;
+  otherUsage: string | null;
 }
 
-export interface CreatePrescriptionInput {
+/** Mirrors CreatePrescriptionDto. */
+export interface CreatePrescriptionRequest {
   patientId: string;
   clinicBranchId: string;
   staffId: string;
-  diagnosisText?: string;
-  followUpDate?: string;
-  note?: string;
-  items: CreatePrescriptionItemInput[];
+  diagnosisText: string | null;
+  note: string | null;
+  treatmentType: PrescriptionTreatmentType;
+  /** "YYYY-MM-DD" or null. */
+  followUpDate: string | null;
+  /** Also files the lines as a Đơn thuốc mẫu named `templateName`. */
+  saveAsTemplate: boolean;
+  templateName: string | null;
+  items: PrescriptionLineInput[];
 }
+
+/** Mirrors UpdatePrescriptionDto — the patient and branch never change. */
+export type UpdatePrescriptionRequest = Omit<CreatePrescriptionRequest, "patientId" | "clinicBranchId">;
 
 const BASE = "/v1/app/prescriptions";
 
-const prescriptionApi = {
-  list: (params: {
-    patientId?: string;
-    clinicBranchId?: string;
-    maxResultCount?: number;
-  }): Promise<PagedResult<PrescriptionDto>> =>
-    api.get<PagedResult<PrescriptionDto>>(BASE, { params }).then((r) => r.data),
-
-  create: (input: CreatePrescriptionInput): Promise<PrescriptionDto> =>
-    api.post<PrescriptionDto>(BASE, input).then((r) => r.data),
-
-  dispense: (id: string): Promise<PrescriptionDto> =>
-    api.post<PrescriptionDto>(`${BASE}/${id}/dispense`).then((r) => r.data),
-
-  cancel: (id: string): Promise<PrescriptionDto> =>
-    api.post<PrescriptionDto>(`${BASE}/${id}/cancel`).then((r) => r.data),
-};
-
 export const prescriptionKeys = {
   all: ["prescriptions"] as const,
-  list: (patientId: string) => [...prescriptionKeys.all, "list", patientId] as const,
+  list: (patientId: string, branchId: string) =>
+    [...prescriptionKeys.all, "list", patientId, branchId] as const,
 };
 
-export function usePrescriptions(patientId: string, clinicBranchId: string) {
+/**
+ * A patient's slips on the current branch, newest first. The tab pages them
+ * on the client like the other record tabs, so one read fetches the lot.
+ */
+export function usePrescriptions(patientId: string) {
+  const branchId = useCurrentBranchId();
+
   return useQuery({
-    queryKey: prescriptionKeys.list(patientId),
-    queryFn: () => prescriptionApi.list({ patientId, clinicBranchId, maxResultCount: 50 }),
-    enabled: Boolean(patientId),
+    queryKey: prescriptionKeys.list(patientId, branchId),
+    queryFn: () =>
+      api
+        .get<PagedResult<PrescriptionDto>>(BASE, {
+          params: { patientId, clinicBranchId: branchId, skipCount: 0, maxResultCount: 200 },
+        })
+        .then((r) => r.data),
+    enabled: Boolean(patientId) && Boolean(branchId),
   });
 }
 
-function usePrescriptionMutation<TVariables, TData>(fn: (variables: TVariables) => Promise<TData>) {
+/** Saving with "Lưu đơn thuốc mẫu" ticked adds a catalog entry, so those lists refresh too. */
+function useInvalidateAfterSave() {
   const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: fn,
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: prescriptionKeys.all });
-    },
-  });
+  return (savedTemplate: boolean) => {
+    void queryClient.invalidateQueries({ queryKey: prescriptionKeys.all });
+    if (savedTemplate) void queryClient.invalidateQueries({ queryKey: catalogOptionKeys.all });
+  };
 }
 
 export function useCreatePrescription() {
-  return usePrescriptionMutation(prescriptionApi.create);
+  const invalidate = useInvalidateAfterSave();
+  return useMutation({
+    mutationFn: (input: CreatePrescriptionRequest) =>
+      api.post<PrescriptionDto>(BASE, input).then((r) => r.data),
+    onSuccess: (_, input) => invalidate(input.saveAsTemplate),
+  });
 }
 
-export function useDispensePrescription() {
-  return usePrescriptionMutation((id: string) => prescriptionApi.dispense(id));
+export function useUpdatePrescription() {
+  const invalidate = useInvalidateAfterSave();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdatePrescriptionRequest }) =>
+      api.put<PrescriptionDto>(`${BASE}/${id}`, input).then((r) => r.data),
+    onSuccess: (_, { input }) => invalidate(input.saveAsTemplate),
+  });
 }
 
-export function useCancelPrescription() {
-  return usePrescriptionMutation((id: string) => prescriptionApi.cancel(id));
+export function useDeletePrescription() {
+  const invalidate = useInvalidateAfterSave();
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`${BASE}/${id}`).then(() => undefined),
+    onSuccess: () => invalidate(false),
+  });
 }

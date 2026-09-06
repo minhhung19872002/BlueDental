@@ -65,6 +65,8 @@ export function PatientProfilePage() {
 
   const tabs: PageTab[] = PATIENT_TABS.map(([key, label]) => {
     const next = new URLSearchParams(searchParams);
+    // The open Đơn thuốc dialog rides in the URL; it does not follow to another tab.
+    next.delete("create");
     if (key === "profile") next.delete("tab");
     else next.set("tab", key);
     const query = next.toString();

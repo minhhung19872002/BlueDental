@@ -15,11 +15,12 @@ import {
   type LaboOrderDto,
 } from "@/features/labo/api/laboApi";
 import { PrescriptionPanel } from "@/features/treatment-management/components/PrescriptionPanel";
+import type { PrescriptionPatientSummary } from "@/features/treatment-management/types/prescription";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
 import { countedTotal } from "@/utils/countedTotal";
 import { formatDate, formatVND } from "@/utils/format";
-import type { PatientDto } from "../../types/patient";
+import { GENDER, type GenderCode, type PatientDto } from "../../types/patient";
 import { PatientLaboDialog } from "./PatientRecordDialogs";
 
 export function PatientLaboTab({ patient }: { patient: PatientDto }) {
@@ -146,15 +147,26 @@ export function PatientLaboTab({ patient }: { patient: PatientDto }) {
   );
 }
 
+const GENDER_LABELS: Record<GenderCode, string> = {
+  [GENDER.Male]: "Nam",
+  [GENDER.Female]: "Nữ",
+  [GENDER.Other]: "Khác",
+  [GENDER.PreferNotToSay]: "Không tiết lộ",
+};
+
 export function PatientPrescriptionTab({ patient }: { patient: PatientDto }) {
+  const summary: PrescriptionPatientSummary = {
+    id: patient.id,
+    code: patient.patientCode,
+    fullName: patient.fullName,
+    genderLabel: t(GENDER_LABELS[patient.gender]),
+    dateOfBirth: patient.dateOfBirth,
+    phoneNumber: patient.phoneNumber,
+    diseaseHistoryEntryIds: patient.diseaseHistoryEntryIds,
+  };
   return (
     <section className="pd-pane pd-pane--fill">
-      <PrescriptionPanel
-        patientId={patient.id}
-        compact
-        patientLabel={`[${patient.patientCode}] - ${patient.fullName}`}
-        patientPhone={patient.phoneNumber}
-      />
+      <PrescriptionPanel patient={summary} />
     </section>
   );
 }

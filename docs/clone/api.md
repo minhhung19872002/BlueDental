@@ -621,6 +621,68 @@ Nothing else on `/labo` is editable. Success toast
 On success the client invalidates `labOrders.all`, `labOrders.detail(id)`,
 `clinic-orders`, `clinic-order-status` and `treatmentServices.all`.
 
+### Patient tab: list, counters and the create flow (staging, 2026-09-05)
+
+Observed on `/patient/{id}?tab=labo`. All GET; the POST was never issued.
+
+```
+GET /v1/clinic-orders?patientId=<id>&branchId=<id>&page=1&perPage=20
+    &orderBy=createdAt:desc[&statusClinic=created|continue|guarantee]
+GET /v1/clinic-order-status?patientId=<id>&branchId=<id>
+    → { "created": <n>, "guarantee": <n>, "continue": <n>, "total": <n> }   (counted on statusClinic)
+GET /v1/clinic-orders/estimate-code?branchId=<id>
+    → { "code": "LABO-YYYYMMDDn" }        message "clinicOrder.estimateCode"; called once a
+                                          treatment service is chosen in the Đặt mới form
+POST /v1/clinic-orders                    header Idempotency-Key — NOT ISSUED, payload unknown
+```
+
+List items carry the same shape as `/v1/orders` above plus `code`; a
+continue/warranty child carries its parent's `code`.
+
+Lookups fired when the dialog opens:
+
+```
+GET /v1/taxonomy/?type=serviceMaterial&perPage=20&orderBy=order:asc&branchId=   → [] on staging
+GET /v1/taxonomy/?type=line|joint|bridge&perPage=100&orderBy=order:asc&branchId=
+GET /v1/staff/list?page=1&perPage=20&status=active&isResigned=false&branchId=&isDoctor=true   → 403 for the surveyed role
+GET /v1/labos/?branchId=&perPage=100&orderBy=name:asc
+GET /v1/patient-treatments?patientId=&page=1&take=100&sortBy=createdAt&sortDirection=desc
+GET /v1/treatment-services?patientId=[&patientTreatmentId=]&status=created,inProgress&q=
+    &page=1&take=100&sortBy=createdAt&sortDirection=desc&include=service[id,name,code,laboIds]
+```
+
+`patient-treatments` item (structure only):
+
+```json
+{
+  "id": "<string>", "patientId": "<string>", "code": "DT<n>", "status": "done|<code>",
+  "branchId": "<string>", "staffId": "<string>", "progress": <number>,
+  "staff": { "id": "<string>", "name": "<string>", "isResigned": <bool> },
+  "patient": { "id": "<string>", "name": "<string>", "code": "<string>" },
+  "patientAdvises": [],
+  "treatmentServices": [{ "id": "<string>", "serviceId": "<string>", "service": { "id": "<string>", "name": "<string>" } }],
+  "payment": {}
+}
+```
+
+`treatment-services` item (fields the Labo form uses):
+
+```json
+{
+  "id": "<string>", "code": "DTS<n>", "patientTreatmentId": "<string>", "serviceId": "<string>",
+  "staffId": "<string>", "status": "created|in-progress", "quantity": <number>,
+  "content": [{ "code": <toothNumber>, "selected": <bool>, "top": <bool>, "right": <bool>, "bottom": <bool>, "left": <bool>, "center": <bool> }],
+  "selectedContent": [<toothNumber>], "completedContent": [],
+  "staff": { "id": "<string>", "name": "<string>" },
+  "service": { "id": "<string>", "name": "<string>", "code": "<string>", "laboIds": ["<string>"] },
+  "patientStages": [], "isOrthodontist": <bool>, "createdAt": "<ISO>"
+}
+```
+
+The Răng toggle buttons are `content[].code`; `service.laboIds` drives the
+"Lựa chọn dịch vụ" list (empty on staging, so the material list could not be
+observed either).
+
 ---
 
 ## 2. Lab suppliers — `laboApi` (base `/v1/labos/`)

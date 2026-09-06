@@ -392,46 +392,120 @@ Khung **không** kéo dài hết màn hình — chiều cao theo nội dung.
 ## Tab 6: Labo
 
 URL: `?tab=labo`
-API: `GET /api/v1/clinic-orders?patientId=...&branchId=...&page=1&perPage=20&orderBy=createdAt:desc`
+API: `GET /api/v1/clinic-orders?patientId=...&branchId=...&page=1&perPage=20&orderBy=createdAt:desc[&statusClinic=created|continue|guarantee]`
 Status API: `GET /api/v1/clinic-order-status?patientId=...&branchId=...`
 
-### Counter Buttons (3, top-left — function as filter + count display)
+Surveyed again on staging 2026-09-05 with a patient that has two orders (a
+"Đặt mới" parent and a "Làm tiếp công đoạn" child). Everything below is
+read-only observation; no form was saved. Screenshots (patient data, never
+committed): `reference-private/labo/ref-labo-*.png`.
 
-| Label (VI) | API field | Color |
-|-----------|-----------|-------|
-| {N} Đơn hàng mới | `created` | Green |
-| {N} Tiếp tục công đoạn | `continue` | Orange |
-| {N} Bảo hành | `guarantee` | Red/Pink |
+### Counter Buttons (3, top-left — toggle filters)
 
-Total count from API: `{ created: 0, guarantee: 0, continue: 0, total: 0 }`
+| Label (VI) | API field | `statusClinic` filter | Color |
+|-----------|-----------|-----------------------|-------|
+| {N} Đơn hàng mới | `created` | `created` | Green |
+| {N} Tiếp tục công đoạn | `continue` | `continue` | Amber |
+| {N} Bảo hành | `guarantee` | `guarantee` | Red/Pink |
+
+- Counts come from `/clinic-order-status` → `{ created, guarantee, continue, total }`
+  and are counted on **`statusClinic`** (Tình trạng mẫu), not on `status`.
+- Clicking a counter re-queries the list with `&statusClinic=<code>` and the
+  pager text follows ("Hiển thị 1 trên 1 phiếu labo"); the active counter gets
+  an extra blue outline. Clicking it again clears the filter (the unfiltered
+  list comes back from cache, no new request). Only one counter is active at a
+  time.
 
 ### Toolbar (top-right)
 
-| Button | Style |
-|--------|-------|
-| Tạo phiếu Labo | Primary blue with icon — UNKNOWN_REFERENCE_BEHAVIOR (form not opened) |
+| Button | Style | Behaviour |
+|--------|-------|-----------|
+| Tạo phiếu Labo | Primary blue, box icon | Sets `?laboModal=new-order` and opens the tabbed order dialog (below) |
 
 ### Table Columns (10 columns)
 
-| # | Column Header (VI) | Notes |
-|---|-------------------|-------|
-| 1 | Mã phiếu labo | Labo order code |
-| 2 | Ngày gửi / Tình trạng mẫu | Send date + sample status |
-| 3 | Ngày giao / Trạng thái Labo | Delivery date + labo status |
-| 4 | Bác sĩ chỉ định | Prescribing doctor |
-| 5 | Nhà cung cấp | Supplier/Lab name |
-| 6 | Vật liệu | Material type |
-| 7 | Số răng | Tooth number(s) |
-| 8 | Số lượng | Quantity |
-| 9 | File Labo gửi về | Returned file from lab |
-| 10 | Thao tác | Action buttons |
+| # | Column Header (VI) | Cell |
+|---|-------------------|------|
+| 1 | Mã phiếu labo | `code`. Existing rows show `LABO_DTS67` (`LABO_` + treatment-service code); the estimate endpoint now hands out `LABO-YYYYMMDDn`. A continue/warranty child row shows the **same code** as its parent |
+| 2 | Ngày gửi / Tình trạng mẫu | `createdAt` as `DD/MM/YYYY HH:mm`, then a `statusClinic` pill (`Mẫu mới`, `Tiếp tục công đoạn`, `Bảo hành`, …) |
+| 3 | Ngày giao / Trạng thái Labo | `estimatedDeliveryDate` as `DD/MM/YYYY HH:mm`, then a `status` pill (`Đơn hàng mới`, …) |
+| 4 | Bác sĩ chỉ định | `staff.name` |
+| 5 | Nhà cung cấp | `labo.name` |
+| 6 | Vật liệu | `material.name` |
+| 7 | Số răng | `toothContents` joined with `, ` |
+| 8 | Số lượng | number of teeth |
+| 9 | File Labo gửi về | Button `Xem file -` (disabled) when `images` is empty; with images the button opens a lightbox (see labo.md, not observed with data here) |
+| 10 | Thao tác | three icon buttons: `Xem chi tiết` (eye), `Tiếp tục công đoạn` (plus), `Bảo hành` (green gift/shield icon) |
+
+Pill labels and tones for the ten status codes: `docs/clone/pages/labo.md` §2.5.
 
 Empty state: "Không có dữ liệu"
 
 ### Pagination
 
 Options: 5, 10, 20 (default), 25, 50, 100 per page
-Text: "Hiển thị 0 trên 0 phiếu labo"
+Text: "Hiển thị 1–2 trên 2 phiếu labo" (no rows: "Hiển thị 0 trên 0 phiếu labo")
+
+### "Xem chi tiết" — read-only modal "Thông tin chung"
+
+No extra request; the row object is rendered. Same layout as the `/labo`
+detail modal (labo.md §2.6): uppercase section headings THÔNG TIN CHUNG
+(Bác sĩ chỉ định · Khách hàng · Ngày sinh), THÔNG TIN LABO (Nhà cung cấp ·
+Ngày gửi · Ngày nhận dự kiến), THÔNG SỐ LABO (Vật liệu · Đường hoàn tất ·
+Khớp cắn · Kiểu nhịp · Chỉ định · Ghi chú), CHI TIẾT PHIẾU (Dịch vụ điều trị ·
+Loại phục hình · Răng · Màu chi tiết · Số lượng), then a TRẠNG THÁI pill.
+Footer: `In Phiếu Labo` (outline, printer icon) and `Đóng`. A hidden print
+sheet titled "PHIẾU ĐẶT HÀNG LABO" is rendered for the print button.
+Unlike `/labo`, the patient tab's modal has **no** status select and no Lưu.
+
+### Order dialog (`?laboModal=new-order | continue-process | warranty[&laboRowId=<id>]`)
+
+~770 px wide, title = active tab, three pill tabs `Đặt mới` ·
+`Làm tiếp công đoạn` · `Bảo hành`, footer `Lưu` (primary, save icon).
+Lookups fired on open (structure in `docs/clone/api.md` → Labo → "Patient tab:
+list, counters and the create flow"): taxonomy `serviceMaterial`, `line`,
+`joint`, `bridge`; `staff/list …&isDoctor=true` (403 for the surveyed
+account); patient treatments; treatment services with
+`status=created,inProgress`; suppliers.
+
+**Đặt mới** (two-column grid, MUI outlined fields, `*` on required):
+
+| Field | Control | Notes |
+|-------|---------|-------|
+| Tên khách hàng* | disabled select | `code - name` of the current patient |
+| Kế hoạch điều trị* | searchable select | options `DT<code> - <staff.name>` from patient-treatments; choosing one refetches treatment services with `patientTreatmentId`; a `done` plan yields no services; clear icon "Xóa lựa chọn" |
+| Dịch vụ điều trị* | searchable select | options `<service.code> - <service.name>` (one per treatment service, duplicates allowed). Can be chosen without a plan — the plan field is then auto-filled (the reference prints the raw plan id in that case) |
+| Bác sĩ chỉ định* | searchable select | doctors; empty on staging because the staff list returned 403 |
+| Số phiếu Labo* | disabled text | empty until a treatment service is chosen, then `GET /clinic-orders/estimate-code?branchId=` → `LABO-202609051` |
+| Ngày gửi* / Giờ gửi* | date (`DD/MM/YYYY`) + time (`HH:mm`) | prefilled today / now |
+| Nhà cung cấp* | searchable select | from `labos/?branchId=&perPage=100&orderBy=name:asc` |
+| Ngày nhận dự kiến* / Giờ nhận* | date + time | empty |
+| Lựa chọn dịch vụ* | list + search icon | the icon reveals a popover search box "Tìm dịch vụ"; list shows "Không có dữ liệu" on staging — it is the labo-service list for the chosen treatment service (`service.laboIds`, empty on staging) |
+| Vật liệu* | list + search icon | "Chọn dịch vụ trước" until a labo service is chosen |
+| Răng:* | `Chọn tất cả` checkbox + one toggle button per tooth | "Chọn dịch vụ điều trị trước" until a treatment service is chosen; teeth come from the treatment service's `content[].code` (e.g. 12, 11, 22), all selected by default. Un-toggling a tooth unticks Chọn tất cả and Số lượng drops by one |
+| Màu răng | text | |
+| Số lượng* | disabled text | = number of selected teeth |
+| Khớp cắn / Đường hoàn tất / Kiểu nhịp | searchable selects | taxonomy `joint` / `line` / `bridge` |
+| Nội dung | multiline text | |
+| Tải ảnh | dashed upload tile | |
+
+**Làm tiếp công đoạn** and **Bảo hành** (toolbar entry): only
+`Chọn phiếu dịch vụ Labo*` (options `Phiếu dịch vụ Labo #<code>` for every
+order of the patient, children included) and Lưu stays disabled until one is
+chosen. Entering from a row action prefills that field and shows the rest:
+
+| Field | Notes |
+|-------|-------|
+| Kế hoạch điều trị / Dịch vụ điều trị / Số phiếu Labo | disabled textboxes (`DT35 - BS Minh`, service name, `LABO_DTS67` — the child keeps the parent's code) |
+| Bác sĩ chỉ định*, Nhà cung cấp* | prefilled from the parent |
+| Ngày gửi*/Giờ gửi* (continue) · Ngày bảo hành*/Giờ bảo hành* (warranty) | prefilled today / now |
+| Ngày nhận dự kiến* / Giờ nhận* | empty |
+| Radio `Theo vật liệu cũ` (default) | shows "Dịch vụ hiện tại: <labo service>" and "Vật liệu: <material>" |
+| Radio `Thay đổi vật liệu mới` | swaps in the `Lựa chọn dịch vụ labo*` + `Vật liệu*` lists from Đặt mới |
+| Răng, Màu răng, Nội dung, Số lượng, Tải ảnh | as Đặt mới, prefilled from the parent |
+
+Save (`POST /v1/clinic-orders` with `Idempotency-Key`) was **not** issued; the
+payload is unknown (unknowns.md).
 
 ---
 
@@ -475,9 +549,9 @@ Title "Thêm đơn thuốc" + close X.
 
 Layout, top to bottom:
 
-1. **Patient block** — avatar, `[code] - name`, "Giới tính: <Nam/Nữ> -
-   dd/MM/yyyy - N tuổi", "Tiểu sử bệnh: <names | Chưa có dữ liệu>",
-   "Liên hệ: <phone>".
+1. **Patient block** — avatar, the patient's **name only** (uppercase, no
+   code), "Giới tính: <Nam/Nữ> - dd/MM/yyyy - N tuổi", "Tiểu sử bệnh: <names |
+   Chưa có dữ liệu>", "Liên hệ: <phone>".
 2. **Row**: combobox "Chọn đơn thuốc mẫu" (611×40, searchable) + primary
    button "Thêm loại thuốc" (180×40). The button is a plain navigation to
    `/taxonomy/medicine?branchId=` (no sub-dialog; the unsaved slip is lost).
@@ -505,11 +579,38 @@ Layout, top to bottom:
 9. Footer: "Hủy" (60×40) · primary "Lưu" (100×40).
 
 Not observed (see unknowns): the POST payload, what the template pick fills
-(staging has no templates), row actions on saved slips (no patient with a
-prescription reachable on staging or production), print layout.
+(staging has no templates), print layout, and what "Lưu" does when the form
+is incomplete (it renders enabled; clicking it is a mutation, so not tried).
+
+Answered by the product owner on 2026-09-05 (screenshot of the target dialog):
+
+- "Thao tác" on a saved slip = **Sửa** and **Xóa** — no print action.
+- Ticking "Lưu đơn thuốc mẫu" reveals a text field **"Tên đơn thuốc mẫu"**;
+  the template takes that name.
+- Scope of the feature = create, edit, delete.
 
 Screenshots: `reference-private/survey/staging/prescription-tab.png`,
-`reference-private/survey/staging/prescription-create-dialog.png`.
+`reference-private/survey/staging/prescription-create-dialog.png`; local
+counterparts in `reference-private/survey/local/` (same 929×861 viewport).
+
+### Local implementation (2026-09-05)
+
+`PrescriptionPanel` → `PrescriptionDialog` → shared `PrescriptionLineEditor`
+(`src/components/prescription-lines/`, lifted out of the Đơn thuốc mẫu dialog
+so both screens use one widget). Measured against the staging capture:
+
+| Element | Reference | Local | Note |
+|---|---|---|---|
+| Dialog width | 897 | 897 | |
+| Template combobox / "Thêm loại thuốc" | 611×40 / 180×40 | 1fr / 180×42 | antd `large` is 42 |
+| Doctor, lời dặn, Điều trị, Tái khám | h40 | h42 | same |
+| Diagnosis textarea | h96 | h96 | |
+| "Thêm mới" | 122×40 outlined | 116×36 outlined | shared widget, same as Đơn thuốc mẫu |
+| Line table columns | 208·102·90·90·90·221·40 | same widths | |
+| Title | 24px | 16px | app-wide `AppDialog` title, kept |
+| Primary colour | blue | `--bd-primary` indigo | app-wide token, kept |
+| "Lưu" when incomplete | enabled | disabled until doctor + one medicine | app-wide dialog rule; reference click not tried |
+| Table pager on empty list | "Hiển thị 0 trên 0" + Trước/Sau | "Hiển thị 0 trên 0" + antd pager | antd hides its pager on an empty table, so the tab draws one itself |
 
 ---
 
@@ -705,9 +806,9 @@ Pagination text: "Hiển thị 0 trên 0 giao dịch"
 | 6 | "Lịch sử thay đổi" modal content | Not clicked |
 | 7 | Image gallery layout | No images to observe |
 | 8 | Dental chart SVG in tab 2 | Not captured in snapshot |
-| 9 | "Tạo phiếu Labo" form fields | Form not opened |
-| 10 | Labo row action buttons | No data rows to observe |
-| 11 | ~~"Tạo đơn thuốc" form fields~~ | RESOLVED 2026-09-05 — dialog documented under Tab 7; POST payload, template fill and saved-row actions remain unknown |
+| 9 | ~~"Tạo phiếu Labo" form fields~~ | RESOLVED 2026-09-05 — three-tab dialog documented under Tab 6; POST payload and the labo-service/material lists (empty on staging) remain unknown |
+| 10 | ~~Labo row action buttons~~ | RESOLVED 2026-09-05 — Xem chi tiết / Tiếp tục công đoạn / Bảo hành, documented under Tab 6 |
+| 11 | ~~"Tạo đơn thuốc" form fields~~ | RESOLVED 2026-09-05 — dialog documented under Tab 7; row actions (Sửa/Xóa) and the "Tên đơn thuốc mẫu" field confirmed by the owner; POST payload and template fill remain unknown |
 | 12 | "CSKH đặc biệt" button behavior | Not clicked |
 | 13 | Hóa đơn tab actual content | Feature not yet implemented ("đang hoàn thiện") |
 | 14 | Debt history transaction types (Loại column) | No data rows |
@@ -1064,7 +1165,7 @@ the far right: `DỊCH VỤ ĐANG ĐIỀU TRỊ` and `DỊCH VỤ CÓ CÔNG ĐO�
 | Tab | Reference | Local |
 |---|---|---|
 | Hình ảnh | `Giai đoạn điều trị` select + `Tải ảnh`; dashed gallery card, "Không có ảnh trong bộ lọc đã chọn" | matches |
-| Labo | three chips (Đơn hàng mới / Tiếp tục công đoạn / Bảo hành), `Tạo phiếu Labo`, ten columns | matches |
+| Labo | three chips (Đơn hàng mới / Tiếp tục công đoạn / Bảo hành), `Tạo phiếu Labo`, ten columns | column names match; cells, pills, row actions and the dialog did not (rebuilt 2026-09-05, see Tab 6) |
 | Đơn thuốc | `+ Tạo đơn thuốc`; Mã đơn thuốc · Bác sĩ · Chẩn đoán · Tái khám · Ngày tạo · Thao tác | matches |
 | Chăm sóc KH | eight chips, `+ CSKH đặc biệt`, nine columns, pager counts "nhật ký"; Chi tiết phiếu / Cập nhật / Xóa lượt chăm sóc dialogs | matches (rebuilt 2026-09-05; house chrome and the shared 440px confirm dialog are the only deviations) |
 | Lịch sử dư nợ | Ngày giao dịch · Loại · Số tiền · Nhân viên · Ghi chú | matches |
@@ -1295,7 +1396,7 @@ Cột local đối chiếu với bản ghi khảo sát bản gốc ở trên:
 
 | Tab | Bản gốc | Local | Kết quả |
 |---|---|---|---|
-| Labo | 3 chip + `Tạo phiếu Labo`, 10 cột | 3 chip + nút, 10 cột đúng tên | khớp |
+| Labo | 3 chip + `Tạo phiếu Labo`, 10 cột | 3 chip + nút, 10 cột đúng tên | tên cột khớp; ô, pill, thao tác và dialog lệch — dựng lại 2026-09-05 (Tab 6) |
 | Đơn thuốc | Mã đơn thuốc · Bác sĩ · Chẩn đoán · Tái khám · Ngày tạo · Thao tác | y hệt | khớp |
 | Chăm sóc KH | 8 chip, `CSKH đặc biệt`, 9 cột, phân trang đếm "nhật ký" | 8 chip **có số thật**, đủ nút, 9 cột, đếm "nhật ký" | khớp |
 | Lịch sử dư nợ | Ngày giao dịch · Loại · Số tiền · Nhân viên · Ghi chú | y hệt | khớp |

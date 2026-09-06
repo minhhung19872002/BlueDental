@@ -1,376 +1,154 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { Button, Pagination, Tooltip, type TableColumnsType } from "antd";
+import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
+import { toast } from "sonner";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { DataTable } from "@/components/DataTable";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { t } from "@/lib/i18n";
+import { formatDate } from "@/utils/format";
 import {
-  Button,
-  DatePicker,
-  Form,
-  Input,
-  InputNumber,
-  Modal,
-  Select,
-  Space,
-  Tag,
-} from "antd";
-import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
-import type { TableColumnsType } from "antd";
-import dayjs from "dayjs";
-import {
-  PRESCRIPTION_STATUS,
-  prescriptionStatusConfig,
-  useCancelPrescription,
-  useCreatePrescription,
-  useDispensePrescription,
+  useDeletePrescription,
   usePrescriptions,
   type PrescriptionDto,
 } from "../api/prescriptionApi";
-import { CATALOG_GROUP, useCatalogOptions } from "@/hooks/useCatalogOptions";
-import { useDentistList } from "@/features/staff/api/staffQueries";
-import { useCurrentBranchId } from "@/lib/clinicBranch";
-import { toast } from "sonner";
-import { extractApiError } from "@/lib/apiError";
-import { downloadFile } from "@/lib/download";
-import { formatDate } from "@/utils/format";
-import { t } from "@/lib/i18n";
-import { DataTable } from "@/components/DataTable";
-import { useTablePagination } from "@/hooks/useTablePagination";
-import { countedTotal } from "@/utils/countedTotal";
+import type { PrescriptionPatientSummary } from "../types/prescription";
+import { PrescriptionDialog } from "./PrescriptionDialog";
+import "./prescription.css";
 
-interface PrescriptionPanelProps {
-  patientId: string;
-  /** Patient detail uses the reference's compact six-column presentation. */
-  compact?: boolean;
-  patientLabel?: string;
-  patientPhone?: string | null;
-}
+/** The reference puts the open dialog in the URL, so a reload reopens it. */
+const CREATE_PARAM = "create";
 
-interface PrescriptionFormValues {
-  staffId: string;
-  diagnosisText?: string;
-  followUpDate?: dayjs.Dayjs;
-  note?: string;
-  items: {
-    medicationId: string;
-    dosage: string;
-    frequency: string;
-    durationDays: number;
-    quantity: number;
-  }[];
+/** "Hiển thị 3 trên 3" — how many of the total are on this page. */
+function shownOfTotal(total: number, range: [number, number]): string {
+  return t("Hiển thị {0} trên {1}", total === 0 ? 0 : range[1] - range[0] + 1, total);
 }
 
 /**
- * Đơn thuốc.
- *
- * The reference lists slips with "Mã đơn thuốc, Bác sĩ, Chẩn đoán, Tái khám,
- * Ngày tạo"; the medicines are the slip's lines and come from the Loại thuốc
- * catalog.
+ * The patient's Đơn thuốc tab: "Tạo đơn thuốc" over a table of the slips on
+ * this branch, each with Sửa and Xóa, and the dialog both actions share.
  */
-export function PrescriptionPanel({
-  patientId,
-  compact = false,
-  patientLabel,
-  patientPhone,
-}: PrescriptionPanelProps) {
-  const branchId = useCurrentBranchId();
-  const [form] = Form.useForm<PrescriptionFormValues>();
-  const [modalOpen, setModalOpen] = useState(false);
+export function PrescriptionPanel({ patient }: { patient: PrescriptionPatientSummary }) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [editing, setEditing] = useState<PrescriptionDto | null>(null);
+  const [deleting, setDeleting] = useState<PrescriptionDto | null>(null);
+  const query = usePrescriptions(patient.id);
+  const remove = useDeletePrescription();
   const pagination = useTablePagination(20);
 
-  const { data, isLoading } = usePrescriptions(patientId, branchId);
-  const { data: medications } = useCatalogOptions(CATALOG_GROUP.MedicationType);
-  const { data: dentists } = useDentistList();
-  // "Đơn thuốc mẫu" is a catalog group, read through the shared catalog lookup.
-  // It used to call a /prescription-templates route that does not exist, so the
-  // picker was permanently empty and the console carried a 404 on every visit.
-  const templates = useCatalogOptions(CATALOG_GROUP.PrescriptionTemplate).data ?? [];
+  const creating = searchParams.get(CREATE_PARAM) === "true";
+  const setCreating = (next: boolean) =>
+    setSearchParams(
+      (current) => {
+        if (next) current.set(CREATE_PARAM, "true");
+        else current.delete(CREATE_PARAM);
+        return current;
+      },
+      { replace: true },
+    );
 
-  const createPrescription = useCreatePrescription();
-  const dispensePrescription = useDispensePrescription();
-  const cancelPrescription = useCancelPrescription();
+  const rows = query.data?.items ?? [];
 
-  const run = async (action: Promise<unknown>, success: string) => {
+  const handleDelete = async () => {
+    if (!deleting) return;
     try {
-      await action;
-      toast.success(success);
-    } catch (error) {
-      toast.error(extractApiError(error));
-    }
-  };
-
-  const handleSubmit = async () => {
-    const values = await form.validateFields();
-
-    try {
-      await createPrescription.mutateAsync({
-        patientId,
-        clinicBranchId: branchId,
-        staffId: values.staffId,
-        diagnosisText: values.diagnosisText,
-        followUpDate: values.followUpDate?.format("YYYY-MM-DD"),
-        note: values.note,
-        items: values.items.map((item) => ({
-          medicationId: item.medicationId,
-          dosage: item.dosage,
-          frequency: item.frequency,
-          durationDays: item.durationDays,
-          quantity: item.quantity,
-        })),
-      });
-
-      toast.success(t("Đã tạo đơn thuốc"));
-      setModalOpen(false);
-      form.resetFields();
-    } catch (error) {
-      toast.error(extractApiError(error));
+      await remove.mutateAsync(deleting.id);
+      toast.success(t("Đã xoá đơn thuốc"));
+      setDeleting(null);
+    } catch {
+      // queryClient reports the failure; nothing to add here.
     }
   };
 
   const columns: TableColumnsType<PrescriptionDto> = [
-    { title: t("Mã đơn thuốc"), dataIndex: "code", key: "code", width: 130 },
+    { title: t("Mã đơn thuốc"), dataIndex: "code", width: 130 },
     {
       title: t("Bác sĩ"),
       dataIndex: "staffName",
-      key: "staffName",
-      width: 150,
-      render: (value: string | null) => value ?? "—",
+      width: 180,
+      ellipsis: true,
+      render: (value: string | null) => value || "—",
     },
     {
       title: t("Chẩn đoán"),
       dataIndex: "diagnosisText",
-      key: "diagnosisText",
-      render: (value: string | null) => value ?? "—",
-    },
-    {
-      title: t("Thuốc"),
-      key: "items",
-      width: 240,
-      render: (_, row) =>
-        row.items.length === 0
-          ? "—"
-          : row.items.map((item) => t("{0} ×{1}", item.medicationName, item.quantity)).join(", "),
+      ellipsis: true,
+      render: (value: string | null) => value || "—",
     },
     {
       title: t("Tái khám"),
       dataIndex: "followUpDate",
-      key: "followUpDate",
-      width: 110,
+      width: 130,
       render: (value: string | null) => (value ? formatDate(value) : "—"),
     },
     {
       title: t("Ngày tạo"),
       dataIndex: "issuedAt",
-      key: "issuedAt",
-      width: 110,
+      width: 130,
       render: (value: string) => formatDate(value),
-    },
-    {
-      title: t("Trạng thái"),
-      dataIndex: "status",
-      key: "status",
-      width: 110,
-      render: (value: PrescriptionDto["status"]) => {
-        const config = prescriptionStatusConfig()[value];
-        return <Tag color={config.color}>{config.label}</Tag>;
-      },
     },
     {
       title: t("Thao tác"),
       key: "actions",
-      width: 230,
+      width: 90,
+      fixed: "right",
       render: (_, row) => (
-        <Space size={4}>
-          <Button
-            type="link"
-            size="small"
-            onClick={() =>
-              void downloadFile(`/v1/app/prescriptions/${row.id}/pdf`, `don-thuoc-${row.code}.pdf`)
-            }
-          >
-            {t("In đơn")}
-          </Button>
-          {row.status === PRESCRIPTION_STATUS.Active ? (
-            <>
-              <Button
-                type="link"
-                loading={dispensePrescription.isPending}
-                onClick={() => run(dispensePrescription.mutateAsync(row.id), t("Đã phát thuốc"))}
-              >
-                {t("Phát thuốc")}
-              </Button>
-              <Button
-                type="link"
-                size="small"
-                danger
-                loading={cancelPrescription.isPending}
-                onClick={() => run(cancelPrescription.mutateAsync(row.id), t("Đã huỷ đơn thuốc"))}
-              >
-                {t("Huỷ")}
-              </Button>
-            </>
-          ) : null}
-        </Space>
+        <span className="pd-icon-actions">
+          <Tooltip title={t("Sửa")}>
+            <Button type="text" aria-label={t("Sửa")} icon={<EditOutlined />} onClick={() => setEditing(row)} />
+          </Tooltip>
+          <Tooltip title={t("Xóa")}>
+            <Button type="text" danger aria-label={t("Xóa")} icon={<DeleteOutlined />} onClick={() => setDeleting(row)} />
+          </Tooltip>
+        </span>
       ),
     },
   ];
-  const visibleColumns = compact
-    ? columns.filter((column) => column.key !== "items" && column.key !== "status")
-    : columns;
-
-  const rows = data?.items ?? [];
 
   return (
-    <div className={compact ? "pd-prescription-panel" : undefined}>
-      <div className="pd-prescription-toolbar">
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
+    <>
+      <div className="rx-toolbar">
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreating(true)}>
           {t("Tạo đơn thuốc")}
         </Button>
       </div>
-
       <div className="bd-cat-card">
         <DataTable<PrescriptionDto>
           rowKey="id"
-          loading={isLoading}
-          columns={visibleColumns}
-          dataSource={
-            compact
-              ? rows.slice(pagination.skipCount, pagination.skipCount + pagination.pageSize)
-              : rows
-          }
-          pagination={
-            compact ? pagination.buildConfig(rows.length, countedTotal(t("đơn thuốc"))) : false
-          }
-          locale={{ emptyText: t("Chưa có đơn thuốc") }}
+          loading={query.isLoading}
+          columns={columns}
+          dataSource={rows.slice(pagination.skipCount, pagination.skipCount + pagination.pageSize)}
+          locale={{ emptyText: t("Không có dữ liệu") }}
+          pagination={pagination.buildConfig(rows.length, shownOfTotal)}
         />
+        {rows.length === 0 && !query.isLoading && (
+          // antd drops the pager from an empty table; the reference keeps
+          // "Hiển thị 0 trên 0" with Trước/Sau under it.
+          <div className="rx-empty-pager">
+            <Pagination {...pagination.buildConfig(0, shownOfTotal)} />
+          </div>
+        )}
       </div>
 
-      <Modal
-        open={modalOpen}
-        title={t("Thêm đơn thuốc")}
-        okText={t("Lưu")}
-        cancelText={t("Huỷ")}
-        width={1040}
-        confirmLoading={createPrescription.isPending}
-        onOk={handleSubmit}
-        onCancel={() => setModalOpen(false)}
-        destroyOnHidden
-        className="pd-prescription-dialog"
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          requiredMark
-          initialValues={{ items: [{ durationDays: 5, quantity: 10 }] }}
-        >
-          <div className="pd-prescription-head">
-            <div>
-              <strong>{patientLabel ?? t("Bệnh nhân")}</strong>
-              {patientPhone ? <span>{patientPhone}</span> : null}
-            </div>
-            <Select
-              allowClear
-              placeholder={t("Chọn mẫu đơn thuốc")}
-              options={templates.map((item) => ({ value: item.id, label: item.name }))}
-              onChange={(id) => {
-                const template = templates.find((item) => item.id === id);
-                if (template?.content) form.setFieldValue("note", template.content);
-              }}
-            />
-            <Button
-              type="dashed"
-              icon={<PlusOutlined />}
-              onClick={() => {
-                const items = form.getFieldValue("items") ?? [];
-                form.setFieldValue("items", [...items, { durationDays: 5, quantity: 10 }]);
-              }}
-            >
-              {t("Thêm loại thuốc")}
-            </Button>
-          </div>
-          <div className="pd-prescription-grid">
-            <Form.Item
-              name="staffId"
-              label={t("Bác sĩ kê đơn")}
-              rules={[{ required: true, message: t("Vui lòng chọn bác sĩ") }]}
-            >
-              <Select
-                placeholder={t("Chọn bác sĩ")}
-                options={(dentists ?? []).map((d) => ({ value: d.id, label: d.name }))}
-              />
-            </Form.Item>
+      <PrescriptionDialog
+        open={creating || Boolean(editing)}
+        patient={patient}
+        prescription={editing}
+        onClose={() => {
+          setEditing(null);
+          if (creating) setCreating(false);
+        }}
+      />
 
-            <Form.Item name="diagnosisText" label={t("Chẩn đoán")}>
-              <Input placeholder={t("Chẩn đoán trên đơn")} maxLength={500} />
-            </Form.Item>
-
-            <Form.Item name="followUpDate" label={t("Tái khám")}>
-              <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
-            </Form.Item>
-
-            <Form.Item name="note" label={t("Lời dặn")}>
-              <Input.TextArea rows={2} maxLength={1000} placeholder={t("Lời dặn của bác sĩ")} />
-            </Form.Item>
-          </div>
-
-          <Form.List name="items">
-            {(fields, { add, remove }) => (
-              <>
-                {fields.map((field) => (
-                  <Space key={field.key} align="baseline" style={{ display: "flex", gap: 8 }}>
-                    {/* The line carries no label, so the wrapper gives tests a handle. */}
-                    <div data-testid="prescription-medicine">
-                      <Form.Item
-                        name={[field.name, "medicationId"]}
-                        rules={[{ required: true, message: t("Chọn thuốc") }]}
-                        style={{ width: 220 }}
-                      >
-                        <Select
-                          showSearch
-                          optionFilterProp="label"
-                          placeholder={
-                            (medications?.length ?? 0) === 0
-                              ? t("Chưa có danh mục thuốc")
-                              : t("Chọn thuốc")
-                          }
-                          options={(medications ?? []).map((m) => ({ value: m.id, label: m.name }))}
-                        />
-                      </Form.Item>
-                    </div>
-                    <Form.Item name={[field.name, "dosage"]} style={{ width: 110 }}>
-                      <Input placeholder={t("Liều dùng")} />
-                    </Form.Item>
-                    <Form.Item name={[field.name, "frequency"]} style={{ width: 120 }}>
-                      <Input placeholder={t("Tần suất")} />
-                    </Form.Item>
-                    <Form.Item
-                      name={[field.name, "durationDays"]}
-                      rules={[{ required: true, message: t("Số ngày") }]}
-                      style={{ width: 90 }}
-                    >
-                      <InputNumber min={1} placeholder={t("Ngày")} style={{ width: "100%" }} />
-                    </Form.Item>
-                    <Form.Item
-                      name={[field.name, "quantity"]}
-                      rules={[{ required: true, message: t("Số lượng") }]}
-                      style={{ width: 90 }}
-                    >
-                      <InputNumber min={1} placeholder="SL" style={{ width: "100%" }} />
-                    </Form.Item>
-                    {fields.length > 1 && (
-                      <MinusCircleOutlined onClick={() => remove(field.name)} />
-                    )}
-                  </Space>
-                ))}
-                <Button
-                  type="dashed"
-                  block
-                  icon={<PlusOutlined />}
-                  onClick={() => add({ durationDays: 5, quantity: 10 })}
-                >
-                  {t("Thêm thuốc")}
-                </Button>
-              </>
-            )}
-          </Form.List>
-        </Form>
-      </Modal>
-    </div>
+      <ConfirmDeleteDialog
+        open={Boolean(deleting)}
+        noun={t("đơn thuốc")}
+        name={deleting?.code}
+        pending={remove.isPending}
+        onConfirm={() => void handleDelete()}
+        onClose={() => setDeleting(null)}
+      />
+    </>
   );
 }

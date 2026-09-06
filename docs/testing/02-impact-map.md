@@ -48,7 +48,8 @@ What to retest when a shared piece changes. Levels are defined in
 | `TreatmentStage` domain / `TreatmentStageAppService` | 2 | F-19 |
 | `TreatmentPlan` / `TreatmentService` / `PatientMoneyCalculator` | 3 | F-19, F-21, F-22, F-17, F-18 — the money rollup feeds the reports |
 | `PatientPayment` | 3 | F-22, F-17, F-18 |
-| `Prescription` | 2 | F-23 |
+| `Prescription` / `PrescriptionAppService` | 2 | F-23 |
+| `src/components/prescription-lines/` (shared line editor) | 3 | F-23 and F-34 (Đơn thuốc mẫu dialog) |
 | `PatientImage` / blob storage / `patient-images` reorder | 2 | F-24, and the Chẩn đoán & Tư vấn tab's "Chọn ảnh hiển thị" picker, which reads the same list |
 | `AccountAppService` (`current-user`, granted permissions) | 3 | F-24 and any screen that hides a control by permission; the login flow itself (F-01) |
 | `Visit` / `VisitAppService` | 2 | F-11 |

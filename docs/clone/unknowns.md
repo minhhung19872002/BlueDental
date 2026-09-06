@@ -975,9 +975,11 @@ Reason: Saving is a POST on the reference; not clicked. The request payload,
   template? whole slip?) were not observed.
 Action taken: NONE
 BlueDental: POST /api/v1/app/prescriptions with { staffId, diagnosisText,
-  note, treatmentType, followUpDate, saveAsTemplate, items[] }; when
-  saveAsTemplate is on, a prescription_template catalog entry is created with
-  the lines and the lời dặn, named after the diagnosis (assumption).
+  note, treatmentType, followUpDate, saveAsTemplate, templateName, items[] }.
+  Owner's answer (2026-09-05): ticking the box reveals a text field
+  "Tên đơn thuốc mẫu"; the prescription_template catalog entry takes that
+  name, the lines, and the lời dặn as its description. Code format DT{yy}-{nnnn}
+  is local (the reference's format was not seen).
 
 UNKNOWN_REFERENCE_BEHAVIOR
 
@@ -989,16 +991,29 @@ Action taken: NONE (opened the empty list only)
 BlueDental: picking a template replaces the lines with the template lines and
   fills "Nhập lời dặn" from the template content (assumption).
 
-UNKNOWN_REFERENCE_BEHAVIOR
+RESOLVED 2026-09-05 (product owner, not observation)
 
 Page: /patient/{id}?tab=prescription
 Control: "Thao tác" column of saved prescriptions
 Reason: No patient with a prescription was reachable on staging (both
-  branches) or production (first page of patients), so the row actions
-  (edit / print / delete?) and their dialogs were not seen.
+  branches) or production (first page of patients), so the row actions were
+  not seen. The owner confirmed them: **Sửa** and **Xóa**, no print.
+Action taken: NONE on the reference.
+BlueDental: Sửa reopens the same dialog titled "Cập nhật đơn thuốc" (title
+  assumed — the reference's edit title was not seen) · Xóa asks
+  "Xác nhận xoá đơn thuốc <code>" then deletes.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}?tab=prescription&create=true
+Control: "Lưu" with an incomplete form
+Reason: The button renders enabled while "Chọn bác sĩ*" and "Tên thuốc*" are
+  empty; whether a click shows inline errors, a toast, or nothing is a
+  mutation path and was not tried.
 Action taken: NONE
-BlueDental: Sửa (reopens the same dialog) · In (PDF) · Xoá with confirm —
-  assumption, to be revisited when a slip exists on the reference.
+BlueDental: "Lưu" stays disabled until a doctor and at least one medicine
+  line are set (the app-wide AppDialog rule), and until "Tên đơn thuốc mẫu"
+  is filled when the template box is ticked.
 
 UNKNOWN_REFERENCE_BEHAVIOR
 
@@ -1051,3 +1066,45 @@ Reason: Opening the dialog was approved by the owner; confirming would delete a
 Action taken: NONE (dialog dismissed with Huỷ)
 BlueDental: DELETE /api/v1/app/care-records/{id}, soft delete, Manage
   permission, branch-guarded.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}?tab=labo (dialog Đặt mới / Làm tiếp công đoạn / Bảo hành)
+Control: "Lưu"
+Reason: Would POST /v1/clinic-orders on production; the request body was never
+  observed. Which of code, treatment plan, treatment service, labo service,
+  material, teeth, dates and images it carries is unknown.
+Action taken: NONE (dialog closed with Escape, nothing saved)
+BlueDental: own payload — see docs/clone/pages/patient-detail.md Tab 6 for the
+  fields the form shows.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}?tab=labo (dialog Đặt mới, "Lựa chọn dịch vụ*" / "Vật liệu*")
+Control: labo-service list and material list
+Reason: Every treatment service on staging has service.laboIds = [] and the
+  taxonomy type serviceMaterial is empty, so both lists only ever showed
+  "Không có dữ liệu" / "Chọn dịch vụ trước". How a labo service is linked to a
+  clinic service and how materials hang off a labo service was not observable.
+Action taken: NONE
+BlueDental: labo services = the local "Dịch vụ & vật liệu" catalog
+  (/labo/service-material); materials = that service's materials.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}?tab=labo
+Control: "Xem file" button in column "File Labo gửi về" with images present
+Reason: No order on staging carried returned files; the button was disabled
+  ("Xem file -") on every row. The lightbox seen on /labo (labo.md) is assumed
+  to be the same.
+Action taken: NONE
+BlueDental: reuse the /labo lightbox over order.images.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}?tab=labo (dialog Đặt mới, "Bác sĩ chỉ định*")
+Control: doctor list
+Reason: GET /v1/staff/list?...&isDoctor=true returned 403 for the surveyed
+  account, so the option label format is unobserved.
+Action taken: NONE
+BlueDental: local dentist list, label = staff name.

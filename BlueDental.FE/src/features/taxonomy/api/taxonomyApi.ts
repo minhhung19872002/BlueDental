@@ -60,18 +60,8 @@ export const SERVICE_TAX_RATE_OPTIONS: { value: ServiceTaxRate; label: string }[
   { value: SERVICE_TAX_RATE.Ten, label: "10%" },
 ];
 
-/** Mirrors BlueDental.Catalogs.PrescriptionUsage — a multi-choice, so flags. */
-export const PRESCRIPTION_USAGE = {
-  AfterMeal: 1,
-  BeforeMeal: 2,
-  DuringMeal: 4,
-  AfterWakingUp: 8,
-  BeforeSleep: 16,
-  Other: 32,
-} as const;
-
-export type PrescriptionUsageFlag =
-  (typeof PRESCRIPTION_USAGE)[keyof typeof PRESCRIPTION_USAGE];
+/** The usage flags live with the shared types now; kept here for the callers that import them from the taxonomy API. */
+export { PRESCRIPTION_USAGE, type PrescriptionUsageFlag } from "@/types/prescriptionUsage";
 
 /** Warranty choices the reference lists, plus its free "Tuỳ chỉnh … Ngày". */
 export const WARRANTY_PRESETS = [0, 30, 90, 180, 270, 365, 730] as const;

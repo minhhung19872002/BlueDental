@@ -10,10 +10,12 @@ public enum TreatmentPlanStatus
     Cancelled = 6
 }
 
-public enum PrescriptionStatus
+/// <summary>
+/// "Điều trị" on the "Thêm đơn thuốc" dialog: the reference offers exactly
+/// "Điều trị ngoại trú" (default) and "Điều trị nội trú".
+/// </summary>
+public enum PrescriptionTreatmentType
 {
-    Active = 1,
-    Dispensed = 2,
-    Expired = 3,
-    Cancelled = 4
+    Outpatient = 1,
+    Inpatient = 2
 }

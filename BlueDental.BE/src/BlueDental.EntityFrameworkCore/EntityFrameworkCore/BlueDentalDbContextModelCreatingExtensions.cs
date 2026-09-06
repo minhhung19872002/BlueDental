@@ -345,14 +345,14 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Code).HasMaxLength(32).IsRequired();
             entity.Property(x => x.DiagnosisText).HasMaxLength(500);
             entity.Property(x => x.Note).HasMaxLength(1000);
-            entity.Property(x => x.Status).HasConversion<short>();
+            entity.Property(x => x.TreatmentType).HasConversion<short>();
             entity.HasMany(x => x.Items)
                 .WithOne()
                 .HasForeignKey(x => x.PrescriptionId)
                 .OnDelete(DeleteBehavior.Cascade);
             entity.Navigation(x => x.Items).UsePropertyAccessMode(PropertyAccessMode.Field);
             entity.HasIndex(x => new { x.PatientId, x.IssuedAt });
-            entity.HasIndex(x => new { x.ClinicBranchId, x.Status });
+            entity.HasIndex(x => new { x.ClinicBranchId, x.IssuedAt });
             entity.HasIndex(x => x.Code);
         });
 
@@ -361,10 +361,12 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.ToTable("bd_prescription_items");
             entity.ConfigureByConvention();
             entity.Property(x => x.MedicationName).HasMaxLength(300).IsRequired();
-            entity.Property(x => x.Dosage).HasMaxLength(100);
-            entity.Property(x => x.Frequency).HasMaxLength(100);
-            entity.Property(x => x.Instructions).HasMaxLength(1000);
-            entity.HasIndex(x => x.PrescriptionId);
+            entity.Property(x => x.AmountPerTime).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.Usage).HasConversion<int>();
+            entity.Property(x => x.OtherUsage).HasMaxLength(200);
+            // Số lượng is derived on the entity, never stored.
+            entity.Ignore(x => x.Quantity);
+            entity.HasIndex(x => new { x.PrescriptionId, x.SortOrder });
         });
 
         builder.Entity<DiagnosticRecord>(entity =>
