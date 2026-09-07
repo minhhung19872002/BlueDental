@@ -151,8 +151,29 @@ GET  /api/v1/patient-treatments
 
 GET  /api/v1/patient-treatments/summary
      ?patientId=<id>
-     Response: { active: [], recent: [] }
+     Response: { active: [], recent: [] }   (empty on every surveyed record)
 ```
+
+Tab "Kế hoạch điều trị" (re-surveyed 2026-09-07 on staging) also issues, while
+"Tạo phiếu dịch vụ" is open:
+
+```
+GET /v1/services?q=<text>&branchId=&status=active&page=1&take=20    (service mode)
+GET /v1/service-groups?q=<text>&branchId=                            (group mode)
+GET /v1/staff/list?isDoctor=true&status=active&branchId=             (Bác sĩ chẩn đoán)
+GET /v1/taxonomy/?type=diagnosis&branchId=                           (Chẩn đoán)
+POST /v1/patient-treatments                                          <- NOT ISSUED (form never saved)
+```
+
+BlueDental equivalents (all under `/api/v1/app/`):
+
+```
+GET  patient-treatments?patientId=&clinicBranchId=          list of slips with services[] and payment{}
+POST patient-treatments                                     the slip with its first service line
+                                                            (dentist, diagnosis, price, quantity, discount,
+                                                            teeth as { fdi, surfaces[] } or a jaw, note)
+```
+A foreign `clinicBranchId` is refused with HTTP 403 by `BranchAccessChecker`.
 
 ---
 

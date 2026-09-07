@@ -1,0 +1,1132 @@
+/* ── Kế hoạch điều trị tab ─────────────────────────────────────────────────
+   Measured on staging 2026-09-07 at 1440×900 (reference-private/treatment-plan-tab).
+   The reference draws this tab in its own palette (label grey #5A6B82, ink
+   #1B2A41, hairline #DCE3EE), so those live here as --tp-* tokens instead of
+   stretching the global --bd-* set. Its blue (#2671D8) is NOT copied: by the
+   owner's rule the tab uses the app's own primary, so every blue token below
+   resolves to --bd-primary and its derivatives. */
+:root {
+  --tp-blue: var(--bd-primary);
+  --tp-blue-dark: var(--bd-blue-dark);
+  --tp-blue-pale: var(--bd-blue-pale);
+  --tp-blue-line: var(--bd-blue-light);
+  --tp-blue-ring: color-mix(in srgb, var(--bd-primary) 20%, transparent);
+  --tp-orange: #f96b3c;
+  --tp-orange-pale: #fff1d8;
+  --tp-green: #12a960;
+  --tp-green-pale: #e7f8ef;
+  --tp-red: #f04444;
+  --tp-red-pale: #fef2f2;
+  --tp-ink: #1b2a41;
+  --tp-label: #5a6b82;
+  --tp-line: #dce3ee;
+  --tp-ground: #f6f8fb;
+  --tp-pill: #f0f3f8;
+  --tp-cyan-pale: #b8e8f4;
+  --tp-cyan-ink: #16626d;
+  --tp-accent: var(--bd-primary);
+}
+
+.tp-root {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 16px;
+  color: var(--tp-ink);
+}
+.tp-root > * {
+  flex-shrink: 0;
+}
+
+/* ── Toolbar ── */
+.tp-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+.tp-btn:hover {
+  filter: brightness(0.97);
+}
+.tp-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.tp-btn--primary {
+  border: 1px solid var(--tp-blue);
+  background: var(--tp-blue);
+  color: #fff;
+}
+.tp-btn--outline {
+  border: 1px solid var(--tp-blue-line);
+  background: var(--tp-blue-pale);
+  color: var(--tp-blue-dark);
+}
+
+/* ── Summary cards ── */
+.tp-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.tp-card {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  border: 1px solid var(--tp-line);
+  border-radius: 16px;
+  background: #fff;
+  padding: 12px;
+}
+.tp-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.tp-card-icon {
+  display: flex;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+.tp-card--active .tp-card-icon {
+  background: var(--tp-orange-pale);
+  color: var(--tp-orange);
+}
+.tp-card--recent .tp-card-icon {
+  background: var(--tp-green-pale);
+  color: var(--tp-green);
+}
+.tp-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.tp-card-count {
+  display: flex;
+  min-width: 20px;
+  height: 20px;
+  margin-left: auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--tp-orange);
+  padding: 0 5px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+.tp-card-body {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  gap: 8px;
+}
+.tp-card-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  border: 1px solid var(--tp-line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 8px 12px;
+  color: var(--tp-label);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.tp-card-item:hover {
+  background: var(--tp-ground);
+}
+.tp-card-item > svg {
+  flex-shrink: 0;
+}
+.tp-card-item-text {
+  min-width: 0;
+  flex: 1;
+}
+.tp-card-item-text > strong {
+  display: block;
+  overflow: hidden;
+  color: var(--tp-ink);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tp-card-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  min-width: 0;
+  color: var(--tp-label);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.tp-card-item-meta > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tp-card-code {
+  flex-shrink: 0;
+  color: var(--tp-blue);
+  font-weight: 600;
+}
+.tp-card-item--active .tp-card-code {
+  font-weight: 500;
+}
+.tp-card-item--active .tp-card-item-meta > span {
+  font-size: 11px;
+}
+
+/* ── Table block ── */
+.tp-table-block {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 12px;
+}
+.tp-table-block .bd-cat-card {
+  flex: 0 1 auto;
+  border-color: var(--tp-line);
+  box-shadow: 0 2px 6px rgba(27, 42, 65, 0.06);
+}
+/* 640px and below: the slip and service tables become RecordCards (owner's rule). */
+.tp-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.tp-card-list .bd-rc-value .tp-pill {
+  vertical-align: middle;
+}
+/* The card pager is the reference's under-769px strip: "20 / trang" and
+   "1–3 / 3 kế hoạch" on the first line, 32px chevron buttons centred below. */
+.tp-card-pager.ant-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px 4px;
+  padding: 12px 16px;
+  background: var(--tp-ground);
+}
+/* antd hides the size changer under 576px; the reference keeps "20 / trang" on mobile. */
+.tp-card-pager.ant-pagination .ant-pagination-options {
+  display: inline-block;
+  order: -3;
+  margin-inline: 0 auto;
+}
+.tp-card-pager .ant-pagination-options .ant-select-selector {
+  min-width: 96px;
+  height: 28px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+/* Same 40px row as the select, text centred in it. */
+.tp-card-pager .ant-pagination-total-text {
+  display: inline-flex;
+  align-items: center;
+  order: -2;
+  height: 40px;
+  margin-inline-start: auto;
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--tp-label);
+}
+.tp-card-pager::after {
+  content: "";
+  order: -1;
+  flex-basis: 100%;
+  height: 0;
+}
+.tp-card-pager .ant-pagination-prev,
+.tp-card-pager .ant-pagination-next,
+.tp-card-pager .ant-pagination-item {
+  min-width: 32px;
+  height: 32px;
+  line-height: 30px;
+  margin-inline-end: 0;
+  border-radius: 6px;
+}
+.tp-card-pager .ant-pagination-prev .ant-pagination-item-link,
+.tp-card-pager .ant-pagination-next .ant-pagination-item-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: var(--tp-label);
+}
+.tp-column-action {
+  display: flex;
+  justify-content: flex-end;
+}
+.tp-column-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--tp-line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--tp-label);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.tp-column-btn:hover,
+.tp-column-btn[aria-expanded="true"] {
+  border-color: var(--tp-blue);
+  color: var(--tp-blue);
+}
+
+/* The table wears the reference grid: 14px/500 grey headers on the tinted
+   strip, 57px rows, and the actions column pinned to the right edge. */
+.tp-table .ant-table-thead > tr > th {
+  height: 40px;
+  padding: 8px 16px;
+  background: var(--tp-ground);
+  color: var(--tp-label);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+}
+.tp-table .ant-table-thead > tr > th::before {
+  display: none;
+}
+.tp-table .ant-table-tbody > tr > td {
+  height: 57px;
+  padding: 12px 16px;
+  color: var(--tp-ink);
+  font-size: 14px;
+  vertical-align: middle;
+}
+.tp-table .ant-table-tbody > tr:hover > td {
+  background: var(--tp-ground);
+}
+.tp-table .ant-table-cell-fix-right {
+  background: #fff;
+}
+.tp-table .ant-table-cell-fix-right-first::after {
+  box-shadow: -4px 0 6px -2px rgba(27, 42, 65, 0.06);
+}
+.tp-card-pager .ant-pagination-item {
+  border-radius: 6px;
+}
+.tp-cell-small {
+  font-size: 13px;
+}
+.tp-cell-small--muted {
+  color: var(--tp-label);
+}
+.tp-cell-money {
+  font-weight: 500;
+  white-space: nowrap;
+}
+.tp-cell-money--discount {
+  font-weight: 400;
+  color: var(--tp-label);
+}
+.tp-cell-money--paid {
+  color: var(--tp-green);
+}
+.tp-cell-money--due {
+  color: var(--tp-red);
+}
+.tp-cell-money--receivable {
+  color: var(--tp-label);
+}
+.tp-code {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--tp-blue);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tp-code:hover {
+  text-decoration: underline;
+}
+.tp-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: var(--tp-pill);
+  color: var(--tp-label);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  white-space: nowrap;
+}
+.tp-pill--converted {
+  background: var(--tp-cyan-pale);
+  color: var(--tp-cyan-ink);
+}
+.tp-pill--done {
+  background: var(--tp-green-pale);
+  color: var(--tp-green);
+}
+.tp-pill--cancelled {
+  background: var(--tp-red-pale);
+  color: var(--tp-red);
+}
+.tp-add-stage {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  background: var(--tp-green-pale);
+  color: var(--tp-green);
+  cursor: pointer;
+}
+.tp-add-stage:hover {
+  filter: brightness(0.95);
+}
+.tp-eye {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--tp-blue);
+  cursor: pointer;
+}
+.tp-actions {
+  display: inline-flex;
+  gap: 4px;
+}
+.tp-action {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: var(--tp-blue-pale);
+  color: var(--tp-blue);
+  cursor: pointer;
+}
+.tp-action:hover {
+  filter: brightness(0.96);
+}
+.tp-table .ant-table-cell--center {
+  text-align: center;
+}
+
+/* ── Cột hiển thị popover ── */
+.tp-columns-popover .ant-popover-inner {
+  width: 240px;
+  padding: 0;
+  border: 1px solid var(--tp-line);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(27, 42, 65, 0.12);
+  overflow: hidden;
+}
+.tp-columns-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--tp-line);
+  padding: 12px 16px;
+  color: var(--tp-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+.tp-columns-close {
+  display: flex;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--tp-label);
+  cursor: pointer;
+}
+.tp-columns-list {
+  max-height: 320px;
+  margin: 0;
+  padding: 4px 0;
+  overflow-y: auto;
+  list-style: none;
+}
+.tp-columns-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  transform: var(--tp-drag-transform, none);
+  transition: var(--tp-drag-transition, none);
+}
+.tp-columns-row:hover {
+  background: var(--tp-ground);
+}
+.tp-columns-row--dragging {
+  position: relative;
+  z-index: 1;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(27, 42, 65, 0.12);
+}
+.tp-columns-grip {
+  display: flex;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--tp-label);
+  cursor: grab;
+  touch-action: none;
+}
+.tp-columns-label {
+  flex: 1;
+  overflow: hidden;
+  color: var(--tp-ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tp-switch {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--tp-line);
+  padding: 0;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.tp-switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #fff;
+  transition: transform 0.15s;
+}
+.tp-switch[aria-checked="true"] {
+  background: var(--tp-blue);
+}
+.tp-switch[aria-checked="true"]::after {
+  transform: translateX(16px);
+}
+.tp-columns-foot {
+  border-top: 1px solid var(--tp-line);
+  padding: 12px;
+}
+.tp-columns-save {
+  width: 100%;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--tp-blue);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+/* ── Dialog chrome shared by the tab's modals ── */
+.tp-dialog .ant-modal-content,
+.tp-dialog .ant-modal-container {
+  border-radius: 16px;
+  border: 0;
+  background: #fff;
+}
+.tp-dialog .ant-modal-header {
+  padding: 12px 12px 12px 24px;
+  border-bottom: 1px solid var(--tp-line);
+}
+.tp-dialog .ant-modal-title {
+  color: var(--tp-ink);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 36px;
+}
+.tp-dialog .ant-modal-close {
+  top: 20px;
+  right: 24px;
+  width: 24px;
+  height: 24px;
+}
+.tp-dialog .ant-modal-body {
+  padding: 12px 24px 24px;
+}
+/* The reference draws its dialog controls at 40px with 14px/500 resting
+   labels (#5A6B82 at 80%), floated ones at 13px on a 4px white pad. */
+.ant-modal.tp-dialog {
+  --ff-input-height: 40px;
+}
+.ant-modal.tp-dialog .ant-input:not(textarea):not(.ant-input-affix-wrapper .ant-input),
+.ant-modal.tp-dialog .ant-input-affix-wrapper,
+.ant-modal.tp-dialog .ant-input-number,
+.ant-modal.tp-dialog .ant-input-number-input,
+.ant-modal.tp-dialog .ant-select-single .ant-select-selector,
+.ant-modal.tp-dialog .ant-select-single {
+  height: 40px;
+}
+.ant-modal.tp-dialog .ant-input,
+.ant-modal.tp-dialog .ant-input-affix-wrapper,
+.ant-modal.tp-dialog .ant-input-number,
+.ant-modal.tp-dialog .ant-select-single .ant-select-selector,
+.ant-modal.tp-dialog .ant-select {
+  border-radius: 8px;
+  border-color: var(--tp-line);
+  background: #fff;
+  color: var(--tp-ink);
+  font-size: 14px;
+}
+.ant-modal.tp-dialog .ant-input:not(textarea),
+.ant-modal.tp-dialog .ant-select {
+  padding-left: 12px;
+  padding-right: 12px;
+}
+.ant-modal.tp-dialog .ant-input-disabled,
+.ant-modal.tp-dialog .ant-input-number-disabled,
+.ant-modal.tp-dialog .ant-select-disabled {
+  border-color: #cbd5e1;
+  background: #f3f6fa;
+  color: var(--tp-label);
+}
+.ant-modal.tp-dialog .ant-select-suffix {
+  margin-inline-end: 5px;
+  color: rgba(90, 107, 130, 0.8);
+}
+.ant-modal.tp-dialog .ant-select-disabled .ant-select-suffix,
+.ant-modal.tp-dialog .ant-select-disabled .ant-select-prefix {
+  color: rgba(90, 107, 130, 0.4);
+}
+/* Focus: a primary border with a 3px 20% ring on every control, as staging does */
+.ant-modal.tp-dialog .ant-input:focus,
+.ant-modal.tp-dialog .ant-input-affix-wrapper:focus-within,
+.ant-modal.tp-dialog .ant-input-number-focused,
+.ant-modal.tp-dialog .ant-select-outlined.ant-select-focused:not(.ant-select-disabled):not(.ant-select-customize-input),
+.ant-modal.tp-dialog .ant-select-focused .ant-select-selector {
+  border-color: var(--tp-blue);
+  box-shadow: 0 0 0 3px var(--tp-blue-ring);
+  outline: 0;
+}
+.ant-modal.tp-dialog .ant-select-focused .ant-select-selector {
+  box-shadow: none;
+}
+.tp-dialog .floating-field-label {
+  color: rgba(90, 107, 130, 0.8);
+  font-weight: 500;
+}
+.tp-dialog .floating-field--floated .floating-field-label {
+  color: var(--tp-label);
+}
+.tp-dialog .floating-field:focus-within .floating-field-label {
+  color: var(--tp-blue);
+}
+.tp-dialog .floating-field:has(.ant-input-disabled, .ant-input-number-disabled, .ant-select-disabled) .floating-field-label {
+  color: rgba(90, 107, 130, 0.5);
+}
+.tp-dialog .floating-field--floated .floating-field-label {
+  left: 16px;
+  height: 20px;
+  padding: 0 4px;
+  font-size: 13px;
+  line-height: 19.5px;
+}
+.tp-dialog .floating-field--floated:has(.ant-input-disabled, .ant-input-number-disabled, .ant-select-disabled) .floating-field-label {
+  background: #f6f8fb;
+}
+.tp-services-table .ant-table-tbody > tr > td {
+  height: 69px;
+}
+.tp-service-teeth {
+  margin: 0;
+  color: var(--tp-accent);
+  font-weight: 600;
+}
+.tp-service-name {
+  margin: 4px 0 0;
+  font-size: 14px;
+}
+
+/* ── "Tạo phiếu dịch vụ" ── */
+.tp-create-body {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.tp-create-doctor {
+  display: flex;
+  height: 40px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--tp-line);
+  border-radius: 8px;
+  background: var(--tp-ground);
+  margin: 8px 0 -12px;
+  padding: 0 12px;
+  color: var(--tp-ink);
+  font-size: 13px;
+  line-height: 19.5px;
+}
+.tp-create-doctor > svg {
+  color: var(--tp-label);
+}
+.tp-create-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.tp-create-grid .floating-field {
+  --ff-prefix-offset: 42px;
+}
+.tp-create-body .ant-form-item {
+  margin-bottom: 0;
+}
+.tp-create-split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 32px;
+}
+.tp-create-teeth {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.tp-create-teeth > p,
+.tp-create-condition {
+  margin: 0;
+  color: var(--tp-label);
+  font-size: 14px;
+  line-height: 21px;
+}
+.tp-create-teeth > p > span:last-child,
+.tp-create-condition > span:last-child {
+  color: #000;
+  font-weight: 500;
+}
+.tp-create-condition {
+  margin: 16px 0 20px;
+}
+.tp-tooth-btn {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 12px;
+  padding: 0;
+  background: var(--tp-accent);
+  color: #fff;
+  cursor: pointer;
+}
+.tp-tooth-btn > img {
+  width: 16px;
+  height: 16px;
+  /* teeth.svg paints with currentColor, which an <img> cannot inherit → force white. */
+  filter: brightness(0) invert(1);
+}
+.tp-create-note textarea.ant-input {
+  height: 100px;
+  min-height: 100px;
+  padding: 12px;
+  font-size: 14px;
+  line-height: 20.3px;
+  resize: none;
+}
+.floating-field:has(> .tp-create-note):not(.floating-field--floated) .floating-field-label {
+  top: 14px;
+  left: 16px;
+  height: 21px;
+}
+.tp-create-money {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--tp-line);
+}
+.tp-create-discount {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+  font-size: 14px;
+  line-height: 21px;
+}
+.tp-create-discount .ant-form-item {
+  flex: 1;
+  min-width: 0;
+}
+.tp-create-discount .ant-form-item .ant-input {
+  width: 120px;
+}
+.tp-toggle {
+  display: inline-flex;
+  border-radius: 8px;
+  background: #eef2f7;
+  padding: 4px;
+}
+.tp-toggle > button {
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  padding: 0 16px;
+  color: var(--tp-label);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.tp-toggle > button.active {
+  background: var(--tp-blue);
+  color: #fff;
+}
+.tp-create-summary {
+  margin-top: 16px;
+}
+.tp-create-summary > h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 27px;
+}
+.tp-create-summary > p {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 16px 0 0;
+  font-size: 14px;
+  line-height: 21px;
+}
+.tp-create-summary > p > b {
+  font-weight: 600;
+}
+/* The footer sits outside the scrolling body so it stays pinned on the
+   full-screen sheet, as the reference's ModalFooter does. */
+.tp-dialog .ant-modal-footer {
+  flex-shrink: 0;
+  padding: 14px 24px;
+  border-top: 1px solid var(--tp-line);
+  background: #fff;
+}
+.tp-create-foot {
+  display: flex;
+  justify-content: flex-end;
+}
+.tp-create-foot .tp-btn {
+  min-width: 100px;
+}
+.tp-create-grid .ant-select-prefix {
+  display: flex;
+  margin-inline-start: 7px;
+  margin-inline-end: 5px;
+  color: var(--tp-label);
+}
+
+/* Service / group picker — the voucher form's picker, redrawn for this dialog. */
+.tp-service-picker {
+  position: relative;
+}
+.tp-service-picker .ant-select {
+  padding-right: 44px;
+}
+.tp-service-picker .ant-select-suffix {
+  display: none;
+}
+.tp-service-picker .floating-field:not(.floating-field--floated) .floating-field-label {
+  left: 16px;
+}
+.tp-service-toggle {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  display: flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: var(--tp-blue);
+  color: #fff;
+  cursor: pointer;
+}
+.tp-service-dropdown {
+  border: 1px solid var(--tp-line);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(27, 42, 65, 0.12);
+}
+.tp-service-dropdown .ant-select-item-option {
+  padding: 10px 12px;
+}
+.tp-service-dropdown .ant-select-item-empty {
+  margin-bottom: 4px;
+  padding: 12px 16px;
+  color: var(--tp-label);
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+}
+.tp-opt-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+.tp-opt-group > svg {
+  flex: none;
+  color: var(--tp-label);
+}
+.tp-opt-service {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.tp-opt-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tp-opt-price {
+  flex: none;
+  color: var(--tp-blue);
+}
+
+/* "Chọn răng" — dialog 1024×484 (189 collapsed), body 12/24/24, 16px stack */
+.tp-teeth-dialog .ant-modal-body {
+  padding-top: 12px;
+}
+.tp-teeth-head {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.tp-teeth-tabs-scroll {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tp-teeth-tabs-scroll::-webkit-scrollbar {
+  display: none;
+}
+.tp-teeth-tabs {
+  position: relative;
+  display: inline-flex;
+  width: fit-content;
+  height: 36px;
+  border: 1px solid var(--tp-line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 4px;
+}
+.tp-teeth-tabs__pill {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 0;
+  width: var(--tp-tab-w, 0px);
+  border-radius: 6px;
+  background: var(--tp-blue);
+  transform: translateX(var(--tp-tab-x, 0px));
+  transition:
+    transform 0.2s ease,
+    width 0.2s ease;
+}
+.tp-teeth-tabs > button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  padding: 0 16px;
+  color: var(--tp-label);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.tp-teeth-tabs > button.active {
+  color: #fff;
+}
+.tp-teeth-type {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+.tp-radio {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--tp-ink);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.tp-radio > input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.tp-radio__ring {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #8fa1b8;
+  border-radius: 50%;
+  transition: border-color 0.15s;
+}
+.tp-radio__ring::after {
+  content: "";
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--tp-blue);
+  opacity: 0;
+  transform: scale(0.5);
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
+}
+.tp-radio > input:checked + .tp-radio__ring {
+  border-color: var(--tp-blue);
+}
+.tp-radio > input:checked + .tp-radio__ring::after {
+  opacity: 1;
+  transform: scale(1);
+}
+.tp-teeth-chart {
+  margin-top: 16px;
+  overflow-x: auto;
+}
+.tp-teeth-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 16px;
+}
+.tp-teeth-foot .tp-btn {
+  padding: 0 24px;
+}
+
+/* ── Responsive ── */
+@media (min-width: 1024px) {
+  .tp-cards {
+    flex-direction: row;
+    align-items: stretch;
+  }
+  .tp-teeth-chart .tc-chart {
+    min-width: 0;
+  }
+}
+@media (min-width: 1280px) {
+  .tp-teeth-head {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+@media (max-width: 900px) {
+  .tp-create-split,
+  .tp-create-grid,
+  .tp-create-money {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tp-create-split {
+    gap: 16px;
+  }
+}
+@media (max-width: 640px) {
+  .tp-card-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tp-btn {
+    flex: 1;
+    justify-content: center;
+  }
+  .tp-teeth-foot .tp-btn,
+  .tp-create-foot .tp-btn {
+    flex: 0 0 auto;
+  }
+}
+/* Under 768 the reference turns its dialogs into full-screen sheets: sticky
+   53px header with the close icon on the left, 16px title, 20/16/24 body. */
+@media (max-width: 768px) {
+  .ant-modal-wrap .tp-dialog.ant-modal {
+    max-width: 100vw !important;
+    width: 100vw !important;
+    margin: 0;
+    padding: 0;
+  }
+  .tp-dialog .ant-modal-content,
+  .tp-dialog .ant-modal-container {
+    border-radius: 0;
+    max-height: 100dvh;
+    min-height: 100dvh;
+  }
+  .tp-dialog .ant-modal-header {
+    padding: 14px 52px 14px 48px;
+  }
+  .tp-dialog .ant-modal-title {
+    font-size: 16px;
+    line-height: 24px;
+  }
+  .tp-dialog .ant-modal-close {
+    top: 12px;
+    right: auto;
+    inset-inline-end: auto;
+    inset-inline-start: 16px;
+  }
+  .tp-dialog .ant-modal-body {
+    padding: 20px 16px 24px;
+  }
+  .tp-dialog .ant-modal-footer {
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  }
+}
+
+.tp-input-full {
+  width: 100%;
+}

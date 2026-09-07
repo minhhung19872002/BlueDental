@@ -184,6 +184,8 @@ export const themeConfig: ThemeConfig = {
     },
     Pagination: {
       itemActiveBg: brand.blue,
+      // antd defaults the active number to colorPrimary, which vanishes on the blue tile.
+      itemActiveColor: "#fff",
       borderRadius: 10,
     },
   },

@@ -107,6 +107,16 @@
   gap: 12px;
   overflow: hidden;
 }
+/* On a phone the tabs turn their tables into cards, which have no scroller of
+   their own, so the pane scrolls as one page and nothing inside shrinks. */
+@media (max-width: 640px) {
+  .pd-pane--fill {
+    overflow: auto;
+  }
+  .pd-pane--fill > * {
+    flex: 0 0 auto;
+  }
+}
 .pd-profile-card,
 .pd-table-card {
   border: 1px solid var(--bd-border);
@@ -2534,7 +2544,7 @@
   border: 1px solid var(--bd-border);
   border-radius: 16px;
   padding: 12px;
-  background: #f7faff;
+  background: color-mix(in srgb, var(--bd-primary) 4%, #fff);
 }
 .pd-stage-toolbar {
   display: flex;
@@ -2548,10 +2558,10 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border: 1px solid #c7d7ea;
+  border: 1px solid color-mix(in srgb, var(--bd-primary) 24%, #fff);
   border-radius: 8px;
   padding: 4px;
-  background: #ddebfa;
+  background: color-mix(in srgb, var(--bd-primary) 14%, #fff);
 }
 .pd-stage-tabs button {
   display: inline-flex;
@@ -2570,7 +2580,7 @@
 }
 .pd-stage-tabs button.active {
   background: #fff;
-  color: var(--bd-link);
+  color: var(--bd-primary);
 }
 .pd-stage-tabs button > em {
   display: inline-flex;
@@ -2579,13 +2589,13 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: #c7d7ea;
+  background: color-mix(in srgb, var(--bd-primary) 24%, #fff);
   color: var(--bd-ink);
   font-size: 11px;
   font-style: normal;
 }
 .pd-stage-tabs button.active > em {
-  background: var(--bd-link);
+  background: var(--bd-primary);
   color: #fff;
 }
 .pd-stage-actions {
@@ -2604,8 +2614,8 @@
 .pd-stage-colhead {
   border-radius: 12px;
   padding: 12px 16px;
-  background: #eaf4ff;
-  color: var(--bd-link);
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary);
   font-size: 14px;
   font-weight: 600;
   text-align: center;
@@ -2631,12 +2641,12 @@
   cursor: pointer;
 }
 .pd-stage-picks button.active {
-  border-color: var(--bd-link);
-  background: #f3f8ff;
+  border-color: var(--bd-primary);
+  background: color-mix(in srgb, var(--bd-primary) 6%, #fff);
 }
 .pd-stage-picks strong {
   display: block;
-  color: var(--bd-link);
+  color: var(--bd-primary);
   font-size: 14px;
 }
 .pd-stage-picks span {
@@ -2654,8 +2664,8 @@
   border: 1px solid #b8d1f7;
   border-radius: 6px;
   padding: 2px 8px;
-  background: color-mix(in srgb, var(--bd-link) 10%, #fff);
-  color: var(--bd-link);
+  background: color-mix(in srgb, var(--bd-primary) 10%, #fff);
+  color: var(--bd-primary);
   font-size: 12px;
   font-style: normal;
   font-weight: 700;
@@ -2668,7 +2678,7 @@
   text-align: center;
 }
 .pd-stage-hint {
-  border: 1px dashed #c7d7ea;
+  border: 1px dashed color-mix(in srgb, var(--bd-primary) 24%, #fff);
   border-radius: 12px;
   padding: 40px 16px;
 }
@@ -2677,7 +2687,7 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
   margin-top: 12px;
-  border: 1px solid var(--bd-link);
+  border: 1px solid var(--bd-primary);
   border-radius: 12px;
   padding: 16px;
   background: #fff;
@@ -2717,7 +2727,7 @@
   justify-content: center;
   border-radius: 4px;
   padding: 4px;
-  background: var(--bd-link);
+  background: var(--bd-primary);
   color: #fff;
   font-size: 13px;
   font-weight: 600;
@@ -2757,13 +2767,20 @@
 }
 .pd-stage-history h4 {
   margin: 0;
-  color: var(--bd-link);
+  color: var(--bd-primary);
   font-size: 14px;
   font-weight: 600;
   text-transform: uppercase;
 }
 .pd-stage-history > header > span {
   color: var(--bd-muted);
+  font-size: 14px;
+}
+/* No công đoạn yet: the reference drops the column head and says so in one line. */
+.pd-stage-history--empty {
+  margin: 0;
+  padding: 16px;
+  color: var(--bd-ink);
   font-size: 14px;
 }
 .pd-stage-histscroll {
@@ -2872,7 +2889,7 @@
   overflow: hidden;
   border: 1px solid var(--bd-border);
   border-radius: 8px;
-  background: #eaf4ff;
+  background: var(--bd-blue-pale);
 }
 .pd-stage-histshots .ant-image,
 .pd-stage-histshots img {
@@ -2914,7 +2931,7 @@
   line-height: 0;
 }
 .pd-stage-notebar button:hover {
-  color: var(--bd-link);
+  color: var(--bd-primary);
 }
 .pd-stage-note {
   margin: 0;
@@ -3046,17 +3063,17 @@
   flex: 0 0 18px;
 }
 .pd-newpay-accrow:has(input:checked) {
-  background: #f3f8ff;
+  background: color-mix(in srgb, var(--bd-primary) 6%, #fff);
 }
 .pd-newpay-accrow:has(input:checked) .pd-newpay-radio {
-  border-color: var(--bd-link);
+  border-color: var(--bd-primary);
 }
 .pd-newpay-accrow:has(input:checked) .pd-newpay-radio::after {
   content: "";
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: var(--bd-link);
+  background: var(--bd-primary);
 }
 .pd-newpay-accounts .pd-newpay-empty {
   padding: 20px 12px;
@@ -3093,7 +3110,7 @@
   color: var(--bd-ink);
 }
 .pd-print-code {
-  color: var(--bd-link);
+  color: var(--bd-primary);
 }
 .pd-print-table {
   width: 100%;
@@ -3127,8 +3144,8 @@
   margin-top: 8px;
   border-radius: 999px;
   padding: 4px 12px;
-  background: #d9eeff;
-  color: var(--bd-link);
+  background: color-mix(in srgb, var(--bd-primary) 16%, #fff);
+  color: var(--bd-primary);
   font-size: 12px;
   font-weight: 500;
 }
@@ -3311,8 +3328,8 @@
   cursor: pointer;
 }
 .pd-labo-chips button.active {
-  border-color: var(--bd-link);
-  background: var(--bd-link);
+  border-color: var(--bd-primary);
+  background: var(--bd-primary);
   color: #fff;
   font-weight: 600;
 }
@@ -3349,7 +3366,7 @@
 }
 .pd-labo-teeth > div > span.active {
   border-color: transparent;
-  background: var(--bd-link);
+  background: var(--bd-primary);
   color: #fff;
   font-weight: 600;
 }
@@ -3382,8 +3399,8 @@
   white-space: nowrap;
 }
 .pd-labo-drop:hover {
-  border-color: var(--bd-link);
-  color: var(--bd-link);
+  border-color: var(--bd-primary);
+  color: var(--bd-primary);
 }
 
 @media (max-width: 900px) {

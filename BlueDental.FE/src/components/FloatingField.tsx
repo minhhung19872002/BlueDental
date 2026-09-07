@@ -1,5 +1,6 @@
 import React, { useId, useState } from "react";
-import { Form } from "antd";
+import { Form, Input, InputNumber } from "antd";
+import { CurrencyInput } from "./CurrencyInput";
 import type { FormItemProps } from "antd";
 
 /**
@@ -28,6 +29,14 @@ interface FloatingFieldProps extends Omit<FormItemProps, "label"> {
   children: React.ReactElement<FloatingFieldChildProps>;
 }
 
+const PLAIN_INPUTS = new Set<React.ElementType | string>([
+  Input,
+  Input.TextArea,
+  Input.Password,
+  InputNumber,
+  CurrencyInput,
+]);
+
 export function FloatingField({
   label,
   children,
@@ -45,6 +54,9 @@ export function FloatingField({
     : watchedValue !== undefined && watchedValue !== null && watchedValue !== "";
   const floated = focused || (floatOnValue && hasValue);
 
+  // Plain inputs have no panel; handing them onOpenChange would land on the DOM.
+  const hasPanel = !PLAIN_INPUTS.has(children.type);
+
   const child = React.cloneElement<FloatingFieldChildProps>(children, {
     id,
     placeholder: " ",
@@ -56,10 +68,12 @@ export function FloatingField({
       setFocused(false);
       children.props.onBlur?.(...args);
     },
-    onOpenChange: (open: boolean) => {
-      setFocused(open);
-      children.props.onOpenChange?.(open);
-    },
+    ...(hasPanel && {
+      onOpenChange: (open: boolean) => {
+        setFocused(open);
+        children.props.onOpenChange?.(open);
+      },
+    }),
   });
 
   return (

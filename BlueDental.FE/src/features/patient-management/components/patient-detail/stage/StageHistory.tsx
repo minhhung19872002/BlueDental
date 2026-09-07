@@ -49,7 +49,6 @@ function NoteCell({
   const [draft, setDraft] = useState<string | null>(null);
   const editing = draft !== null;
 
-
   return (
     <div>
       <div className="pd-stage-noteblock">
@@ -61,7 +60,17 @@ function NoteCell({
               onClick={() => setDraft(stage.note ?? "")}
             >
               {/* lucide-pencil, the reference's own glyph */}
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                width="16"
+                height="16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
                 <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
                 <path d="m15 5 4 4" />
               </svg>
@@ -139,20 +148,20 @@ export function StageHistory({
         <h4>{t("Lịch sử điều trị")}</h4>
         <span>{t("{0} công đoạn", total)}</span>
       </header>
-      <div className="pd-stage-histscroll">
-        <div className="pd-stage-histgrid">
-          <div className="pd-stage-histhead">
-            <div>{t("Ngày")}</div>
-            <div>{t("Dịch vụ & răng")}</div>
-            <div>{t("Ghi chú")}</div>
-            <div>{t("Công đoạn")}</div>
-            <div>{t("Hành động")}</div>
-          </div>
+      {days.length === 0 ? (
+        <p className="pd-stage-history--empty">{t("Chưa có dữ liệu công đoạn")}</p>
+      ) : (
+        <div className="pd-stage-histscroll">
+          <div className="pd-stage-histgrid">
+            <div className="pd-stage-histhead">
+              <div>{t("Ngày")}</div>
+              <div>{t("Dịch vụ & răng")}</div>
+              <div>{t("Ghi chú")}</div>
+              <div>{t("Công đoạn")}</div>
+              <div>{t("Hành động")}</div>
+            </div>
 
-          {days.length === 0 ? (
-            <p className="pd-stage-empty">{t("Chưa có công đoạn")}</p>
-          ) : (
-            days.map((day) => (
+            {days.map((day) => (
               <div className="pd-stage-histday" key={day.key}>
                 <div className="pd-stage-histdate">
                   <b>{formatShortDate(day.date)}</b>
@@ -166,14 +175,14 @@ export function StageHistory({
                     const live = liveStageIds.has(stage.id);
                     return (
                       <div
-                        className={live ? "pd-stage-histrow" : "pd-stage-histrow pd-stage-histrow--off"}
+                        className={
+                          live ? "pd-stage-histrow" : "pd-stage-histrow pd-stage-histrow--off"
+                        }
                         aria-disabled={!live}
                         key={stage.id}
                       >
                         <div>
-                          <p className="pd-stage-histservice">
-                            {stage.serviceName ?? stage.name}
-                          </p>
+                          <p className="pd-stage-histservice">{stage.serviceName ?? stage.name}</p>
                           <div className="pd-stage-histteeth">
                             {toothLabels(stage.teeth).map((label) => (
                               <span key={label}>{label}</span>
@@ -204,7 +213,9 @@ export function StageHistory({
                         <div className="pd-stage-rowactions">
                           <Checkbox
                             checked={stage.completedAt !== null}
-                            disabled={!live || stage.completedAt !== null || completingId === stage.id}
+                            disabled={
+                              !live || stage.completedAt !== null || completingId === stage.id
+                            }
                             onChange={() => onComplete(stage)}
                           >
                             {t("Hoàn thành")}
@@ -243,10 +254,10 @@ export function StageHistory({
                   })}
                 </div>
               </div>
-            ))
-          )}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

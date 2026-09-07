@@ -1,89 +1,232 @@
-import { expect, test, type Page } from "@playwright/test";
-import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
+import { expect, test, type Browser, type Page } from "@playwright/test";
+import { assertRealApiTraffic, BRANCH2_USER, login } from "./fixtures/auth";
 
 /**
- * Feature: Kế hoạch điều trị + Hóa đơn.
+ * Feature: Kế hoạch điều trị (F-21), the patient's treatment-plan tab.
  *
- * The TreatmentPlanPanel component is built but the PatientProfilePage renders
- * an inline placeholder for the treatment plan tab. The "Tạo kế hoạch mới"
- * button has no onClick handler. These tests verify the layout renders
- * correctly with data from the real API.
+ * "Tạo kế hoạch mới" opens the slip dialog: pick a service, the dentist and
+ * the diagnosis, choose teeth on the chart, save. The tab then lists the slip
+ * with its money columns (every cell carries " đ"), the derived "Đã tạo"
+ * pill, and the app's shared pager (page-size select, "Hiển thị a-b/n"). Under
+ * 640px the table folds into grouped cards.
+ *
+ * Real stack only: real login, real ASP.NET Core API, real PostgreSQL. The
+ * tests run in order and hand the slip they made down the line, so the later
+ * ones have a row to open and the isolation check has something to refuse.
  */
+
+const PLANS_API = "/api/v1/app/patient-treatments";
+const BRANCH_ONE = "11111111-1111-1111-1111-111111111111";
+const CODE = /^DT\d+$/;
+const PAGER_TOTAL = /^Hiển thị \d+-\d+\/\d+$/;
+
+let patientUrl = "";
+let createdCode = "";
+let pickedService = "";
+
+async function freshPage(browser: Browser): Promise<Page> {
+  const context = await browser.newContext();
+  return context.newPage();
+}
+
+async function openFirstPatient(page: Page): Promise<string> {
+  await page.goto("/patient");
+  await assertRealApiTraffic(page, "/api/v1/app/patients");
+
+  const firstName = page.locator("tr.ant-table-row .bd-patient-name").first();
+  await expect(firstName).toBeVisible();
+  await firstName.click();
+  await expect(page).toHaveURL(/\/patient\/[0-9a-f-]{36}/);
+  return page.url().split("?")[0];
+}
+
+async function openPlanTab(page: Page) {
+  const listed = page.waitForResponse(
+    (res) => res.url().includes(PLANS_API) && res.request().method() === "GET",
+  );
+  await page.getByRole("link", { name: "Kế hoạch điều trị" }).click();
+  expect((await listed).ok()).toBeTruthy();
+  await expect(page.getByRole("button", { name: "Tạo kế hoạch mới" })).toBeVisible();
+}
+
+function planCodes(page: Page) {
+  return page.locator(".tp-table .tp-code").allTextContents();
+}
+
+/**
+ * The AntD dropdown that is actually open. Closed ones stay in the DOM, and
+ * the service picker's own panel keeps its box for a beat after a pick, so
+ * plain fields look past it to the newest panel.
+ */
+function openDropdown(page: Page, panel = ".ant-select-dropdown:not(.tp-service-dropdown)") {
+  return page.locator(`${panel}:not(.ant-select-dropdown-hidden)`).last();
+}
+
+async function pickFirstOption(page: Page, combobox: ReturnType<Page["getByRole"]>) {
+  await combobox.click();
+  const option = openDropdown(page).locator(".ant-select-item-option").first();
+  await expect(option).toBeVisible();
+  await option.click();
+}
+
+test.describe.configure({ mode: "serial" });
+
 test.describe("Kế hoạch điều trị", () => {
-  test.beforeEach(async ({ page }) => {
+  test("Tạo kế hoạch mới saves a slip with teeth and lists it with its money columns", async ({
+    page,
+  }) => {
     await login(page);
+    patientUrl = await openFirstPatient(page);
+    await openPlanTab(page);
+
+    const before = await planCodes(page);
+
+    await page.getByRole("button", { name: "Tạo kế hoạch mới" }).click();
+    const dialog = page.getByRole("dialog", { name: "Tạo phiếu dịch vụ" });
+    await expect(dialog).toBeVisible();
+
+    // The service picker: a group row opens the group, a service row is the value.
+    await dialog.getByRole("combobox", { name: /Thêm dịch vụ mới/ }).click();
+    const service = openDropdown(page, ".tp-service-dropdown")
+      .locator(".ant-select-item-option:has(.tp-opt-service)")
+      .first();
+    await expect(service).toBeVisible();
+    pickedService = (await service.locator(".tp-opt-name").innerText()).trim();
+    await service.click();
+
+    await pickFirstOption(page, dialog.getByRole("combobox", { name: /Bác sĩ chẩn đoán/ }));
+    await pickFirstOption(page, dialog.getByRole("combobox", { name: /^Chẩn đoán/ }));
+
+    // Teeth come from the chart dialog; the pick lands on the slip as "Răng: 14".
+    await dialog.locator(".tp-tooth-btn").click();
+    const picker = page.getByRole("dialog", { name: "Chọn răng" });
+    await expect(picker).toBeVisible();
+    await picker.getByRole("button", { name: "Răng 14", exact: true }).click();
+    await picker.locator(".tp-teeth-foot button").click();
+    await expect(picker).toBeHidden();
+    await expect(dialog.locator(".tp-create-teeth")).toContainText("14");
+
+    await dialog.getByRole("button", { name: "Lưu" }).click();
+    await expect(page.getByText("Đã tạo kế hoạch điều trị")).toBeVisible();
+    await expect(dialog).toBeHidden();
+
+    // One more slip than before, with the reference's number format.
+    await expect
+      .poll(async () => (await planCodes(page)).length, { timeout: 15_000 })
+      .toBe(before.length + 1);
+    const after = await planCodes(page);
+    createdCode = after.find((code) => !before.includes(code)) ?? "";
+    expect(createdCode).toMatch(CODE);
+
+    const row = page.locator(".tp-table tr.ant-table-row", { hasText: createdCode });
+    await expect(row.locator(".tp-pill")).toHaveText("Đã tạo");
+    const money = await row.locator(".tp-cell-money").allInnerTexts();
+    expect(money.length).toBeGreaterThanOrEqual(5);
+    for (const cell of money) expect(cell.trim()).toMatch(/\d đ$/);
+
+    // The app's shared pager: page-size select, "Hiển thị a-b/n", prev/next.
+    const pager = page.locator(".tp-table .ant-table-pagination");
+    await expect(pager.locator(".ant-pagination-options .ant-select")).toContainText("20 / trang");
+    await expect(pager.locator(".ant-pagination-total-text")).toHaveText(PAGER_TOTAL);
+    await expect(pager.locator(".ant-pagination-prev")).toBeVisible();
+    await expect(pager.locator(".ant-pagination-next")).toBeVisible();
   });
 
-  async function openFirstPatient(page: Page): Promise<void> {
-    await page.goto("/patient");
-    await assertRealApiTraffic(page, "/api/v1/app/patients");
+  test("the slip survives a reload and opens its service list and actions", async ({ page }) => {
+    await login(page);
+    await page.goto(`${patientUrl}?tab=treatment-plan`);
+    await assertRealApiTraffic(page, PLANS_API);
 
-    const firstName = page.locator("tr.ant-table-row .bd-patient-name").first();
-    await expect(firstName).toBeVisible();
-    await firstName.click();
-    await expect(page).toHaveURL(/\/patient\/[0-9a-f-]{36}/);
-  }
+    const row = page.locator(".tp-table tr.ant-table-row", { hasText: createdCode });
+    await expect(row).toBeVisible();
 
-  test("the treatment plan tab renders its layout and table", async ({ page }) => {
-    await openFirstPatient(page);
-    await page.waitForLoadState("networkidle");
+    // Eye: the slip's own service list, teeth above the service name.
+    await row.getByRole("button", { name: `Danh sách dịch vụ - ${createdCode}` }).click();
+    const services = page.getByRole("dialog", { name: `Danh sách dịch vụ - ${createdCode}` });
+    await expect(services).toBeVisible();
+    await expect(services).toContainText(pickedService);
+    await expect(services).toContainText("14");
+    await expect(services.locator(".tp-pill").first()).toHaveText("Đã tạo");
+    await page.keyboard.press("Escape");
+    await expect(services).toBeHidden();
 
-    await page.getByRole("link", { name: "Kế hoạch điều trị" }).click();
+    // "+" opens the stage dialog for this slip.
+    await row.getByRole("button", { name: `Thêm công đoạn ${createdCode}` }).click();
+    const stage = page.getByRole("dialog", { name: "Chi tiết phiếu" });
+    await expect(stage).toBeVisible();
+    await expect(stage).toContainText(pickedService);
+    await page.keyboard.press("Escape");
+    await expect(stage).toBeHidden();
 
-    // The tab renders TreatmentPlanPanel: a slip is opened from accepted
-    // consulting lines, so the action is "Tạo kế hoạch mới".
-    await expect(page.getByRole("button", { name: "Tạo kế hoạch mới" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Xem tất cả dịch vụ" })).toBeVisible();
+    // The receipt action opens the invoice for this slip.
+    await row.getByRole("button", { name: `Phiếu thu ${createdCode}` }).click();
+    const invoice = page.getByRole("dialog", { name: "Hóa đơn" });
+    await expect(invoice).toBeVisible();
+    await expect(invoice).toContainText(pickedService);
+    await page.keyboard.press("Escape");
+    await expect(invoice).toBeHidden();
 
-    // Summary cards: what is being worked, and the slip behind it.
-    await expect(page.getByText("DỊCH VỤ ĐANG ĐIỀU TRỊ", { exact: true })).toBeVisible();
-    await expect(page.getByText("DỊCH VỤ CÓ CÔNG ĐOẠN GẦN NHẤT", { exact: true })).toBeVisible();
-
-    // One row per service line, on the app's own table card.
-    await expect(page.getByRole("columnheader", { name: "Số phiếu" })).toBeVisible();
-    await expect(page.getByRole("columnheader", { name: "Trạng thái - Tiến độ" })).toBeVisible();
-
-    // The card fills the rest of the screen, pager pinned to its bottom edge.
-    const cardBox = await page.locator(".pd-pane .bd-cat-card").boundingBox();
-    const pageBox = await page.locator(".pd-page").boundingBox();
-    expect(cardBox).not.toBeNull();
-    expect(pageBox).not.toBeNull();
-    expect(cardBox!.y + cardBox!.height).toBeGreaterThan(pageBox!.y + pageBox!.height - 8);
+    // Xem tất cả dịch vụ: every line on every slip, paged like the slip table.
+    await page.getByRole("button", { name: "Xem tất cả dịch vụ" }).click();
+    const all = page.getByRole("dialog", { name: "Danh sách dịch vụ" });
+    await expect(all).toBeVisible();
+    await expect(all).toContainText(pickedService);
+    await expect(all.locator(".ant-pagination-total-text")).toHaveText(PAGER_TOTAL);
+    await page.keyboard.press("Escape");
   });
 
-  test("the treatment plan tab loads plan data from the API", async ({ page }) => {
-    // Watched from the first navigation: the record and its plan tab share a
-    // query cache, so the read may already have gone out by the time the tab
-    // is clicked. The panel reads treatment *slips* — `/patient-treatments` —
-    // not the `/treatment-plans` collection this used to watch, which is why it
-    // never saw a request.
-    const requests: string[] = [];
-    page.on("response", (res) => {
-      if (res.url().includes("/patient-treatments")) requests.push(`${res.status()} ${res.url()}`);
-    });
+  test("Cột hiển thị hides a column until the next reload", async ({ page }) => {
+    await login(page);
+    await page.goto(`${patientUrl}?tab=treatment-plan`);
+    await assertRealApiTraffic(page, PLANS_API);
 
-    await openFirstPatient(page);
-    await page.getByRole("link", { name: "Kế hoạch điều trị" }).click();
-    await expect(page.getByRole("button", { name: "Tạo kế hoạch mới" })).toBeVisible();
-    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("columnheader", { name: "Ngày tạo" })).toBeVisible();
+    await page.getByRole("button", { name: "Cột hiển thị" }).click();
+    await page.getByRole("switch", { name: "Ngày tạo" }).click();
+    await page.locator(".tp-columns-save").click();
+    await expect(page.getByRole("columnheader", { name: "Ngày tạo" })).toHaveCount(0);
 
-    expect(requests.length).toBeGreaterThan(0);
-    expect(requests.every((line) => line.startsWith("200"))).toBeTruthy();
+    // The reference keeps the layout in memory only.
+    await page.reload();
+    await assertRealApiTraffic(page, PLANS_API);
+    await expect(page.getByRole("columnheader", { name: "Ngày tạo" })).toBeVisible();
   });
 
-  test("the invoice tab renders its layout", async ({ page }) => {
-    await openFirstPatient(page);
-    await page.waitForLoadState("networkidle");
+  test("under 640px the table folds into grouped cards with their own pager", async ({ page }) => {
+    await page.setViewportSize({ width: 640, height: 900 });
+    await login(page);
+    await page.goto(`${patientUrl}?tab=treatment-plan`);
+    await assertRealApiTraffic(page, PLANS_API);
 
-    await page.getByRole("link", { name: "Hóa đơn" }).click();
+    const card = page.locator(".bd-rc-card", { hasText: createdCode });
+    await expect(card).toBeVisible();
+    await expect(page.locator(".tp-table .ant-table")).toHaveCount(0);
+
+    await card.getByRole("button", { name: "Xem thêm" }).click();
+    await expect(card.getByRole("button", { name: "Rút gọn" })).toBeVisible();
+    await expect(card).toContainText("Phải thu");
+
+    const pager = page.locator(".tp-card-pager");
+    await expect(pager).toBeVisible();
+    await expect(pager.locator(".ant-pagination-total-text")).toHaveText(PAGER_TOTAL);
+  });
+
+  test("an account limited to another branch is refused the slips", async ({ browser }) => {
+    const page = await freshPage(browser);
+    await login(page, BRANCH2_USER);
+
+    const patientId = patientUrl.split("/").pop() ?? "";
+    const refused = await page.evaluate(async (url) => {
+      const res = await fetch(url, { headers: { accept: "application/json" } });
+      const json = await res.json().catch(() => ({}));
+      return { status: res.status, items: (json.items ?? []) as unknown[] };
+    }, `${PLANS_API}?patientId=${patientId}&clinicBranchId=${BRANCH_ONE}`);
+    expect(refused.status).toBe(403);
+    expect(refused.items).toHaveLength(0);
+
+    await page.goto(`${patientUrl}?tab=treatment-plan`);
     await expect(page.locator("body")).not.toContainText("Unexpected Application Error");
-  });
-
-  test("the diagnosis tab renders correctly", async ({ page }) => {
-    await openFirstPatient(page);
-    await page.waitForLoadState("networkidle");
-
-    await page.getByRole("link", { name: "Chẩn đoán & Tư vấn" }).click();
-    await expect(page.locator("body")).not.toContainText("Unexpected Application Error");
+    await expect(page.locator(".tp-table .tp-code", { hasText: createdCode })).toHaveCount(0);
+    await page.close();
   });
 });

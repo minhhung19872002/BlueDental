@@ -1277,3 +1277,81 @@ BlueDental: both are drawn. `Giờ nhận` is still not stored — `LaboOrder.Du
   is a date — and the picture is attached to the công đoạn the order was raised
   from, since a labo order has no image collection of its own. Whether the
   reference files it against the order instead stays unobserved.
+
+## PATIENT DETAIL — Tab Kế hoạch điều trị (re-survey 2026-09-07, staging)
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}?tab=treatment-plan — "Tạo phiếu dịch vụ"
+Control: `Lưu`
+Reason: The form was filled on staging but never saved, so the POST payload of
+  `/v1/patient-treatments` and what the response carries were not observed.
+Action taken: NONE
+BlueDental: `POST /api/v1/app/patient-treatments` with the fields listed in
+  `docs/clone/api.md`; the new slip lists as "Đã tạo".
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}?tab=treatment-plan — summary cards
+Control: "Dịch vụ đang điều trị" / "Dịch vụ có công đoạn gần nhất"
+Reason: `/patient-treatments/summary` answered `{ active: [], recent: [] }` on
+  every surveyed record, so the exact shape of a non-empty answer is unknown.
+Action taken: NONE
+BlueDental: both cards are derived client-side from the slip list (lines in
+  treatment; lines with at least one công đoạn).
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}?tab=treatment-plan — "Chọn răng"
+Control: `Răng sữa` radio
+Reason: Switching to deciduous teeth only cleared the picks on staging; whether
+  a saved deciduous pick is stored differently (FDI 51–85) was not observable
+  without saving.
+Action taken: NONE
+BlueDental: deciduous teeth use their FDI numbers (51–85) and clear the picks
+  when the dentition changes, as observed.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}?tab=treatment-plan — table
+Control: `In bệnh án` (clipboard icon) and the slip code link
+Reason: Both leave the tab (print sheet / `/treatment-plan/{planId}` detail
+  page); the owner asked for the button to exist without an action and for the
+  detail page to be a later round.
+Action taken: NONE
+BlueDental: the button renders and does nothing; the code is link-styled and
+  does not navigate.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}?tab=treatment-plan — service pills
+Control: "Chuyển đổi" status on a service line
+Reason: Seen once on staging on a line that had been replaced; what replaces it
+  and whether the original stays billable was not observable.
+Action taken: NONE
+BlueDental: `SERVICE_LINE_STATUS.Replaced` renders "Chuyển đổi" with the blue
+  pill; nothing else is done with it.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}?tab=treatment-plan — empty table
+Control: the table with no slip
+Reason: Every surveyed record already had slips, so the empty-state text was
+  never seen.
+Action taken: NONE
+BlueDental: "Chưa có kế hoạch điều trị".
+
+Deliberate deviations recorded with the owner (2026-09-07):
+
+- The app's primary colour (`--bd-primary`, #6366f1) replaces the reference's
+  blue on every control of this tab — owner's rule.
+- Tables fold into "Thêm đơn thuốc"-style record cards at ≤640px — owner's rule.
+- The pager is the app's shared `useTablePagination` pager, not the reference's
+  outlined Trước/Sau pager — owner's rule of 2026-09-07 ("dùng pagination có
+  sẵn").
+- "Đã tạo" is derived on the client: local slips open as InProgress, and the
+  pill reads "Đã tạo" while every line is still Created.
+- Font family and the modal mask blur follow the house chrome; the staging
+  discount input overflows its cell at 640px and is not reproduced; staging's
+  care-service list returned 403 for the surveyed role; the invoice modal's
+  pager belongs to the invoice feature and is out of scope here.

@@ -710,50 +710,102 @@ Pagination: 20/page default; "Hiển thị 1 trên 1 dịch vụ"
 ## Tab 3: Kế hoạch điều trị (Treatment Plan)
 
 URL: `?tab=treatment-plan`
-Status: OBSERVED
+Status: OBSERVED (re-surveyed 2026-09-07 on staging, one patient with three
+slips; captures in `reference-private/treatment-plan-tab/`)
 
 ### Toolbar (top-right, 2 buttons)
 
 | Button | Notes |
 |--------|-------|
-| Tạo kế hoạch mới | Create new treatment plan — UNKNOWN_REFERENCE_BEHAVIOR (not clicked) |
-| Xem tất cả dịch vụ | View all services |
+| `+ Tạo kế hoạch mới` | primary, opens **"Tạo phiếu dịch vụ"** (below) |
+| `👁 Xem tất cả dịch vụ` | outlined, opens **"Danh sách dịch vụ"** — every service line of every slip |
 
 ### Summary widgets (2 cards above table)
 
-**Card 1: Dịch vụ đang điều trị** (Services under treatment)
-- Count badge: "1"
-- Shows: service name + patient code + date
-- Shows a count and the current in-treatment services.
+Each card: tinted round icon chip, UPPERCASE title, detail line, and the count
+as a red round badge on the far right.
 
-**Card 2: Dịch vụ có công đoạn gần nhất** (Service with most recent step)
-- Shows: service name + plan code + step description
-- Shows the most recently staged service, or an empty state.
+- **DỊCH VỤ ĐANG ĐIỀU TRỊ** — service name · slip code · date of the lines in
+  treatment; badge = count.
+- **DỊCH VỤ CÓ CÔNG ĐOẠN GẦN NHẤT** — service name · slip code · latest stage
+  note, or an empty line.
+
+`/patient-treatments/summary` answered `{ active: [], recent: [] }` on every
+surveyed record, so BlueDental derives both cards from the slip list (see
+unknowns).
 
 ### Treatment Plan Table
 
-Toolbar: "Cột hiển thị" (column visibility toggle)
+`Cột hiển thị` (right-aligned above the table) opens the **"Cấu hình cột"**
+popover: one switch per column, drag handle to reorder, `Lưu`. The layout is
+kept in memory only — a reload restores the default.
 
-Table columns (14):
+Columns, default order. "Thêm công đoạn" and "Thao tác" are pinned to the
+edges and are not in the popover.
 
-| # | Column (VI) | English | Notes |
-|---|------------|---------|-------|
-| 1 | Thêm công đoạn | Add step | Button to add treatment step |
-| 2 | Số phiếu | Plan slip no. | e.g. "DT01" — clickable |
-| 3 | (unnamed) | Service name | Expand/info icon |
-| 4 | Bác sĩ tiếp nhận | Receiving doctor | |
-| 5 | Trạng thái - Tiến độ | Status - Progress | e.g. "Đang điều trị" |
-| 6 | Ngày tạo | Created date | DD/MM/YYYY |
-| 7 | Tổng phiếu | Plan total | VND |
-| 8 | Giảm giá | Discount | VND |
-| 9 | Thành tiền | Final amount | VND |
-| 10 | Đã trả | Paid | VND |
-| 11 | Hoàn tiền | Refunded | VND |
-| 12 | Còn lại | Remaining | VND |
-| 13 | Phải thu | To collect | VND |
-| 14 | Thao tác | Actions | 2 icon buttons |
+| # | Column | Cell |
+|---|--------|------|
+| 1 | Thêm công đoạn | `+` icon button → "Chi tiết phiếu" (công đoạn dialog, see Tab 1) |
+| 2 | Số phiếu | `DT<n>`, link-styled (the reference navigates to `/patient/{id}/treatment-plan/{planId}` — not built yet) |
+| 3 | *(no header)* | eye icon → **"Danh sách dịch vụ - DT<n>"** modal |
+| 4 | Bác sĩ tiếp nhận | staff name |
+| 5 | Trạng thái - Tiến độ | pill: `Đã tạo` (grey) · `Đang điều trị` (blue) · `Hoàn thành` (green) · `Huỷ phiếu` (red) |
+| 6 | Ngày tạo | `DD/MM/YYYY` |
+| 7–13 | Tổng phiếu · Giảm giá · Thành tiền · Đã trả · Hoàn tiền · Còn lại · Phải thu | right-aligned, every cell carries the unit: `4.000.000 đ`, `0 đ` |
+| 14 | Thao tác | `In bệnh án` (clipboard icon, no action wired) · `Phiếu thu` (receipt icon → the invoice modal for the slip) |
 
-Pagination: 20/page default; "Hiển thị 1 trên 1 kế hoạch"
+Reference pager: `[20 / trang] Hiển thị 1–3 trên 3 kế hoạch … [‹ Trước][1][Sau ›]`
+(outlined 32px buttons). **BlueDental uses the app's shared pager instead**
+(`useTablePagination`: `20 / trang`, `Hiển thị 1-3/3`, antd prev/next) — the
+owner's rule of 2026-09-07 is one pager for the whole app.
+
+### "Tạo phiếu dịch vụ" (Tạo kế hoạch mới — observed on staging, form filled, never saved)
+
+Modal ≈ 1024px, title left, `×` right, `Lưu` in the header row.
+
+| Field | Notes |
+|-------|-------|
+| Người tạo | read-only chip with the signed-in staff |
+| Thêm dịch vụ mới* | the voucher dialog's "Tìm dịch vụ hoặc nhóm dịch vụ" picker: type to search, a swap icon toggles service ↔ group mode; a group row opens the group, a service row is the value |
+| Đơn giá / Số lượng | price prefilled from the service; quantity ≥ 1 |
+| Giảm giá | amount with a `%` / `đ` toggle |
+| Bác sĩ chẩn đoán 1* / Chẩn đoán 2* | floating-label selects |
+| Răng | `Chọn răng` button → **"Chọn răng"** dialog; the pick renders as `Răng: 14, 21` (or `Hàm trên` / `Hàm dưới` / `Toàn hàm`) |
+| Tình trạng răng | mirrors the chosen diagnosis |
+| Ghi chú | textarea |
+| Thông tin thanh toán | `Tổng cộng` · `Giảm giá` · `Thành tiền`, recomputed as the fields change |
+
+Saving creates the slip and one service line; the tab lists it as `Đã tạo`.
+
+### "Chọn răng" dialog
+
+Tab strip `Răng` · `Hàm trên` · `Hàm dưới` · `Toàn hàm`; under `Răng` a radio
+pair `Răng vĩnh viễn` / `Răng sữa` and the FDI chart: 32 permanent (or 20
+deciduous) teeth in four quadrants split by hairlines, each with a five-surface
+circle (top/right/bottom/left wedges + occlusal centre). Clicking a number
+selects the tooth; clicking a wedge selects that surface. A jaw tab hides the
+chart and stands for the whole jaw. Footer `Chọn răng`. Switching dentition
+clears the picks.
+
+### Secondary modals
+
+- **Danh sách dịch vụ - DT<n>** (eye): the slip's lines — teeth above the
+  service name, dentist, status pill, quantity, price, discount, amount, and
+  the same shared pager.
+- **Danh sách dịch vụ** (`Xem tất cả dịch vụ`): the same table over every slip,
+  with the slip code in front of each line.
+- **Chi tiết phiếu** (`+`): the công đoạn dialog documented under Tab 1.
+- **Hóa đơn** (`Phiếu thu`): the existing invoice modal for the slip (it shows
+  the service lines, not the slip code).
+
+### Responsive (BlueDental)
+
+At 640px and below the table and both service lists fold into the
+"Thêm đơn thuốc" record cards (`RecordCard`): code + pill in the head, the
+first rows visible, `Xem thêm` / `Rút gọn` for the money rows, the four row
+actions as card buttons, and the same pager under the list. The create dialog
+and the tooth chart go single-column. The reference's own <769px pager is a
+two-row strip; BlueDental keeps the shared pager here too.
 
 ---
 

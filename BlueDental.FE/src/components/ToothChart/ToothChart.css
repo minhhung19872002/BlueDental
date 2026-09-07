@@ -1,0 +1,160 @@
+/* Tooth + surface chart, measured on staging's "Chọn răng" dialog at 1440×900:
+   a 976×279 white box, four 456×108 quadrant grids (8 columns, 12/16 gaps),
+   47×72 tooth buttons and 28px surface circles. Greys are the reference's own
+   chart palette; the blues follow the app primary (owner's rule). */
+.tc-chart {
+  --tc-blue: var(--bd-primary);
+  --tc-blue-soft: var(--bd-blue-light);
+  --tc-hover: var(--bd-blue-pale);
+  --tc-line: #dce3ee;
+  --tc-ring: #8a94a6;
+  --tc-ink: #1b2a41;
+  position: relative;
+  min-width: 920px;
+  overflow: hidden;
+  background: #fff;
+  padding: 16px;
+}
+.tc-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 32px;
+  row-gap: 32px;
+}
+.tc-half {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  column-gap: 12px;
+  row-gap: 16px;
+}
+/* Baby teeth: five per quadrant, same column width, hugging the midline. */
+.tc-chart--deciduous .tc-half {
+  grid-template-columns: repeat(5, calc((100% - 7 * 12px) / 8));
+  justify-content: end;
+}
+.tc-chart--deciduous .tc-half:nth-child(even) {
+  justify-content: start;
+}
+.tc-divider {
+  position: absolute;
+  background: var(--tc-line);
+  pointer-events: none;
+}
+.tc-divider--v {
+  top: 16px;
+  left: 50%;
+  width: 1px;
+  height: calc(100% - 32px);
+}
+.tc-divider--h {
+  top: 50%;
+  left: 16px;
+  width: calc(100% - 32px);
+  height: 1px;
+}
+
+.tc-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.tc-tooth {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--tc-ink);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  cursor: pointer;
+  user-select: none;
+}
+.tc-tooth__img {
+  display: flex;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: box-shadow 0.15s;
+}
+.tc-tooth__img > img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  transition: filter 0.15s;
+}
+.tc-tooth__img--lower > img {
+  transform: rotate(180deg);
+}
+.tc-tooth--selected .tc-tooth__img {
+  box-shadow:
+    0 0 0 2px #fff,
+    0 0 0 3px var(--tc-blue);
+}
+.tc-tooth--selected .tc-tooth__img > img {
+  filter: drop-shadow(1px 0 0 var(--tc-blue)) drop-shadow(-1px 0 0 var(--tc-blue))
+    drop-shadow(0 1px 0 var(--tc-blue)) drop-shadow(0 -1px 0 var(--tc-blue));
+}
+.tc-tooth--selected .tc-tooth__num {
+  color: var(--tc-blue);
+}
+
+.tc-circle {
+  position: relative;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--tc-ring);
+  border-radius: 50%;
+  background: #fff;
+  transform: rotate(45deg);
+}
+.tc-circle__quad,
+.tc-circle__center {
+  padding: 0;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+.tc-circle__quad {
+  border: 1px solid var(--tc-line);
+  background: #fff;
+}
+.tc-circle__quad:hover {
+  background: var(--tc-hover);
+}
+.tc-circle__quad.active {
+  background: var(--tc-blue);
+}
+.tc-circle__center {
+  /* Centred with inset, not translate: the global button:active scale would
+     replace a transform-based offset and make the disc jump on press. */
+  position: absolute;
+  inset: 22.5%;
+  border: 1px solid var(--tc-ring);
+  border-radius: 50%;
+  background: #fff;
+}
+.tc-circle__center:hover {
+  background: var(--tc-hover);
+}
+.tc-circle__center.active {
+  background: var(--tc-blue-soft);
+}
+
+@media (max-width: 767px) {
+  .tc-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tc-divider {
+    display: none;
+  }
+}

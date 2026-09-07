@@ -1,0 +1,107 @@
+/* ── RecordCard: one table row as a card on narrow screens ────────────────
+   The same shell as the prescription lines in "Thêm đơn thuốc": a 2px primary
+   frame, a primary head with the row name, label/value rows underneath and a
+   "Xem thêm" fold for the rest. Read-only; owners put controls in `extra`. */
+.bd-rc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.bd-rc-card {
+  border: 2px solid var(--bd-primary);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+.bd-rc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--bd-primary);
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+}
+.bd-rc-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bd-rc-extra {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+}
+/* An icon button that sits on the primary head. */
+.bd-rc-action {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: #fff;
+  cursor: pointer;
+}
+.bd-rc-action:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.bd-rc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+}
+.bd-rc-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13.5px;
+  line-height: 20px;
+}
+.bd-rc-label {
+  flex: none;
+  color: var(--bd-muted);
+}
+.bd-rc-value {
+  min-width: 0;
+  text-align: right;
+  color: var(--bd-ink);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.bd-rc-toggle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--bd-ink);
+}
+.bd-rc-toggle svg {
+  transition: transform 0.2s;
+}
+.bd-rc-flip {
+  transform: rotate(180deg);
+}
+.bd-rc-empty {
+  margin: 0;
+  padding: 24px 0;
+  text-align: center;
+  color: var(--bd-muted);
+  font-size: 13.5px;
+}
