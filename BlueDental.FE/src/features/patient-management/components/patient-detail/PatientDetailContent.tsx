@@ -21,7 +21,7 @@ export function PatientDetailContent({ activeTab, patient }: Props) {
     case "treatment-plan":
       return (
         <section className="pd-pane pd-pane--fill">
-          <TreatmentPlanPanel patientId={id} />
+          <TreatmentPlanPanel patientId={id} patient={patient} />
         </section>
       );
     case "appointment":

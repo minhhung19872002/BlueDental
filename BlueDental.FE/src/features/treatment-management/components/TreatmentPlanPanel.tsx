@@ -9,11 +9,14 @@ import {
   Select,
   Space,
   Tag,
+  Tooltip,
   Typography,
 } from "antd";
 import {
   EyeOutlined,
+  FileTextOutlined,
   PlusOutlined,
+  PrinterOutlined,
   ProfileOutlined,
   SettingOutlined,
   ThunderboltOutlined,
@@ -23,8 +26,6 @@ import {
   planStatusConfig,
   SERVICE_LINE_STATUS,
   serviceLineStatusConfig,
-  useCancelServiceLine,
-  useCompleteServiceLine,
   useOpenTreatmentPlan,
   useTreatmentPlans,
   type TreatmentPlanSlipDto,
@@ -44,11 +45,77 @@ import { useStaffOptions } from "@/hooks/useStaffOptions";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { countedTotal } from "@/utils/countedTotal";
 import { StageModal } from "./StageModal";
+import { InvoiceModal } from "./InvoiceModal";
+import type { PatientDto } from "@/features/patient-management/types/patient";
 
 const { Text } = Typography;
 
+// TODO: remove mock — test data for invoice modal development
+const MOCK_SLIP: TreatmentPlanSlipDto = {
+  id: "mock-plan-001",
+  patientId: "",
+  branchId: "",
+  dentistId: "mock-dentist",
+  consultantStaffId: null,
+  code: "DT32",
+  title: "Kế hoạch điều trị mock",
+  status: 4 as TreatmentPlanSlipDto["status"],
+  progressPercent: 50,
+  discountType: 0 as 0,
+  discountValue: 0,
+  voucherDiscountAmount: null,
+  servicesTotal: 909091,
+  planDiscountAmount: 0,
+  totalAmount: 909091,
+  payment: {
+    totalPrice: 909091,
+    totalPaid: 500000,
+    totalDue: 409091,
+    receivable: 409091,
+    paidUncompleted: 0,
+    completedValue: 0,
+    totalRefund: 0,
+    debt: 409091,
+    discount: 0,
+    outstandingDebt: 0,
+    outstandingDebtConsumed: 0,
+    prepaid: 0,
+    carryOverAmount: null,
+  },
+  services: [
+    {
+      id: "mock-svc-001",
+      treatmentPlanId: "mock-plan-001",
+      serviceId: "svc-test",
+      sourceAdviseId: null,
+      code: "DV001",
+      price: 909091,
+      quantity: 1,
+      discountType: 0 as 0,
+      discountValue: 0,
+      grossAmount: 909091,
+      discountAmount: 0,
+      effectiveAmount: 909091,
+      status: 2 as 2,
+      teeth: [{ toothCode: 0, selected: true, top: false, right: false, bottom: false, left: false, center: false }],
+      serviceName: "Test DV",
+      stageCount: 2,
+      completedStageCount: 1,
+      warrantyDays: 0,
+      stageNotes: [],
+      paidAmount: 500000,
+      outstandingAmount: 409091,
+      afterCareStatus: null,
+    },
+  ],
+  dentistName: "Trương Huy",
+  consultantName: null,
+  creationTime: "2026-08-30T10:00:00Z",
+};
+
 interface TreatmentPlanPanelProps {
   patientId: string;
+  patient?: PatientDto;
 }
 
 /** One row of the reference's treatment-plan table: a slip flattened per service line. */
@@ -69,7 +136,7 @@ interface PlanRow extends TreatmentServiceDto {
  * receiving dentist and the slip money. Everything money-side is derived by the
  * server, so this component only formats.
  */
-export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
+export function TreatmentPlanPanel({ patientId, patient }: TreatmentPlanPanelProps) {
   const branchId = useCurrentBranchId();
   const [opening, setOpening] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -77,6 +144,7 @@ export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
   const [columnsOpen, setColumnsOpen] = useState(false);
   const pagination = useTablePagination(20);
   const [stageOpen, setStageOpen] = useState(false);
+  const [invoicePlan, setInvoicePlan] = useState<TreatmentPlanSlipDto | null>(null);
   const [form] = Form.useForm<{
     dentistId: string;
     consultantStaffId: string;
@@ -90,14 +158,14 @@ export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
   const staff = useStaffOptions().data ?? [];
 
   const openPlan = useOpenTreatmentPlan();
-  const completeLine = useCompleteServiceLine();
-  const cancelLine = useCancelServiceLine();
 
   const acceptedCount = (advises?.items ?? []).filter(
     (advise) => advise.status === ADVISE_STATUS.Accepted,
   ).length;
 
-  const slips = plans?.items ?? [];
+  // TODO: remove mock — fallback to mock data for testing
+  const realSlips = plans?.items ?? [];
+  const slips = realSlips.length > 0 ? realSlips : [MOCK_SLIP];
   const rows: PlanRow[] = slips.flatMap((slip) =>
     slip.services.map((line) => ({
       ...line,
@@ -112,15 +180,6 @@ export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
   );
 
   const activeServices = rows.filter((r) => r.status === SERVICE_LINE_STATUS.InProgress);
-
-  const run = async (action: Promise<unknown>, success: string) => {
-    try {
-      await action;
-      toast.success(success);
-    } catch (error) {
-      toast.error(extractApiError(error));
-    }
-  };
 
   const handleOpenPlan = async () => {
     const values = await form.validateFields();
@@ -255,54 +314,36 @@ export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
     {
       title: t("Thao tác"),
       key: "actions",
-      width: 250,
+      width: 110,
+      align: "center",
       fixed: "right",
       render: (_, row) => (
-        <Space size={4}>
-          <Button
-            type="link"
-            size="small"
-            onClick={() =>
-              void downloadFile(
-                `/v1/app/patient-treatments/${row.planId}/pdf`,
-                `phieu-dieu-tri-${row.planCode}.pdf`,
-              )
-            }
-          >
-            {t("In phiếu")}
-          </Button>
-          {row.status === SERVICE_LINE_STATUS.Done ||
-          row.status === SERVICE_LINE_STATUS.Cancelled ? null : (
-            <>
-              <Button
-                type="link"
-                loading={completeLine.isPending}
-                onClick={() =>
-                  run(
-                    completeLine.mutateAsync({ planId: row.planId, lineId: row.id }),
-                    t("Đã hoàn thành dịch vụ"),
-                  )
-                }
-              >
-                {t("Hoàn thành")}
-              </Button>
-              <Button
-                type="link"
-                size="small"
-                danger
-                loading={cancelLine.isPending}
-                onClick={() =>
-                  run(
-                    cancelLine.mutateAsync({ planId: row.planId, lineId: row.id }),
-                    t("Đã huỷ dịch vụ"),
-                  )
-                }
-              >
-                {t("Huỷ")}
-              </Button>
-            </>
-          )}
-        </Space>
+        <span className="pd-icon-actions">
+          <Tooltip title={t("In phiếu")}>
+            <Button
+              type="text"
+              icon={<PrinterOutlined />}
+              aria-label={t("In phiếu")}
+              onClick={() =>
+                void downloadFile(
+                  `/v1/app/patient-treatments/${row.planId}/pdf`,
+                  `phieu-dieu-tri-${row.planCode}.pdf`,
+                )
+              }
+            />
+          </Tooltip>
+          <Tooltip title={t("Hóa đơn")}>
+            <Button
+              type="text"
+              icon={<FileTextOutlined />}
+              aria-label={t("Hóa đơn")}
+              onClick={() => {
+                const slip = slips.find((s) => s.id === row.planId);
+                if (slip) setInvoicePlan(slip);
+              }}
+            />
+          </Tooltip>
+        </span>
       ),
     },
   ];
@@ -469,6 +510,14 @@ export function TreatmentPlanPanel({ patientId }: TreatmentPlanPanelProps) {
         </Form>
       </Modal>
       <StageModal open={stageOpen} patientId={patientId} onClose={() => setStageOpen(false)} />
+      {patient && invoicePlan && (
+        <InvoiceModal
+          open={Boolean(invoicePlan)}
+          patient={patient}
+          plan={invoicePlan}
+          onClose={() => setInvoicePlan(null)}
+        />
+      )}
 
       <Modal
         open={allOpen}

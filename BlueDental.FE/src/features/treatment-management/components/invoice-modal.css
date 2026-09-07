@@ -1,0 +1,254 @@
+/* Invoice modal (Hóa đơn) — treatment-management feature */
+
+.inv-dialog .ant-modal-body {
+  padding: 20px 24px 0;
+}
+
+.inv-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+
+@media (max-width: 900px) {
+  .inv-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+.inv-section-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--bd-heading);
+  margin: 0 0 16px;
+}
+
+.inv-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.inv-fields--left {
+  grid-template-columns: 1fr 1fr;
+}
+
+.inv-field--wide {
+  grid-column: 1 / -1;
+}
+
+.inv-field .ant-input,
+.inv-field .ant-picker,
+.inv-field .ant-select {
+  width: 100%;
+}
+
+.inv-field .ant-input[disabled] {
+  color: var(--bd-text);
+  background: var(--bd-bg-soft);
+  cursor: default;
+}
+
+/* Floating label style matching reference */
+.inv-field {
+  position: relative;
+}
+
+.inv-field-label {
+  display: block;
+  font-size: 12px;
+  color: var(--bd-muted);
+  margin-bottom: 4px;
+}
+
+/* Service items table */
+.inv-table {
+  margin-top: 20px;
+}
+
+.inv-service-name {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ant-modal .inv-tax-select.ant-select-single {
+  width: 110px;
+  height: 24px;
+}
+
+.ant-modal .inv-tax-select.ant-select-single .ant-select-selector {
+  font-size: 12px;
+  height: 24px;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: var(--bd-radius-sm);
+}
+
+.ant-modal .inv-tax-select .ant-select-selection-item {
+  line-height: 22px;
+}
+
+/* Summary footer */
+.inv-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 16px 0 8px;
+}
+
+.inv-summary-row {
+  display: flex;
+  gap: 24px;
+  font-size: 14px;
+}
+
+.inv-summary-row > span:first-child {
+  color: var(--bd-muted);
+  min-width: 120px;
+  text-align: right;
+}
+
+.inv-summary-row > span:last-child {
+  min-width: 100px;
+  text-align: right;
+  font-weight: 600;
+}
+
+.inv-summary-total {
+  color: var(--bd-red);
+}
+
+/* Footer buttons */
+.inv-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 0;
+}
+
+
+/* Unit price input in table */
+.inv-price-input {
+  width: 100%;
+}
+
+/* ── Mobile cards (shown ≤640px, table hidden) ── */
+
+.inv-cards-mobile {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.inv-cards-header {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.inv-card {
+  border: 2px solid var(--bd-primary, #4361ee);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.inv-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--bd-primary, #4361ee);
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.inv-card-head .ant-checkbox-wrapper {
+  color: #fff;
+}
+
+.inv-card-num {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 13px;
+  min-width: 20px;
+}
+
+.inv-card-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inv-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+}
+
+.inv-card-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13.5px;
+}
+
+.inv-card-row--total {
+  padding-top: 8px;
+  border-top: 1px solid var(--bd-border);
+  font-weight: 600;
+}
+
+.inv-card-label {
+  color: var(--bd-muted);
+  font-size: 12.5px;
+  flex-shrink: 0;
+}
+
+.inv-card-price {
+  width: 140px;
+  text-align: right;
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 640px) {
+  .inv-dialog .ant-modal-body {
+    padding: 16px 12px 0;
+  }
+
+  .inv-fields,
+  .inv-fields--left {
+    grid-template-columns: 1fr;
+  }
+
+  .inv-field--wide {
+    grid-column: auto;
+  }
+
+  .inv-summary {
+    align-items: stretch;
+  }
+
+  .inv-summary-row {
+    justify-content: space-between;
+  }
+
+  .inv-summary-row > span:first-child {
+    min-width: auto;
+    text-align: left;
+  }
+
+  .inv-footer {
+    flex-direction: column;
+  }
+
+  .inv-footer .ant-btn {
+    width: 100%;
+  }
+}
