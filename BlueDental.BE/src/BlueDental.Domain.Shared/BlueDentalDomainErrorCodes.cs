@@ -87,7 +87,9 @@ public static class BlueDentalDomainErrorCodes
         public const string AdviseGroupNotFound = "BlueDental:Treatment:0016";
         public const string InvalidStageSequence = "BlueDental:Treatment:0017";
         public const string InvalidStageTransition = "BlueDental:Treatment:0018";
-        public const string StageImageRequired = "BlueDental:Treatment:0019";
+        // 0019 was StageImageRequired — an invented rule, removed once the
+        // reference was seen to close a công đoạn with no image. Left unused
+        // rather than recycled so old logs stay readable.
         public const string EmptyPrescription = "BlueDental:Treatment:0021";
         public const string DuplicatePrescriptionMedicine = "BlueDental:Treatment:0022";
         public const string InvalidPrescriptionLine = "BlueDental:Treatment:0023";

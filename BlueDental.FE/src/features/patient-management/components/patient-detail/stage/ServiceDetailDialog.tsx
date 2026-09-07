@@ -74,7 +74,20 @@ export function ServiceDetailDialog({ open, patient, plan, line, onClose }: Prop
             // it stays an em dash here — see docs/clone/unknowns.md.
             [t("Chẩn đoán"), ""],
             [t("Răng"), teeth.join(", ")],
-            [t("Ghi chú"), (line?.stageNotes ?? []).join(", ")],
+            /*
+             * The **line's own** note, not its công đoạn's.
+             *
+             * OBSERVED on the reference 2026-09-07: this dialog fires
+             * GET /v1/treatment-services/{id}, whose document carries `note` at
+             * the top beside `patientStages[]`, each stage holding a `note` of
+             * its own. On the surveyed line the printed value equalled the
+             * document's own `note` while the three stage notes — all different
+             * from it — appeared nowhere, so they are neither joined nor sampled
+             * here. This used to join every stage note, which grew the line by
+             * one clause per công đoạn forever (R-291). Everything else in this
+             * block is a plan fact, as its heading says.
+             */
+            [t("Ghi chú"), line?.note ?? ""],
           ]}
         />
         <Section

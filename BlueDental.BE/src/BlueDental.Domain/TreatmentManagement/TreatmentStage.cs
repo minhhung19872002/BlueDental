@@ -266,6 +266,18 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
     /// <summary>
     /// Close the step. Allowed straight from Pending, because continue and complete
     /// are separate abilities on the reference and a user may hold only the latter.
+    ///
+    /// <para>
+    /// <see cref="IsImageRequired"/> does <b>not</b> gate this. It used to: the
+    /// original commit assumed a service carrying "Yêu cầu hình ảnh khi điều trị"
+    /// would refuse completion until a picture was attached, and said so as a
+    /// stated assumption rather than an observation. The project owner then
+    /// checked the reference and reported that Hoàn thành ticks with no image at
+    /// all, so the guard was invented and is gone. The flag is still recorded on
+    /// the stage because it is the catalog's own, but what the reference actually
+    /// does with it is UNKNOWN_REFERENCE_BEHAVIOR — see docs/clone/unknowns.md.
+    /// Do not re-add a block here without an observation to back it.
+    /// </para>
     /// </summary>
     public TreatmentStage Complete()
     {
@@ -274,13 +286,6 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
             throw new BusinessException(
                 BlueDentalDomainErrorCodes.TreatmentManagement.InvalidStageTransition,
                 "The stage is already completed.");
-        }
-
-        if (IsImageRequired && _imageUrls.Count == 0)
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.TreatmentManagement.StageImageRequired,
-                "This service requires a clinical image before the stage can be completed.");
         }
 
         Status = TreatmentStageStatus.Completed;

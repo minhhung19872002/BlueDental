@@ -11,13 +11,11 @@ import {
 import type { TreatmentPlanSlipDto } from "@/features/treatment-management/api/treatmentPlanApi";
 import { useUploadPatientImage } from "../../../api/patientImageApi";
 import { reExaminationChecklist } from "./reExaminationChecklist";
-
-/** Field-level messages, keyed by the field they sit under. */
-export interface FollowUpErrors {
-  staff?: string;
-  note?: string;
-  teeth?: string;
-}
+import {
+  hasStageFieldError,
+  stageFieldErrors,
+  type StageFieldErrors,
+} from "./stageFieldErrors";
 
 interface Options {
   open: boolean;
@@ -69,12 +67,8 @@ export function useFollowUpForm({
    * docs/clone/unknowns.md — so they stay local and are not part of `save`.
    */
   const [pickedSteps, setPickedSteps] = useState<string[]>([]);
-  /**
-   * Which fields failed the last save attempt. The reference reports these
-   * **under the field**, not as a toast: a toast leaves you hunting for which
-   * of three inputs it meant, and it is gone by the time you look.
-   */
-  const [errors, setErrors] = useState<FollowUpErrors>({});
+  /** Which fields failed the last save attempt — see {@link StageFieldErrors}. */
+  const [errors, setErrors] = useState<StageFieldErrors>({});
 
   useEffect(() => {
     if (!open) return;
@@ -139,15 +133,15 @@ export function useFollowUpForm({
   const save = async () => {
     if (!stage || !line || !plan) return;
 
-    const found: FollowUpErrors = {
-      staff: staffId ? undefined : t("Vui lòng chọn bác sĩ"),
-      note: note.trim() ? undefined : t("Vui lòng nhập nội dung điều trị"),
-      teeth: pickTeeth && picked.length === 0 ? t("Vui lòng chọn răng") : undefined,
-    };
+    const found = stageFieldErrors({
+      staffId,
+      note,
+      // A warranty visit inherits the công đoạn's teeth as they stand, so it
+      // has nothing to get wrong there.
+      teethPicked: !pickTeeth || picked.length > 0,
+    });
     setErrors(found);
-    // Report every empty field at once, beneath each one, instead of making the
-    // user press Lưu three times to discover them one at a time.
-    if (found.staff || found.note || found.teeth || !staffId) return;
+    if (hasStageFieldError(found) || !staffId) return;
 
     try {
       if (pickTeeth) {

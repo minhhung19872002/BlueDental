@@ -134,6 +134,9 @@ export function TreatmentStageDialog({
                   <button
                     type="button"
                     key={item.id}
+                    /* Which service line the pick stands for — the history rows
+                       and the treatment table are addressed the same way. */
+                    data-line-id={item.id}
                     className={composer.selected === item.id ? "active" : undefined}
                     onClick={() => composer.setSelected(item.id)}
                   >
@@ -172,6 +175,7 @@ export function TreatmentStageDialog({
                 pending={composer.pending}
                 previews={composer.previews}
                 pickedSteps={composer.pickedSteps}
+                errors={composer.errors}
                 saving={composer.saving}
                 primaryLabel={
                   composer.tab === "add" ? t("Thêm công đoạn") : t("Tiếp tục công đoạn")

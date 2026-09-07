@@ -48,7 +48,14 @@ export function RecallDialog({ open, stages, onClose, onBook, onDetail }: Props)
       ) : (
         <div className="pd-recall-rows">
           {stages.map((stage) => (
-            <div className="pd-recall-row" key={stage.id}>
+            <div
+              className="pd-recall-row"
+              /* Which line and công đoạn the row stands for — the history rows
+                 and the treatment table are addressed the same way. */
+              data-line-id={stage.treatmentServiceId}
+              data-stage-id={stage.id}
+              key={stage.id}
+            >
               <div className="pd-recall-when">
                 <p>{formatShortDate(stage.completedAt ?? stage.creationTime)}</p>
                 <p>

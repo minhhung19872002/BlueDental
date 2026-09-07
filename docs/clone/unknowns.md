@@ -1758,3 +1758,28 @@ Action taken: NONE — no save was attempted on the reference.
 BlueDental: the box is tickable and its state is local to the form; `save()` in
   `useFollowUpForm` does not send it. If the reference turns out to persist it,
   the field has to be modelled first — `PatientReExamination` has no checklist.
+
+---
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /taxonomy/service (Danh mục → Dịch vụ, tab "Cài đặt") and every screen
+  that reads a service's `isImageRequired`
+Control: the checkbox "Yêu cầu hình ảnh khi điều trị"
+Reason: The flag itself is observed — it is in the reference's own service
+  dialog and it rides on the service payload (`service.isImageRequired`, see
+  business-features.md §3). What it *does* was never observed. The first build
+  guessed: it made a công đoạn refuse `Hoàn thành` until a picture was attached,
+  and said so as a stated assumption (commit e835c45). The project owner then
+  checked the reference on 2026-09-07 and reported the opposite — Hoàn thành
+  ticks with no image at all — so that guess was wrong and the block is gone
+  (R-287). Proving what the flag *does* gate would mean ticking Hoàn thành on a
+  production công đoạn of a service that carries it, which is a write.
+Action taken: NONE — no completion was attempted on the reference. The negative
+  half of the answer came from the project owner's own reading of their screen,
+  not from a write of ours.
+BlueDental: the flag is carried onto the công đoạn (`TreatmentStage
+  .IsImageRequired`) and shown as a hint only — a "Cần ảnh" tag on the stage
+  panel and a warning alert on the advise form. Nothing blocks. Do not re-add a
+  block without an observation; if the reference turns out to warn rather than
+  refuse, the hint is already the right shape.

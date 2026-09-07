@@ -105,7 +105,6 @@
     "BlueDental:Treatment:0016": "Consulting group not found.",
     "BlueDental:Treatment:0017": "Treatment stage not found.",
     "BlueDental:Treatment:0018": "That treatment stage transition is not allowed.",
-    "BlueDental:Treatment:0019": "This service needs a clinical image before the stage can be completed.",
     "BlueDental:Treatment:0020": "A stage sequence number starts at 1.",
     "BlueDental:Treatment:0021": "A prescription needs at least one medicine.",
     "BlueDental:Treatment:0022": "The same medicine is listed more than once.",

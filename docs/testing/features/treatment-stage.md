@@ -51,8 +51,12 @@ separate ability verbs.
 - `continue` is re-entrant and keeps the first start time.
 - `complete` is reachable straight from `Pending` — a user may hold the `complete`
   ability without `continue`.
-- A service whose catalog entry sets `isImageRequired` refuses completion until an
-  image is attached.
+- `isImageRequired` is **recorded, not enforced**. It was originally a stated
+  assumption — a service carrying "Yêu cầu hình ảnh khi điều trị" would refuse
+  completion until a picture was attached — and the reference was then observed
+  to tick Hoàn thành with no image at all, so the block is gone (R-287). What the
+  flag actually drives on the reference is UNKNOWN_REFERENCE_BEHAVIOR; the app
+  only surfaces it as a hint ("Cần ảnh" tag, and an advise-form alert).
 - A completed stage is frozen: no continue, no re-complete, no edit, no new image.
 - There is **no cancel state**, because the reference exposes no cancel verb.
 - Progress is derived from completed stages, never stored.
@@ -73,7 +77,8 @@ separate ability verbs.
 Both assert deltas — the patient accumulates stages across runs.
 
 `BlueDental.Domain.Tests/TreatmentManagement/TreatmentStageTests.cs` covers the
-nine domain rules above, including the image requirement and the frozen state.
+domain rules above — including the inverse of the removed image rule: a stage
+whose service sets `isImageRequired` completes with no image attached.
 
 ## Fixtures
 

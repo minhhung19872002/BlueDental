@@ -2859,3 +2859,199 @@ MinIO docker thật. `tsc --noEmit` 0 lỗi, `oxlint` 0 lỗi.
      `booked === null`. Đúng cái chính comment của spec cảnh báo: nó **tiêu thụ**
      một lịch hẹn demo mỗi lượt. Xanh ở lượt chạy đầu phiên, đỏ sau khi chạy
      suite lần thứ ba. Cần seed lại, không phải lỗi code.
+
+### R-283 — công đoạn đã Hoàn thành vẫn nằm trong "TIẾP TỤC CÔNG ĐOẠN"
+
+Chủ dự án soi lại `Chi tiết phiếu` trên bản gốc (staging, chỉ đọc): tick
+`Hoàn thành` một công đoạn thì dòng dịch vụ **rời khỏi** tab
+`TIẾP TỤC CÔNG ĐOẠN`. Ta thì vẫn để nguyên — `useStageComposer` chia hai tab
+bằng đúng một câu hỏi "dòng này đã có công đoạn nào chưa":
+
+```ts
+const inTab = (line) =>
+  tab === "add" ? !stagedLineIds.has(line.id) : stagedLineIds.has(line.id);
+```
+
+nên một dòng đã đóng vẫn được mời tiếp tục, mãi mãi.
+
+| # | Đo được | Đã làm |
+|---|---|---|
+| R-283 | Dòng đã đóng vẫn ở tab 2, vẫn tính vào badge, và vẫn mở được form | `closedLineIds` — dòng có công đoạn **live** đang `Completed` — bị loại khỏi tab 2 và khỏi badge. **Không** bị đẩy sang tab 1: tab 1 là "chưa có công đoạn nào", dòng này có lịch sử. Nó chỉ còn ở LỊCH SỬ ĐIỀU TRỊ bên dưới |
+| R-284 | Form vẫn đứng sau dòng vừa bị loại | `line` nay tra trong `offered` chứ trong cả phiếu, nên tick `Hoàn thành` lúc form đang mở thì form đóng lại về câu nhắc `Chọn công đoạn ở cột chi tiết…` thay vì cho ghi thêm một công đoạn vào dòng vừa đóng |
+
+**Chọn "công đoạn live" chứ không phải "tất cả công đoạn" — có lý do.**
+Lần đầu tôi viết theo luật của server (`MoveServiceLineAsync`: dòng dịch vụ
+đóng khi **mọi** công đoạn của nó đóng). Viết xong mới thấy nó bít đường:
+`StageHistory` để `disabled={!live}` trên ô `Hoàn thành`, tức là **chỉ** công
+đoạn mới nhất tick được. Một dòng có công đoạn cũ còn mở — mà spec
+"finishing one công đoạn leaves the others open" dựng ra đúng tình huống đó —
+sẽ không bao giờ tick hết được, nên sẽ **mắc kẹt** trong tab 2 vĩnh viễn. Luật
+theo công đoạn live thì đảo được cả hai chiều: tick thì mất, bỏ tick thì về.
+
+Hệ quả là ở trạng thái đó tab 2 nói khác trạng thái dòng dịch vụ (server vẫn
+để `InProgress` vì còn công đoạn cũ mở). Đó là **cố ý**: tab là "còn gì để làm
+tiếp không", và câu trả lời do bước đang làm quyết định.
+
+### R-285 — "thêm/tiếp tục công đoạn" báo lỗi bằng toast, không báo dưới ô
+
+Cùng đợt soi: form tái khám (R-274…R-276) đã báo lỗi **dưới từng ô**, còn form
+công đoạn — cùng ba ô bắt buộc, cùng một layout — vẫn `toast.error` và vẫn báo
+**lần lượt** (ba lần bấm mới biết hết ba ô trống).
+
+| # | Đo được | Đã làm |
+|---|---|---|
+| R-285 | Ba `if` + `toast.error` nối tiếp trong `save()` | Rút luật ra `stage/stageFieldErrors.ts`: một hàm trả về cả ba thông báo một lượt. Cả form công đoạn và `useFollowUpForm` dùng chung — `FollowUpErrors` bỏ, đổi thành `StageFieldErrors` |
+| R-286 | Không biết ô nào sai | `StageForm` nhận `errors`, in `.pd-stage-error` 12px đỏ dưới Bác sĩ / Răng / Nội dung điều trị, và đặt `status="error"` cho chính ô đó. Sửa ô nào thì thông báo ô đó tắt; đổi dòng dịch vụ thì sạch hết |
+
+Ô `Răng` ở form công đoạn kế thừa răng của dòng dịch vụ nên trên thực tế không
+sai được — nhưng thông báo vẫn có chỗ đứng dưới nó, đúng chỗ bản gốc để, thay
+vì im lặng nếu dữ liệu dòng hỏng.
+
+### Chạy thật
+
+Bản build production, `vite preview` cổng **8080**, API `:5019`,
+Postgres/Redis/MinIO docker thật. `tsc -b` 0 lỗi, `oxlint` 0 lỗi.
+
+Hai spec mới trong `e2e/patient.spec.ts`, cả hai đi thẳng API thật:
+
+- *a công đoạn marked Hoàn thành leaves TIẾP TỤC CÔNG ĐOẠN* — mở tab 2, thấy
+  dòng (khoá theo `data-line-id` mới trên nút chọn), chọn nó để mở form, tick
+  `Hoàn thành`, rồi đo: nút chọn mất, badge giảm đúng 1, form đóng về câu nhắc,
+  **và** tab 1 cũng không có nó trong khi dòng lịch sử của nó vẫn còn. Bỏ tick →
+  `POST …/revert-status` 200 → dòng và badge trở lại. Reload rồi mở lại: vẫn
+  đúng, tức là trạng thái nằm ở server chứ không ở state của dialog.
+- *the công đoạn form reports its empty fields under them, not in a toast* —
+  bấm lưu với ô trống: thông báo hiện trong `.pd-stage-error`, **không** có
+  toast nào, và `POST /treatment-stages` **không** hề rời trình duyệt (bắt bằng
+  `page.on("request")`). Gõ nội dung → thông báo tắt → bấm lại thì lưu 200 và
+  ghi chú xuất hiện trong lịch sử.
+
+Cả bộ `patient.spec.ts` (Level 2 cho F-38, gồm cả các spec tái khám/bảo hành vì
+`useFollowUpForm` dùng chung `stageFieldErrors`): **56 xanh / 1 đỏ**. Đỏ là
+*"the Tiếp nhận steps advance one at a time"* — `booked === null`, đúng cái đỏ
+đã ghi ở phần "Chạy thật" của R-282: spec tự **tiêu thụ** một lịch hẹn demo mỗi
+lượt và hết chỗ đặt. Nó chết ở bước dựng dữ liệu, trước khi có UI nào được vẽ,
+và nằm ở nhánh `.pd-appt-steps` mà đợt này không chạm tới — cần seed lại, không
+phải lỗi code.
+
+### R-287 — luật "phải có ảnh mới hoàn thành được" là do tôi bịa
+
+Chủ dự án bấm `Hoàn thành` trên bản gốc và báo: **không** cần tải ảnh. Bên ta thì
+toast đỏ *"Dịch vụ này cần đính kèm ảnh trước khi hoàn thành công đoạn."*
+(`403 BlueDental:Treatment:0019`).
+
+Truy lại thì luật này chưa bao giờ được **quan sát**. Nó ra đời ở commit
+`e835c45`, và chính commit đó đã tự khai là phỏng đoán:
+
+> The reference never exposed a stage payload that could be read without
+> mutating production. […] A service whose catalog entry requires an image
+> refuses completion until one is attached.
+
+Cái **cờ** thì thật — `"Yêu cầu hình ảnh khi điều trị"` có trong dialog Dịch vụ
+của bản gốc và đi kèm payload (`service.isImageRequired`). Cái **hệ quả** thì
+tôi tự suy ra, rồi `TreatmentStage.Complete()` chặn thật.
+
+| # | Đo được | Đã làm |
+|---|---|---|
+| R-287 | `Complete()` throw `StageImageRequired` khi `IsImageRequired` và chưa có ảnh | Bỏ hẳn guard. Xoá luôn hằng `StageImageRequired` (không tái sử dụng mã 0019, để log cũ còn đọc được) và hai dòng vi/en. Cờ vẫn được **ghi** lên công đoạn vì đó là cờ của danh mục, nhưng không chặn gì |
+| R-288 | Test domain khoá luật sai | `A_service_that_requires_an_image_refuses_completion_without_one` → đổi thành `..._still_completes_without_one`: bật cờ, không ảnh, vẫn `Completed` |
+| R-289 | Fixture e2e phải nói dối để chạy được | `addStage` từng ép `isImageRequired: false` để né 403 (chính là R-244). Nay để trống — công đoạn thừa hưởng danh mục — và nhận thêm tham số `imageRequired` cho spec nào cần bật cờ |
+| R-290 | Ba tài liệu chép lại luật sai | `docs/testing/features/treatment-stage.md`, `docs/clone/business-features.md` sửa thành "ghi nhận, không cưỡng chế"; thêm mục `UNKNOWN_REFERENCE_BEHAVIOR` cho câu hỏi **cờ đó thực sự làm gì** — muốn biết phải tick `Hoàn thành` trên công đoạn thật của bản gốc, tức là ghi, nên không làm |
+
+Hai chỗ FE còn đọc cờ đều chỉ là **gợi ý**, không chặn, nên giữ nguyên: tag
+`Cần ảnh` ở `TreatmentStagePanel` và `Alert` ở `AdviseModal`.
+
+**Về hai toast trùng nhau trong ảnh chủ dự án gửi:** ô `Hoàn thành` được điều
+khiển bởi câu trả lời của server, không bởi cú click — thất bại thì ô không tick,
+nên bấm lại là phản xạ tự nhiên, và mỗi lần bấm là một toast. Không phải lỗi phát
+hai lần; hết luật sai thì hết cả toast.
+
+### Chạy thật
+
+- Backend: `dotnet build` 0 lỗi/0 warning; **893 test xanh** (Domain 292,
+  Application 536, EF Core 51, HttpApi.Host 14).
+- Spec mới `Hoàn thành ticks with no image, even on a service that asks for one`
+  — bật `isImageRequired: true` ngay trên công đoạn để không phụ thuộc danh mục
+  demo, xác nhận dòng **không** có ảnh, rồi đóng qua `finishLiveStage` (helper
+  này throw kèm nguyên body của server nếu bị từ chối, nên 403 sẽ đỏ rất rõ),
+  đo ô đã tick, đo **không** có chữ "cần đính kèm ảnh", reload rồi đọc chip của
+  dòng ngoài bảng = `Hoàn thành`. Chạy `--repeat-each=3`: xanh cả ba.
+- Lần viết đầu tôi tự cầm cú click và `waitForResponse` → đỏ một lượt vì đúng cái
+  race mà `finishLiveStage` đã ghi chú dài dòng (click rơi vào giữa lượt refetch
+  thì bị nuốt, không có request nào rời trình duyệt). Đã bỏ, dùng lại helper.
+- `patient.spec.ts` + `treatment-stage.spec.ts` trên bản build production
+  (`vite preview` 8080, API `:5019` đã build lại, DB thật): **59 xanh / 1 đỏ**.
+  Đỏ vẫn đúng một cái đã ghi ở R-282 — *"the Tiếp nhận steps advance one at a
+  time"*, `booked === null`: spec tự tiêu thụ một lịch hẹn demo mỗi lượt và hết
+  chỗ đặt. Chết ở bước dựng dữ liệu, nhánh `.pd-appt-steps`, không liên quan
+  `Complete()`.
+- Phải **dừng API đang chạy** (PID 26596) mới build lại được — nó giữ khoá các
+  DLL trong `bin`. Đã build lại và bật lại trên đúng `:5019`.
+
+### R-291 — "Ghi chú" ở Chi tiết dịch vụ nối hết note của mọi công đoạn
+
+Chủ dự án mở "Chi tiết dịch vụ" và thấy ô `Ghi chú` dài một đoạn:
+
+> Ghi chú: e2e ghi chú …, e2e nhóm A …, e2e nhóm B …, e2e cũ …, e2e mới …,
+> e2e labo …, e2e màu …, e2e in phiếu …, e2e dưới ô …, e2e không bảo hành …,
+> e2e không cần ảnh … (×5)
+
+**Vì sao dài:** đó là rác e2e, và ô đó in **mọi** note. Query DB local: dòng
+`DT03-01` có **15 công đoạn**, tất cả tạo trong ngày bởi chính các lượt chạy
+acceptance (6 dòng do đợt hôm nay). Toàn DB demo cũng vậy — `DT17-02` 81 công
+đoạn / 79 note `e2e%`. Chủ dự án chọn **chưa dọn**.
+
+**Nhưng cái dài là lỗi thật, không phải chỉ do rác.** Code nối hết:
+
+```tsx
+[t("Ghi chú"), (line?.stageNotes ?? []).join(", ")],
+```
+
+nên nó dài thêm một đoạn sau **mỗi** công đoạn — dữ liệu thật của phòng khám
+cũng sẽ như vậy. Và cái `join` này tôi **tự đoán**: R-261 đo dialog tới từng
+pixel nhưng không hề ghi ô `Ghi chú` chứa gì.
+
+**Đã soi lại bản gốc** (staging, chỉ đọc, tài khoản chủ dự án cấp; không mở form
+Tái Khám, không submit, không ghi gì). Dialog gọi
+`GET /v1/treatment-services/{id}` — **một** document dịch vụ, không phải list đã
+lọc — và document đó mang:
+
+| Trường | Ý nghĩa |
+|---|---|
+| `note` ở top level | note **của chính dòng dịch vụ** |
+| `patientStages[]` | mỗi công đoạn có `note` **riêng** |
+
+Dòng được soi có **3** công đoạn hoàn tất. Giá trị in ra bằng đúng `note` của
+document, và **không** note nào của 3 công đoạn xuất hiện — không nối, không lấy
+mẫu. Note của công đoạn có chỗ riêng: cột **Nội dung điều trị** của chính dòng
+`Tạo tái khám` mà dialog được mở từ đó.
+
+| # | Đo được | Đã làm |
+|---|---|---|
+| R-291 | `Ghi chú` = `stageNotes.join(", ")` | Đổi thành `line.note` — trường vốn đã có sẵn trên DTO (`TreatmentService.Note`, từ "Thêm dịch vụ mới") mà ô này không dùng. Rỗng thì in em dash như mọi fact rỗng khác |
+| R-292 | Không có cách khoá đúng một dòng trong listing Tái khám | `.pd-recall-row` thêm `data-line-id` / `data-stage-id`, cùng khuôn với `.pd-stage-histrow` và `data-row-key` của bảng điều trị |
+
+`stageNotes` **giữ lại** trên DTO: `PlanSummaryCards` dùng `stageNotes.at(-1)`
+cho cột "Nội dung điều trị" của kế hoạch, chỗ đó đúng là stage-driven.
+
+Bonus đo được cùng lượt: `staffDiagnosisId` / `staffDiagnosisSecondId` /
+`adviseStaffId` / `adviseStaffSecondId` là bốn ô nhân sự của khối
+`THÔNG TIN NHÂN VIÊN`, và cả bốn đọc `—` trên dòng được soi — nên bốn em dash
+của ta ở đó là **parity**, không phải lỗ hổng. Đã ghi vào
+`docs/clone/pages/patient-detail.md` (chỉ cấu trúc, không giá trị — theo
+`01-production-data.md`; bản capture nằm trong `reference-private/`, đã gitignore).
+
+### Chạy thật
+
+- Spec mới `Chi tiết dịch vụ prints the line's own Ghi chú, not its công đoạn's`:
+  tạo công đoạn với note biết trước, đóng nó, mở `Tạo tái khám`, khoá **đúng**
+  dòng bằng `data-stage-id`, xác nhận dòng đó **có** in note công đoạn (cột Nội
+  dung điều trị), rồi mở `Chi Tiết` và đo ô `Ghi chú` **không** chứa note đó.
+  Với code cũ spec này sẽ đỏ.
+- Lần viết đầu đỏ ở `.pd-recall-row[data-line-id=…].first()`: dòng dịch vụ này
+  đã có nhiều công đoạn hoàn tất từ các lượt trước nên `.first()` không phải cái
+  vừa thêm. Đổi sang khoá theo `data-stage-id`.
+- `patient.spec.ts` + `treatment-stage.spec.ts` trên bản build production
+  (`vite preview` 8080, API `:5019`, DB thật): **60 xanh / 1 đỏ**. Đỏ vẫn đúng
+  một cái đã ghi ở R-282 — *"the Tiếp nhận steps advance one at a time"*,
+  `booked === null`, spec tự tiêu thụ lịch hẹn demo. `tsc` sạch, `oxlint` sạch.

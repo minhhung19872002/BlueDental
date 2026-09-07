@@ -119,18 +119,22 @@ public class TreatmentStageTests
         stage.CompletedAt.ShouldNotBeNull();
     }
 
+    /// <summary>
+    /// The image flag records the catalog's setting; it does not gate Hoàn thành.
+    /// This test is the inverse of the one it replaces: the original assumed a
+    /// service carrying "Yêu cầu hình ảnh khi điều trị" would refuse completion,
+    /// and the reference was then seen to close a công đoạn with no image at all.
+    /// </summary>
     [Fact]
-    public void A_service_that_requires_an_image_refuses_completion_without_one()
+    public void A_service_that_requires_an_image_still_completes_without_one()
     {
         var stage = CreateStage(isImageRequired: true);
 
-        Should.Throw<BusinessException>(() => stage.Complete())
-            .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.StageImageRequired);
-
-        stage.AttachImage("https://files.local/xray-1.png");
         stage.Complete();
 
         stage.Status.ShouldBe(TreatmentStageStatus.Completed);
+        stage.CompletedAt.ShouldNotBeNull();
+        stage.ImageUrls.ShouldBeEmpty();
     }
 
     [Fact]

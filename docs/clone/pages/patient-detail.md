@@ -421,7 +421,15 @@ A tinted card (`#F7FAFF`, radius 16, padding 12, border `#DCE3EE`) holds:
   36px tabs, 13px/600, radius 6: `THÊM CÔNG ĐOẠN ⟨n⟩` and
   `TIẾP TỤC CÔNG ĐOẠN ⟨n⟩`, each with an 18px round count badge. Active is white
   on `#2671D8` text. The first tab lists services with **no** công đoạn yet, the
-  second those that already have one.
+  second those that already have one **and are still open**: once a line's live
+  công đoạn is ticked `Hoàn thành` it drops out of `TIẾP TỤC CÔNG ĐOẠN` and out
+  of its count — there is nothing left to continue — and it is *not* pushed back
+  into `THÊM CÔNG ĐOẠN` either, so a closed line lives on only in
+  LỊCH SỬ ĐIỀU TRỊ underneath. Un-ticking `Hoàn thành` brings it back, exactly as
+  it re-opens the service line. Membership is read off the line's **live** công
+  đoạn — the newest one — because that is the only row the history lets anyone
+  tick; every earlier row is `disabled`, so a rule demanding all of them be
+  closed would strand the line in the tab for good.
 - On its right, `$ Thanh toán` (green outline) and `🖨 In lịch sử điều trị`.
 - Four column heads, `#EAF4FF` / `#2671D8` / 14px/600 / radius 12 / `12px 16px`:
   `Chi tiết` · `Ngày - Nhân sự` · `Dịch vụ đã chọn` · `Nội dung điều trị`, over a
@@ -448,6 +456,14 @@ A tinted card (`#F7FAFF`, radius 16, padding 12, border `#DCE3EE`) holds:
   `Tải Ảnh` is **not** disabled: the form card carries its own hidden
   `<input type="file" accept="image/jpeg,image/jpg,image/png" multiple>`, so a
   picture can be chosen before the công đoạn exists.
+
+  **Validation.** Bác sĩ, Răng and Nội dung điều trị are required, and each
+  failure prints **under its own field** in 12px red (`.pd-stage-error`) with the
+  control turning red with it — the same treatment "Tạo tái khám" gives its
+  three, and for the same reason: a toast does not say which of the inputs it
+  meant, and it is gone by the time you look away. Every empty field is reported
+  at once rather than one press at a time, and a field's message clears as soon
+  as it is filled. Nothing is sent while any of them stands.
 
 #### LỊCH SỬ ĐIỀU TRỊ
 
@@ -638,7 +654,42 @@ dialogs, not the stage dialog:
   ticked), and only the second reaches the row. Chosen pictures list as
   thumbnails, each with its own remove, under a count label ("2 ảnh").
 - **Chi Tiết** → "Chi tiết dịch vụ", read-only, 772px wide, four blocks, footer
-  **Đóng** only.
+  **Đóng** only. It fires `GET /v1/treatment-services/{id}` — the **single**
+  service document, not the filtered list — and every fact in
+  `CHI TIẾT KẾ HOẠCH` comes off that document, including **Ghi chú**, which is
+  the document's own `note`.
+
+  That last one matters and was got wrong once (R-291): the document carries
+  `note` at its top level *beside* `patientStages[]`, and each công đoạn in that
+  array holds a `note` of its own. Measured 2026-09-07 on a line with three
+  finished công đoạn: the printed Ghi chú equalled the **document's** `note`, and
+  none of the three stage notes appeared — they are neither joined nor sampled
+  here. The công đoạn's note has its own home, the **Nội dung điều trị** column
+  of the `Tạo tái khám` row this dialog was opened from.
+
+  Structure of the fields this dialog reads (values omitted):
+
+  ```json
+  { "note": "<string|null>", "status": "<code>", "quantity": <number>,
+    "originalPrice": <number>, "price": <number>, "discountAmount": <number>,
+    "content": [{ "code": <toothNumber>, "selected": <bool> }],
+    "selectedContent": [<toothNumber>], "completedContent": [<toothNumber>],
+    "staffId": "<string>", "staffDiagnosisId": "<string|null>",
+    "staffDiagnosisSecondId": "<string|null>", "adviseStaffId": "<string|null>",
+    "adviseStaffSecondId": "<string|null>", "diagnosisId": "<string|null>",
+    "patientStages": [{ "id": "<string>", "note": "<string|null>",
+                        "status": "<code>", "disabled": <bool>,
+                        "isGuarantee": <bool>, "hasReExamination": <bool>,
+                        "totalStageCount": <number>, "completedStageCount": <number>,
+                        "stageServiceItems": [] }],
+    "payment": {}, "serviceDetails": {}, "patientDetails": {} }
+  ```
+
+  Note also `staffDiagnosisId` / `staffDiagnosisSecondId` / `adviseStaffId` /
+  `adviseStaffSecondId` — the four staff slots behind `THÔNG TIN NHÂN VIÊN`'s
+  "Bác sĩ chẩn đoán 1 / Chẩn đoán 2 / Nhân sự tư vấn 1 / Nhân sự tư vấn 2`. All
+  four read `—` on the surveyed line, which is why BlueDental's em dashes there
+  are parity rather than a gap; it records only the slip's consultant.
 
 **A saved tái khám is a row of its own.** The reference's timeline returns
 `type: "re_examination"` beside `type: "stage"`, so the row sits in the treatment

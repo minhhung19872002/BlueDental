@@ -304,8 +304,13 @@ async function addStage(
   page: Page,
   line: { patientId: string; planId: string; serviceId: string; branchId?: string },
   note: string,
+  /**
+   * Forces the công đoạn's own `isImageRequired`. Left undefined it inherits the
+   * service catalog, which is what every spec but the image one wants.
+   */
+  imageRequired?: boolean,
 ) {
-  const created = await page.evaluate(async ({ target, text }) => {
+  const created = await page.evaluate(async ({ target, text, needsImage }) => {
     // The server reads the branch off this header, not out of the body — see
     // src/lib/axios.ts — so a raw fetch has to send it or the row lands in
     // whichever branch the account defaults to.
@@ -338,17 +343,16 @@ async function addStage(
         note: text,
         staffId: staff.items[0].id,
         teeth: service.teeth,
-        // Closable without a clinical image. `isImageRequired` is nullable on
-        // the contract precisely so a caller can say; left unset it copies the
-        // service catalog, and a service that demands an image makes
-        // POST …/complete answer 403 Treatment:0019 — which is a rule of its
-        // own, covered by TreatmentStageTests, not the subject of the specs
-        // that use this fixture to get a live row.
-        isImageRequired: false,
+        // Unset unless a spec says otherwise, so the công đoạn inherits whatever
+        // its service catalog says. It used to be forced to `false` here to
+        // dodge a 403 Treatment:0019 on POST …/complete — that block was an
+        // invented rule and is gone (R-287), so the fixture no longer has to lie
+        // about the service to get a closable row.
+        ...(needsImage === undefined ? {} : { isImageRequired: needsImage }),
       }),
     });
     return { status: res.status, id: res.ok ? ((await res.json()).id as string) : null };
-  }, { target: line, text: note });
+  }, { target: line, text: note, needsImage: imageRequired });
   expect(created.status, "the công đoạn should have been created").toBe(200);
   return created.id!;
 }
@@ -2254,6 +2258,151 @@ test.describe("Bệnh nhân", () => {
     ).toBeVisible();
   });
 
+  test("Hoàn thành ticks with no image, even on a service that asks for one", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1600, height: 900 });
+    const line = await openPatientWithTreatment(page, "stageable");
+    // `isImageRequired` forced on, so the claim is tested whatever the demo
+    // catalog happens to hold.
+    const stageId = await addStage(page, line, `e2e không cần ảnh ${runId()}`, true);
+    await page.reload();
+
+    const dialog = await openStageDialog(page, line.serviceId);
+    const live = liveHistRows(dialog, line.serviceId).first();
+    await expect(live).toBeVisible();
+    // No picture on the row at all.
+    await expect(live.locator(".pd-stage-histshots")).toHaveCount(0);
+
+    await expect(live.getByRole("checkbox")).not.toBeChecked();
+
+    // Driven through `finishLiveStage`, which throws with the server's own body
+    // on a refusal — a 403 BlueDental:Treatment:0019 would fail here loudly.
+    // Hand-rolling the click instead re-invents the swallowed-click race that
+    // helper was written to absorb.
+    const closed = await finishLiveStage(page, dialog, line.serviceId);
+    await expect(closed.getByRole("checkbox")).toBeChecked();
+    await expect(page.locator("text=cần đính kèm ảnh")).toHaveCount(0);
+
+    // Written through the real API: the row outside reads Hoàn thành after a
+    // reload. Read through `findStageRow` rather than by reopening the dialog —
+    // a closed line swaps its "+" for Bảo hành, so there may be no cell left to
+    // open it with.
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+    await page.reload();
+    await page.locator(".pd-treatment-table tbody tr.ant-table-row").first().waitFor();
+    await widenTreatmentTable(page);
+    const row = await findStageRow(page, line.serviceId, stageId);
+    await expect(row.locator(".pd-tr-chip")).toHaveText("Hoàn thành");
+  });
+
+  test("a công đoạn marked Hoàn thành leaves TIẾP TỤC CÔNG ĐOẠN", async ({ page }) => {
+    await page.setViewportSize({ width: 1600, height: 900 });
+    const line = await openPatientWithTreatment(page, "warrantable");
+    await addStage(page, line, `e2e rời tab ${runId()}`);
+    await page.reload();
+
+    const dialog = await openStageDialog(page, line.serviceId);
+    const continueTab = dialog.locator(".pd-stage-tabs button").nth(1);
+    const addTab = dialog.locator(".pd-stage-tabs button").first();
+    await continueTab.click();
+
+    // The line has a công đoạn, so it is offered for continuing, and picking it
+    // opens the form.
+    const pick = dialog.locator(`.pd-stage-picks button[data-line-id="${line.serviceId}"]`);
+    await expect(pick).toHaveCount(1);
+    const offeredBefore = Number(await continueTab.locator("em").innerText());
+    await pick.click();
+    await expect(dialog.locator(".pd-stage-form")).toBeVisible();
+
+    // Close the công đoạn. A closed step has nothing left to continue, so the
+    // reference drops its line from the tab — count and all.
+    await finishLiveStage(page, dialog, line.serviceId);
+    await expect(pick).toHaveCount(0);
+    await expect(continueTab.locator("em")).toHaveText(String(offeredBefore - 1));
+    // The form it was standing behind goes with it, rather than staying open on
+    // a line the tab no longer offers.
+    await expect(dialog.locator(".pd-stage-form")).toHaveCount(0);
+    await expect(dialog.locator(".pd-stage-hint")).toBeVisible();
+
+    // Nor is it pushed across into THÊM CÔNG ĐOẠN: that tab is for lines with
+    // no công đoạn at all, and this one keeps its history.
+    await addTab.click();
+    await expect(pick).toHaveCount(0);
+    await expect(
+      dialog.locator(`.pd-stage-histrow[data-line-id="${line.serviceId}"]`).first(),
+    ).toBeVisible();
+
+    // Un-ticking Hoàn thành brings the line back, exactly as it re-opens it.
+    await continueTab.click();
+    const reverted = page.waitForResponse(
+      (res) =>
+        res.url().includes("/api/v1/app/treatment-stages/") &&
+        res.url().includes("/revert-status") &&
+        res.request().method() === "POST",
+    );
+    await liveHistRows(dialog, line.serviceId).first().getByRole("checkbox").click({ force: true });
+    expect((await reverted).ok(), "revert-status should be accepted").toBeTruthy();
+    await expect(pick).toHaveCount(1);
+    await expect(continueTab.locator("em")).toHaveText(String(offeredBefore));
+
+    // Written through the real API, so a reload lands on the same split.
+    await page.reload();
+    const reopened = await openStageDialog(page, line.serviceId);
+    await reopened.locator(".pd-stage-tabs button").nth(1).click();
+    await expect(
+      reopened.locator(`.pd-stage-picks button[data-line-id="${line.serviceId}"]`),
+    ).toHaveCount(1);
+  });
+
+  test("the công đoạn form reports its empty fields under them, not in a toast", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1600, height: 900 });
+    const { serviceId } = await openPatientWithTreatment(page, "stageable");
+
+    const dialog = await openStageDialog(page, serviceId);
+    await dialog.locator(".pd-stage-picks button").first().click();
+    const form = dialog.locator(".pd-stage-form");
+    await expect(form).toBeVisible();
+
+    // An invalid form must not reach the server at all.
+    let posted = false;
+    page.on("request", (request) => {
+      if (
+        request.method() === "POST" &&
+        request.url().includes("/api/v1/app/treatment-stages")
+      ) {
+        posted = true;
+      }
+    });
+
+    await dialog.getByRole("button", { name: /Thêm công đoạn|Tiếp tục công đoạn/ }).click();
+
+    // Reported beneath the field it belongs to, the way "Tạo tái khám" reports
+    // its own: a toast does not say which input it meant, and it is gone by the
+    // time you look away from it.
+    const message = form.locator(".pd-stage-error");
+    await expect(message).toHaveText("Vui lòng nhập nội dung điều trị");
+    await expect(page.locator(".sonner-toast, [data-sonner-toast]")).toHaveCount(0);
+    expect(posted, "an empty form should not be sent").toBe(false);
+
+    // Typing clears that field's message.
+    const note = `e2e dưới ô ${runId()}`;
+    await form.locator("textarea").fill(note);
+    await expect(message).toHaveCount(0);
+
+    // And the form still saves once it is filled.
+    const created = page.waitForResponse(
+      (res) =>
+        res.url().includes("/api/v1/app/treatment-stages") && res.request().method() === "POST",
+    );
+    await dialog.getByRole("button", { name: /Thêm công đoạn|Tiếp tục công đoạn/ }).click();
+    expect((await created).ok(), "the filled form should be accepted").toBeTruthy();
+    await expect(dialog.locator(".pd-stage-note").filter({ hasText: note })).toHaveCount(1);
+  });
+
   test("Danh sách công đoạn carries the công đoạn's content on both tái khám screens", async ({
     page,
   }) => {
@@ -2501,6 +2650,57 @@ test.describe("Bệnh nhân", () => {
     await expect(done).toBeDisabled();
     await expect(row.getByRole("button", { name: "Tái Khám" })).toBeVisible();
     await expect(row.getByRole("button", { name: "Chi Tiết" })).toBeVisible();
+  });
+
+  test("Chi tiết dịch vụ prints the line's own Ghi chú, not its công đoạn's", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1600, height: 900 });
+    const line = await openPatientWithTreatment(page, "warrantable");
+    // A note that could not plausibly be the line's own, so seeing it in the
+    // dialog can only mean the stage notes leaked in.
+    const stageNote = `e2e ghi chú công đoạn ${runId()}`;
+    const stageId = await addStage(page, line, stageNote);
+    await page.reload();
+
+    // A follow-up row is only offered on a closed công đoạn.
+    const dialog = await openStageDialog(page, line.serviceId);
+    await finishLiveStage(page, dialog, line.serviceId);
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+    await page.reload();
+    await page.locator(".pd-treatment-table tbody tr.ant-table-row").first().waitFor();
+
+    await page.getByRole("button", { name: "Tạo Tái khám" }).click();
+    const recall = page.getByRole("dialog", { name: "Tạo tái khám" });
+    await expect(recall).toBeVisible();
+
+    // The row for **this** công đoạn, by id. The listing holds every finished
+    // one on the record, and a line that earlier runs have worked keeps several
+    // — so neither the first row nor the first row of this line is reliably the
+    // one just added.
+    const row = recall.locator(`.pd-recall-row[data-stage-id="${stageId}"]`);
+    await expect(row).toBeVisible();
+    // The row itself does print the công đoạn's note — that is its
+    // "Nội dung điều trị" column, and it is what must not reach the dialog.
+    await expect(row).toContainText(stageNote);
+    await row.getByRole("button", { name: "Chi Tiết" }).click();
+
+    const detail = page.getByRole("dialog", { name: "Chi tiết dịch vụ" });
+    await expect(detail).toBeVisible();
+    const ghiChu = detail.locator(".pd-svcdetail-fact").filter({ hasText: "Ghi chú" });
+    await expect(ghiChu).toHaveCount(1);
+
+    /*
+     * OBSERVED on the reference 2026-09-07: the dialog's own
+     * GET /v1/treatment-services/{id} carries `note` on the service document
+     * beside `patientStages[]`, and the printed value was that `note` — the
+     * line's three stage notes appeared nowhere. It used to join every stage
+     * note here, so the field grew a clause per công đoạn forever (R-291).
+     */
+    await expect(ghiChu).not.toContainText(stageNote);
+    // An empty line note prints the em dash every other blank fact prints.
+    await expect(ghiChu).toHaveText(/^Ghi chú: /);
   });
 
   test("the Tiếp nhận steps advance one at a time", async ({ page }) => {

@@ -7,6 +7,7 @@ import { toothLabels } from "@/features/treatment-management/api/consultingApi";
 import { StageShots } from "./StageShots";
 import { StageStepList } from "./StageStepList";
 import type { TreatmentServiceDto } from "@/features/treatment-management/api/treatmentPlanApi";
+import type { StageFieldErrors } from "./stageFieldErrors";
 
 /** The reference caps Nội dung điều trị at 1000 characters. */
 export const NOTE_LIMIT = 1000;
@@ -29,6 +30,8 @@ interface Props {
   previews: string[];
   /** Step ids ticked under "Danh sách công đoạn"; they save unticked. */
   pickedSteps: string[];
+  /** Messages for the last failed save, each printed under its own field. */
+  errors: StageFieldErrors;
   saving: boolean;
   primaryLabel: string;
   onStaff: (value: string) => void;
@@ -59,6 +62,7 @@ export function StageForm({
   pending,
   previews,
   pickedSteps,
+  errors,
   saving,
   primaryLabel,
   onStaff,
@@ -84,8 +88,10 @@ export function StageForm({
             value={staffId}
             options={options}
             onChange={onStaff}
+            status={errors.staff ? "error" : undefined}
           />
         </FloatingLabel>
+        {errors.staff && <p className="pd-stage-error">{errors.staff}</p>}
         <FloatingLabel label={t("Phụ tá")} floated={Boolean(subStaffId)}>
           <Select
             allowClear
@@ -120,6 +126,7 @@ export function StageForm({
             ))}
           </div>
         </div>
+        {errors.teeth && <p className="pd-stage-error">{errors.teeth}</p>}
         <div className="pd-stage-images">
           <p>{t("Hình ảnh")}:</p>
           <p>
@@ -141,8 +148,10 @@ export function StageForm({
             value={note}
             maxLength={NOTE_LIMIT}
             onChange={(event) => onNote(event.target.value)}
+            status={errors.note ? "error" : undefined}
           />
         </FloatingLabel>
+        {errors.note && <p className="pd-stage-error">{errors.note}</p>}
         {/* Which of the service's steps this công đoạn will cover. They save
             unticked — the history row is where they get ticked off. */}
         <StageStepList
