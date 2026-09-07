@@ -1319,10 +1319,10 @@ Reason: Both leave the tab (print sheet / `/treatment-plan/{planId}` detail
   page); the owner asked for the button to exist without an action and for the
   detail page to be a later round.
 Action taken: NONE
-BlueDental: the button renders and does nothing; the code is link-styled and
-  does not navigate. The items in the two summary cards open the same detail
-  page on staging (clicked 2026-09-07, `/patient/{id}/treatment-plan/{planId}`),
-  so they keep the pointer cursor and hover tint without navigating.
+BlueDental: the button renders and does nothing. **Updated 2026-09-07**: the
+  detail page is built (F-39, `pages/treatment-plan-detail.md`); the code link,
+  the items in the two summary cards and the ≤640 card head all navigate to
+  `/patient/{id}/treatment-plan/{planId}`.
 
 UNKNOWN_REFERENCE_BEHAVIOR
 
@@ -1357,3 +1357,107 @@ Deliberate deviations recorded with the owner (2026-09-07):
   discount input overflows its cell at 640px and is not reproduced; staging's
   care-service list returned 403 for the surveyed role; the invoice modal's
   pager belongs to the invoice feature and is out of scope here.
+
+---
+
+## TREATMENT PLAN DETAIL (/patient/{id}/treatment-plan/{planId}) — 2026-09-07
+
+Surveyed on production (read-only) and staging. Every entry below is a control
+whose effect could not be observed without saving.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}/treatment-plan/{planId}?planTab=detail
+Control: `Thêm dịch vụ mới` service picker
+Reason: Picking a service adds a line to the slip on the reference (a write).
+  Owner's screenshots 2026-09-07: it appends an editable row at the bottom of
+  the table (status pill with Đã tạo / Đang điều trị / Hoàn thành / Chuyển đổi
+  / Đã chuyển / Bảo hành / Hủy dịch vụ; Chẩn đoán, Bác sĩ, tooth button, Số
+  lượng, Đơn giá, Ghi chú, BS chẩn đoán 1–2, Tư vấn 1–2) with Lưu ✓ / Hủy ✗.
+  In group mode a clicked group shows a back arrow + a table of its services
+  (Dịch vụ / Giá gốc / Giảm giá / Thành tiền) inside the popover. What Lưu
+  sends was not observed (no save on production).
+Action taken: NONE
+BlueDental: rebuilt to the screenshots 2026-09-07 (`useDraftServiceRow`,
+  `draftServiceCells.tsx`, group table in `PlanServicePicker`). Lưu posts
+  `POST patient-treatments/{id}/services` (new endpoint, columns on
+  `bd_treatment_services` via migration `20260907090000`). Not yet retested
+  on the real stack.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}/treatment-plan/{planId}?planTab=detail
+Control: `Chuyển đổi` in the status pill menu of a service line
+Reason: Converting replaces the line with another service on the reference; the
+  follow-up dialog was not opened because the pill menu already mutates on pick.
+Action taken: NONE
+BlueDental: the menu entry shows a toast and does nothing else; the line status
+  `Chuyển đổi` renders when the API reports it.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}/treatment-plan/{planId}?planTab=debt
+Control: the Dư nợ table
+Reason: Empty on every slip observed, so which lines it lists and where `Dư nợ`
+  per line comes from is unknown.
+Action taken: NONE
+BlueDental: lists the slip's lines that carry a payment made with the
+  `OutstandingDebt` method, `Dư nợ` = that amount. Assumption.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}/treatment-plan/{planId}?planTab=payment-v2
+Control: `In hóa đơn tổng` → "Chi tiết phiếu" with `Mã thanh toán: Tổng hợp`
+Reason: The three totals (`Doanh thu dự kiến`, `Đã thanh toán`, `Công nợ`) were
+  read on a slip with one receipt; whether `Đã thanh toán` is net of refunds on
+  the reference was not observable.
+Action taken: NONE
+BlueDental: the three totals are the head figures `totalPrice`, `totalPaid`,
+  `debt` of the slip (net, as the API reports them). Assumption.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}/treatment-plan/{planId}?planTab=refund — dialog "Hoàn tiền"
+Control: the service table on a line that was already partly refunded, and
+  `Loại = Hoàn tiền dư nợ`
+Reason: Observed on a slip with no prior refund; the debt variant needs a held
+  balance the surveyed patient did not have.
+Action taken: NONE
+BlueDental: `Đã thanh toán` shows the gross collected, `Đã hoàn` the refunded
+  sum, and the box accepts up to the net still held. `Hoàn tiền dư nợ` posts a
+  Refund without `treatmentPlanId` against the patient's held balance. Both are
+  assumptions; the server refuses a refund on a fully paid line (see
+  `docs/testing/features/treatment-plan-detail.md`).
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}/treatment-plan/{planId}?planTab=detail
+Control: `Tạo Đơn Thuốc`, `In Hóa Đơn`
+Reason: Both leave the page. (The printer icon was observed on 2026-09-07: it
+  opens the slip's "Chi tiết phiếu", and `In Phiếu` prints "PHIẾU ĐIỀU TRỊ" —
+  see the page doc.)
+Action taken: NONE
+BlueDental: `Tạo Đơn Thuốc` opens the Đơn thuốc tab with `create=true`;
+  `In Hóa Đơn` opens the invoice modal.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}/treatment-plan/{planId}?planTab=detail → printer icon → "Chi tiết phiếu"
+Control: the columns of `CHI TIẾT DỊCH VỤ` to the right of `Thành tiền`
+Reason: The table scrolls horizontally and only the columns up to `Thành tiền`
+  were visible in the capture; the scrollbar was not dragged.
+Action taken: NONE
+BlueDental: the table ends at `Thành tiền`.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}/treatment-plan/{planId}?planTab=payment-v2 → eye → "Chi tiết phiếu" → `In Hoá Đơn`
+Control: the print of a **single** receipt (and of a refund row)
+Reason: Only the aggregate print ("In hóa đơn tổng" → In Hoá Đơn) was observed
+  — one "BIÊN LAI THU TIỀN" sheet with `Nhân viên` blank, `Phương thức TT:
+  Tổng hợp` and the treating dentist under `Người lập phiếu`. Opening the
+  single-receipt print preview was not repeated on production.
+Action taken: NONE
+BlueDental: the same sheet, with the receipt's own date, `Nhân viên` = the
+  collector, its channel and amount, and the collector signing `Người lập
+  phiếu` (the dentist when no collector is known).

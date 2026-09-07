@@ -899,16 +899,6 @@
   line-height: 18px;
   text-align: center;
 }
-.tp-opt-group {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 14px;
-}
-.tp-opt-group > svg {
-  flex: none;
-  color: var(--tp-label);
-}
 .tp-opt-service {
   display: flex;
   align-items: center;
@@ -925,6 +915,129 @@
 .tp-opt-price {
   flex: none;
   color: var(--tp-blue);
+}
+
+/* Group mode: the groups, drawn by hand inside the popup (never Select options) */
+.tp-group-list {
+  max-height: 256px;
+  overflow: auto;
+}
+.tp-group-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  padding: 10px 12px;
+  color: var(--tp-ink);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.tp-group-item:hover,
+.tp-group-item:focus-visible {
+  background: var(--tp-ground);
+}
+.tp-group-item > svg {
+  flex: none;
+  color: var(--tp-label);
+}
+.tp-group-list-empty {
+  padding: 12px 16px;
+  color: var(--tp-label);
+  font-size: 12px;
+  text-align: center;
+}
+
+/* Group mode, a group opened: round back button + name over a bordered table.
+   560 wide with 12px around it on the reference (8 here + the popup's own 4). */
+.tp-group-panel {
+  display: flex;
+  flex-direction: column;
+  width: 560px;
+  max-width: calc(100vw - 32px);
+  max-height: 420px;
+  padding: 8px;
+}
+.tp-group-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.tp-group-back {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--tp-line);
+  border-radius: 50%;
+  background: var(--bd-surface, #fff);
+  padding: 0;
+  color: var(--tp-ink);
+  cursor: pointer;
+}
+.tp-group-back:hover {
+  background: var(--tp-ground);
+}
+.tp-group-title {
+  color: var(--tp-ink);
+  font-size: 14px;
+  font-weight: 700;
+}
+.tp-group-table-wrap {
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--tp-line);
+  border-radius: 8px;
+}
+.tp-group-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 14px;
+}
+.tp-group-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 40px;
+  padding: 0 16px;
+  background: var(--tp-ground);
+  color: var(--tp-label);
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+}
+.tp-group-table td {
+  padding: 14px 16px;
+  border-top: 1px solid var(--tp-line);
+  color: var(--tp-ink);
+  line-height: 20px;
+}
+.tp-group-table td:first-child {
+  width: 40%;
+}
+.tp-group-table .tp-num {
+  text-align: right;
+  white-space: nowrap;
+}
+.tp-group-table tbody tr[role="button"] {
+  cursor: pointer;
+}
+.tp-group-table tbody tr[role="button"]:hover td,
+.tp-group-table tbody tr[role="button"]:focus-visible td {
+  background: var(--tp-blue-pale);
+}
+.tp-group-table .tp-group-empty {
+  padding: 16px;
+  color: var(--tp-label);
+  text-align: center;
 }
 
 /* "Chọn răng" — dialog 1024×484 (189 collapsed), body 12/24/24, 16px stack */
@@ -1129,4 +1242,20 @@
 
 .tp-input-full {
   width: 100%;
+}
+
+/* ── Links into the plan-detail page ──
+   The DT code is a button now (it navigates); on the primary card head it
+   must stay white, and the summary-card items are buttons that keep the
+   old box. */
+.bd-rc-head .tp-code {
+  color: #fff;
+}
+.bd-rc-head .tp-code:hover {
+  color: #fff;
+}
+button.tp-card-item {
+  width: 100%;
+  font: inherit;
+  text-align: left;
 }

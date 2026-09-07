@@ -10,6 +10,7 @@ interface CardProps {
   title: string;
   icon: React.ReactNode;
   rows: PlanServiceRow[];
+  onOpen: (row: PlanServiceRow) => void;
 }
 
 /**
@@ -21,7 +22,7 @@ function itemMeta(variant: Variant, { plan, service }: PlanServiceRow): string {
   return service.stageNotes.at(-1) ?? "";
 }
 
-function SummaryCard({ variant, title, icon, rows }: CardProps) {
+function SummaryCard({ variant, title, icon, rows, onOpen }: CardProps) {
   return (
     <section className={`tp-card tp-card--${variant}`} aria-label={title}>
       <header className="tp-card-head">
@@ -31,7 +32,12 @@ function SummaryCard({ variant, title, icon, rows }: CardProps) {
       </header>
       <div className="tp-card-body">
         {rows.map((row) => (
-          <div key={row.service.id} className={`tp-card-item tp-card-item--${variant}`}>
+          <button
+            key={row.service.id}
+            type="button"
+            className={`tp-card-item tp-card-item--${variant}`}
+            onClick={() => onOpen(row)}
+          >
             <div className="tp-card-item-text">
               <strong>{row.service.serviceName}</strong>
               <span className="tp-card-item-meta">
@@ -40,7 +46,7 @@ function SummaryCard({ variant, title, icon, rows }: CardProps) {
               </span>
             </div>
             <ChevronRight size={16} aria-hidden="true" />
-          </div>
+          </button>
         ))}
       </div>
     </section>
@@ -50,10 +56,12 @@ function SummaryCard({ variant, title, icon, rows }: CardProps) {
 interface Props {
   active: PlanServiceRow[];
   recent: PlanServiceRow[];
+  /** An item leads to its slip's screen. */
+  onOpen: (row: PlanServiceRow) => void;
 }
 
 /** The two summary widgets above the slip table. */
-export function PlanSummaryCards({ active, recent }: Props) {
+export function PlanSummaryCards({ active, recent, onOpen }: Props) {
   return (
     <div className="tp-cards">
       <SummaryCard
@@ -61,12 +69,14 @@ export function PlanSummaryCards({ active, recent }: Props) {
         title={t("Dịch vụ đang điều trị")}
         icon={<ClipboardList size={18} aria-hidden="true" />}
         rows={active}
+        onOpen={onOpen}
       />
       <SummaryCard
         variant="recent"
         title={t("Dịch vụ có công đoạn gần nhất")}
         icon={<Zap size={18} aria-hidden="true" />}
         rows={recent}
+        onOpen={onOpen}
       />
     </div>
   );

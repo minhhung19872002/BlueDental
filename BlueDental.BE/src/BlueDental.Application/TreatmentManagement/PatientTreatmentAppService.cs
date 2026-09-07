@@ -146,6 +146,45 @@ public class PatientTreatmentAppService : ApplicationService, IPatientTreatmentA
     }
 
     [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Update)]
+    public async Task<TreatmentPlanSlipDto> AddServiceAsync(Guid id, AddTreatmentServiceDto input)
+    {
+        var plan = await LoadAsync(id);
+
+        var catalog = await _catalogRepository.FirstOrDefaultAsync(c => c.Id == input.ServiceId)
+            ?? throw new BusinessException(
+                BlueDentalDomainErrorCodes.Catalogs.CatalogEntryNotFound,
+                "That service is not in the catalog.");
+
+        var line = plan.AddService(
+            GuidGenerator.Create(),
+            catalog.Id,
+            sourceAdviseId: null,
+            input.Price,
+            input.Quantity,
+            input.DiscountType,
+            input.DiscountValue,
+            PatientDiagnosisAppService.ToToothSelections(input.Teeth));
+
+        line.SetDetails(
+            input.DiagnosisId,
+            input.DentistId,
+            input.Note,
+            input.DiagnoserStaffId,
+            input.SecondDiagnoserStaffId,
+            input.ConsultantStaffId,
+            input.SecondConsultantStaffId);
+
+        if (input.Status.HasValue && input.Status.Value != TreatmentServiceStatus.Created)
+        {
+            line.SetInitialStatus(input.Status.Value);
+        }
+
+        plan.CloseIfAllServicesDone();
+        await _planRepository.UpdateAsync(plan, autoSave: true);
+        return (await MapManyAsync([plan])).Single();
+    }
+
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Update)]
     public async Task<TreatmentPlanSlipDto> CompleteServiceAsync(Guid id, Guid serviceLineId)
     {
         var plan = await LoadAsync(id);
@@ -302,7 +341,13 @@ public class PatientTreatmentAppService : ApplicationService, IPatientTreatmentA
             .GroupBy(x => x.TreatmentServiceId)
             .ToDictionary(g => g.Key, g => g.Sum(x => x.Signed));
 
-        var serviceIds = plans.SelectMany(p => p.Services).Select(s => s.ServiceId).Distinct().ToList();
+        var lines = plans.SelectMany(p => p.Services).ToList();
+        var serviceIds = lines
+            .Select(s => s.ServiceId)
+            .Concat(lines.Select(s => s.DiagnosisId ?? Guid.Empty))
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToList();
         var catalogQuery = await _catalogRepository.GetQueryableAsync();
         var catalogRows = catalogQuery
             .Where(c => serviceIds.Contains(c.Id))
@@ -313,6 +358,14 @@ public class PatientTreatmentAppService : ApplicationService, IPatientTreatmentA
 
         var staffIds = plans
             .SelectMany(p => new[] { p.DentistId, p.ConsultantStaffId ?? Guid.Empty })
+            .Concat(lines.SelectMany(s => new[]
+            {
+                s.DentistId ?? Guid.Empty,
+                s.DiagnoserStaffId ?? Guid.Empty,
+                s.SecondDiagnoserStaffId ?? Guid.Empty,
+                s.ConsultantStaffId ?? Guid.Empty,
+                s.SecondConsultantStaffId ?? Guid.Empty
+            }))
             .Where(x => x != Guid.Empty)
             .Distinct()
             .ToList();
@@ -368,7 +421,20 @@ public class PatientTreatmentAppService : ApplicationService, IPatientTreatmentA
                         .ToList(),
                     PaidAmount = PaidOn(paidByService, line.Id),
                     OutstandingAmount = Math.Max(0m, line.EffectiveAmount - PaidOn(paidByService, line.Id)),
-                    AfterCareStatus = AfterCareOn(careByStage, stagesByService, line.Id)
+                    AfterCareStatus = AfterCareOn(careByStage, stagesByService, line.Id),
+                    DiagnosisId = line.DiagnosisId,
+                    DiagnosisName = NameOf(serviceNames, line.DiagnosisId),
+                    DentistId = line.DentistId,
+                    DentistName = NameOf(staffNames, line.DentistId),
+                    Note = line.Note,
+                    DiagnoserStaffId = line.DiagnoserStaffId,
+                    DiagnoserName = NameOf(staffNames, line.DiagnoserStaffId),
+                    SecondDiagnoserStaffId = line.SecondDiagnoserStaffId,
+                    SecondDiagnoserName = NameOf(staffNames, line.SecondDiagnoserStaffId),
+                    ConsultantStaffId = line.ConsultantStaffId,
+                    ConsultantName = NameOf(staffNames, line.ConsultantStaffId),
+                    SecondConsultantStaffId = line.SecondConsultantStaffId,
+                    SecondConsultantName = NameOf(staffNames, line.SecondConsultantStaffId)
                 })
                 .ToList(),
             DentistName = staffNames.TryGetValue(plan.DentistId, out var dentist) ? dentist : null,
@@ -382,6 +448,9 @@ public class PatientTreatmentAppService : ApplicationService, IPatientTreatmentA
             LastModifierId = plan.LastModifierId
         }).ToList();
     }
+
+    private static string? NameOf(IReadOnlyDictionary<Guid, string> names, Guid? id) =>
+        id.HasValue && names.TryGetValue(id.Value, out var name) ? name : null;
 
     private static decimal PaidOn(IReadOnlyDictionary<Guid, decimal> paidByService, Guid serviceLineId) =>
         paidByService.TryGetValue(serviceLineId, out var paid) ? paid : 0m;

@@ -713,6 +713,10 @@ URL: `?tab=treatment-plan`
 Status: OBSERVED (re-surveyed 2026-09-07 on staging, one patient with three
 slips; captures in `reference-private/treatment-plan-tab/`)
 
+> The slip code link, the items in the two summary cards and the ≤640 card head
+> open **Chi tiết kế hoạch điều trị** — `/patient/:id/treatment-plan/:planId`,
+> documented in `treatment-plan-detail.md` (built 2026-09-07, F-39).
+
 ### Toolbar (top-right, 2 buttons)
 
 | Button | Notes |

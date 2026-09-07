@@ -35,6 +35,7 @@ import {
   type TreatmentPlanSlipDto,
   type TreatmentServiceDto,
 } from "@/features/treatment-management/api/treatmentPlanApi";
+import "./patient-detail.css";
 
 interface Props {
   open: boolean;

@@ -30,6 +30,12 @@ const PatientProfilePage = lazy(() =>
   ),
 );
 
+const TreatmentPlanDetailPage = lazy(() =>
+  import("@/features/treatment-management/pages/TreatmentPlanDetailPage").then(
+    (m) => ({ default: m.TreatmentPlanDetailPage }),
+  ),
+);
+
 const AppointmentCalendarPage = lazy(() =>
   import(
     "@/features/appointments/pages/AppointmentCalendarPage"
@@ -196,6 +202,14 @@ const appRoutes: RouteObject[] = [
         element: (
           <S>
             <PatientProfilePage />
+          </S>
+        ),
+      },
+      {
+        path: "patient/:id/treatment-plan/:planId",
+        element: (
+          <S>
+            <TreatmentPlanDetailPage />
           </S>
         ),
       },

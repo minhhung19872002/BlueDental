@@ -716,6 +716,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.DiscountType).HasConversion<short>();
             entity.Property(x => x.Price).HasColumnType("numeric(18,2)");
             entity.Property(x => x.DiscountValue).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.Note).HasMaxLength(1000);
             entity.OwnsMany(x => x.Teeth, t => t.ToJson());
             entity.Navigation(x => x.Teeth).UsePropertyAccessMode(PropertyAccessMode.Field);
             entity.Ignore(x => x.GrossAmount);

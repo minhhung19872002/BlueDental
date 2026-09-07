@@ -27,6 +27,10 @@ export const SERVICE_LINE_STATUS = {
   Done: 3,
   Cancelled: 4,
   Replaced: 5,
+  /** Bảo hành — the reference's seventh status on a line. */
+  Warranty: 6,
+  /** Đã chuyển — the line was moved to another slip. */
+  Transferred: 7,
 } as const;
 export type TreatmentServiceStatus =
   (typeof SERVICE_LINE_STATUS)[keyof typeof SERVICE_LINE_STATUS];
@@ -40,6 +44,8 @@ export const serviceLineStatusConfig = (): Record<
   [SERVICE_LINE_STATUS.Done]: { label: t("Hoàn thành"), color: "green" },
   [SERVICE_LINE_STATUS.Cancelled]: { label: t("Đã huỷ"), color: "red" },
   [SERVICE_LINE_STATUS.Replaced]: { label: t("Đã thay thế"), color: "purple" },
+  [SERVICE_LINE_STATUS.Warranty]: { label: t("Bảo hành"), color: "gold" },
+  [SERVICE_LINE_STATUS.Transferred]: { label: t("Đã chuyển"), color: "purple" },
 });
 
 /** Matches BlueDental.Billing.PatientPaymentKind. */
@@ -147,6 +153,41 @@ export interface TreatmentServiceDto {
   outstandingAmount: number;
   /** Null when no care record covers the line's stages — "Chưa chăm sóc". */
   afterCareStatus: CareStatusCode | null;
+  /**
+   * The inline row's own columns (Thêm dịch vụ mới). Null on a line pulled
+   * from a consulting line — the table falls back to the advise / the slip.
+   */
+  diagnosisId: string | null;
+  diagnosisName: string | null;
+  dentistId: string | null;
+  dentistName: string | null;
+  note: string | null;
+  diagnoserStaffId: string | null;
+  diagnoserName: string | null;
+  secondDiagnoserStaffId: string | null;
+  secondDiagnoserName: string | null;
+  consultantStaffId: string | null;
+  consultantName: string | null;
+  secondConsultantStaffId: string | null;
+  secondConsultantName: string | null;
+}
+
+/** POST patient-treatments/{id}/services — the inline "new row" saved with Lưu. */
+export interface AddTreatmentServiceInput {
+  serviceId: string;
+  price: number;
+  quantity: number;
+  discountType: DiscountType;
+  discountValue: number;
+  teeth: ToothSelectionDto[];
+  status: TreatmentServiceStatus;
+  diagnosisId: string | null;
+  dentistId: string | null;
+  note: string | null;
+  diagnoserStaffId: string | null;
+  secondDiagnoserStaffId: string | null;
+  consultantStaffId: string | null;
+  secondConsultantStaffId: string | null;
 }
 
 export interface TreatmentPlanSlipDto {
@@ -242,7 +283,22 @@ export interface RecordPaymentInput {
   paymentAccountId?: string;
 }
 
+/** Filters of `GET patient-payments`; the server pages and sorts by `paidAt` desc. */
+export interface PatientPaymentListInput {
+  patientId: string;
+  clinicBranchId: string;
+  treatmentPlanId?: string;
+  kind?: PatientPaymentKind;
+  skipCount?: number;
+  maxResultCount?: number;
+}
+
 const PLANS = "/v1/app/patient-treatments";
+
+/** `GET {plan}/pdf` — the printable slip; fetched through `downloadFile`. */
+export function planPdfUrl(planId: string): string {
+  return `${PLANS}/${planId}/pdf`;
+}
 const PAYMENTS = "/v1/app/patient-payments";
 
 const treatmentApi = {
@@ -253,8 +309,17 @@ const treatmentApi = {
   }): Promise<PagedResult<TreatmentPlanSlipDto>> =>
     api.get<PagedResult<TreatmentPlanSlipDto>>(PLANS, { params }).then((r) => r.data),
 
+  plan: (planId: string): Promise<TreatmentPlanSlipDto> =>
+    api.get<TreatmentPlanSlipDto>(`${PLANS}/${planId}`).then((r) => r.data),
+
+  payments: (params: PatientPaymentListInput): Promise<PagedResult<PatientPaymentDto>> =>
+    api.get<PagedResult<PatientPaymentDto>>(PAYMENTS, { params }).then((r) => r.data),
+
   openPlan: (input: OpenPlanInput): Promise<TreatmentPlanSlipDto> =>
     api.post<TreatmentPlanSlipDto>(PLANS, input).then((r) => r.data),
+
+  addService: (planId: string, input: AddTreatmentServiceInput): Promise<TreatmentPlanSlipDto> =>
+    api.post<TreatmentPlanSlipDto>(`${PLANS}/${planId}/services`, input).then((r) => r.data),
 
   completeService: (planId: string, lineId: string): Promise<TreatmentPlanSlipDto> =>
     api
@@ -279,7 +344,28 @@ export const treatmentKeys = {
   all: ["patient-treatments"] as const,
   plans: (patientId: string) => [...treatmentKeys.all, "plans", patientId] as const,
   account: (patientId: string) => [...treatmentKeys.all, "account", patientId] as const,
+  plan: (planId: string) => [...treatmentKeys.all, "plan", planId] as const,
+  payments: (params: PatientPaymentListInput) =>
+    [...treatmentKeys.all, "payments", params] as const,
 };
+
+/** One slip with its service lines and payment summary — the plan-detail page. */
+export function usePlanSlip(planId: string) {
+  return useQuery({
+    queryKey: treatmentKeys.plan(planId),
+    queryFn: () => treatmentApi.plan(planId),
+    enabled: Boolean(planId),
+  });
+}
+
+/** The receipts (or refunds, by `kind`) filed against one slip, paged by the server. */
+export function usePatientPayments(params: PatientPaymentListInput) {
+  return useQuery({
+    queryKey: treatmentKeys.payments(params),
+    queryFn: () => treatmentApi.payments(params),
+    enabled: Boolean(params.patientId),
+  });
+}
 
 export function useTreatmentPlans(patientId: string, clinicBranchId: string) {
   return useQuery({
@@ -316,6 +402,12 @@ function useTreatmentMutation<TVariables, TData>(fn: (variables: TVariables) => 
 
 export function useOpenTreatmentPlan() {
   return useTreatmentMutation(treatmentApi.openPlan);
+}
+
+export function useAddServiceLine() {
+  return useTreatmentMutation((input: { planId: string; line: AddTreatmentServiceInput }) =>
+    treatmentApi.addService(input.planId, input.line),
+  );
 }
 
 export function useCompleteServiceLine() {

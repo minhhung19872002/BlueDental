@@ -72,7 +72,11 @@ export function PlanCardList({ plans, total, settings, pagination, actions }: Pr
           return (
             <RecordCard
               key={plan.id}
-              title={plan.code}
+              title={
+                <button type="button" className="tp-code" onClick={() => actions.onOpenPlan(plan)}>
+                  {plan.code}
+                </button>
+              }
               extra={<PlanCardActions plan={plan} actions={actions} />}
               rows={rows}
               moreRows={moreRows}

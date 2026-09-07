@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Spin } from "antd";
 import { TreatmentStageDialog } from "@/features/patient-management/components/patient-detail/TreatmentStageDialog";
 import type { PatientDto } from "@/features/patient-management/types/patient";
@@ -15,7 +16,12 @@ import { PlanSummaryCards } from "./plan/PlanSummaryCards";
 import { PlanTable } from "./plan/PlanTable";
 import { PlanToolbar } from "./plan/PlanToolbar";
 import type { PlanRowActions } from "./plan/planColumns";
-import { defaultPlanColumns, flattenServices, summariseServices } from "./plan/planTypes";
+import {
+  defaultPlanColumns,
+  flattenServices,
+  planDetailPath,
+  summariseServices,
+} from "./plan/planTypes";
 import "./plan/treatment-plan.css";
 
 interface Props {
@@ -32,6 +38,7 @@ type ServiceListTarget = { kind: "plan"; plan: TreatmentPlanSlipDto } | { kind: 
  * opens is an existing one except the create form and the service list.
  */
 export function TreatmentPlanPanel({ patientId, patient }: Props) {
+  const navigate = useNavigate();
   const branchId = useCurrentBranchId();
   const pagination = useTablePagination(20);
   const [columns, setColumns] = useState(defaultPlanColumns);
@@ -64,8 +71,9 @@ export function TreatmentPlanPanel({ patientId, patient }: Props) {
       onAddStage: setStagePlan,
       onViewServices: (plan) => setServiceList({ kind: "plan", plan }),
       onReceipt: setInvoicePlan,
+      onOpenPlan: (plan) => navigate(planDetailPath(patientId, plan.id, branchId)),
     }),
-    [],
+    [navigate, patientId, branchId],
   );
 
   const serviceRows =
@@ -89,7 +97,11 @@ export function TreatmentPlanPanel({ patientId, patient }: Props) {
         onCreate={() => setCreateOpen(true)}
         onViewAll={() => setServiceList({ kind: "all" })}
       />
-      <PlanSummaryCards active={summary.active} recent={summary.recent} />
+      <PlanSummaryCards
+        active={summary.active}
+        recent={summary.recent}
+        onOpen={(row) => navigate(planDetailPath(patientId, row.plan.id, branchId))}
+      />
 
       <div className="tp-table-block">
         <PlanColumnConfigPopover value={columns} onChange={setColumns} />

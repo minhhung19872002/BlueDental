@@ -30,6 +30,10 @@ public sealed class PatientTreatmentController(IPatientTreatmentAppService servi
     public Task<TreatmentPlanSlipDto> ApplyDiscountAsync(
         Guid id, [FromBody] ApplyPlanDiscountDto input) => service.ApplyDiscountAsync(id, input);
 
+    [HttpPost("{id:guid}/services")]
+    public Task<TreatmentPlanSlipDto> AddServiceAsync(
+        Guid id, [FromBody] AddTreatmentServiceDto input) => service.AddServiceAsync(id, input);
+
     [HttpPost("{id:guid}/services/{serviceLineId:guid}/complete")]
     public Task<TreatmentPlanSlipDto> CompleteServiceAsync(Guid id, Guid serviceLineId) =>
         service.CompleteServiceAsync(id, serviceLineId);

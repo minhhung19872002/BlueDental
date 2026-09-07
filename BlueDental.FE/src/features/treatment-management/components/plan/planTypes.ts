@@ -2,7 +2,11 @@ import { t } from "@/lib/i18n";
 import { formatVND } from "@/utils/format";
 import { PLAN_STATUS } from "@/utils/planStatus";
 import { SERVICE_LINE_STATUS } from "../../api/treatmentPlanApi";
-import type { TreatmentPlanSlipDto, TreatmentServiceDto } from "../../api/treatmentPlanApi";
+import type {
+  TreatmentPlanSlipDto,
+  TreatmentServiceDto,
+  TreatmentServiceStatus,
+} from "../../api/treatmentPlanApi";
 
 /**
  * The reference's configurable columns, in its default order. "Thêm công đoạn"
@@ -99,6 +103,12 @@ export function planPill(plan: TreatmentPlanSlipDto) {
   return PLAN_PILL[plan.status] ?? PLAN_PILL[PLAN_STATUS.Draft];
 }
 
+/** The slip's own screen — where the code links and the summary cards lead. */
+export function planDetailPath(patientId: string, planId: string, branchId: string): string {
+  const search = branchId ? `?branchId=${encodeURIComponent(branchId)}` : "";
+  return `/patient/${patientId}/treatment-plan/${planId}${search}`;
+}
+
 /** Every money cell on the tab carries the unit: "4.000.000 đ". */
 export function moneyText(value: number | null | undefined) {
   return t("{0} đ", formatVND(value));
@@ -110,7 +120,20 @@ export const SERVICE_PILL: Record<number, { label: string; modifier: string }> =
   [SERVICE_LINE_STATUS.Done]: { label: "Hoàn thành", modifier: "tp-pill--done" },
   [SERVICE_LINE_STATUS.Cancelled]: { label: "Huỷ phiếu", modifier: "tp-pill--cancelled" },
   [SERVICE_LINE_STATUS.Replaced]: { label: "Chuyển đổi", modifier: "tp-pill--converted" },
+  [SERVICE_LINE_STATUS.Warranty]: { label: "Bảo hành", modifier: "tp-pill--converted" },
+  [SERVICE_LINE_STATUS.Transferred]: { label: "Đã chuyển", modifier: "tp-pill--converted" },
 };
+
+/** The status menu on the inline new row, in the reference's order. */
+export const NEW_LINE_STATUSES: readonly { value: TreatmentServiceStatus; label: string }[] = [
+  { value: SERVICE_LINE_STATUS.Created, label: "Đã tạo" },
+  { value: SERVICE_LINE_STATUS.InProgress, label: "Đang điều trị" },
+  { value: SERVICE_LINE_STATUS.Done, label: "Hoàn thành" },
+  { value: SERVICE_LINE_STATUS.Replaced, label: "Chuyển đổi" },
+  { value: SERVICE_LINE_STATUS.Transferred, label: "Đã chuyển" },
+  { value: SERVICE_LINE_STATUS.Warranty, label: "Bảo hành" },
+  { value: SERVICE_LINE_STATUS.Cancelled, label: "Hủy dịch vụ" },
+];
 
 /** A service line together with the slip it belongs to, for the flat lists. */
 export interface PlanServiceRow {

@@ -46,7 +46,13 @@ public enum TreatmentServiceStatus
     InProgress = 2,
     Done = 3,
     Cancelled = 4,
-    Replaced = 5
+    Replaced = 5,
+
+    /// <summary>Bảo hành — the reference's seventh status on a service line.</summary>
+    Warranty = 6,
+
+    /// <summary>Đã chuyển — the line was moved to another slip on the reference.</summary>
+    Transferred = 7
 }
 
 /// <summary>

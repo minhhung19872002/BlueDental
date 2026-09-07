@@ -17,6 +17,8 @@ export interface PlanRowActions {
   onAddStage: (plan: TreatmentPlanSlipDto) => void;
   onViewServices: (plan: TreatmentPlanSlipDto) => void;
   onReceipt: (plan: TreatmentPlanSlipDto) => void;
+  /** The code link — the slip's own screen. */
+  onOpenPlan: (plan: TreatmentPlanSlipDto) => void;
 }
 
 type Column = TableColumnsType<TreatmentPlanSlipDto>[number];
@@ -48,9 +50,8 @@ function configurableColumns(actions: PlanRowActions): Record<PlanColumnKey, Col
       key: "code",
       title: t(PLAN_COLUMN_LABELS.code),
       width: 110,
-      // Link-styled as on the reference; the plan-detail page is a later round.
       render: (_, plan) => (
-        <button type="button" className="tp-code">
+        <button type="button" className="tp-code" onClick={() => actions.onOpenPlan(plan)}>
           {plan.code}
         </button>
       ),

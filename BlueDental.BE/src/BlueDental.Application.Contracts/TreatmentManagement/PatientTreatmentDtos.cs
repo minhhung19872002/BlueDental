@@ -76,6 +76,49 @@ public class TreatmentServiceDto : EntityDto<Guid>
     /// stages, which the table prints as "Chưa chăm sóc".
     /// </summary>
     public CareStatus? AfterCareStatus { get; set; }
+
+    /// <summary>
+    /// The inline row's own columns (Thêm dịch vụ mới). Null on a line pulled
+    /// from a consulting line — the client falls back to the advise / the slip.
+    /// </summary>
+    public Guid? DiagnosisId { get; set; }
+    public string? DiagnosisName { get; set; }
+    public Guid? DentistId { get; set; }
+    public string? DentistName { get; set; }
+    public string? Note { get; set; }
+    public Guid? DiagnoserStaffId { get; set; }
+    public string? DiagnoserName { get; set; }
+    public Guid? SecondDiagnoserStaffId { get; set; }
+    public string? SecondDiagnoserName { get; set; }
+    public Guid? ConsultantStaffId { get; set; }
+    public string? ConsultantName { get; set; }
+    public Guid? SecondConsultantStaffId { get; set; }
+    public string? SecondConsultantName { get; set; }
+}
+
+/// <summary>
+/// One line written straight onto a slip from the Chi tiết tab's picker — the
+/// reference's inline "new row" with Lưu / Hủy.
+/// </summary>
+public class AddTreatmentServiceDto
+{
+    public Guid ServiceId { get; set; }
+    public decimal Price { get; set; }
+    public int Quantity { get; set; } = 1;
+    public DiscountType DiscountType { get; set; }
+    public decimal DiscountValue { get; set; }
+    public List<ToothSelectionDto> Teeth { get; set; } = new();
+
+    /// <summary>The status pill on the new row; defaults to Created.</summary>
+    public TreatmentServiceStatus? Status { get; set; }
+
+    public Guid? DiagnosisId { get; set; }
+    public Guid? DentistId { get; set; }
+    public string? Note { get; set; }
+    public Guid? DiagnoserStaffId { get; set; }
+    public Guid? SecondDiagnoserStaffId { get; set; }
+    public Guid? ConsultantStaffId { get; set; }
+    public Guid? SecondConsultantStaffId { get; set; }
 }
 
 public class TreatmentPlanSlipDto : FullAuditedEntityDto<Guid>
@@ -228,6 +271,7 @@ public interface IPatientTreatmentAppService : IApplicationService
     Task<TreatmentPlanSlipDto> GetAsync(Guid id);
     Task<TreatmentPlanSlipDto> OpenAsync(OpenTreatmentPlanDto input);
     Task<TreatmentPlanSlipDto> ApplyDiscountAsync(Guid id, ApplyPlanDiscountDto input);
+    Task<TreatmentPlanSlipDto> AddServiceAsync(Guid id, AddTreatmentServiceDto input);
     Task<TreatmentPlanSlipDto> CompleteServiceAsync(Guid id, Guid serviceLineId);
     Task<TreatmentPlanSlipDto> CancelServiceAsync(Guid id, Guid serviceLineId);
 

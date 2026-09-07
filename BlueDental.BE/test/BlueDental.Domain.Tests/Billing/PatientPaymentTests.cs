@@ -107,6 +107,27 @@ public class PatientPaymentTests
             .Code.ShouldBe(BlueDentalDomainErrorCodes.Billing.PaymentAccountRequired);
     }
 
+    [Fact]
+    public void A_Bank_Refund_Names_No_Account_Because_The_Money_Goes_Out()
+    {
+        var refund = PatientPayment.Record(
+            Guid.NewGuid(),
+            patientId: Guid.NewGuid(),
+            clinicBranchId: Guid.NewGuid(),
+            kind: PatientPaymentKind.Refund,
+            method: PaymentMethodKind.Banking,
+            amount: 100_000m,
+            code: "HT26-0001",
+            staffId: Guid.NewGuid(),
+            paidAt: DateTimeOffset.UtcNow,
+            treatmentPlanId: Plan,
+            splitMode: PaymentSplitMode.Manual,
+            lines: [(ServiceA, 100_000m)]);
+
+        refund.PaymentAccountId.ShouldBeNull();
+        refund.SignedAmount.ShouldBe(-100_000m);
+    }
+
     [Theory]
     [InlineData(PaymentMethodKind.Cash)]
     [InlineData(PaymentMethodKind.Card)]

@@ -7,6 +7,8 @@ export interface RecordCardRow {
   key: string;
   label: ReactNode;
   value: ReactNode;
+  /** Puts the value on its own full-width line under the label, for a control. */
+  stacked?: boolean;
 }
 
 interface Props {
@@ -23,7 +25,7 @@ function Rows({ rows }: { rows: RecordCardRow[] }) {
   return (
     <>
       {rows.map((row) => (
-        <div key={row.key} className="bd-rc-row">
+        <div key={row.key} className={row.stacked ? "bd-rc-row bd-rc-row--stacked" : "bd-rc-row"}>
           <span className="bd-rc-label">{row.label}</span>
           <span className="bd-rc-value">{row.value}</span>
         </div>

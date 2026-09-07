@@ -42,6 +42,20 @@ public class TreatmentService : FullAuditedEntity<Guid>
 
     public TreatmentServiceStatus Status { get; private set; }
 
+    /// <summary>
+    /// The per-line details the reference's inline "new row" writes: Chẩn đoán,
+    /// Bác sĩ điều trị, Ghi chú, two diagnosing doctors, two consultants. A line
+    /// pulled from a consulting line leaves these null and reads them from the
+    /// advise / the slip instead.
+    /// </summary>
+    public Guid? DiagnosisId { get; private set; }
+    public Guid? DentistId { get; private set; }
+    public string? Note { get; private set; }
+    public Guid? DiagnoserStaffId { get; private set; }
+    public Guid? SecondDiagnoserStaffId { get; private set; }
+    public Guid? ConsultantStaffId { get; private set; }
+    public Guid? SecondConsultantStaffId { get; private set; }
+
     /// <summary>Teeth this line treats, inherited from the consulting line.</summary>
     public IReadOnlyCollection<ToothSelection> Teeth => _teeth.AsReadOnly();
 
@@ -121,6 +135,43 @@ public class TreatmentService : FullAuditedEntity<Guid>
 
         line._teeth.AddRange(teeth?.ToList() ?? new List<ToothSelection>());
         return line;
+    }
+
+    /// <summary>The inline row's own columns; null clears a field.</summary>
+    public TreatmentService SetDetails(
+        Guid? diagnosisId,
+        Guid? dentistId,
+        string? note,
+        Guid? diagnoserStaffId,
+        Guid? secondDiagnoserStaffId,
+        Guid? consultantStaffId,
+        Guid? secondConsultantStaffId)
+    {
+        DiagnosisId = diagnosisId;
+        DentistId = dentistId;
+        Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
+        DiagnoserStaffId = diagnoserStaffId;
+        SecondDiagnoserStaffId = secondDiagnoserStaffId;
+        ConsultantStaffId = consultantStaffId;
+        SecondConsultantStaffId = secondConsultantStaffId;
+        return this;
+    }
+
+    /// <summary>
+    /// The status the inline row was saved with. The reference lets a new line
+    /// start in any of its seven states; a closed one is closed from the start.
+    /// </summary>
+    public TreatmentService SetInitialStatus(TreatmentServiceStatus status)
+    {
+        if (!Enum.IsDefined(status))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.InvalidPlanTransition,
+                $"Unknown service line status {status}.");
+        }
+
+        Status = status;
+        return this;
     }
 
     /// <summary>Work has started on this line — the first công đoạn moved it.</summary>

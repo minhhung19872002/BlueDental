@@ -1855,3 +1855,83 @@ now        = 2026-09-07 05:20:18 UTC     → đúng 300 giây
 Chưa có spec giữ hành vi này: e2e mà khoá tài khoản thật sẽ làm hỏng các spec
 chạy song song, nên bằng chứng runtime nằm ở đợt đo trên, còn `IdentityLockoutSettingsTests`
 giữ phần con số khỏi trôi khi nâng cấp gói ABP.
+
+## 2026-09-07 (chiều) — Trang chi tiết kế hoạch điều trị (F-39)
+
+Trang `/patient/:id/treatment-plan/:planId` dựng mới theo **production**
+(khảo sát chỉ đọc: mở dialog Tạo phiếu thanh toán / Hoàn tiền / In hóa đơn tổng
+rồi đóng, không bấm Lưu), chỉ FE theo quyết định của chủ dự án. Các lệch tìm
+thấy khi so ảnh chụp bản gốc với bản local ở 1440 và 640, sửa cùng ngày. Số
+R- tiếp theo số cuối của mục trên (mục "Khoá đăng nhập" và mục "Kế hoạch điều
+trị" cùng ngày đều dùng đến R-233).
+
+| ID | Defect | Fix |
+|----|--------|-----|
+| R-234 | Bốn tab của trang dựng bằng tab gạch chân, bản gốc là **pill xám** | `.pdt-tab`: padding 8×16, 14/500, nền `--tp-ground`, pill đang chọn nền primary chữ trắng; hover của pill đang chọn giữ nền primary (trước đó rule hover chung đè, chữ trắng trên nền nhạt). Xuống 640 các pill xuống dòng |
+| R-235 | Tab Thanh toán / Hoàn tiền đặt nút tạo bên phải | Bản gốc: `Tạo Phiếu Thanh Toán` / `Hoàn Tiền` bên **trái**, `In hóa đơn tổng` bên phải — `.pdt-toolbar` thay cho toolbar canh phải |
+| R-236 | Dialog phiếu thu là một tờ hoá đơn tự bịa (số tiền bằng chữ, chữ ký) | Dựng lại **"Chi tiết phiếu"** đúng bản gốc: hai khối CHI TIẾT PHIẾU (Mã thanh toán / Ngày tạo / Phương thức / Ghi chú) và THÔNG TIN KHÁCH HÀNG (Mã KH / Khách hàng / SĐT / Địa chỉ / Ngày sinh), bảng CHI TIẾT DỊCH VỤ 7 cột có pager riêng, khối TỔNG THANH TOÁN DỊCH VỤ 380px canh phải (Tổng phí / Giảm giá / Đã trả trước đó / Số tiền TT / Tổng còn nợ đỏ), footer chỉ còn `In Hoá Đơn`. Bản tổng hợp in `Mã thanh toán: Tổng hợp`, `Ngày d tháng m năm y`, ba tổng Doanh thu dự kiến / Đã thanh toán / Công nợ. `receiptView.ts` viết lại thành `ReceiptView { code, createdLabel, methodLabel, note, lines, totals }`; xoá `utils/moneyWords.ts` |
+| R-237 | Cột Chẩn đoán của bảng dịch vụ trong phiếu để trống | Tra `sourceAdviseId` của dòng vào danh sách `patient-advises` (`usePatientAdvises`) — dialog nhận `advises` từ tab |
+| R-238 | Dialog Hoàn tiền xếp field theo lưới 3 cột, ô Nội dung một dòng | Bản gốc: Loại / Hình thức / (tài khoản) / Ngày tạo **xếp dọc bên trái**, Nội dung là textarea cao 152px bên phải có `0/500`. Textarea của antd `showCount` bọc trong affix wrapper nên vẫn cao 40px — wrapper `flex: 1 1 auto; align-items: stretch`, `textarea { min-height: 152px }`. Ngày tạo là Input disabled có icon lịch; footer chỉ còn `Lưu` |
+| R-239 | Bảng hoàn tiền: thiếu cột **Đã thanh toán**, không pager, placeholder sai | Thêm cột, `useTablePagination(20)` + `Pagination` dùng chung, placeholder "Nhập số tiền hoàn", `Tổng tiền trả:` canh phải chữ primary đậm cách 40px |
+| R-240 | **Trừ hoàn tiền hai lần**: ô nhập bị chặn ở `paidAmount − refunded` | `TreatmentServiceDto.paidAmount` đã **trừ sẵn** hoàn tiền (BE ghi dòng hoàn âm). `useRefundForm`: `refundable = max(0, paidAmount)`, cột Đã thanh toán hiện tổng thu gộp `paidAmount + refunded`; dòng chỉ hiện khi tổng thu gộp > 0. Spec: hoàn 500.000 trên dòng đã thu 1.500.000 → `Đã hoàn` nhích, `Đã thanh toán` giảm |
+| R-241 | Mã phiếu / số tiền in đậm trong bảng Thanh toán, Hoàn tiền; Dư nợ có cột Ghi chú và ô in đậm | Bản gốc mọi ô chữ thường, chỉ Thành tiền của bảng dịch vụ đậm; Dư nợ 8 cột không Ghi chú, bề rộng cột rút để cột Tổng tiền không trôi ra ngoài khung |
+| R-242 | Bảng Chi tiết mặc định 20 dòng, đầu thẻ 640 in tên dịch vụ / mã phiếu | Bản gốc 10 / trang cho bảng dịch vụ (20 cho ba tab kia); đầu `RecordCard` chỉ in **số thứ tự** của dòng (`skipCount + vị trí + 1`), bỏ prop `unit` thừa (`TS6133`) |
+| R-244 | Dialog Hoàn tiền: `Hình thức` liệt kê bốn kênh thu tiền và bắt chọn **tài khoản** ngân hàng / ví khi chọn Ngân hàng / Ví momo | Chủ dự án gửi ảnh bản gốc: đúng **ba** lựa chọn `Tiền mặt` / `Chuyển khoản` / `Quẹt thẻ` (có icon kính lúp), chỉ để ghi kênh, **không** chọn tài khoản. FE: `REFUND_METHODS` + `refundMethodLabels` riêng trong `useRefundForm.ts`, bỏ hẳn state / picker tài khoản; `Ngày tạo` in `d/M/yyyy` (`formatShortDate`) như bản gốc. BE: guard `PaymentAccountRequired` trong `PatientPayment.Record` chỉ áp cho tiền **vào** (`kind != Refund`) — trước đó một phiếu hoàn "Chuyển khoản" không có tài khoản sẽ bị từ chối `BlueDental:Billing:0090`. Test domain mới: hoàn tiền ngân hàng lưu `PaymentAccountId = null`, `SignedAmount` âm. Spec chọn Chuyển khoản, khẳng định không có ô "Tài khoản…", POST thật qua |
+| R-245 | Bảng trong dialog Hoàn tiền: tiêu đề cột canh trái, số bên dưới canh phải nên lệch nhau; ô nhập 160px canh phải dưới tiêu đề canh trái | `.pdt-refund-table th { text-align: left }` (0,1,1) thắng `.pdt-num` (0,1,0) — thêm `.pdt-refund-table th.pdt-num { text-align: right }`; cột cuối bỏ `pdt-num`, rộng 250px, ô nhập `width: 100%` nên tiêu đề "Nhập số tiền hoàn" nằm đúng mép trái của ô, như bản gốc |
+| R-248 | Icon máy in ở toolbar tab Chi tiết **tải file PDF** của kế hoạch — bản gốc mở modal **"Chi tiết phiếu"** của phiếu (Thông tin chi nhánh: Phòng khám / Địa chỉ / ĐT / Email; Thông tin khách hàng: Mã KH / Họ và tên; bảng Chi tiết dịch vụ 20/trang; Tổng phí / Đã trả trước đó / Tổng còn nợ; nút `In Phiếu`) | Thêm `PlanSlipDialog.tsx` + `slipView.ts`; `PlanServicesTab` mở dialog thay vì `downloadFile(planPdfUrl)`. Tách `ReceiptFacts` / `ReceiptTotals` (`ReceiptParts.tsx`) và `printSheet.ts` dùng chung với "Chi tiết phiếu" của phiếu thu. Spec 1 mở dialog, kiểm tra 4 tiêu đề, tên phòng khám, một dòng, ba dòng tổng và không có sự kiện download |
+| R-249 | `In Phiếu` phải in tờ **PHIẾU ĐIỀU TRỊ** (phòng khám trái, tiêu đề + ngày giữa, Mã KH / Họ và tên phải, bảng kẻ ô Dịch vụ / Trạng thái / Bác sĩ / Đơn giá `x SL` / Thành tiền, tổng bên phải, hai ô ký *(Ký, họ tên)*); bản in còn header/footer trình duyệt (giờ, tiêu đề tab, URL, số trang) | Thêm `PlanSlipSheet.tsx` ẩn trong modal, class `pdt-print-dialog` / `pdt-screen` dùng chung cho hai dialog in; `@page { margin: 0 }` trong `@media print` để trình duyệt không in header/footer, tờ tự chừa lề 12mm/15mm |
+| R-246 | Dialog "Tạo phiếu thanh toán" mở từ trang chi tiết kế hoạch **không có style** (nhãn dính giá trị, nút phương thức thành text) | CSS `.pd-newpay-*` nằm trong `patient-detail.css`, chỉ `PatientProfilePage` import; route `/treatment-plan/:planId` lazy-load không kéo file đó. `CreatePaymentDialog.tsx` nay `import "./patient-detail.css"` (cùng tiền lệ `PatientProfileDialogs.tsx`, `PatientEditorDialog.tsx`) nên dialog dùng chung đủ style ở mọi route |
+| R-247 | `In Hoá Đơn` in **cả modal "Chi tiết phiếu"** (bảng dịch vụ, tổng) — bản gốc in tờ **BIÊN LAI THU TIỀN** A4 (letterhead phòng khám, tiêu đề, Ngày / Nhân viên, Khách hàng / ĐT / Địa chỉ, Thành tiền / Số tiền bằng chữ / Phương thức TT / Dịch vụ / Nội dung TT, hai ô ký) | Thêm `ReceiptSheet.tsx` nằm ẩn trong modal, `@media print` với `html.pdt-printing` chỉ hiện tờ này (ẩn `.pdt-receipt`, mask, header, footer; nền body trắng). `ReceiptView` thêm `sheetDateLabel` / `staffName` / `amount`; `utils/moneyWords.ts` đọc số thành chữ (`300000` → `Ba trăm nghìn đồng`, khớp bản gốc). Letterhead lấy từ `useBranchInfo(branchId)` (đã có cho "In lịch sử điều trị"). Spec 2 kiểm tra tờ ẩn có tiêu đề, tên phòng khám, dòng tiền bằng chữ và hai ô ký |
+| R-243 | Tab Kế hoạch điều trị: mã DT và mục trong hai thẻ tóm tắt không điều hướng | Nối `planColumns.tsx`, `PlanSummaryCards.tsx`, `PlanCardList.tsx` sang route mới `patient/:id/treatment-plan/:planId` (lazy trong `router.tsx`); mục unknowns "In bệnh án / mã phiếu" cập nhật |
+
+Mức retest: **2** (một feature) + `treatment-plan.spec.ts` vì link của tab
+đổi. Bản build production `vite preview --strictPort` cổng **8093** (cổng 8080
+đang thuộc một checkout khác), API `:5000`, PostgreSQL thật, không `page.route`:
+
+- `e2e/treatment-plan-detail.spec.ts` **6/6** (44s; chạy lại **6/6**, 53s, sau
+  R-244/R-245 trên API build lại — `PatientPaymentTests` **13/13**; **6/6**, 42s, sau R-246/R-247; **6/6**, 43s, sau R-248/R-249): tạo phiếu → link → trang;
+  thu tiền → phiếu `Hoàn tất` + "Chi tiết phiếu" + bản tổng hợp; hoàn tiền →
+  dòng hoàn + `Đã hoàn` nhích; reload giữ `planTab`, Dư nợ trống, Hoàn thành
+  sống qua reload; 640 gập thẻ; tài khoản chi nhánh 2 bị từ chối.
+- `e2e/treatment-plan.spec.ts` chạy lại xanh.
+- `tsc --noEmit -p tsconfig.app.json` sạch, `oxlint` không cảnh báo mới,
+  `vite build` xanh.
+
+Giới hạn còn lại (ghi ở `docs/clone/unknowns.md`): `Thêm dịch vụ mới` và
+`Chuyển đổi` dừng ở toast; server từ chối hoàn tiền trên dòng đã thu đủ
+(`Manual` item phải ≤ Còn nợ) — muốn cho phép thì phải sửa guard ở BE, ngoài
+phạm vi đợt FE-only này. Chưa commit theo yêu cầu.
+
+## 2026-09-07 (tối) — Chi tiết kế hoạch: đơn thuốc mất CSS, thẻ hoàn tiền dưới 640
+
+Chủ dự án chỉ ba lệch trên trang chi tiết kế hoạch (F-39), kèm ảnh bản gốc
+của dialog "Hoàn tiền" ở khổ hẹp.
+
+| # | Lệch | Sửa |
+|---|---|---|
+| R-248 | Modal **"Thêm đơn thuốc"** mở từ nút `Tạo Đơn Thuốc` mất hết style (khối bệnh nhân, lưới hai cột, padding header/footer) — `prescription.css` chỉ được import ở `PrescriptionPanel`, còn `PlanServicesTab` gọi thẳng `PrescriptionDialog` | `PrescriptionDialog.tsx` tự import `./prescription.css` (như `InvoiceModal`), nên mọi nơi dùng dialog đều có style; toàn bộ rule đã scope `.rx-*` |
+| R-249 | Dialog **Hoàn tiền** dưới 640px gập bảng bằng CSS `td::before`, thiếu đầu thẻ số thứ tự và nếp "Xem thêm" như bản gốc; ô "Nhập số tiền hoàn" chỉ 140px | `RefundLinesTable` đổi sang `RefundLineCards` khi `(max-width: 640px)`: `RecordCard` dùng chung, số thứ tự trên đầu, 4 hàng đầu hiện sẵn, `Đã hoàn` + ô tiền sau "Xem thêm"; `RecordCardRow` thêm `stacked` (nhãn trên, control trải hết bề rộng thẻ — `.bd-rc-row--stacked`); pager `tp-card-pager` như các tab khác. Bỏ khối CSS gập bảng và `data-label` không còn dùng |
+| R-250 | Ô **Nội dung** ở khổ hẹp cao đúng 40px (một dòng) — rule `.ant-modal.tp-dialog .ant-input-affix-wrapper { height: 40px }` thắng `min-height` của textarea khi form còn một cột | `.ant-modal.tp-dialog .pdt-refund-note .ant-input-affix-wrapper { height: auto; min-height: 152px }`; ở hai cột vẫn kéo bằng cột trái |
+
+Mức retest: **2** (R-248 chỉ import CSS — Level 1; R-249 chạm `RecordCard`
+dùng chung nhưng chỉ thêm prop tuỳ chọn, các thẻ hiện có không đổi markup).
+Bản build production `vite build --outDir` riêng + `vite preview --strictPort`
+cổng **8097** (8080 và 8093 đang thuộc checkout khác; preview chỉ lắng nghe
+IPv6 nên `E2E_BASE_URL=http://localhost:8097`), API `:5000`, PostgreSQL thật:
+
+- `e2e/treatment-plan-detail.spec.ts` **6/6**, 41s. Test 640 mở thêm dialog
+  Hoàn tiền: không còn `.pdt-refund-table`, thẻ đầu tiêu đề `1`, pager
+  "Hiển thị 1–1 trên 1 dịch vụ", ô Nội dung ≥ 120px, sau "Xem thêm" ô tiền
+  rộng bằng thân thẻ (đo 536/536 ở 600px).
+- Đơn thuốc: đăng nhập thật ở dev :5185, mở đúng URL kế hoạch, `Tạo Đơn Thuốc`
+  → `.rx-grid` là `display: grid`, gap `24px 20px`, body `24px 24px 4px`.
+- `tsc --noEmit -p tsconfig.app.json` sạch, eslint sạch. Chưa commit.
+
+| # | Hiện tượng | Xử lý |
+|---|---|---|
+| R-251 | Tabs, dãy số tiền, toolbar và bảng nằm rời trên nền xám; bản gốc bọc cả ba trong một khối trắng (`rounded-xl border border-[#DCE3EE] bg-white p-4`, cách breadcrumb 16px) ở cả bốn tab và cả khổ 640 | `TreatmentPlanDetailPage` bọc `PlanDetailHead` + pane đang mở trong `<section class="pdt-body">`; CSS: viền `--tp-line`, bo 12px, padding 16px, cột gap 16px. Test đầu của spec kiểm tra tablist, `.pdt-toolbar`, `.tp-table` cùng nằm trong `.pdt-body` và `border-radius` 12px |
+
+Retest R-251: Level 1 (chỉ bọc thêm một khối, không đổi hành vi). Build
+production riêng, `vite preview` cổng **8098**, API `:5000`:
+`e2e/treatment-plan-detail.spec.ts` **6/6**, 44s; tsc + eslint sạch. Chưa
+commit; chưa chụp ảnh đối chiếu (chủ dự án xác nhận bằng mắt).

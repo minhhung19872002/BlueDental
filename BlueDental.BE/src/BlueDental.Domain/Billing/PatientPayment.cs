@@ -105,7 +105,8 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>
 
         // The reference's dialog will not save a bank or e-wallet payment until
         // one of the clinic's accounts is picked, so the record keeps that rule.
-        if (RequiresAccount(method) && !paymentAccountId.HasValue)
+        // A refund goes the other way — its dialog only names the channel.
+        if (kind != PatientPaymentKind.Refund && RequiresAccount(method) && !paymentAccountId.HasValue)
         {
             throw new BusinessException(
                 BlueDentalDomainErrorCodes.Billing.PaymentAccountRequired,

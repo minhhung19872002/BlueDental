@@ -46,8 +46,9 @@ What to retest when a shared piece changes. Levels are defined in
 | `InventoryItem` / `SuppliesAppService` | 2 | F-14 |
 | `OperationsArticle` / `OperationsTask` / `OperationsAbilities` | 2 | F-15 |
 | `TreatmentStage` domain / `TreatmentStageAppService` | 3 | F-19, F-38 (the Hồ sơ treatment table's Công đoạn cell and "Chi tiết phiếu"), F-13 — a labo order now names the công đoạn it was raised from |
-| `TreatmentPlan` / `TreatmentService` / `PatientMoneyCalculator` | 3 | F-19, F-21, F-22, F-17, F-18 — the money rollup feeds the reports |
-| `PatientPayment` / `PatientPaymentLine` | 3 | F-22, F-17, F-18, F-38 — a receipt's **lines** drive each service's Đã thu / Còn nợ, so touching them moves the Hồ sơ treatment table as well as both reports |
+| `TreatmentPlan` / `TreatmentService` / `PatientMoneyCalculator` | 3 | F-19, F-21, F-22, F-17, F-18 — the money rollup feeds the reports; F-39 reads the same slip and the five head figures come from `payment{}` |
+| `PatientPayment` / `PatientPaymentLine` | 3 | F-22, F-17, F-18, F-38, F-39 — a receipt's **lines** drive each service's Đã thu / Còn nợ, so touching them moves the Hồ sơ treatment table, the plan-detail Thanh toán / Hoàn tiền tabs and both reports; the refund dialog relies on `paidAmount` being **net** of refunds |
+| `features/treatment-management/components/plan-detail/`, `CreatePaymentDialog` (shared with the Hồ sơ tab), `utils/moneyWords.ts`, `hooks/useBranchInfo.ts` (letterhead) | 2 | F-39; F-38 when the payment dialog changes (it imports `patient-detail.css` itself since R-246); F-21 for the links into the page; the printed "In lịch sử điều trị" sheet shares `useBranchInfo` |
 | `Prescription` / `PrescriptionAppService` | 2 | F-23 |
 | `src/components/prescription-lines/` (shared line editor) | 3 | F-23 and F-34 (Đơn thuốc mẫu dialog) |
 | `PatientImage` / blob storage / `patient-images` reorder | 2 | F-24, and the Chẩn đoán & Tư vấn tab's "Chọn ảnh hiển thị" picker, which reads the same list |

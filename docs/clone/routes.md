@@ -40,6 +40,10 @@ External link:
 | /patient/:patientId?tab=care | Tab: Chăm sóc KH |
 | /patient/:patientId?tab=invoice | Tab: Hóa đơn |
 | /patient/:patientId?tab=debt | Tab: Lịch sử dư nợ |
+| /patient/:patientId/treatment-plan/:planId | Chi tiết kế hoạch điều trị (`planTab=detail` mặc định) — xem `pages/treatment-plan-detail.md` |
+| /patient/:patientId/treatment-plan/:planId?planTab=payment-v2 | Tab: Thanh toán của phiếu |
+| /patient/:patientId/treatment-plan/:planId?planTab=refund | Tab: Hoàn tiền của phiếu |
+| /patient/:patientId/treatment-plan/:planId?planTab=debt | Tab: Dư nợ của phiếu |
 
 ### Labo Sub-Routes
 

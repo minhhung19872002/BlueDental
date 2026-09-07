@@ -92,6 +92,7 @@ export function CreatePlanDialog({ open, patientId, branchId, onClose }: Props) 
           services={services.data ?? []}
           groups={groups.data ?? []}
           loading={services.isLoading || groups.isLoading}
+          onPickService={(service) => state.handleServiceChange(service.id)}
         />
 
         <div className="tp-create-grid">

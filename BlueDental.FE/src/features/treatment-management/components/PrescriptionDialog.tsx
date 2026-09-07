@@ -26,6 +26,7 @@ import {
 } from "../api/prescriptionApi";
 import type { PrescriptionPatientSummary } from "../types/prescription";
 import { PrescriptionPatientBlock } from "./PrescriptionPatientBlock";
+import "./prescription.css";
 
 interface FormValues {
   templateId?: string;

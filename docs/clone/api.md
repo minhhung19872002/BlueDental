@@ -1257,3 +1257,43 @@ BlueDental equivalent:
 | `GET /medicine-template/medicines` | `GET /api/v1/app/catalog-entries?group=medication_type` |
 | `GET /staff/list?isDoctor=true` | existing dentist list hook (`useDentistList`) |
 | (save) | `POST /api/v1/app/prescriptions` |
+
+## Chi tiết kế hoạch điều trị — observed 2026-09-07 (production, read-only)
+
+`/patient/{id}/treatment-plan/{planId}?planTab=…` issues four GETs on load and
+one more per tab. Nothing was posted; the create-payment, refund and print
+dialogs were opened and closed without saving. Structure only:
+
+```
+GET /api/v1/patient-treatments/{planId}?branchId=<id>
+→ { id, code, patientId, doctorId, status, createdAt,
+    services: [{ id, serviceId, serviceName, toothNumbers[], quantity, price,
+                 discountAmount, totalAmount, status, doctorId, diagnosisId, note,
+                 consultant1Id, consultant2Id, diagnosisDoctorId, ... }],
+    summary: { totalPrice, totalPaid, debt, totalRefund, outstandingDebt } }
+
+GET /api/v1/payment-v2/list?branchId=<id>&patientId=<id>&treatmentId=<id>&page=1&perPage=20
+→ offset page; item: { id, code, createdAt, method, note, totalAmount, paidAmount,
+    status, items: [{ serviceId, serviceName, amount }] }         (tab Thanh toán)
+
+GET /api/v1/payment-v2/list?…&type=refund                          (tab Hoàn tiền)
+→ same shape; `paidAmount` is the refunded amount
+
+GET /api/v1/patient-treatments/{planId}/debt?branchId=<id>         (tab Dư nợ)
+→ [] on every slip observed
+```
+
+The "Chi tiết phiếu" dialog reads nothing new — it is rendered from the receipt
+already in the list. The refund dialog issues no request until Lưu (not clicked).
+
+BlueDental equivalent (all endpoints already existed; the page is FE-only):
+
+| Reference | BlueDental |
+|---|---|
+| `GET /patient-treatments/{id}` | `GET /api/v1/app/patient-treatments/{id}` — `services[].paidAmount` is **net of refunds**, `outstandingAmount = max(0, effective − paid)`, `payment.{totalPrice,totalPaid,debt,totalRefund,outstandingDebt}` feed the five head figures |
+| `GET /payment-v2/list` | `GET /api/v1/app/patient-payments?patientId&clinicBranchId&treatmentPlanId&kind=1` |
+| `GET /payment-v2/list?type=refund` | same with `kind=2` |
+| `GET …/debt` | no endpoint — the tab lists the slip's lines that were paid with `OutstandingDebt` (assumption, see unknowns) |
+| (Tạo phiếu thanh toán → save) | `POST /api/v1/app/patient-payments` `{ kind: 1, method, paymentAccountId?, amount, treatmentPlanId, treatmentServiceIds[], splitMode: 1 \| 2, items[]? }` |
+| (Hoàn tiền → save) | `POST /api/v1/app/patient-payments` `{ kind: 2, method (1 Cash / 2 Banking / 3 Card), amount, treatmentPlanId, splitMode: 2, items: [{ treatmentServiceId, amount }] }` — no `paymentAccountId`: the reference's refund dialog names only the channel, so the aggregate's account guard applies to money coming in only; server still refuses a refund above the net collected on any line |
+| status pill menu | `POST /api/v1/app/patient-treatments/{id}/services/{serviceId}/complete` · `/convert` · `/cancel` |

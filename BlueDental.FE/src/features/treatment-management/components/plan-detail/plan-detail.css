@@ -1,0 +1,880 @@
+/* ── Chi tiết kế hoạch điều trị (/patient/:id/treatment-plan/:planId) ──
+   Measured on production 2026-09-07 at 1440×900 (reference-private/plan-detail).
+   Shares the --tp-* palette of the plan tab; the reference's blue is replaced
+   by the app's primary through those tokens, per the owner's rule. Prefix:
+   pdt-. */
+
+.pdt-page {
+  gap: 16px;
+}
+.pdt-page--center {
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+}
+
+/* ── Back arrow + breadcrumb (30px strip) ── */
+.pdt-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 30px;
+}
+.pdt-back {
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--tp-line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--tp-ink);
+  cursor: pointer;
+}
+.pdt-back:hover {
+  background: var(--tp-ground);
+}
+.pdt-crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--tp-label);
+  font-size: 13px;
+  line-height: 20px;
+}
+.pdt-crumb {
+  color: var(--tp-label);
+  text-decoration: none;
+}
+a.pdt-crumb:hover {
+  color: var(--tp-blue);
+  text-decoration: underline;
+}
+.pdt-crumb--strong {
+  color: var(--tp-ink);
+  font-weight: 600;
+}
+.pdt-crumb--current {
+  color: var(--tp-blue);
+}
+.pdt-crumb-sep {
+  color: var(--tp-label);
+}
+
+/* ── The white card that holds the tabs, the toolbar and the table ── */
+.pdt-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  border: 1px solid var(--tp-line);
+  border-radius: 12px;
+  background: #fff;
+  padding: 16px;
+}
+
+/* ── Pill tabs + money summary ── */
+.pdt-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+}
+.pdt-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pdt-tab {
+  border: 0;
+  border-radius: 999px;
+  background: var(--tp-pill);
+  padding: 8px 16px;
+  color: var(--tp-label);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+.pdt-tab:hover {
+  background: var(--tp-ground);
+  color: var(--tp-ink);
+}
+.pdt-tab--active {
+  background: var(--tp-blue);
+  color: #fff;
+}
+.pdt-tab--active:hover {
+  background: var(--tp-blue);
+  color: #fff;
+}
+.pdt-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+  margin: 0;
+}
+.pdt-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.pdt-stat dd {
+  margin: 0;
+  color: var(--tp-ink);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 24px;
+  white-space: nowrap;
+}
+.pdt-stat dt {
+  color: var(--tp-label);
+  font-size: 12px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+.pdt-stat--green dd {
+  color: var(--tp-green);
+}
+.pdt-stat--red dd {
+  color: var(--tp-red);
+}
+.pdt-stat--amber dd {
+  color: var(--bd-amber);
+}
+
+/* ── One tab's content ── */
+.pdt-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.pdt-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+.pdt-toolbar-start,
+.pdt-toolbar-end {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.pdt-toolbar-start {
+  flex: 1 1 420px;
+  min-width: 0;
+}
+.pdt-picker {
+  flex: 0 1 250px;
+  min-width: 0;
+}
+.pdt-picker .ant-form-item {
+  margin: 0;
+}
+.pdt-print {
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--tp-blue-line);
+  border-radius: 8px;
+  background: var(--tp-blue-pale);
+  color: var(--tp-blue-dark);
+  cursor: pointer;
+}
+.pdt-print:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.pdt-spin {
+  animation: pdt-spin 0.9s linear infinite;
+}
+@keyframes pdt-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Service table cells ── */
+.pdt-grip {
+  color: var(--tp-label);
+  cursor: grab;
+}
+.pdt-service {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.pdt-service-name {
+  color: var(--tp-ink);
+}
+.pdt-service-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.pdt-service-date {
+  color: var(--tp-label);
+  font-size: 12px;
+}
+.pdt-discount {
+  cursor: help;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+.pdt-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: var(--tp-pill);
+  color: var(--tp-label);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  white-space: nowrap;
+}
+.pdt-status--menu {
+  cursor: pointer;
+}
+.pdt-status--converted {
+  background: var(--tp-cyan-pale);
+  color: var(--tp-cyan-ink);
+}
+.pdt-status--done {
+  background: var(--tp-green-pale);
+  color: var(--tp-green);
+}
+.pdt-status--cancelled {
+  background: var(--tp-red-pale);
+  color: var(--tp-red);
+}
+.pdt-table .ant-table-tbody > tr > td strong {
+  color: var(--tp-ink);
+  font-weight: 600;
+}
+
+/* ── The inline new row the picker appends (Lưu / Hủy) ── */
+.pdt-draft-select,
+.pdt-draft-qty,
+.pdt-draft-price {
+  width: 100%;
+}
+.pdt-draft-teeth {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.pdt-draft-teeth-text {
+  min-width: 0;
+  color: var(--tp-ink);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.pdt-row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.pdt-row-save,
+.pdt-row-cancel {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+.pdt-row-save {
+  color: var(--tp-green);
+}
+.pdt-row-save:hover {
+  background: var(--tp-green-pale);
+}
+.pdt-row-cancel {
+  color: var(--tp-red);
+}
+.pdt-row-cancel:hover {
+  background: var(--tp-red-pale);
+}
+.pdt-row-save:disabled,
+.pdt-row-cancel:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ── Dialog chrome shared by the confirm, detail and receipt dialogs ── */
+.pdt-confirm-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.pdt-confirm-text {
+  margin: 0;
+  color: var(--tp-ink);
+  font-size: 14px;
+  line-height: 22px;
+}
+.tp-btn--danger {
+  border: 1px solid var(--tp-red);
+  background: var(--tp-red);
+  color: #fff;
+}
+
+.pdt-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 32px;
+}
+.pdt-detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.pdt-detail-section > h3 {
+  margin: 0 0 4px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--tp-line);
+  color: var(--tp-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+.pdt-detail-fact {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+}
+.pdt-detail-label {
+  flex: 0 0 140px;
+  color: var(--tp-label);
+}
+.pdt-detail-value {
+  min-width: 0;
+  color: var(--tp-ink);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+/* ── "Chi tiết phiếu" (the eye on a receipt row, "In hóa đơn tổng") ── */
+.pdt-receipt {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  color: var(--tp-ink);
+}
+.pdt-receipt-head {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 32px;
+}
+.pdt-receipt-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.pdt-receipt-section > h3 {
+  margin: 0;
+  color: var(--tp-ink);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 20px;
+  text-transform: uppercase;
+}
+.pdt-receipt-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+}
+.pdt-receipt-fact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  font-size: 14px;
+  line-height: 21px;
+}
+.pdt-receipt-fact dt {
+  font-weight: 700;
+}
+.pdt-receipt-fact dt::after {
+  content: ":";
+}
+.pdt-receipt-fact dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.pdt-receipt-table .ant-table-tbody > tr > td strong {
+  font-weight: 700;
+}
+.pdt-receipt-sum {
+  align-self: flex-end;
+  width: min(100%, 380px);
+}
+.pdt-receipt-totals {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0;
+}
+.pdt-receipt-totals > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 14px;
+  line-height: 21px;
+}
+.pdt-receipt-totals dt {
+  font-weight: 700;
+}
+.pdt-receipt-totals dt::after {
+  content: ":";
+}
+.pdt-receipt-totals dd {
+  margin: 0;
+  white-space: nowrap;
+}
+.pdt-receipt-total--debt {
+  color: var(--tp-red);
+}
+.pdt-slip-service {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pdt-slip-service strong {
+  color: var(--bd-primary);
+  font-weight: 500;
+}
+.pdt-refund-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--tp-line);
+  border-radius: 8px;
+}
+.pdt-refund-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.pdt-refund-table th {
+  height: 40px;
+  padding: 0 12px;
+  background: var(--tp-ground);
+  color: var(--tp-label);
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+}
+.pdt-refund-table td {
+  padding: 10px 12px;
+  border-top: 1px solid var(--tp-line);
+  vertical-align: middle;
+}
+.pdt-num,
+.pdt-refund-table th.pdt-num {
+  text-align: right;
+  white-space: nowrap;
+}
+.pdt-refund-table .pdt-refund-input {
+  width: 250px;
+}
+
+/* ── Refund dialog ── */
+.pdt-refund-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 24px;
+  margin-bottom: 16px;
+}
+.pdt-refund-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.pdt-refund-fields .ant-select {
+  width: 100%;
+}
+.pdt-refund-note {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+/* The note stands as tall as the three fields beside it. The dialog's 40px
+   field height on the wrapper would otherwise clamp it to one line once the
+   form drops to a single column. */
+.ant-modal.tp-dialog .pdt-refund-note .ant-input-affix-wrapper {
+  flex: 1 1 auto;
+  align-items: stretch;
+  height: auto;
+  min-height: 152px;
+}
+.pdt-refund-note textarea {
+  height: 100%;
+  resize: none;
+}
+.pdt-refund-pager.ant-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 8px 12px;
+  border-top: 1px solid var(--tp-line);
+}
+.pdt-refund-input .ant-input {
+  width: 100%;
+  min-width: 160px;
+}
+.pdt-refund-row--over td {
+  background: var(--tp-red-pale);
+}
+.pdt-refund-empty {
+  margin: 0;
+  padding: 24px;
+  border: 1px dashed var(--tp-line);
+  border-radius: 8px;
+  color: var(--tp-label);
+  text-align: center;
+}
+.pdt-refund-debt {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 360px;
+}
+.pdt-refund-debt > p {
+  margin: 0;
+  color: var(--tp-label);
+  font-size: 13px;
+}
+.pdt-refund-debt strong {
+  color: var(--tp-green);
+}
+.pdt-refund-total {
+  display: flex;
+  justify-content: flex-end;
+  gap: 40px;
+  margin: 16px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--tp-line);
+  color: var(--tp-blue);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 22px;
+}
+.pdt-refund-total strong {
+  color: var(--tp-blue);
+  font-weight: 700;
+}
+
+/* ── Cards under 640px ── */
+.pdt-card-list .bd-rc-value strong {
+  color: var(--tp-ink);
+}
+
+/* ── "Biên lai thu tiền": the sheet "In Hoá Đơn" prints; off-screen otherwise ── */
+.pdt-sheet {
+  display: none;
+  padding: 24px 32px;
+  background: #fff;
+  color: #000;
+  font-family: "Times New Roman", Times, serif;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.pdt-sheet-clinic {
+  text-align: center;
+}
+.pdt-sheet-clinic strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.pdt-sheet-clinic p {
+  margin: 0;
+}
+.pdt-sheet-title {
+  margin: 14px 0 0;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+}
+.pdt-sheet-sub {
+  margin: 0 0 10px;
+  font-size: 10px;
+  font-style: italic;
+  font-weight: 700;
+  text-align: center;
+}
+.pdt-sheet-group {
+  margin: 0;
+  padding: 8px 0;
+  border-top: 1px dashed #9a9a9a;
+}
+.pdt-sheet-sub + .pdt-sheet-group {
+  border-top: 0;
+}
+.pdt-sheet-group > div {
+  display: flex;
+  gap: 8px;
+}
+.pdt-sheet-group dt {
+  flex: 0 0 120px;
+  font-weight: 700;
+}
+.pdt-sheet-group dt::after {
+  content: ":";
+}
+.pdt-sheet-group dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.pdt-sheet-signs {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 28px;
+  text-align: center;
+}
+.pdt-sheet-signs p {
+  margin: 0;
+  font-weight: 700;
+}
+.pdt-sheet-signs p + p {
+  padding-top: 56px;
+}
+
+/* ── "Phiếu điều trị": the sheet "In Phiếu" prints from the slip's "Chi tiết phiếu" ── */
+.pdt-slip-sheet-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.pdt-slip-sheet-facts {
+  margin: 0;
+  font-size: 11px;
+}
+.pdt-slip-sheet-facts > div {
+  display: flex;
+  gap: 6px;
+}
+.pdt-slip-sheet-facts dt {
+  font-weight: 700;
+}
+.pdt-slip-sheet-facts dt::after {
+  content: ":";
+}
+.pdt-slip-sheet-facts dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.pdt-slip-sheet-title {
+  text-align: center;
+}
+.pdt-slip-sheet-title h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.pdt-slip-sheet-title p {
+  margin: 4px 0 0;
+}
+.pdt-slip-sheet-table {
+  width: 100%;
+  margin-top: 20px;
+  border-collapse: collapse;
+}
+.pdt-slip-sheet-table th,
+.pdt-slip-sheet-table td {
+  padding: 6px 8px;
+  border: 1px solid #000;
+  text-align: left;
+  vertical-align: top;
+}
+.pdt-slip-sheet-table th {
+  font-weight: 700;
+}
+.pdt-slip-sheet-table td strong {
+  display: block;
+  font-weight: 700;
+}
+.pdt-slip-sheet-sum {
+  width: 300px;
+  margin: 16px 0 0 auto;
+}
+.pdt-slip-sheet-sum h3 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+}
+.pdt-slip-sheet-sum dl {
+  margin: 0;
+}
+.pdt-slip-sheet-sum dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 0;
+}
+.pdt-slip-sheet-sum dt {
+  font-weight: 700;
+}
+.pdt-slip-sheet-sum dt::after {
+  content: ":";
+}
+.pdt-slip-sheet-sum dd {
+  margin: 0;
+  white-space: nowrap;
+}
+.pdt-slip-sheet-sum dl > div:last-child dd {
+  font-weight: 700;
+}
+.pdt-slip-sheet-signs {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 36px;
+  text-align: center;
+}
+.pdt-slip-sheet-signs p {
+  margin: 0;
+  font-weight: 700;
+}
+.pdt-slip-sheet-signs em {
+  display: block;
+  font-size: 11px;
+}
+.pdt-slip-sheet-signs strong {
+  display: block;
+  padding-top: 56px;
+  font-weight: 700;
+}
+
+/* ── Print: only the sheet of the open dialog ── */
+@media print {
+  /* No page margin: the browser then prints none of its own header and footer
+     (date, title, URL, page number); the sheet carries the margin itself. */
+  @page {
+    margin: 0;
+  }
+  html.pdt-printing body {
+    background: #fff;
+  }
+  html.pdt-printing .pdt-sheet {
+    padding: 12mm 15mm;
+  }
+  html.pdt-printing body::before {
+    display: none;
+  }
+  html.pdt-printing body > *:not(:has(.pdt-sheet)) {
+    display: none !important;
+  }
+  html.pdt-printing .ant-modal-root,
+  html.pdt-printing .ant-modal-wrap,
+  html.pdt-printing .pdt-print-dialog.ant-modal,
+  html.pdt-printing .pdt-print-dialog .ant-modal-content,
+  html.pdt-printing .pdt-print-dialog .ant-modal-body {
+    position: static !important;
+    display: block !important;
+    width: auto !important;
+    max-width: none !important;
+    margin: 0;
+    padding: 0;
+    overflow: visible !important;
+    background: none;
+    box-shadow: none;
+  }
+  html.pdt-printing .ant-modal-mask,
+  html.pdt-printing .pdt-print-dialog .ant-modal-header,
+  html.pdt-printing .pdt-print-dialog .ant-modal-footer,
+  html.pdt-printing .pdt-print-dialog .ant-modal-close,
+  html.pdt-printing .pdt-screen {
+    display: none !important;
+  }
+  html.pdt-printing .pdt-sheet {
+    display: block;
+  }
+}
+
+/* ── Responsive ── */
+@media (max-width: 1100px) {
+  .pdt-stats {
+    gap: 8px 20px;
+  }
+}
+@media (max-width: 640px) {
+  .pdt-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .pdt-stats {
+    justify-content: space-between;
+    gap: 8px 12px;
+  }
+  .pdt-stat dd {
+    font-size: 15px;
+    line-height: 20px;
+  }
+  .pdt-toolbar-start,
+  .pdt-toolbar-end {
+    width: 100%;
+  }
+  .pdt-toolbar-start {
+    flex-wrap: nowrap;
+  }
+  .pdt-picker {
+    flex: 1 1 0;
+  }
+  .pdt-toolbar-end .tp-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+  .pdt-print {
+    flex: 0 0 40px;
+  }
+  .pdt-detail-grid,
+  .pdt-receipt-head,
+  .pdt-refund-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pdt-detail-label {
+    flex-basis: 120px;
+  }
+  .pdt-receipt-sum {
+    width: 100%;
+  }
+}
