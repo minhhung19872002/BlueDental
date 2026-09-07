@@ -1805,3 +1805,53 @@ giữa hai số nhập thay vì so với số mở đầu — con số đó ch�
 Ghi chú kỹ thuật cho spec: ô "Hoàn thành" do server điều khiển, nên
 `locator.check()` của Playwright (đòi ô lật ngay khi bấm) luôn báo lỗi giả —
 helper `finishLiveStage` bấm rồi chờ `POST …/complete`.
+
+## 2026-09-07 — Khoá đăng nhập 10 lần, và ba thứ chặn deploy
+
+Đợt này không đụng bản gốc. Bắt đầu từ một yêu cầu vận hành trên prod của
+mình (`bluedental.bluestar.com.vn`): tài khoản `admin` bị khoá vì gõ sai mật
+khẩu, và phòng khám muốn nới ngưỡng lên 10 lần, giữ thời gian khoá 5 phút.
+
+Đo trạng thái cũ bằng chính sự cố đó, đọc `AbpAuditLogs` trên prod (chỉ đọc):
+5 request `/api/account/login` lúc 04:21:13 → 04:22:05 rồi `LockoutEnd =
+04:27:05`, tức **5 lần sai / khoá 300 giây** — đúng mặc định ABP, dự án chưa
+từng cấu hình đè (không có dòng nào chạm `IdentityOptions`, bảng `AbpSettings`
+rỗng phần `Abp.Identity.*`).
+
+| # | Defect | Fix |
+|---|--------|-----|
+| R-229 | Ngưỡng khoá 5 lần là mặc định ABP, không ai chọn nó | `BlueDentalIdentitySettingDefinitionProvider` đè **default của chính setting ABP**: `Lockout.MaxFailedAccessAttempts = 10`, `Lockout.LockoutDuration = 300`. Không dùng `Configure<IdentityOptions>` — ABP đọc lockout từ Setting rồi ghi đè `IdentityOptions` mỗi request, set ở options sẽ bị nuốt. Đè ở tầng definition nên giá trị ghi qua Setting Management (bảng `AbpSettings`) vẫn thắng |
+| R-230 | Màn login có nhánh "thử lại sau {0} phút" không bao giờ chạy | `LoginForm` đọc `result.lockoutMinutes`, nhưng `/api/account/login` là controller sẵn của ABP Account và `AbpLoginResult` chỉ có `result` + `description`. **Chưa sửa** — muốn hiện số phút còn lại thì phải override `AccountController`. Ghi lại để khỏi tưởng là lỗi hiển thị |
+| R-231 | `ReceptionPage.test.tsx` đỏ, chặn CD ba lần liên tiếp | Hai lỗi cùng một chỗ: `jsdom` không cài `Element.scrollTo` nên effect cuộn tab đang chọn ném `container.scrollTo is not a function` và kéo sập cả render; và toolbar nay dựng ô tìm kiếm **hai** lần (inline cho màn rộng, block cho màn hẹp) nên `getByPlaceholderText` số ít thấy 2 phần tử. Stub `scrollTo`/`scrollIntoView` trong `src/test/setup.ts` — vá ở môi trường test, không bắt component nghi ngờ một hàm mọi browser đều có — và assert bằng `getAllByPlaceholderText` với đúng 2 ô |
+| R-232 | `deploy.sh` chết ngay bước build: `service "api" has neither an image nor a build context` | Commit `eea8ffc` comment cả ba service `migrator` / `api` / `frontend` trong `docker-compose.yml` để compose chỉ dựng hạ tầng khi dev chạy `dotnet run` + `npm run dev`. Trên server thì `deploy.sh` build và start chúng **theo tên**. Khôi phục nguyên văn ba service, thêm comment chỉ cách chạy hạ tầng riêng (`docker compose up -d postgres redis minio clamav`). CI không thấy vì job build image đọc thẳng Dockerfile, không đọc file compose |
+| R-233 | Migrator không compile **chỉ trên server**: `CS0234: 'Minio' does not exist in 'Volo.Abp.BlobStoring'` | Không có `.dockerignore`. Dockerfile restore NuGet trong image rồi mới `COPY . .`, mà server còn `bin/`, `obj/` từ **24/08** (root-owned, `git reset --hard` không xoá), nên `obj/project.assets.json` cũ đè lên kết quả restore mới và `dotnet publish --no-restore` build theo nó — trong khi csproj tham chiếu `Volo.Abp.BlobStoring.Minio` từ `eea8ffc`. Thêm `.dockerignore` cho BE (`**/bin/`, `**/obj/`, `appsettings.secrets.json`) và FE (`node_modules`, `dist`, ...). CI xanh suốt vì checkout của runner sạch |
+
+Mức retest: **3** — lockout nằm ở tầng xác thực, dùng chung cho mọi màn.
+
+Kết quả:
+
+- BE: Domain **267/267** (3 test mới trong `Settings/IdentityLockoutSettingsTests`:
+  10 lần, 300 giây, không vỡ khi thiếu setting), build Release sạch.
+- FE: `oxlint` không thêm cảnh báo mới, `tsc -b` sạch, Vitest **3/3**,
+  `vite build` xanh.
+- CD [34085952529](https://github.com/minhhung19872002/BlueDental/actions/runs/34085952529)
+  xanh cả bốn job, deploy + smoke test qua. Prod chạy `5b847fb` (trước đó
+  đứng ở `1558c26` từ 03/09 vì R-232 và R-233).
+
+**Kiểm chứng runtime trên prod**, 10 request thật vào
+`https://bluedental.bluestar.com.vn/api/account/login` với mật khẩu cố tình sai:
+
+```
+lần 1..9  -> {"result":2,"description":"InvalidUserNameOrPassword"}
+lần 10    -> {"result":4,"description":"LockedOut"}
+
+LockoutEnd = 2026-09-07 05:25:11 UTC
+now        = 2026-09-07 05:20:18 UTC     → đúng 300 giây
+```
+
+Đo xong xoá lockout ngay (`LockoutEnd = NULL`, `AccessFailedCount = 0`), `admin`
+đăng nhập lại được bình thường.
+
+Chưa có spec giữ hành vi này: e2e mà khoá tài khoản thật sẽ làm hỏng các spec
+chạy song song, nên bằng chứng runtime nằm ở đợt đo trên, còn `IdentityLockoutSettingsTests`
+giữ phần con số khỏi trôi khi nâng cấp gói ABP.

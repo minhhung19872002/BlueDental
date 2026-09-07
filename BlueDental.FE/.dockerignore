@@ -1,0 +1,8 @@
+# `COPY . .` runs after `npm ci`, so a node_modules from the host would
+# overwrite the one the image just installed -- for a different platform.
+node_modules
+dist
+coverage
+playwright-report
+test-results
+.vite

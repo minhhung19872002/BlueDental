@@ -48,9 +48,9 @@ describe("ReceptionPage", () => {
     expect(screen.getByText("Ngày")).toBeInTheDocument();
     expect(screen.getByText("Tuần")).toBeInTheDocument();
     expect(screen.getByText("Tháng")).toBeInTheDocument();
-    expect(
-      screen.getByPlaceholderText("Tìm bệnh nhân..."),
-    ).toBeInTheDocument();
+    // The toolbar carries two copies of the search box — one inline for wide
+    // screens, one block below it for narrow ones — and CSS picks which shows.
+    expect(screen.getAllByPlaceholderText("Tìm bệnh nhân...")).toHaveLength(2);
     expect(screen.getByText("Tạo tiếp nhận")).toBeInTheDocument();
   });
 

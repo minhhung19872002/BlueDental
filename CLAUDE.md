@@ -17,9 +17,18 @@ Documentation:
 
 docs/clone
 
-Production reference:
+Production reference (someone else's system, READ ONLY):
 
 https://app.nfcdental.com
+
+Our own production deployment (BlueDental, full control):
+
+https://bluedental.bluestar.com.vn
+VM: hung@14.225.83.93, deploy path /home/hung/BlueDental, docker compose
+See docs/cicd-setup.md and deploy/ for operations.
+
+Do not confuse the two. "prod" in conversation means our own deployment
+above unless app.nfcdental.com is named explicitly.
 
 ## Non-negotiable rule
 
