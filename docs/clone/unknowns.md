@@ -1656,3 +1656,39 @@ BlueDental: KNOWN LIMIT — the table fetches both collections in one request ea
   and the server's `(TreatmentServiceId, SequenceNumber)` ordering means the ones
   dropped are not the oldest but whole trailing service lines (R-273). The fix is
   a server-paged merged timeline endpoint mirroring the reference's.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id} (Hồ sơ) — the printed sheet's status pill, "Chuyển đổi"
+Control: the colour pair a `replaced` row's pill takes on the print sheet
+Reason: The print dialog ("In lịch sử điều trị") could only be opened on a slip
+  whose rows were `done` and `created`; no slip reachable on staging had a
+  `replaced` row **and** an openable Công đoạn cell — a converted line renders
+  its `+` disabled, so its print dialog cannot be reached from that row.
+  Producing one would mean converting a service on production.
+Action taken: NONE — the two observable pairs were measured on the sheet
+  (`done` = `#DDF6E8` on `#10A861`, `created` = `#D9EEFF` on `#2671D8`) and the
+  table's three were measured separately.
+BlueDental: ASSUMPTION — the sheet's `replaced` pill reuses the table's teal
+  pair (`#E6F8FB` on `#1A606B`). This is a guess: the reference's sheet does
+  **not** reuse the table's colours for the two statuses that *were* observable,
+  so the teal is likely to be a slightly different tint too. `.pd-print-chip--replaced`
+  is the single place to correct. The `cancelled` pair is unobserved in both
+  places and falls back to the app's red.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id} (Hồ sơ) — where a row's status lives
+Control: whether `replaced` / `cancelled` are stored per công đoạn or per line
+Reason: `GET /api/v1/patient-timeline` shows `status` on the **row** (values
+  `created`, `done`, `replaced` observed), but whether the reference writes that
+  onto each công đoạn or derives it from the line cannot be told from a read:
+  every row of the one converted line carried `replaced`, which both models
+  produce.
+Action taken: NONE — the timeline response already in the network log was read;
+  no request was issued.
+BlueDental: MODELLED — `replaced` and `cancelled` stay on `TreatmentService`
+  (the line) and are applied to every row of it; `done` / `active` come from the
+  row's own công đoạn. `stageRowStatus()` is the single place this is decided,
+  and it reproduces every observed row. If a line is ever seen with some rows
+  `replaced` and others not, the flag has to move onto `TreatmentStage`.

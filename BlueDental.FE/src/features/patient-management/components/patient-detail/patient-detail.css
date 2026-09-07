@@ -2236,26 +2236,46 @@
 .pd-tr-code:hover {
   text-decoration: underline;
 }
+/*
+ * Status chips on the treatment table.
+ *
+ * Measured on the reference 2026-09-07 (patient HN8516, three statuses on one
+ * table): 32px tall, 8px radius, 12px/600, padding 0 8px, margin-top 4px. The
+ * three tints below are read straight off it — they are **not** on the app's
+ * own palette, and each status has its own pair, so do not fold them into the
+ * --bd-* scale. The print sheet's chips are a different shape and different
+ * tints again; see .pd-print-chip.
+ */
 .pd-tr-chip {
   display: inline-flex;
   align-items: center;
-  height: 28px;
+  height: 32px;
   margin-top: 4px;
   border-radius: 8px;
   padding: 0 8px;
-  background: var(--bd-blue-pale);
-  color: var(--bd-blue-dark);
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
 }
-.pd-tr-chip--3 {
-  background: var(--bd-green-pale);
-  color: var(--bd-green);
+/* Đang điều trị — the reference labels a `created` row this, not "Chưa điều trị". */
+.pd-tr-chip--active {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+.pd-tr-chip--done {
+  background: #e7f8ef;
+  color: #12a960;
+}
+/* Chuyển đổi — a line converted to another service. */
+.pd-tr-chip--replaced {
+  background: #e6f8fb;
+  color: #1a606b;
+}
+.pd-tr-chip--cancelled {
+  background: var(--bd-red-pale);
+  color: var(--bd-red);
 }
 
-/* A tái khám row says what it is instead of showing a line status. The chip
-   follows the app's primary, like the rest of this screen's accents. */
 /*
  * The Tái khám chip is **grey**, not the primary — measured on the reference
  * 2026-09-07: a re_examination row is a label, not a status, so it stays quiet
@@ -2264,11 +2284,6 @@
 .pd-tr-chip--recall {
   background: var(--bd-bg-head);
   color: #667085;
-}
-.pd-tr-chip--4,
-.pd-tr-chip--5 {
-  background: var(--bd-red-pale);
-  color: var(--bd-red);
 }
 .pd-tr-teeth {
   display: inline-block;
@@ -3286,24 +3301,55 @@
 .pd-print-note {
   white-space: pre-wrap;
 }
+/*
+ * Status chips on the printed sheet. Measured on the reference 2026-09-07: a
+ * 26px **fully rounded** pill at 12px/500 — a different shape *and* different
+ * tints from the table's chips above, so the two sets are kept apart on
+ * purpose. Only `done` and `active` were observable in the print dialog; the
+ * replaced pair below is carried over from the table (docs/clone/unknowns.md).
+ */
 .pd-print-chip {
   display: inline-flex;
+  align-items: center;
+  height: 26px;
   margin-top: 8px;
   border-radius: 999px;
-  padding: 4px 12px;
-  background: color-mix(in srgb, var(--bd-primary) 16%, #fff);
-  color: var(--bd-primary);
+  padding: 0 12px;
   font-size: 12px;
   font-weight: 500;
+}
+.pd-print-chip--active {
+  background: #d9eeff;
+  color: #2671d8;
+}
+.pd-print-chip--done {
+  background: #ddf6e8;
+  color: #10a861;
+}
+.pd-print-chip--replaced {
+  background: #e6f8fb;
+  color: #1a606b;
+}
+.pd-print-chip--cancelled {
+  background: var(--bd-red-pale);
+  color: var(--bd-red);
 }
 
 /* The A4 copy: off-screen until the browser is actually printing. */
 .pd-print-sheet {
   display: none;
 }
+/*
+ * A4 at 96dpi is 794px, which is the width the reference pins its sheet to
+ * (`max-w-[794px] mx-auto`) so the layout is the same whatever the window is
+ * doing. Without it the sheet stretches to the viewport and the header's three
+ * columns drift far apart before the paper ever constrains them.
+ */
 .pd-print-sheet article {
   display: flex;
   min-height: 980px;
+  max-width: 794px;
+  margin: 0 auto;
   flex-direction: column;
   padding: 32px;
   background: #fff;
@@ -3379,33 +3425,28 @@
   font-weight: 600;
 }
 
+/*
+ * Printing. The sheet is portaled straight onto <body> (see
+ * TreatmentHistoryPrintDialog), so hiding the body's *other* children is enough
+ * and nothing has to reach down through AntD's portal wrapper. The previous
+ * version hid every body child and then tried to un-hide the sheet from inside
+ * the modal, which cannot work — a display:none ancestor wins — and the preview
+ * came out blank.
+ */
 @media print {
-  body.pd-printing > * {
+  body.pd-printing > *:not(.pd-print-sheet) {
     display: none !important;
   }
-  body.pd-printing .pd-print-sheet {
-    position: absolute;
-    inset: 0;
+  body.pd-printing > .pd-print-sheet {
     display: block !important;
   }
-  body.pd-printing .ant-modal-root,
-  body.pd-printing .ant-modal-wrap,
-  body.pd-printing .ant-modal,
-  body.pd-printing .ant-modal-content,
-  body.pd-printing .ant-modal-body {
-    position: static !important;
-    display: block !important;
-    max-width: none;
-    padding: 0;
-    background: none;
-    box-shadow: none;
+  /* No page margin of our own: the sheet carries the reference's own padding. */
+  @page {
+    margin: 0;
   }
-  body.pd-printing .ant-modal-mask,
-  body.pd-printing .ant-modal-header,
-  body.pd-printing .ant-modal-footer,
-  body.pd-printing .ant-modal-close,
-  body.pd-printing .pd-print-body {
-    display: none !important;
+  html,
+  body {
+    background: #fff !important;
   }
 }
 

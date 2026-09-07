@@ -642,6 +642,38 @@ and **Chăm sóc sau điều trị** cells are left **empty** — it is not anot
 the source stage belongs to. The source stage flips `hasReExamination`. Payload
 and endpoint in `docs/clone/api.md`; the model correction is R-267.
 
+**Status chips — measured 2026-09-07, two different sets.** A row of the
+treatment table carries **its own** status, not the line's: the timeline returns
+`status` per row (`created`, `done`, `replaced` observed), and two rows of one
+line were seen reading "Hoàn thành" and "Đang điều trị" at once. Note the
+wording: a `created` row reads **"Đang điều trị"**, not "Chưa điều trị", and
+`replaced` reads **"Chuyển đổi"**, not "Đã thay thế".
+
+| | Table chip — 32px, radius 8px, 12px/600 | Print pill — 26px, radius 9999px, 12px/500 |
+|---|---|---|
+| Đang điều trị | `#EFF6FF` on `#1D4ED8` | `#D9EEFF` on `#2671D8` |
+| Hoàn thành | `#E7F8EF` on `#12A960` | `#DDF6E8` on `#10A861` |
+| Chuyển đổi | `#E6F8FB` on `#1A606B` | not observed — see unknowns.md |
+
+The two sets are **deliberately different**, in tint and in shape; the reference
+does not reuse the table's colours on the sheet. These are the reference's own
+values, not the app's `--bd-*` palette, so they stay as literals.
+
+**The printed sheet.** "In lịch sử điều trị" holds an off-screen A4 copy —
+`max-width: 794px` centred (A4 at 96dpi), `min-height: 980px`, 32px padding —
+with a three-column head (`minmax(0,1fr) auto minmax(0,1fr)`): clinic facts left
+at 11px, the centred `CHI TIẾT PHIẾU` at 17px/700 with "Ngày D tháng M năm YYYY"
+at 12px under it, and Mã KH / Họ và tên right-aligned. Then the six-column table
+(Dịch vụ · Ngày điều trị · Nội dung điều trị · Bác sĩ · Phụ tá · Bác sĩ hỗ trợ,
+rows ruled `#DCE3EE`, `align-top`), then two `w-44` signature blocks centred with
+a 64px gap: role in semibold, *(Ký, họ tên)* italic, and the name 56px below.
+
+That sheet must be portaled to `document.body`, **not** left inside the modal:
+AntD renders the modal into a portal wrapper of its own, and a print rule that
+hides the body's other children hides that wrapper too — a descendant cannot
+un-hide itself past a `display: none` ancestor, which is why printing from
+inside the modal produced a blank preview (R-277).
+
 **Accents inside these dialogs follow the clone's primary, on purpose.** The
 project owner asked on 2026-09-07 that every chip, floating label and focus ring
 in "Đặt mới" and the công đoạn/tái khám dialogs take `--bd-primary` (indigo

@@ -2530,3 +2530,102 @@ Chỗ này bắt được một spec **xanh vì lý do sai**: "a finished công 
 service with no warranty offers nothing" dùng `.first()` nên đang đọc một dòng
 **cũ, khác** của cùng service line — dòng đó cũng có `.pd-tr-nostage` nên spec
 vẫn xanh dù dòng cần kiểm tra không hề tồn tại trên bảng.
+
+---
+
+## 2026-09-07 (tiếp 11) — Màu trạng thái đo lại từ bản gốc, và In Phiếu chưa bao giờ in được
+
+Chủ dự án đưa link bản gốc và yêu cầu **rà soát lấy đúng màu**. Đã mở
+`/patient/6a63420446313e3468182c81?tab=profile` (chỉ đọc: đăng nhập, mở dialog,
+`getComputedStyle`, đọc lại **response đã có** trong network log — không gửi
+request ghi nào).
+
+### Đo được gì
+
+Row của bảng điều trị mang **status của chính nó**, không phải của service line.
+Đọc `GET /api/v1/patient-timeline` (response đã có sẵn trong network log, không
+gọi thêm) — 4 row, khớp 1:1 với 4 chip đọc trên DOM theo đúng thứ tự:
+
+```
+STG21 status=replaced  → Chuyển đổi
+STG20 status=replaced  → Chuyển đổi
+STG19 status=done      → Hoàn thành
+STG18 status=created   → Đang điều trị      ← không phải "Chưa điều trị"
+```
+
+Hai row của **cùng** một line (DT21) đọc ra "Hoàn thành" và "Đang điều trị" cùng
+lúc — đó là bằng chứng status thuộc **row**, không thuộc line.
+
+Màu, đo trên bệnh nhân HN8516:
+
+| | Bảng điều trị (32px, radius 8px, 12px/**600**) | Tờ in (26px, radius **9999px**, 12px/**500**) |
+|---|---|---|
+| Đang điều trị | `#EFF6FF` / `#1D4ED8` | `#D9EEFF` / `#2671D8` |
+| Hoàn thành | `#E7F8EF` / `#12A960` | `#DDF6E8` / `#10A861` |
+| Chuyển đổi | `#E6F8FB` / `#1A606B` | *(không quan sát được)* |
+
+**Hai bộ màu khác nhau, cố ý** — bản gốc không dùng lại màu bảng cho tờ in, và
+hình dạng cũng khác (chip bo 8px vs pill bo tròn hẳn).
+
+| # | Defect | Fix |
+|---|--------|-----|
+| R-274 | Chip trên bảng chỉ có **hai** trạng thái | Code cũ chọn `row.stageDone ? Done : InProgress`, nên **Chuyển đổi** không bao giờ hiện, và màu lấy từ `--bd-blue-pale`/`--bd-green-pale` của app chứ không phải màu bản gốc. Nay có `stageRowStatus.ts` làm một nguồn duy nhất cho cả bảng và tờ in: `replaced`/`cancelled` đọc từ line (BlueDental giữ hai trạng thái đó trên line, không trên từng công đoạn), `done`/`active` đọc từ chính công đoạn. Chip cao 32px cho khớp (trước 28px) |
+| R-275 | Nhãn `created` in ra **"Chưa điều trị"** | Bản gốc in **"Đang điều trị"**. Nhãn `Replaced` cũng sai: app ghi "Đã thay thế", bản gốc ghi **"Chuyển đổi"**. Nay `stageRowStatusLabel` dùng đúng chữ bản gốc; spec khẳng định "Chưa điều trị" **không** xuất hiện trên bảng |
+| R-276 | Pill trên modal in mang màu **primary indigo** | Đổi sang đúng hai cặp đo được, và tách hẳn khỏi bộ màu của bảng (spec khẳng định pill **không** mang màu chip của bảng, để không ai gộp lại) |
+
+### R-277 — In Phiếu chưa bao giờ ra print preview
+
+`@media print` cũ làm thế này:
+
+```css
+body.pd-printing > *          { display: none !important; }
+body.pd-printing .pd-print-sheet { display: block !important; }
+```
+
+Tờ A4 nằm **trong** Modal của AntD, tức nằm dưới div portal mà AntD gắn vào
+body. Rule đầu ẩn luôn div portal đó, và rule sau **không cứu được** — một phần
+tử con không thể tự hiện lên khi tổ tiên nó `display: none`. Mấy rule
+`.ant-modal-*` thêm vào sau cũng không tới được div portal (nó không mang class
+nào). Kết quả: preview trắng.
+
+Nay tờ A4 `createPortal(..., document.body)` nên nó là **con trực tiếp của
+body**, và print rule chỉ cần:
+
+```css
+body.pd-printing > *:not(.pd-print-sheet) { display: none !important; }
+body.pd-printing > .pd-print-sheet        { display: block !important; }
+```
+
+Kèm hai chỗ nữa: `article` chốt `max-width: 794px; margin: 0 auto` (A4 ở 96dpi,
+đúng `max-w-[794px] mx-auto` của bản gốc — không có nó thì ba cột đầu trang dãn
+ra theo bề rộng cửa sổ), và class `pd-printing` nay bỏ ở **`afterprint`** chứ
+không bỏ ngay dòng sau `window.print()` — `window.print()` không chắc chắn chặn
+tới khi đóng preview, bỏ sớm là trả trang về trước khi kịp render.
+
+Đo lại trên bản build, dưới `emulateMedia({ media: "print" })`:
+
+```
+PRINT CALL      {"calls":1,"bodyClass":"pd-printing"}
+UNDER PRINT     sheet display=block h=980   screenBody h=0
+                title="Chi tiết phiếu"
+                signs=["Người lập phiếu","(Ký, họ tên)","BS. …",
+                       "Khách hàng","(Ký, họ tên)","Lý Thị Mai"]
+article width   794px
+```
+
+### Test mới
+
+Hai spec thường trú. `status chips carry the reference's own colours, table and
+printed sheet apart` chốt từng cặp màu **đo được** (hằng `REFERENCE_STATUS` ghi
+rõ là màu của bản gốc, không phải palette app), chốt hình dạng của cả hai, chốt
+"Chưa điều trị" không xuất hiện, và chốt pill **khác** chip. `In Phiếu prints
+the A4 sheet, not the dialog` chốt tờ in là `body > .pd-print-sheet`, chốt
+`window.print()` được gọi **một** lần với `pd-printing` đang bật (stub
+`window.print` — là API của browser, không phải API của BlueDental, nên không
+vi phạm luật cấm mock), rồi dưới print media chốt tờ in hiện, bản trên màn ẩn,
+có hai ô ký, và `article` rộng đúng 794px.
+
+> **Còn treo:** cặp màu **Chuyển đổi** trên *tờ in* không quan sát được — phiếu
+> mở được trên staging không có row `replaced` nào. Tạm dùng lại cặp teal của
+> bảng; đã ghi `docs/clone/unknowns.md`. Cặp **Đã huỷ** cũng chưa quan sát được
+> ở cả hai chỗ.

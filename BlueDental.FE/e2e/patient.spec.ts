@@ -7,6 +7,23 @@ const APP_PRIMARY = "rgb(99, 102, 241)";
 const CHIP_GREY = "rgb(247, 248, 253)";
 
 /**
+ * Status colours measured on the reference 2026-09-07 (patient HN8516). They
+ * are the reference's own, not the app's palette, and the table's chips and the
+ * printed sheet's pills are deliberately **different** pairs.
+ */
+const REFERENCE_STATUS = {
+  table: {
+    "Đang điều trị": { bg: "rgb(239, 246, 255)", fg: "rgb(29, 78, 216)" },
+    "Hoàn thành": { bg: "rgb(231, 248, 239)", fg: "rgb(18, 169, 96)" },
+    "Chuyển đổi": { bg: "rgb(230, 248, 251)", fg: "rgb(26, 96, 107)" },
+  },
+  print: {
+    "Đang điều trị": { bg: "rgb(217, 238, 255)", fg: "rgb(38, 113, 216)" },
+    "Hoàn thành": { bg: "rgb(221, 246, 232)", fg: "rgb(16, 168, 97)" },
+  },
+} as const;
+
+/**
  * Feature: Danh sách bệnh nhân (/patient) + hồ sơ bệnh nhân.
  *
  * Real stack throughout — the dialog writes to PostgreSQL through the real API
@@ -1668,9 +1685,13 @@ test.describe("Bệnh nhân", () => {
     ]);
     await expect(sheet.getByRole("button", { name: "In Phiếu" })).toBeVisible();
 
-    // The A4 copy carries the centred title and both signature blocks.
-    await expect(sheet.locator(".pd-print-sheet h2")).toHaveText("Chi tiết phiếu");
-    await expect(sheet.locator(".pd-print-signs > div > p:first-child")).toHaveText([
+    // The A4 copy carries the centred title and both signature blocks. It is
+    // addressed from the body, not from the dialog: the sheet is portaled to
+    // document.body so printing can hide everything else — see
+    // "In Phiếu prints the A4 sheet, not the dialog".
+    const a4 = page.locator("body > .pd-print-sheet");
+    await expect(a4.locator("h2")).toHaveText("Chi tiết phiếu");
+    await expect(a4.locator(".pd-print-signs > div > p:first-child")).toHaveText([
       "Người lập phiếu",
       "Khách hàng",
     ]);
@@ -1865,6 +1886,113 @@ test.describe("Bệnh nhân", () => {
 
     await drafts.first().getByRole("button").click();
     await expect(drafts).toHaveCount(1);
+  });
+
+  test("status chips carry the reference's own colours, table and printed sheet apart", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1700, height: 950 });
+    // Record what the printer would be handed, instead of opening a real dialog.
+    await page.addInitScript(() => {
+      (window as unknown as { __print: { calls: number; bodyClass: string } }).__print = {
+        calls: 0,
+        bodyClass: "",
+      };
+      window.print = () => {
+        const w = window as unknown as { __print: { calls: number; bodyClass: string } };
+        w.__print.calls += 1;
+        w.__print.bodyClass = document.body.className;
+      };
+    });
+
+    const line = await openPatientWithTreatment(page, "stageable");
+    await addStage(page, line, `e2e màu ${runId()}`);
+    await page.reload();
+    await page.locator(".pd-treatment-table tbody tr.ant-table-row").first().waitFor();
+
+    // On the table: 32px, 8px radius, 12px/600, and a colour pair per status.
+    const chip = page.locator(".pd-tr-chip").filter({ hasText: "Đang điều trị" }).first();
+    await expect(chip).toHaveCSS("background-color", REFERENCE_STATUS.table["Đang điều trị"].bg);
+    await expect(chip).toHaveCSS("color", REFERENCE_STATUS.table["Đang điều trị"].fg);
+    await expect(chip).toHaveCSS("border-radius", "8px");
+    await expect(chip).toHaveCSS("font-weight", "600");
+    expect(await chip.evaluate((el) => Math.round(el.getBoundingClientRect().height))).toBe(32);
+
+    // "Chưa điều trị" is the app's own wording for a line; the reference labels
+    // a row that has not finished "Đang điều trị", so it must not appear here.
+    await expect(page.locator(".pd-tr-chip").filter({ hasText: "Chưa điều trị" })).toHaveCount(0);
+
+    const dialog = await openStageDialog(page, line.serviceId);
+    await finishLiveStage(page, dialog, line.serviceId);
+    await dialog.getByRole("button", { name: "In lịch sử điều trị" }).click();
+
+    const print = page.locator(".pd-print-dialog");
+    await expect(print).toBeVisible();
+
+    // On the sheet: a **fully rounded** pill at 12px/500, and its own tints.
+    const pill = print.locator(".pd-print-chip").filter({ hasText: "Hoàn thành" }).first();
+    await expect(pill).toHaveCSS("background-color", REFERENCE_STATUS.print["Hoàn thành"].bg);
+    await expect(pill).toHaveCSS("color", REFERENCE_STATUS.print["Hoàn thành"].fg);
+    await expect(pill).toHaveCSS("border-radius", "999px");
+    await expect(pill).toHaveCSS("font-weight", "500");
+    // Not the table's pair — the two sets are different on the reference.
+    await expect(pill).not.toHaveCSS(
+      "background-color",
+      REFERENCE_STATUS.table["Hoàn thành"].bg,
+    );
+  });
+
+  test("In Phiếu prints the A4 sheet, not the dialog", async ({ page }) => {
+    await page.setViewportSize({ width: 1700, height: 950 });
+    await page.addInitScript(() => {
+      (window as unknown as { __print: { calls: number; bodyClass: string } }).__print = {
+        calls: 0,
+        bodyClass: "",
+      };
+      window.print = () => {
+        const w = window as unknown as { __print: { calls: number; bodyClass: string } };
+        w.__print.calls += 1;
+        w.__print.bodyClass = document.body.className;
+      };
+    });
+
+    const line = await openPatientWithTreatment(page, "stageable");
+    await addStage(page, line, `e2e in phiếu ${runId()}`);
+    await page.reload();
+
+    const dialog = await openStageDialog(page, line.serviceId);
+    await dialog.getByRole("button", { name: "In lịch sử điều trị" }).click();
+    const print = page.locator(".pd-print-dialog");
+    await expect(print).toBeVisible();
+
+    // The sheet has to be a **direct child of body**. Inside the modal it sits
+    // under AntD's own portal wrapper, and the print rule that hides the body's
+    // other children hides that wrapper with it — a descendant cannot un-hide
+    // itself, which is what made the preview come out blank.
+    await expect(page.locator("body > .pd-print-sheet")).toHaveCount(1);
+
+    await print.locator(".ant-modal-footer").getByRole("button", { name: "In Phiếu" }).click();
+    expect(
+      await page.evaluate(
+        () => (window as unknown as { __print: { calls: number; bodyClass: string } }).__print,
+      ),
+      "In Phiếu should print once, with the page marked for printing",
+    ).toEqual({ calls: 1, bodyClass: expect.stringContaining("pd-printing") });
+
+    // What the printer is actually handed: the A4 sheet, and none of the dialog.
+    await page.emulateMedia({ media: "print" });
+    const sheet = page.locator("body > .pd-print-sheet");
+    await expect(sheet).toBeVisible();
+    await expect(sheet.locator("h2")).toHaveText("Chi tiết phiếu");
+    await expect(sheet.locator(".pd-print-signs > div")).toHaveCount(2);
+    await expect(sheet.locator(".pd-print-signs")).toContainText("Người lập phiếu");
+    await expect(sheet.locator(".pd-print-signs")).toContainText("Khách hàng");
+    await expect(print.locator(".pd-print-body")).toBeHidden();
+    // A4 at 96dpi, so the layout does not depend on the window.
+    expect(
+      await sheet.locator("article").evaluate((el) => Math.round(el.getBoundingClientRect().width)),
+    ).toBe(794);
+    await page.emulateMedia({ media: "screen" });
   });
 
   test("the công đoạn form lists the pictures it is holding, not just a count", async ({

@@ -5,11 +5,9 @@ import { formatDate } from "@/utils/format";
 import { formatTeeth } from "@/features/treatment-management/api/consultingApi";
 import {
   afterCareLabels,
-  serviceLineStatusConfig,
-  SERVICE_LINE_STATUS,
   type CareStatusCode,
-  type TreatmentServiceStatus,
 } from "@/features/treatment-management/api/treatmentPlanApi";
+import { stageRowStatus, stageRowStatusLabel } from "./stageRowStatus";
 import type { TreatmentRow } from "./treatmentRows";
 
 export type { TreatmentRow };
@@ -76,13 +74,16 @@ function BanknoteIcon() {
  * A row is one **công đoạn** — see {@link buildTreatmentRows} — so Ngày spans
  * its whole day through `rowSpan`, exactly as the reference's table does.
  */
+/** The status one row shows — see stageRowStatus for what the reference does. */
+const rowStatus = (row: TreatmentRow) => stageRowStatus(row.status ?? null, row.stageDone);
+
 export function treatmentColumns({
   onOpenPlan,
   onAddStage,
   onWarranty,
   onPay,
 }: Handlers): TableColumnsType<TreatmentRow> {
-  const lineStatus = serviceLineStatusConfig();
+
   const careLabels = afterCareLabels();
 
   return [
@@ -111,18 +112,8 @@ export function treatmentColumns({
           {row.kind === "reExamination" ? (
             <span className="pd-tr-chip pd-tr-chip--recall">{t("Tái khám")}</span>
           ) : (
-            <span
-              className={`pd-tr-chip pd-tr-chip--${
-                row.stageDone ? SERVICE_LINE_STATUS.Done : SERVICE_LINE_STATUS.InProgress
-              }`}
-            >
-              {
-                lineStatus[
-                  (row.stageDone
-                    ? SERVICE_LINE_STATUS.Done
-                    : SERVICE_LINE_STATUS.InProgress) as TreatmentServiceStatus
-                ].label
-              }
+            <span className={`pd-tr-chip pd-tr-chip--${rowStatus(row)}`}>
+              {stageRowStatusLabel(rowStatus(row))}
             </span>
           )}
         </div>
