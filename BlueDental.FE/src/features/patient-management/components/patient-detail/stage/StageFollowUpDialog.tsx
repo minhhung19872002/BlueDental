@@ -8,6 +8,7 @@ import type { TreatmentStageDto } from "@/features/treatment-management/api/stag
 import type { TreatmentPlanSlipDto } from "@/features/treatment-management/api/treatmentPlanApi";
 import { FollowUpShots } from "./FollowUpShots";
 import { FollowUpTeeth } from "./FollowUpTeeth";
+import { StageStepList } from "./StageStepList";
 import { useFollowUpForm } from "./useFollowUpForm";
 
 /** What the finished công đoạn is being followed up with. */
@@ -32,6 +33,8 @@ const KIND = {
     className: "pd-warranty-dialog",
     /** A warranty visit inherits the công đoạn's teeth as they stand. */
     pickTeeth: false,
+    /** The reference builds no "Danh sách công đoạn" for a warranty visit. */
+    checklist: false,
   },
   reExamination: {
     title: "Tạo tái khám",
@@ -40,6 +43,7 @@ const KIND = {
     className: "pd-recall-form-dialog",
     /** A tái khám is only for the teeth being seen again — see FollowUpTeeth. */
     pickTeeth: true,
+    checklist: true,
   },
 } as const;
 
@@ -173,8 +177,14 @@ export function StageFollowUpDialog({
             />
           </FloatingLabel>
           {form.errors.note && <p className="pd-stage-error">{form.errors.note}</p>}
-          <p className="pd-stage-list">{t("Danh sách công đoạn")}</p>
-          <p className="pd-stage-listempty">{t("(Trống)")}</p>
+          {/* A tái khám carries the source công đoạn's content as its one
+              tickable entry; a warranty visit builds no checklist at all, so
+              the heading prints "(Trống)". */}
+          <StageStepList
+            steps={copy.checklist ? form.checklist : []}
+            checked={form.pickedSteps}
+            onToggle={copy.checklist ? form.toggleStep : undefined}
+          />
         </div>
       </div>
     </Modal>

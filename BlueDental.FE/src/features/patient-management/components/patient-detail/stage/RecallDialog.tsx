@@ -4,6 +4,8 @@ import { t } from "@/lib/i18n";
 import { formatShortDate } from "@/utils/format";
 import { toothLabels } from "@/features/treatment-management/api/consultingApi";
 import type { TreatmentStageDto } from "@/features/treatment-management/api/stageApi";
+import { reExaminationChecklist } from "./reExaminationChecklist";
+import { StageStepList } from "./StageStepList";
 
 interface Props {
   open: boolean;
@@ -68,8 +70,10 @@ export function RecallDialog({ open, stages, onClose, onBook, onDetail }: Props)
 
               <div className="pd-recall-note">
                 <p>{stage.note ?? ""}</p>
-                <p className="pd-stage-list">{t("Danh sách công đoạn")}</p>
-                <p className="pd-stage-listempty">{t("(Trống)")}</p>
+                {/* Read-only here: the reference draws these ticked-off boxes
+                    disabled on the listing, and only lets you touch them once
+                    Tái Khám has opened the form. */}
+                <StageStepList steps={reExaminationChecklist(stage)} checked={[]} tone="accent" />
               </div>
 
               <div className="pd-recall-actions">

@@ -564,8 +564,14 @@ service has no stages in its catalog entry.
 - The history is grouped by day with a spanning date cell, prints `d/M/yyyy`,
   and shows each công đoạn's pictures as 68px thumbnails that open a viewer.
 - The note's pencil edits in place through `PUT /treatment-stages/{id}`.
-- `Thanh toán` navigates to `?tab=treatment-plan` instead of stacking the
-  payment form.
+- `Thanh toán` navigates instead of stacking the payment form — to **that
+  slip's** detail screen, `/patient/{id}/treatment-plan/{planId}?planTab=detail&branchId=`,
+  re-measured on the reference 2026-09-07. (It used to land on the patient's
+  `?tab=treatment-plan` list here, which was wrong: that is the listing of every
+  slip, not the one the clicked row belongs to.) The DT code chip on the Kế
+  hoạch điều trị tab is the contrasting case — it goes to the same page with
+  **no** `planTab`, letting it fall back to Chi tiết, so `planDetailPath` takes
+  the tab as an optional argument rather than always writing it.
 - `In lịch sử điều trị` opens the print modal plus its hidden A4 sheet.
 - `Tạo Labo` opens the Labo **Đặt mới** dialog in place. `LaboOrder` gained
   `ToothShade`, `Quantity`, `TreatmentServiceId` and `TreatmentStageId`
@@ -670,6 +676,38 @@ untick — see docs/clone/unknowns.md, the body itself was not observable.
 Names are never copied onto the công đoạn: it stores ids and the name is read
 from `CatalogServiceStage`, so renaming a step in Danh mục shows through
 everywhere at once.
+
+**The tái khám screens mean something else by that heading — measured
+2026-09-07 off the reference bundle.** "Tạo tái khám" does **not** show the
+service's steps. Its row mapper synthesises at most one entry out of the
+finished công đoạn's own Nội dung điều trị:
+
+```js
+// chunk 0568b3ed70779de1.js, the l6 row mapper
+a = l5(e.content)            // trimmed; a lone "—" counts as blank
+stageChecklist: a ? [{ id: `${e.id}-re-examination-stage`, label: a, checked: !1 }] : []
+```
+
+So the label is the **note**, never a step name, and there is never more than
+one. It renders in two places, differently:
+
+| Where | Ticked | Enabled | Label |
+|---|---|---|---|
+| The listing row behind "Tạo Tái khám" | never | **disabled** | `font-semibold text-primary` — #2671D8 at weight 600 |
+| The form behind that row's `Tái Khám` | starts unticked | **tickable** | plain |
+
+An empty list prints `<p class="text-label">(Trống)</p>`. The form keeps the
+source công đoạn's label even though its own Nội dung điều trị starts blank,
+because the item is cloned from the listing row rather than rebuilt.
+
+"Tạo bảo hành" takes the other branch of the same mapper, which sets
+`stageChecklist: []` and `treatmentContent: ""` outright — so a warranty visit
+always reads `(Trống)`.
+
+BlueDental builds this in `stage/reExaminationChecklist.ts` and renders it
+through the shared `StageStepList` (`tone="accent"` for the read-only listing).
+Whether ticking the box on the form sends anything is **unobserved** — see
+docs/clone/unknowns.md.
 
 **Not built:** each step also carries a commission (`earningByStage`,
 `earningAmount`, and the step's `value`/`valueType`), and the reference's tick

@@ -3,6 +3,8 @@ import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
 
 /** --bd-primary, the clone's own brand — see src/styles/index.css. */
 const APP_PRIMARY = "rgb(99, 102, 241)";
+/** The reference's own primary, #2671D8 — what it prints step names in. */
+const REFERENCE_BLUE = "rgb(38, 113, 216)";
 /** --bd-bg-head, the quiet grey the reference gives a label rather than a status. */
 const CHIP_GREY = "rgb(247, 248, 253)";
 
@@ -1699,16 +1701,25 @@ test.describe("Bệnh nhân", () => {
     ]);
   });
 
-  test("Thanh toán leaves the stage dialog for the slip's own screen", async ({ page }) => {
+  test("Thanh toán leaves the stage dialog for the slip's own detail screen", async ({ page }) => {
     await page.setViewportSize({ width: 1600, height: 900 });
     const { serviceId } = await openPatientWithTreatment(page, "stageable");
 
     const dialog = await openStageDialog(page, serviceId);
     await dialog.getByRole("button", { name: "Thanh toán" }).click();
 
-    // The reference navigates rather than stacking a payment form on the dialog.
+    // The reference navigates rather than stacking a payment form on the
+    // dialog — and it lands on **that slip**, not the tab listing every slip.
+    // Measured on the reference 2026-09-07:
+    // /patient/:id/treatment-plan/:planId?planTab=detail&branchId=
     await expect(dialog).toBeHidden();
-    await expect(page).toHaveURL(/tab=treatment-plan/);
+    await expect(page).toHaveURL(/\/treatment-plan\/[^/?]+\?planTab=detail&branchId=/);
+
+    // It is the slip the clicked row belongs to, and it opens on Chi tiết.
+    await expect(page.locator(".pdt-page")).toBeVisible();
+    await expect(page.locator(".pdt-tab.active, [role=tab][aria-selected=true]").first()).toHaveText(
+      "Chi tiết",
+    );
   });
 
   test("Tạo Labo opens Đặt mới filled from the công đoạn", async ({ page }) => {
@@ -2243,6 +2254,78 @@ test.describe("Bệnh nhân", () => {
     ).toBeVisible();
   });
 
+  test("Danh sách công đoạn carries the công đoạn's content on both tái khám screens", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1800, height: 950 });
+    const line = await openPatientWithTreatment(page, "warrantable");
+    const note = `e2e checklist ${runId()}`;
+    await addStage(page, line, note);
+    await page.reload();
+
+    const dialog = await openStageDialog(page, line.serviceId);
+    await finishLiveStage(page, dialog, line.serviceId);
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+    await page.reload();
+    await page.locator(".pd-treatment-table tbody tr.ant-table-row").first().waitFor();
+
+    await page.getByRole("button", { name: "Tạo Tái khám" }).click();
+    const row = page
+      .locator(".pd-recall-dialog .pd-recall-row")
+      .filter({ hasText: note })
+      .first();
+
+    /*
+     * Not the service's steps, which is what this heading means over on "Chi
+     * tiết phiếu". The reference synthesises one entry out of the finished
+     * công đoạn's own Nội dung điều trị — `stageChecklist: a ? [{ id:
+     * `${e.id}-re-examination-stage`, label: a, checked: !1 }] : []` in its
+     * bundle, read 2026-09-07 — so the label is the note, never a step name.
+     */
+    const listed = row.locator(".pd-stage-steps .ant-checkbox-wrapper");
+    await expect(listed).toHaveCount(1);
+    await expect(listed).toHaveText(note);
+    // Unticked and read-only on the listing, and the label keeps its own blue
+    // rather than fading with the disabled box.
+    await expect(listed.locator("input")).not.toBeChecked();
+    await expect(listed.locator("input")).toBeDisabled();
+    await expect(listed.locator(".ant-checkbox + span")).toHaveCSS("color", REFERENCE_BLUE);
+    await expect(row.locator(".pd-stage-listempty")).toHaveCount(0);
+
+    // The form behind Tái Khám carries the same entry, but there it is the
+    // user's to tick.
+    await row.getByRole("button", { name: "Tái Khám" }).click();
+    const form = page.locator(".pd-recall-form-dialog");
+    const step = form.locator(".pd-stage-steps .ant-checkbox-wrapper");
+    await expect(step).toHaveText(note);
+    await expect(step.locator("input")).not.toBeChecked();
+    await expect(step.locator("input")).toBeEnabled();
+    await step.click();
+    await expect(step.locator("input")).toBeChecked();
+  });
+
+  test("Tạo bảo hành builds no checklist, so the heading stays (Trống)", async ({ page }) => {
+    await page.setViewportSize({ width: 1800, height: 950 });
+    const line = await openPatientWithTreatment(page, "warrantable");
+    await addStage(page, line, `e2e bảo hành ${runId()}`);
+    await page.reload();
+
+    const dialog = await openStageDialog(page, line.serviceId);
+    await finishLiveStage(page, dialog, line.serviceId);
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+    await page.reload();
+    await widenTreatmentTable(page);
+
+    await treatmentRow(page, line.serviceId).locator(".pd-tr-warranty").first().click();
+    const warranty = page.locator(".pd-warranty-dialog");
+    // The reference's warranty mapper sets `stageChecklist: []` outright — a
+    // bảo hành never inherits the công đoạn's content the way a tái khám does.
+    await expect(warranty.locator(".pd-stage-steps .ant-checkbox-wrapper")).toHaveCount(0);
+    await expect(warranty.locator(".pd-stage-listempty")).toHaveText("(Trống)");
+  });
+
   test("a tái khám picks its teeth, lists its images, and lands as its own row", async ({
     page,
   }) => {
@@ -2409,11 +2492,13 @@ test.describe("Bệnh nhân", () => {
     ]);
 
     // A finished công đoạn shows up, with the reference's two commands beside a
-    // ticked, read-only Hoàn thành.
+    // ticked, read-only Hoàn thành. Scoped to the actions column: the row also
+    // carries the "Danh sách công đoạn" box, which is its own assertion.
     const row = recall.locator(".pd-recall-row").first();
     await expect(row).toBeVisible();
-    await expect(row.getByRole("checkbox")).toBeChecked();
-    await expect(row.getByRole("checkbox")).toBeDisabled();
+    const done = row.locator(".pd-recall-actions").getByRole("checkbox");
+    await expect(done).toBeChecked();
+    await expect(done).toBeDisabled();
     await expect(row.getByRole("button", { name: "Tái Khám" })).toBeVisible();
     await expect(row.getByRole("button", { name: "Chi Tiết" })).toBeVisible();
   });

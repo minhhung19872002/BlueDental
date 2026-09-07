@@ -2761,3 +2761,101 @@ sẵn có vốn không có vấn đề gì.
 > `WithDetailsAsync`, phải kể tên **mọi** navigation mà đoạn code phía sau đọc
 > tới. `TreatmentStageAppService` cũng include một mình `c => c.Stages` nhưng
 > chỗ đó chỉ đọc `Name` với `Stages` nên không sao — đã kiểm lại.
+
+---
+
+## 2026-09-07 (tối) — Thanh toán nhảy đúng phiếu, và "Danh sách công đoạn" trên tái khám
+
+> **Đánh số**: hai mục dưới đây lấy R-274, R-275 — số kế tiếp của dãy nhánh
+> (cao nhất trước đó là R-273). Khối F-39 lấy từ `main` khi rebase **vẫn đang
+> trùng** dải R-234…R-251 với đợt 9/10 của nhánh; khi đánh số lại khối đó, phải
+> chọn dải **trên** R-275 để khỏi đụng tiếp. Xem phần rebase cùng ngày.
+
+Cả hai lệch đều do chủ dự án chỉ ra. Soi lại bản gốc trên staging, **chỉ đọc**:
+đăng nhập, mở trang, mở dialog rồi đóng bằng nút Đóng, đọc DOM + `getComputedStyle`
++ React fiber, và đọc **bundle** tĩnh (`chunk 0568b3ed70779de1.js` — rule 00 cho
+phép đọc static asset). Kiểm lại network sau khi xong: **không một request
+POST/PUT/PATCH/DELETE nghiệp vụ nào**, chỉ `auth/refresh` và socket.io polling.
+
+| # | Lệch | Sửa |
+|---|---|---|
+| R-274 | Nút **Thanh toán** trong "Chi tiết phiếu" nhảy về `?tab=treatment-plan` — danh sách **mọi** phiếu, không phải phiếu của dòng vừa bấm | Nhảy đúng `/patient/{id}/treatment-plan/{planId}?planTab=detail&branchId=` |
+| R-275 | "Danh sách công đoạn" trên "Tạo tái khám" luôn in `(Trống)` | Dựng đúng mục bản gốc sinh ra |
+
+### R-274 — Thanh toán đi đâu
+
+Đo trên bản gốc: bấm Thanh toán trong "Chi tiết phiếu" điều hướng tới
+
+    /patient/{patientId}/treatment-plan/{planId}?planTab=detail&branchId={branchId}
+
+`planTab` đứng **trước** `branchId`. Đối chứng ngay cạnh: chip mã **DT** ở tab
+Kế hoạch điều trị đi tới cùng trang nhưng **không** kèm `planTab` (`?branchId=`
+thôi, để trang tự rơi về Chi tiết). Hai đường khác nhau thật, nên
+`planDetailPath` nhận `tab` là **tham số tuỳ chọn** — mặc định giữ nguyên hành
+vi cũ của chip DT, chỉ đường Thanh toán mới truyền `PLAN_TAB.detail`.
+
+Sửa ở ba chỗ mở `TreatmentStageDialog`: `PatientProfileTab` và
+`TreatmentPlanPanel` nay `navigate` tới trang phiếu; `PlanServicesTab` vẫn chỉ
+đóng dialog vì nó **đã** ở chính trang đó.
+
+Doc `patient-detail.md` mô tả đúng hành vi này từ trước (mục "The three hidden
+modals, and Thanh toán") — chỉ code là lệch, còn một dòng ghi chú cũ ở phần khác
+vẫn viết `?tab=treatment-plan`; đã sửa.
+
+### R-275 — "Danh sách công đoạn" trên tái khám **không** phải công đoạn của dịch vụ
+
+Đây là chỗ dễ hiểu nhầm nhất, và bundle nói dứt điểm:
+
+```js
+a = l5(e.content)            // trim; riêng "—" coi như rỗng
+stageChecklist: a ? [{ id: `${e.id}-re-examination-stage`, label: a, checked: !1 }] : []
+```
+
+Nhãn checkbox là **Nội dung điều trị** của chính công đoạn đã hoàn tất, không
+bao giờ là tên một step trong Danh mục, và **nhiều nhất một mục**. Trước đó tưởng
+là trùng hợp vì trên máy khảo sát note và tên step tình cờ giống nhau ("123"); key
+React `...-re-examination-stage` mới là thứ lật lại được.
+
+Hai nơi vẽ khác nhau:
+
+| Nơi | Tick | Bấm được | Nhãn |
+|---|---|---|---|
+| Dòng trong dialog "Tạo tái khám" | không bao giờ | **disabled** | `font-semibold text-primary` = **#2671D8**, weight 600 |
+| Form sau khi bấm `Tái Khám` | bắt đầu chưa tick | **tick được** | chữ thường |
+
+Rỗng thì in `(Trống)`. Form giữ nhãn của công đoạn nguồn dù ô Nội dung điều trị
+của nó để trống — vì item được **clone** từ dòng listing chứ không dựng lại.
+"Tạo bảo hành" đi nhánh còn lại của cùng mapper (`stageChecklist: []`), nên
+**luôn** `(Trống)` — phần này ta đã đúng sẵn.
+
+Dựng: `stage/reExaminationChecklist.ts` sinh mục, `StageStepList` nhận thêm
+`tone` (`accent` = #2671D8/600 cho dòng read-only, và **không** để AntD làm mờ
+nhãn theo ô disabled). `useFollowUpForm` giữ `pickedSteps` cục bộ. Việc tick có
+gửi gì lên server hay không **chưa quan sát được** (phải bấm Lưu trên bản gốc mới
+biết, tức là ghi thật) — đã ghi `unknowns.md`.
+
+### Chạy thật
+
+Bản build production, `vite preview` cổng **8098**, API `:5019`, Postgres/Redis/
+MinIO docker thật. `tsc --noEmit` 0 lỗi, `oxlint` 0 lỗi.
+
+- 4 spec liên quan xanh: Thanh toán nhảy đúng URL + tab Chi tiết đang mở; nhãn
+  checklist = note trên **cả hai** màn tái khám, đúng màu #2671D8, disabled ở
+  listing và tick được ở form; bảo hành vẫn `(Trống)`.
+- Một spec cũ phải sửa vì thay đổi này là **đúng**: "Tạo Tái khám lists the công
+  đoạn that are finished" dùng `row.getByRole("checkbox")`, nay dòng có **hai**
+  checkbox nên strict mode gãy — thu hẹp về `.pd-recall-actions`.
+- Bộ đầy đủ `patient` + `treatment-plan` + `treatment-plan-detail` +
+  `treatment-stage`: **61 xanh / 2 đỏ**, cả hai đỏ **không phải** do đợt này —
+  đã xác minh bằng cách `git stash` toàn bộ thay đổi, build lại và chạy lại:
+
+  1. `treatment-plan-detail.spec.ts` — "the slip code opens the detail page…"
+     đỏ ở `Doanh thu dự kiến > 0`. **Đỏ y hệt trên baseline.** Nguyên nhân là
+     **rác dữ liệu test**: `createSlip()` chọn dịch vụ **đầu tiên** trong
+     dropdown, mà đầu bảng giờ là catalog sót lại từ e2e taxonomy
+     (`A 280044`, `ROW A 250361`) có `Price = 0.00`. Thuộc F-39 (đang `DIRTY`);
+     cách sửa bền là spec tự tạo/chọn dịch vụ có giá.
+  2. `patient.spec.ts` — "the Tiếp nhận steps advance one at a time" đỏ ở
+     `booked === null`. Đúng cái chính comment của spec cảnh báo: nó **tiêu thụ**
+     một lịch hẹn demo mỗi lượt. Xanh ở lượt chạy đầu phiên, đỏ sau khi chạy
+     suite lần thứ ba. Cần seed lại, không phải lỗi code.

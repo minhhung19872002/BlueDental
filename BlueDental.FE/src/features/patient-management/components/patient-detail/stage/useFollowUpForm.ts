@@ -10,6 +10,7 @@ import {
 } from "@/features/treatment-management/api/stageApi";
 import type { TreatmentPlanSlipDto } from "@/features/treatment-management/api/treatmentPlanApi";
 import { useUploadPatientImage } from "../../../api/patientImageApi";
+import { reExaminationChecklist } from "./reExaminationChecklist";
 
 /** Field-level messages, keyed by the field they sit under. */
 export interface FollowUpErrors {
@@ -63,6 +64,12 @@ export function useFollowUpForm({
   /** Tooth codes ticked in the form; only meaningful when `pickTeeth`. */
   const [picked, setPicked] = useState<number[]>([]);
   /**
+   * "Danh sách công đoạn" ids ticked on the form. The reference lets these be
+   * toggled but sends nothing for them — see UNKNOWN_REFERENCE_BEHAVIOR in
+   * docs/clone/unknowns.md — so they stay local and are not part of `save`.
+   */
+  const [pickedSteps, setPickedSteps] = useState<string[]>([]);
+  /**
    * Which fields failed the last save attempt. The reference reports these
    * **under the field**, not as a toast: a toast leaves you hunting for which
    * of three inputs it meant, and it is gone by the time you look.
@@ -77,10 +84,18 @@ export function useFollowUpForm({
     setNote("");
     setPending([]);
     setPicked([]);
+    setPickedSteps([]);
     setErrors({});
   }, [open, stage]);
 
   const line = plan?.services.find((item) => item.id === stage?.treatmentServiceId) ?? null;
+
+  /**
+   * The reference keeps the source công đoạn's content as the form's one
+   * checklist entry even though Nội dung điều trị starts blank for the new
+   * visit, so this reads the stage rather than `note`.
+   */
+  const checklist = useMemo(() => reExaminationChecklist(stage), [stage]);
 
   /** The công đoạn's own teeth are the candidates; a follow-up picks among them. */
   const candidates = (stage?.teeth.length ?? 0) > 0 ? (stage?.teeth ?? []) : (line?.teeth ?? []);
@@ -111,6 +126,11 @@ export function useFollowUpForm({
     if (value.trim()) setErrors((current) => ({ ...current, note: undefined }));
     setNote(value);
   };
+
+  const toggleStep = (stepId: string, next: boolean) =>
+    setPickedSteps((current) =>
+      next ? [...current, stepId] : current.filter((id) => id !== stepId),
+    );
 
   const addFiles = (files: File[]) => setPending((current) => [...current, ...files]);
   const removeFile = (at: number) =>
@@ -184,6 +204,9 @@ export function useFollowUpForm({
   return {
     line,
     candidates,
+    checklist,
+    pickedSteps,
+    toggleStep,
     previews,
     errors,
     staffId,

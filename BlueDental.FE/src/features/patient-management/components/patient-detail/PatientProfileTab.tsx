@@ -26,6 +26,8 @@ import {
   usePatientAccount,
 } from "@/features/treatment-management/api/treatmentPlanApi";
 import { useReExaminations, useTreatmentStages } from "@/features/treatment-management/api/stageApi";
+import { planDetailPath } from "@/features/treatment-management/components/plan/planTypes";
+import { PLAN_TAB } from "@/features/treatment-management/components/plan-detail/planDetailTypes";
 import { CATALOG_GROUP, useCatalogOptions } from "@/hooks/useCatalogOptions";
 import { usePatientTagOptions } from "@/hooks/usePatientTagOptions";
 import { useTablePagination } from "@/hooks/useTablePagination";
@@ -564,9 +566,15 @@ export function PatientProfileTab({ patient }: Props) {
         focusServiceId={stageRow?.id ?? null}
         onClose={() => setStageRow(null)}
         onOpenPlan={() => {
-          // The reference leaves the dialog for the slip's own screen.
+          /*
+           * The reference leaves the dialog for **that slip's** detail screen,
+           * not the tab listing every slip: measured 2026-09-07 as
+           * /patient/:id/treatment-plan/:planId?planTab=detail&branchId=.
+           */
           setStageRow(null);
-          openTreatmentPlan();
+          if (stagePlan) {
+            navigate(planDetailPath(patient.id, stagePlan.id, branchId, PLAN_TAB.detail));
+          }
         }}
       />
       <AppointmentEditorModal

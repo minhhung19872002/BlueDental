@@ -2928,6 +2928,16 @@
   height: 20px;
   border-radius: 4px;
 }
+/*
+ * The read-only variant on "Tạo tái khám": the reference prints those step
+ * names `font-semibold text-primary`, measured 2026-09-07 as #2671D8 at
+ * weight 600, and keeps the box disabled — so the label must not fade with it
+ * the way AntD dims a disabled wrapper by default.
+ */
+.pd-stage-steps--accent .ant-checkbox-wrapper-disabled span:not(.ant-checkbox) {
+  color: var(--bd-link);
+  font-weight: 600;
+}
 .pd-stage-formactions {
   display: flex;
   justify-content: flex-end;

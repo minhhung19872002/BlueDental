@@ -1738,3 +1738,23 @@ Action taken: The observed fields are recorded here; nothing was built for them.
 BlueDental: NOT IMPLEMENTED — CatalogServiceStage.Value is stored and carried to
   the front end as ServiceStepDto.Value, unused. A step's tick has no effect on
   money yet, and progress is not reported on the line.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id} (Hồ sơ) — "Tạo tái khám", the form behind a row's Tái Khám
+Control: the single "Danh sách công đoạn" checkbox on that form
+Reason: The entry is synthesised in the browser, not fetched — the row mapper
+  builds it from the finished công đoạn's Nội dung điều trị
+  (`stageChecklist: a ? [{ id: `${e.id}-re-examination-stage`, label: a,
+  checked: !1 }] : []`, chunk 0568b3ed70779de1.js, read 2026-09-07). Unlike the
+  listing, where the box is `disabled`, the form's box is live and its handler
+  goes through the form's generic `updateItem`. Whether the tick reaches the
+  server would only show on Lưu, which writes a tái khám on the reference — so
+  it was not pressed. Nothing in `POST /v1/patient-stages/.../re-examination`'s
+  observed shape carries a checklist, and the id it would send
+  (`<stageId>-re-examination-stage`) is not a real `stageServiceId`, so the
+  likeliest answer is that the tick is decorative.
+Action taken: NONE — no save was attempted on the reference.
+BlueDental: the box is tickable and its state is local to the form; `save()` in
+  `useFollowUpForm` does not send it. If the reference turns out to persist it,
+  the field has to be modelled first — `PatientReExamination` has no checklist.

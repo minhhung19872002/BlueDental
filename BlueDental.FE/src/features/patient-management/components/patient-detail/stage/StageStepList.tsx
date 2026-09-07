@@ -14,19 +14,32 @@ interface Props {
   /** Omitted while a toggle is in flight, which disables the whole list. */
   onToggle?: (stepId: string, next: boolean) => void;
   busy?: boolean;
+  /**
+   * How the step names are drawn. The reference prints them plain on a form
+   * and bold-primary on the read-only "Tạo tái khám" rows.
+   */
+  tone?: "plain" | "accent";
 }
 
 /**
- * "Danh sách công đoạn" — the service's own steps as checkboxes.
+ * "Danh sách công đoạn" — a list of steps as checkboxes.
  *
- * Used in two places, which is why it takes its state rather than owning it: on
- * the công đoạn form it picks which steps the công đoạn will cover, and in the
- * treatment history row it ticks them off as they are done. A service that
- * declares no steps prints "(Trống)", the reference's empty state.
+ * Used wherever that heading appears, which is why it takes its state rather
+ * than owning it: on the công đoạn form it picks which of the service's steps
+ * the công đoạn will cover, in the treatment history row it ticks them off as
+ * they are done, and on the tái khám screens it carries the single synthesised
+ * entry from {@link reExaminationChecklist}. An empty list prints "(Trống)",
+ * the reference's own empty state.
  */
-export function StageStepList({ steps, checked, onToggle, busy = false }: Props) {
+export function StageStepList({
+  steps,
+  checked,
+  onToggle,
+  busy = false,
+  tone = "plain",
+}: Props) {
   return (
-    <div className="pd-stage-steps">
+    <div className={tone === "accent" ? "pd-stage-steps pd-stage-steps--accent" : "pd-stage-steps"}>
       <p className="pd-stage-list">{t("Danh sách công đoạn")}</p>
       {steps.length === 0 ? (
         <p className="pd-stage-listempty">{t("(Trống)")}</p>

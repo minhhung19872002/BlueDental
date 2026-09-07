@@ -7,6 +7,8 @@ import type {
   TreatmentServiceDto,
   TreatmentServiceStatus,
 } from "../../api/treatmentPlanApi";
+// Type-only: plan-detail/ imports this module, so a value import would close a cycle.
+import type { PlanTabKey } from "../plan-detail/planDetailTypes";
 
 /**
  * The reference's configurable columns, in its default order. "Thêm công đoạn"
@@ -104,9 +106,25 @@ export function planPill(plan: TreatmentPlanSlipDto) {
 }
 
 /** The slip's own screen — where the code links and the summary cards lead. */
-export function planDetailPath(patientId: string, planId: string, branchId: string): string {
-  const search = branchId ? `?branchId=${encodeURIComponent(branchId)}` : "";
-  return `/patient/${patientId}/treatment-plan/${planId}${search}`;
+/**
+ * The slip's own screen.
+ *
+ * `tab` is left off by default on purpose: the reference's DT code chip lands
+ * on `?branchId=` alone and lets the page fall back to Chi tiết, while the
+ * jumps that mean a particular tab — "Thanh toán" on "Chi tiết phiếu" — spell
+ * `planTab=` out ahead of the branch. Both measured 2026-09-07.
+ */
+export function planDetailPath(
+  patientId: string,
+  planId: string,
+  branchId: string,
+  tab?: PlanTabKey,
+): string {
+  const params = new URLSearchParams();
+  if (tab) params.set("planTab", tab);
+  if (branchId) params.set("branchId", branchId);
+  const search = params.toString();
+  return `/patient/${patientId}/treatment-plan/${planId}${search ? `?${search}` : ""}`;
 }
 
 /** Every money cell on the tab carries the unit: "4.000.000 đ". */
