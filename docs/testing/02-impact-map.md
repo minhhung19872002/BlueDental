@@ -42,12 +42,12 @@ What to retest when a shared piece changes. Levels are defined in
 | `PatientAdvise` / `PatientDiagnosis` | 2 | F-07, F-09 |
 | `Voucher` domain | 2 | F-08, and F-09 (advises can carry a voucher discount) |
 | `CareRecord` / `CustomerCareAppService` | 2 | F-12 |
-| `LaboOrder` / `LaboAppService` | 2 | F-13 |
+| `LaboOrder` / `LaboAppService` | 3 | F-13, and F-38 — "Tạo Labo" on a công đoạn opens the same Đặt mới form and posts the same contract |
 | `InventoryItem` / `SuppliesAppService` | 2 | F-14 |
 | `OperationsArticle` / `OperationsTask` / `OperationsAbilities` | 2 | F-15 |
-| `TreatmentStage` domain / `TreatmentStageAppService` | 2 | F-19 |
+| `TreatmentStage` domain / `TreatmentStageAppService` | 3 | F-19, F-38 (the Hồ sơ treatment table's Công đoạn cell and "Chi tiết phiếu"), F-13 — a labo order now names the công đoạn it was raised from |
 | `TreatmentPlan` / `TreatmentService` / `PatientMoneyCalculator` | 3 | F-19, F-21, F-22, F-17, F-18 — the money rollup feeds the reports |
-| `PatientPayment` | 3 | F-22, F-17, F-18 |
+| `PatientPayment` / `PatientPaymentLine` | 3 | F-22, F-17, F-18, F-38 — a receipt's **lines** drive each service's Đã thu / Còn nợ, so touching them moves the Hồ sơ treatment table as well as both reports |
 | `Prescription` / `PrescriptionAppService` | 2 | F-23 |
 | `src/components/prescription-lines/` (shared line editor) | 3 | F-23 and F-34 (Đơn thuốc mẫu dialog) |
 | `PatientImage` / blob storage / `patient-images` reorder | 2 | F-24, and the Chẩn đoán & Tư vấn tab's "Chọn ảnh hiển thị" picker, which reads the same list |
@@ -67,6 +67,11 @@ What to retest when a shared piece changes. Levels are defined in
   and the money movements, so a change to `TreatmentPlan.CompletedValue` or to
   `PatientPayment` moves the patient account, the treatment table and both
   reports at once.
+- **A receipt covers several services**: one `PatientPayment` carries a
+  `PatientPaymentLine` per service, and the server — not the browser — decides
+  the split in Tự động mode. Anything that changes how a line's outstanding is
+  computed therefore changes what a *new* receipt allocates, not only what the
+  old ones display.
 - **The clinical chain**: công đoạn hangs off a service line, and a service line is
   an *accepted* `PatientAdvise`, which in turn answers a `PatientDiagnosis`.
   Changing any link breaks F-19 even though nothing in the stage code moved.

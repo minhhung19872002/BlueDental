@@ -15,6 +15,7 @@ public class Patient : FullAuditedAggregateRoot<Guid>
 {
     private readonly List<Guid> _tagIds = new();
     private readonly List<Guid> _diseaseHistoryEntryIds = new();
+    private readonly List<PatientExaminationReason> _examinationReasons = new();
 
     public string PatientCode { get; private set; } = default!;
     public string FirstName { get; private set; } = default!;
@@ -61,11 +62,22 @@ public class Patient : FullAuditedAggregateRoot<Guid>
     /// <summary>Xã/ Phường — code from that province's ward list.</summary>
     public string? WardCode { get; private set; }
 
-    /// <summary>Lý do đến khám.</summary>
-    public string? ExaminationReason { get; private set; }
-
     /// <summary>Ghi chú.</summary>
     public string? Note { get; private set; }
+
+    /// <summary>
+    /// Lý do đến khám — a dated list, not one note. The profile card prints
+    /// every line; the hồ sơ dialog only ever edits the root one.
+    /// </summary>
+    public IReadOnlyCollection<PatientExaminationReason> ExaminationReasons =>
+        _examinationReasons.AsReadOnly();
+
+    /// <summary>
+    /// What the hồ sơ dialog's Lý do đến khám box shows: the text of the first
+    /// reason the record was given, or nothing when it has none.
+    /// </summary>
+    public string? ExaminationReason =>
+        _examinationReasons.FirstOrDefault(reason => reason.IsRoot)?.Content;
 
     /// <summary>Thẻ hồ sơ — ids from the branch's PatientTag catalog.</summary>
     public IReadOnlyCollection<Guid> TagIds => _tagIds.AsReadOnly();
@@ -183,11 +195,65 @@ public class Patient : FullAuditedAggregateRoot<Guid>
         return this;
     }
 
-    public Patient SetNotes(string? examinationReason, string? note)
+    public Patient SetNote(string? note)
     {
-        ExaminationReason = Trimmed(examinationReason);
         Note = Trimmed(note);
         return this;
+    }
+
+    /// <summary>
+    /// What the hồ sơ dialog's Lý do đến khám box writes: it rewrites the root
+    /// reason in place rather than adding a line, which is why editing a record
+    /// twice leaves one entry on the card and not two. Clearing the box removes
+    /// the root line; the ones added from the card's + button stay.
+    /// </summary>
+    public Patient SetRootExaminationReason(Guid id, string? content, DateTimeOffset recordedAt)
+    {
+        var trimmed = Trimmed(content);
+        var root = _examinationReasons.FirstOrDefault(reason => reason.IsRoot);
+
+        if (trimmed is null)
+        {
+            if (root is not null)
+            {
+                _examinationReasons.Remove(root);
+            }
+
+            return this;
+        }
+
+        if (root is null)
+        {
+            _examinationReasons.Add(new PatientExaminationReason(id, trimmed, null, isRoot: true, recordedAt));
+        }
+        else
+        {
+            root.SetContent(trimmed);
+        }
+
+        return this;
+    }
+
+    /// <summary>
+    /// The card's + button. Appends a dated line; the first line a record ever
+    /// gets becomes its root, so the hồ sơ dialog and the card agree on which
+    /// reason opened the record whichever door it came through.
+    /// </summary>
+    public PatientExaminationReason AddExaminationReason(
+        Guid id,
+        string content,
+        string? note,
+        DateTimeOffset recordedAt)
+    {
+        var reason = new PatientExaminationReason(
+            id,
+            content,
+            note,
+            isRoot: _examinationReasons.Count == 0,
+            recordedAt);
+
+        _examinationReasons.Add(reason);
+        return reason;
     }
 
     /// <summary>Replaces the tag set whole — the form edits it as one picker.</summary>

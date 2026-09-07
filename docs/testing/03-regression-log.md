@@ -1332,3 +1332,471 @@ Bẫy gặp phải, ghi để khỏi lặp:
 Ảnh đối chiếu: `reference-private/survey/staging/patient-care-2026-09-05/0[1-6]-*.png`
 vs ảnh local chụp cùng viewport 1600×900. Lệch còn lại: chrome chung (sidebar,
 màu primary) và dialog xoá dùng chung 440px/14px so với ~380px/16px.
+
+### 2026-09-06 — DbMigrator chết trên database trống: ba bảng mất trong merge
+
+Chạy `dotnet run --project src/BlueDental.DbMigrator` trên DB rỗng thì hỏng.
+Log mở đầu bằng một loạt `[ERR] relation "AbpSettingDefinitions" does not exist`
+— **nhiễu**, không phải lỗi: ABP khởi tạo application (lưu setting/permission/
+feature tĩnh xuống DB, quét background job) *trước* khi `MigrateAsync()` chạy,
+nên trên DB trống mấy truy vấn đó luôn đỏ; ABP nuốt exception và đi tiếp.
+
+Lỗi thật nằm ở dòng cuối, `[ERR] Hosting failed to start`:
+
+```
+ALTER TABLE bd_care_records ADD "CareServiceId" uuid;
+42P01: relation "bd_care_records" does not exist
+```
+
+Nguyên nhân: `20260822235823_MergeConflictResolve` được commit với `Up()` **rỗng**.
+Designer snapshot của chính nó vẫn mô tả `bd_care_records` và `bd_labo_orders`,
+mọi migration sau đó đều coi hai bảng này đã có (`ExpandCustomerCare` thêm 7 cột,
+`ExpandLaboOrder` thêm 7 cột), nhưng không migration nào tạo chúng — bước gỡ
+xung đột giữ snapshot và bỏ mất phần operations. Bảng thứ ba, `bd_visits`, mất
+cùng kiểu: `20260830070759_AddAppointmentOutcome` `DropTable` một bảng chưa từng
+được tạo.
+
+Vì vậy DB đã cài từ trước vẫn chạy tốt (bảng có từ trước lúc merge, migration đã
+ghi vào `__EFMigrationsHistory`), còn **mọi lần cài mới đều chết** — kể cả CI và
+test DB dùng một lần.
+
+Cách sửa (giữ nguyên chuỗi migration, không squash):
+
+- Trả lại hai `CreateTable` + 4 index vào `Up()` của `MergeConflictResolve`,
+  lấy nguyên hình dạng từ designer snapshot của chính migration đó. Đặt ở đây
+  chứ không tạo migration mới là có chủ đích: DB cũ đã ghi migration này nên bỏ
+  qua, DB mới thì có bảng trước khi có ai `ALTER`.
+- `DropTable("bd_visits")` → `Sql("DROP TABLE IF EXISTS bd_visits;")`, đúng cho
+  cả hai phía.
+
+Kiểm chứng: script replay toàn bộ 51 migration theo thứ tự, dựng tập bảng và soi
+mọi thao tác trỏ vào bảng chưa tồn tại → sạch. Chạy thật trên DB rỗng:
+51/51 migration, 101 bảng, seed đầy đủ (23 tài khoản, 60 `bd_care_records`,
+32 `bd_labo_orders`), `Successfully completed all database migrations.`
+
+Mức retest: **3** (đụng schema dùng chung). Chưa chạy lại bộ e2e — schema sau
+migration khớp model như trước, thay đổi chỉ ảnh hưởng đường cài mới.
+
+### 2026-09-06 — hồ sơ bệnh nhân: tag, lý do đến khám, ô Tạm ứng (F-?)
+
+Khảo sát chỉ đọc trên staging (`/patient/<id>?branchId=…`, tài khoản chủ dự án
+cấp) — chỉ mở popover/dialog và đo DOM + computed styles, không bấm Lưu ở bất
+kỳ form nào. Ba lệch so với bản gốc, do chủ dự án chỉ ra:
+
+| ID | Lệch | Sửa |
+|---|---|---|
+| R-180 | Bấm chọn tag không tích, cũng không hiện nhãn cạnh tên | Dấu ✓ (`CheckOutlined`) render ra `<span>` trần nên **trúng luôn** rule chip của hàng picker (`.pd-tag-options button > span`) — nền trắng, chữ trắng, có cả đệm 3/7px. Chip tách thành class riêng `.pd-tag-chip` (dùng chung cho picker và cạnh tên), rule cũ bỏ. Nhãn của hồ sơ nay vẽ cạnh tên theo thứ tự danh mục, cùng một hàng `flex-wrap` với tên + bút chì (6px ngang / 8px dọc, đúng bản gốc), nút picker ghim phải |
+| R-181 | Lý do đến khám chỉ là một chuỗi, không ngày | Bản gốc trả mảng `{id,isRoot,createdAt,content,note}` và in mỗi dòng một ngày. Cột `bd_patients.ExaminationReason` chuyển sang bảng `bd_patient_examination_reasons` (migration `20260906000000_AddPatientExaminationReasons`, mang mọi giá trị cũ sang làm dòng gốc, ngày lấy từ `CreationTime` của hồ sơ). Thẻ in danh sách mới-trước, `grid 88px / 1fr`, gap 12px, ngày `#171c33` 500, nội dung `#e5484d` 600 — số đo lấy từ bản gốc. Nút **+** mở "Thêm lý do đến khám" (500px, ô trống) và **thêm** dòng qua `POST /api/v1/app/patients/{id}/examination-reasons`; dialog "Chỉnh sửa hồ sơ" vẫn sửa **đúng dòng gốc** tại chỗ, y như bản gốc |
+| R-182 | Thiếu ô **Tạm ứng** | Hàng tiền lên 7 ô (`repeat(7, minmax(0,1fr))`, bản gốc `xl:grid-cols-7`). `payment.prepaid` đã có sẵn trên DTO và đã được BE cộng — chỉ thiếu ô |
+
+Bẫy gặp phải, ghi để khỏi lặp:
+
+- `Input.TextArea` + `showCount`: `className` rơi vào **affix wrapper**, không
+  phải `<textarea>`. Rule cao 180px vẫn đúng, nhưng AntD zoom modal vào nên đo
+  ngay lúc `toBeVisible()` đọc ra **36px** — assertion kích thước phải
+  `expect.poll`. Đã sửa test cũ "the lý do đến khám box has room to write in".
+- Lọc chip theo `hasText` là so **chuỗi con**: `"Chỉnh Nha"` nằm trong
+  `"Tư Vấn Chỉnh Nha"`. Test so nguyên nhãn đã `trim()` (`chipLabels()`).
+- `Patient` là aggregate có con mới → phải khai `DefaultWithDetailsFunc`
+  (`.Include(x => x.ExaminationReasons)`) trong `BlueDentalEntityFrameworkCoreModule`,
+  nếu không `GetAsync` đọc về danh sách rỗng rồi `UpdateAsync` ghi đè mất sạch.
+- `Application.Contracts` không tham chiếu `Domain` → hằng độ dài phải nằm ở
+  `Domain.Shared` (`PatientExaminationReasonConsts`).
+
+Mức retest: **2** (BE + FE của một feature; `PatientDto` dùng chung với
+Tiếp nhận nên soi thêm mức 3). Kết quả — bản build production `:8080` →
+API `:5019` → PostgreSQL thật, không chặn API nào:
+
+- BE: `Domain.Tests` lọc PatientManagement **18/18**, `EntityFrameworkCore.Tests`
+  lọc PatientMapping **5/5**, migration chạy thật trên DB đang dùng.
+- FE: `tsc --noEmit` sạch, `vite build` OK.
+- `e2e/patient*.spec.ts`: **41/41** xanh (3 spec mới: danh sách lý do có ngày và
+  sống qua reload; nhãn hiện cạnh tên và sống qua reload; 7 ô tiền, `Tạm ứng`
+  khớp con số server trả). Test cũ đếm 6 ô tiền đã đổi thành 7.
+- Mức 3: `branch-isolation` 5/5 xanh.
+
+**Đỏ có sẵn, KHÔNG do đợt này** (đã kiểm: không file nào của đợt này dính tới):
+
+- `reception.spec.ts` 2 test chờ `GET /api/v1/app/visits` — endpoint đó không
+  còn tồn tại ở FE (`grep` cả `src/` không ra), selector cũ.
+- `cskh.spec.ts` "creates a special care task" tìm combobox có chữ
+  "Chọn khách hàng"; trong `CareCreateDialog` chuỗi đó là nhãn `MessageField`
+  bọc ngoài, không nằm trong combobox — selector cũ sau đợt dựng lại CSKH.
+
+Ảnh đối chiếu: `reference-private/survey/staging/patient-detail-2026-09-06/` —
+`ref-patient-detail.png`, `ref-dh26003.png`, `ref-tag-dropdown.png`,
+`ref-reason-dialog.png`, `ref-edit-patient.png` (staging) vs `local-after-1.png`,
+`local-after-tick.png`, `local-reason-added.png`, `local-wide.png`, `local-final.png`.
+
+Lệch còn lại, chưa sửa (ngoài phạm vi yêu cầu, ghi để chủ dự án quyết):
+
+- Tên bệnh nhân: bản gốc `18px/700` **viết hoa** `#2671D8`; local `16px`, không
+  viết hoa. Không đụng vì màn này đã được nghiệm thu ở kích thước hiện tại.
+- Ô nhập "Thêm lý do đến khám": bản gốc cao 140px, local 180px (test cũ R-… đòi
+  `> 140`).
+- Hàng tiền dưới 1280px: bản gốc 2 cột, local 3 cột.
+
+### 2026-09-06 (tiếp) — bảng điều trị, modal thanh toán, filter tag, chọn bác sĩ
+
+Bốn lệch nữa chủ dự án chỉ ra sau đợt trước. Khảo sát chỉ đọc trên staging
+(`/patient`, `/patient/6a93fcc4ffbf57994e7b54e4` — hồ sơ **có** dòng điều trị):
+chỉ mở popover/dialog và đo DOM, không bấm Lưu ở form nào.
+
+| ID | Lệch | Sửa |
+|---|---|---|
+| R-183 | Lý do đến khám chữ to hơn phần còn lại của cột | Bản gốc để 14px, nhưng **cả cột** của bản gốc lớn hơn ta một nấc (tiêu đề 16 so với 14, dòng fact 14 so với 13.5). Hạ xuống 13.5px/20 cho bằng dòng fact, cột ngày co 88 → **85px** để hai cột vẫn khít như bản gốc |
+| R-184 | Filter "Phân loại theo Tag" vẽ chip màu | Chip đó là **bịa**, không quan sát được. Hai filter "Phân loại" của bản gốc là cùng một widget, giống nhau tới từng thẻ HTML: ô tìm kiếm trên các dòng chữ thuần. Bỏ hẳn hàm render chip khỏi `SearchSelect` (kéo theo filter tag ở Phân nhóm CSKH) và bỏ `color` khỏi `SearchSelectOption`; chip màu chỉ còn ở đúng chỗ đã thấy — picker tag của hồ sơ |
+| R-185 | Thẻ "Lịch hẹn gần nhất" thiếu ô chọn bác sĩ | Bản gốc có combobox tìm kiếm **trong** khối Tiếp nhận, ngay dưới 3 bước: đổi bác sĩ của chính lịch hẹn đang hiện, không cần mở dialog. Thêm `AppointmentDoctorPicker`. Phải gửi **nguyên** lịch hẹn lên: `AppointmentAppService.UpdateAsync` dựng lại slot và `UpdateDetails(...)` từ request, gửi mỗi `doctorId` sẽ xoá sạch ghi chú/màu/giờ |
+| R-186 | Bảng điều trị sai định dạng lẫn hành vi | Xem bảng đo đầy đủ trong `docs/clone/pages/patient-detail.md`. Trước: th viết hoa 11.5px, không kẻ ô, **9** cột (thiếu "Chăm sóc sau điều trị"), tên dịch vụ in **hai lần** (Dịch vụ và Nội dung điều trị), chữ thuần chỗ bản gốc gắn chip, `0/0` chỗ bản gốc để nút **+** xanh, và cây bút mở tab kế hoạch chỗ bản gốc mở modal thanh toán. Dựng lại đủ 10 cột, tách sang `treatmentColumns.tsx` |
+| R-187 | Thao tác không mở modal thanh toán | `CreatePaymentDialog` — 1024px, hai cột, dựng theo bản gốc: NỘI DUNG THANH TOÁN · DỊCH VỤ có checkbox + chip "Còn nợ" + Chọn Tất Cả · TỔNG TIỀN THEO KẾ HOẠCH · Chia Tiền Tự Động/Thủ Công · Số tiền · Ghi chú 0/500 · PHƯƠNG THỨC THANH TOÁN · dòng nhắc 7 ngày + Lưu. Mỗi dòng dịch vụ là **một** `POST patient-payments` mang `treatmentServiceId`, nên "Còn nợ" của đúng dòng đó mới nhúc nhích chứ không chỉ tổng phiếu |
+
+Việc kéo theo ở BE (`TreatmentServiceDto`): thêm `stageNotes` (Nội dung điều trị
+= note của **công đoạn**, không phải tên dịch vụ), `paidAmount` /
+`outstandingAmount` (đã thu / còn nợ **của riêng dòng**, chỉ tính phiếu có ghi
+`TreatmentServiceId`), `afterCareStatus` (`CareStatus?` suy từ phiếu CSKH phủ
+lên công đoạn của dòng — `CareRecord.StageIds` × `TreatmentStage.TreatmentServiceId`).
+
+Chốt được nhờ đọc `GET /api/v1/patient-timeline`: **mỗi dòng của bảng bản gốc là
+một công đoạn** (`type: "stage"`, `code: "STG24"`), không phải dòng dịch vụ.
+Vì thế cột 3 là `note` của công đoạn, và `assistantStaffId` (Phụ tá) với
+`subStaffId` (Bác sĩ hỗ trợ) là **hai** ô nhân sự khác nhau. Ta giữ một dòng =
+một dịch vụ (dòng chưa tách công đoạn thì bảng theo công đoạn sẽ không hiện gì),
+ghi rõ chỗ lệch trong page doc.
+
+Bẫy gặp phải, ghi để khỏi lặp:
+
+- Dòng cao lên ~81px thì `.pd-profile > .bd-cat-card` (đang `flex: 1` trong pane
+  cao cố định) chỉ còn 240px → **cắt cụt dòng đầu tiên**. Cho card co theo nội
+  dung, pane tự cuộn — đúng như bản gốc.
+- `th` của app viết hoa 11.5px; bảng này phải override trong CSS của feature,
+  y như tab Chăm sóc KH đã làm.
+- `Ví momo` là phương thức thứ 5 của bản gốc, nhưng rollup tiền của chính bản
+  gốc chỉ chia bốn (cash/banking/card/outstandingDebt) → giữ bốn, ghi vào
+  `unknowns.md` thay vì thêm enum tạo ra một rổ mà báo cáo không cộng được.
+- Dữ liệu seed có phiếu hoàn 18.5tr mà không có phiếu thu → `totalDue` của kế
+  hoạch lớn hơn `totalPrice`. Không phải lỗi công thức (`totalDue = totalPrice −
+  (paid − refund)`, đúng của bản gốc), là dữ liệu demo lệch.
+
+Mức retest: **2** cho hồ sơ bệnh nhân, **3** cho `SearchSelect` (dùng chung).
+Kết quả — bản build production `:8080` → API `:5019` → PostgreSQL thật:
+
+- BE: `Domain.Tests` **250/250**, `Application.Tests` **516/516**,
+  `EntityFrameworkCore.Tests` **51/51**.
+- FE: `tsc --noEmit` sạch, `oxlint` 0 lỗi, `vite build` OK.
+- `e2e/patient*.spec.ts` **50/50** xanh, gồm 4 spec mới: bảng đủ 10 cột đúng
+  sentence case + chip + nút thanh toán; Thao tác → modal → thu tiền thật →
+  "Còn nợ" của dòng giảm đúng và sống qua reload (+ chặn "chưa chọn dịch vụ");
+  filter tag ra dòng chữ thuần; đổi bác sĩ trên thẻ lịch hẹn (PUT thật) sống
+  qua reload.
+- Mức 3: `treatment-plan` 4/4, `treatment-stage` 2/2, `branch-isolation` 5/5.
+
+Hai đỏ có sẵn của `reception.spec.ts` và `cskh.spec.ts` (ghi ở mục trước) vẫn
+nguyên, không liên quan đợt này.
+
+Ảnh đối chiếu: `reference-private/survey/staging/patient-detail-2026-09-06/` —
+`ref-hn8521.png`, `ref-payment-modal.png`, `ref-payment-list.png`,
+`ref-appt-doctor-select.png`, `ref-tag-filter.png`, `ref-service-filter.png`,
+`ref-patient-list.png` vs `local-table4.png`, `local-newpay.png`,
+`local-paid.png`, `local-tagfilter.png`.
+
+### 2026-09-06 (tiếp 2) — dialog công đoạn, và soi lại chi tiết modal thanh toán
+
+Chủ dự án chỉ ra hai chỗ nữa: nút trong cột **Công đoạn** phải mở dialog thêm
+công đoạn (chưa có), và modal thanh toán **chưa khớp chi tiết** với trang đích
+(thiếu Ví momo, sai một số field). Soi lại chỉ đọc trên staging một hồ sơ trên staging —
+mở dialog, đo DOM + computed styles, đổi tab / chọn thẻ dịch vụ / gõ số tiền để
+đọc hành vi, **không bấm Lưu ở bất kỳ form nào**.
+
+| ID | Lệch | Sửa |
+|---|---|---|
+| R-188 | Nút Công đoạn không mở gì | Bản gốc mở **"Chi tiết phiếu"** — modal `calc(100vw - 32px)`, thẻ nền `#F7FAFF` gồm dải 2 tab `THÊM CÔNG ĐOẠN ⟨n⟩` / `TIẾP TỤC CÔNG ĐOẠN ⟨n⟩` có badge đếm, hai nút `Thanh toán` (viền xanh lá) + `In lịch sử điều trị`, 4 tiêu đề cột `Chi tiết · Ngày - Nhân sự · Dịch vụ đã chọn · Nội dung điều trị`, và bảng `LỊCH SỬ ĐIỀU TRỊ` kẻ ô `190px 1fr 1.15fr .7fr .7fr` bên dưới. Dựng `TreatmentStageDialog` theo đúng số đo; chọn thẻ dịch vụ → hiện form (Ngày tạo/Dịch vụ **disabled**, Bác sĩ/Phụ tá/Bác sĩ hỗ trợ, chip răng, Nội dung điều trị) → Lưu gọi `POST treatment-stages` thật |
+| R-189 | Modal thanh toán sai chi tiết | Đo lại từng phần: tiêu đề section 14px/600 **viết hoa** + icon xanh; hàng fact `150px / 1fr` gap 40, giá trị **canh trái** (trước canh phải), `Còn lại` 16px/700; header DỊCH VỤ có nút bật ô `Tìm dịch vụ`; dòng dịch vụ = checkbox · (tên / pill `Còn nợ` bo tròn / `Số lượng`) · số tiền bên phải; lỗi "Bạn cần chọn ít nhất 1 dịch vụ" hiện **ngay** khi chưa tích chứ không đợi bấm Lưu; hai chế độ chia tiền là **radio** 230×40 bo 8; `Số tiền thanh toán` và `Ghi chú` dùng nhãn nổi, đếm `0/500`; phương thức là **pill bo tròn** 12px/600 có badge icon tròn 24px. Bỏ ô "Số tiền của phiếu" (tôi tự bịa ở đợt trước) |
+| R-190 | Thiếu **Ví momo** | Bản gốc có 5 phương thức. Thêm `PaymentMethodKind.EWallet = 5`; để tiền ví không rơi ra khỏi báo cáo, `PaymentStatSummaryDto` thêm `ByEWallet` / `RefundByEWallet` và `ClinicReportAppService` cộng thêm hai rổ đó. Nhãn cũng đổi về đúng chữ bản gốc: `Ngân hàng` (trước "Chuyển khoản"), `Dư nợ` (trước "Trừ quỹ khách") |
+| R-191 | `Còn lại` là số tĩnh | Bản gốc tính **sống**: `còn lại của kế hoạch − số tiền đang nhập` (gõ 100.000 vào khoản còn nợ 409.091 → hiện ngay 309.091). `Đã thanh toán` phía trên vẫn là số đã lưu |
+| R-192 | Chia Tiền Thủ Công không có ô riêng | Bản gốc thay ô tiền chung bằng **một dòng cho mỗi dịch vụ đã tích** ở cột phải, mỗi ô mồi sẵn số Còn nợ của dòng đó |
+
+Việc kéo theo:
+
+- `UploadPatientImageInput` thêm `treatmentStageId` (BE đã nhận sẵn từ trước),
+  để nút "Tải ảnh" trong Lịch sử điều trị gắn ảnh vào đúng công đoạn.
+- `useStageMutation` invalidate thêm namespace `patient-treatments`: bảng điều
+  trị đọc số công đoạn và Nội dung điều trị từ rollup đó, không invalidate thì
+  dòng phải reload mới đổi.
+
+Bẫy gặp phải, ghi để khỏi lặp:
+
+- Cột `Thao tác` ghim phải **đè lên** ô Công đoạn ở viewport hẹp → Playwright
+  báo "intercepts pointer events". Spec phải cuộn ngang bảng trước khi bấm.
+- Tab mặc định của dialog công đoạn không được `setState` một lần trong effect:
+  danh sách công đoạn về **sau** khi dialog mở, nên tab phải **suy ra**
+  (`chosenTab ?? …`) chứ không thì luôn rơi vào tab rỗng.
+- `toHaveText` đọc text trong DOM, mà chữ hoa ở đây là `text-transform` — bản
+  gốc cũng vậy. Assertion phải so text thường và kiểm `text-transform` riêng.
+- Ô tiền của chế độ Tự động nằm trong `FloatingLabel` nên mất class; phải đặt
+  lại class riêng cho spec bám vào (selector chung `input` trúng radio).
+
+Mức retest: **2** cho hồ sơ bệnh nhân, **3** cho `PaymentMethodKind` (enum dùng
+chung với Billing/Reporting). Kết quả — bản build production `:8080` → API
+`:5019` → PostgreSQL thật:
+
+- BE: `Domain.Tests` **250/250**, `Application.Tests` **516/516**,
+  `EntityFrameworkCore.Tests` **51/51**.
+- FE: `tsc --noEmit` sạch, `oxlint` 0 lỗi, `vite build` OK.
+- e2e **67/67** xanh trên `patient*`, `treatment-plan`, `treatment-stage`,
+  `report`, `branch-isolation`. Hai spec mới: modal thanh toán có đủ 5 phương
+  thức + 5 tiêu đề section + 7 hàng fact, `Còn lại` giảm sống theo số nhập, Thủ
+  công ra ô riêng mồi sẵn, `Tìm dịch vụ` là nút bật/tắt; nút Công đoạn mở
+  "Chi tiết phiếu" đủ 2 tab / 2 lệnh / 4 tiêu đề cột / 5 cột lịch sử, thêm công
+  đoạn thật (POST) rồi ghi chú của nó hiện lên đúng cột "Nội dung điều trị" của
+  bảng phía sau.
+
+**Đỏ có sẵn, KHÔNG do đợt này** — `finance.spec.ts` 2 test. Đã đọc code để
+khẳng định chứ không đoán: `ReportPage` giữ tab bằng `useState("expense")` và
+**không hề đọc `?tab=` từ URL**, nên `/report?tab=cashflow-v2` luôn mở tab đầu.
+Hai đỏ của `reception.spec.ts` và `cskh.spec.ts` (ghi ở hai mục trước) cũng vẫn
+nguyên.
+
+Ảnh đối chiếu: `reference-private/survey/staging/patient-detail-2026-09-06/` —
+`ref-stage-dialog.png`, `ref-stage-tab2.png`, `ref-stage-selected.png`,
+`ref-pay-search.png`, `ref-pay-manual.png` vs `local-stage.png`,
+`local-stage-added.png`, `local-newpay2.png`, `local-newpay-manual.png`.
+
+### 2026-09-06 (tiếp 3) — đọc hợp đồng API từ bundle bản gốc, không ghi một byte nào
+
+Chủ dự án cho phép thao tác thật trên staging rồi hoàn tác. Kiểm tra đường hoàn
+tác **trước** khi ghi thì phát hiện hai chuyện, nên cuối cùng **không ghi gì**:
+
+- Tài khoản khảo sát **không có ability `payment`** — `GET /v1/payment-v2` trả
+  **403**. Dialog thanh toán của bản gốc có bấm Lưu cũng không lưu được.
+- `treatmentStage` có `read, create, update, continue, complete, print` —
+  **không có `delete`**. Một công đoạn tạo ra trên staging sẽ **không hoàn tác
+  được** bằng tài khoản này.
+
+Thay vào đó đọc **static asset** (rule 00 cho phép rõ ràng: "static assets") —
+bundle Next.js chứa nguyên schema Joi và bảng endpoint. Thu được nhiều hơn hẳn
+so với việc bấm Lưu, và không đụng vào dữ liệu ai.
+
+| ID | Lệch | Sửa |
+|---|---|---|
+| R-193 | Thiếu hẳn field `paymentAccountId` | Schema bản gốc: `paymentAccountId` **bắt buộc khi** `paymentMethod` là `bank` hoặc `momo`. Chọn Ngân hàng / Ví momo mở một bảng chọn dưới hàng pill — Ngân hàng: `Chọn · Tên ngân hàng · Số tài khoản`; MoMo: `Chọn · Số điện thoại · Tên chủ tài khoản`. Đó chính là danh mục `PaymentAccount` (`/taxonomy/payment-method`) ta đã có. Thêm hook chung `usePaymentAccountOptions`, cột `PatientPayment.PaymentAccountId` (migration `20260906120000_AddPaymentAccountOnPatientPayment`) và guard trong aggregate |
+| R-194 | Ô "Số tiền thanh toán" để trống | Bản gốc **mồi sẵn**: `outstanding-debt` → `min(dư nợ đang giữ, tổng đã chọn)`, còn lại → `tổng đã chọn`. Đã áp dụng đúng công thức |
+| R-195 | Thông báo vượt quá sai chữ | Dùng đúng câu của bản gốc: "Số tiền thanh toán không được vượt quá số tiền còn phải thanh toán" |
+| R-196 | Công đoạn: note/răng không bắt buộc | Schema bản gốc bắt buộc `doctorId`, `selectedContent` (min 1) và `treatmentContent` (max 1000). Đã enforce cả ba |
+
+Hợp đồng đọc được, ghi vào `docs/clone/pages/patient-detail.md`:
+
+- **Thanh toán** — `/v1/payment-v2` có `create · update(PATCH) · void · finalize
+  · export`; `void` chính là đường hoàn tác của bản gốc, và `status` chạy
+  `pending → finalized`.
+- **Công đoạn** — `/v1/patient-stages` có `create · update · continue ·
+  re-examination · updateStatus · revertStatus · updateStageServiceItems`.
+  "Thêm" và "Tiếp tục" là **hai** endpoint khác nhau (khớp với hai ability
+  riêng). Payload lộ ra rằng *Phụ tá* là `subStaffId` còn *Bác sĩ hỗ trợ* là
+  `assistantStaffId` — ngược với cảm giác từ tên gọi.
+- `Danh sách công đoạn` là **checklist công đoạn của danh mục dịch vụ**
+  (`stageServiceItems`), rỗng trên staging vì dịch vụ khảo sát không khai công
+  đoạn nào.
+
+**Một lệch còn mở** (đã đóng cùng ngày, xem mục R-197 bên dưới): bản gốc POST
+**một** phiếu mang `treatmentServiceIds[]` (và `items[]` khi chia thủ công); ta
+POST **một phiếu cho mỗi dòng** vì `RecordPatientPaymentDto` chỉ mang một
+`treatmentServiceId`.
+
+Mức retest: **3** (`PaymentMethodKind` + `PatientPayment` dùng chung với
+Billing/Reporting). Kết quả — bản build production `:8080` → API `:5019` →
+PostgreSQL thật:
+
+- BE: Domain **250/250**, Application **516/516**, EF **51/51**.
+- FE: `tsc` sạch, `oxlint` 0 lỗi.
+- e2e **68/68** trên `patient*`, `treatment-plan`, `treatment-stage`, `report`,
+  `branch-isolation`. Spec mới: Tiền mặt không đòi tài khoản; Ngân hàng ra đúng
+  cột `Tên ngân hàng / Số tài khoản`, Ví momo ra `Số điện thoại / Tên chủ tài
+  khoản`; bấm Lưu khi chưa chọn tài khoản bị chặn; chọn rồi thì POST đi kèm
+  `method: 5` và `paymentAccountId`. Spec cũ bổ sung: ô tiền mồi sẵn đúng bằng
+  Còn nợ của dòng, và `Còn lại` trừ sống theo số nhập.
+
+**Đỏ có sẵn — đã kiểm bằng cách stash toàn bộ thay đổi, build lại rồi chạy**,
+không phải đoán:
+
+- `taxonomy.spec.ts` "a phone-width window scrolls the page" — **đỏ y hệt trên
+  bản sạch**. Không phải do đợt này.
+- `taxonomy.spec.ts` "reorders entries from the keyboard" — xanh khi chạy riêng
+  cả trước lẫn sau thay đổi; chỉ đỏ khi chạy trong lô lớn vì spec khác trước đó
+  đã đổi thứ tự cùng bộ dữ liệu. Phụ thuộc thứ tự, không phải hồi quy.
+- `finance.spec.ts` 2 test và `reception.spec.ts` / `cskh.spec.ts` — như đã ghi
+  ở các mục trước.
+
+Ảnh đối chiếu: `reference-private/survey/staging/patient-detail-2026-09-06/` —
+`ref-pay-bank.png` vs `local-pay-bank.png`, `local-pay-momo.png`.
+
+## 2026-09-06 (chiều) — Một phiếu thu, nhiều dịch vụ
+
+Lệch cuối cùng của "Tạo phiếu thanh toán" — mục còn mở ở đợt sáng — đã đóng.
+
+| # | Defect | Fix |
+|---|--------|-----|
+| R-197 | Ta ghi **một phiếu cho mỗi dịch vụ**; bản gốc ghi **một phiếu mang nhiều dịch vụ**. Tiền vào giống nhau nhưng lịch sử thanh toán hiện N dòng chỗ bản gốc hiện 1 | `PatientPayment` có bảng con `PatientPaymentLine` — mỗi dòng là `(treatmentServiceId, amount)` — cùng cột `SplitMode` (`1` Tự động / `2` Thủ công). Bỏ `PatientPayment.TreatmentServiceId`. Migration `20260906140000_AddPatientPaymentLines` tạo bảng, backfill mỗi phiếu cũ thành một dòng rồi mới drop cột; phiếu hoàn tiền không ghi dịch vụ thì không có dòng nào |
+| R-198 | Ai chia tiền: FE hay BE | Theo đúng bản gốc — **Tự động** chỉ gửi tổng, server rải từ dòng cũ nhất, chặn ở đúng số Còn nợ từng dòng; **Thủ công** gửi `items[]` và server lấy nguyên. Helper `splitAcross` bên FE bỏ hẳn: chỉ server biết mỗi dòng còn nợ bao nhiêu tại thời điểm ghi |
+| R-199 | Bất biến của phiếu | Aggregate từ chối dòng bằng 0 và từ chối phiếu có tổng các dòng khác tổng phiếu (`BlueDental:Billing:0091`) — nếu không, "Còn nợ" từng dòng sẽ nói dối. Vượt quá số còn nợ vẫn báo đúng câu của bản gốc |
+| R-200 | Rollup `paidAmount` đọc theo phiếu | Nay đọc theo **dòng phiếu**; hoàn tiền vẫn trừ đúng dòng của nó |
+
+**Không ghi gì lên bản gốc.** Hợp đồng `create` lấy từ chính bundle JS của bản
+gốc (tài sản tĩnh — rule 00 cho phép), không phải bằng cách gửi request. Hai chỗ
+đáng ghi: tài khoản khảo sát **không có** ability `payment` (`GET /v1/payment-v2`
+trả 403) nên dù được chủ dự án cho phép cũng không lưu được phiếu trên staging;
+và `treatmentStage` có `create`/`continue`/`complete` nhưng **không có delete**,
+nên một công đoạn tạo trên staging sẽ không hoàn lại được. Đó là lý do đợt này
+xác minh bằng dữ liệu local chứ không bằng thao tác trên bản gốc.
+
+**Ba spec đỏ sau khi đổi schema — nguyên nhân chung, không phải hồi quy**: dữ
+liệu demo bây giờ có phiếu nhiều dòng, nên "dòng đầu bảng" không còn là "dòng
+vừa bấm". Đã sửa cho spec độc lập với thứ tự:
+
+- helper mở hồ sơ trả về luôn `serviceId` của dòng còn nợ, spec bấm đúng
+  `tr[data-row-key]` đó thay vì `.first()`;
+- `lineDue()` cộng các dòng **đang tích** thay vì đọc dòng đầu;
+- spec một-phiếu-nhiều-dịch-vụ mở dialog trên đúng phiếu nó chọn (một bệnh nhân
+  có thể có nhiều phiếu, dialog thì theo phiếu);
+- đọc lại phiếu **theo id dịch vụ** chứ không theo thứ tự dòng — PostgreSQL trả
+  các dòng con không có thứ tự, và điều cần khẳng định là *dịch vụ nào nhận bao
+  nhiêu*, không phải chúng về theo thứ tự nào.
+
+Mức retest: **3** (`PatientPayment` dùng chung với Billing/Reporting). Kết quả —
+bản build production `:8080` → API `:5019` → PostgreSQL thật:
+
+- BE: Domain **262/262**, Application **516/516**, EF **51/51**.
+- FE: `tsc` sạch.
+- e2e **49/49** trên `patient`, `patient-images`, `treatment-plan`,
+  `treatment-stage`, `report`, `branch-isolation`.
+- Spec mới "one receipt covers several services, split by the server": dựng một
+  phiếu hai dòng bằng chính API của app, thu một phần, rồi khẳng định **một**
+  request POST mang `treatmentServiceIds` đủ cả hai dịch vụ, `splitMode: 1`,
+  không có `items`; đọc lại thì đúng **một** phiếu, dòng một trả hết, phần dư
+  sang dòng hai, và `paidAmount` từng dịch vụ nhích đúng bằng phần của nó.
+
+Ảnh: `reference-private/survey/staging/patient-detail-2026-09-06/local-pay-multi.png`.
+
+## 2026-09-06 (tối) — "Chi tiết phiếu": rà từng nút, từng modal ẩn
+
+Khảo sát lại toàn bộ dialog công đoạn trên staging, **chỉ đọc**: mở dialog, mở
+các modal ẩn rồi đóng, đọc bốn request GET dialog tự gọi và đọc thẳng markup.
+Không lưu bất cứ form nào — nút Lưu của "Đặt mới" và ô "Hoàn thành" không hề
+được bấm.
+
+| # | Defect | Fix |
+|---|--------|-----|
+| R-201 | Field trong form công đoạn **không kín cột** (ảnh chủ dự án gửi) | Bản gốc mọi control rộng đúng bằng cột — đo được **366px** ở khung nhìn 1600. Nguyên nhân: `Select` của AntD co theo nội dung. Thêm rule `width: 100%` cho `.floating-field`/`.ant-select`/`.ant-input`/textarea trong `.pd-stage-form` |
+| R-202 | Form chỉ có 3 cột hoặc 1 cột | Bản gốc: 3 cột từ 1280, **2 cột** ở khoảng 1024–1279 với "Nội dung điều trị" trải hết hàng, 1 cột dưới 1024. Đã dựng đúng ba nấc |
+| R-203 | "Răng" là chữ chạy dòng, "Hình ảnh: (Trống)" nằm cùng dòng | Bản gốc: nhãn ở trên, răng là **chip xanh đặc** (disabled, opacity .7); "Hình ảnh:" và "(Trống)" là **hai dòng** |
+| R-204 | `Tải Ảnh` trong form bị disable | Bản gốc **không** disable — card form có input file riêng. Nay chọn ảnh trước, lưu công đoạn xong mới upload kèm `treatmentStageId` |
+| R-205 | Nhãn "Nội dung điều trị *" | Bản gốc không có dấu sao (vẫn bắt buộc khi lưu). Bỏ dấu sao |
+| R-206 | Lịch sử điều trị là bảng phẳng, ngày `dd/MM/yyyy` | Bản gốc **gộp theo ngày**: ô Ngày trải hết các công đoạn trong ngày (grid lồng grid `190px minmax(0,1fr)` rồi `1fr 1.15fr .7fr .7fr`), và in `d/M/yyyy` không đệm số 0 |
+| R-207 | Ghi chú không sửa được | Bản gốc có **bút chì** góc phải, bấm là đổi ghi chú thành textarea tại chỗ với Hủy/Lưu. Nối vào `PUT /treatment-stages/{id}` |
+| R-208 | Bác sĩ / Phụ tá / Bác sĩ hỗ trợ xếp ba dòng, luôn "(Trống)" | Bản gốc: cột {Bác sĩ, Bác sĩ hỗ trợ} rồi Phụ tá bên cạnh. Và **cả hai suất phụ đều được lưu**: `subStaffId`=Phụ tá, `assistantStaffId`=Bác sĩ hỗ trợ. Thêm cột `TreatmentStage.SubStaffId` (migration `20260906160000_AddStageSubStaff`) + `subStaffName`/`secondStaffName` trên DTO |
+| R-209 | Ảnh của công đoạn không hiện | Bản gốc in ảnh thành ô **68px** trong cột "Dịch vụ & răng", có dải chú thích "Ảnh điều trị", bấm mở viewer (xoay ×2, lật ×2, zoom ±, đếm `n / m`) |
+| R-210 | **In lịch sử điều trị** chỉ gọi `window.print()` | Bản gốc mở **modal thứ hai**: khối chi nhánh + khách hàng, bảng 6 cột, nút "In Phiếu"; kèm **tờ A4 ẩn** (tiêu đề canh giữa, "Ngày … tháng … năm …", hai ô ký "Người lập phiếu" / "Khách hàng"). Đã dựng cả hai |
+| R-211 | **Thanh toán** mở modal thanh toán | Bản gốc **rời dialog**, điều hướng sang `/treatment-plan/{planId}?planTab=detail`. Ta đổi sang mở tab Kế hoạch điều trị |
+| R-212 | **Tạo Labo** nhảy sang tab Labo | Bản gốc mở dialog **"Đặt mới"** ngay tại chỗ, mồi sẵn từ công đoạn. Đã dựng: `LaboOrder` thêm `ToothShade`/`Quantity`/`TreatmentServiceId`/`TreatmentStageId` (migration `20260906170000_AddLaboOrderTreatmentLink`), thêm `GET /labo-orders/next-code` sinh `LABO-yyyyMMddN` theo chi nhánh |
+| R-213 | Ô "Công đoạn" của dòng **đã hoàn thành** vẫn bấm được | Picker của bản gốc đọc `status=created,inProgress,guarantee`, nên dòng đã xong hiện chip xám `briefcase-medical` không bấm được. Đã dựng `.pd-tr-nostage` |
+| R-214 | Danh sách công đoạn lọc ở trình duyệt | Bản gốc lọc theo phiếu ở server (`patientTreatmentId`). Ta truyền `treatmentId` xuống `GET /treatment-stages` |
+
+**Không ghi gì lên bản gốc.** Mở dialog/modal là thao tác đọc; hợp đồng lấy từ
+markup và từ bốn GET dialog tự gọi. Ảnh và HTML đã lưu trong
+`reference-private/survey/staging/stage-dialog-2026-09-06/` (không commit).
+
+Mức retest: **3** (`TreatmentStage` dùng chung với Kế hoạch điều trị, và
+`LaboOrder` với Labo). Kết quả — bản build production `:8080` → API `:5019` →
+PostgreSQL thật:
+
+- BE: Domain **264/264**, Application **516/516**, EF **51/51**.
+- FE: `tsc` sạch.
+- e2e **69/69** trên `patient`, `patient-images`, `treatment-plan`,
+  `treatment-stage`, `labo`, `report`, `branch-isolation`.
+- Sáu spec mới: form kín cột (đo 3 cột × 366px và cả bốn field bằng đúng bề
+  rộng cột) và `Tải Ảnh` bật sẵn; bút chì sửa ghi chú → `PUT` thật → sống qua
+  reload; "In lịch sử điều trị" ra đủ hai khối fact, 6 tiêu đề cột, "In Phiếu"
+  và tờ A4 với hai ô ký; "Thanh toán" đóng dialog và đổi URL sang
+  `tab=treatment-plan`; "Tạo Labo" mở "Đặt mới" với 4 ô khoá đã điền và số phiếu
+  `LABO-…`; dòng đã hoàn thành không còn nút công đoạn.
+
+**Chưa khớp, đã ghi vào unknowns**: `Danh sách công đoạn` (checklist của danh
+mục dịch vụ) vẫn "(Trống)"; `Giờ nhận` của phiếu Labo thu nhưng không lưu; nút
+chính vẫn màu chàm `--bd-primary` của BlueDental chứ không phải xanh `#2671D8`
+của bản gốc (đó là màu thương hiệu của bản clone, dùng toàn hệ thống).
+
+## 2026-09-06 (khuya) — Bảng điều trị là công đoạn, và "Đặt mới" dựng bằng field của source
+
+Đợt rà thứ ba trên staging, vẫn **chỉ đọc**: đọc `GET /v1/patient-timeline`, đọc
+`aria-disabled` trên từng dòng lịch sử, và đọc markup của "Đặt mới". Không lưu
+form nào.
+
+| # | Defect | Fix |
+|---|--------|-----|
+| R-215 | Bảng điều trị của ta là **một dòng cho mỗi dịch vụ**; bản gốc là **một dòng cho mỗi công đoạn** | `/v1/patient-timeline` trả các dòng `type: "stage"` — một dịch vụ làm 3 lần là 3 dòng. Thêm `buildTreatmentRows` ghép phiếu điều trị với danh sách công đoạn; mỗi dòng in ghi chú, răng và bộ ba bác sĩ của **chính công đoạn đó** |
+| R-216 | Cột Ngày lặp lại ở mọi dòng | Bản gốc dùng `rowSpan`: một ô ngày trải hết các công đoạn trong ngày. Dựng bằng `onCell` của AntD, và tính lại span sau khi lọc (nếu không, ô ngày sẽ nuốt mất ngày kế tiếp) |
+| R-217 | Ô "Công đoạn" hiện `đã xong/tổng` khi dòng có công đoạn | Con số của bản gốc là `completedStageCount/totalStageCount` của **checklist danh mục** (`stageServiceItems`) chứ không phải số công đoạn — ta không mô hình hoá cái đó, và bây giờ mỗi công đoạn đã là một dòng. Nên chỉ còn hai trạng thái: nút **+** xanh, hoặc chip xám khi dịch vụ đã kết thúc |
+| R-218 | Thêm công đoạn mới nhưng công đoạn cũ vẫn thao tác được | Bản gốc đặt cờ `disabled` ngay trên dòng timeline: công đoạn **mới nhất** của một dịch vụ là `false`, mọi cái cũ hơn là `true`. Trong dialog, dòng cũ mang `aria-disabled="true"` + `pointer-events-none bg-[#F6F8FB]/60 opacity-50`, ô Hoàn thành bị disable, và **không có nút Tạo Labo**. Đã dựng đúng cả ba |
+| R-219 | "Đặt mới" tự dựng field, không giống bản gốc | Dựng lại **bằng chính field component của source**: `SearchSelect` (hộp tìm kiếm trên danh sách dòng chữ thuần — đúng widget bản gốc dùng) đặt trong `FloatingLabel`, và `FloatingLabel` nay nhận `required` để in dấu sao đỏ **bên trong nhãn** như bản gốc. 11 field bắt buộc, đúng bằng số dấu sao của bản gốc |
+| R-220 | Thứ tự và cách nhóm field sai | Theo đúng bản gốc: lưới 2 cột cho 4 ô khoá + Số phiếu Labo + cặp `Ngày gửi / Giờ gửi` (`minmax(0,1fr) 140px`) + Nhà cung cấp + cặp `Ngày nhận dự kiến / Giờ nhận`; rồi hai dải chip `Lựa chọn dịch vụ` / `Vật liệu` (pill viền đứt khi rỗng: "Không có dữ liệu" / "Chọn dịch vụ trước"); rồi hàng `Răng:*` có "Chọn tất cả"; rồi 2 cột {Màu răng, Số lượng, Khớp cắn} và {Đường hoàn tất, Kiểu nhịp}; rồi Nội dung; rồi **ô vuông 80px** Tải ảnh |
+
+**Không ghi gì lên bản gốc.** Cờ `disabled` và cấu trúc timeline đọc từ chính
+response của bản gốc; layout "Đặt mới" đọc từ markup sau khi mở dialog rồi đóng.
+
+Mức retest: **3**. Kết quả — bản build production `:8080` → API `:5019` →
+PostgreSQL thật:
+
+- BE: Domain **264/264**, Application **516/516**, EF **51/51** (không đổi phía BE đợt này).
+- FE: `tsc` sạch, `oxlint` không thêm cảnh báo mới.
+- e2e **72/72** trên `patient`, `patient-images`, `treatment-plan`,
+  `treatment-stage`, `labo`, `report`, `branch-isolation`.
+- Ba spec mới: bảng ra đúng một dòng cho mỗi công đoạn và tổng `rowSpan` của các
+  ô ngày bằng đúng số dòng (nếu lệch là mất ngày); chỉ **một** dòng lịch sử
+  `aria-disabled="false"`, chỉ dòng đó có Tạo Labo, dòng cũ có `pointer-events:
+  none` và ô tích bị disable; "Đặt mới" có 11 dấu sao đỏ trong nhãn, 4 `SearchSelect`,
+  hai dải chip với pill rỗng, hàng răng "Chọn tất cả" và ô vuông Tải ảnh.
+
+**Sửa hai spec cũ cho đúng cấu trúc mới**: `treatmentRow()` tìm theo tiền tố
+`data-row-key` (một dịch vụ giờ có nhiều dòng), và spec "Tạo Labo" bỏ qua input
+file ẩn khi lấy ô nhập đầu tiên.
+
+## 2026-09-06 (đêm) — Bảo hành, tiếp nhận, tái khám
+
+Đợt rà thứ tư trên staging, **chỉ đọc**: đọc `/v1/patient-timeline`, đọc tooltip
+của ô Công đoạn, đọc markup của stepper Tiếp nhận và của "Tạo tái khám". Không
+bấm bước tiếp nhận nào trên bản gốc (bấm là ghi), không lưu form nào.
+
+| # | Defect | Fix |
+|---|--------|-----|
+| R-221 | Ta suy trạng thái ô Công đoạn từ **dòng dịch vụ** | Bản gốc suy từ **chính công đoạn** của dòng: ba công đoạn của một dịch vụ có thể hiện "Hoàn thành / Đang điều trị / Đang điều trị". Chip trạng thái và ô Công đoạn nay đọc `stageDone` của từng dòng |
+| R-222 | Thêm công đoạn mới làm mất nút + của các công đoạn cũ | Sai — bản gốc chỉ mờ dòng cũ **trong dialog** (cờ `disabled`); ở bảng, mọi công đoạn **chưa hoàn thành** vẫn còn nút + và vẫn mở được Chi tiết phiếu. Đã tách hai chỗ ra |
+| R-223 | Không có trạng thái **Bảo hành** | Công đoạn đã hoàn thành đổi ô Công đoạn thành nút hổ phách `bg-[#FFF4E5]/text-amber-600`; trong dialog, nút **Tạo Labo** đổi thành **Bảo hành** xanh lá |
+| R-224 | Không phân biệt dịch vụ không có bảo hành | Bản gốc hiện chip xám `cursor-not-allowed` với tooltip **"Không bảo hành"** khi dịch vụ không khai kỳ bảo hành. `TreatmentServiceDto` thêm `WarrantyDays` đọc từ `CatalogServiceConfig`; seed demo nay có 5 dịch vụ có bảo hành và 3 dịch vụ không, để cả hai nhánh đều chạm được |
+| R-225 | Thiếu dialog **"Tạo bảo hành"** | Dựng theo bản gốc, cùng bố cục với form công đoạn, footer **Đóng** / **Lưu bảo hành**. Ghi một công đoạn `isGuarantee: true` (cột mới `TreatmentStage.IsGuarantee`, migration `20260906180000_AddStageGuarantee`) — đúng cách bản gốc lưu, và cũng là cách bộ lọc "Bảo hành" tìm lại chúng |
+| R-226 | Ba bước **Tiếp nhận** chỉ để đọc | Bản gốc là ba nút, **chỉ bước kế tiếp** bấm được, hai bước kia `disabled`. Nối vào `check-in` / `start` / `complete` của lịch hẹn; giờ hiện ra từ `CheckedInAt`/`StartedAt`/`CompletedAt` (DTO đã có sẵn, FE chưa đọc). Thêm `statusCode` thô lên view model vì từ vựng UI gộp CheckedIn vào "đang khám" |
+| R-227 | **"Tạo tái khám"** luôn rỗng | Bản gốc liệt kê các công đoạn **đã hoàn thành**; mỗi dòng có ngày + nhân sự, dịch vụ + răng, ghi chú, ô Hoàn thành đã tích và khoá, **Tải Ảnh** mờ, **Tái Khám** và **Chi Tiết** |
+| R-228 | Seed demo ghi phiếu ngân hàng không kèm tài khoản | Lỗi do chính đợt R-193 gây ra, chỉ lộ khi chạy migrator với `ASPNETCORE_ENVIRONMENT=Development`: aggregate từ chối phiếu bank/ví không có `paymentAccountId`. Seeder nay lấy tài khoản ngân hàng của chi nhánh, không có thì thu bằng tiền mặt |
+
+Mức retest: **3**. Kết quả — bản build production `:8080` → API `:5019` →
+PostgreSQL thật:
+
+- BE: Domain **264/264**, Application **516/516**, EF **51/51**.
+- FE: `tsc` sạch.
+- e2e **78/78** trên `patient`, `patient-images`, `treatment-plan`,
+  `treatment-stage`, `labo`, `report`, `branch-isolation`, `appointment`.
+- Năm spec mới: tích Hoàn thành đổi Tạo Labo thành Bảo hành ngay trong dialog và
+  đổi ô Công đoạn ngoài bảng thành chip hổ phách, cả hai mở cùng một form; hoàn
+  thành **một** công đoạn không đóng các công đoạn còn lại (số nút + giảm đúng
+  1, và vẫn bấm mở được); "Tạo Tái khám" liệt kê công đoạn đã hoàn thành với ô
+  tích khoá + Tái Khám + Chi Tiết; bước Tiếp nhận chỉ cho bấm bước kế tiếp, bấm
+  xong đóng dấu giờ và sống qua reload; dịch vụ không bảo hành thì công đoạn đã
+  xong không hiện gì cả.
+
+**Hai spec cũ phải sửa, không phải hồi quy**: "a finished line offers no công
+đoạn" đổi tiền đề sang "công đoạn đã hoàn thành trên dịch vụ không bảo hành" và
+tự dựng trạng thái đó; và `Còn lại` của dialog thanh toán nay đo bằng **hiệu**
+giữa hai số nhập thay vì so với số mở đầu — con số đó chạm sàn 0 khi các dòng
+đã chọn còn nợ nhiều hơn cả kế hoạch.
+
+Ghi chú kỹ thuật cho spec: ô "Hoàn thành" do server điều khiển, nên
+`locator.check()` của Playwright (đòi ô lật ngay khi bấm) luôn báo lỗi giả —
+helper `finishLiveStage` bấm rồi chờ `POST …/complete`.

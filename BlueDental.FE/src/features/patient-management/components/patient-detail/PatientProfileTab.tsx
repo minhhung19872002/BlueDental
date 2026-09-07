@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { Button, type TableColumnsType } from "antd";
+import { Button } from "antd";
 import { useNavigate } from "react-router-dom";
 import {
   CalendarOutlined,
@@ -12,6 +12,7 @@ import {
   IdcardOutlined,
   MailOutlined,
   MedicineBoxOutlined,
+  MoneyCollectOutlined,
   PhoneOutlined,
   PlusOutlined,
   UserOutlined,
@@ -23,10 +24,10 @@ import { DataTable } from "@/components/DataTable";
 import {
   SERVICE_LINE_STATUS,
   usePatientAccount,
-  type TreatmentServiceDto,
 } from "@/features/treatment-management/api/treatmentPlanApi";
-import { formatTeeth } from "@/features/treatment-management/api/consultingApi";
+import { useTreatmentStages } from "@/features/treatment-management/api/stageApi";
 import { CATALOG_GROUP, useCatalogOptions } from "@/hooks/useCatalogOptions";
+import { usePatientTagOptions } from "@/hooks/usePatientTagOptions";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { countedTotal } from "@/utils/countedTotal";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
@@ -35,19 +36,23 @@ import { formatDate, formatVND } from "@/utils/format";
 import type { PatientDto } from "../../types/patient";
 import { GENDER, type GenderCode } from "../../types/patient";
 import { PatientEditorDialog } from "../PatientEditorDialog";
+import { AppointmentDoctorPicker } from "./AppointmentDoctorPicker";
+import { ReceptionSteps } from "./ReceptionSteps";
+import { CreatePaymentDialog } from "./CreatePaymentDialog";
+import { TreatmentStageDialog } from "./TreatmentStageDialog";
+import { WarrantyDialog } from "./stage/WarrantyDialog";
 import {
   ExaminationReasonDialog,
   PatientPaymentDialog,
+  PatientTagChip,
   PatientTagPicker,
-  RecallDialog,
 } from "./PatientProfileDialogs";
+import { RecallDialog } from "./stage/RecallDialog";
+import { treatmentColumns } from "./treatmentColumns";
+import { buildTreatmentRows, regroupByDay, type TreatmentRow } from "./treatmentRows";
 
 interface Props {
   patient: PatientDto;
-}
-interface TreatmentRow extends TreatmentServiceDto {
-  createdAt: string;
-  dentist: string | null;
 }
 
 const genderLabels: Record<GenderCode, string> = {
@@ -127,24 +132,6 @@ function minutesBetween(from: string, to: string | null | undefined) {
   return Number.isFinite(minutes) && minutes > 0 ? Math.round(minutes) : 0;
 }
 
-/**
- * Đã đến → Đang khám → Hoàn tất.
- *
- * The times are left as "--:--" rather than guessed: an appointment records
- * when it was booked for, not when the patient walked in, and the reference
- * fills these from reception. See docs/clone/pages/patient-detail.md.
- */
-function receptionSteps(status: string) {
-  const reachedUpTo =
-    status === "completed" ? 3 : status === "inProgress" ? 2 : status === "confirmed" ? 1 : 0;
-
-  return [
-    { label: "Đã đến", at: null as string | null, reached: reachedUpTo >= 1 },
-    { label: "Đang khám", at: null as string | null, reached: reachedUpTo >= 2 },
-    { label: "Hoàn tất", at: null as string | null, reached: reachedUpTo >= 3 },
-  ];
-}
-
 export function PatientProfileTab({ patient }: Props) {
   const branchId = useCurrentBranchId();
   const navigate = useNavigate();
@@ -153,9 +140,21 @@ export function PatientProfileTab({ patient }: Props) {
   const [reasonOpen, setReasonOpen] = useState(false);
   const [recallOpen, setRecallOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
+  const [payingRow, setPayingRow] = useState<TreatmentRow | null>(null);
+  const [stageRow, setStageRow] = useState<TreatmentRow | null>(null);
+  const [warrantyRow, setWarrantyRow] = useState<TreatmentRow | null>(null);
   const [filter, setFilter] = useState("all");
   const pagination = useTablePagination(20);
   const { data: account, isLoading } = usePatientAccount(patient.id, branchId);
+  const patientStages = useTreatmentStages({
+    patientId: patient.id,
+    clinicBranchId: branchId,
+    maxResultCount: 200,
+  });
+  /** What "Tạo tái khám" can follow: a công đoạn that is actually finished. */
+  const finishedStages = (patientStages.data?.items ?? []).filter(
+    (stage) => stage.completedAt !== null,
+  );
   const appointmentsQuery = useAppointmentList({ patientId: patient.id, maxResultCount: 50 });
   const appointments = appointmentsQuery.data;
   const sources = useCatalogOptions(CATALOG_GROUP.Source).data ?? [];
@@ -172,6 +171,16 @@ export function PatientProfileTab({ patient }: Props) {
       .filter((item) => patient.diseaseHistoryEntryIds.includes(item.id))
       .map((item) => item.name)
       .join(", ") || "—";
+  /**
+   * The tags on this record, in catalog order rather than the order they were
+   * ticked — the reference lists them the same way its picker does, so a chip
+   * does not move when the tag is removed and put back.
+   */
+  const tagOptions = usePatientTagOptions(patient.branchId).data;
+  const tagsOnRecord = useMemo(
+    () => (tagOptions ?? []).filter((tag) => patient.tagIds.includes(tag.value)),
+    [patient.tagIds, tagOptions],
+  );
   /**
    * The nearest appointment, which is what "Lịch hẹn gần nhất" means: the next
    * one if there is one, otherwise the last one that happened. The reference
@@ -190,69 +199,43 @@ export function PatientProfileTab({ patient }: Props) {
 
     return live.sort((a, b) => b.startTime.localeCompare(a.startTime))[0];
   }, [appointments]);
-  const rows = useMemo<TreatmentRow[]>(
-    () =>
-      (account?.plans ?? []).flatMap((plan) =>
-        plan.services.map((service) => ({
-          ...service,
-          createdAt: plan.creationTime,
-          dentist: plan.dentistName,
-        })),
-      ),
-    [account],
+  // A table row is one công đoạn, the way the reference's timeline reads.
+  const rows = useMemo(
+    () => buildTreatmentRows(account?.plans ?? [], patientStages.data?.items ?? []),
+    [account, patientStages.data],
   );
-  const visibleRows = rows.filter(
-    (row) =>
-      filter === "all" ||
-      (filter === "done" && row.status === SERVICE_LINE_STATUS.Done) ||
-      (filter === "active" && row.status === SERVICE_LINE_STATUS.InProgress),
-  );
+  const visibleRows = useMemo(() => {
+    const kept = rows.filter(
+      (row) =>
+        filter === "all" ||
+        (filter === "done" && row.status === SERVICE_LINE_STATUS.Done) ||
+        (filter === "active" && row.status === SERVICE_LINE_STATUS.InProgress),
+    );
+    // Filtering breaks the day groups, so the spans are worked out again over
+    // what is left rather than carried over from the unfiltered list.
+    return regroupByDay(kept);
+  }, [rows, filter]);
   const payment = account?.payment;
 
-  const treatmentColumns: TableColumnsType<TreatmentRow> = [
-    { title: t("Ngày"), dataIndex: "createdAt", width: 105, render: formatDate },
-    {
-      title: t("Dịch vụ"),
-      dataIndex: "serviceName",
-      width: 170,
-      render: (value: string | null, row) => value ?? row.code,
-    },
-    {
-      title: t("Nội dung điều trị"),
-      dataIndex: "serviceName",
-      width: 180,
-      render: (value: string | null) => value ?? "—",
-    },
-    { title: t("Răng"), dataIndex: "teeth", width: 90, render: formatTeeth },
-    { title: t("SL"), dataIndex: "quantity", width: 55, align: "center" },
-    {
-      title: t("Bác sĩ điều trị"),
-      dataIndex: "dentist",
-      width: 145,
-      render: (value: string | null) => value ?? "—",
-    },
-    { title: t("Bác sĩ hỗ trợ"), width: 130, render: () => "—" },
-    {
-      title: t("Công đoạn"),
-      width: 105,
-      render: (_, row) => `${row.completedStageCount}/${row.stageCount}`,
-    },
-    {
-      title: t("Thao tác"),
-      width: 80,
-      fixed: "right",
-      render: () => (
-        <Button
-          type="text"
-          size="small"
-          icon={<EditOutlined />}
-          aria-label={t("Mở kế hoạch điều trị")}
-          onClick={() => navigate(`?tab=treatment-plan&branchId=${branchId}`)}
-        />
-      ),
-    },
-  ];
+  const openTreatmentPlan = () => navigate(`?tab=treatment-plan&branchId=${branchId}`);
+  const columns = useMemo(
+    () =>
+      treatmentColumns({
+        onOpenPlan: openTreatmentPlan,
+        onAddStage: setStageRow,
+        onWarranty: setWarrantyRow,
+        onPay: setPayingRow,
+      }),
+    // openTreatmentPlan closes over the branch and the router's navigate only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [branchId],
+  );
+  const planOf = (row: TreatmentRow | null) =>
+    (account?.plans ?? []).find((plan) => plan.id === row?.treatmentPlanId) ?? null;
+  const payingPlan = planOf(payingRow);
+  const stagePlan = planOf(stageRow);
 
+  // Seven tiles, in the reference's order and colours.
   const money = [
     ["Tổng dự kiến thu", payment?.totalPrice ?? 0, <DollarOutlined />, "blue"],
     ["Đã thu", payment?.totalPaid ?? 0, <WalletOutlined />, "green"],
@@ -260,6 +243,7 @@ export function PatientProfileTab({ patient }: Props) {
     ["Dư nợ", payment?.outstandingDebt ?? 0, <WalletOutlined />, "navy"],
     ["Phải thu", payment?.receivable ?? 0, <DollarOutlined />, "red"],
     ["Đã hoàn", payment?.totalRefund ?? 0, <WalletOutlined />, "orange"],
+    ["Tạm ứng", payment?.prepaid ?? 0, <MoneyCollectOutlined />, "blue"],
   ] as const;
 
   return (
@@ -267,15 +251,23 @@ export function PatientProfileTab({ patient }: Props) {
       <div className="pd-profile-card">
         <div className="pd-profile-column pd-profile-main">
           <div className="pd-profile-title">
-            <strong>
-              ({patient.patientCode}) - {patient.fullName}
-            </strong>
-            <Button
-              type="text"
-              icon={<EditOutlined />}
-              onClick={() => setEditing(true)}
-              aria-label={t("Chỉnh sửa hồ sơ")}
-            />
+            {/* Name, pencil and the record's tags share one wrapping row, as
+                the reference does: a fourth chip drops to a second line rather
+                than pushing the picker button off the card. */}
+            <div className="pd-profile-name">
+              <strong>
+                ({patient.patientCode}) - {patient.fullName}
+              </strong>
+              <Button
+                type="text"
+                icon={<EditOutlined />}
+                onClick={() => setEditing(true)}
+                aria-label={t("Chỉnh sửa hồ sơ")}
+              />
+              {tagsOnRecord.map((tag) => (
+                <PatientTagChip key={tag.value} color={tag.color} label={tag.label} />
+              ))}
+            </div>
             <PatientTagPicker patient={patient} />
           </div>
           <div className="pd-info-grid">
@@ -316,14 +308,18 @@ export function PatientProfileTab({ patient }: Props) {
               onClick={() => setReasonOpen(true)}
             />
           </h3>
-          {/* The reference dates this line from the visit that raised it.
-              BlueDental keeps the reason on the patient with no date of its
-              own — see docs/clone/pages/patient-detail.md. */}
-          <p className="pd-reason">
-            <span className="pd-reason-text">
-              {patient.examinationReason || t("Chưa có lý do đến khám")}
-            </span>
-          </p>
+          {patient.examinationReasons.length === 0 ? (
+            <p className="pd-reason-empty">{t("Chưa có lý do đến khám.")}</p>
+          ) : (
+            <div className="pd-reason-list">
+              {patient.examinationReasons.map((reason) => (
+                <div className="pd-reason" key={reason.id}>
+                  <span className="pd-reason-date">{formatDate(reason.recordedAt)}</span>
+                  <span className="pd-reason-text">{reason.content}</span>
+                </div>
+              ))}
+            </div>
+          )}
           <FactItem
             icon={<MedicineBoxOutlined />}
             label={t("Tiểu sử bệnh")}
@@ -366,15 +362,14 @@ export function PatientProfileTab({ patient }: Props) {
               </dl>
 
               <p className="pd-appt-steps-title">{t("Tiếp nhận")}</p>
-              <ol className="pd-appt-steps">
-                {receptionSteps(upcoming.status).map((step, index) => (
-                  <li key={step.label} className={step.reached ? "reached" : undefined}>
-                    <span className="pd-appt-step-dot">{index + 1}</span>
-                    <span className="pd-appt-step-label">{t(step.label)}</span>
-                    <span className="pd-appt-step-time">{step.at ?? "--:--"}</span>
-                  </li>
-                ))}
-              </ol>
+              <ReceptionSteps
+                appointment={upcoming}
+                onAdvanced={() => void appointmentsQuery.refetch()}
+              />
+              <AppointmentDoctorPicker
+                appointment={upcoming}
+                onChanged={() => void appointmentsQuery.refetch()}
+              />
             </>
           ) : (
             <div className="pd-empty-compact">
@@ -434,7 +429,8 @@ export function PatientProfileTab({ patient }: Props) {
         <DataTable<TreatmentRow>
           loading={isLoading}
           rowKey="id"
-          columns={treatmentColumns}
+          className="pd-treatment-table"
+          columns={columns}
           dataSource={visibleRows.slice(
             pagination.skipCount,
             pagination.skipCount + pagination.pageSize,
@@ -449,12 +445,59 @@ export function PatientProfileTab({ patient }: Props) {
         patient={patient}
         onClose={() => setReasonOpen(false)}
       />
-      <RecallDialog open={recallOpen} onClose={() => setRecallOpen(false)} />
+      <RecallDialog
+        open={recallOpen}
+        stages={finishedStages}
+        onClose={() => setRecallOpen(false)}
+        onBook={() => {
+          setRecallOpen(false);
+          setCreatingAppointment(true);
+        }}
+        onDetail={(stage) => {
+          setRecallOpen(false);
+          setStageRow(rows.find((row) => row.stageId === stage.id) ?? null);
+        }}
+      />
       <PatientPaymentDialog
         open={paymentOpen}
         payments={account?.payments ?? []}
         total={account?.payment.totalPaid ?? 0}
         onClose={() => setPaymentOpen(false)}
+      />
+      <CreatePaymentDialog
+        open={payingRow !== null}
+        patientId={patient.id}
+        branchId={branchId}
+        plan={payingPlan}
+        focusServiceId={payingRow?.id ?? null}
+        heldForPatient={account?.heldForPatient ?? 0}
+        onClose={() => setPayingRow(null)}
+        onSaved={() => setPayingRow(null)}
+      />
+      <WarrantyDialog
+        open={warrantyRow !== null}
+        patientId={patient.id}
+        branchId={branchId}
+        plan={planOf(warrantyRow)}
+        stage={
+          (patientStages.data?.items ?? []).find((item) => item.id === warrantyRow?.stageId) ?? null
+        }
+        onClose={() => setWarrantyRow(null)}
+      />
+      <TreatmentStageDialog
+        open={stageRow !== null}
+        patientId={patient.id}
+        patientCode={patient.patientCode}
+        patientName={patient.fullName}
+        branchId={branchId}
+        plan={stagePlan}
+        focusServiceId={stageRow?.id ?? null}
+        onClose={() => setStageRow(null)}
+        onOpenPlan={() => {
+          // The reference leaves the dialog for the slip's own screen.
+          setStageRow(null);
+          openTreatmentPlan();
+        }}
       />
       <AppointmentEditorModal
         open={creatingAppointment}

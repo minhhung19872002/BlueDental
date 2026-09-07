@@ -30,6 +30,19 @@ export function useUpdatePatient(id: string) {
   });
 }
 
+/** The + beside "Lý do đến khám" — appends one dated line to the card's list. */
+export function useAddExaminationReason(id: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationKey: ["patients", "examination-reason", id],
+    mutationFn: (content: string) => patientApi.addExaminationReason(id, content),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: patientKeys.detail(id) });
+    },
+  });
+}
+
 export function useDeletePatient() {
   const queryClient = useQueryClient();
 

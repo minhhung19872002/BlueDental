@@ -99,6 +99,8 @@ public static class BlueDentalDomainErrorCodes
         public const string InvoiceNotFound = "BlueDental:Billing:0001";
         public const string InvalidInvoiceTransition = "BlueDental:Billing:0002";
         public const string InvoiceAlreadyPaid = "BlueDental:Billing:0003";
+        public const string PaymentAccountRequired = "BlueDental:Billing:0090";
+        public const string InvalidPaymentAllocation = "BlueDental:Billing:0091";
         public const string InsufficientPaymentAmount = "BlueDental:Billing:0004";
         public const string InsuranceClaimNotFound = "BlueDental:Billing:0005";
         public const string InvalidCurrency = "BlueDental:Billing:0006";

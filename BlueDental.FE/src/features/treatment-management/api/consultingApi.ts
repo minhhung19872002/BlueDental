@@ -206,3 +206,11 @@ export function formatTeeth(teeth: ToothSelectionDto[]): string {
     })
     .join(", ");
 }
+
+/**
+ * The same teeth as {@link formatTeeth}, but one label per tooth rather than a
+ * joined string — the reference prints each as its own chip.
+ */
+export function toothLabels(teeth: ToothSelectionDto[]): string[] {
+  return formatTeeth(teeth) === "—" ? [] : formatTeeth(teeth).split(", ");
+}

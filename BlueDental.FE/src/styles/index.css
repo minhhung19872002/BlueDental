@@ -2362,12 +2362,6 @@ button {
   text-align: center;
 }
 
-/* Tag options (Thẻ hồ sơ) render as chips; the base chip has no gap because
-   its other usages are text-only, the icon here needs one. */
-.ss-tag-chip {
-  gap: 6px;
-}
-
 /* ── Responsive ── */
 
 @media (max-width: 768px) {

@@ -17,16 +17,23 @@ public class TreatmentStageDto : FullAuditedEntityDto<Guid>
     public string Name { get; set; } = string.Empty;
     public string? Note { get; set; }
     public Guid StaffId { get; set; }
+    /// <summary>Bác sĩ hỗ trợ — the reference's <c>assistantStaffId</c>.</summary>
     public Guid? SecondStaffId { get; set; }
+    /// <summary>Phụ tá — the reference's <c>subStaffId</c>.</summary>
+    public Guid? SubStaffId { get; set; }
     public DateOnly? ScheduledDate { get; set; }
     public TreatmentStageStatus Status { get; set; }
     public bool IsImageRequired { get; set; }
+    /// <summary>Bảo hành — the reference's <c>isGuarantee</c>.</summary>
+    public bool IsGuarantee { get; set; }
     public DateTimeOffset? StartedAt { get; set; }
     public DateTimeOffset? CompletedAt { get; set; }
     public List<ToothSelectionDto> Teeth { get; set; } = new();
     public List<string> ImageUrls { get; set; } = new();
 
     public string? StaffName { get; set; }
+    public string? SecondStaffName { get; set; }
+    public string? SubStaffName { get; set; }
     public string? ServiceName { get; set; }
 }
 
@@ -41,7 +48,10 @@ public class CreateTreatmentStageDto
     public string? Note { get; set; }
     public Guid StaffId { get; set; }
     public Guid? SecondStaffId { get; set; }
+    public Guid? SubStaffId { get; set; }
     public DateOnly? ScheduledDate { get; set; }
+    /// <summary>Set by "Tạo bảo hành"; an ordinary công đoạn leaves it false.</summary>
+    public bool IsGuarantee { get; set; }
 
     /// <summary>
     /// Omit to inherit the flag from the service catalog entry, which is where the
@@ -58,6 +68,7 @@ public class UpdateTreatmentStageDto
     public string? Note { get; set; }
     public Guid StaffId { get; set; }
     public Guid? SecondStaffId { get; set; }
+    public Guid? SubStaffId { get; set; }
     public DateOnly? ScheduledDate { get; set; }
     public List<ToothSelectionDto> Teeth { get; set; } = new();
 }

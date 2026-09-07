@@ -406,6 +406,29 @@ namespace BlueDental.Migrations
                     b.ToTable("bd_invoices", (string)null);
                 });
 
+            modelBuilder.Entity("BlueDental.Billing.PatientPaymentLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("PatientPaymentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TreatmentServiceId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PatientPaymentId");
+
+                    b.HasIndex("TreatmentServiceId");
+
+                    b.ToTable("bd_patient_payment_lines", (string)null);
+                });
+
             modelBuilder.Entity("BlueDental.Billing.PatientPayment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -477,19 +500,24 @@ namespace BlueDental.Migrations
                     b.Property<DateTimeOffset>("PaidAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("PaymentAccountId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("PatientId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("StaffId")
                         .HasColumnType("uuid");
 
+                    b.Property<short>("SplitMode")
+                        .HasColumnType("smallint");
+
                     b.Property<Guid?>("TreatmentPlanId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("TreatmentServiceId")
-                        .HasColumnType("uuid");
-
                     b.HasKey("Id");
+
+                    b.HasIndex("PaymentAccountId");
 
                     b.HasIndex("TreatmentPlanId");
 
@@ -2774,6 +2802,19 @@ namespace BlueDental.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<string>("ToothShade")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("TreatmentServiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("TreatmentStageId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("WorkDescription")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
@@ -2782,6 +2823,8 @@ namespace BlueDental.Migrations
 
                     b.HasIndex("OrderCode")
                         .IsUnique();
+
+                    b.HasIndex("TreatmentStageId");
 
                     b.HasIndex("BranchId", "Status");
 
@@ -3677,10 +3720,6 @@ namespace BlueDental.Migrations
                         .IsRequired()
                         .HasColumnType("uuid[]");
 
-                    b.Property<string>("ExaminationReason")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
                     b.Property<string>("ExtraProperties")
                         .IsRequired()
                         .HasColumnType("text")
@@ -3770,6 +3809,36 @@ namespace BlueDental.Migrations
                         .IsUnique();
 
                     b.ToTable("bd_patients", (string)null);
+                });
+
+            modelBuilder.Entity("BlueDental.PatientManagement.PatientExaminationReason", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<bool>("IsRoot")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PatientId", "RecordedAt");
+
+                    b.ToTable("bd_patient_examination_reasons", (string)null);
                 });
 
             modelBuilder.Entity("BlueDental.PatientManagement.PatientImage", b =>
@@ -5430,6 +5499,12 @@ namespace BlueDental.Migrations
 
                     b.Property<short>("Status")
                         .HasColumnType("smallint");
+
+                    b.Property<bool>("IsGuarantee")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("SubStaffId")
+                        .HasColumnType("uuid");
 
                     b.Property<Guid?>("TreatmentId")
                         .HasColumnType("uuid");
@@ -7444,6 +7519,8 @@ namespace BlueDental.Migrations
 
                     b.Navigation("Contact")
                         .IsRequired();
+
+                    b.Navigation("ExaminationReasons");
                 });
 
             modelBuilder.Entity("BlueDental.Timekeeping.TimeKeepingRecord", b =>
@@ -7609,6 +7686,24 @@ namespace BlueDental.Migrations
                         });
 
                     b.Navigation("Teeth");
+                });
+
+            modelBuilder.Entity("BlueDental.Billing.PatientPaymentLine", b =>
+                {
+                    b.HasOne("BlueDental.Billing.PatientPayment", null)
+                        .WithMany("Lines")
+                        .HasForeignKey("PatientPaymentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("BlueDental.PatientManagement.PatientExaminationReason", b =>
+                {
+                    b.HasOne("BlueDental.PatientManagement.Patient", null)
+                        .WithMany("ExaminationReasons")
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("BlueDental.TreatmentManagement.PrescriptionItem", b =>
@@ -7863,6 +7958,11 @@ namespace BlueDental.Migrations
             modelBuilder.Entity("BlueDental.Inventory.MaterialAllocation", b =>
                 {
                     b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("BlueDental.Billing.PatientPayment", b =>
+                {
+                    b.Navigation("Lines");
                 });
 
             modelBuilder.Entity("BlueDental.TreatmentManagement.Prescription", b =>

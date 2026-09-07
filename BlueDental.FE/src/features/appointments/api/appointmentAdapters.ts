@@ -34,10 +34,20 @@ export interface ServerAppointmentDto {
   isTemporary: boolean;
   sourceTaxonomyId: string | null;
   sourceEntryId: string | null;
+  /** When each Tiếp nhận step was taken; null until it is. */
+  checkedInAt: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
 }
 
+/**
+ * The three reception steps in order, and the endpoint each one posts to.
+ * The reference lets only the next one be pressed.
+ */
+export const RECEPTION_FLOW = ["check-in", "start", "complete"] as const;
+
 /** Matches BlueDental.Appointments.AppointmentStatus. */
-const SERVER_STATUS = {
+export const SERVER_STATUS = {
   Requested: 1,
   Confirmed: 2,
   CheckedIn: 3,
@@ -112,6 +122,10 @@ export function adaptAppointment(dto: ServerAppointmentDto): Appointment {
     isTemporary: dto.isTemporary,
     sourceTaxonomyId: dto.sourceTaxonomyId,
     sourceEntryId: dto.sourceEntryId,
+    statusCode: dto.status,
+    checkedInAt: dto.checkedInAt,
+    startedAt: dto.startedAt,
+    completedAt: dto.completedAt,
     statusColor: STATUS_COLORS[status],
     statusLabel: statusLabels()[status],
     durationMinutes: dayjs(dto.slotEnd).diff(dayjs(dto.slotStart), "minute"),

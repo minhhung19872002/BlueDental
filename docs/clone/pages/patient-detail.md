@@ -72,18 +72,509 @@ Tab query params (CONFIRMED from network capture + JS bundle):
 - Right: `LỊCH HẸN GẦN NHẤT` with a circular create button and an empty state
   when there is no upcoming appointment.
 
+#### Lịch hẹn gần nhất (re-measured 2026-09-06, staging)
+
+Labels are `text-label` 14px; values are **16px/500**, and the **Bác sĩ** value
+alone is `#2671D8` — a coloured `<p>`, not a link.
+
+Under the Tiếp nhận stepper, inside the same bordered block, sits one more
+control the card had been missing:
+
+```html
+<div class="mt-3 flex items-center gap-2 text-[14px]">
+  <button role="combobox" aria-haspopup="listbox"
+          class="h-10 rounded-lg border border-[#DCE3EE] pl-11 pr-[18px] text-[14px]">
+    <!-- search glyph at left, floating "Bác sĩ" label on the border -->
+    Nguyễn Trung Thông
+  </button>
+</div>
+```
+
+A searchable doctor select that reassigns **the shown appointment's** doctor in
+place, without opening the editor. (Its list was empty on staging —
+`/staff/list?isDoctor=true` answers 403 for that account.)
+
+#### Thẻ hồ sơ on the identity card (observed 2026-09-06, staging)
+
+The name, its pencil and every tag on the record share **one wrapping row**;
+the picker button sits outside it, pinned right. Reference markup:
+
+```html
+<div class="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-2">
+  <h1 class="min-w-0 text-[18px] font-bold uppercase text-[#2671D8]">…</h1>
+  <button aria-label="Chỉnh sửa bệnh nhân">…</button>
+  <!-- one chip per tag -->
+</div>
+```
+
+So a first chip rides beside the name and the rest drop to a second line
+(6px across, 8px down) rather than pushing the picker off the card. The picker
+ticks (✓, right-aligned) every tag the record carries and toggles one per
+click, saving immediately — several tags at once is normal.
+
+`GET /api/v1/medical-record/tag/list?page=1&perPage=20&orderBy=createdAt&branchId=…`
+answers **403** for the staging account, so the tag list itself could not be
+read there; the chip and tick styling above come from the user's own captures
+of a clinic that has tags.
+
+#### Lý do đến khám (observed 2026-09-06, staging)
+
+Not one note — a **dated list**. `GET /api/v1/patients/{id}` returns:
+
+```json
+"examinationReason": [
+  { "id": 2, "isRoot": false, "createdAt": "<iso>", "content": "<string>", "note": null },
+  { "id": 1, "isRoot": true,  "createdAt": "<iso>", "content": "<string>", "note": null }
+]
+```
+
+Newest first, rendered one row per entry:
+
+```html
+<div class="mb-3 max-h-[156px] space-y-3 overflow-y-auto pr-2">
+  <div class="grid grid-cols-[88px_minmax(0,1fr)] items-start gap-3 text-[14px]">
+    <span class="font-medium text-[#1B2A41]">06/09/2026</span>
+    <span class="whitespace-pre-wrap break-words font-semibold text-[#E5484D]">…</span>
+  </div>
+</div>
+```
+
+Rows are inert — no hover, no cursor, no edit or delete control.
+
+Two doors write to the list:
+
+- The card's **+** opens "Thêm lý do đến khám": a 500px modal with one empty
+  textarea (452×140, no maxlength) and **Lưu**. It opens empty even on a record
+  that already has reasons, so Lưu **appends** a line.
+- The **Chỉnh sửa hồ sơ** dialog's `Lý do đến khám` box shows the entry whose
+  `isRoot` is true and rewrites it in place.
+
+`isRoot` marks the first reason a record was given (id 1 in the capture above),
+which is why the hồ sơ dialog and the card agree on which one it edits.
+
+UNKNOWN_REFERENCE_BEHAVIOR — the POST behind + was not captured (production and
+staging are read-only). BlueDental defines its own:
+`POST /api/v1/app/patients/{id}/examination-reasons { content, note? }`.
+
 ### Financial cards
 
-Six equal cards in one row: `Tổng dự kiến thu`, `Đã thu`,
-`Dự kiến thu còn lại`, `Dư nợ`, `Phải thu`, and `Đã hoàn`.
+**Seven** equal cards in one row (`xl:grid-cols-7`, 12px gap, 8px radius,
+0.8px `#DCE3EE` border, 12px padding): `Tổng dự kiến thu`, `Đã thu`,
+`Dự kiến thu còn lại`, `Dư nợ`, `Phải thu`, `Đã hoàn`, `Tạm ứng`.
 
-### Treatment table
+Figure colours, measured on staging 2026-09-06:
+
+| Tile | Colour | Source field |
+|------|--------|--------------|
+| Tổng dự kiến thu | `#2671D8` | `patientSummary.payment.totalPrice` |
+| Đã thu | `#2BB673` | `totalPaid` |
+| Dự kiến thu còn lại | `#E5484D` | `totalDue` |
+| Dư nợ | `#1B2A41` | `outstandingDebt` |
+| Phải thu | `#E5484D` | `receivable` |
+| Đã hoàn | `#F5A400` | `totalRefund` |
+| Tạm ứng | `#2671D8` | `prepaid` |
+
+### Treatment table (re-measured 2026-09-06 on staging, one surveyed record)
 
 Filter pills: Tất cả, Điều trị hoàn tất, Đang điều trị, Các chẩn đoán,
 Tái khám, Bảo hành. Actions: Tạo Tái khám and Thanh toán.
 
-Columns: Ngày, Dịch vụ, Nội dung điều trị, Răng, SL, Bác sĩ điều trị,
-Bác sĩ hỗ trợ, Công đoạn, Thao tác. Empty state: `Chưa có điều trị`.
+Ten columns. Header: `8px 16px`, **14px/500, sentence case**, `#5A6B82` on
+`#F6F8FB`. Cell: `12px 16px`, `vertical-align: middle`, `border-right: 0.8px
+solid #DCE3EE` on all but the last — a ruled grid, ~81px per row.
+
+| # | Column | Width | Cell |
+|---|--------|-------|------|
+| 1 | Ngày | 140 | `font-medium text-label` |
+| 2 | Dịch vụ | 150 | bold `<p>`: the `DT…` code as a `#2671D8` button (hover underline) + ` - ` + service name; under it a status chip — `h-8`, `rounded-lg`, 12px/600, bg `#EFF6FF` |
+| 3 | Nội dung điều trị | 210 | the **stage's** `note`, plain text |
+| 4 | Răng | 122 | chip — `rounded-md`, border `#B8D1F7`, bg blue/10, `px-2 py-1`, 12px/700, `#2671D8` |
+| 5 | SL | 47 | centred |
+| 6 | Bác sĩ điều trị | 200 | `staff.name`, then `Phụ tá: …` (`assistantStaff`) in `text-label` |
+| 7 | Bác sĩ hỗ trợ | 200 | `subStaff`, or `Không có` |
+| 8 | Công đoạn | 120 | at 0/0 a 32px round **+**, bg `#E6F8EE`, green, hover green/white |
+| 9 | Chăm sóc sau điều trị | 172 | a 16px ring with an 8px dot + `care.status` — `new` prints `Chưa chăm sóc` |
+| 10 | Thao tác | 88 | a 20px banknote button, `text-primary` → "Tạo phiếu thanh toán" |
+
+Empty state: `Chưa có điều trị`.
+
+The table is fed by `GET /api/v1/patient-timeline`, whose rows are treatment
+**stages** (`type: "stage"`, `code: "STG…"`) — which is why column 3 is the
+stage's note and not the service name, and why `assistantStaffId` and
+`subStaffId` are two different slots.
+
+**Rows are công đoạn, grouped by day (observed 2026-09-06, second survey).**
+`GET /v1/patient-timeline?patientId&page&take&sortDirection=desc` returns rows
+of `type: "stage"` — one per công đoạn, newest first. A line worked three times
+is three rows, and the **Ngày** cell carries `rowSpan` so one date covers its
+whole day. Each row prints its own công đoạn's note under Nội dung điều trị, its
+own teeth, and its own Bác sĩ / Phụ tá / Bác sĩ hỗ trợ; Dịch vụ, Công đoạn,
+Chăm sóc and Thao tác come from the line behind it.
+
+A timeline row also carries **`disabled`**, set by the server: the newest công
+đoạn of a line is `false` and every earlier one `true`. That is what greys out
+the older rows inside "Chi tiết phiếu" — and **only** there. Adding a công đoạn
+does not finish the ones before it: in the table every unfinished công đoạn
+keeps its live **+**, and the row's status chip is the **công đoạn's** own
+(`created`/`inProgress` → *Đang điều trị*, `done` → *Hoàn thành*), so three rows
+of one line can read differently.
+
+The Công đoạn cell therefore has three states, all measured on 2026-09-06:
+
+| State | Cell |
+|---|---|
+| công đoạn not finished | green **+**, `size-8 rounded-full bg-[#E6F8EE] text-[#12A960]` 18px/600, hover solid green — tooltip *Thêm công đoạn* |
+| finished, service carries a warranty | amber **Bảo hành**, `bg-[#FFF4E5] text-amber-600`, hover `bg-amber-500` white, briefcase-medical icon |
+| finished, service carries none | grey inert `span`, `bg-[#F6F8FB] text-[#98A2B3] cursor-not-allowed` — tooltip **"Không bảo hành"** |
+
+Inside "Chi tiết phiếu" the same rule applies to the row's action: a finished
+công đoạn swaps **Tạo Labo** for a green **Bảo hành**, and shows neither when
+the service has no warranty period. Both buttons open the same **"Tạo bảo
+hành"** dialog — laid out exactly like the stage form (Ngày tạo disabled ·
+Bác sĩ · Phụ tá · Bác sĩ hỗ trợ | Dịch vụ disabled as `DT32 - Test DV` · Răng
+chips · Hình ảnh · Tải Ảnh | Nội dung điều trị · Danh sách công đoạn) with
+**Đóng** and **Lưu bảo hành** in the footer. It writes an ordinary công đoạn
+with `isGuarantee: true`, which is how the table's Bảo hành filter finds them.
+
+BlueDental: `TreatmentStage.IsGuarantee` (migration
+`20260906180000_AddStageGuarantee`) and `TreatmentServiceDto.WarrantyDays`,
+copied from the service's `CatalogServiceConfig.WarrantyDays`. The demo clinic
+now seeds a warranty on five of its eight services and none on three, so both
+endings are reachable.
+
+BlueDental builds the same rows from its own two reads (the patient account plus
+`GET /treatment-stages?patientId&clinicBranchId`) — see `buildTreatmentRows`. A
+line with **no** công đoạn yet still gets one row, so its "+" stays reachable;
+whether the reference lists one is unobserved (docs/clone/unknowns.md).
+
+**Superseded note.** Our table used to be one row per *service line*: a line that
+has not been broken into steps has no stage here, and a stage-driven table
+would show nothing for it. Columns 3 and 8 therefore read the line's stages
+(`stageNotes`, `stageCount`), and the status chip is the *line's* status where
+the reference chips the plan's — the two agree on a one-line plan. Phụ tá and
+Bác sĩ hỗ trợ are not modelled at all and always print the empty state.
+
+### "Tạo phiếu thanh toán" (observed 2026-09-06, staging, read-only)
+
+The row's Thao tác opens a **1024px** dialog, radius 16, title 24px/600. The
+top-right **Thanh toán** button opens the *history* dialog instead — a different
+thing, and the one BlueDental already had.
+
+Left column:
+
+- `NỘI DUNG THANH TOÁN` — `Nội dung: Thanh toán điều trị ngày dd/MM/yyyy`,
+  `Ngày thanh toán: dd/MM/yyyy`
+- `DỊCH VỤ` with a search icon, and `☐ Chọn Tất Cả` on its right. One row per
+  service: a checkbox with the service name, its amount on the right, a
+  `Còn nợ … đ` chip and `Số lượng: n`. Nothing ticked shows
+  `Bạn cần chọn ít nhất 1 dịch vụ` in red.
+- `TỔNG TIỀN THEO KẾ HOẠCH` — Tổng tiền / Giảm giá / Tổng tiền sau giảm /
+  Đã thanh toán / **Còn lại** (bold)
+
+Right column:
+
+- `THÔNG TIN THANH TOÁN` — two radio cards, `Chia Tiền Tự Động` (default) /
+  `Chia Tiền Thủ Công`; a `Số tiền thanh toán` box; a `Ghi chú` textarea with a
+  `0/500` counter
+- `PHƯƠNG THỨC THANH TOÁN` — `Tiền mặt` (default) · `Ngân hàng` · `Ví momo` ·
+  `Quẹt thẻ` · `Dư nợ <số dư> đ`
+
+Footer: `ⓘ Phiếu thanh toán chỉ có thể chỉnh sửa trong vòng 7 ngày kể từ ngày
+tạo.` on the left, `💾 Lưu` on the right.
+
+Measured detail (2026-09-06, staging):
+
+| Part | Reference |
+|------|-----------|
+| Modal | 1024px, radius 16; title 24px/600 |
+| Layout | `grid gap-8 lg:grid-cols-2`; the right column is `lg:sticky lg:top-0` |
+| Section heading | 14px/600 **uppercase** `#1B2A41`, with a `text-primary` 16px icon (notebook-text · square-chart-gantt · dollar-sign · credit-card) |
+| Fact row | `grid-cols-[150px_minmax(0,1fr)] gap-16`; label `text-label`, value left-aligned; **Còn lại** value `16px/700` |
+| Dịch vụ header | heading + a `size-8` search toggle (`aria-label="Tìm dịch vụ"`) on the left, `☐ Chọn Tất Cả` on the right |
+| Search | the toggle reveals a `Tìm dịch vụ` box above the list; it is not there by default |
+| Service row | `flex items-start gap-4`: checkbox · (name 14px / `Còn nợ … đ` pill `rounded-full bg-[#F0F4FA] px-3 py-1 12px` / `Số lượng: n`) · amount `14px/600` on the right |
+| Nothing ticked | `Bạn cần chọn ít nhất 1 dịch vụ`, 14px red, shown **immediately** — not only after a save attempt |
+| Split mode | two `<input type=radio name=split-mode>` labels, 230×40, `rounded-lg border bg-white px-2`, 14px; selected border `#2671D8`; ring `size-6` / dot `size-3` |
+| Số tiền thanh toán | floating-label input (label 13px/500), `inputmode="numeric"` |
+| Ghi chú | floating-label textarea `min-h-16`, `maxlength=500`, `0/500` right-aligned 12px under it |
+| Methods | five **pills**: `px-3 py-2 rounded-full border 12px/600 shadow-sm`, 42px tall, each with a `size-6` round icon badge. Selected: border `#2671D8`, bg `#F3F8FF`, text `#2F66E7`, badge `bg-[#2F66E7] text-white`. Unselected: border `#DCE3EE`, bg white, text `#111827`, badge `bg-[#EEF5FF] text-[#2F66E7]`. Order: Tiền mặt · Ngân hàng · **Ví momo** · Quẹt thẻ · Dư nợ, the last with the balance in `#08A652` |
+| Footer | `ⓘ …` 13px amber on the left, `💾 Lưu` on the right |
+
+Two behaviours worth naming:
+
+- **Còn lại is a live preview.** It is `plan.totalDue − the amount being
+  entered`, not the stored figure: typing 100.000 against a 409.091 remainder
+  shows 309.091 straight away. `Đã thanh toán` above it stays at what is stored.
+- **Chia Tiền Thủ Công** replaces the single amount box with **one row per
+  ticked service** in the right column, each seeded with that line's Còn nợ.
+
+#### The write contract, read from the reference's own bundle (2026-09-06)
+
+No request was ever sent: the account we survey with has **no `payment`
+ability at all** (`GET /v1/payment-v2` answers 403), so the dialog could not
+have saved even if we had pressed Lưu. The contract below comes from the
+shipped JavaScript, which rule 00 lists as safe to read.
+
+```
+BASE = /v1/payment-v2
+list      GET    /v1/payment-v2                 ?status=pending,finalized
+getById   GET    /v1/payment-v2/{id}
+create    POST   /v1/payment-v2
+update    PATCH  /v1/payment-v2/{id}
+void      POST   /v1/payment-v2/{id}/void       ← the undo
+finalize  POST   /v1/payment-v2/{id}/finalize
+export    GET    /v1/payment-v2/export          → thanh-toan.xlsx
+```
+
+Its create is validated by this schema, verbatim:
+
+```js
+patientId:           string,   required
+patientTreatmentId:  string,   required          // the slip
+treatmentServiceIds: string[], min(1), required  // "Bạn cần chọn ít nhất 1 dịch vụ"
+paymentMethod:       "cash" | "bank" | "momo" | "card" | "outstanding-debt", required
+splitMode:           "auto" | "manual", required
+amount:              number, min 0, max = maxAllowedAmount, required
+maxAllowedAmount:    number, min 0, required
+paymentAccountId:    required WHEN paymentMethod is "bank" or "momo"
+items:               required WHEN splitMode = "manual":
+                       [{ treatmentServiceId, amount (max maxAllowedAmount), maxAllowedAmount }], min(1)
+```
+
+Overpay message: *"Số tiền thanh toán không được vượt quá số tiền còn phải
+thanh toán"*. The auto-mode prefill is:
+
+```js
+paymentMethod === "outstanding-debt"
+  ? Math.min(Math.max(patientOutstandingDebt, 0), Math.max(selectedTotal, 0))
+  : Math.max(selectedTotal, 0)
+```
+
+and a line's Còn nợ is `max(price − paid, 0)`.
+
+**`paymentAccountId` — the field this clone was missing.** Choosing Ngân hàng
+or Ví momo reveals a picker below the pills, reading
+`GET /v1/payment-method/list?type=bank|momo&branchId=…`:
+
+| Method | Columns | Empty state | Pager |
+|--------|---------|-------------|-------|
+| Ngân hàng | `Chọn` · `Tên ngân hàng` · `Số tài khoản` | Không có phương thức ngân hàng | Hiển thị 0 trên 0 tài khoản ngân hàng |
+| Ví momo | `Chọn` · `Số điện thoại` · `Tên chủ tài khoản` | Không có phương thức MoMo | Hiển thị 0 trên 0 ví MoMo |
+
+That is BlueDental's own `PaymentAccount` catalog (`/taxonomy/payment-method`),
+so the dialog reads `GET /v1/app/payment-accounts?clinicBranchId&kind` and
+`PatientPayment` gained a nullable `PaymentAccountId` (migration
+`20260906120000_AddPaymentAccountOnPatientPayment`), required by the aggregate
+for Banking and EWallet.
+
+`Ví momo` is a fifth method the reference offers even though its own rollup
+splits money four ways. `PaymentMethodKind.EWallet = 5` carries it, and the
+clinic report gained `ByEWallet` / `RefundByEWallet` so e-wallet money cannot
+fall out of the totals.
+
+**One receipt covering several services — closed 2026-09-06.** The reference
+posts **one** payment carrying `treatmentServiceIds[]` (and `items[]` in manual
+mode). BlueDental used to name a single `treatmentServiceId` and post one
+receipt per line: the money landed identically but the payment history showed
+N rows where the reference shows one.
+
+`PatientPayment` now owns child `PatientPaymentLine` rows — one per service,
+`(treatmentServiceId, amount)` — and carries `SplitMode`
+(`Auto = 1`, `Manual = 2`). The aggregate refuses a line of zero and refuses a
+receipt whose lines do not add up to its total, so a per-line "Còn nợ" can
+never disagree with the receipt it came from. Migration
+`20260906140000_AddPatientPaymentLines` creates `bd_patient_payment_lines`,
+backfills one line per existing payment that named a service, and drops
+`bd_patient_payments.TreatmentServiceId`; a refund that named no service simply
+has no lines.
+
+Who splits the money follows the reference: **Tự động** sends only `amount` and
+the server spreads it oldest-first, capped at what each line still owes;
+**Thủ công** sends `items[]` and the server takes them as typed. Either way an
+allocation past a line's outstanding is refused with the reference's own
+wording, *"Số tiền thanh toán không được vượt quá số tiền còn phải thanh
+toán"*. The rollup that drives each line's `paidAmount` reads the receipt's
+lines, so a refund still subtracts.
+
+Verified end to end (R-197): one two-line slip, 3.000.000 collected against
+4.900.000 owed, produced a single receipt `splitMode = 1` with lines
+2.400.000 + 600.000, one row in the payment history, and per-line rollups of
+`paid 2.400.000 / due 0` and `paid 600.000 / due 1.900.000`.
+
+### "Chi tiết phiếu" — công đoạn (observed 2026-09-06, staging, read-only)
+
+The treatment row's **Công đoạn** cell opens this, not an inline editor. Modal
+`calc(100vw - 32px)` (1568 at a 1600 viewport), radius 16, title 24px/600.
+
+A tinted card (`#F7FAFF`, radius 16, padding 12, border `#DCE3EE`) holds:
+
+- A tab strip — `#DDEBFA` on a `#C7D7EA` border, radius 8, padding 4 — with two
+  36px tabs, 13px/600, radius 6: `THÊM CÔNG ĐOẠN ⟨n⟩` and
+  `TIẾP TỤC CÔNG ĐOẠN ⟨n⟩`, each with an 18px round count badge. Active is white
+  on `#2671D8` text. The first tab lists services with **no** công đoạn yet, the
+  second those that already have one.
+- On its right, `$ Thanh toán` (green outline) and `🖨 In lịch sử điều trị`.
+- Four column heads, `#EAF4FF` / `#2671D8` / 14px/600 / radius 12 / `12px 16px`:
+  `Chi tiết` · `Ngày - Nhân sự` · `Dịch vụ đã chọn` · `Nội dung điều trị`, over a
+  `320px + 1fr` grid.
+- `Chi tiết` lists one card per eligible service (name in blue, `Răng:` + tooth
+  chips). Nothing selected shows the dashed
+  `Chọn công đoạn ở cột chi tiết để hiển thị nội dung.`; an empty tab shows
+  `Tất cả dịch vụ đã được thêm công đoạn`.
+- Selecting a card reveals the form inside a card whose border turns
+  `#2671D8`, `rounded-xl border p-4`, laid out
+  `grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-3` — three columns at 1280 and
+  up, two below that with **Nội dung điều trị** spanning the pair, one on a
+  phone. At a 1600 viewport the dialog is 1568 wide and each column measures
+  **366px**; every control in it — the date read-out, the three comboboxes, the
+  service read-out and the textarea — is exactly that wide and 40 tall (the
+  textarea 127).
+
+  | Column | Contents |
+  |---|---|
+  | Ngày - Nhân sự | **Ngày tạo** (*disabled*, today) · Bác sĩ · Phụ tá · Bác sĩ hỗ trợ |
+  | Dịch vụ đã chọn | **Dịch vụ** (*disabled*) · `Răng:` over blue filled chips (`min-w-9 rounded-sm p-1 text-[13px]`, disabled, `opacity-70`) · `Hình ảnh:` and `(Trống)` on **two stacked lines** · full-width `Tải Ảnh` outline button |
+  | Nội dung điều trị | textarea `min-h-16` rows 5, `maxlength 1000`, floating label with **no asterisk** · `Danh sách công đoạn` (14px/600) / `(Trống)` · right-aligned `Hủy` + `💾 Thêm/Tiếp tục công đoạn` (`min-w-[100px]`) |
+
+  `Tải Ảnh` is **not** disabled: the form card carries its own hidden
+  `<input type="file" accept="image/jpeg,image/jpg,image/png" multiple>`, so a
+  picture can be chosen before the công đoạn exists.
+
+#### LỊCH SỬ ĐIỀU TRỊ
+
+Header bar white, `px-4 py-3`, title 14px/600 uppercase `#2671D8`, `n công đoạn`
+muted on the right. The body scrolls inside `min-w-[1180px]`; the head is
+`grid-cols-[190px_1fr_1.15fr_0.7fr_0.7fr]` on `#F6F8FB` with a right rule on
+every cell but the last.
+
+A body row is **a grid inside a grid**: the outer one is
+`grid-cols-[190px_minmax(0,1fr)]` so the date cell spans **every công đoạn of
+that day**, and the right half repeats `grid-cols-[1fr_1.15fr_0.7fr_0.7fr]` once
+per stage.
+
+| Cell | Contents |
+|---|---|
+| Ngày | date **`d/M/yyyy`** — not zero-padded — 16px/600, then `n công đoạn` 14px muted |
+| Dịch vụ & răng | service 14px/500 · tooth chips (white, bordered, 12px) · then the stage's pictures as **68px** thumbnails, `rounded-lg`, with a bottom gradient caption `Ảnh điều trị` in 11px white. Clicking one opens the image viewer (rotate ×2, flip ×2, zoom ±, close, and an `n / m` counter) |
+| Ghi chú | a **pencil** top-right (`lucide-pencil`, 16px, muted → `#2671D8`) over the note in an `min-h-[84px]` block with a rule under it; below, `flex gap-8`: a column of `Bác sĩ:` / `Bác sĩ hỗ trợ:` and, beside it, `Phụ tá:` — so it prints as *"Bác sĩ: X   Phụ tá: (Trống)"* over *"Bác sĩ hỗ trợ: (Trống)"* |
+| Công đoạn | the stage's `stageServiceItems`; blank on staging |
+| Hành động | `☐ Hoàn thành` (20px Radix checkbox), full-width `Tải ảnh` outline, full-width `Tạo Labo` solid `mt-2` |
+
+**The pencil edits in place**, it does not open a dialog: it swaps the note for a
+`rows=4 min-h-[96px] resize-none` textarea with right-aligned `Hủy` / `Lưu`
+under it, and the pencil itself disappears while editing.
+
+#### What the dialog reads
+
+Opening it fires exactly four GETs, all scoped to the slip:
+
+```
+GET /v1/treatment-services?patientId&patientTreatmentId&status=created,inProgress,guarantee&take=50&sortBy=createdAt&sortDirection=desc
+GET /v1/patient-stages?patientId&patientTreatmentId&take=50&sortBy=createdAt&sortDirection=desc
+GET /v1/treatment-lines?patientId&patientTreatmentId&take=50&sortBy=createdAt&sortDirection=desc
+GET /v1/patient-images?patientId&branchId&take=20&sortBy=createdAt&sortDirection=desc
+```
+
+The first explains the treatment table: **only `created`, `inProgress` and
+`guarantee` lines can take a công đoạn**, which is why a finished line's Công
+đoạn cell is an inert grey `briefcase-medical` chip
+(`size-8 rounded-full bg-[#F6F8FB] text-[#98A2B3] cursor-not-allowed`) rather
+than the live one (`bg-[#E6F8EE]`, `#12A960`, 18px/600, hover solid green).
+
+A `patient-stages` row carries `code` (`STG24`), `treatmentServiceId`,
+`serviceId`, `staffId`, `subStaffId`, `assistantStaffId`, `selectedContent[]`
+(the teeth), `note`, `imageIds[]`, `totalStageCount` / `completedStageCount`,
+`stageServiceItems[]`, `status`, `isGuarantee`, `hasReExamination`, `dateTime`,
+a `care` block and a per-stage `payment` rollup. `treatment-lines` is the
+per-service record holding `treatmentLineItems`, `sequentialStages` and
+`earningByStage` — the source of `Danh sách công đoạn`.
+
+#### The three hidden modals, and Thanh toán
+
+| Control | What it actually does |
+|---|---|
+| **Thanh toán** | **Navigates**, closing the dialog: `/patient/{id}/treatment-plan/{planId}?planTab=detail`. It does *not* open a payment form. |
+| **In lịch sử điều trị** | Opens a second modal, also titled *Chi tiết phiếu*: two fact blocks (`THÔNG TIN CHI NHÁNH` — Phòng khám / Địa chỉ / ĐT / Email; `THÔNG TIN KHÁCH HÀNG` — Mã KH in blue / Họ và tên), then a borderless 6-column table (`Dịch vụ` = teeth in `#165DFF` semibold over the service name · `Ngày điều trị` = date over a `#D9EEFF`/`#2671D8` status pill · `Nội dung điều trị` · `Bác sĩ` · `Phụ tá` · `Bác sĩ hỗ trợ`), and one footer button **In Phiếu**. A **hidden A4 sheet** rides along (`max-w-[794px]`, inner `min-h-[980px] px-8 py-8`): a three-column header (clinic 11px · centred `CHI TIẾT PHIẾU` 17px/700 uppercase tracking .02em + `Ngày 6 tháng 9 năm 2026` 12px · patient right-aligned), the same table at 11px, and two `w-44` signature blocks — `Người lập phiếu` / `Khách hàng`, each over `(Ký, họ tên)` and a `pt-14` name. |
+| **Tạo Labo** | Opens the Labo **Đặt mới** dialog, filled from the công đoạn: `Tên khách hàng*` (`<mã KH> - <tên>`), `Kế hoạch điều trị*` (`DT32 - <dentist>`), `Dịch vụ điều trị*`, `Bác sĩ chỉ định*` — the first, second and fourth disabled — plus `Số phiếu Labo*` prefilled `LABO-202609061`, `Ngày gửi*`/`Giờ gửi*` set to now, `Nhà cung cấp*`, `Ngày nhận dự kiến*`/`Giờ nhận*`, a `Lựa chọn dịch vụ*` chip list feeding `Vật liệu*` (empty until one is picked: *"Chọn dịch vụ trước"*), `Răng:*` with `Chọn tất cả`, then `Màu răng` / `Đường hoàn tất`, `Số lượng*` / `Kiểu nhịp`, `Khớp cắn`, `Nội dung`, `Tải ảnh` and a footer `Lưu`. |
+| **Tải ảnh** (row) and **Tải Ảnh** (form) | Both open the OS file chooser — each sits beside its own hidden multiple-file input. |
+
+#### The stage write contract, from the same bundle
+
+```
+BASE = /v1/patient-stages
+list                    GET  /v1/patient-stages
+getById                 GET  /v1/patient-stages/{id}
+create                  POST /v1/patient-stages                        "Tạo công đoạn thành công"
+update                  PUT  /v1/patient-stages/{id}
+continue                POST /v1/patient-stages/{id}/continue          "Tiếp tục công đoạn thành công"
+createReExamination     POST /v1/patient-stages/{id}/re-examination
+updateStatus            PUT  /v1/patient-stages/{id}/status            ← Hoàn thành
+revertStatus            PUT  /v1/patient-stages/{id}/revert-status
+updateStageServiceItems PUT  /v1/patient-stages/{id}/stage-service-items
+```
+
+The surveyed account's abilities list `treatmentStage: read, create, update,
+**continue**, **complete**, print` — so the two tabs really are two operations,
+and there is **no delete**: a công đoạn created on staging could not have been
+undone, which is why none was.
+
+Create payload (Thêm công đoạn):
+
+```js
+patientId, treatmentServiceId*, serviceId*, staffId*,      // * required
+subStaffId,          // ← the form's "Phụ tá"
+assistantStaffId,    // ← the form's "Bác sĩ hỗ trợ"
+selectedContent[],   // teeth, min 1, required
+note,                // "Nội dung điều trị", required, max 1000
+imageIds[], dateTime, stageServiceItems: [{ stageServiceId }], isGuarantee
+```
+
+Continue takes the same body against `{stageId}`, minus `serviceId`. Note the
+naming: the reference's *Phụ tá* is `subStaffId` and its *Bác sĩ hỗ trợ* is
+`assistantStaffId` — the opposite of what the words suggest.
+
+Three rules this clone had wrong and now enforces: **doctor, teeth and the
+treatment note are all required**, and the note is capped at 1000.
+
+`Danh sách công đoạn` is a checklist of the *service catalog's* own công đoạn
+(`stageServiceItems`); it read `(Trống)` on staging because the surveyed
+service has no stages in its catalog entry.
+
+**Closed 2026-09-06 (second survey)** — what the first pass left short:
+
+- The form's controls now fill their column, and the card lays out three / two /
+  one across the reference's own breakpoints.
+- `Tải Ảnh` in the form is **live**: the pictures are held and attached to the
+  công đoạn the moment it is saved, which is what the reference's in-form file
+  input implies.
+- `Phụ tá` and `Bác sĩ hỗ trợ` are **stored**. `TreatmentStage.SecondStaffId`
+  is Bác sĩ hỗ trợ (reference `assistantStaffId`) and the new
+  `TreatmentStage.SubStaffId` is Phụ tá (reference `subStaffId`); migration
+  `20260906160000_AddStageSubStaff`. The history row and the printed sheet read
+  both names back.
+- The history is grouped by day with a spanning date cell, prints `d/M/yyyy`,
+  and shows each công đoạn's pictures as 68px thumbnails that open a viewer.
+- The note's pencil edits in place through `PUT /treatment-stages/{id}`.
+- `Thanh toán` navigates to `?tab=treatment-plan` instead of stacking the
+  payment form.
+- `In lịch sử điều trị` opens the print modal plus its hidden A4 sheet.
+- `Tạo Labo` opens the Labo **Đặt mới** dialog in place. `LaboOrder` gained
+  `ToothShade`, `Quantity`, `TreatmentServiceId` and `TreatmentStageId`
+  (migration `20260906170000_AddLaboOrderTreatmentLink`), and
+  `GET /v1/app/labo-orders/next-code` allocates `LABO-yyyyMMddN` per branch.
+
+**Still divergent**, recorded in docs/clone/unknowns.md:
+
+- `Danh sách công đoạn` reads `(Trống)`: it is the *service catalog's* own
+  checklist (`stageServiceItems` / `treatmentLineItems`), which BlueDental does
+  not model. The history's Công đoạn column prints the stage's own name instead
+  of that checklist.
+- The Labo form's `Giờ nhận` is collected but not stored — `LaboOrder.DueDate`
+  is a date. `Tải ảnh` on that form, and `Chọn tất cả` over the teeth, are not
+  built: the teeth come from the công đoạn and are not editable there.
+- Primary buttons are BlueDental indigo (`--bd-primary #6366f1`), not the
+  reference's blue `#2671D8`. That is the clone's own brand, applied
+  app-wide.
 
 ---
 
@@ -100,6 +591,21 @@ Status: OBSERVED
   controls. The diagnosis records table remains below the header.
 - Full width below: `Phiếu tư vấn`, summary totals, doctor selector, and plan /
   quotation / print actions.
+
+**Tiếp nhận (observed 2026-09-06).** The three steps are `<button>`s in a
+`grid-cols-3`, each a connector line either side of a `size-8` numbered circle
+over a 12px/600 label and a 12px time that reads `--:--` until the step is
+taken. Only the **next** one is enabled; the other two carry `disabled` and
+`cursor-not-allowed`, so reception cannot skip ahead or walk back. BlueDental
+posts `check-in` → `start` → `complete` on the appointment, which is where the
+times come from.
+
+**Tạo Tái khám (observed 2026-09-06).** Three column heads — Ngày - Nhân sự ·
+Dịch vụ đã hoàn tất · Nội dung điều trị — over one row per **finished** công
+đoạn; with none it prints *"Chưa có dịch vụ hoàn tất"*. A row carries the date
+with Bác sĩ / Phụ tá, the service and its teeth, the note and Danh sách công
+đoạn, and beside them a ticked read-only **Hoàn thành**, a disabled **Tải Ảnh**,
+**Tái Khám** and **Chi Tiết**.
 
 ### Expanded diagnosis editor (hidden state)
 - Header text: "Bác sĩ có trách nhiệm thông báo / Những vấn đề răng miệng đang gặp phải – Hiểu về tiến trình của bệnh lý"
@@ -834,6 +1340,46 @@ Screenshots in `reference-private/survey-patient/`.
   BlueDental's own wording. The reference writes them on one line in its own
   words: `Tiểu sử bệnh:`, `Về KH:`, `Nguồn đến:`. Matched, and the reason
   itself now carries the accent the reference gives it.
+- **Lý do đến khám was one string** (2026-09-06). The reference keeps a dated
+  list; BlueDental kept a single `bd_patients.ExaminationReason` column, so the
+  card showed one undated line and the + button silently overwrote it. The
+  column moved to `bd_patient_examination_reasons` (migration
+  `20260906000000_AddPatientExaminationReasons`, which carries every existing
+  value across as that record's root line dated from its creation), the card
+  renders the list, and + appends.
+- **Ticking a tag did nothing visible** (2026-09-06). The tick was there and
+  the save reached the server — but `CheckOutlined` renders a bare `<span>`,
+  which the picker row's own `button > span` chip rule matched, painting the ✓
+  white on white with chip padding. The chip is a class of its own now
+  (`.pd-tag-chip`), so nothing else can claim it. The tags on a record were
+  never drawn beside the name either; they are, in the catalog order the picker
+  lists them in, on the same wrapping row as the name.
+- **Tạm ứng was missing** from the money row (2026-09-06) — six tiles where the
+  reference shows seven. `payment.prepaid` was already on the wire and rolled
+  up server side; only the tile was absent.
+- **Lý do đến khám read a size too large** (2026-09-06). The reference sets it
+  at 14px, but its whole column runs a notch above ours (heading 16 vs our 14,
+  facts 14 vs our 13.5). Dropped to 13.5px/20 beside the facts, with the date
+  column scaled 88 → 85px to keep the two as tight as the reference's.
+- **The Phân loại theo Tag filter drew coloured chips** (2026-09-06) — invented,
+  not observed. The reference's two "Phân loại" filters are the same widget down
+  to the markup: a search box over plain rows. The chip renderer is out of
+  `SearchSelect` entirely, so the CSKH grouping filter loses it too; the
+  coloured chip stays where it was actually seen, on the record's own picker.
+- **Lịch hẹn gần nhất had no doctor select** (2026-09-06) — see above. Added,
+  sending the whole appointment back because `UpdateAsync` rebuilds the slot and
+  the details from the request: a doctor-only body would clear the note, the
+  colour and the time.
+- **The treatment table was the wrong shape** (2026-09-06) — uppercase 11.5px
+  headers, no rules between cells, nine columns instead of ten, the service name
+  printed twice (Dịch vụ *and* Nội dung điều trị), plain text where the
+  reference chips, `0/0` where it shows a green **+**, and a pencil into the
+  plan where it opens "Tạo phiếu thanh toán". Rebuilt to the table above; the
+  columns moved into `treatmentColumns.tsx` rather than growing the tab further.
+- **The card clipped its own first row** after that. `.pd-profile > .bd-cat-card`
+  was `flex: 1` inside a fixed-height pane, so a two-line row did not fit in the
+  240px it was left. It sizes to content now and the pane scrolls, which is what
+  the reference does.
 - **Lịch hẹn gần nhất** showed a compact block and, worse, filtered to
   *future* appointments only — so the card was empty for every patient between
   visits. The reference asks for `/schedules/latest` (ascending, no date
@@ -847,7 +1393,7 @@ Screenshots in `reference-private/survey-patient/`.
 |------|---------------|
 | Header | `‹ Quay lại / [code] - NAME`, and on the right a two-way switch: **Chi tiết hồ sơ** (the tabbed detail) / **Bệnh án** |
 | Tabs (10) | Hồ sơ · Chẩn đoán & Tư vấn · Kế hoạch điều trị · Lịch hẹn · Hình ảnh · Labo · Đơn thuốc · Chăm sóc KH · Hóa đơn · Lịch sử dư nợ |
-| Hồ sơ | Identity card · Lý do đến khám · Lịch hẹn gần nhất; six money tiles; a treatment table under six filter chips |
+| Hồ sơ | Identity card · Lý do đến khám · Lịch hẹn gần nhất; seven money tiles; a treatment table under six filter chips |
 | Endpoints | `GET /v1/patients/{id}`, `/v1/schedules/latest`, `/v1/patient-timeline`, `/v1/staff/list?isDoctor=true` |
 
 The treatment table is fed by `patient-timeline`, whose rows are **treatment

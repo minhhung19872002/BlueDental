@@ -28,15 +28,22 @@ export interface TreatmentStageDto {
   name: string;
   note: string | null;
   staffId: string;
+  /** Bác sĩ hỗ trợ — the reference's `assistantStaffId`. */
   secondStaffId: string | null;
+  /** Phụ tá — the reference's `subStaffId`. */
+  subStaffId: string | null;
   scheduledDate: string | null;
   status: TreatmentStageStatus;
   isImageRequired: boolean;
+  /** Bảo hành — a warranty visit rather than an ordinary step. */
+  isGuarantee: boolean;
   startedAt: string | null;
   completedAt: string | null;
   teeth: ToothSelectionDto[];
   imageUrls: string[];
   staffName: string | null;
+  secondStaffName: string | null;
+  subStaffName: string | null;
   serviceName: string | null;
   creationTime: string;
 }
@@ -68,6 +75,23 @@ export interface CreateTreatmentStageInput {
   name: string;
   note?: string;
   staffId: string;
+  /** Bác sĩ hỗ trợ. */
+  secondStaffId?: string;
+  /** Phụ tá. */
+  subStaffId?: string;
+  scheduledDate?: string;
+  teeth?: ToothSelectionDto[];
+  /** Set by "Tạo bảo hành". */
+  isGuarantee?: boolean;
+}
+
+/** What the reference's PUT /patient-stages/{id} carries. */
+export interface UpdateTreatmentStageInput {
+  name: string;
+  note?: string;
+  staffId: string;
+  secondStaffId?: string;
+  subStaffId?: string;
   scheduledDate?: string;
   teeth?: ToothSelectionDto[];
 }
@@ -75,6 +99,8 @@ export interface CreateTreatmentStageInput {
 export interface StageListInput {
   patientId?: string;
   clinicBranchId?: string;
+  /** The slip. The reference scopes its stage list by this, not in the browser. */
+  treatmentId?: string;
   treatmentServiceId?: string;
   status?: TreatmentStageStatus;
   maxResultCount?: number;
@@ -99,6 +125,9 @@ const stageApi = {
   create: (input: CreateTreatmentStageInput): Promise<TreatmentStageDto> =>
     api.post<TreatmentStageDto>(STAGES, input).then((r) => r.data),
 
+  update: (id: string, input: UpdateTreatmentStageInput): Promise<TreatmentStageDto> =>
+    api.put<TreatmentStageDto>(`${STAGES}/${id}`, input).then((r) => r.data),
+
   continue: (id: string): Promise<TreatmentStageDto> =>
     api.post<TreatmentStageDto>(`${STAGES}/${id}/continue`).then((r) => r.data),
 
@@ -122,6 +151,8 @@ export function useTreatmentStages(params: StageListInput, enabled = true) {
     queryKey: stageKeys.list(params),
     queryFn: () => stageApi.list(params),
     enabled: enabled && Boolean(params.patientId ?? params.treatmentServiceId),
+    // A stage carries images, and an upload has to show up on the row.
+    staleTime: 0,
   });
 }
 
@@ -141,7 +172,12 @@ export function useStageProgress(treatmentServiceId: string) {
   });
 }
 
-/** Every stage change moves the list, the progress and the "latest" card together. */
+/**
+ * Every stage change moves the list, the progress and the "latest" card
+ * together — and the patient account with them: the profile tab's treatment
+ * table reads a line's công đoạn count and its Nội dung điều trị (the stage
+ * note) off that rollup, so leaving it alone left the row a reload behind.
+ */
 function useStageMutation<TVariables, TData>(fn: (variables: TVariables) => Promise<TData>) {
   const queryClient = useQueryClient();
 
@@ -149,12 +185,20 @@ function useStageMutation<TVariables, TData>(fn: (variables: TVariables) => Prom
     mutationFn: fn,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: stageKeys.all });
+      void queryClient.invalidateQueries({ queryKey: ["patient-treatments"] });
     },
   });
 }
 
 export function useCreateStage() {
   return useStageMutation(stageApi.create);
+}
+
+export function useUpdateStage() {
+  return useStageMutation((input: { id: string } & UpdateTreatmentStageInput) => {
+    const { id, ...rest } = input;
+    return stageApi.update(id, rest);
+  });
 }
 
 export function useContinueStage() {

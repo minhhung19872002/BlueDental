@@ -1,8 +1,12 @@
 namespace BlueDental.Billing;
 
 /// <summary>
-/// How money moved. Observed on the reference's payment rollup, which splits every
-/// figure by <c>cash | banking | card | outstandingDebt</c> — nothing else appears.
+/// How money moved.
+///
+/// The reference's payment rollup splits by <c>cash | banking | card |
+/// outstandingDebt</c>, but its "Tạo phiếu thanh toán" dialog offers a fifth —
+/// "Ví momo" — so the enum carries it and the clinic report gives it a bucket
+/// of its own rather than letting e-wallet money fall out of the totals.
 /// </summary>
 public enum PaymentMethodKind
 {
@@ -11,7 +15,23 @@ public enum PaymentMethodKind
     Card = 3,
 
     /// <summary>Settled against the patient's outstanding debt rather than by cash.</summary>
-    OutstandingDebt = 4
+    OutstandingDebt = 4,
+
+    /// <summary>Ví điện tử — the reference names MoMo.</summary>
+    EWallet = 5
+}
+
+/// <summary>
+/// How a receipt's total is spread over the services it covers — the
+/// reference's "Chia Tiền Tự Động" / "Chia Tiền Thủ Công".
+/// </summary>
+public enum PaymentSplitMode
+{
+    /// <summary>The server spreads the total, oldest line first, capped per line.</summary>
+    Auto = 1,
+
+    /// <summary>The cashier typed an amount for each line.</summary>
+    Manual = 2
 }
 
 /// <summary>

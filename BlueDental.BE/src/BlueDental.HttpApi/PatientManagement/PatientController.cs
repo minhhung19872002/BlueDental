@@ -43,6 +43,13 @@ public sealed class PatientController(IPatientAppService service) : BlueDentalCo
     public async Task<IActionResult> ExportAsync([FromQuery] GetPatientListInput input) =>
         Excel(await service.ExportAsync(input), "danh-sach-benh-nhan");
 
+    /// <summary>The + beside "Lý do đến khám" — appends one dated line.</summary>
+    [HttpPost("{id:guid}/examination-reasons")]
+    public Task<PatientDto> AddExaminationReasonAsync(
+        Guid id,
+        [FromBody] AddExaminationReasonDto input) =>
+        service.AddExaminationReasonAsync(id, input);
+
     [HttpPost("{id:guid}/deactivate")]
     public Task DeactivateAsync(Guid id) => service.DeactivateAsync(id);
 }

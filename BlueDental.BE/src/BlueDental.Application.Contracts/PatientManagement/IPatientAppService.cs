@@ -13,6 +13,9 @@ public interface IPatientAppService : IApplicationService
     Task<PatientDto> UpdateAsync(Guid id, UpdatePatientDto input);
     Task DeactivateAsync(Guid id);
 
+    /// <summary>The + beside "Lý do đến khám" — appends one dated line.</summary>
+    Task<PatientDto> AddExaminationReasonAsync(Guid id, AddExaminationReasonDto input);
+
     /// <summary>The code the "Tạo hồ sơ" dialog opens with.</summary>
     Task<PatientCodeEstimateDto> GetCodeEstimateAsync();
 

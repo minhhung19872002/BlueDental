@@ -113,7 +113,7 @@ public class TreatmentStageTests
         Should.Throw<BusinessException>(() => stage.Complete())
             .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.InvalidStageTransition);
         Should.Throw<BusinessException>(() =>
-                stage.UpdateDetails("Khác", null, null, _staffId, null, null))
+                stage.UpdateDetails("Khác", null, null, _staffId, null, null, null))
             .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.InvalidStageTransition);
         Should.Throw<BusinessException>(() => stage.AttachImage("https://files.local/xray-2.png"))
             .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.InvalidStageTransition);
@@ -147,5 +147,54 @@ public class TreatmentStageTests
         var stage = CreateStage();
 
         stage.Teeth.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void A_stage_keeps_both_helper_slots_apart()
+    {
+        // The reference stores them separately: assistantStaffId is the second
+        // dentist (Bác sĩ hỗ trợ) and subStaffId the nurse (Phụ tá). The history
+        // row prints both, so neither may swallow the other.
+        var secondDentist = Guid.NewGuid();
+        var nurse = Guid.NewGuid();
+
+        var stage = TreatmentStage.Add(
+            Guid.NewGuid(),
+            _patientId,
+            _branchId,
+            _treatmentId,
+            _treatmentServiceId,
+            _serviceId,
+            1,
+            "Gắn mắc cài hàm trên",
+            _staffId,
+            secondStaffId: secondDentist,
+            subStaffId: nurse);
+
+        stage.SecondStaffId.ShouldBe(secondDentist);
+        stage.SubStaffId.ShouldBe(nurse);
+    }
+
+    [Fact]
+    public void Editing_a_stage_can_clear_a_helper_slot()
+    {
+        var stage = TreatmentStage.Add(
+            Guid.NewGuid(),
+            _patientId,
+            _branchId,
+            _treatmentId,
+            _treatmentServiceId,
+            _serviceId,
+            1,
+            "Gắn mắc cài hàm trên",
+            _staffId,
+            secondStaffId: Guid.NewGuid(),
+            subStaffId: Guid.NewGuid());
+
+        stage.UpdateDetails("Gắn mắc cài hàm trên", "Ghi chú mới", null, _staffId, null, null, null);
+
+        stage.Note.ShouldBe("Ghi chú mới");
+        stage.SecondStaffId.ShouldBeNull();
+        stage.SubStaffId.ShouldBeNull();
     }
 }

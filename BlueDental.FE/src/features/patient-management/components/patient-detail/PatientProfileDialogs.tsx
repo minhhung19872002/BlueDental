@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Button, Input, Modal, Popover, Select, type TableColumnsType } from "antd";
 import { CheckOutlined, SearchOutlined, TagsOutlined } from "@ant-design/icons";
 import { toast } from "sonner";
@@ -12,7 +12,7 @@ import {
   paymentMethodLabels,
   type PatientPaymentDto,
 } from "@/features/treatment-management/api/treatmentPlanApi";
-import { useUpdatePatient } from "../../api/patientMutations";
+import { useAddExaminationReason, useUpdatePatient } from "../../api/patientMutations";
 import { GENDER_BY_CODE } from "../../api/patientAdapters";
 import type { PatientDto, UpdatePatientRequest } from "../../types/patient";
 // These dialogs carry their own styling, so they look right wherever opened.
@@ -41,6 +41,20 @@ function patientPayload(patient: PatientDto): UpdatePatientRequest {
     tagIds: patient.tagIds,
     diseaseHistoryEntryIds: patient.diseaseHistoryEntryIds,
   };
+}
+
+/**
+ * A Thẻ hồ sơ as the reference draws it: the tag's own colour, white bold text
+ * and a tag glyph. The same chip appears in the picker and beside the name, so
+ * it carries a class of its own — as a bare `<span>` it also matched the
+ * picker row's chip rule, which painted the ✓ beside it white on white.
+ */
+export function PatientTagChip({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="pd-tag-chip" style={{ "--pd-tag-color": color } as CSSProperties}>
+      <TagsOutlined /> {label}
+    </span>
+  );
 }
 
 export function PatientTagPicker({ patient }: { patient: PatientDto }) {
@@ -99,9 +113,7 @@ export function PatientTagPicker({ patient }: { patient: PatientDto }) {
                   onClick={() => void toggle(tag.value)}
                   disabled={update.isPending}
                 >
-                  <span style={{ backgroundColor: tag.color }}>
-                    <TagsOutlined /> {tag.label}
-                  </span>
+                  <PatientTagChip color={tag.color} label={tag.label} />
                   <em>{tag.label}</em>
                   {selected ? <CheckOutlined className="pd-tag-tick" /> : null}
                 </button>
@@ -119,6 +131,13 @@ export function PatientTagPicker({ patient }: { patient: PatientDto }) {
   );
 }
 
+/**
+ * "Thêm lý do đến khám".
+ *
+ * The reference opens this box empty even on a record that already has
+ * reasons — Lưu adds a dated line rather than rewriting the last one. The hồ sơ
+ * dialog is where an existing reason gets corrected.
+ */
 export function ExaminationReasonDialog({
   open,
   patient,
@@ -129,15 +148,20 @@ export function ExaminationReasonDialog({
   onClose: () => void;
 }) {
   const [reason, setReason] = useState("");
-  const update = useUpdatePatient(patient.id);
+  const add = useAddExaminationReason(patient.id);
   useEffect(() => {
-    if (open) setReason(patient.examinationReason ?? "");
-  }, [open, patient.examinationReason]);
+    if (open) setReason("");
+  }, [open]);
 
   const save = async () => {
+    const content = reason.trim();
+    if (!content) {
+      toast.error(t("Vui lòng nhập lý do đến khám"));
+      return;
+    }
     try {
-      await update.mutateAsync({ ...patientPayload(patient), examinationReason: reason.trim() });
-      toast.success(t("Đã cập nhật lý do đến khám"));
+      await add.mutateAsync(content);
+      toast.success(t("Đã thêm lý do đến khám"));
       onClose();
     } catch (error) {
       toast.error(extractApiError(error));
@@ -147,46 +171,26 @@ export function ExaminationReasonDialog({
   return (
     <Modal
       open={open}
-      title={t("Lý do đến khám")}
-      width={520}
+      title={t("Thêm lý do đến khám")}
+      // 500px, measured off the reference's own dialog.
+      width={500}
       className="pd-reason-dialog"
       okText={t("Lưu")}
       cancelText={t("Hủy")}
-      confirmLoading={update.isPending}
+      confirmLoading={add.isPending}
       onOk={() => void save()}
       onCancel={onClose}
       destroyOnHidden
     >
       <Input.TextArea
         value={reason}
-        rows={8}
+        rows={6}
         className="pd-reason-input"
         maxLength={1000}
         showCount
         placeholder={t("Nhập lý do đến khám")}
         onChange={(event) => setReason(event.target.value)}
       />
-    </Modal>
-  );
-}
-
-export function RecallDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  return (
-    <Modal
-      open={open}
-      title={t("Tạo tái khám")}
-      width="calc(100vw - 32px)"
-      footer={null}
-      onCancel={onClose}
-      destroyOnHidden
-      className="pd-recall-dialog"
-    >
-      <div className="pd-recall-head">
-        <strong>{t("Ngày - Nhân sự")}</strong>
-        <strong>{t("Dịch vụ đã hoàn tất")}</strong>
-        <strong>{t("Nội dung điều trị")}</strong>
-      </div>
-      <div className="pd-recall-empty">{t("Chưa có dịch vụ hoàn tất")}</div>
     </Modal>
   );
 }

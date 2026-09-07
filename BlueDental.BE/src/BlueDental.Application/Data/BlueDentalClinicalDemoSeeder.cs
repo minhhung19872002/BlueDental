@@ -29,6 +29,8 @@ namespace BlueDental.Data;
 public class BlueDentalClinicalDemoSeeder(
     IRepository<Taxonomy, Guid> taxonomyRepository,
     IRepository<CatalogEntry, Guid> catalogRepository,
+    IRepository<CatalogServiceConfig, Guid> serviceConfigRepository,
+    IRepository<PaymentAccount, Guid> paymentAccountRepository,
 
     IRepository<PatientDiagnosis, Guid> diagnosisRepository,
     IRepository<PatientAdvise, Guid> adviseRepository,
@@ -42,17 +44,22 @@ public class BlueDentalClinicalDemoSeeder(
 {
     private readonly Guid _branchId = BlueDentalDataSeedContributor.DefaultBranchId;
 
-    /// <summary>Services the clinic sells, with a believable price list.</summary>
-    private static readonly (string Name, decimal Price)[] Services =
+    /// <summary>
+    /// Services the clinic sells, with a believable price list and the warranty
+    /// each carries. Zero days is "Không bảo hành": a finished công đoạn on such
+    /// a service offers no Bảo hành, which is a state the screens have to show,
+    /// so the demo data covers both.
+    /// </summary>
+    private static readonly (string Name, decimal Price, int WarrantyDays)[] Services =
     [
-        ("Trám răng thẩm mỹ", 500_000m),
-        ("Lấy cao răng", 300_000m),
-        ("Nhổ răng khôn", 2_500_000m),
-        ("Điều trị tủy", 1_800_000m),
-        ("Bọc răng sứ Zirconia", 4_500_000m),
-        ("Cấy ghép Implant", 18_000_000m),
-        ("Niềng răng mắc cài", 35_000_000m),
-        ("Tẩy trắng răng", 1_200_000m)
+        ("Trám răng thẩm mỹ", 500_000m, 365),
+        ("Lấy cao răng", 300_000m, 0),
+        ("Nhổ răng khôn", 2_500_000m, 0),
+        ("Điều trị tủy", 1_800_000m, 730),
+        ("Bọc răng sứ Zirconia", 4_500_000m, 1825),
+        ("Cấy ghép Implant", 18_000_000m, 3650),
+        ("Niềng răng mắc cài", 35_000_000m, 730),
+        ("Tẩy trắng răng", 1_200_000m, 0)
     ];
 
     private static readonly string[] Diagnoses =
@@ -141,6 +148,8 @@ public class BlueDentalClinicalDemoSeeder(
             "Nhóm dịch vụ chung",
             Services.Select(s => (s.Name, (decimal?)s.Price)).ToList());
 
+        await EnsureServiceWarrantiesAsync(services);
+
         var diagnoses = await EnsureGroupAsync(
             "0002",
             TaxonomyGroups.Diagnosis,
@@ -188,6 +197,42 @@ public class BlueDentalClinicalDemoSeeder(
     }
 
     /// <summary>Creates one taxonomy group and its entries, skipping what exists.</summary>
+    /// <summary>
+    /// Gives the demo services their warranty period, once. Left alone if the
+    /// clinic has since edited the service in Danh mục.
+    /// </summary>
+    private async Task EnsureServiceWarrantiesAsync(IReadOnlyList<Guid> serviceIds)
+    {
+        for (var i = 0; i < serviceIds.Count && i < Services.Length; i++)
+        {
+            // With details: the config is a separate table, and an entry loaded
+            // without it would look unconfigured and be given a second one.
+            var entry = await catalogRepository.FindAsync(serviceIds[i], includeDetails: true);
+            if (entry is null || entry.ServiceConfig is not null)
+            {
+                continue;
+            }
+
+            // Inserted through its own repository: the 1:1 config lives in its own
+            // table, and saving it through the entry leaves EF unaware of the child.
+            var config = new CatalogServiceConfig(DemoId("0001", 100 + i), entry.Id);
+            config.Update(
+                ServiceTaxRate.NotTaxable,
+                priceIncludesTax: true,
+                discountIsPercent: false,
+                discountValue: 0m,
+                requireImage: false,
+                deductDoctorOnWarranty: false,
+                separateRevenue: false,
+                showToothOnInvoice: true,
+                revenueByStage: false,
+                requireStageSequence: false,
+                warrantyDays: Services[i].WarrantyDays);
+
+            await serviceConfigRepository.InsertAsync(config, autoSave: true);
+        }
+    }
+
     private async Task<List<Guid>> EnsureGroupAsync(
         string kind,
         string group,
@@ -464,6 +509,10 @@ public class BlueDentalClinicalDemoSeeder(
 
         var random = new Random(20260827);
         var payments = new List<PatientPayment>();
+        var bankAccountId = (await paymentAccountRepository.GetListAsync(
+                a => a.ClinicBranchId == _branchId && a.Kind == PaymentAccountKind.Bank))
+            .Select(a => (Guid?)a.Id)
+            .FirstOrDefault();
         var chosen = patients.Where(p => !covered.Contains(p.Id)).ToList();
 
         if (chosen.Count == 0)
@@ -494,6 +543,15 @@ public class BlueDentalClinicalDemoSeeder(
             var method = (PaymentMethodKind)(1 + i % 3);
             var amount = random.Next(4, 40) * 500_000m;
 
+            // A bank or wallet receipt has to name the account it landed in.
+            // Without one seeded, the demo collects that receipt in cash rather
+            // than writing a payment the aggregate would refuse.
+            var accountId = PatientPayment.RequiresAccount(method) ? bankAccountId : null;
+            if (accountId is null && PatientPayment.RequiresAccount(method))
+            {
+                method = PaymentMethodKind.Cash;
+            }
+
             payments.Add(PatientPayment.Record(
                 DemoIdFor("0400", chosen[i].Id),
                 chosen[i].Id,
@@ -505,7 +563,8 @@ public class BlueDentalClinicalDemoSeeder(
                 dentistIds[i % dentistIds.Count],
                 DateTimeOffset.UtcNow.AddDays(-random.Next(0, 30)),
                 treatmentPlanId: kind == PatientPaymentKind.Prepaid ? null : planId,
-                note: kind == PatientPaymentKind.Refund ? "Hoàn phần chưa điều trị" : null));
+                note: kind == PatientPaymentKind.Refund ? "Hoàn phần chưa điều trị" : null,
+                paymentAccountId: accountId));
         }
 
         await paymentRepository.InsertManyAsync(payments, autoSave: true);

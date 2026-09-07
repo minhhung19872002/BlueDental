@@ -42,6 +42,10 @@ export interface AppointmentDto {
   isTemporary: boolean;
   sourceTaxonomyId: string | null;
   sourceEntryId: string | null;
+  /** Stamped as the Tiếp nhận stepper is walked. */
+  checkedInAt: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
 }
 
 export interface CreateAppointmentRequest {
@@ -109,6 +113,12 @@ export interface Appointment extends AppointmentDto {
   statusColor: string;
   statusLabel: string;
   durationMinutes: number;
+  /**
+   * The server's own status code. The screens speak the reference's five-word
+   * vocabulary, which folds CheckedIn into "đang khám" — the Tiếp nhận stepper
+   * needs the two apart, so it reads this instead.
+   */
+  statusCode: number;
 }
 
 /** Matches BlueDental.Appointments.CancellationReason. */

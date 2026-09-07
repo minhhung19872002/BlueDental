@@ -138,7 +138,9 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
             input.ScheduledDate,
             input.IsImageRequired ?? await ServiceRequiresImageAsync(input.ServiceId),
             PatientDiagnosisAppService.ToToothSelections(input.Teeth),
-            input.SecondStaffId);
+            input.SecondStaffId,
+            input.SubStaffId,
+            input.IsGuarantee);
 
         await _repository.InsertAsync(stage, autoSave: true);
         return MapToDto(stage, await BuildLookupsAsync([stage]));
@@ -155,6 +157,7 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
             input.ScheduledDate,
             input.StaffId,
             input.SecondStaffId,
+            input.SubStaffId,
             PatientDiagnosisAppService.ToToothSelections(input.Teeth));
 
         await _repository.UpdateAsync(stage, autoSave: true);
@@ -304,7 +307,14 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
     private async Task<StageLookups> BuildLookupsAsync(IReadOnlyCollection<TreatmentStage> items)
     {
         var serviceIds = items.Select(x => x.ServiceId).Distinct().ToList();
-        var staffIds = items.Select(x => x.StaffId).Distinct().ToList();
+        // All three slots resolve from one read: the row prints Bác sĩ, Bác sĩ hỗ
+        // trợ and Phụ tá side by side.
+        var staffIds = items
+            .SelectMany(x => new[] { (Guid?)x.StaffId, x.SecondStaffId, x.SubStaffId })
+            .Where(id => id.HasValue)
+            .Select(id => id!.Value)
+            .Distinct()
+            .ToList();
 
         var catalogQuery = await _catalogRepository.GetQueryableAsync();
         var serviceNames = catalogQuery
@@ -322,6 +332,9 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         IReadOnlyDictionary<Guid, string> ServiceNames,
         IReadOnlyDictionary<Guid, string> StaffNames);
 
+    private static string? NameOf(Guid? staffId, StageLookups lookups) =>
+        staffId.HasValue && lookups.StaffNames.TryGetValue(staffId.Value, out var name) ? name : null;
+
     private static TreatmentStageDto MapToDto(TreatmentStage entity, StageLookups lookups) => new()
     {
         Id = entity.Id,
@@ -335,15 +348,19 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         Note = entity.Note,
         StaffId = entity.StaffId,
         SecondStaffId = entity.SecondStaffId,
+        SubStaffId = entity.SubStaffId,
         ScheduledDate = entity.ScheduledDate,
         Status = entity.Status,
         IsImageRequired = entity.IsImageRequired,
+        IsGuarantee = entity.IsGuarantee,
         StartedAt = entity.StartedAt,
         CompletedAt = entity.CompletedAt,
         Teeth = PatientDiagnosisAppService.ToToothDtos(entity.Teeth),
         ImageUrls = entity.ImageUrls.ToList(),
         ServiceName = lookups.ServiceNames.TryGetValue(entity.ServiceId, out var service) ? service : null,
         StaffName = lookups.StaffNames.TryGetValue(entity.StaffId, out var staff) ? staff : null,
+        SecondStaffName = NameOf(entity.SecondStaffId, lookups),
+        SubStaffName = NameOf(entity.SubStaffId, lookups),
         CreationTime = entity.CreationTime,
         CreatorId = entity.CreatorId,
         LastModificationTime = entity.LastModificationTime,

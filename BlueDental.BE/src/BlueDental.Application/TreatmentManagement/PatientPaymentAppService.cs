@@ -106,6 +106,8 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
             await GuardRefundFitsAsync(input);
         }
 
+        var lines = await AllocateAsync(input);
+
         var payment = PatientPayment.Record(
             GuidGenerator.Create(),
             input.PatientId,
@@ -117,11 +119,125 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
             input.StaffId,
             input.PaidAt ?? Clock.Now,
             input.TreatmentPlanId,
-            input.TreatmentServiceId,
-            input.Note);
+            input.Note,
+            input.PaymentAccountId,
+            input.SplitMode,
+            lines,
+            GuidGenerator.Create);
 
         await _repository.InsertAsync(payment, autoSave: true);
         return (await MapManyAsync([payment])).Single();
+    }
+
+    /// <summary>
+    /// Turns "these services, this much" into a share per service.
+    ///
+    /// Chia Tiền Thủ Công is taken as typed; Chia Tiền Tự Động is spread here
+    /// rather than in the browser, because only the server knows what each line
+    /// still owes. Either way the shares must add up to the receipt and no line
+    /// may be pushed past its own Còn nợ — the reference's
+    /// <c>maxAllowedAmount</c> rule.
+    /// </summary>
+    private async Task<List<(Guid TreatmentServiceId, decimal Amount)>> AllocateAsync(
+        RecordPatientPaymentDto input)
+    {
+        // Money held for the patient is not against any service.
+        if (input.Kind == PatientPaymentKind.Prepaid || !input.TreatmentPlanId.HasValue)
+        {
+            return [];
+        }
+
+        var chosen = input.SplitMode == PaymentSplitMode.Manual
+            ? input.Items.Select(item => item.TreatmentServiceId).Distinct().ToList()
+            : input.TreatmentServiceIds.Distinct().ToList();
+
+        if (chosen.Count == 0)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Billing.InvalidPaymentAllocation,
+                "A receipt must name at least one service.");
+        }
+
+        var outstanding = await OutstandingByServiceAsync(input.TreatmentPlanId.Value, chosen);
+
+        if (input.SplitMode == PaymentSplitMode.Manual)
+        {
+            var manual = input.Items
+                .Where(item => item.Amount > 0m)
+                .Select(item => (item.TreatmentServiceId, item.Amount))
+                .ToList();
+
+            foreach (var (serviceId, share) in manual)
+            {
+                GuardWithinOutstanding(outstanding, serviceId, share);
+            }
+
+            return manual;
+        }
+
+        var spread = new List<(Guid, decimal)>();
+        var left = input.Amount;
+
+        foreach (var serviceId in chosen)
+        {
+            if (left <= 0m) break;
+            var take = Math.Min(left, outstanding.GetValueOrDefault(serviceId));
+            if (take <= 0m) continue;
+
+            spread.Add((serviceId, take));
+            left -= take;
+        }
+
+        if (left > 0m)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Billing.InvalidPaymentAllocation,
+                "Số tiền thanh toán không được vượt quá số tiền còn phải thanh toán.");
+        }
+
+        return spread;
+    }
+
+    private static void GuardWithinOutstanding(
+        IReadOnlyDictionary<Guid, decimal> outstanding,
+        Guid serviceId,
+        decimal share)
+    {
+        if (share > outstanding.GetValueOrDefault(serviceId))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Billing.InvalidPaymentAllocation,
+                "Số tiền thanh toán của dịch vụ không được vượt quá số tiền còn phải thanh toán.");
+        }
+    }
+
+    /// <summary>Còn nợ per line: what it is worth, less what receipts already put on it.</summary>
+    private async Task<Dictionary<Guid, decimal>> OutstandingByServiceAsync(
+        Guid treatmentPlanId,
+        IReadOnlyCollection<Guid> serviceIds)
+    {
+        // WithDetails, or plan.Services comes back empty and every line reads
+        // as owing nothing.
+        var planQuery = await _planRepository.WithDetailsAsync(x => x.Services);
+        var plan = planQuery.Single(x => x.Id == treatmentPlanId);
+
+        var paymentQuery = await _repository.GetQueryableAsync();
+        var paid = paymentQuery
+            .Where(payment => payment.TreatmentPlanId == treatmentPlanId)
+            .SelectMany(payment => payment.Lines.Select(line => new
+            {
+                line.TreatmentServiceId,
+                Signed = payment.Kind == PatientPaymentKind.Refund ? -line.Amount : line.Amount
+            }))
+            .ToList()
+            .GroupBy(x => x.TreatmentServiceId)
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.Signed));
+
+        return plan.Services
+            .Where(line => serviceIds.Contains(line.Id))
+            .ToDictionary(
+                line => line.Id,
+                line => Math.Max(0m, line.EffectiveAmount - paid.GetValueOrDefault(line.Id)));
     }
 
     [Authorize(BlueDentalAbilityPermissions.Payment.Delete)]
@@ -135,7 +251,7 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
     private async Task<List<PatientPayment>> QueryAsync(GetPatientPaymentListInput input)
     {
         var branchFilter = await _branchAccess.ResolveFilterAsync(input.ClinicBranchId);
-        var query = await _repository.GetQueryableAsync();
+        var query = await _repository.WithDetailsAsync(x => x.Lines);
 
         if (branchFilter.Count > 0)
             query = query.Where(x => branchFilter.Contains(x.ClinicBranchId));
@@ -234,7 +350,14 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
             PatientId = x.PatientId,
             ClinicBranchId = x.ClinicBranchId,
             TreatmentPlanId = x.TreatmentPlanId,
-            TreatmentServiceId = x.TreatmentServiceId,
+            SplitMode = x.SplitMode,
+            Lines = x.Lines
+                .Select(line => new PatientPaymentLineDto
+                {
+                    TreatmentServiceId = line.TreatmentServiceId,
+                    Amount = line.Amount
+                })
+                .ToList(),
             Kind = x.Kind,
             Method = x.Method,
             Amount = x.Amount,
@@ -242,6 +365,7 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
             PaidAt = x.PaidAt,
             StaffId = x.StaffId,
             Note = x.Note,
+            PaymentAccountId = x.PaymentAccountId,
             StaffName = staffNames.TryGetValue(x.StaffId, out var staff) ? staff : null,
             TreatmentPlanCode = x.TreatmentPlanId.HasValue
                 && planCodes.TryGetValue(x.TreatmentPlanId.Value, out var code)

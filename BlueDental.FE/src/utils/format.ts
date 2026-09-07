@@ -63,3 +63,15 @@ export function formatVND(value: number | null | undefined): string {
 export function formatDash(value: string | number | null | undefined): string | number {
   return value === null || value === undefined || value === "" ? "—" : value;
 }
+
+/**
+ * Format a date the way the reference prints a treatment date: `d/M/yyyy`,
+ * with no leading zeros. Distinct from {@link formatDate}, which zero-pads for
+ * tables and forms.
+ */
+export function formatShortDate(value: string | Date | null | undefined): string {
+  if (!value) return "";
+  const date = typeof value === "string" ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) return "";
+  return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+}

@@ -11,8 +11,12 @@ namespace BlueDental.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "bd_visits");
+            // bd_visits is another table the merge lost: nothing in the chain
+            // ever created it, so a fresh database reaches this point without
+            // it and a plain DropTable answers 42P01. Established databases do
+            // still carry the table and still need it gone, so the drop stays —
+            // just conditional.
+            migrationBuilder.Sql("DROP TABLE IF EXISTS bd_visits;");
 
             migrationBuilder.AddColumn<short>(
                 name: "Outcome",

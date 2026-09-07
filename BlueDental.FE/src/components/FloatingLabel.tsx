@@ -6,6 +6,8 @@ interface FloatingLabelChildProps {
 
 interface Props {
   label: string;
+  /** Draws the red asterisk the reference puts inside a required field's label. */
+  required?: boolean;
   /** Whether the label should sit on the border rather than inside the field. */
   floated: boolean;
   className?: string;
@@ -25,7 +27,7 @@ interface Props {
  * on top of each other. A control that is always floated (`floated` fixed to
  * true) keeps its placeholder as a format hint, e.g. "HH:mm".
  */
-export function FloatingLabel({ label, floated, className, children }: Props) {
+export function FloatingLabel({ label, required, floated, className, children }: Props) {
   const [focused, setFocused] = useState(false);
   const isFloated = floated || focused;
 
@@ -47,7 +49,10 @@ export function FloatingLabel({ label, floated, className, children }: Props) {
     >
       {control}
       {/* Not aria-hidden: it is the control's only visible name. */}
-      <span className="floating-field-label">{label}</span>
+      <span className="floating-field-label">
+        {label}
+        {required && <span className="floating-field-required">*</span>}
+      </span>
     </div>
   );
 }

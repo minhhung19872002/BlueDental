@@ -11,6 +11,12 @@ public interface ILaboAppService : IApplicationService
     Task<LaboStatsDto> GetStatsAsync(GetLaboOrderListInput input);
     Task<LaboOrderDto> GetAsync(Guid id);
     Task<LaboOrderDto> CreateAsync(CreateLaboOrderDto input);
+
+    /// <summary>
+    /// Số phiếu Labo the next order would take, so "Đặt mới" can open with it
+    /// filled in the way the reference does.
+    /// </summary>
+    Task<string> GetNextOrderCodeAsync();
     Task<LaboOrderDto> UpdateAsync(Guid id, UpdateLaboOrderDto input);
     Task SendAsync(Guid id);
     Task ReceiveAsync(Guid id);

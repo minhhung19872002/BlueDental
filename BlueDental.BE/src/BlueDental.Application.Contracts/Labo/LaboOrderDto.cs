@@ -28,6 +28,10 @@ public class LaboOrderDto : FullAuditedEntityDto<Guid>
     public Guid? FinishLineId { get; set; }
     public Guid? RhythmId { get; set; }
     public string? AttachmentUrl { get; set; }
+    public string? ToothShade { get; set; }
+    public int Quantity { get; set; }
+    public Guid? TreatmentServiceId { get; set; }
+    public Guid? TreatmentStageId { get; set; }
 
     public string? SupplierName { get; set; }
     public string? MaterialName { get; set; }
@@ -77,6 +81,20 @@ public class CreateLaboOrderDto
     public Guid? BiteId { get; set; }
     public Guid? FinishLineId { get; set; }
     public Guid? RhythmId { get; set; }
+
+    /// <summary>Số phiếu Labo. Omit and the server allocates the next one.</summary>
+    public string? OrderCode { get; set; }
+    /// <summary>Nội dung.</summary>
+    public string? Notes { get; set; }
+    /// <summary>Ngày gửi + Giờ gửi, which the reference prefills with "now".</summary>
+    public DateTimeOffset? SentAt { get; set; }
+    /// <summary>Màu răng.</summary>
+    public string? ToothShade { get; set; }
+    /// <summary>Số lượng.</summary>
+    public int Quantity { get; set; } = 1;
+    /// <summary>Set when the order was raised from a treatment row's "Tạo Labo".</summary>
+    public Guid? TreatmentServiceId { get; set; }
+    public Guid? TreatmentStageId { get; set; }
 }
 
 public class UpdateLaboOrderDto

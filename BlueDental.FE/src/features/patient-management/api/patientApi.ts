@@ -36,6 +36,16 @@ export const patientApi = {
   update: (id: string, data: UpdatePatientRequest): Promise<PatientDto> =>
     api.put<PatientDto>(`${BASE}/${id}`, data).then((r) => r.data),
 
+  /**
+   * The + beside "Lý do đến khám". A dedicated endpoint rather than a field on
+   * the update: the card appends a dated line and must not send — and so risk
+   * overwriting — the rest of the record to do it.
+   */
+  addExaminationReason: (id: string, content: string): Promise<PatientDto> =>
+    api
+      .post<PatientDto>(`${BASE}/${id}/examination-reasons`, { content })
+      .then((r) => r.data),
+
   delete: (id: string): Promise<void> =>
     api.post(`${BASE}/${id}/deactivate`).then(() => undefined),
 

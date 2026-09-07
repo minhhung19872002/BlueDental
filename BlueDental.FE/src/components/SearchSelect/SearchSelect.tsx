@@ -5,22 +5,18 @@ import { t } from "@/lib/i18n";
 export interface SearchSelectOption {
   value: string;
   label: string;
-  /** When set, the option renders as a colored tag chip (Thẻ hồ sơ style). */
-  color?: string;
 }
 
-/** The reference renders tag options as colored chips with a small tag icon. */
+/**
+ * Plain text, whatever the option stands for.
+ *
+ * Tag options used to render as coloured chips here — invented, not observed.
+ * The reference's "Phân loại theo Tag" filter is the same widget as its
+ * "Phân loại dịch vụ" one down to the markup: a search box over plain rows. The
+ * coloured chip belongs to the record's own tag picker, not to a filter.
+ */
 function renderOptionLabel(option: SearchSelectOption): React.ReactNode {
-  if (!option.color) return option.label;
-  return (
-    <span className="bd-tag-chip ss-tag-chip" style={{ backgroundColor: option.color }}>
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z" />
-        <circle cx="7.5" cy="7.5" r=".5" fill="currentColor" />
-      </svg>
-      {option.label}
-    </span>
-  );
+  return option.label;
 }
 
 interface DropdownPos {

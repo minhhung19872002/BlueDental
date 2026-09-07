@@ -24,6 +24,9 @@ public sealed class LaboController(ILaboAppService service) : BlueDentalControll
     [HttpGet("{id:guid}")]
     public Task<LaboOrderDto> GetAsync(Guid id) => service.GetAsync(id);
 
+    [HttpGet("next-code")]
+    public Task<string> GetNextOrderCodeAsync() => service.GetNextOrderCodeAsync();
+
     [HttpPost]
     public Task<LaboOrderDto> CreateAsync([FromBody] CreateLaboOrderDto input) => service.CreateAsync(input);
 

@@ -10,6 +10,7 @@ using Volo.Abp.OpenIddict.EntityFrameworkCore;
 using Volo.Abp.PermissionManagement.EntityFrameworkCore;
 using Volo.Abp.SettingManagement.EntityFrameworkCore;
 using BlueDental.Catalogs;
+using BlueDental.PatientManagement;
 using Microsoft.EntityFrameworkCore;
 
 namespace BlueDental.EntityFrameworkCore;
@@ -50,6 +51,13 @@ public class BlueDentalEntityFrameworkCoreModule : AbpModule
                     .Include(x => x.Medicine)
                     .Include(x => x.Stages)
                     .Include(x => x.PrescriptionLines));
+
+            // Lý do đến khám is a child list the profile card always renders,
+            // and the hồ sơ dialog rewrites its root line — a patient read
+            // without it would save an empty list back over the record.
+            options.Entity<Patient>(entity =>
+                entity.DefaultWithDetailsFunc = query => query
+                    .Include(x => x.ExaminationReasons));
         });
 
         Configure<AbpDbContextOptions>(options =>

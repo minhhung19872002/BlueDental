@@ -19,6 +19,19 @@ export type TreatmentStatusCode = (typeof TREATMENT_STATUS)[keyof typeof TREATME
 export type TreatmentTab = "All" | "Completed" | "InTreatment" | "Pending";
 
 /**
+ * Mirrors BlueDental.PatientManagement.PatientExaminationReasonDto — one dated
+ * line of "Lý do đến khám".
+ */
+export interface ExaminationReason {
+  id: string;
+  content: string;
+  note: string | null;
+  /** The line the hồ sơ dialog edits; the + button never writes another one. */
+  isRoot: boolean;
+  recordedAt: string;
+}
+
+/**
  * Mirrors BlueDental.PatientManagement.PatientDto — the whole record, as the
  * hồ sơ dialog edits it. The table speaks {@link PatientListItem} instead;
  * the two drifted apart before, which crashed the list as soon as a patient
@@ -48,7 +61,10 @@ export interface PatientDto {
   address: string | null;
   provinceCode: string | null;
   wardCode: string | null;
+  /** The root reason's text — what the hồ sơ dialog's Lý do đến khám box binds. */
   examinationReason: string | null;
+  /** Lý do đến khám, newest first — the dated list the profile card prints. */
+  examinationReasons: ExaminationReason[];
   note: string | null;
 
   tagIds: string[];

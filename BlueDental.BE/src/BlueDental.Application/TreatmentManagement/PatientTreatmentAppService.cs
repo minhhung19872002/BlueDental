@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Billing;
 using BlueDental.Catalogs;
+using BlueDental.CustomerCare;
 using BlueDental.Exporting;
 using BlueDental.Organizations;
 using BlueDental.Permissions;
@@ -30,6 +31,7 @@ public class PatientTreatmentAppService : ApplicationService, IPatientTreatmentA
     private readonly IRepository<PatientAdvise, Guid> _adviseRepository;
     private readonly IRepository<PatientPayment, Guid> _paymentRepository;
     private readonly IRepository<TreatmentStage, Guid> _stageRepository;
+    private readonly IRepository<CareRecord, Guid> _careRepository;
     private readonly IRepository<CatalogEntry, Guid> _catalogRepository;
     private readonly IIdentityUserRepository _userRepository;
     private readonly BranchAccessChecker _branchAccess;
@@ -40,6 +42,7 @@ public class PatientTreatmentAppService : ApplicationService, IPatientTreatmentA
         IRepository<PatientAdvise, Guid> adviseRepository,
         IRepository<PatientPayment, Guid> paymentRepository,
         IRepository<TreatmentStage, Guid> stageRepository,
+        IRepository<CareRecord, Guid> careRepository,
         IRepository<CatalogEntry, Guid> catalogRepository,
         IIdentityUserRepository userRepository,
         BranchAccessChecker branchAccess,
@@ -49,6 +52,7 @@ public class PatientTreatmentAppService : ApplicationService, IPatientTreatmentA
         _adviseRepository = adviseRepository;
         _paymentRepository = paymentRepository;
         _stageRepository = stageRepository;
+        _careRepository = careRepository;
         _catalogRepository = catalogRepository;
         _userRepository = userRepository;
         _branchAccess = branchAccess;
@@ -252,20 +256,60 @@ public class PatientTreatmentAppService : ApplicationService, IPatientTreatmentA
         var planIds = plans.Select(p => p.Id).ToList();
         var patientIds = plans.Select(p => p.PatientId).Distinct().ToList();
 
-        var paymentQuery = await _paymentRepository.GetQueryableAsync();
+        // Lines carry the per-service share, so they travel with the receipt.
+        var paymentQuery = await _paymentRepository.WithDetailsAsync(x => x.Lines);
         var payments = paymentQuery.Where(p => patientIds.Contains(p.PatientId)).ToList();
 
         var stageQuery = await _stageRepository.GetQueryableAsync();
         var stages = stageQuery
             .Where(s => s.TreatmentId.HasValue && planIds.Contains(s.TreatmentId.Value))
-            .Select(s => new { s.TreatmentServiceId, s.Status })
+            .Select(s => new { s.Id, s.TreatmentServiceId, s.Status, s.Note, s.SequenceNumber })
             .ToList();
+
+        // Chăm sóc sau điều trị hangs off the stages, not the service line: a care
+        // record names the stages it follows up, so a line counts as cared for as
+        // soon as one of its stages is on a record. The latest record wins when
+        // more than one covers the same line.
+        var careQuery = await _careRepository.GetQueryableAsync();
+        var cares = careQuery
+            .Where(c => patientIds.Contains(c.PatientId))
+            .OrderByDescending(c => c.CreationTime)
+            .Select(c => new { c.Status, StageIds = c.StageIds })
+            .ToList();
+
+        var careByStage = new Dictionary<Guid, CareStatus>();
+        foreach (var care in cares)
+        {
+            foreach (var stageId in care.StageIds)
+            {
+                careByStage.TryAdd(stageId, care.Status);
+            }
+        }
+
+        var stagesByService = stages
+            .GroupBy(s => s.TreatmentServiceId)
+            .ToDictionary(g => g.Key, g => g.Select(s => s.Id).ToList());
+
+        // Đã thu of one line — its share of every receipt that named it. A
+        // receipt covers several services, so the money is read off its lines,
+        // not off the receipt total.
+        var paidByService = payments
+            .SelectMany(payment => payment.Lines.Select(line => new
+            {
+                line.TreatmentServiceId,
+                Signed = payment.Kind == PatientPaymentKind.Refund ? -line.Amount : line.Amount
+            }))
+            .GroupBy(x => x.TreatmentServiceId)
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.Signed));
 
         var serviceIds = plans.SelectMany(p => p.Services).Select(s => s.ServiceId).Distinct().ToList();
         var catalogQuery = await _catalogRepository.GetQueryableAsync();
-        var serviceNames = catalogQuery
+        var catalogRows = catalogQuery
             .Where(c => serviceIds.Contains(c.Id))
-            .ToDictionary(c => c.Id, c => c.Name);
+            .Select(c => new { c.Id, c.Name, Warranty = c.ServiceConfig == null ? 0 : c.ServiceConfig.WarrantyDays })
+            .ToList();
+        var serviceNames = catalogRows.ToDictionary(c => c.Id, c => c.Name);
+        var warrantyDays = catalogRows.ToDictionary(c => c.Id, c => c.Warranty);
 
         var staffIds = plans
             .SelectMany(p => new[] { p.DentistId, p.ConsultantStaffId ?? Guid.Empty })
@@ -313,9 +357,18 @@ public class PatientTreatmentAppService : ApplicationService, IPatientTreatmentA
                     Status = line.Status,
                     Teeth = PatientDiagnosisAppService.ToToothDtos(line.Teeth),
                     ServiceName = serviceNames.TryGetValue(line.ServiceId, out var name) ? name : null,
+                    WarrantyDays = warrantyDays.TryGetValue(line.ServiceId, out var days) ? days : 0,
                     StageCount = stages.Count(s => s.TreatmentServiceId == line.Id),
                     CompletedStageCount = stages.Count(s =>
-                        s.TreatmentServiceId == line.Id && s.Status == TreatmentStageStatus.Completed)
+                        s.TreatmentServiceId == line.Id && s.Status == TreatmentStageStatus.Completed),
+                    StageNotes = stages
+                        .Where(s => s.TreatmentServiceId == line.Id && !string.IsNullOrWhiteSpace(s.Note))
+                        .OrderBy(s => s.SequenceNumber)
+                        .Select(s => s.Note!)
+                        .ToList(),
+                    PaidAmount = PaidOn(paidByService, line.Id),
+                    OutstandingAmount = Math.Max(0m, line.EffectiveAmount - PaidOn(paidByService, line.Id)),
+                    AfterCareStatus = AfterCareOn(careByStage, stagesByService, line.Id)
                 })
                 .ToList(),
             DentistName = staffNames.TryGetValue(plan.DentistId, out var dentist) ? dentist : null,
@@ -328,6 +381,30 @@ public class PatientTreatmentAppService : ApplicationService, IPatientTreatmentA
             LastModificationTime = plan.LastModificationTime,
             LastModifierId = plan.LastModifierId
         }).ToList();
+    }
+
+    private static decimal PaidOn(IReadOnlyDictionary<Guid, decimal> paidByService, Guid serviceLineId) =>
+        paidByService.TryGetValue(serviceLineId, out var paid) ? paid : 0m;
+
+    private static CareStatus? AfterCareOn(
+        IReadOnlyDictionary<Guid, CareStatus> careByStage,
+        IReadOnlyDictionary<Guid, List<Guid>> stagesByService,
+        Guid serviceLineId)
+    {
+        if (!stagesByService.TryGetValue(serviceLineId, out var stageIds))
+        {
+            return null;
+        }
+
+        foreach (var stageId in stageIds)
+        {
+            if (careByStage.TryGetValue(stageId, out var status))
+            {
+                return status;
+            }
+        }
+
+        return null;
     }
 
     internal static PaymentSummaryDto MapPayment(PaymentSummary summary) => new()

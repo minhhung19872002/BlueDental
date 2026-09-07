@@ -62,8 +62,17 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
     /// <summary>Dentist performing the step.</summary>
     public Guid StaffId { get; private set; }
 
-    /// <summary>Optional assistant (bác sĩ hỗ trợ / trợ thủ).</summary>
+    /// <summary>
+    /// Bác sĩ hỗ trợ — the reference's <c>assistantStaffId</c>. A second dentist
+    /// standing in on the step.
+    /// </summary>
     public Guid? SecondStaffId { get; private set; }
+
+    /// <summary>
+    /// Phụ tá — the reference's <c>subStaffId</c>. The nurse assisting, which is a
+    /// different slot from the second dentist above.
+    /// </summary>
+    public Guid? SubStaffId { get; private set; }
 
     public DateOnly? ScheduledDate { get; private set; }
 
@@ -71,6 +80,12 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
 
     /// <summary>Copied from the service at creation: the step needs a photo to close.</summary>
     public bool IsImageRequired { get; private set; }
+
+    /// <summary>
+    /// Bảo hành — the reference's <c>isGuarantee</c>. A warranty visit is a công
+    /// đoạn like any other; only this flag and the Bảo hành filter tell it apart.
+    /// </summary>
+    public bool IsGuarantee { get; private set; }
 
     public DateTimeOffset? StartedAt { get; private set; }
     public DateTimeOffset? CompletedAt { get; private set; }
@@ -97,7 +112,9 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
         DateOnly? scheduledDate = null,
         bool isImageRequired = false,
         IEnumerable<ToothSelection>? teeth = null,
-        Guid? secondStaffId = null)
+        Guid? secondStaffId = null,
+        Guid? subStaffId = null,
+        bool isGuarantee = false)
     {
         Check.NotNullOrWhiteSpace(name, nameof(name));
 
@@ -124,8 +141,10 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
             Note = note,
             StaffId = staffId,
             SecondStaffId = secondStaffId,
+            SubStaffId = subStaffId,
             ScheduledDate = scheduledDate,
             IsImageRequired = isImageRequired,
+            IsGuarantee = isGuarantee,
             Status = TreatmentStageStatus.Pending
         };
 
@@ -139,6 +158,7 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
         DateOnly? scheduledDate,
         Guid staffId,
         Guid? secondStaffId,
+        Guid? subStaffId,
         IEnumerable<ToothSelection>? teeth)
     {
         GuardEditable();
@@ -152,6 +172,7 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
         ScheduledDate = scheduledDate;
         StaffId = staffId;
         SecondStaffId = secondStaffId;
+        SubStaffId = subStaffId;
 
         _teeth.Clear();
         _teeth.AddRange(toothList);

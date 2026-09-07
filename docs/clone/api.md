@@ -1089,10 +1089,64 @@ GET /api/v1/taxonomy/?group=consulting_data&perPage=20&branchId=<id>
 paired columns are drawn from `staff` / `staffSecond` (second missing shows
 `Chưa cập nhật` in red) and from the tooth list over `diagnosis.name`.
 
+## Hồ sơ tab — patient record (observed 2026-09-06, staging)
+
+```
+GET /api/v1/patients/<id>
+GET /api/v1/medical-record/tag/list?page=1&perPage=20&orderBy=createdAt&branchId=<id>   # 403 on staging
+```
+
+`patients/<id>` carries the two lists the profile card renders, plus the money
+rollup behind the seven tiles:
+
+```json
+{
+  "tags": [],
+  "examinationReason": [
+    { "id": 0, "isRoot": false, "createdAt": "<iso>", "content": "<string>", "note": null }
+  ],
+  "patientSummary": {
+    "payment": {
+      "totalPrice": 0, "totalPaid": 0, "totalDue": 0, "receivable": 0,
+      "paidUncompleted": 0, "completedValue": 0, "totalRefund": 0, "debt": 0,
+      "discount": 0, "outstandingDebt": 0, "prepaid": 0,
+      "carryOverAmount": null, "outstandingDebtConsumed": 0
+    }
+  }
+}
+```
+
+`examinationReason` is newest-first; exactly one entry may carry `isRoot`, and
+that is the one the "Chỉnh sửa hồ sơ" dialog binds. The write behind the card's
++ was not captured — see UNKNOWN_REFERENCE_BEHAVIOR in
+`docs/clone/pages/patient-detail.md`.
+
 ## BlueDental equivalents
 
 | Reference | BlueDental |
 |---|---|
+| `GET /v1/patients/{id}` → `examinationReason[]` | `GET /api/v1/app/patients/{id}` → `examinationReasons[] { id, content, note, isRoot, recordedAt }`, newest first; `examinationReason` (string) stays as the root line's text for the hồ sơ dialog |
+| the card's **+** on Lý do đến khám (write unobserved) | `POST /api/v1/app/patients/{id}/examination-reasons { content, note? }` → the whole `PatientDto` |
+| `GET /v1/medical-record/tag/list?branchId` | `GET /api/v1/app/patient-tags?ClinicBranchId&IsActive&MaxResultCount` |
+| toggling one tag in the picker | `PUT /api/v1/app/patients/{id}` with the whole `tagIds` list |
+| `patientSummary.payment.prepaid` | `GET /api/v1/app/patient-payments/account?patientId&clinicBranchId` → `payment.prepaid` |
+| `GET /v1/patient-timeline?patientId&page&take&sortDirection=desc` — rows of `type: "stage"`, one per công đoạn, each carrying a server-set `disabled` flag (true for every công đoạn but the line's newest) | `GET /api/v1/app/patient-payments/account` for the lines **plus** `GET /api/v1/app/treatment-stages?patientId&clinicBranchId` for the công đoạn, joined in the browser by `buildTreatmentRows`. `TreatmentServiceDto` carries `stageNotes`, `paidAmount` / `outstandingAmount` and `afterCareStatus`; the newest-công-đoạn rule is derived from `creationTime` rather than sent |
+| the row's Thao tác → "Tạo phiếu thanh toán" Lưu (write unobserved) | **one** `POST /api/v1/app/patient-payments` for the whole slip: `treatmentPlanId`, `treatmentServiceIds[]` (min 1), `splitMode` (`1` = Tự động, `2` = Thủ công), `amount`, and `items[] { treatmentServiceId, amount }` only when `splitMode = 2`. Tự động leaves the split to the server — oldest line first, capped at what each still owes |
+| the receipt read back (`account.payments[]`) | `PatientPaymentDto` carries `splitMode` and `lines[] { treatmentServiceId, amount }`; the per-line `paidAmount` / `outstandingAmount` roll up from those lines, so a refund subtracts. A prepayment or a refund that names no service has `lines: []` |
+| the overpay refusal | 400 `BlueDental:Billing:0091` with the reference's own wording, *"Số tiền thanh toán không được vượt quá số tiền còn phải thanh toán"* |
+| the dialog's `Ví momo` method | `PaymentMethodKind.EWallet = 5`; the clinic report gained `ByEWallet` / `RefundByEWallet` so the four-way split still adds up |
+| `paymentAccountId` (required for `bank` / `momo`), picked from `GET /v1/payment-method/list?type=` | `GET /api/v1/app/payment-accounts?clinicBranchId&kind`, stored as `PatientPayment.PaymentAccountId` |
+| `POST /v1/patient-stages` | `POST /api/v1/app/treatment-stages` — same required trio (doctor, teeth, note ≤ 1000). Both helper slots are stored now: the reference's *Phụ tá* (`subStaffId`) is `TreatmentStage.SubStaffId` and its *Bác sĩ hỗ trợ* (`assistantStaffId`) is `SecondStaffId`; the DTO reads back `subStaffName` / `secondStaffName` |
+| `PUT /v1/patient-stages/{id}` behind the history row's **pencil** | `PUT /api/v1/app/treatment-stages/{id}` with the row's own values and the new note |
+| the four GETs "Chi tiết phiếu" fires (`treatment-services` filtered `status=created,inProgress,guarantee`, `patient-stages`, `treatment-lines`, `patient-images`), all scoped by `patientTreatmentId` | `GET /api/v1/app/treatment-stages?patientId&clinicBranchId&treatmentId` (slip-scoped server-side) plus `GET /api/v1/app/patient-images?patientId&clinicBranchId`, matched to a stage by `treatmentStageId`. The eligible-line filter lives in the browser: only `Created` and `InProgress` lines offer the cell |
+| the dialog's **Thanh toán** | a navigation to `?tab=treatment-plan`, as the reference leaves for `/treatment-plan/{planId}?planTab=detail` |
+| the dialog's **In lịch sử điều trị** | no request — the sheet is drawn from what the dialog already holds plus `GET /api/v1/app/clinic-branches/{id}` for the letterhead |
+| the row's **Tạo Labo** → "Đặt mới" | `GET /api/v1/app/labo-orders/next-code` for `LABO-yyyyMMddN`, then `POST /api/v1/app/labo-orders` carrying `treatmentServiceId`, `treatmentStageId`, `toothShade`, `quantity`, `sentAt`, `orderCode` alongside the fields it already took |
+| `POST /v1/patient-stages/{id}/continue` | the same create — a BlueDental công đoạn is always a new row on the line, and `ContinueAsync` only advances an existing one's status |
+| `PUT /v1/patient-stages/{id}/status` · `/revert-status` | `POST /api/v1/app/treatment-stages/{id}/complete`; no revert yet |
+| the row's Công đoạn → "Chi tiết phiếu" | `GET /api/v1/app/treatment-stages?patientId&clinicBranchId` for the history, `POST /api/v1/app/treatment-stages` to add one, `POST …/{id}/complete` for Hoàn thành, and `POST /api/v1/app/patient-images` with `treatmentStageId` for Tải ảnh |
+| the table's top-right **Thanh toán** | the payment-history dialog, already fed by `account.payments` |
+| the appointment card's inline **Bác sĩ** select | `PUT /api/v1/app/appointments/{id}` with the whole appointment (`dentistId`, `slotStart`, `slotEnd`, `chiefComplaint`, `notes`, `color`) — a partial body would clear the rest |
 | `GET /v1/schedules?patientId&branchId` | `GET /api/v1/app/appointments?patientId&skipCount&maxResultCount` |
 | `GET /v1/schedules?branchId&startTime&toTime` | same, with `fromDate` / `toDate` |
 | `GET /v1/time-keepings/doctors/work-status` | `GET /api/v1/app/staff` filtered to dentists (no work status yet) |

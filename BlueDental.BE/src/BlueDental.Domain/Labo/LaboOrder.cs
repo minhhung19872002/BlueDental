@@ -35,6 +35,20 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
     /// <summary>Where the file the clinic sent back is stored.</summary>
     public string? AttachmentUrl { get; private set; }
 
+    /// <summary>Màu răng — free text on the reference's Đặt mới form.</summary>
+    public string? ToothShade { get; private set; }
+
+    /// <summary>Số lượng. Always at least one unit of work.</summary>
+    public int Quantity { get; private set; } = 1;
+
+    /// <summary>
+    /// The service line and the công đoạn the order was raised from, when it was
+    /// raised through "Tạo Labo" on a treatment row rather than from the Labo
+    /// screen. Both nullable: a standalone order names neither.
+    /// </summary>
+    public Guid? TreatmentServiceId { get; private set; }
+    public Guid? TreatmentStageId { get; private set; }
+
     protected LaboOrder() { }
 
     public LaboOrder(
@@ -53,7 +67,13 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
         Guid? materialId = null,
         Guid? biteId = null,
         Guid? finishLineId = null,
-        Guid? rhythmId = null)
+        Guid? rhythmId = null,
+        string? notes = null,
+        DateTimeOffset? sentAt = null,
+        string? toothShade = null,
+        int quantity = 1,
+        Guid? treatmentServiceId = null,
+        Guid? treatmentStageId = null)
         : base(id)
     {
         Check.NotNullOrWhiteSpace(orderCode, nameof(orderCode));
@@ -73,6 +93,12 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
         BiteId = biteId;
         FinishLineId = finishLineId;
         RhythmId = rhythmId;
+        Notes = notes;
+        SentAt = sentAt;
+        ToothShade = toothShade;
+        Quantity = quantity < 1 ? 1 : quantity;
+        TreatmentServiceId = treatmentServiceId;
+        TreatmentStageId = treatmentStageId;
         Status = LaboStatus.Draft;
     }
 

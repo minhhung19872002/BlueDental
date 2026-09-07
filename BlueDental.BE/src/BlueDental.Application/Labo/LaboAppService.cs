@@ -243,7 +243,9 @@ public class LaboAppService : ApplicationService, ILaboAppService
     public async Task<LaboOrderDto> CreateAsync(CreateLaboOrderDto input)
     {
         var branchId = _branchResolver.GetRequiredClinicBranchId();
-        var code = $"LB{DateTimeOffset.UtcNow:yyyyMMddHHmmss}";
+        var code = input.OrderCode.IsNullOrWhiteSpace()
+            ? await NextOrderCodeAsync(branchId)
+            : input.OrderCode!.Trim();
         var order = new LaboOrder(
             GuidGenerator.Create(),
             code,
@@ -260,9 +262,42 @@ public class LaboAppService : ApplicationService, ILaboAppService
             input.MaterialId,
             input.BiteId,
             input.FinishLineId,
-            input.RhythmId);
+            input.RhythmId,
+            input.Notes,
+            input.SentAt,
+            input.ToothShade,
+            input.Quantity,
+            input.TreatmentServiceId,
+            input.TreatmentStageId);
         await _repository.InsertAsync(order, autoSave: true);
         return ObjectMapper.Map<LaboOrder, LaboOrderDto>(order);
+    }
+
+    [Authorize(BlueDentalPermissions.LaboOrders.Create)]
+    public async Task<string> GetNextOrderCodeAsync() =>
+        await NextOrderCodeAsync(_branchResolver.GetRequiredClinicBranchId());
+
+    /// <summary>
+    /// "LABO-" + the day + a per-day sequence, the shape the reference shows
+    /// ("LABO-202609061"). Scoped to the branch: two clinics number their own
+    /// samples independently.
+    /// </summary>
+    private async Task<string> NextOrderCodeAsync(Guid branchId)
+    {
+        var prefix = $"LABO-{DateTime.UtcNow:yyyyMMdd}";
+        var query = await _repository.GetQueryableAsync();
+        var used = query
+            .Where(x => x.BranchId == branchId && x.OrderCode.StartsWith(prefix))
+            .Select(x => x.OrderCode)
+            .ToList();
+
+        var next = 1;
+        while (used.Contains($"{prefix}{next}"))
+        {
+            next++;
+        }
+
+        return $"{prefix}{next}";
     }
 
     [Authorize(BlueDentalPermissions.LaboOrders.Edit)]

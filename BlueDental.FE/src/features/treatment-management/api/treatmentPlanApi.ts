@@ -52,15 +52,55 @@ export const paymentKindConfig = (): Record<PatientPaymentKind, { label: string;
   [PAYMENT_KIND.Prepaid]: { label: t("Nạp quỹ"), color: "blue" },
 });
 
-/** Matches BlueDental.Billing.PaymentMethodKind — the four the reference reports. */
-export const PAYMENT_METHOD = { Cash: 1, Banking: 2, Card: 3, OutstandingDebt: 4 } as const;
+/** Matches BlueDental.Billing.PaymentMethodKind. */
+export const PAYMENT_METHOD = {
+  Cash: 1,
+  Banking: 2,
+  Card: 3,
+  OutstandingDebt: 4,
+  EWallet: 5,
+} as const;
 export type PaymentMethodKind = (typeof PAYMENT_METHOD)[keyof typeof PAYMENT_METHOD];
 
+/** The reference's own wording, in the order its payment dialog offers them. */
 export const paymentMethodLabels = (): Record<PaymentMethodKind, string> => ({
   [PAYMENT_METHOD.Cash]: t("Tiền mặt"),
-  [PAYMENT_METHOD.Banking]: t("Chuyển khoản"),
+  [PAYMENT_METHOD.Banking]: t("Ngân hàng"),
+  [PAYMENT_METHOD.EWallet]: t("Ví momo"),
   [PAYMENT_METHOD.Card]: t("Quẹt thẻ"),
-  [PAYMENT_METHOD.OutstandingDebt]: t("Trừ quỹ khách"),
+  [PAYMENT_METHOD.OutstandingDebt]: t("Dư nợ"),
+});
+
+/** Left to right, as the dialog lays the pills out. */
+export const PAYMENT_METHOD_ORDER: PaymentMethodKind[] = [
+  PAYMENT_METHOD.Cash,
+  PAYMENT_METHOD.Banking,
+  PAYMENT_METHOD.EWallet,
+  PAYMENT_METHOD.Card,
+  PAYMENT_METHOD.OutstandingDebt,
+];
+
+/** Matches BlueDental.CustomerCare.CareStatus. */
+export const CARE_STATUS = {
+  New: 1,
+  Contacted: 2,
+  Succeeded: 3,
+  Failed: 4,
+  Cancelled: 5,
+} as const;
+export type CareStatusCode = (typeof CARE_STATUS)[keyof typeof CARE_STATUS];
+
+/**
+ * "Chăm sóc sau điều trị" as the treatment table prints it. A line with no care
+ * record at all reads the same as one whose record is still New — the reference
+ * shows "Chưa chăm sóc" for both.
+ */
+export const afterCareLabels = (): Record<CareStatusCode, string> => ({
+  [CARE_STATUS.New]: t("Chưa chăm sóc"),
+  [CARE_STATUS.Contacted]: t("Đã liên hệ"),
+  [CARE_STATUS.Succeeded]: t("Đã chăm sóc"),
+  [CARE_STATUS.Failed]: t("Chăm sóc thất bại"),
+  [CARE_STATUS.Cancelled]: t("Đã huỷ chăm sóc"),
 });
 
 export interface PaymentSummaryDto {
@@ -97,6 +137,16 @@ export interface TreatmentServiceDto {
   serviceName: string | null;
   stageCount: number;
   completedStageCount: number;
+  /** Warranty period of the service, in days; 0 means "Không bảo hành". */
+  warrantyDays: number;
+  /** Nội dung điều trị — the notes on this line's stages, in order. */
+  stageNotes: string[];
+  /** Đã thu on this line alone — slip-wide payments are not counted here. */
+  paidAmount: number;
+  /** Còn nợ of the line; what the payment dialog offers to collect. */
+  outstandingAmount: number;
+  /** Null when no care record covers the line's stages — "Chưa chăm sóc". */
+  afterCareStatus: CareStatusCode | null;
 }
 
 export interface TreatmentPlanSlipDto {
@@ -122,12 +172,24 @@ export interface TreatmentPlanSlipDto {
   creationTime: string;
 }
 
+/** Matches BlueDental.Billing.PaymentSplitMode. */
+export const SPLIT_MODE = { Auto: 1, Manual: 2 } as const;
+export type PaymentSplitMode = (typeof SPLIT_MODE)[keyof typeof SPLIT_MODE];
+
+/** One service's share of a receipt. */
+export interface PatientPaymentLineDto {
+  treatmentServiceId: string;
+  amount: number;
+}
+
 export interface PatientPaymentDto {
   id: string;
   patientId: string;
   clinicBranchId: string;
   treatmentPlanId: string | null;
-  treatmentServiceId: string | null;
+  splitMode: PaymentSplitMode;
+  /** What each service on this receipt was paid. */
+  lines: PatientPaymentLineDto[];
   kind: PatientPaymentKind;
   method: PaymentMethodKind;
   amount: number;
@@ -162,11 +224,22 @@ export interface RecordPaymentInput {
   patientId: string;
   clinicBranchId: string;
   treatmentPlanId?: string;
+  /**
+   * Every service this one receipt covers — the reference posts a single
+   * payment naming them all rather than one payment each.
+   */
+  treatmentServiceIds?: string[];
+  /** Auto lets the server spread `amount`; Manual sends `items`. */
+  splitMode?: PaymentSplitMode;
+  /** Required when `splitMode` is Manual. */
+  items?: PatientPaymentLineDto[];
   kind: PatientPaymentKind;
   method: PaymentMethodKind;
   amount: number;
   staffId: string;
   note?: string;
+  /** Required when `method` is Banking or EWallet — the account collected into. */
+  paymentAccountId?: string;
 }
 
 const PLANS = "/v1/app/patient-treatments";

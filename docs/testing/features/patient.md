@@ -114,8 +114,61 @@ test now picks Tạo mới alone (no Cập nhật row survives), then adds Cập
 and checks both `actions=1&actions=2` go over the wire and the edit row is
 back. Re-run: e2e 4/4, Application change-log tests 13/13.
 
+2026-09-06, một phiếu nhiều dịch vụ (Level 3): `PatientPayment` có bảng con
+`PatientPaymentLine`, nên "Tạo phiếu thanh toán" ghi **một** phiếu mang mọi
+dịch vụ đã tích thay vì một phiếu cho mỗi dòng. Spec mới dựng một phiếu điều
+trị hai dòng bằng chính API của app, thu một phần, rồi khẳng định: đúng một
+POST mang `treatmentServiceIds` đủ hai dịch vụ và `splitMode: 1` (không gửi
+`items` — server chia), đọc lại thì một phiếu với hai dòng con, dòng cũ nhất
+trả hết trước, và `paidAmount` từng dịch vụ nhích đúng phần của nó.
+
+Ba spec thanh toán cũ phải sửa cho **độc lập thứ tự** sau khi dữ liệu demo có
+phiếu nhiều dòng: bấm Thao tác theo `tr[data-row-key]` của dòng còn nợ (helper
+`openPatientWithTreatment` trả luôn `serviceId`), cộng Còn nợ theo các dòng
+đang tích, và đọc phiếu **theo id dịch vụ** thay vì theo thứ tự dòng — các dòng
+con từ PostgreSQL không có thứ tự. Re-run: e2e 49/49 trên `patient`,
+`patient-images`, `treatment-plan`, `treatment-stage`, `report`,
+`branch-isolation`; BE Domain 262 / Application 516 / EF 51.
+
 ## Not covered yet
 
 - Creating a diagnosis or an advise (no dialog yet — F-09)
 - Editing a patient
 - Branch isolation: only one branch is seeded, so cross-branch denial is untested
+
+2026-09-06 (tối), "Chi tiết phiếu" rà lại từng nút (Level 3): form công đoạn
+kín cột và xuống 2 cột trước khi xuống 1; `Tải Ảnh` trong form bật sẵn, ảnh
+chọn trước được đính sau khi lưu công đoạn; lịch sử gộp theo ngày với ô Ngày
+trải hết ngày đó và in `d/M/yyyy`; ảnh của công đoạn hiện thành ô 68px mở được
+viewer; bút chì sửa ghi chú tại chỗ; Phụ tá và Bác sĩ hỗ trợ được lưu thật
+(`SubStaffId` mới + `SecondStaffId`); "In lịch sử điều trị" mở modal in kèm tờ
+A4 ẩn; "Thanh toán" điều hướng sang Kế hoạch điều trị; "Tạo Labo" mở dialog
+"Đặt mới" mồi sẵn; dòng dịch vụ đã hoàn thành không còn nút công đoạn.
+
+Re-run: e2e 69/69 trên `patient`, `patient-images`, `treatment-plan`,
+`treatment-stage`, `labo`, `report`, `branch-isolation`; BE Domain 264 /
+Application 516 / EF 51.
+
+2026-09-06 (khuya), bảng điều trị và "Đặt mới" (Level 3): bảng Hồ sơ đổi sang
+**một dòng cho mỗi công đoạn** với ô Ngày trải hết ngày bằng `rowSpan`, ô Công
+đoạn chỉ còn nút + hoặc chip xám; trong "Chi tiết phiếu", chỉ công đoạn **mới
+nhất** của mỗi dịch vụ còn thao tác được — cái cũ mờ đi, mất Tạo Labo và ô Hoàn
+thành bị khoá; dialog Labo "Đặt mới" dựng lại bằng `SearchSelect` +
+`FloatingLabel required` của chính source, theo đúng thứ tự khối của bản gốc.
+
+Re-run: e2e 72/72 trên `patient`, `patient-images`, `treatment-plan`,
+`treatment-stage`, `labo`, `report`, `branch-isolation`; BE Domain 264 /
+Application 516 / EF 51.
+
+2026-09-06 (đêm), bảo hành / tiếp nhận / tái khám (Level 3): ô Công đoạn có ba
+trạng thái theo **chính công đoạn** của dòng — + xanh khi chưa xong, chip hổ
+phách **Bảo hành** khi đã xong và dịch vụ có kỳ bảo hành, chip xám "Không bảo
+hành" khi không; trong "Chi tiết phiếu", công đoạn đã hoàn thành đổi **Tạo
+Labo** thành **Bảo hành**, cả hai mở dialog **"Tạo bảo hành"** (ghi công đoạn
+`isGuarantee`); hoàn thành một công đoạn **không** đóng các công đoạn khác; ba
+bước **Tiếp nhận** bấm được lần lượt (`check-in`/`start`/`complete`) và đóng dấu
+giờ; **"Tạo tái khám"** liệt kê các công đoạn đã hoàn thành.
+
+Re-run: e2e 78/78 trên `patient`, `patient-images`, `treatment-plan`,
+`treatment-stage`, `labo`, `report`, `branch-isolation`, `appointment`;
+BE Domain 264 / Application 516 / EF 51.

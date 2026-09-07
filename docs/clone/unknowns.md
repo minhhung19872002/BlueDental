@@ -1108,3 +1108,172 @@ Reason: GET /v1/staff/list?...&isDoctor=true returned 403 for the surveyed
   account, so the option label format is unobserved.
 Action taken: NONE
 BlueDental: local dentist list, label = staff name.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id} (Hồ sơ) — treatment row, Thao tác → "Tạo phiếu thanh toán"
+Control: Lưu, and the "Chia Tiền Tự Động" / "Chia Tiền Thủ Công" pair
+Reason: The dialog was opened and measured read-only; the POST behind Lưu was
+  never sent, so neither the request shape nor what the two split modes
+  actually do could be observed. Whether the reference refuses an amount above
+  the chosen lines' Còn nợ is likewise unobserved.
+Action taken: NONE
+BlueDental: one POST /api/v1/app/patient-payments for the whole slip, carrying
+  treatmentServiceIds[] and splitMode. Tự động sends only the total and the
+  server spreads it over the ticked lines, oldest first, capped at each line's
+  Còn nợ; Thủ công sends items[] and the server takes them as typed. Overpaying
+  the ticked lines is refused with the reference's own wording.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id} (Hồ sơ) — treatment row, "Công đoạn" and "Chăm sóc sau điều trị"
+Control: the green round + button; the radio-style care glyph
+Reason: The only staging row had 0/0 công đoạn and care status "new", so what
+  the cell shows once a line has steps, and whether the care glyph is a control
+  or a read-out, could not be seen. Clicking either could write.
+Action taken: NONE
+BlueDental: + only when the line has no stage (it opens Kế hoạch điều trị,
+  where stages are added); "completed/total" otherwise. The care cell is a
+  read-out of the care record covering the line's stages.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id} (Hồ sơ) — treatment row, "Bác sĩ hỗ trợ" and "Phụ tá"
+Control: the two staff slots
+Reason: The reference keeps `subStaffId` (Bác sĩ hỗ trợ) and `assistantStaffId`
+  (Phụ tá) on the stage; both were null on staging, so how either is assigned
+  is unobserved.
+Action taken: NONE
+BlueDental: neither is modelled; both print the reference's empty state
+  ("Không có" and "Phụ tá: —").
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient (Danh sách bệnh nhân) — "Phân loại theo Tag" filter
+Control: the option rows
+Reason: GET /v1/medical-record/tag/list answers 403 for the surveyed account,
+  so the dropdown only ever showed "Không tìm thấy dữ liệu" and a populated
+  option could not be seen.
+Action taken: NONE
+BlueDental: plain text rows. The filter is the same widget as "Phân loại dịch
+  vụ" down to the markup, so it is drawn the same way; the coloured chip is kept
+  only where it was actually observed, on the record's own tag picker.
+
+RESOLVED 2026-09-06 (second survey) — "Tải Ảnh" before the công đoạn exists
+
+Page: /patient/{id} (Hồ sơ) — "Chi tiết phiếu", the stage form
+Was unknown: whether the reference lets a picture be chosen before the công
+  đoạn is saved.
+Action taken: NONE on the reference — the form's markup answers it. The card
+  carries its own hidden
+  <input type="file" accept="image/jpeg,image/jpg,image/png" multiple>, and the
+  button is not disabled.
+BlueDental: the form's Tải Ảnh is live; chosen files are held and uploaded
+  against the new stage id the moment Lưu succeeds.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id} (Hồ sơ) — "Chi tiết phiếu", the stage form
+Control: "Danh sách công đoạn"
+Reason: It is the *service catalog's* own checklist — the stage's
+  `stageServiceItems`, backed by `GET /v1/treatment-lines`'s
+  `treatmentLineItems`. Both were empty on staging because the surveyed service
+  declares no stages, so a populated one was never seen.
+Action taken: NONE
+BlueDental: prints "(Trống)"; the checklist is not modelled. The history's
+  "Công đoạn" column prints the stage's own name rather than that checklist.
+
+RESOLVED 2026-09-06 (second survey) — "Phụ tá" and "Bác sĩ hỗ trợ"
+
+Page: /patient/{id} (Hồ sơ) — "Chi tiết phiếu", the stage form
+Was unknown: how the reference stores the two helper slots.
+Action taken: NONE on the reference — a GET of its own
+  /v1/patient-stages answers it: the row carries `subStaffId` (Phụ tá) and
+  `assistantStaffId` (Bác sĩ hỗ trợ) as separate nullable fields, both null on
+  the surveyed stage.
+BlueDental: both are stored. `TreatmentStage.SecondStaffId` is Bác sĩ hỗ trợ and
+  the new `TreatmentStage.SubStaffId` is Phụ tá (migration
+  20260906160000_AddStageSubStaff); the history row and the printed sheet read
+  both names back, printing "(Trống)" when empty.
+
+RESOLVED 2026-09-06 (second survey) — "Tạo Labo"
+
+Page: /patient/{id} (Hồ sơ) — "Chi tiết phiếu", "Tạo Labo"
+Was unknown: whether the button navigates or opens something.
+Action taken: the button was clicked and the dialog it opens was read, then
+  closed **without saving** — opening a form writes nothing, and the Lưu it
+  carries was never pressed.
+Observed: it opens the Labo "Đặt mới" dialog in place, prefilled from the công
+  đoạn (patient, slip, service, dentist, teeth, Số phiếu Labo LABO-yyyyMMddN,
+  Ngày/Giờ gửi = now).
+BlueDental: the same dialog, over the Labo order contract BlueDental already
+  had plus ToothShade / Quantity / TreatmentServiceId / TreatmentStageId
+  (migration 20260906170000_AddLaboOrderTreatmentLink).
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id} (Hồ sơ) — Labo "Đặt mới" raised from a công đoạn
+Control: "Giờ nhận", "Tải ảnh", and "Chọn tất cả" over the teeth
+Reason: The form was read but never submitted, so what the reference does with
+  the received-by hour, with a file attached at order time, and with the
+  select-all over teeth that arrived from the công đoạn, is unobserved.
+Action taken: NONE
+BlueDental: Giờ nhận is collected but not stored (LaboOrder.DueDate is a date);
+  the teeth come from the công đoạn read-only; the form has no Tải ảnh.
+
+RESOLVED 2026-09-06 — the two payment/stage write contracts above were read out
+of the reference's own JavaScript bundle (a static asset, which rule 00 permits)
+rather than by sending a request. See docs/clone/pages/patient-detail.md for the
+schemas. Two facts worth keeping:
+
+- The surveyed account has no `payment` ability at all (`GET /v1/payment-v2`
+  answers 403), so the payment dialog could not have been saved on staging even
+  with permission from the project owner.
+- `treatmentStage` grants `create`, `continue` and `complete` but **no delete**,
+  so a công đoạn created on staging could not have been undone.
+
+RESOLVED 2026-09-06 — one receipt covering several services
+
+Page: /patient/{id} (Hồ sơ) — "Tạo phiếu thanh toán"
+Was unknown: the reference POSTs a single payment carrying `treatmentServiceIds[]`
+  and, in manual mode, an `items[]` breakdown, but whether its payment history
+  then shows one row per receipt or per service could not be seen — the history
+  list is 403 for the surveyed account.
+Action taken: NONE on the reference. The create contract came out of its own
+  JavaScript bundle; the row count was settled locally instead of by writing.
+BlueDental: `PatientPayment` now owns `PatientPaymentLine` children — one
+  `(treatmentServiceId, amount)` per service — plus `SplitMode`. The dialog posts
+  one receipt naming every ticked service, and the history shows one row for it.
+  A receipt whose lines do not add up to its total, or a line of zero, is
+  refused by the aggregate.
+
+  Still unknown, and unobservable without the payment ability: whether the
+  reference's history row itself expands to show the per-service breakdown.
+  BlueDental shows the receipt's total on the row.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id} (Hồ sơ) — the treatment table
+Control: a service line that has no công đoạn yet
+Reason: The reference's table is built from `/v1/patient-timeline`, whose rows
+  are all `type: "stage"`. Every staging slip inspected already had at least one
+  công đoạn, so whether a line with none appears at all — and if so under what
+  `type` — was never observable. Accepting an advise on the reference to make
+  one would be a write.
+Action taken: NONE
+BlueDental: such a line still gets one row, with an empty Nội dung điều trị, so
+  its "+" stays reachable. That is a superset of what the reference was seen to
+  do, never a subset.
+
+RESOLVED 2026-09-06 (second survey) — Labo "Đặt mới": Giờ nhận and Tải ảnh
+
+Page: /patient/{id} (Hồ sơ) — Labo "Đặt mới" raised from a công đoạn
+Was unknown: what the received-by hour and the form's file tile do.
+Action taken: the form was read, never submitted.
+Observed: `Giờ nhận` is a plain time field beside `Ngày nhận dự kiến` in a
+  `minmax(0,1fr) 140px` pair, and `Tải ảnh` is a **square 80px tile** at the
+  bottom of the form over its own hidden single-file input.
+BlueDental: both are drawn. `Giờ nhận` is still not stored — `LaboOrder.DueDate`
+  is a date — and the picture is attached to the công đoạn the order was raised
+  from, since a labo order has no image collection of its own. Whether the
+  reference files it against the order instead stays unobserved.

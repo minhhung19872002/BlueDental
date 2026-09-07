@@ -29,9 +29,13 @@ public class PaymentStatSummaryDto
     public decimal ByCard { get; set; }
     public decimal ByOutstandingDebt { get; set; }
 
+    /// <summary>Ví điện tử — the reference's "Ví momo".</summary>
+    public decimal ByEWallet { get; set; }
+
     public decimal RefundByCash { get; set; }
     public decimal RefundByBanking { get; set; }
     public decimal RefundByCard { get; set; }
+    public decimal RefundByEWallet { get; set; }
 
     /// <summary>Thu khác — receipts recorded on the thu chi screen.</summary>
     public decimal TotalIncome { get; set; }

@@ -45,6 +45,8 @@ export interface UploadPatientImageInput {
   clinicBranchId: string;
   note?: string;
   type?: PatientImageType;
+  /** Ties the picture to one công đoạn, the way the stage dialog uploads it. */
+  treatmentStageId?: string;
   file: File;
 }
 
@@ -78,6 +80,7 @@ const patientImageApi = {
     form.append("clinicBranchId", input.clinicBranchId);
     if (input.note) form.append("note", input.note);
     if (input.type) form.append("type", String(input.type));
+    if (input.treatmentStageId) form.append("treatmentStageId", input.treatmentStageId);
 
     return api.post<PatientImageDto>(BASE, form).then((r) => r.data);
   },

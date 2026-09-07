@@ -231,10 +231,18 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.InsuranceNumber).HasMaxLength(30);
             entity.Property(x => x.ProvinceCode).HasMaxLength(20);
             entity.Property(x => x.WardCode).HasMaxLength(20);
-            entity.Property(x => x.ExaminationReason).HasMaxLength(1000);
             entity.Property(x => x.Note).HasMaxLength(1000);
             entity.PrimitiveCollection(x => x.TagIds).UsePropertyAccessMode(PropertyAccessMode.Field);
             entity.PrimitiveCollection(x => x.DiseaseHistoryEntryIds).UsePropertyAccessMode(PropertyAccessMode.Field);
+
+            // Lý do đến khám is a dated list; the scalar of the same name is the
+            // root line's text, computed, and must not become a column again.
+            entity.HasMany(x => x.ExaminationReasons)
+                .WithOne()
+                .HasForeignKey(x => x.PatientId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Navigation(x => x.ExaminationReasons).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.Ignore(x => x.ExaminationReason);
 
             entity.OwnsOne(x => x.Contact, contact =>
             {
@@ -246,6 +254,17 @@ public static class BlueDentalDbContextModelCreatingExtensions
             });
 
             entity.HasIndex(x => x.PatientCode).IsUnique();
+        });
+
+        builder.Entity<PatientExaminationReason>(entity =>
+        {
+            entity.ToTable("bd_patient_examination_reasons");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Content)
+                .HasMaxLength(PatientExaminationReason.MaxContentLength)
+                .IsRequired();
+            entity.Property(x => x.Note).HasMaxLength(PatientExaminationReason.MaxNoteLength);
+            entity.HasIndex(x => new { x.PatientId, x.RecordedAt });
         });
     }
 
@@ -566,8 +585,10 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.RejectionReason).HasMaxLength(500);
             entity.Property(x => x.Kind).HasConversion<short>();
             entity.Property(x => x.AttachmentUrl).HasMaxLength(500);
+            entity.Property(x => x.ToothShade).HasMaxLength(100);
             entity.HasIndex(x => x.OrderCode).IsUnique();
             entity.HasIndex(x => new { x.BranchId, x.Status });
+            entity.HasIndex(x => x.TreatmentStageId);
         });
 
         builder.Entity<LaboSupplier>(entity =>
@@ -716,11 +737,26 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Note).HasMaxLength(1000);
             entity.Property(x => x.Kind).HasConversion<short>();
             entity.Property(x => x.Method).HasConversion<short>();
+            entity.Property(x => x.SplitMode).HasConversion<short>();
             entity.Property(x => x.Amount).HasColumnType("numeric(18,2)");
             entity.Ignore(x => x.SignedAmount);
+            entity.HasMany(x => x.Lines)
+                .WithOne()
+                .HasForeignKey(x => x.PatientPaymentId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Navigation(x => x.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
             entity.HasIndex(x => new { x.PatientId, x.PaidAt });
             entity.HasIndex(x => x.TreatmentPlanId);
             entity.HasIndex(x => new { x.ClinicBranchId, x.PaidAt });
+            entity.HasIndex(x => x.PaymentAccountId);
+        });
+
+        builder.Entity<PatientPaymentLine>(entity =>
+        {
+            entity.ToTable("bd_patient_payment_lines");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Amount).HasColumnType("numeric(18,2)");
+            entity.HasIndex(x => x.TreatmentServiceId);
         });
 
         // Cong doan dieu tri

@@ -189,6 +189,22 @@ public class PatientAppService : ApplicationService, IPatientAppService
         return MapToDto(patient);
     }
 
+    /// <summary>
+    /// The + beside "Lý do đến khám". Appends a dated line and leaves the ones
+    /// already on the record alone — the reference never rewrites them from here.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.Patient.Update)]
+    public async Task<PatientDto> AddExaminationReasonAsync(Guid id, AddExaminationReasonDto input)
+    {
+        var patient = await _repository.GetAsync(id);
+        GuardBranchAccess(patient);
+
+        patient.AddExaminationReason(GuidGenerator.Create(), input.Content, input.Note, Clock.Now);
+
+        await _repository.UpdateAsync(patient, autoSave: true);
+        return MapToDto(patient);
+    }
+
     [Authorize(BlueDentalAbilityPermissions.Patient.Update)]
     public async Task DeactivateAsync(Guid id)
     {
@@ -469,7 +485,8 @@ public class PatientAppService : ApplicationService, IPatientAppService
         patient.SetOccupation(occupationEntryId, occupationOther);
         patient.SetInsuranceNumber(insuranceNumber);
         patient.SetResidence(provinceCode, wardCode);
-        patient.SetNotes(examinationReason, note);
+        patient.SetNote(note);
+        patient.SetRootExaminationReason(GuidGenerator.Create(), examinationReason, Clock.Now);
 
         if (tagIds is not null)
         {
@@ -595,6 +612,18 @@ public class PatientAppService : ApplicationService, IPatientAppService
         ProvinceCode = patient.ProvinceCode,
         WardCode = patient.WardCode,
         ExaminationReason = patient.ExaminationReason,
+        // Newest first, as the card lists them.
+        ExaminationReasons = patient.ExaminationReasons
+            .OrderByDescending(reason => reason.RecordedAt)
+            .Select(reason => new PatientExaminationReasonDto
+            {
+                Id = reason.Id,
+                Content = reason.Content,
+                Note = reason.Note,
+                IsRoot = reason.IsRoot,
+                RecordedAt = reason.RecordedAt
+            })
+            .ToList(),
         Note = patient.Note,
         TagIds = patient.TagIds.ToList(),
         DiseaseHistoryEntryIds = patient.DiseaseHistoryEntryIds.ToList(),

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using Volo.Abp.Application.Dtos;
 
 namespace BlueDental.PatientManagement;
@@ -34,7 +35,16 @@ public class PatientDto : FullAuditedEntityDto<Guid>
 
     public string? ProvinceCode { get; set; }
     public string? WardCode { get; set; }
+
+    /// <summary>
+    /// The root reason's text — what the hồ sơ dialog's Lý do đến khám box
+    /// binds. The card renders <see cref="ExaminationReasons"/> instead.
+    /// </summary>
     public string? ExaminationReason { get; set; }
+
+    /// <summary>Lý do đến khám, newest first — the dated list on the profile card.</summary>
+    public List<PatientExaminationReasonDto> ExaminationReasons { get; set; } = new();
+
     public string? Note { get; set; }
 
     /// <summary>Thẻ hồ sơ — ids from the branch's PatientTag catalog.</summary>
@@ -42,6 +52,33 @@ public class PatientDto : FullAuditedEntityDto<Guid>
 
     /// <summary>Tiểu sử bệnh — entry ids from the Lịch sử bệnh catalog.</summary>
     public List<Guid> DiseaseHistoryEntryIds { get; set; } = new();
+}
+
+/// <summary>One dated line of "Lý do đến khám".</summary>
+public class PatientExaminationReasonDto
+{
+    public Guid Id { get; set; }
+
+    public string Content { get; set; } = default!;
+
+    public string? Note { get; set; }
+
+    /// <summary>True for the line the hồ sơ dialog edits.</summary>
+    public bool IsRoot { get; set; }
+
+    /// <summary>The date the card prints beside the reason.</summary>
+    public DateTimeOffset RecordedAt { get; set; }
+}
+
+/// <summary>What the card's + button sends.</summary>
+public class AddExaminationReasonDto
+{
+    [Required]
+    [StringLength(PatientExaminationReasonConsts.MaxContentLength)]
+    public string Content { get; set; } = default!;
+
+    [StringLength(PatientExaminationReasonConsts.MaxNoteLength)]
+    public string? Note { get; set; }
 }
 
 /// <summary>

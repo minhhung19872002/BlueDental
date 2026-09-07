@@ -129,14 +129,24 @@
 }
 .pd-profile-title {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 4px;
-}
-.pd-profile-title {
   min-height: 34px;
   margin-bottom: 12px;
 }
-.pd-profile-title > strong {
+/* Name, pencil and the record's tags wrap together, so a fourth chip drops to
+   a second line instead of pushing the picker button off the card. 6px across
+   and 8px down, as the reference sets them. */
+.pd-profile-name {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 6px;
+  min-height: 34px;
+}
+.pd-profile-name > strong {
   color: var(--bd-blue);
   font-size: 16px;
 }
@@ -146,7 +156,10 @@
   width: 32px;
   height: 24px;
   min-width: 32px;
-  margin-left: auto;
+  flex: 0 0 32px;
+  /* Centred on the title's first line, so a wrapped second row of tags grows
+     downwards without dragging the button with it. */
+  margin-top: 5px;
   border: 0;
   border-radius: 4px;
   background: #dcebfa;
@@ -174,24 +187,43 @@
 .pd-next-appointment h3 {
   justify-content: space-between;
 }
-/* The visit reason reads as one line: the day it was raised, then the reason
-   itself picked out in the accent the reference gives it. */
+/* Lý do đến khám is a dated list: a date column, then the reason itself in the
+   accent the reference gives it. The reference sets 88px/14px/21px, but its
+   whole column runs a notch larger than ours (heading 16px, facts 14px) — here
+   the reason sits at 13.5px beside the 13.5px facts, and the date column is
+   scaled to match so the two stay as tight as the reference's. */
+.pd-reason-list {
+  margin-bottom: 12px;
+  max-height: 156px;
+  padding-right: 8px;
+  overflow-y: auto;
+}
 .pd-reason {
-  display: flex;
-  min-height: 32px;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 6px 18px;
-  margin: 8px 0 14px;
-  color: var(--bd-muted);
-  font-size: 14px;
+  display: grid;
+  grid-template-columns: 85px minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+  font-size: 13.5px;
+  line-height: 20px;
+}
+.pd-reason + .pd-reason {
+  margin-top: 10px;
 }
 .pd-reason-date {
-  color: var(--bd-sub);
+  color: var(--bd-ink);
+  font-weight: 500;
 }
 .pd-reason-text {
-  color: var(--bd-gold-deep);
-  font-weight: 500;
+  color: var(--bd-red);
+  font-weight: 600;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+.pd-reason-empty {
+  margin: 0 0 12px;
+  color: var(--bd-muted);
+  font-size: 13.5px;
+  line-height: 20px;
 }
 
 /* ── One-line facts beside the reason ─────────────────────────────────── */
@@ -371,7 +403,7 @@
 }
 .pd-money-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(130px, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 10px;
   margin: 12px 0;
 }
@@ -1087,9 +1119,12 @@
 .pd-tag-options button.selected {
   background: #f5f8fc;
 }
-.pd-tag-options button > span {
+/* One chip, drawn the same way in the picker and beside the patient's name. */
+.pd-tag-chip {
   max-width: 142px;
+  flex: 0 0 auto;
   border-radius: 4px;
+  background: var(--pd-tag-color, var(--bd-blue));
   color: #fff;
   padding: 3px 7px;
   font-size: 12px;
@@ -1420,7 +1455,11 @@
 .pd-profile > .pd-money-grid {
   flex-shrink: 0;
 }
+/* The treatment table sizes to its rows and the pane scrolls, as the reference
+   does — its rows are two lines tall, so a card stretched to "the rest of the
+   tab" clipped the first one. min-height still floors the empty state. */
 .pd-profile > .bd-cat-card {
+  flex: 0 0 auto;
   min-height: 240px;
 }
 .pd-profile .pd-table-toolbar {
@@ -2075,3 +2114,1442 @@
   font-size: 12px;
 }
 
+
+/* ── Bảng điều trị trên tab Hồ sơ ─────────────────────────────────────────
+   The reference draws this one as a grid: normal-case 14px headers on a tinted
+   strip, ruled cells, and a row tall enough for the two-line cells. The app's
+   own tables wear uppercase 11.5px headers, so this table opts out the way the
+   Chăm sóc KH tab does. Measured on staging 2026-09-06. */
+.pd-treatment-table .ant-table-thead > tr > th {
+  padding: 8px 16px;
+  color: var(--bd-muted);
+  font-size: 14px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.pd-treatment-table .ant-table-tbody > tr > td {
+  padding: 12px 16px;
+  border-right: 1px solid var(--bd-line-soft);
+  font-size: 14px;
+  vertical-align: middle;
+}
+.pd-treatment-table .ant-table-tbody > tr > td:last-child,
+.pd-treatment-table .ant-table-tbody > tr > td.ant-table-cell-fix-right {
+  border-right: 0;
+}
+.pd-treatment-table .ant-table-tbody > tr > td.ant-table-placeholder {
+  border-right: 0;
+}
+
+.pd-tr-day {
+  color: var(--bd-muted);
+  font-weight: 500;
+}
+.pd-tr-service > p {
+  margin: 0;
+  color: var(--bd-ink);
+  font-weight: 700;
+}
+/* The DT… code is the link into the slip; the service name beside it is not. */
+.pd-tr-code {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--bd-link);
+  font: inherit;
+  cursor: pointer;
+}
+.pd-tr-code:hover {
+  text-decoration: underline;
+}
+.pd-tr-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  margin-top: 4px;
+  border-radius: 8px;
+  padding: 0 8px;
+  background: var(--bd-blue-pale);
+  color: var(--bd-blue-dark);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.pd-tr-chip--3 {
+  background: var(--bd-green-pale);
+  color: var(--bd-green);
+}
+.pd-tr-chip--4,
+.pd-tr-chip--5 {
+  background: var(--bd-red-pale);
+  color: var(--bd-red);
+}
+.pd-tr-teeth {
+  display: inline-block;
+  border: 1px solid #b8d1f7;
+  border-radius: 6px;
+  padding: 2px 8px;
+  background: color-mix(in srgb, var(--bd-link) 10%, #fff);
+  color: var(--bd-link);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.pd-tr-doctor > div + div {
+  margin-top: 4px;
+}
+.pd-tr-sub {
+  color: var(--bd-muted);
+}
+/* 32px round +, the reference's way of saying "this line has no công đoạn yet". */
+.pd-treatment-table .pd-tr-addstage.ant-btn {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 50%;
+  background: var(--bd-green-pale);
+  color: var(--bd-green);
+  font-size: 18px;
+  font-weight: 600;
+}
+/* A finished công đoạn whose service carries a warranty. */
+.pd-treatment-table .pd-tr-warranty.ant-btn {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 50%;
+  background: #fff4e5;
+  color: #d97706;
+}
+.pd-treatment-table .pd-tr-warranty.ant-btn:hover {
+  background: #f59e0b !important;
+  color: #fff !important;
+}
+/* Finished, but the service offers no warranty: inert, as the reference shows. */
+.pd-tr-nostage {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--bd-bg-head);
+  color: #98a2b3;
+  cursor: not-allowed;
+}
+.pd-treatment-table .pd-tr-addstage.ant-btn:hover {
+  background: var(--bd-green) !important;
+  color: #fff !important;
+}
+.pd-tr-care {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--bd-muted);
+}
+.pd-tr-care > i {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+}
+.pd-tr-care > i::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.pd-treatment-table .pd-tr-pay.ant-btn {
+  width: 100%;
+  color: var(--bd-blue);
+}
+
+/* Đổi bác sĩ ngay trên thẻ Lịch hẹn gần nhất. */
+.pd-appt-doctor-picker {
+  display: block;
+  margin-top: 14px;
+}
+
+@media (max-width: 900px) {
+  .pd-newpay-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── "Tạo phiếu thanh toán" ───────────────────────────────────────────────
+   1024px, two columns with a 32px gutter — measured off the reference's own
+   dialog on 2026-09-06, down to the pill methods and the 150px fact column. */
+.pd-newpay-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 32px;
+  font-size: 14px;
+}
+.pd-newpay-col > section + section {
+  margin-top: 24px;
+}
+.pd-newpay-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  color: var(--bd-ink);
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.pd-newpay-head > .anticon {
+  color: var(--bd-blue);
+}
+.pd-newpay-head--split {
+  justify-content: space-between;
+}
+.pd-newpay-head--split > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.pd-newpay-dialog .pd-newpay-search.ant-btn {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 6px;
+  color: var(--bd-muted);
+}
+.pd-newpay-searchbox {
+  margin-bottom: 16px;
+}
+/* Label column fixed at 150px with a wide gutter, and the value left-aligned
+   under it — not right-aligned across the card. */
+.pd-newpay-fact {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 16px 40px;
+  color: var(--bd-ink);
+}
+.pd-newpay-fact + .pd-newpay-fact {
+  margin-top: 16px;
+}
+.pd-newpay-fact > span:first-child {
+  color: var(--bd-muted);
+}
+.pd-newpay-strong {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.pd-newpay-lines {
+  margin: 0;
+  padding: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  list-style: none;
+}
+.pd-newpay-lines > li {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 8px 0;
+}
+.pd-newpay-lines > li > b {
+  margin-left: auto;
+  color: var(--bd-ink);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.pd-newpay-lines .ant-checkbox-wrapper {
+  align-items: flex-start;
+  min-width: 0;
+}
+.pd-newpay-name,
+.pd-newpay-qty {
+  display: block;
+  color: var(--bd-ink);
+  font-size: 14px;
+}
+.pd-newpay-due {
+  display: inline-block;
+  margin: 4px 0;
+  border-radius: 999px;
+  padding: 4px 12px;
+  background: #f0f4fa;
+  color: var(--bd-ink);
+  font-size: 12px;
+}
+.pd-newpay-empty {
+  margin: 0;
+  color: var(--bd-muted);
+  font-size: 13px;
+}
+.pd-newpay-error {
+  margin: 8px 0 0;
+  color: var(--bd-red);
+  font-size: 14px;
+}
+
+/* Chia Tiền Tự Động / Thủ Công — two radio rows, 40px, bordered. */
+.pd-newpay-modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.pd-newpay-modes label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  border: 1px solid var(--bd-border);
+  border-radius: 8px;
+  padding: 0 8px;
+  background: #fff;
+  color: var(--bd-ink);
+  cursor: pointer;
+}
+.pd-newpay-modes label.active {
+  border-color: var(--bd-link);
+}
+.pd-newpay-modes input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.pd-newpay-radio {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--bd-border);
+  border-radius: 50%;
+}
+.pd-newpay-modes label.active .pd-newpay-radio {
+  border-color: var(--bd-link);
+}
+.pd-newpay-modes label.active .pd-newpay-radio::after {
+  content: "";
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--bd-link);
+}
+/* Thủ công lists one box per chosen service, seeded with what it still owes. */
+.pd-newpay-manual > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  align-items: center;
+  gap: 12px;
+}
+.pd-newpay-manual > div + div {
+  margin-top: 12px;
+}
+.pd-newpay-notewrap {
+  margin-top: 16px;
+}
+.pd-newpay-notewrap > small {
+  display: block;
+  margin-top: 4px;
+  color: var(--bd-muted);
+  font-size: 12px;
+  text-align: right;
+}
+
+/* Pills, 42px tall, each with a round icon badge. */
+.pd-newpay-methods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pd-newpay-methods button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--bd-border);
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(16 24 40 / 5%);
+  color: #111827;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pd-newpay-methods button.active {
+  border-color: var(--bd-link);
+  background: #f3f8ff;
+  color: var(--bd-link);
+}
+.pd-newpay-methods button > i {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #eef5ff;
+  color: var(--bd-link);
+  font-style: normal;
+}
+.pd-newpay-methods button.active > i {
+  background: var(--bd-link);
+  color: #fff;
+}
+.pd-newpay-methods button > em {
+  color: var(--bd-green);
+  font-style: normal;
+  font-weight: 600;
+}
+.pd-newpay-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.pd-newpay-footer > p {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--bd-gold-deep);
+  font-size: 13px;
+  text-align: left;
+}
+
+/* ── "Chi tiết phiếu" — công đoạn ─────────────────────────────────────────
+   Near-full-width, a tinted card holding the picker and the stage form, with
+   the slip's whole treatment history under it. Measured 2026-09-06. */
+.pd-stage-card {
+  border: 1px solid var(--bd-border);
+  border-radius: 16px;
+  padding: 12px;
+  background: #f7faff;
+}
+.pd-stage-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.pd-stage-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #c7d7ea;
+  border-radius: 8px;
+  padding: 4px;
+  background: #ddebfa;
+}
+.pd-stage-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  border: 0;
+  border-radius: 6px;
+  padding: 0 12px;
+  background: transparent;
+  color: #526174;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pd-stage-tabs button.active {
+  background: #fff;
+  color: var(--bd-link);
+}
+.pd-stage-tabs button > em {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #c7d7ea;
+  color: var(--bd-ink);
+  font-size: 11px;
+  font-style: normal;
+}
+.pd-stage-tabs button.active > em {
+  background: var(--bd-link);
+  color: #fff;
+}
+.pd-stage-actions {
+  display: inline-flex;
+  gap: 8px;
+}
+.pd-stage-dialog .pd-stage-pay.ant-btn {
+  border-color: var(--bd-green);
+  color: var(--bd-green);
+}
+.pd-stage-grid {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 12px;
+}
+.pd-stage-colhead {
+  border-radius: 12px;
+  padding: 12px 16px;
+  background: #eaf4ff;
+  color: var(--bd-link);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+}
+.pd-stage-colheads {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.pd-stage-picks {
+  margin-top: 12px;
+  display: grid;
+  gap: 12px;
+}
+.pd-stage-picks button {
+  display: block;
+  border: 1px solid var(--bd-border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  background: #fff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.pd-stage-picks button.active {
+  border-color: var(--bd-link);
+  background: #f3f8ff;
+}
+.pd-stage-picks strong {
+  display: block;
+  color: var(--bd-link);
+  font-size: 14px;
+}
+.pd-stage-picks span {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  color: var(--bd-muted);
+  font-size: 14px;
+}
+.pd-stage-picks i {
+  display: inline-block;
+  margin-left: 4px;
+  border: 1px solid #b8d1f7;
+  border-radius: 6px;
+  padding: 2px 8px;
+  background: color-mix(in srgb, var(--bd-link) 10%, #fff);
+  color: var(--bd-link);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
+}
+.pd-stage-empty,
+.pd-stage-hint {
+  margin: 12px 0 0;
+  color: var(--bd-muted);
+  font-size: 13.5px;
+  text-align: center;
+}
+.pd-stage-hint {
+  border: 1px dashed #c7d7ea;
+  border-radius: 12px;
+  padding: 40px 16px;
+}
+.pd-stage-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+  border: 1px solid var(--bd-link);
+  border-radius: 12px;
+  padding: 16px;
+  background: #fff;
+}
+.pd-stage-form > div > .floating-field + .floating-field {
+  margin-top: 12px;
+}
+/* The reference's fields all run the full width of their column. */
+.pd-stage-form .floating-field,
+.pd-stage-form .ant-select,
+.pd-stage-form .ant-input,
+.pd-stage-form .ant-input-affix-wrapper,
+.pd-stage-form textarea.ant-input {
+  width: 100%;
+}
+.pd-stage-teeth,
+.pd-stage-images {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+}
+.pd-stage-teeth > p,
+.pd-stage-images > p {
+  margin: 0;
+  color: var(--bd-muted);
+  font-size: 14px;
+}
+.pd-stage-teeth > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pd-stage-teeth > div > span {
+  display: inline-flex;
+  min-width: 36px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  padding: 4px;
+  background: var(--bd-link);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.7;
+}
+.pd-stage-list {
+  margin: 14px 0 4px;
+  color: var(--bd-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+.pd-stage-listempty {
+  margin: 0;
+  color: var(--bd-muted);
+  font-size: 13.5px;
+}
+.pd-stage-formactions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.pd-stage-history {
+  margin-top: 16px;
+  border: 1px solid var(--bd-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.pd-stage-history > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--bd-border);
+  padding: 12px 16px;
+  background: #fff;
+}
+.pd-stage-history h4 {
+  margin: 0;
+  color: var(--bd-link);
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.pd-stage-history > header > span {
+  color: var(--bd-muted);
+  font-size: 14px;
+}
+.pd-stage-histscroll {
+  overflow-x: auto;
+}
+.pd-stage-histgrid {
+  min-width: 1180px;
+}
+.pd-stage-histhead {
+  display: grid;
+  grid-template-columns: 190px 1fr 1.15fr 0.7fr 0.7fr;
+  border-bottom: 1px solid var(--bd-border);
+  background: var(--bd-bg-head);
+  color: var(--bd-muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+.pd-stage-histhead > div {
+  border-right: 1px solid var(--bd-border);
+  padding: 12px 16px;
+}
+.pd-stage-histhead > div:last-child {
+  border-right: 0;
+}
+/* One day, however many công đoạn it holds — the date cell spans them all. */
+.pd-stage-histday {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr);
+  border-bottom: 1px solid var(--bd-border);
+}
+.pd-stage-histday:last-child {
+  border-bottom: 0;
+}
+.pd-stage-histdate {
+  border-right: 1px solid var(--bd-border);
+  padding: 20px 16px;
+}
+.pd-stage-histdate b {
+  color: var(--bd-ink);
+  font-size: 16px;
+  font-weight: 600;
+}
+.pd-stage-histdate small {
+  display: block;
+  margin-top: 4px;
+  color: var(--bd-muted);
+  font-size: 14px;
+}
+.pd-stage-histrow {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr 0.7fr 0.7fr;
+}
+.pd-stage-histrow + .pd-stage-histrow {
+  border-top: 1px solid var(--bd-border);
+}
+/* Only a line's newest công đoạn stays workable; the reference fades the rest
+   and takes their pointer events away. */
+.pd-stage-histrow--off {
+  background: color-mix(in srgb, var(--bd-bg-head) 60%, transparent);
+  opacity: 0.5;
+  pointer-events: none;
+}
+.pd-stage-histrow > div {
+  border-right: 1px solid var(--bd-border);
+  padding: 16px;
+  font-size: 14px;
+}
+.pd-stage-histrow > div:last-child {
+  border-right: 0;
+}
+.pd-stage-histservice {
+  margin: 0;
+  color: var(--bd-ink);
+  font-size: 14px;
+  font-weight: 500;
+}
+.pd-stage-histteeth {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.pd-stage-histteeth > span {
+  display: inline-flex;
+  min-width: 36px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--bd-border);
+  border-radius: 6px;
+  padding: 4px;
+  background: #fff;
+  color: var(--bd-ink);
+  font-size: 12px;
+}
+.pd-stage-histshots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.pd-stage-histshots > span {
+  position: relative;
+  display: block;
+  width: 68px;
+  height: 68px;
+  overflow: hidden;
+  border: 1px solid var(--bd-border);
+  border-radius: 8px;
+  background: #eaf4ff;
+}
+.pd-stage-histshots .ant-image,
+.pd-stage-histshots img {
+  width: 68px;
+  height: 68px;
+  object-fit: cover;
+}
+.pd-stage-histshots em {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  display: block;
+  overflow: hidden;
+  padding: 4px 8px;
+  background: linear-gradient(180deg, transparent 0%, rgb(27 42 65 / 72%) 100%);
+  color: #fff;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pd-stage-noteblock {
+  border-bottom: 1px solid var(--bd-border);
+  padding-bottom: 12px;
+}
+.pd-stage-notebar {
+  display: flex;
+  min-height: 20px;
+  align-items: flex-start;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+.pd-stage-notebar button {
+  border: 0;
+  background: none;
+  color: var(--bd-muted);
+  cursor: pointer;
+  line-height: 0;
+}
+.pd-stage-notebar button:hover {
+  color: var(--bd-link);
+}
+.pd-stage-note {
+  margin: 0;
+  min-height: 84px;
+  color: var(--bd-ink);
+  white-space: pre-wrap;
+}
+.pd-stage-noteedit {
+  display: grid;
+  gap: 12px;
+}
+.pd-stage-noteedit > div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.pd-stage-notemeta {
+  display: flex;
+  gap: 32px;
+  margin-top: 12px;
+  color: var(--bd-muted);
+  font-size: 14px;
+}
+.pd-stage-notemeta p {
+  margin: 0;
+}
+.pd-stage-notemeta > div > p + p {
+  margin-top: 4px;
+}
+.pd-stage-notemeta span {
+  color: var(--bd-ink);
+}
+.pd-stage-histstage {
+  color: var(--bd-ink);
+  font-weight: 600;
+}
+.pd-stage-rowactions {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+@media (max-width: 1280px) {
+  .pd-stage-grid {
+    grid-template-columns: 280px minmax(0, 1fr);
+  }
+  /* The reference drops to two columns before it drops to one, with Nội dung
+     điều trị spanning the pair. */
+  .pd-stage-form,
+  .pd-stage-colheads {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .pd-stage-form > div:last-child,
+  .pd-stage-colheads > div:last-child {
+    grid-column: span 2;
+  }
+}
+@media (max-width: 1024px) {
+  .pd-stage-grid,
+  .pd-stage-form,
+  .pd-stage-colheads {
+    grid-template-columns: 1fr;
+  }
+  .pd-stage-form > div:last-child,
+  .pd-stage-colheads > div:last-child {
+    grid-column: auto;
+  }
+}
+@media (max-width: 900px) {
+  .pd-newpay-grid,
+  .pd-newpay-modes {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* "Chọn Tất Cả" sits in the uppercase heading row but keeps its own case, and
+   its tick lines up with the service name rather than the middle of the block. */
+.pd-newpay-head--split .ant-checkbox-wrapper {
+  color: var(--bd-ink);
+  font-size: 14px;
+  font-weight: 500;
+  text-transform: none;
+}
+.pd-newpay-lines > li .ant-checkbox {
+  align-self: flex-start;
+  top: 2px;
+}
+
+/* Ngân hàng and Ví momo reveal the clinic's accounts under the pills — a small
+   Chọn / two-column table, as the reference draws it. */
+.pd-newpay-accounts {
+  margin-top: 12px;
+  border: 1px solid var(--bd-border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.pd-newpay-acchead,
+.pd-newpay-accrow {
+  display: grid;
+  grid-template-columns: 60px minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+.pd-newpay-acchead {
+  border-bottom: 1px solid var(--bd-border);
+  background: var(--bd-bg-head);
+  color: var(--bd-muted);
+  font-weight: 500;
+}
+.pd-newpay-accrow {
+  position: relative;
+  border-top: 1px solid var(--bd-line-soft);
+  color: var(--bd-ink);
+  cursor: pointer;
+}
+.pd-newpay-accrow:first-of-type {
+  border-top: 0;
+}
+.pd-newpay-accrow input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.pd-newpay-accrow .pd-newpay-radio {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+}
+.pd-newpay-accrow:has(input:checked) {
+  background: #f3f8ff;
+}
+.pd-newpay-accrow:has(input:checked) .pd-newpay-radio {
+  border-color: var(--bd-link);
+}
+.pd-newpay-accrow:has(input:checked) .pd-newpay-radio::after {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--bd-link);
+}
+.pd-newpay-accounts .pd-newpay-empty {
+  padding: 20px 12px;
+  text-align: center;
+}
+
+/* ── "In lịch sử điều trị" ─────────────────────────────────────────────── */
+
+.pd-print-body {
+  display: grid;
+  gap: 24px;
+  color: var(--bd-ink);
+  font-size: 14px;
+}
+.pd-print-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.pd-print-facts h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.pd-print-facts p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 8px;
+  color: var(--bd-muted);
+}
+.pd-print-facts p > span:last-child {
+  color: var(--bd-ink);
+}
+.pd-print-code {
+  color: var(--bd-link);
+}
+.pd-print-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  text-align: left;
+}
+.pd-print-table th {
+  border-bottom: 1px solid var(--bd-border);
+  padding: 12px 0;
+  color: var(--bd-muted);
+  font-weight: 500;
+}
+.pd-print-table td {
+  border-bottom: 1px solid var(--bd-border);
+  padding: 16px 0;
+  vertical-align: top;
+}
+.pd-print-table p {
+  margin: 0;
+}
+.pd-print-teeth {
+  color: #165dff;
+  font-weight: 600;
+}
+.pd-print-note {
+  white-space: pre-wrap;
+}
+.pd-print-chip {
+  display: inline-flex;
+  margin-top: 8px;
+  border-radius: 999px;
+  padding: 4px 12px;
+  background: #d9eeff;
+  color: var(--bd-link);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* The A4 copy: off-screen until the browser is actually printing. */
+.pd-print-sheet {
+  display: none;
+}
+.pd-print-sheet article {
+  display: flex;
+  min-height: 980px;
+  flex-direction: column;
+  padding: 32px;
+  background: #fff;
+  color: #000;
+}
+.pd-print-sheethead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+}
+.pd-print-sheethead section {
+  display: grid;
+  gap: 4px;
+  font-size: 11px;
+  line-height: 1.35;
+}
+.pd-print-sheethead section:last-child {
+  justify-self: end;
+}
+.pd-print-sheethead p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+}
+.pd-print-sheethead header {
+  display: grid;
+  gap: 4px;
+  text-align: center;
+}
+.pd-print-sheethead h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.pd-print-sheethead header p {
+  display: block;
+  font-size: 12px;
+}
+.pd-print-sheet .pd-print-table {
+  margin-top: 24px;
+  font-size: 11px;
+}
+.pd-print-signs {
+  display: flex;
+  justify-content: center;
+  gap: 64px;
+  margin-top: 32px;
+  padding-top: 24px;
+  font-size: 12px;
+  text-align: center;
+}
+.pd-print-signs > div {
+  display: grid;
+  gap: 4px;
+  width: 176px;
+}
+.pd-print-signs p {
+  margin: 0;
+}
+.pd-print-signs p:first-child {
+  font-weight: 600;
+}
+.pd-print-signs p:nth-child(2) {
+  font-style: italic;
+}
+.pd-print-signs p:last-child {
+  padding-top: 56px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+@media print {
+  body.pd-printing > * {
+    display: none !important;
+  }
+  body.pd-printing .pd-print-sheet {
+    position: absolute;
+    inset: 0;
+    display: block !important;
+  }
+  body.pd-printing .ant-modal-root,
+  body.pd-printing .ant-modal-wrap,
+  body.pd-printing .ant-modal,
+  body.pd-printing .ant-modal-content,
+  body.pd-printing .ant-modal-body {
+    position: static !important;
+    display: block !important;
+    max-width: none;
+    padding: 0;
+    background: none;
+    box-shadow: none;
+  }
+  body.pd-printing .ant-modal-mask,
+  body.pd-printing .ant-modal-header,
+  body.pd-printing .ant-modal-footer,
+  body.pd-printing .ant-modal-close,
+  body.pd-printing .pd-print-body {
+    display: none !important;
+  }
+}
+
+/* ── "Đặt mới" — the Labo order raised from a công đoạn ────────────────── */
+
+.pd-labo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+}
+.pd-labo-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 12px;
+}
+.pd-labo-dialog .floating-field,
+.pd-labo-dialog .ant-select,
+.pd-labo-dialog .ant-picker,
+.pd-labo-dialog .ant-input-number,
+.pd-labo-dialog .ant-input,
+.pd-labo-dialog textarea.ant-input {
+  width: 100%;
+}
+.pd-labo-col {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+}
+.pd-labo-strip {
+  margin-top: 16px;
+}
+.pd-labo-strip--off {
+  opacity: 0.6;
+}
+.pd-labo-strip > p {
+  margin: 0 0 8px;
+  color: var(--bd-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+.pd-labo-emptypill {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  border: 1px dashed var(--bd-border);
+  border-radius: 999px;
+  padding: 0 16px;
+  color: var(--bd-muted);
+  font-size: 13px;
+}
+.pd-labo-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.pd-labo-chips button {
+  flex: 0 0 auto;
+  min-height: 36px;
+  border: 1px solid var(--bd-border);
+  border-radius: 999px;
+  padding: 0 16px;
+  background: #fff;
+  color: var(--bd-ink);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.pd-labo-chips button.active {
+  border-color: var(--bd-link);
+  background: var(--bd-link);
+  color: #fff;
+  font-weight: 600;
+}
+.pd-labo-teeth {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  overflow-x: auto;
+  margin-top: 16px;
+  padding-bottom: 4px;
+}
+.pd-labo-teeth > p {
+  flex-shrink: 0;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.pd-labo-teeth > div {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+}
+.pd-labo-teeth > div > span {
+  display: inline-flex;
+  min-width: 36px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--bd-border);
+  border-radius: 4px;
+  padding: 4px;
+  background: #fff;
+  color: var(--bd-ink);
+  font-size: 13px;
+}
+.pd-labo-teeth > div > span.active {
+  border-color: transparent;
+  background: var(--bd-link);
+  color: #fff;
+  font-weight: 600;
+}
+.pd-labo-notes {
+  margin-top: 16px;
+}
+/* The reference's square drop tile, not a wide button. */
+.pd-labo-drop {
+  display: flex;
+  width: 80px;
+  height: 80px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 16px;
+  border: 1px dashed var(--bd-border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--bd-muted);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.pd-labo-drop > span {
+  max-width: 100%;
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pd-labo-drop:hover {
+  border-color: var(--bd-link);
+  color: var(--bd-link);
+}
+
+@media (max-width: 900px) {
+  .pd-labo-grid,
+  .pd-print-facts {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Tiếp nhận: the three steps are buttons, only the next one live ────── */
+
+.pd-appt-steps > li > button {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+.pd-appt-steps > li > button:disabled {
+  cursor: not-allowed;
+}
+
+/* ── "Tạo bảo hành" ────────────────────────────────────────────────────── */
+
+.pd-warranty-dialog .pd-stage-form {
+  margin-top: 0;
+}
+.pd-stage-dialog .pd-stage-warranty.ant-btn {
+  border-color: var(--bd-green);
+  background: var(--bd-green);
+}
+.pd-stage-dialog .pd-stage-warranty.ant-btn:hover {
+  border-color: var(--bd-green) !important;
+  background: color-mix(in srgb, var(--bd-green) 88%, #000) !important;
+}
+
+/* ── "Tạo tái khám" rows ───────────────────────────────────────────────── */
+
+.pd-recall-rows {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+.pd-recall-row {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr) minmax(0, 1.4fr) 220px;
+  gap: 16px;
+  border: 1px solid var(--bd-border);
+  border-radius: 12px;
+  padding: 16px;
+  background: #fff;
+}
+.pd-recall-when p {
+  margin: 0 0 6px;
+  color: var(--bd-muted);
+  font-size: 14px;
+}
+.pd-recall-when p:first-child {
+  color: var(--bd-ink);
+  font-weight: 600;
+}
+.pd-recall-service {
+  border: 1px solid var(--bd-border);
+  border-radius: 8px;
+  padding: 12px;
+}
+.pd-recall-service strong {
+  display: block;
+  color: var(--bd-ink);
+  font-size: 14px;
+}
+.pd-recall-service > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.pd-recall-service > div > span {
+  display: inline-flex;
+  min-width: 36px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--bd-border);
+  border-radius: 6px;
+  padding: 4px;
+  font-size: 12px;
+}
+.pd-recall-note > p:first-child {
+  min-height: 84px;
+  margin: 0;
+  border: 1px solid var(--bd-border);
+  border-radius: 8px;
+  padding: 12px;
+  color: var(--bd-ink);
+  font-size: 14px;
+  white-space: pre-wrap;
+}
+.pd-recall-actions {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+@media (max-width: 1100px) {
+  .pd-recall-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Chosen pictures, held as drafts until the order is saved. */
+.pd-labo-drafts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}
+.pd-labo-drafts > div {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  overflow: hidden;
+  border: 1px solid var(--bd-border);
+  border-radius: 8px;
+}
+.pd-labo-drafts img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.pd-labo-drafts button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgb(27 42 65 / 20%);
+  color: var(--bd-ink);
+  cursor: pointer;
+}
+
+/*
+ * The reference keeps a floating label grey and turns it blue only while the
+ * field has focus, dimming it further when the field is a read-out. Scoped to
+ * these two dialogs rather than changed app-wide: every other screen was built
+ * against the blue resting label.
+ */
+.pd-labo-dialog .floating-field--floated .floating-field-label,
+.pd-stage-dialog .floating-field--floated .floating-field-label {
+  color: var(--bd-muted);
+}
+.pd-labo-dialog .floating-field--floated:focus-within .floating-field-label,
+.pd-stage-dialog .floating-field--floated:focus-within .floating-field-label {
+  color: var(--bd-link);
+}
+.pd-labo-dialog .floating-field:has(.ant-input-disabled) .floating-field-label,
+.pd-labo-dialog .floating-field:has(.ant-select-disabled) .floating-field-label,
+.pd-stage-dialog .floating-field:has(.ant-input-disabled) .floating-field-label,
+.pd-stage-dialog .floating-field:has(.ant-select-disabled) .floating-field-label {
+  opacity: 0.5;
+}

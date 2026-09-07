@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using BlueDental.Billing;
+using BlueDental.CustomerCare;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 
@@ -45,6 +46,36 @@ public class TreatmentServiceDto : EntityDto<Guid>
     /// <summary>Công đoạn của dòng dịch vụ này.</summary>
     public int StageCount { get; set; }
     public int CompletedStageCount { get; set; }
+
+    /// <summary>
+    /// How long this service is under warranty, in days, copied from its catalog
+    /// entry. Zero means the reference's "Không bảo hành": a finished công đoạn
+    /// offers no Bảo hành at all.
+    /// </summary>
+    public int WarrantyDays { get; set; }
+
+    /// <summary>
+    /// Nội dung điều trị — the notes written on this line's stages, in order.
+    /// The reference's treatment table is stage-driven and prints the stage's
+    /// own <c>note</c> in that column, not the service name.
+    /// </summary>
+    public List<string> StageNotes { get; set; } = new();
+
+    /// <summary>
+    /// Đã thu trên chính dòng này — payments tagged with this service line, less
+    /// refunds. A payment recorded against the slip as a whole is not counted
+    /// here; the slip's own rollup carries those.
+    /// </summary>
+    public decimal PaidAmount { get; set; }
+
+    /// <summary>Còn nợ của dòng — what the payment dialog offers to collect.</summary>
+    public decimal OutstandingAmount { get; set; }
+
+    /// <summary>
+    /// Chăm sóc sau điều trị. Null when no care record covers any of this line's
+    /// stages, which the table prints as "Chưa chăm sóc".
+    /// </summary>
+    public CareStatus? AfterCareStatus { get; set; }
 }
 
 public class TreatmentPlanSlipDto : FullAuditedEntityDto<Guid>
@@ -100,12 +131,24 @@ public class ApplyPlanDiscountDto
     public decimal DiscountValue { get; set; }
 }
 
+/// <summary>One service line's share of a receipt.</summary>
+public class PatientPaymentLineDto
+{
+    public Guid TreatmentServiceId { get; set; }
+    public decimal Amount { get; set; }
+}
+
 public class PatientPaymentDto : FullAuditedEntityDto<Guid>
 {
     public Guid PatientId { get; set; }
     public Guid ClinicBranchId { get; set; }
     public Guid? TreatmentPlanId { get; set; }
-    public Guid? TreatmentServiceId { get; set; }
+
+    /// <summary>Chia Tiền Tự Động / Thủ Công.</summary>
+    public PaymentSplitMode SplitMode { get; set; }
+
+    /// <summary>What each service on this receipt was paid.</summary>
+    public List<PatientPaymentLineDto> Lines { get; set; } = new();
     public PatientPaymentKind Kind { get; set; }
     public PaymentMethodKind Method { get; set; }
     public decimal Amount { get; set; }
@@ -115,6 +158,9 @@ public class PatientPaymentDto : FullAuditedEntityDto<Guid>
     public string? Note { get; set; }
     public string? StaffName { get; set; }
     public string? TreatmentPlanCode { get; set; }
+
+    /// <summary>Tài khoản nhận tiền, on Ngân hàng and Ví momo payments.</summary>
+    public Guid? PaymentAccountId { get; set; }
 }
 
 public class RecordPatientPaymentDto
@@ -122,13 +168,32 @@ public class RecordPatientPaymentDto
     public Guid PatientId { get; set; }
     public Guid ClinicBranchId { get; set; }
     public Guid? TreatmentPlanId { get; set; }
-    public Guid? TreatmentServiceId { get; set; }
+
+    /// <summary>
+    /// Every service this one receipt covers. Required for a payment or refund
+    /// against a slip — the reference refuses to save with none
+    /// ("Bạn cần chọn ít nhất 1 dịch vụ") — and left empty for money held.
+    /// </summary>
+    public List<Guid> TreatmentServiceIds { get; set; } = new();
+
+    /// <summary>
+    /// Chia Tiền Tự Động spreads <see cref="Amount"/> over those services,
+    /// oldest first and never past what a line still owes; Chia Tiền Thủ Công
+    /// takes <see cref="Items"/> instead.
+    /// </summary>
+    public PaymentSplitMode SplitMode { get; set; } = PaymentSplitMode.Auto;
+
+    /// <summary>Required when <see cref="SplitMode"/> is Manual.</summary>
+    public List<PatientPaymentLineDto> Items { get; set; } = new();
     public PatientPaymentKind Kind { get; set; }
     public PaymentMethodKind Method { get; set; }
     public decimal Amount { get; set; }
     public Guid StaffId { get; set; }
     public DateTimeOffset? PaidAt { get; set; }
     public string? Note { get; set; }
+
+    /// <summary>Required when Method is Banking or EWallet; ignored otherwise.</summary>
+    public Guid? PaymentAccountId { get; set; }
 }
 
 public class GetPatientPaymentListInput : PagedAndSortedResultRequestDto
