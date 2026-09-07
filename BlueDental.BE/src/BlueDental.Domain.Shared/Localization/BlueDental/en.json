@@ -1,4 +1,4 @@
-{
+﻿{
   "culture": "en",
   "texts": {
     "Menu:Home": "Home",
@@ -111,6 +111,7 @@
     "BlueDental:Treatment:0022": "The same medicine is listed more than once.",
     "BlueDental:Treatment:0023": "Times a day, amount per time and number of days must be greater than zero; \"Khác\" needs a note.",
     "BlueDental:Treatment:0024": "Enter a name for the prescription template.",
+    "BlueDental:Treatment:0025": "That step is not part of this stage.",
     "BlueDental:Billing:0001": "Invoice not found.",
     "BlueDental:Billing:0002": "That billing transition is not allowed.",
     "BlueDental:Billing:0003": "This invoice has already been paid.",

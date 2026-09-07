@@ -2629,3 +2629,135 @@ có hai ô ký, và `article` rộng đúng 794px.
 > mở được trên staging không có row `replaced` nào. Tạm dùng lại cặp teal của
 > bảng; đã ghi `docs/clone/unknowns.md`. Cặp **Đã huỷ** cũng chưa quan sát được
 > ở cả hai chỗ.
+
+---
+
+## 2026-09-07 (tiếp 12) — "Danh sách công đoạn": chọn ở form, tick ở bảng
+
+Chủ dự án yêu cầu rà soát rồi làm. Đã soi bản gốc **chỉ đọc** — đăng nhập, mở
+dialog, đổi tab, đọc DOM, đọc lại **response đã có** trong network log, và đọc
+**bundle JS** (static asset, rule 00 cho phép). **Không tick một ô nào trên bản
+gốc**: tick là ghi, và toast "Cập nhật thành công" chứng minh nó ghi thật.
+
+### Mô hình đo được — ba tầng
+
+| Tầng | Thứ gì | Ghi ở đâu |
+|---|---|---|
+| Dịch vụ (Danh mục) | `service.stages[]` = `{ id, name, value, valueType }` | Mình **đã có**: `CatalogServiceStage(Name, Value, SortOrder)` |
+| Công đoạn | `stageServiceItems[]` = `{ stageServiceId, isCompleted, completedAt, staffId }` | **Mới**: `TreatmentStage.ServiceItems` |
+| Dòng dịch vụ | `treatmentLineItems[]` thêm `earningId` / `earningAmount` / `isCreatedEarning`, và `progress` | **Chưa làm** — xem dưới |
+
+Dịch vụ đọc được có 2 bước: `công d1` (100.000, `valueType: "value"`) và `2`
+(20, `valueType: "percentage"`).
+
+API, đọc từ bundle:
+
+    GET  /v1/patient-stages                 PUT  /v1/patient-stages/{id}/status
+    POST /v1/patient-stages                 PUT  /v1/patient-stages/{id}/revert-status
+    PUT  /v1/patient-stages/{id}            PUT  /v1/patient-stages/{id}/stage-service-items   <- tick
+    POST /v1/patient-stages/{id}/continue
+    POST /v1/patient-stages/{id}/re-examination
+
+Mutation của cái PUT đó invalidate `patientTreatments`, `treatmentLines`,
+`patientStages`, `patientTimeline` **và** các query thanh toán — vì tiền công
+thay đổi theo. Toast: **"Cập nhật thành công"**; lỗi: **"Không thể cập nhật công
+đoạn"**.
+
+Giao diện đo được: list `space-y-3`, mỗi dòng một label `flex gap-3` 14px +
+checkbox **20px** bo **4px** viền `slate-400`, tick rồi thì nền + viền
+`#2671D8` chữ trắng. Form mở ra **không tick sẵn** ô nào.
+
+| # | Việc | Đã làm |
+|---|------|--------|
+| R-278 | Form chỉ in `Danh sách công đoạn` → `(Trống)` cho có | `StageStepList` dùng chung cho **hai** chỗ: ở form nó chọn công đoạn này gồm những bước nào, ở bảng lịch sử nó tick từng bước đã xong. Bước lấy từ dịch vụ nên đổi tên trong Danh mục là hiện ra ngay — không copy tên xuống công đoạn |
+| R-279 | Công đoạn không lưu được bước nào | `TreatmentStage.ServiceItems` (owned `ToJson` như `Teeth`, migration `20260907120000_AddStageServiceItems`), `SetServiceItems` lúc tạo — **luôn lưu chưa tick** — và `UpdateServiceItems` để tick/bỏ tick. Bước không thuộc công đoạn thì **từ chối** (`BlueDental:Treatment:0025`) chứ không âm thầm thêm vào |
+| R-280 | Không có chỗ tick | `PUT api/v1/app/treatment-stages/{id}/service-items` gác bởi ability `treatmentStage.update`. Payload là **cả danh sách** — bước không gửi lên coi như bỏ tick, đó là cách một endpoint làm được cả hai chiều, đúng như tên endpoint của bản gốc |
+| R-281 | Cột **Công đoạn** ở bảng lịch sử chỉ in tên công đoạn | Nay là list checkbox của chính công đoạn đó; tick/bỏ tick gọi PUT rồi toast **"Cập nhật thành công"** — đúng chữ bản gốc |
+
+Tick lần hai **không** ghi đè `completedAt` / `staffId` của lần đầu; bỏ tick thì
+xoá cả hai.
+
+### Đo lại trên bản build — một vòng đầy đủ
+
+    FORM STEPS 1 | labels: abc          none ticked: true
+    CREATED 200  -> [{ isCompleted: false }]
+    HIST STEPS 1 -> ticked before: 0
+    PUT 200      -> [{ isCompleted: true, completedAt: 2026-09-07T11:06:25Z, staffId: 3a2344c2... }]
+    TOAST: Cập nhật thành công          ticked after: 1
+
+Seeder demo nay khai bước cho **Điều trị tủy** (3 bước), **Bọc răng sứ Zirconia**
+(3) và **Niềng răng mắc cài** (2), còn dịch vụ một lần khám thì **không** — bản
+gốc để trống với loại đó và màn hình phải chịu được cả hai trạng thái.
+
+### Test
+
+Spec thường trú `Danh sách công đoạn picks the service's steps, then ticks them
+off from the row`: khẳng định form hiện đúng số bước của dịch vụ và **không**
+tick sẵn; tick một bước rồi lưu → công đoạn giữ bước đó ở trạng thái **chưa
+tick**; bảng lịch sử hiện bước đó; tick → PUT trả `isCompleted: true` có đóng
+dấu **ai** và **khi nào**, kèm toast; bỏ tick → PUT trả `false` và `completedAt`
+**null** (chứng minh chạy **cả hai chiều**); reload vẫn còn. Domain thêm 5 test
+(chọn lúc tạo thì chưa tick, không trùng bước, tick đóng dấu ai/khi nào và bỏ
+tick xoá sạch, bước lạ bị từ chối, tick hai lần giữ mốc đầu). Application thêm 8
+test contract (DTO, ability, và **payload là cả danh sách** chứ không phải một
+bước).
+
+> **Chưa làm, đã ghi `unknowns.md`:** phần **tiền công** (`earningId`,
+> `earningAmount`, `isCreatedEarning`, `valueType`, `isMarketingSalary`) và
+> `progress` của dòng dịch vụ. Nó kéo sang lương nên để ngoài phạm vi đợt này —
+> chủ dự án đã được báo trước khi làm.
+>
+> **Hai thứ không quan sát được** vì phải ghi lên production: payload chính xác
+> của cái PUT (tên endpoint + response cho thấy là cả danh sách, nên gửi cả
+> danh sách), và ở bảng lịch sử có tick được bước **chưa** chọn lúc tạo hay
+> không (mọi công đoạn đọc được chỉ liệt kê bước nó đã có → mô hình "chọn lúc
+> tạo, tick sau").
+
+### R-282 — `WithDetailsAsync` chỉ include một navigation, làm rụng `warrantyDays`
+
+Chạy cả bộ sau khi làm xong "Danh sách công đoạn": **5 đỏ**, cả 5 đều chết ở
+cùng một chỗ — `openPatientWithTreatment(page, "warrantable")` trả **null**.
+
+Tôi đã chẩn đoán **sai** lần đầu: kết luận là "fixture cạn kiệt" (mấy spec đó
+hoàn thành dòng bảo hành nên dùng hết), rồi viết thêm ~100 dòng fixture tự dựng
+dòng có bảo hành qua chuỗi advise → accept → open plan. Nó vẫn đỏ. Đo tiếp thì
+chuỗi chạy **200 cả ba bước** mà dòng tạo ra vẫn `warrantyDays: 0`:
+
+```
+raise 200 · accept 200 · open 200
+fromPost [{ w: 0 }]      fromList [{ w: 0, st: 1 }]
+catalog: 10 dịch vụ có warrantyDays 365, cùng branch với advise
+```
+
+Nguyên nhân thật là **lỗi tôi vừa gây ra ngay trong đợt này**. Chỗ đó vốn là một
+**projection**, nên EF tự nạp `ServiceConfig`:
+
+```csharp
+var catalogQuery = await _catalogRepository.GetQueryableAsync();
+var catalogRows = catalogQuery.Where(...)
+    .Select(c => new { c.Id, c.Name, Warranty = c.ServiceConfig == null ? 0 : c.ServiceConfig.WarrantyDays })
+```
+
+Để lấy thêm `Stages` cho form, tôi đổi sang `WithDetailsAsync(c => c.Stages)` và
+đọc `c.ServiceConfig?.WarrantyDays ?? 0`. `WithDetailsAsync` include **đúng
+những gì được kể tên**, nên `ServiceConfig` là `null` với **mọi** entry →
+`warrantyDays` = 0 khắp nơi → **không dòng nào còn mời Bảo hành**, và fixture
+`warrantable` không tìm thấy gì.
+
+Sửa: include **cả hai** navigation.
+
+```csharp
+var catalogQuery = await _catalogRepository.WithDetailsAsync(
+    c => c.Stages,
+    c => c.ServiceConfig);
+```
+
+Đã bỏ luôn phần fixture tự dựng — nó sinh ra từ chẩn đoán sai, và việc tìm dòng
+sẵn có vốn không có vấn đề gì.
+
+> **Bài học.** `?.` trên một navigation **chưa** include thì im lặng ra
+> `null`, và `?? 0` biến nó thành một con số **trông có vẻ hợp lệ**. Không có
+> exception, không có log — chỉ có một cột đọc ra 0. Khi đổi một projection sang
+> `WithDetailsAsync`, phải kể tên **mọi** navigation mà đoạn code phía sau đọc
+> tới. `TreatmentStageAppService` cũng include một mình `c => c.Stages` nhưng
+> chỗ đó chỉ đọc `Name` với `Stages` nên không sao — đã kiểm lại.

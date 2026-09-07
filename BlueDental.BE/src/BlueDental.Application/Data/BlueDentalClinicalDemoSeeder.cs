@@ -230,8 +230,51 @@ public class BlueDentalClinicalDemoSeeder(
                 warrantyDays: Services[i].WarrantyDays);
 
             await serviceConfigRepository.InsertAsync(config, autoSave: true);
+
+            // "Danh sách công đoạn" — the steps the công đoạn form offers as
+            // checkboxes. Only some services declare any, because the reference
+            // leaves the list empty for a single-visit service and the screens
+            // have to cope with both.
+            var steps = StepsFor(Services[i].Name);
+            if (steps.Length > 0 && entry.Stages.Count == 0)
+            {
+                entry.ReplaceStages(steps.Select((step, index) => new CatalogServiceStage(
+                    DemoId("0001", 200 + i * 10 + index),
+                    entry.Id,
+                    step.Name,
+                    step.Value,
+                    index)));
+
+                await catalogRepository.UpdateAsync(entry, autoSave: true);
+            }
         }
     }
+
+    /// <summary>
+    /// The công đoạn a service is worked in. Multi-visit treatments have them;
+    /// a scale-and-polish does not, which is the empty case the form must show.
+    /// </summary>
+    private static (string Name, decimal Value)[] StepsFor(string serviceName) => serviceName switch
+    {
+        "Điều trị tủy" =>
+        [
+            ("Mở tủy, đo chiều dài ống tủy", 300_000m),
+            ("Tạo hình và bơm rửa ống tủy", 600_000m),
+            ("Trám bít ống tủy", 500_000m),
+        ],
+        "Bọc răng sứ Zirconia" =>
+        [
+            ("Mài cùi, lấy dấu", 1_500_000m),
+            ("Gắn răng tạm", 500_000m),
+            ("Gắn răng sứ chính thức", 2_000_000m),
+        ],
+        "Niềng răng mắc cài" =>
+        [
+            ("Gắn mắc cài hàm trên", 5_000_000m),
+            ("Gắn mắc cài hàm dưới", 5_000_000m),
+        ],
+        _ => [],
+    };
 
     private async Task<List<Guid>> EnsureGroupAsync(
         string kind,

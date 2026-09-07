@@ -33,6 +33,12 @@ public class TreatmentStageDto : FullAuditedEntityDto<Guid>
     public List<ToothSelectionDto> Teeth { get; set; } = new();
     public List<string> ImageUrls { get; set; } = new();
 
+    /// <summary>
+    /// "Danh sách công đoạn" — the service steps this công đoạn covers, in the
+    /// service's own order, each with its tick.
+    /// </summary>
+    public List<StageServiceItemDto> ServiceItems { get; set; } = new();
+
     public string? StaffName { get; set; }
     public string? SecondStaffName { get; set; }
     public string? SubStaffName { get; set; }
@@ -63,6 +69,13 @@ public class CreateTreatmentStageDto
     public bool? IsImageRequired { get; set; }
 
     public List<ToothSelectionDto> Teeth { get; set; } = new();
+
+    /// <summary>
+    /// Which of the service's own công đoạn steps this one covers — the boxes
+    /// ticked under "Danh sách công đoạn". They are stored unticked; the history
+    /// row is where they get ticked off.
+    /// </summary>
+    public List<Guid> ServiceItemIds { get; set; } = new();
 }
 
 public class UpdateTreatmentStageDto
@@ -125,6 +138,35 @@ public class LatestTreatmentStageDto
 /// Công đoạn điều trị. The reference guards it with the <c>treatmentStage</c>
 /// subject, whose verbs map one-to-one onto the operations below.
 /// </summary>
+/// <summary>One row of "Danh sách công đoạn", named from the service catalog.</summary>
+public class StageServiceItemDto
+{
+    /// <summary>The service's own step — the reference's <c>stageServiceId</c>.</summary>
+    public Guid CatalogServiceStageId { get; set; }
+
+    /// <summary>Read from <c>CatalogServiceStage</c>, never copied onto the stage.</summary>
+    public string Name { get; set; } = string.Empty;
+
+    public bool IsCompleted { get; set; }
+    public DateTimeOffset? CompletedAt { get; set; }
+    public Guid? StaffId { get; set; }
+}
+
+public class UpdateStageServiceItemsDto
+{
+    /// <summary>
+    /// The whole picture for this công đoạn: any step left out is treated as
+    /// unticked, which is what lets one call both tick and untick.
+    /// </summary>
+    public List<StageServiceItemStateDto> Items { get; set; } = new();
+}
+
+public class StageServiceItemStateDto
+{
+    public Guid CatalogServiceStageId { get; set; }
+    public bool IsCompleted { get; set; }
+}
+
 public interface ITreatmentStageAppService : IApplicationService
 {
     Task<PagedResultDto<TreatmentStageDto>> GetListAsync(GetTreatmentStageListInput input);
@@ -139,5 +181,11 @@ public interface ITreatmentStageAppService : IApplicationService
     /// <summary>Un-ticks Hoàn thành — the reference's <c>revert-status</c>.</summary>
     Task<TreatmentStageDto> RevertAsync(Guid id);
     Task<TreatmentStageDto> AttachImageAsync(Guid id, AttachStageImageDto input);
+
+    /// <summary>
+    /// Ticks or unticks the steps under "Danh sách công đoạn" — the reference's
+    /// <c>PUT /v1/patient-stages/{id}/stage-service-items</c>.
+    /// </summary>
+    Task<TreatmentStageDto> UpdateServiceItemsAsync(Guid id, UpdateStageServiceItemsDto input);
     Task DeleteAsync(Guid id);
 }

@@ -171,6 +171,7 @@ export function TreatmentStageDialog({
                 note={composer.note}
                 pending={composer.pending}
                 previews={composer.previews}
+                pickedSteps={composer.pickedSteps}
                 saving={composer.saving}
                 primaryLabel={
                   composer.tab === "add" ? t("Thêm công đoạn") : t("Tiếp tục công đoạn")
@@ -181,6 +182,7 @@ export function TreatmentStageDialog({
                 onNote={composer.setNote}
                 onPickImages={() => composer.pickFor(null)}
                 onRemoveImage={composer.removePending}
+                onToggleStep={composer.toggleStep}
                 onCancel={() => composer.setSelected(null)}
                 onSave={() => void composer.save()}
               />
@@ -197,8 +199,12 @@ export function TreatmentStageDialog({
         savingNoteFor={composer.savingNoteFor}
         uploadingFor={composer.uploadingFor}
         completingId={composer.completingId}
+        togglingStepFor={composer.togglingStepFor}
         onSaveNote={(stage, next) => void composer.saveNote(stage, next)}
         onComplete={(stage) => void composer.finish(stage)}
+        onToggleStep={(stage, stepId, next) =>
+          void composer.toggleStageStep(stage, stepId, next)
+        }
         onUpload={(stage) => composer.pickFor(stage.id)}
         onCreateLabo={setLaboStage}
         onWarranty={setWarrantyStage}

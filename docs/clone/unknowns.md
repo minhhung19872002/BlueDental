@@ -1692,3 +1692,49 @@ BlueDental: MODELLED — `replaced` and `cancelled` stay on `TreatmentService`
   row's own công đoạn. `stageRowStatus()` is the single place this is decided,
   and it reproduces every observed row. If a line is ever seen with some rows
   `replaced` and others not, the flag has to move onto `TreatmentStage`.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id} (Hồ sơ) — "Danh sách công đoạn", the PUT payload
+Control: the exact request body of PUT /v1/patient-stages/{id}/stage-service-items
+Reason: The endpoint was read from the reference's bundle, which gives the verb
+  and the path but not the shape of the body. Seeing the body would mean ticking
+  a box on production, which writes — the reference's own success toast proves
+  it.
+Action taken: NONE — the bundle was read as a static asset and no box was ticked.
+BlueDental: ASSUMPTION — the body is
+  { items: [{ catalogServiceStageId, isCompleted }] }, the **whole** list rather
+  than the one step that moved. The endpoint's plural name and the response
+  (which returns every item) both point that way, and it is what lets one call
+  both tick and untick. UpdateStageServiceItemsDto is the single place to
+  correct.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id} (Hồ sơ) — "Danh sách công đoạn", ticking an unchosen step
+Control: whether the history row can tick a step the công đoạn did not take
+Reason: Every công đoạn observable on staging listed only steps it already
+  carried, so the two models — "the row shows every step the service declares"
+  and "the row shows only the ones chosen on the form" — cannot be told apart by
+  reading. Choosing a step on production would write.
+Action taken: NONE.
+BlueDental: MODELLED — chosen on the form, ticked off later. UpdateServiceItems
+  refuses a step the công đoạn does not carry (BlueDental:Treatment:0025) rather
+  than quietly adding it, so a wrong guess fails loudly instead of writing junk.
+  If the reference turns out to list every step on the row, that guard is the one
+  thing to relax.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id} (Hồ sơ) — "Danh sách công đoạn", the money side
+Control: earningId, earningAmount, isCreatedEarning, valueType, isMarketingSalary,
+  and the line's progress
+Reason: Not unobservable — deliberately out of scope. treatment-lines shows each
+  step carrying a commission (earningByStage, and a step declared as either a
+  fixed value or a percentage), and the tick mutation invalidates the payment
+  queries, so ticking a step moves the doctor's pay. That reaches payroll, which
+  this pass does not touch. The project owner was told before the work started.
+Action taken: The observed fields are recorded here; nothing was built for them.
+BlueDental: NOT IMPLEMENTED — CatalogServiceStage.Value is stored and carried to
+  the front end as ServiceStepDto.Value, unused. A step's tick has no effect on
+  money yet, and progress is not reported on the line.

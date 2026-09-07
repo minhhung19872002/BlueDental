@@ -2906,6 +2906,28 @@
   color: var(--bd-muted);
   font-size: 13.5px;
 }
+/*
+ * "Danh sách công đoạn" — the service's own steps as checkboxes, on the công
+ * đoạn form and again in the history row's Công đoạn column. Measured on the
+ * reference 2026-09-07: rows 12px apart, 14px text on the ink colour, and the
+ * box itself 20px with a 4px radius. The tick colour is the app's primary, like
+ * every other accent on this screen.
+ */
+.pd-stage-steps > div {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+}
+.pd-stage-steps .ant-checkbox-wrapper {
+  align-items: center;
+  color: var(--bd-ink);
+  font-size: 14px;
+}
+.pd-stage-steps .ant-checkbox .ant-checkbox-inner {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+}
 .pd-stage-formactions {
   display: flex;
   justify-content: flex-end;
@@ -3129,6 +3151,14 @@
 .pd-stage-histstage {
   color: var(--bd-ink);
   font-weight: 600;
+}
+/* Inside the history row the heading is redundant — the column is already
+   called Công đoạn — so only the boxes show. */
+.pd-stage-histstage .pd-stage-list {
+  display: none;
+}
+.pd-stage-histstage .ant-checkbox-wrapper {
+  font-weight: 400;
 }
 .pd-stage-rowactions {
   display: grid;

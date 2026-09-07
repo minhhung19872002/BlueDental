@@ -92,6 +92,9 @@ public static class BlueDentalDomainErrorCodes
         public const string DuplicatePrescriptionMedicine = "BlueDental:Treatment:0022";
         public const string InvalidPrescriptionLine = "BlueDental:Treatment:0023";
         public const string PrescriptionTemplateNameRequired = "BlueDental:Treatment:0024";
+
+        /// <summary>A step ticked that the công đoạn does not cover.</summary>
+        public const string UnknownStageServiceItem = "BlueDental:Treatment:0025";
     }
 
     public static class Billing

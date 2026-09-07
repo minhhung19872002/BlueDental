@@ -7949,6 +7949,39 @@ namespace BlueDental.Migrations
                                 .HasForeignKey("TreatmentStageId");
                         });
 
+                    b.OwnsMany("BlueDental.TreatmentManagement.Values.StageServiceItem", "ServiceItems", b1 =>
+                        {
+                            b1.Property<Guid>("TreatmentStageId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("integer");
+
+                            b1.Property<Guid>("CatalogServiceStageId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<DateTimeOffset?>("CompletedAt")
+                                .HasColumnType("timestamp with time zone");
+
+                            b1.Property<bool>("IsCompleted")
+                                .HasColumnType("boolean");
+
+                            b1.Property<Guid?>("StaffId")
+                                .HasColumnType("uuid");
+
+                            b1.HasKey("TreatmentStageId", "__synthesizedOrdinal");
+
+                            b1.ToTable("bd_treatment_stages");
+
+                            b1.ToJson("ServiceItems");
+
+                            b1.WithOwner()
+                                .HasForeignKey("TreatmentStageId");
+                        });
+
+                    b.Navigation("ServiceItems");
+
                     b.Navigation("Teeth");
                 });
 

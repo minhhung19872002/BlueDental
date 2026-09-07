@@ -55,6 +55,14 @@ public sealed class TreatmentStageController(ITreatmentStageAppService service)
     [HttpPost("{id:guid}/revert-status")]
     public Task<TreatmentStageDto> RevertAsync(Guid id) => service.RevertAsync(id);
 
+    /// <summary>
+    /// Mirrors the reference's <c>PUT /v1/patient-stages/{id}/stage-service-items</c>.
+    /// </summary>
+    [HttpPut("{id:guid}/service-items")]
+    public Task<TreatmentStageDto> UpdateServiceItemsAsync(
+        Guid id,
+        [FromBody] UpdateStageServiceItemsDto input) => service.UpdateServiceItemsAsync(id, input);
+
     [HttpPost("{id:guid}/images")]
     public Task<TreatmentStageDto> AttachImageAsync(
         Guid id, [FromBody] AttachStageImageDto input) => service.AttachImageAsync(id, input);

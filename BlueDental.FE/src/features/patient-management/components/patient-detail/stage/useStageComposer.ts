@@ -6,6 +6,7 @@ import { t } from "@/lib/i18n";
 import {
   useCompleteStage,
   useRevertStage,
+  useUpdateStageServiceItems,
   useCreateStage,
   useTreatmentStages,
   useUpdateStage,
@@ -62,6 +63,7 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
   const updateStage = useUpdateStage();
   const completeStage = useCompleteStage();
   const revertStage = useRevertStage();
+  const updateServiceItems = useUpdateStageServiceItems();
   const uploadImage = useUploadPatientImage();
 
   const fileInput = useRef<HTMLInputElement>(null);
@@ -79,6 +81,8 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
   const [secondStaffId, setSecondStaffId] = useState<string>();
   const [note, setNote] = useState("");
   const [pending, setPending] = useState<File[]>([]);
+  /** Step ids ticked under "Danh sách công đoạn" on the form. */
+  const [pickedSteps, setPickedSteps] = useState<string[]>([]);
   const [busyStage, setBusyStage] = useState<string | null>(null);
 
   const services = useMemo(() => plan?.services ?? [], [plan]);
@@ -129,6 +133,7 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
     setSecondStaffId(undefined);
     setNote("");
     setPending([]);
+    setPickedSteps([]);
     // Re-seeding on every stage refetch would wipe what is being typed.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, focusServiceId, plan?.id]);
@@ -145,6 +150,11 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
 
   const removePending = (at: number) =>
     setPending((current) => current.filter((_, index) => index !== at));
+
+  const toggleStep = (stepId: string, next: boolean) =>
+    setPickedSteps((current) =>
+      next ? [...current, stepId] : current.filter((id) => id !== stepId),
+    );
 
   const upload = async (stageId: string, files: File[]) => {
     for (const file of files) {
@@ -189,6 +199,7 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
         subStaffId,
         secondStaffId,
         teeth: line.teeth,
+        serviceItemIds: pickedSteps,
       });
 
       // Pictures chosen in the form belong to a công đoạn that did not exist
@@ -201,6 +212,33 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
       setPending([]);
     } catch (error) {
       toast.error(extractApiError(error));
+    }
+  };
+
+  /**
+   * Ticks or unticks one step on a saved công đoạn, from the history row.
+   *
+   * The whole list goes up, not just the step that moved: the endpoint treats
+   * its payload as the complete picture, which is what lets one call both tick
+   * and untick.
+   */
+  const toggleStageStep = async (stage: TreatmentStageDto, stepId: string, next: boolean) => {
+    setBusyStage(stage.id);
+    try {
+      await updateServiceItems.mutateAsync({
+        id: stage.id,
+        items: stage.serviceItems.map((item) => ({
+          catalogServiceStageId: item.catalogServiceStageId,
+          isCompleted:
+            item.catalogServiceStageId === stepId ? next : item.isCompleted,
+        })),
+      });
+      toast.success(t("Cập nhật thành công"));
+    } catch (error) {
+      // The reference's own wording when this call fails.
+      toast.error(extractApiError(error) || t("Không thể cập nhật công đoạn"));
+    } finally {
+      setBusyStage(null);
     }
   };
 
@@ -299,6 +337,8 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
     pending,
     previews,
     removePending,
+    pickedSteps,
+    toggleStep,
     saving: createStage.isPending || uploadImage.isPending,
 
     days: byDay(slipStages),
@@ -314,6 +354,8 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
       (services.find((item) => item.id === stage.treatmentServiceId)?.warrantyDays ?? 0) > 0,
 
     savingNoteFor: updateStage.isPending ? busyStage : null,
+    togglingStepFor: updateServiceItems.isPending ? busyStage : null,
+    toggleStageStep,
     uploadingFor: uploadImage.isPending ? busyStage : null,
     completingId: completeStage.isPending || revertStage.isPending ? busyStage : null,
 

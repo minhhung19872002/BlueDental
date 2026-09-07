@@ -5,6 +5,7 @@ import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
 import { toothLabels } from "@/features/treatment-management/api/consultingApi";
 import { StageShots } from "./StageShots";
+import { StageStepList } from "./StageStepList";
 import type { TreatmentServiceDto } from "@/features/treatment-management/api/treatmentPlanApi";
 
 /** The reference caps Nội dung điều trị at 1000 characters. */
@@ -26,6 +27,8 @@ interface Props {
   pending: File[];
   /** Blob URLs for `pending`, same order. */
   previews: string[];
+  /** Step ids ticked under "Danh sách công đoạn"; they save unticked. */
+  pickedSteps: string[];
   saving: boolean;
   primaryLabel: string;
   onStaff: (value: string) => void;
@@ -34,6 +37,7 @@ interface Props {
   onNote: (value: string) => void;
   onPickImages: () => void;
   onRemoveImage: (at: number) => void;
+  onToggleStep: (stepId: string, next: boolean) => void;
   onCancel: () => void;
   onSave: () => void;
 }
@@ -54,6 +58,7 @@ export function StageForm({
   note,
   pending,
   previews,
+  pickedSteps,
   saving,
   primaryLabel,
   onStaff,
@@ -62,6 +67,7 @@ export function StageForm({
   onNote,
   onPickImages,
   onRemoveImage,
+  onToggleStep,
   onCancel,
   onSave,
 }: Props) {
@@ -137,8 +143,13 @@ export function StageForm({
             onChange={(event) => onNote(event.target.value)}
           />
         </FloatingLabel>
-        <p className="pd-stage-list">{t("Danh sách công đoạn")}</p>
-        <p className="pd-stage-listempty">{t("(Trống)")}</p>
+        {/* Which of the service's steps this công đoạn will cover. They save
+            unticked — the history row is where they get ticked off. */}
+        <StageStepList
+          steps={line.serviceSteps ?? []}
+          checked={pickedSteps}
+          onToggle={onToggleStep}
+        />
         <div className="pd-stage-formactions">
           <Button onClick={onCancel}>{t("Hủy")}</Button>
           <Button type="primary" icon={<SaveOutlined />} loading={saving} onClick={onSave}>

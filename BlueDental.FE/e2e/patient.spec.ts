@@ -118,17 +118,19 @@ async function openPatientWithTreatment(page: Page, owing: boolean | LineMode = 
     return null;
   }, mode);
   expect(found, "the demo clinic should have a slip with a service line").toBeTruthy();
+  const target = found!;
 
   // Opened in the slip's **own** branch. A clinic-wide account sees every
   // branch's slips in that list, so landing on the patient without saying which
   // branch shows an empty table whenever the pick came from another one.
-  await page.goto(`/patient/${found!.patientId}?branchId=${found!.branchId}`);
+  await page.goto(`/patient/${target.patientId}?branchId=${target.branchId}`);
   await expect(page.locator(".pd-treatment-table tbody tr.ant-table-row").first()).toBeVisible({
     timeout: 20000,
   });
   await widenTreatmentTable(page);
-  return found!;
+  return target;
 }
+
 
 /**
  * Widen the treatment table to its largest page, to cut the paging these specs
@@ -1993,6 +1995,133 @@ test.describe("Bệnh nhân", () => {
       await sheet.locator("article").evaluate((el) => Math.round(el.getBoundingClientRect().width)),
     ).toBe(794);
     await page.emulateMedia({ media: "screen" });
+  });
+
+  test("Danh sách công đoạn picks the service's steps, then ticks them off from the row", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1800, height: 950 });
+    await page.goto("/patient");
+    await assertRealApiTraffic(page, "/api/v1/app/patients");
+
+    // A line whose service declares steps in Danh mục. Asserted, not skipped:
+    // the demo data seeds steps on purpose, and a fixture that lost them is a
+    // fixture worth fixing rather than a test worth passing quietly.
+    const target = await page.evaluate(async () => {
+      const res = await fetch("/api/v1/app/patient-treatments?maxResultCount=50", {
+        credentials: "include",
+      });
+      const slips = (await res.json()).items as {
+        id: string;
+        patientId: string;
+        branchId: string;
+        services: {
+          id: string;
+          status: number;
+          serviceId: string;
+          serviceName: string | null;
+          code: string;
+          teeth: unknown[];
+          serviceSteps: { id: string; name: string }[];
+        }[];
+      }[];
+      for (const slip of slips) {
+        for (const line of slip.services ?? []) {
+          if ((line.serviceSteps ?? []).length > 0 && (line.status === 1 || line.status === 2)) {
+            return {
+              patientId: slip.patientId,
+              branchId: slip.branchId,
+              planId: slip.id,
+              serviceId: line.id,
+              serviceName: line.serviceName ?? line.code,
+              steps: line.serviceSteps.map((step) => step.name),
+            };
+          }
+        }
+      }
+      return null;
+    });
+    expect(
+      target,
+      "the demo clinic should have an open line whose service declares công đoạn steps",
+    ).toBeTruthy();
+
+    // Give it an open công đoạn, so its Công đoạn cell offers the +.
+    await addStage(
+      page,
+      { patientId: target!.patientId, planId: target!.planId, serviceId: target!.serviceId, branchId: target!.branchId },
+      `e2e bước ${runId()}`,
+    );
+
+    await page.goto(`/patient/${target!.patientId}?branchId=${target!.branchId}`);
+    await widenTreatmentTable(page);
+    const dialog = await openStageDialog(page, target!.serviceId);
+
+    // The Chi tiết column lists every eligible line — take the one under test.
+    await dialog
+      .locator(".pd-stage-picks button")
+      .filter({ hasText: target!.serviceName })
+      .first()
+      .click();
+
+    // The form offers the service's own steps, and none starts ticked: the
+    // form chooses which steps the công đoạn covers, the row ticks them off.
+    const form = dialog.locator(".pd-stage-form");
+    const boxes = form.locator(".pd-stage-steps .ant-checkbox-wrapper");
+    await expect(boxes).toHaveCount(target!.steps.length);
+    await expect(boxes.first()).toContainText(target!.steps[0]);
+    await expect(form.locator(".pd-stage-steps .ant-checkbox-checked")).toHaveCount(0);
+
+    await boxes.first().click();
+    await form.locator("textarea").fill(`e2e bước ${runId()}`);
+
+    const created = page.waitForResponse(
+      (res) =>
+        res.url().includes("/api/v1/app/treatment-stages") && res.request().method() === "POST",
+    );
+    await dialog.getByRole("button", { name: /Thêm công đoạn|Tiếp tục công đoạn/ }).click();
+    const madeStage = await (await created).json();
+    expect(madeStage.serviceItems, "the chosen step is stored on the công đoạn").toHaveLength(1);
+    expect(
+      madeStage.serviceItems[0].isCompleted,
+      "a chosen step is stored unticked — it is not done yet",
+    ).toBe(false);
+
+    // The row shows it, and the checkbox there turns **both** ways, each with
+    // the reference's own toast.
+    const row = dialog.locator(".pd-stage-histrow").first();
+    const rowBoxes = row.locator(".pd-stage-histstage .ant-checkbox-wrapper");
+    await expect(rowBoxes).toHaveCount(1);
+    await expect(rowBoxes.first()).toContainText(target!.steps[0]);
+    await expect(row.locator(".pd-stage-histstage .ant-checkbox-checked")).toHaveCount(0);
+
+    const ticked = page.waitForResponse(
+      (res) => res.url().includes("/service-items") && res.request().method() === "PUT",
+    );
+    await rowBoxes.first().click();
+    const afterTick = await (await ticked).json();
+    expect(afterTick.serviceItems[0].isCompleted).toBe(true);
+    expect(afterTick.serviceItems[0].completedAt, "ticking stamps when").not.toBeNull();
+    expect(afterTick.serviceItems[0].staffId, "ticking stamps who").not.toBeNull();
+    await expect(page.getByText("Cập nhật thành công")).toBeVisible();
+    await expect(row.locator(".pd-stage-histstage .ant-checkbox-checked")).toHaveCount(1);
+
+    const unticked = page.waitForResponse(
+      (res) => res.url().includes("/service-items") && res.request().method() === "PUT",
+    );
+    await rowBoxes.first().click();
+    const afterUntick = await (await unticked).json();
+    expect(afterUntick.serviceItems[0].isCompleted).toBe(false);
+    expect(afterUntick.serviceItems[0].completedAt, "unticking clears when").toBeNull();
+    await expect(row.locator(".pd-stage-histstage .ant-checkbox-checked")).toHaveCount(0);
+
+    // And it survives a reload, so the tick really reached the database.
+    await page.reload();
+    await widenTreatmentTable(page);
+    const reopened = await openStageDialog(page, target!.serviceId);
+    await expect(
+      reopened.locator(".pd-stage-histrow").first().locator(".pd-stage-histstage .ant-checkbox"),
+    ).toHaveCount(1);
   });
 
   test("the công đoạn form lists the pictures it is holding, not just a count", async ({

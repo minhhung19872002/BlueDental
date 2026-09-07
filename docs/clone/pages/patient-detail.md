@@ -642,6 +642,40 @@ and **Chăm sóc sau điều trị** cells are left **empty** — it is not anot
 the source stage belongs to. The source stage flips `hasReExamination`. Payload
 and endpoint in `docs/clone/api.md`; the model correction is R-267.
 
+**"Danh sách công đoạn" — measured 2026-09-07.** A service declares its own
+steps in Danh mục (`service.stages[]` = `{ id, name, value, valueType }`; the
+one surveyed had `công d1` at 100.000 fixed and `2` at 20 percent). Those steps
+appear twice on this screen:
+
+- **On the công đoạn form**, as checkboxes under "Danh sách công đoạn" — which
+  steps this công đoạn will cover. Every box opens **unticked**. A service that
+  declares none prints `(Trống)`.
+- **In the treatment history row's Công đoạn column**, as the same checkboxes,
+  now ticking those steps off as they are done. Toggling one saves immediately
+  and toasts **"Cập nhật thành công"** (failure: "Không thể cập nhật công đoạn").
+
+The markup is a `space-y-3` list, each row a `<label>` at `flex items-center
+gap-3` / 14px with a **20px** checkbox, `4px` radius, `slate-400` border,
+filling `#2671D8` with a white glyph when ticked.
+
+A công đoạn carries them as `stageServiceItems[]` =
+`{ stageServiceId, isCompleted, completedAt, staffId }` — so the tick records
+**who** and **when**. Ticking again keeps the first stamp; unticking clears both.
+
+Endpoint: `PUT /v1/patient-stages/{id}/stage-service-items`, mirrored locally as
+`PUT api/v1/app/treatment-stages/{id}/service-items`. Its payload is the **whole**
+list, not the one step that moved, which is what lets one call both tick and
+untick — see docs/clone/unknowns.md, the body itself was not observable.
+
+Names are never copied onto the công đoạn: it stores ids and the name is read
+from `CatalogServiceStage`, so renaming a step in Danh mục shows through
+everywhere at once.
+
+**Not built:** each step also carries a commission (`earningByStage`,
+`earningAmount`, and the step's `value`/`valueType`), and the reference's tick
+invalidates its payment queries — so a tick moves the doctor's pay. That reaches
+payroll and is out of scope here; recorded in unknowns.md.
+
 **Status chips — measured 2026-09-07, two different sets.** A row of the
 treatment table carries **its own** status, not the line's: the timeline returns
 `status` per row (`created`, `done`, `replaced` observed), and two rows of one

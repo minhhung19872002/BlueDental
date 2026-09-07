@@ -17,6 +17,20 @@ export const stageStatusConfig = (): Record<
   [STAGE_STATUS.Completed]: { label: t("Hoàn thành"), color: "green" },
 });
 
+/**
+ * One row of "Danh sách công đoạn".
+ *
+ * The name comes from the service's own step list (Danh mục → Dịch vụ), never
+ * copied onto the công đoạn, so renaming a step shows through everywhere.
+ */
+export interface StageServiceItemDto {
+  catalogServiceStageId: string;
+  name: string;
+  isCompleted: boolean;
+  completedAt: string | null;
+  staffId: string | null;
+}
+
 export interface TreatmentStageDto {
   id: string;
   patientId: string;
@@ -41,6 +55,8 @@ export interface TreatmentStageDto {
   completedAt: string | null;
   teeth: ToothSelectionDto[];
   imageUrls: string[];
+  /** "Danh sách công đoạn" — the service steps this công đoạn covers. */
+  serviceItems: StageServiceItemDto[];
   staffName: string | null;
   secondStaffName: string | null;
   subStaffName: string | null;
@@ -83,6 +99,8 @@ export interface CreateTreatmentStageInput {
   teeth?: ToothSelectionDto[];
   /** Set by "Tạo bảo hành". */
   isGuarantee?: boolean;
+  /** The steps ticked under "Danh sách công đoạn"; they are stored unticked. */
+  serviceItemIds?: string[];
 }
 
 /** What the reference's PUT /patient-stages/{id} carries. */
@@ -137,6 +155,17 @@ const stageApi = {
   /** Un-ticks Hoàn thành — the reference's own `revert-status`. */
   revert: (id: string): Promise<TreatmentStageDto> =>
     api.post<TreatmentStageDto>(`${STAGES}/${id}/revert-status`).then((r) => r.data),
+
+  /**
+   * Ticks or unticks the steps — the reference's
+   * PUT /v1/patient-stages/{id}/stage-service-items. One call is the whole
+   * picture: a step left out comes back unticked.
+   */
+  updateServiceItems: (
+    id: string,
+    items: { catalogServiceStageId: string; isCompleted: boolean }[],
+  ): Promise<TreatmentStageDto> =>
+    api.put<TreatmentStageDto>(`${STAGES}/${id}/service-items`, { items }).then((r) => r.data),
 
   attachImage: (id: string, imageUrl: string): Promise<TreatmentStageDto> =>
     api.post<TreatmentStageDto>(`${STAGES}/${id}/images`, { imageUrl }).then((r) => r.data),
@@ -320,6 +349,13 @@ export function useCompleteStage() {
 
 export function useRevertStage() {
   return useStageMutation((id: string) => stageApi.revert(id));
+}
+
+export function useUpdateStageServiceItems() {
+  return useStageMutation(
+    (input: { id: string; items: { catalogServiceStageId: string; isCompleted: boolean }[] }) =>
+      stageApi.updateServiceItems(input.id, input.items),
+  );
 }
 
 export function useAttachStageImage() {

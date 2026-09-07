@@ -35,6 +35,7 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
 {
     private readonly List<ToothSelection> _teeth = new();
     private readonly List<string> _imageUrls = new();
+    private readonly List<StageServiceItem> _serviceItems = new();
 
     public Guid PatientId { get; private set; }
     public Guid ClinicBranchId { get; private set; }
@@ -111,6 +112,12 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
     /// <summary>Clinical photos attached to the step (stored as links, never binaries).</summary>
     public IReadOnlyCollection<string> ImageUrls => _imageUrls.AsReadOnly();
 
+    /// <summary>
+    /// "Danh sách công đoạn" — which of the service's own steps this công đoạn
+    /// covers, and which of those are done. See <see cref="StageServiceItem"/>.
+    /// </summary>
+    public IReadOnlyCollection<StageServiceItem> ServiceItems => _serviceItems.AsReadOnly();
+
     protected TreatmentStage() { }
 
     public static TreatmentStage Add(
@@ -129,7 +136,8 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
         IEnumerable<ToothSelection>? teeth = null,
         Guid? secondStaffId = null,
         Guid? subStaffId = null,
-        bool isGuarantee = false)
+        bool isGuarantee = false,
+        IEnumerable<Guid>? serviceItemIds = null)
     {
         Check.NotNullOrWhiteSpace(name, nameof(name));
 
@@ -164,7 +172,53 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
         };
 
         stage._teeth.AddRange(toothList);
+        stage.SetServiceItems(serviceItemIds ?? []);
         return stage;
+    }
+
+    /// <summary>
+    /// The service steps this công đoạn covers, as chosen on the form. All start
+    /// unticked: the reference opens every box empty and they are ticked off
+    /// afterwards, from the history row.
+    /// </summary>
+    public TreatmentStage SetServiceItems(IEnumerable<Guid> catalogServiceStageIds)
+    {
+        var ids = catalogServiceStageIds.Distinct().ToList();
+        _serviceItems.Clear();
+        _serviceItems.AddRange(ids.Select(id => new StageServiceItem(id)));
+        return this;
+    }
+
+    /// <summary>
+    /// Ticks or unticks the steps named in <paramref name="completedByStageId"/>,
+    /// which is the whole picture for this công đoạn — anything left out is
+    /// unticked. Steps this công đoạn does not cover are refused rather than
+    /// quietly added: the list is fixed when the công đoạn is created.
+    /// </summary>
+    public TreatmentStage UpdateServiceItems(
+        IReadOnlyDictionary<Guid, bool> completedByStageId,
+        DateTimeOffset now,
+        Guid? staffId)
+    {
+        foreach (var id in completedByStageId.Keys)
+        {
+            if (!_serviceItems.Exists(item => item.CatalogServiceStageId == id))
+            {
+                throw new BusinessException(
+                    BlueDentalDomainErrorCodes.TreatmentManagement.UnknownStageServiceItem,
+                    "That step does not belong to this công đoạn.");
+            }
+        }
+
+        for (var index = 0; index < _serviceItems.Count; index++)
+        {
+            var item = _serviceItems[index];
+            var wanted = completedByStageId.TryGetValue(item.CatalogServiceStageId, out var value)
+                && value;
+            _serviceItems[index] = item.With(wanted, now, staffId);
+        }
+
+        return this;
     }
 
     public TreatmentStage UpdateDetails(
