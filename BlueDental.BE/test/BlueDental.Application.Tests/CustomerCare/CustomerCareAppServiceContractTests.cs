@@ -157,6 +157,24 @@ public class CareRecordBehaviorTests
         record.DueAt.ShouldBe(at);
     }
 
+    /// <summary>
+    /// The patient's care tab saves every record as Succeeded and later moves
+    /// it between days; the CSKH board windows by this slot, so it must move too.
+    /// </summary>
+    [Fact]
+    public void Schedule_Should_Move_A_Finished_Record()
+    {
+        var record = NewRecord();
+        record.Succeed(CareOutcome.Good);
+        var later = DateTimeOffset.UtcNow.AddDays(3);
+
+        record.Schedule(later, later);
+
+        record.Status.ShouldBe(CareStatus.Succeeded);
+        record.ScheduledStart.ShouldBe(later);
+        record.ScheduledEnd.ShouldBe(later);
+    }
+
     [Fact]
     public void Schedule_Should_Reject_End_Before_Start()
     {

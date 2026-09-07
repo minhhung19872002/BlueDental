@@ -130,9 +130,14 @@ public class CareRecord : FullAuditedAggregateRoot<Guid>
         return this;
     }
 
+    /// <summary>
+    /// Lịch hẹn chăm sóc — the CSKH board windows periodic/special tasks by
+    /// this slot. Like <see cref="SetDue"/>, a finished record stays editable
+    /// because the patient's care tab moves closed records between days.
+    /// </summary>
     public CareRecord Schedule(DateTimeOffset start, DateTimeOffset end)
     {
-        GuardOpen();
+        GuardNotCancelled();
 
         // The reference stores scheduleStartTime == scheduleToTime for tasks
         // created from the periodic/special dialogs, so equal endpoints are legal.

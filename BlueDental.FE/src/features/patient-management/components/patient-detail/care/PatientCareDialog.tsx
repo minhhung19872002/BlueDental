@@ -84,12 +84,17 @@ export function PatientCareDialog({ open, patient, record, onClose }: Props) {
 
   const handleSave = async () => {
     const value = await form.validateFields();
-    // The reference PUTs status "success" with the colour on every save.
+    // The reference PUTs status "success" with the colour on every save, and
+    // sends dateTime = scheduleStartTime = scheduleToTime: the CSKH board
+    // windows special records by the schedule slot, not the care date.
+    const at = toDueAt(value);
     const body = {
       assignedStaffId: value.assignedStaffId,
       careStaffId: user?.id,
       description: value.description,
-      dueAt: toDueAt(value),
+      dueAt: at,
+      scheduledStart: at,
+      scheduledEnd: at,
       status: CARE_STATUS.Succeeded,
       outcome: value.outcome,
     };

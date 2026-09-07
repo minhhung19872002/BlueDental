@@ -182,6 +182,19 @@ test.describe("Patient care tab", () => {
     await expect(rowWith(page, note)).toContainText("Khiếu nại");
     expect(await chipCount(page, "Tốt")).toBe(goodBefore);
 
+    // ── same record on the CSKH board ─────────────────────────────────────
+    // Both screens read one table; the board's "CSKH đặc biệt" tab windows by
+    // the schedule slot, which this dialog must fill in alongside the care date.
+    await Promise.all([
+      assertRealApiTraffic(page, `${API}?`),
+      page.goto("/cskh-grouping?tab=care&page=special&care_dateMode=day"),
+    ]);
+    const boardRow = page.getByRole("row").filter({ hasText: note });
+    await expect(boardRow).toBeVisible({ timeout: 10_000 });
+    await expect(boardRow).toContainText(/\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}/);
+
+    await openCareTab(page);
+
     // ── delete ────────────────────────────────────────────────────────────
     await rowWith(page, note).getByRole("button", { name: "Xoá" }).click();
     const confirm = page.getByRole("dialog").filter({ hasText: "Xóa lượt chăm sóc" });
