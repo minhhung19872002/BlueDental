@@ -25,7 +25,7 @@ import {
   SERVICE_LINE_STATUS,
   usePatientAccount,
 } from "@/features/treatment-management/api/treatmentPlanApi";
-import { useTreatmentStages } from "@/features/treatment-management/api/stageApi";
+import { useReExaminations, useTreatmentStages } from "@/features/treatment-management/api/stageApi";
 import { CATALOG_GROUP, useCatalogOptions } from "@/hooks/useCatalogOptions";
 import { usePatientTagOptions } from "@/hooks/usePatientTagOptions";
 import { useTablePagination } from "@/hooks/useTablePagination";
@@ -40,7 +40,7 @@ import { AppointmentDoctorPicker } from "./AppointmentDoctorPicker";
 import { ReceptionSteps } from "./ReceptionSteps";
 import { CreatePaymentDialog } from "./CreatePaymentDialog";
 import { TreatmentStageDialog } from "./TreatmentStageDialog";
-import { WarrantyDialog } from "./stage/WarrantyDialog";
+import { StageFollowUpDialog } from "./stage/StageFollowUpDialog";
 import {
   ExaminationReasonDialog,
   PatientPaymentDialog,
@@ -48,6 +48,7 @@ import {
   PatientTagPicker,
 } from "./PatientProfileDialogs";
 import { RecallDialog } from "./stage/RecallDialog";
+import { ServiceDetailDialog } from "./stage/ServiceDetailDialog";
 import { treatmentColumns } from "./treatmentColumns";
 import { buildTreatmentRows, regroupByDay, type TreatmentRow } from "./treatmentRows";
 
@@ -143,13 +144,35 @@ export function PatientProfileTab({ patient }: Props) {
   const [payingRow, setPayingRow] = useState<TreatmentRow | null>(null);
   const [stageRow, setStageRow] = useState<TreatmentRow | null>(null);
   const [warrantyRow, setWarrantyRow] = useState<TreatmentRow | null>(null);
+  /** The finished công đoạn a "Tạo tái khám" row is acting on. */
+  const [recallStageId, setRecallStageId] = useState<string | null>(null);
+  const [detailStageId, setDetailStageId] = useState<string | null>(null);
   const [filter, setFilter] = useState("all");
   const pagination = useTablePagination(20);
   const { data: account, isLoading } = usePatientAccount(patient.id, branchId);
+  /*
+   * The whole history in one request, because the table paginates and groups by
+   * day in the browser: the công đoạn and the tái khám rows are two collections
+   * merged into one ordering, which cannot be paged server-side independently.
+   *
+   * 1000 is ABP's own MaxMaxResultCount, so this is as much as one request can
+   * ask for. It was 200, and because the server orders stages by
+   * (TreatmentServiceId, SequenceNumber) rather than by date, the cap dropped
+   * whole service lines — a newly added công đoạn simply never appeared in the
+   * table, on any page (R-273). Past 1000 rows the same truncation returns; the
+   * real fix is the reference's own server-paged timeline endpoint, recorded in
+   * docs/clone/unknowns.md.
+   */
   const patientStages = useTreatmentStages({
     patientId: patient.id,
     clinicBranchId: branchId,
-    maxResultCount: 200,
+    maxResultCount: 1000,
+  });
+  /** Tái khám rows sit in the same table, beside the công đoạn. */
+  const reExaminations = useReExaminations({
+    patientId: patient.id,
+    clinicBranchId: branchId,
+    maxResultCount: 1000,
   });
   /** What "Tạo tái khám" can follow: a công đoạn that is actually finished. */
   const finishedStages = (patientStages.data?.items ?? []).filter(
@@ -201,20 +224,38 @@ export function PatientProfileTab({ patient }: Props) {
   }, [appointments]);
   // A table row is one công đoạn, the way the reference's timeline reads.
   const rows = useMemo(
-    () => buildTreatmentRows(account?.plans ?? [], patientStages.data?.items ?? []),
-    [account, patientStages.data],
+    () =>
+      buildTreatmentRows(
+        account?.plans ?? [],
+        patientStages.data?.items ?? [],
+        reExaminations.data?.items ?? [],
+      ),
+    [account, patientStages.data, reExaminations.data],
   );
-  const visibleRows = useMemo(() => {
-    const kept = rows.filter(
-      (row) =>
-        filter === "all" ||
-        (filter === "done" && row.status === SERVICE_LINE_STATUS.Done) ||
-        (filter === "active" && row.status === SERVICE_LINE_STATUS.InProgress),
-    );
-    // Filtering breaks the day groups, so the spans are worked out again over
-    // what is left rather than carried over from the unfiltered list.
-    return regroupByDay(kept);
-  }, [rows, filter]);
+  const visibleRows = useMemo(
+    () =>
+      rows.filter(
+        (row) =>
+          filter === "all" ||
+          (filter === "done" && row.status === SERVICE_LINE_STATUS.Done) ||
+          (filter === "active" && row.status === SERVICE_LINE_STATUS.InProgress),
+      ),
+    [rows, filter],
+  );
+  /*
+   * The day spans are positional, and both the filter and the page cut into
+   * them, so they are worked out over exactly the rows this page renders.
+   * Regrouping before the slice left page two without a date cell for its first
+   * day, and let a cell near the foot of a page claim rows that sit on the next
+   * one — AntD then swallowed the following day's date.
+   */
+  const pageRows = useMemo(
+    () =>
+      regroupByDay(
+        visibleRows.slice(pagination.skipCount, pagination.skipCount + pagination.pageSize),
+      ),
+    [visibleRows, pagination.skipCount, pagination.pageSize],
+  );
   const payment = account?.payment;
 
   const openTreatmentPlan = () => navigate(`?tab=treatment-plan&branchId=${branchId}`);
@@ -428,13 +469,16 @@ export function PatientProfileTab({ patient }: Props) {
         </div>
         <DataTable<TreatmentRow>
           loading={isLoading}
-          rowKey="id"
+          /*
+           * A row is one công đoạn, so the line id alone repeats across every
+           * công đoạn of a line. The key stays *prefixed* by the line id — that
+           * is how a row is addressed from outside — with the công đoạn making
+           * it unique.
+           */
+          rowKey={(row) => `${row.id}:${row.stageId ?? row.recallCode ?? "none"}`}
           className="pd-treatment-table"
           columns={columns}
-          dataSource={visibleRows.slice(
-            pagination.skipCount,
-            pagination.skipCount + pagination.pageSize,
-          )}
+          dataSource={pageRows}
           locale={{ emptyText: t("Chưa có điều trị") }}
           pagination={pagination.buildConfig(visibleRows.length, countedTotal(t("điều trị")))}
         />
@@ -449,14 +493,39 @@ export function PatientProfileTab({ patient }: Props) {
         open={recallOpen}
         stages={finishedStages}
         onClose={() => setRecallOpen(false)}
-        onBook={() => {
+        /*
+         * The reference steps in place: Tái Khám swaps the listing for the
+         * follow-up form and Đóng comes back to the rows, while Chi Tiết stacks
+         * a read-only "Chi tiết dịch vụ" over them.
+         */
+        onBook={(stage) => {
           setRecallOpen(false);
-          setCreatingAppointment(true);
+          setRecallStageId(stage.id);
         }}
-        onDetail={(stage) => {
-          setRecallOpen(false);
-          setStageRow(rows.find((row) => row.stageId === stage.id) ?? null);
+        onDetail={(stage) => setDetailStageId(stage.id)}
+      />
+      <StageFollowUpDialog
+        open={recallStageId !== null}
+        patientId={patient.id}
+        branchId={branchId}
+        plan={planOf(rows.find((row) => row.stageId === recallStageId) ?? null)}
+        stage={finishedStages.find((item) => item.id === recallStageId) ?? null}
+        kind="reExamination"
+        onClose={() => {
+          setRecallStageId(null);
+          setRecallOpen(true);
         }}
+      />
+      <ServiceDetailDialog
+        open={detailStageId !== null}
+        patient={patient}
+        plan={planOf(rows.find((row) => row.stageId === detailStageId) ?? null)}
+        line={(() => {
+          const row = rows.find((item) => item.stageId === detailStageId);
+          const slip = planOf(row ?? null);
+          return slip?.services.find((item) => item.id === row?.id) ?? null;
+        })()}
+        onClose={() => setDetailStageId(null)}
       />
       <PatientPaymentDialog
         open={paymentOpen}
@@ -474,7 +543,7 @@ export function PatientProfileTab({ patient }: Props) {
         onClose={() => setPayingRow(null)}
         onSaved={() => setPayingRow(null)}
       />
-      <WarrantyDialog
+      <StageFollowUpDialog
         open={warrantyRow !== null}
         patientId={patient.id}
         branchId={branchId}
@@ -482,6 +551,7 @@ export function PatientProfileTab({ patient }: Props) {
         stage={
           (patientStages.data?.items ?? []).find((item) => item.id === warrantyRow?.stageId) ?? null
         }
+        kind="guarantee"
         onClose={() => setWarrantyRow(null)}
       />
       <TreatmentStageDialog

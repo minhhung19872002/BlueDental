@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Checkbox, DatePicker, Input, Modal, TimePicker } from "antd";
 import { CloseOutlined, PictureOutlined, SaveOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
@@ -114,6 +114,14 @@ export function LaboOrderDialog({ open, branchId, patient, plan, stage, onClose 
   /** Chosen but not yet uploaded — the reference shows them as drafts. */
   const [pictures, setPictures] = useState<File[]>([]);
 
+  /**
+   * One blob URL per draft, revoked when the list changes or the dialog goes.
+   * Minting them inside the render would hand out a fresh URL on every
+   * keystroke in this form and never release any of them.
+   */
+  const previews = useMemo(() => pictures.map((file) => URL.createObjectURL(file)), [pictures]);
+  useEffect(() => () => previews.forEach((url) => URL.revokeObjectURL(url)), [previews]);
+
   const materials = useLaboMaterialOptions(branchId, serviceGroupId);
 
   useEffect(() => {
@@ -201,7 +209,8 @@ export function LaboOrderDialog({ open, branchId, patient, plan, stage, onClose 
   return (
     <Modal
       open={open}
-      width={880}
+      /* Measured on the reference: 772px, which lands its two columns on 349px. */
+      width={772}
       className="pd-labo-dialog"
       title={t("Đặt mới")}
       onCancel={onClose}
@@ -369,7 +378,7 @@ export function LaboOrderDialog({ open, branchId, patient, plan, stage, onClose 
         <div className="pd-labo-drafts">
           {pictures.map((file, index) => (
             <div key={`${file.name}-${file.lastModified}-${index}`}>
-              <img src={URL.createObjectURL(file)} alt={file.name} />
+              <img src={previews[index]} alt={file.name} />
               <button
                 type="button"
                 aria-label={t("Bỏ ảnh {0}", file.name)}

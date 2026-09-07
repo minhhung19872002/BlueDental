@@ -1935,3 +1935,598 @@ Retest R-251: Level 1 (chỉ bọc thêm một khối, không đổi hành vi). 
 production riêng, `vite preview` cổng **8098**, API `:5000`:
 `e2e/treatment-plan-detail.spec.ts` **6/6**, 44s; tsc + eslint sạch. Chưa
 commit; chưa chụp ảnh đối chiếu (chủ dự án xác nhận bằng mắt).
+
+---
+
+## 2026-09-07 — Chạy lại đủ bộ sau bàn giao, và soi "Đặt mới" trên staging
+
+Đợt này làm nốt hai việc còn treo trong `save/patient-detail-handoff.md`:
+chạy lại **cả** bộ test sau ba lần chỉnh spec cuối, và **soi mắt thường** modal
+"Đặt mới". Chủ dự án đưa tài khoản staging và yêu cầu mở bản gốc lên đo.
+
+Bản gốc vẫn **chỉ đọc**: đăng nhập, mở trang, mở dialog, đọc `getComputedStyle`
+và `getBoundingClientRect`. **Không** đính file vào form Labo của bản gốc —
+chọn file có thể kích hoạt upload ngay, mà `.claude/rules/00-reference-readonly.md`
+cấm ghi. Không lưu form nào, không bấm bước tiếp nhận nào.
+
+### Chạy lại đủ bộ đã lộ 4 spec đỏ
+
+Lần chạy đầy đủ trước ghi "78/78". Chạy lại trên máy sạch: **79 pass, 4 fail,
+1 skip**. Bốn spec đỏ chia làm hai loại — không cái nào là lỗi ứng dụng:
+
+| # | Spec | Nguyên nhân |
+|---|------|-------------|
+| R-229 | `the payment dialog carries the reference's fields, momo included` | **Lỗi spec.** `Còn lại` = `planDue − total`, đường thẳng, **có** xuống số âm. Hàm đọc số của spec dùng `replace(/[^\d]/g, "")` nên **ăn mất dấu trừ**: gõ 100.000 khi kế hoạch chỉ còn nợ 80.000 in ra `-20.000 đ` mà spec đọc thành `20000`, nên phép hiệu sai. Đo được: `Tổng tiền 5.180.000 − Đã thanh toán 5.100.000 = 80.000`. Đã cho hàm đọc **giữ dấu**; và sửa luôn lời chú thích cũ nói "chạm sàn 0" — code không hề kẹp sàn |
+| R-230 | `the appointment card reassigns its doctor without opening the editor` | **Lỗi spec.** PUT trả **409 `BlueDental:Appointment:0002`** — "Khung giờ này đã có lịch". Spec chọn bác sĩ **đầu bảng chữ cái** khác người đang giữ lịch, mà người đó (`BS. Lê Thu Hà`) đã có lịch trùng đúng khung giờ ấy. Máy chủ chặn là **đúng**. Spec nay tự dựng tập bác sĩ **rảnh** theo đúng luật của `AppointmentConflictChecker`: cùng bác sĩ, khác phiếu, trạng thái không phải Cancelled(6)/NoShow(7), và hai khung giờ giao nhau |
+| R-231 | `the treatment table is one row per công đoạn, grouped by day` · `finishing a công đoạn swaps its action for Bảo hành` | **Nhiễm dữ liệu giữa các spec** — chạy riêng thì **xanh**, chạy cả bộ thì đỏ. `openPatientWithTreatment(page, "warrantable")` chỉ lọc `warrantyDays > 0`, **không** lọc trạng thái dòng, nên bắt phải dòng mà spec trước đã đẩy sang Hoàn thành — dòng đó không còn ô Công đoạn nào để với tới. Nay đòi thêm `status ∈ {1,2}` như nhánh `stageable` |
+
+### Soi bản gốc: nhãn field, và ô Tải ảnh
+
+Đo trên form đăng nhập (an toàn tuyệt đối) rồi đo lại trong chính modal
+"Đặt mới". Bản gốc dùng **một** màu slate cho nhãn, đổi **alpha** theo trạng thái:
+
+| Trạng thái nhãn | Bản gốc | Ta (trước) | Ta (sau) |
+|---|---|---|---|
+| Nằm trong ô (chưa nổi) | `rgba(90,107,130,.8)` 14px/500 | `#99a0bd` 14px | **khớp** |
+| Đã nổi, ô sống | `rgb(90,107,130)` | `--bd-muted #5c6484` | **khớp** |
+| Đã nổi, ô khoá | `rgba(90,107,130,.5)` trên nền `#F6F8FB` | `opacity:.5` | khớp (đã đúng) |
+| Đang focus | `#2671D8` | `--bd-link #2671d8` | khớp (đã đúng) |
+
+`#5a6b82` đúng là màu tab Hình ảnh đã đo từ trước (`--pi-muted`) — hai đợt khảo
+sát độc lập ra cùng một con số.
+
+| # | Defect | Fix |
+|---|--------|-----|
+| R-232 | Nhãn field trong hai dialog lệch màu | Gom về **một** channel triple `--pd-field-label: 90 107 130` dùng cho cả ba trạng thái, thay vì bẻ token `--bd-muted` (đọc bluer hơn bản gốc) |
+| R-233 | Ô **Tải ảnh** xám, hover không đổ nền | Bản gốc: 80×80, `border-dashed #B9C4D4`, chữ **xanh `#2671D8`** 14px/500, hover đổ nền `#E7F0FB` — đúng cách nút Tải ảnh của tab Hình ảnh đã dựng. Đã đổi theo |
+| R-234 | Pill viền đứt dùng `--bd-border #e7eaf6` | Bản gốc `#DCE3EE`, chữ `#5A6B82`. Và bản gốc **canh giữa** pill rỗng trên cả dải; ta canh trái. Đã sửa cả hai (chỉ canh giữa lúc rỗng — có chip thì vẫn canh trái) |
+| R-235 | Dialog rộng **880px** | Bản gốc **772px**: nội dung 718px, hai cột 349px ở x=24 / x=393, khoảng cách **20px** cả hai chiều, ô cao 40px, bước hàng 60px. Cặp ngày/giờ trong một cột là 193px + 16px + 140px. Đã đổi `width={772}` và `gap: 20px`; đo lại local lệch **1–4px** ở mọi mục |
+| R-236 | **`.pd-labo-grid` khai hai lần trong cùng một file** — dòng 1316 ba cột, dòng 3248 hai cột | Bản sau **đè** bản trước, nên dialog "Tạo phiếu Labo" (`PatientRecordDialogs`, rộng 1180px, có `.pd-labo-wide` trải hết hàng) bị bóp còn hai cột. Đây là hồi quy do chính đợt "Đặt mới" gây ra. Đã **thu hẹp** rule mới thành `.pd-labo-dialog .pd-labo-grid` để trả lại ba cột cho dialog kia |
+| R-237 | Ảnh nháp tạo blob URL **mỗi lần render**, không bao giờ `revoke` | `URL.createObjectURL(file)` gọi thẳng trong JSX: mỗi ký tự gõ vào ô Nội dung sinh thêm một URL cho **mỗi** ảnh nháp và giữ luôn. Nay `useMemo` theo danh sách file + cleanup `revokeObjectURL` |
+
+### Vẫn chưa quan sát được
+
+- **Ảnh nháp của bản gốc**: `UNKNOWN_REFERENCE_BEHAVIOR`. Vào trạng thái đó
+  buộc phải đính file vào form production; và **cả 20 phiếu Labo** trên staging
+  đều rỗng ô "File Labo gửi về", nên cũng không đọc ngược được từ form đã lưu.
+  Ta cho ảnh nháp **80×80** cho bằng ô Tải ảnh ngay bên cạnh (số đo thật), thay
+  cho 160px vốn là con số tự đặt. Đây là **giả định**, đã ghi vào `unknowns.md`.
+- **Kính lúp** cạnh nhãn `Lựa chọn dịch vụ*` / `Vật liệu*`: bản gốc có, mở
+  popover "Tìm dịch vụ" (đã ghi ở `pages/patient-detail.md` mục 989). Clone
+  **chưa dựng** — ghi nhận, chưa làm.
+- **Ô Công đoạn khi dòng dịch vụ ở trạng thái "Chuyển đổi"**: bản gốc vẫn vẽ
+  nút `+` nhưng **disabled** (`bg #F6F8FB`, chữ `#98A2B3`, `opacity .5`,
+  `cursor-not-allowed`, có tooltip). Ta không có nhánh này — dòng như vậy vẫn
+  hiện `+` bấm được. Ghi nhận, chưa làm.
+
+### Xác nhận ngược lại — những chỗ đã dựng đúng
+
+Đo trên staging (bệnh nhân `HN8516`, 4 dòng điều trị) khẳng định lại:
+
+- **Một dòng cho mỗi công đoạn**, ô Ngày `rowSpan` trải hết ngày ✓
+- Ô Công đoạn: `Đang điều trị` → `+` `bg #E6F8EE` / `#12A960` 32×32 tròn 18px/600 ✓ ·
+  `Hoàn thành` → nút hổ phách `bg #FFF4E5` / `#D97706`, icon **lucide
+  `briefcase-medical` 16px** — sáu path của ta **trùng khít** bản gốc ✓
+- Lịch sử điều trị: gộp theo ngày, in `6/8/2026` không đệm 0, cột
+  `Ngày | Dịch vụ & răng | Ghi chú | Công đoạn | Hành động`,
+  `Bác sĩ:` / `Bác sĩ hỗ trợ: (Trống)` / `Phụ tá: (Trống)` ✓
+- Công đoạn **đã** hoàn thành → `Tải ảnh` + **Bảo hành**; **chưa** hoàn thành →
+  `Tải ảnh` + **Tạo Labo** ✓
+- Chip răng 36×30, `#2671D8`, chữ trắng, bo 4px, 13px/600 ✓
+- Thứ tự khối trong "Đặt mới", kể cả hai cột {Màu răng, Số lượng, Khớp cắn} /
+  {Đường hoàn tất, Kiểu nhịp} ✓
+- `input[type=file]` của bản gốc là `accept="image/*"` **multiple** ✓ — nhiều
+  file là đúng
+
+Mức retest: **3** (đụng CSS dùng chung của hai dialog + sửa spec).
+
+### 2026-09-07 (tiếp) — hai lỗi thật lộ ra khi chạy lại đủ bộ
+
+Chạy lại sau R-229…R-231 còn 2 đỏ. Cả hai **không** phải nhiễu spec:
+
+| # | Defect | Fix |
+|---|--------|-----|
+| R-238 | **Ô Ngày mất/trải lố khi bảng điều trị sang trang 2** | `regroupByDay` chạy trên danh sách **đã lọc** rồi mới `slice` theo trang, mà `daySpan` là **theo vị trí**. Hệ quả: ngày nào có ô Ngày rơi trước `skipCount` thì các dòng của nó ở trang sau **không có ô Ngày nào**, và ô Ngày cuối trang claim luôn số dòng nằm ở trang kế — AntD nuốt mất ngày tiếp theo. Spec bắt đúng bằng bất biến "tổng `rowSpan` = số dòng đang vẽ": đo được **20 ≠ 23**. Nay gộp ngày **sau** khi cắt trang (`pageRows`), đúng chỗ `regroupByDay` vốn được viết ra để dùng |
+| R-239 | **`rowKey="id"` trùng khoá** | Một dòng là một **công đoạn**, mà `id` là id **dòng dịch vụ**, nên mọi công đoạn của cùng một dịch vụ dùng chung một khoá React. Nay `rowKey` là `` `${row.id}:${row.stageId ?? "none"}` `` — vẫn **mang tiền tố** id dịch vụ để 4 chỗ trong spec địa chỉ hoá dòng theo `data-row-key^=` không phải sửa |
+
+Và một spec nữa phải sửa tiền đề, không phải hồi quy:
+
+| # | Defect | Fix |
+|---|--------|-----|
+| R-240 | `the appointment card reassigns its doctor` đỏ vì **0006**, không phải 0002 | Đổi bác sĩ trên thẻ lịch hẹn còn vướng guard thứ hai: `BlueDental:Appointment:0006` — *"Bệnh nhân đã có lịch hẹn vào khung giờ này."* Seeder demo xếp cho **một** bệnh nhân **ba** lịch hẹn trùng đúng khung `2026-08-21T02:30`, nên mọi lần sửa một trong ba đều đụng hai cái còn lại — đổi bác sĩ nào cũng bị chặn. `HasPatientConflictAsync` **có** loại trừ chính phiếu đang sửa, tức là guard đúng; **dữ liệu seed mới là chỗ sai** (giống lỗi R-228: seeder ghi được trạng thái mà đường update từ chối). Spec nay **đi tìm** bệnh nhân có **đúng một** lịch hẹn còn sống + có bác sĩ rảnh trong khung đó; như vậy cũng khỏi phải dựng lại luật chọn "lịch hẹn đang hiện" của thẻ |
+
+Ghi chú kỹ thuật, dễ vấp lại:
+
+- **Thẻ "Lịch hẹn gần nhất" chọn phía client trên một trang 50 dòng.**
+  `useAppointmentList({ patientId, maxResultCount: 50 })` rồi mới chọn "sớm nhất
+  còn ở tương lai, không thì gần nhất trong quá khứ". Bệnh nhân demo có **405**
+  lịch hẹn, nên 50 dòng đầu có thể không chứa cái đúng — thẻ hiện sai lịch hẹn.
+  Bản gốc hỏi server đúng một cái (`/schedules/latest`, ascending). **Chưa sửa** —
+  ghi nhận để chủ dự án quyết.
+- Khi hai lịch hẹn **trùng `slotStart`**, luật của thẻ (`sort` giảm dần rồi lấy
+  `[0]`) và luật "sắp tăng dần rồi lấy phần tử cuối" ra **hai phiếu khác nhau**,
+  vì `Array.sort` ổn định nên hoà nhau thì giữ thứ tự đầu vào. Spec nào cần biết
+  thẻ đang sửa phiếu nào thì phải dùng **đúng** comparator của component, hoặc
+  chọn dữ liệu không có hoà — cách sau đang dùng.
+
+| # | Defect | Fix |
+|---|--------|-----|
+| R-241 | **Seeder demo xếp một bệnh nhân vào nhiều ghế cùng một khung giờ** | `BlueDentalDemoSeedContributor` chỉ giữ `HashSet<(Dentist, Slot)>`, còn bệnh nhân thì **bốc ngẫu nhiên sau đó** — nên cùng một bệnh nhân rơi vào nhiều bác sĩ ở cùng khung giờ. Đo trên DB vừa seed: **206 cặp trùng trên 5 bệnh nhân** / 641 lịch hẹn còn sống. Đúng cái mà `HasPatientConflictAsync` chặn khi ghi, nên **thẻ lịch hẹn của 5 bệnh nhân đó không sửa được gì** — đây là nguyên nhân gốc của R-240. Nay giữ chỗ theo **cả hai** chiều (bác sĩ **và** bệnh nhân), và ca dài 2 slot giữ chỗ đủ hai slot thay vì chỉ slot đầu (trước đây cũng bỏ sót chỗ này) |
+
+> ⚠️ R-241 chỉ có tác dụng khi **seed lại từ đầu**; DB đang dùng để nghiệm thu
+> đợt này vẫn còn 206 cặp cũ. Đã build sạch `BlueDental.Application` (0 error)
+> nhưng **chưa** chạy trên DB mới — lần seed sạch kế tiếp cần kiểm lại bằng
+> chính câu đếm ở trên (kỳ vọng 0 cặp). Spec R-240 không phụ thuộc vào việc này:
+> nó tự đi tìm bệnh nhân chỉ có một lịch hẹn còn sống.
+
+### 2026-09-07 (tiếp 2) — bộ test không ổn định: mỗi lần chạy đỏ một chỗ khác
+
+Sau R-238…R-241 bộ chạy được **83 xanh / 1 skip**. Chạy lại lần nữa: **79 xanh /
+4 đỏ**, nhưng là **bốn spec khác**. Đó là dấu hiệu bộ test dùng chung một mớ dữ
+liệu demo và **tự làm bẩn nó** — mỗi lần chạy lại đẩy trạng thái đi một bước, nên
+"xanh một lần" không có nghĩa gì. Bốn nguyên nhân, cả bốn đều ở phía spec:
+
+| # | Defect | Fix |
+|---|--------|-----|
+| R-242 | `finishLiveStage` bấm **ô Hoàn thành của dòng khác** | Helper lấy `.pd-stage-histrow[aria-disabled="false"]`**`.first()`**, mà một **phiếu** có nhiều **dòng dịch vụ** và **mỗi dòng giữ một công đoạn còn sống của riêng nó** — đúng như đo được trên bản gốc ngày 07/09 (hai dòng cùng `aria-disabled="false"`). Nên helper có thể đóng công đoạn của dòng *khác* dòng đang test, rồi spec đi tìm nút "Bảo hành" trên dòng đó và không thấy. Dòng lịch sử nay in `data-line-id` / `data-stage-id` (bảng điều trị vốn cũng địa chỉ hoá bằng `data-row-key`), `finishLiveStage(page, dialog, lineId)` nhận thêm tham số, và 6 chỗ gọi đều truyền dòng của mình |
+| R-243 | Spec "only a line's newest công đoạn stays workable" đếm **sai phạm vi** | Nó đòi `toHaveCount(1)` trên **cả dialog**. Bản gốc cho **mỗi dòng** một công đoạn còn sống, nên số dòng sống bằng số dòng dịch vụ đang mở — không phải 1. Nay đếm **trong phạm vi một dòng** (`data-line-id`) |
+| R-244 | `/complete` trả **403 `BlueDental:Treatment:0019`** | *"Dịch vụ này cần đính kèm ảnh trước khi hoàn thành công đoạn."* `addStage` để `isImageRequired` trống nên công đoạn **thừa hưởng** cấu hình của danh mục dịch vụ; gặp dịch vụ bắt buộc ảnh là không đóng được, và ba spec đỏ theo. `CreateTreatmentStageDto.IsImageRequired` là `bool?` **đúng để caller tự khai**, nên fixture nay khai `false`. Không mất độ phủ: luật bắt buộc ảnh đã có test riêng ở `TreatmentStageTests` (Domain) |
+| R-245 | Spec momo/ngân hàng gõ cứng **10.000 đ** | Dialog chặn **vượt số còn nợ** ngay ở client nên không POST, và `waitForRequest` treo tới hết 30s. Các spec trước trong cùng file **thu tiền dần** làm Còn nợ của phiếu demo tụt xuống dưới 10.000. Nay đọc `lineDue(dialog)` rồi trả `min(10.000, còn nợ)`, và khẳng định còn nợ > 0 |
+
+Nguyên tắc rút ra, cho các đợt sau:
+
+- **Một spec không được giả định dữ liệu demo còn nguyên.** Nó phải **tự đi tìm**
+  bản ghi thoả điều kiện mình cần (còn nợ > 0, dòng còn mở, bệnh nhân chỉ có một
+  lịch hẹn…), chứ không lấy "cái đầu bảng" rồi gõ cứng con số.
+- **Xanh một lần không phải bằng chứng.** Chạy **hai lần liên tiếp** mới thấy
+  loại lỗi này; lần chạy nghiệm thu cuối của đợt này chạy đúng hai lượt.
+
+### 2026-09-07 (tiếp 3) — bỏ nốt hai chỗ spec tự bỏ qua chính mình
+
+Chạy hai lượt liên tiếp còn lộ thêm hai chỗ, đều là spec **tự skip** nên trước
+đây không ai thấy — mà skip nghĩa là **hành vi đó không được kiểm**:
+
+| # | Defect | Fix |
+|---|--------|-----|
+| R-246 | `finishLiveStage` đua với `waitForResponse` | Helper chờ đúng cái `POST …/complete`. Trong một lượt chạy dài, có lần cú bấm không sinh request kịp và spec treo tới hết 30 giây. Nay chờ **kết quả nhìn thấy được** — ô Hoàn thành **trở thành đã tích** (`toBeChecked`, 15s) — vốn cũng chỉ đúng sau khi server đồng ý. Đúng tinh thần CLAUDE.md §16.17: kiểm hành vi, không kiểm đường truyền. `page` không còn cần nên bỏ khỏi chữ ký |
+| R-247 | `one receipt covers several services` **tự skip** | `test.skip(count < 2, …)` — nghĩa là tính năng cốt lõi R-197…R-200 (một phiếu thu, nhiều dịch vụ, server tự rải) **âm thầm không được kiểm** ở những lượt dữ liệu đã trôi. Hai lỗi trong phần dựng dữ liệu: (1) nó đếm "dòng còn nợ" từ `patient-treatments`, còn dialog đọc từ **payment account** — hai nguồn lệch nhau sau khi có phiếu thu; (2) đường **tự dựng phiếu** không kiểm kết quả `POST …/accept`, một lần accept thất bại là ra phiếu **một** dòng. Nay đếm bằng chính nguồn của dialog, mỗi bước dựng đều kiểm, dựng xong **đọc lại** phiếu qua account trước khi trả về, và thử lần lượt nhiều bệnh nhân. `test.skip` đổi thành `expect` — thà đỏ còn hơn im lặng |
+
+Cùng đợt, dọn một chỗ trùng lặp: `buildTreatmentRows` vẫn tính `daySpan` dù
+`regroupByDay` **luôn** tính lại trên đúng trang đang vẽ (R-238), nên vòng lặp
+đó là code chết — đã bỏ, và ghi rõ trong doc comment rằng span là việc của
+`regroupByDay`.
+
+### 2026-09-07 (tiếp 4) — hai fixture tự cạn, và một helper không nói được lý do
+
+| # | Defect | Fix |
+|---|--------|-----|
+| R-248 | Fixture của "một phiếu, nhiều dịch vụ" **cạn dần theo số lần chạy** | Nó đi **mượn** các advise chưa vào kế hoạch của dữ liệu demo. Mỗi lượt chạy *tiêu* hai cái, nên sau vài lượt hết sạch và `slip` ra `null`. Nay spec **tự dựng** advise: lấy id thật (`patientDiagnosisId` / `diagnosisId` / `serviceId` / `staffId` / `teeth`) từ một advise có sẵn, `POST` **hai** advise mới trên **hai dịch vụ khác nhau** của cùng bệnh nhân (1.200.000 và 800.000), accept cả hai rồi mở phiếu — kiểm từng bước, và đọc lại phiếu qua account trước khi trả về. Chú ý: **`teeth` là bắt buộc**, thiếu là 403 `BlueDental:Treatment:0007` *"Select at least one tooth or surface."* |
+| R-249 | `finishLiveStage` chờ ô tích mà **không nói được vì sao không tích** | Bản R-246 chỉ chờ `toBeChecked` nên khi server từ chối, spec chỉ báo "vẫn chưa tích" sau 15 giây — đúng là chỗ đã ngốn hai lượt chạy để tìm ra 403 `Treatment:0019`. Nay **vẫn** lắng nghe `POST …/complete` song song: response không `ok` thì **ném ngay** kèm status + body của server; điều kiện pass vẫn là ô tích (hành vi), không phải cái request |
+
+| # | Defect | Fix |
+|---|--------|-----|
+| R-250 | Cú bấm ô **Hoàn thành** có thể bị **mất trắng** | Dialog "Chi tiết phiếu" refetch danh sách công đoạn, và cú bấm rơi đúng lúc component render lại thì **không có request nào rời máy** — ô vẫn trắng, không toast, không lỗi. Đã xác nhận không phải guard phía client: `useStageComposer.finish` gọi `completeStage.mutateAsync` ngay, không kiểm gì trước. Spec nay bấm **tối đa 3 lần**, mỗi lần chờ 5 giây xem có request không, và **không** bấm lại khi server đã trả lời (trả lời mà không `ok` thì ném luôn kèm status + body) |
+
+> Ghi nhận phía ứng dụng, **chưa sửa**: người dùng bấm đúng khoảnh khắc đó cũng
+> sẽ thấy "bấm mà không có gì xảy ra" và phải bấm lại. Không phải lỗi dữ liệu —
+> trạng thái vẫn đúng — nên để lại cho chủ dự án quyết có cần khoá hàng trong
+> lúc refetch hay không.
+
+### Kết quả nghiệm thu đợt 2026-09-07
+
+Bản build production `:8080` → API `:5019` → PostgreSQL thật, không chặn API nào.
+
+- FE e2e: **84 / 84 xanh, 0 đỏ, 0 skip** trên `patient`, `patient-image`,
+  `treatment-plan`, `treatment-stage`, `labo`, `report`, `branch-isolation`,
+  `appointment`. Chạy **hai lượt liên tiếp** (7.6 và 7.5 phút) rồi **một lượt
+  nữa** sau R-251 (7.7 phút) — tổng ba lượt đủ bộ, cùng một kết quả. Riêng
+  `patient.spec.ts` chạy thêm một lượt sau R-251: **47 / 47**.
+  Trước đợt này: 79 xanh / 4 đỏ / 1 skip.
+- Một lần đỏ giả cần biết để khỏi mất thời gian: `page.evaluate: TypeError:
+  Failed to fetch` giữa lượt chạy — do chính `dotnet test` (không có
+  `--no-build`) build lại solution **khi host đang phục vụ**. Host vẫn sống,
+  chạy lại là xanh. Muốn chạy test BE trong lúc e2e đang chạy thì dùng
+  `--no-build`.
+- BE: Domain **264 / 264**, Application **516 / 516**, EF **51 / 51**.
+- `tsc` sạch (`npm run build`).
+
+Số spec tăng từ 83 lên 84 vì hai spec vốn **tự skip** nay chạy thật (R-240,
+R-247), và một spec bị bỏ qua âm thầm được mở lại (bước Tiếp nhận).
+
+Mức retest: **3** — đụng CSS dùng chung của hai dialog (`.pd-labo-*` /
+`.pd-stage-*`), `PatientProfileTab`, `StageHistory`, và seeder demo.
+
+Còn treo, **chưa làm**, đã ghi `docs/clone/unknowns.md`: kính lúp "Tìm dịch vụ"
+của hai dải chip; ô Công đoạn khi dòng ở trạng thái "Chuyển đổi"; ảnh nháp của
+bản gốc (không quan sát được mà không ghi lên production); thẻ "Lịch hẹn gần
+nhất" chọn phía client trên trang 50 dòng; màu nút chính chàm vs xanh; và R-241
+cần một lần seed sạch để kiểm lại.
+
+| # | Defect | Fix |
+|---|--------|-----|
+| R-251 | Guard cuối cùng còn `test.skip` | `a finished công đoạn on a service with no warranty offers nothing` bỏ qua chính nó khi không tìm được dòng dịch vụ **không bảo hành và còn mở**. Mà chính spec này hoàn thành công đoạn trên các dòng đó, nên qua nhiều lượt chạy cả ba dịch vụ không-bảo-hành của seeder đều có thể thành Hoàn thành — rồi spec im lặng biến mất. Đổi thành `expect`: `patient.spec.ts` nay **không còn `test.skip` nào** |
+
+---
+
+## 2026-09-07 (tiếp 5) — Bỏ tick "Hoàn thành": dựng revert
+
+Chủ dự án chỉ ra: bỏ tick được để quay về "chưa hoàn thành". Đo lại thì **clone
+làm ngược lại** — ô tick bị `disabled` cứng sau khi hoàn thành, không bỏ được:
+
+```
+Gắn sứ                     checked=true  boxDisabled=true
+Trám bít hố rãnh R16, R26  checked=true  boxDisabled=true
+Tiểu phẫu nhổ răng 38      checked=true  boxDisabled=true
+```
+
+Bản gốc thì **có** revert — `PUT /v1/patient-stages/{id}/revert-status`, đọc
+được từ bundle ở đợt khảo sát 4 và đã ghi trong `api.md` kèm chú "no revert yet".
+Chủ dự án chốt: **làm theo bản gốc**, cho bỏ tick.
+
+| # | Defect | Fix |
+|---|--------|-----|
+| R-252 | Không có đường **mở lại** công đoạn | `TreatmentStage.Revert()`: chỉ nhận công đoạn đang `Completed`, đưa về **`InProgress`** (không phải `Pending` — ca đó đã làm, chỉ là chưa xong) và xoá `CompletedAt`; `StartedAt` giữ nguyên. Thêm `POST /api/v1/app/treatment-stages/{id}/revert-status`, **cùng** ability `treatmentStage.complete` — danh sách ability của bản gốc cho subject này là read/create/update/continue/complete/print, **không** có quyền riêng cho revert |
+| R-253 | `MoveServiceLineAsync` **một chiều** | Nó `return` sớm khi dòng đã `Done`, nên mở lại công đoạn sẽ để dòng dịch vụ kẹt ở "Hoàn thành" — hàng vẫn xanh "Hoàn thành" trên một công đoạn đang mở. Nay tính trạng thái đích **từ các công đoạn cùng dòng** chứ không từ hành động vừa làm, nên hoàn thành và mở lại về cùng một đáp số. Thêm `TreatmentService.Reopen()` (Done → InProgress; Cancelled/Replaced vẫn đóng vì đó là quyết định về **dòng**, không phải tiến độ) và `TreatmentPlan.ReopenIfAnyServiceActive()` (đối xứng với `CloseIfAllServicesDone`) |
+| R-254 | Ô tick khoá cứng | `disabled={!live \|\| stage.completedAt !== null \|\| …}` → `disabled={!live \|\| completingId === stage.id}`. Chỉ công đoạn **cũ** của dòng, hoặc đang có request, mới khoá. `finish()` nay là **toggle**: đã xong thì gọi revert, chưa thì gọi complete; toast "Đã mở lại công đoạn" (thêm bản dịch en) |
+
+Kiểm thật, bản dev `:5173` → API `:5019` → PostgreSQL thật:
+
+- Vòng tròn đầy đủ trên UI: `revert-status` **200** → ô nhả tick, `Tạo Labo`
+  quay lại thay `Bảo hành`; `complete` **200** → tick lại; `revert-status`
+  **200** lần nữa. Sau **reload**, ô Công đoạn ngoài bảng trở lại nút **+**
+  xanh — nghĩa là dòng dịch vụ cũng đã rời "Hoàn thành".
+- Dòng chỉ có **một** công đoạn (Trám bít hố rãnh): dòng `Done(3)` →
+  mở lại → `InProgress(2)` → hoàn thành lại → `Done(3)`. Phiếu vẫn
+  `InProgress(4)` vì còn dòng khác đang mở — đúng.
+- BE: Domain **272/272** (thêm 8: revert của công đoạn ×3, `Reopen` của dòng ×3,
+  re-open/stay-closed của phiếu ×2), Application **516/516**, EF **51/51**.
+- FE: `tsc` sạch; spec mới `Hoàn thành un-ticks again, and the line follows it
+  back` xanh — nó khẳng định cả ô tick, cả nút trong dialog, **và** ô Công đoạn
+  ngoài bảng sau reload.
+
+Ghi chú: `TreatmentPlan.Open()` đã vào thẳng `InProgress`, không qua
+Approve/Start — hai test phiếu đầu tiên viết sai vì tưởng có bước duyệt.
+
+| # | Defect | Fix |
+|---|--------|-----|
+| R-255 | `openPatientWithTreatment` mở hồ sơ **không kèm chi nhánh** | Tài khoản toàn phòng khám thấy phiếu của **mọi** chi nhánh trong `/patient-treatments`, nên helper có thể bắt phải một phiếu ở chi nhánh khác rồi mở `/patient/{id}` mà không nói chi nhánh nào — bảng điều trị rỗng, ba spec thanh toán đỏ ngay ở dòng chờ hàng đầu tiên. Lộ ra khi dữ liệu demo có phiếu ở chi nhánh 2. Nay helper mang `branchId` **của chính phiếu** ra và mở `/patient/{id}?branchId=…` |
+| R-256 | `addStage` không gửi header chi nhánh | Nó đọc `branchId` từ URL rồi nhét vào **body**, mà máy chủ lấy chi nhánh từ **header `X-Clinic-Branch-Id`** (xem `src/lib/axios.ts`), không đọc body. Trước đây vô hại vì mọi thứ chạy ở chi nhánh mặc định; sau R-255 thì spec có thể ở chi nhánh 2 nên công đoạn sẽ bị ghi lệch chi nhánh. Nay gửi đúng header, lấy từ `line.branchId` |
+
+> Bài học chung: **máy chủ lấy chi nhánh từ header, không từ body.** Mọi `fetch`
+> thô trong spec (và mọi script seed) đều phải gửi `X-Clinic-Branch-Id`; đặt
+> `clinicBranchId` trong body mà thiếu header thì bản ghi rơi vào chi nhánh mặc
+> định, âm thầm.
+
+| # | Defect | Fix |
+|---|--------|-----|
+| R-257 | Spec bước **Tiếp nhận** cũng cạn dần | Nó đi tìm bệnh nhân "chỉ có một lịch hẹn và chưa đến", rồi **check-in** chính lịch hẹn đó — nên mỗi lượt chạy tiêu một cái. Xanh vài lượt rồi hết, và trước R-247 nó còn tự `skip` nên chẳng ai thấy. Nay spec **tự đặt** một lịch hẹn mới: chọn bệnh nhân **chưa có** lịch hẹn còn sống, một khung giờ cách 120 ngày (không phiếu seed nào với tới, nên không đụng cả guard bác sĩ 0002 lẫn guard bệnh nhân 0006) và một bác sĩ rảnh khung đó, `POST /appointments` kèm header chi nhánh. Chạy hai lượt liên tiếp đều xanh |
+
+### Kết quả nghiệm thu — revert công đoạn (2026-09-07, R-252…R-257)
+
+Bản build production `:8080` → API `:5019` → PostgreSQL thật.
+
+- FE e2e: **85 / 85 xanh, 0 đỏ, 0 skip**, chạy **hai lượt liên tiếp**
+  (7.2 và 7.3 phút). Số spec lên 85 vì thêm
+  `Hoàn thành un-ticks again, and the line follows it back`.
+- BE: Domain **272 / 272**, Application **516 / 516**, EF **51 / 51**.
+- `tsc` sạch.
+
+Mức retest: **3** — đụng `TreatmentStage` / `TreatmentService` / `TreatmentPlan`
+(cả ba aggregate của luồng điều trị), `MoveServiceLineAsync` nay chạy hai chiều,
+cộng helper dùng chung của bộ spec.
+
+---
+
+## 2026-09-07 (tiếp 6) — Danh sách bệnh nhân, và hai modal của "Tạo tái khám"
+
+Chủ dự án chỉ ra ba chỗ. Soi bản gốc (chỉ đọc: đăng nhập, mở trang, đổi trang,
+mở dialog, đọc `getComputedStyle`; **không lưu form nào**) rồi sửa.
+
+### Cột Dịch vụ / Bác sĩ — bản gốc chỉ in **một** cái
+
+Đo trên bản gốc 2026-09-07, đọc **40 trong 54** bệnh nhân (trang 1 qua response
+thật, trang 2 qua DOM): **không ô nào có tên thứ hai** — kể cả `HN8516`, bệnh
+nhân có **hai phiếu** và nhiều dòng dịch vụ, tổng 19.5 triệu, mà `serviceNames`
+vẫn đúng một phần tử. `staffNames` cũng vậy. Hai cột này đi cùng nhau: bệnh nhân
+không có dòng nào còn sống thì **cả hai** là em dash.
+
+| # | Defect | Fix |
+|---|--------|-----|
+| R-258 | **Bảng danh sách không bao giờ có dữ liệu ở Dịch vụ / Bác sĩ / Số tiền / Thực thu / Công nợ** | `PatientAppService.BuildRowsAsync` nạp phiếu bằng `GetQueryableAsync()`, **không** `WithDetailsAsync(p => p.Services)`. Navigation `plan.Services` rỗng, nên `PatientListRollupCalculator` đọc ra 0 dòng: hàng nào có phiếu vẫn hiện "Chưa phát sinh", em dash và số 0. Đúng cái chủ dự án thấy. Nay dùng `WithDetailsAsync`. Đo lại: 12/14 hàng có dịch vụ, bác sĩ và tiền thật |
+| R-259 | Rollup gộp **mọi** dịch vụ của mọi phiếu | `ServiceCatalogIds` là `SelectMany(...).Distinct()`, `DentistIds` cũng vậy — bệnh nhân ba dịch vụ sẽ in ba tên, cách nhau bằng dấu phẩy. Bản gốc chỉ in **một**. Nay lấy **dòng mới nhất** (`CreationTime` giảm dần) và bác sĩ của **phiếu chứa dòng đó**, để hai cột nói về cùng một việc; không có dòng nào thì cả hai rỗng. Bốn test Domain mới |
+
+### Hai modal của "Tạo tái khám"
+
+Nút **Tái Khám** và **Chi Tiết** trong modal "Tạo tái khám" trước đây mở sai chỗ:
+Tái Khám mở form **đặt lịch hẹn**, Chi Tiết mở **"Chi tiết phiếu"**. Bản gốc mở
+hai modal khác:
+
+| # | Defect | Fix |
+|---|--------|-----|
+| R-260 | **Tái Khám** mở dialog lịch hẹn | Bản gốc thay danh sách bằng **form "Tạo tái khám"** ngay tại chỗ (cùng tiêu đề, `Đóng` quay lại danh sách) — và form đó **chính là form công đoạn**: Ngày tạo (khoá) · Bác sĩ · Phụ tá · Bác sĩ hỗ trợ ‖ Dịch vụ (khoá) · Răng · Hình ảnh · Tải Ảnh ‖ Nội dung điều trị · Danh sách công đoạn, footer `Đóng` / **`Lưu`**. Đo được: dialog 1202px, hai cột 571px cách nhau 12px, bước hàng 52px. `WarrantyDialog` gộp thành **`StageFollowUpDialog`** dùng chung cho cả Bảo hành và Tái khám — chỉ khác tiêu đề, nhãn nút và cờ |
+| R-261 | **Chi Tiết** mở "Chi tiết phiếu" | Bản gốc mở **"Chi tiết dịch vụ"**, chồng **lên** danh sách (`Đóng` trả về danh sách, không đóng hết). Đo được: **772px**, grid 2 cột `gap-x-12`/`gap-y-8` (48/32px), mỗi khối một `<h3>` 16px **bold uppercase** màu `#2671D8`, các dòng `nhãn: giá trị` 15px màu `#5A6B82` với giá trị `font-weight 500` màu `#1B2A41`. Bốn khối: CHI TIẾT KẾ HOẠCH · THÔNG TIN KHÁCH HÀNG · THÔNG TIN NHÂN VIÊN · THÔNG TIN THANH TOÁN, footer chỉ `Đóng`. Dựng mới `ServiceDetailDialog`; đo lại local khớp từng con số |
+| R-262 | Không có chỗ ghi **tái khám** | Bản gốc raise qua `POST /patient-stages/{id}/re-examination` và stage có cờ `hasReExamination`. Ta thêm `TreatmentStage.IsReExamination` (đúng khuôn `IsGuarantee`), migration `20260907000000_AddStageReExamination`, DTO hai chiều. Form Tái khám ghi một công đoạn `isReExamination: true` trên cùng dòng dịch vụ |
+
+### Dữ liệu chi nhánh 2
+
+Trước: 14 bệnh nhân, 1 phiếu, **0 lịch hẹn** — nên bảng trắng trơn. Nay seed
+thêm 6 bệnh nhân và 10 phiếu ở các mức khác nhau, kèm lịch hẹn quá khứ/tương
+lai. Đo lại: **Hoàn tất 5 · Đang điều trị 7 · Chưa phát sinh 2**, 12/14 hàng có
+dịch vụ + bác sĩ + tiền, 7 hàng có Lịch hẹn gần nhất, **không** ô nào hai dịch vụ.
+
+Ghi chú cho lần seed sau: **tạo công đoạn không làm dòng dịch vụ khởi động** —
+chỉ `continue` / `complete` / `revert-status` gọi `MoveServiceLineAsync`. Muốn
+hàng đọc "Đang điều trị" thì phải `continue` một công đoạn.
+
+### Kết quả nghiệm thu đợt R-258…R-262
+
+Bản build production `:8080` → API `:5019` → PostgreSQL thật.
+
+- FE e2e **85 / 85 xanh, 0 đỏ, 0 skip**.
+- BE: Domain **276 / 276** (thêm 4 test cho rollup của danh sách),
+  Application **516 / 516**, EF **51 / 51**.
+- `tsc` sạch.
+- Đo tay trên bản dev: "Chi tiết dịch vụ" ra **772px**, grid `32px 48px`,
+  `<h3>` `rgb(38,113,216)` 16px/700 uppercase, dòng fact `rgb(90,107,130)` 15px,
+  giá trị `#1b2a41` weight 500 — khớp bản gốc từng con số. Form Tái khám ra đúng
+  6 nhãn (Ngày tạo · Bác sĩ · Phụ tá · Bác sĩ hỗ trợ · Dịch vụ · Nội dung điều
+  trị) và footer `Đóng` / `Lưu`, `Đóng` quay lại danh sách.
+
+Mức retest: **3** — đụng `PatientAppService` (đường đọc của danh sách),
+`PatientListRollupCalculator`, `TreatmentStage`, và gộp `WarrantyDialog` thành
+`StageFollowUpDialog` (dùng ở cả bảng điều trị và "Chi tiết phiếu").
+
+**Chưa làm, ghi nhận:** ba chip lọc `Các chẩn đoán` / `Tái khám` / `Bảo hành`
+của bảng điều trị vẫn **không lọc gì** — `visibleRows` chỉ xử lý `all`/`done`/
+`active`. Giờ đã có `IsGuarantee` và `IsReExamination` nên hai chip sau dựng được;
+chưa nằm trong phạm vi đợt này.
+
+---
+
+## 2026-09-07 (tiếp 7) — Thanh Tiếp nhận: ba màu, và bước 3 bấm không được
+
+Chủ dự án chỉ hai chỗ trên thẻ "Lịch hẹn gần nhất".
+
+| # | Defect | Fix |
+|---|--------|-----|
+| R-263 | **Bước 3 (Hoàn tất) không bấm được** | `ReceptionSteps` gọi `api.post(.../${step})` **không kèm body** cho cả ba bước. Nhưng `complete` bind một body — `CompleteAsync(Guid id, [FromBody] CompleteAppointmentDto input)` — nên bước 3 rớt model binding và **chưa bao giờ** đi được; `check-in` và `start` không nhận tham số nên vẫn chạy. Nay bước 3 gửi `{ notes }`, và **gửi lại đúng ghi chú đang có**: `Appointment.Complete(notes)` gán `Notes = notes` vô điều kiện, gửi rỗng là **xoá mất** ghi chú của lịch hẹn |
+| R-264 | Ba trạng thái **cùng một màu** | Mọi bước đã đi qua đều dùng `var(--bd-blue)`. Bản gốc cho mỗi bước một màu riêng, và **đoạn ray dẫn vào** bước nào thì mang màu bước đó. Nay: bước 1 `#2671D8` xanh dương · bước 2 `#F59E0B` hổ phách · bước 3 `#12A960` xanh lá; ô tròn đổ màu và mang dấu **tích** thay cho số, nhãn đổi theo, ray tô cùng màu |
+
+Trạng thái **chưa đi qua** đo được trên bản gốc (2026-09-07, bệnh nhân `HN8521`):
+ô tròn **32px** nền trắng in **số**, viền `1px #DCE3EE`, chữ 13px/600; ray **2px**
+`#DCE3EE` chia hai nửa, hai đầu ngoài cùng `invisible`; nhãn 12px/600 và giờ 12px,
+cả hai `#1B2A41`. Đã dựng đúng từng con số (trước đó ô tròn 26px, ray 1px).
+
+Đo lại trên local sau khi sửa — đi hết ba bước:
+
+```
+step 1  check-in 200  dot rgb(38,113,216)   nhãn rgb(38,113,216)   ray rgb(38,113,216)
+step 2  start    200  dot rgb(245,158,11)   nhãn rgb(245,158,11)   ray rgb(245,158,11)
+step 3  complete 200  dot rgb(18,169,96)    nhãn rgb(18,169,96)    ray rgb(18,169,96)
+```
+
+Cả ba đều có dấu tích và đóng dấu giờ; ba màu khác nhau.
+
+> **Màu của trạng thái đã đi qua là giả định** — bấm thử stepper của bản gốc là
+> **ghi** lên production nên không đo được. Ba màu lấy từ đúng những tông bản gốc
+> có ở chỗ khác: primary `#2671D8` (đo được), `amber-500 #F59E0B` (chính class
+> `hover:bg-amber-500` của nút Bảo hành bản gốc), và `#12A960` (nút + xanh của ô
+> Công đoạn). Đã ghi `docs/clone/unknowns.md`.
+
+Spec `the Tiếp nhận steps advance one at a time` nay đi **hết ba bước** (trước
+chỉ đi bước 1) và khẳng định **ba ô tròn ba màu khác nhau** — đọc sau khi
+transition đổ màu kết thúc, nếu không sẽ bắt được màu đang nội suy giữa trắng và
+màu đích.
+
+### Kết quả nghiệm thu R-263…R-264
+
+- FE e2e **85 / 85 xanh** trên tám file quen thuộc (`patient`, `patient-image`,
+  `treatment-plan`, `treatment-stage`, `labo`, `report`, `branch-isolation`,
+  `appointment`). `tsc` sạch.
+- Spec `the Tiếp nhận steps advance one at a time` chạy **hai lượt liên tiếp**
+  đều xanh sau khi mở rộng qua cả ba bước.
+
+**Hai file ngoài phạm vi, đỏ sẵn từ trước — không phải do đợt này.** Lần đầu
+chạy kèm `reception.spec.ts` và `cskh.spec.ts` (hai file **chưa** nằm trong bộ
+nghiệm thu của F-38) thì có 4 đỏ. Đã truy nguyên bằng cách `git stash` toàn bộ
+thay đổi của đợt, build lại **bản gốc** rồi chạy đúng hai file đó:
+
+| | Bản gốc (đã stash) | Có thay đổi của đợt này |
+|---|---|---|
+| `reception` + `cskh` | **4 đỏ** / 6 xanh | **3 đỏ** / 7 xanh |
+
+Nên bốn spec đó đỏ **trước** đợt này, và đợt này thực ra làm bớt một cái. Nguyên
+nhân bề mặt: `assertRealApiTraffic` đăng ký `waitForResponse` **sau** `page.goto`,
+nên request đã xong trước khi bắt đầu chờ là hết 20 giây — cùng loại đua đã gặp ở
+R-246. Chưa sửa: hai file này ngoài phạm vi đợt này, ghi lại để đợt sau xử lý.
+
+---
+
+## 2026-09-07 (tiếp 8) — Tái khám: chọn răng, list ảnh, và **một row của riêng nó**
+
+Chủ dự án chỉ bốn chỗ trên modal "Tạo tái khám", kèm link bản gốc
+`/patient/69d315447b2db7404471a619?...&tab=profile`.
+
+| # | Defect | Fix |
+|---|--------|-----|
+| R-265 | Răng **mặc định tick sẵn tất cả** | Form dựng lại danh sách răng của công đoạn nguồn rồi đánh dấu `selected: true` cho mọi cái. Bản gốc mở ra **không tick cái nào**: nó giữ **hai** danh sách — `content` (răng của công đoạn nguồn, chỉ để hiển thị) và `selectedContent` (răng người dùng tick). Nay răng là nút bật/tắt (`aria-pressed`), bắt đầu tắt hết, và chỉ những cái đã tick mới đi vào payload |
+| R-266 | Tải ảnh lên **không hiện list** | Ảnh chọn xong chỉ nằm trong state, không vẽ ra. Bản gốc hiện **thumbnail** kèm nút xoá từng cái và nhãn đếm ("2 ảnh"). Nay `.pd-stage-shots` vẽ list, mỗi ảnh một nút xoá; `previews` bọc `useMemo` + `revokeObjectURL` khi unmount để không rò blob URL |
+| R-267 | Tái khám lưu xuống **thành một công đoạn** | **Sai mô hình.** Lượt đầu tôi thêm cờ `IsReExamination` vào `TreatmentStage` — tức tái khám là một công đoạn có cờ. Timeline bản gốc phủ định điều đó (xem dưới): tái khám là **row riêng**, `type: "re_examination"`, mã `REX001`. Nay có aggregate `PatientReExamination` riêng, bảng `bd_patient_re_examinations`, endpoint `api/v1/app/patient-re-examinations` |
+| R-268 | Accent trong modal dùng **`#2671D8` của bản gốc** | Modal trộn chip/nhãn `#2671D8` với nút Lưu indigo → đọc ra **hai** accent khác nhau. Chủ dự án yêu cầu theo primary của clone. Nay **17** accent trong `.pd-labo-dialog` / `.pd-stage-dialog` đổi từ `var(--bd-link)` sang `var(--bd-primary)` |
+
+### R-267 — bằng chứng đọc được, và cái đã phải rút lại
+
+Timeline bệnh nhân của bản gốc trả về **hai** loại row:
+
+```
+{ type: "stage",          code: "CD26-0001", ... }
+{ type: "re_examination", code: "REX001",
+  patientStageId, patientStage, treatmentServiceDetails, serviceId,
+  staffId, subStaffId, assistantStaffId, note,
+  content, selectedContent, images, dateTime }
+```
+
+và công đoạn **nguồn** lật `hasReExamination`. Row tái khám **không có** status,
+không có quantity riêng, và bản gốc để trống hai ô **Công đoạn** với **Chăm sóc
+sau điều trị** trên đúng row đó — nên nó không thể là một công đoạn.
+
+Lượt sai đã **áp** migration vào DB rồi mới phát hiện, nên phải rút lại bằng tay:
+`DROP COLUMN "IsReExamination"` + xoá dòng tương ứng trong
+`__EFMigrationsHistory`, rồi viết lại `20260907000000_AddStageReExamination` cho
+đúng — thêm `HasReExamination` (cờ **trên công đoạn nguồn**) và
+`CreateTable("bd_patient_re_examinations")`. `BlueDentalDbContextModelSnapshot.cs`
+vá tay cả block entity và block `Teeth` `ToJson` (khoá `PatientReExaminationId`).
+
+`SL` trên row lấy từ `Quantity` của **service line** mà công đoạn nguồn thuộc về;
+mã chạy `REX{n:D3}` theo **từng bệnh nhân**, như DT của phiếu.
+
+Đo lại trên local sau khi sửa — một vòng tạo tái khám đầy đủ:
+
+```
+TEETH_CHIPS=1 ; không răng nào tick sẵn (aria-pressed=false)
+SHOTS=2, nhãn đếm "2 ảnh", xoá từng cái chạy
+CREATE_STATUS=200 ; CREATED={"code":"REX01","teeth":1,"qty":1}
+ROW={"found":true,"count":7,"service":"REX01 - Nhổ răng khôn mọc lệchTái khám",
+     "note":"Tái khám sau 1 tuần","teeth":"38","sl":"1",
+     "doctor":"BS. Mai Anh Phương","second":"BS. Đinh Thành Long",
+     "stageCell":"","careCell":""}
+```
+
+Hai ô cuối rỗng, và row không có dòng **Phụ tá** — đúng như bản gốc.
+
+### R-268 — và cái spec ghim màu cũ
+
+Chip răng đã tick đo được `rgb(99, 102, 241)` = `#6366f1` = `--bd-primary`.
+
+> **Đã đọc sai màu này bốn lần trước khi đọc đúng.** Mấy lượt probe đầu đều ra
+> trắng; tôi đã kiểm CSS có trong bundle, `el.matches()` khớp, không `!important`
+> nào chặn — rồi chụp cả trang thì thấy **modal còn đang chạy animation mở**.
+> Thêm chờ settle là ra ngay indigo. Bài học: đọc computed style trong modal
+> phải chờ animation xong, giống R-264 phải chờ transition đổ màu.
+
+`patient.spec.ts` có một spec cũ ghim `rgb(38, 113, 216)` cho nhãn floating khi
+focus — R-268 làm nó đỏ, **đúng như nó nên đỏ**. Đã sửa kỳ vọng sang
+`APP_PRIMARY` (hằng mới ở đầu file) kèm chú thích **vì sao** chỗ này cố ý lệch
+bản gốc, để lần sau không ai "sửa lại cho giống gốc".
+
+### Test mới
+
+`a tái khám picks its teeth, lists its images, and lands as its own row` —
+spec thường trú, đi hết vòng: thêm công đoạn → hoàn thành → mở form tái khám →
+khẳng định răng bắt đầu **chưa** tick → tick một cái → khẳng định chip mang màu
+primary → nạp hai ảnh, khẳng định **2 thumbnail** + nhãn đếm, xoá một cái →
+lưu, khẳng định POST vào `/patient-re-examinations` và mã khớp `^REX\d+$` →
+reload, khẳng định bảng **tăng đúng một row**, row đó có chip `Tái khám`, mã
+`REX`, và **không** có nút thêm công đoạn / bảo hành / chăm sóc / dòng phụ tá.
+
+Domain: `PatientReExaminationTests` (6 test) chốt các invariant — phải có ≥1
+răng (`EmptyToothSelection`, vì form mở ra trắng nên submit rỗng **không** được
+ngầm hiểu là "tất cả răng"), không trùng răng, phải có mã, ảnh giữ thứ tự và
+không vào hai lần. `TreatmentStageTests` thêm một test cho `MarkReExamined()`
+idempotent. Application: `PatientReExaminationAppServiceContractTests` (11 test)
+chốt ba method đều bị gác bởi **ability của công đoạn** (`read` / `complete` /
+`update` — bản gốc không có ability riêng cho tái khám), và chốt DTO **không**
+có `Content` lẫn `Status`.
+
+### Kết quả nghiệm thu R-265…R-268
+
+- BE: Domain **283**, Application **528**, EF **51**, HttpApi.Host **14** — 0 đỏ, 0 skip.
+- Đã xoá hai file spec chẩn đoán dùng một lần (`zz-check-recall`, `zz-diag-chip`).
+
+---
+
+## 2026-09-07 (tiếp 9) — Trang chi tiết bệnh nhân trắng màn: **lỗi do tôi gây ra khi ghi file**
+
+Chủ dự án báo `/patient/{id}` hiện "Đã xảy ra lỗi ngoài dự kiến". Không phải lỗi
+tính năng — là **cache của Vite dev server** bị tôi làm bẩn.
+
+| # | Defect | Fix |
+|---|--------|-----|
+| R-269 | `/patient/{id}` rơi vào `ErrorBoundary` trên **dev server** (5173) trong khi bản build (8080) vẫn xanh | `SyntaxError: … StageFollowUpDialog.tsx … does not provide an export named 'StageFollowUpDialog'`. Hỏi thẳng dev server thì nó trả về **module rỗng 183 byte** (`sourcesContent: [""]`). Nguyên nhân: tôi ghi lại file bằng `cat > file <<EOF` — lệnh này **truncate về 0 byte trước** rồi mới ghi, watcher của Vite bắt được đúng khoảnh khắc file rỗng, transform ra module không export gì, rồi **cache lại**. `tsc` sạch và file trên đĩa đúng, nên không có gì trên đĩa để sửa. `touch` lại 4 file mới là Vite transform lại (21658 / 16231 / 6563 / 9711 byte) và trang chạy lại ngay |
+
+Đo lại sau khi sửa, trên dev server, **không** còn console error nào:
+
+```
+rows=8  recalls=2   (hai row tái khám REX vẫn đúng chỗ)
+teeth=1  pressedBefore=false  pressedAfter=true
+```
+
+> **Bài học quy trình.** `cat > <file>` vào một file **đang được dev server
+> theo dõi** có thể để lại transform rỗng trong cache — build và `tsc` đều không
+> phát hiện được, chỉ dev server bị. Sau khi ghi đè file kiểu này, hoặc `touch`
+> lại, hoặc khởi động lại dev server. Ghi file mới thì không sao; chỉ ghi **đè**
+> mới có cửa sổ 0 byte đó.
+
+### Và lần thứ ba đọc sai màu chip răng
+
+Lần này đo được cả nguyên nhân, không còn phải suy: chip có
+`transition: background-color 0.12s`, nên đọc **ngay sau** cú click ra
+`rgb(255, 255, 255)`, chờ 1200ms ra `rgb(99, 102, 241)`.
+
+```
+immediate = rgb(255, 255, 255)
+settled   = rgb(99, 102, 241)   ← --bd-primary
+transition = background-color 0.12s, border-color 0.12s, color 0.12s
+```
+
+Spec dùng `toHaveCSS` nên **tự retry** và luôn đọc giá trị đã đứng — chỉ probe
+một-phát của tôi là sai. Ba lần đọc sai cùng một chỗ đều do đọc computed style
+mà không chờ animation/transition; đã ghi thành cảnh báo ở R-268.
+
+### Dọn theo §16.1 — `StageFollowUpDialog` 346 dòng
+
+Quá hạn 150 dòng của CLAUDE.md §16.1, và là code mới của đợt này nên phải tách
+ngay: `useFollowUpForm.ts` (state + nhánh ghi bảo hành / tái khám),
+`FollowUpTeeth.tsx` (hàng Răng, toggle hay chip tĩnh tuỳ loại),
+`FollowUpShots.tsx` (dòng đếm + thumbnail + Tải Ảnh). Dialog còn **177** dòng
+chỉ còn layout. `tsc` sạch. Đây cũng chính là refactor đã kích hoạt R-269.
+
+---
+
+## 2026-09-07 (tiếp 10) — Nhãn tái khám, validate tại field, list ảnh công đoạn
+
+Chủ dự án chỉ ba chỗ, kèm ảnh bản gốc.
+
+| # | Defect | Fix |
+|---|--------|-----|
+| R-270 | Chip **Tái khám** trên row tô màu primary | Bản gốc để chip này **xám** — nó là *nhãn*, không phải *trạng thái*, và để mã `REX002` của row giữ màu. Nay `.pd-tr-chip--recall` dùng `var(--bd-bg-head)` trên `#667085` |
+| R-271 | Thiếu răng / thiếu nội dung báo bằng **toast** | Toast không nói là thiếu ô nào, và biến mất trước khi kịp nhìn. Nay báo **ngay dưới từng field** (`.pd-stage-error`) kèm `status="error"` của AntD. Hai điểm cố ý: **báo hết các ô trống một lượt** (không bắt bấm Lưu ba lần để lần ra), và **xoá thông báo ngay khi sửa đúng ô đó**, không đợi lần submit sau. Toast chỉ còn cho lưu thành công và lỗi thật từ server |
+| R-272 | "Tiếp tục công đoạn" chỉ hiện **số** ảnh, không hiện ảnh | Ảnh được chọn **trước khi** công đoạn tồn tại rồi mới đính sau khi lưu, nên không thấy ảnh thì không biết đã chọn lẫn file. Tách `StageShots` dùng chung cho cả hai form (tái khám + công đoạn), có preview blob (`useMemo` + `revokeObjectURL`) và nút xoá từng ảnh, số đếm đi theo |
+
+### R-273 — lỗi thật, lộ ra nhờ hai spec đỏ
+
+Hai spec đỏ **không** phải lỗi spec: `POST /treatment-stages` trả **200** hai
+lần mà tổng bảng điều trị vẫn đứng ở **233** — công đoạn mới không xuất hiện ở
+**bất kỳ trang nào**.
+
+Nguyên nhân: `PatientProfileTab` gọi `maxResultCount: 200`, còn server sắp xếp
+công đoạn theo `(TreatmentServiceId, SequenceNumber)` — **không** theo ngày. Quá
+mức 200, cả những service line nằm cuối thứ tự đó rụng khỏi kết quả, nên công
+đoạn vừa thêm biến mất im lặng. Nay nâng cả hai query lên **1000** (đúng
+`MaxMaxResultCount` của ABP) và hai spec xanh lại.
+
+> **Đây là lỗi có từ trước, không phải do đợt này** — mức 200 nằm đó từ lâu.
+> Cái làm nó lộ ra là bệnh nhân fixture nay mang **233 dòng** tích lại qua các
+> lượt chạy test.
+>
+> **1000 vẫn là một mức chặn.** Vượt qua nó thì lỗi cắt cụt quay lại. Cách sửa
+> đúng là endpoint timeline phân trang phía server như bản gốc; bảng của ta chưa
+> phân trang server được vì nó **trộn hai collection** (công đoạn + tái khám)
+> thành một thứ tự rồi mới cắt trang phía client — không thể phân trang độc lập
+> hai nguồn rồi trộn. Đã ghi `docs/clone/unknowns.md`, chưa làm.
+
+### Spec không còn khẳng định trên **một trang**
+
+Ba spec trước đây đếm dòng trên trang 1 của một bảng phân trang 20 dòng:
+
+- Đếm chuyển sang `treatmentTotal()` — đọc tổng bảng tự báo ("Hiển thị a–b trên
+  N điều trị"). Lý do: **một trang đã đầy thì không bao giờ thấy được việc thêm
+  một dòng**, dòng mới rơi đầu nào cũng vậy, vì số dòng trên trang luôn bằng
+  page size.
+- Tra dòng chuyển sang `findStageRow()` — đi lần lượt các trang, và `addStage()`
+  nay trả về **id** của công đoạn vừa tạo để khoá đúng `serviceId:stageId`.
+
+Chỗ này bắt được một spec **xanh vì lý do sai**: "a finished công đoạn on a
+service with no warranty offers nothing" dùng `.first()` nên đang đọc một dòng
+**cũ, khác** của cùng service line — dòng đó cũng có `.pd-tr-nostage` nên spec
+vẫn xanh dù dòng cần kiểm tra không hề tồn tại trên bảng.

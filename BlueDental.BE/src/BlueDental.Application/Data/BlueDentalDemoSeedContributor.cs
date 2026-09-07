@@ -491,18 +491,39 @@ public class BlueDentalDemoSeedContributor(
                 continue;
             }
 
-            // One dentist cannot be in two chairs at once, so slots are handed
-            // out per dentist rather than drawn at random.
-            var takenSlots = new HashSet<(Guid Dentist, int Slot)>();
+            // Neither a dentist nor a patient can be in two chairs at once, and
+            // AppointmentConflictChecker enforces both on every write. Seeding
+            // past either guard leaves bookings the application itself refuses
+            // to edit, so both are reserved here — a patient double-booked
+            // across two dentists used to make its whole card uneditable.
+            var takenSlots = new HashSet<(Guid Who, int Slot)>();
 
             for (var i = 0; i < bookings; i++)
             {
                 var dentistId = dentistIds[random.Next(dentistIds.Count)];
+                var patientId = patients[random.Next(patients.Count)].Id;
                 var slotIndex = random.Next(SlotsPerDay);
 
-                if (!takenSlots.Add((dentistId, slotIndex)))
+                // Longer work takes two slots, so it reserves both.
+                var slotsUsed = random.Next(10) < 3 ? 2 : 1;
+                if (slotIndex + slotsUsed > SlotsPerDay)
                 {
                     continue;
+                }
+
+                var wanted = Enumerable
+                    .Range(slotIndex, slotsUsed)
+                    .SelectMany(slot => new[] { (dentistId, slot), (patientId, slot) })
+                    .ToList();
+
+                if (wanted.Any(takenSlots.Contains))
+                {
+                    continue;
+                }
+
+                foreach (var claim in wanted)
+                {
+                    takenSlots.Add(claim);
                 }
 
                 var start = new DateTimeOffset(day, offsetSpan)
@@ -510,15 +531,12 @@ public class BlueDentalDemoSeedContributor(
                     .AddMinutes(slotIndex * SlotMinutes)
                     .ToUniversalTime();
 
-                // Longer work takes two slots.
-                var length = random.Next(10) < 3 ? SlotMinutes * 2 : SlotMinutes;
-
                 var appointment = new Appointment(
                     guidGenerator.Create(),
-                    patients[random.Next(patients.Count)].Id,
+                    patientId,
                     dentistId,
                     _branchId,
-                    new AppointmentSlot(start, start.AddMinutes(length)),
+                    new AppointmentSlot(start, start.AddMinutes(slotsUsed * SlotMinutes)),
                     Types[random.Next(Types.Length)],
                     chiefComplaint: Complaints[random.Next(Complaints.Length)]);
 

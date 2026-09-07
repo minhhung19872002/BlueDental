@@ -179,6 +179,14 @@ export function StageHistory({
                           live ? "pd-stage-histrow" : "pd-stage-histrow pd-stage-histrow--off"
                         }
                         aria-disabled={!live}
+                        /*
+                         * A slip can hold several service lines, each with its
+                         * own live công đoạn, so a row has to say which line it
+                         * belongs to — the treatment table is addressed the
+                         * same way through its data-row-key.
+                         */
+                        data-line-id={stage.treatmentServiceId}
+                        data-stage-id={stage.id}
                         key={stage.id}
                       >
                         <div>
@@ -211,11 +219,13 @@ export function StageHistory({
                         <div className="pd-stage-histstage">{stage.name}</div>
 
                         <div className="pd-stage-rowactions">
+                          {/* Turns both ways: the reference keeps a
+                              `revert-status` beside its `status`, so un-ticking
+                              re-opens the công đoạn. Only an earlier công đoạn
+                              of the line, or one mid-request, is locked. */}
                           <Checkbox
                             checked={stage.completedAt !== null}
-                            disabled={
-                              !live || stage.completedAt !== null || completingId === stage.id
-                            }
+                            disabled={!live || completingId === stage.id}
                             onChange={() => onComplete(stage)}
                           >
                             {t("Hoàn thành")}

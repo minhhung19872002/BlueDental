@@ -134,8 +134,77 @@ const stageApi = {
   complete: (id: string): Promise<TreatmentStageDto> =>
     api.post<TreatmentStageDto>(`${STAGES}/${id}/complete`).then((r) => r.data),
 
+  /** Un-ticks Hoàn thành — the reference's own `revert-status`. */
+  revert: (id: string): Promise<TreatmentStageDto> =>
+    api.post<TreatmentStageDto>(`${STAGES}/${id}/revert-status`).then((r) => r.data),
+
   attachImage: (id: string, imageUrl: string): Promise<TreatmentStageDto> =>
     api.post<TreatmentStageDto>(`${STAGES}/${id}/images`, { imageUrl }).then((r) => r.data),
+};
+
+/**
+ * Tái khám — a follow-up raised from a finished công đoạn.
+ *
+ * Its own resource, not a flag on a công đoạn: the reference's timeline returns
+ * it as `type: "re_examination"` with a code of its own (REX01), and the
+ * treatment table gives it a row beside the stages.
+ */
+export interface PatientReExaminationDto {
+  id: string;
+  patientId: string;
+  clinicBranchId: string;
+  code: string;
+  patientStageId: string;
+  treatmentServiceId: string;
+  serviceId: string;
+  staffId: string;
+  subStaffId: string | null;
+  secondStaffId: string | null;
+  note: string | null;
+  /** Only the teeth ticked in the form — the reference's selectedContent. */
+  teeth: ToothSelectionDto[];
+  imageUrls: string[];
+  /** SL on the row, from the service line the source stage belongs to. */
+  quantity: number;
+  serviceName: string | null;
+  staffName: string | null;
+  subStaffName: string | null;
+  secondStaffName: string | null;
+  creationTime: string;
+}
+
+export interface CreateReExaminationInput {
+  patientId: string;
+  clinicBranchId: string;
+  patientStageId: string;
+  staffId: string;
+  subStaffId?: string;
+  secondStaffId?: string;
+  note?: string;
+  teeth: ToothSelectionDto[];
+}
+
+const RE_EXAMS = "/v1/app/patient-re-examinations";
+
+export const reExaminationApi = {
+  list: (params: {
+    patientId?: string;
+    clinicBranchId?: string;
+    maxResultCount?: number;
+  }): Promise<PagedResult<PatientReExaminationDto>> =>
+    api.get<PagedResult<PatientReExaminationDto>>(RE_EXAMS, { params }).then((r) => r.data),
+
+  create: (data: CreateReExaminationInput): Promise<PatientReExaminationDto> =>
+    api.post<PatientReExaminationDto>(RE_EXAMS, data).then((r) => r.data),
+
+  attachImage: (id: string, imageUrl: string): Promise<PatientReExaminationDto> =>
+    api.post<PatientReExaminationDto>(`${RE_EXAMS}/${id}/images`, { imageUrl }).then((r) => r.data),
+};
+
+export const reExaminationKeys = {
+  all: ["patient-re-examinations"] as const,
+  list: (params: { patientId?: string; clinicBranchId?: string }) =>
+    [...reExaminationKeys.all, "list", params] as const,
 };
 
 export const stageKeys = {
@@ -194,6 +263,46 @@ export function useCreateStage() {
   return useStageMutation(stageApi.create);
 }
 
+/** The follow-up list feeding the treatment table's own tái khám rows. */
+export function useReExaminations(
+  params: { patientId?: string; clinicBranchId?: string; maxResultCount?: number },
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: reExaminationKeys.list(params),
+    queryFn: () => reExaminationApi.list(params),
+    enabled: enabled && Boolean(params.patientId),
+    staleTime: 0,
+  });
+}
+
+/**
+ * Raising a follow-up moves three things: the follow-up list, the stage it was
+ * raised from (its `hasReExamination` flips) and the slip the row hangs off.
+ */
+function useReExaminationMutation<TVariables, TData>(fn: (variables: TVariables) => Promise<TData>) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: reExaminationKeys.all });
+      void queryClient.invalidateQueries({ queryKey: stageKeys.all });
+      void queryClient.invalidateQueries({ queryKey: ["patient-treatments"] });
+    },
+  });
+}
+
+export function useCreateReExamination() {
+  return useReExaminationMutation(reExaminationApi.create);
+}
+
+export function useAttachReExaminationImage() {
+  return useReExaminationMutation((input: { id: string; imageUrl: string }) =>
+    reExaminationApi.attachImage(input.id, input.imageUrl),
+  );
+}
+
 export function useUpdateStage() {
   return useStageMutation((input: { id: string } & UpdateTreatmentStageInput) => {
     const { id, ...rest } = input;
@@ -207,6 +316,10 @@ export function useContinueStage() {
 
 export function useCompleteStage() {
   return useStageMutation((id: string) => stageApi.complete(id));
+}
+
+export function useRevertStage() {
+  return useStageMutation((id: string) => stageApi.revert(id));
 }
 
 export function useAttachStageImage() {

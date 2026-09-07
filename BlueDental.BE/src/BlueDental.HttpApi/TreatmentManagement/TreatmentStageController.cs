@@ -52,6 +52,9 @@ public sealed class TreatmentStageController(ITreatmentStageAppService service)
     [HttpPost("{id:guid}/complete")]
     public Task<TreatmentStageDto> CompleteAsync(Guid id) => service.CompleteAsync(id);
 
+    [HttpPost("{id:guid}/revert-status")]
+    public Task<TreatmentStageDto> RevertAsync(Guid id) => service.RevertAsync(id);
+
     [HttpPost("{id:guid}/images")]
     public Task<TreatmentStageDto> AttachImageAsync(
         Guid id, [FromBody] AttachStageImageDto input) => service.AttachImageAsync(id, input);

@@ -11,7 +11,7 @@ import { LaboOrderDialog } from "./stage/LaboOrderDialog";
 import { StageForm } from "./stage/StageForm";
 import { StageHistory } from "./stage/StageHistory";
 import { TreatmentHistoryPrintDialog } from "./stage/TreatmentHistoryPrintDialog";
-import { WarrantyDialog } from "./stage/WarrantyDialog";
+import { StageFollowUpDialog } from "./stage/StageFollowUpDialog";
 import { useStageComposer, type StageTab } from "./stage/useStageComposer";
 
 interface Props {
@@ -170,6 +170,7 @@ export function TreatmentStageDialog({
                 secondStaffId={composer.secondStaffId}
                 note={composer.note}
                 pending={composer.pending}
+                previews={composer.previews}
                 saving={composer.saving}
                 primaryLabel={
                   composer.tab === "add" ? t("Thêm công đoạn") : t("Tiếp tục công đoạn")
@@ -179,6 +180,7 @@ export function TreatmentStageDialog({
                 onSecondStaff={composer.setSecondStaffId}
                 onNote={composer.setNote}
                 onPickImages={() => composer.pickFor(null)}
+                onRemoveImage={composer.removePending}
                 onCancel={() => composer.setSelected(null)}
                 onSave={() => void composer.save()}
               />
@@ -212,12 +214,13 @@ export function TreatmentStageDialog({
         onClose={() => setPrinting(false)}
       />
 
-      <WarrantyDialog
+      <StageFollowUpDialog
         open={warrantyStage !== null}
         patientId={patientId}
         branchId={branchId}
         plan={plan}
         stage={warrantyStage}
+        kind="guarantee"
         onClose={() => setWarrantyStage(null)}
       />
 

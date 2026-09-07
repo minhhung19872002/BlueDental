@@ -4,6 +4,7 @@ import { FloatingLabel } from "@/components/FloatingLabel";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
 import { toothLabels } from "@/features/treatment-management/api/consultingApi";
+import { StageShots } from "./StageShots";
 import type { TreatmentServiceDto } from "@/features/treatment-management/api/treatmentPlanApi";
 
 /** The reference caps Nội dung điều trị at 1000 characters. */
@@ -23,6 +24,8 @@ interface Props {
   note: string;
   /** Pictures chosen before the công đoạn exists; attached once it is saved. */
   pending: File[];
+  /** Blob URLs for `pending`, same order. */
+  previews: string[];
   saving: boolean;
   primaryLabel: string;
   onStaff: (value: string) => void;
@@ -30,6 +33,7 @@ interface Props {
   onSecondStaff: (value: string | undefined) => void;
   onNote: (value: string) => void;
   onPickImages: () => void;
+  onRemoveImage: (at: number) => void;
   onCancel: () => void;
   onSave: () => void;
 }
@@ -49,6 +53,7 @@ export function StageForm({
   secondStaffId,
   note,
   pending,
+  previews,
   saving,
   primaryLabel,
   onStaff,
@@ -56,6 +61,7 @@ export function StageForm({
   onSecondStaff,
   onNote,
   onPickImages,
+  onRemoveImage,
   onCancel,
   onSave,
 }: Props) {
@@ -116,6 +122,7 @@ export function StageForm({
               : t("{0} ảnh đã chọn", pending.length)}
           </p>
         </div>
+        <StageShots files={pending} previews={previews} onRemove={onRemoveImage} />
         <Button block icon={<PictureOutlined />} onClick={onPickImages}>
           {t("Tải Ảnh")}
         </Button>

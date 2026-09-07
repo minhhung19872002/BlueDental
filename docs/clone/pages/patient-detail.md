@@ -227,6 +227,15 @@ The Công đoạn cell therefore has three states, all measured on 2026-09-06:
 | finished, service carries a warranty | amber **Bảo hành**, `bg-[#FFF4E5] text-amber-600`, hover `bg-amber-500` white, briefcase-medical icon |
 | finished, service carries none | grey inert `span`, `bg-[#F6F8FB] text-[#98A2B3] cursor-not-allowed` — tooltip **"Không bảo hành"** |
 
+Re-measured on staging 2026-09-07 (patient `HN8516`, four rows), which confirmed
+the first two rows above to the pixel — the amber button's icon is lucide
+`briefcase-medical` at 16px and our six paths match it exactly — and turned up a
+**fourth** state the clone does not model: when the *service line* reads
+**"Chuyển đổi"**, the reference still draws the `+` but **disabled**
+(`bg-[#F6F8FB] text-[#98A2B3] opacity-50 cursor-not-allowed`, tooltip kept).
+BlueDental has no branch for it, so such a row keeps a live `+`. Recorded in
+docs/clone/unknowns.md; not built.
+
 Inside "Chi tiết phiếu" the same rule applies to the row's action: a finished
 công đoạn swaps **Tạo Labo** for a green **Bảo hành**, and shows neither when
 the service has no warranty period. Both buttons open the same **"Tạo bảo
@@ -458,7 +467,7 @@ per stage.
 | Dịch vụ & răng | service 14px/500 · tooth chips (white, bordered, 12px) · then the stage's pictures as **68px** thumbnails, `rounded-lg`, with a bottom gradient caption `Ảnh điều trị` in 11px white. Clicking one opens the image viewer (rotate ×2, flip ×2, zoom ±, close, and an `n / m` counter) |
 | Ghi chú | a **pencil** top-right (`lucide-pencil`, 16px, muted → `#2671D8`) over the note in an `min-h-[84px]` block with a rule under it; below, `flex gap-8`: a column of `Bác sĩ:` / `Bác sĩ hỗ trợ:` and, beside it, `Phụ tá:` — so it prints as *"Bác sĩ: X   Phụ tá: (Trống)"* over *"Bác sĩ hỗ trợ: (Trống)"* |
 | Công đoạn | the stage's `stageServiceItems`; blank on staging |
-| Hành động | `☐ Hoàn thành` (20px Radix checkbox), full-width `Tải ảnh` outline, full-width `Tạo Labo` solid `mt-2` |
+| Hành động | `☐ Hoàn thành` (20px Radix checkbox), full-width `Tải ảnh` outline, full-width `Tạo Labo` solid `mt-2`. The box turns **both ways** — the reference keeps a `revert-status` beside its `status` — so un-ticking re-opens the công đoạn; only an earlier công đoạn of the line is locked |
 
 **The pencil edits in place**, it does not open a dialog: it swaps the note for a
 `rows=4 min-h-[96px] resize-none` textarea with right-aligned `Hủy` / `Lưu`
@@ -570,8 +579,15 @@ service has no stages in its catalog entry.
   not model. The history's Công đoạn column prints the stage's own name instead
   of that checklist.
 - The Labo form's `Giờ nhận` is collected but not stored — `LaboOrder.DueDate`
-  is a date. `Tải ảnh` on that form, and `Chọn tất cả` over the teeth, are not
-  built: the teeth come from the công đoạn and are not editable there.
+  is a date.
+- `Tải ảnh` and `Chọn tất cả` on that form **are** built (an earlier note here
+  said they were not). The tile is the reference's 80×80 dashed square and its
+  input is `accept="image/*" multiple`, matching the reference. What the
+  reference *draws* for a chosen-but-unsaved picture stays unobserved — see
+  docs/clone/unknowns.md.
+- The chip strips' **magnifier**, which opens the reference's "Tìm dịch vụ"
+  popover (Tab 6 table below), is not built: the strips list every option
+  instead of offering a search.
 - Primary buttons are BlueDental indigo (`--bd-primary #6366f1`), not the
   reference's blue `#2671D8`. That is the clone's own brand, applied
   app-wide.
@@ -606,6 +622,32 @@ Dịch vụ đã hoàn tất · Nội dung điều trị — over one row per **
 with Bác sĩ / Phụ tá, the service and its teeth, the note and Danh sách công
 đoạn, and beside them a ticked read-only **Hoàn thành**, a disabled **Tải Ảnh**,
 **Tái Khám** and **Chi Tiết**.
+
+**What those two buttons open (observed 2026-09-07).** They are two different
+dialogs, not the stage dialog:
+
+- **Tái Khám** → the follow-up form. Its teeth are the source công đoạn's,
+  offered as toggles with **none ticked** — the reference keeps `content` (the
+  source's teeth, for display) apart from `selectedContent` (what the user
+  ticked), and only the second reaches the row. Chosen pictures list as
+  thumbnails, each with its own remove, under a count label ("2 ảnh").
+- **Chi Tiết** → "Chi tiết dịch vụ", read-only, 772px wide, four blocks, footer
+  **Đóng** only.
+
+**A saved tái khám is a row of its own.** The reference's timeline returns
+`type: "re_examination"` beside `type: "stage"`, so the row sits in the treatment
+table under its own code `REX001` with a **Tái khám** chip, and its **Công đoạn**
+and **Chăm sóc sau điều trị** cells are left **empty** — it is not another công
+đoạn on the line, and it prints no Phụ tá line. `SL` comes from the service line
+the source stage belongs to. The source stage flips `hasReExamination`. Payload
+and endpoint in `docs/clone/api.md`; the model correction is R-267.
+
+**Accents inside these dialogs follow the clone's primary, on purpose.** The
+project owner asked on 2026-09-07 that every chip, floating label and focus ring
+in "Đặt mới" and the công đoạn/tái khám dialogs take `--bd-primary` (indigo
+`#6366f1`) rather than the reference's `#2671D8`: a modal mixing reference-blue
+chips with an indigo Lưu button reads as two accents. This is a **deliberate
+divergence** from the reference — do not "fix" it back (R-268).
 
 ### Expanded diagnosis editor (hidden state)
 - Header text: "Bác sĩ có trách nhiệm thông báo / Những vấn đề răng miệng đang gặp phải – Hiểu về tiến trình của bệnh lý"
@@ -1485,6 +1527,22 @@ công đoạn are per-service and declared in Danh mục → Dịch vụ.
 3. **Date on the visit reason.** The reference dates that line from the visit
    that raised it; BlueDental keeps the reason on the patient with no date of
    its own.
+**Tiếp nhận stepper (measured 2026-09-07, patient `HN8521`, unreached).** Three
+buttons; only the next one is enabled, the other two `disabled` +
+`cursor-not-allowed`. Each renders **both halves** of its rail with the outer
+edges `invisible`: a 2px `#DCE3EE` bar either side of a **32px** white dot that
+carries the step number (`1px #DCE3EE`, 13px/600). Label 12px/600 and time 12px,
+both `#1B2A41` — and the label's colour is an **inline style**, which is how the
+reached colour comes to be the step's own rather than one shared tint. Reached:
+the dot fills with that colour and wears a tick, the label follows, and the rail
+leading into the step is coloured too — blue, amber, green across the three. The
+reached colours themselves are an assumption; see docs/clone/unknowns.md.
+
+`POST /appointments/{id}/complete` binds a body (`CompleteAppointmentDto`) where
+check-in and start take none, and `Appointment.Complete(notes)` assigns `Notes`
+unconditionally — so the third step must send the appointment's existing note
+back or it erases it.
+
 4. **Tiếp nhận times.** The three steps draw `--:--`: an appointment records
    when it was booked for, not when the patient walked in. The reference fills
    these from reception.

@@ -26,6 +26,8 @@ public class TreatmentStageDto : FullAuditedEntityDto<Guid>
     public bool IsImageRequired { get; set; }
     /// <summary>Bảo hành — the reference's <c>isGuarantee</c>.</summary>
     public bool IsGuarantee { get; set; }
+    /// <summary>Whether a tái khám has been raised from this công đoạn.</summary>
+    public bool HasReExamination { get; set; }
     public DateTimeOffset? StartedAt { get; set; }
     public DateTimeOffset? CompletedAt { get; set; }
     public List<ToothSelectionDto> Teeth { get; set; } = new();
@@ -52,6 +54,7 @@ public class CreateTreatmentStageDto
     public DateOnly? ScheduledDate { get; set; }
     /// <summary>Set by "Tạo bảo hành"; an ordinary công đoạn leaves it false.</summary>
     public bool IsGuarantee { get; set; }
+
 
     /// <summary>
     /// Omit to inherit the flag from the service catalog entry, which is where the
@@ -132,6 +135,9 @@ public interface ITreatmentStageAppService : IApplicationService
     Task<TreatmentStageDto> UpdateAsync(Guid id, UpdateTreatmentStageDto input);
     Task<TreatmentStageDto> ContinueAsync(Guid id);
     Task<TreatmentStageDto> CompleteAsync(Guid id);
+
+    /// <summary>Un-ticks Hoàn thành — the reference's <c>revert-status</c>.</summary>
+    Task<TreatmentStageDto> RevertAsync(Guid id);
     Task<TreatmentStageDto> AttachImageAsync(Guid id, AttachStageImageDto input);
     Task DeleteAsync(Guid id);
 }

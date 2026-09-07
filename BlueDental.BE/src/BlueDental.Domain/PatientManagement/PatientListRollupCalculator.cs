@@ -61,15 +61,29 @@ public class PatientListRollupCalculator : IDomainService
         var live = plans.Where(p => p.Status != TreatmentPlanStatus.Cancelled).ToList();
         var summary = _money.ForPatient(live, payments);
 
+        /*
+         * Dịch vụ and Bác sĩ name the **newest** work, one each — never a list.
+         * Measured on the reference 2026-09-07 across 40 of its 54 patients: no
+         * row carried a second name, including one holding two slips and several
+         * lines. The two travel together, so a patient with no live line shows
+         * an em dash in both columns.
+         *
+         * The doctor is the one on the slip that newest line belongs to, so the
+         * pair describes the same piece of work rather than two unrelated ones.
+         */
+        var newestLine = live
+            .SelectMany(p => p.Services)
+            .Where(s => s.Status != TreatmentServiceStatus.Cancelled)
+            .OrderByDescending(s => s.CreationTime)
+            .FirstOrDefault();
+        var owningPlan = newestLine is null
+            ? null
+            : live.FirstOrDefault(p => p.Id == newestLine.TreatmentPlanId);
+
         return new PatientRollup(
             TreatmentStatus: StatusOf(live),
-            ServiceCatalogIds: live
-                .SelectMany(p => p.Services)
-                .Where(s => s.Status != TreatmentServiceStatus.Cancelled)
-                .Select(s => s.ServiceId)
-                .Distinct()
-                .ToList(),
-            DentistIds: live.Select(p => p.DentistId).Distinct().ToList(),
+            ServiceCatalogIds: newestLine is null ? [] : [newestLine.ServiceId],
+            DentistIds: owningPlan is null ? [] : [owningPlan.DentistId],
             TotalAmount: summary.TotalPrice,
             TotalRevenue: summary.TotalPaid - summary.TotalRefund,
             // A patient who paid ahead is not in credit on this column; the

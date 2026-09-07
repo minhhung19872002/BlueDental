@@ -87,6 +87,21 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
     /// </summary>
     public bool IsGuarantee { get; private set; }
 
+    /// <summary>
+    /// Whether a tái khám has been raised from this công đoạn — the reference's
+    /// own <c>hasReExamination</c>, which it carries on the **source** stage.
+    /// The follow-up itself is a <see cref="PatientReExamination"/>, a row of its
+    /// own on the timeline, not another công đoạn.
+    /// </summary>
+    public bool HasReExamination { get; private set; }
+
+    /// <summary>Called when a follow-up visit is raised from this step.</summary>
+    public TreatmentStage MarkReExamined()
+    {
+        HasReExamination = true;
+        return this;
+    }
+
     public DateTimeOffset? StartedAt { get; private set; }
     public DateTimeOffset? CompletedAt { get; private set; }
 
@@ -217,6 +232,28 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
         Status = TreatmentStageStatus.Completed;
         StartedAt ??= DateTimeOffset.UtcNow;
         CompletedAt = DateTimeOffset.UtcNow;
+        return this;
+    }
+
+    /// <summary>
+    /// Re-open a closed step — the reference's <c>revert-status</c>, which is how
+    /// un-ticking its Hoàn thành box works, so completion is not final.
+    ///
+    /// The step returns to InProgress rather than Pending: the visit did happen,
+    /// it simply is not finished. Nothing records what the status was before, and
+    /// no caller asks for more than "is this step closed".
+    /// </summary>
+    public TreatmentStage Revert()
+    {
+        if (Status != TreatmentStageStatus.Completed)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.InvalidStageTransition,
+                "Only a completed stage can be re-opened.");
+        }
+
+        Status = TreatmentStageStatus.InProgress;
+        CompletedAt = null;
         return this;
     }
 

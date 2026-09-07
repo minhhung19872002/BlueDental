@@ -5,6 +5,7 @@ import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
 import {
   useCompleteStage,
+  useRevertStage,
   useCreateStage,
   useTreatmentStages,
   useUpdateStage,
@@ -60,6 +61,7 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
   const createStage = useCreateStage();
   const updateStage = useUpdateStage();
   const completeStage = useCompleteStage();
+  const revertStage = useRevertStage();
   const uploadImage = useUploadPatientImage();
 
   const fileInput = useRef<HTMLInputElement>(null);
@@ -132,6 +134,17 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
   }, [open, focusServiceId, plan?.id]);
 
   const line = services.find((item) => item.id === selected) ?? null;
+
+  /**
+   * Blob previews for the chosen files, revoked when the list changes or the
+   * dialog closes — minting them in the render would hand out a fresh URL on
+   * every keystroke and never release one.
+   */
+  const previews = useMemo(() => pending.map((file) => URL.createObjectURL(file)), [pending]);
+  useEffect(() => () => previews.forEach((url) => URL.revokeObjectURL(url)), [previews]);
+
+  const removePending = (at: number) =>
+    setPending((current) => current.filter((_, index) => index !== at));
 
   const upload = async (stageId: string, files: File[]) => {
     for (const file of files) {
@@ -212,11 +225,22 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
     }
   };
 
+  /**
+   * Ticks or un-ticks Hoàn thành. The reference's box turns both ways — it has a
+   * `revert-status` beside its `status` — so un-ticking re-opens the công đoạn
+   * and carries its service line back out of Hoàn thành with it.
+   */
   const finish = async (stage: TreatmentStageDto) => {
+    const reopening = stage.completedAt !== null;
     setBusyStage(stage.id);
     try {
-      await completeStage.mutateAsync(stage.id);
-      toast.success(t("Đã hoàn thành công đoạn"));
+      if (reopening) {
+        await revertStage.mutateAsync(stage.id);
+        toast.success(t("Đã mở lại công đoạn"));
+      } else {
+        await completeStage.mutateAsync(stage.id);
+        toast.success(t("Đã hoàn thành công đoạn"));
+      }
     } catch (error) {
       toast.error(extractApiError(error));
     } finally {
@@ -273,6 +297,8 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
     note,
     setNote,
     pending,
+    previews,
+    removePending,
     saving: createStage.isPending || uploadImage.isPending,
 
     days: byDay(slipStages),
@@ -289,7 +315,7 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
 
     savingNoteFor: updateStage.isPending ? busyStage : null,
     uploadingFor: uploadImage.isPending ? busyStage : null,
-    completingId: completeStage.isPending ? busyStage : null,
+    completingId: completeStage.isPending || revertStage.isPending ? busyStage : null,
 
     fileInput,
     pickFor,

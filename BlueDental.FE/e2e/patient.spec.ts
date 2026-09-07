@@ -1,6 +1,11 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
 
+/** --bd-primary, the clone's own brand — see src/styles/index.css. */
+const APP_PRIMARY = "rgb(99, 102, 241)";
+/** --bd-bg-head, the quiet grey the reference gives a label rather than a status. */
+const CHIP_GREY = "rgb(247, 248, 253)";
+
 /**
  * Feature: Danh sách bệnh nhân (/patient) + hồ sơ bệnh nhân.
  *
@@ -58,6 +63,7 @@ async function openPatientWithTreatment(page: Page, owing: boolean | LineMode = 
     const items = (await res.json()).items as {
       id: string;
       patientId: string;
+      branchId: string;
       services: {
         id: string;
         outstandingAmount: number;
@@ -74,19 +80,101 @@ async function openPatientWithTreatment(page: Page, owing: boolean | LineMode = 
               // offers a công đoạn on.
               slip.services.find((service) => service.status === 1 || service.status === 2)
             : want === "warrantable"
-              ? slip.services.find((service) => service.warrantyDays > 0)
+              ? // Warranty *and* still open: a line the earlier specs have
+                // driven to Completed offers no Công đoạn cell at all, so it
+                // could never reach the Bảo hành state under test.
+                slip.services.find(
+                  (service) =>
+                    service.warrantyDays > 0 &&
+                    (service.status === 1 || service.status === 2),
+                )
               : slip.services[0];
-      if (line) return { patientId: slip.patientId, serviceId: line.id, planId: slip.id };
+      if (line) {
+        return {
+          patientId: slip.patientId,
+          serviceId: line.id,
+          planId: slip.id,
+          branchId: slip.branchId,
+        };
+      }
     }
     return null;
   }, mode);
   expect(found, "the demo clinic should have a slip with a service line").toBeTruthy();
 
-  await page.goto(`/patient/${found!.patientId}`);
+  // Opened in the slip's **own** branch. A clinic-wide account sees every
+  // branch's slips in that list, so landing on the patient without saying which
+  // branch shows an empty table whenever the pick came from another one.
+  await page.goto(`/patient/${found!.patientId}?branchId=${found!.branchId}`);
   await expect(page.locator(".pd-treatment-table tbody tr.ant-table-row").first()).toBeVisible({
     timeout: 20000,
   });
+  await widenTreatmentTable(page);
   return found!;
+}
+
+/**
+ * Widen the treatment table to its largest page, to cut the paging these specs
+ * have to do.
+ *
+ * It paginates at 20 and the fixture patients gain rows on every run — one is
+ * past 200 — so a spec that counts rows or looks one up on the first page is
+ * reading a partial view. Worse, a *full* page can never show a row being
+ * added at all, whichever end the new one lands on, because the count stays
+ * pinned at the page size. So counting goes through `treatmentTotal`, which is
+ * page-independent, and finding goes through `findStageRow`, which pages.
+ */
+async function widenTreatmentTable(page: Page) {
+  const changer = page.locator(".pd-treatment-table .ant-pagination-options .ant-select");
+  if ((await changer.count()) === 0) return; // one page, no changer rendered
+
+  await changer.click();
+  await page
+    .locator(".ant-select-dropdown .ant-select-item-option")
+    .filter({ hasText: /^100/ })
+    .first()
+    .click();
+  await expect(page.locator(".pd-treatment-table tbody tr.ant-table-row").first()).toBeVisible();
+}
+
+/**
+ * The treatment row for one công đoạn, wherever the pagination has put it.
+ *
+ * Walks the pages rather than assuming the newest row is on the first one: the
+ * table groups by day, and a fixture patient with hundreds of rows spreads a
+ * single day across pages.
+ */
+async function findStageRow(page: Page, serviceId: string, stageId: string): Promise<Locator> {
+  const row = page.locator(`.pd-treatment-table tbody tr[data-row-key="${serviceId}:${stageId}"]`);
+  const next = page.locator(".pd-treatment-table li.ant-pagination-next");
+
+  for (let guard = 0; guard < 40; guard += 1) {
+    if ((await row.count()) > 0) return row;
+    if ((await next.count()) === 0) break;
+    if ((await next.getAttribute("aria-disabled")) === "true") break;
+    await next.click();
+    await expect(page.locator(".pd-treatment-table tbody tr.ant-table-row").first()).toBeVisible();
+  }
+
+  throw new Error(`no treatment row for công đoạn ${stageId} on any page of the table`);
+}
+
+/**
+ * The treatment table's own reported total, which is page-independent.
+ *
+ * Read from the pagination's "Hiển thị a–b trên N điều trị" rather than by
+ * counting rows, so "the table gained a row" is checkable even when the page is
+ * already full.
+ */
+async function treatmentTotal(page: Page): Promise<number> {
+  const total = page.locator(".pd-treatment-table .ant-pagination-total-text");
+  if ((await total.count()) === 0) {
+    return page.locator(".pd-treatment-table tbody tr.ant-table-row").count();
+  }
+  const text = await total.innerText();
+  const match = text.match(/trên\s+([\d.,]+)/);
+  expect(match, `could not read the treatment total from "${text}"`).toBeTruthy();
+  return Number(match![1].replace(/[.,]/g, ""));
 }
 
 /**
@@ -120,28 +208,70 @@ async function openStageDialog(page: Page, serviceId: string) {
   return dialog;
 }
 
+/** The dialog's live công đoạn rows, narrowed to one service line when given. */
+function liveHistRows(dialog: Locator, lineId?: string) {
+  const selector = lineId
+    ? `.pd-stage-histrow[aria-disabled="false"][data-line-id="${lineId}"]`
+    : '.pd-stage-histrow[aria-disabled="false"]';
+  return dialog.locator(selector);
+}
+
 /**
  * Ticks Hoàn thành on the dialog's live công đoạn and waits for the server.
  *
  * The box is controlled by what came back, not by the click, so Playwright's
  * own `check()` — which insists the state flip before it returns — reports a
  * failure on a perfectly good tick.
+ *
+ * Pass `lineId` whenever the spec cares *which* công đoạn is closed: a slip
+ * holds several service lines and each keeps its own live row, so the first one
+ * in the history may belong to another line entirely — one that carries no
+ * warranty, or that demands a clinical image and refuses to close.
  */
-async function finishLiveStage(page: Page, dialog: Locator) {
-  const live = dialog.locator('.pd-stage-histrow[aria-disabled="false"]').first();
+async function finishLiveStage(page: Page, dialog: Locator, lineId?: string) {
+  const live = liveHistRows(dialog, lineId).first();
   await expect(live).toBeVisible();
 
   const box = live.getByRole("checkbox");
   if (await box.isChecked()) return live;
 
-  const done = page.waitForResponse(
-    (res) =>
-      res.url().includes("/api/v1/app/treatment-stages/") &&
-      res.url().endsWith("/complete") &&
-      res.request().method() === "POST",
-  );
-  await box.click({ force: true });
-  expect((await done).ok()).toBeTruthy();
+  await expect(box, "a live công đoạn's Hoàn thành should be tickable").toBeEnabled();
+
+  /*
+   * Clicked up to three times, because the tick is neither instant nor
+   * guaranteed to land:
+   *
+   * - Playwright's own `check()` insists the box flip before it returns, which
+   *   it cannot — the state arrives with the server's answer — so the pass
+   *   condition is the *outcome*, the box turning checked.
+   * - The dialog refetches its stage list, and a click that lands mid-render is
+   *   swallowed without a request ever leaving. One retry covers that; three
+   *   keeps a genuinely stuck box from hanging for the whole timeout.
+   *
+   * A refusal is not retried: the response is watched so the server's own
+   * message surfaces immediately instead of a bare "still unchecked".
+   */
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const answered = page
+      .waitForResponse(
+        (res) =>
+          res.url().includes("/api/v1/app/treatment-stages/") &&
+          res.url().includes("/complete") &&
+          res.request().method() === "POST",
+        { timeout: 5_000 },
+      )
+      .catch(() => null);
+
+    await box.click({ force: true });
+
+    const res = await answered;
+    if (res && !res.ok()) {
+      throw new Error(`POST …/complete answered ${res.status()}: ${await res.text()}`);
+    }
+    if (res) break;
+  }
+
+  await expect(box).toBeChecked({ timeout: 10_000 });
   return live;
 }
 
@@ -149,11 +279,24 @@ async function finishLiveStage(page: Page, dialog: Locator) {
  * Adds a công đoạn to a service line through the real API, so a spec that needs
  * two of them on one line does not have to drive the dialog twice.
  */
-async function addStage(page: Page, line: { patientId: string; planId: string; serviceId: string }, note: string) {
-  const status = await page.evaluate(async ({ target, text }) => {
-    const branchId = new URLSearchParams(location.search).get("branchId");
+async function addStage(
+  page: Page,
+  line: { patientId: string; planId: string; serviceId: string; branchId?: string },
+  note: string,
+) {
+  const created = await page.evaluate(async ({ target, text }) => {
+    // The server reads the branch off this header, not out of the body — see
+    // src/lib/axios.ts — so a raw fetch has to send it or the row lands in
+    // whichever branch the account defaults to.
+    const branchId = target.branchId ?? new URLSearchParams(location.search).get("branchId");
+    const branchHeader: Record<string, string> = branchId
+      ? { "X-Clinic-Branch-Id": branchId }
+      : {};
     const plan = await (
-      await fetch(`/api/v1/app/patient-treatments/${target.planId}`, { credentials: "include" })
+      await fetch(`/api/v1/app/patient-treatments/${target.planId}`, {
+        credentials: "include",
+        headers: branchHeader,
+      })
     ).json();
     const service = plan.services.find((item: { id: string }) => item.id === target.serviceId);
     const staff = await (
@@ -163,7 +306,7 @@ async function addStage(page: Page, line: { patientId: string; planId: string; s
     const res = await fetch("/api/v1/app/treatment-stages", {
       method: "POST",
       credentials: "include",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...branchHeader },
       body: JSON.stringify({
         patientId: target.patientId,
         clinicBranchId: branchId,
@@ -174,12 +317,22 @@ async function addStage(page: Page, line: { patientId: string; planId: string; s
         note: text,
         staffId: staff.items[0].id,
         teeth: service.teeth,
+        // Closable without a clinical image. `isImageRequired` is nullable on
+        // the contract precisely so a caller can say; left unset it copies the
+        // service catalog, and a service that demands an image makes
+        // POST …/complete answer 403 Treatment:0019 — which is a rule of its
+        // own, covered by TreatmentStageTests, not the subject of the specs
+        // that use this fixture to get a live row.
+        isImageRequired: false,
       }),
     });
-    return res.status;
+    return { status: res.status, id: res.ok ? ((await res.json()).id as string) : null };
   }, { target: line, text: note });
-  expect(status, "the công đoạn should have been created").toBe(200);
+  expect(created.status, "the công đoạn should have been created").toBe(200);
+  return created.id!;
 }
+
+
 
 /**
  * The slip's money, service by service, in the plan's own order.
@@ -1054,6 +1207,9 @@ test.describe("Bệnh nhân", () => {
     ]);
 
     // "Còn lại" is a live preview: it drops by whatever is being entered.
+    // Read *signed*: the preview is `planDue - amount`, so typing more than the
+    // plan still owes prints a negative, and dropping the minus would turn the
+    // delta below into nonsense.
     const remaining = () =>
       dialog
         .locator(".pd-newpay-fact")
@@ -1061,7 +1217,10 @@ test.describe("Bệnh nhân", () => {
         .locator("span")
         .last()
         .innerText()
-        .then((text) => Number(text.replace(/[^\d]/g, "")));
+        .then((text) => {
+          const digits = Number(text.replace(/[^\d]/g, ""));
+          return text.trim().startsWith("-") ? -digits : digits;
+        });
     // Tự động opens with the whole of what the chosen lines owe already in the
     // box, the way the reference prefills it.
     const box = dialog.locator("input.pd-newpay-amount");
@@ -1069,8 +1228,8 @@ test.describe("Bệnh nhân", () => {
     expect(prefill).toBe(await lineDue(dialog));
 
     // Measured as a delta between two typed amounts rather than against the
-    // opening figure: the plan's Còn lại floors at zero, and a slip whose lines
-    // owe more than the plan still does would sit on that floor.
+    // opening figure: a slip whose chosen lines owe more than the plan still
+    // does drives the preview past zero, so the opening figure is no baseline.
     await box.fill("100000");
     const atHundred = await settled(remaining);
     await box.fill("50000");
@@ -1102,42 +1261,128 @@ test.describe("Bệnh nhân", () => {
       const send = (url: string, init?: RequestInit) =>
         fetch(url, { credentials: "include", ...init });
 
+      const branch = new URLSearchParams(location.search).get("branchId");
       const owing = await (await send("/api/v1/app/patient-treatments?maxResultCount=50")).json();
-      const ready = (owing.items as { id: string; patientId: string; services: { outstandingAmount: number }[] }[])
-        .find((plan) => plan.services.filter((line) => line.outstandingAmount > 0).length >= 2);
-      if (ready) return { planId: ready.id, patientId: ready.patientId };
+      const candidates = owing.items as {
+        id: string;
+        patientId: string;
+        services: { outstandingAmount: number }[];
+      }[];
 
-      const advises = (await (await send("/api/v1/app/patient-advises?maxResultCount=200")).json())
-        .items as { id: string; patientId: string; treatmentPlanId: string | null }[];
-      const free = advises.filter((a) => !a.treatmentPlanId);
-      const patientId = free.find((a) => free.filter((b) => b.patientId === a.patientId).length >= 2)
-        ?.patientId;
-      if (!patientId) return null;
+      // Counted through the **payment account**, which is what the dialog reads.
+      // `patient-treatments` reports its own outstanding figure and the two can
+      // disagree once receipts land, so trusting it here used to hand back a
+      // slip whose dialog then listed a single line — and the test skipped
+      // itself away instead of exercising the split.
+      const owingOnAccount = async (patientId: string, planId: string) => {
+        const account = await (
+          await send(
+            `/api/v1/app/patient-payments/account?patientId=${patientId}&clinicBranchId=${branch}`,
+          )
+        ).json();
+        const plan = (account.plans as { id: string; services: { outstandingAmount: number }[] }[])
+          .find((entry) => entry.id === planId);
+        return (plan?.services ?? []).filter((line) => line.outstandingAmount > 0).length;
+      };
 
-      const pair = free.filter((a) => a.patientId === patientId).slice(0, 2).map((a) => a.id);
-      for (const id of pair) {
-        await send(`/api/v1/app/patient-advises/${id}/accept`, { method: "POST" });
+      for (const plan of candidates.filter(
+        (entry) => entry.services.filter((line) => line.outstandingAmount > 0).length >= 2,
+      )) {
+        if ((await owingOnAccount(plan.patientId, plan.id)) >= 2) {
+          return { planId: plan.id, patientId: plan.patientId };
+        }
       }
-      const branchId = new URLSearchParams(location.search).get("branchId");
+
+      // Nothing reusable, so **build** one — advises and all. Harvesting the
+      // demo clinic's spare advises is what this used to do, and that pool runs
+      // dry after a few runs, which is how the test came to skip itself away.
+      // Two fresh advises are raised instead, against ids taken off an existing
+      // one so every foreign key is real, then accepted into a new slip.
+      const advises = (await (await send("/api/v1/app/patient-advises?maxResultCount=200")).json())
+        .items as {
+        id: string;
+        patientId: string;
+        clinicBranchId: string;
+        serviceId: string;
+        diagnosisId: string;
+        patientDiagnosisId: string;
+        staffId: string;
+        treatmentPlanId: string | null;
+        teeth: unknown[];
+      }[];
       const dentistId = (await (await send("/api/v1/app/staff?MaxResultCount=1")).json()).items[0].id;
 
-      const opened = await send("/api/v1/app/patient-treatments", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          patientId,
-          clinicBranchId: branchId,
-          dentistId,
-          title: "E2E một phiếu nhiều dịch vụ",
-          discountType: 1,
-          discountValue: 0,
-          adviseIds: pair,
-        }),
-      });
-      if (!opened.ok) return null;
-      return { planId: (await opened.json()).id as string, patientId };
+      // Two different services on one patient's diagnosis, so the slip really
+      // carries two lines rather than one line of quantity two.
+      for (const seed of advises) {
+        const other = advises.find(
+          (a) => a.patientId === seed.patientId && a.serviceId !== seed.serviceId,
+        );
+        if (!other) continue;
+
+        // `teeth` is required — an advise with none is refused 403
+        // Treatment:0007 — so the seed's own selection is carried over.
+        if (seed.teeth.length === 0) continue;
+
+        const raise = async (serviceId: string, price: number) => {
+          const res = await send("/api/v1/app/patient-advises", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              patientId: seed.patientId,
+              clinicBranchId: seed.clinicBranchId,
+              patientDiagnosisId: seed.patientDiagnosisId,
+              diagnosisId: seed.diagnosisId,
+              serviceId,
+              staffId: seed.staffId,
+              originalPrice: price,
+              price,
+              quantity: 1,
+              discountType: 1,
+              discountValue: 0,
+              note: "E2E một phiếu nhiều dịch vụ",
+              teeth: seed.teeth,
+            }),
+          });
+          return res.ok ? ((await res.json()).id as string) : null;
+        };
+
+        const pair = [await raise(seed.serviceId, 1_200_000), await raise(other.serviceId, 800_000)];
+        if (pair.some((id) => id === null)) continue;
+
+        const accepted = await Promise.all(
+          pair.map(async (id) =>
+            (await send(`/api/v1/app/patient-advises/${id}/accept`, { method: "POST" })).ok,
+          ),
+        );
+        if (accepted.some((ok) => !ok)) continue;
+
+        const opened = await send("/api/v1/app/patient-treatments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            patientId: seed.patientId,
+            clinicBranchId: branch,
+            dentistId,
+            title: "E2E một phiếu nhiều dịch vụ",
+            discountType: 1,
+            discountValue: 0,
+            adviseIds: pair,
+          }),
+        });
+        if (!opened.ok) continue;
+
+        const planId = (await opened.json()).id as string;
+        if ((await owingOnAccount(seed.patientId, planId)) >= 2) {
+          return { planId, patientId: seed.patientId };
+        }
+      }
+      return null;
     });
-    expect(slip, "a slip with two unpaid lines").toBeTruthy();
+    expect(
+      slip,
+      "the demo clinic should offer — or let the test build — a slip owing on two lines",
+    ).toBeTruthy();
 
     await page.goto(`/patient/${slip!.patientId}`);
     const table = page.locator(".pd-treatment-table tbody tr.ant-table-row");
@@ -1167,7 +1412,7 @@ test.describe("Bệnh nhân", () => {
 
     const lines = dialog.locator(".pd-newpay-lines > li");
     const count = await lines.count();
-    test.skip(count < 2, "this slip has only one line still owing");
+    expect(count, "the slip the search settled on should still owe on two lines").toBeGreaterThan(1);
 
     const before = await paidByService(page, slip!.planId);
     const dues = await dialog
@@ -1244,7 +1489,13 @@ test.describe("Bệnh nhân", () => {
         req.url().includes("/api/v1/app/patient-payments") && req.method() === "POST",
     );
     await dialog.locator(".pd-newpay-accrow").first().click();
-    await dialog.locator("input.pd-newpay-amount").fill("10000");
+    // Paid within what the chosen lines still owe: the dialog refuses an
+    // overpay before it posts, and earlier specs in this file whittle the demo
+    // slip's Còn nợ down — a hard-coded amount eventually exceeds it and the
+    // POST this test waits for never happens.
+    const owed = await lineDue(dialog);
+    expect(owed, "the chosen line should still owe something").toBeGreaterThan(0);
+    await dialog.locator("input.pd-newpay-amount").fill(String(Math.min(10_000, owed)));
     await dialog.getByRole("button", { name: "Lưu" }).click();
 
     const body = JSON.parse((await posted).postData() ?? "{}");
@@ -1279,14 +1530,6 @@ test.describe("Bệnh nhân", () => {
       "Dịch vụ đã chọn",
       "Nội dung điều trị",
     ]);
-    await expect(dialog.locator(".pd-stage-histhead > div")).toHaveText([
-      "Ngày",
-      "Dịch vụ & răng",
-      "Ghi chú",
-      "Công đoạn",
-      "Hành động",
-    ]);
-
     const historyBefore = await dialog.locator(".pd-stage-histrow").count();
 
     // Ngày tạo and Dịch vụ are read-outs, as the reference disables them.
@@ -1307,6 +1550,17 @@ test.describe("Bệnh nhân", () => {
     // "Nội dung điều trị" — the reference's column 3 is the stage's note.
     await expect(dialog.locator(".pd-stage-histrow")).toHaveCount(historyBefore + 1);
     await expect(dialog.locator(".pd-stage-note").filter({ hasText: note })).toHaveCount(1);
+
+    // Column heads read here, once there is history: the grid replaces itself
+    // with "Chưa có dữ liệu công đoạn" while the slip is empty, so asserting
+    // them earlier only passed on a database an earlier run had already dirtied.
+    await expect(dialog.locator(".pd-stage-histhead > div")).toHaveText([
+      "Ngày",
+      "Dịch vụ & răng",
+      "Ghi chú",
+      "Công đoạn",
+      "Hành động",
+    ]);
     await page.keyboard.press("Escape");
     await expect(dialog).toBeHidden();
     await expect(row.locator("td").nth(2)).toHaveText(new RegExp(note));
@@ -1471,9 +1725,7 @@ test.describe("Bệnh nhân", () => {
     await page.setViewportSize({ width: 1600, height: 900 });
     const line = await openPatientWithTreatment(page, "stageable");
 
-    const rowsFor = () =>
-      page.locator(`.pd-treatment-table tbody tr[data-row-key^="${line.serviceId}"]`);
-    const before = await rowsFor().count();
+    const before = await treatmentTotal(page);
 
     // Two more công đoạn on the same line, both today.
     await addStage(page, line, `e2e nhóm A ${runId()}`);
@@ -1482,9 +1734,13 @@ test.describe("Bệnh nhân", () => {
     await expect(page.locator(".pd-treatment-table tbody tr.ant-table-row").first()).toBeVisible({
       timeout: 20000,
     });
+    // A reload drops back to the default page size, so widen it again or the
+    // two new rows can sit on page 2.
+    await widenTreatmentTable(page);
 
-    // Each công đoạn is its own row — the reference's timeline is stage-shaped.
-    await expect(rowsFor()).toHaveCount(before + 2);
+    // Each công đoạn is its own row — the reference's timeline is stage-shaped —
+    // so two more công đoạn are two more rows, not one row that grew.
+    expect(await treatmentTotal(page), "two công đoạn, two rows").toBe(before + 2);
 
     // And the Ngày cell spans its day instead of repeating: today's rows carry
     // exactly one date cell between them.
@@ -1521,13 +1777,22 @@ test.describe("Bệnh nhân", () => {
     const rows = dialog.locator(".pd-stage-histrow");
     await expect(rows).not.toHaveCount(0);
 
-    // Exactly one row is live; the reference marks the rest aria-disabled.
-    await expect(dialog.locator('.pd-stage-histrow[aria-disabled="false"]')).toHaveCount(1);
-    await expect(dialog.locator('.pd-stage-histrow[aria-disabled="true"]')).not.toHaveCount(0);
+    // Exactly one row **of this line** is live; the reference marks the rest
+    // aria-disabled. Counted per line, not per dialog: a slip holds several
+    // service lines and each keeps its own newest công đoạn workable — two live
+    // rows were read straight off the reference on 2026-09-07.
+    await expect(liveHistRows(dialog, line.serviceId)).toHaveCount(1);
+    await expect(
+      dialog.locator(`.pd-stage-histrow[aria-disabled="true"][data-line-id="${line.serviceId}"]`),
+    ).not.toHaveCount(0);
 
     // Only that one keeps Tạo Labo, and only its Hoàn thành can be ticked.
-    await expect(dialog.getByRole("button", { name: "Tạo Labo" })).toHaveCount(1);
-    const stale = dialog.locator('.pd-stage-histrow[aria-disabled="true"]').first();
+    await expect(
+      liveHistRows(dialog, line.serviceId).getByRole("button", { name: "Tạo Labo" }),
+    ).toHaveCount(1);
+    const stale = dialog
+      .locator(`.pd-stage-histrow[aria-disabled="true"][data-line-id="${line.serviceId}"]`)
+      .first();
     await expect(stale.getByRole("checkbox")).toBeDisabled();
     await expect(stale).toHaveCSS("pointer-events", "none");
   });
@@ -1543,7 +1808,7 @@ test.describe("Bệnh nhân", () => {
     await page.reload();
 
     const dialog = await openStageDialog(page, line.serviceId);
-    const live = dialog.locator('.pd-stage-histrow[aria-disabled="false"]').first();
+    const live = liveHistRows(dialog, line.serviceId).first();
     await live.getByRole("button", { name: "Tạo Labo" }).click();
 
     const labo = page.getByRole("dialog", { name: "Đặt mới" });
@@ -1570,15 +1835,19 @@ test.describe("Bệnh nhân", () => {
     await expect(labo.locator(".pd-labo-teeth")).toContainText("Chọn tất cả");
     await expect(labo.locator(".pd-labo-drop")).toBeVisible();
 
-    // A floating label rests muted and only turns blue while its field has
-    // focus, the way the reference draws it — not blue the moment it floats.
+    // A floating label rests muted and only takes the accent while its field
+    // has focus, the way the reference draws it — not accented the moment it
+    // floats. The accent itself is the **app's** primary, not the reference's
+    // #2671D8: the project owner asked on 2026-09-07 that every accent inside
+    // these dialogs follow the clone's own brand, so a blue label beside an
+    // indigo Lưu button is the bug here.
     const noteField = labo.locator(".pd-labo-notes .floating-field");
     const noteLabel = noteField.locator(".floating-field-label");
     await labo.locator(".pd-labo-notes textarea").fill("x");
     const resting = await noteLabel.evaluate((el) => getComputedStyle(el).color);
     await labo.locator(".pd-labo-notes textarea").focus();
-    await expect(noteLabel).toHaveCSS("color", "rgb(38, 113, 216)");
-    expect(resting, "a floating label rests muted, not blue").not.toBe("rgb(38, 113, 216)");
+    await expect(noteLabel).toHaveCSS("color", APP_PRIMARY);
+    expect(resting, "a floating label rests muted, not accented").not.toBe(APP_PRIMARY);
 
     // Tải ảnh takes several pictures and holds them as drafts, each with its
     // own remove.
@@ -1598,6 +1867,40 @@ test.describe("Bệnh nhân", () => {
     await expect(drafts).toHaveCount(1);
   });
 
+  test("the công đoạn form lists the pictures it is holding, not just a count", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1700, height: 950 });
+    const { serviceId } = await openPatientWithTreatment(page, "stageable");
+
+    const dialog = await openStageDialog(page, serviceId);
+    await dialog.locator(".pd-stage-picks button").first().click();
+    const form = dialog.locator(".pd-stage-form");
+    await expect(form.locator(".pd-stage-images")).toContainText("(Trống)");
+
+    // The pictures are chosen before the công đoạn exists and attached once it
+    // is saved, so the form has to show which ones it is holding — a count
+    // alone cannot tell you that the wrong file went in.
+    const png = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAJUlEQVR42u3OMQEAAAgDoJnc6BpjDwmg2XCqAAAAAAAAAAAA4LcFvxYBAWfnQVUAAAAASUVORK5CYII=",
+      "base64",
+    );
+    await dialog.locator("input[type=file]").setInputFiles([
+      { name: "stage-a.png", mimeType: "image/png", buffer: png },
+      { name: "stage-b.png", mimeType: "image/png", buffer: png },
+    ]);
+
+    const shots = form.locator(".pd-stage-shots > div");
+    await expect(shots).toHaveCount(2);
+    await expect(shots.first().locator("img")).toBeVisible();
+    await expect(form.locator(".pd-stage-images")).toContainText("2 ảnh đã chọn");
+
+    // Each has its own remove, and the count follows it down.
+    await shots.first().getByRole("button").click();
+    await expect(shots).toHaveCount(1);
+    await expect(form.locator(".pd-stage-images")).toContainText("1 ảnh đã chọn");
+  });
+
   test("finishing a công đoạn swaps its action for Bảo hành, inside and out", async ({ page }) => {
     await page.setViewportSize({ width: 1600, height: 900 });
     const line = await openPatientWithTreatment(page, "warrantable");
@@ -1605,13 +1908,13 @@ test.describe("Bệnh nhân", () => {
     await page.reload();
 
     const dialog = await openStageDialog(page, line.serviceId);
-    const before = dialog.locator('.pd-stage-histrow[aria-disabled="false"]').first();
+    const before = liveHistRows(dialog, line.serviceId).first();
 
     // Before: the live row offers Tạo Labo and no Bảo hành.
     await expect(before.getByRole("button", { name: "Tạo Labo" })).toBeVisible();
     await expect(before.getByRole("button", { name: "Bảo hành" })).toHaveCount(0);
 
-    const live = await finishLiveStage(page, dialog);
+    const live = await finishLiveStage(page, dialog, line.serviceId);
 
     // After: Tạo Labo gives way to Bảo hành on that same row.
     await expect(live.getByRole("button", { name: "Bảo hành" })).toBeVisible();
@@ -1641,6 +1944,155 @@ test.describe("Bệnh nhân", () => {
     await expect(page.getByRole("dialog", { name: "Tạo bảo hành" })).toBeVisible();
   });
 
+  test("Hoàn thành un-ticks again, and the line follows it back", async ({ page }) => {
+    await page.setViewportSize({ width: 1600, height: 900 });
+    const line = await openPatientWithTreatment(page, "warrantable");
+    await addStage(page, line, `e2e mở lại ${runId()}`);
+    await page.reload();
+
+    const dialog = await openStageDialog(page, line.serviceId);
+    const live = await finishLiveStage(page, dialog, line.serviceId);
+    const box = live.getByRole("checkbox");
+
+    // The reference keeps a `revert-status` beside its `status`, so closing a
+    // công đoạn is not final: the box stays tickable both ways.
+    await expect(box).toBeChecked();
+    await expect(box, "a closed công đoạn can still be re-opened").toBeEnabled();
+
+    const reverted = page.waitForResponse(
+      (res) =>
+        res.url().includes("/api/v1/app/treatment-stages/") &&
+        res.url().includes("/revert-status") &&
+        res.request().method() === "POST",
+    );
+    await box.click({ force: true });
+    expect((await reverted).ok(), "revert-status should be accepted").toBeTruthy();
+
+    // Open again: the box clears and Tạo Labo comes back in place of Bảo hành.
+    await expect(box).not.toBeChecked();
+    await expect(live.getByRole("button", { name: "Tạo Labo" })).toBeVisible();
+    await expect(live.getByRole("button", { name: "Bảo hành" })).toHaveCount(0);
+
+    // And the row outside follows: the Công đoạn cell is a green + once more,
+    // which only happens when the service line left Hoàn thành too.
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+    await page.reload();
+    await page.locator(".pd-treatment-table .ant-table-content").evaluate((el) => {
+      el.scrollLeft = el.scrollWidth;
+    });
+    await expect(
+      treatmentRow(page, line.serviceId).locator(".pd-tr-addstage"),
+    ).toBeVisible();
+  });
+
+  test("a tái khám picks its teeth, lists its images, and lands as its own row", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1800, height: 950 });
+    const line = await openPatientWithTreatment(page, "warrantable");
+    await addStage(page, line, `e2e tái khám ${runId()}`);
+    await page.reload();
+
+    // Finish it — a follow-up is only offered on a closed công đoạn.
+    const dialog = await openStageDialog(page, line.serviceId);
+    await finishLiveStage(page, dialog, line.serviceId);
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+    await page.reload();
+    await page.locator(".pd-treatment-table tbody tr.ant-table-row").first().waitFor();
+    await widenTreatmentTable(page);
+    // The table's own total, not the rows on screen: a full page cannot show a
+    // row being added.
+    const rowsBefore = await treatmentTotal(page);
+
+    await page.getByRole("button", { name: "Tạo Tái khám" }).click();
+    await page
+      .locator(".pd-recall-dialog .pd-recall-row")
+      .first()
+      .getByRole("button", { name: "Tái Khám" })
+      .click();
+
+    const form = page.locator(".pd-recall-form-dialog");
+    await form.locator(".pd-stage-teeth").waitFor({ state: "visible" });
+
+    // The teeth are the source công đoạn's, offered as toggles with none
+    // ticked: a follow-up is only for the teeth being seen again, which is why
+    // the reference keeps `content` and `selectedContent` apart.
+    const chips = form.locator(".pd-stage-teeth > div > button");
+    await expect(chips.first()).toHaveAttribute("aria-pressed", "false");
+
+    // Pressing Lưu with nothing chosen reports **under each field**, not in a
+    // toast: a toast does not say which of the inputs it meant, and it is gone
+    // by the time you look away from it.
+    await form.locator(".ant-modal-footer").getByRole("button", { name: "Lưu" }).click();
+    const messages = form.locator(".pd-stage-error");
+    await expect(messages).toHaveCount(2);
+    await expect(messages.filter({ hasText: "Vui lòng chọn răng" })).toBeVisible();
+    await expect(messages.filter({ hasText: "Vui lòng nhập nội dung điều trị" })).toBeVisible();
+    // Both at once, so the user is not made to press Lưu once per empty field.
+    await expect(page.locator(".sonner-toast, [data-sonner-toast]")).toHaveCount(0);
+    await chips.first().click();
+    await expect(chips.first()).toHaveAttribute("aria-pressed", "true");
+    // A picked tooth takes the app's primary, like every other accent in here.
+    await expect(chips.first()).toHaveCSS("background-color", APP_PRIMARY);
+    // And picking one clears that field's message, leaving the other standing.
+    await expect(messages.filter({ hasText: "Vui lòng chọn răng" })).toHaveCount(0);
+    await expect(messages.filter({ hasText: "Vui lòng nhập nội dung điều trị" })).toBeVisible();
+
+    // Chosen pictures list as thumbnails, each with its own remove.
+    const png = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAJUlEQVR42u3OMQEAAAgDoJnc6BpjDwmg2XCqAAAAAAAAAAAA4LcFvxYBAWfnQVUAAAAASUVORK5CYII=",
+      "base64",
+    );
+    await form.locator("input[type=file]").setInputFiles([
+      { name: "rex-a.png", mimeType: "image/png", buffer: png },
+      { name: "rex-b.png", mimeType: "image/png", buffer: png },
+    ]);
+    const shots = form.locator(".pd-stage-shots > div");
+    await expect(shots).toHaveCount(2);
+    await expect(form.locator(".pd-stage-images")).toContainText("2 ảnh");
+    await shots.first().getByRole("button").click();
+    await expect(shots).toHaveCount(1);
+
+    await form.locator("textarea").first().fill(`e2e tái khám ${runId()}`);
+
+    // It is its own resource, not another công đoạn.
+    const saved = page.waitForResponse(
+      (res) =>
+        res.url().includes("/api/v1/app/patient-re-examinations") &&
+        res.request().method() === "POST",
+    );
+    await form.locator(".ant-modal-footer").getByRole("button", { name: "Lưu" }).click();
+    const created = await saved;
+    expect(created.ok(), "the follow-up should be accepted").toBeTruthy();
+    expect((await created.json()).code, "a REX code of its own").toMatch(/^REX\d+$/);
+
+    // And the table gains a row of its own — not a công đoạn: the reference
+    // leaves its Công đoạn and Chăm sóc cells empty and drops the Phụ tá line.
+    await page.reload();
+    await page.locator(".pd-treatment-table tbody tr.ant-table-row").first().waitFor();
+    await widenTreatmentTable(page);
+    expect(await treatmentTotal(page), "the table should have gained exactly one row").toBe(
+      rowsBefore + 1,
+    );
+
+    const recall = page
+      .locator('.pd-treatment-table tbody tr.ant-table-row:has(.pd-tr-chip--recall)')
+      .first();
+    await expect(recall).toBeVisible();
+    await expect(recall.locator(".pd-tr-code")).toContainText("REX");
+    const chip = recall.locator(".pd-tr-chip--recall");
+    await expect(chip).toHaveText("Tái khám");
+    // Grey, not the primary: the reference makes this a label, not a status, and
+    // lets the row's REX code carry the colour.
+    await expect(chip).toHaveCSS("background-color", CHIP_GREY);
+    await expect(recall.locator(".pd-tr-addstage")).toHaveCount(0);
+    await expect(recall.locator(".pd-tr-warranty")).toHaveCount(0);
+    await expect(recall.locator(".pd-tr-care")).toHaveCount(0);
+    await expect(recall.locator(".pd-tr-sub")).toHaveCount(0);
+  });
+
   test("finishing one công đoạn leaves the others open", async ({ page }) => {
     await page.setViewportSize({ width: 1600, height: 900 });
     const line = await openPatientWithTreatment(page, "warrantable");
@@ -1659,7 +2111,7 @@ test.describe("Bệnh nhân", () => {
 
     // Finish only the newest.
     const dialog = await openStageDialog(page, line.serviceId);
-    const live = await finishLiveStage(page, dialog);
+    const live = await finishLiveStage(page, dialog, line.serviceId);
     await expect(live.getByRole("button", { name: "Bảo hành" })).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(dialog).toBeHidden();
@@ -1685,7 +2137,7 @@ test.describe("Bệnh nhân", () => {
     await page.reload();
 
     const dialog = await openStageDialog(page, line.serviceId);
-    await finishLiveStage(page, dialog);
+    await finishLiveStage(page, dialog, line.serviceId);
     await expect(dialog.getByRole("button", { name: "Bảo hành" }).first()).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(dialog).toBeHidden();
@@ -1714,23 +2166,85 @@ test.describe("Bệnh nhân", () => {
     await page.goto("/patient");
     await assertRealApiTraffic(page, "/api/v1/app/patients");
 
+    // The stepper belongs to whichever booking the *card* shows, so a patient
+    // holding exactly one live booking is what this needs — and it is **built**
+    // rather than looked for. Walking the stepper checks that booking in, so
+    // every run consumed one: hunting for a not-yet-arrived booking passed for
+    // a while and then ran the demo clinic dry.
     const booked = await page.evaluate(async () => {
-      const res = await fetch("/api/v1/app/appointments?maxResultCount=100", {
-        credentials: "include",
-      });
-      const items = (await res.json()).items as { patientId: string; status: number }[];
-      // 1 = Requested, 2 = Confirmed — everything before Đã đến, which is where
-      // the card's stepper starts.
-      return items.find((item) => item.status === 1 || item.status === 2)?.patientId ?? null;
-    });
-    test.skip(booked === null, "the demo clinic has no appointment yet to arrive");
+      interface Row {
+        patientId: string;
+        dentistId: string;
+        branchId: string;
+        slotStart: string;
+        slotEnd: string;
+        status: number;
+      }
+      const load = async (query: string) =>
+        ((await (await fetch(query, { credentials: "include" })).json()).items ?? []) as Row[];
 
-    await page.goto(`/patient/${booked!}`);
+      const all = await load("/api/v1/app/appointments?maxResultCount=1000");
+      const live = (row: Row) => row.status !== 6 && row.status !== 7;
+      const branchId = all.find((row) => row.branchId)?.branchId;
+      if (!branchId) return null;
+
+      // A slot far enough out that no seeded booking reaches it, so neither the
+      // dentist nor the patient guard can trip.
+      const start = new Date();
+      start.setUTCDate(start.getUTCDate() + 120);
+      start.setUTCHours(3, 0, 0, 0);
+      const end = new Date(start.getTime() + 30 * 60 * 1000);
+      const overlaps = (row: Row) =>
+        new Date(row.slotStart) < end && new Date(row.slotEnd) > start;
+
+      const busy = new Set(all.filter((row) => live(row) && overlaps(row)).map((r) => r.dentistId));
+      const withLiveBooking = new Set(all.filter(live).map((row) => row.patientId));
+
+      const patients = (
+        await (
+          await fetch(`/api/v1/app/patients?MaxResultCount=200&ClinicBranchId=${branchId}`, {
+            credentials: "include",
+          })
+        ).json()
+      ).items as { id: string }[];
+      const free = patients.find((p) => !withLiveBooking.has(p.id));
+      if (!free) return null;
+
+      const staff = (
+        await (
+          await fetch("/api/v1/app/staff?MaxResultCount=200", { credentials: "include" })
+        ).json()
+      ).items as { id: string }[];
+      const dentist = staff.find((row) => !busy.has(row.id));
+      if (!dentist) return null;
+
+      const res = await fetch("/api/v1/app/appointments", {
+        method: "POST",
+        credentials: "include",
+        // The branch rides on this header, not in the body — see src/lib/axios.ts.
+        headers: { "Content-Type": "application/json", "X-Clinic-Branch-Id": branchId },
+        body: JSON.stringify({
+          patientId: free.id,
+          dentistId: dentist.id,
+          branchId,
+          slotStart: start.toISOString(),
+          slotEnd: end.toISOString(),
+          type: 2,
+          chiefComplaint: "e2e tiếp nhận",
+        }),
+      });
+      if (!res.ok) return null;
+
+      return { patientId: free.id, branchId };
+    });
+    expect(
+      booked,
+      "the test should be able to book a fresh appointment for a patient who has none",
+    ).toBeTruthy();
+
+    await page.goto(`/patient/${booked!.patientId}?branchId=${booked!.branchId}`);
     const steps = page.locator(".pd-appt-steps button");
     await expect(steps).toHaveCount(3);
-    // The card shows the patient's *upcoming* booking, which may not be the one
-    // the search found — if it has already arrived there is nothing to walk.
-    test.skip(!(await steps.nth(0).isEnabled()), "that patient's next booking has already arrived");
 
     // Only the next step can be pressed — the reference disables the rest so a
     // reception cannot skip ahead.
@@ -1753,6 +2267,36 @@ test.describe("Bệnh nhân", () => {
     await page.reload();
     await expect(page.locator(".pd-appt-steps li").first()).toHaveClass(/reached/);
     await expect(page.locator(".pd-appt-steps button").nth(1)).toBeEnabled();
+
+    // --- and the walk runs all the way to Hoàn tất ---
+    // `complete` binds a body where check-in and start take none, so step three
+    // used to answer 400 and could never be pressed at all.
+    for (const [index, route] of [
+      [1, "/start"],
+      [2, "/complete"],
+    ] as const) {
+      const step = page.locator(".pd-appt-steps button").nth(index);
+      await expect(step, `step ${index + 1} should be pressable`).toBeEnabled();
+      const answered = page.waitForResponse(
+        (res) => res.url().includes(route) && res.request().method() === "POST",
+      );
+      await step.click();
+      expect((await answered).ok(), `POST ${route} should be accepted`).toBeTruthy();
+      await expect(page.locator(".pd-appt-steps li").nth(index)).toHaveClass(/reached/);
+    }
+
+    // Three steps, three colours — the reference gives each its own rather than
+    // repeating one tint. Read after the fill transition settles.
+    await expect(page.locator(".pd-appt-steps li.reached")).toHaveCount(3);
+    await expect
+      .poll(async () =>
+        new Set(
+          await page
+            .locator(".pd-appt-steps .pd-appt-step-dot")
+            .evaluateAll((dots) => dots.map((d) => getComputedStyle(d).backgroundColor)),
+        ).size,
+      )
+      .toBe(3);
   });
 
   test("a finished công đoạn on a service with no warranty offers nothing", async ({ page }) => {
@@ -1777,14 +2321,20 @@ test.describe("Bệnh nhân", () => {
       }
       return null;
     });
-    test.skip(line === null, "the demo clinic has no warranty-less service line");
+    // Asserted, not skipped: the seeder leaves three services with no warranty
+    // period on purpose (R-224). If every one of them has been driven to Done,
+    // that is a fixture worth fixing, not a test worth passing quietly.
+    expect(
+      line,
+      "the demo clinic should have a still-open service line with no warranty period",
+    ).toBeTruthy();
 
     await page.goto(`/patient/${line!.patientId}`);
-    await addStage(page, line!, `e2e không bảo hành ${runId()}`);
+    const stageId = await addStage(page, line!, `e2e không bảo hành ${runId()}`);
     await page.reload();
 
     const dialog = await openStageDialog(page, line!.serviceId);
-    const live = await finishLiveStage(page, dialog);
+    const live = await finishLiveStage(page, dialog, line!.serviceId);
     // No warranty period, so the finished row offers neither Tạo Labo nor Bảo hành.
     await expect(live.getByRole("button", { name: "Bảo hành" })).toHaveCount(0);
     await expect(live.getByRole("button", { name: "Tạo Labo" })).toHaveCount(0);
@@ -1795,12 +2345,15 @@ test.describe("Bệnh nhân", () => {
     await expect(page.locator(".pd-treatment-table tbody tr.ant-table-row").first()).toBeVisible({
       timeout: 20000,
     });
+    await widenTreatmentTable(page);
     await page.locator(".pd-treatment-table .ant-table-content").evaluate((el) => {
       el.scrollLeft = el.scrollWidth;
     });
 
     // Outside, the chip is grey and inert — the reference's "Không bảo hành".
-    const row = treatmentRow(page, line!.serviceId);
+    // Read on the row of the công đoạn just finished; the line's older rows are
+    // still open and rightly keep their +.
+    const row = await findStageRow(page, line!.serviceId, stageId);
     await expect(row.locator(".pd-tr-nostage")).toBeVisible();
     await expect(row.locator(".pd-tr-addstage, .pd-tr-warranty")).toHaveCount(0);
   });
@@ -1828,15 +2381,76 @@ test.describe("Bệnh nhân", () => {
     await page.goto("/patient");
     await assertRealApiTraffic(page, "/api/v1/app/patients");
 
-    // A record with an appointment — the picker only exists when the card has one.
+    // A record whose card appointment can actually be moved, plus the names it
+    // may be moved to. Two server guards stand in the way, and the demo clinic
+    // trips both, so the record is chosen rather than taken first:
+    //
+    //   0002 the target dentist is already booked in that slot
+    //   0006 the *patient* already has another booking in that slot
+    //
+    // 0006 is the awkward one: the seeder gives some patients several bookings
+    // on the same slot, and no doctor change on those can ever be accepted, so
+    // the search wants a patient holding exactly **one** live booking. That
+    // also settles which appointment the card shows without having to re-run
+    // PatientProfileTab's newest-first tie-breaking.
     const found = await page.evaluate(async () => {
-      const res = await fetch("/api/v1/app/appointments?maxResultCount=20", {
-        credentials: "include",
-      });
-      const items = (await res.json()).items as { patientId: string; dentistId: string }[];
-      return items.find((item) => item.patientId) ?? null;
+      interface Row {
+        id: string;
+        patientId: string;
+        dentistId: string;
+        slotStart: string;
+        slotEnd: string;
+        status: number;
+      }
+      const load = async (query: string) =>
+        ((await (await fetch(query, { credentials: "include" })).json()).items ?? []) as Row[];
+
+      const all = await load("/api/v1/app/appointments?maxResultCount=1000");
+      const live = (item: Row) => item.status !== 6 && item.status !== 7;
+
+      const byPatient = new Map<string, Row[]>();
+      for (const item of all.filter((row) => row.patientId && live(row))) {
+        const held = byPatient.get(item.patientId);
+        if (held) held.push(item);
+        else byPatient.set(item.patientId, [item]);
+      }
+
+      const staff = (
+        await (
+          await fetch("/api/v1/app/staff?MaxResultCount=200", { credentials: "include" })
+        ).json()
+      ).items as { id: string; name: string | null; surname: string | null; userName: string }[];
+
+      for (const [patientId, held] of byPatient) {
+        if (held.length !== 1) continue;
+        const shown = held[0];
+
+        const busy = new Set(
+          all
+            .filter(
+              (item) =>
+                item.id !== shown.id &&
+                live(item) &&
+                item.slotStart < shown.slotEnd &&
+                item.slotEnd > shown.slotStart,
+            )
+            .map((item) => item.dentistId),
+        );
+
+        // The picker labels staff the way useStaffOptions does, so the same
+        // join maps a free doctor back to the row to click.
+        const free = staff
+          .filter((row) => row.id !== shown.dentistId && !busy.has(row.id))
+          .map((row) => [row.surname, row.name].filter(Boolean).join(" ").trim() || row.userName);
+
+        if (free.length > 0) return { patientId, free };
+      }
+      return null;
     });
-    expect(found, "the demo clinic should have a booked appointment").toBeTruthy();
+    expect(
+      found,
+      "the demo clinic should have a patient holding exactly one live booking with a free doctor to move it to",
+    ).toBeTruthy();
 
     await page.goto(`/patient/${found!.patientId}`);
     const picker = page.locator(".pd-appt-doctor-picker");
@@ -1851,10 +2465,13 @@ test.describe("Bệnh nhân", () => {
     // can be blank, and hasNotText("") excludes every option. Picking the row
     // that is already selected would save nothing and the PUT would never fire.
     const labels = (await options.allInnerTexts()).map((text) => text.trim());
-    const index = labels.findIndex((label) => label !== before && label.length > 0);
-    expect(index, "the clinic should have a second dentist to move the booking to").toBeGreaterThan(
-      -1,
+    const index = labels.findIndex(
+      (label) => label !== before && label.length > 0 && found!.free.includes(label),
     );
+    expect(
+      index,
+      "the clinic should have a second dentist free in that slot to move the booking to",
+    ).toBeGreaterThan(-1);
     const other = options.nth(index);
     const chosen = labels[index];
 

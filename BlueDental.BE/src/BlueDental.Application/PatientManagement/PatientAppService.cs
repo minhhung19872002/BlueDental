@@ -362,7 +362,12 @@ public class PatientAppService : ApplicationService, IPatientAppService
 
         var patientIds = patients.Select(p => p.Id).ToHashSet();
 
-        var planQuery = await _planRepository.GetQueryableAsync();
+        // WithDetails, not GetQueryable: every column the rollup builds off a
+        // slip — Dịch vụ, Bác sĩ, Số tiền, Thực thu, Công nợ — reads
+        // `plan.Services`, and a bare queryable leaves that navigation empty, so
+        // the row came back as "Chưa phát sinh" with an em dash and a zero for a
+        // patient who plainly had a slip.
+        var planQuery = await _planRepository.WithDetailsAsync(p => p.Services);
         var plansByPatient = planQuery
             .Where(p => p.BranchId == branchId && patientIds.Contains(p.PatientId))
             .ToList()

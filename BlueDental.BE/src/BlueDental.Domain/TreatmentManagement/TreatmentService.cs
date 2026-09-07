@@ -194,6 +194,30 @@ public class TreatmentService : FullAuditedEntity<Guid>
         return this;
     }
 
+    /// <summary>
+    /// Puts a finished line back to work — the counterpart of <see cref="Complete"/>,
+    /// for when one of its công đoạn is re-opened.
+    ///
+    /// Cancelled and replaced lines stay closed: those are decisions about the
+    /// line itself, not statements about how far the work got.
+    /// </summary>
+    public TreatmentService Reopen()
+    {
+        if (Status is TreatmentServiceStatus.Cancelled or TreatmentServiceStatus.Replaced)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.InvalidPlanTransition,
+                $"A service line in status {Status} is closed.");
+        }
+
+        if (Status == TreatmentServiceStatus.Done)
+        {
+            Status = TreatmentServiceStatus.InProgress;
+        }
+
+        return this;
+    }
+
     public TreatmentService Cancel()
     {
         if (Status == TreatmentServiceStatus.Done)

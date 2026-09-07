@@ -78,6 +78,46 @@ public class TreatmentStageTests
     }
 
     [Fact]
+    public void A_completed_step_can_be_re_opened()
+    {
+        // The reference un-ticks its Hoàn thành box through revert-status, so
+        // completion is not final.
+        var stage = CreateStage();
+        stage.Complete();
+
+        stage.Revert();
+
+        stage.Status.ShouldBe(TreatmentStageStatus.InProgress);
+        stage.CompletedAt.ShouldBeNull();
+        // The visit still happened, so the start is left standing.
+        stage.StartedAt.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void Re_opening_a_step_that_was_never_finished_is_refused()
+    {
+        var stage = CreateStage();
+
+        Should.Throw<BusinessException>(() => stage.Revert())
+            .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.InvalidStageTransition);
+
+        stage.Status.ShouldBe(TreatmentStageStatus.Pending);
+    }
+
+    [Fact]
+    public void A_re_opened_step_can_be_finished_again()
+    {
+        var stage = CreateStage();
+        stage.Complete();
+        stage.Revert();
+
+        stage.Complete();
+
+        stage.Status.ShouldBe(TreatmentStageStatus.Completed);
+        stage.CompletedAt.ShouldNotBeNull();
+    }
+
+    [Fact]
     public void A_service_that_requires_an_image_refuses_completion_without_one()
     {
         var stage = CreateStage(isImageRequired: true);
@@ -196,5 +236,19 @@ public class TreatmentStageTests
         stage.Note.ShouldBe("Ghi chú mới");
         stage.SecondStaffId.ShouldBeNull();
         stage.SubStaffId.ShouldBeNull();
+    }
+
+    [Fact]
+    public void A_stage_records_that_a_follow_up_was_raised_from_it()
+    {
+        // The reference flips hasReExamination on the source công đoạn; the
+        // follow-up itself lives in its own row.
+        var stage = CreateStage();
+        stage.HasReExamination.ShouldBeFalse();
+
+        stage.MarkReExamined();
+        stage.MarkReExamined();
+
+        stage.HasReExamination.ShouldBeTrue();
     }
 }

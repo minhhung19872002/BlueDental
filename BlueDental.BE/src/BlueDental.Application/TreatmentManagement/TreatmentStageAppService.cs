@@ -186,6 +186,23 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         return MapToDto(stage, await BuildLookupsAsync([stage]));
     }
 
+    /// <summary>
+    /// Un-ticks Hoàn thành — the reference's <c>revert-status</c>. Gated by the
+    /// same ability as completing it: the reference's own ability list for
+    /// <c>treatmentStage</c> is read/create/update/continue/complete/print, with
+    /// no separate one for the revert.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Complete)]
+    public async Task<TreatmentStageDto> RevertAsync(Guid id)
+    {
+        var stage = await LoadAsync(id);
+        stage.Revert();
+        await _repository.UpdateAsync(stage, autoSave: true);
+
+        await MoveServiceLineAsync(stage);
+        return MapToDto(stage, await BuildLookupsAsync([stage]));
+    }
+
     [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Update)]
     public async Task<TreatmentStageDto> AttachImageAsync(Guid id, AttachStageImageDto input)
     {
@@ -203,8 +220,12 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
     }
 
     /// <summary>
-    /// Keeps the service line in step with its công đoạn: the line starts as soon as
-    /// any stage is under way, and finishes only once every stage of that line has.
+    /// Keeps the service line in step with its công đoạn: the line finishes once
+    /// every stage of that line has, and goes back to work as soon as one of them
+    /// is re-opened.
+    ///
+    /// Derived from the siblings rather than from the move that was just made, so
+    /// completing and reverting both land on the same answer.
     ///
     /// ASSUMED — the reference shows a per-line "Trạng thái - Tiến độ" but never
     /// revealed what advances it.
@@ -220,23 +241,34 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         var plan = query.FirstOrDefault(x => x.Id == stage.TreatmentId.Value);
 
         var line = plan?.Services.FirstOrDefault(s => s.Id == stage.TreatmentServiceId);
-        if (plan == null || line == null || line.Status == TreatmentServiceStatus.Cancelled)
+
+        // Cancelled and replaced lines are closed by a decision about the line,
+        // which its stages do not get to overturn.
+        if (plan == null
+            || line == null
+            || line.Status is TreatmentServiceStatus.Cancelled or TreatmentServiceStatus.Replaced)
         {
             return;
         }
 
         var stageQuery = await _repository.GetQueryableAsync();
         var siblings = stageQuery.Where(x => x.TreatmentServiceId == line.Id).ToList();
+        var allDone = siblings.Count > 0
+            && siblings.TrueForAll(x => x.Status == TreatmentStageStatus.Completed);
 
-        if (line.Status == TreatmentServiceStatus.Done)
+        if (allDone)
         {
-            return;
-        }
+            if (!line.IsCompleted)
+            {
+                line.Complete();
+            }
 
-        if (siblings.Count > 0 && siblings.TrueForAll(x => x.Status == TreatmentStageStatus.Completed))
-        {
-            line.Complete();
             plan.CloseIfAllServicesDone();
+        }
+        else if (line.IsCompleted)
+        {
+            line.Reopen();
+            plan.ReopenIfAnyServiceActive();
         }
         else
         {
@@ -353,6 +385,7 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         Status = entity.Status,
         IsImageRequired = entity.IsImageRequired,
         IsGuarantee = entity.IsGuarantee,
+        HasReExamination = entity.HasReExamination,
         StartedAt = entity.StartedAt,
         CompletedAt = entity.CompletedAt,
         Teeth = PatientDiagnosisAppService.ToToothDtos(entity.Teeth),

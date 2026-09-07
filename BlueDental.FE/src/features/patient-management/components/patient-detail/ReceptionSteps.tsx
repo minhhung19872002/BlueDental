@@ -22,6 +22,25 @@ function reachedUpTo(statusCode: number): number {
 
 const LABELS = ["Đã đến", "Đang khám", "Hoàn tất"] as const;
 
+/** The tick a reached step wears in place of its number. */
+function CheckIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  );
+}
+
 /**
  * Tiếp nhận — Đã đến → Đang khám → Hoàn tất.
  *
@@ -29,6 +48,12 @@ const LABELS = ["Đã đến", "Đang khám", "Hoàn tất"] as const;
  * pressed: the other two are disabled, so the appointment cannot skip a step or
  * walk backwards. Pressing one stamps its time, which is why a step that has
  * not been reached reads "--:--".
+ *
+ * The three steps carry three **different** colours once reached — blue, amber,
+ * green — and the rail leading into a step takes that step's colour, so the row
+ * reads as progress rather than as one repeated tint. Each step renders both
+ * halves of its rail, with the outer edges hidden, exactly as the reference
+ * builds it.
  */
 export function ReceptionSteps({ appointment, onAdvanced }: Props) {
   const [busy, setBusy] = useState(false);
@@ -43,7 +68,18 @@ export function ReceptionSteps({ appointment, onAdvanced }: Props) {
   const advance = async (index: number) => {
     setBusy(true);
     try {
-      await api.post(`/v1/app/appointments/${appointment.id}/${RECEPTION_FLOW[index]}`);
+      const step = RECEPTION_FLOW[index];
+      /*
+       * `complete` binds a body — [FromBody] CompleteAppointmentDto — while
+       * check-in and start take none. Posting nothing left step three failing
+       * model binding, which is why Hoàn tất could never be pressed. The note is
+       * sent back as it stands because Appointment.Complete assigns Notes
+       * unconditionally, so omitting it would erase the appointment's note.
+       */
+      await api.post(
+        `/v1/app/appointments/${appointment.id}/${step}`,
+        step === "complete" ? { notes: appointment.notes ?? null } : undefined,
+      );
       toast.success(t("Đã cập nhật tiếp nhận"));
       onAdvanced();
     } catch (error) {
@@ -61,14 +97,18 @@ export function ReceptionSteps({ appointment, onAdvanced }: Props) {
         const next = reached === index;
 
         return (
-          <li key={label} className={done ? "reached" : undefined}>
+          <li key={label} data-step={index + 1} className={done ? "reached" : undefined}>
             <button
               type="button"
               disabled={!next || busy}
               aria-current={next ? "step" : undefined}
               onClick={() => void advance(index)}
             >
-              <span className="pd-appt-step-dot">{index + 1}</span>
+              <span className="pd-appt-step-rail">
+                <i className="pd-appt-step-rail-in" />
+                <span className="pd-appt-step-dot">{done ? <CheckIcon /> : index + 1}</span>
+                <i className="pd-appt-step-rail-out" />
+              </span>
               <span className="pd-appt-step-label">{t(label)}</span>
               <span className="pd-appt-step-time">
                 {stamps[index] ? formatClock(stamps[index]) : "--:--"}
