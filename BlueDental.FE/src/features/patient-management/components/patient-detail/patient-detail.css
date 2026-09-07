@@ -430,6 +430,8 @@
 .pd-money strong,
 .pd-money small {
   display: block;
+}
+.pd-money strong {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
