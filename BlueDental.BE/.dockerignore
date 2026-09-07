@@ -1,0 +1,13 @@
+# The Dockerfile restores inside the image and then does `COPY . .`, so any
+# bin/obj lying around in the build context lands on top of that restore. The
+# server had a project.assets.json from August left behind by an early build,
+# which is how `docker compose build migrator` started failing to find a
+# package that the csproj clearly references.
+**/bin/
+**/obj/
+**/.vs/
+**/Logs/
+**/*.user
+
+# Never bake developer secrets into an image.
+**/appsettings.secrets.json
