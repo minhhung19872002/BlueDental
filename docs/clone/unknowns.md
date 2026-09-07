@@ -1320,7 +1320,9 @@ Reason: Both leave the tab (print sheet / `/treatment-plan/{planId}` detail
   detail page to be a later round.
 Action taken: NONE
 BlueDental: the button renders and does nothing; the code is link-styled and
-  does not navigate.
+  does not navigate. The items in the two summary cards open the same detail
+  page on staging (clicked 2026-09-07, `/patient/{id}/treatment-plan/{planId}`),
+  so they keep the pointer cursor and hover tint without navigating.
 
 UNKNOWN_REFERENCE_BEHAVIOR
 

@@ -722,13 +722,26 @@ slips; captures in `reference-private/treatment-plan-tab/`)
 
 ### Summary widgets (2 cards above table)
 
-Each card: tinted round icon chip, UPPERCASE title, detail line, and the count
-as a red round badge on the far right.
+Each card: tinted round icon chip, UPPERCASE title, a 2-column grid of items
+(`grid grid-cols-2 content-start gap-2`), and the count as a red round badge on
+the far right.
 
-- **DỊCH VỤ ĐANG ĐIỀU TRỊ** — service name · slip code · date of the lines in
-  treatment; badge = count.
-- **DỊCH VỤ CÓ CÔNG ĐOẠN GẦN NHẤT** — service name · slip code · latest stage
-  note, or an empty line.
+Item (measured on staging 2026-09-07, both cards share it): flex row,
+`items-center gap-2`, `rounded-lg` (8px), `border #DCE3EE`, `px-3 py-2`,
+57.5px tall, `cursor-pointer`, hover `bg #F6F8FB`. Text block `min-w-0 flex-1`
+then a lucide `chevron-right` 16px in `text-label` (#5A6B82).
+
+- line 1: service name, 13px / 600 / #1B2A41, single line, ellipsis.
+- line 2 (`mt-0.5 flex items-center gap-1.5`, 12px):
+  - **DỊCH VỤ ĐANG ĐIỀU TRỊ** — slip code 500 blue, then the slip date in
+    11px `text-label`; badge = count of lines in treatment.
+  - **DỊCH VỤ CÓ CÔNG ĐOẠN GẦN NHẤT** — slip code 600 blue (`hover:underline`),
+    then the latest stage note, ellipsised.
+
+Clicking an item navigates to
+`/patient/:id/treatment-plan/:planId` (the plan-detail page — deferred, see
+unknowns), so BlueDental keeps the pointer cursor and the hover tint but no
+navigation, the same treatment as the DT code link.
 
 `/patient-treatments/summary` answered `{ active: [], recent: [] }` on every
 surveyed record, so BlueDental derives both cards from the slip list (see
