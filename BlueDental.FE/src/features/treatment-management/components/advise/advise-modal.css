@@ -1,0 +1,380 @@
+/*
+ * "Chọn Dịch Vụ" — the dialog behind Tạo dịch vụ on a diagnosis slip.
+ * Sits on the .tp-dialog chrome (treatment-plan.css); everything primary goes
+ * through --tp-accent so the dialog wears this app's colour, not staging's.
+ */
+
+.am-dialog .ant-modal-content {
+  box-shadow: rgba(0, 0, 0, 0.2) 0 20px 60px;
+}
+.am-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+.am-chip {
+  display: inline-flex;
+  height: 32px;
+  align-items: center;
+  border-radius: 8px;
+  padding: 0 8px;
+  background: color-mix(in srgb, var(--tp-accent) 12%, #fff);
+  color: var(--tp-accent);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.am-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.am-body .ant-form-item {
+  margin-bottom: 0;
+}
+
+/* ── Header grid: 3 × 2 ── */
+.am-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.am-grid .floating-field {
+  --ff-prefix-offset: 42px;
+}
+.am-grid .ant-select-prefix {
+  display: flex;
+  margin-inline-start: 7px;
+  margin-inline-end: 5px;
+  color: var(--tp-label);
+}
+.am-consultant {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.am-consultant > .floating-field {
+  flex: 1;
+  min-width: 0;
+}
+.am-round.ant-btn.ant-btn-circle {
+  display: inline-flex;
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-color: var(--tp-line);
+  color: var(--tp-ink);
+}
+.am-round.ant-btn.ant-btn-dangerous {
+  border-color: var(--tp-red);
+  background: #fff;
+  color: var(--tp-red);
+}
+
+/* A read-only field drawn like a floated input: the label sits on the border. */
+.am-static {
+  position: relative;
+  display: flex;
+  height: 40px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--tp-line);
+  border-radius: 8px;
+  padding: 0 12px 0 16px;
+  background: #fff;
+}
+.am-static-label {
+  position: absolute;
+  top: -10px;
+  left: 12px;
+  height: 20px;
+  padding: 0 4px;
+  background: #fff;
+  color: var(--tp-label);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 19.5px;
+}
+.am-static-value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--tp-ink);
+  font-size: 14px;
+  font-weight: 500;
+}
+.am-static-value--accent {
+  color: var(--tp-accent);
+}
+
+/* ── Group filter + search ── */
+.am-services {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.am-toolbar {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+/* One row, scrolled sideways: a long group list must not push the table down. */
+.am-groups {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 0;
+  scrollbar-width: thin;
+}
+.am-group {
+  display: inline-flex;
+  height: 36px;
+  flex-shrink: 0;
+  align-items: center;
+  white-space: nowrap;
+  border: 1px solid var(--tp-line);
+  border-radius: 8px;
+  padding: 0 16px;
+  background: #fff;
+  color: var(--tp-ink);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.am-group:hover {
+  background: var(--tp-pill);
+}
+.am-group.active {
+  border-color: var(--tp-accent);
+  background: var(--tp-accent);
+  color: #fff;
+}
+.am-toolbar > .floating-field {
+  --ff-prefix-offset: 40px;
+  width: 220px;
+  flex-shrink: 0;
+}
+.am-toolbar .ant-input-prefix {
+  color: var(--tp-label);
+}
+
+/* ── Service table ── */
+.am-table-card {
+  overflow: hidden;
+  border: 1px solid var(--tp-line);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+.am-table-scroll {
+  max-height: 360px;
+  overflow: auto;
+}
+.am-table {
+  width: 100%;
+  min-width: 1190px;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+.am-col-check {
+  width: 52px;
+}
+.am-col-service {
+  width: 279px;
+}
+.am-col-price {
+  width: 140px;
+}
+.am-col-quantity {
+  width: 100px;
+}
+.am-col-discount {
+  width: 260px;
+}
+.am-col-amount {
+  width: 150px;
+}
+.am-col-note {
+  width: 209px;
+}
+.am-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 40px;
+  border-bottom: 1px solid var(--tp-line);
+  padding: 0 12px;
+  background: var(--tp-ground);
+  color: var(--tp-ink);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+}
+.am-table td {
+  border-bottom: 1px solid var(--tp-line);
+  padding: 8px 12px;
+  color: var(--tp-ink);
+  font-size: 14px;
+  vertical-align: middle;
+}
+.am-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.am-cell-check {
+  text-align: center;
+}
+.am-table td.am-cell-check {
+  padding: 8px 0;
+}
+.am-cell-name {
+  font-weight: 500;
+}
+.am-cell-amount {
+  font-weight: 600;
+}
+.am-row--on td {
+  background: color-mix(in srgb, var(--tp-accent) 4%, #fff);
+}
+.am-table td.am-empty {
+  height: 128px;
+  padding: 24px;
+  color: var(--tp-label);
+  text-align: center;
+}
+.am-table .ant-input-number {
+  width: 100%;
+}
+.am-discount {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.am-discount .tp-toggle {
+  flex-shrink: 0;
+  padding: 3px;
+}
+.am-discount .tp-toggle > button {
+  height: 26px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+.am-discount .ant-input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Footer ── */
+.am-foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+.am-summary {
+  width: 715px;
+  max-width: 100%;
+  border: 1px solid var(--tp-line);
+  border-radius: 12px;
+  padding: 12px 16px;
+  background: var(--tp-ground);
+  text-align: left;
+}
+.am-summary-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--tp-line);
+  padding-bottom: 8px;
+  color: var(--tp-ink);
+  font-size: 15px;
+  font-weight: 600;
+}
+.am-summary-count {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--tp-accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+.am-summary-code {
+  color: var(--tp-accent);
+  font-weight: 700;
+}
+.am-summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 0;
+  color: var(--tp-label);
+  font-size: 13px;
+  line-height: 20px;
+}
+.am-summary-row--total {
+  margin-top: 6px;
+  border-top: 1px solid var(--tp-line);
+  padding-top: 8px;
+  color: var(--tp-ink);
+  font-size: 15px;
+  font-weight: 700;
+}
+.am-summary-total {
+  color: var(--tp-accent);
+}
+/* flex: none — the ≤640px .tp-btn { flex: 1 } rule would otherwise squash
+   the button's height once .am-foot stacks vertically. */
+.am-save.tp-btn {
+  flex: none;
+  width: 110px;
+  height: 40px;
+  justify-content: center;
+}
+.am-spin {
+  animation: am-spin 1s linear infinite;
+}
+@keyframes am-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 1100px) {
+  .am-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .am-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .am-toolbar > .floating-field {
+    width: 100%;
+  }
+  .am-foot {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .am-save.tp-btn {
+    width: 100%;
+  }
+}

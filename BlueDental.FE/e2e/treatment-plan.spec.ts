@@ -110,13 +110,16 @@ test.describe("Kế hoạch điều trị", () => {
     await expect(page.getByText("Đã tạo kế hoạch điều trị")).toBeVisible();
     await expect(dialog).toBeHidden();
 
-    // One more slip than before, with the reference's number format.
+    // A slip that was not there before, with the reference's number format.
+    // Looked for by code rather than by count: the list is paged at 20, so a
+    // record that already fills a page cannot grow by one.
     await expect
-      .poll(async () => (await planCodes(page)).length, { timeout: 15_000 })
-      .toBe(before.length + 1);
+      .poll(async () => (await planCodes(page)).find((code) => !before.includes(code)) ?? "", {
+        timeout: 15_000,
+      })
+      .toMatch(CODE);
     const after = await planCodes(page);
     createdCode = after.find((code) => !before.includes(code)) ?? "";
-    expect(createdCode).toMatch(CODE);
 
     const row = page.locator(".tp-table tr.ant-table-row", { hasText: createdCode });
     await expect(row.locator(".tp-pill")).toHaveText("Đã tạo");

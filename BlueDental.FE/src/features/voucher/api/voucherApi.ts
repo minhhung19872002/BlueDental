@@ -8,19 +8,14 @@ export type VoucherScopeTarget = "service" | "treatment";
 export type VoucherDiscountType = "percentage" | "fixed_amount";
 export type CustomerTarget = "new" | "returning";
 
-export const VOUCHER_STATUS_CONFIG: Record<
-  VoucherStatus,
-  { label: () => string; color: string }
-> = {
-  active: { label: () => t("Đang hoạt động"), color: "green" },
-  expired: { label: () => t("Hết hạn"), color: "red" },
-  out_of_uses: { label: () => t("Hết lượt"), color: "blue" },
-};
+export const VOUCHER_STATUS_CONFIG: Record<VoucherStatus, { label: () => string; color: string }> =
+  {
+    active: { label: () => t("Đang hoạt động"), color: "green" },
+    expired: { label: () => t("Hết hạn"), color: "red" },
+    out_of_uses: { label: () => t("Hết lượt"), color: "blue" },
+  };
 
-export const SCOPE_TARGET_CONFIG: Record<
-  VoucherScopeTarget,
-  { label: () => string }
-> = {
+export const SCOPE_TARGET_CONFIG: Record<VoucherScopeTarget, { label: () => string }> = {
   service: { label: () => t("Theo dịch vụ") },
   treatment: { label: () => t("Tổng kế hoạch") },
 };
@@ -163,7 +158,16 @@ export interface UpdateVoucherInput {
 
 export type VoucherFilterStatus = VoucherStatus | "created";
 
+/** What `GET vouchers/available` needs to judge a voucher against one order. */
+export interface AvailableVoucherParams {
+  orderAmount: number;
+  clinicBranchId?: string;
+}
+
 const voucherApi = {
+  available: (params: AvailableVoucherParams): Promise<VoucherDto[]> =>
+    api.get<VoucherDto[]>("/v1/app/vouchers/available", { params }).then((r) => r.data),
+
   list: (params: {
     status?: string;
     filter?: string;
@@ -171,17 +175,13 @@ const voucherApi = {
     skipCount?: number;
     maxResultCount?: number;
   }): Promise<PagedResult<VoucherDto>> =>
-    api
-      .get<PagedResult<VoucherDto>>("/v1/app/vouchers", { params })
-      .then((r) => r.data),
+    api.get<PagedResult<VoucherDto>>("/v1/app/vouchers", { params }).then((r) => r.data),
 
   get: (id: string): Promise<VoucherDto> =>
     api.get<VoucherDto>(`/v1/app/vouchers/${id}`).then((r) => r.data),
 
   getCodePrefix: (): Promise<VoucherCodePrefix> =>
-    api
-      .get<VoucherCodePrefix>("/v1/app/vouchers/code-prefix")
-      .then((r) => r.data),
+    api.get<VoucherCodePrefix>("/v1/app/vouchers/code-prefix").then((r) => r.data),
 
   create: (input: CreateVoucherInput): Promise<VoucherDto> =>
     api.post<VoucherDto>("/v1/app/vouchers", input).then((r) => r.data),
@@ -193,24 +193,60 @@ const voucherApi = {
     api.put<VoucherDto>(`/v1/app/vouchers/${id}`, input).then((r) => r.data),
 
   publish: (id: string): Promise<VoucherDto> =>
-    api
-      .post<VoucherDto>(`/v1/app/vouchers/${id}/publish`)
-      .then((r) => r.data),
+    api.post<VoucherDto>(`/v1/app/vouchers/${id}/publish`).then((r) => r.data),
 
   unpublish: (id: string): Promise<VoucherDto> =>
-    api
-      .post<VoucherDto>(`/v1/app/vouchers/${id}/unpublish`)
-      .then((r) => r.data),
+    api.post<VoucherDto>(`/v1/app/vouchers/${id}/unpublish`).then((r) => r.data),
 
-  remove: (id: string): Promise<void> =>
-    api.delete(`/v1/app/vouchers/${id}`).then(() => undefined),
+  remove: (id: string): Promise<void> => api.delete(`/v1/app/vouchers/${id}`).then(() => undefined),
 };
 
 export const voucherKeys = {
   all: ["vouchers"] as const,
   list: (status?: string, filter?: string, branchId?: string) =>
     [...voucherKeys.all, "list", status ?? "", filter ?? "", branchId ?? ""] as const,
+  available: (orderAmount: number, branchId?: string) =>
+    [...voucherKeys.all, "available", orderAmount, branchId ?? ""] as const,
 };
+
+/**
+ * The vouchers the server judges usable for an order of `orderAmount` today:
+ * published, active, inside their dates, not exhausted and above their minimum.
+ * The server already sorts them best discount first.
+ */
+export function useAvailableVouchers(orderAmount: number, branchId?: string) {
+  return useQuery({
+    queryKey: voucherKeys.available(orderAmount, branchId),
+    queryFn: () => voucherApi.available({ orderAmount, clinicBranchId: branchId }),
+    placeholderData: (previous) => previous,
+  });
+}
+
+/**
+ * The discount one voucher takes off an order — the same arithmetic the server
+ * runs in `Voucher.CalculateDiscount`, so the total the page shows is the total
+ * the server would charge.
+ */
+export function calculateVoucherDiscount(voucher: VoucherDto, orderAmount: number): number {
+  if (orderAmount <= 0) return 0;
+  const raw =
+    voucher.discountType === "percentage"
+      ? (orderAmount * voucher.discountValue) / 100
+      : voucher.discountValue;
+  const capped =
+    voucher.maxDiscountAmount !== null && raw > voucher.maxDiscountAmount
+      ? voucher.maxDiscountAmount
+      : raw;
+  return Math.min(capped, orderAmount);
+}
+
+/** "-10%" or "-500.000đ", as the voucher table writes it. */
+/** The voucher's face value as staging chips it: "10%" or "50.000đ". */
+export function formatVoucherValue(voucher: VoucherDto): string {
+  return voucher.discountType === "percentage"
+    ? `${voucher.discountValue}%`
+    : `${voucher.discountValue.toLocaleString("vi-VN")}đ`;
+}
 
 export function useVouchers(status?: string, filter?: string, branchId?: string) {
   return useQuery({
@@ -225,9 +261,7 @@ export function useVouchers(status?: string, filter?: string, branchId?: string)
   });
 }
 
-function useVoucherMutation<TVariables, TData>(
-  fn: (variables: TVariables) => Promise<TData>,
-) {
+function useVoucherMutation<TVariables, TData>(fn: (variables: TVariables) => Promise<TData>) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: fn,
@@ -248,21 +282,16 @@ export function useVoucherCodePrefix(enabled: boolean) {
 }
 
 export function useCreateVoucher() {
-  return useVoucherMutation((input: CreateVoucherInput) =>
-    voucherApi.create(input),
-  );
+  return useVoucherMutation((input: CreateVoucherInput) => voucherApi.create(input));
 }
 
 export function useCreateVoucherBatch() {
-  return useVoucherMutation((input: CreateVoucherBatchInput) =>
-    voucherApi.createBatch(input),
-  );
+  return useVoucherMutation((input: CreateVoucherBatchInput) => voucherApi.createBatch(input));
 }
 
 export function useUpdateVoucher() {
-  return useVoucherMutation(
-    ({ id, input }: { id: string; input: UpdateVoucherInput }) =>
-      voucherApi.update(id, input),
+  return useVoucherMutation(({ id, input }: { id: string; input: UpdateVoucherInput }) =>
+    voucherApi.update(id, input),
   );
 }
 

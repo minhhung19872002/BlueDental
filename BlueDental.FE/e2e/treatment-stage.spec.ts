@@ -35,8 +35,9 @@ test.describe("Công đoạn điều trị", () => {
 
     // The chart lives inside the diagnosis editor, which opens on +.
     await page.locator(".pd-diagnosis-card .pd-card-title").getByRole("button").click();
-    await expect(page.getByRole("button", { name: "Chọn Răng" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Hàm Trên" })).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Chọn Răng" })).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Hàm Trên" })).toBeVisible();
+    await expect(page.getByTestId("selected-teeth")).toContainText("Chưa chọn răng");
   });
 
   test("the dental chart on the diagnosis tab responds to tooth clicks", async ({ page }) => {
@@ -46,17 +47,20 @@ test.describe("Công đoạn điều trị", () => {
     await page.getByRole("link", { name: "Chẩn đoán & Tư vấn" }).click();
     await page.locator(".pd-diagnosis-card .pd-card-title").getByRole("button").click();
 
-    // Click a tooth and verify the selection text updates.
-    const tooth11 = page.getByRole("button", { name: /Răng 11/ });
+    // Click a tooth and it shows up as a chip under "Răng đã chọn".
+    const chips = page.getByTestId("selected-teeth").locator(".pd-tooth-chip");
+    const tooth11 = page.getByRole("button", { name: "Răng 11", exact: true });
     await tooth11.click();
-    await expect(page.getByText(/Răng đã chọn:.*11/)).toBeVisible();
+    await expect(chips).toHaveText(["11"]);
 
     // Click again to deselect.
     await tooth11.click();
-    await expect(page.getByText("Răng đã chọn: —")).toBeVisible();
+    await expect(chips).toHaveCount(0);
+    await expect(page.getByTestId("selected-teeth")).toContainText("Chưa chọn răng");
 
-    // "Hàm Trên" fills the whole upper jaw in one go.
-    await page.getByRole("button", { name: "Hàm Trên" }).click();
-    await expect(page.getByText(/Răng đã chọn:.*18.*28/)).toBeVisible();
+    // "Hàm Trên" picks the whole upper jaw as one chip; the chart folds away.
+    await page.getByRole("tab", { name: "Hàm Trên" }).click();
+    await expect(chips).toHaveText(["Hàm trên"]);
+    await expect(page.getByRole("button", { name: "Răng 11", exact: true })).toHaveCount(0);
   });
 });

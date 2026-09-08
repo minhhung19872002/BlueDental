@@ -528,17 +528,6 @@
   gap: 7px;
   flex-wrap: wrap;
 }
-.pd-tooth-tabs button {
-  border: 0;
-  border-radius: 16px;
-  background: #f1f4f8;
-  color: var(--bd-sub);
-  padding: 6px 12px;
-  font: inherit;
-  font-size: 12.5px;
-  cursor: pointer;
-}
-
 /* The reference leaves an unselected filter as plain text — only the chosen
    one wears a chip. */
 .pd-filter-pills button {
@@ -556,16 +545,9 @@
   color: var(--bd-blue);
 }
 .pd-filter-pills button.active,
-.pd-filter-pills button.active:hover,
-.pd-tooth-tabs button.active {
+.pd-filter-pills button.active:hover {
   background: var(--bd-blue);
   color: #fff;
-}
-.pd-tooth-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 10px;
 }
 .pd-consulting {
   display: flex;
@@ -621,17 +603,33 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-top: 8px;
 }
-.pd-image-shown .ant-image {
+/* Dragging a file over the photographs: the panel itself lights up, since the
+   empty zone is gone by then. */
+.pd-image-panel--over {
+  outline: 2px dashed var(--bd-blue);
+  outline-offset: -2px;
+}
+/* Each tile is a button so the viewer opens from the keyboard too. */
+.pd-image-tile {
+  display: block;
   width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  cursor: pointer;
 }
-.pd-image-shown .ant-image img {
+.pd-image-tile:focus-visible {
+  outline: 2px solid var(--bd-primary);
+  outline-offset: 2px;
+}
+.pd-image-tile img {
+  display: block;
   width: 100%;
   height: 240px;
   border-radius: 12px;
   object-fit: cover;
-  cursor: pointer;
 }
 
 /* Three stacked commands, 20px in from the card's own corner. */
@@ -691,15 +689,21 @@
   font-size: 12px;
   font-weight: 600;
 }
+/* One row per day, scrolled sideways — the reference never wraps the cards. */
 .pd-image-cards {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 8px;
 }
 .pd-image-card {
   display: flex;
+  flex: 0 0 280px;
   width: 280px;
   flex-direction: column;
+  transform: var(--pd-drag-transform, none);
+  transition: var(--pd-drag-transition, none);
   gap: 6px;
   border: 1px solid var(--bd-line);
   border-radius: 22px;
@@ -709,6 +713,11 @@
 }
 .pd-image-card--on {
   border-color: var(--bd-primary);
+}
+.pd-image-card--dragging {
+  z-index: 3;
+  border-color: var(--bd-link);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
 }
 .pd-image-thumb {
   position: relative;
@@ -741,15 +750,19 @@
   justify-content: flex-end;
   gap: 8px;
 }
-.pd-image-card-actions .ant-btn {
+/* AntD's circle button widens to the control height (40px) at a higher
+   specificity than a plain .ant-btn rule, so the two are pinned here. */
+.pd-image-card-actions .ant-btn.ant-btn-circle.ant-btn-circle {
   width: 34px;
   height: 34px;
   min-width: 34px;
+  padding: 0;
   border: 0;
+  border-radius: 50%;
   background: var(--bd-bg);
   color: var(--bd-sub);
 }
-.pd-image-card-actions .ant-btn.ant-btn-dangerous {
+.pd-image-card-actions .ant-btn.ant-btn-circle.ant-btn-dangerous {
   background: #fdecec;
   color: var(--bd-red, #e5484d);
 }
@@ -832,24 +845,167 @@
   color: #e5484d;
   font-weight: 500;
 }
+/* ── Tạo chẩn đoán (expanded editor) ───────────────────────────────────────
+   Measured off staging at 1600×950: an 8px-padded box, the doctors, the tab
+   strip and the chart on the left, a 260px column on the right, and a 28px
+   red "Đóng" pinned to the top-right corner over the column. */
 .pd-diagnosis-form {
+  position: relative;
+  display: grid;
   flex-shrink: 0;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 16px;
   border-bottom: 1px solid var(--bd-line);
-  padding: 12px 16px;
+  padding: 8px 8px 12px;
 }
-.pd-form-row,
-.pd-form-footer {
+.pd-diagnosis-form .ant-form-item {
+  margin-bottom: 0;
+}
+.pd-diagnosis-form .floating-field {
+  width: 100%;
+}
+.pd-diagnosis-close.ant-btn.ant-btn-circle {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+}
+.pd-diagnosis-main {
   display: flex;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-.pd-form-row > * {
   min-width: 0;
-  flex: 1;
+  flex-direction: column;
+  gap: 16px;
 }
-.pd-form-footer {
-  justify-content: flex-end;
-  margin: 10px 0 0;
+/* Doctor 1 is a 294px combobox; doctor 2, when brought in, is the same
+   width. The round toggles are 36px, the chart's own control height. */
+.pd-diagnosis-doctors {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.pd-diagnosis-doctors .floating-field {
+  width: 294px;
+  max-width: 100%;
+}
+.pd-diagnosis-round.ant-btn.ant-btn-circle {
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+}
+.pd-diagnosis-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+/* The shared chart lays itself out at 920px; here it has to fit the card's
+   left half, so it scales down to the width it is given (~34px a tooth). */
+.pd-diagnosis-chart {
+  min-width: 0;
+  overflow-x: auto;
+}
+.pd-diagnosis-chart .tc-chart {
+  min-width: 0;
+  padding: 0;
+}
+.pd-diagnosis-side {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 16px;
+  /* Starts below the close button, as on staging. */
+  padding-top: 40px;
+}
+.pd-diagnosis-note.ant-input {
+  height: 120px;
+  resize: none;
+}
+/* "Răng đã chọn" — #F6F8FB on #DCE3EE, 8px corners, 12px padding. */
+.pd-selected-teeth {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid #dce3ee;
+  border-radius: 8px;
+  background: var(--bd-bg-soft);
+  padding: 12px;
+}
+.pd-selected-teeth > strong {
+  color: var(--bd-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+.pd-selected-teeth__empty {
+  color: #8a94a6;
+  font-size: 13px;
+}
+.pd-selected-teeth__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 8px;
+  padding: 4px 8px 0 0;
+}
+/* A white pill in the app's blue, with the red X riding its top-right. */
+.pd-tooth-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--bd-blue-light);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--bd-primary);
+  padding: 6px 16px 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.pd-tooth-chip > button {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: inline-flex;
+  width: 20px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: var(--bd-red);
+  color: #fff;
+  padding: 0;
+  font-size: 10px;
+  cursor: pointer;
+}
+.pd-diagnosis-commands {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.pd-diagnosis-save.ant-btn,
+.pd-diagnosis-save.ant-btn:hover,
+.pd-diagnosis-save.ant-btn:focus-visible {
+  border-color: var(--bd-green);
+  background: var(--bd-green);
+  color: #fff;
+}
+.pd-diagnosis-save.ant-btn:disabled {
+  border-color: transparent;
+  background: var(--bd-green);
+  color: #fff;
+  opacity: 0.5;
+}
+@media (max-width: 1280px) {
+  .pd-diagnosis-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pd-diagnosis-side {
+    padding-top: 0;
+  }
 }
 
 /* ── Phiếu tư vấn ───────────────────────────────────────────────────────── */
@@ -890,7 +1046,7 @@
 .pd-plan-summary {
   display: grid;
   flex-shrink: 0;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.45fr);
   border-top: 1px solid var(--bd-line);
   padding: 16px;
 }
@@ -912,18 +1068,140 @@
 .pd-plan-total p > b {
   color: var(--bd-ink);
 }
-.pd-plan-figures {
+/* "Voucher áp dụng:" — the tag button, then the helper in the reference's grey. */
+.pd-plan-voucher {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 28px;
+  align-items: center;
+  gap: 8px 12px;
+  color: var(--bd-sub);
 }
-.pd-plan-discount {
+.pd-plan-voucher > em {
+  color: var(--bd-muted);
+  font-style: normal;
+}
+/* Staging's picker: a 520px popover, the search box with "Đã chọn: n" beside
+   it, then a bordered box that lists the vouchers or the empty sentence. */
+.pd-voucher-popover {
+  display: flex;
+  width: 520px;
+  max-width: calc(100vw - 48px);
+  flex-direction: column;
+  gap: 12px;
+}
+.pd-voucher-search {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
-.pd-plan-discount .ant-input-number {
-  width: 120px;
+.pd-voucher-search > .ant-input-affix-wrapper {
+  flex: 1 1 auto;
+}
+.pd-voucher-search > small {
+  flex-shrink: 0;
+  color: var(--bd-muted);
+}
+.pd-voucher-list {
+  display: flex;
+  margin: 0;
+  padding: 8px;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-sm);
+}
+.pd-voucher-list--empty {
+  align-items: center;
+  justify-content: center;
+  min-height: 100px;
+}
+.pd-voucher-list--empty > p {
+  margin: 0;
+  color: var(--bd-muted);
+}
+/* One voucher is a card: the pick ring, then code · value chip · scope tag,
+   the name, and what it would take off the ticked total. */
+.pd-voucher-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--bd-line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--bd-ink);
+  text-align: left;
+  cursor: pointer;
+}
+.pd-voucher-row:hover {
+  border-color: var(--bd-sub);
+}
+.pd-voucher-row--on,
+.pd-voucher-row--on:hover {
+  border-color: var(--bd-success);
+  background: var(--bd-green-pale);
+}
+.pd-voucher-row__mark {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  color: var(--bd-success);
+  font-size: 20px;
+}
+.pd-voucher-row__ring {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--bd-line);
+  border-radius: 50%;
+}
+.pd-voucher-row__body {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+.pd-voucher-row__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pd-voucher-row__code {
+  font-family: monospace;
+  font-weight: 700;
+}
+.pd-voucher-row__value {
+  padding: 1px 8px;
+  border: 1px solid var(--bd-line);
+  border-radius: 6px;
+  font-weight: 600;
+}
+.pd-voucher-row__scope {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--bd-primary) 10%, white);
+  color: var(--bd-primary);
+  font-size: 12px;
+}
+.pd-voucher-row__name {
+  overflow: hidden;
+  color: var(--bd-sub);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pd-voucher-row__saving {
+  color: var(--bd-muted);
+}
+/* The net total is the one figure the reference draws in blue. */
+.pd-plan-total .pd-plan-net > b {
+  color: var(--bd-primary);
+  font-size: 14px;
 }
 .pd-plan-actions {
   display: flex;
@@ -933,7 +1211,13 @@
   margin-top: 4px;
 }
 .pd-plan-actions .ant-select {
-  min-width: 250px;
+  width: 296px;
+}
+.pd-plan-actions .pd-plan-print.ant-btn {
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  padding: 0;
 }
 .pd-stat {
   display: flex;
@@ -1801,7 +2085,9 @@
 .pd-sheet-card--active {
   border-color: var(--bd-link);
   background: #eaf2fd;
-  box-shadow: 0 0 0 2px rgb(38 113 216 / 20%), 0 1px 2px rgb(0 0 0 / 5%);
+  box-shadow:
+    0 0 0 2px rgb(38 113 216 / 20%),
+    0 1px 2px rgb(0 0 0 / 5%);
 }
 .pd-sheet-open {
   display: flex;
@@ -2125,7 +2411,6 @@
   color: var(--bd-link);
   font-size: 12px;
 }
-
 
 /* ── Bảng điều trị trên tab Hồ sơ ─────────────────────────────────────────
    The reference draws this one as a grid: normal-case 14px headers on a tinted

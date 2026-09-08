@@ -339,7 +339,6 @@ button {
     opacity: 1;
     transform: none;
   }
-
 }
 
 /* ── Sidebar ── */
@@ -865,7 +864,9 @@ button {
   padding: 0 12px;
   background: var(--bd-bg-soft);
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
 }
 
 .app-header-search:hover {
@@ -953,7 +954,9 @@ button {
   background: #fff;
   color: var(--bd-sub);
   cursor: pointer;
-  transition: border-color 0.12s, color 0.12s;
+  transition:
+    border-color 0.12s,
+    color 0.12s;
   padding: 0;
   position: relative;
 }
@@ -1412,8 +1415,7 @@ button {
 .login-aside {
   background:
     radial-gradient(800px at 80% -10%, rgba(99, 102, 241, 0.55), transparent 60%),
-    radial-gradient(700px at 0% 110%, rgba(34, 211, 238, 0.4), transparent 60%),
-    var(--bd-navy);
+    radial-gradient(700px at 0% 110%, rgba(34, 211, 238, 0.4), transparent 60%), var(--bd-navy);
   color: #fff;
   padding: 44px 60px;
   gap: 36px;
@@ -1615,7 +1617,6 @@ button {
   .login-aside {
     display: none;
   }
-
 }
 
 /* ── Icon button (primary pale) ── */
@@ -1631,7 +1632,10 @@ button {
   background: var(--bd-blue-pale);
   color: var(--bd-blue);
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  transition:
+    background 0.12s,
+    border-color 0.12s,
+    color 0.12s;
 }
 
 .bd-icon-btn:hover {
@@ -2187,7 +2191,9 @@ button {
   border-radius: 10px;
   background: #fff;
   cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
   user-select: none;
   outline: none;
 }
@@ -2393,7 +2399,6 @@ button {
   .app-header-user-name {
     display: none;
   }
-
 }
 
 /* The header crowds long before the tablet breakpoint: at 1240 the clinic
@@ -2412,17 +2417,21 @@ button {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
-
 }
 
 /* ── Print ── */
 
 @media print {
+  /* Zero page margin: Chrome/Edge/Firefox then print none of their own
+     header and footer (date, title, URL, page number). Every printed sheet
+     must carry its own margin as padding. */
+  @page {
+    margin: 0;
+  }
   .app-sidebar,
   .app-header {
     display: none !important;
   }
-
 }
 
 /* ── Dashboard (ported from the design's overview screen) ───────────────── */
@@ -2497,7 +2506,6 @@ button {
   .dash-split {
     grid-template-columns: 1fr;
   }
-
 }
 
 .dash-card-head {
@@ -2752,7 +2760,6 @@ button {
   .dash-reception-doctor {
     display: none;
   }
-
 }
 
 /* ── Responsive ─────────────────────────────────────────────────────────────
@@ -2770,7 +2777,6 @@ button {
   .kpi-card-value {
     font-size: 23px;
   }
-
 }
 
 @media (max-width: 1024px) {
@@ -2786,7 +2792,6 @@ button {
   .app-header-search {
     max-width: none;
   }
-
 }
 
 /* ── Mobile sidebar drawer ── */
@@ -2909,7 +2914,6 @@ button {
   .ant-table-wrapper .ant-table-body {
     overflow-x: auto;
   }
-
 }
 
 @media (max-width: 460px) {
@@ -2924,7 +2928,6 @@ button {
   .login-form-title {
     font-size: 22px;
   }
-
 }
 
 /* Nothing in the header may push the page wider than the viewport. */
@@ -2950,7 +2953,6 @@ button {
     padding-left: 6px;
     margin-left: 0;
   }
-
 }
 
 /* Phone: tighten the header's own spacing rather than dropping controls —
@@ -2965,7 +2967,6 @@ button {
     padding: 0 10px;
     gap: 8px;
   }
-
 }
 
 /* A stray wide child should scroll its own box, never the document. */
@@ -3075,7 +3076,6 @@ body {
   .staff-grid {
     grid-template-columns: 1fr;
   }
-
 }
 
 /* ── Profile page (sidebar + content layout) ───────────────────────────── */
@@ -3121,7 +3121,9 @@ body {
   font-weight: 500;
   color: var(--bd-ink);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
   border: none;
   background: none;
   width: 100%;
@@ -3277,7 +3279,9 @@ body {
   border: 1px solid var(--bd-border);
   border-radius: var(--bd-radius-control);
   padding: 16px;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 
 .settings-branch-card:hover {
@@ -3342,7 +3346,9 @@ body {
   border: 1px solid var(--bd-border);
   border-radius: var(--bd-radius-control);
   cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 
 .settings-role-card:hover {
@@ -3564,7 +3570,9 @@ body {
   cursor: pointer;
   border-radius: 4px;
   padding: 0;
-  transition: color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    background 0.15s;
 }
 
 .perm-role-delete-btn:hover {
@@ -3886,7 +3894,10 @@ body {
     color: var(--bd-sub);
     width: auto;
     border: 1px solid var(--bd-line);
-    transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+    transition:
+      border-color 0.15s ease,
+      background 0.15s ease,
+      color 0.15s ease;
   }
 
   .profile-sidebar-item:hover {
@@ -3996,10 +4007,13 @@ body {
 
 /* The design fades the backdrop in and pops the panel. */
 @keyframes bd-fade-in {
-  from { opacity: 0; }
+  from {
+    opacity: 0;
+  }
 
-  to { opacity: 1; }
-
+  to {
+    opacity: 1;
+  }
 }
 
 /* The design tints the backdrop navy and blurs what is behind it, rather than
@@ -4192,7 +4206,7 @@ html:has(.ant-modal-wrap) {
   margin-top: 6px;
   font-size: 24px;
   font-weight: 700;
-  letter-spacing: -.8px;
+  letter-spacing: -0.8px;
   color: var(--bd-ink);
 }
 
@@ -4264,7 +4278,6 @@ html:has(.ant-modal-wrap) {
     flex: 1 1 100%;
     max-width: none !important;
   }
-
 }
 
 /* Ctrl-K palette results */
@@ -4299,7 +4312,7 @@ html:has(.ant-modal-wrap) {
   height: 34px;
   flex: none;
   border-radius: 11px;
-  background: rgba(99, 102, 241, .08);
+  background: rgba(99, 102, 241, 0.08);
   color: var(--bd-blue);
   display: grid;
   place-items: center;
@@ -4455,7 +4468,9 @@ html:has(.ant-modal-wrap) {
   color: var(--bd-blue);
   cursor: pointer;
   white-space: nowrap;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
 }
 
 .dg-action:hover {
@@ -4526,7 +4541,10 @@ html:has(.ant-modal-wrap) {
   color: var(--bd-muted);
   cursor: pointer;
   white-space: nowrap;
-  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background 0.15s ease;
 }
 
 .rec-outcome:hover {
@@ -4724,7 +4742,9 @@ html:has(.ant-modal-wrap) {
   font-size: 12.5px;
   font-weight: 500;
   color: var(--bd-sub);
-  transition: border-color 0.15s ease, color 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .pt-back:hover {
@@ -4773,7 +4793,10 @@ html:has(.ant-modal-wrap) {
   font-weight: 600;
   padding: 9px 15px;
   border-radius: 10px;
-  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
 .pill-tab:hover {
@@ -4899,7 +4922,6 @@ html:has(.ant-modal-wrap) {
   flex: 1.4;
 }
 
-
 /* ── Stock stepper (the design adjusts stock in the row) ─────────────────── */
 
 .stock-adjust {
@@ -4917,7 +4939,9 @@ html:has(.ant-modal-wrap) {
   font-size: 15px;
   line-height: 1;
   color: var(--bd-sub);
-  transition: border-color 0.15s ease, color 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .stock-step:hover:not(:disabled) {
@@ -5074,7 +5098,6 @@ html:has(.ant-modal-wrap) {
   .bd-dialog-grid--three {
     grid-template-columns: minmax(0, 1fr);
   }
-
 }
 
 /* ==========================================================================
@@ -5101,49 +5124,96 @@ html:has(.ant-modal-wrap) {
   box-shadow: 0 1px 4px rgb(0 0 0 / 15%);
 }
 
-.bd-a4-center { margin-inline: auto; }
+.bd-a4-center {
+  margin-inline: auto;
+}
 
-.bd-a4-center-text { text-align: center; }
+.bd-a4-center-text {
+  text-align: center;
+}
 
-.bd-a4-b { font-weight: 700; }
+.bd-a4-b {
+  font-weight: 700;
+}
 
-.bd-a4-nowrap { white-space: nowrap; }
+.bd-a4-nowrap {
+  white-space: nowrap;
+}
 
-.bd-a4-ml { margin-left: 8px; }
+.bd-a4-ml {
+  margin-left: 8px;
+}
 
-.bd-a4-push { margin-left: auto; }
+.bd-a4-push {
+  margin-left: auto;
+}
 
-.bd-a4-flex1 { flex: 1; min-width: 0; }
+.bd-a4-flex1 {
+  flex: 1;
+  min-width: 0;
+}
 
-.bd-a4-lh19 { line-height: 19px; }
+.bd-a4-lh19 {
+  line-height: 19px;
+}
 
-.bd-a4-col { display: flex; flex-direction: column; }
+.bd-a4-col {
+  display: flex;
+  flex-direction: column;
+}
 
-.bd-a4-mt1 { margin-top: 4px; }
+.bd-a4-mt1 {
+  margin-top: 4px;
+}
 
-.bd-a4-mt2 { margin-top: 8px; }
+.bd-a4-mt2 {
+  margin-top: 8px;
+}
 
-.bd-a4-mt3 { margin-top: 12px; }
+.bd-a4-mt3 {
+  margin-top: 12px;
+}
 
-.bd-a4-mt4 { margin-top: 16px; }
+.bd-a4-mt4 {
+  margin-top: 16px;
+}
 
-.bd-a4-mt16 { margin-top: 64px; }
+.bd-a4-mt16 {
+  margin-top: 64px;
+}
 
-.bd-a4-w14 { width: 14%; }
+.bd-a4-w14 {
+  width: 14%;
+}
 
-.bd-a4-w24 { width: 24%; }
+.bd-a4-w24 {
+  width: 24%;
+}
 
-.bd-a4-w38 { width: 38%; }
+.bd-a4-w38 {
+  width: 38%;
+}
 
-.bd-a4-w46 { width: 46%; }
+.bd-a4-w46 {
+  width: 46%;
+}
 
-.bd-a4-w245 { width: 245px; flex-shrink: 0; }
+.bd-a4-w245 {
+  width: 245px;
+  flex-shrink: 0;
+}
 
-.bd-a4-w420 { max-width: 420px; }
+.bd-a4-w420 {
+  max-width: 420px;
+}
 
-.bd-a4-top { vertical-align: top; }
+.bd-a4-top {
+  vertical-align: top;
+}
 
-.bd-a4-mid { vertical-align: middle; }
+.bd-a4-mid {
+  vertical-align: middle;
+}
 
 .bd-a4-head {
   display: flex;
@@ -5151,11 +5221,22 @@ html:has(.ant-modal-wrap) {
   justify-content: space-between;
 }
 
-.bd-a4-title { font-size: 18px; line-height: 25px; font-weight: 700; }
+.bd-a4-title {
+  font-size: 18px;
+  line-height: 25px;
+  font-weight: 700;
+}
 
-.bd-a4-subtitle { font-size: 16px; font-weight: 700; }
+.bd-a4-subtitle {
+  font-size: 16px;
+  font-weight: 700;
+}
 
-.bd-a4-meta { font-size: 12px; line-height: 18px; text-align: right; }
+.bd-a4-meta {
+  font-size: 12px;
+  line-height: 18px;
+  text-align: right;
+}
 
 /* A labelled line: caption, then a dotted rule that eats the remaining width. */
 .bd-a4-line {
@@ -5164,17 +5245,34 @@ html:has(.ant-modal-wrap) {
   gap: 4px;
 }
 
-.bd-a4-line--pad { padding-block: 3px; }
+.bd-a4-line--pad {
+  padding-block: 3px;
+}
 
-.bd-a4-split { display: flex; gap: 16px; }
+.bd-a4-split {
+  display: flex;
+  gap: 16px;
+}
 
-.bd-a4-split.bd-a4-mt2 { gap: 16px; }
+.bd-a4-split.bd-a4-mt2 {
+  gap: 16px;
+}
 
-.bd-a4-tickrow { display: flex; gap: 24px; }
+.bd-a4-tickrow {
+  display: flex;
+  gap: 24px;
+}
 
-.bd-a4-signrow { margin-top: 40px; display: flex; justify-content: space-between; }
+.bd-a4-signrow {
+  margin-top: 40px;
+  display: flex;
+  justify-content: space-between;
+}
 
-.bd-a4-boxes { display: flex; gap: 2px; }
+.bd-a4-boxes {
+  display: flex;
+  gap: 2px;
+}
 
 .bd-a4-rule {
   display: inline-block;
@@ -5234,17 +5332,30 @@ html:has(.ant-modal-wrap) {
   text-align: center;
 }
 
-.bd-a4-cell { border: 1px solid #000; padding: 8px; }
+.bd-a4-cell {
+  border: 1px solid #000;
+  padding: 8px;
+}
 
-.bd-a4-cell--sm { padding: 4px 8px; }
+.bd-a4-cell--sm {
+  padding: 4px 8px;
+}
 
-.bd-a4-cell--lg { padding: 8px 12px; }
+.bd-a4-cell--lg {
+  padding: 8px 12px;
+}
 
-.bd-a4-cell--tight { padding: 0 8px; }
+.bd-a4-cell--tight {
+  padding: 0 8px;
+}
 
-.bd-a4-cell--left { text-align: left; }
+.bd-a4-cell--left {
+  text-align: left;
+}
 
-.bd-a4-th { height: 28px; }
+.bd-a4-th {
+  height: 28px;
+}
 
 /* Every cell a template can fill in is shaded, so a blank form reads at a
    glance as "these are the parts you complete". */
@@ -5269,7 +5380,9 @@ html:has(.ant-modal-wrap) {
   font-style: italic;
 }
 
-.bd-a4-cellinput:focus { background: #faf1e2; }
+.bd-a4-cellinput:focus {
+  background: #faf1e2;
+}
 
 /* Tailwind's preflight used to zero the browser's own margins on headings and
    paragraphs. It went with Tailwind, and main's reset only covers box-sizing
@@ -5304,63 +5417,123 @@ html:has(.ant-modal-wrap) {
   border: 0;
 }
 
-.bd-icon { width: 16px; height: 16px; }
+.bd-icon {
+  width: 16px;
+  height: 16px;
+}
 
-.bd-icon--sm { width: 14px; height: 14px; }
+.bd-icon--sm {
+  width: 14px;
+  height: 14px;
+}
 
-.bd-icon--lg { width: 20px; height: 20px; }
+.bd-icon--lg {
+  width: 20px;
+  height: 20px;
+}
 
-.bd-icon--xl { width: 32px; height: 32px; color: var(--bd-faint); }
+.bd-icon--xl {
+  width: 32px;
+  height: 32px;
+  color: var(--bd-faint);
+}
 
 .bd-num,
 .bd-cat-num,
 .bd-cat-price,
-.bd-zoom-value { font-variant-numeric: tabular-nums; }
+.bd-zoom-value {
+  font-variant-numeric: tabular-nums;
+}
 
-.bd-min0 { min-width: 0; }
+.bd-min0 {
+  min-width: 0;
+}
 
-.bd-min0h { min-height: 0; }
+.bd-min0h {
+  min-height: 0;
+}
 
-.bd-flex1 { flex: 1; }
+.bd-flex1 {
+  flex: 1;
+}
 
-.bd-rel { position: relative; }
+.bd-rel {
+  position: relative;
+}
 
-.bd-w160 { width: 160px; }
+.bd-w160 {
+  width: 160px;
+}
 
-.bd-mt2 { margin-top: 8px; }
+.bd-mt2 {
+  margin-top: 8px;
+}
 
-.bd-mt3 { margin-top: 12px; }
+.bd-mt3 {
+  margin-top: 12px;
+}
 
-.bd-text-left { text-align: left; }
+.bd-text-left {
+  text-align: left;
+}
 
-.bd-semibold { font-weight: 600; }
+.bd-semibold {
+  font-weight: 600;
+}
 
-.bd-medium { font-weight: 500; }
+.bd-medium {
+  font-weight: 500;
+}
 
-.bd-dimmed { opacity: 0.6; }
+.bd-dimmed {
+  opacity: 0.6;
+}
 
-.bd-muted-text { color: var(--bd-muted); }
+.bd-muted-text {
+  color: var(--bd-muted);
+}
 
-.bd-primary-text { color: var(--bd-blue); }
+.bd-primary-text {
+  color: var(--bd-blue);
+}
 
-.bd-danger-text { color: #cf3c41; cursor: pointer; }
+.bd-danger-text {
+  color: #cf3c41;
+  cursor: pointer;
+}
 
-.bd-danger-text:disabled { opacity: 0.4; cursor: not-allowed; }
+.bd-danger-text:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 
-.bd-error-text { margin: 0; font-size: 12px; color: #e5484d; }
+.bd-error-text {
+  margin: 0;
+  font-size: 12px;
+  color: #e5484d;
+}
 
-.bd-row-end { display: flex; justify-content: flex-end; }
+.bd-row-end {
+  display: flex;
+  justify-content: flex-end;
+}
 
-.bd-center-pad { display: flex; justify-content: center; padding-block: 40px; }
+.bd-center-pad {
+  display: flex;
+  justify-content: center;
+  padding-block: 40px;
+}
 
 @media (min-width: 640px) {
-  .bd-hide-sm { display: none; }
-
+  .bd-hide-sm {
+    display: none;
+  }
 }
 
 @media (max-width: 639px) {
-  .bd-only-sm { display: none; }
-
+  .bd-only-sm {
+    display: none;
+  }
 }
 
 .bd-empty {
@@ -5392,7 +5565,10 @@ html:has(.ant-modal-wrap) {
   background: #fff;
 }
 
-.bd-taxonomy-shell { display: flex; height: 100%; }
+.bd-taxonomy-shell {
+  display: flex;
+  height: 100%;
+}
 
 .bd-taxonomy-aside {
   display: none;
@@ -5402,8 +5578,9 @@ html:has(.ant-modal-wrap) {
 }
 
 @media (min-width: 768px) {
-  .bd-taxonomy-aside { display: block; }
-
+  .bd-taxonomy-aside {
+    display: block;
+  }
 }
 
 .bd-taxonomy-main {
@@ -5448,11 +5625,14 @@ html:has(.ant-modal-wrap) {
   padding: 12px;
 }
 
-.bd-cat-body--gap { gap: 16px; }
+.bd-cat-body--gap {
+  gap: 16px;
+}
 
 @media (min-width: 768px) {
-  .bd-cat-body { padding: 20px; }
-
+  .bd-cat-body {
+    padding: 20px;
+  }
 }
 
 /* ── Panel header ────────────────────────────────────────────────────────── */
@@ -5464,15 +5644,20 @@ html:has(.ant-modal-wrap) {
 }
 
 @media (min-width: 768px) {
-  .bd-cat-header { min-height: var(--bd-catalog-header-height); }
-
+  .bd-cat-header {
+    min-height: var(--bd-catalog-header-height);
+  }
 }
 
-.bd-cat-header--bar { padding-block: 8px; min-height: 0; }
+.bd-cat-header--bar {
+  padding-block: 8px;
+  min-height: 0;
+}
 
 @media (min-width: 768px) {
-  .bd-cat-header--bar { display: none; }
-
+  .bd-cat-header--bar {
+    display: none;
+  }
 }
 
 .bd-cat-headrow {
@@ -5493,8 +5678,9 @@ html:has(.ant-modal-wrap) {
 }
 
 @media (min-width: 768px) {
-  .bd-cat-title { font-size: 20px; }
-
+  .bd-cat-title {
+    font-size: 20px;
+  }
 }
 
 /* The record count sits beside the title, as the reference prints it. */
@@ -5513,13 +5699,21 @@ html:has(.ant-modal-wrap) {
   color: var(--bd-blue);
 }
 
-.bd-cat-headactions { display: flex; flex-shrink: 0; align-items: center; gap: 8px; }
+.bd-cat-headactions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+}
 
-.bd-cat-search { width: 100%; }
+.bd-cat-search {
+  width: 100%;
+}
 
 @media (min-width: 768px) {
-  .bd-cat-search { max-width: 360px; }
-
+  .bd-cat-search {
+    max-width: 360px;
+  }
 }
 
 /* ── Card and table ─────────────────────────────────────────────────────── */
@@ -5537,16 +5731,36 @@ html:has(.ant-modal-wrap) {
 }
 
 /* The row under the pointer during a drag. */
-.bd-cat-row--dragging > .bd-cat-td { background: var(--bd-blue-pale); }
+.bd-cat-row--dragging > .bd-cat-td {
+  background: var(--bd-blue-pale);
+}
 
-.bd-cat-rowactions { display: flex; align-items: center; justify-content: center; gap: 2px; }
+.bd-cat-rowactions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
 
 /* ── Table cell contents ─────────────────────────────────────────────────── */
-.bd-cat-inline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.bd-cat-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
 
-.bd-cat-inline2 { display: inline-flex; align-items: center; gap: 8px; }
+.bd-cat-inline2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
 
-.bd-cat-inline3 { display: flex; align-items: center; gap: 12px; }
+.bd-cat-inline3 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 
 .bd-cat-name,
 .bd-cat-subtle,
@@ -5557,23 +5771,49 @@ html:has(.ant-modal-wrap) {
   margin: 0;
 }
 
-.bd-cat-name { font-weight: 500; }
+.bd-cat-name {
+  font-weight: 500;
+}
 
-.bd-cat-subtle { font-size: 12px; color: var(--bd-muted); }
+.bd-cat-subtle {
+  font-size: 12px;
+  color: var(--bd-muted);
+}
 
-.bd-cat-filename { font-size: 13px; color: var(--bd-ink); }
+.bd-cat-filename {
+  font-size: 13px;
+  color: var(--bd-ink);
+}
 
-.bd-cat-medium { font-weight: 500; color: var(--bd-ink); }
+.bd-cat-medium {
+  font-weight: 500;
+  color: var(--bd-ink);
+}
 
-.bd-cat-sub { margin-top: 2px; font-size: 14px; color: var(--bd-muted); }
+.bd-cat-sub {
+  margin-top: 2px;
+  font-size: 14px;
+  color: var(--bd-muted);
+}
 
-.bd-cat-hint { font-size: 12px; color: var(--bd-muted); flex-shrink: 0; }
+.bd-cat-hint {
+  font-size: 12px;
+  color: var(--bd-muted);
+  flex-shrink: 0;
+}
 
-.bd-cat-hint--13 { font-size: 13px; }
+.bd-cat-hint--13 {
+  font-size: 13px;
+}
 
-.bd-cat-num { color: var(--bd-muted); }
+.bd-cat-num {
+  color: var(--bd-muted);
+}
 
-.bd-cat-price { font-weight: 600; color: var(--bd-ink); }
+.bd-cat-price {
+  font-weight: 600;
+  color: var(--bd-ink);
+}
 
 .bd-cat-chip {
   display: inline-flex;
@@ -5602,11 +5842,19 @@ html:has(.ant-modal-wrap) {
   cursor: grab;
 }
 
-.bd-grip:active { cursor: grabbing; }
+.bd-grip:active {
+  cursor: grabbing;
+}
 
-.bd-grip:disabled { cursor: not-allowed; opacity: 0.5; }
+.bd-grip:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
 
-.bd-grip:focus-visible { outline: 2px solid var(--bd-blue-light); color: var(--bd-blue); }
+.bd-grip:focus-visible {
+  outline: 2px solid var(--bd-blue-light);
+  color: var(--bd-blue);
+}
 
 /* ── Group panel ─────────────────────────────────────────────────────────── */
 .bd-group-panel {
@@ -5630,8 +5878,9 @@ html:has(.ant-modal-wrap) {
    a fixed height: if anything in here does grow — a longer translation, a wider
    font — it has to push the list down, not sit on top of it. */
 @media (min-width: 768px) {
-  .bd-group-head { min-height: var(--bd-catalog-header-height); }
-
+  .bd-group-head {
+    min-height: var(--bd-catalog-header-height);
+  }
 }
 
 /* The subtitle names the catalog, and some of those names are long enough to
@@ -5641,15 +5890,36 @@ html:has(.ant-modal-wrap) {
   white-space: normal;
 }
 
-.bd-group-headrow { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.bd-group-headrow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
 
-.bd-group-title { font-size: 16px; font-weight: 600; color: var(--bd-ink); }
+.bd-group-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--bd-ink);
+}
 
-.bd-group-list { position: relative; flex: 1; overflow-y: auto; padding: 8px; }
+.bd-group-list {
+  position: relative;
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
 
-.bd-group-items { list-style: none; margin: 0; padding: 0; user-select: none; }
+.bd-group-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+}
 
-.bd-group-items > li + li { margin-top: 2px; }
+.bd-group-items > li + li {
+  margin-top: 2px;
+}
 
 .bd-group-btn {
   display: flex;
@@ -5665,9 +5935,14 @@ html:has(.ant-modal-wrap) {
   text-align: left;
 }
 
-.bd-group-btn:focus-visible { outline: 2px solid var(--bd-blue-light); }
+.bd-group-btn:focus-visible {
+  outline: 2px solid var(--bd-blue-light);
+}
 
-.bd-group-name { display: block; font-size: 14px; }
+.bd-group-name {
+  display: block;
+  font-size: 14px;
+}
 
 /* Revealed on hover, and always once focused, so the menu is keyboard-reachable. */
 .bd-group-menu-trigger {
@@ -5688,9 +5963,14 @@ html:has(.ant-modal-wrap) {
 
 .bd-group-row:hover .bd-group-menu-trigger,
 .bd-group-menu-trigger:focus-visible,
-.bd-group-menu-trigger[aria-expanded="true"] { opacity: 1; }
+.bd-group-menu-trigger[aria-expanded="true"] {
+  opacity: 1;
+}
 
-.bd-group-menu-trigger:hover { background: var(--bd-blue-pale); color: var(--bd-blue); }
+.bd-group-menu-trigger:hover {
+  background: var(--bd-blue-pale);
+  color: var(--bd-blue);
+}
 
 /* Inside the drawer the panel *is* the drawer: it takes everything left below
    the title and scrolls only once its list outgrows that.
@@ -5707,7 +5987,9 @@ html:has(.ant-modal-wrap) {
 }
 
 /* The drawer holds the frame; the list inside the panel is what scrolls. */
-.bd-group-drawer .ant-drawer-body { overflow: hidden; }
+.bd-group-drawer .ant-drawer-body {
+  overflow: hidden;
+}
 
 /* ── Nhãn bệnh nhân ─────────────────────────────────────────────────────── */
 .bd-tag-preview {
@@ -5770,7 +6052,13 @@ html:has(.ant-modal-wrap) {
   padding: 12px;
 }
 
-.bd-pay-qr-meta { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 6px; }
+.bd-pay-qr-meta {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+}
 
 .bd-pay-qr-img {
   width: 96px;
@@ -5795,15 +6083,31 @@ html:has(.ant-modal-wrap) {
   font-size: 14px;
   font-weight: 500;
   color: var(--bd-blue);
-  transition: border-color 150ms, background 150ms;
+  transition:
+    border-color 150ms,
+    background 150ms;
 }
 
-.bd-pay-upload:hover { border-color: var(--bd-blue); background: var(--bd-blue-pale); }
+.bd-pay-upload:hover {
+  border-color: var(--bd-blue);
+  background: var(--bd-blue-pale);
+}
 
 /* ── Bệnh án mẫu: the zoom control above the sheet ──────────────────────── */
-.bd-zoom { display: flex; align-items: center; gap: 4px; font-size: 13px; color: var(--bd-muted); }
+.bd-zoom {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--bd-muted);
+}
 
-.bd-zoom-value { width: 48px; text-align: center; font-size: 13px; color: var(--bd-ink); }
+.bd-zoom-value {
+  width: 48px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--bd-ink);
+}
 
 /* Matches the shading the sheet gives every fillable cell, so the legend and
    the form cannot drift apart. */
@@ -5828,10 +6132,15 @@ html:has(.ant-modal-wrap) {
   padding: 10px 12px;
   text-align: left;
   color: var(--bd-muted);
-  transition: background 150ms, color 150ms;
+  transition:
+    background 150ms,
+    color 150ms;
 }
 
-.bd-group-row:hover { background: var(--bd-bg); color: var(--bd-ink); }
+.bd-group-row:hover {
+  background: var(--bd-bg);
+  color: var(--bd-ink);
+}
 
 .bd-group-row--active {
   border-left: 3px solid var(--bd-blue);
@@ -5865,13 +6174,21 @@ html:has(.ant-modal-wrap) {
 
 /* The grip only appears on hover in the group panel, but focus must reveal it
    too — otherwise reordering is unreachable without a pointer. */
-.bd-grip--reveal { opacity: 0; transition: opacity 150ms; }
+.bd-grip--reveal {
+  opacity: 0;
+  transition: opacity 150ms;
+}
 
 .bd-group-row:hover .bd-grip--reveal,
 .bd-grip--reveal:focus-visible,
-.bd-grip--shown { opacity: 1; }
+.bd-grip--shown {
+  opacity: 1;
+}
 
-.bd-grip--off { cursor: not-allowed; opacity: 0.5; }
+.bd-grip--off {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
 
 /* Nhãn bệnh nhân: the preset colour swatches. */
 .bd-tag-color {
@@ -5883,17 +6200,27 @@ html:has(.ant-modal-wrap) {
   transition: transform 150ms;
 }
 
-.bd-tag-color:hover { transform: scale(1.1); }
+.bd-tag-color:hover {
+  transform: scale(1.1);
+}
 
-.bd-tag-color--picked { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--bd-ink); }
+.bd-tag-color--picked {
+  box-shadow:
+    0 0 0 2px #fff,
+    0 0 0 4px var(--bd-ink);
+}
 
 /* The MoMo/Bank switch sits full-width on a phone and shrinks to its content
    from the tablet breakpoint up, as the reference lays it out. */
-.bd-catalog-segmented { width: 100%; }
+.bd-catalog-segmented {
+  width: 100%;
+}
 
 @media (min-width: 768px) {
-  .bd-catalog-segmented { width: auto; align-self: flex-start; }
-
+  .bd-catalog-segmented {
+    width: auto;
+    align-self: flex-start;
+  }
 }
 
 /* ── Page tab strip ─────────────────────────────────────────────────────── */
@@ -5923,8 +6250,11 @@ html:has(.ant-modal-wrap) {
 }
 
 @media (min-width: 768px) {
-  .bd-pager { flex-direction: row; align-items: center; justify-content: space-between; }
-
+  .bd-pager {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
 }
 
 /* antd puts its modal title in a plain div; these dialogs use a real heading,
@@ -5955,9 +6285,16 @@ html:has(.ant-modal-wrap) {
   margin-top: 12px;
 }
 
-.bd-group-searchrow .ant-input-affix-wrapper { flex: 1; min-width: 0; }
+.bd-group-searchrow .ant-input-affix-wrapper {
+  flex: 1;
+  min-width: 0;
+}
 
-.bd-group-searchrow .ant-btn { width: 40px; height: 40px; flex-shrink: 0; }
+.bd-group-searchrow .ant-btn {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
 
 /* The card owns the height; the table fills it and scrolls inside, with the
    pager pinned to the bottom the way the reference draws it.
@@ -5990,7 +6327,9 @@ html:has(.ant-modal-wrap) {
    rows run past the bottom of the card and there is no way to reach the last
    of them. An inline style cannot be answered from a stylesheet any other way,
    so this is the one place `!important` earns its keep. */
-.bd-cat-card .ant-table-content { overflow: auto !important; }
+.bd-cat-card .ant-table-content {
+  overflow: auto !important;
+}
 
 /* Ant Design sets `scrollbar-color` on its tables. Naming that property is
    what makes a browser draw its own scrollbar and ignore `::-webkit-scrollbar`
@@ -6036,14 +6375,20 @@ html:has(.ant-modal-wrap) {
 }
 
 /* An empty table should not collapse the card's whole body. */
-.bd-cat-card .ant-table-placeholder .ant-table-cell { border-bottom: 0; }
+.bd-cat-card .ant-table-placeholder .ant-table-cell {
+  border-bottom: 0;
+}
 
 /* The grip column is a drag handle, not a cell of text. */
-.bd-cat-card .ant-table-cell .bd-grip { display: inline-flex; }
+.bd-cat-card .ant-table-cell .bd-grip {
+  display: inline-flex;
+}
 
 /* ── Danh mục: what the dialogs still ask for on top of Ant Design ───────── */
 
-.bd-mb2 { margin-bottom: 8px; }
+.bd-mb2 {
+  margin-bottom: 8px;
+}
 
 /* A titled block inside a dialog — "Cấu hình giá & thuế" and friends. */
 .bd-dialog-section {
@@ -6069,19 +6414,29 @@ html:has(.ant-modal-wrap) {
   color: var(--bd-ink);
 }
 
-.bd-dialog-section-head { margin-bottom: 16px; }
-.bd-dialog-section-head .bd-dialog-section-title { margin-bottom: 0; }
+.bd-dialog-section-head {
+  margin-bottom: 16px;
+}
+.bd-dialog-section-head .bd-dialog-section-title {
+  margin-bottom: 0;
+}
 
 /* Rows inside a section are siblings, so the Row's own gutter does nothing
    between them. They need the gap themselves — and a wider one than elsewhere,
    because a floating label sits *on* its field's top border and would
    otherwise be drawn over the row above. */
-.bd-dialog-section .ant-row { margin-bottom: 18px; }
-.bd-dialog-section .ant-row:last-child { margin-bottom: 0; }
+.bd-dialog-section .ant-row {
+  margin-bottom: 18px;
+}
+.bd-dialog-section .ant-row:last-child {
+  margin-bottom: 0;
+}
 
 /* The two toggles carry no label, so they line up with the boxes beside them
    rather than sitting 2px short. */
-.bd-dialog-section .ant-segmented { height: 42px; }
+.bd-dialog-section .ant-segmented {
+  height: 42px;
+}
 .bd-dialog-section .ant-segmented .ant-segmented-item-label {
   display: flex;
   align-items: center;
@@ -6089,8 +6444,16 @@ html:has(.ant-modal-wrap) {
 }
 
 /* A checkbox with an explanation under it, the shape these tabs repeat. */
-.bd-check-list { display: flex; flex-direction: column; gap: 12px; }
-.bd-check-row { display: flex; flex-direction: column; gap: 2px; }
+.bd-check-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.bd-check-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
 
 .bd-check-hint {
   margin: 0 0 0 24px;
@@ -6099,10 +6462,16 @@ html:has(.ant-modal-wrap) {
 }
 
 /* The small editable tables inside a dialog: line items, service stages. */
-.bd-line-table .ant-table { font-size: 13px; }
-.bd-line-table .ant-table-cell { padding: 6px 8px !important; }
+.bd-line-table .ant-table {
+  font-size: 13px;
+}
+.bd-line-table .ant-table-cell {
+  padding: 6px 8px !important;
+}
 
-.bd-dialog-tabs .ant-tabs-nav { margin-bottom: 16px; }
+.bd-dialog-tabs .ant-tabs-nav {
+  margin-bottom: 16px;
+}
 
 /* A field the server fills in after a save reads as text, not as a box the
    user could type into. */
@@ -6125,7 +6494,9 @@ html:has(.ant-modal-wrap) {
   font-size: 14px;
 }
 
-.bd-rich-text .ql-editor { min-height: 140px; }
+.bd-rich-text .ql-editor {
+  min-height: 140px;
+}
 
 /* An image the author has just picked, shown while its bytes are on their way
    to storage. A `data:` src is the file itself rather than a link to a stored
@@ -6148,7 +6519,9 @@ html:has(.ant-modal-wrap) {
   margin-bottom: 12px;
 }
 
-.app-dialog .ant-form > *:last-child { margin-bottom: 0; }
+.app-dialog .ant-form > *:last-child {
+  margin-bottom: 0;
+}
 
 /* A soft-deleted row keeps its place in the list, so it has to read as deleted
    without being mistaken for a live record. */
@@ -6197,7 +6570,9 @@ html:has(.ant-modal-wrap) {
   min-width: 0;
 }
 
-.bd-ops-tabrow-end .bd-ops-period { justify-content: flex-end; }
+.bd-ops-tabrow-end .bd-ops-period {
+  justify-content: flex-end;
+}
 
 .bd-ops-middletab {
   position: relative;
@@ -6211,9 +6586,13 @@ html:has(.ant-modal-wrap) {
   white-space: nowrap;
 }
 
-.bd-ops-middletab:hover { color: var(--bd-ink); }
+.bd-ops-middletab:hover {
+  color: var(--bd-ink);
+}
 
-.bd-ops-middletab--active { color: var(--bd-blue); }
+.bd-ops-middletab--active {
+  color: var(--bd-blue);
+}
 
 .bd-ops-middletab--active::after {
   position: absolute;
@@ -6260,7 +6639,9 @@ html:has(.ant-modal-wrap) {
   padding: 16px 20px;
 }
 
-.bd-ops-aside { min-height: 0; }
+.bd-ops-aside {
+  min-height: 0;
+}
 
 .bd-ops-main {
   display: flex;
@@ -6325,7 +6706,9 @@ html:has(.ant-modal-wrap) {
   transition: background 150ms;
 }
 
-.bd-ops-cat:hover { background: var(--bd-bg-soft); }
+.bd-ops-cat:hover {
+  background: var(--bd-bg-soft);
+}
 
 .bd-ops-cat--active {
   border-left-color: var(--bd-blue);
@@ -6351,7 +6734,9 @@ html:has(.ant-modal-wrap) {
   font-size: 16px;
 }
 
-.bd-ops-cat--active .bd-ops-cat-icon { color: var(--bd-blue); }
+.bd-ops-cat--active .bd-ops-cat-icon {
+  color: var(--bd-blue);
+}
 
 /* Two lines, then clipped, as the reference clamps it. */
 .bd-ops-cat-name {
@@ -6365,7 +6750,9 @@ html:has(.ant-modal-wrap) {
   font-weight: 500;
 }
 
-.bd-ops-cat--active .bd-ops-cat-name { color: var(--bd-blue); }
+.bd-ops-cat--active .bd-ops-cat-name {
+  color: var(--bd-blue);
+}
 
 /* Out of the way until the row is pointed at, focused, or selected. */
 .bd-ops-cat-actions {
@@ -6379,7 +6766,9 @@ html:has(.ant-modal-wrap) {
 
 .bd-ops-cat:hover .bd-ops-cat-actions,
 .bd-ops-cat--active .bd-ops-cat-actions,
-.bd-ops-cat-actions:focus-within { opacity: 1; }
+.bd-ops-cat-actions:focus-within {
+  opacity: 1;
+}
 
 .bd-ops-cat-action {
   display: flex;
@@ -6393,7 +6782,9 @@ html:has(.ant-modal-wrap) {
   height: 28px;
   color: var(--bd-muted);
   font-size: 14px;
-  transition: background 150ms, color 150ms;
+  transition:
+    background 150ms,
+    color 150ms;
 }
 
 .bd-ops-cat-action:hover {
@@ -6401,7 +6792,9 @@ html:has(.ant-modal-wrap) {
   color: var(--bd-blue);
 }
 
-.bd-ops-cat-action--danger:hover { color: var(--bd-red); }
+.bd-ops-cat-action--danger:hover {
+  color: var(--bd-red);
+}
 
 /* Vận hành: the create button sits beside the search rather than under a page
    title — this screen already says where it is with its two rows of tabs. */
@@ -6414,7 +6807,9 @@ html:has(.ant-modal-wrap) {
   padding-bottom: 16px;
 }
 
-.bd-ops-toolbar .ant-btn { height: 42px; }
+.bd-ops-toolbar .ant-btn {
+  height: 42px;
+}
 
 .bd-ops-search {
   flex: 1;
@@ -6423,11 +6818,15 @@ html:has(.ant-modal-wrap) {
 }
 
 .bd-ops-search .ant-input-affix-wrapper,
-.bd-ops-search.ant-input-affix-wrapper { height: 42px; }
+.bd-ops-search.ant-input-affix-wrapper {
+  height: 42px;
+}
 
 /* The reference gives the article body a tall editor rather than a box that
    grows only once it is written in. */
-.bd-ops-editor .ql-editor { min-height: 320px; }
+.bd-ops-editor .ql-editor {
+  min-height: 320px;
+}
 
 /* A sub-tab that is a report this application does not serve yet. */
 .bd-ops-report {
@@ -6482,7 +6881,9 @@ html:has(.ant-modal-wrap) {
   padding-bottom: 0;
 }
 
-.bd-ops-report-bar--titled { padding-bottom: 16px; }
+.bd-ops-report-bar--titled {
+  padding-bottom: 16px;
+}
 
 .bd-ops-period {
   display: flex;
@@ -6510,12 +6911,16 @@ html:has(.ant-modal-wrap) {
   color: var(--bd-muted);
   font-size: 13px;
   font-weight: 500;
-  transition: background 150ms, color 150ms;
+  transition:
+    background 150ms,
+    color 150ms;
 }
 
 /* Only the resting options darken on hover: the selected one is already
    white on blue, and repainting it made the label almost unreadable. */
-.bd-ops-period-option:not(.bd-ops-period-option--active):hover { color: var(--bd-ink); }
+.bd-ops-period-option:not(.bd-ops-period-option--active):hover {
+  color: var(--bd-ink);
+}
 
 .bd-ops-period-option--active,
 .bd-ops-period-option--active:hover {
@@ -6566,7 +6971,9 @@ html:has(.ant-modal-wrap) {
   cursor: pointer;
 }
 
-.bd-ops-period-picker .ant-picker-prefix { color: var(--bd-muted); }
+.bd-ops-period-picker .ant-picker-prefix {
+  color: var(--bd-muted);
+}
 
 .bd-ops-report-filters {
   display: flex;
@@ -6577,7 +6984,9 @@ html:has(.ant-modal-wrap) {
   padding-bottom: 16px;
 }
 
-.bd-ops-filter { min-width: 240px; }
+.bd-ops-filter {
+  min-width: 240px;
+}
 
 /* ── Figures above a money report ────────────────────────────────────────── */
 
@@ -6600,9 +7009,16 @@ html:has(.ant-modal-wrap) {
   text-align: left;
 }
 
-.bd-ops-stat--pick { cursor: pointer; transition: border-color 150ms, box-shadow 150ms; }
+.bd-ops-stat--pick {
+  cursor: pointer;
+  transition:
+    border-color 150ms,
+    box-shadow 150ms;
+}
 
-.bd-ops-stat--pick:hover { border-color: var(--bd-blue); }
+.bd-ops-stat--pick:hover {
+  border-color: var(--bd-blue);
+}
 
 .bd-ops-stat--active {
   border-color: var(--bd-blue);
@@ -6620,11 +7036,26 @@ html:has(.ant-modal-wrap) {
   font-size: 16px;
 }
 
-.bd-ops-stat-icon--teal { background: #e3f6ef; color: var(--bd-green); }
-.bd-ops-stat-icon--blue { background: var(--bd-blue-pale); color: var(--bd-blue); }
-.bd-ops-stat-icon--amber { background: var(--bd-amber-pale); color: var(--bd-amber); }
-.bd-ops-stat-icon--green { background: var(--bd-green-pale); color: var(--bd-green); }
-.bd-ops-stat-icon--rose { background: var(--bd-red-pale); color: var(--bd-red); }
+.bd-ops-stat-icon--teal {
+  background: #e3f6ef;
+  color: var(--bd-green);
+}
+.bd-ops-stat-icon--blue {
+  background: var(--bd-blue-pale);
+  color: var(--bd-blue);
+}
+.bd-ops-stat-icon--amber {
+  background: var(--bd-amber-pale);
+  color: var(--bd-amber);
+}
+.bd-ops-stat-icon--green {
+  background: var(--bd-green-pale);
+  color: var(--bd-green);
+}
+.bd-ops-stat-icon--rose {
+  background: var(--bd-red-pale);
+  color: var(--bd-red);
+}
 
 .bd-ops-stat-body {
   display: flex;
@@ -6639,11 +7070,21 @@ html:has(.ant-modal-wrap) {
   line-height: 1.3;
 }
 
-.bd-ops-stat-value--teal { color: var(--bd-green); }
-.bd-ops-stat-value--blue { color: var(--bd-blue); }
-.bd-ops-stat-value--amber { color: var(--bd-amber); }
-.bd-ops-stat-value--green { color: var(--bd-green); }
-.bd-ops-stat-value--rose { color: var(--bd-red); }
+.bd-ops-stat-value--teal {
+  color: var(--bd-green);
+}
+.bd-ops-stat-value--blue {
+  color: var(--bd-blue);
+}
+.bd-ops-stat-value--amber {
+  color: var(--bd-amber);
+}
+.bd-ops-stat-value--green {
+  color: var(--bd-green);
+}
+.bd-ops-stat-value--rose {
+  color: var(--bd-red);
+}
 
 .bd-ops-stat-label {
   color: var(--bd-muted);
@@ -6659,8 +7100,14 @@ html:has(.ant-modal-wrap) {
   font-weight: 500;
 }
 
-.bd-ops-stat-badge--green { background: var(--bd-green-pale); color: var(--bd-green); }
-.bd-ops-stat-badge--rose { background: var(--bd-red-pale); color: var(--bd-red); }
+.bd-ops-stat-badge--green {
+  background: var(--bd-green-pale);
+  color: var(--bd-green);
+}
+.bd-ops-stat-badge--rose {
+  background: var(--bd-red-pale);
+  color: var(--bd-red);
+}
 
 /* ── Report table cells ──────────────────────────────────────────────────── */
 
@@ -6739,9 +7186,13 @@ html:has(.ant-modal-wrap) {
   padding-bottom: 0;
 }
 
-.bd-ops-stat--single { min-width: 280px; }
+.bd-ops-stat--single {
+  min-width: 280px;
+}
 
-.bd-ops-filter--wide { min-width: 320px; }
+.bd-ops-filter--wide {
+  min-width: 320px;
+}
 
 /* The actions at the right-hand end of a report's filter row. */
 .bd-ops-report-actions {
@@ -6752,7 +7203,9 @@ html:has(.ant-modal-wrap) {
   gap: 12px;
 }
 
-.bd-ops-report-actions .ant-btn { height: 42px; }
+.bd-ops-report-actions .ant-btn {
+  height: 42px;
+}
 
 /* Khách hàng phát sinh names itself, with the controls at the far end. */
 .bd-ops-report-bar--titled {
@@ -6845,14 +7298,20 @@ html:has(.ant-modal-wrap) {
   font-size: 11px;
 }
 
-.bd-ops-action { font-weight: 500; }
+.bd-ops-action {
+  font-weight: 500;
+}
 
 /* "(Trống)" and "---" are placeholders, not content. */
-.bd-ops-blank { color: var(--bd-faint); }
+.bd-ops-blank {
+  color: var(--bd-faint);
+}
 
 /* A cell spanning a block is centred against it, as the reference centres the
    visit and the action group. */
-.bd-ops-worklog .ant-table-tbody > tr > td { vertical-align: middle; }
+.bd-ops-worklog .ant-table-tbody > tr > td {
+  vertical-align: middle;
+}
 
 /* Report rows carry the reference's own size and weight: 14px throughout, in
    the ink colour rather than a mid grey, so the content reads first and the
@@ -6873,7 +7332,9 @@ html:has(.ant-modal-wrap) {
   font-weight: 600;
 }
 
-.bd-ops-subject { font-size: 14px; }
+.bd-ops-subject {
+  font-size: 14px;
+}
 
 /* The date above the patient stays quieter than the name under it. */
 .bd-ops-visit > .bd-cat-num {
@@ -6904,9 +7365,13 @@ html:has(.ant-modal-wrap) {
 }
 
 /* With no filters to sit opposite, the figure stands alone at the start. */
-.bd-ops-report-head--start { justify-content: flex-start; }
+.bd-ops-report-head--start {
+  justify-content: flex-start;
+}
 
-.bd-ops-report-head--start .bd-ops-stat--single { flex: 0 0 auto; }
+.bd-ops-report-head--start .bd-ops-stat--single {
+  flex: 0 0 auto;
+}
 
 /* The item's own time, under its name. */
 .bd-ops-subject {
@@ -6948,7 +7413,9 @@ html:has(.ant-modal-wrap) {
     padding-top: 0;
   }
 
-  .bd-ops-tabrow-end .bd-ops-period { justify-content: flex-start; }
+  .bd-ops-tabrow-end .bd-ops-period {
+    justify-content: flex-start;
+  }
 }
 
 /* ── Vận hành và Danh mục trên màn hẹp ──────────────────────────────────── */
@@ -7010,15 +7477,21 @@ html:has(.ant-modal-wrap) {
 /* Below 768px the category column gives way to a drawer, opened from a
    "Chọn nhóm" bar — the same shape Danh mục already uses at this width. */
 @media (max-width: 767px) {
-  .bd-ops-aside { display: none; }
+  .bd-ops-aside {
+    display: none;
+  }
 
   /* The tools sit below the bar's rule with the same air Danh mục leaves under
      its own — the space belongs to what follows the rule, not to the bar. */
-  .bd-ops-main > .bd-ops-toolbar { padding-top: 16px; }
+  .bd-ops-main > .bd-ops-toolbar {
+    padding-top: 16px;
+  }
 }
 
 @media (min-width: 768px) {
-  .bd-ops-main > .bd-cat-header--bar { display: none; }
+  .bd-ops-main > .bd-cat-header--bar {
+    display: none;
+  }
 }
 
 /* ── Vật tư ─────────────────────────────────────────────────────────────── */
@@ -7055,7 +7528,9 @@ html:has(.ant-modal-wrap) {
   padding: 0 0 16px;
 }
 
-.bd-materials-toolbar .ant-btn { height: 42px; }
+.bd-materials-toolbar .ant-btn {
+  height: 42px;
+}
 
 .bd-materials-search {
   flex: 1;
@@ -7063,14 +7538,18 @@ html:has(.ant-modal-wrap) {
   max-width: 420px;
 }
 
-.bd-materials-search.ant-input-affix-wrapper { height: 42px; }
+.bd-materials-search.ant-input-affix-wrapper {
+  height: 42px;
+}
 
 /* The command at the far end of the row, opposite the tools. */
 /* ── Phân bổ vật tư ─────────────────────────────────────────────────────────
    The bar that rises from the bottom once materials are ticked, and the
    quantity form it opens. The reference floats both over the table rather than
    pushing it up, so the selection stays in view while you name the department. */
-.bd-alloc-host { position: relative; }
+.bd-alloc-host {
+  position: relative;
+}
 
 .bd-alloc-dock {
   position: absolute;
@@ -7130,7 +7609,9 @@ html:has(.ant-modal-wrap) {
   background: rgb(27 42 65 / 10%);
 }
 
-.bd-alloc-bar-dept { min-width: 220px; }
+.bd-alloc-bar-dept {
+  min-width: 220px;
+}
 
 .bd-alloc-notes ul {
   margin: 4px 0 0;
@@ -7173,8 +7654,14 @@ html:has(.ant-modal-wrap) {
   color: var(--bd-muted);
 }
 
-.bd-alloc-empty { color: var(--bd-red, #cf3c41); font-weight: 500; }
-.bd-alloc-error { color: var(--bd-red, #cf3c41); font-weight: 500; }
+.bd-alloc-empty {
+  color: var(--bd-red, #cf3c41);
+  font-weight: 500;
+}
+.bd-alloc-error {
+  color: var(--bd-red, #cf3c41);
+  font-weight: 500;
+}
 
 .bd-alloc-stepper {
   display: flex;
@@ -7182,13 +7669,23 @@ html:has(.ant-modal-wrap) {
   gap: 6px;
 }
 
-.bd-alloc-qty { width: 72px; text-align: center; }
+.bd-alloc-qty {
+  width: 72px;
+  text-align: center;
+}
 
-.bd-alloc-note { margin-top: 12px; }
+.bd-alloc-note {
+  margin-top: 12px;
+}
 
-.bd-alloc-count { font-size: 13px; color: var(--bd-muted); }
+.bd-alloc-count {
+  font-size: 13px;
+  color: var(--bd-muted);
+}
 
-.bd-alloc-chip { margin: 0; }
+.bd-alloc-chip {
+  margin: 0;
+}
 
 /* A voucher's materials read as one line, with the whole list on the title. */
 .bd-alloc-clamp {
@@ -7198,7 +7695,9 @@ html:has(.ant-modal-wrap) {
   white-space: nowrap;
 }
 
-.bd-alloc-unchecked { color: var(--bd-muted); }
+.bd-alloc-unchecked {
+  color: var(--bd-muted);
+}
 
 /* The dialog's own head and foot, which carry more than Danh mục's do. */
 .bd-modal-head {
@@ -7229,9 +7728,18 @@ html:has(.ant-modal-wrap) {
 
 /* The reference picks these two figures out in colour: what went out in teal,
    what is confirmed still there in amber. */
-.bd-mat-issued { color: #0e9f6e; font-weight: 600; }
-.bd-mat-remaining { color: #d98b0f; font-weight: 600; }
-.bd-mat-code { color: var(--bd-blue); font-weight: 500; }
+.bd-mat-issued {
+  color: #0e9f6e;
+  font-weight: 600;
+}
+.bd-mat-remaining {
+  color: #d98b0f;
+  font-weight: 600;
+}
+.bd-mat-code {
+  color: var(--bd-blue);
+  font-weight: 500;
+}
 
 /* Pushed to the far right of the toolbar. Also used on the span that wraps a
    disabled button, because a disabled button swallows its own tooltip and the

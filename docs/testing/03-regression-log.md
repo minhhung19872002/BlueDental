@@ -1935,3 +1935,130 @@ Retest R-251: Level 1 (chỉ bọc thêm một khối, không đổi hành vi). 
 production riêng, `vite preview` cổng **8098**, API `:5000`:
 `e2e/treatment-plan-detail.spec.ts` **6/6**, 44s; tsc + eslint sạch. Chưa
 commit; chưa chụp ảnh đối chiếu (chủ dự án xác nhận bằng mắt).
+
+## 2026-09-07 (đêm) — Chẩn đoán & Tư vấn: form chẩn đoán tại chỗ, chân phiếu theo staging
+
+Chỉ FE. Xem `docs/clone/pages/patient-detail.md` mục 2026-09-07.
+
+| # | Hiện tượng | Xử lý |
+|---|---|---|
+| R-252 | Chuỗi răng trong bảng chẩn đoán/tư vấn không đúng dạng bản gốc; mặt răng gọi chung một tên không theo góc phần tư | `formatTeeth` / `toothLabels` trong `consultingApi.ts` dùng `surfaceLabel` của `ToothChart` dùng chung → "18, 16 - Mặt ngoài, Mặt nhai"; áp dụng cho mọi nơi gọi `formatTeeth` |
+| R-253 | Chip "Răng đã chọn" bị cắt chữ và nút X tràn ra ngoài khi nhãn dài ("16 - Mặt ngoài, Mặt nhai") | `.pd-tooth-chip` `white-space: nowrap`, padding `6px 16px 6px 12px`; hộp chip `padding: 4px 8px 0 0`; đo 43×28 và 175×28 |
+| R-254 | Hàng lệnh chân "Phiếu tư vấn" rớt hai dòng ở 1600px, nút in cao 40px | `.pd-plan-summary` cột `minmax(0,1fr) minmax(0,1.45fr)`, `.pd-plan-print` 36×36; select 296, nút 200/131 như staging |
+| R-255 | Chân phiếu có công tắc giảm giá %/VNĐ nhưng staging không có; thiếu khối "Voucher áp dụng" | Bỏ công tắc; thêm `AdviseVoucherPicker` (popover tìm voucher, trạng thái rỗng của bản gốc) |
+| R-256 | `treatment-plan.spec.ts` "tạo kế hoạch" đếm số dòng +1 nhưng danh sách đã đủ 20/trang → "Expected 21 Received 20" | Test chờ `expect.poll` thấy **mã mới** không có trong danh sách trước, thay vì đếm |
+| R-257 | `treatment-stage.spec.ts` hai test đầu tìm nút "Chọn Răng"/"Hàm Trên" bằng `role=button` và chữ "Răng đã chọn: —" của form cũ → không tìm thấy | Đổi sang `role=tab`, kiểm tra chip qua `data-testid=selected-teeth`, chọn "Hàm Trên" thì một chip "Hàm trên" và sơ đồ răng gập |
+
+Mức retest: **2** cho F-09, thêm **3** một phần vì `ToothPickerTabs` /
+`DentitionRadio` chuyển sang `src/components/ToothChart` (dialog chọn răng
+của kế hoạch dùng chung). Bản build production `vite build` + `vite preview
+--strictPort` cổng **8081** (8080 là preview cũ của checkout khác), API
+`:5000`, PostgreSQL thật, đăng nhập thật, không chặn API:
+
+- `e2e/patient.spec.ts` (nhóm Chẩn đoán & Tư vấn) **4/4** — gồm test mới
+  "Lưu Chẩn Đoán": chọn bác sĩ, chẩn đoán, răng 18 + hai mặt răng 16, chờ
+  `POST /api/v1/app/patient-diagnoses` 2xx, dòng đầu ghi
+  "18, 16 - Mặt ngoài, Mặt nhai", mã `CDxx-xxxx`, reload vẫn còn.
+- `e2e/treatment-stage.spec.ts` **2/2**, 16s.
+- `e2e/treatment-plan.spec.ts` **5/5**; `e2e/treatment-plan-detail.spec.ts`
+  **6/6** (dialog chọn răng dùng component chuyển đi).
+- `tsc --noEmit`, eslint (file đã sửa) và `vite build` sạch. **Chưa commit.**
+
+| # | Hiện tượng | Xử lý |
+|---|---|---|
+| R-258 | Bấm ảnh trên panel tư vấn chỉ mở preview mặc định của AntD (`Image.PreviewGroup`), không có các thao tác như tab Hình ảnh (xoay, lật, zoom, vẽ chú thích, dải thumbnail) | Panel dùng lại `PatientImageViewer` của tab Hình ảnh; ảnh về `PatientImageViewModel` qua `adaptPatientImage` ngay trong `useConsultingData`; mỗi ô ảnh là `button.pd-image-tile`; dialog "Chọn ảnh hiển thị" tách ra `ConsultingImagePicker` (nhóm ngày bằng `groupImagesByDay`) |
+
+Retest R-258: Level 2. Build production, `vite preview` cổng 8081, API `:5000`:
+nhóm Chẩn đoán & Tư vấn trong `e2e/patient.spec.ts` **5/5** — test ảnh giờ
+kiểm tra viewer `patient-image-viewer`, bộ đếm "1 / N", thanh công cụ "Công cụ
+xem ảnh" (Vẽ chú thích, Xoay phải, Lật ngang, Zoom gần, Đóng), dải thumbnail,
+xoay ghi `--pi-rotate: 90deg` lên khung, Escape đóng. tsc, eslint, build sạch.
+Chưa commit.
+
+| # | Hiện tượng | Xử lý |
+|---|---|---|
+| R-259 | Có ảnh rồi mà ô xám "Kéo ảnh vào hoặc bấm nút để tải lên" vẫn nằm trên panel, ảnh xếp phía dưới — staging thay ô đó bằng ảnh, xếp từ trên xuống ngay dưới ba nút | `.pd-image-drop` chỉ vẽ khi chưa có ảnh; cả panel nhận kéo-thả file (`pd-image-panel--over`); ảnh xếp theo thứ tự của dialog (ngày mới nhất trước, trong ngày theo `ordering`) |
+| R-260 | Nút kẹp (trước nút xoá) trên thẻ ảnh trong "Chọn ảnh hiển thị" chưa làm gì | Kéo bằng `@dnd-kit` như tab Hình ảnh: `ConsultingImageCard` dùng `useSortable`, kẹp là activator; `usePatientImageReorder` tách phần lõi `useReorderWithCache` (ghi cache lạc quan, `PUT /reorder`, rollback + toast) rồi thêm `useConsultingImageReorder` vá cache `patientImageKeys.list`; chỉ hiện kẹp khi `canSort` |
+| R-261 | Thẻ trong dialog xuống dòng thành lưới, staging xếp một hàng ngang cuộn ngang | `.pd-image-cards` `flex-wrap: nowrap; overflow-x: auto`, thẻ `flex: 0 0 280px`; chiến lược kéo đổi sang `horizontalListSortingStrategy` |
+| R-262 | Hai nút tròn trên thẻ bị dẹt 40×34 — AntD `.ant-btn-circle` đặt `min-width` bằng chiều cao control với độ ưu tiên cao hơn rule cũ | Rule `.pd-image-card-actions .ant-btn.ant-btn-circle.ant-btn-circle` ghim 34×34, `padding: 0`, `border-radius: 50%` |
+
+Retest R-259/R-260/R-261: Level 2, build production, `vite preview` 8081, API
+`:5000`: nhóm Chẩn đoán & Tư vấn trong `e2e/patient.spec.ts` **6/6**, gồm test
+mới kéo kẹp thẻ thứ hai lên thẻ đầu trong dialog (chờ `PUT …/reorder` ok, tên
+đổi chỗ, panel phía sau đổi theo, reload vẫn giữ, rồi kéo trả lại). Tab Hình
+ảnh không chạy lại (chủ dự án tự kiểm tra). R-262 chỉ sửa CSS sau lượt test
+đó — chủ dự án tự kiểm tra, không đo lại. tsc, build sạch. **Chưa commit.**
+
+| # | Hiện tượng | Xử lý |
+|---|---|---|
+| R-263 | "Tổng thành tiền" ở chân "Phiếu tư vấn" cộng cả bảng (`patient-advises/summary`), staging chỉ cộng các dòng đã tick: chưa tick đọc "0 đ" | `usePlanVoucher(rows, selected, branchId)` cộng `effectiveAmount` của các dòng trong `selected`; `PatientAdviseCard` nhận một prop `plan` thay cho `summary`; `useConsultingData` bỏ query summary |
+| R-264 | Popover "Chọn voucher" chưa tải voucher — luôn hiện câu rỗng; ô tìm thiếu placeholder "Tìm voucher theo mã hoặc tên..." của staging; popover 280px, staging ~520px | `useAvailableVouchers` (`GET /api/v1/app/vouchers/available?orderAmount=…`, BE đã có) thêm vào `voucherApi`; hook lọc `scopeTarget = treatment`, tìm mã/tên tại chỗ, chọn/bỏ từng dòng, voucher độc quyền đứng một mình, voucher không còn đủ điều kiện khi tổng đổi thì tự rớt; "Tổng tiền" = tổng − giảm giá (`calculateVoucherDiscount` cùng công thức BE); mã đã chọn thay câu nghiêng dưới nút; CSS `.pd-voucher-popover` 520px, `.pd-voucher-search`, `.pd-voucher-list`, `.pd-voucher-row` |
+
+| # | Hiện tượng | Xử lý |
+|---|---|---|
+| R-265 | Dialog "Tạo dịch vụ" cũ là form một dịch vụ, staging là dialog "Chọn Dịch Vụ": răng/bác sĩ đọc từ phiếu, nhân sự tư vấn 1–2, nút nhóm dịch vụ, tìm kiếm, bảng tick nhiều dịch vụ với giá/số lượng/giảm giá/ghi chú từng hàng, thẻ tổng kết và Lưu | `AdviseModal` dựng lại trên `.tp-dialog` + `advise/advise-modal.css` (màu qua `--tp-accent` = `--bd-primary`); `useAdviseSelection` giữ draft từng dòng (Map theo id, sống qua lọc), `useCreateAdvises` gửi `POST patient-advises` lần lượt từng dòng tick, dừng và báo dòng lỗi; `toothSelectionsToValue` (ToothChart) đổi răng của phiếu về `ToothPickerValue`; dải nhóm một hàng cuộn ngang |
+
+Retest R-265: không đo (chủ dự án tự kiểm tra, không viết test theo yêu cầu).
+tsc, eslint, `vite build` sạch; mở thử trên preview 8081 với API `:5000`:
+dialog mở đúng phiếu, tick một dòng hiện editor và tổng kết, không lỗi
+console. **Chưa commit.**
+
+Retest R-263 → R-264 (2026-09-07, Level 2, build production `vite preview`
+cổng 8083 vì 8080/8081/8082 đang có tiến trình khác, API thật :5000, DB thật):
+`patient.spec.ts` nhóm Chẩn đoán & Tư vấn 6/6 — gồm test mới "the plan total
+counts only the ticked rows and a plan voucher comes off it" (chưa tick → "0 đ";
+tick một dòng → tổng = "Thành tiền" dòng đó; tìm mã trong popover, bấm chọn →
+"Đã chọn: 1", mã hiện dưới nút, "Tổng tiền" trừ đúng 10% có trần
+`maxDiscountAmount`; bỏ tick → "0 đ", voucher không có đơn tối thiểu vẫn giữ).
+Test "panels, columns" đổi cách ép trạng thái rỗng: gõ mã không tồn tại thay vì
+trông chờ không có voucher (voucher e2e vừa phát hành không có đơn tối thiểu nên
+đủ điều kiện cho 0 đ). Cả file `patient.spec.ts` 44/50: 2 test đỏ do song song
+("offers a priority", "momo included") xanh khi chạy `--workers=1`; 4 test công
+đoạn ("stage is added there", hai "finishing a công đoạn", "Tạo Tái khám lists")
+đỏ cả trên build cũ ở :8081 — BE trả 403 `BlueDental:Treatment:0019` "Dịch vụ
+này cần đính kèm ảnh trước khi hoàn thành công đoạn", luật mới của phiên khác
+(care-record), không liên quan R-263/R-264, chờ phiên đó cập nhật test. tsc,
+eslint, prettier, build sạch. **Chưa commit.**
+
+| # | Hiện tượng | Xử lý |
+|---|---|---|
+| R-265 | Dòng voucher trong popover vẽ một hàng phẳng (mã · tên · "-10%" · check) và mã đã chọn ghi thay câu nghiêng dưới nút; ảnh staging 2026-09-08: mỗi voucher là một thẻ có vòng chọn, mã đơn cách, chip "10đ", tag "Kế hoạch", tên, "≈ giảm 10đ"; thẻ chọn viền + nền xanh lá; ngoài nút đổi thành "Voucher (1)", câu nghiêng mất | `AdviseVoucherPicker`: thẻ `.pd-voucher-row` (flex, viền `--bd-line`, bo 10px; `--on` viền `--bd-success` nền `--bd-green-pale`, `CheckCircleFilled`), `__code` monospace, `__value` chip viền (`formatVoucherValue` thay `formatVoucherDiscount`, bỏ dấu trừ), `__scope` "Kế hoạch", `__saving` = `calculateVoucherDiscount(voucher, gross)`; nút "Chọn voucher" → "Voucher (n)" khi n > 0, `<em>` chỉ khi n = 0 |
+
+Retest R-265 (2026-09-08, Level 2, build production cổng 8083, API :5000, DB
+thật): `patient.spec.ts` "plan total" + "panels, columns" 2/2 — test sửa kỳ vọng
+sau khi chọn: nút "Voucher (1)" hiện, `<em>` không còn. Ảnh chụp local (popover
+mở, một voucher đã chọn) đối chiếu ảnh staging: cùng bố cục thẻ, màu xanh lá,
+chip, tag, dòng "≈ giảm", nút "Voucher (1)"; chưa đo pixel. tsc, eslint,
+prettier, build sạch. **Chưa commit.**
+
+| # | Hiện tượng | Xử lý |
+|---|---|---|
+| R-266 | Nút máy in ở chân "Phiếu tư vấn" chỉ gọi `window.print()` cả trang; bản gốc mở dialog "Chi tiết phiếu" (ảnh chẩn đoán chọn để in, thông tin chi nhánh/khách hàng, bảng dịch vụ đã tick, tổng tiền) với hai nút "In hóa đơn kèm chẩn đoán" và "In Hoá Đơn" mở bản xem trước rồi mới in | Thư mục `patient-detail/quote/`: `QuoteDetailModal` (+ `QuoteImageAside`, `QuoteImageListDialog`, `QuoteFacts`, `QuoteServiceTable`), `QuotePreviewModal` với `QuoteSheet` ("Phiếu Báo Giá") và `DiagnosisInvoiceSheet` ("Hóa Đơn Kèm Chẩn Đoán": ảnh tick, mục theo chẩn đoán, thẻ bác sĩ sửa tại chỗ bằng `RichTextField`, bảng dịch vụ, chữ ký); in bằng `printQuoteSheet` (`body.pq-printing` + `@media print` chỉ giữ `.pq-preview-body`); nút máy in có tooltip "In Báo giá" và mờ khi chưa tick |
+
+Retest R-266 (2026-09-08): không đo, chủ dự án tự kiểm tra (không viết test
+theo yêu cầu). Smoke tay trên build production cổng 8081: tick 2 dòng → dialog
+đủ 3 khối; "In Hoá Đơn" ra phiếu báo giá; tick 1 ảnh + "In hóa đơn kèm chẩn
+đoán" ra phiếu có mục I ảnh, II/III chẩn đoán, bảng dịch vụ, chữ ký; nút "Sửa"
+mở editor. tsc, eslint, build sạch. **Chưa commit.**
+
+Sửa thêm R-266 (2026-09-08, sáng): ảnh trong cột "Ảnh chẩn đoán" bị ép thành
+dải ~60px vì danh sách là flex column có `max-height` nên các mục co lại;
+bản gốc xếp khối thường (`space-y-2`) với ảnh `aspect-[4/3] object-cover`.
+Đổi `.pq-aside-list` sang block, mục `display:block` + `margin-top: 8px`;
+đo lại trên :8081 mỗi ảnh cao 207px (4:3), cuộn trong 480px. Chưa đo pixel.
+
+Sửa thêm R-266 (2026-09-08, sáng, lần 2): (a) "Phiếu Báo Giá" bỏ khối chữ ký
+"Người lập phiếu"/"Khách hàng" vì ảnh production không có; (b) thêm
+`@page { margin: 0 }` vào khối `@media print` toàn cục của `styles/index.css`
+để mọi lệnh in trong app không kèm ngày giờ / tiêu đề / URL / số trang của
+trình duyệt; `.pq-sheet`/`.pq-dx` khi in tự đệm 12mm × 15mm (cùng cách với
+`plan-detail.css`). Chủ dự án tự in kiểm tra.
+
+Sửa thêm R-266 (2026-09-08, sáng, lần 3): (a) bỏ luôn chữ ký "Bác sĩ chẩn
+đoán"/"Khách hàng" ở "Hóa Đơn Kèm Chẩn Đoán" (chủ dự án xác nhận production
+không có); (b) sau khi "Sửa" nội dung chẩn đoán bằng RichTextField, đoạn văn
+không ngắt dòng được và "Sao chép" ra chuỗi đầy `&nbsp;` — Quill 2.0.3
+(`getSemanticHTML`) đổi mọi dấu cách thành `&nbsp;`; thêm `normalizeEditorHtml`
+(mỗi chuỗi dấu cách giữ n-1 `&nbsp;` + 1 dấu cách thường) áp khi "Lưu lại", và
+`htmlToPlainText` (DOMParser, mỗi khối một dòng) cho nút "Sao chép". Chỉ sửa
+trong thư mục quote, không đụng `RichTextField` dùng chung. Chủ dự án tự thử.

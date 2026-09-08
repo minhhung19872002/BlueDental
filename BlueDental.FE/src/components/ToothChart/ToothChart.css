@@ -158,3 +158,110 @@
     display: none;
   }
 }
+
+/* Tab strip and dentition radios, measured on the reference's "Chọn răng"
+   dialog and its consulting form: a 36px white strip (border #DCE3EE, radius
+   8, 4px padding) whose pill slides under the active tab; 16px ring radios
+   with a 12px dot. Blues follow the app primary. */
+.tc-tabs-scroll {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tc-tabs-scroll::-webkit-scrollbar {
+  display: none;
+}
+.tc-tabs {
+  position: relative;
+  display: inline-flex;
+  width: fit-content;
+  height: 36px;
+  border: 1px solid #dce3ee;
+  border-radius: 8px;
+  background: #fff;
+  padding: 4px;
+}
+.tc-tabs__pill {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 0;
+  width: var(--tc-tab-w, 0px);
+  border-radius: 6px;
+  background: var(--bd-primary);
+  transform: translateX(var(--tc-tab-x, 0px));
+  transition:
+    transform 0.2s ease,
+    width 0.2s ease;
+}
+.tc-tabs > button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  padding: 0 16px;
+  color: #5a6b82;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.tc-tabs > button.active {
+  color: #fff;
+}
+.tc-dentition {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+.tc-radio {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #1b2a41;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.tc-radio > input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.tc-radio__ring {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #8fa1b8;
+  border-radius: 50%;
+  transition: border-color 0.15s;
+}
+.tc-radio__ring::after {
+  content: "";
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--bd-primary);
+  opacity: 0;
+  transform: scale(0.5);
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
+}
+.tc-radio > input:checked + .tc-radio__ring {
+  border-color: var(--bd-primary);
+}
+.tc-radio > input:checked + .tc-radio__ring::after {
+  opacity: 1;
+  transform: scale(1);
+}

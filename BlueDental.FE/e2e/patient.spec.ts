@@ -9,6 +9,18 @@ import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
  * filter that quietly narrowed the list in the browser would fail here.
  */
 
+/** Opens an AntD select and takes its first option from the portal it renders into. */
+async function pickFirstOption(page: Page, combobox: Locator): Promise<void> {
+  await combobox.click();
+  const option = page
+    .locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden)")
+    .last()
+    .locator(".ant-select-item-option")
+    .first();
+  await expect(option).toBeVisible();
+  await option.click();
+}
+
 /**
  * The tag names drawn beside the patient's name.
  *
@@ -149,35 +161,42 @@ async function finishLiveStage(page: Page, dialog: Locator) {
  * Adds a công đoạn to a service line through the real API, so a spec that needs
  * two of them on one line does not have to drive the dialog twice.
  */
-async function addStage(page: Page, line: { patientId: string; planId: string; serviceId: string }, note: string) {
-  const status = await page.evaluate(async ({ target, text }) => {
-    const branchId = new URLSearchParams(location.search).get("branchId");
-    const plan = await (
-      await fetch(`/api/v1/app/patient-treatments/${target.planId}`, { credentials: "include" })
-    ).json();
-    const service = plan.services.find((item: { id: string }) => item.id === target.serviceId);
-    const staff = await (
-      await fetch("/api/v1/app/staff?MaxResultCount=1", { credentials: "include" })
-    ).json();
+async function addStage(
+  page: Page,
+  line: { patientId: string; planId: string; serviceId: string },
+  note: string,
+) {
+  const status = await page.evaluate(
+    async ({ target, text }) => {
+      const branchId = new URLSearchParams(location.search).get("branchId");
+      const plan = await (
+        await fetch(`/api/v1/app/patient-treatments/${target.planId}`, { credentials: "include" })
+      ).json();
+      const service = plan.services.find((item: { id: string }) => item.id === target.serviceId);
+      const staff = await (
+        await fetch("/api/v1/app/staff?MaxResultCount=1", { credentials: "include" })
+      ).json();
 
-    const res = await fetch("/api/v1/app/treatment-stages", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        patientId: target.patientId,
-        clinicBranchId: branchId,
-        treatmentId: target.planId,
-        treatmentServiceId: target.serviceId,
-        serviceId: service.serviceId,
-        name: service.serviceName ?? service.code,
-        note: text,
-        staffId: staff.items[0].id,
-        teeth: service.teeth,
-      }),
-    });
-    return res.status;
-  }, { target: line, text: note });
+      const res = await fetch("/api/v1/app/treatment-stages", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patientId: target.patientId,
+          clinicBranchId: branchId,
+          treatmentId: target.planId,
+          treatmentServiceId: target.serviceId,
+          serviceId: service.serviceId,
+          name: service.serviceName ?? service.code,
+          note: text,
+          staffId: staff.items[0].id,
+          teeth: service.teeth,
+        }),
+      });
+      return res.status;
+    },
+    { target: line, text: note },
+  );
   expect(status, "the công đoạn should have been created").toBe(200);
 }
 
@@ -249,8 +268,7 @@ async function openConsultingWithImages(page: Page) {
       credentials: "include",
     });
     const first = (await res.json()).items?.[0] as
-      | { patientId: string; clinicBranchId: string }
-      | undefined;
+      { patientId: string; clinicBranchId: string } | undefined;
     // The branch travels with the image: a record from another branch answers
     // 404 without it, and the page then renders no panel at all.
     return first ? { patientId: first.patientId, branchId: first.clinicBranchId } : null;
@@ -569,16 +587,77 @@ test.describe("Bệnh nhân", () => {
     await page.locator(".pd-diagnosis-card .pd-card-title").getByRole("button").click();
     await expect(page.locator("[data-testid=diagnosis-form]")).toBeVisible();
 
-    // Initially no teeth selected.
-    await expect(page.getByText("Răng đã chọn: —")).toBeVisible();
+    // Initially no teeth selected: the "Răng đã chọn" box carries its empty line.
+    const selected = page.getByTestId("selected-teeth");
+    await expect(selected.getByText("Chưa chọn răng")).toBeVisible();
 
-    // Click tooth 11 via its aria-label (SVG <g role="button" aria-label="Răng 11 — …">).
-    await page.getByRole("button", { name: /Răng 11/ }).click();
-    await expect(page.getByText(/Răng đã chọn:.*11/)).toBeVisible();
+    // Clicking a tooth takes the whole tooth; a surface names itself the way
+    // the chart does, and the chip's red X puts the tooth back.
+    await page.getByRole("button", { name: "Răng 11", exact: true }).click();
+    await expect(selected.locator(".pd-tooth-chip")).toHaveText(["11"]);
 
-    // Click tooth 11 again to deselect (toggle).
-    await page.getByRole("button", { name: /Răng 11/ }).click();
-    await expect(page.getByText("Răng đã chọn: —")).toBeVisible();
+    const tooth16 = page.getByRole("group", { name: "Mặt răng 16" });
+    await tooth16.getByRole("button", { name: "Mặt ngoài" }).click();
+    await tooth16.getByRole("button", { name: "Mặt nhai" }).click();
+    await expect(selected.locator(".pd-tooth-chip")).toHaveText(["11", "16 - Mặt ngoài, Mặt nhai"]);
+
+    await selected.getByRole("button", { name: "Bỏ chọn răng 11" }).click();
+    await expect(selected.locator(".pd-tooth-chip")).toHaveText(["16 - Mặt ngoài, Mặt nhai"]);
+
+    // Clicking the tooth itself clears it, surfaces and all.
+    await page.getByRole("button", { name: "Răng 16", exact: true }).click();
+    await expect(selected.getByText("Chưa chọn răng")).toBeVisible();
+  });
+
+  test("Lưu Chẩn Đoán files a slip with the picked teeth and it survives a reload", async ({
+    page,
+  }) => {
+    await page.goto("/patient");
+    await assertRealApiTraffic(page, "/api/v1/app/patients");
+    await page
+      .locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name")
+      .first()
+      .click();
+    await page.getByRole("link", { name: "Chẩn đoán & Tư vấn" }).click();
+    await page.locator(".pd-diagnosis-card .pd-card-title").getByRole("button").click();
+    const form = page.getByTestId("diagnosis-form");
+    await expect(form).toBeVisible();
+
+    // Nothing is saveable until a doctor, a diagnosis and a tooth are all in.
+    const save = form.getByRole("button", { name: "Lưu Chẩn Đoán" });
+    await expect(save).toBeDisabled();
+
+    // The doctor and the diagnosis are the reference's search comboboxes; the
+    // option list renders into a portal, so it is addressed from the page.
+    await pickFirstOption(page, form.getByRole("combobox", { name: "Bác sĩ chẩn đoán 1" }));
+    await pickFirstOption(page, form.locator(".pd-diagnosis-side").getByRole("combobox").first());
+    await expect(save).toBeDisabled();
+
+    await page.getByRole("button", { name: "Răng 18", exact: true }).click();
+    const tooth16 = page.getByRole("group", { name: "Mặt răng 16" });
+    await tooth16.getByRole("button", { name: "Mặt ngoài" }).click();
+    await tooth16.getByRole("button", { name: "Mặt nhai" }).click();
+    await expect(save).toBeEnabled();
+
+    // The real POST, then the row the real GET brings back, teeth worded as
+    // the reference words them.
+    const created = page.waitForResponse(
+      (res) =>
+        res.request().method() === "POST" && res.url().includes("/api/v1/app/patient-diagnoses"),
+    );
+    await save.click();
+    expect((await created).ok()).toBeTruthy();
+    await expect(form).toBeHidden();
+
+    const rows = page.locator(".pd-diagnosis-card tbody tr.ant-table-row");
+    await expect(rows.first()).toContainText("18, 16 - Mặt ngoài, Mặt nhai");
+    const code = (await rows.first().locator("td").first().innerText()).trim();
+    expect(code).toMatch(/^CD\d{2}-\d{4}$/);
+
+    await page.reload();
+    await expect(page).toHaveURL(/tab=consulting/);
+    const row = page.locator(".pd-diagnosis-card tbody tr.ant-table-row", { hasText: code });
+    await expect(row).toContainText("18, 16 - Mặt ngoài, Mặt nhai");
   });
 
   test("Chẩn đoán & Tư vấn carries the reference's panels, columns and totals", async ({
@@ -593,8 +672,7 @@ test.describe("Bệnh nhân", () => {
     // The consulting-data catalogue is read from the real API as the tab opens.
     const catalogue = page.waitForResponse(
       (res) =>
-        res.url().includes("/api/v1/app/catalog-entries") &&
-        res.url().includes("consulting_data"),
+        res.url().includes("/api/v1/app/catalog-entries") && res.url().includes("consulting_data"),
     );
     await page.getByRole("link", { name: "Chẩn đoán & Tư vấn" }).click();
     await expect(page).toHaveURL(/tab=consulting/);
@@ -611,9 +689,19 @@ test.describe("Bệnh nhân", () => {
     // The image card and its drop zone, measured off the reference: a 350px
     // card and a 240px #E6EAF0 zone with 36px commands over it.
     expect(Math.round((await page.locator(".pd-image-panel").boundingBox())!.width)).toBe(350);
-    const drop = (await page.locator(".pd-image-drop").boundingBox())!;
-    expect(Math.round(drop.height)).toBe(240);
-    await expect(page.locator(".pd-image-drop")).toHaveCSS("background-color", "rgb(230, 234, 240)");
+    // Once the patient has photographs the zone gives way to them, so the
+    // 240px #E6EAF0 zone is only there while the panel is empty.
+    await page.waitForLoadState("networkidle");
+    if ((await page.locator(".pd-image-tile").count()) === 0) {
+      const drop = (await page.locator(".pd-image-drop").boundingBox())!;
+      expect(Math.round(drop.height)).toBe(240);
+      await expect(page.locator(".pd-image-drop")).toHaveCSS(
+        "background-color",
+        "rgb(230, 234, 240)",
+      );
+    } else {
+      await expect(page.locator(".pd-image-drop")).toHaveCount(0);
+    }
 
     // Three stacked commands over the drop zone, with the reference's labels.
     const tools = page.locator(".pd-image-tools");
@@ -655,11 +743,145 @@ test.describe("Bệnh nhân", () => {
 
     await expect(advise.getByText("TỔNG KẾ HOẠCH")).toBeVisible();
     await expect(advise.getByText("Tổng thành tiền:")).toBeVisible();
-    await expect(advise.getByRole("button", { name: "%", exact: true })).toBeVisible();
-    await expect(advise.getByRole("button", { name: "VNĐ", exact: true })).toBeVisible();
+    await expect(advise.getByText("Tổng tiền:")).toBeVisible();
+
+    // The voucher line as staging draws it: the tag button drops a search
+    // popover with the empty state, and the line beside it says none applies.
+    await expect(advise.getByText("Chưa có voucher nào cho kế hoạch điều trị.")).toBeVisible();
+    await advise.getByRole("button", { name: "Chọn voucher" }).click();
+    await expect(page.getByRole("textbox", { name: "Tìm voucher" })).toHaveAttribute(
+      "placeholder",
+      "Tìm voucher theo mã hoặc tên...",
+    );
+    await expect(page.getByText("Đã chọn: 0")).toBeVisible();
+    // A code no voucher carries leaves the bordered box on its empty sentence.
+    await page.getByRole("textbox", { name: "Tìm voucher" }).fill("KHONG-CO-MA-NAY");
+    await expect(
+      page.getByText("Không có voucher nào khả dụng cho kế hoạch điều trị."),
+    ).toBeVisible();
+    await page.keyboard.press("Escape");
+
+    // The four commands: the doctor, the two plan buttons, the printer.
+    await expect(advise.getByRole("combobox", { name: "Chọn bác sĩ điều trị" })).toBeVisible();
     for (const label of ["Thêm kế hoạch điều trị", "Tạo báo giá", "In phiếu tư vấn"]) {
       await expect(advise.getByRole("button", { name: label })).toBeVisible();
     }
+  });
+
+  test("the plan total counts only the ticked rows and a plan voucher comes off it", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await page.goto("/patient");
+    await assertRealApiTraffic(page, "/api/v1/app/patients");
+
+    // A record with a consulting line, and a live "Tổng kế hoạch" voucher that
+    // line qualifies for — made through the real API when the clinic has none.
+    const setup = await page.evaluate(async (stamp) => {
+      const send = (url: string, init?: RequestInit) =>
+        fetch(url, { credentials: "include", ...init });
+      const advise = (await (await send("/api/v1/app/patient-advises?maxResultCount=1")).json())
+        .items?.[0] as
+        | { id: string; patientId: string; clinicBranchId: string; effectiveAmount: number }
+        | undefined;
+      if (!advise) return null;
+
+      const available = (await (
+        await send(`/api/v1/app/vouchers/available?orderAmount=${advise.effectiveAmount}`)
+      ).json()) as {
+        code: string;
+        scopeTarget: string;
+        discountType: string;
+        discountValue: number;
+        maxDiscountAmount: number | null;
+        isExclusive: boolean;
+      }[];
+      let voucher = available.find(
+        (item) =>
+          item.scopeTarget === "treatment" &&
+          item.discountType === "percentage" &&
+          !item.isExclusive,
+      );
+      if (!voucher) {
+        const today = new Date();
+        const created = (await (
+          await send("/api/v1/app/vouchers", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              code: `E2EKH${stamp}`,
+              name: `Voucher kế hoạch ${stamp}`,
+              discountType: "percentage",
+              discountValue: 10,
+              scopeTarget: "treatment",
+              targetIds: [],
+              startDate: new Date(today.getTime() - 86400000).toISOString(),
+              endDate: new Date(today.getTime() + 30 * 86400000).toISOString(),
+              usageLimit: 100,
+              isExclusive: false,
+              customerTargets: ["new", "returning"],
+              isDaysOfWeekLimited: false,
+              daysOfWeek: [],
+              displayOnNfcDental: true,
+            }),
+          })
+        ).json()) as { id: string; code: string };
+        await send(`/api/v1/app/vouchers/${created.id}/publish`, { method: "POST" });
+        voucher = {
+          code: created.code,
+          scopeTarget: "treatment",
+          discountType: "percentage",
+          discountValue: 10,
+          maxDiscountAmount: null,
+          isExclusive: false,
+        };
+      }
+      return { advise, voucher };
+    }, runId());
+    expect(setup, "the demo clinic should have a consulting line").toBeTruthy();
+    const { advise: line, voucher } = setup!;
+
+    await page.goto(`/patient/${line.patientId}?branchId=${line.clinicBranchId}&tab=consulting`);
+    const advise = page.locator(".pd-advise-card");
+    const row = advise.locator(`tr[data-row-key="${line.id}"]`);
+    await expect(row).toBeVisible({ timeout: 20000 });
+    const money = (value: number) => `${value.toLocaleString("vi-VN")} đ`;
+    const gross = advise.locator(".pd-plan-total > p").first();
+    const net = advise.locator(".pd-plan-net");
+
+    // Untouched, the plan is worth nothing: staging sums only what is ticked.
+    await expect(gross).toContainText("Tổng thành tiền: 0 đ");
+    await expect(net).toContainText("Tổng tiền: 0 đ");
+
+    await row.getByRole("checkbox").check();
+    await expect(gross).toContainText(`Tổng thành tiền: ${money(line.effectiveAmount)}`);
+    await expect(net).toContainText(`Tổng tiền: ${money(line.effectiveAmount)}`);
+
+    // The voucher popover now lists the live plan voucher; picking it takes
+    // its discount off the net total and names it beside the button.
+    await advise.getByRole("button", { name: "Chọn voucher" }).click();
+    await page.getByRole("textbox", { name: "Tìm voucher" }).fill(voucher.code);
+    const option = page.getByRole("button", { name: new RegExp(voucher.code) });
+    await expect(option).toBeVisible();
+    await option.click();
+    await expect(page.getByText("Đã chọn: 1")).toBeVisible();
+    await page.keyboard.press("Escape");
+
+    let discount = (line.effectiveAmount * voucher.discountValue) / 100;
+    if (voucher.maxDiscountAmount !== null)
+      discount = Math.min(discount, voucher.maxDiscountAmount);
+    // Outside, the button now counts the picks and the italic line is gone.
+    await expect(advise.getByRole("button", { name: "Voucher (1)" })).toBeVisible();
+    await expect(advise.locator(".pd-plan-voucher > em")).toHaveCount(0);
+    await expect(gross).toContainText(`Tổng thành tiền: ${money(line.effectiveAmount)}`);
+    await expect(net).toContainText(`Tổng tiền: ${money(line.effectiveAmount - discount)}`);
+
+    // Unticking the row empties the order: nothing left to discount, while a
+    // voucher with no minimum order stays picked for the next tick.
+    await row.getByRole("checkbox").uncheck();
+    await expect(gross).toContainText("Tổng thành tiền: 0 đ");
+    await expect(net).toContainText("Tổng tiền: 0 đ");
+    await expect(advise.getByRole("button", { name: "Voucher (1)" })).toBeVisible();
   });
 
   test("the record opens the same hồ sơ dialog the list opens", async ({ page }) => {
@@ -700,12 +922,17 @@ test.describe("Bệnh nhân", () => {
   test("the hồ sơ dialog's name switch shouts and un-shouts", async ({ page }) => {
     await page.goto("/patient");
     await assertRealApiTraffic(page, "/api/v1/app/patients");
-    await page.locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name").first().click();
+    await page
+      .locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name")
+      .first()
+      .click();
     await page.getByRole("button", { name: "Chỉnh sửa hồ sơ" }).click();
 
     const dialog = page.locator(".bd-patient-dialog");
     await expect(dialog).toBeVisible();
-    const name = dialog.locator('.floating-field:has(.floating-field-label:text-is("Họ và tên")) input');
+    const name = dialog.locator(
+      '.floating-field:has(.floating-field-label:text-is("Họ và tên")) input',
+    );
     await name.fill("lê thị liên");
 
     await dialog.locator("#uppercase").check();
@@ -720,7 +947,10 @@ test.describe("Bệnh nhân", () => {
   test("the hồ sơ dialog offers a priority when filing a new source type", async ({ page }) => {
     await page.goto("/patient");
     await assertRealApiTraffic(page, "/api/v1/app/patients");
-    await page.locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name").first().click();
+    await page
+      .locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name")
+      .first()
+      .click();
     await page.getByRole("button", { name: "Chỉnh sửa hồ sơ" }).click();
 
     const dialog = page.locator(".bd-patient-dialog");
@@ -750,7 +980,10 @@ test.describe("Bệnh nhân", () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/patient");
     await assertRealApiTraffic(page, "/api/v1/app/patients");
-    await page.locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name").first().click();
+    await page
+      .locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name")
+      .first()
+      .click();
 
     // The record's own button, not the sidebar entry of the same name.
     const open = page.locator(".pd-page .pd-btn-outline", { hasText: "Thanh toán" });
@@ -783,7 +1016,10 @@ test.describe("Bệnh nhân", () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/patient");
     await assertRealApiTraffic(page, "/api/v1/app/patients");
-    await page.locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name").first().click();
+    await page
+      .locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name")
+      .first()
+      .click();
 
     const button = page.getByRole("button", { name: "Nhãn bệnh nhân" });
     const buttonBox = (await button.boundingBox())!;
@@ -819,7 +1055,10 @@ test.describe("Bệnh nhân", () => {
   test("the occupation list carries the reference's Khác escape hatch", async ({ page }) => {
     await page.goto("/patient");
     await assertRealApiTraffic(page, "/api/v1/app/patients");
-    await page.locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name").first().click();
+    await page
+      .locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name")
+      .first()
+      .click();
     await page.getByRole("button", { name: "Chỉnh sửa hồ sơ" }).click();
 
     const dialog = page.locator(".bd-patient-dialog");
@@ -839,7 +1078,10 @@ test.describe("Bệnh nhân", () => {
   test("the lý do đến khám box has room to write in", async ({ page }) => {
     await page.goto("/patient");
     await assertRealApiTraffic(page, "/api/v1/app/patients");
-    await page.locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name").first().click();
+    await page
+      .locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name")
+      .first()
+      .click();
     await page.getByRole("button", { name: "Thêm lý do đến khám" }).click();
 
     // A single-row box was what the app's own modal styling forced; the
@@ -860,7 +1102,10 @@ test.describe("Bệnh nhân", () => {
     const first = `e2e lý do A ${runId()}`;
     await page.goto("/patient");
     await assertRealApiTraffic(page, "/api/v1/app/patients");
-    await page.locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name").first().click();
+    await page
+      .locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name")
+      .first()
+      .click();
     await expect(page.locator(".pd-profile-card")).toBeVisible();
 
     const rows = page.locator(".pd-reason");
@@ -889,9 +1134,9 @@ test.describe("Bệnh nhân", () => {
     await expect(rows.nth(1).locator(".pd-reason-text")).toHaveText(first);
     // 85px — the reference's 88px scaled to this column's type, which runs a
     // notch smaller here than the reference's does.
-    expect(
-      Math.round((await rows.first().locator(".pd-reason-date").boundingBox())!.width),
-    ).toBe(85);
+    expect(Math.round((await rows.first().locator(".pd-reason-date").boundingBox())!.width)).toBe(
+      85,
+    );
     await expect(rows.first().locator(".pd-reason-text")).toHaveCSS("font-size", "13.5px");
 
     // Written through the real API to PostgreSQL, so a reload finds them still
@@ -904,7 +1149,10 @@ test.describe("Bệnh nhân", () => {
   test("a tag put on the record shows beside the name and survives a reload", async ({ page }) => {
     await page.goto("/patient");
     await assertRealApiTraffic(page, "/api/v1/app/patients");
-    await page.locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name").first().click();
+    await page
+      .locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name")
+      .first()
+      .click();
     await expect(page.locator(".pd-profile-card")).toBeVisible();
 
     await page.getByRole("button", { name: "Nhãn bệnh nhân" }).click();
@@ -981,7 +1229,9 @@ test.describe("Bệnh nhân", () => {
     const paid = Math.min(100_000, dueBefore);
 
     // Nothing chosen is refused with the reference's own wording.
-    const ticked = dialog.locator(".pd-newpay-lines > li").filter({ has: page.locator("input:checked") });
+    const ticked = dialog
+      .locator(".pd-newpay-lines > li")
+      .filter({ has: page.locator("input:checked") });
     await ticked.locator("input[type=checkbox]").uncheck();
     await dialog.getByRole("button", { name: "Lưu" }).click();
     await expect(dialog.locator(".pd-newpay-error")).toHaveText("Bạn cần chọn ít nhất 1 dịch vụ");
@@ -1103,23 +1353,33 @@ test.describe("Bệnh nhân", () => {
         fetch(url, { credentials: "include", ...init });
 
       const owing = await (await send("/api/v1/app/patient-treatments?maxResultCount=50")).json();
-      const ready = (owing.items as { id: string; patientId: string; services: { outstandingAmount: number }[] }[])
-        .find((plan) => plan.services.filter((line) => line.outstandingAmount > 0).length >= 2);
+      const ready = (
+        owing.items as {
+          id: string;
+          patientId: string;
+          services: { outstandingAmount: number }[];
+        }[]
+      ).find((plan) => plan.services.filter((line) => line.outstandingAmount > 0).length >= 2);
       if (ready) return { planId: ready.id, patientId: ready.patientId };
 
       const advises = (await (await send("/api/v1/app/patient-advises?maxResultCount=200")).json())
         .items as { id: string; patientId: string; treatmentPlanId: string | null }[];
       const free = advises.filter((a) => !a.treatmentPlanId);
-      const patientId = free.find((a) => free.filter((b) => b.patientId === a.patientId).length >= 2)
-        ?.patientId;
+      const patientId = free.find(
+        (a) => free.filter((b) => b.patientId === a.patientId).length >= 2,
+      )?.patientId;
       if (!patientId) return null;
 
-      const pair = free.filter((a) => a.patientId === patientId).slice(0, 2).map((a) => a.id);
+      const pair = free
+        .filter((a) => a.patientId === patientId)
+        .slice(0, 2)
+        .map((a) => a.id);
       for (const id of pair) {
         await send(`/api/v1/app/patient-advises/${id}/accept`, { method: "POST" });
       }
       const branchId = new URLSearchParams(location.search).get("branchId");
-      const dentistId = (await (await send("/api/v1/app/staff?MaxResultCount=1")).json()).items[0].id;
+      const dentistId = (await (await send("/api/v1/app/staff?MaxResultCount=1")).json()).items[0]
+        .id;
 
       const opened = await send("/api/v1/app/patient-treatments", {
         method: "POST",
@@ -1153,8 +1413,9 @@ test.describe("Bệnh nhân", () => {
       );
       const account = await res.json();
       const plan = account.plans.find((entry: { id: string }) => entry.id === planId);
-      const line = (plan?.services as { id: string; outstandingAmount: number }[] | undefined)
-        ?.find((service) => service.outstandingAmount > 0);
+      const line = (
+        plan?.services as { id: string; outstandingAmount: number }[] | undefined
+      )?.find((service) => service.outstandingAmount > 0);
       return line?.id ?? null;
     }, slip!.planId);
     expect(owingLine, "the picked slip should still owe money").toBeTruthy();
@@ -1240,8 +1501,7 @@ test.describe("Bệnh nhân", () => {
 
     // With an account picked the payment goes through carrying it.
     const posted = page.waitForRequest(
-      (req) =>
-        req.url().includes("/api/v1/app/patient-payments") && req.method() === "POST",
+      (req) => req.url().includes("/api/v1/app/patient-payments") && req.method() === "POST",
     );
     await dialog.locator(".pd-newpay-accrow").first().click();
     await dialog.locator("input.pd-newpay-amount").fill("10000");
@@ -1359,7 +1619,9 @@ test.describe("Bệnh nhân", () => {
     }
 
     // The day cell spans its stages, so the date reads d/M/yyyy once per day.
-    await expect(dialog.locator(".pd-stage-histdate b").first()).toHaveText(/^\d{1,2}\/\d{1,2}\/\d{4}$/);
+    await expect(dialog.locator(".pd-stage-histdate b").first()).toHaveText(
+      /^\d{1,2}\/\d{1,2}\/\d{4}$/,
+    );
 
     const edited = `e2e ghi chú ${runId()}`;
     const first = rows.first();
@@ -1460,9 +1722,9 @@ test.describe("Bệnh nhân", () => {
     // Số phiếu Labo comes from the server in the reference's own shape.
     // The file input behind Tải ảnh is hidden, not a form field, so it is
     // skipped when reaching for the first editable one.
-    await expect(
-      labo.locator("input:not([disabled]):not([type=file])").first(),
-    ).toHaveValue(/^LABO-\d{8}\d+$/);
+    await expect(labo.locator("input:not([disabled]):not([type=file])").first()).toHaveValue(
+      /^LABO-\d{8}\d+$/,
+    );
     await expect(labo.getByText("Chọn dịch vụ trước")).toBeVisible();
     await expect(labo.getByRole("button", { name: "Lưu" })).toBeVisible();
   });
@@ -1562,10 +1824,7 @@ test.describe("Bệnh nhân", () => {
     await expect(labo.locator(".ss-wrapper")).toHaveCount(4);
 
     // Two chip strips with the reference's own empty pills, then the teeth row.
-    await expect(labo.locator(".pd-labo-strip > p")).toHaveText([
-      /Lựa chọn dịch vụ/,
-      /Vật liệu/,
-    ]);
+    await expect(labo.locator(".pd-labo-strip > p")).toHaveText([/Lựa chọn dịch vụ/, /Vật liệu/]);
     await expect(labo.getByText("Chọn dịch vụ trước")).toBeVisible();
     await expect(labo.locator(".pd-labo-teeth")).toContainText("Chọn tất cả");
     await expect(labo.locator(".pd-labo-drop")).toBeVisible();
@@ -1648,9 +1907,7 @@ test.describe("Bệnh nhân", () => {
     await addStage(page, line, `e2e còn mở B ${runId()}`);
     await page.reload();
 
-    const rowsFor = page.locator(
-      `.pd-treatment-table tbody tr[data-row-key^="${line.serviceId}"]`,
-    );
+    const rowsFor = page.locator(`.pd-treatment-table tbody tr[data-row-key^="${line.serviceId}"]`);
     await expect(page.locator(".pd-treatment-table tbody tr.ant-table-row").first()).toBeVisible({
       timeout: 20000,
     });
@@ -1812,7 +2069,9 @@ test.describe("Bệnh nhân", () => {
     await assertRealApiTraffic(page, "/api/v1/app/patients");
 
     await page
-      .locator('.bd-patient-filters .floating-field:has(.floating-field-label:text-is("Phân loại theo Tag")) .ss-wrapper')
+      .locator(
+        '.bd-patient-filters .floating-field:has(.floating-field-label:text-is("Phân loại theo Tag")) .ss-wrapper',
+      )
       .click();
     const options = page.locator("#ss-portal-dropdown .ss-option");
     await expect(options.first()).toBeVisible();
@@ -1859,8 +2118,7 @@ test.describe("Bệnh nhân", () => {
     const chosen = labels[index];
 
     const saved = page.waitForResponse(
-      (res) =>
-        res.url().includes("/api/v1/app/appointments/") && res.request().method() === "PUT",
+      (res) => res.url().includes("/api/v1/app/appointments/") && res.request().method() === "PUT",
     );
     await other.click();
     expect((await saved).ok()).toBeTruthy();
@@ -1875,7 +2133,10 @@ test.describe("Bệnh nhân", () => {
     await page.setViewportSize({ width: 1600, height: 900 });
     await page.goto("/patient");
     await assertRealApiTraffic(page, "/api/v1/app/patients");
-    await page.locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name").first().click();
+    await page
+      .locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name")
+      .first()
+      .click();
 
     const tiles = page.locator(".pd-money");
     await expect(tiles).toHaveCount(7);
@@ -1914,7 +2175,10 @@ test.describe("Bệnh nhân", () => {
   test("the tag button offers only the patient's own branch tags", async ({ page }) => {
     await page.goto("/patient");
     await assertRealApiTraffic(page, "/api/v1/app/patients");
-    await page.locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name").first().click();
+    await page
+      .locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name")
+      .first()
+      .click();
 
     const branchId = await page.evaluate(async () => {
       const id = location.pathname.split("/").pop();
@@ -1942,32 +2206,53 @@ test.describe("Bệnh nhân", () => {
 
     // Shown without being chosen first: a photograph is on the panel as soon as
     // it exists, which is what makes a fresh upload appear straight away.
-    const tiles = page.locator(".pd-image-shown .ant-image");
+    const tiles = page.locator(".pd-image-shown .pd-image-tile");
     await expect(tiles.first()).toBeVisible({ timeout: 20000 });
     const shownCount = await tiles.count();
     expect(shownCount).toBeGreaterThan(0);
+
+    // The empty "Kéo ảnh vào…" zone gives way to them: the first photograph
+    // sits at the top of the panel, under the three commands.
+    await expect(page.locator(".pd-image-drop")).toHaveCount(0);
+    const panelTop = (await page.locator(".pd-image-panel").boundingBox())!.y;
+    const firstTop = (await tiles.first().boundingBox())!.y;
+    expect(Math.round(firstTop - panelTop)).toBe(9);
 
     // Each tile is the reference's own: 240px of cover, full panel width.
     const tile = (await page.locator(".pd-image-shown img").first().boundingBox())!;
     expect(Math.round(tile.height)).toBe(240);
     await expect(page.locator(".pd-image-shown img").first()).toHaveCSS("object-fit", "cover");
 
-    // Clicking one opens it over the page, with the group's counter.
-    await page.locator(".pd-image-shown img").first().click();
-    await expect(page.locator(".ant-image-preview-img").first()).toBeVisible();
-    await expect(page.locator(".ant-image-preview-mask")).toHaveCSS(
-      "background-color",
-      "rgba(0, 0, 0, 0.45)",
+    // Clicking one opens the same full-screen viewer as Hình ảnh: counter,
+    // the tool row (rotate, flip, zoom, annotate) and the thumbnail strip.
+    await tiles.first().click();
+    const viewer = page.getByTestId("patient-image-viewer");
+    await expect(viewer).toBeVisible();
+    await expect(page.getByTestId("patient-image-counter")).toHaveText(`1 / ${shownCount}`);
+    const tools = viewer.getByRole("toolbar", { name: "Công cụ xem ảnh" });
+    for (const name of ["Vẽ chú thích", "Xoay phải", "Lật ngang", "Zoom gần", "Đóng"]) {
+      await expect(tools.getByRole("button", { name, exact: true })).toBeVisible();
+    }
+    await expect(viewer.locator(".pi-viewer-thumbs")).toBeVisible();
+
+    // Rotating is applied to the frame, and Escape closes the viewer.
+    await tools.getByRole("button", { name: "Xoay phải", exact: true }).click();
+    await expect(page.getByTestId("patient-image-frame")).toHaveAttribute(
+      "style",
+      /--pi-rotate: 90deg/,
     );
     await page.keyboard.press("Escape");
+    await expect(viewer).toBeHidden();
   });
 
   test("Chọn ảnh hiển thị lists the photographs by day, and unticking hides one", async ({
     page,
   }) => {
     await openConsultingWithImages(page);
-    await expect(page.locator(".pd-image-shown .ant-image").first()).toBeVisible({ timeout: 20000 });
-    const before = await page.locator(".pd-image-shown .ant-image").count();
+    await expect(page.locator(".pd-image-shown .pd-image-tile").first()).toBeVisible({
+      timeout: 20000,
+    });
+    const before = await page.locator(".pd-image-shown .pd-image-tile").count();
 
     await page.locator(".pd-image-tools").getByRole("button", { name: "Danh sách ảnh" }).click();
     const picker = page.getByRole("dialog", { name: "Chọn ảnh hiển thị" });
@@ -1979,9 +2264,7 @@ test.describe("Bệnh nhân", () => {
     const cards = picker.locator(".pd-image-card");
     // Polled: AntD scales a modal in from 0.2, so measuring the moment it turns
     // visible reads 56px — a fifth of the real width.
-    await expect
-      .poll(async () => Math.round((await cards.first().boundingBox())!.width))
-      .toBe(280);
+    await expect.poll(async () => Math.round((await cards.first().boundingBox())!.width)).toBe(280);
     await expect(picker.locator(".pd-image-card--on")).toHaveCount(before);
 
     // A card carries its name, its time, and the reference's two round actions.
@@ -1993,6 +2276,92 @@ test.describe("Bệnh nhân", () => {
     await cards.first().getByRole("checkbox").uncheck();
     await picker.getByRole("button", { name: "Xong" }).click();
     await expect(picker).toBeHidden();
-    await expect(page.locator(".pd-image-shown .ant-image")).toHaveCount(before - 1);
+    await expect(page.locator(".pd-image-shown .pd-image-tile")).toHaveCount(before - 1);
+  });
+
+  test("dragging a card by its grip in Chọn ảnh hiển thị reorders the day, and it survives a reload", async ({
+    page,
+  }) => {
+    await openConsultingWithImages(page);
+    await expect(page.locator(".pd-image-shown .pd-image-tile").first()).toBeVisible({
+      timeout: 20000,
+    });
+
+    const openPicker = async () => {
+      await page.locator(".pd-image-tools").getByRole("button", { name: "Danh sách ảnh" }).click();
+      const picker = page.getByRole("dialog", { name: "Chọn ảnh hiển thị" });
+      await expect(picker).toBeVisible();
+      const cards = picker.locator(".pd-image-day").first().locator(".pd-image-card");
+      await expect
+        .poll(async () => Math.round((await cards.first().boundingBox())!.width))
+        .toBe(280);
+      return { picker, cards };
+    };
+    const namesOf = (cards: Locator) => cards.locator("b").allTextContents();
+
+    const { picker, cards } = await openPicker();
+    const count = await cards.count();
+    test.skip(count < 2, "the first day needs two photographs to swap");
+    // The row runs sideways and scrolls — measured off the reference.
+    await expect(picker.locator(".pd-image-cards").first()).toHaveCSS("flex-wrap", "nowrap");
+    await expect(picker.locator(".pd-image-cards").first()).toHaveCSS("overflow-x", "auto");
+
+    const [firstName, secondName] = await namesOf(cards);
+    const from = await cards.nth(1).getByRole("button", { name: "Sắp xếp" }).boundingBox();
+    const to = await cards.nth(0).getByRole("button", { name: "Sắp xếp" }).boundingBox();
+    expect(from).not.toBeNull();
+    expect(to).not.toBeNull();
+
+    const reordered = page.waitForResponse(
+      (res) => res.url().includes("/reorder") && res.request().method() === "PUT",
+    );
+    await page.mouse.move(from!.x + from!.width / 2, from!.y + from!.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(from!.x - 20, from!.y + from!.height / 2, { steps: 4 });
+    await page.mouse.move(to!.x + to!.width / 2 - 40, to!.y + to!.height / 2, { steps: 12 });
+    await page.mouse.up();
+    expect((await reordered).ok()).toBeTruthy();
+    await expect
+      .poll(() => namesOf(cards))
+      .toEqual(expect.arrayContaining([secondName, firstName]));
+    await expect
+      .poll(async () => (await namesOf(cards)).slice(0, 2))
+      .toEqual([secondName, firstName]);
+
+    // The panel behind stacks in the same order, and so does a fresh load.
+    await picker.getByRole("button", { name: "Xong" }).click();
+    await expect(picker).toBeHidden();
+    await expect(page.locator(".pd-image-shown .pd-image-tile").first()).toHaveAttribute(
+      "aria-label",
+      `Xem ảnh ${secondName}`,
+    );
+
+    await page.reload();
+    await expect(page.locator(".pd-image-shown .pd-image-tile").first()).toBeVisible({
+      timeout: 20000,
+    });
+    const reopened = await openPicker();
+    await expect
+      .poll(async () => (await namesOf(reopened.cards)).slice(0, 2))
+      .toEqual([secondName, firstName]);
+
+    // Put it back so the next run starts from the same order.
+    const back = page.waitForResponse(
+      (res) => res.url().includes("/reorder") && res.request().method() === "PUT",
+    );
+    const from2 = await reopened.cards
+      .nth(1)
+      .getByRole("button", { name: "Sắp xếp" })
+      .boundingBox();
+    const to2 = await reopened.cards.nth(0).getByRole("button", { name: "Sắp xếp" }).boundingBox();
+    await page.mouse.move(from2!.x + from2!.width / 2, from2!.y + from2!.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(from2!.x - 20, from2!.y + from2!.height / 2, { steps: 4 });
+    await page.mouse.move(to2!.x + to2!.width / 2 - 40, to2!.y + to2!.height / 2, { steps: 12 });
+    await page.mouse.up();
+    expect((await back).ok()).toBeTruthy();
+    await expect
+      .poll(async () => (await namesOf(reopened.cards)).slice(0, 2))
+      .toEqual([firstName, secondName]);
   });
 });

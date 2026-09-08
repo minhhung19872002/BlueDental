@@ -12,9 +12,9 @@ interface Indicator {
 }
 
 /**
- * The bordered tab strip at the top of "Chọn răng". The blue pill is one
- * element that slides under the active tab, the way the reference animates
- * it, so its position is measured from the active button.
+ * The bordered "Chọn Răng / Hàm Trên / Hàm Dưới / Nguyên Hàm" strip. The blue
+ * pill is one element that slides under the active tab, the way the reference
+ * animates it, so its position is measured from the active button.
  */
 export function ToothPickerTabs({ value, onChange }: Props) {
   const listRef = useRef<HTMLDivElement>(null);
@@ -26,12 +26,12 @@ export function ToothPickerTabs({ value, onChange }: Props) {
     setIndicator({ x: active.offsetLeft, width: active.offsetWidth });
   }, [value]);
 
-  const style = { "--tp-tab-x": `${indicator.x}px`, "--tp-tab-w": `${indicator.width}px` } as CSSProperties;
+  const style = { "--tc-tab-x": `${indicator.x}px`, "--tc-tab-w": `${indicator.width}px` } as CSSProperties;
 
   return (
-    <div className="tp-teeth-tabs-scroll">
-      <div ref={listRef} className="tp-teeth-tabs" role="tablist" style={style}>
-        <span className="tp-teeth-tabs__pill" aria-hidden="true" />
+    <div className="tc-tabs-scroll">
+      <div ref={listRef} className="tc-tabs" role="tablist" style={style}>
+        <span className="tc-tabs__pill" aria-hidden="true" />
         {TOOTH_PICKER_TABS.map((tab) => (
           <button
             key={tab.key}

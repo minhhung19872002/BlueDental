@@ -1,28 +1,24 @@
 import { useMemo, useState } from "react";
-import { Button, InputNumber, Popover, Select, Switch, Tooltip, type TableColumnsType } from "antd";
-import {
-  DeleteOutlined,
-  PlusOutlined,
-  PrinterOutlined,
-  SettingOutlined,
-} from "@ant-design/icons";
+import { Button, Popover, Select, Switch, Tooltip, type TableColumnsType } from "antd";
+import { DeleteOutlined, PlusOutlined, PrinterOutlined, SettingOutlined } from "@ant-design/icons";
 import { DataTable } from "@/components/DataTable";
-import { SegmentedTabs } from "@/components/SegmentedTabs";
 import {
   formatTeeth,
   type PatientAdviseDto,
-  type PatientAdviseSummaryDto,
 } from "@/features/treatment-management/api/consultingApi";
 import type { TablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
 import { countedTotal } from "@/utils/countedTotal";
 import { formatDate, formatVND } from "@/utils/format";
+import type { PlanVoucherState } from "../../hooks/usePlanVoucher";
+import { AdviseVoucherPicker } from "./AdviseVoucherPicker";
 
 /**
  * "Phiếu tư vấn" — the lower card of Chẩn đoán & Tư vấn.
  *
  * Thirteen columns behind a "Cấu hình cột" switch panel, then the plan total
- * with its %/VNĐ discount toggle and the four commands the reference ends on.
+ * of the ticked rows with its voucher line and the four commands the
+ * reference ends on.
  */
 
 /** Every column the reference offers, in its order; `key` doubles as the id. */
@@ -65,7 +61,7 @@ interface Props {
   totalCount: number;
   loading: boolean;
   pagination: TablePagination;
-  summary?: PatientAdviseSummaryDto;
+  plan: PlanVoucherState;
   dentists: { id: string; name: string }[];
   selected: string[];
   onSelect: (ids: string[]) => void;
@@ -81,7 +77,7 @@ export function PatientAdviseCard({
   totalCount,
   loading,
   pagination,
-  summary,
+  plan,
   dentists,
   selected,
   onSelect,
@@ -92,13 +88,7 @@ export function PatientAdviseCard({
   onPrint,
 }: Props) {
   const [visible, setVisible] = useState<OptionalColumn[]>([...OPTIONAL_COLUMNS]);
-  const [discountMode, setDiscountMode] = useState<"percent" | "money">("percent");
-  const [discount, setDiscount] = useState(0);
   const [dentistId, setDentistId] = useState<string>();
-
-  const gross = summary?.totalEffectiveAmount ?? 0;
-  const planDiscount = discountMode === "percent" ? (gross * discount) / 100 : discount;
-  const net = Math.max(gross - planDiscount, 0);
 
   const columns = useMemo<TableColumnsType<PatientAdviseDto>>(() => {
     const all: { key: OptionalColumn; column: TableColumnsType<PatientAdviseDto>[number] }[] = [
@@ -301,36 +291,14 @@ export function PatientAdviseCard({
           <strong>{t("TỔNG KẾ HOẠCH")}</strong>
 
           <p>
-            {t("Tổng thành tiền")}: <b>{money(gross)}</b>
+            {t("Tổng thành tiền")}: <b>{money(plan.gross)}</b>
           </p>
 
-          <div className="pd-plan-discount">
-            <span>{t("Giảm giá")}:</span>
-            <SegmentedTabs
-              items={[
-                { key: "percent" as const, label: "%" },
-                { key: "money" as const, label: "VNĐ" },
-              ]}
-              activeKey={discountMode}
-              onChange={setDiscountMode}
-            />
-            <InputNumber
-              min={0}
-              max={discountMode === "percent" ? 100 : undefined}
-              value={discount}
-              aria-label={t("Giảm giá")}
-              onChange={(value) => setDiscount(value ?? 0)}
-            />
-          </div>
+          <AdviseVoucherPicker plan={plan} />
 
-          <div className="pd-plan-figures">
-            <p>
-              {t("Tổng giảm giá")}: <b>{money(planDiscount)}</b>
-            </p>
-            <p>
-              {t("Tổng tiền")}: <b>{money(net)}</b>
-            </p>
-          </div>
+          <p className="pd-plan-net">
+            {t("Tổng tiền")}: <b>{money(plan.net)}</b>
+          </p>
 
           <div className="pd-plan-actions">
             <Select
@@ -358,7 +326,15 @@ export function PatientAdviseCard({
             >
               {t("Tạo báo giá")}
             </Button>
-            <Button aria-label={t("In phiếu tư vấn")} icon={<PrinterOutlined />} onClick={onPrint} />
+            <Tooltip title={t("In Báo giá")}>
+              <Button
+                className="pd-plan-print"
+                aria-label={t("In Báo giá")}
+                icon={<PrinterOutlined />}
+                disabled={selected.length === 0}
+                onClick={onPrint}
+              />
+            </Tooltip>
           </div>
         </div>
       </footer>

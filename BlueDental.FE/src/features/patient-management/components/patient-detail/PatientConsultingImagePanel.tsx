@@ -1,14 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Button, Checkbox, Image, Modal, Popover, Spin, Tooltip } from "antd";
+import { Button, Popover, Spin, Tooltip } from "antd";
 import {
-  DeleteOutlined,
   FileImageOutlined,
-  HolderOutlined,
   TableOutlined,
   UnorderedListOutlined,
   ZoomInOutlined,
 } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
+import {
+  groupImagesByDay,
+  type PatientImageDay,
+  type PatientImageViewModel,
+} from "../../api/patientImageAdapters";
+import { ConsultingImagePicker } from "./ConsultingImagePicker";
+import { PatientImageViewer } from "./image/PatientImageViewer";
 
 /**
  * The image panel that fills the left half of Chẩn đoán & Tư vấn.
@@ -22,72 +27,52 @@ import { t } from "@/lib/i18n";
  *   Danh mục       → "Dữ liệu tư vấn" popover, from the consulting_data group
  *
  * Whatever is ticked in that dialog is stacked down the panel, and clicking one
- * opens it full size. See docs/clone/pages/patient-detail.md §Chẩn đoán & Tư vấn.
+ * opens the same full-screen viewer the Hình ảnh tab uses — zoom, rotate, flip,
+ * annotate, thumbnails. See docs/clone/pages/patient-detail.md.
  */
 
-export interface ConsultingImage {
-  id: string;
-  name: string;
-  url: string;
-  /** When the photograph was taken, which is what the dialog groups by. */
-  takenAt: string;
-}
-
 interface Props {
-  images: ConsultingImage[];
+  images: PatientImageViewModel[];
   /** Rows of the "Dữ liệu tư vấn" catalogue. */
   catalog: { id: string; name: string }[];
   uploading?: boolean;
+  canSort: boolean;
   onUpload: (files: File[]) => void;
-  onDelete?: (image: ConsultingImage) => void;
-}
-
-function dayOf(iso: string): string {
-  const at = new Date(iso);
-  if (Number.isNaN(at.getTime())) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${pad(at.getDate())}/${pad(at.getMonth() + 1)}/${at.getFullYear()}`;
-}
-
-function timeOf(iso: string): string {
-  const at = new Date(iso);
-  if (Number.isNaN(at.getTime())) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${dayOf(iso)} ${pad(at.getHours())}:${pad(at.getMinutes())}`;
+  onDelete?: (image: PatientImageViewModel) => void;
+  onReorder: (day: PatientImageDay, from: number, to: number) => void;
 }
 
 export function PatientConsultingImagePanel({
   images,
   catalog,
   uploading,
+  canSort,
   onUpload,
   onDelete,
+  onReorder,
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [listOpen, setListOpen] = useState(false);
   const [hidden, setHidden] = useState<string[]>([]);
   const [dragging, setDragging] = useState(false);
+  const [viewingId, setViewingId] = useState<string | null>(null);
 
   // Shown unless explicitly unticked, so a photograph just uploaded appears on
-  // the panel straight away rather than waiting to be chosen.
+  // the panel straight away rather than waiting to be chosen — in the order
+  // the dialog shows them, so a drag there is what the panel stacks by.
   const shown = useMemo(
-    () => images.filter((image) => !hidden.includes(image.id)),
+    () =>
+      groupImagesByDay(images)
+        .flatMap((day) => day.images)
+        .filter((image) => !hidden.includes(image.id)),
     [images, hidden],
   );
+  const viewingIndex = viewingId ? shown.findIndex((image) => image.id === viewingId) : -1;
 
   // A deleted image must not stay on the hidden list, or its id would suppress
   // a later one that happens to reuse it.
   useEffect(() => {
     setHidden((current) => current.filter((id) => images.some((image) => image.id === id)));
-  }, [images]);
-
-  const byDay = useMemo(() => {
-    const groups = new Map<string, ConsultingImage[]>();
-    for (const image of images) {
-      const day = dayOf(image.takenAt);
-      groups.set(day, [...(groups.get(day) ?? []), image]);
-    }
-    return [...groups.entries()];
   }, [images]);
 
   const handleFiles = (files: FileList | null) => {
@@ -101,8 +86,24 @@ export function PatientConsultingImagePanel({
     );
   };
 
+  // The whole panel takes a drop, so dragging over the photographs uploads
+  // just as dragging onto the empty zone does.
+  const panelClass = ["pd-image-panel", dragging && "pd-image-panel--over"].filter(Boolean).join(" ");
+
   return (
-    <div className="pd-image-panel">
+    <div
+      className={panelClass}
+      onDragOver={(event) => {
+        event.preventDefault();
+        setDragging(true);
+      }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={(event) => {
+        event.preventDefault();
+        setDragging(false);
+        handleFiles(event.dataTransfer.files);
+      }}
+    >
       <div className="pd-image-tools">
         <Tooltip title={t("Thêm ảnh")} placement="right">
           <Button
@@ -141,37 +142,44 @@ export function PatientConsultingImagePanel({
         </Popover>
       </div>
 
-      <div
-        className={["pd-image-drop", dragging && "pd-image-drop--over"].filter(Boolean).join(" ")}
-        onDragOver={(event) => {
-          event.preventDefault();
-          setDragging(true);
-        }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={(event) => {
-          event.preventDefault();
-          setDragging(false);
-          handleFiles(event.dataTransfer.files);
-        }}
-      >
-        {uploading ? (
-          <Spin />
-        ) : (
-          <>
-            <FileImageOutlined />
-            <span>{t("Kéo ảnh vào hoặc bấm nút để tải lên")}</span>
-          </>
-        )}
-      </div>
+      {/* The empty zone gives way to the photographs once there are any: the
+          reference stacks them from the top, under the three commands. */}
+      {shown.length === 0 && (
+        <div className={["pd-image-drop", dragging && "pd-image-drop--over"].filter(Boolean).join(" ")}>
+          {uploading ? (
+            <Spin />
+          ) : (
+            <>
+              <FileImageOutlined />
+              <span>{t("Kéo ảnh vào hoặc bấm nút để tải lên")}</span>
+            </>
+          )}
+        </div>
+      )}
 
       {shown.length > 0 && (
         <div className="pd-image-shown">
-          <Image.PreviewGroup>
-            {shown.map((image) => (
-              <Image key={image.id} src={image.url} alt={image.name} />
-            ))}
-          </Image.PreviewGroup>
+          {shown.map((image) => (
+            <button
+              key={image.id}
+              type="button"
+              className="pd-image-tile"
+              aria-label={t("Xem ảnh {0}", image.fileName)}
+              onClick={() => setViewingId(image.id)}
+            >
+              <img src={image.url} alt={image.fileName} />
+            </button>
+          ))}
         </div>
+      )}
+
+      {viewingIndex >= 0 && (
+        <PatientImageViewer
+          key={viewingId}
+          images={shown}
+          initialIndex={viewingIndex}
+          onClose={() => setViewingId(null)}
+        />
       )}
 
       <input
@@ -186,73 +194,17 @@ export function PatientConsultingImagePanel({
         }}
       />
 
-      <Modal
+      <ConsultingImagePicker
         open={listOpen}
-        title={t("Chọn ảnh hiển thị")}
-        width={1024}
-        onCancel={() => setListOpen(false)}
-        destroyOnHidden
-        className="pd-image-picker"
-        footer={
-          <div className="pd-image-list-foot">
-            <Button onClick={() => setHidden([])}>{t("Chọn tất cả")}</Button>
-            <Button type="primary" onClick={() => setListOpen(false)}>
-              {t("Xong")}
-            </Button>
-          </div>
-        }
-      >
-        {images.length === 0 ? (
-          <div className="pd-image-list-empty">{t("Chưa có ảnh nào.")}</div>
-        ) : (
-          byDay.map(([day, taken]) => (
-            <section key={day} className="pd-image-day">
-              <h4>{day}</h4>
-              <div className="pd-image-cards">
-                {taken.map((image) => {
-                  const checked = !hidden.includes(image.id);
-                  return (
-                    <article
-                      key={image.id}
-                      className={["pd-image-card", checked && "pd-image-card--on"]
-                        .filter(Boolean)
-                        .join(" ")}
-                    >
-                      <div className="pd-image-thumb">
-                        <Checkbox
-                          checked={checked}
-                          aria-label={image.name}
-                          onChange={(event) => toggle(image.id, event.target.checked)}
-                        />
-                        <img src={image.url} alt={image.name} />
-                      </div>
-                      <b>{image.name}</b>
-                      <small>{timeOf(image.takenAt)}</small>
-                      <div className="pd-image-card-actions">
-                        {/* The reference's own pair: a drag handle for ordering
-                            and a delete. Ordering is not stored yet — see
-                            docs/clone/unknowns.md. */}
-                        <Button
-                          shape="circle"
-                          aria-label={t("Sắp xếp")}
-                          icon={<HolderOutlined />}
-                        />
-                        <Button
-                          danger
-                          shape="circle"
-                          aria-label={t("Xoá ảnh")}
-                          icon={<DeleteOutlined />}
-                          onClick={() => onDelete?.(image)}
-                        />
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            </section>
-          ))
-        )}
-      </Modal>
+        images={images}
+        hidden={hidden}
+        canSort={canSort}
+        onToggle={toggle}
+        onShowAll={() => setHidden([])}
+        onClose={() => setListOpen(false)}
+        onDelete={onDelete}
+        onReorder={onReorder}
+      />
     </div>
   );
 }

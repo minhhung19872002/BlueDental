@@ -1461,3 +1461,66 @@ Action taken: NONE
 BlueDental: the same sheet, with the receipt's own date, `Nhân viên` = the
   collector, its channel and amount, and the collector signing `Người lập
   phiếu` (the dentist when no collector is known).
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /patient/<id>?tab=consulting — form "Tạo chẩn đoán"
+Control: nút "Thêm chẩn đoán" (xanh, trải hết cột phải)
+Reason: bấm trên staging chỉ thấy form xếp thêm một chẩn đoán vào phiếu; không
+        rõ khi lưu tạo một hay nhiều bản ghi, và bản production không được
+        bấm. Chủ dự án chốt tạm vô hiệu nút này (2026-09-07).
+Action taken: NONE trên production. BlueDental hiện lưu một chẩn đoán mỗi lần.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /patient/<id>?tab=consulting — chân "Phiếu tư vấn", "Voucher áp dụng"
+Control: nút "Chọn voucher" và popover tìm voucher
+Reason: staging tải `GET /voucher/available?customerTarget=returning` khi mở
+        tab nhưng không có voucher nào cho kế hoạch, nên chỉ thấy trạng thái
+        rỗng. Ảnh chủ dự án gửi 2026-09-08 (staging có một voucher "10đ"
+        phạm vi "Kế hoạch") cho thấy thẻ voucher, thẻ đã chọn màu xanh lá, nút
+        ngoài đổi thành "Voucher (1)" và "Tổng tiền" trừ đúng 10đ. Chọn được
+        nhiều voucher. Chưa thấy: voucher "độc quyền" xử lý ra sao, và bấm
+        chọn có gửi request lưu lên phiếu/kế hoạch hay không.
+Action taken: NONE trên production. BlueDental (2026-09-07) gọi
+        `GET /api/v1/app/vouchers/available?orderAmount=<tổng các dòng đã tick>`
+        và chỉ giữ voucher `scopeTarget = treatment`; mỗi dòng: mã đậm, tên,
+        mức giảm "-10%"/"-500.000đ"; cho chọn nhiều, voucher `isExclusive`
+        đứng một mình; giảm giá tính trên client bằng đúng công thức
+        `Voucher.CalculateDiscount`, trừ vào "Tổng tiền"; chọn voucher chỉ là
+        state trên trang, chưa gửi `apply-voucher` lên phiếu.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /patient/<id>?tab=consulting — form "Tạo chẩn đoán"
+Control: nút tròn 36px "+" cạnh "Bác sĩ chẩn đoán 1"
+Reason: trên staging bấm bật thêm ô "Bác sĩ chẩn đoán 2"; chưa rõ bấm lần nữa
+        có ẩn ô và xoá giá trị hay không (không kiểm tra khi ô đã có dữ liệu).
+Action taken: NONE trên production. BlueDental: bấm lại thì ẩn ô và bỏ giá trị.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /patient/<id>?tab=consulting — dialog "Chọn Dịch Vụ" (nút Tạo dịch vụ)
+Control: bảng dịch vụ, nút nhóm dịch vụ, ô tìm kiếm, nút "Lưu"
+Reason: tài khoản staging bị 403 khi tải danh sách dịch vụ / nhóm / nhân sự,
+        nên chỉ quan sát được trạng thái rỗng: chưa thấy một hàng dịch vụ
+        khi tick trông thế nào (ô giá, số lượng, %/VNĐ, ghi chú), nút nhóm
+        lọc hay chọn cả nhóm, tìm kiếm lọc tại chỗ hay gọi API, và request
+        khi bấm Lưu (một hay nhiều bản ghi). Production không được bấm.
+Action taken: NONE trên production. BlueDental (2026-09-07): tick mở editor
+        trên hàng như bảng kế hoạch điều trị, nhóm chỉ lọc, tìm kiếm lọc tại
+        chỗ, Lưu gọi `POST /api/v1/app/patient-advises` cho từng dòng tick.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /patient/<id>?tab=consulting — dialog "Chi tiết phiếu" (nút máy in ở chân Phiếu tư vấn)
+Control: nút "In hóa đơn kèm chẩn đoán", nút "In Hoá Đơn", nút "Sửa" trong bản xem trước
+Reason: chỉ có ảnh chụp production của dialog và CSS/JS trong bundle tĩnh;
+        không bấm hai nút In trên production nên bố cục hai bản in dựng
+        theo mã nguồn bundle; ảnh production của "Phiếu Báo Giá" (chủ dự án
+        gửi 2026-09-08) không có phần chữ ký; chủ dự án xác nhận bản "Hóa
+        Đơn Kèm Chẩn Đoán" trên production cũng không có → local bỏ cả hai.
+        Chưa rõ "Nội dung chẩn đoán" của bác sĩ trên bản gốc lấy từ trường
+        nào (local lấy `note` của phiếu chẩn đoán, trống thì dùng đoạn văn
+        mẫu). "Giảm giá bác sĩ" trên bản gốc = giảm tay + voucher; local chưa
+        có giảm tay nên chỉ là voucher kế hoạch. Nút "Gửi Khách Hàng
+        (Zalo/FB)" trên bản gốc cũng chỉ là nút chờ (không thấy request).
+Action taken: NONE trên production. BlueDental (2026-09-08): dựng dialog và
+        hai bản xem trước theo bundle, in bằng `window.print` chỉ giữ phần
+        phiếu; sửa nội dung chẩn đoán chỉ sống trong bản xem trước, không
+        ghi lên server.

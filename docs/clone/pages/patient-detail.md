@@ -2191,3 +2191,153 @@ order, and shows `Đã đến` only as the current value of a visit that arrived
 (the user's decision, 2026-09-05, so a cancelled or late appointment can be put
 back on the book from the same dialog). What the reference offers for a booked
 or cancelled appointment is in `unknowns.md`.
+
+## Chẩn đoán & Tư vấn — dựng lại form chẩn đoán và chân phiếu theo staging (2026-09-07)
+
+Nguồn: **staging.nfcdental.com** (được phép bấm/thử), đối chiếu thêm bản
+production **chỉ đọc**. Chủ dự án chốt: **chỉ làm FE**, dùng component có sẵn,
+màu primary của BlueDental (không lấy `#2671D8` của bản gốc), **ưu tiên giống
+staging**.
+
+### Form "Tạo chẩn đoán" — mở tại chỗ, không còn modal
+
+Bấm "+" trên đầu thẻ chẩn đoán mở form **ngay trong thẻ** (như bản gốc);
+`DiagnosisModal` cũ đã xoá. Bố cục hai cột (`.pd-diagnosis-form`):
+
+| Vùng | Bản gốc / staging | BlueDental |
+|---|---|---|
+| Nút đóng | vòng tròn đỏ, X trắng, góc trên phải | `Button shape=circle danger`, `.pd-diagnosis-close` |
+| Hàng bác sĩ | "Bác sĩ chẩn đoán 1" + nút tròn **36px** "+" bật thêm "Bác sĩ chẩn đoán 2" | `DiagnosisDoctorFields` — `FloatingField` + `.pd-diagnosis-round`; tắt lại thì xoá giá trị bác sĩ 2 |
+| Dải tab | Chọn Răng / Hàm Trên / Hàm Dưới / Nguyên Hàm, viên xanh trượt | `ToothPickerTabs` dùng chung (`src/components/ToothChart`) |
+| Loại răng | radio vòng 16px "Răng vĩnh viễn / Răng sữa", chỉ hiện ở tab Chọn Răng | `DentitionRadio` dùng chung |
+| Sơ đồ răng | chỉ hiện ở tab Chọn Răng; chọn hàm thì gập | `ToothChart`, `draft.picking` |
+| Cột phải **260px** | Chẩn đoán (select có kính lúp) → Ghi chú → hộp xám "Răng đã chọn" → "Thêm chẩn đoán" → "Tạo dịch vụ" + "Lưu Chẩn Đoán" | `.pd-diagnosis-side`; `Lưu Chẩn Đoán` là nút xanh đặc |
+
+- "Răng đã chọn": mỗi răng một chip **cao 28px**, chữ không xuống dòng, X đỏ
+  ở góc trên phải (`.pd-tooth-chip`, padding `6px 16px 6px 12px`). Chọn cả
+  hàm thì chỉ **một** chip "Hàm trên / Hàm dưới / Nguyên hàm". Chưa chọn gì
+  hiện "Chưa chọn răng".
+- Chữ trên chip và trong bảng chẩn đoán đúng dạng bản gốc:
+  `18, 16 - Mặt ngoài, Mặt nhai`. Tên mặt phụ thuộc góc phần tư
+  (`surfaceLabel`): trên → Mặt ngoài ở hàm trên / Mặt trong ở hàm dưới,
+  trái/phải → Mặt gần / Mặt xa, giữa → Mặt nhai. `formatTeeth` dùng chung cho
+  ~14 chỗ (thẻ tư vấn, kế hoạch, labo, bảo hành…) nên đổi cách viết áp dụng
+  toàn app.
+- Nút **Lưu Chẩn Đoán / Tạo dịch vụ** chỉ bật khi có bác sĩ 1, chẩn đoán và ít
+  nhất một răng. "Tạo dịch vụ" lưu xong mở luôn dialog tư vấn.
+- **"Thêm chẩn đoán" tạm vô hiệu** (quyết định của chủ dự án; hành vi gộp nhiều
+  chẩn đoán trên một phiếu chưa quan sát được — xem unknowns).
+
+### Chân "Phiếu tư vấn" — theo staging, không có nút %/VNĐ
+
+Staging **không** có công tắc giảm giá %/VNĐ mà bản production đang có; chủ dự
+án chốt làm theo staging, nên khối đó đã bỏ.
+
+| Dòng | Staging | BlueDental |
+|---|---|---|
+| Tiêu đề | TỔNG KẾ HOẠCH | `.pd-plan-summary` (`minmax(0,1fr) minmax(0,1.45fr)`) |
+| Tổng thành tiền | **chỉ cộng các dòng đã tick** — chưa tick dòng nào đọc "0 đ", tick một dòng đọc đúng "Thành tiền" dòng đó (ảnh staging 2026-09-07) | `usePlanVoucher` cộng `effectiveAmount` của các dòng trong `selected`; không dùng `patient-advises/summary` nữa |
+| Voucher áp dụng | nút thẻ "Chọn voucher" → popover ~520px: ô "Tìm voucher theo mã hoặc tên..." với "Đã chọn: 0" bên phải, dưới là hộp viền chứa "Không có voucher nào khả dụng cho kế hoạch điều trị."; dưới nút chữ nghiêng "Chưa có voucher nào cho kế hoạch điều trị." Staging tải `GET /voucher/available?customerTarget=returning` khi mở tab | `AdviseVoucherPicker` + `usePlanVoucher`: `GET /api/v1/app/vouchers/available?orderAmount=<tổng đã tick>` (hook `useAvailableVouchers`), chỉ giữ `scopeTarget = treatment`; tìm theo mã/tên tại chỗ; mỗi voucher là một thẻ (ảnh staging 2026-09-08): vòng tròn chọn bên trái, mã đơn cách đậm, chip viền mức giảm "10đ"/"10%", tag "Kế hoạch", tên ở dòng dưới, "≈ giảm <số tiền>đ"; thẻ đã chọn viền + nền xanh lá, vòng thành dấu check; "Đã chọn: n" cạnh ô tìm. Chọn xong nút ngoài đổi thành "Voucher (n)" và câu nghiêng biến mất (staging chỉ hiện số lượng vì chọn được nhiều voucher). Cách chọn nhiều/độc quyền và cách lưu voucher lên phiếu là giả định — xem unknowns |
+| Tổng tiền | đậm, xanh | `Tổng thành tiền − giảm giá voucher` (tính bằng `calculateVoucherDiscount`, cùng công thức `Voucher.CalculateDiscount` ở BE) |
+| Hàng lệnh | select "Chọn bác sĩ điều trị" **296×40** · "Thêm kế hoạch điều trị" **200×40** · "Tạo báo giá" **131×40** · nút in **36×36** | `.pd-plan-actions`, `.pd-plan-print`; đo trùng ở 1600px |
+
+### Sai khác chấp nhận
+
+- Cột đầu bảng "Phiếu tư vấn" của bản gốc là **tay nắm kéo-thả** đổi thứ tự
+  dòng; BlueDental không dựng vì chưa có endpoint sắp xếp (đã ghi unknowns).
+- Ở 1600px, sidebar BlueDental rộng 250px (bản gốc hẹp hơn) nên radio
+  "Răng vĩnh viễn / Răng sữa" rớt xuống dưới dải tab; ở khổ rộng hơn nằm cùng
+  hàng. Ở 1280px nút in rớt xuống hàng hai.
+- Màu nút/tab là primary của app.
+
+`ToothPickerTabs`, `DentitionRadio`, `toothPicker.ts` chuyển từ
+`treatment-management/components/plan` sang `src/components/ToothChart`;
+`ToothPickerDialog` của kế hoạch dùng lại, hành vi không đổi
+(`treatment-plan-detail.spec.ts` 6/6).
+
+### Panel ảnh — xem ảnh dùng chung với tab Hình ảnh (2026-09-07)
+
+Chủ dự án yêu cầu preview ảnh ở tab tư vấn có đủ thao tác như tab Hình ảnh.
+Bấm một ô ảnh trên panel mở `PatientImageViewer` (nền đen, bộ đếm, xoay /
+lật / zoom / vẽ chú thích, mũi tên, dải thumbnail, Escape hoặc bấm nền để
+đóng) — đúng component của tab Hình ảnh, chỉ duyệt qua các ảnh đang tick trong
+"Chọn ảnh hiển thị". Không còn dùng preview mặc định của AntD.
+
+### Panel ảnh — ảnh thay ô kéo-thả, dialog sắp xếp được (2026-09-07, tối)
+
+- Có ảnh thì ô xám "Kéo ảnh vào…" biến mất, ảnh xếp từ trên xuống ngay dưới
+  ba nút; vẫn kéo file vào bất cứ đâu trên panel để tải lên.
+- "Chọn ảnh hiển thị": mỗi ngày một hàng ngang cuộn ngang (thẻ 280px, không
+  xuống dòng). Nút kẹp trước nút xoá kéo đổi chỗ trong ngày, lưu bằng cùng
+  `PUT /api/v1/app/patient-images/reorder` của tab Hình ảnh; panel phía sau
+  xếp theo thứ tự đó. Kẹp chỉ hiện khi có quyền sắp xếp ảnh.
+- Hai nút tròn trên thẻ là 34×34 (staging), ghim đè `.ant-btn-circle`.
+
+## Chẩn đoán & Tư vấn — dialog "Chọn Dịch Vụ" (nút Tạo dịch vụ, staging 2026-09-07)
+
+Bấm "Tạo dịch vụ" trên một hàng của bảng chẩn đoán mở dialog này (đo trên
+staging, tài khoản staging bị 403 khi tải danh sách dịch vụ nên chỉ thấy
+trạng thái rỗng; xem `unknowns.md`).
+
+| Phần | Staging | BlueDental |
+|---|---|---|
+| Khung | ~1240 × auto, radius 16, tiêu đề "Chọn Dịch Vụ" 24/600 + chip "Phiếu: <mã>" (h32, radius 8, nền xanh nhạt, chữ 12/600), nút X 24px góc phải | `.tp-dialog.am-dialog`, chip `.am-chip` tô `--bd-primary` 12% |
+| Hàng 1 | "Vị trí răng / Vùng điều trị" (ô tĩnh, chữ xanh "Răng …", nút răng tròn xanh phải) · "Nhân sự tư vấn 1 *" (select có kính lúp) + nút tròn "+" · ô 3 trống | `.am-static` + `.tp-tooth-btn`; `FloatingField staffId`; `+` bật "Nhân sự tư vấn 2" + nút X đỏ tắt |
+| Hàng 2 | "Chẩn đoán" (ô tĩnh) · "Bác sĩ chẩn đoán 1" (select disabled, nền xám) · "Bác sĩ chẩn đoán 2" (select disabled) | y hệt, đọc từ phiếu |
+| Thanh lọc | nút "Tất cả dịch vụ" xanh đặc (h36, radius 8, 12/600) rồi mỗi nhóm một nút viền · ô "Tìm kiếm dịch vụ..." 220px có kính lúp | `.am-groups` một hàng cuộn ngang; `FloatingField search` |
+| Bảng | thẻ radius 16; cột ☐ 52 · Dịch vụ 279 · Đơn giá 140 · Số lượng 100 · Giảm giá 260 · Thành tiền 150 · Ghi chú 209; đầu bảng nền xám 40px; rỗng "Không có dịch vụ phù hợp" | `.am-table` sticky header, cuộn trong 360px; hàng tick: ô giá (`CurrencyInput`), số lượng, `%`/`VNĐ` + giá trị, ghi chú; Thành tiền tính lại ngay |
+| Chân | thẻ 715px nền xám: badge tròn số dòng + "Dịch vụ đã chọn với số phiếu chẩn đoán: <mã>", Tổng cộng / Giảm giá / **Thành tiền** (xanh); nút "Lưu" 110px có icon đĩa, mờ khi chưa tick | `AdviseSummaryFooter`; Lưu gọi `POST patient-advises` một lần cho mỗi dòng tick |
+
+Mặc định khi mở: răng và bác sĩ lấy từ phiếu chẩn đoán, nhân sự tư vấn 1 =
+bác sĩ chẩn đoán 1, chưa tick dòng nào, nhóm "Tất cả dịch vụ". Đổi răng bằng
+`ToothPickerDialog` dùng chung với kế hoạch điều trị.
+
+Mã: `treatment-management/components/AdviseModal.tsx` + thư mục
+`components/advise/` (`AdviseHeaderFields`, `AdviseServiceTable`,
+`AdviseServiceRow`, `AdviseSummaryFooter`, `useAdviseSelection`,
+`useCreateAdvises`, `adviseTypes`, `advise-modal.css`).
+
+## Chẩn đoán & Tư vấn — "Chi tiết phiếu" và hai bản in (2026-09-08)
+
+Nút máy in cạnh "Tạo báo giá" ở chân "Phiếu tư vấn" mở dialog "Chi tiết
+phiếu". Bố cục lấy từ ảnh chụp production do chủ dự án gửi và từ bundle
+tĩnh của bản gốc (`reference-private/chunk-print.css`, `chunk-quote-*.txt`);
+không bấm gì trên production. Mọi màu xanh của bản gốc thay bằng
+`--bd-primary`.
+
+| Phần | Bản gốc | BlueDental |
+|---|---|---|
+| Nút mở | icon máy in, tooltip "In Báo giá"; mờ khi chưa tick dòng nào | `PatientAdviseCard`: `Tooltip` + `disabled={selected.length === 0}` |
+| Khung | ~1240px, radius 16, tiêu đề "Chi tiết phiếu" 24/600, X góc phải | `.tp-dialog` dùng chung với kế hoạch điều trị |
+| Cột trái | thẻ "Ảnh chẩn đoán" / "Chọn ảnh để đưa vào form in.", nút vuông 36px mở "Danh sách ảnh"; danh sách ảnh cuộn, mỗi ảnh một ô tick "in"; mặc định không tick | `QuoteImageAside` (sticky ≥1024px, tải thêm 10 ảnh khi cuộn) + `QuoteImageListDialog` (ẩn/hiện ảnh trong danh sách, "Chọn tất cả", "Xong") |
+| Thông tin | hai khối "THÔNG TIN CHI NHÁNH" (Phòng khám, Địa chỉ, ĐT, Email) và "THÔNG TIN KHÁCH HÀNG" (Mã KH, Họ và tên, SĐT, Địa chỉ) | `QuoteFacts`; chi nhánh từ `useBranchInfo`, tên/logo dự phòng từ `clinicName`/`clinicLogoUrl` của user |
+| Bảng | Dịch vụ · Chẩn đoán (xanh, đậm) · Đơn giá "<giá> (SL. n)" · Giảm giá · Thành tiền; chỉ các dòng đã tick | `QuoteServiceTable` (`DataTable` size small, không phân trang, cuộn ngang trong dialog) |
+| Tổng | "TỔNG TIỀN:" — Giá dịch vụ / Giảm giá dịch vụ / Giảm giá bác sĩ / **Báo giá** | `QuoteTotalsBlock`; "Giảm giá bác sĩ" = voucher kế hoạch đang chọn |
+| Chân | "In hóa đơn kèm chẩn đoán" (viền) · "In Hoá Đơn" (đặc) | `.pq-footer`, mở `QuotePreviewModal` tương ứng |
+
+### Xem trước và in
+
+Cả hai nút mở dialog "Xem trước: <tên phiếu>" (~1000px, thân cuộn tối đa
+80vh) với hai nút trên tiêu đề: "Gửi Khách Hàng (Zalo/FB)" (bản gốc cũng
+chỉ là nút chờ; local hiện toast "sắp ra mắt") và "In Bản Này" (`window.print`,
+CSS `@media print` chỉ giữ lại `.pq-preview-body`, ẩn tiêu đề/nút/mask).
+`@page { margin: 0 }` đặt toàn cục trong `styles/index.css` nên trình duyệt
+không in ngày giờ / tiêu đề / URL / số trang; phiếu tự mang lề 12mm × 15mm.
+
+| Bản in | Nội dung |
+|---|---|
+| "Phiếu Báo Giá" (`QuoteSheet`) | Times New Roman 13px; đầu phiếu chi nhánh trái / khách hàng phải; "PHIẾU BÁO GIÁ" + "Ngày: dd/MM/yyyy"; bảng 5 cột; các dòng tổng TỔNG TIỀN / GIẢM GIÁ (âm, đỏ) / GIẢM GIÁ BÁC SĨ (chỉ khi > 0) / THÀNH TIỀN (nền accent 8%); **không** có phần chữ ký (ảnh production 2026-09-08 không in) |
+| "Hóa Đơn Kèm Chẩn Đoán" (`DiagnosisInvoiceSheet`) | đầu phiếu 3 cột (logo + phòng khám · "PHIẾU CHẨN ĐOÁN & HÓA ĐƠN" · khách hàng, kẻ đậm dưới); "I. HÌNH ẢNH CHẨN ĐOÁN" (chỉ khi có ảnh tick, lưới 2 cột) ; mỗi chẩn đoán một mục "N. CHẨN ĐOÁN & TƯ VẤN ĐIỀU TRỊ - <TÊN>" với chip "n dịch vụ đang chọn", nút "Sao chép", câu dẫn, thẻ mỗi bác sĩ (Chẩn đoán + "Răng …", Nội dung chẩn đoán, nút "Sửa" mở `RichTextField` tại chỗ, chỉ sống trong bản xem trước), dòng "* Lời dặn của Bác sĩ"; "DANH SÁCH DỊCH VỤ BÁO GIÁ" + dòng tổng; **không** có chữ ký (production không in, 2026-09-08) |
+
+Nội dung chẩn đoán của bác sĩ lấy từ ghi chú phiếu chẩn đoán (`note`) của
+dòng tư vấn; khi trống dùng đoạn văn mẫu giống bản gốc. Xem `unknowns.md`.
+Quill 2 (`react-quill-new`) xuất mọi dấu cách thành `&nbsp;`, nên khi "Lưu
+lại" HTML được chuẩn hoá (`normalizeEditorHtml`) để đoạn văn ngắt dòng bình
+thường; nút "Sao chép" lấy chữ thuần qua `htmlToPlainText` (mỗi đoạn một
+dòng).
+
+Mã: `patient-management/components/patient-detail/quote/` (`QuoteDetailModal`,
+`QuotePreviewModal`, `QuoteImageAside`, `QuoteImageListDialog`, `QuoteFacts`,
+`QuoteServiceTable`, `QuoteSheet`, `DiagnosisInvoiceSheet`,
+`DiagnosisGroupBlock`, `DiagnosisDoctorCard`, `useQuoteSheet`, `quoteModel`,
+`printQuote`, `quote.css`); nối vào `PatientConsultingTab` qua `quoteOpen`.

@@ -1,6 +1,6 @@
+import { TOOTH_SURFACES, surfaceLabel, type ToothSurface } from "@/components/ToothChart";
 import { api } from "@/lib/axios";
 import type { PagedResult } from "@/types";
-import { t } from "@/lib/i18n";
 
 /** Matches BlueDental.TreatmentManagement.PatientDiagnosisStatus */
 export const DIAGNOSIS_STATUS = {
@@ -9,8 +9,7 @@ export const DIAGNOSIS_STATUS = {
   Treated: 3,
   Cancelled: 4,
 } as const;
-export type PatientDiagnosisStatus =
-  (typeof DIAGNOSIS_STATUS)[keyof typeof DIAGNOSIS_STATUS];
+export type PatientDiagnosisStatus = (typeof DIAGNOSIS_STATUS)[keyof typeof DIAGNOSIS_STATUS];
 
 /** Matches BlueDental.TreatmentManagement.PatientAdviseStatus */
 export const ADVISE_STATUS = {
@@ -186,25 +185,20 @@ export const consultingApi = {
 };
 
 /**
- * "18, 36 (mặt nhai)" — how the reference renders a tooth set in list rows.
+ * One tooth as the reference writes it: "18" when taken whole, otherwise
+ * "16 - Mặt ngoài, Mặt nhai" — the surfaces named per quadrant, exactly as the
+ * chart names them, so a row reads the same as the chips it was picked from.
  */
+function formatTooth(tooth: ToothSelectionDto): string {
+  const picked = TOOTH_SURFACES.filter((surface: ToothSurface) => tooth[surface]);
+  if (tooth.selected || picked.length === 0) return String(tooth.toothCode);
+  const labels = picked.map((surface) => surfaceLabel(tooth.toothCode, surface));
+  return `${tooth.toothCode} - ${labels.join(", ")}`;
+}
+
+/** "18, 16 - Mặt ngoài, Mặt nhai" — how the reference renders a tooth set in list rows. */
 export function formatTeeth(teeth: ToothSelectionDto[]): string {
-  if (teeth.length === 0) return "—";
-
-  return teeth
-    .map((tooth) => {
-      const surfaces: string[] = [];
-      if (tooth.top) surfaces.push(t("trên"));
-      if (tooth.bottom) surfaces.push(t("dưới"));
-      if (tooth.left) surfaces.push(t("trái"));
-      if (tooth.right) surfaces.push(t("phải"));
-      if (tooth.center) surfaces.push(t("giữa"));
-
-      return surfaces.length > 0 && !tooth.selected
-        ? `${tooth.toothCode} (${surfaces.join(", ")})`
-        : String(tooth.toothCode);
-    })
-    .join(", ");
+  return teeth.length === 0 ? "—" : teeth.map(formatTooth).join(", ");
 }
 
 /**
@@ -212,5 +206,5 @@ export function formatTeeth(teeth: ToothSelectionDto[]): string {
  * joined string — the reference prints each as its own chip.
  */
 export function toothLabels(teeth: ToothSelectionDto[]): string[] {
-  return formatTeeth(teeth) === "—" ? [] : formatTeeth(teeth).split(", ");
+  return teeth.map(formatTooth);
 }

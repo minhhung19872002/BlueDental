@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { Modal } from "antd";
 import { X } from "lucide-react";
 import {
+  DentitionRadio,
   ToothChart,
+  ToothPickerTabs,
   dentitionOf,
   toggleSurface,
   toggleTooth,
@@ -11,7 +13,6 @@ import {
   type ToothSurface,
 } from "@/components/ToothChart";
 import { t } from "@/lib/i18n";
-import { ToothPickerTabs } from "./ToothPickerTabs";
 import type { ToothPickerTab, ToothPickerValue } from "./toothPicker";
 
 interface Props {
@@ -32,11 +33,6 @@ function draftFrom(value: ToothPickerValue): Draft {
     ? { tab: value.jaw, dentition: "permanent", teeth: [] }
     : { tab: "teeth", dentition: dentitionOf(value.teeth), teeth: value.teeth };
 }
-
-const DENTITIONS: readonly { key: Dentition; label: () => string }[] = [
-  { key: "permanent", label: () => t("Răng vĩnh viễn") },
-  { key: "deciduous", label: () => t("Răng sữa") },
-];
 
 /**
  * "Chọn răng": the tab strip, the dentition radios and the surface chart.
@@ -82,23 +78,7 @@ export function ToothPickerDialog({ open, value, onConfirm, onClose }: Props) {
     >
       <div className="tp-teeth-head">
         <ToothPickerTabs value={draft.tab} onChange={handleTab} />
-        {picking && (
-          <div className="tp-teeth-type" role="radiogroup" aria-label={t("Loại răng")}>
-            {DENTITIONS.map((item) => (
-              <label key={item.key} className="tp-radio">
-                <input
-                  type="radio"
-                  name="tp-teeth-type"
-                  value={item.key}
-                  checked={draft.dentition === item.key}
-                  onChange={() => handleDentition(item.key)}
-                />
-                <span className="tp-radio__ring" aria-hidden="true" />
-                {item.label()}
-              </label>
-            ))}
-          </div>
-        )}
+        {picking && <DentitionRadio value={draft.dentition} onChange={handleDentition} />}
       </div>
 
       {picking && (

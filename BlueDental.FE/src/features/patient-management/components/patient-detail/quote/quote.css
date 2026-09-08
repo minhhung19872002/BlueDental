@@ -1,0 +1,670 @@
+/*
+ * "Chi tiết phiếu" — the quote behind the printer button of Phiếu tư vấn —
+ * and the two sheets it prints. The dialogs sit on the .tp-dialog chrome
+ * (treatment-plan.css); every accent goes through --tp-accent so the sheets
+ * wear this app's colour, not the reference's blue. Sheets are Times New
+ * Roman on white, as the reference prints them.
+ */
+
+/* ── Chi tiết phiếu ── */
+.pq-body {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1fr);
+}
+.pq-main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 24px;
+}
+.pq-facts {
+  display: grid;
+  gap: 32px;
+  grid-template-columns: minmax(0, 1fr);
+}
+.pq-section-title {
+  margin: 0 0 12px;
+  color: var(--tp-ink);
+  font-size: 14px;
+  font-weight: 700;
+}
+.pq-fact-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  color: var(--tp-ink);
+  font-size: 14px;
+  line-height: 20px;
+}
+.pq-fact-list p {
+  margin: 0;
+}
+.pq-fact-list strong {
+  font-weight: 600;
+}
+.pq-services .pq-section-title {
+  margin-bottom: 16px;
+}
+.pq-diagnosis {
+  color: var(--tp-accent);
+  font-weight: 700;
+}
+.pq-cell-service {
+  white-space: pre-line;
+}
+.pq-totals {
+  display: flex;
+  width: 100%;
+  max-width: 520px;
+  flex-direction: column;
+  gap: 16px;
+  margin-left: auto;
+}
+.pq-totals-title {
+  margin: 0;
+  color: var(--tp-ink);
+  font-size: 16px;
+  font-weight: 700;
+}
+.pq-totals-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 32px;
+  margin: 0;
+  color: var(--tp-ink);
+  font-size: 14px;
+}
+.pq-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ── Ảnh chẩn đoán (aside) ── */
+.pq-aside {
+  position: relative;
+  max-height: 570px;
+  overflow: hidden;
+  border: 1px solid var(--tp-line);
+  border-radius: 12px;
+  padding: 12px;
+  background: #fff;
+}
+.pq-aside-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.pq-aside-title {
+  margin: 0;
+  color: var(--tp-ink);
+  font-size: 16px;
+  font-weight: 700;
+}
+.pq-aside-hint {
+  margin: 2px 0 0;
+  color: var(--tp-label);
+  font-size: 14px;
+  font-weight: 500;
+}
+.pq-square {
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: var(--tp-accent);
+  color: #fff;
+  cursor: pointer;
+}
+.pq-square:hover {
+  filter: brightness(1.05);
+}
+.pq-aside-list {
+  max-height: 480px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.pq-aside-item {
+  position: relative;
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  border: 0;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+}
+.pq-aside-item + .pq-aside-item {
+  margin-top: 8px;
+}
+.pq-aside-item img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 6px;
+  object-fit: cover;
+}
+.pq-aside-item .ant-checkbox-wrapper {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+}
+.pq-aside-empty {
+  display: flex;
+  width: 100%;
+  height: 180px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 8px;
+  padding: 16px;
+  background: var(--tp-ground);
+  color: var(--tp-label);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+  cursor: pointer;
+}
+
+/* ── Danh sách ảnh (sub-dialog) ── */
+.pq-album {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.pq-album-card {
+  position: relative;
+  border: 1px solid var(--tp-line);
+  border-radius: 12px;
+  padding: 8px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+.pq-album-card--on {
+  border-color: var(--tp-accent);
+}
+.pq-album-card img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 8px;
+  object-fit: cover;
+}
+.pq-album-card .ant-checkbox-wrapper {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+}
+.pq-album-name {
+  margin: 8px 0 0;
+  overflow: hidden;
+  color: var(--tp-ink);
+  font-size: 13px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pq-album-empty {
+  display: flex;
+  height: 220px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: var(--tp-ground);
+  color: var(--tp-label);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* ── Xem trước ── */
+.pq-preview-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-right: 40px;
+}
+.pq-preview-title > span {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 24px;
+}
+.pq-preview-title .tp-btn {
+  flex: none;
+  height: 36px;
+  padding: 0 14px;
+  font-size: 13px;
+}
+.pq-preview-body {
+  max-height: 80vh;
+  overflow: auto;
+  background: #fff;
+  color: #000;
+}
+.pq-dialog--preview .ant-modal-body {
+  padding: 0;
+}
+
+/* ── Phiếu báo giá ── */
+.pq-sheet {
+  padding: 20px 28px;
+  background: #fff;
+  color: #000;
+  font-family: "Times New Roman", Times, serif;
+  font-size: 13px;
+}
+.pq-sheet p {
+  margin: 0;
+  line-height: 1.45;
+}
+.pq-sheet__section-label {
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.pq-sheet__header {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr 1fr;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #dce3ee;
+  padding-bottom: 16px;
+}
+.pq-sheet__branch {
+  display: flex;
+  gap: 12px;
+}
+.pq-sheet__logo {
+  width: 96px;
+  height: 72px;
+  object-fit: contain;
+}
+.pq-sheet__customer {
+  border-left: 1px solid #dce3ee;
+  padding-left: 16px;
+}
+.pq-sheet__title {
+  margin: 0 0 20px;
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
+}
+.pq-sheet__meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin-bottom: 12px;
+}
+.pq-sheet__meta-right {
+  grid-column: 2;
+  text-align: right;
+}
+.pq-sheet__table-title {
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.pq-sheet table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.pq-sheet th,
+.pq-sheet td {
+  border: 1px solid #000;
+  padding: 7px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+.pq-sheet th {
+  font-weight: 600;
+}
+.pq-sheet__diagnosis {
+  color: var(--tp-accent);
+  font-weight: 700;
+}
+.pq-sheet td.pq-sheet__summary-empty {
+  border: 0;
+}
+.pq-sheet__summary-label {
+  font-weight: 600;
+  text-align: right;
+}
+.pq-sheet__summary-label--total {
+  color: var(--tp-accent);
+  font-weight: 700;
+}
+.pq-sheet__summary-value {
+  text-align: right;
+}
+.pq-sheet__summary-value--discount {
+  color: #e12d39;
+}
+.pq-sheet__summary-value--total {
+  color: var(--tp-accent);
+  font-weight: 700;
+}
+.pq-sheet__summary-row--total td {
+  background: color-mix(in srgb, var(--tp-accent) 8%, #fff);
+}
+
+/* ── Phiếu chẩn đoán & hóa đơn ── */
+.pq-dx {
+  padding: 20px 28px;
+  background: #fff;
+  color: #000;
+  font-family: "Times New Roman", Times, serif;
+  font-size: 13px;
+}
+.pq-dx p {
+  margin: 0;
+  line-height: 1.45;
+}
+.pq-dx__header {
+  display: grid;
+  gap: clamp(8px, 2vw, 18px);
+  grid-template-columns: 1fr 1fr 1fr;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #8a97ab;
+  padding-bottom: 16px;
+}
+.pq-dx__branch {
+  display: flex;
+  gap: 12px;
+}
+.pq-dx__logo {
+  width: 96px;
+  height: 72px;
+  object-fit: contain;
+}
+.pq-dx__title {
+  text-align: center;
+}
+.pq-dx__title h1 {
+  margin: 0 0 20px;
+  font-size: clamp(14px, 2vw, 17px);
+  font-weight: 700;
+}
+.pq-dx__title p {
+  font-size: 15px;
+}
+.pq-dx__date {
+  color: #8a8a8a;
+  font-size: 13px !important;
+}
+.pq-dx__customer {
+  text-align: right;
+}
+.pq-dx__section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 32px 0 16px;
+  border-left: 4px solid var(--tp-accent);
+  padding: 6px 10px;
+  background: #f1f5f9;
+}
+.pq-dx__section h2 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.pq-dx__section-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.pq-dx__pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 2px 10px;
+  background: color-mix(in srgb, var(--tp-accent) 14%, #fff);
+  color: var(--tp-accent);
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.pq-dx__mini {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 3px 8px;
+  background: #fff;
+  color: #334155;
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.pq-dx__image-grid {
+  display: grid;
+  justify-content: center;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 420px));
+}
+.pq-dx__image-frame {
+  display: flex;
+  width: min(420px, 100%);
+  height: 220px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.pq-dx__image-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.pq-dx__advice {
+  min-height: 128px;
+  border: 1px solid #d1d5db;
+  padding: 12px;
+}
+.pq-dx__advice p,
+.pq-dx__advice li {
+  margin: 0 0 8px;
+  line-height: 1.5;
+}
+.pq-dx__lead {
+  color: #475569;
+  font-size: 13px;
+  font-style: italic;
+}
+.pq-dx__doctor {
+  margin-top: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+.pq-dx__doctor-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.pq-dx__doctor-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--tp-accent);
+  font-size: 11px;
+  font-weight: 700;
+}
+.pq-dx__edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  border-radius: 6px;
+  padding: 4px 10px;
+  background: var(--tp-accent);
+  color: #fff;
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.pq-dx__edit--on {
+  background: #f59e0b;
+}
+.pq-dx__doctor-dx {
+  margin: 0 0 6px;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 6px;
+  font-size: 13px;
+}
+.pq-dx__doctor-dx b {
+  font-weight: 800;
+}
+.pq-dx__teeth {
+  margin-left: 6px;
+  color: var(--tp-accent);
+  font-weight: 700;
+}
+.pq-dx__content-label {
+  font-weight: 800;
+}
+.pq-dx__editor {
+  margin-top: 6px;
+}
+.pq-dx__editor .ql-editor {
+  min-height: 180px;
+}
+.pq-dx__editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+.pq-dx__editor-actions .tp-btn {
+  height: 32px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+.pq-dx__remark {
+  margin-top: 8px !important;
+  color: #64748b;
+  font-size: 11px;
+  font-style: italic;
+}
+.pq-dx__note {
+  margin-top: 18px !important;
+  font-size: 15px;
+}
+.pq-dx__services {
+  margin-top: 20px;
+}
+.pq-dx__services-title {
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.pq-dx__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.pq-dx__table th,
+.pq-dx__table td {
+  border: 1px solid #000;
+  padding: 6px 10px;
+  vertical-align: top;
+}
+.pq-dx__table th {
+  background: #f0f0f0;
+  font-weight: 700;
+  text-align: left;
+}
+.pq-dx__table td.pq-sheet__summary-empty {
+  border: 0;
+}
+
+@media (min-width: 768px) {
+  .pq-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1024px) {
+  .pq-body {
+    grid-template-columns: 320px minmax(0, 1fr);
+  }
+  .pq-aside {
+    position: sticky;
+    top: 0;
+  }
+  .pq-album {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+@media (min-width: 640px) and (max-width: 1023px) {
+  .pq-album {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* ── Printing: only the open preview's sheet reaches paper ── */
+@media print {
+  body.pq-printing > *:not(:has(.pq-preview-body)) {
+    display: none !important;
+  }
+  body.pq-printing .ant-modal-root,
+  body.pq-printing .ant-modal-wrap,
+  body.pq-printing .ant-modal,
+  body.pq-printing .ant-modal-container,
+  body.pq-printing .ant-modal-content,
+  body.pq-printing .ant-modal-body,
+  body.pq-printing .pq-preview-body {
+    position: static !important;
+    display: block !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: none !important;
+    box-shadow: none !important;
+  }
+  body.pq-printing .ant-modal-mask,
+  body.pq-printing .ant-modal-header,
+  body.pq-printing .ant-modal-footer,
+  body.pq-printing .ant-modal-close,
+  body.pq-printing .pq-print-hidden {
+    display: none !important;
+  }
+  /* @page margin is 0 (global print rule), so the sheet carries the page margin. */
+  .pq-sheet,
+  .pq-dx {
+    padding: 12mm 15mm;
+  }
+  .pq-dx__section {
+    background: #f1f5f9;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
