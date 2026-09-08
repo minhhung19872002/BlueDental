@@ -4,6 +4,8 @@ import {
   type CreatePatientAdviseDto,
   type CreatePatientDiagnosisDto,
   type ListByPatientInput,
+  type ReorderPatientAdviseDto,
+  type UpdateDiagnosisPrintContentDto,
   type UpdatePatientAdviseDto,
   type UpdatePatientDiagnosisDto,
 } from "./consultingApi";
@@ -81,6 +83,14 @@ export function useUpdateDiagnosis() {
   );
 }
 
+/** "Cập nhật" on the "In chẩn đoán" sheet — the advice body and the note. */
+export function useUpdateDiagnosisPrintContent() {
+  return useConsultingMutation(
+    ({ id, input }: { id: string; input: UpdateDiagnosisPrintContentDto }) =>
+      consultingApi.updatePrintContent(id, input),
+  );
+}
+
 export function useCreateAdvise() {
   return useConsultingMutation((input: CreatePatientAdviseDto) =>
     consultingApi.createAdvise(input),
@@ -93,6 +103,13 @@ export function useAcceptAdvise() {
 
 export function useRejectAdvise() {
   return useConsultingMutation((id: string) => consultingApi.rejectAdvise(id));
+}
+
+/** Drag-to-reorder on Phiếu tư vấn — one row's new position. */
+export function useReorderAdvise() {
+  return useConsultingMutation((input: ReorderPatientAdviseDto) =>
+    consultingApi.reorderAdvise(input),
+  );
 }
 
 export function useUpdateAdvise() {

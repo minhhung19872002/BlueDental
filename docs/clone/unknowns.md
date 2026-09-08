@@ -1913,3 +1913,50 @@ Reason: On the one order observed, "Loại phục hình" in the modal and both
 Action taken: NONE
 BlueDental: both render `laboServiceName` (the material's taxonomy group);
   revisit if a reference order ever shows two different values.
+---
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: Chẩn đoán & Tư vấn → "Chọn ảnh hiển thị"
+Control: kéo một thẻ sang **ngày khác**
+Reason: `onDragEnd` của bản gốc thoát ngay khi
+  `source.droppableId !== destination.droppableId`, nên thao tác đó không làm
+  gì. Không rõ đây là chủ ý hay là thiếu sót — mỗi ngày là một `Droppable`
+  riêng nên giao diện vẫn *cho* kéo qua.
+Action taken: NONE — không kéo thả trên bản gốc (một lần thả là một `PUT`).
+BlueDental: giống vậy — mỗi ngày một `DndContext` riêng, nên một thẻ chỉ có thể
+  thả giữa các thẻ cùng ngày với nó; giao diện không mời gọi thao tác vô nghĩa.
+  Xem `ConsultingImageDay` (dialog) và `PatientImageSortableRow` (tab Hình ảnh).
+
+---
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: Chẩn đoán & Tư vấn → tab báo giá ("BG 1")
+Control: bản báo giá vừa tạo có được **lưu** lại không
+Reason: Chủ dự án đã chỉ rõ luồng: `Tạo báo giá` hỏi xác nhận, rồi mở một tab
+  "BG n" bên cạnh "Phiếu tư vấn" chứa các dòng vừa tick. Phần chưa biết là bản
+  báo giá đó có nằm lại trên server hay không — tải lại trang thì tab còn không,
+  có số phiếu/trạng thái riêng không. Muốn biết phải bấm tạo trên bản gốc rồi
+  tải lại, tức là một lần ghi.
+Action taken: NONE — không bấm tạo trên bản gốc; luồng ở trên do chủ dự án cung
+  cấp ảnh chụp.
+BlueDental: tab báo giá giữ trong bộ nhớ trình duyệt (`useAdviseQuotes`) — tải
+  lại là mất, và BlueDental **chưa có** aggregate báo giá nào. Cố ý dừng ở đó:
+  dựng entity + endpoint là một đợt riêng, không đoán trước bản gốc lưu gì.
+  Số thứ tự "BG n" chỉ tăng, xoá "BG 1" không đổi tên "BG 2".
+
+---
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: Chẩn đoán & Tư vấn → bảng "Phiếu tư vấn"
+Control: kéo grip sắp xếp khi bảng đang ở trang 2 trở đi
+Reason: Bản gốc phân trang bảng này 20 dòng/trang. Không rõ thứ tự nó lưu là
+  **toàn bộ** danh sách hay chỉ trong trang đang xem, và kéo một dòng ở trang 2
+  lên trang 1 có được không — muốn biết phải thả thật, mỗi lần thả là một lần ghi.
+Action taken: NONE — không kéo thả trên bản gốc.
+BlueDental: `PUT patient-advises/reorder` nhận vị trí **theo toàn bộ danh sách**
+  của bệnh nhân (client cộng `skipCount` của trang vào), và server đánh số lại
+  1..N quanh dòng được chuyển. Kéo qua trang thì giao diện không mời — mỗi trang
+  chỉ kéo trong phạm vi các dòng đang hiện.

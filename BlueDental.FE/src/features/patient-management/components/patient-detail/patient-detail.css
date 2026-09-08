@@ -687,6 +687,37 @@
   outline: 2px solid var(--bd-primary);
   outline-offset: 2px;
 }
+/* The rows come back long before the files do. Until a picture paints, its
+   tile holds the reference's own grey with a sweep across it, so the panel
+   reads as "loading" rather than as an empty record. */
+.pd-image-tile--loading {
+  background: #e6eaf0;
+  background-image: linear-gradient(
+    90deg,
+    rgb(255 255 255 / 0%) 0%,
+    rgb(255 255 255 / 55%) 50%,
+    rgb(255 255 255 / 0%) 100%
+  );
+  background-repeat: no-repeat;
+  background-size: 40% 100%;
+  animation: pd-image-sweep 1.2s ease-in-out infinite;
+}
+.pd-image-tile--loading img {
+  opacity: 0;
+}
+@keyframes pd-image-sweep {
+  from {
+    background-position: -60% 0;
+  }
+  to {
+    background-position: 160% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pd-image-tile--loading {
+    animation: none;
+  }
+}
 .pd-image-tile img {
   display: block;
   width: 100%;
@@ -893,6 +924,19 @@
 .pd-cell-stack > b.pd-cell-missing {
   color: #e5484d;
   font-weight: 500;
+}
+/* A service name that stands alone in its cell, with no second line under it —
+   Dịch vụ on Phiếu tư vấn, where the teeth belong to the diagnosis column. */
+.pd-cell-strong {
+  color: var(--bd-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+/* The diagnosis under the tooth numbers on Tạo chẩn đoán: the reference draws
+   it in its own #12A960 green, not the muted grey a second line usually takes. */
+.pd-cell-stack > span.pd-cell-diagnosis {
+  color: #12a960;
+  font-weight: 600;
 }
 /* ── Tạo chẩn đoán (expanded editor) ───────────────────────────────────────
    Measured off staging at 1600×950: an 8px-padded box, the doctors, the tab
@@ -1138,21 +1182,70 @@
 .pd-advise-table .ant-table-thead > tr > th {
   position: static;
 }
-.pd-column-popover {
-  display: flex;
-  min-width: 240px;
-  max-height: 320px;
-  flex-direction: column;
-  gap: 2px;
-  overflow: auto;
+/* The grip column is only as wide as the grip needs: antd's own cell padding
+   would otherwise hold it open to roughly a normal column's width. Enough
+   padding on the left that the grip is not hugging the table's edge. */
+.pd-advise-table .ant-table-thead > tr > th.pd-grip-cell,
+.pd-advise-table .ant-table-tbody > tr > td.pd-grip-cell {
+  width: 34px;
+  min-width: 34px;
+  padding-right: 2px;
+  padding-left: 14px;
 }
-.pd-column-popover > label {
+/* ── "Cột hiển thị" panel ──────────────────────────────────────────────────
+   The reference's own: a titled head with a ✕, one draggable row per column,
+   and a full-width "Lưu" pinned under the list. Nothing applies until Lưu, so
+   the list scrolls while the button stays put. */
+.pd-column-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+}
+.pd-column-close {
+  display: inline-flex;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  padding: 2px;
+  color: var(--bd-muted);
+  cursor: pointer;
+}
+.pd-column-close:hover {
+  color: var(--bd-ink);
+}
+.pd-column-close:focus-visible {
+  outline: 2px solid var(--bd-primary);
+  outline-offset: 1px;
+}
+.pd-column-popover {
+  display: flex;
+  min-width: 248px;
+  flex-direction: column;
+  gap: 10px;
+}
+.pd-column-list {
+  display: flex;
+  max-height: 300px;
+  flex-direction: column;
+  gap: 2px;
+  overflow: auto;
+}
+.pd-column-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 6px;
   padding: 6px 2px;
   font-size: 13px;
+}
+.pd-column-row--dragging {
+  background: var(--bd-bg-head);
+}
+/* The label takes the slack so every switch lines up down the right. */
+.pd-column-name {
+  flex: 1 1 auto;
+  color: var(--bd-ink);
 }
 /* The reference keeps the plan total in the right-hand half of the card, one
    fact per line, with the four commands on the last line. */
@@ -1323,8 +1416,68 @@
   gap: 8px;
   margin-top: 4px;
 }
+/* ── Phiếu tư vấn / báo giá tabs ───────────────────────────────────────────
+   The head of the consulting sheet: the plan, then one tab per báo giá raised
+   off it. The open tab is the app's primary; the others are the quiet outline
+   the reference gives them, each with a round red ✕ at its corner. */
+.pd-advise-tabs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pd-advise-tab {
+  height: 32px;
+  border: 1px solid var(--bd-line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 0 14px;
+  color: var(--bd-sub);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pd-advise-tab--on {
+  border-color: var(--bd-primary);
+  background: var(--bd-primary);
+  color: #fff;
+}
+.pd-advise-tab-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.pd-advise-tab-drop {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  display: inline-flex;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  padding: 0;
+  color: #e5484d;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+.pd-advise-tab-drop:focus-visible {
+  outline: 2px solid var(--bd-primary);
+  outline-offset: 1px;
+}
+
 .pd-plan-actions .ant-select {
   width: 296px;
+}
+/* The doctor picker carries its own error line, so the message pushes nothing
+   sideways and the row of commands keeps its baseline. */
+.pd-plan-dentist {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pd-plan-dentist-error {
+  color: #e5484d;
+  font-size: 12px;
+  line-height: 1.3;
 }
 .pd-plan-actions .pd-plan-print.ant-btn {
   width: 36px;
@@ -4604,4 +4757,8 @@
   padding-top: 64px;
   font-size: 13px;
   font-weight: 700;
+}
+/* The "In chẩn đoán" command in the diagnosis row. */
+.pd-print-icon {
+  color: var(--bd-primary);
 }

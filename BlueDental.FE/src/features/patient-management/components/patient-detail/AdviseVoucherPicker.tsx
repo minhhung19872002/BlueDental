@@ -83,14 +83,21 @@ function VoucherList({ plan }: { plan: PlanVoucherState }) {
   );
 }
 
-export function AdviseVoucherPicker({ plan }: { plan: PlanVoucherState }) {
+export function AdviseVoucherPicker({
+  plan,
+  disabled,
+}: {
+  plan: PlanVoucherState;
+  /** No row ticked: there is no amount to judge a voucher against yet. */
+  disabled?: boolean;
+}) {
   const count = plan.selected.length;
 
   return (
     <div className="pd-plan-voucher">
       <span>{t("Voucher áp dụng")}:</span>
       <Popover
-        trigger="click"
+        trigger={disabled ? [] : "click"}
         placement="topLeft"
         content={
           <div className="pd-voucher-popover">
@@ -109,11 +116,17 @@ export function AdviseVoucherPicker({ plan }: { plan: PlanVoucherState }) {
           </div>
         }
       >
-        <Button icon={<TagOutlined />}>
+        <Button icon={<TagOutlined />} disabled={disabled}>
           {count === 0 ? t("Chọn voucher") : t("Voucher ({0})", count)}
         </Button>
       </Popover>
-      {count === 0 && <em>{t("Chưa có voucher nào cho kế hoạch điều trị.")}</em>}
+      {count === 0 && (
+        <em>
+          {disabled
+            ? t("Chọn ít nhất một dịch vụ để áp dụng voucher.")
+            : t("Chưa có voucher nào cho kế hoạch điều trị.")}
+        </em>
+      )}
     </div>
   );
 }

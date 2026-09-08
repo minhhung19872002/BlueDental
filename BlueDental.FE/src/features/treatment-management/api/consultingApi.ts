@@ -51,6 +51,11 @@ export interface PatientDiagnosisDto {
   secondStaffId: string | null;
   code: string;
   note: string | null;
+  /**
+   * "I. TƯ VẤN CHẨN ĐOÁN" of the printed sheet, HTML. Null until someone words
+   * it, at which point the print dialog falls back to the standard wording.
+   */
+  contentDiagnosis: string | null;
   status: PatientDiagnosisStatus;
   hasTreatmentService: boolean;
   teeth: ToothSelectionDto[];
@@ -137,6 +142,23 @@ export interface UpdatePatientAdviseDto {
   note?: string;
 }
 
+/** What "Cập nhật" on the "In chẩn đoán" sheet saves. */
+export interface UpdateDiagnosisPrintContentDto {
+  contentDiagnosis: string | null;
+  note: string | null;
+}
+
+/**
+ * PUT body of `patient-advises/reorder`: one row and the position it takes on
+ * Phiếu tư vấn. The server renumbers the patient's rows around it, so only the
+ * move travels — not the whole order.
+ */
+export interface ReorderPatientAdviseDto {
+  id: string;
+  /** 1-based position within the patient's advise rows. */
+  sortOrder: number;
+}
+
 export interface CreatePatientAdviseDto {
   patientId: string;
   clinicBranchId: string;
@@ -190,6 +212,14 @@ export const consultingApi = {
   updateDiagnosis: (id: string, data: UpdatePatientDiagnosisDto): Promise<PatientDiagnosisDto> =>
     api.put<PatientDiagnosisDto>(`/v1/app/patient-diagnoses/${id}`, data).then((r) => r.data),
 
+  updatePrintContent: (
+    id: string,
+    data: UpdateDiagnosisPrintContentDto,
+  ): Promise<PatientDiagnosisDto> =>
+    api
+      .put<PatientDiagnosisDto>(`/v1/app/patient-diagnoses/${id}/print-content`, data)
+      .then((r) => r.data),
+
   advises: (params: ListByPatientInput): Promise<PagedResult<PatientAdviseDto>> =>
     api
       .get<PagedResult<PatientAdviseDto>>("/v1/app/patient-advises", { params })
@@ -211,6 +241,9 @@ export const consultingApi = {
 
   rejectAdvise: (id: string): Promise<PatientAdviseDto> =>
     api.post<PatientAdviseDto>(`/v1/app/patient-advises/${id}/reject`).then((r) => r.data),
+
+  reorderAdvise: (data: ReorderPatientAdviseDto): Promise<void> =>
+    api.put("/v1/app/patient-advises/reorder", data).then(() => undefined),
 
   adviseGroups: (params: ListByPatientInput): Promise<PagedResult<AdviseGroupDto>> =>
     api.get<PagedResult<AdviseGroupDto>>("/v1/app/advise-groups", { params }).then((r) => r.data),

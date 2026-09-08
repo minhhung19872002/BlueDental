@@ -15,7 +15,7 @@
   --pi-delete-bg: #fff1f1;
   --pi-delete-bg-hover: #ffe2e2;
   --pi-shadow-card: 0 10px 24px rgba(15, 23, 42, 0.05);
-  --pi-shadow-drag: 0 18px 36px rgba(38, 113, 216, 0.16);
+  --pi-shadow-drag: 0 18px 36px color-mix(in srgb, var(--bd-primary) 16%, transparent);
 
   display: flex;
   flex-direction: column;
@@ -210,8 +210,21 @@
 }
 .pi-card--dragging {
   z-index: 3;
-  border-color: var(--bd-link);
+  border-color: var(--bd-primary);
   box-shadow: var(--pi-shadow-drag);
+}
+/* The picture and, in "Chọn ảnh hiển thị", the tick box laid over its corner. */
+.pi-card-frame {
+  position: relative;
+}
+.pi-card-tick {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1;
+}
+.pi-card--checked {
+  border-color: var(--bd-primary);
 }
 .pi-card-picture {
   display: block;

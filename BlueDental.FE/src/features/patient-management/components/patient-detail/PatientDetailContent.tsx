@@ -18,7 +18,7 @@ export function PatientDetailContent({ activeTab, patient }: Props) {
   const id = patient.id;
   switch (activeTab) {
     case "consulting":
-      return <PatientConsultingTab patientId={id} />;
+      return <PatientConsultingTab patient={patient} />;
     case "treatment-plan":
       return (
         <section className="pd-pane pd-pane--fill">

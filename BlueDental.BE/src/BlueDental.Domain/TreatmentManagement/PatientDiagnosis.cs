@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using BlueDental.TreatmentManagement.Values;
@@ -34,6 +34,14 @@ public class PatientDiagnosis : FullAuditedAggregateRoot<Guid>
     public string Code { get; private set; } = string.Empty;
 
     public string? Note { get; private set; }
+
+    /// <summary>
+    /// "I. TƯ VẤN CHẨN ĐOÁN" — the advice body of the printed sheet, held as
+    /// HTML because the reference lets the doctor format it before printing.
+    /// Null until someone edits the sheet, at which point the client falls back
+    /// to the standard wording.
+    /// </summary>
+    public string? ContentDiagnosis { get; private set; }
 
     public PatientDiagnosisStatus Status { get; private set; }
 
@@ -111,6 +119,28 @@ public class PatientDiagnosis : FullAuditedAggregateRoot<Guid>
     public PatientDiagnosis UpdateNote(string? note)
     {
         GuardEditable();
+        Note = note;
+        return this;
+    }
+
+    /// <summary>
+    /// What "Cập nhật" on the print sheet writes: the advice body and the note.
+    ///
+    /// Deliberately not guarded by <see cref="GuardEditable"/> — the sheet is
+    /// printed for a diagnosis that has already produced services, and is often
+    /// worded after the fact, so a treated diagnosis must still be printable
+    /// with its own advice.
+    /// </summary>
+    public PatientDiagnosis UpdatePrintContent(string? contentDiagnosis, string? note)
+    {
+        if (Status == PatientDiagnosisStatus.Cancelled)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.InvalidDiagnosisTransition,
+                "A cancelled diagnosis has no print sheet to update.");
+        }
+
+        ContentDiagnosis = string.IsNullOrWhiteSpace(contentDiagnosis) ? null : contentDiagnosis;
         Note = note;
         return this;
     }

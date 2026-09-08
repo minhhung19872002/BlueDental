@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { Button, Tooltip, type TableColumnsType } from "antd";
-import { CalendarOutlined, CloseOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
+import { CloseOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
+import { CalendarDays } from "lucide-react";
 import { DataTable } from "@/components/DataTable";
 import {
   formatTeeth,
@@ -40,7 +41,7 @@ interface Props {
   /** A row was clicked: open that slip in the form above, for updating. */
   onEdit: (row: PatientDiagnosisDto) => void;
   onCreateService: (row: PatientDiagnosisDto) => void;
-  onSchedule: (row: PatientDiagnosisDto) => void;
+  onPrint: (row: PatientDiagnosisDto) => void;
   onDelete: (row: PatientDiagnosisDto) => void;
   children?: React.ReactNode;
 }
@@ -54,7 +55,7 @@ export function PatientDiagnosisCard({
   onToggleForm,
   onEdit,
   onCreateService,
-  onSchedule,
+  onPrint,
   onDelete,
   children,
 }: Props) {
@@ -103,7 +104,7 @@ export function PatientDiagnosisCard({
       render: (_, row) => (
         <div className="pd-cell-stack">
           <b className="pd-cell-link">{formatTeeth(row.teeth)}</b>
-          <span>{row.diagnosisName ?? "—"}</span>
+          <span className="pd-cell-diagnosis">{row.diagnosisName ?? "—"}</span>
         </div>
       ),
     },
@@ -123,12 +124,14 @@ export function PatientDiagnosisCard({
           <Button type="primary" size="small" onClick={() => onCreateService(row)}>
             {t("Tạo Dịch Vụ")}
           </Button>
-          <Tooltip title={t("Đặt lịch hẹn")}>
+          {/* The reference draws a calendar here and calls it "In chẩn đoán";
+              the icon is theirs, the sheet behind it is what it opens. */}
+          <Tooltip title={t("In chẩn đoán")}>
             <Button
               type="text"
-              aria-label={t("Đặt lịch hẹn")}
-              icon={<CalendarOutlined />}
-              onClick={() => onSchedule(row)}
+              aria-label={t("In chẩn đoán")}
+              icon={<CalendarDays size={20} className="pd-print-icon" />}
+              onClick={() => onPrint(row)}
             />
           </Tooltip>
           <Tooltip title={t("Xoá chẩn đoán")}>

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using BlueDental.Controllers;
 using Microsoft.AspNetCore.Authorization;
@@ -28,6 +28,11 @@ public sealed class PatientDiagnosisController(IPatientDiagnosisAppService servi
     [HttpPut("{id:guid}")]
     public Task<PatientDiagnosisDto> UpdateAsync(Guid id, [FromBody] UpdatePatientDiagnosisDto input) =>
         service.UpdateAsync(id, input);
+
+    [HttpPut("{id:guid}/print-content")]
+    public Task<PatientDiagnosisDto> UpdatePrintContentAsync(
+        Guid id, [FromBody] UpdateDiagnosisPrintContentDto input) =>
+        service.UpdatePrintContentAsync(id, input);
 
     [HttpPost("{id:guid}/mark-treated")]
     public Task<PatientDiagnosisDto> MarkTreatedAsync(Guid id) => service.MarkTreatedAsync(id);
@@ -76,6 +81,10 @@ public sealed class PatientAdviseController(IPatientAdviseAppService service) : 
     [HttpPost("{id:guid}/apply-voucher")]
     public Task<PatientAdviseDto> ApplyVoucherAsync(Guid id, [FromBody] decimal voucherDiscountAmount) =>
         service.ApplyVoucherAsync(id, voucherDiscountAmount);
+
+    [HttpPut("reorder")]
+    public Task ReorderAsync([FromBody] ReorderPatientAdviseDto input) =>
+        service.ReorderAsync(input);
 
     [HttpDelete("{id:guid}")]
     public Task DeleteAsync(Guid id) => service.DeleteAsync(id);

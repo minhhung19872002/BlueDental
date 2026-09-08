@@ -840,14 +840,9 @@ test.describe("Bệnh nhân", () => {
       .locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name")
       .first()
       .click();
-    // The consulting-data catalogue is read from the real API as the tab opens.
-    const catalogue = page.waitForResponse(
-      (res) =>
-        res.url().includes("/api/v1/app/catalog-entries") && res.url().includes("consulting_data"),
-    );
     await page.getByRole("link", { name: "Chẩn đoán & Tư vấn" }).click();
     await expect(page).toHaveURL(/tab=consulting/);
-    expect((await catalogue).ok()).toBeTruthy();
+    await expect(page.locator(".pd-image-panel")).toBeVisible({ timeout: 20000 });
 
     // The round + beside the heading, at the reference's own size: 28px with a
     // 16px glyph. AntD's circle button defaults to 32, which read too heavy.
@@ -857,8 +852,9 @@ test.describe("Bệnh nhân", () => {
     expect(Math.round(plusBox.height)).toBe(28);
     await expect(page.locator(".pd-card-title h3")).toHaveCSS("font-weight", "700");
 
-    // The image card and its drop zone, measured off the reference: a 350px
-    // card and a 240px #E6EAF0 zone with 36px commands over it.
+    // The image card, measured off the reference: 350px wide. Its body is the
+    // photographs themselves, and the 240px #E6EAF0 "kéo ảnh vào" box only
+    // stands in for them while the record has none.
     expect(Math.round((await page.locator(".pd-image-panel").boundingBox())!.width)).toBe(350);
     // Once the patient has photographs the zone gives way to them, so the
     // 240px #E6EAF0 zone is only there while the panel is empty.
@@ -874,16 +870,26 @@ test.describe("Bệnh nhân", () => {
       await expect(page.locator(".pd-image-drop")).toHaveCount(0);
     }
 
-    // Three stacked commands over the drop zone, with the reference's labels.
+    // Three stacked commands over the panel, with the reference's labels.
     const tools = page.locator(".pd-image-tools");
-    expect(Math.round((await tools.locator(".ant-btn").first().boundingBox())!.width)).toBe(36);
+    expect(Math.round((await tools.locator("button").first().boundingBox())!.width)).toBe(36);
     for (const label of ["Thêm ảnh", "Danh sách ảnh", "Danh mục"]) {
       await expect(tools.getByRole("button", { name: label })).toBeVisible();
     }
 
+    // "Danh mục" reads the consulting-data catalogue from the real API and
+    // opens the library on it.
+    const catalogue = page.waitForResponse(
+      (res) =>
+        res.url().includes("/api/v1/app/catalog-entries") &&
+        res.url().includes("consulting_data"),
+    );
     await tools.getByRole("button", { name: "Danh mục" }).click();
-    await expect(page.getByText("Dữ liệu tư vấn")).toBeVisible();
+    const library = page.getByRole("dialog", { name: "Thư viện ảnh lâm sàng" });
+    await expect(library).toBeVisible();
+    expect((await catalogue).ok()).toBeTruthy();
     await page.keyboard.press("Escape");
+    await expect(library).toBeHidden();
 
     // "Danh sách ảnh" is the reference's "Chọn ảnh hiển thị" dialog.
     await tools.getByRole("button", { name: "Danh sách ảnh" }).click();
@@ -906,35 +912,27 @@ test.describe("Bệnh nhân", () => {
     const chooser = page.getByText("Cấu hình cột");
     await expect(chooser).toBeVisible();
 
-    // Turning a column off takes it out of the table.
+    // Turning a column off and saving takes it out of the table. As on Kế
+    // hoạch điều trị, the panel applies nothing until "Lưu".
     await expect(advise.getByRole("columnheader", { name: "GHI CHÚ TƯ VẤN" })).toBeVisible();
-    await page.getByRole("switch").last().click();
+    await page.locator(".pd-column-row").last().getByRole("switch").click();
+    await page.locator(".pd-column-popover").getByRole("button", { name: "Lưu" }).click();
     await expect(advise.getByRole("columnheader", { name: "GHI CHÚ TƯ VẤN" })).toBeHidden();
-    await page.keyboard.press("Escape");
 
     await expect(advise.getByText("TỔNG KẾ HOẠCH")).toBeVisible();
     await expect(advise.getByText("Tổng thành tiền:")).toBeVisible();
     await expect(advise.getByText("Tổng tiền:")).toBeVisible();
 
-    // The voucher line as staging draws it: the tag button drops a search
-    // popover with the empty state, and the line beside it says none applies.
-    await expect(advise.getByText("Chưa có voucher nào cho kế hoạch điều trị.")).toBeVisible();
-    await advise.getByRole("button", { name: "Chọn voucher" }).click();
-    await expect(page.getByRole("textbox", { name: "Tìm voucher" })).toHaveAttribute(
-      "placeholder",
-      "Tìm voucher theo mã hoặc tên...",
-    );
-    await expect(page.getByText("Đã chọn: 0")).toBeVisible();
-    // A code no voucher carries leaves the bordered box on its empty sentence.
-    await page.getByRole("textbox", { name: "Tìm voucher" }).fill("KHONG-CO-MA-NAY");
-    await expect(
-      page.getByText("Không có voucher nào khả dụng cho kế hoạch điều trị."),
-    ).toBeVisible();
-    await page.keyboard.press("Escape");
+    // Nothing ticked prices nothing, so the voucher line says what to do about
+    // it and its button is shut: there is no amount to judge a voucher against.
+    // The popover's own search and empty state are covered on a record that has
+    // consulting lines to tick — see e2e/consulting-plan.spec.ts.
+    await expect(advise.getByText("Chọn ít nhất một dịch vụ để áp dụng voucher.")).toBeVisible();
+    await expect(advise.getByRole("button", { name: "Chọn voucher" })).toBeDisabled();
 
     // The four commands: the doctor, the two plan buttons, the printer.
     await expect(advise.getByRole("combobox", { name: "Chọn bác sĩ điều trị" })).toBeVisible();
-    for (const label of ["Thêm kế hoạch điều trị", "Tạo báo giá", "In phiếu tư vấn"]) {
+    for (const label of ["Thêm kế hoạch điều trị", "Tạo báo giá", "In Báo giá"]) {
       await expect(advise.getByRole("button", { name: label })).toBeVisible();
     }
   });
@@ -957,8 +955,14 @@ test.describe("Bệnh nhân", () => {
         | undefined;
       if (!advise) return null;
 
+      // Scoped to the line's own branch, exactly as the picker asks it. Without
+      // the branch a clinic-wide account is offered every branch's vouchers,
+      // and the test would pick one the screen will never list.
       const available = (await (
-        await send(`/api/v1/app/vouchers/available?orderAmount=${advise.effectiveAmount}`)
+        await send(
+          `/api/v1/app/vouchers/available?orderAmount=${advise.effectiveAmount}` +
+            `&clinicBranchId=${advise.clinicBranchId}`,
+        )
       ).json()) as {
         code: string;
         scopeTarget: string;
@@ -3350,7 +3354,7 @@ test.describe("Bệnh nhân", () => {
     await expect(page.locator(".pd-tag-picker")).toBeVisible();
   });
 
-  test("the consulting panel shows its images, and one opens full size", async ({ page }) => {
+  test("the consulting panel shows its images first, and one opens full size", async ({ page }) => {
     await openConsultingWithImages(page);
 
     // Shown without being chosen first: a photograph is on the panel as soon as
@@ -3407,8 +3411,8 @@ test.describe("Bệnh nhân", () => {
     const picker = page.getByRole("dialog", { name: "Chọn ảnh hiển thị" });
     await expect(picker).toBeVisible();
 
-    // Grouped under the day they were taken, on 280px cards — measured off the
-    // reference. Everything starts ticked.
+    // Grouped under the day they were taken, on the same 280px card the Hình
+    // ảnh timeline draws — the reference uses one card in both places.
     await expect(picker.locator(".pd-image-day > h4").first()).toHaveText(/\d{2}\/\d{2}\/\d{4}/);
     const cards = picker.locator(".pd-image-card");
     // Polled: AntD scales a modal in from 0.2, so measuring the moment it turns
@@ -3416,10 +3420,13 @@ test.describe("Bệnh nhân", () => {
     await expect.poll(async () => Math.round((await cards.first().boundingBox())!.width)).toBe(280);
     await expect(picker.locator(".pd-image-card--on")).toHaveCount(before);
 
-    // A card carries its name, its time, and the reference's two round actions.
+    // A card carries its name, its time, and the reference's two round actions —
+    // and no eye, which the reference hides on this dialog.
     await expect(cards.first().locator("b")).not.toBeEmpty();
+    await expect(cards.first().locator("small")).not.toBeEmpty();
     await expect(cards.first().getByRole("button", { name: "Sắp xếp" })).toBeVisible();
     await expect(cards.first().getByRole("button", { name: "Xoá ảnh" })).toBeVisible();
+    await expect(cards.first().getByRole("button", { name: "Xem ảnh", exact: true })).toHaveCount(0);
 
     // Unticking takes it off the panel behind.
     await cards.first().getByRole("checkbox").uncheck();
@@ -3512,5 +3519,67 @@ test.describe("Bệnh nhân", () => {
     await expect
       .poll(async () => (await namesOf(reopened.cards)).slice(0, 2))
       .toEqual([firstName, secondName]);
+  });
+
+  test("In chẩn đoán opens the sheet, and Cập nhật saves its advice", async ({ page }) => {
+    await openConsultingWithImages(page);
+
+    const print = page.locator(".pd-diagnosis-card").getByRole("button", { name: "In chẩn đoán" });
+    await expect(page.locator(".pd-diagnosis-card table")).toBeVisible();
+    test.skip((await print.count()) === 0, "needs a diagnosis on the record");
+
+    await print.first().click();
+    const dialog = page.locator(".dp-dialog");
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator(".ant-modal-title")).toHaveText(/^In chẩn đoán /);
+
+    // Both halves of the reference's dialog.
+    await expect(dialog.getByText("Ảnh chẩn đoán")).toBeVisible();
+    await expect(dialog.getByRole("heading", { name: "Phiếu chẩn đoán", exact: true })).toBeVisible();
+    await expect(dialog.locator(".dp-sheet-title h1").first()).toHaveText("PHIẾU CHẨN ĐOÁN");
+    await expect(dialog.locator(".dp-paper .dp-sheet h2").last()).toHaveText(
+      /TƯ VẤN CHẨN ĐOÁN$/,
+    );
+
+    // Ticking a photograph adds the image section and renumbers the advice.
+    const tick = dialog.locator(".dp-images-item").first().getByRole("checkbox");
+    if ((await tick.count()) > 0) {
+      await tick.check();
+      await expect(dialog.locator(".dp-paper .dp-sheet h2").first()).toHaveText(
+        "I. HÌNH ẢNH CHẨN ĐOÁN",
+      );
+      await expect(dialog.locator(".dp-paper .dp-sheet h2").last()).toHaveText(
+        "II. TƯ VẤN CHẨN ĐOÁN",
+      );
+      await tick.uncheck();
+    }
+
+    // "Cập nhật" opens the fields and the advice editor.
+    await dialog.getByRole("button", { name: "Cập nhật" }).click();
+    await expect(dialog.locator(".dp-field").first()).toBeVisible();
+    const editor = dialog.locator(".dp-paper .ql-editor");
+    await expect(editor).toBeVisible();
+
+    const wording = `tu van e2e ${runId()}`;
+    await editor.click();
+    await page.keyboard.press("ControlOrMeta+a");
+    await page.keyboard.type(wording);
+
+    const saved = page.waitForResponse(
+      (res) => res.url().includes("/print-content") && res.request().method() === "PUT",
+    );
+    await dialog.getByRole("button", { name: "Lưu chẩn đoán" }).click();
+    expect((await saved).status()).toBe(200);
+    await expect(dialog.locator(".dp-paper .ql-toolbar")).toHaveCount(0);
+
+    // It is the row that changed, not the dialog: it comes back after a reload.
+    await page.reload();
+    await expect(page.locator(".pd-image-panel")).toBeVisible({ timeout: 20000 });
+    await page
+      .locator(".pd-diagnosis-card")
+      .getByRole("button", { name: "In chẩn đoán" })
+      .first()
+      .click();
+    await expect(page.locator(".dp-paper .dp-sheet-advice")).toContainText(wording);
   });
 });

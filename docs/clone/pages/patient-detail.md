@@ -2557,8 +2557,11 @@ Bên bản gốc nay đã có ảnh thật nên quan sát được đầy đủ.
 
 Nút xoá trên thẻ nối vào `useDeletePatientImage` đã có sẵn.
 
-**Chưa làm:** nút kéo sắp xếp mới chỉ có hình. Bản gốc lưu thứ tự ở đâu thì chưa
-quan sát được — ghi vào `unknowns.md`.
+~~**Chưa làm:** nút kéo sắp xếp mới chỉ có hình. Bản gốc lưu thứ tự ở đâu thì
+chưa quan sát được.~~ **Đã trả lời 2026-09-08** — `PUT /v1/patient-images/reorder`
+với `{ id, ordering }`, kéo thả trong phạm vi một ngày. Xem mục 2026-09-08 §2.
+Đoạn dưới đây cũng đã lỗi thời ở hai chỗ: bản gốc **không** xếp vùng thả lên
+trên ảnh, và `Danh mục` mở **modal** chứ không phải popover — xem §1 và §3.
 
 
 ---
@@ -2772,3 +2775,256 @@ Ghi chú kỹ thuật:
   vị trí khi popup còn đang zoom-in ở scale 0.8 (motion `zoom-big-fast`). Tắt
   motion bằng `motion={{ motionName: "" }}` (`NO_MOTION`), popover đứng đúng
   trên bút (gap 12px, giữa).
+---
+
+## Chẩn đoán & Tư vấn — panel ảnh, "Danh mục", và "In chẩn đoán" (2026-09-08)
+
+> **Sau rebase lên `main` (2026-09-08)**: phần **"Danh mục" / thư viện tư vấn**
+> ở §3 dưới đây đã được `main` đo kỹ hơn và dựng riêng — xem bảng
+> "Thư viện ảnh lâm sàng" ở mục panel ảnh phía trên, và
+> `library/ConsultingLibraryDialog`. Bản `ConsultingLibraryModal` của đợt này đã
+> xoá. Phần **kéo thả "Chọn ảnh hiển thị"** do `ConsultingImageDay` của `main`
+> thực hiện. Phần **"In chẩn đoán"** (§4) là của đợt này và vẫn nguyên vẹn.
+
+Khảo sát **chỉ đọc** trên `staging.nfcdental.com` bằng tài khoản chủ dự án cấp.
+Không submit form nào; các nút được bấm chỉ mở dialog. Không ghi giá trị bệnh
+nhân thật vào tài liệu — chỉ cấu trúc, theo `.claude/rules/01-production-data.md`.
+
+Ba chỗ bản gốc đã đổi so với đợt đo 2026-09-03, và một chỗ ta đọc sai từ đầu.
+
+### 1. Panel ảnh — ảnh nằm **trên cùng**, không nằm dưới vùng thả
+
+Trước đây ta vẽ vùng thả `Kéo ảnh vào hoặc bấm nút để tải lên` **luôn luôn**,
+rồi xếp ảnh xuống dưới. Bản gốc không làm vậy:
+
+```
+{shown.length > 0
+  ? <LightGallery images={shown} />        // ảnh chiếm cả thân thẻ
+  : <div class="h-[200px] xl:h-[240px] bg-[#E6EAF0]">Kéo ảnh vào…</div>}
+```
+
+Vùng xám là **chỗ đứng thay** cho ảnh khi chưa có tấm nào — không bao giờ nằm
+đè lên trên chúng.
+
+| Thành phần | Bản gốc |
+|---|---|
+| Thẻ | `w-[350px] rounded-[12px] border-[#DCE3EE] bg-white p-2`, `max-height: 600px`, cuộn dọc |
+| Kéo file vào thẻ | viền đổi thành `border-[#2671D8] border-dashed`, phủ `bg-[#2671D8]/10` + chữ **"Thả ảnh để tải lên"** |
+| Đang tải | phủ `bg-white/70 backdrop-blur-[1px]` + spinner |
+| Ba nút | `absolute left-5 top-5`, `size-9 rounded-md bg-black/80 text-white`, cách 4px |
+| Icon | `lucide-zoom-in` · `lucide-grid-2x2` · `lucide-list` (nút đầu **là tải ảnh**, không phải zoom) |
+| Mỗi tấm ảnh | `h-[200px] xl:h-[240px] w-full rounded-xl bg-[#E6EAF0]`, `object-fit: cover`, cách nhau 8px, hover `scale-[1.02]` |
+
+**BlueDental làm theo**, và bỏ `Image.PreviewGroup` của AntD: bấm vào một tấm mở
+`PatientImageViewer` — trình xem của chính tab Hình ảnh, đã có đếm `n / N`,
+zoom / xoay / lật, kéo ảnh khi phóng to và lớp vẽ chú thích. Bản gốc dùng
+lightGallery + `LightGalleryAnnotationControls`, tức cùng một bộ chức năng.
+
+### 2. "Chọn ảnh hiển thị" — kéo thả **có lưu**, và card dùng chung với tab Hình ảnh
+
+Đợt trước ghi *"nút kéo sắp xếp mới chỉ có hình; bản gốc lưu thứ tự ở đâu thì
+chưa quan sát được"*. Nay đã đo được:
+
+- Dialog dựng bằng `react-beautiful-dnd`: `DragDropContext` → `Droppable`
+  **một cái cho mỗi ngày**, `direction="horizontal"` → `Draggable` là từng thẻ,
+  tay cầm là nút `lucide-grip-vertical`.
+- Thả xong gọi **`PUT /v1/patient-images/reorder`** với `{ id, ordering }`.
+- `GET /v1/patient-images` trả về `ordering` trên mỗi bản ghi; trong một ngày
+  các thẻ xếp theo `ordering` tăng dần, và chỉ khi cả ngày đó không có
+  `ordering` nào thì mới xếp theo `createdAt`.
+- Thả sang **ngày khác bị bỏ qua** (`source.droppableId !== destination.droppableId → return`).
+
+Thẻ trong dialog **giống hệt** thẻ của tab Hình ảnh — bản gốc dùng chung một
+component, chỉ bật thêm ô tích trên ảnh và tắt nút "xem":
+
+| Phần | Bản gốc |
+|---|---|
+| Thẻ | `w-[280px] rounded-[22px] p-3 shadow-[0_10px_24px_rgba(15,23,42,.05)]`, viền `#2671D8` khi được tích |
+| Ảnh | `aspect-[4/3] rounded-[18px] object-cover` |
+| Ô tích | `size-5 rounded-[4px]`, đè góc **trên trái** ảnh |
+| Dưới ảnh | tên file `14px/600`, rồi `dd/MM/yyyy HH:mm` `12px` |
+| Góc dưới phải | nút tròn `size-9`: kéo sắp xếp, và xoá (`bg-[#FFF1F1] text-[#E5484D]`) |
+| Tiêu đề nhóm | ngày, `12px/600 uppercase tracking-wide` |
+| Footer | `Chọn tất cả` (secondary) · `Xong` (primary) |
+| Rỗng | `Chưa có ảnh nào.` trên nền `#F6F8FB` |
+
+**BlueDental làm theo** bằng đúng component đó: `PatientImageCard` nhận thêm
+`checked` / `onCheckedChange` / `showView`, và phần kéo thả tách ra
+`PatientImageSortableRow` để tab Hình ảnh và dialog này dùng chung. Việc lưu đi
+qua `usePatientImageReorder` sẵn có — hook này gửi `ordering` **của tấm đang
+đứng ở chỗ đến**, chứ không phải `index + 1` như bản gốc: `PUT /reorder` của ta
+đánh số lại cả chuỗi ảnh của bệnh nhân, nên chỉ số trong phạm vi một ngày sẽ sai
+chỗ khi hồ sơ có nhiều ngày.
+
+### 3. "Danh mục" — là **modal**, không phải popover
+
+Đây là chỗ ta đọc sai từ đầu (đợt 2026-08-28 và 2026-09-03 đều ghi *"Popover
+Dữ liệu tư vấn"*). Bản gốc mở hẳn một khung
+`role="dialog" aria-label="Thư viện ảnh lâm sàng"`:
+
+```
+grid  h-[calc(100vh-32px)]  w-[calc(100vw-30px)]  rounded-2xl
+      grid-cols-[256px_minmax(0,1fr)]   (dưới 1024px thì cột trái ẩn)
+```
+
+| Vùng | Bản gốc |
+|---|---|
+| Cột trái | avatar ống nghe `size-10 rounded-xl bg-blue-default-50`, tiêu đề **Dữ liệu tư vấn**, phụ đề **"{n} nhóm chủ đề"**, ô tìm **"Tìm chủ đề nha khoa..."** |
+| Danh sách nhóm | mỗi dòng: icon `file-text` (một màu cố định theo id), tên, badge `itemCount`, `chevron-right`; dòng đang chọn nền `#DDF1FC`, chữ `#2671D8` đậm |
+| Header | chấm tròn màu nhóm → **tên nhóm** → `chevron-right` → **tên mục**, rồi badge `n/N`; nút **Toàn màn hình** (`lucide-expand`) và nút đóng |
+| Đáy | `Nội dung tư vấn` + badge số lượng; ô tìm **chỉ hiện khi nhóm có hơn 10 mục**; hàng thẻ `h-11 w-44`, mỗi thẻ có chữ cái đầu, tên 2 dòng, và số thứ tự ở góc dưới phải |
+| Sân khấu | nội dung của mục đang chọn, `prose max-w-5xl bg-white px-6 py-8`, phóng bằng `zoom` |
+| Rỗng | icon `file-x`, **"Chưa có dữ liệu tư vấn"** / *"Chọn một chủ đề để xem nội dung."*; khi đã chọn nhóm mà mục trống thì **"Nội dung tư vấn đang trống"** / *"Hãy cập nhật nội dung cho mục này."* |
+| Thanh nổi | `− · {phần trăm} · + · đặt lại` ‖ `đảo tương phản phim X-quang` ‖ `bút vẽ · hoàn tác`, bo tròn, `bg-white/75 backdrop-blur` |
+| Mặc định | 125%; vào **Toàn màn hình** thì đặt lại về **75%** |
+
+API: `GET /v1/taxonomy/?group=consulting_data&perPage=20[&search=][&cursor=]` cho
+cột trái, `GET /v1/treatments?taxonomyId=…&includeContent=false&page=&perPage=20`
+cho hàng thẻ, và `GET /v1/treatments/{id}` cho thân bài. BlueDental đọc đúng hai
+danh mục đó qua endpoint của mình — `/v1/app/taxonomies` và
+`/v1/app/catalog-entries` — và **không** cần lần gọi thứ ba: `content` đã nằm
+sẵn trên `CatalogEntryDto`.
+
+Thân bài **không** đổ thẳng vào trang: nó đi qua `RichTextView`, tức Quill ở chế
+độ chỉ đọc, nên chỉ những thẻ trình soạn thảo biết mới sống sót (§5 CLAUDE.md).
+
+### 4. "In chẩn đoán" — nút giữa của cột Thao tác
+
+Cột `Thao tác` của **Tạo chẩn đoán** có ba nút: `Tạo Dịch Vụ`, một nút icon, và
+thùng rác đỏ. Nút giữa vẽ bằng **`lucide-calendar-days`** (viền `#2671D8`,
+20px), nhưng tooltip của nó là **"In chẩn đoán"** và bấm vào mở dialog in — nó
+**không** đặt lịch hẹn. BlueDental trước đây gán nhầm nó cho `Đặt lịch hẹn`.
+
+Dialog: `size="full"`, tiêu đề **`In chẩn đoán {mã phiếu}`**, thân chia
+`grid lg:grid-cols-[320px_minmax(0,1fr)]`.
+
+**Cột trái — "Ảnh chẩn đoán"** (`max-h-[570px] rounded-xl border-2 border-[#c1bfbf] p-3`):
+
+- Đầu thẻ: **Ảnh chẩn đoán** `16px/700` trên *"Chọn ảnh để đưa vào form in."*
+  `14px/500`, cạnh nút `size-9 rounded-lg bg-[#2671D8]` icon `lucide-images`,
+  tooltip **Danh sách ảnh**.
+- Hai tầng chọn: dialog con **"Danh sách ảnh"** quyết định thẻ *bày ra* những
+  tấm nào; tích trên thẻ quyết định tấm nào *lên tờ in*.
+- Danh sách: `max-h-[480px] space-y-2 overflow-y-auto`, mỗi tấm
+  `aspect-[4/3] rounded-md object-cover`, ô tích ở góc **trên phải**.
+- Rỗng: nút `h-[180px] bg-[#F6F8FB]` ghi *"Chưa có ảnh hiển thị. Bấm để mở danh
+  sách ảnh."*
+- Dialog con: lưới `grid-cols-2 md:grid-cols-3 lg:grid-cols-4`, thẻ có ô tích
+  góc trên trái và tên file; rỗng ghi *"Chưa có ảnh trong album."*; footer
+  `Chọn tất cả` · `Xong`.
+
+**Cột phải — "Phiếu chẩn đoán"** (`rounded-xl border-2 border-[#c1bfbf]`):
+
+- Đầu thẻ: **Phiếu chẩn đoán** `18px/700` trên *"Chỉnh nội dung trước khi in."*,
+  cạnh nút secondary **Cập nhật** (`lucide-square-pen`), bị khoá khi đang sửa.
+- Thân là tờ A4 `.nfc-diagnosis-print`: `Times New Roman`, `13px`,
+  `padding: 20px 28px`.
+
+| Khối | Nội dung |
+|---|---|
+| Đầu tờ | lưới **3 cột**: `PHÒNG KHÁM / Địa chỉ / ĐT` ‖ `PHIẾU CHẨN ĐOÁN` + *PHÒNG KHÁM NHA KHOA* (căn giữa) ‖ `Mã KH / Họ tên / Ngày sinh / Chẩn đoán / Răng` (căn phải, `Răng` cách trên 16px) |
+| Ảnh | chỉ khi có tấm được tích: `h2` **I. HÌNH ẢNH CHẨN ĐOÁN** rồi lưới 2 cột khung `420×220`, ảnh `object-fit: contain` |
+| Ghi chú | `Ghi chú: …`, `15px`, cách trên 18px |
+| Tư vấn | `h2` **I. TƯ VẤN CHẨN ĐOÁN** — đánh số **II** khi khối ảnh có mặt — rồi khung viền `#d1d5db`, `min-height: 128px` |
+| Chân tờ | hai khối chữ ký `Bác sĩ chẩn đoán` / `Khách hàng`, tên cách trên 60px, `(Ký, họ tên)` `15px` |
+
+**"Cập nhật"** biến mọi ô fact thành `contenteditable` (nền `#FFF3E0`, viền
+`#F59E0B/45`, focus `#FFE7BA`) và đổi khối tư vấn thành trình soạn thảo. Footer
+lúc đó thêm nút **Lưu chẩn đoán** cạnh **In chẩn đoán**.
+
+**Lưu cái gì:** chỉ `{ contentDiagnosis, note }`. Letterhead sửa trên tờ là sửa
+cho **lần in này**, không ghi xuống. `contentDiagnosis` đọc lại từ chính dòng
+chẩn đoán; chưa có thì tờ mở bằng đoạn văn mặc định của bản gốc.
+
+BlueDental thêm `PatientDiagnosis.ContentDiagnosis` (`text`, migration
+`20260908000000_AddDiagnosisPrintContent`) và
+**`PUT /v1/app/patient-diagnoses/{id}/print-content`**. Endpoint riêng chứ không
+dùng `PUT /{id}`: `UpdatePatientDiagnosisDto` bắt gửi lại bác sĩ và răng, và
+`UpdateNote` đi qua `GuardEditable` — mà tờ này thường được viết **sau khi** đã
+có dịch vụ, nên một chẩn đoán `Treated` vẫn phải in được với lời tư vấn của nó.
+
+### Chỗ cố ý khác bản gốc
+
+- **Mũi tên trái/phải trên sân khấu Dữ liệu tư vấn.** Bản gốc nối chúng vào
+  *danh sách ảnh của bệnh nhân* (`aria-label` là "Ảnh trước"/"Ảnh sau"), nhưng
+  sân khấu chỉ bao giờ vẽ `content` của mục tư vấn — nên bấm vào không thấy gì
+  đổi. BlueDental nối chúng vào **danh sách nội dung tư vấn**, khớp với badge
+  `n/N` ngay trên đầu (badge đó bản gốc cũng đếm theo mục, không theo ảnh). Ghi
+  ở `unknowns.md`.
+- **Toàn màn hình.** Bản gốc dựng lại bố cục: cột trái và hàng thẻ thu thành hai
+  panel nổi bật/tắt được. BlueDental cho khung tràn hết viewport và giữ nguyên
+  bố cục. Ghi ở `unknowns.md`.
+
+---
+
+## Chẩn đoán & Tư vấn — dải tab báo giá, và ba chỗ đo lại (2026-09-08, tối)
+
+Nguồn: ảnh chụp chủ dự án cung cấp (bản gốc **chỉ đọc**, không bấm gì thêm).
+
+### 1. Dải tab "Phiếu tư vấn" / "BG n"
+
+`Tạo báo giá` **không** mở tờ in. Nó hỏi trước:
+
+| Phần | Bản gốc |
+|---|---|
+| Tiêu đề | `Xác nhận` |
+| Nội dung | "Tạo báo giá từ các phiếu tư vấn đã chọn đã chọn, bạn có thể chỉnh sửa ở phần báo giá" — chỗ lặp "đã chọn đã chọn" là **của bản gốc**, giữ y nguyên theo quy tắc clone 1:1 |
+| Lệnh | `Không` (viền) và `Có` (primary, có icon tick) |
+
+`Có` mở một tab **"BG 1"** ngay cạnh tab `Phiếu tư vấn`, chứa đúng các dòng vừa
+tick. Tab đang mở là primary xanh, tab kia là nút viền trắng; tab báo giá có một
+**✕ đỏ tròn** ở góc trên-phải để bỏ bản báo giá đó. Bảng trên tab báo giá mang
+đúng bộ cột của Phiếu tư vấn, vẫn có `Cột hiển thị`, grip, ô tick và pager.
+
+BlueDental: `useAdviseQuotes` + `AdviseQuoteTabs`. Số "BG n" chỉ tăng. Chân
+`TỔNG KẾ HOẠCH` **không** lặp lại dưới tab báo giá. Việc bản gốc có lưu bản báo
+giá xuống server hay không thì chưa soi được — xem `docs/clone/unknowns.md`.
+
+UNKNOWN_REFERENCE_BEHAVIOR (suy luận, ghi để không ai tưởng là đo được): khi
+chưa có báo giá nào, tab `Phiếu tư vấn` là tab đang mở nên trông giống hệt cái
+nút primary trước đây. Ta cho bấm vào nó lúc đang mở thì mở "Tạo phiếu tư vấn" —
+giữ nguyên việc cái nút vẫn làm. Bản gốc có thể tạo phiếu tư vấn từ chỗ khác.
+
+### 2. Grip là ô ngoài cùng bên trái
+
+Bản gốc xếp: **grip**, rồi ô tick, rồi `Ngày`. AntD luôn chèn cột chọn lên đầu
+bất kể thứ tự `columns`, nên phải khai báo `Table.SELECTION_COLUMN` **sau** cột
+grip để antd đặt cột chọn vào đúng chỗ đó.
+
+### 3. Tên bác sĩ trên tờ "In hóa đơn kèm chẩn đoán" sửa được
+
+Chân tờ đó vẽ tên bác sĩ trong một **ô nền vàng nhạt** — sửa được ngay trên tờ,
+không phải chữ tĩnh. Tên khách hàng bên cạnh thì không. BlueDental:
+`QuoteSignatures` nhận `onLeftNameChange`; ô dùng nền `#FDF6E0`, viền `#E8D9A8`,
+và khi in thì bỏ viền/nền để in ra là một cái tên.
+
+### 4. Ảnh trong panel
+
+Danh sách ảnh về nhanh, **file** ảnh mới là chỗ chậm — nên thẻ ảnh phải tự báo
+đang tải (vệt sáng chạy trên nền `#E6EAF0`) tới khi chính nó vẽ xong, thay vì để
+trống 240px. Xem R-336.
+
+### 5. Panel "Cột hiển thị" (đo lại 2026-09-08 khuya)
+
+Bản gốc dựng panel này giống panel của **Kế hoạch điều trị**, không phải một
+danh sách công tắc đơn thuần:
+
+| Phần | Bản gốc |
+|---|---|
+| Head | `Cấu hình cột` + nút **✕** đóng |
+| Mỗi dòng | grip kéo, tên cột, công tắc |
+| Chân | nút **`Lưu`** chiếm hết bề ngang |
+
+Tức là **thứ tự cột cũng do người dùng**, và bật/tắt chỉ áp dụng khi bấm `Lưu`.
+BlueDental: `adviseColumns.ts` + `AdviseColumnConfig.tsx`, dùng lại
+`useDragReorder` và `bd-grip` của Danh mục. Panel sửa bản nháp; đóng bằng ✕ hoặc
+bấm ra ngoài là bỏ nháp.
+
+### 6. Hai chỗ đo lại của chân tờ in và cột grip
+
+- Ô tên bác sĩ sửa được vẫn phải **chừa khoảng ký** phía trên như cột khách hàng.
+  Trong `<input>` thì khoảng đó phải là `margin-top`, không phải `padding-top` —
+  padding chỉ làm ô cao thêm. Ô cũng nằm **giữa** cột, không dán mép trái.
+- Cột grip chỉ rộng bằng cái grip (28px). Đặt `width` thôi không đủ: padding
+  mặc định của ô bảng antd vẫn giữ cột rộng gần bằng một cột thường, nên cần
+  class riêng cắt padding.

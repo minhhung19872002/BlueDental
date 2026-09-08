@@ -14,6 +14,7 @@ import {
   type QuoteRow,
   type QuoteTotals,
 } from "./quoteModel";
+import { QuoteSignatures } from "./QuoteSignatures";
 
 export interface DiagnosisInvoiceSheetProps {
   clinic: QuoteClinic;
@@ -28,7 +29,9 @@ const dash = (value: string) => value || "-";
 /**
  * "PHIẾU CHẨN ĐOÁN & HÓA ĐƠN" — the sheet "In hóa đơn kèm chẩn đoán" prints:
  * the ticked images, one section per diagnosis with its doctors' write-ups,
- * then the quoted services. No signature strip: the reference prints none.
+ * then the quoted services, and the reference's signature strip — "Bác sĩ
+ * chẩn đoán" and "Khách hàng", the name printed above "(Ký, họ tên)". An
+ * earlier pass recorded that it printed none, which the owner's copy corrected.
  * Explanations edited here stay here for the life of the preview.
  */
 export function DiagnosisInvoiceSheet({
@@ -51,6 +54,19 @@ export function DiagnosisInvoiceSheet({
     [rows, edits],
   );
   const firstNumber = images.length > 0 ? 2 : 1;
+
+  // The sheet is signed by the doctor who made the diagnosis. Several rows can
+  // name the same doctor, and a slip occasionally names two, so the distinct
+  // names are joined rather than the first one taken.
+  const diagnosingDoctor = useMemo(
+    () => [...new Set(rows.flatMap((row) => row.doctors).filter(Boolean))].join(", "),
+    [rows],
+  );
+
+  // Typed over, the edit stands for the life of the preview. Held as "not yet
+  // edited" rather than seeded through an effect: an effect keyed on the rows
+  // would wipe what the user typed the moment anything above re-rendered.
+  const [signedBy, setSignedBy] = useState<string | null>(null);
 
   return (
     <div className="pq-dx">
@@ -131,6 +147,16 @@ export function DiagnosisInvoiceSheet({
           </tbody>
         </table>
       </section>
+
+      <QuoteSignatures
+        layout="name-first"
+        caption={t("(Ký, họ tên)")}
+        leftLabel={t("Bác sĩ chẩn đoán")}
+        leftName={signedBy ?? diagnosingDoctor}
+        onLeftNameChange={setSignedBy}
+        rightLabel={t("Khách hàng")}
+        rightName={dash(customer.name)}
+      />
     </div>
   );
 }

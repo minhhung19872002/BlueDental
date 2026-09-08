@@ -6268,6 +6268,20 @@ html:has(.ant-modal-wrap) {
   color: inherit;
 }
 
+/* The plain yes/no dialog (ConfirmDialog): one line of text, and the two
+   buttons pushed to the right the way every other dialog ends. */
+.bd-confirm-message {
+  margin: 0;
+  color: var(--bd-sub);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.bd-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 /* ── Danh mục: what the shared components still need from us ─────────────── */
 
 /* The header's icon sits on the same baseline as the title beside it. */
@@ -6497,6 +6511,25 @@ html:has(.ant-modal-wrap) {
 
 .bd-rich-text .ql-editor {
   min-height: 140px;
+}
+
+/* The same body read back without an editor: no frame, no minimum height, and
+   the page's own text colour rather than Quill's. */
+.bd-rich-view .ql-container,
+.bd-rich-view .ql-container.ql-snow {
+  border: 0;
+  /* Quill's own container is `height: 100%`, which is right for an editor
+     filling a field and wrong for a body being read: it stretched the sheet
+     far past the text. Read-only, it hugs what it holds. */
+  height: auto;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+.bd-rich-view .ql-editor {
+  padding: 0;
+  min-height: 0;
+  line-height: inherit;
 }
 
 /* An image the author has just picked, shown while its bytes are on their way

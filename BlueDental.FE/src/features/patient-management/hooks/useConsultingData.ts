@@ -30,7 +30,8 @@ export function useConsultingData(patientId: string, branchId: string | null) {
   });
   const dentists = useDentistList().data ?? [];
   const diagnosisOptions = useCatalogOptions(CATALOG_GROUP.Diagnosis).data ?? [];
-  const images = usePatientImages(patientId, branchId ?? "").data?.items ?? [];
+  const imageQuery = usePatientImages(patientId, branchId ?? "");
+  const images = imageQuery.data?.items ?? [];
 
   return {
     diagnoses,
@@ -41,5 +42,7 @@ export function useConsultingData(patientId: string, branchId: string | null) {
     dentistList: dentists,
     diagnosisOptions: diagnosisOptions.map((item) => ({ value: item.id, label: item.name })),
     images: images.map(adaptPatientImage),
+    /** The photographs are the slowest read on the tab; the panel spins on this. */
+    imagesLoading: imageQuery.isPending,
   };
 }

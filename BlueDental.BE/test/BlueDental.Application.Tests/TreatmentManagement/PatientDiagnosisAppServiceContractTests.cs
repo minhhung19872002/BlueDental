@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using BlueDental.TreatmentManagement;
 using Microsoft.AspNetCore.Authorization;
 using Shouldly;
@@ -85,6 +85,21 @@ public class PatientDiagnosisAppServiceContractTests
     public void UpdateAsync_Should_Have_Authorize_Attribute()
     {
         _serviceType.GetMethod("UpdateAsync")
+            .ShouldNotBeNull()
+            .GetCustomAttribute<AuthorizeAttribute>()
+            .ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void UpdatePrintContentAsync_Should_Exist_On_Interface()
+    {
+        _interfaceType.GetMethod("UpdatePrintContentAsync").ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void UpdatePrintContentAsync_Should_Have_Authorize_Attribute()
+    {
+        _serviceType.GetMethod("UpdatePrintContentAsync")
             .ShouldNotBeNull()
             .GetCustomAttribute<AuthorizeAttribute>()
             .ShouldNotBeNull();

@@ -10,6 +10,7 @@ import {
   type QuoteRow,
   type QuoteTotals,
 } from "./quoteModel";
+import { QuoteSignatures } from "./QuoteSignatures";
 
 export interface QuoteSheetProps {
   clinic: QuoteClinic;
@@ -20,7 +21,20 @@ export interface QuoteSheetProps {
 
 const dash = (value: string) => value || "-";
 
-/** "PHIẾU BÁO GIÁ" — the sheet "In Hoá Đơn" prints. No signature strip: the reference prints none. */
+/**
+ * Who signs the left-hand column. The reference prints the desk that raised the
+ * slip rather than a person — the same wording whoever is logged in.
+ */
+const PREPARER = "Thu Ngân / Bác Sĩ";
+
+/**
+ * "PHIẾU BÁO GIÁ" — the sheet "In Hoá Đơn" prints.
+ *
+ * It ends on the reference's signature strip: "Người lập phiếu" and "Khách
+ * hàng", each captioned "(Ký, ghi rõ họ tên)" with the signing space above the
+ * printed name. An earlier pass recorded that the reference printed none, which
+ * the project owner's own copy of the sheet corrected.
+ */
 export function QuoteSheet({ clinic, customer, rows, totals }: QuoteSheetProps) {
   const summarySpan = totals.extra > 0 ? 4 : 3;
   return (
@@ -116,6 +130,15 @@ export function QuoteSheet({ clinic, customer, rows, totals }: QuoteSheetProps) 
           </tr>
         </tbody>
       </table>
+
+      <QuoteSignatures
+        layout="caption-first"
+        caption={t("(Ký, ghi rõ họ tên)")}
+        leftLabel={t("Người lập phiếu")}
+        leftName={PREPARER}
+        rightLabel={t("Khách hàng")}
+        rightName={dash(customer.name)}
+      />
     </div>
   );
 }

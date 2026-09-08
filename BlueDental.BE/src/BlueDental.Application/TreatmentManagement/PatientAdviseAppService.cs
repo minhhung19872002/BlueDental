@@ -221,6 +221,55 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
         return MapToDto(advise);
     }
 
+    /// <summary>
+    /// Moves one advise row to a position and renumbers the patient's rows
+    /// 1..N around it, so the stored order never has gaps or ties — the list
+    /// reads <c>OrderBy(SortOrder)</c>, and ties there fall back to creation
+    /// time, which makes a dragged order look like it half-applied.
+    ///
+    /// The position is clamped rather than rejected: a client that dragged onto
+    /// a row deleted in the meantime still lands somewhere sensible.
+    ///
+    /// Scoped to the caller's branch the same way the list is, so a row of
+    /// another branch cannot be reordered through a guessed id.
+    /// </summary>
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Edit)]
+    public async Task ReorderAsync(ReorderPatientAdviseDto input)
+    {
+        var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
+        var moved = await _repository.FindAsync(input.Id);
+
+        // Answered the same way whether the row is missing or belongs to another
+        // branch, so a guessed id cannot tell the two apart.
+        if (moved is null || moved.ClinicBranchId != clinicBranchId)
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.PatientAdviseNotFound,
+                "Advise not found.");
+
+        var sequence = (await _repository.GetListAsync(x =>
+                x.PatientId == moved.PatientId && x.ClinicBranchId == clinicBranchId))
+            .OrderBy(x => x.SortOrder)
+            .ThenByDescending(x => x.CreationTime)
+            .ToList();
+
+        sequence.RemoveAll(x => x.Id == moved.Id);
+        var target = Math.Clamp(input.SortOrder, 1, sequence.Count + 1);
+        sequence.Insert(target - 1, moved);
+
+        var changed = new List<PatientAdvise>();
+        for (var index = 0; index < sequence.Count; index++)
+        {
+            var position = index + 1;
+            if (sequence[index].SortOrder == position)
+                continue;
+
+            changed.Add(sequence[index].Reorder(position));
+        }
+
+        if (changed.Count > 0)
+            await _repository.UpdateManyAsync(changed, autoSave: true);
+    }
+
     [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentPlans.Edit)]
     public async Task DeleteAsync(Guid id)
     {

@@ -147,6 +147,24 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
         return MapToDto(diagnosis);
     }
 
+    /// <summary>
+    /// "Cập nhật" on the "In chẩn đoán" sheet. Names are refilled before the row
+    /// goes back so the caller can re-render the sheet from the response alone.
+    /// </summary>
+    [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Edit)]
+    public async Task<PatientDiagnosisDto> UpdatePrintContentAsync(
+        Guid id, UpdateDiagnosisPrintContentDto input)
+    {
+        var diagnosis = await _repository.GetAsync(id);
+        diagnosis.UpdatePrintContent(input.ContentDiagnosis, input.Note);
+
+        await _repository.UpdateAsync(diagnosis, autoSave: true);
+
+        var dto = MapToDto(diagnosis);
+        await FillNamesAsync(new[] { dto });
+        return dto;
+    }
+
     [Authorize(BlueDentalPermissions.TreatmentManagement.TreatmentRecords.Edit)]
     public async Task<PatientDiagnosisDto> MarkTreatedAsync(Guid id)
     {
@@ -212,6 +230,7 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
         SecondStaffId = entity.SecondStaffId,
         Code = entity.Code,
         Note = entity.Note,
+        ContentDiagnosis = entity.ContentDiagnosis,
         Status = entity.Status,
         HasTreatmentService = entity.HasTreatmentService,
         Teeth = ToToothDtos(entity.Teeth),

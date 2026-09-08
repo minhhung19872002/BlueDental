@@ -3323,3 +3323,258 @@ R-317 (2026-09-08, cấp độ 2 — F-13, tab Labo của bệnh nhân): chủ d
 Retest R-318 (2026-09-08, cấp độ 2 — chỉ FE): `tsc -b` + oxlint + prettier xanh; `vite build --outDir` ra scratchpad, `vite preview` :8087 (proxy → host :5000 của chủ dự án, chỉ thêm một phiếu e2e + có thể một nhà cung cấp; preview chỉ bind `[::1]` nên `E2E_BASE_URL=http://localhost:8087`). `e2e/labo-detail.spec.ts` 1/1 thật: nạp phiếu qua `POST /labo-orders` JSON với cookie + XSRF của trình duyệt, mắt là nút đầu Thao tác, năm tiêu đề khối đúng thứ tự, giá trị theo nhãn, Kiểu nhịp rỗng trên màn, pill "Đơn hàng mới", không Lưu / không select, tờ in nằm trên `<body>` ẩn với `Số:`/`Mã KH:`/`Kiểu nhịp: —`, bấm in → `body.pd-printing` + title `phieu-labo-<mã>`, `afterprint` trả lại, Đóng gỡ cả tờ in. Ảnh modal và PDF (`page.pdf` A4 với `pd-printing`) đối chiếu bằng mắt với ảnh staging: bố cục khớp; tiêu đề dialog giữ 16px của app. Preview đã tắt, `dist-labo-detail` nằm trong scratchpad. **Chưa commit.**
 
 R-319 (2026-09-08, cấp độ 1 — F-13, i18n tab Labo): chủ dự án yêu cầu rà text chưa i18n ở tab Labo. Rà 23 file trong `patient-detail/labo/` + `laboApi.ts`: mọi text hiển thị đã qua `t()` (các hằng nhãn `LABO_KIND_CONFIG`/`LABO_STATUS_CONFIG`/`LABO_MODAL_LABELS`/`SENT_LABELS`/`COUNTERS` được bọc `t()` tại nơi dùng), nhưng **42/106 key chưa có bản dịch** trong `en.json` (tiếng Việt là nguồn nên bật EN vẫn hiện tiếng Việt): counter/nút tab, tiêu đề cột, ba pill Đặt mới/Làm tiếp công đoạn/Mẫu mới/Đang xử lý, nhãn form (Số phiếu Labo, Giờ gửi/Giờ nhận/Ngày+Giờ bảo hành, Màu răng, Tải ảnh, Chọn tất cả, Theo vật liệu cũ/Thay đổi vật liệu mới…), text rỗng (Chưa có phiếu Labo, Chọn dịch vụ (điều trị) trước, Không có vật liệu, (Trống)), aria-label mũi tên chip, toast "Đã tạo phiếu Labo", 11 câu "Vui lòng chọn …" của rule, và đơn vị pager "phiếu labo". Đã thêm đủ 42 key vào `BlueDental.Domain.Shared/Localization/BlueDental/en.json` (giữ BOM, wording theo key sẵn có: "Ordering dentist", "Labo models"). Tiện tay bọc `t()` cho hai chỗ `LABO_STATUS_CONFIG[…].label` chưa dịch ở màn Mẫu Labo (`LaboOrdersScreen.tsx`: pill cột Ngày giao và cột Trạng thái khi xuất Excel; prettier đồng thời gói lại hai block đã lệch format sẵn). `tsc -b` xanh. File JSON là EmbeddedResource nên host :5000 phải build + chạy lại mới trả overlay mới; chủ dự án tự test. Còn lại ngoài phạm vi: `PatientRecordTabs.tsx` thiếu "Chưa có hóa đơn"/"hóa đơn" trong `en.json`. **Chưa commit.**
+
+
+> **Ghi chú rebase 2026-09-08** — nhánh này rebase lên `main` (7 commit) sau khi
+> viết mục dưới đây. `main` đã tự dựng **cùng hai tính năng**: modal "Dữ liệu tư
+> vấn" (`library/ConsultingLibraryDialog`) và kéo thả trong "Chọn ảnh hiển thị"
+> (`ConsultingImageDay` + `useDraggedOrder`). Theo quyết định của chủ dự án, giữ
+> bản của `main` cho hai chỗ đó; bản của nhánh này (`ConsultingLibraryModal`,
+> `ConsultingStage`, `ConsultingTopicList`, `ConsultingContentBar`,
+> `consulting.css`) đã **xoá**. Vì vậy:
+>
+> - **R-319** (ảnh chiếm thân thẻ, vùng thả chỉ khi rỗng): vẫn đúng, nhưng do
+>   `PatientConsultingImagePanel` của `main` thực hiện — lớp `.pd-image-tile`,
+>   không phải `.pd-image-shot`.
+> - **R-320**: dialog dùng `ConsultingImageDay` của `main`.
+>   `PatientImageSortableRow` vẫn còn và vẫn dùng cho **tab Hình ảnh**.
+> - **R-321**: do `library/` của `main` thực hiện.
+> - **R-322**, **R-325**: nguyên vẹn của nhánh này (`DiagnosisPrintDialog` +
+>   `PUT …/print-content`) — icon lịch là "In chẩn đoán" theo quyết định của chủ
+>   dự án, nên `AppointmentEditorModal` mở từ dòng chẩn đoán của `main` đã bỏ.
+> - **R-323**: `draggable={false}` đã mang sang panel của `main` (panel của
+>   `main` chưa có) — xem `PatientConsultingImagePanel`.
+> - **R-324**: `PatientImageSortableRow` vẫn giữ (tab Hình ảnh); dialog dựa vào
+>   `useDraggedOrder` của `main`.
+> - **R-326**: typography `.cl-sheet-body` đi cùng `consulting.css` đã xoá.
+>   `RichTextView` và `.bd-rich-view` vẫn còn (tờ in dùng). **Còn treo**:
+>   `library/ConsultingLibrarySheet` của `main` render bằng
+>   `dangerouslySetInnerHTML` — trái §5 CLAUDE.md; chưa sửa trong đợt rebase này.
+>
+> Các con số "chạy thật" trong mục dưới đo trên bản **trước** rebase. Cần retest
+> lại — xem mục cuối tài liệu này.
+
+## 2026-09-08 — Chẩn đoán & Tư vấn: ảnh lên trên, kéo thả có lưu, "Danh mục" là modal, và "In chẩn đoán"
+
+Chủ dự án chỉ ra bốn chỗ lệch bản gốc trên tab **Chẩn đoán & Tư vấn**, kèm ảnh
+chụp đối chiếu. Đã soi lại `staging.nfcdental.com` (chỉ đọc, tài khoản chủ dự án
+cấp; chỉ mở dialog, không submit form nào) và đo đủ trước khi sửa — chi tiết
+trong `docs/clone/pages/patient-detail.md`, mục **2026-09-08**.
+
+| # | Đo được | Đã làm |
+|---|---|---|
+| R-319 | Panel ảnh của bản gốc vẽ **hoặc** ảnh **hoặc** vùng thả — vùng xám là chỗ đứng thay, không nằm đè trên ảnh. Ta vẽ cả hai, vùng thả luôn ở trên | `PatientConsultingImagePanel` xếp ảnh chiếm cả thân thẻ; vùng thả chỉ còn hiện khi `shown.length === 0`. Kéo file vào bất kỳ đâu trên thẻ vẫn tải lên: viền đổi thành `#2671D8` nét đứt, phủ `bg-[#2671D8]/10` + **"Thả ảnh để tải lên"**, đúng như bản gốc |
+| R-320 | Nút kéo sắp xếp trong "Chọn ảnh hiển thị" của ta **chỉ có hình** (ghi ở `unknowns.md` từ 2026-09-03). Bản gốc kéo thả thật, `PUT /v1/patient-images/reorder` `{id, ordering}`, phạm vi **một ngày** | Dialog dùng lại đúng thẻ của tab Hình ảnh. `PatientImageCard` nhận thêm `checked` / `onCheckedChange` / `showView`; phần kéo thả tách ra `PatientImageSortableRow` cho cả hai màn dùng chung. Lưu qua `usePatientImageReorder` sẵn có |
+| R-321 | `Danh mục` mở **modal toàn khung** (`aria-label="Thư viện ảnh lâm sàng"`), không phải popover. Hai đợt đo trước (2026-08-28, 2026-09-03) đều ghi sai | `ConsultingLibraryModal` + `ConsultingTopicList` / `ConsultingContentBar` / `ConsultingStage`, đọc `taxonomies` và `catalog-entries` nhóm `consulting_data`. Sửa lại hai bảng cũ trong tài liệu |
+| R-322 | Nút giữa cột `Thao tác` của Tạo chẩn đoán vẽ bằng `lucide-calendar-days` **nhưng tooltip là "In chẩn đoán"** và mở dialog in. Ta gán nhầm cho `Đặt lịch hẹn` | `PatientDiagnosisCard` đổi hành động; `DiagnosisPrintDialog` + `DiagnosisPrintSheet` + `DiagnosisPrintImages` dựng tờ A4 của bản gốc |
+
+### Backend đi kèm
+
+Tờ in mang một khối tư vấn **lưu được**, mà `PatientDiagnosis` chưa có chỗ chứa.
+
+- `PatientDiagnosis.ContentDiagnosis` (`text`) + `UpdatePrintContent(...)`.
+- `PUT /v1/app/patient-diagnoses/{id}/print-content` với `{contentDiagnosis, note}`.
+- Migration `20260908000000_AddDiagnosisPrintContent`, viết tay và vá snapshot
+  bằng tay — cùng lý do đã ghi ở `AddStageServiceItems`. Lần này `dotnet ef
+  migrations add` cũng **không chạy được**: snapshot đã có sẵn lỗi thứ tự
+  (`b.Navigation("ExaminationReasons")` đứng trước quan hệ dựng ra nó), có từ
+  trước đợt này.
+
+Endpoint riêng chứ không dùng `PUT /{id}`: DTO cập nhật đầy đủ bắt gửi lại bác
+sĩ và răng, và `UpdateNote` đi qua `GuardEditable` — mà tờ này thường viết **sau
+khi** đã có dịch vụ, nên một chẩn đoán `Treated` vẫn phải in được. Chỉ
+`Cancelled` bị chặn.
+
+### Một quyết định về XSS
+
+Thân bài "Dữ liệu tư vấn" và khối tư vấn của tờ in đều là HTML người dùng soạn.
+Bản gốc đổ thẳng bằng `dangerouslySetInnerHTML`; §5 CLAUDE.md cấm. Thêm
+`src/components/RichTextView.tsx` — Quill ở chế độ chỉ đọc — nên markup đi qua
+đúng bộ parse của trình soạn thảo đã ghi nó, và chỉ những thẻ Quill biết mới
+sống sót. Không chỗ nào trong app dùng `dangerouslySetInnerHTML`.
+
+### Chạy thật
+
+Bản build production (`vite preview` :8080), API `:5019`, PostgreSQL thật, đăng
+nhập qua màn hình thật, không chặn request nào.
+
+- 5 spec mới/viết lại trong `patient.spec.ts` — **xanh**:
+  - ảnh nằm trên cùng, không còn `.pd-image-drop`, tấm đầu cách mép thẻ < 24px,
+    cao 240 `cover`, bấm vào mở `PatientImageViewer` với đếm `1 / N`;
+  - "Chọn ảnh hiển thị" nhóm theo ngày, thẻ 280px, tích/bỏ tích đổi panel;
+  - **kéo thẻ đầu sang cuối** → chờ đúng `PUT /reorder`, thứ tự đổi, **reload**
+    vẫn giữ nguyên (thứ tự của server, không phải của trình duyệt);
+  - `Danh mục` mở `[data-testid=consulting-library]`, có breadcrumb `n/N`,
+    `Toàn màn hình` (đổi zoom 125% → 75%), `Esc` bước ra rồi mới đóng;
+  - `In chẩn đoán` mở tờ, tích ảnh làm khối `I. HÌNH ẢNH CHẨN ĐOÁN` mọc ra và
+    khối tư vấn đánh số lại thành `II`, `Cập nhật` → sửa → `Lưu chẩn đoán` chờ
+    đúng `PUT …/print-content` 200, và **reload** vẫn đọc lại lời tư vấn đó.
+- `Chẩn đoán & Tư vấn carries the reference's panels…` viết lại cho hợp hành vi
+  mới (vùng thả chỉ khi không có ảnh; `Danh mục` mở modal) — xanh.
+- `patient.spec.ts` (62), `patient-image.spec.ts`, `rich-image.spec.ts`,
+  `treatment-stage.spec.ts`, `patient-medical-record.spec.ts`: xanh.
+- `taxonomy*` + `payment-qr` + `branch-*` (42): **39 xanh / 3 đỏ**;
+  `treatment-plan-detail.spec.ts`: 1 đỏ. Cả 4 cái đỏ **đỏ y hệt trên bản build
+  sạch** (stash toàn bộ thay đổi, build lại, chạy lại) — đã có từ trước, không
+  phải do đợt này:
+  - `taxonomy-dialogs` × 2 — option "Tên thuốc" nằm ngoài viewport khi click;
+  - `taxonomy` "a phone-width window…" — `.bd-cat-card` cao 0;
+  - `treatment-plan-detail` "the slip code opens…" — `Doanh thu dự kiến` = 0,
+    phụ thuộc dữ liệu.
+- `tsc --noEmit` sạch, `eslint` sạch trên mọi file đã đụng.
+
+### Một cái bẫy gặp lại
+
+Ghi file đang được Vite theo dõi bằng `cat > …` làm dev server phục vụ module
+rỗng: `does not provide an export named …` trong khi đĩa, `tsc` và `build` đều
+sạch. Khởi động lại dev server là xong. Đây đúng là ghi chú đã có trong bộ nhớ
+dự án — lần này nó dính vào ba file cùng lúc.
+
+### 2026-09-08 (tiếp) — bốn lỗi chủ dự án bắt được khi dùng tay
+
+| # | Lỗi | Nguyên nhân | Đã sửa |
+|---|---|---|---|
+| R-323 | Kéo một tấm ảnh **trong panel** lại tải lên thêm một bản sao | Chrome trả tấm ảnh kéo ra khỏi trang về qua `dataTransfer.files`, nên thả lại lên chính panel nó vừa rời khỏi trông y hệt một lần thả file từ ngoài vào | `<img>` trong `.pd-image-shot` đặt `draggable={false}`. Panel không có chuyện sắp xếp — chỗ đó nằm trong "Chọn ảnh hiển thị" |
+| R-324 | Kéo đổi vị trí trong "Chọn ảnh hiển thị" bị **giật về chỗ cũ** một nhịp rồi mới nhảy sang chỗ mới | dnd-kit bỏ `transform` ngay khi thả, nhưng query cache báo cho observer ở tick sau — nên có đúng một frame thẻ đã hết transform mà thứ tự DOM thì chưa đổi | `PatientImageSortableRow` **tự giữ thứ tự vừa thả** (`dropped`) và render theo nó cho tới khi store đồng ý, rồi mới nhả. Thất bại thì store rollback và thắng |
+| R-325 | Modal "In chẩn đoán": `Cập nhật` → sửa → `Lưu` xong thì nội dung **quay về bản cũ**, phải mở lại modal mới thấy bản mới | `useEffect` reset tờ phụ thuộc vào `clinic` / `patient` — hai object literal dựng mới mỗi lần cha render. Lưu xong `invalidateQueries` làm cha render lại → effect chạy → ghi đè `fields` bằng dòng chẩn đoán **cũ** | Effect reset khoá theo `diagnosis.id`, đọc props qua ref; letterhead có effect riêng và không bao giờ đè lên thứ đang sửa. Cha `useMemo` hai object đó |
+| R-326 | Nội dung trong "Danh mục" trình bày xấu | `RichTextView` chỉ bỏ viền Quill, không có typography; `.ql-container` của Quill là `height: 100%` nên tờ giấy kéo dài quá nội dung | Thêm typography cho `.cl-sheet-body .ql-editor` (heading bậc thang, giãn khối, list, blockquote, ảnh, bảng, code), sân khấu thành mặt bàn `#F6F8FB` với tờ trắng đổ bóng như bản gốc, và `.bd-rich-view .ql-container` đổi `height: auto` |
+
+**Chạy thật:** `patient-image.spec.ts` + `patient.spec.ts` trên bản build production
+(`vite preview` :8080, API :5019, DB thật) — **66 xanh / 1 skip / 0 đỏ**. Spec kéo
+thả thêm một khẳng định mới: đọc thứ tự **ngay sau `mouse.up()`**, trước khi
+`PUT /reorder` trả về, đã phải đúng thứ tự mới — đó là chốt chặn cho R-324.
+`tsc` sạch, `eslint` sạch.
+
+---
+
+## 2026-09-08 (chiều) — Kế hoạch tư vấn: voucher chi nhánh 2, kéo thả phiếu tư vấn, chân trang hai tờ in
+
+Năm việc chủ dự án nêu trên `/patient/…?tab=consulting&branchId=2222…`. Chạy
+thật trên bản build production (`vite preview` :8080), API :5019, PostgreSQL
+thật, đăng nhập qua màn hình thật, **không chặn request nào**.
+
+| # | Hiện tượng | Xử lý |
+|---|---|---|
+| R-327 | Picker "Voucher áp dụng" trống trên chi nhánh 2: toàn bộ voucher seed đều thuộc chi nhánh 1, mà picker chỉ hỏi đúng chi nhánh trong URL | `SeedVouchersAsync` nhận `branchId` và được gọi cho **cả hai** chi nhánh. Chi nhánh 2 có danh sách riêng (`SecondBranchVouchers`): tiền/phần trăm, có/không ngưỡng tối thiểu, một cái độc quyền, một cái hết hạn — đo cho kế hoạch cỡ vài trăm nghìn, vì list của chi nhánh 1 đặt ngưỡng gấp 4 lần giá trị nên kế hoạch một dịch vụ không với tới |
+| R-328 | Panel ảnh nháy ô xám "Kéo ảnh vào" trước khi ảnh về — đọc như hồ sơ không có ảnh | `useConsultingData` trả thêm `imagesLoading`; panel giữ `Spin` trong ô đó cho tới khi đọc xong. "Chưa đọc" và "không có ảnh" là hai chuyện khác nhau |
+| R-329 | Bảng phiếu tư vấn không kéo thả được (ghi nhận cũ: "không có endpoint reorder") | `PUT /v1/app/patient-advises/reorder` `{id, sortOrder}` — đánh số lại 1..N quanh dòng được chuyển nên `SortOrder` không còn hòa/thủng (4 dòng của hồ sơ mẫu đều đang `SortOrder = 0`). FE dùng lại **đúng** `useDragReorder` + `bd-grip` của Danh mục, kèm mũi lên/xuống cho bàn phím |
+| R-330 | Cột Dịch vụ mang cả răng, cột Chẩn đoán chỉ có tên — bản gốc gộp răng vào chẩn đoán | Dịch vụ chỉ còn tên (`.pd-cell-strong`); Chẩn đoán vẽ "28 - âsasa" màu link kèm `(ghi chú của phiếu chẩn đoán)` bên dưới, tra theo `patientDiagnosisId` |
+| R-331 | Chẩn đoán dưới số răng ở bảng Tạo chẩn đoán vẽ màu xám | `.pd-cell-diagnosis` màu **#12A960** như bản gốc (chủ dự án chốt) |
+| R-332 | Chọn voucher / Thêm kế hoạch điều trị / Tạo báo giá / In báo giá bấm được khi chưa tick dòng nào — không có số tiền nào để tính | Cả bốn `disabled` tới khi có ít nhất một dòng được tick. Dòng chữ nghiêng đổi thành "Chọn ít nhất một dịch vụ để áp dụng voucher." |
+| R-333 | "Thêm kế hoạch điều trị" đi luôn khi chưa chọn bác sĩ điều trị | Chặn tại chỗ, `status="error"` trên select và `.pd-plan-dentist-error` **dưới ô** (không phải toast); chọn bác sĩ thì lỗi mất và lệnh đi kèm `dentistId` |
+| R-334 | "Tạo báo giá" gọi `window.print()` — in nguyên trang app | Mở đúng modal "Chi tiết phiếu" như nút máy in |
+| R-335 | Hai tờ in con ("In Hoá Đơn", "In hóa đơn kèm chẩn đoán") **thiếu chân trang chữ ký** — ghi nhận cũ "bản gốc không in chữ ký" là sai, bản in của chủ dự án có | `QuoteSignatures` dùng chung: báo giá là "Người lập phiếu / Khách hàng" + "(Ký, ghi rõ họ tên)", chỗ ký nằm trên tên; hóa đơn kèm chẩn đoán là "Bác sĩ chẩn đoán / Khách hàng" + "(Ký, họ tên)", tên trên chú thích. `break-inside: avoid` để không bị cắt sang trang |
+
+### Kiểm chứng thật
+
+- **API thật, có đăng nhập** (`/api/account/login`, cookie thật):
+  `GET vouchers/available?clinicBranchId=2222…` trả **2 / 3 / 4** voucher ở mức
+  0 / 1.000.000 / 3.000.000 đ — ngưỡng tối thiểu lọc đúng, cái hết hạn không bao
+  giờ hiện, tất cả đều `scope=treatment`.
+  `PUT patient-advises/reorder` → **204**, dòng cuối lên đầu và 4 dòng đánh số
+  lại 1..4; đọc lại bằng request riêng thấy đúng. Đổi header sang chi nhánh 1 →
+  **403** `BlueDental:Treatment:0015` (không phân biệt được "không có" với "của
+  chi nhánh khác").
+- **`e2e/consulting-plan.spec.ts` mới — 7/7 xanh**: panel spin tới khi có ảnh;
+  cột chẩn đoán "răng - tên" màu link và dịch vụ đứng một mình; bốn lệnh khoá
+  tới khi tick; thiếu bác sĩ thì báo lỗi dưới ô rồi chọn xong đi được; picker
+  liệt kê `CN2WELCOME` và trừ vào tổng; **kéo grip đổi thứ tự và reload vẫn
+  giữ**; hai tờ in đều có chân chữ ký.
+- `patient.spec.ts` **63/63 xanh** sau khi sửa 4 chỗ còn sót từ đợt rebase sáng
+  nay: `getByTestId("consulting-library")` → dialog "Thư viện ảnh lâm sàng" của
+  `main`; `.pi-card` → `.pd-image-card` trong "Chọn ảnh hiển thị"; nhãn
+  "In phiếu tư vấn" → "In Báo giá"; và setup của test voucher giờ hỏi
+  `clinicBranchId` như giao diện (không hỏi thì tài khoản toàn hệ thống được
+  trả voucher của **mọi** chi nhánh và test bắt phải một cái màn hình không có).
+- BE: `dotnet build` sạch; Application.Tests 73 xanh, Domain.Tests (Voucher) 22
+  xanh. `tsc -b` sạch, `eslint` sạch, `vite build` sạch.
+
+### Còn đỏ, **không** thuộc đợt này
+
+`patient-image.spec.ts` 3 đỏ (`the eye opens the viewer…`, `dragging a card by
+its grip…`, `deleting asks first…`) — tab **Hình ảnh**, không phải màn này, và
+không file nào của nó bị đợt này sửa. Đỏ ổn định cả khi chạy riêng. Đã loại được
+hai giả thuyết: quyền (admin có đủ `treatmentImage.*`) và MinIO (đang chạy). Dấu
+vết còn lại: spec dùng **một** `runId` ở scope module cho cả bốn test và mở
+"bệnh nhân dòng đầu tiên" ở mỗi test, trong khi DB đã tích **80** ảnh `truoc-%`
+rác trên **ba** bệnh nhân khác nhau từ các lần chạy trước — nên test sau có thể
+mở hồ sơ khác hồ sơ mà test đầu vừa tải ảnh lên. Cần một đợt riêng: dọn ảnh rác
+và cho spec tự tạo/khoá hồ sơ của nó thay vì "dòng đầu tiên".
+
+### UNKNOWN còn treo
+
+"Tạo báo giá" giờ mở "Chi tiết phiếu" giống nút máy in. Bản gốc có **lưu** một
+bản báo giá (số phiếu, trạng thái) khi bấm nút đó hay không thì chưa soi được —
+xem `docs/clone/unknowns.md`. Không có entity báo giá nên chưa thể clone phần lưu.
+
+---
+
+## 2026-09-08 (tối) — Bốn chỗ chủ dự án bắt tiếp trên Chẩn đoán & Tư vấn
+
+| # | Hiện tượng | Xử lý |
+|---|---|---|
+| R-336 | Panel ảnh **trắng** một lúc rồi ảnh mới hiện. Đợt chiều đo sai chỗ: `imagesLoading` chỉ phủ lúc đọc **danh sách**, mà danh sách về rất nhanh — chỗ chậm là **tải file ảnh**, nên thẻ đã dựng đủ 240px nhưng chưa vẽ gì | Mỗi thẻ giữ `pd-image-tile--loading` cho tới khi chính `<img>` của nó `load` (hoặc `error`, kẻo ảnh hỏng shimmer mãi): nền `#E6EAF0` + một vệt sáng chạy qua, `img` ẩn tới lúc đó. `prefers-reduced-motion` thì bỏ animation. Phần `imagesLoading` của đợt chiều vẫn giữ — hai pha khác nhau |
+| R-337 | Biểu tượng kéo nằm **sau** ô tick. AntD luôn chèn cột chọn lên đầu, bất kể thứ tự `columns` | Khai báo `Table.SELECTION_COLUMN` **sau** cột grip trong mảng `columns` — antd đọc placeholder đó làm vị trí cột chọn. Grip thành ô ngoài cùng bên trái như bản gốc |
+| R-338 | Tên bác sĩ ở chân "In hóa đơn kèm chẩn đoán" chỉ đọc, bản gốc **sửa được ngay trên tờ** (ô nền vàng nhạt) | `QuoteSignatures` nhận `onLeftNameChange`; có thì cột trái vẽ `<input class="pq-signs__name--edit">` nền `#FDF6E0`. Giá trị giữ dạng "chưa sửa" (`null`) rồi hiển thị `signedBy ?? diagnosingDoctor` — **không** dùng effect để seed, đúng bài học R-325. Khi in thì input mất viền/nền, in ra là một cái tên |
+| R-339 | `Tạo báo giá` mở luôn "Chi tiết phiếu". Bản gốc hỏi xác nhận trước, rồi mở một **tab "BG 1"** cạnh "Phiếu tư vấn" chứa các dòng vừa tick, có ✕ đỏ để bỏ | `ConfirmDialog` dùng chung (Không / Có) — dialog yes/no đầu tiên của app, khác `ConfirmDeleteDialog` màu đỏ. `useAdviseQuotes` giữ danh sách báo giá; `AdviseQuoteTabs` vẽ dải tab. Tab đang mở quyết định bảng vẽ gì; chân TỔNG KẾ HOẠCH chỉ có ở tab kế hoạch. Grip trên tab báo giá đổi thứ tự **trong** bản báo giá đó (khách quan: chưa có endpoint nào để lưu) |
+
+### Ghi chú clone
+
+- Câu trong hộp xác nhận sao y bản gốc, **kể cả chỗ lặp** "đã chọn đã chọn".
+  Giữ nguyên theo quy tắc clone 1:1; nếu chủ dự án muốn sửa thì đổi một chỗ.
+- Dải tab thay đúng chỗ nút `Phiếu tư vấn` cũ. Khi chưa có báo giá nào, tab kế
+  hoạch là tab đang mở nên vẫn xanh primary — trông y như cái nút trước đây.
+  Bấm vào nó lúc đang mở thì mở "Tạo phiếu tư vấn", tức là giữ nguyên việc mà
+  cái nút vẫn làm. Đây là **suy luận**, không phải đo được: bản gốc có thể tạo
+  phiếu tư vấn từ chỗ khác.
+- `<footer hidden>` không ăn vì `.pd-plan-summary` có `display` riêng — đổi sang
+  không render. Ghi lại vì dễ dính lại.
+
+### Chạy thật
+
+`e2e/consulting-plan.spec.ts` **10/10 xanh** (thêm 3 test: thẻ ảnh shimmer tới
+khi vẽ xong; grip là ô đầu tiên, trước ô tick; `Tạo báo giá` hỏi rồi mở tab BG 1
+đúng các dòng đã tick, ✕ bỏ được, chân kế hoạch không lặp lại trên tab báo giá —
+và test tờ in thêm phần sửa tên bác sĩ, và khẳng định tên khách hàng **không**
+sửa được). `patient.spec.ts` + `treatment-stage.spec.ts` **65/65 xanh** (sửa một
+chỗ trong `treatment-stage`: "Phiếu tư vấn" giờ là `role=tab`, không còn
+`role=button`). `treatment-plan.spec.ts` 5/5 xanh. `tsc -b`, `eslint`,
+`vite build` sạch.
+
+### Còn đỏ, **không** thuộc đợt này
+
+- `patient-image.spec.ts` 3 đỏ — như đã ghi ở mục 2026-09-08 (chiều).
+- `treatment-plan-detail.spec.ts` "under 640px every tab folds into cards…" —
+  ô "Nội dung" của `RefundDialog` cao 29.76px thay vì ≥120. Nguyên nhân đo được:
+  `plan-detail.css` đặt `min-height: 152px` lên `.ant-input-affix-wrapper`, mà
+  `Input.TextArea` + `showCount` của **antd 6** không còn dựng class đó nữa. Một
+  dòng CSS là xong nhưng thuộc màn Chi tiết kế hoạch điều trị, cần đo lại ở
+  600px — để đợt riêng.
+
+---
+
+## 2026-09-08 (khuya) — Ba chỗ chỉnh tiếp sau khi xem lại
+
+| # | Hiện tượng | Xử lý |
+|---|---|---|
+| R-340 | Ô tên bác sĩ ở chân tờ in **không chừa chỗ ký**: nó dán ngay dưới chữ "Bác sĩ chẩn đoán", lệch hẳn so với cột khách hàng bên cạnh. `.pq-signs__name` giữ khoảng ký bằng `padding-top: 46px`, mà shorthand `padding` của biến thể `--edit` reset mất — và padding trong một `<input>` chỉ làm ô cao thêm, không chừa chỗ | Biến thể `--edit` giữ khoảng ký bằng `margin-top: 46px`, và `align-self: center` để ô nằm giữa cột chứ không dán mép trái |
+| R-341 | Cột grip rộng quá | `width: 28`, thêm class `pd-grip-cell` để cắt padding của antd (`padding-left: 8px`, `padding-right: 0`) — nếu chỉ đặt `width` thì padding mặc định vẫn giữ cột rộng gần bằng một cột thường |
+| R-342 | Panel "Cột hiển thị" chưa giống bản gốc: thiếu ✕ đóng, các dòng **không kéo được**, và thiếu nút **Lưu** — tức là thứ tự cột cũng do người dùng, và bật/tắt chỉ áp dụng khi bấm Lưu | `adviseColumns.ts` (danh sách + nhãn + `ColumnSetting`), `AdviseColumnConfig.tsx` (head có ✕, mỗi dòng một `bd-grip` dùng lại `useDragReorder`, nút `Lưu` full-width). Panel sửa **bản nháp**; đóng bằng ✕ hoặc bấm ra ngoài là bỏ nháp. Bảng dựng cột theo **đúng thứ tự** panel để lại. Cùng khuôn với `Cột hiển thị` của Kế hoạch điều trị (`.tp-columns-save`) đã có sẵn |
+
+### Hai cái bẫy khi viết test (đã ghi vào chính spec)
+
+- **Hộp `<p>` gồm cả padding, ô `<input>` thì không.** So sánh mép trên của hai
+  ô đọc ra 51px với 6px và kết luận sai là CSS lỗi. Phải đo ở **chữ**:
+  `box.y + parseFloat(paddingTop)`. CSS vốn đúng — cả hai cột đặt chữ ở y 953/954.
+- **AntD phóng popover từ 0.2.** Đo `boundingBox()` ngay khi panel vừa visible
+  cho toạ độ chưa ổn định, nên `mouse.down()` bấm trượt cái grip và kéo không
+  chạy — y hệt bẫy đã ghi cho modal "Chọn ảnh hiển thị". Phải `expect.poll` tới
+  khi bề rộng dòng ổn định (≥240px) rồi mới đo.
+
+### Chạy thật
+
+`e2e/consulting-plan.spec.ts` **11/11**; `patient.spec.ts` + `treatment-stage`
++ `treatment-plan` cùng chạy: **81/81 xanh** trên bản build production (:8080,
+API :5019, DB thật). Sửa một chỗ trong `patient.spec.ts`: panel cột giờ cần
+`Lưu` mới áp dụng, nên test bật/tắt cột phải bấm Lưu. `tsc -b`, `eslint`,
+`vite build` sạch.

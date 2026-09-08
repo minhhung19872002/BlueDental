@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Volo.Abp.Application.Dtos;
 
@@ -30,6 +30,9 @@ public class PatientDiagnosisDto : FullAuditedEntityDto<Guid>
     public Guid? SecondStaffId { get; set; }
     public string Code { get; set; } = string.Empty;
     public string? Note { get; set; }
+
+    /// <summary>Advice body of the printed sheet, HTML. See PatientDiagnosis.</summary>
+    public string? ContentDiagnosis { get; set; }
     public PatientDiagnosisStatus Status { get; set; }
     public bool HasTreatmentService { get; set; }
     public List<ToothSelectionDto> Teeth { get; set; } = new();
@@ -56,6 +59,17 @@ public class UpdatePatientDiagnosisDto
     public Guid? SecondStaffId { get; set; }
     public string? Note { get; set; }
     public List<ToothSelectionDto> Teeth { get; set; } = new();
+}
+
+/// <summary>
+/// What "Cập nhật" on the "In chẩn đoán" sheet saves — the advice body and the
+/// note, nothing else. Kept apart from <see cref="UpdatePatientDiagnosisDto"/>
+/// so wording a sheet never has to resend the doctors and the teeth.
+/// </summary>
+public class UpdateDiagnosisPrintContentDto
+{
+    public string? ContentDiagnosis { get; set; }
+    public string? Note { get; set; }
 }
 
 public class GetPatientDiagnosisListInput : PagedAndSortedResultRequestDto
@@ -132,6 +146,19 @@ public class UpdatePatientAdviseDto
     public Guid? AdviseGroupId { get; set; }
     public int SortOrder { get; set; }
     public string? Note { get; set; }
+}
+
+/// <summary>
+/// Body of <c>PUT /patient-advises/reorder</c>: one row and the position it
+/// should take on Phiếu tư vấn. The rest of the patient's rows shift around it,
+/// so the client sends the move rather than the whole order.
+/// </summary>
+public class ReorderPatientAdviseDto
+{
+    public Guid Id { get; set; }
+
+    /// <summary>1-based position within the patient's advise rows.</summary>
+    public int SortOrder { get; set; }
 }
 
 public class GetPatientAdviseListInput : PagedAndSortedResultRequestDto

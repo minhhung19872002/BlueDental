@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using BlueDental.TreatmentManagement;
 using BlueDental.TreatmentManagement.Values;
@@ -92,6 +92,43 @@ public class PatientDiagnosisTests
         Assert.Throws<BusinessException>(() =>
             diagnosis.UpdateTeeth(new[] { new ToothSelection(37, selected: true) }));
         Assert.Throws<BusinessException>(() => diagnosis.UpdateNote("x"));
+    }
+
+    /// <summary>
+    /// The printed sheet is often worded after the services have been raised, so
+    /// UpdatePrintContent deliberately does not go through GuardEditable — a
+    /// treated diagnosis must still be printable with its own advice.
+    /// </summary>
+    [Fact]
+    public void Should_Write_The_Print_Sheet_Of_A_Treated_Diagnosis()
+    {
+        var diagnosis = CreateDiagnosis();
+        diagnosis.MarkTreated();
+
+        diagnosis.UpdatePrintContent("<p>Sai khớp cắn hạng II</p>", "cần chỉnh nha");
+
+        Assert.Equal("<p>Sai khớp cắn hạng II</p>", diagnosis.ContentDiagnosis);
+        Assert.Equal("cần chỉnh nha", diagnosis.Note);
+    }
+
+    [Fact]
+    public void Should_Hold_No_Advice_Rather_Than_Blank_Markup()
+    {
+        var diagnosis = CreateDiagnosis();
+
+        diagnosis.UpdatePrintContent("   ", null);
+
+        Assert.Null(diagnosis.ContentDiagnosis);
+        Assert.Null(diagnosis.Note);
+    }
+
+    [Fact]
+    public void Should_Not_Write_The_Print_Sheet_Of_A_Cancelled_Diagnosis()
+    {
+        var diagnosis = CreateDiagnosis();
+        diagnosis.Cancel();
+
+        Assert.Throws<BusinessException>(() => diagnosis.UpdatePrintContent("<p>x</p>", null));
     }
 
     [Fact]

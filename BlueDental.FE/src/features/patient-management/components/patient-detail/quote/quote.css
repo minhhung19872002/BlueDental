@@ -626,6 +626,66 @@
   }
 }
 
+/* ── Signature strip, the foot of both printed sheets ─────────────────────────
+   Two even columns above a rule, the role in the sheet's own serif at 13px and
+   the caption in italics; the signing space is the gap between the two, so a
+   pen has somewhere to land whichever order the sheet stacks them in. */
+.pq-signs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 28px;
+  border-top: 1px solid #d9d9d9;
+  padding-top: 20px;
+  text-align: center;
+}
+.pq-signs__col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pq-signs__role {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+.pq-signs__caption {
+  font-size: 12px;
+  font-style: italic;
+}
+/* The blank a signature goes in. It rides on the name, which is the second
+   line in both layouts, so the pen has its space either way round. */
+.pq-signs__name {
+  margin: 0;
+  padding-top: 46px;
+  font-weight: 700;
+  white-space: pre-wrap;
+}
+/* The one field the reference lets you correct on the sheet: a tinted ground
+   so it reads as typeable, centred under the role like the printed names.
+
+   The signing space has to move to the margin here. `.pq-signs__name` carries
+   it as padding-top, which the shorthand below resets — and padding inside an
+   input would only make the box tall rather than leave room for a pen. */
+.pq-signs__name--edit {
+  align-self: center;
+  width: 60%;
+  min-width: 120px;
+  margin-top: 46px;
+  border: 1px solid #e8d9a8;
+  border-radius: 6px;
+  background: #fdf6e0;
+  padding: 2px 8px;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  text-align: center;
+}
+.pq-signs__name--edit:focus-visible {
+  outline: 2px solid var(--bd-primary);
+  outline-offset: 1px;
+}
+
 /* ── Printing: only the open preview's sheet reaches paper ── */
 @media print {
   body.pq-printing > *:not(:has(.pq-preview-body)) {
@@ -666,5 +726,15 @@
     background: #f1f5f9;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+  }
+  /* A signature strip split across two sheets of paper is useless. */
+  .pq-signs {
+    break-inside: avoid;
+  }
+  /* On paper the doctor's name is a name, not a form field. */
+  .pq-signs__name--edit {
+    border: 0;
+    background: none;
+    padding: 0;
   }
 }

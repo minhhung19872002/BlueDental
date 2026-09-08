@@ -79,3 +79,17 @@ and `BlueDental.EntityFrameworkCore.Tests/PatientManagement/PatientImageMappingT
 4. deletes both through the confirmation dialog, sees the toast, reloads and
    finds neither
 5. logs in as `branch2` and asserts `?clinicBranchId=<branch one>` → 403
+
+## 2026-09-08 — the card is now shared with Chẩn đoán & Tư vấn
+
+`PatientImageCard` gained three optional props (`checked`, `onCheckedChange`,
+`showView`) and the drag context moved out of `PatientImageDayRow` into
+`PatientImageSortableRow`, so the "Chọn ảnh hiển thị" dialog of Chẩn đoán & Tư
+vấn draws the same card and drags with the same `usePatientImageReorder`. The
+reference does the same — one card component, a tick box and a hidden eye apart.
+
+What that means for retesting: **F-09 and F-24 move together.** A change to the
+card, the sortable row or the reorder hook is a Level 3 change, and both
+`e2e/patient-image.spec.ts` and the consulting specs in `e2e/patient.spec.ts`
+have to be green before either is called verified. Both suites were run on the
+production build on 2026-09-08 and are green.

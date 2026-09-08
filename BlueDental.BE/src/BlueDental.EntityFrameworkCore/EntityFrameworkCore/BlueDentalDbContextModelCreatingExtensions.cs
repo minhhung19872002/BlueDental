@@ -1,4 +1,4 @@
-using BlueDental.Appointments;
+﻿using BlueDental.Appointments;
 using BlueDental.Appointments.Values;
 using BlueDental.Billing;
 using BlueDental.Billing.Values;
@@ -648,6 +648,9 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.ConfigureByConvention();
             entity.Property(x => x.Code).HasMaxLength(32).IsRequired();
             entity.Property(x => x.Note).HasMaxLength(2000);
+            // The printed sheet's advice body is formatted HTML, so it is left
+            // unbounded rather than squeezed into a varchar.
+            entity.Property(x => x.ContentDiagnosis).HasColumnType("text");
             entity.Property(x => x.Status).HasConversion<short>();
             entity.OwnsMany(x => x.Teeth, t => t.ToJson());
             entity.Navigation(x => x.Teeth).UsePropertyAccessMode(PropertyAccessMode.Field);
@@ -1042,6 +1045,9 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.ConfigureByConvention();
             entity.Property(x => x.Code).HasMaxLength(32).IsRequired();
             entity.Property(x => x.Note).HasMaxLength(2000);
+            // The printed sheet's advice body is formatted HTML, so it is left
+            // unbounded rather than squeezed into a varchar.
+            entity.Property(x => x.ContentDiagnosis).HasColumnType("text");
             entity.Property(x => x.Status).HasConversion<short>();
             entity.OwnsMany(x => x.Teeth, t => t.ToJson());
             entity.Navigation(x => x.Teeth).UsePropertyAccessMode(PropertyAccessMode.Field);

@@ -36,6 +36,12 @@ interface Props {
   images: PatientImageViewModel[];
   /** Which branch's consulting data the library reads. */
   branchId: string | undefined;
+  /**
+   * The photographs are still being read. Held apart from "there are none":
+   * this panel loads slower than the rest of the tab, and treating the two the
+   * same flashed the grey "Kéo ảnh vào" box before the pictures arrived.
+   */
+  loading?: boolean;
   uploading?: boolean;
   canSort: boolean;
   onUpload: (files: File[]) => void;
@@ -46,6 +52,7 @@ interface Props {
 export function PatientConsultingImagePanel({
   images,
   branchId,
+  loading,
   uploading,
   canSort,
   onUpload,
@@ -58,6 +65,15 @@ export function PatientConsultingImagePanel({
   const [hidden, setHidden] = useState<string[]>([]);
   const [dragging, setDragging] = useState(false);
   const [viewingId, setViewingId] = useState<string | null>(null);
+
+  /**
+   * Which pictures the browser has actually painted. The rows arrive long
+   * before the files do, so a tile that only reserves its 240px reads as a
+   * blank panel — it holds a shimmer until its own file lands.
+   */
+  const [painted, setPainted] = useState<string[]>([]);
+  const markPainted = (id: string) =>
+    setPainted((current) => (current.includes(id) ? current : [...current, id]));
 
   // Shown unless explicitly unticked, so a photograph just uploaded appears on
   // the panel straight away rather than waiting to be chosen — in the order
@@ -134,13 +150,17 @@ export function PatientConsultingImagePanel({
       </div>
 
       {/* The empty zone gives way to the photographs once there are any: the
-          reference stacks them from the top, under the three commands. */}
+          reference stacks them from the top, under the three commands.
+
+          While the read is still in flight the same box holds a spinner: this
+          panel is the slowest thing on the tab, and offering "Kéo ảnh vào" to a
+          record that does have photographs reads as an empty record. */}
       {shown.length === 0 && (
         <div
           className={["pd-image-drop", dragging && "pd-image-drop--over"].filter(Boolean).join(" ")}
         >
-          {uploading ? (
-            <Spin />
+          {loading || uploading ? (
+            <Spin aria-label={t("Đang tải ảnh")} />
           ) : (
             <>
               <FileImageOutlined />
@@ -156,11 +176,25 @@ export function PatientConsultingImagePanel({
             <button
               key={image.id}
               type="button"
-              className="pd-image-tile"
+              className={["pd-image-tile", !painted.includes(image.id) && "pd-image-tile--loading"]
+                .filter(Boolean)
+                .join(" ")}
               aria-label={t("Xem ảnh {0}", image.fileName)}
               onClick={() => setViewingId(image.id)}
             >
-              <img src={image.url} alt={image.fileName} />
+              {/* Chrome hands a photograph dragged off the page back through
+                  dataTransfer.files, so dropping it on the panel it just left
+                  reads as a file drop and uploads a duplicate (R-323).
+
+                  onError counts as painted too: a picture the store cannot
+                  serve would otherwise shimmer for good. */}
+              <img
+                src={image.url}
+                alt={image.fileName}
+                draggable={false}
+                onLoad={() => markPainted(image.id)}
+                onError={() => markPainted(image.id)}
+              />
             </button>
           ))}
         </div>

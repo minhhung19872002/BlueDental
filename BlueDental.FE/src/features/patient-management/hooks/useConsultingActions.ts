@@ -4,6 +4,7 @@ import {
   useCancelDiagnosis,
   useCreateDiagnosis,
   useRejectAdvise,
+  useReorderAdvise,
   useUpdateDiagnosis,
 } from "@/features/treatment-management/api/consultingQueries";
 import type {
@@ -32,6 +33,7 @@ export function useConsultingActions(patientId: string, branchId: string | null)
   const updateDiagnosis = useUpdateDiagnosis();
   const cancelDiagnosis = useCancelDiagnosis();
   const rejectAdvise = useRejectAdvise();
+  const reorderAdvise = useReorderAdvise();
 
   const upload = async (files: File[]) => {
     if (!branchId) return;
@@ -114,6 +116,19 @@ export function useConsultingActions(patientId: string, branchId: string | null)
     }
   };
 
+  /**
+   * A dragged advise row. The table keeps showing the dragged order until this
+   * settles, so nothing is said on success — only a refusal needs a word, and
+   * the list then snaps back to what the server actually holds.
+   */
+  const moveAdvise = async (id: string, sortOrder: number) => {
+    try {
+      await reorderAdvise.mutateAsync({ id, sortOrder });
+    } catch (error) {
+      toast.error(extractApiError(error));
+    }
+  };
+
   return {
     upload,
     uploading: uploadImage.isPending,
@@ -132,5 +147,6 @@ export function useConsultingActions(patientId: string, branchId: string | null)
     setRemovingAdvise,
     confirmRejectAdvise,
     rejectingAdvise: rejectAdvise.isPending,
+    moveAdvise,
   };
 }

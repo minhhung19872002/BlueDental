@@ -1,0 +1,376 @@
+/* "In chẩn đoán" — the print dialog behind the printer button on a Tạo chẩn
+   đoán row. Measured off the reference 2026-09-08; see
+   docs/clone/pages/patient-detail.md. Prefix `dp-`. */
+
+.dp-dialog {
+  /* Chrome follows the app: the reference draws this dialog in its own blue,
+     BlueDental draws every accent in the indigo primary. The sheet itself is
+     paper — black on white — and deliberately takes no brand colour at all. */
+  --dp-line: var(--bd-line);
+  --dp-frame: var(--bd-line);
+  --dp-ink: var(--bd-ink);
+  --dp-muted: var(--bd-muted);
+  --dp-blue: var(--bd-primary);
+  top: 16px;
+  padding-bottom: 0;
+}
+.dp-dialog .ant-modal-body {
+  max-height: calc(100vh - 180px);
+  overflow-y: auto;
+}
+.dp-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 320px minmax(0, 1fr);
+  align-items: start;
+}
+
+/* ---- Left: Ảnh chẩn đoán ---- */
+.dp-images {
+  position: sticky;
+  top: 0;
+  max-height: 570px;
+  overflow: hidden;
+  border: 2px solid var(--dp-frame);
+  border-radius: 12px;
+  background: var(--bd-card);
+  padding: 12px;
+}
+.dp-images-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.dp-images-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--dp-ink);
+}
+.dp-images-hint {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--dp-muted);
+}
+.dp-images-open {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: var(--dp-blue);
+  color: var(--bd-card);
+  cursor: pointer;
+}
+.dp-images-open:hover {
+  background: var(--bd-blue-dark);
+}
+.dp-images-list {
+  display: flex;
+  max-height: 480px;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.dp-images-item {
+  position: relative;
+  overflow: hidden;
+}
+.dp-images-item > button {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.dp-images-item img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 6px;
+  object-fit: cover;
+}
+.dp-images-tick {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 1;
+}
+.dp-images-empty {
+  display: flex;
+  width: 100%;
+  height: 180px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border: 0;
+  border-radius: 8px;
+  padding: 0 16px;
+  background: var(--bd-bg-soft);
+  color: var(--dp-muted);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+  cursor: pointer;
+}
+.dp-images-empty:hover {
+  background: var(--bd-bg);
+}
+
+/* ---- "Danh sách ảnh" ---- */
+.dp-list-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.dp-list-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--dp-line);
+  border-radius: 12px;
+  padding: 8px;
+  background: var(--bd-card);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.dp-list-card:hover {
+  background: var(--bd-bg-soft);
+}
+.dp-list-card--on {
+  border-color: var(--dp-blue);
+}
+.dp-list-card img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 8px;
+  object-fit: cover;
+}
+.dp-list-card > span {
+  display: block;
+  margin-top: 8px;
+  overflow: hidden;
+  color: var(--dp-ink);
+  font-size: 13px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dp-list-tick {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 1;
+}
+.dp-list-empty {
+  display: grid;
+  height: 220px;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--bd-bg-soft);
+  color: var(--dp-muted);
+  font-size: 14px;
+  font-weight: 500;
+}
+.dp-list-foot,
+.dp-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ---- Right: Phiếu chẩn đoán ---- */
+.dp-paper {
+  border: 2px solid var(--dp-frame);
+  border-radius: 12px;
+  background: var(--bd-card);
+}
+.dp-paper-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 16px 0;
+}
+.dp-paper-head h3 {
+  margin: 0;
+  color: var(--dp-ink);
+  font-size: 18px;
+  font-weight: 700;
+}
+.dp-paper-head p {
+  margin: 0;
+  color: var(--dp-muted);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* ---- The sheet itself ---- */
+.dp-sheet {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 20px 28px;
+  background: #fff;
+  color: #000;
+  font-family: "Times New Roman", times, serif;
+  font-size: 13px;
+}
+.dp-sheet * {
+  box-sizing: border-box;
+  font-family: "Times New Roman", times, serif;
+}
+.dp-sheet p {
+  margin: 0;
+  line-height: 1.45;
+}
+.dp-sheet-head {
+  display: grid;
+  gap: clamp(8px, 2vw, 18px);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.dp-sheet-head > div {
+  min-width: 0;
+}
+.dp-sheet-title {
+  text-align: center;
+}
+.dp-sheet-title h1 {
+  margin: 0 0 20px;
+  font-size: clamp(14px, 2vw, 17px);
+  font-weight: 700;
+  line-height: 1.2;
+}
+.dp-sheet-title p {
+  font-size: 15px;
+}
+.dp-sheet-customer {
+  text-align: right;
+}
+.dp-sheet-teeth {
+  margin-top: 16px !important;
+}
+.dp-sheet h2 {
+  margin: 62px 0 16px;
+  font-size: 17px;
+  font-weight: 700;
+  text-align: left;
+}
+.dp-sheet-images {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 420px));
+  justify-content: center;
+}
+.dp-sheet-frame {
+  justify-self: center;
+  width: min(420px, 100%);
+  height: 220px;
+}
+.dp-sheet-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.dp-sheet-note {
+  margin-top: 18px !important;
+  font-size: 15px;
+}
+.dp-sheet-advice {
+  min-height: 128px;
+  overflow: hidden;
+  border: 1px solid #d1d5db;
+  padding: 12px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.dp-sheet-advice .ql-editor p,
+.dp-sheet-advice .ql-editor li,
+.dp-sheet-advice .ql-editor blockquote {
+  margin: 0 0 8px;
+  line-height: 1.5;
+}
+.dp-sheet-advice .ql-editor img {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0 0 8px;
+  object-fit: contain;
+}
+.dp-sheet-signs {
+  display: flex;
+  justify-content: center;
+  gap: 64px;
+  margin-top: 70px;
+  padding-top: 24px;
+  break-inside: avoid;
+}
+.dp-sheet-signs > div {
+  display: flex;
+  width: 42%;
+  min-height: 160px;
+  flex-direction: column;
+  align-items: center;
+}
+.dp-sheet-signs h3 {
+  margin: 0;
+  font-size: 17px;
+}
+.dp-sheet-signs strong {
+  margin-top: 60px;
+  font-size: 17px;
+}
+.dp-sheet-signs em {
+  margin-top: 8px;
+  font-size: 15px;
+}
+
+/* A fact the user is correcting for this one print: the reference tints it
+   amber so it is obvious which parts of the sheet are in hand. */
+.dp-field {
+  border-radius: 2px;
+  padding: 0 4px;
+  background: var(--bd-amber-pale);
+  outline: 1px solid color-mix(in srgb, var(--bd-amber) 45%, transparent);
+}
+.dp-field:focus {
+  background: color-mix(in srgb, var(--bd-amber) 22%, var(--bd-card));
+  outline-color: var(--bd-amber);
+}
+
+/* The off-screen copy: the shared print rule reveals it, and A4 is what it
+   has to fit, so the sheet drops the screen's fluid clamps. */
+.dp-print-sheet .dp-sheet {
+  max-width: 794px;
+  margin: 0 auto;
+}
+
+@media print {
+  .dp-print-sheet .dp-sheet {
+    padding: 16px 22px;
+  }
+  .dp-print-sheet .dp-sheet-title h1 {
+    font-size: 17px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .dp-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dp-images {
+    position: static;
+  }
+  .dp-list-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

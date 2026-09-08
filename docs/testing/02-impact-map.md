@@ -28,7 +28,9 @@ What to retest when a shared piece changes. Levels are defined in
 | Change here | Level | Retest |
 |-------------|-------|--------|
 | `Catalogs` domain / `TaxonomyAppService` / `CatalogEntryAppService` | 2 | F-02, F-32 |
-| `hooks/useDragReorder.ts` | 2 per consumer | F-32 (group panel) and F-02 (entry table) — both order their rows through it |
+| `hooks/useDragReorder.ts` | 2 per consumer | F-32 (group panel), F-02 (entry table) and F-09 (Phiếu tư vấn) — all order their rows through it |
+| `patient-detail/adviseColumns.ts` | 2 | F-09 only. The column list, labels and the `ColumnSetting` shape shared by the table and its `Cột hiển thị` panel — the panel's order **is** the table's order, so adding a column means adding it here, not in the card |
+| `components/ConfirmDialog.tsx` | 2 per consumer | The app's plain yes/no. F-09 raises a báo giá through it. Distinct from `ConfirmDeleteDialog`, which is red and adds the "cannot be undone" line — a delete must not quietly move to this one |
 | `components/FloatingField.tsx` | 2 per consumer | F-32 — the group dialog's two fields |
 | `PaymentAccount` domain / `PaymentAccountAppService` (incl. QR blob handling) | 2 | F-29, F-31 |
 | `CatalogServiceConfig` / `CatalogMedicine` / `CatalogServiceStage` / `PrescriptionTemplateLine` | 2 | F-34, and F-19 for the image requirement |
@@ -41,6 +43,7 @@ What to retest when a shared piece changes. Levels are defined in
 | `ToothSelection` value object | 2 | F-07, F-09 |
 | `PatientAdvise` / `PatientDiagnosis` | 2 | F-07, F-09 |
 | `Voucher` domain | 2 | F-08, and F-09 (advises can carry a voucher discount) |
+| `BlueDentalOperationsDemoSeeder.SeedVouchersAsync(branchId)` | 2 | F-08 and F-09. Called once per branch from `BlueDentalDemoSeedContributor`; a branch it is not called for has an empty "Voucher áp dụng" picker, because the picker asks only for the branch in the URL. Seeding runs from **DbMigrator**, and only with `ASPNETCORE_ENVIRONMENT=Development` — without it the demo contributor returns early and nothing is seeded |
 | `CareRecord` / `CustomerCareAppService` | 2 | F-12 |
 | `LaboOrder` / `LaboAppService` | 3 | F-13, and F-38 — "Tạo Labo" on a công đoạn opens the same Đặt mới form and posts the same contract |
 | `InventoryItem` / `SuppliesAppService` | 2 | F-14 |
@@ -95,6 +98,18 @@ What to retest when a shared piece changes. Levels are defined in
   Changing any one of them breaks F-07 silently unless all three move together.
 - **Branch scope**: every list endpoint filters by `ClinicBranchId`. A regression
   shows up as "empty screen", not as an error.
+- **The patient's photographs are one feed, read twice**: the Hình ảnh tab and
+  the image panel of Chẩn đoán & Tư vấn both go through
+  `usePatientImageGallery` / `usePatientImageUpload` / `usePatientImageReorder`
+  and draw the same `PatientImageCard` (via `PatientImageSortableRow`). A change
+  to any of them is Level 3 — it moves both screens, and `ordering` is shared,
+  so a drag on one is visible on the other. F-09 and F-24 must be run together.
+- **`RichTextView` and `RichTextField` are the only readers of stored markup**:
+  the consulting library's body and the diagnosis print sheet's advice both go
+  through the read-only view rather than into the page as HTML. Nothing in the
+  app uses `dangerouslySetInnerHTML`, and nothing should start — see §5 of
+  CLAUDE.md. A change to either component is Level 3 across Danh mục, Vận hành,
+  Chẩn đoán & Tư vấn and every print sheet that carries a body.
 
 - **i18n (`lib/i18n.tsx`)**: every visible string on every screen goes through
   `t()`, so this is a Level 3 dependency — a change here can blank the whole app

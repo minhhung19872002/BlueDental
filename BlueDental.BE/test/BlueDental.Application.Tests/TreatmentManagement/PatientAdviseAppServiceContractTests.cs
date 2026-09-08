@@ -166,6 +166,38 @@ public class PatientAdviseAppServiceContractTests
     }
 
     [Fact]
+    public void ReorderAsync_Should_Exist_On_Interface()
+    {
+        _interfaceType.GetMethod("ReorderAsync").ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void ReorderAsync_Should_Have_Authorize_Attribute()
+    {
+        _serviceType.GetMethod("ReorderAsync")
+            .ShouldNotBeNull()
+            .GetCustomAttribute<AuthorizeAttribute>()
+            .ShouldNotBeNull();
+    }
+
+    /// <summary>
+    /// The move travels as one row and its position, not the whole order — the
+    /// server renumbers around it, so a stale client cannot overwrite rows it
+    /// never saw.
+    /// </summary>
+    [Fact]
+    public void ReorderAsync_Should_Take_One_Row_And_Its_Position()
+    {
+        var parameters = _interfaceType.GetMethod("ReorderAsync").ShouldNotBeNull().GetParameters();
+
+        parameters.Length.ShouldBe(1);
+        parameters[0].ParameterType.ShouldBe(typeof(ReorderPatientAdviseDto));
+
+        typeof(ReorderPatientAdviseDto).GetProperty("Id").ShouldNotBeNull();
+        typeof(ReorderPatientAdviseDto).GetProperty("SortOrder").ShouldNotBeNull();
+    }
+
+    [Fact]
     public void DeleteAsync_Should_Exist_On_Interface()
     {
         _interfaceType.GetMethod("DeleteAsync").ShouldNotBeNull();

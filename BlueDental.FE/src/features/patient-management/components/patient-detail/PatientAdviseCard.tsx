@@ -1,16 +1,26 @@
-import { useMemo, useState } from "react";
-import { Button, Popover, Select, Switch, Tooltip, type TableColumnsType } from "antd";
-import { DeleteOutlined, PlusOutlined, PrinterOutlined, SettingOutlined } from "@ant-design/icons";
+import { createContext, useContext, useMemo, useState, type HTMLAttributes } from "react";
+import { Button, Select, Table, Tooltip, type TableColumnsType } from "antd";
+import { DeleteOutlined, HolderOutlined, PlusOutlined, PrinterOutlined } from "@ant-design/icons";
 import { DataTable } from "@/components/DataTable";
 import {
   formatTeeth,
   type PatientAdviseDto,
 } from "@/features/treatment-management/api/consultingApi";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { useDragReorder, type DragReorder } from "@/hooks/useDragReorder";
 import type { TablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
 import { countedTotal } from "@/utils/countedTotal";
 import { formatDate, formatMoneyUnit } from "@/utils/format";
+import { useAdviseQuotes } from "../../hooks/useAdviseQuotes";
 import type { PlanVoucherState } from "../../hooks/usePlanVoucher";
+import {
+  DEFAULT_COLUMN_SETTINGS,
+  type ColumnSetting,
+  type OptionalColumn,
+} from "./adviseColumns";
+import { AdviseColumnConfig } from "./AdviseColumnConfig";
+import { AdviseQuoteTabs } from "./AdviseQuoteTabs";
 import { AdviseVoucherPicker } from "./AdviseVoucherPicker";
 
 /**
@@ -21,40 +31,35 @@ import { AdviseVoucherPicker } from "./AdviseVoucherPicker";
  * reference ends on.
  */
 
-/** Every column the reference offers, in its order; `key` doubles as the id. */
-const OPTIONAL_COLUMNS = [
-  "date",
-  "service",
-  "diagnosis",
-  "staff",
-  "secondStaff",
-  "diagnosisStaff",
-  "secondDiagnosis",
-  "quantity",
-  "price",
-  "discount",
-  "amount",
-  "note",
-] as const;
-
-type OptionalColumn = (typeof OPTIONAL_COLUMNS)[number];
-
-const COLUMN_LABELS: Record<OptionalColumn, string> = {
-  date: "Ngày",
-  service: "Dịch vụ",
-  diagnosis: "Chẩn đoán",
-  staff: "Nhân sự tư vấn 1",
-  secondStaff: "Nhân sự tư vấn 2",
-  diagnosisStaff: "Bác sĩ chẩn đoán 1",
-  secondDiagnosis: "Chẩn đoán 2",
-  quantity: "Số lượng",
-  price: "Đơn giá",
-  discount: "Giảm giá",
-  amount: "Thành tiền",
-  note: "Ghi chú tư vấn",
-};
-
 const money = (value: number) => formatMoneyUnit(value);
+
+/**
+ * The drag state has to reach the row component antd builds for us, and antd
+ * gives no way to pass props down to it — the same reason Danh mục's
+ * `CatalogEntryTable` uses a context here.
+ */
+const DragContext = createContext<DragReorder<PatientAdviseDto> | null>(null);
+
+function DraggableRow({ children, ...rest }: HTMLAttributes<HTMLTableRowElement>) {
+  const drag = useContext(DragContext);
+  const key = (rest as { "data-row-key"?: string })["data-row-key"];
+
+  if (!drag || !key) {
+    return <tr {...rest}>{children}</tr>;
+  }
+
+  return (
+    <tr
+      {...rest}
+      ref={drag.registerRow(key)}
+      className={[rest.className, drag.draggingKey === key && "bd-cat-row--dragging"]
+        .filter(Boolean)
+        .join(" ")}
+    >
+      {children}
+    </tr>
+  );
+}
 
 interface Props {
   rows: PatientAdviseDto[];
@@ -63,14 +68,17 @@ interface Props {
   pagination: TablePagination;
   plan: PlanVoucherState;
   dentists: { id: string; name: string }[];
+  /** The note of each row's diagnosis slip, by `patientDiagnosisId`. */
+  diagnosisNotes: Record<string, string | null>;
   selected: string[];
   onSelect: (ids: string[]) => void;
   onOpenAdvise: () => void;
   /** A row was clicked: open that slip in "Cập nhật phiếu dịch vụ". */
   onEdit: (row: PatientAdviseDto) => void;
   onDelete: (row: PatientAdviseDto) => void;
-  onAddToPlan: (dentistId?: string) => void;
-  onQuote: () => void;
+  /** One row moved to a 1-based position across the whole list, not the page. */
+  onReorder: (id: string, sortOrder: number) => void | Promise<void>;
+  onAddToPlan: (dentistId: string) => void;
   onPrint: () => void;
 }
 
@@ -81,17 +89,56 @@ export function PatientAdviseCard({
   pagination,
   plan,
   dentists,
+  diagnosisNotes,
   selected,
   onSelect,
   onOpenAdvise,
   onEdit,
   onDelete,
+  onReorder,
   onAddToPlan,
-  onQuote,
   onPrint,
 }: Props) {
-  const [visible, setVisible] = useState<OptionalColumn[]>([...OPTIONAL_COLUMNS]);
+  const [columnSettings, setColumnSettings] = useState<ColumnSetting[]>(DEFAULT_COLUMN_SETTINGS);
   const [dentistId, setDentistId] = useState<string>();
+  const [dentistError, setDentistError] = useState(false);
+  const [confirmQuote, setConfirmQuote] = useState(false);
+
+  const quotes = useAdviseQuotes();
+  /** The open tab decides what the table shows: the plan, or one báo giá. */
+  const tableRows = quotes.active?.rows ?? rows;
+
+  const drag = useDragReorder({
+    items: tableRows,
+    getKey: (row) => row.id,
+    enabled: true,
+    // On the plan, `from` indexes the list as it was, so tableRows[from] is the
+    // row that moved and `to` is its new slot on this page — SortOrder counts
+    // the whole list. A báo giá keeps an order of its own, in the browser.
+    onCommit: (from, to) =>
+      quotes.active
+        ? quotes.move(from, to)
+        : onReorder(tableRows[from].id, pagination.skipCount + to + 1),
+  });
+  const ordered = drag.items;
+
+  /** Nothing ticked, nothing to price: every command below the table needs a row. */
+  const hasTicked = selected.length > 0;
+
+  const handleAddToPlan = () => {
+    if (!dentistId) {
+      setDentistError(true);
+      return;
+    }
+    setDentistError(false);
+    onAddToPlan(dentistId);
+  };
+
+  /** "Có" on the confirmation raises the quote off what is ticked. */
+  const handleCreateQuote = () => {
+    quotes.create(rows.filter((row) => selected.includes(row.id)));
+    setConfirmQuote(false);
+  };
 
   const columns = useMemo<TableColumnsType<PatientAdviseDto>>(() => {
     const all: { key: OptionalColumn; column: TableColumnsType<PatientAdviseDto>[number] }[] = [
@@ -110,21 +157,30 @@ export function PatientAdviseCard({
           title: t("Dịch vụ"),
           key: "service",
           width: 210,
-          render: (_, row) => (
-            <div className="pd-cell-stack">
-              <b>{row.serviceName ?? "—"}</b>
-              <span>{formatTeeth(row.teeth)}</span>
-            </div>
-          ),
+          // The reference names the service and nothing else here: the teeth
+          // belong with the diagnosis they were charted against, one column on.
+          render: (_, row) => <b className="pd-cell-strong">{row.serviceName ?? "—"}</b>,
         },
       },
       {
         key: "diagnosis",
         column: {
           title: t("Chẩn đoán"),
-          dataIndex: "diagnosisName",
-          width: 180,
-          render: (value: string | null) => value ?? "—",
+          key: "diagnosis",
+          width: 200,
+          // "28 - âsasa" over "(sdfs)": the teeth and the diagnosis read as one
+          // fact in the reference's link blue, with the slip's own note under it.
+          render: (_, row) => {
+            const note = diagnosisNotes[row.patientDiagnosisId];
+            const teeth = formatTeeth(row.teeth);
+            const name = row.diagnosisName ?? "—";
+            return (
+              <div className="pd-cell-stack">
+                <b className="pd-cell-link">{teeth === "—" ? name : `${teeth} - ${name}`}</b>
+                {note && <span>({note})</span>}
+              </div>
+            );
+          },
         },
       },
       {
@@ -210,7 +266,44 @@ export function PatientAdviseCard({
     ];
 
     return [
-      ...all.filter((entry) => visible.includes(entry.key)).map((entry) => entry.column),
+      {
+        key: "grip",
+        title: <span className="bd-sr-only">{t("Sắp xếp")}</span>,
+        width: 34,
+        align: "center",
+        className: "pd-grip-cell",
+        // Named before SELECTION_COLUMN below so the grip is the leftmost cell:
+        // antd otherwise puts its tick box first, whatever the column order.
+        render: (_, row, index) => (
+          <button
+            type="button"
+            title={t("Kéo, hoặc dùng phím mũi tên lên/xuống, để sắp xếp")}
+            aria-label={t("Sắp xếp {0}", row.serviceName ?? row.code)}
+            className="bd-grip"
+            {...drag.handleProps(row.id)}
+            onKeyDown={(event) => {
+              if (event.key === "ArrowUp" && index > 0) {
+                event.preventDefault();
+                void onReorder(row.id, pagination.skipCount + index);
+              }
+              if (event.key === "ArrowDown" && index < ordered.length - 1) {
+                event.preventDefault();
+                void onReorder(row.id, pagination.skipCount + index + 2);
+              }
+            }}
+          >
+            <HolderOutlined aria-hidden="true" />
+          </button>
+        ),
+      },
+      Table.SELECTION_COLUMN,
+      // The panel's order is the table's order, and only what it leaves on.
+      ...columnSettings
+        .filter((setting) => setting.on)
+        .map((setting) => all.find((entry) => entry.key === setting.key)?.column)
+        .filter((column): column is TableColumnsType<PatientAdviseDto>[number] =>
+          Boolean(column),
+        ),
       {
         title: t("Thao tác"),
         key: "actions",
@@ -230,14 +323,24 @@ export function PatientAdviseCard({
         ),
       },
     ];
-  }, [visible, onDelete]);
+  }, [
+    columnSettings,
+    onDelete,
+    onReorder,
+    drag,
+    diagnosisNotes,
+    ordered.length,
+    pagination.skipCount,
+  ]);
 
   return (
     <div className="bd-cat-card pd-advise-card">
       <header className="pd-card-head">
-        <Button type="primary" onClick={onOpenAdvise}>
-          {t("Phiếu tư vấn")}
-        </Button>
+        {/* The reference turns this into a tab strip once a báo giá exists:
+            "Phiếu tư vấn" beside "BG 1", "BG 2"… Clicking the plan tab while
+            it is already open is what opens "Tạo phiếu tư vấn", which is what
+            the button did before there were tabs. */}
+        <AdviseQuoteTabs quotes={quotes} onReopenAdvise={onOpenAdvise} />
         <div className="pd-card-note">
           <span>
             {t(
@@ -248,113 +351,121 @@ export function PatientAdviseCard({
       </header>
 
       <div className="pd-advise-tools">
-        <Popover
-          trigger="click"
-          placement="bottomRight"
-          title={t("Cấu hình cột")}
-          content={
-            <div className="pd-column-popover">
-              {OPTIONAL_COLUMNS.map((key) => (
-                <label key={key}>
-                  <span>{t(COLUMN_LABELS[key])}</span>
-                  <Switch
-                    size="small"
-                    checked={visible.includes(key)}
-                    onChange={(on) =>
-                      setVisible((current) =>
-                        on
-                          ? OPTIONAL_COLUMNS.filter(
-                              (item) => current.includes(item) || item === key,
-                            )
-                          : current.filter((item) => item !== key),
-                      )
-                    }
-                  />
-                </label>
-              ))}
-            </div>
-          }
-        >
-          <Button icon={<SettingOutlined />}>{t("Cột hiển thị")}</Button>
-        </Popover>
+        <AdviseColumnConfig settings={columnSettings} onSave={setColumnSettings} />
       </div>
 
       <div className="pd-advise-table">
-        <DataTable<PatientAdviseDto>
-          rowKey="id"
-          loading={loading}
-          columns={columns}
-          dataSource={rows}
-          rowSelection={{
-            selectedRowKeys: selected,
-            onChange: (keys) => onSelect(keys as string[]),
-          }}
-          onRow={(row) => ({
-            onClick: (event) => {
-              // The checkbox and the action buttons keep their own meaning.
-              const target = event.target instanceof Element ? event.target : null;
-              if (target?.closest("button, a, .ant-checkbox-wrapper, .ant-table-selection-column"))
-                return;
-              onEdit(row);
-            },
-          })}
-          locale={{ emptyText: t("Chưa có kế hoạch") }}
-          pagination={pagination.buildConfig(totalCount, countedTotal(t("dịch vụ")))}
-        />
+        <DragContext.Provider value={drag}>
+          <DataTable<PatientAdviseDto>
+            rowKey="id"
+            loading={loading}
+            columns={columns}
+            dataSource={ordered}
+            components={{ body: { row: DraggableRow } }}
+            rowSelection={{
+              selectedRowKeys: selected,
+              onChange: (keys) => onSelect(keys as string[]),
+            }}
+            onRow={(row) => ({
+              onClick: (event) => {
+                // The checkbox, the grip and the action buttons keep their own meaning.
+                const target = event.target instanceof Element ? event.target : null;
+                if (
+                  target?.closest("button, a, .ant-checkbox-wrapper, .ant-table-selection-column")
+                )
+                  return;
+                onEdit(row);
+              },
+            })}
+            locale={{ emptyText: t("Chưa có kế hoạch") }}
+            pagination={
+              quotes.active
+                ? { pageSize: 20, total: ordered.length, showTotal: countedTotal(t("dịch vụ")) }
+                : pagination.buildConfig(totalCount, countedTotal(t("dịch vụ")))
+            }
+          />
+        </DragContext.Provider>
       </div>
 
-      <footer className="pd-plan-summary">
-        <div className="pd-plan-total">
-          <strong>{t("TỔNG KẾ HOẠCH")}</strong>
+      {/* The plan total belongs to the plan: a báo giá is priced on its own
+          sheet, and the reference does not repeat this block under it. Left out
+          rather than hidden — `.pd-plan-summary` sets a display of its own,
+          which beats the hidden attribute. */}
+      {!quotes.active && (
+        <footer className="pd-plan-summary">
+          <div className="pd-plan-total">
+            <strong>{t("TỔNG KẾ HOẠCH")}</strong>
 
-          <p>
-            {t("Tổng thành tiền")}: <b>{money(plan.gross)}</b>
-          </p>
+            <p>
+              {t("Tổng thành tiền")}: <b>{money(plan.gross)}</b>
+            </p>
 
-          <AdviseVoucherPicker plan={plan} />
+            {/* Every command below prices the ticked rows, so none of them means
+              anything until at least one is ticked — the voucher picker
+              included: it asks the server what applies to an amount. */}
+            <AdviseVoucherPicker plan={plan} disabled={!hasTicked} />
 
-          <p className="pd-plan-net">
-            {t("Tổng tiền")}: <b>{money(plan.net)}</b>
-          </p>
+            <p className="pd-plan-net">
+              {t("Tổng tiền")}: <b>{money(plan.net)}</b>
+            </p>
 
-          <div className="pd-plan-actions">
-            <Select
-              showSearch
-              allowClear
-              optionFilterProp="label"
-              placeholder={t("Chọn bác sĩ điều trị")}
-              aria-label={t("Chọn bác sĩ điều trị")}
-              value={dentistId}
-              onChange={setDentistId}
-              options={dentists.map((dentist) => ({ value: dentist.id, label: dentist.name }))}
-            />
-            <Button
-              icon={<PlusOutlined />}
-              disabled={selected.length === 0}
-              onClick={() => onAddToPlan(dentistId)}
-            >
-              {t("Thêm kế hoạch điều trị")}
-            </Button>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              disabled={rows.length === 0}
-              onClick={onQuote}
-            >
-              {t("Tạo báo giá")}
-            </Button>
-            <Tooltip title={t("In Báo giá")}>
+            <div className="pd-plan-actions">
+              <div className="pd-plan-dentist">
+                <Select
+                  showSearch
+                  allowClear
+                  optionFilterProp="label"
+                  placeholder={t("Chọn bác sĩ điều trị")}
+                  aria-label={t("Chọn bác sĩ điều trị")}
+                  status={dentistError ? "error" : undefined}
+                  value={dentistId}
+                  onChange={(value) => {
+                    setDentistId(value);
+                    if (value) setDentistError(false);
+                  }}
+                  options={dentists.map((dentist) => ({ value: dentist.id, label: dentist.name }))}
+                />
+                {dentistError && (
+                  <span className="pd-plan-dentist-error" role="alert">
+                    {t("Vui lòng chọn bác sĩ điều trị")}
+                  </span>
+                )}
+              </div>
+              <Button icon={<PlusOutlined />} disabled={!hasTicked} onClick={handleAddToPlan}>
+                {t("Thêm kế hoạch điều trị")}
+              </Button>
               <Button
-                className="pd-plan-print"
-                aria-label={t("In Báo giá")}
-                icon={<PrinterOutlined />}
-                disabled={selected.length === 0}
-                onClick={onPrint}
-              />
-            </Tooltip>
+                type="primary"
+                icon={<PlusOutlined />}
+                disabled={!hasTicked}
+                onClick={() => setConfirmQuote(true)}
+              >
+                {t("Tạo báo giá")}
+              </Button>
+              <Tooltip title={t("In Báo giá")}>
+                <Button
+                  className="pd-plan-print"
+                  aria-label={t("In Báo giá")}
+                  icon={<PrinterOutlined />}
+                  disabled={!hasTicked}
+                  onClick={onPrint}
+                />
+              </Tooltip>
+            </div>
           </div>
-        </div>
-      </footer>
+        </footer>
+      )}
+
+      {/* Worded as the reference words it, doubled "đã chọn" and all — see
+          docs/clone/pages/patient-detail.md. */}
+      <ConfirmDialog
+        open={confirmQuote}
+        message={t(
+          "Tạo báo giá từ các phiếu tư vấn đã chọn đã chọn, bạn có thể chỉnh sửa ở phần báo giá",
+        )}
+        onConfirm={handleCreateQuote}
+        onClose={() => setConfirmQuote(false)}
+      />
     </div>
   );
 }

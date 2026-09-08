@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
@@ -14,6 +14,7 @@ public interface IPatientDiagnosisAppService : IApplicationService
     Task<PatientDiagnosisDto> GetAsync(Guid id);
     Task<PatientDiagnosisDto> CreateAsync(CreatePatientDiagnosisDto input);
     Task<PatientDiagnosisDto> UpdateAsync(Guid id, UpdatePatientDiagnosisDto input);
+    Task<PatientDiagnosisDto> UpdatePrintContentAsync(Guid id, UpdateDiagnosisPrintContentDto input);
     Task<PatientDiagnosisDto> MarkTreatedAsync(Guid id);
     Task<PatientDiagnosisDto> CancelAsync(Guid id);
     Task DeleteAsync(Guid id);
@@ -33,6 +34,7 @@ public interface IPatientAdviseAppService : IApplicationService
     Task<PatientAdviseDto> RejectAsync(Guid id);
     Task<PatientAdviseDto> CancelAsync(Guid id);
     Task<PatientAdviseDto> ApplyVoucherAsync(Guid id, decimal voucherDiscountAmount);
+    Task ReorderAsync(ReorderPatientAdviseDto input);
     Task DeleteAsync(Guid id);
 }
 

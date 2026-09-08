@@ -192,6 +192,65 @@ GET  /api/v1/advise-groups
      &sortBy=createdAt&sortDirection=asc
 ```
 
+Đo thêm 2026-09-08 — dialog **"In chẩn đoán"** (xem
+`pages/patient-detail.md` → mục 2026-09-08 §4). Dòng chẩn đoán mang thêm:
+
+```
+{
+  "id": "<string>",
+  "contentDiagnosis": "<html|null>",   // "I. TƯ VẤN CHẨN ĐOÁN" của tờ in
+  "note": "<string|null>",
+  ...
+}
+```
+
+`Cập nhật` → `Lưu chẩn đoán` chỉ gửi hai trường đó; phần letterhead sửa trên tờ
+là sửa cho một lần in, không ghi xuống.
+
+**BlueDental:** `PatientDiagnosisDto.contentDiagnosis` (cột `text`, migration
+`20260908000000_AddDiagnosisPrintContent`) và
+
+```
+PUT  /api/v1/app/patient-diagnoses/{id}/print-content   (json)
+     { "contentDiagnosis": "<html|null>", "note": "<string|null>" }
+     → PatientDiagnosisDto (tên bác sĩ / chẩn đoán đã điền sẵn)
+```
+
+Endpoint riêng chứ không dùng `PUT /{id}`: DTO cập nhật đầy đủ bắt gửi lại bác
+sĩ và răng, và nó đi qua `GuardEditable` — mà tờ này thường viết **sau khi** đã
+có dịch vụ, nên chẩn đoán ở trạng thái `Treated` vẫn phải in được. Chỉ trạng
+thái `Cancelled` bị chặn.
+
+---
+
+### Consulting data library ("Danh mục" trong Chẩn đoán & Tư vấn)
+
+Đo 2026-09-08. Nút `Danh mục` mở một modal toàn khung, **không** phải popover
+(hai đợt đo trước ghi sai) — xem `pages/patient-detail.md` → mục 2026-09-08 §3.
+
+```
+GET  /api/v1/taxonomy/
+     ?group=consulting_data&perPage=20
+     [&branchId=<id>] [&search=<text>] [&cursor=<opaque>]
+     → cột trái, "{n} nhóm chủ đề"; phân trang bằng cursor
+
+GET  /api/v1/treatments
+     ?taxonomyId=<id>&includeContent=false&page=1&perPage=20
+     [&branchId=<id>] [&search=<text>]
+     → hàng thẻ "Nội dung tư vấn"
+
+GET  /api/v1/treatments/{id}
+     → thân bài (`content`, HTML) của mục đang chọn
+```
+
+**BlueDental** đọc đúng hai danh mục đó qua endpoint của mình và bỏ được lần gọi
+thứ ba — `content` đã nằm sẵn trên `CatalogEntryDto`:
+
+```
+GET  /api/v1/app/taxonomies?group=consulting_data&clinicBranchId=&includeCount=true&filter=
+GET  /api/v1/app/catalog-entries?group=consulting_data&taxonomyId=&clinicBranchId=&filter=
+```
+
 ---
 
 ### Patient Images
@@ -234,6 +293,9 @@ POST /api/v1/patient-images/upload      (multipart/form-data)
 PUT  /api/v1/patient-images/reorder     (json)
      { "id": "<imageId>", "ordering": <vị trí đích, 1-based> }
      → server xếp lại các ảnh còn lại: UNKNOWN_REFERENCE_BEHAVIOR
+     (đo 2026-09-08 từ bundle: dialog "Chọn ảnh hiển thị" gửi
+      ordering = destination.index + 1 — chỉ số **trong một ngày**, và một
+      lần thả chỉ gửi đúng một bản ghi. Thả sang ngày khác bị bỏ qua.)
 
 DELETE /api/v1/patient-images/{id}
 ```
@@ -1227,6 +1289,35 @@ that is the one the "Chỉnh sửa hồ sơ" dialog binds. The write behind the 
 | `GET /v1/patient-diagnoses` | `GET /api/v1/app/patient-diagnoses` |
 | `GET /v1/patient-advises` | `GET /api/v1/app/patient-advises` (+ `/summary`) |
 | `GET /v1/taxonomy/?group=consulting_data` | `GET /api/v1/app/catalog-entries?group=consulting_data` |
+
+Two writes the consulting screen owns, both added locally rather than observed
+as request bodies on the reference (the reference was only ever read):
+
+```
+PUT /api/v1/app/patient-diagnoses/{id}/print-content
+{ "contentDiagnosis": "<html|null>", "note": "<string|null>" }
+→ PatientDiagnosisDto
+```
+
+What "Cập nhật" on the **In chẩn đoán** sheet saves. A separate endpoint rather
+than `PUT /{id}`: the full update DTO insists on the doctors and the teeth, and
+its note goes through `GuardEditable`, while this sheet is usually written
+*after* a service exists — so a `Treated` diagnosis must still print. Only
+`Cancelled` is refused.
+
+```
+PUT /api/v1/app/patient-advises/reorder
+{ "id": "<guid>", "sortOrder": <1-based position in the whole list> }
+→ 204
+```
+
+Drag-to-reorder on **Phiếu tư vấn**. One row and its position travel, not the
+whole order: the server renumbers the patient's rows 1..N around it, so the
+stored order never has gaps or ties (`GET` sorts on `SortOrder` then falls back
+to creation time, and a tie there makes a dragged order look half-applied).
+The position counts the whole list, so a paged client adds its `skipCount`.
+Scoped to `X-Clinic-Branch-Id` exactly as the list is; a row of another branch
+answers `403 BlueDental:Treatment:0015`, the same as one that does not exist.
 
 `POST` / `PUT /api/v1/app/appointments` now carry `notes` and `color`
 (`AppointmentColor`: 1 Default, 2 Green, 3 Orange, 4 Red) alongside

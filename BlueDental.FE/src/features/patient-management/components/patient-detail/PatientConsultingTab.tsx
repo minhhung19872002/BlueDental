@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type {
   PatientAdviseDto,
@@ -6,8 +6,8 @@ import type {
 } from "@/features/treatment-management/api/consultingApi";
 import { AdviseModal } from "@/features/treatment-management/components/AdviseModal";
 import { CreatePlanDialog } from "@/features/treatment-management/components/plan/CreatePlanDialog";
-import { AppointmentEditorModal } from "@/features/appointments/components/AppointmentEditorModal";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { useBranchInfo } from "@/hooks/useBranchInfo";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { useConsultingActions } from "../../hooks/useConsultingActions";
@@ -15,6 +15,8 @@ import { useConsultingData } from "../../hooks/useConsultingData";
 import { useDiagnosisEditor } from "../../hooks/useDiagnosisEditor";
 import { usePatientImagePermissions } from "../../hooks/usePatientImagePermissions";
 import { usePlanVoucher } from "../../hooks/usePlanVoucher";
+import type { PatientDto } from "../../types/patient";
+import { DiagnosisPrintDialog } from "./consulting/DiagnosisPrintDialog";
 import { PatientAdviseCard } from "./PatientAdviseCard";
 import { PatientConsultingImagePanel } from "./PatientConsultingImagePanel";
 import { PatientDiagnosisCard } from "./PatientDiagnosisCard";
@@ -29,7 +31,8 @@ import { QuoteDetailModal } from "./quote/QuoteDetailModal";
  * cards are the app's own table card, so the header stays put, the rows scroll
  * and the pager is pinned to the bottom.
  */
-export function PatientConsultingTab({ patientId }: { patientId: string }) {
+export function PatientConsultingTab({ patient }: { patient: PatientDto }) {
+  const patientId = patient.id;
   const branchId = useCurrentBranchId();
   const navigate = useNavigate();
   const data = useConsultingData(patientId, branchId);
@@ -39,11 +42,41 @@ export function PatientConsultingTab({ patientId }: { patientId: string }) {
   const [adviseDiagnosis, setAdviseDiagnosis] = useState<PatientDiagnosisDto | null>(null);
   const editor = useDiagnosisEditor(actions, setAdviseDiagnosis);
   const [editingAdvise, setEditingAdvise] = useState<PatientAdviseDto | null>(null);
-  const [scheduling, setScheduling] = useState<PatientDiagnosisDto | null>(null);
+  const [printing, setPrinting] = useState<PatientDiagnosisDto | null>(null);
   const [selectedAdvises, setSelectedAdvises] = useState<string[]>([]);
   const [quoteOpen, setQuoteOpen] = useState(false);
   const adviseRows = data.advises.data?.items ?? [];
   const plan = usePlanVoucher(adviseRows, selectedAdvises, branchId);
+
+  // Phiếu tư vấn prints each row's diagnosis note under the diagnosis itself,
+  // and the note lives on the slip rather than the advise row.
+  const diagnosisNotes = useMemo(
+    () =>
+      Object.fromEntries(
+        (data.diagnoses.data?.items ?? []).map((slip) => [slip.id, slip.note ?? null]),
+      ),
+    [data.diagnoses.data?.items],
+  );
+  const branch = useBranchInfo(branchId ?? "").data;
+
+  // Held steady: the print dialog reads these, and a fresh object on every
+  // render of this tab would keep resetting the sheet the user is editing.
+  const printClinic = useMemo(
+    () => ({
+      name: branch?.name ?? "",
+      address: branch?.address ?? null,
+      phone: branch?.phone ?? null,
+    }),
+    [branch?.name, branch?.address, branch?.phone],
+  );
+  const printPatient = useMemo(
+    () => ({
+      code: patient.patientCode,
+      name: patient.fullName,
+      dateOfBirth: patient.dateOfBirth,
+    }),
+    [patient.patientCode, patient.fullName, patient.dateOfBirth],
+  );
 
   return (
     <section className="pd-pane pd-consulting">
@@ -51,6 +84,7 @@ export function PatientConsultingTab({ patientId }: { patientId: string }) {
         <PatientConsultingImagePanel
           images={data.images}
           branchId={branchId ?? undefined}
+          loading={data.imagesLoading}
           uploading={actions.uploading}
           canSort={permissions.canSort}
           onUpload={(files) => void actions.upload(files)}
@@ -67,7 +101,7 @@ export function PatientConsultingTab({ patientId }: { patientId: string }) {
           onToggleForm={editor.toggle}
           onEdit={editor.edit}
           onCreateService={setAdviseDiagnosis}
-          onSchedule={setScheduling}
+          onPrint={setPrinting}
           onDelete={actions.setRemovingDiagnosis}
         >
           {editor.expanded && (
@@ -90,15 +124,18 @@ export function PatientConsultingTab({ patientId }: { patientId: string }) {
         pagination={data.advisePaging}
         plan={plan}
         dentists={data.dentistList}
+        diagnosisNotes={diagnosisNotes}
         selected={selectedAdvises}
         onSelect={setSelectedAdvises}
         onOpenAdvise={() => setAdviseDiagnosis(data.diagnoses.data?.items[0] ?? null)}
         onEdit={setEditingAdvise}
         onDelete={actions.setRemovingAdvise}
-        onAddToPlan={() =>
-          navigate(`?tab=treatment-plan${branchId ? `&branchId=${branchId}` : ""}`)
+        onReorder={actions.moveAdvise}
+        onAddToPlan={(dentistId) =>
+          navigate(
+            `?tab=treatment-plan&dentistId=${dentistId}${branchId ? `&branchId=${branchId}` : ""}`,
+          )
         }
-        onQuote={() => window.print()}
         onPrint={() => setQuoteOpen(true)}
       />
 
@@ -129,12 +166,12 @@ export function PatientConsultingTab({ patientId }: { patientId: string }) {
         onCreated={() => void data.advises.refetch()}
       />
 
-      <AppointmentEditorModal
-        open={Boolean(scheduling)}
-        initialPatientId={patientId}
-        initialReason={scheduling?.diagnosisName ?? undefined}
-        lockPatient
-        onClose={() => setScheduling(null)}
+      <DiagnosisPrintDialog
+        diagnosis={printing}
+        clinic={printClinic}
+        patient={printPatient}
+        images={data.images}
+        onClose={() => setPrinting(null)}
       />
 
       <ConfirmDeleteDialog

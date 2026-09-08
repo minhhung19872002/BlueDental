@@ -29,9 +29,10 @@ test.describe("Công đoạn điều trị", () => {
 
     await page.getByRole("link", { name: "Chẩn đoán & Tư vấn" }).click();
 
-    // The two cards the reference puts on this tab.
+    // The two cards the reference puts on this tab. The consulting card is
+    // headed by a tab strip — the plan, then any báo giá raised off it.
     await expect(page.getByRole("heading", { name: "Tạo chẩn đoán" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Phiếu tư vấn", exact: true })).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Phiếu tư vấn", exact: true })).toBeVisible();
 
     // The chart lives inside the diagnosis editor, which opens on +.
     await page.locator(".pd-diagnosis-card .pd-card-title").getByRole("button").click();

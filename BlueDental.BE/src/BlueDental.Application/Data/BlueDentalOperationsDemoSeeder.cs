@@ -123,6 +123,31 @@ public class BlueDentalOperationsDemoSeeder(
         ("BIRTHDAY", "Quà sinh nhật", 200_000m)
     ];
 
+    /// <summary>
+    /// The second branch's own vouchers. Deliberately not the first branch's
+    /// list: those all sit behind a minimum of four times their value, so a
+    /// consulting plan of a single service is offered nothing. These are sized
+    /// for a plan in the hundreds of thousands, and the spread covers every
+    /// shape the picker has to draw — money off, a capped percentage, a minimum
+    /// that hides the row, an exclusive one, and an expired one.
+    /// </summary>
+    private static readonly (
+        string Code,
+        string Name,
+        DiscountType Type,
+        decimal Value,
+        decimal? MinOrder,
+        decimal? MaxDiscount,
+        bool Exclusive,
+        bool Expired)[] SecondBranchVouchers =
+    [
+        ("CN2WELCOME", "Chào chi nhánh 2", DiscountType.Money, 200_000m, null, null, false, false),
+        ("CN2PLAN5", "Giảm 5% kế hoạch điều trị", DiscountType.Percentage, 5m, null, 500_000m, false, false),
+        ("CN2TREAT500", "Giảm 500.000đ từ 1 triệu", DiscountType.Money, 500_000m, 1_000_000m, null, false, false),
+        ("CN2VIP10", "VIP giảm 10% từ 3 triệu", DiscountType.Percentage, 10m, 3_000_000m, 2_000_000m, true, false),
+        ("CN2OLD", "Ưu đãi đã hết hạn", DiscountType.Money, 100_000m, null, null, false, true)
+    ];
+
     private static readonly (OperationsDepartment Department, string Title)[] OperationsArticles =
     [
         (OperationsDepartment.Reception, "Quy trình đón khách tại quầy"),
@@ -162,7 +187,7 @@ public class BlueDentalOperationsDemoSeeder(
         await SeedLaboAsync(patients, staffIds);
         await SeedInventoryAsync(departmentIds);
         await SeedCustomerCareAsync(patients, staffIds);
-        await SeedVouchersAsync();
+        await SeedVouchersAsync(_branchId);
         await SeedTimekeepingAsync(staffIds);
         await SeedOperationsAsync(staffIds);
         await SeedToolsAsync(patients, staffIds);
@@ -425,14 +450,32 @@ public class BlueDentalOperationsDemoSeeder(
         await careRepository.InsertManyAsync(records, autoSave: true);
     }
 
-    private async Task SeedVouchersAsync()
+    /// <summary>
+    /// The vouchers of one branch. Called per branch rather than once, because
+    /// "Voucher áp dụng" on Chẩn đoán and Tư vấn offers only the branch in the
+    /// URL — a screen on the second branch showed an empty picker while every
+    /// seeded voucher belonged to the first.
+    ///
+    /// Only <see cref="VoucherScopeTarget.Treatment"/> rows reach that picker; a
+    /// per-service voucher does not belong on the plan line.
+    /// </summary>
+    public async Task SeedVouchersAsync(Guid branchId)
     {
-        if (await AnySeededAsync(voucherRepository, v => v.ClinicBranchId == _branchId))
+        if (await AnySeededAsync(voucherRepository, v => v.ClinicBranchId == branchId))
         {
             return;
         }
 
         var today = DateOnly.FromDateTime(BlueDentalDemoSeedContributor.ClinicToday);
+        var vouchers = branchId == BlueDentalBranchSeedContributor.SecondBranchId
+            ? BuildSecondBranchVouchers(branchId, today)
+            : BuildFirstBranchVouchers(branchId, today);
+
+        await voucherRepository.InsertManyAsync(vouchers, autoSave: true);
+    }
+
+    private static List<Voucher> BuildFirstBranchVouchers(Guid branchId, DateOnly today)
+    {
         var vouchers = new List<Voucher>();
 
         for (var i = 0; i < Vouchers.Length; i++)
@@ -452,7 +495,7 @@ public class BlueDentalOperationsDemoSeeder(
                 validFrom,
                 validTo,
                 VoucherScopeTarget.Treatment,
-                clinicBranchId: _branchId,
+                clinicBranchId: branchId,
                 minOrderValue: value * 4,
                 customerTargets: i == 1 ? ["new"] : ["new", "returning"],
                 usageLimit: 100);
@@ -469,7 +512,49 @@ public class BlueDentalOperationsDemoSeeder(
             vouchers.Add(voucher);
         }
 
-        await voucherRepository.InsertManyAsync(vouchers, autoSave: true);
+        return vouchers;
+    }
+
+    private static List<Voucher> BuildSecondBranchVouchers(Guid branchId, DateOnly today)
+    {
+        var vouchers = new List<Voucher>();
+
+        for (var i = 0; i < SecondBranchVouchers.Length; i++)
+        {
+            var (code, name, type, value, minOrder, maxDiscount, exclusive, expired) =
+                SecondBranchVouchers[i];
+
+            var voucher = Voucher.Issue(
+                DemoId("1401", i + 1),
+                code,
+                name,
+                type,
+                value,
+                today.AddDays(-30),
+                expired ? today.AddDays(-1) : today.AddDays(90),
+                VoucherScopeTarget.Treatment,
+                clinicBranchId: branchId,
+                minOrderValue: minOrder,
+                maxDiscountAmount: maxDiscount,
+                isExclusive: exclusive,
+                usageLimit: 100);
+
+            // An unpublished voucher is invisible to the picker, so every live
+            // one is published; the expired row is only there to give the
+            // voucher screen's "hết hạn" filter something to show.
+            if (expired)
+            {
+                voucher.Expire();
+            }
+            else
+            {
+                voucher.Publish();
+            }
+
+            vouchers.Add(voucher);
+        }
+
+        return vouchers;
     }
 
     /// <summary>Yesterday's finished shifts and today's, half of them checked in.</summary>
