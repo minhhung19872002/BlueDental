@@ -5,34 +5,35 @@ import {
   CloseCircleOutlined,
   ClockCircleOutlined,
 } from "@ant-design/icons";
+import { t } from "@/lib/i18n";
 import type { Appointment, AppointmentStatus } from "../types/appointment";
 
-const WEEKDAY_HEADERS = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"];
+const WEEKDAY_KEYS = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"] as const;
 
 const STATUS_GROUPS: {
   key: string;
-  label: string;
+  labelKey: string;
   icon: React.ReactNode;
   color: string;
   match: (s: AppointmentStatus) => boolean;
 }[] = [
   {
     key: "arrived",
-    label: "Đã đến",
+    labelKey: "Đã đến",
     icon: <CheckCircleOutlined />,
     color: "#0e9f6e",
     match: (s) => s === "inProgress" || s === "completed",
   },
   {
     key: "cancelled",
-    label: "Đã huỷ",
+    labelKey: "Đã huỷ",
     icon: <CloseCircleOutlined />,
     color: "#e5484d",
     match: (s) => s === "cancelled" || s === "noShow",
   },
   {
     key: "scheduled",
-    label: "Đã hẹn",
+    labelKey: "Đã hẹn",
     icon: <ClockCircleOutlined />,
     color: "#6366f1",
     match: (s) => s === "scheduled" || s === "confirmed",
@@ -75,8 +76,8 @@ export function MiniCalMonthView({ appointments, monthStart }: Props) {
   return (
     <div className="mcal-month">
       <div className="mcal-month-header">
-        {WEEKDAY_HEADERS.map((wd) => (
-          <div key={wd} className="mcal-month-weekday">{wd}</div>
+        {WEEKDAY_KEYS.map((wd) => (
+          <div key={wd} className="mcal-month-weekday">{t(wd)}</div>
         ))}
       </div>
       <div className="mcal-month-body">
@@ -100,7 +101,7 @@ export function MiniCalMonthView({ appointments, monthStart }: Props) {
                         return (
                           <div key={g.key} className="mcal-month-stat" style={{ color: g.color }}>
                             {g.icon}
-                            <span className="mcal-month-stat-label">{g.label}</span>
+                            <span className="mcal-month-stat-label">{t(g.labelKey)}</span>
                             <span className="mcal-month-stat-count">({count})</span>
                           </div>
                         );

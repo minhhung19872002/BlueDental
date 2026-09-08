@@ -93,7 +93,7 @@ export function LaboOrdersScreen() {
       patientName: row.patientName ?? "",
       sentDate: formatDateTime(row.sentAt ?? row.creationTime),
       deliveryDate: row.dueDate ? dayjs(row.dueDate).format("DD/MM/YYYY") : "",
-      status: LABO_STATUS_CONFIG[row.status].label,
+      status: t(LABO_STATUS_CONFIG[row.status].label),
       dentistName: row.dentistName ?? "",
       materialName: row.materialName ?? "",
       teeth: row.toothNumbers ?? "",
@@ -155,7 +155,7 @@ export function LaboOrdersScreen() {
             <span className="bd-cat-num">
               {row.dueDate ? dayjs(row.dueDate).format("DD/MM/YYYY") : "—"}
             </span>
-            <StatusBadge label={config.label} bg={config.bg} color={config.color} />
+            <StatusBadge label={t(config.label)} bg={config.bg} color={config.color} />
           </div>
         );
       },
@@ -184,16 +184,9 @@ export function LaboOrdersScreen() {
     <div className="bd-labo-screen">
       <div className="bd-labo-header bd-labo-header--stacked">
         <div className="bd-labo-headrow">
-          <PeriodPicker
-            value={period}
-            onChange={(next) => refilter(() => setPeriod(next))}
-          />
+          <PeriodPicker value={period} onChange={(next) => refilter(() => setPeriod(next))} />
 
-          <Button
-            icon={<DownloadOutlined />}
-            disabled={items.length === 0}
-            onClick={handleExport}
-          >
+          <Button icon={<DownloadOutlined />} disabled={items.length === 0} onClick={handleExport}>
             {t("Xuất Excel")}
           </Button>
         </div>

@@ -64,7 +64,7 @@ export function PatientDetailDrawer({ patientId, onClose }: Props) {
             <Descriptions.Item label={t("Số điện thoại")}>
               {patient.phone}
             </Descriptions.Item>
-            <Descriptions.Item label="Email">
+            <Descriptions.Item label={t("Email")}>
               {patient.email ?? "—"}
             </Descriptions.Item>
             <Descriptions.Item label={t("Địa chỉ")} span={2}>

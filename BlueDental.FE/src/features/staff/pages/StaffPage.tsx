@@ -183,7 +183,7 @@ export function StaffPage() {
     },
     {
       key: "email",
-      title: "Email",
+      title: t("Email"),
       dataIndex: "email",
       width: 280,
       render: (v) => v || "—",

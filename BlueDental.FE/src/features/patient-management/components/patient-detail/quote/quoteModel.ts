@@ -3,7 +3,7 @@ import {
   type PatientAdviseDto,
   type PatientDiagnosisDto,
 } from "@/features/treatment-management/api/consultingApi";
-import { formatVND } from "@/utils/format";
+import { formatMoneyUnit } from "@/utils/format";
 
 /**
  * The shapes the quote modal and its two printed sheets work with — built
@@ -68,7 +68,7 @@ export interface DiagnosisGroup {
   doctors: DiagnosisDoctorItem[];
 }
 
-export const money = (value: number) => `${formatVND(value)} đ`;
+export const money = (value: number) => formatMoneyUnit(value);
 
 export const rowDiscount = (row: QuoteRow) => row.clinicDiscount + row.voucherDiscount;
 

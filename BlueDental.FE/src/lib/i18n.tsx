@@ -142,3 +142,13 @@ export function useT(): typeof t {
   useI18n();
   return t;
 }
+
+/**
+ * Returns the BCP 47 locale tag that `Intl` formatters should use.
+ * Module-level (reads localStorage directly) so it works in utility functions
+ * that cannot call hooks.
+ */
+export function getLocale(): string {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  return stored === "en" ? "en" : "vi-VN";
+}

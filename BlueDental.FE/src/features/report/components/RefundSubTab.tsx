@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react";
 import type { TableColumnsType } from "antd";
 import { t } from "@/lib/i18n";
-import { formatDate, formatVND } from "@/utils/format";
+import { formatDate, formatMoneyUnit } from "@/utils/format";
 import { exportToExcel, type ExportColumn } from "@/utils/exportExcel";
 import { useMockRefundLines, useMockSalesSummary, type RangeQuery } from "../api/reportMockQueries";
 import { useClientPaging } from "../hooks/useClientPaging";
@@ -27,7 +27,7 @@ function buildColumns(): TableColumnsType<RefundLineVm> {
       dataIndex: "refundAmount",
       width: 130,
       align: "right",
-      render: (v: number) => <span className="report-money report-money--red">{formatVND(v)} đ</span>,
+      render: (v: number) => <span className="report-money report-money--red">{formatMoneyUnit(v)}</span>,
     },
     { title: t("Ghi chú"), dataIndex: "note", width: 200 },
   ];

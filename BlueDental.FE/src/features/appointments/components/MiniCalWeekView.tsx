@@ -1,9 +1,10 @@
 import { useMemo } from "react";
 import dayjs, { type Dayjs } from "dayjs";
 import { EllipsisOutlined } from "@ant-design/icons";
+import { t } from "@/lib/i18n";
 import type { Appointment } from "../types/appointment";
 
-const WEEKDAY_LABELS = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"];
+const WEEKDAY_KEYS = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"] as const;
 
 interface Props {
   appointments: Appointment[];
@@ -33,7 +34,7 @@ export function MiniCalWeekView({ appointments, weekStart }: Props) {
         {days.map((d, i) => (
           <div key={i} className="mcal-week-day-header">
             <span className="mcal-week-day-num">{d.date()}</span>
-            <span className="mcal-week-day-name">{WEEKDAY_LABELS[i]}</span>
+            <span className="mcal-week-day-name">{t(WEEKDAY_KEYS[i])}</span>
           </div>
         ))}
       </div>

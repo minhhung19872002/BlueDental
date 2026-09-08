@@ -87,7 +87,7 @@ export function PatientBasicColumn({
         </FloatingField>
 
         <FloatingField
-          label="Email"
+          label={t("Email")}
           name="email"
           rules={[{ type: "email", message: t("Email không hợp lệ") }]}
         >

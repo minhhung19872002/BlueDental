@@ -1,6 +1,6 @@
 import { Button, Modal } from "antd";
 import { t } from "@/lib/i18n";
-import { formatVND } from "@/utils/format";
+import { formatMoneyUnit } from "@/utils/format";
 import { toothLabels } from "@/features/treatment-management/api/consultingApi";
 import {
   serviceLineStatusConfig,
@@ -51,7 +51,7 @@ function Section({ title, facts }: { title: string; facts: [string, string][] })
 export function ServiceDetailDialog({ open, patient, plan, line, onClose }: Props) {
   const status = line ? serviceLineStatusConfig()[line.status]?.label : null;
   const teeth = toothLabels(line?.teeth ?? []);
-  const money = (value: number | undefined) => `${formatVND(value ?? 0)} đ`;
+  const money = (value: number | undefined) => formatMoneyUnit(value ?? 0);
 
   return (
     <Modal

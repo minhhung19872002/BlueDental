@@ -2,7 +2,7 @@ import { Button, Popconfirm, Progress, Switch, Tag, Tooltip } from "antd";
 import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { VOUCHER_STATUS_CONFIG, type VoucherDto, type VoucherStatus } from "../api/voucherApi";
-import { formatDate, formatVND } from "@/utils/format";
+import { formatDate, formatMoneyUnit } from "@/utils/format";
 import { t } from "@/lib/i18n";
 
 function formatPublishedAt(value: string): string {
@@ -27,7 +27,7 @@ function DiscountCell({ row }: { row: VoucherDto }) {
   if (row.discountType === "percentage") {
     return <span className="voucher-discount">-{row.discountValue}%</span>;
   }
-  return <span className="voucher-discount">-{formatVND(row.discountValue)}đ</span>;
+  return <span className="voucher-discount">-{formatMoneyUnit(row.discountValue)}</span>;
 }
 
 function ConditionsCell({
@@ -43,7 +43,7 @@ function ConditionsCell({
   ];
 
   if (row.scopeTarget === "treatment" && row.minOrderValue) {
-    lines.push(`- ${t("KHĐT")} >= ${formatVND(row.minOrderValue)} đ`);
+    lines.push(`- ${t("KHĐT")} >= ${formatMoneyUnit(row.minOrderValue)}`);
   }
 
   lines.push(
@@ -51,7 +51,7 @@ function ConditionsCell({
   );
 
   if (row.maxDiscountAmount) {
-    lines.push(`- ${t("Giảm tối đa")} ${formatVND(row.maxDiscountAmount)} đ`);
+    lines.push(`- ${t("Giảm tối đa")} ${formatMoneyUnit(row.maxDiscountAmount)}`);
   }
 
   return (

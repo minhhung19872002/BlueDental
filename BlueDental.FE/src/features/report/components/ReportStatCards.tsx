@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { formatVND } from "@/utils/format";
+import { formatMoneyUnit } from "@/utils/format";
 
 export type StatTone = "green" | "blue" | "gold" | "red" | "ink";
 
@@ -26,7 +26,7 @@ type Props =
 function CompactCard({ item }: { item: StatCardItem }) {
   return (
     <div className={`report-stat-tile report-stat-tile--${item.tone}`}>
-      <div className="report-stat-tile-value">{formatVND(item.value)} đ</div>
+      <div className="report-stat-tile-value">{formatMoneyUnit(item.value)}</div>
       <div className="report-stat-tile-label">{item.label}</div>
     </div>
   );
@@ -37,7 +37,7 @@ function IconCard({ item }: { item: StatCardItem }) {
     <div className={`report-stat-card report-stat-card--${item.tone}`}>
       {item.icon && <span className="report-stat-card-icon">{item.icon}</span>}
       <div className="report-stat-card-body">
-        <div className="report-stat-card-value">{formatVND(item.value)} đ</div>
+        <div className="report-stat-card-value">{formatMoneyUnit(item.value)}</div>
         <div className="report-stat-card-label">{item.label}</div>
       </div>
     </div>

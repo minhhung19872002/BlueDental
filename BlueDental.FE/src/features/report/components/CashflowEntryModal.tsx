@@ -7,7 +7,7 @@ import { FloatingField } from "@/components/FloatingField";
 import { FloatingLabel } from "@/components/FloatingLabel";
 import { SearchSelect } from "@/components/SearchSelect";
 import { t } from "@/lib/i18n";
-import { formatVND } from "@/utils/format";
+import { formatMoneyUnit } from "@/utils/format";
 import {
   CASH_HOLDING,
   CASH_TRANSACTION_TYPE,
@@ -125,7 +125,7 @@ export function CashflowEntryModal({ open, transactionType, entry, onClose }: Pr
         {transactionType !== CASH_TRANSACTION_TYPE.Deposit ? (
           <div className="report-balance-hint">
             <div className="report-balance-hint-label">{t("Số dư khả dụng ({0}):", holdingLabels[holding])}</div>
-            <div className="report-balance-hint-value">{formatVND(balance?.[BALANCE_KEY[holding]] ?? 0)} đ</div>
+            <div className="report-balance-hint-value">{formatMoneyUnit(balance?.[BALANCE_KEY[holding]] ?? 0)}</div>
           </div>
         ) : null}
       </Form>

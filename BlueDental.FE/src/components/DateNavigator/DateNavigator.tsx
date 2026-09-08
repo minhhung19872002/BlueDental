@@ -33,25 +33,23 @@ function formatDisplay(date: Dayjs, mode: DateNavigatorMode, weekStartsOn?: Week
   return date.format("MM/YYYY");
 }
 
-/** Indexed like dayjs's day(): Sunday first. */
-const WEEKDAY_LABELS = ["CN", "Th 2", "Th 3", "Th 4", "Th 5", "Th 6", "Th 7"];
+const WEEKDAY_KEYS = ["CN", "Th 2", "Th 3", "Th 4", "Th 5", "Th 6", "Th 7"] as const;
 
-/** The header row, read from whichever day opens the week. */
 function weekdayHeaders(firstDay: number): string[] {
-  return WEEKDAY_LABELS.map((_, i) => WEEKDAY_LABELS[(firstDay + i) % 7]);
+  return WEEKDAY_KEYS.map((_, i) => t(WEEKDAY_KEYS[(firstDay + i) % 7]));
 }
 
-const MONTH_NAMES = [
+const MONTH_NAME_KEYS = [
   "Tháng Một", "Tháng Hai", "Tháng Ba", "Tháng Tư",
   "Tháng Năm", "Tháng Sáu", "Tháng Bảy", "Tháng Tám",
   "Tháng Chín", "Tháng Mười", "Tháng Mười Một", "Tháng Mười Hai",
-];
+] as const;
 
-const MONTHS_SHORT = [
+const MONTH_SHORT_KEYS = [
   "Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4",
   "Tháng 5", "Tháng 6", "Tháng 7", "Tháng 8",
   "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12",
-];
+] as const;
 
 function getCalendarDays(year: number, month: number, weekStartsOn?: WeekStart) {
   const firstDay = dayjs().year(year).month(month).startOf("month");
@@ -108,7 +106,7 @@ function CalendarPanel({
           <LeftOutlined />
         </button>
         <span className="date-nav-panel-title">
-          {MONTH_NAMES[viewMonth]} {viewYear}
+          {t(MONTH_NAME_KEYS[viewMonth])} {viewYear}
         </span>
         <button type="button" className="date-nav-panel-nav" onClick={handleNext}>
           <RightOutlined />
@@ -226,7 +224,7 @@ function MonthPickerPanel({
         </button>
       </div>
       <div className="date-nav-month-grid">
-        {MONTHS_SHORT.map((label, i) => {
+        {MONTH_SHORT_KEYS.map((key, i) => {
           const isActive = value.year() === viewYear && value.month() === i;
           return (
             <button
@@ -237,7 +235,7 @@ function MonthPickerPanel({
                 onSelect(dayjs().year(viewYear).month(i).startOf("month"))
               }
             >
-              {label}
+              {t(key)}
             </button>
           );
         })}

@@ -1,5 +1,6 @@
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { formatVND } from "@/utils/format";
+import { formatMoneyUnit } from "@/utils/format";
+import { t } from "@/lib/i18n";
 import type { MonthlyPointVm, OverviewRowVm } from "../types/mock";
 import type { StatTone } from "./ReportStatCards";
 
@@ -19,7 +20,7 @@ interface Props {
 }
 
 function formatValue(value: number, money: boolean) {
-  return money ? `${formatVND(value)} đ` : String(value);
+  return money ? formatMoneyUnit(value) : String(value);
 }
 
 /** "Thông tin lượt khách / lịch hẹn / thanh toán / thu chi" card: rows + monthly bars + legend. */
@@ -31,7 +32,7 @@ export function OverviewCard({ title, rows, series, config, money = false }: Pro
       <div className="report-summary-rows">
         {rows.map((row) => (
           <div key={row.label} className="report-summary-row">
-            <span className="report-summary-row-label">{row.label}</span>
+            <span className="report-summary-row-label">{t(row.label)}</span>
             <span className="report-summary-row-value">
               {row.values.map((value, index) => (
                 <span key={index} className={`report-money report-money--${config[index]?.tone ?? "ink"}`}>

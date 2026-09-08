@@ -23,7 +23,7 @@ import {
 } from "@/hooks/usePaymentAccountOptions";
 import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
-import { formatDate, formatVND } from "@/utils/format";
+import { formatDate, formatMoneyUnit } from "@/utils/format";
 import {
   PAYMENT_KIND,
   PAYMENT_METHOD,
@@ -314,13 +314,13 @@ export function CreatePaymentDialog({
                     >
                       <span className="pd-newpay-name">{line.serviceName ?? line.code}</span>
                       <span className="pd-newpay-due">
-                        {t("Còn nợ")} {formatVND(line.outstandingAmount)} đ
+                        {t("Còn nợ")} {formatMoneyUnit(line.outstandingAmount)}
                       </span>
                       <span className="pd-newpay-qty">
                         {t("Số lượng")}: {line.quantity}
                       </span>
                     </Checkbox>
-                    <b>{formatVND(line.effectiveAmount)} đ</b>
+                    <b>{formatMoneyUnit(line.effectiveAmount)}</b>
                   </li>
                 ))}
               </ul>
@@ -334,16 +334,16 @@ export function CreatePaymentDialog({
             <h4 className="pd-newpay-head">
               <ProfileOutlined /> {t("Tổng tiền theo kế hoạch")}
             </h4>
-            <Fact label={t("Tổng tiền")} value={`${formatVND(plan?.servicesTotal ?? 0)} đ`} />
-            <Fact label={t("Giảm giá")} value={`${formatVND(plan?.planDiscountAmount ?? 0)} đ`} />
-            <Fact label={t("Tổng tiền sau giảm")} value={`${formatVND(plan?.totalAmount ?? 0)} đ`} />
+            <Fact label={t("Tổng tiền")} value={formatMoneyUnit(plan?.servicesTotal ?? 0)} />
+            <Fact label={t("Giảm giá")} value={formatMoneyUnit(plan?.planDiscountAmount ?? 0)} />
+            <Fact label={t("Tổng tiền sau giảm")} value={formatMoneyUnit(plan?.totalAmount ?? 0)} />
             <Fact
               label={t("Đã thanh toán")}
-              value={`${formatVND(plan?.payment.totalPaid ?? 0)} đ`}
+              value={formatMoneyUnit(plan?.payment.totalPaid ?? 0)}
             />
             {/* Live, as the reference computes it: what is left after the amount
                 being entered, not what is stored. */}
-            <Fact label={t("Còn lại")} value={`${formatVND(planDue - total)} đ`} strong />
+            <Fact label={t("Còn lại")} value={formatMoneyUnit(planDue - total)} strong />
           </section>
         </div>
 
@@ -433,7 +433,7 @@ export function CreatePaymentDialog({
                   <i>{METHOD_ICONS[kind]}</i>
                   {methodLabels[kind]}
                   {kind === PAYMENT_METHOD.OutstandingDebt ? (
-                    <em>{formatVND(heldForPatient)} đ</em>
+                    <em>{formatMoneyUnit(heldForPatient)}</em>
                   ) : null}
                 </button>
               ))}

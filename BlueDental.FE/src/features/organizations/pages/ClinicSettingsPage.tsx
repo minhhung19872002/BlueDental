@@ -47,7 +47,7 @@ import { useAuthStore } from "@/features/auth/store/authStore";
 import { useMyProfile, useUpdateProfile, uploadProfileAvatar, deleteProfileAvatar } from "@/features/account/api/accountMutations";
 import { useStaff, staffKeys } from "@/features/staff/api/staffQueries";
 import { getAllProvinces, getWardsByProvince, getProvinceName, getWardName, type LocationOption } from "@/utils/vietnamLocations";
-import { t } from "@/lib/i18n";
+import { getLocale, t } from "@/lib/i18n";
 
 type TabKey = "info" | "password" | "clinic" | "permission" | "branches" | "branch-manage";
 
@@ -247,7 +247,7 @@ function PersonalInfoTab({ branchId }: { branchId: string }) {
           >
             <Input />
           </Form.Item>
-          <Form.Item name="email" label="Email" rules={[{ type: "email", message: t("Email không hợp lệ") }]}>
+          <Form.Item name="email" label={t("Email")} rules={[{ type: "email", message: t("Email không hợp lệ") }]}>
             <Input />
           </Form.Item>
         </div>
@@ -462,7 +462,7 @@ function ClinicInfoTab({ branchId }: { branchId: string }) {
             <Input />
           </Form.Item>
         </div>
-        <Form.Item name="slogan" label="Slogan" rules={[{ max: 500, message: t("Slogan tối đa 500 ký tự") }]}>
+        <Form.Item name="slogan" label={t("Slogan")} rules={[{ max: 500, message: t("Slogan tối đa 500 ký tự") }]}>
           <Input placeholder={t("Nhập slogan phòng khám")} />
         </Form.Item>
         <div className="settings-row">
@@ -473,7 +473,7 @@ function ClinicInfoTab({ branchId }: { branchId: string }) {
           >
             <Input />
           </Form.Item>
-          <Form.Item name="email" label="Email" rules={[{ type: "email", message: t("Email không hợp lệ") }]}>
+          <Form.Item name="email" label={t("Email")} rules={[{ type: "email", message: t("Email không hợp lệ") }]}>
             <Input />
           </Form.Item>
         </div>
@@ -557,7 +557,7 @@ function BranchListTab() {
     },
     {
       key: "email",
-      title: "Email",
+      title: t("Email"),
       dataIndex: "email",
       width: 260,
       render: (v: string) => v || "—",
@@ -570,7 +570,7 @@ function BranchListTab() {
       render: (v: string) => {
         if (!v) return "—";
         const d = new Date(v);
-        return d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+        return d.toLocaleDateString(getLocale(), { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
       },
     },
     {
@@ -792,7 +792,7 @@ function BranchManageTab() {
     },
     {
       key: "email",
-      title: "Email",
+      title: t("Email"),
       dataIndex: "email",
       width: 280,
       render: (v) => v || "—",

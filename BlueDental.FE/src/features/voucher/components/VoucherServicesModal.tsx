@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Modal } from "antd";
 import { t } from "@/lib/i18n";
-import { formatVND } from "@/utils/format";
+import { formatMoneyUnit } from "@/utils/format";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import {
   useCatalogEntries,
@@ -70,7 +70,7 @@ export function VoucherServicesModal({ voucher, onClose }: Props) {
             <span className="voucher-services-index">#{i + 1}</span>
             <span className="voucher-services-name">{row.name}</span>
             {row.price !== null && (
-              <span className="voucher-services-price">{formatVND(row.price)} đ</span>
+              <span className="voucher-services-price">{formatMoneyUnit(row.price)}</span>
             )}
           </div>
         ))}

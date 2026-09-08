@@ -7,7 +7,7 @@ import { FloatingField } from "@/components/FloatingField";
 import type { VoucherFormValues } from "../types/voucherForm";
 import { VoucherServicePicker } from "./VoucherServicePicker";
 
-const DAY_LABELS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
+const DAY_LABEL_KEYS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"] as const;
 const DAY_VALUES = [1, 2, 3, 4, 5, 6, 7];
 
 interface DayChipsProps {
@@ -42,7 +42,7 @@ function DayChipsInput({ value, onChange, disabled }: DayChipsProps) {
             disabled={disabled}
             onClick={() => handleToggle(day)}
           >
-            {DAY_LABELS[i]}
+            {t(DAY_LABEL_KEYS[i])}
           </button>
         );
       })}

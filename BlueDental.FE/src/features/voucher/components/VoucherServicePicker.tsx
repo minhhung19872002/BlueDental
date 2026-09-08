@@ -3,7 +3,7 @@ import { Form, Select, Tooltip } from "antd";
 import type { FormInstance } from "antd";
 import { BookOpen, Folder, FolderTree, X } from "lucide-react";
 import { t } from "@/lib/i18n";
-import { formatVND } from "@/utils/format";
+import { formatMoneyUnit } from "@/utils/format";
 import { FloatingField } from "@/components/FloatingField";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import {
@@ -126,7 +126,7 @@ export function VoucherServicePicker({ form }: Props) {
               <span className="voucher-opt-service">
                 <span className="voucher-opt-name">{option.data.label}</span>
                 {option.data.price !== null && (
-                  <span className="voucher-opt-price">{formatVND(option.data.price)} đ</span>
+                  <span className="voucher-opt-price">{formatMoneyUnit(option.data.price)}</span>
                 )}
               </span>
             )
@@ -165,7 +165,7 @@ export function VoucherServicePicker({ form }: Props) {
                 <span className="voucher-service-chip-name">{option.label}</span>
                 {option.price !== null && (
                   <span className="voucher-service-chip-price">
-                    {formatVND(option.price)} đ
+                    {formatMoneyUnit(option.price)}
                   </span>
                 )}
                 <button

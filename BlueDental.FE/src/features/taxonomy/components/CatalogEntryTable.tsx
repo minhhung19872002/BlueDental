@@ -7,7 +7,7 @@ import { DataTable } from "@/components/DataTable";
 import { LetterAvatar } from "@/components/LetterAvatar";
 import { useDragReorder, type DragReorder } from "@/hooks/useDragReorder";
 import { t } from "@/lib/i18n";
-import { formatDateTime, formatVND } from "@/utils/format";
+import { formatDateTime, formatMoneyUnit } from "@/utils/format";
 
 interface Props {
   entries: CatalogEntryDto[];
@@ -156,7 +156,7 @@ export function CatalogEntryTable({
         align: "right",
         render: (_, entry) => (
           <span className="bd-cat-price">
-            {entry.price == null ? "—" : `${formatVND(entry.price)} đ`}
+            {entry.price == null ? "—" : formatMoneyUnit(entry.price)}
           </span>
         ),
       });

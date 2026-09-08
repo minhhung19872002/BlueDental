@@ -1,6 +1,6 @@
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip, type PieLabelRenderProps } from "recharts";
 import { t } from "@/lib/i18n";
-import { formatVND } from "@/utils/format";
+import { formatMoneyUnit } from "@/utils/format";
 
 const RADIAN = Math.PI / 180;
 
@@ -58,7 +58,7 @@ export function OverviewPieCard({ received, debt }: Props) {
                     <Cell key={s.name} className={`report-pie-slice report-pie-slice--${s.tone}`} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => `${formatVND(Number(value))} đ`} />
+                <Tooltip formatter={(value) => formatMoneyUnit(Number(value))} />
               </PieChart>
             </ResponsiveContainer>
           )}
@@ -68,7 +68,7 @@ export function OverviewPieCard({ received, debt }: Props) {
             <li key={s.name} className="report-pie-legend-item">
               <span className={`report-pie-legend-dot report-pie-legend-dot--${s.tone}`} />
               <span>{s.name}</span>
-              <span className="report-pie-legend-value">{formatVND(s.value)} đ</span>
+              <span className="report-pie-legend-value">{formatMoneyUnit(s.value)}</span>
             </li>
           ))}
         </ul>

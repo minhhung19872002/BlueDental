@@ -33,8 +33,8 @@ import { usePatientTagOptions } from "@/hooks/usePatientTagOptions";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { countedTotal } from "@/utils/countedTotal";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
-import { t } from "@/lib/i18n";
-import { formatDate, formatVND } from "@/utils/format";
+import { getLocale, t } from "@/lib/i18n";
+import { formatDate, formatMoneyUnit, formatVND } from "@/utils/format";
 import type { PatientDto } from "../../types/patient";
 import { GENDER, type GenderCode } from "../../types/patient";
 import { PatientEditorDialog } from "../PatientEditorDialog";
@@ -117,7 +117,7 @@ function FactItem({ icon, label, value }: { icon: ReactNode; label: string; valu
 function formatWeekday(value: string) {
   const at = new Date(value);
   if (Number.isNaN(at.getTime())) return "—";
-  const weekday = at.toLocaleDateString("vi-VN", { weekday: "long" });
+  const weekday = at.toLocaleDateString(getLocale(), { weekday: "long" });
   const day = String(at.getDate()).padStart(2, "0");
   const month = String(at.getMonth() + 1).padStart(2, "0");
   return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}, ${day}-${month}-${at.getFullYear()}`;
@@ -317,20 +317,20 @@ export function PatientProfileTab({ patient }: Props) {
             <InfoItem
               icon={<CalendarOutlined />}
               label={t("Ngày sinh")}
-              value={`${formatDate(patient.dateOfBirth)}${ageOf(patient.dateOfBirth) === null ? "" : ` (${ageOf(patient.dateOfBirth)} tuổi)`}`}
+              value={`${formatDate(patient.dateOfBirth)}${ageOf(patient.dateOfBirth) === null ? "" : ` (${ageOf(patient.dateOfBirth)} ${t("tuổi")})`}`}
             />
             <InfoItem
               icon={<PhoneOutlined />}
               label={t("Số điện thoại")}
               value={patient.phoneNumber}
             />
-            <InfoItem icon={<MailOutlined />} label="Email" value={patient.email} />
+            <InfoItem icon={<MailOutlined />} label={t("Email")} value={patient.email} />
             <InfoItem
               icon={<UserOutlined />}
               label={t("Giới tính")}
               value={t(genderLabels[patient.gender])}
             />
-            <InfoItem icon={<IdcardOutlined />} label="CCCD" value={patient.nationalId} />
+            <InfoItem icon={<IdcardOutlined />} label={t("CCCD")} value={patient.nationalId} />
             <InfoItem icon={<MedicineBoxOutlined />} label={t("Nghề nghiệp")} value={occupation} />
             <InfoItem
               wide
@@ -428,7 +428,7 @@ export function PatientProfileTab({ patient }: Props) {
           <div className={`pd-money pd-money--${tone}`} key={label}>
             <span>{icon}</span>
             <div>
-              <strong>{formatVND(value)} đ</strong>
+              <strong>{formatMoneyUnit(value)}</strong>
               <small>{t(label)}</small>
             </div>
           </div>

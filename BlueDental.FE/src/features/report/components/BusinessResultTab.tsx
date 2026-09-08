@@ -1,6 +1,6 @@
 import { Spin } from "antd";
 import { t } from "@/lib/i18n";
-import { formatVND } from "@/utils/format";
+import { formatMoneyUnit } from "@/utils/format";
 import { useMockBusinessResult, type RangeQuery } from "../api/reportMockQueries";
 import type { BusinessResultVm } from "../types/mock";
 import type { StatTone } from "./ReportStatCards";
@@ -51,7 +51,7 @@ export function BusinessResultTab(range: RangeQuery) {
             <div key={row.key} className={className}>
               <span className="report-result-label">{row.label()}</span>
               <span className={`report-result-value report-money report-money--${resolveTone(row, value)}`}>
-                {formatVND(value)} đ
+                {formatMoneyUnit(value)}
               </span>
             </div>
           );

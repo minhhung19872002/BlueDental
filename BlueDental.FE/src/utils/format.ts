@@ -1,3 +1,5 @@
+import { getLocale, t } from "@/lib/i18n";
+
 /** Format bytes to human-readable string */
 export function formatBytes(value: number): string {
   if (value < 1024) return `${value} B`;
@@ -10,7 +12,7 @@ export function formatDate(value: string | Date | null | undefined): string {
   if (!value) return "";
   const date = typeof value === "string" ? new Date(value) : value;
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleDateString("vi-VN", {
+  return date.toLocaleDateString(getLocale(), {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -25,13 +27,13 @@ export function formatDateTime(
   const date = typeof value === "string" ? new Date(value) : value;
   if (Number.isNaN(date.getTime())) return "";
   return (
-    date.toLocaleDateString("vi-VN", {
+    date.toLocaleDateString(getLocale(), {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
     }) +
     " " +
-    date.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
+    date.toLocaleTimeString(getLocale(), { hour: "2-digit", minute: "2-digit" })
   );
 }
 
@@ -46,7 +48,7 @@ export function formatClock(value: string | Date | null | undefined): string {
 }
 
 export function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("vi-VN", {
+  return new Intl.NumberFormat(getLocale(), {
     style: "currency",
     currency: "VND",
     maximumFractionDigits: 0,
@@ -56,7 +58,7 @@ export function formatCurrency(value: number): string {
 /** Format VND amount as dot-separated number without symbol (e.g. 24.000.000) */
 export function formatVND(value: number | null | undefined): string {
   if (!value) return "0";
-  return value.toLocaleString("vi-VN");
+  return value.toLocaleString(getLocale());
 }
 
 /** Table-cell fallback — an em dash when there is no value (a 0 stays 0). */
@@ -74,4 +76,9 @@ export function formatShortDate(value: string | Date | null | undefined): string
   const date = typeof value === "string" ? new Date(value) : value;
   if (Number.isNaN(date.getTime())) return "";
   return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+}
+
+/** `formatVND(value)` + the currency unit ("đ" / "VND"), used everywhere money is shown. */
+export function formatMoneyUnit(value: number | null | undefined): string {
+  return `${formatVND(value)} ${t("đ")}`;
 }

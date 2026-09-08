@@ -3,7 +3,7 @@ import { Button, Space, Tooltip, type TableColumnsType } from "antd";
 import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { t } from "@/lib/i18n";
-import { formatDate, formatVND } from "@/utils/format";
+import { formatDate, formatMoneyUnit } from "@/utils/format";
 import { cashTransactionLabels, formatCashMovement } from "../api/financeApi";
 import { notifyDemoAction, useMockCashBalance, useMockCashflowEntries } from "../api/reportMockQueries";
 import { useClientPaging } from "../hooks/useClientPaging";
@@ -32,7 +32,7 @@ function buildColumns(onEdit: Props["onEdit"], onDelete: (entry: CashflowEntryVm
       dataIndex: "amount",
       width: 140,
       align: "right",
-      render: (v: number) => <span className="report-money report-money--bold">{formatVND(v)} đ</span>,
+      render: (v: number) => <span className="report-money report-money--bold">{formatMoneyUnit(v)}</span>,
     },
     { title: t("Người tạo"), dataIndex: "createdByName", width: 170 },
     { title: t("Ghi chú"), dataIndex: "note", render: (v: string | null) => v ?? "—" },
@@ -75,7 +75,7 @@ export function CashflowV2Overview({ onEdit }: Props) {
       <BalancePanels balance={balance} />
       <div className="report-service-revenue">
         <span>{t("Doanh thu dịch vụ")}</span>
-        <span className="report-money report-money--green">{formatVND(balance?.serviceRevenue ?? 0)} đ</span>
+        <span className="report-money report-money--green">{formatMoneyUnit(balance?.serviceRevenue ?? 0)}</span>
       </div>
       <ReportTableCard<CashflowEntryVm>
         rowKey="id"
@@ -90,7 +90,7 @@ export function CashflowV2Overview({ onEdit }: Props) {
       <ConfirmDeleteDialog
         open={deleting !== null}
         noun={t("giao dịch")}
-        name={deleting ? `${formatVND(deleting.amount)} đ` : ""}
+        name={deleting ? formatMoneyUnit(deleting.amount) : ""}
         onConfirm={handleDelete}
         onClose={closeDelete}
       />

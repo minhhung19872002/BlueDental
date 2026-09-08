@@ -60,7 +60,7 @@ export function AuditLogPage() {
       render: (v: string) => v ? <Tag color={HTTP_METHOD_COLORS[v] ?? "default"}>{v}</Tag> : "—",
     },
     {
-      title: "URL",
+      title: t("URL"),
       dataIndex: "url",
       key: "url",
       ellipsis: true,
@@ -69,7 +69,7 @@ export function AuditLogPage() {
       ),
     },
     {
-      title: "HTTP Status",
+      title: t("HTTP Status"),
       dataIndex: "httpStatusCode",
       key: "httpStatusCode",
       width: 110,

@@ -3,7 +3,7 @@ import type { FormInstance } from "antd";
 import { CurrencyInput } from "@/components/CurrencyInput";
 import { FloatingField } from "@/components/FloatingField";
 import { t } from "@/lib/i18n";
-import { formatVND } from "@/utils/format";
+import { formatMoneyUnit } from "@/utils/format";
 import { DISCOUNT_TYPE } from "../../api/consultingApi";
 import type { CreatePlanValues, PlanTotals } from "./useCreatePlanForm";
 
@@ -62,15 +62,15 @@ export function PlanPricingFields({ form, enabled, totals }: Props) {
         <h3>{t("Thông tin thanh toán")}</h3>
         <p>
           <span>{t("Tổng cộng")}:</span>
-          <b>{formatVND(totals.gross)} đ</b>
+          <b>{formatMoneyUnit(totals.gross)}</b>
         </p>
         <p>
           <span>{t("Giảm giá")}:</span>
-          <b>{formatVND(totals.discount)} đ</b>
+          <b>{formatMoneyUnit(totals.discount)}</b>
         </p>
         <p>
           <span>{t("Thành tiền")}:</span>
-          <b>{formatVND(totals.effective)} đ</b>
+          <b>{formatMoneyUnit(totals.effective)}</b>
         </p>
       </div>
     </div>

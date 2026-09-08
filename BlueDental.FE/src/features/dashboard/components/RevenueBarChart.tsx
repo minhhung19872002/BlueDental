@@ -1,6 +1,6 @@
 import { Spin } from "antd";
 import { useRevenueSeries, REVENUE_DAYS } from "../api/dashboardQueries";
-import { t } from "@/lib/i18n";
+import { getLocale, t } from "@/lib/i18n";
 
 const MILLION = 1_000_000;
 
@@ -35,12 +35,12 @@ export function RevenueBarChart() {
             return (
               <div key={bar.date} className="dash-bar-col">
                 <span className="dash-bar-value">
-                  {millions >= 1 ? `${millions.toFixed(1)} tr` : millions > 0 ? "<1 tr" : "0"}
+                  {millions >= 1 ? `${millions.toFixed(1)} ${t("tr")}` : millions > 0 ? t("<1 tr") : "0"}
                 </span>
                 <div
                   className={`dash-bar${isToday ? " dash-bar--today" : ""}`}
                   style={{ height: `${heightPct}%` }}
-                  title={`${bar.date}: ${bar.amount.toLocaleString("vi-VN")} ₫`}
+                  title={`${bar.date}: ${bar.amount.toLocaleString(getLocale())} ₫`}
                 />
                 <span className="dash-bar-label">
                   {isToday ? t("Hôm nay") : bar.weekday}

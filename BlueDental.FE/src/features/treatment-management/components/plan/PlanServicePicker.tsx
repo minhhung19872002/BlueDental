@@ -5,7 +5,7 @@ import { ArrowLeft, BookOpen, Folder } from "lucide-react";
 import { FloatingField } from "@/components/FloatingField";
 import type { CatalogOption, TaxonomyGroupOption } from "@/hooks/useCatalogOptions";
 import { t } from "@/lib/i18n";
-import { formatVND } from "@/utils/format";
+import { formatMoneyUnit } from "@/utils/format";
 import { moneyText } from "./planTypes";
 
 type PickerMode = "service" | "group";
@@ -222,7 +222,7 @@ export function PlanServicePicker({ services, groups, loading, disabled, onPickS
           optionRender={({ data }) => (
             <span className="tp-opt-service">
               <span className="tp-opt-name">{data.label}</span>
-              <span className="tp-opt-price">{formatVND(data.price)} đ</span>
+              <span className="tp-opt-price">{formatMoneyUnit(data.price)}</span>
             </span>
           )}
         />

@@ -6,7 +6,7 @@ import { DataTable } from "@/components/DataTable";
 import { usePatientTagOptions } from "@/hooks/usePatientTagOptions";
 import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
-import { formatDateTime, formatVND } from "@/utils/format";
+import { formatDateTime, formatMoneyUnit } from "@/utils/format";
 import {
   paymentKindConfig,
   paymentMethodLabels,
@@ -220,7 +220,7 @@ export function PatientPaymentDialog({
       dataIndex: "amount",
       width: 150,
       align: "right",
-      render: (value: number) => `${formatVND(value)} đ`,
+      render: (value: number) => formatMoneyUnit(value),
     },
     {
       title: t("Thanh toán"),
@@ -277,7 +277,7 @@ export function PatientPaymentDialog({
         </div>
       </div>
       <div className="pd-payment-total">
-        <strong>{t("Tổng tiền:")}</strong> <b>{formatVND(total)} đ</b>
+        <strong>{t("Tổng tiền:")}</strong> <b>{formatMoneyUnit(total)}</b>
       </div>
     </Modal>
   );

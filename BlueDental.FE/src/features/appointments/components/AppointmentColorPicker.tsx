@@ -1,10 +1,10 @@
 import { t } from "@/lib/i18n";
 
 const APPT_COLORS = [
-  { value: "#6366f1", label: "Tím" },
-  { value: "#22C55E", label: "Xanh lá" },
-  { value: "#F59E0B", label: "Cam" },
-  { value: "#EF4444", label: "Đỏ" },
+  { value: "#6366f1", labelKey: "Tím" },
+  { value: "#22C55E", labelKey: "Xanh lá" },
+  { value: "#F59E0B", labelKey: "Cam" },
+  { value: "#EF4444", labelKey: "Đỏ" },
 ] as const;
 
 interface Props {
@@ -23,7 +23,7 @@ export function AppointmentColorPicker({ value, onChange }: Props) {
           <button
             key={c.value}
             type="button"
-            title={c.label}
+            title={t(c.labelKey)}
             className={[
               "appt-color-swatch",
               selected === c.value && "appt-color-swatch--selected",

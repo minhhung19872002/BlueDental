@@ -42,12 +42,12 @@ export function HistoryDetailPanel({ entry }: { entry: HistoryEntry }) {
   // Unlike the table cell, this line always spells out both sides
   // ("Trễ hẹn → Trễ hẹn"), as the reference does.
   const meta: MetaItem[] = [
-    { label: "Schedule", value: entry.appointmentId, code: true },
+    { label: t("Mã số lịch"), value: entry.appointmentId, code: true },
     {
       label: t("Trạng thái"),
       value: `${statusLabel(entry.statusBefore)} → ${statusLabel(entry.statusAfter)}`,
     },
-    { label: "Actor", value: entry.actorName },
+    { label: t("Người thao tác"), value: entry.actorName },
     { label: "IP", value: dash(entry.ipAddress) },
     { label: t("Trình duyệt"), value: dash(entry.browser) },
     { label: t("Hệ điều hành"), value: dash(entry.operatingSystem) },

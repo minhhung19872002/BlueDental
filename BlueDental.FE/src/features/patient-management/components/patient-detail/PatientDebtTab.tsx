@@ -10,7 +10,7 @@ import { useTablePagination } from "@/hooks/useTablePagination";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { countedTotal } from "@/utils/countedTotal";
-import { formatDateTime, formatVND } from "@/utils/format";
+import { formatDateTime, formatMoneyUnit } from "@/utils/format";
 
 const { Text } = Typography;
 
@@ -31,7 +31,7 @@ export function PatientDebtTab({ patientId }: { patientId: string }) {
       title: t("Số tiền"),
       dataIndex: "amount",
       width: 180,
-      render: (value: number) => <Text strong>{formatVND(value)} đ</Text>,
+      render: (value: number) => <Text strong>{formatMoneyUnit(value)}</Text>,
     },
     {
       title: t("Nhân viên"),

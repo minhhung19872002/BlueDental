@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { TableColumnsType } from "antd";
 import { t } from "@/lib/i18n";
-import { formatDate, formatVND } from "@/utils/format";
+import { formatDate, formatMoneyUnit } from "@/utils/format";
 import { useMockDebtLines, useMockSalesSummary, type RangeQuery } from "../api/reportMockQueries";
 import { useClientPaging } from "../hooks/useClientPaging";
 import type { DebtLineVm } from "../types/mock";
@@ -11,7 +11,7 @@ import { ReportTableCard } from "./ReportTableCard";
 import { groupSpans, spanCell } from "./tableSpans";
 
 const money = (cls = "") => (v: number) => (
-  <span className={`report-money ${cls}`.trim()}>{formatVND(v)} đ</span>
+  <span className={`report-money ${cls}`.trim()}>{formatMoneyUnit(v)}</span>
 );
 
 function buildColumns(rows: DebtLineVm[]): TableColumnsType<DebtLineVm> {

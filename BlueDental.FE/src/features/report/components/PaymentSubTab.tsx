@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react";
 import type { TableColumnsType } from "antd";
 import { t } from "@/lib/i18n";
-import { formatDate, formatVND } from "@/utils/format";
+import { formatDate, formatMoneyUnit } from "@/utils/format";
 import { exportToExcel, type ExportColumn } from "@/utils/exportExcel";
 import { paymentChannelLabels, type PaymentChannel } from "../api/financeApi";
 import { useMockPaymentLines, useMockSalesSummary, type RangeQuery } from "../api/reportMockQueries";
@@ -13,7 +13,7 @@ import { ReportTableCard } from "./ReportTableCard";
 import { DailyTotalsTable } from "./DailyTotalsTable";
 
 const money = (cls = "") => (v: number) => (
-  <span className={`report-money ${cls}`.trim()}>{formatVND(v)} đ</span>
+  <span className={`report-money ${cls}`.trim()}>{formatMoneyUnit(v)}</span>
 );
 
 function buildColumns(): TableColumnsType<PaymentLineVm> {

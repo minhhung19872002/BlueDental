@@ -1,6 +1,6 @@
 import { Button, Spin } from "antd";
 import { DownloadOutlined } from "@ant-design/icons";
-import { formatVND } from "@/utils/format";
+import { formatMoneyUnit } from "@/utils/format";
 import { t } from "@/lib/i18n";
 import type { StatTone } from "./ReportStatCards";
 
@@ -22,7 +22,7 @@ export function ReportStatsBar({ label, value, tone, loading, onExport }: Props)
     <div className="report-stats-bar">
       <span className={`report-stats-pill report-stats-pill--${tone}`}>
         <span className="report-stats-label">{label}</span>
-        {loading ? <Spin size="small" /> : <span className="report-stats-value">{formatVND(value)} đ</span>}
+        {loading ? <Spin size="small" /> : <span className="report-stats-value">{formatMoneyUnit(value)}</span>}
       </span>
       {onExport ? (
         <Button icon={<DownloadOutlined />} className="report-btn--blue" onClick={onExport}>

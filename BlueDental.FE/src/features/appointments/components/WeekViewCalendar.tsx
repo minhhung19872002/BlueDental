@@ -7,13 +7,14 @@ import { useAppointmentList } from "../api/appointmentQueries";
 import type { AppointmentDto } from "../types/appointment";
 import { EventCard } from "./EventCard";
 import { STATUS_GROUPS } from "../hooks/useStatusCounts";
+import { t } from "@/lib/i18n";
 
 const DAY_START_H = 6;
 const DAY_END_H = 22;
 const SLOT_H_30 = 25;
 const SLOT_H_15 = 38;
 
-const DAY_NAMES = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
+const DAY_NAME_KEYS = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"] as const;
 
 function getSlotH(slotMinutes: 15 | 30): number {
   return slotMinutes === 15 ? SLOT_H_15 : SLOT_H_30;
@@ -134,7 +135,7 @@ export function WeekViewCalendar({
             >
               <div className="cal-week-day-date">{day.format("DD/MM")}</div>
               <div className="cal-week-day-name">
-                {DAY_NAMES[day.day()]} ({countByDay.get(i) ?? 0})
+                {t(DAY_NAME_KEYS[day.day()])} ({countByDay.get(i) ?? 0})
               </div>
             </div>
           );

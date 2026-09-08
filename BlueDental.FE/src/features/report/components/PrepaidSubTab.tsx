@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { TableColumnsType } from "antd";
 import { t } from "@/lib/i18n";
-import { formatDate, formatVND } from "@/utils/format";
+import { formatDate, formatMoneyUnit } from "@/utils/format";
 import { useMockPrepaidLines, useMockSalesSummary, type RangeQuery } from "../api/reportMockQueries";
 import { useClientPaging } from "../hooks/useClientPaging";
 import type { PrepaidEventType, PrepaidLineVm } from "../types/mock";
@@ -20,7 +20,7 @@ function renderAmount(value: number, row: PrepaidLineVm) {
   return (
     <span className={`report-money report-money--${EVENT_CONFIG[row.eventType].tone}`}>
       {sign}
-      {formatVND(Math.abs(value))} đ
+      {formatMoneyUnit(Math.abs(value))}
     </span>
   );
 }
@@ -49,7 +49,7 @@ function buildColumns(): TableColumnsType<PrepaidLineVm> {
       dataIndex: "balanceAfter",
       width: 140,
       align: "right",
-      render: (v: number) => <span className="report-money">{formatVND(v)} đ</span>,
+      render: (v: number) => <span className="report-money">{formatMoneyUnit(v)}</span>,
     },
   ];
 }

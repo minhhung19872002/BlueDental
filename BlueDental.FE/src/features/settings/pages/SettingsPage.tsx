@@ -10,16 +10,16 @@ import { PageHeader } from "@/components/PageHeader";
 
 const { Title, Text, Link } = Typography;
 
-const TIMEZONE_OPTIONS = [
-  { value: "Asia/Ho_Chi_Minh", label: "Indochina Time (UTC+7) — TP.HCM / Ha Noi" },
-  { value: "Asia/Bangkok", label: "Indochina Time (UTC+7) — Bangkok" },
-  { value: "UTC", label: "UTC+0" },
-];
+const TIMEZONE_KEYS = [
+  { value: "Asia/Ho_Chi_Minh", labelKey: "Múi giờ Đông Dương (UTC+7) — TP.HCM / Hà Nội" },
+  { value: "Asia/Bangkok", labelKey: "Múi giờ Đông Dương (UTC+7) — Bangkok" },
+  { value: "UTC", labelKey: "UTC+0" },
+] as const;
 
-const LANGUAGE_OPTIONS = [
-  { value: "vi", label: "Tieng Viet" },
-  { value: "en", label: "English" },
-];
+const LANGUAGE_KEYS = [
+  { value: "vi", labelKey: "Tiếng Việt" },
+  { value: "en", labelKey: "English" },
+] as const;
 
 const CURRENCY_OPTIONS = [
   { value: "VND", label: "VND" },
@@ -156,10 +156,10 @@ function GeneralSettingsTab() {
       </Title>
       <Form form={form} layout="vertical">
         <Form.Item name="timezone" label={t("Múi giờ")}>
-          <Select options={TIMEZONE_OPTIONS} />
+          <Select options={TIMEZONE_KEYS.map((o) => ({ value: o.value, label: t(o.labelKey) }))} />
         </Form.Item>
         <Form.Item name="language" label={t("Ngôn ngữ mặc định")}>
-          <Select options={LANGUAGE_OPTIONS} />
+          <Select options={LANGUAGE_KEYS.map((o) => ({ value: o.value, label: t(o.labelKey) }))} />
         </Form.Item>
         <Form.Item name="currency" label={t("Đơn vị tiền tệ")}>
           <Select options={CURRENCY_OPTIONS} />

@@ -6,7 +6,7 @@ import {
   type VoucherDto,
 } from "@/features/voucher/api/voucherApi";
 import { t } from "@/lib/i18n";
-import { formatVND } from "@/utils/format";
+import { formatMoneyUnit } from "@/utils/format";
 import type { PlanVoucherState } from "../../hooks/usePlanVoucher";
 
 /**
@@ -45,7 +45,7 @@ function VoucherRow({
           </span>
           <span className="pd-voucher-row__name">{voucher.name}</span>
           <small className="pd-voucher-row__saving">
-            {t("≈ giảm {0}", `${formatVND(saving)}đ`)}
+            {t("≈ giảm {0}", formatMoneyUnit(saving))}
           </small>
         </span>
       </button>

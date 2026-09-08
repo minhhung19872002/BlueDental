@@ -1,4 +1,4 @@
-import { formatDate, formatVND } from "@/utils/format";
+import { formatDate, formatMoneyUnit } from "@/utils/format";
 import { t } from "@/lib/i18n";
 import type { DailyTotalVm } from "../types/mock";
 
@@ -25,7 +25,7 @@ export function DailyTotalsTable({ rows, valueLabel }: Props) {
               <td>{index + 1}</td>
               <td>{formatDate(row.date)}</td>
               <td className="report-daily-table-amount">
-                <span className="report-money">{formatVND(row.amount)} đ</span>
+                <span className="report-money">{formatMoneyUnit(row.amount)}</span>
               </td>
             </tr>
           ))}

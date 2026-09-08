@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import type { PagedResult } from "@/types";
-import { t } from "@/lib/i18n";
+import { getLocale, t } from "@/lib/i18n";
 
 export type VoucherStatus = "active" | "expired" | "out_of_uses";
 export type VoucherScopeTarget = "service" | "treatment";
@@ -245,7 +245,7 @@ export function calculateVoucherDiscount(voucher: VoucherDto, orderAmount: numbe
 export function formatVoucherValue(voucher: VoucherDto): string {
   return voucher.discountType === "percentage"
     ? `${voucher.discountValue}%`
-    : `${voucher.discountValue.toLocaleString("vi-VN")}đ`;
+    : `${voucher.discountValue.toLocaleString(getLocale())}${t("đ")}`;
 }
 
 export function useVouchers(status?: string, filter?: string, branchId?: string) {

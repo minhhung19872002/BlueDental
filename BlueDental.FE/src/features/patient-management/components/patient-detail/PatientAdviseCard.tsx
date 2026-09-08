@@ -9,7 +9,7 @@ import {
 import type { TablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
 import { countedTotal } from "@/utils/countedTotal";
-import { formatDate, formatVND } from "@/utils/format";
+import { formatDate, formatMoneyUnit } from "@/utils/format";
 import type { PlanVoucherState } from "../../hooks/usePlanVoucher";
 import { AdviseVoucherPicker } from "./AdviseVoucherPicker";
 
@@ -54,7 +54,7 @@ const COLUMN_LABELS: Record<OptionalColumn, string> = {
   note: "Ghi chú tư vấn",
 };
 
-const money = (value: number) => `${formatVND(value)} đ`;
+const money = (value: number) => formatMoneyUnit(value);
 
 interface Props {
   rows: PatientAdviseDto[];

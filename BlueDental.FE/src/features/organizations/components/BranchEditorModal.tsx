@@ -156,10 +156,10 @@ export function BranchEditorModal({ open, branch, onClose }: BranchEditorModalPr
         <div className="settings-row">
           <Form.Item
             name="email"
-            label="Email"
+            label={t("Email")}
             rules={[{ type: "email", message: t("Email không hợp lệ") }]}
           >
-            <Input placeholder="Email" />
+            <Input placeholder={t("Email")} />
           </Form.Item>
           <Form.Item
             name="phoneNumber"

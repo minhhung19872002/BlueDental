@@ -13,7 +13,7 @@ import type { PrescriptionPatientSummary } from "@/features/treatment-management
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
 import { countedTotal } from "@/utils/countedTotal";
-import { formatDate, formatVND } from "@/utils/format";
+import { formatDate, formatMoneyUnit } from "@/utils/format";
 import { GENDER, type GenderCode, type PatientDto } from "../../types/patient";
 
 const GENDER_LABELS: Record<GenderCode, string> = {
@@ -53,21 +53,21 @@ export function PatientInvoiceTab({ patientId }: { patientId: string }) {
       dataIndex: "totalAmount",
       width: 135,
       align: "right",
-      render: (value: number) => `${formatVND(value)} đ`,
+      render: (value: number) => formatMoneyUnit(value),
     },
     {
       title: t("Đã thanh toán"),
       dataIndex: "paidAmount",
       width: 145,
       align: "right",
-      render: (value: number) => `${formatVND(value)} đ`,
+      render: (value: number) => formatMoneyUnit(value),
     },
     {
       title: t("Còn lại"),
       dataIndex: "balanceDue",
       width: 135,
       align: "right",
-      render: (value: number) => `${formatVND(value)} đ`,
+      render: (value: number) => formatMoneyUnit(value),
     },
     {
       title: t("Trạng thái"),

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { TableColumnsType } from "antd";
 import { t } from "@/lib/i18n";
-import { formatDate, formatVND } from "@/utils/format";
+import { formatDate, formatMoneyUnit } from "@/utils/format";
 import { useClientPaging } from "../hooks/useClientPaging";
 import type { ServiceLineVm } from "../types/mock";
 import { ReportTableCard } from "./ReportTableCard";
@@ -48,14 +48,14 @@ function buildColumns(rows: ServiceLineVm[]): TableColumnsType<ServiceLineVm> {
       dataIndex: "totalAmount",
       width: 140,
       align: "right",
-      render: (v: number) => <span className="report-money">{formatVND(v)} đ</span>,
+      render: (v: number) => <span className="report-money">{formatMoneyUnit(v)}</span>,
     },
     {
       title: t("Đã thanh toán"),
       dataIndex: "paidAmount",
       width: 150,
       align: "right",
-      render: (v: number) => <span className="report-money">{formatVND(v)} đ</span>,
+      render: (v: number) => <span className="report-money">{formatMoneyUnit(v)}</span>,
     },
   ];
 }

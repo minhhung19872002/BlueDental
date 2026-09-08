@@ -108,7 +108,7 @@ function UserModal({
         <Form.Item name="name" label={t("Họ và tên")} rules={[{ required: true, message: t("Nhập họ tên") }]}>
           <Input placeholder={t("Nguyễn Văn A")} />
         </Form.Item>
-        <Form.Item name="email" label="Email" rules={[{ required: true, type: "email", message: t("Nhập email hợp lệ") }]}>
+        <Form.Item name="email" label={t("Email")} rules={[{ required: true, type: "email", message: t("Nhập email hợp lệ") }]}>
           <Input placeholder="user@example.com" />
         </Form.Item>
         <Form.Item name="phoneNumber" label={t("Số điện thoại")}>
@@ -166,7 +166,7 @@ function RoleModal({ open, onClose }: { open: boolean; onClose: () => void }) {
     >
       <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
         <Form.Item name="name" label={t("Tên vai trò")} rules={[{ required: true, message: t("Nhập tên vai trò") }]}>
-          <Input placeholder="VD: admin, doctor, receptionist" />
+          <Input placeholder={t("VD: admin, doctor, receptionist")} />
         </Form.Item>
         <Form.Item name="isDefault" label={t("Mặc định")} valuePropName="checked">
           <Switch checkedChildren={t("Có")} unCheckedChildren={t("Không")} />
@@ -204,7 +204,7 @@ function UsersTab() {
   const columns: ColumnsType<IdentityUserDto> = [
     { title: t("Tên đăng nhập"), dataIndex: "userName", key: "userName", width: 160 },
     { title: t("Họ và tên"), dataIndex: "name", key: "name" },
-    { title: "Email", dataIndex: "email", key: "email" },
+    { title: t("Email"), dataIndex: "email", key: "email" },
     { title: t("Số điện thoại"), dataIndex: "phoneNumber", key: "phoneNumber", render: (v: string) => v ?? "—" },
     {
       title: t("Vai trò"),

@@ -1,7 +1,7 @@
 import type { TableColumnsType } from "antd";
 import { Tag } from "antd";
 import { t } from "@/lib/i18n";
-import { formatDate, formatVND } from "@/utils/format";
+import { formatDate, formatMoneyUnit } from "@/utils/format";
 import {
   paymentChannelLabels,
   SALES_APPROVAL_STATUS,
@@ -74,7 +74,7 @@ export function buildSalesEntryColumns({ kind, onEdit }: ColumnOptions): TableCo
       align: "right",
       render: (v: number) => (
         <span className={`report-money ${isExpense ? "report-money--red" : "report-money--green"}`}>
-          {formatVND(v)} đ
+          {formatMoneyUnit(v)}
         </span>
       ),
     },
