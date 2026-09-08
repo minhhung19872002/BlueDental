@@ -156,6 +156,18 @@ export interface CreatePatientAdviseDto {
   teeth: ToothSelectionDto[];
 }
 
+/**
+ * What `PUT patient-diagnoses/{id}` accepts: the doctors, the note and the
+ * teeth. The diagnosis itself cannot be changed on the server yet — see
+ * docs/clone/unknowns.md.
+ */
+export interface UpdatePatientDiagnosisDto {
+  staffId: string;
+  secondStaffId?: string;
+  note?: string;
+  teeth: ToothSelectionDto[];
+}
+
 export interface ListByPatientInput {
   patientId?: string;
   clinicBranchId?: string;
@@ -174,6 +186,9 @@ export const consultingApi = {
 
   cancelDiagnosis: (id: string): Promise<PatientDiagnosisDto> =>
     api.post<PatientDiagnosisDto>(`/v1/app/patient-diagnoses/${id}/cancel`).then((r) => r.data),
+
+  updateDiagnosis: (id: string, data: UpdatePatientDiagnosisDto): Promise<PatientDiagnosisDto> =>
+    api.put<PatientDiagnosisDto>(`/v1/app/patient-diagnoses/${id}`, data).then((r) => r.data),
 
   advises: (params: ListByPatientInput): Promise<PagedResult<PatientAdviseDto>> =>
     api

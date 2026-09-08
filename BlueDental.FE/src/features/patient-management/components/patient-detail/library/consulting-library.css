@@ -13,6 +13,7 @@
   background: rgb(0 0 0 / 50%);
 }
 .pd-lib {
+  position: relative;
   --pd-lib-line: #dfe5ee;
   --pd-lib-ink: #1b2a41;
   --pd-lib-label: #5a6b82;
@@ -400,6 +401,12 @@
   box-shadow: 0 4px 12px rgb(27 42 65 / 12%);
   cursor: pointer;
   transform: translateY(-50%);
+  transition: none;
+}
+/* The global press dip would swap out the centring translate: the arrow would
+   drop by half its height and spring back. It stays put instead. */
+.pd-lib-arrow:active {
+  transform: translateY(-50%);
 }
 .pd-lib-arrow:disabled {
   opacity: 0.4;
@@ -453,11 +460,35 @@
   opacity: 0.4;
   cursor: default;
 }
-.pd-lib-tool__danger {
+/* "Tắt chế độ vẽ": red on a 10% red ground, 20% on hover (the reference's). */
+.pd-lib-tool--danger,
+.pd-lib-tool--danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--bd-red) 10%, transparent);
   color: var(--bd-red);
+}
+.pd-lib-tool--danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--bd-red) 20%, transparent);
 }
 .pd-lib-tool-wrap {
   display: inline-flex;
+}
+/* Tooltips and the pen popover mount inside the dialog (popupContainerOf) and
+   have to clear its full-screen layers. The tooltip is the reference's: ink
+   ground, 12px white text, 6px corners, 6px 12px padding. */
+.pd-lib .ant-tooltip,
+.pd-lib .ant-popover {
+  z-index: 1730;
+}
+.pd-lib .ant-tooltip {
+  --antd-arrow-background-color: var(--pd-lib-ink);
+}
+.pd-lib .ant-tooltip .ant-tooltip-container {
+  min-height: 0;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: var(--pd-lib-ink);
+  font-size: 12px;
+  line-height: 16px;
 }
 .pd-lib-toolbar__zoom {
   min-width: 48px;

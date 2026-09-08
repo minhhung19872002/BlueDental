@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useRef, type PointerEvent } from "react";
-import type { AnnotationPoint, AnnotationStroke, ViewerAnnotation } from "../../../hooks/useViewerAnnotation";
+import type {
+  AnnotationPoint,
+  AnnotationStroke,
+  ViewerAnnotation,
+} from "../../../hooks/useViewerAnnotation";
 
 interface Props {
   /** The pen is out: the canvas takes the pointer. */
@@ -33,11 +37,22 @@ function paint(canvas: HTMLCanvasElement, strokes: AnnotationStroke[]) {
  * centre of the on-screen box is the layout centre, and the inverse of the
  * frame's matrix takes the offset from there back into layout pixels.
  */
-function pointOf(canvas: HTMLCanvasElement, event: PointerEvent<HTMLCanvasElement>): AnnotationPoint {
+function pointOf(
+  canvas: HTMLCanvasElement,
+  event: PointerEvent<HTMLCanvasElement>,
+): AnnotationPoint {
   const frame = canvas.parentElement;
   const box = canvas.getBoundingClientRect();
   const matrix = frame ? new DOMMatrix(getComputedStyle(frame).transform) : new DOMMatrix();
-  const offset = new DOMPoint(event.clientX - (box.left + box.width / 2), event.clientY - (box.top + box.height / 2));
+  // The library sheet scales with CSS `zoom`, which the matrix cannot see but
+  // the on-screen box does: whatever width the matrix does not explain is it.
+  const widthAtZoomOne =
+    canvas.clientWidth * Math.abs(matrix.a) + canvas.clientHeight * Math.abs(matrix.b);
+  const zoom = widthAtZoomOne > 0 ? box.width / widthAtZoomOne : 1;
+  const offset = new DOMPoint(
+    (event.clientX - (box.left + box.width / 2)) / zoom,
+    (event.clientY - (box.top + box.height / 2)) / zoom,
+  );
   const local = matrix.inverse().transformPoint(offset);
   return { x: local.x + canvas.clientWidth / 2, y: local.y + canvas.clientHeight / 2 };
 }

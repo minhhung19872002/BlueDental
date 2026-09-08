@@ -1094,8 +1094,9 @@
   flex: none;
   min-height: 420px;
 }
-/* A row opens "Cập nhật phiếu dịch vụ". */
-.pd-advise-card .ant-table-tbody > tr > td {
+/* A row opens "Cập nhật phiếu dịch vụ"; in the diagnosis card, the form above. */
+.pd-advise-card .ant-table-tbody > tr > td,
+.pd-diagnosis-card .ant-table-tbody > tr > td {
   cursor: pointer;
 }
 .pd-advise-card .ant-table-tbody > tr > td.ant-table-selection-column {
@@ -1107,11 +1108,36 @@
 .pd-advise-card .ant-table-placeholder .ant-table-cell {
   height: 140px;
 }
+/* As the reference lays the card out: 12px of body padding, the "Cột hiển
+   thị" row, 8px, then the table in its own bordered 16px block. */
 .pd-advise-tools {
   display: flex;
   flex-shrink: 0;
   justify-content: flex-end;
-  padding: 10px 16px 0;
+  padding: 12px 12px 8px;
+}
+/* The reference's column-config button: h-8, rounded-lg, 13px, px-3. */
+.pd-advise-tools .ant-btn {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+.pd-advise-table {
+  flex-shrink: 0;
+  padding: 0 12px 12px;
+}
+.pd-advise-table .ant-table-wrapper {
+  border: 1px solid var(--bd-line);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.pd-advise-table .ant-table-content,
+.pd-advise-table .ant-table-body {
+  overflow: auto hidden !important;
+}
+.pd-advise-table .ant-table-thead > tr > th {
+  position: static;
 }
 .pd-column-popover {
   display: flex;

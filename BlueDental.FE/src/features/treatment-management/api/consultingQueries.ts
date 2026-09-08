@@ -5,6 +5,7 @@ import {
   type CreatePatientDiagnosisDto,
   type ListByPatientInput,
   type UpdatePatientAdviseDto,
+  type UpdatePatientDiagnosisDto,
 } from "./consultingApi";
 
 export const consultingKeys = {
@@ -72,6 +73,12 @@ export function useCreateDiagnosis() {
 
 export function useCancelDiagnosis() {
   return useConsultingMutation((id: string) => consultingApi.cancelDiagnosis(id));
+}
+
+export function useUpdateDiagnosis() {
+  return useConsultingMutation((input: { id: string; data: UpdatePatientDiagnosisDto }) =>
+    consultingApi.updateDiagnosis(input.id, input.data),
+  );
 }
 
 export function useCreateAdvise() {

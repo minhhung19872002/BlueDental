@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { Button, Tooltip, type TableColumnsType } from "antd";
 import { CalendarOutlined, CloseOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import { DataTable } from "@/components/DataTable";
@@ -18,6 +19,17 @@ import type { TablePagination } from "@/hooks/useTablePagination";
  * that has not been named yet reads "Chưa cập nhật" in red, not a dash.
  */
 
+/**
+ * The form sits under the card's sticky header, so a row further down has
+ * scrolled it away: bring the card back to its top, and the card itself into
+ * the page's view.
+ */
+function revealForm(card: HTMLElement | null) {
+  if (!card) return;
+  card.scrollTo({ top: 0, behavior: "smooth" });
+  card.scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
+
 interface Props {
   rows: PatientDiagnosisDto[];
   totalCount: number;
@@ -25,6 +37,8 @@ interface Props {
   pagination: TablePagination;
   expanded: boolean;
   onToggleForm: () => void;
+  /** A row was clicked: open that slip in the form above, for updating. */
+  onEdit: (row: PatientDiagnosisDto) => void;
   onCreateService: (row: PatientDiagnosisDto) => void;
   onSchedule: (row: PatientDiagnosisDto) => void;
   onDelete: (row: PatientDiagnosisDto) => void;
@@ -38,11 +52,17 @@ export function PatientDiagnosisCard({
   pagination,
   expanded,
   onToggleForm,
+  onEdit,
   onCreateService,
   onSchedule,
   onDelete,
   children,
 }: Props) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const handleToggleForm = () => {
+    onToggleForm();
+    if (!expanded) revealForm(cardRef.current);
+  };
   const columns: TableColumnsType<PatientDiagnosisDto> = [
     {
       title: t("Số phiếu"),
@@ -126,7 +146,7 @@ export function PatientDiagnosisCard({
   ];
 
   return (
-    <div className="bd-cat-card pd-diagnosis-card">
+    <div ref={cardRef} className="bd-cat-card pd-diagnosis-card">
       <header className="pd-card-head">
         <div className="pd-card-title">
           <h3>{t("Tạo chẩn đoán")}</h3>
@@ -136,7 +156,7 @@ export function PatientDiagnosisCard({
             aria-label={t("Tạo chẩn đoán")}
             aria-expanded={expanded}
             icon={expanded ? <CloseOutlined /> : <PlusOutlined />}
-            onClick={onToggleForm}
+            onClick={handleToggleForm}
           />
         </div>
         <div className="pd-card-note">
@@ -153,6 +173,15 @@ export function PatientDiagnosisCard({
           loading={loading}
           columns={columns}
           dataSource={rows}
+          onRow={(row) => ({
+            onClick: (event) => {
+              // The action buttons keep their own meaning.
+              const target = event.target instanceof Element ? event.target : null;
+              if (target?.closest("button, a")) return;
+              onEdit(row);
+              revealForm(cardRef.current);
+            },
+          })}
           locale={{ emptyText: t("Chưa có chẩn đoán") }}
           pagination={pagination.buildConfig(totalCount, countedTotal(t("chẩn đoán")))}
         />

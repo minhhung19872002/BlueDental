@@ -279,24 +279,29 @@ export function PatientAdviseCard({
         </Popover>
       </div>
 
-      <DataTable<PatientAdviseDto>
-        rowKey="id"
-        loading={loading}
-        columns={columns}
-        dataSource={rows}
-        rowSelection={{ selectedRowKeys: selected, onChange: (keys) => onSelect(keys as string[]) }}
-        onRow={(row) => ({
-          onClick: (event) => {
-            // The checkbox and the action buttons keep their own meaning.
-            const target = event.target instanceof Element ? event.target : null;
-            if (target?.closest("button, a, .ant-checkbox-wrapper, .ant-table-selection-column"))
-              return;
-            onEdit(row);
-          },
-        })}
-        locale={{ emptyText: t("Chưa có kế hoạch") }}
-        pagination={pagination.buildConfig(totalCount, countedTotal(t("dịch vụ")))}
-      />
+      <div className="pd-advise-table">
+        <DataTable<PatientAdviseDto>
+          rowKey="id"
+          loading={loading}
+          columns={columns}
+          dataSource={rows}
+          rowSelection={{
+            selectedRowKeys: selected,
+            onChange: (keys) => onSelect(keys as string[]),
+          }}
+          onRow={(row) => ({
+            onClick: (event) => {
+              // The checkbox and the action buttons keep their own meaning.
+              const target = event.target instanceof Element ? event.target : null;
+              if (target?.closest("button, a, .ant-checkbox-wrapper, .ant-table-selection-column"))
+                return;
+              onEdit(row);
+            },
+          })}
+          locale={{ emptyText: t("Chưa có kế hoạch") }}
+          pagination={pagination.buildConfig(totalCount, countedTotal(t("dịch vụ")))}
+        />
+      </div>
 
       <footer className="pd-plan-summary">
         <div className="pd-plan-total">

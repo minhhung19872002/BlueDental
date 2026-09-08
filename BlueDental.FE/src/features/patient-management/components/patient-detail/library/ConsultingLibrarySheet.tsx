@@ -93,6 +93,7 @@ export function ConsultingLibrarySheet({
   return (
     <div className="pd-lib-body">
       {state}
+      <ViewerAnnotationCanvas active={drawing} annotation={annotation} />
       <button
         type="button"
         className="pd-lib-arrow pd-lib-arrow--prev"

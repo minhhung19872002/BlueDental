@@ -51,16 +51,33 @@ export function useDiagnosisDraft() {
 
   /** The chip's X: a tooth goes, or the jaw chip returns to picking teeth. */
   const removeTooth = useCallback((fdi: number) => {
-    setDraft((current) => ({ ...current, teeth: current.teeth.filter((pick) => pick.fdi !== fdi) }));
+    setDraft((current) => ({
+      ...current,
+      teeth: current.teeth.filter((pick) => pick.fdi !== fdi),
+    }));
   }, []);
 
   const clearJaw = useCallback(() => setDraft((current) => ({ ...current, tab: "teeth" })), []);
 
   const reset = useCallback(() => setDraft(EMPTY_DRAFT), []);
 
+  /** Seeds the draft from a saved slip; baby teeth (FDI 51–85) bring up the deciduous chart. */
+  const load = useCallback((value: ToothPickerValue) => {
+    if (value.kind === "jaw") {
+      setDraft({ tab: value.jaw, dentition: "permanent", teeth: [] });
+      return;
+    }
+    const dentition: Dentition = value.teeth.some((pick) => pick.fdi >= 51)
+      ? "deciduous"
+      : "permanent";
+    setDraft({ tab: "teeth", dentition, teeth: value.teeth });
+  }, []);
+
   const value = useMemo<ToothPickerValue>(
     () =>
-      draft.tab === "teeth" ? { kind: "teeth", teeth: draft.teeth } : { kind: "jaw", jaw: draft.tab },
+      draft.tab === "teeth"
+        ? { kind: "teeth", teeth: draft.teeth }
+        : { kind: "jaw", jaw: draft.tab },
     [draft.tab, draft.teeth],
   );
 
@@ -78,5 +95,6 @@ export function useDiagnosisDraft() {
     removeTooth,
     clearJaw,
     reset,
+    load,
   };
 }

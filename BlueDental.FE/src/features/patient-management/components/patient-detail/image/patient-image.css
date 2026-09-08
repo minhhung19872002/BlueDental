@@ -264,7 +264,9 @@
   border-radius: 50%;
   background: var(--bd-card);
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 .pi-round--grip {
   color: var(--pi-muted);
@@ -512,32 +514,54 @@
   color: #666;
   cursor: default;
 }
+/* The pen popover, as the reference draws it: 264px wide, 16px corners,
+   "Màu bút" over six 28px swatches and a free pick, "Độ dày nét" over three
+   buttons that each show their dot, then the way out of drawing mode. */
+.pi-pen-popover .ant-popover-container {
+  width: 264px;
+  padding: 12px;
+  border: 1px solid var(--bd-line);
+  border-radius: 16px;
+  box-shadow: 0 6px 16px rgb(27 42 65 / 8%);
+}
 .pi-pen-palette {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  min-width: 180px;
+  gap: 12px;
+  color: var(--bd-ink);
+}
+.pi-pen-palette__title {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
 }
 .pi-pen-colors {
   display: flex;
+  align-items: center;
   gap: 8px;
 }
 .pi-pen-swatch {
-  width: 22px;
-  height: 22px;
-  border: 2px solid var(--bd-line);
+  display: inline-grid;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  place-items: center;
+  border: 2px solid transparent;
   border-radius: 50%;
   background: var(--pi-swatch);
+  color: #fff;
   cursor: pointer;
 }
+/* Chosen: an ink ring with a white gap inside it, and a tick. */
 .pi-pen-swatch--active {
-  border-color: var(--bd-link);
-  box-shadow: 0 0 0 2px rgba(38, 113, 216, 0.25);
+  border-color: var(--bd-ink);
+  box-shadow: inset 0 0 0 2px #fff;
 }
-/* The free pick: a rainbow ring until a colour is chosen, then that colour. */
+/* The free pick sits at the far right: a rainbow ring until a colour is chosen. */
 .pi-pen-swatch--custom {
   position: relative;
   overflow: hidden;
+  margin-left: auto;
   background:
     linear-gradient(var(--pi-swatch), var(--pi-swatch)),
     conic-gradient(#ef4444, #f59e0b, #10b981, #2563eb, #8b5cf6, #ef4444);
@@ -550,15 +574,44 @@
   opacity: 0;
   cursor: pointer;
 }
-.pi-pen-size {
-  display: flex;
-  align-items: center;
+.pi-pen-sizes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
-  font-size: 12px;
-  color: var(--bd-muted);
 }
-.pi-pen-size input {
-  flex: 1;
+.pi-pen-size {
+  display: inline-grid;
+  height: 32px;
+  place-items: center;
+  border: 1px solid var(--bd-line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--bd-ink);
+  cursor: pointer;
+}
+.pi-pen-size--active {
+  border-color: var(--bd-primary);
+  background: color-mix(in srgb, var(--bd-primary) 10%, #fff);
+  color: var(--bd-primary);
+}
+.pi-pen-size__dot {
+  width: var(--pi-dot);
+  height: var(--pi-dot);
+  border-radius: 50%;
+  background: currentColor;
+}
+.pi-pen-palette__exit {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--bd-muted);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.pi-pen-palette__exit:hover {
+  color: var(--bd-ink);
 }
 
 @media (max-width: 1100px) {

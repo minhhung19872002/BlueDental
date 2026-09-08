@@ -4,11 +4,13 @@ import {
   useCancelDiagnosis,
   useCreateDiagnosis,
   useRejectAdvise,
+  useUpdateDiagnosis,
 } from "@/features/treatment-management/api/consultingQueries";
 import type {
   CreatePatientDiagnosisDto,
   PatientAdviseDto,
   PatientDiagnosisDto,
+  UpdatePatientDiagnosisDto,
 } from "@/features/treatment-management/api/consultingApi";
 import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
@@ -27,6 +29,7 @@ export function useConsultingActions(patientId: string, branchId: string | null)
   const deleteImage = useDeletePatientImage();
   const reorderImages = useConsultingImageReorder(patientId);
   const createDiagnosis = useCreateDiagnosis();
+  const updateDiagnosis = useUpdateDiagnosis();
   const cancelDiagnosis = useCancelDiagnosis();
   const rejectAdvise = useRejectAdvise();
 
@@ -70,6 +73,21 @@ export function useConsultingActions(patientId: string, branchId: string | null)
     }
   };
 
+  /** Resolves with the slip as saved, or null when the server turned it down. */
+  const update = async (
+    id: string,
+    data: UpdatePatientDiagnosisDto,
+  ): Promise<PatientDiagnosisDto | null> => {
+    try {
+      const updated = await updateDiagnosis.mutateAsync({ id, data });
+      toast.success(t("Đã cập nhật phiếu chẩn đoán"));
+      return updated;
+    } catch (error) {
+      toast.error(extractApiError(error));
+      return null;
+    }
+  };
+
   const confirmCancelDiagnosis = async () => {
     if (!removingDiagnosis) return;
     try {
@@ -104,6 +122,8 @@ export function useConsultingActions(patientId: string, branchId: string | null)
     reordering: reorderImages.reordering,
     create,
     creating: createDiagnosis.isPending,
+    update,
+    updating: updateDiagnosis.isPending,
     removingDiagnosis,
     setRemovingDiagnosis,
     confirmCancelDiagnosis,

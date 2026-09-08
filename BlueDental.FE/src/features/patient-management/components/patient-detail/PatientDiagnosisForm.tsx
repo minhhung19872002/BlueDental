@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button, Form, Input, Select, Tooltip } from "antd";
 import { CloseOutlined, SearchOutlined } from "@ant-design/icons";
 import { FloatingField } from "@/components/FloatingField";
@@ -6,25 +6,16 @@ import {
   DentitionRadio,
   ToothChart,
   ToothPickerTabs,
+  toothSelectionsToValue,
   toothValueToSelections,
-  type ToothSelection,
 } from "@/components/ToothChart";
+import type { PatientDiagnosisDto } from "@/features/treatment-management/api/consultingApi";
 import { t } from "@/lib/i18n";
 import { useDiagnosisDraft } from "../../hooks/useDiagnosisDraft";
+import type { DiagnosisIntent, DiagnosisSubmission } from "../../hooks/useDiagnosisEditor";
 import { DiagnosisDoctorFields, type DiagnosisOption } from "./DiagnosisDoctorFields";
+import { DiagnosisFormCommands } from "./DiagnosisFormCommands";
 import { DiagnosisSelectedTeeth } from "./DiagnosisSelectedTeeth";
-
-/** "Lưu Chẩn Đoán" saves; "Tạo dịch vụ" saves and goes on to the advise. */
-export type DiagnosisIntent = "save" | "service";
-
-export interface DiagnosisSubmission {
-  staffId: string;
-  secondStaffId?: string;
-  diagnosisId: string;
-  note?: string;
-  teeth: ToothSelection[];
-  intent: DiagnosisIntent;
-}
 
 interface FormValues {
   staffId?: string;
@@ -37,6 +28,8 @@ interface Props {
   dentists: DiagnosisOption[];
   diagnoses: DiagnosisOption[];
   submitting: boolean;
+  /** A slip opened from the table: the fields come prefilled and the foot reads "Cập nhật". */
+  editing?: PatientDiagnosisDto | null;
   onSubmit: (submission: DiagnosisSubmission) => void;
   onClose: () => void;
 }
@@ -46,19 +39,38 @@ interface Props {
  * doctors, the tab strip and the chart on the left; diagnosis, note, the
  * chosen teeth and the commands in a 260px column on the right.
  *
- * "Thêm chẩn đoán" (queueing several diagnoses on one slip) is not wired yet
- * — the reference's behaviour could not be observed — so it stays disabled.
+ * Opened on a saved slip, the diagnosis itself is locked: the server's update
+ * cannot change it yet (docs/clone/unknowns.md).
  */
 export function PatientDiagnosisForm({
   dentists,
   diagnoses,
   submitting,
+  editing,
   onSubmit,
   onClose,
 }: Props) {
   const [form] = Form.useForm<FormValues>();
   const [secondEnabled, setSecondEnabled] = useState(false);
   const draft = useDiagnosisDraft();
+
+  const { load, reset } = draft;
+  useEffect(() => {
+    if (!editing) {
+      form.resetFields();
+      setSecondEnabled(false);
+      reset();
+      return;
+    }
+    setSecondEnabled(Boolean(editing.secondStaffId));
+    form.setFieldsValue({
+      staffId: editing.staffId,
+      secondStaffId: editing.secondStaffId ?? undefined,
+      diagnosisId: editing.diagnosisId,
+      note: editing.note ?? undefined,
+    });
+    load(toothSelectionsToValue(editing.teeth));
+  }, [editing, form, load, reset]);
 
   const staffId = Form.useWatch("staffId", form);
   const diagnosisId = Form.useWatch("diagnosisId", form);
@@ -127,6 +139,7 @@ export function PatientDiagnosisForm({
             optionFilterProp="label"
             prefix={<SearchOutlined />}
             options={diagnoses}
+            disabled={Boolean(editing)}
             notFoundContent={t("Không tìm thấy kết quả")}
           />
         </FloatingField>
@@ -138,22 +151,12 @@ export function PatientDiagnosisForm({
           onRemoveTooth={draft.removeTooth}
           onClearJaw={draft.clearJaw}
         />
-        <Button type="primary" block disabled>
-          {t("Thêm chẩn đoán")}
-        </Button>
-        <div className="pd-diagnosis-commands">
-          <Button disabled={!ready} onClick={() => submit("service")}>
-            {t("Tạo dịch vụ")}
-          </Button>
-          <Button
-            className="pd-diagnosis-save"
-            disabled={!ready}
-            loading={submitting}
-            onClick={() => submit("save")}
-          >
-            {t("Lưu Chẩn Đoán")}
-          </Button>
-        </div>
+        <DiagnosisFormCommands
+          editing={Boolean(editing)}
+          ready={ready}
+          submitting={submitting}
+          onSubmit={submit}
+        />
       </div>
     </Form>
   );

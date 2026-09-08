@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Popover, Tooltip } from "antd";
 import {
   ArrowUpFromLine,
@@ -29,16 +30,33 @@ interface ToolProps {
   label: string;
   disabled?: boolean;
   pressed?: boolean;
+  /** The red "Tắt chế độ vẽ" cross. */
+  danger?: boolean;
   onClick?: () => void;
   children: React.ReactNode;
 }
 
-function Tool({ label, disabled, pressed, onClick, children }: ToolProps) {
+/**
+ * Tooltips and the palette must open inside the dialog, which sits above the
+ * page's own popup layer; a popup left in `body` would be hidden behind it.
+ */
+/**
+ * The palette opens without antd's zoom: mounted inside the library (not the
+ * body), the trigger re-measures the popup while it is still scaled and lands
+ * it a couple of hundred pixels off the pen.
+ */
+const NO_MOTION = { motionName: "" };
+
+function popupContainerOf(trigger: HTMLElement): HTMLElement {
+  return trigger.closest<HTMLElement>(".pd-lib") ?? document.body;
+}
+
+function Tool({ label, disabled, pressed, danger, onClick, children }: ToolProps) {
   return (
-    <Tooltip title={label}>
+    <Tooltip title={label} getPopupContainer={popupContainerOf}>
       <button
         type="button"
-        className="pd-lib-tool"
+        className={["pd-lib-tool", danger && "pd-lib-tool--danger"].filter(Boolean).join(" ")}
         aria-label={label}
         aria-pressed={pressed}
         disabled={disabled}
@@ -50,14 +68,13 @@ function Tool({ label, disabled, pressed, onClick, children }: ToolProps) {
   );
 }
 
-/** The popover must open inside the dialog, which sits above the page's own popup layer. */
-function popupContainerOf(trigger: HTMLElement): HTMLElement {
-  return trigger.closest<HTMLElement>(".pd-lib") ?? document.body;
-}
-
 /**
  * The floating pill at the foot of the sheet: zoom out, the percentage, zoom
  * in, reset; the X-ray inversion; the pen with its palette, and undo.
+ *
+ * The pen works as the reference's does: the first press turns drawing on
+ * and shows the palette; while drawing it stays lit and reopens the palette,
+ * whose "Tắt chế độ vẽ" is the way out.
  */
 export function ConsultingLibraryToolbar({
   library,
@@ -68,9 +85,21 @@ export function ConsultingLibraryToolbar({
   onOpenTray,
 }: Props) {
   const { zoom, setZoom, inverted, toggleInverted } = library;
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const invertLabel = inverted
     ? t("Khôi phục độ tương phản phim X-quang")
     : t("Đảo độ tương phản phim X-quang");
+  const penLabel = drawing ? t("Đổi màu hoặc độ dày nét vẽ") : t("Bật chế độ vẽ");
+
+  const handlePen = () => {
+    if (drawing) return; // the popover's own click trigger toggles the palette
+    onToggleDrawing();
+    setPaletteOpen(true);
+  };
+  const handleExitDrawing = () => {
+    setPaletteOpen(false);
+    onToggleDrawing();
+  };
 
   return (
     <div className="pd-lib-toolbar" role="toolbar" aria-label={t("Công cụ xem")}>
@@ -97,30 +126,33 @@ export function ConsultingLibraryToolbar({
         <Contrast size={16} />
       </Tool>
       <span className="pd-lib-toolbar__divider" />
-      {drawing ? (
-        <Tool label={t("Tắt chế độ vẽ")} pressed onClick={onToggleDrawing}>
-          <X size={16} className="pd-lib-tool__danger" />
+      <Popover
+        open={paletteOpen}
+        onOpenChange={setPaletteOpen}
+        content={<PenPalette annotation={annotation} onExit={handleExitDrawing} />}
+        trigger="click"
+        placement="top"
+        rootClassName="pi-pen-popover"
+        getPopupContainer={popupContainerOf}
+        motion={NO_MOTION}
+      >
+        <span className="pd-lib-tool-wrap">
+          <Tool label={penLabel} pressed={drawing} onClick={handlePen}>
+            <PencilLine size={16} />
+          </Tool>
+        </span>
+      </Popover>
+      {drawing && !paletteOpen && (
+        <Tool label={t("Tắt chế độ vẽ")} danger onClick={handleExitDrawing}>
+          <X size={16} />
         </Tool>
-      ) : (
-        <Popover
-          content={<PenPalette annotation={annotation} />}
-          trigger="click"
-          placement="top"
-          getPopupContainer={popupContainerOf}
-        >
-          <span className="pd-lib-tool-wrap">
-            <Tool label={t("Bật chế độ vẽ")} onClick={onToggleDrawing}>
-              <PencilLine size={16} />
-            </Tool>
-          </span>
-        </Popover>
       )}
       <Tool label={t("Hoàn tác nét vẽ")} disabled={!annotation.canUndo} onClick={annotation.undo}>
         <Undo2 size={16} />
       </Tool>
       {onOpenTray && (
         <span className="pd-lib-toolbar__tray">
-          <Tooltip title={t("Mở danh sách nội dung tư vấn")}>
+          <Tooltip title={t("Mở danh sách nội dung tư vấn")} getPopupContainer={popupContainerOf}>
             <button
               type="button"
               className="pd-lib-tray-open"

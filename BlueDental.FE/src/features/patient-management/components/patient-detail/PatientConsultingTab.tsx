@@ -12,12 +12,13 @@ import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { useConsultingActions } from "../../hooks/useConsultingActions";
 import { useConsultingData } from "../../hooks/useConsultingData";
+import { useDiagnosisEditor } from "../../hooks/useDiagnosisEditor";
 import { usePatientImagePermissions } from "../../hooks/usePatientImagePermissions";
 import { usePlanVoucher } from "../../hooks/usePlanVoucher";
 import { PatientAdviseCard } from "./PatientAdviseCard";
 import { PatientConsultingImagePanel } from "./PatientConsultingImagePanel";
 import { PatientDiagnosisCard } from "./PatientDiagnosisCard";
-import { PatientDiagnosisForm, type DiagnosisSubmission } from "./PatientDiagnosisForm";
+import { PatientDiagnosisForm } from "./PatientDiagnosisForm";
 import { QuoteDetailModal } from "./quote/QuoteDetailModal";
 
 /**
@@ -35,22 +36,14 @@ export function PatientConsultingTab({ patientId }: { patientId: string }) {
   const actions = useConsultingActions(patientId, branchId);
   const permissions = usePatientImagePermissions();
 
-  const [expanded, setExpanded] = useState(false);
   const [adviseDiagnosis, setAdviseDiagnosis] = useState<PatientDiagnosisDto | null>(null);
+  const editor = useDiagnosisEditor(actions, setAdviseDiagnosis);
   const [editingAdvise, setEditingAdvise] = useState<PatientAdviseDto | null>(null);
   const [scheduling, setScheduling] = useState<PatientDiagnosisDto | null>(null);
   const [selectedAdvises, setSelectedAdvises] = useState<string[]>([]);
   const [quoteOpen, setQuoteOpen] = useState(false);
   const adviseRows = data.advises.data?.items ?? [];
   const plan = usePlanVoucher(adviseRows, selectedAdvises, branchId);
-
-  /** "Lưu Chẩn Đoán" files the slip; "Tạo dịch vụ" files it and opens the advise. */
-  const handleSubmitDiagnosis = async ({ intent, ...input }: DiagnosisSubmission) => {
-    const created = await actions.create(input);
-    if (!created) return;
-    setExpanded(false);
-    if (intent === "service") setAdviseDiagnosis(created);
-  };
 
   return (
     <section className="pd-pane pd-consulting">
@@ -70,19 +63,21 @@ export function PatientConsultingTab({ patientId }: { patientId: string }) {
           totalCount={data.diagnoses.data?.totalCount ?? 0}
           loading={data.diagnoses.isFetching}
           pagination={data.diagnosisPaging}
-          expanded={expanded}
-          onToggleForm={() => setExpanded((value) => !value)}
+          expanded={editor.expanded}
+          onToggleForm={editor.toggle}
+          onEdit={editor.edit}
           onCreateService={setAdviseDiagnosis}
           onSchedule={setScheduling}
           onDelete={actions.setRemovingDiagnosis}
         >
-          {expanded && (
+          {editor.expanded && (
             <PatientDiagnosisForm
               dentists={data.dentists}
               diagnoses={data.diagnosisOptions}
-              submitting={actions.creating}
-              onSubmit={(submission) => void handleSubmitDiagnosis(submission)}
-              onClose={() => setExpanded(false)}
+              submitting={actions.creating || actions.updating}
+              editing={editor.editing}
+              onSubmit={(submission) => void editor.submit(submission)}
+              onClose={editor.close}
             />
           )}
         </PatientDiagnosisCard>
