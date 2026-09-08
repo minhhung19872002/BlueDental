@@ -1976,7 +1976,11 @@ test.describe("Bệnh nhân", () => {
     const { serviceId } = await openPatientWithTreatment(page, "stageable");
 
     const dialog = await openStageDialog(page, serviceId);
-    const rows = dialog.locator(".pd-stage-histrow");
+    // Only a live, unfinished công đoạn offers Tạo Labo. Earlier specs may
+    // have finished every one the line has, so a fresh one is added then.
+    const rows = dialog
+      .locator(".pd-stage-histrow")
+      .filter({ has: page.getByRole("button", { name: "Tạo Labo" }) });
     if ((await rows.count()) === 0) {
       await dialog.locator(".pd-stage-picks button").first().click();
       await dialog.locator(".pd-stage-form textarea").fill(`e2e ${runId()}`);
@@ -1989,17 +1993,20 @@ test.describe("Bệnh nhân", () => {
     const labo = page.getByRole("dialog", { name: "Đặt mới" });
     await expect(labo).toBeVisible();
     // The four facts the công đoạn already knows open filled and disabled.
-    const locked = labo.locator("input[disabled]");
-    await expect(locked).toHaveCount(4);
-    for (const input of await locked.all()) {
+    const facts = ["Tên khách hàng", "Kế hoạch điều trị", "Dịch vụ điều trị", "Bác sĩ chỉ định"];
+    for (const label of facts) {
+      const input = labo.locator(".floating-field", { hasText: label }).locator("input");
+      await expect(input).toBeDisabled();
       await expect(input).not.toHaveValue("");
     }
-    // Số phiếu Labo comes from the server in the reference's own shape.
-    // The file input behind Tải ảnh is hidden, not a form field, so it is
-    // skipped when reaching for the first editable one.
-    await expect(labo.locator("input:not([disabled]):not([type=file])").first()).toHaveValue(
-      /^LABO-\d{8}\d+$/,
-    );
+    // Số phiếu Labo comes from the server in the reference's own shape and,
+    // like Số lượng, is shown locked as the reference does.
+    const code = labo.locator(".floating-field", { hasText: "Số phiếu Labo" }).locator("input");
+    await expect(code).toBeDisabled();
+    await expect(code).toHaveValue(/^LABO-\d{8}\d+$/);
+    await expect(
+      labo.locator(".floating-field", { hasText: "Số lượng" }).locator("input"),
+    ).toBeDisabled();
     await expect(labo.getByText("Chọn dịch vụ trước")).toBeVisible();
     await expect(labo.getByRole("button", { name: "Lưu" })).toBeVisible();
   });

@@ -1067,16 +1067,23 @@ Action taken: NONE (dialog dismissed with Huỷ)
 BlueDental: DELETE /api/v1/app/care-records/{id}, soft delete, Manage
   permission, branch-guarded.
 
-UNKNOWN_REFERENCE_BEHAVIOR
+RESOLVED 2026-09-08 (staging, where saving is allowed)
 
-Page: /patient/{id}?tab=labo (dialog Đặt mới / Làm tiếp công đoạn / Bảo hành)
+Page: /patient/{id}?tab=labo (dialog Làm tiếp công đoạn / Bảo hành)
 Control: "Lưu"
-Reason: Would POST /v1/clinic-orders on production; the request body was never
-  observed. Which of code, treatment plan, treatment service, labo service,
-  material, teeth, dates and images it carries is unknown.
-Action taken: NONE (dialog closed with Escape, nothing saved)
-BlueDental: own payload — see docs/clone/pages/patient-detail.md Tab 6 for the
-  fields the form shows.
+Resolution: the POST /v1/clinic-orders body was captured on staging — see
+  docs/clone/api.md → Labo → "Patient tab: list, counters and the create flow".
+  It carries sourceLabOrderId, the parent's code / treatmentServiceId /
+  patientTreatmentId, serviceId, materialId, laboId, staffId, toothContents,
+  toothColor, estimatedDeliveryDate = receiveBeforeDeadline, statusClinic
+  ("guarantee" | "continue"), note, mediaIds. Both attempts were rejected by
+  server rules ("Dịch vụ điều trị đã hoàn tất, không thể tạo phiếu Labo." and
+  "Vui lòng chọn vật liệu."), so no staging record was created.
+Still unknown: the Đặt mới body (assumed to be the same shape without
+  sourceLabOrderId and with statusClinic "created"), and how a successful
+  child row renders (no patient on staging could pass both rules).
+BlueDental: CreateLaboOrderDto gains ParentOrderId; kind ContinueStage /
+  Guarantee mirrors statusClinic continue / guarantee.
 
 UNKNOWN_REFERENCE_BEHAVIOR
 
@@ -1891,3 +1898,18 @@ Reason: Từ bundle bản gốc chỉ thấy nút gọi cùng handler với "T�
   giữ lại. BlueDental xoá nét (như viewer Hình ảnh). Điều kiện hiện nút theo
   bundle là `đang vẽ && popover đóng`, không phụ thuộc đã có nét hay chưa.
 Action taken: NONE — không vẽ trên production.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}?tab=labo → Xem chi tiết ("Thông tin chung") and its print
+      sheet "PHIẾU ĐẶT HÀNG LABO" (staging, 2026-09-08)
+Control: modal row "Loại phục hình"; sheet rows "Lựa chọn dịch vụ" and
+      "Loại phục hình"
+Reason: On the one order observed, "Loại phục hình" in the modal and both
+  "Lựa chọn dịch vụ" and "Loại phục hình" on the sheet showed the same text
+  ("test"), so whether the two are one field or two (labo service vs. a
+  separate restoration type) could not be told apart. No order with distinct
+  values was available and none was created on the reference.
+Action taken: NONE
+BlueDental: both render `laboServiceName` (the material's taxonomy group);
+  revisit if a reference order ever shows two different values.

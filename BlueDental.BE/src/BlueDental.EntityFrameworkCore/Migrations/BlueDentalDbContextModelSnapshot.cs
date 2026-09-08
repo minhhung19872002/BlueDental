@@ -2771,6 +2771,9 @@ namespace BlueDental.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
+                    b.Property<Guid?>("ParentOrderId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("OrderCode")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -2822,7 +2825,10 @@ namespace BlueDental.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("OrderCode")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"ParentOrderId\" IS NULL");
+
+                    b.HasIndex("ParentOrderId");
 
                     b.HasIndex("TreatmentStageId");
 

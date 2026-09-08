@@ -2,7 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Catalogs;
 using BlueDental.Organizations;
+using BlueDental.PatientManagement;
+using BlueDental.TreatmentManagement;
+using Volo.Abp;
+using Volo.Abp.Content;
 using Volo.Abp.Identity;
 using BlueDental.Exporting;
 using BlueDental.Permissions;
@@ -22,6 +27,10 @@ public class LaboAppService : ApplicationService, ILaboAppService
     private readonly IRepository<LaboMaterial, Guid> _materialRepository;
     private readonly IIdentityUserRepository _userRepository;
     private readonly ICurrentClinicBranchResolver _branchResolver;
+    private readonly IRepository<Taxonomy, Guid> _taxonomyRepository;
+    private readonly IRepository<TreatmentPlan, Guid> _planRepository;
+    private readonly IRepository<CatalogEntry, Guid> _catalogRepository;
+    private readonly IPatientImageAppService _imageService;
 
     public LaboAppService(
         IRepository<LaboOrder, Guid> repository,
@@ -29,7 +38,11 @@ public class LaboAppService : ApplicationService, ILaboAppService
         IRepository<LaboSupplier, Guid> supplierRepository,
         IRepository<LaboMaterial, Guid> materialRepository,
         IIdentityUserRepository userRepository,
-        ICurrentClinicBranchResolver branchResolver)
+        ICurrentClinicBranchResolver branchResolver,
+        IRepository<Taxonomy, Guid> taxonomyRepository,
+        IRepository<TreatmentPlan, Guid> planRepository,
+        IRepository<CatalogEntry, Guid> catalogRepository,
+        IPatientImageAppService imageService)
     {
         _repository = repository;
         _patientRepository = patientRepository;
@@ -37,6 +50,62 @@ public class LaboAppService : ApplicationService, ILaboAppService
         _materialRepository = materialRepository;
         _userRepository = userRepository;
         _branchResolver = branchResolver;
+        _taxonomyRepository = taxonomyRepository;
+        _planRepository = planRepository;
+        _catalogRepository = catalogRepository;
+        _imageService = imageService;
+    }
+
+    /// <summary>One service line of a plan, as the child form names it.</summary>
+    private sealed record ServiceLineInfo(
+        Guid PlanId, string PlanCode, Guid PlanDentistId, Guid ServiceId, TreatmentServiceStatus Status);
+
+    /// <summary>
+    /// The service lines a set of orders were raised from, keyed by line id.
+    /// Lines live inside the plan aggregate, so this reads the plans that own
+    /// them.
+    /// </summary>
+    private async Task<Dictionary<Guid, ServiceLineInfo>> GetServiceLinesAsync(IReadOnlyCollection<Guid> lineIds)
+    {
+        var result = new Dictionary<Guid, ServiceLineInfo>();
+        if (lineIds.Count == 0)
+        {
+            return result;
+        }
+
+        var planQuery = await _planRepository.WithDetailsAsync(p => p.Services);
+        var plans = await AsyncExecuter.ToListAsync(
+            planQuery.Where(p => p.Services.Any(s => lineIds.Contains(s.Id))));
+
+        foreach (var plan in plans)
+        {
+            foreach (var line in plan.Services.Where(s => lineIds.Contains(s.Id)))
+            {
+                result[line.Id] = new ServiceLineInfo(plan.Id, plan.Code, plan.DentistId, line.ServiceId, line.Status);
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// The reference refuses a child order once the service line it hangs off
+    /// is done ("Dịch vụ điều trị đã hoàn tất, không thể tạo phiếu Labo.").
+    /// An order that names no line has nothing to check.
+    /// </summary>
+    private async Task EnsureServiceLineOpenAsync(Guid? treatmentServiceId)
+    {
+        if (!treatmentServiceId.HasValue)
+        {
+            return;
+        }
+
+        var lines = await GetServiceLinesAsync([treatmentServiceId.Value]);
+        if (lines.TryGetValue(treatmentServiceId.Value, out var line) &&
+            line.Status == TreatmentServiceStatus.Done)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.TreatmentServiceCompleted);
+        }
     }
 
     /// <summary>
@@ -91,19 +160,82 @@ public class LaboAppService : ApplicationService, ILaboAppService
             .Select(o => o.MaterialId!.Value)
             .Distinct()
             .ToList();
-        var materials = new Dictionary<Guid, string>();
+        var materials = new Dictionary<Guid, LaboMaterial>();
         if (materialIds.Count > 0)
         {
             var materialQuery = await _materialRepository.GetQueryableAsync();
             materials = (await AsyncExecuter.ToListAsync(
                     materialQuery.Where(m => materialIds.Contains(m.Id))))
-                .ToDictionary(m => m.Id, m => m.Name);
+                .ToDictionary(m => m.Id);
+        }
+
+        // Khớp cắn, Đường hoàn tất and Kiểu nhịp are taxonomy rows, and so is
+        // the labo service a material belongs to ("Dịch vụ hiện tại").
+        var taxonomyIds = entities
+            .SelectMany(o => new[] { o.BiteId, o.FinishLineId, o.RhythmId })
+            .Where(id => id.HasValue)
+            .Select(id => id!.Value)
+            .Concat(materials.Values.Select(m => m.TaxonomyId))
+            .Distinct()
+            .ToList();
+        var taxonomies = new Dictionary<Guid, string>();
+        if (taxonomyIds.Count > 0)
+        {
+            var taxonomyQuery = await _taxonomyRepository.GetQueryableAsync();
+            taxonomies = (await AsyncExecuter.ToListAsync(
+                    taxonomyQuery.Where(t => taxonomyIds.Contains(t.Id))))
+                .ToDictionary(t => t.Id, t => t.Name);
+        }
+
+        var lineIds = entities
+            .Where(o => o.TreatmentServiceId.HasValue)
+            .Select(o => o.TreatmentServiceId!.Value)
+            .Distinct()
+            .ToList();
+        var lines = await GetServiceLinesAsync(lineIds);
+
+        // A plan line's ServiceId is a Danh mục "Dịch vụ" row (CatalogEntry),
+        // the same catalog the treatment-plan API names its lines from.
+        var serviceIds = lines.Values.Select(l => l.ServiceId).Distinct().ToList();
+        var services = new Dictionary<Guid, string>();
+        if (serviceIds.Count > 0)
+        {
+            var catalogQuery = await _catalogRepository.GetQueryableAsync();
+            services = (await AsyncExecuter.ToListAsync(
+                    catalogQuery.Where(x => serviceIds.Contains(x.Id))))
+                .ToDictionary(x => x.Id, x => x.Name);
+        }
+
+        var planDentistIds = lines.Values.Select(l => l.PlanDentistId)
+            .Where(id => !dentists.ContainsKey(id))
+            .Distinct()
+            .ToList();
+        if (planDentistIds.Count > 0)
+        {
+            foreach (var user in await _userRepository.GetListByIdsAsync(planDentistIds))
+            {
+                dentists[user.Id] = user.Name ?? user.UserName;
+            }
         }
 
         for (var i = 0; i < entities.Count; i++)
         {
             var entity = entities[i];
             var dto = dtos[i];
+
+            dto.BiteName = entity.BiteId.HasValue ? taxonomies.GetValueOrDefault(entity.BiteId.Value) : null;
+            dto.FinishLineName = entity.FinishLineId.HasValue ? taxonomies.GetValueOrDefault(entity.FinishLineId.Value) : null;
+            dto.RhythmName = entity.RhythmId.HasValue ? taxonomies.GetValueOrDefault(entity.RhythmId.Value) : null;
+
+            if (entity.TreatmentServiceId.HasValue &&
+                lines.TryGetValue(entity.TreatmentServiceId.Value, out var line))
+            {
+                dto.TreatmentPlanId = line.PlanId;
+                dto.TreatmentPlanCode = line.PlanCode;
+                dto.TreatmentPlanDentistName = dentists.GetValueOrDefault(line.PlanDentistId);
+                dto.TreatmentServiceName = services.GetValueOrDefault(line.ServiceId);
+                dto.TreatmentServiceStatus = line.Status;
+            }
 
             dto.PatientName = patients.GetValueOrDefault(entity.PatientId);
             dto.DentistName = entity.DentistId.HasValue
@@ -114,9 +246,11 @@ public class LaboAppService : ApplicationService, ILaboAppService
             dto.SupplierName = entity.SupplierId.HasValue
                 ? suppliers.GetValueOrDefault(entity.SupplierId.Value)
                 : null;
-            dto.MaterialName = entity.MaterialId.HasValue
+            var material = entity.MaterialId.HasValue
                 ? materials.GetValueOrDefault(entity.MaterialId.Value)
                 : null;
+            dto.MaterialName = material?.Name;
+            dto.LaboServiceName = material is null ? null : taxonomies.GetValueOrDefault(material.TaxonomyId);
         }
     }
 
@@ -131,6 +265,8 @@ public class LaboAppService : ApplicationService, ILaboAppService
             query = query.Where(o => o.PatientId == input.PatientId.Value);
         if (input.DentistId.HasValue)
             query = query.Where(o => o.DentistId == input.DentistId.Value);
+        if (input.Kind.HasValue)
+            query = query.Where(o => o.Kind == input.Kind.Value);
         if (input.Status.HasValue)
             query = query.Where(o => o.Status == input.Status.Value);
         if (!string.IsNullOrWhiteSpace(input.Filter))
@@ -243,9 +379,12 @@ public class LaboAppService : ApplicationService, ILaboAppService
     public async Task<LaboOrderDto> CreateAsync(CreateLaboOrderDto input)
     {
         var branchId = _branchResolver.GetRequiredClinicBranchId();
-        var code = input.OrderCode.IsNullOrWhiteSpace()
-            ? await NextOrderCodeAsync(branchId)
-            : input.OrderCode!.Trim();
+        if (input.Kind != LaboOrderKind.New)
+        {
+            return await CreateChildAsync(input, branchId);
+        }
+
+        var code = await ResolveOrderCodeAsync(input.OrderCode);
         var order = new LaboOrder(
             GuidGenerator.Create(),
             code,
@@ -270,26 +409,129 @@ public class LaboAppService : ApplicationService, ILaboAppService
             input.TreatmentServiceId,
             input.TreatmentStageId);
         await _repository.InsertAsync(order, autoSave: true);
+        await AttachPicturesAsync(order, input.Pictures);
         return ObjectMapper.Map<LaboOrder, LaboOrderDto>(order);
     }
 
+    /// <summary>
+    /// The dialog's Tải ảnh pictures go to the patient's Hình ảnh, under the
+    /// plan that owns the order's service line and the công đoạn it was raised
+    /// from — the same place the two-request flow used to put them, but now
+    /// inside the order's own unit of work. The image service applies its own
+    /// permission and branch checks.
+    /// </summary>
+    private async Task AttachPicturesAsync(LaboOrder order, List<IRemoteStreamContent>? pictures)
+    {
+        if (pictures is not { Count: > 0 })
+        {
+            return;
+        }
+
+        Guid? planId = null;
+        if (order.TreatmentServiceId.HasValue)
+        {
+            var lines = await GetServiceLinesAsync([order.TreatmentServiceId.Value]);
+            planId = lines.TryGetValue(order.TreatmentServiceId.Value, out var line) ? line.PlanId : null;
+        }
+
+        foreach (var picture in pictures)
+        {
+            await _imageService.UploadAsync(new UploadPatientImageDto
+            {
+                PatientId = order.PatientId,
+                ClinicBranchId = order.BranchId,
+                TreatmentPlanId = planId,
+                TreatmentStageId = order.TreatmentStageId,
+                File = picture,
+            });
+        }
+    }
+
+    /// <summary>
+    /// Làm tiếp công đoạn / Bảo hành. The parent is read inside the caller's
+    /// branch, so an order from another clinic is simply "not found".
+    /// </summary>
+    private async Task<LaboOrderDto> CreateChildAsync(CreateLaboOrderDto input, Guid branchId)
+    {
+        if (!input.ParentOrderId.HasValue)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.ParentRequired);
+        }
+
+        var parent = await _repository.FirstOrDefaultAsync(
+            o => o.Id == input.ParentOrderId.Value && o.BranchId == branchId)
+            ?? throw new BusinessException(BlueDentalDomainErrorCodes.Labo.OrderNotFound);
+
+        await EnsureServiceLineOpenAsync(parent.TreatmentServiceId);
+
+        var order = LaboOrder.CreateChild(
+            GuidGenerator.Create(),
+            parent,
+            input.Kind,
+            input.PatientId,
+            branchId,
+            input.LabProviderName,
+            input.MaterialId,
+            input.DentistId,
+            input.ToothNumbers,
+            input.DueDate,
+            input.SupplierId,
+            input.BiteId,
+            input.FinishLineId,
+            input.RhythmId,
+            input.Notes,
+            input.SentAt,
+            input.ToothShade,
+            input.Quantity,
+            input.EstimatedCost);
+        await _repository.InsertAsync(order, autoSave: true);
+        await AttachPicturesAsync(order, input.Pictures);
+
+        var dto = ObjectMapper.Map<LaboOrder, LaboOrderDto>(order);
+        await FillNamesAsync([order], [dto]);
+        return dto;
+    }
+
     [Authorize(BlueDentalPermissions.LaboOrders.Create)]
-    public async Task<string> GetNextOrderCodeAsync() =>
-        await NextOrderCodeAsync(_branchResolver.GetRequiredClinicBranchId());
+    public async Task<string> GetNextOrderCodeAsync()
+    {
+        _branchResolver.GetRequiredClinicBranchId();
+        return await NextOrderCodeAsync();
+    }
+
+    /// <summary>
+    /// The dialog shows the code the server handed out when it opened, locked.
+    /// By the time Lưu is pressed another user may have taken it, so a taken
+    /// code is swapped for the next free one instead of surfacing the unique
+    /// index as a 500. A blank code is simply the next free one.
+    /// </summary>
+    private async Task<string> ResolveOrderCodeAsync(string? requested)
+    {
+        var code = requested?.Trim();
+        if (code.IsNullOrWhiteSpace())
+        {
+            return await NextOrderCodeAsync();
+        }
+
+        var query = await _repository.GetQueryableAsync();
+        var taken = await AsyncExecuter.AnyAsync(
+            query.Where(x => x.ParentOrderId == null && x.OrderCode == code));
+        return taken ? await NextOrderCodeAsync() : code!;
+    }
 
     /// <summary>
     /// "LABO-" + the day + a per-day sequence, the shape the reference shows
-    /// ("LABO-202609061"). Scoped to the branch: two clinics number their own
-    /// samples independently.
+    /// ("LABO-202609061"). The sequence runs across branches because the code
+    /// is unique across the whole table (IX_bd_labo_orders_OrderCode), so a
+    /// second clinic's first sample of the day must not repeat the first's.
     /// </summary>
-    private async Task<string> NextOrderCodeAsync(Guid branchId)
+    private async Task<string> NextOrderCodeAsync()
     {
         var prefix = $"LABO-{DateTime.UtcNow:yyyyMMdd}";
         var query = await _repository.GetQueryableAsync();
-        var used = query
-            .Where(x => x.BranchId == branchId && x.OrderCode.StartsWith(prefix))
-            .Select(x => x.OrderCode)
-            .ToList();
+        var used = await AsyncExecuter.ToListAsync(query
+            .Where(x => x.ParentOrderId == null && x.OrderCode.StartsWith(prefix))
+            .Select(x => x.OrderCode));
 
         var next = 1;
         while (used.Contains($"{prefix}{next}"))

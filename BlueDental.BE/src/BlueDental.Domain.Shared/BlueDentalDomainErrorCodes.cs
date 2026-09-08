@@ -137,6 +137,14 @@ public static class BlueDentalDomainErrorCodes
         public const string LogoTooLarge = "BlueDental:Labo:0005";
         public const string LogoNotAnImage = "BlueDental:Labo:0006";
         public const string LogoNotFound = "BlueDental:Labo:0007";
+        /// <summary>Làm tiếp công đoạn / Bảo hành without a parent order.</summary>
+        public const string ParentRequired = "BlueDental:Labo:0008";
+        /// <summary>The parent belongs to another patient or branch.</summary>
+        public const string ParentMismatch = "BlueDental:Labo:0009";
+        /// <summary>Mirrors the reference: no child order once the service line is done.</summary>
+        public const string TreatmentServiceCompleted = "BlueDental:Labo:0010";
+        /// <summary>Mirrors the reference: a child order must name a material.</summary>
+        public const string MaterialRequired = "BlueDental:Labo:0011";
     }
 
     public static class Promotions

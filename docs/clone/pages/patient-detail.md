@@ -1187,6 +1187,10 @@ committed): `reference-private/labo/ref-labo-*.png`.
   an extra blue outline. Clicking it again clears the filter (the unfiltered
   list comes back from cache, no new request). Only one counter is active at a
   time.
+- Drawn as the same stat cards the Lịch hẹn tab uses (count over label, tinted
+  border + pale fill per colour). Local shares the `.pd-stat` classes with that
+  tab (R-313); the reference's three cards are equal-width (~112–115px, ~48px
+  tall), ours size to their label like the Lịch hẹn ones.
 
 ### Toolbar (top-right)
 
@@ -1206,8 +1210,8 @@ committed): `reference-private/labo/ref-labo-*.png`.
 | 6 | Vật liệu | `material.name` |
 | 7 | Số răng | `toothContents` joined with `, ` |
 | 8 | Số lượng | number of teeth |
-| 9 | File Labo gửi về | Button `Xem file -` (disabled) when `images` is empty; with images the button opens a lightbox (see labo.md, not observed with data here) |
-| 10 | Thao tác | three icon buttons: `Xem chi tiết` (eye), `Tiếp tục công đoạn` (plus), `Bảo hành` (green gift/shield icon) |
+| 9 | File Labo gửi về | Button `Xem file -` (disabled) when `images` is empty; with images the button opens a lightbox (see labo.md, not observed with data here) Staging (2026-09-08) draws it as a yellow folder icon on every row. Local: the folder, greyed while `attachmentUrl` is empty, opening the file in a new tab otherwise (R-314) |
+| 10 | Thao tác | three icon buttons: `Xem chi tiết` (eye), `Tiếp tục công đoạn` (plus), `Bảo hành` (green gift/shield icon) Local: eye, plus and shield as the text icon buttons with tooltips the other patient tables use; the eye opens the read-only modal below (R-318) |
 
 Pill labels and tones for the ten status codes: `docs/clone/pages/labo.md` §2.5.
 
@@ -1229,6 +1233,28 @@ Loại phục hình · Răng · Màu chi tiết · Số lượng), then a TRẠN
 Footer: `In Phiếu Labo` (outline, printer icon) and `Đóng`. A hidden print
 sheet titled "PHIẾU ĐẶT HÀNG LABO" is rendered for the print button.
 Unlike `/labo`, the patient tab's modal has **no** status select and no Lưu.
+
+Measured on staging 2026-09-08 (`reference-private/labo/labo-detail-survey.json`):
+dialog 772px, two 350px columns 24px apart, block title 16px/600 uppercase,
+row = 140px label (500) + value 12px after it, 8px between rows, 12px between
+a block's parts; the TRẠNG THÁI pill is the table's tone at 32px, radius 8.
+The sheet is Times New Roman: the shared letterhead grid (clinic block · title
++ "Ngày d tháng m năm yyyy" + `Số: <code>` · patient block), then two-column
+blocks THÔNG TIN ĐƠN HÀNG / THÔNG SỐ CHUNG, a CHI TIẾT PHỤC HÌNH rule with two
+more columns, and one signature block at the right (Người đặt hàng / (Ký xác
+nhận) / the dentist). Missing values print as `—`; on screen they stay blank.
+"Loại phục hình" and "Lựa chọn dịch vụ" both showed the same value on staging
+— see unknowns.
+
+**Local (R-318)**: `LaboDetailDialog` (+ `LaboDetailFacts`, `LaboPrintSheet`,
+`laboOrderFacts`) on the row's eye, plain component state, no URL param. The
+modal keeps the app's 16px dialog title rather than the reference's 24px. The
+"Ghi chú" row of THÔNG SỐ LABO is not drawn: the local order has one free-text
+field, shown under Chỉ định. `In Phiếu Labo` is disabled until the branch info
+has loaded, then sets `document.title` to `phieu-labo-<code>`, adds
+`body.pd-printing` and calls `window.print()`; `afterprint` restores both. Both
+"Loại phục hình" and "Lựa chọn dịch vụ" print `laboServiceName`. Real-stack
+`e2e/labo-detail.spec.ts`.
 
 ### Order dialog (`?laboModal=new-order | continue-process | warranty[&laboRowId=<id>]`)
 
@@ -1276,8 +1302,100 @@ chosen. Entering from a row action prefills that field and shows the rest:
 | Radio `Thay đổi vật liệu mới` | swaps in the `Lựa chọn dịch vụ labo*` + `Vật liệu*` lists from Đặt mới |
 | Răng, Màu răng, Nội dung, Số lượng, Tải ảnh | as Đặt mới, prefilled from the parent |
 
-Save (`POST /v1/clinic-orders` with `Idempotency-Key`) was **not** issued; the
-payload is unknown (unknowns.md).
+#### Child form details (staging, 2026-09-08 — patient with three orders)
+
+Re-surveyed with clicks and two real saves on staging (both rejected by the
+server, nothing created). Screenshots: `reference-private/labo/ref-warranty-*.png`.
+
+- **URL contract**: choosing an order in `Chọn phiếu dịch vụ Labo*` pushes
+  `&laboRowId=<id>`; switching tabs keeps `laboRowId` and only swaps
+  `laboModal`; the ✕ removes both params. Opening with `laboRowId` fires
+  `GET /v1/clinic-orders/{id}` and the row's fields come from that response.
+- The option list contains **every** order of the patient, cancelled ones and
+  duplicate codes included (two "Phiếu dịch vụ Labo #LABO_DTS86" entries).
+- First field of the prefilled block is `Tên khách hàng*` (disabled select,
+  `code - name`), followed by `Kế hoạch điều trị*` (`DT<code> - <staff>`),
+  `Dịch vụ điều trị*` (service name), `Bác sĩ chỉ định*` (editable select;
+  prefilled even though `staff/list` returned 403), `Số phiếu Labo*`,
+  `Ngày bảo hành*`/`Giờ bảo hành*` (continue tab: `Ngày gửi*`/`Giờ gửi*`),
+  `Nhà cung cấp*`, `Ngày nhận dự kiến*`/`Giờ nhận*`.
+- `Thay đổi vật liệu mới` swaps the two summary lines for the chip strips
+  `Lựa chọn dịch vụ labo*` (search icon, "Không có dữ liệu") and `Vật liệu*`
+  ("Không có vật liệu"), fetching `taxonomy?group=serviceMaterial` and
+  `taxonomy/service-materials/list?taxonomyId=<parent serviceId>` on demand.
+- Save: `POST /v1/clinic-orders` — payload and the two server rules
+  (`Dịch vụ điều trị đã hoàn tất…`, `Vui lòng chọn vật liệu.`) are in
+  `docs/clone/api.md`. The error `message` shows in a red toast; the dialog
+  stays open with its values.
+
+Measurements (1600×900):
+
+| Part | Value |
+|------|-------|
+| Dialog | 772 wide, radius 16, shadow `0 20px 60px rgba(0,0,0,.2)`; header 61 high, padding `12px 12px 12px 24px`, title 24/36 600; body padding `12px 24px 24px`, scrolls; footer padding `14px 24px`, Lưu 40 high, radius 8, icon gap 8 |
+| Pill tabs | track `bg #EEF3F8`, radius 8, padding 4, 40 high; pills 14/20 500, padding `8px 16px`, radius 8, active = primary bg + white text |
+| `Chọn phiếu dịch vụ Labo*` | 350 wide, 40 high, radius 8, margin-top 24 |
+| Field grid | 2 columns 349 + 349, gap 20, margin-top 24; date/time cells are a nested grid `minmax(0,1fr) 140px`, gap 16 |
+| Disabled field | `bg #F3F6FA`, border `#CBD5E1`, text `#5A6B82`, cursor not-allowed, opacity 1 |
+| Radio row | label "Lựa chọn dịch vụ:" 14/21 600, radios 16 px, option text 14/21 500, flex-wrap gap 16, margin-top 16 |
+| "Dịch vụ hiện tại:" / "Vật liệu:" | one `<p>` each, 14/21, bold label + value with `margin-left 16`, 16 apart |
+| Răng row | `flex items-center gap-3 overflow-x-auto pb-1`; label 14/21 600; `Chọn tất cả` 13 px + 20 px checkbox; tooth chip 36×30, radius 4, 13/19.5 600, active = primary bg; no line picked → a plain `<p>` "Chọn dịch vụ điều trị trước" 14/400 label grey, no checkbox |
+| Chip strips (Lựa chọn dịch vụ / Vật liệu) | two-row grid `grid-auto-flow: column; grid-template-rows: repeat(2, max-content)`, gap 8, min-height 40, scrollbar hidden, snap-x; a 32 px round arrow each side (border `--pd-dash-soft`, opacity .45 when it has nothing left), `scrollBy(±280)`; chip 13/500 on the soft bg, padding `6px 16px`, active = primary; clicking the active chip lets go of it |
+| Màu răng / Số lượng / Khớp cắn / Đường hoàn tất / Kiểu nhịp | same 2-column grid; 40 high |
+| Nội dung | textarea 92 high, padding 12, radius 8, full width |
+| Tải ảnh | 80×80 tile, `1px dashed #B9C4D4`, radius 8, primary-coloured icon, margin-top 12 |
+
+Responsive (viewport 640): the dialog becomes full-screen (640×900, radius
+0), header 53 high, body padding `20px 16px 24px`; the field grid drops to
+one column (the date/time pairs keep `1fr 140px`); the pill track and the
+order select keep their 350 px width; the tooth row scrolls horizontally.
+
+### Local implementation (2026-09-08)
+
+`PatientLaboTab` → `LaboOrderTabsDialog` (shared `PillTabs`, URL-driven with
+`replace` so the three pills and ✕ leave no history entries) in
+`components/patient-detail/labo/`. "Đặt mới" is the same form the công đoạn
+dialog raises (`useLaboOrderForm` + `LaboOrderFields` + `LaboChipStrips`),
+with `LaboNewOrderHeader` → `LaboSourcePickers` picking the plan, its open
+line and the doctor when there is no công đoạn behind it. The two child pills
+share `LaboChildForm`
+(`LaboChildHeader`, `LaboMaterialChoice`). Server: `LaboOrder.CreateChild`,
+`ParentOrderId`, `POST /api/v1/app/labo-orders` with `kind` 2|3 +
+`parentOrderId`; the child keeps the parent's code, so the code is unique only
+among parents.
+
+| Element | Reference | Local | Note |
+|---|---|---|---|
+| Dialog / pill track / order select | 772 / 40 / 350 | same | measured above |
+| Primary colour | blue | `--bd-primary` indigo | app-wide token, kept |
+| Đặt mới: Dịch vụ điều trị before any plan | select, lists every open line, names its plan | same (`plans.flatMap`, owner plan set on pick) | fixed 2026-09-08 (R-306) |
+| Đặt mới: Bác sĩ chỉ định | select | `SearchSelect` on `useDentistList`, prefilled from the line's dentist, else the plan's | was a locked input; the công đoạn dialog keeps it locked (line 523) |
+| Số phiếu Labo / Số lượng | locked; quantity = ticked teeth | same, both tabs; 0 once every tooth is unticked (reference not measured — UNKNOWN_REFERENCE_BEHAVIOR; the server stores 1 for anything below 1) | were editable; showed 1 after unticking all until R-309 |
+| Dialog body padding / footer | `12px 24px 24px`, footer `14px 24px` pinned | same via `--pd-labo-body-x` (16px on ≤640) | footer used to overrun the 20px AntD body by 8px → horizontal scrollbar (R-308) |
+| "Tải ảnh" | dashed button, native picker hidden | same | AntD's form reset showed the picker as "Choose Files" (R-309) |
+| Khớp cắn / Đường hoàn tất / Kiểu nhịp options | the clinic's Labo catalogs | same taxonomy groups the `/labo` tabs manage (`labo_bite`, `labo_finish_line`, `labo_rhythm`), branch-scoped | |
+| Child: Nội dung | prefilled from the parent | same | was blank |
+| Lưu footer | pinned under the scrolling body | `position: sticky` in `.pd-labo-footer` | was scrolled with the body |
+| Parent options | every order, cancelled + duplicates | same, `#code · kind · date` | |
+| Lưu on an empty Đặt mới | stays enabled; each required field turns red with a helper line under it: "Vui lòng chọn kế hoạch điều trị.", "…dịch vụ điều trị.", "…bác sĩ chỉ định.", "…nhà cung cấp.", "…ngày nhận dự kiến.", "…giờ nhận.", "…dịch vụ Labo.", "…vật liệu."; the strip labels go red; dialog stays | same — AntD `Form` + `FloatingField rules` (`requiredRule`), `ChipStrip` reads `Form.Item.useStatus()`; was one toast (R-307) | helper text is plain (no ⓘ icon): app-wide AntD style |
+| Ngày gửi / Giờ gửi empty | never seen (always prefilled with now) | "Vui lòng chọn ngày gửi." / "…giờ gửi." | UNKNOWN_REFERENCE_BEHAVIOR — wording assumed |
+| Số lượng before a line is picked | "0" | "0", then the ticked-teeth count | |
+| Picking Dịch vụ điều trị after a failed Lưu | clears the plan / service / doctor errors | same (`setFields` with `errors: []`) | |
+| Enter inside a date/time picker | not tried | submits the form (AntD default) | UNKNOWN_REFERENCE_BEHAVIOR |
+| Child Lưu with due date/time empty | (same helper lines) | "Vui lòng chọn ngày nhận dự kiến." / "…giờ nhận."; Bác sĩ chỉ định is a `FloatingField` too | |
+| "Theo vật liệu cũ" on a parent without a material | not tried | server refuses `Vui lòng chọn vật liệu.`, dialog stays (`Labo:0011`); unreachable through the UI now that Đặt mới requires a material | |
+| Xem chi tiết + print sheet | present | same layout (R-318); 16px dialog title, no Ghi chú row, blank on screen / `—` on paper | |
+| Row actions | Tiếp tục công đoạn / Bảo hành / Xem chi tiết | all three | |
+| Child form: Dịch vụ điều trị / Dịch vụ hiện tại | the line's service name; the parent's labo service (material group) and material | same since R-316 — the service name was looked up in the wrong catalog (`DentalProcedure` instead of the Danh mục `CatalogEntry`) and "Dịch vụ hiện tại" showed the treatment service | |
+| Clearing Dịch vụ điều trị | Răng row goes back to "Chọn dịch vụ điều trị trước", no checkbox, no chips, Số lượng 0 | same (R-310) | |
+| Chip clicked twice | unselects it (Vật liệu falls back to "Chọn dịch vụ trước") | same | |
+| Strip arrows | slide the two-row strip 280 px, grey out at either end | same (`useChipScroller`) | |
+| Lưu with the line's teeth all unticked | not tried | "Vui lòng chọn răng." under the row, Răng label red, dialog stays; a tick clears it (R-311) | UNKNOWN_REFERENCE_BEHAVIOR — wording assumed |
+| Pictures picked in the dialog | saved with the order | uploaded on Lưu to Hình ảnh under the plan (and the công đoạn when raised from one), for Đặt mới and child orders (R-311); before, only orders raised from a công đoạn kept them Since R-315 they ride in the create request itself (one multipart `POST /labo-orders`, the server files them under the line's plan and công đoạn in the order's unit of work), where the reference uploads media first and sends `mediaIds` | |
+| Order code already taken at Lưu | not tried | the server hands the slip the next free code instead (the shown code is server-issued and locked, so nobody typed it); the row appears one number up from what the dialog showed (R-312) | UNKNOWN_REFERENCE_BEHAVIOR whether the reference renumbers or refuses |
+
+Evidence: `e2e/labo-warranty.spec.ts` (real stack); local error state
+`reference-private/survey/local/labo-tab-new-errors.png`.
 
 ---
 

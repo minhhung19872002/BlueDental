@@ -28,6 +28,21 @@ export const LABO_ORDER_KIND = {
 export type LaboOrderKind = (typeof LABO_ORDER_KIND)[keyof typeof LABO_ORDER_KIND];
 
 /**
+ * "Tình trạng mẫu" — the pill under Ngày gửi on the patient's Labo tab, one
+ * per kind. Same three tones as the status pills; amber is the counter's.
+ */
+export const LABO_KIND_CONFIG: Record<LaboOrderKind, { label: string; bg: string; color: string }> =
+  {
+    [LABO_ORDER_KIND.New]: { label: "Mẫu mới", bg: "#e2f4ee", color: "#0e9f6e" },
+    [LABO_ORDER_KIND.ContinueStage]: {
+      label: "Tiếp tục công đoạn",
+      bg: "#fbf1de",
+      color: "#d98b0f",
+    },
+    [LABO_ORDER_KIND.Guarantee]: { label: "Bảo hành", bg: "#fce9ea", color: "#E5484D" },
+  };
+
+/**
  * The three tones the reference paints a labo status in — a settled state is
  * green, a state that went wrong is red, and everything in flight is grey.
  * See docs/clone/pages/labo.md §2.5.
@@ -38,17 +53,15 @@ export const LABO_STATUS_TONE = {
   gray: { bg: "#f7f8fd", color: "#171c33" },
 } as const;
 
-export const LABO_STATUS_CONFIG: Record<
-  LaboStatus,
-  { label: string; bg: string; color: string }
-> = {
-  [LABO_STATUS.Draft]:      { label: "Đơn hàng mới", ...LABO_STATUS_TONE.green },
-  [LABO_STATUS.Sent]:       { label: "Đã gửi",       ...LABO_STATUS_TONE.gray  },
-  [LABO_STATUS.InProgress]: { label: "Đang xử lý",   ...LABO_STATUS_TONE.gray  },
-  [LABO_STATUS.Received]:   { label: "Đã nhận",      ...LABO_STATUS_TONE.green },
-  [LABO_STATUS.Completed]:  { label: "Hoàn thành",   ...LABO_STATUS_TONE.green },
-  [LABO_STATUS.Rejected]:   { label: "Đã huỷ",       ...LABO_STATUS_TONE.red   },
-};
+export const LABO_STATUS_CONFIG: Record<LaboStatus, { label: string; bg: string; color: string }> =
+  {
+    [LABO_STATUS.Draft]: { label: "Đơn hàng mới", ...LABO_STATUS_TONE.green },
+    [LABO_STATUS.Sent]: { label: "Đã gửi", ...LABO_STATUS_TONE.gray },
+    [LABO_STATUS.InProgress]: { label: "Đang xử lý", ...LABO_STATUS_TONE.gray },
+    [LABO_STATUS.Received]: { label: "Đã nhận", ...LABO_STATUS_TONE.green },
+    [LABO_STATUS.Completed]: { label: "Hoàn thành", ...LABO_STATUS_TONE.green },
+    [LABO_STATUS.Rejected]: { label: "Đã huỷ", ...LABO_STATUS_TONE.red },
+  };
 
 /**
  * The four filters above the Mẫu Labo table. The reference sends one status
@@ -96,6 +109,28 @@ export interface LaboOrderDto {
 
   supplierName?: string;
   materialName?: string;
+  /** The labo service the material belongs to: "Dịch vụ hiện tại" on the child form. */
+  laboServiceName?: string;
+  biteName?: string;
+  finishLineName?: string;
+  rhythmName?: string;
+  toothShade?: string;
+  quantity: number;
+  treatmentServiceId?: string;
+  treatmentStageId?: string;
+
+  /** The order this one continues or guarantees; absent on Đặt mới. */
+  parentOrderId?: string;
+  /**
+   * The service line the order was raised from, named the way the child form
+   * shows it: "DT01 - Bác sĩ" and the catalog service. Absent when the order
+   * names no line.
+   */
+  treatmentPlanId?: string;
+  treatmentPlanCode?: string;
+  treatmentPlanDentistName?: string;
+  treatmentServiceName?: string;
+  treatmentServiceStatus?: number;
 
   /** Mẫu Giao Trễ — derived on the server from the due date. */
   isOverdue: boolean;
@@ -129,6 +164,8 @@ export interface LaboOrderListParams {
   patientId?: string;
   dentistId?: string;
   status?: LaboStatus;
+  /** Tình trạng mẫu — the counter pressed on the patient's Labo tab. */
+  kind?: LaboOrderKind;
   sampleFilter?: LaboSampleFilter;
   /** Inclusive window over the day the order was raised, as `YYYY-MM-DD`. */
   fromDate?: string;
@@ -137,9 +174,31 @@ export interface LaboOrderListParams {
   maxResultCount?: number;
 }
 
+/**
+ * The counters over the patient's Labo tab, counted server-side over the
+ * whole record the way the reference's `/clinic-order-status` does; they do
+ * not follow the page or the counter pressed. Mirrors BlueDental.Labo.LaboStatsDto.
+ */
+export interface LaboStatsDto {
+  total: number;
+  new: number;
+  continueStage: number;
+  guarantee: number;
+  awaitingReturn: number;
+  overdue: number;
+  returned: number;
+}
+
+export interface LaboStatsParams {
+  patientId?: string;
+}
+
 export const laboApi = {
   list: (params: LaboOrderListParams): Promise<PagedResult<LaboOrderDto>> =>
     api.get("/v1/app/labo-orders", { params }).then((r) => r.data),
+
+  stats: (params: LaboStatsParams): Promise<LaboStatsDto> =>
+    api.get("/v1/app/labo-orders/stats", { params }).then((r) => r.data),
 
   get: (id: string): Promise<LaboOrderDto> =>
     api.get(`/v1/app/labo-orders/${id}`).then((r) => r.data),
@@ -159,12 +218,31 @@ export const laboApi = {
 
 // ── Hooks ─────────────────────────────────────────────────────────────────
 
-export function usePatientLaboOrders(patientId: string) {
+/**
+ * One page of a patient's labo orders. The page, the counter pressed and
+ * the total all come from the server, the way the reference pages its
+ * `/clinic-orders?patientId=…&page=…&perPage=…&statusClinic=…`.
+ */
+export function usePatientLaboOrders(
+  params: LaboOrderListParams & { patientId: string },
+  enabled = true,
+) {
   return useQuery({
-    queryKey: ["labo-orders", { patientId }],
-    queryFn: () => laboApi.list({ patientId, maxResultCount: 50 }),
-    enabled: Boolean(patientId),
-    select: (d) => d.items,
+    queryKey: ["labo-orders", params],
+    queryFn: () => laboApi.list(params),
+    enabled: enabled && Boolean(params.patientId),
+    // Turning a page or pressing a counter narrows the table in place rather
+    // than blanking it.
+    placeholderData: (previous) => previous,
+  });
+}
+
+/** The three counters over the patient's Labo tab. Lives under the orders key so every order mutation refreshes it. */
+export function useLaboStats(params: LaboStatsParams) {
+  return useQuery({
+    queryKey: ["labo-orders", "stats", params],
+    queryFn: () => laboApi.stats(params),
+    enabled: Boolean(params.patientId),
   });
 }
 

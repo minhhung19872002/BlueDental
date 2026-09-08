@@ -1,10 +1,14 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Controllers;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
+using Volo.Abp.Content;
 
 namespace BlueDental.Labo;
 
@@ -27,8 +31,29 @@ public sealed class LaboController(ILaboAppService service) : BlueDentalControll
     [HttpGet("next-code")]
     public Task<string> GetNextOrderCodeAsync() => service.GetNextOrderCodeAsync();
 
+    /// <summary>JSON create, without pictures.</summary>
     [HttpPost]
+    [Consumes("application/json")]
     public Task<LaboOrderDto> CreateAsync([FromBody] CreateLaboOrderDto input) => service.CreateAsync(input);
+
+    /// <summary>
+    /// The dialog's Lưu: the same fields as form values plus the Tải ảnh files
+    /// under <c>pictures</c>, so the order and its pictures land in one request.
+    /// Routed by content type; the file parts are wrapped by hand the way
+    /// PatientImageController does.
+    /// </summary>
+    [HttpPost]
+    [Consumes("multipart/form-data")]
+    public Task<LaboOrderDto> CreateWithPicturesAsync(
+        [FromForm] CreateLaboOrderDto input,
+        [FromForm] List<IFormFile>? pictures)
+    {
+        input.Pictures = pictures?
+            .Select(file => (IRemoteStreamContent)new RemoteStreamContent(
+                file.OpenReadStream(), file.FileName, file.ContentType, file.Length))
+            .ToList();
+        return service.CreateAsync(input);
+    }
 
     [HttpPut("{id:guid}")]
     public Task<LaboOrderDto> UpdateAsync(Guid id, [FromBody] UpdateLaboOrderDto input) =>

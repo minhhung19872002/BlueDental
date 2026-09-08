@@ -49,4 +49,28 @@ public class LaboOrderMappingTests
         entity.GetIndexes().ShouldContain(ix =>
             ix.IsUnique && ix.Properties.Any(p => p.Name == nameof(LaboOrder.OrderCode)));
     }
+
+    /// <summary>
+    /// A "Làm tiếp công đoạn" / "Bảo hành" order keeps its parent's code, so
+    /// the code is unique only among the orders without a parent.
+    /// </summary>
+    [Fact]
+    public void OrderCode_Index_Should_Cover_Only_Root_Orders()
+    {
+        using var ctx = CreateContext();
+        var entity = ctx.Model.FindEntityType(typeof(LaboOrder))!;
+        var index = entity.GetIndexes().Single(ix =>
+            ix.IsUnique && ix.Properties.Any(p => p.Name == nameof(LaboOrder.OrderCode)));
+        index.GetFilter().ShouldBe("\"ParentOrderId\" IS NULL");
+    }
+
+    [Fact]
+    public void LaboOrder_Should_Map_ParentOrderId_With_An_Index()
+    {
+        using var ctx = CreateContext();
+        var entity = ctx.Model.FindEntityType(typeof(LaboOrder))!;
+        entity.FindProperty(nameof(LaboOrder.ParentOrderId)).ShouldNotBeNull();
+        entity.GetIndexes().ShouldContain(ix =>
+            ix.Properties.Count == 1 && ix.Properties[0].Name == nameof(LaboOrder.ParentOrderId));
+    }
 }

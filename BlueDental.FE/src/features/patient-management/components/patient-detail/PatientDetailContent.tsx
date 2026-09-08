@@ -6,7 +6,8 @@ import { PatientImageTab } from "./image/PatientImageTab";
 import { PatientDebtTab } from "./PatientDebtTab";
 import { PatientProfileTab } from "./PatientProfileTab";
 import { PatientCareTab } from "./care/PatientCareTab";
-import { PatientInvoiceTab, PatientLaboTab, PatientPrescriptionTab } from "./PatientRecordTabs";
+import { PatientLaboTab } from "./labo/PatientLaboTab";
+import { PatientInvoiceTab, PatientPrescriptionTab } from "./PatientRecordTabs";
 
 interface Props {
   activeTab: string;

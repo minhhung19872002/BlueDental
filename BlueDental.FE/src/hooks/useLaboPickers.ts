@@ -116,6 +116,26 @@ export interface CreateLaboOrderInput {
   estimatedCost: number;
   treatmentServiceId?: string;
   treatmentStageId?: string;
+  /** 1 Đặt mới (default) · 2 Làm tiếp công đoạn · 3 Bảo hành. */
+  kind?: number;
+  /** Required for kind 2 and 3: the order being continued / guaranteed. */
+  parentOrderId?: string;
+  /** Tải ảnh: filed into Hình ảnh under the order's plan and công đoạn, in the same request. */
+  pictures?: File[];
+}
+
+/**
+ * The order goes up as multipart so its pictures ride along: one request,
+ * and the server writes the order and the pictures in one unit of work.
+ * Fields that are unset stay out of the form so the server keeps its defaults.
+ */
+function toOrderForm({ pictures, ...fields }: CreateLaboOrderInput): FormData {
+  const form = new FormData();
+  for (const [key, value] of Object.entries(fields)) {
+    if (value !== undefined && value !== null) form.append(key, String(value));
+  }
+  for (const file of pictures ?? []) form.append("pictures", file);
+  return form;
 }
 
 export function useCreateLaboOrder() {
@@ -123,7 +143,7 @@ export function useCreateLaboOrder() {
 
   return useMutation({
     mutationFn: (input: CreateLaboOrderInput) =>
-      api.post("/v1/app/labo-orders", input).then((r) => r.data),
+      api.post("/v1/app/labo-orders", toOrderForm(input)).then((r) => r.data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["labo-orders"] });
       void queryClient.invalidateQueries({ queryKey: ["labo-next-code"] });

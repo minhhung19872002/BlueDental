@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
+using BlueDental.TreatmentManagement;
 using Volo.Abp.Application.Dtos;
+using Volo.Abp.Content;
 
 namespace BlueDental.Labo;
 
@@ -33,9 +36,29 @@ public class LaboOrderDto : FullAuditedEntityDto<Guid>
     public Guid? TreatmentServiceId { get; set; }
     public Guid? TreatmentStageId { get; set; }
 
+    /// <summary>The order this one continues or guarantees; null on Đặt mới.</summary>
+    public Guid? ParentOrderId { get; set; }
+
     public string? SupplierName { get; set; }
     public string? MaterialName { get; set; }
+
+    /// <summary>The labo service (Dịch vụ - vật liệu group) the material belongs to: "Dịch vụ hiện tại" on the child form.</summary>
+    public string? LaboServiceName { get; set; }
     public string? DentistName { get; set; }
+    public string? BiteName { get; set; }
+    public string? FinishLineName { get; set; }
+    public string? RhythmName { get; set; }
+
+    /// <summary>
+    /// The service line the order was raised from, named the way the child
+    /// form shows it: "DT01 - Bác sĩ" for Kế hoạch điều trị and the catalog
+    /// service for Dịch vụ điều trị. Null when the order names no line.
+    /// </summary>
+    public Guid? TreatmentPlanId { get; set; }
+    public string? TreatmentPlanCode { get; set; }
+    public string? TreatmentPlanDentistName { get; set; }
+    public string? TreatmentServiceName { get; set; }
+    public TreatmentServiceStatus? TreatmentServiceStatus { get; set; }
 
     /// <summary>Mẫu Giao Trễ — derived, see LaboOrder.IsOverdueAsOf.</summary>
     public bool IsOverdue { get; set; }
@@ -95,6 +118,21 @@ public class CreateLaboOrderDto
     /// <summary>Set when the order was raised from a treatment row's "Tạo Labo".</summary>
     public Guid? TreatmentServiceId { get; set; }
     public Guid? TreatmentStageId { get; set; }
+
+    /// <summary>
+    /// Required when Kind is ContinueStage or Guarantee: the order being
+    /// continued / guaranteed. Code, service line and công đoạn are copied
+    /// from it and the values sent for those are ignored.
+    /// </summary>
+    public Guid? ParentOrderId { get; set; }
+
+    /// <summary>
+    /// Tải ảnh: the pictures picked in the dialog. They are filed into the
+    /// patient's Hình ảnh under the plan and công đoạn the order was raised
+    /// from, in the same unit of work as the order — one multipart request,
+    /// all or nothing.
+    /// </summary>
+    public List<IRemoteStreamContent>? Pictures { get; set; }
 }
 
 public class UpdateLaboOrderDto

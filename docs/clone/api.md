@@ -644,7 +644,9 @@ On success the client invalidates `labOrders.all`, `labOrders.detail(id)`,
 
 ### Patient tab: list, counters and the create flow (staging, 2026-09-05)
 
-Observed on `/patient/{id}?tab=labo`. All GET; the POST was never issued.
+Observed on `/patient/{id}?tab=labo`. The POST was issued on **staging**
+(2026-09-08, allowed there) from the Bảo hành tab; both attempts were
+rejected with 400 by server-side rules, so nothing was created.
 
 ```
 GET /v1/clinic-orders?patientId=<id>&branchId=<id>&page=1&perPage=20
@@ -654,8 +656,56 @@ GET /v1/clinic-order-status?patientId=<id>&branchId=<id>
 GET /v1/clinic-orders/estimate-code?branchId=<id>
     → { "code": "LABO-YYYYMMDDn" }        message "clinicOrder.estimateCode"; called once a
                                           treatment service is chosen in the Đặt mới form
-POST /v1/clinic-orders                    header Idempotency-Key — NOT ISSUED, payload unknown
+GET /v1/clinic-orders/{id}                fired when the dialog opens with &laboRowId=<id>;
+                                          same shape as a list item (no extra fields)
+POST /v1/clinic-orders                    payload below (staging, 2026-09-08)
 ```
+
+`POST /v1/clinic-orders` body sent by the **Bảo hành** tab (structure only;
+`Làm tiếp công đoạn` is the same form with `statusClinic: "continue"`):
+
+```json
+{
+  "patientId": "<string>",
+  "sourceLabOrderId": "<string>",          // the parent order picked in "Chọn phiếu dịch vụ Labo"
+  "staffId": "<string>",                   // Bác sĩ chỉ định
+  "treatmentServiceId": "<string>",        // inherited from the parent
+  "patientTreatmentId": "<string>",        // inherited from the parent
+  "serviceId": "<string>",                 // labo service (taxonomy serviceMaterial) — parent's when "Theo vật liệu cũ"
+  "materialId": "<string>",                // omitted when the parent has none → 400 "Vui lòng chọn vật liệu."
+  "laboId": "<string>",                    // Nhà cung cấp
+  "branchId": "<string>",
+  "code": "<string>",                      // the parent's code, unchanged
+  "toothContents": [<toothNumber>],
+  "toothColor": "<string>",
+  "biteJointId" | "finishLineId" | "bridgesId": "<string>",   // only when chosen
+  "estimatedDeliveryDate": "<ISO>",        // Ngày nhận dự kiến + Giờ nhận
+  "receiveBeforeDeadline": "<ISO>",        // same value as estimatedDeliveryDate
+  "statusClinic": "guarantee" | "continue",
+  "note": "<string>",
+  "mediaIds": ["<string>"]
+}
+```
+
+Local (R-315): no separate media upload — the pictures travel as `pictures` file parts of the same `POST /api/v1/app/labo-orders` sent as `multipart/form-data`; the JSON body above is still accepted on the same route when sent as `application/json`.
+
+Notes on the payload:
+
+- `Ngày bảo hành` / `Ngày gửi` (prefilled "now") is **not** sent — the server
+  stamps `createdAt`, which is what column 2 shows.
+- `sourceLabOrderId` is not echoed back by the list or detail GET; the child
+  is recognisable only by `statusClinic` and by sharing the parent's `code`.
+- Server rules seen (HTTP 400, `{ statusCode: 400, message }`):
+  - `Dịch vụ điều trị đã hoàn tất, không thể tạo phiếu Labo.` — the parent's
+    treatment service has `status: "done"`.
+  - `Vui lòng chọn vật liệu.` — no `materialId` (checked before the rule above).
+- The client shows the `message` in a red toast and keeps the dialog open.
+
+Lookups fired when a parent is chosen (in addition to the ones below):
+`GET /v1/clinic-orders/{id}` only when arriving with `laboRowId`; and, once
+`Thay đổi vật liệu mới` is ticked, `GET /v1/taxonomy/?group=serviceMaterial…`
+plus `GET /v1/taxonomy/service-materials/list?branchId=&taxonomyId=<parent
+serviceId>&search=&page=1&perPage=20&orderBy=order`.
 
 List items carry the same shape as `/v1/orders` above plus `code`; a
 continue/warranty child carries its parent's `code`.
@@ -1162,7 +1212,7 @@ that is the one the "Chỉnh sửa hồ sơ" dialog binds. The write behind the 
 | the four GETs "Chi tiết phiếu" fires (`treatment-services` filtered `status=created,inProgress,guarantee`, `patient-stages`, `treatment-lines`, `patient-images`), all scoped by `patientTreatmentId` | `GET /api/v1/app/treatment-stages?patientId&clinicBranchId&treatmentId` (slip-scoped server-side) plus `GET /api/v1/app/patient-images?patientId&clinicBranchId`, matched to a stage by `treatmentStageId`. The eligible-line filter lives in the browser: only `Created` and `InProgress` lines offer the cell |
 | the dialog's **Thanh toán** | a navigation to `?tab=treatment-plan`, as the reference leaves for `/treatment-plan/{planId}?planTab=detail` |
 | the dialog's **In lịch sử điều trị** | no request — the sheet is drawn from what the dialog already holds plus `GET /api/v1/app/clinic-branches/{id}` for the letterhead |
-| the row's **Tạo Labo** → "Đặt mới" | `GET /api/v1/app/labo-orders/next-code` for `LABO-yyyyMMddN`, then `POST /api/v1/app/labo-orders` carrying `treatmentServiceId`, `treatmentStageId`, `toothShade`, `quantity`, `sentAt`, `orderCode` alongside the fields it already took |
+| the row's **Tạo Labo** → "Đặt mới" | `GET /api/v1/app/labo-orders/next-code` for `LABO-yyyyMMddN`, then `POST /api/v1/app/labo-orders` carrying `treatmentServiceId`, `treatmentStageId`, `toothShade`, `quantity`, `sentAt`, `orderCode` alongside the fields it already took. `orderCode` is what `next-code` handed the dialog; one already used by a root order is replaced server-side by the next free one (R-312), never a 500 |
 | `POST /v1/patient-stages/{id}/continue` | the same create — a BlueDental công đoạn is always a new row on the line, and `ContinueAsync` only advances an existing one's status |
 | `POST /v1/patient-stages/{id}/re-examination` | `POST /api/v1/app/patient-re-examinations` — **a row of its own, not a công đoạn.** OBSERVED 2026-09-07: the patient timeline returns two row types, `type: "stage"` and `type: "re_examination"`, and a tái khám is the second, carrying code `REX001` and `{ patientStageId, patientStage, treatmentServiceDetails, serviceId, staffId, subStaffId, assistantStaffId, note, content, selectedContent, images, dateTime }` — no status, no quantity of its own, and the reference leaves that row's **Công đoạn** and **Chăm sóc sau điều trị** cells empty. The **source** stage flips `hasReExamination`. Mirrored by `PatientReExamination` / `bd_patient_re_examinations` (migration `20260907000000_AddStageReExamination`, which also adds `TreatmentStage.HasReExamination`); code runs `REX{n:D3}` per patient, and the row's SL is read off the `Quantity` of the service line the source stage belongs to. Create is gated by `treatmentStage.complete` and refuses a source stage that is not yet `Completed`. **An earlier pass got this wrong** — it modelled a tái khám as an ordinary công đoạn with an `isReExamination` flag; the timeline above disproves that, see R-267 |
 | `PUT /v1/patient-stages/{id}/status` · `/revert-status` | `POST /api/v1/app/treatment-stages/{id}/complete` and `POST /api/v1/app/treatment-stages/{id}/revert-status`. Both sit behind the **same** ability (`treatmentStage.complete`) — the reference's own ability list for that subject is read/create/update/continue/complete/print, with none of its own for the revert. Reverting sets the công đoạn back to `InProgress` and clears `completedAt`, and the service line follows: a line that had reached `Done` returns to `InProgress`, and a slip that had closed re-opens |

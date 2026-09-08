@@ -585,7 +585,6 @@
   box-shadow: 0 2px 6px rgba(27, 42, 65, 0.06);
 }
 .pd-filter-pills,
-.pd-counter-row,
 .pd-stat-row {
   display: flex;
   align-items: center;
@@ -1370,37 +1369,12 @@
 .pd-stat.active {
   box-shadow: inset 0 0 0 1px currentColor;
 }
-.pd-counter {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 32px;
-  border: 1px solid var(--bd-line);
-  border-radius: 18px;
-  background: #f7f9fc;
-  color: var(--bd-sub);
-  padding: 4px 12px;
-  font: inherit;
-  font-size: 12.5px;
-  cursor: pointer;
-}
-.pd-counter b {
-  font-size: 14px;
-}
-.pd-counter--green {
-  color: var(--bd-green);
-  background: var(--bd-green-pale);
-  border-color: var(--bd-green);
-}
-.pd-counter--amber {
-  color: var(--bd-gold-deep);
-  background: var(--bd-amber-pale);
-  border-color: var(--bd-gold-deep);
-}
-.pd-counter--red {
-  color: var(--bd-red);
-  background: var(--bd-red-pale);
-  border-color: var(--bd-red);
+/* Every card as wide as the widest label: an intrinsic grid sizes each 1fr
+   track to the largest content, so the three share one width. */
+.pd-stat-row--equal {
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
 }
 .pd-record-toolbar--right {
   justify-content: flex-end;
@@ -1749,10 +1723,6 @@
 .pd-prescription-head span {
   color: var(--bd-muted);
   font-size: 12px;
-}
-.pd-counter.active {
-  box-shadow: inset 0 0 0 1px currentColor;
-  background: #e8f2ff;
 }
 
 @media (max-width: 900px) {
@@ -3893,29 +3863,88 @@
   width: fit-content;
   margin-inline: auto;
 }
-.pd-labo-chips {
+/*
+ * The reference's chip carousel (staging, 2026-09-08): a round 32px arrow on
+ * each side of a two-row grid that fills column by column and scrolls
+ * sideways with its scrollbar hidden; an arrow greys to 45% once its side is
+ * spent. Chips are 13px/500 on #F8FAFD with 6×16 padding; the picked one
+ * wears the app's primary rather than the reference blue.
+ */
+.pd-labo-carousel {
   display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.pd-labo-arrow {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--pd-dash-soft);
+  border-radius: 999px;
+  padding: 0;
+  background: #fff;
+  color: rgb(var(--pd-field-label));
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
+}
+.pd-labo-arrow:hover:not(:disabled) {
+  border-color: var(--bd-primary);
+  color: var(--bd-primary);
+}
+.pd-labo-arrow:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.pd-labo-chips {
+  display: grid;
+  min-height: 40px;
+  flex: 1;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  grid-template-rows: repeat(2, max-content);
   gap: 8px;
   overflow-x: auto;
-  padding-bottom: 4px;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.pd-labo-chips::-webkit-scrollbar {
+  display: none;
 }
 .pd-labo-chips button {
-  flex: 0 0 auto;
-  min-height: 36px;
-  border: 1px solid var(--bd-border);
+  scroll-snap-align: start;
+  white-space: nowrap;
+  border: 1px solid var(--pd-dash-soft);
   border-radius: 999px;
-  padding: 0 16px;
-  background: #fff;
+  padding: 6px 16px;
+  background: var(--bd-bg-soft);
   color: var(--bd-ink);
   font: inherit;
   font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
   cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s,
+    color 0.15s;
+}
+.pd-labo-chips button:hover:not(.active) {
+  border-color: var(--bd-primary);
+  background: #fff;
+  color: var(--bd-primary);
 }
 .pd-labo-chips button.active {
   border-color: var(--bd-primary);
   background: var(--bd-primary);
   color: #fff;
-  font-weight: 600;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
 }
 .pd-labo-teeth {
   display: flex;
@@ -3954,8 +3983,20 @@
   color: #fff;
   font-weight: 600;
 }
+/* Plain text where the chips would sit, until a treatment line is picked
+   (staging: 14px/400 in the label grey). */
+.pd-labo-teeth-hint {
+  color: rgb(var(--pd-field-label));
+  font-size: 14px;
+}
 .pd-labo-notes {
   margin-top: 16px;
+}
+/* Nội dung on the reference is a 92px box with 12px padding, not the modal's
+   two-line default. */
+.pd-labo-dialog .pd-labo-notes textarea.ant-input {
+  min-height: 92px;
+  padding: 12px;
 }
 /*
  * The reference's square drop tile, not a wide button: 80×80, dashed #b9c4d4,
@@ -3995,6 +4036,7 @@
 
 @media (max-width: 900px) {
   .pd-labo-grid,
+  .pd-labo-dialog .pd-labo-grid,
   .pd-print-facts {
     grid-template-columns: 1fr;
   }
@@ -4189,6 +4231,11 @@
 .pd-stage-dialog .floating-field--floated:focus-within .floating-field-label {
   color: var(--bd-primary);
 }
+/* A failed rule outranks the resting and floated greys, as in the rest of the app. */
+.pd-labo-dialog .floating-field:has(.ant-form-item-has-error) .floating-field-label,
+.pd-stage-dialog .floating-field:has(.ant-form-item-has-error) .floating-field-label {
+  color: var(--bd-red);
+}
 .pd-labo-dialog .floating-field:has(.ant-input-disabled) .floating-field-label,
 .pd-labo-dialog .floating-field:has(.ant-select-disabled) .floating-field-label,
 .pd-stage-dialog .floating-field:has(.ant-input-disabled) .floating-field-label,
@@ -4243,4 +4290,318 @@
   .pd-svcdetail-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* ── Labo tab: the order dialog's pills and the child tabs ────────────────
+   Measured on the reference on 2026-09-08 (docs/clone/pages/patient-detail.md,
+   Tab 6): a 40px track with 4px padding and 8px radius, the active pill filled;
+   the order select 350px wide over a 24px gap; the summary lines and the
+   "Lựa chọn dịch vụ:" radio row. The accent follows the app's primary, not the
+   reference's blue, as the owner asked on 2026-09-07. */
+.pd-labo-tabs .pill-tabs {
+  gap: 4px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  border-radius: 8px;
+  padding: 4px;
+  background: var(--bd-bg-soft);
+}
+.pd-labo-tabs .pill-tab {
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 16px;
+  background: transparent;
+  color: var(--bd-sub);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+}
+.pd-labo-tabs .pill-tab:hover {
+  color: var(--bd-primary);
+}
+.pd-labo-tabs .pill-tab--active,
+.pd-labo-tabs .pill-tab--active:hover {
+  background: var(--bd-primary);
+  color: #fff;
+}
+.pd-labo-tabs .pill-tabs-row + * {
+  margin-top: 24px;
+}
+.pd-labo-order-select {
+  width: 350px;
+  max-width: 100%;
+  margin-bottom: 20px;
+}
+.pd-labo-radio {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+}
+.pd-labo-radio > p {
+  margin: 0;
+  color: var(--bd-ink);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 21px;
+}
+.pd-labo-summary {
+  margin-top: 12px;
+}
+.pd-labo-summary > p {
+  margin: 0 0 4px;
+  color: var(--bd-ink);
+  font-size: 14px;
+  line-height: 21px;
+}
+.pd-labo-summary b {
+  font-weight: 600;
+}
+/* The teeth are buttons on the tab's forms (a tooth can be dropped from the
+   child order) and read-outs on the công đoạn's; both wear the same chip. */
+.pd-labo-teeth > div > button {
+  display: inline-flex;
+  min-width: 36px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--bd-border);
+  border-radius: 4px;
+  padding: 4px;
+  background: #fff;
+  color: var(--bd-ink);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.pd-labo-teeth > div > button.active {
+  border-color: transparent;
+  background: var(--bd-primary);
+  color: #fff;
+  font-weight: 600;
+}
+/* The body's side padding, declared once because the pinned footer below
+   has to undo exactly this much: AntD's own 20px was winning over the
+   footer's -24px margins, which left it 8px wider than the body and gave the
+   dialog a horizontal scrollbar (R-308). Reference: `12px 24px 24px`, and
+   `20px 16px 24px` on a phone. */
+.pd-labo-dialog {
+  --pd-labo-body-x: 24px;
+}
+.ant-modal.pd-labo-dialog .ant-modal-body {
+  padding: 12px var(--pd-labo-body-x) 24px;
+  overflow-x: hidden;
+}
+/* Pinned under the scrolling body, as on the reference; the negative margin
+   and matching padding cover the body's own padding. */
+.pd-labo-footer {
+  position: sticky;
+  bottom: -24px;
+  z-index: 1;
+  display: flex;
+  justify-content: flex-end;
+  margin: 20px calc(-1 * var(--pd-labo-body-x)) -24px;
+  border-top: 1px solid var(--bd-border);
+  padding: 14px var(--pd-labo-body-x);
+  background: var(--bd-surface, #fff);
+}
+@media (max-width: 640px) {
+  .pd-labo-dialog {
+    --pd-labo-body-x: 16px;
+  }
+  .ant-modal.pd-labo-dialog .ant-modal-body {
+    padding-top: 20px;
+  }
+}
+.pd-labo-footer .ant-btn {
+  height: 40px;
+}
+/* Ngày gửi / Ngày giao carry a pill under the date on the tab's table. */
+.pd-labo-cell {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+.pd-labo-cell .ant-tag {
+  margin: 0;
+}
+.pd-labo-code {
+  white-space: nowrap;
+}
+/* The reference's yellow folder under File Labo gửi về; greyed while empty. */
+.pd-labo-file.ant-btn {
+  color: var(--bd-gold);
+  font-size: 18px;
+}
+/* Thao tác: the plus in the app's primary, Bảo hành in success green. AntD's
+   text-button hover/active reset the colour through
+   `.ant-btn:not(:disabled):not(.ant-btn-disabled):hover` (0,4,0), so both states
+   are repeated here at (0,5,0). */
+.pd-labo-act.ant-btn.pd-labo-act--primary,
+.pd-labo-act.ant-btn.pd-labo-act--primary:not(:disabled):hover,
+.pd-labo-act.ant-btn.pd-labo-act--primary:not(:disabled):active {
+  color: var(--bd-primary);
+}
+.pd-labo-act.ant-btn.pd-labo-act--success,
+.pd-labo-act.ant-btn.pd-labo-act--success:not(:disabled):hover,
+.pd-labo-act.ant-btn.pd-labo-act--success:not(:disabled):active {
+  color: var(--bd-green);
+}
+/* With an href the button is an <a>, so AntD flags it with a class, not :disabled. */
+.pd-labo-file.ant-btn.ant-btn-disabled {
+  color: var(--bd-muted);
+  opacity: 0.45;
+}
+
+/* The labo forms are AntD forms now: the grid gaps do the spacing, the
+   helper text under a field is the reference's plain red line. */
+.pd-labo-form .ant-form-item {
+  margin-bottom: 0;
+}
+/* AntD's form reset paints every `input[type="file"]` as a block, which
+   outranks the browser's own `[hidden]` and surfaced the picker behind
+   "Tải ảnh" as a bare "Choose Files" (R-309). */
+.pd-labo-form input[type="file"][hidden] {
+  display: none;
+}
+.pd-labo-form .ant-form-item-explain-error {
+  font-size: 12px;
+  margin-top: 4px;
+}
+.pd-labo-strip--error > p,
+.pd-labo-teeth--error > p {
+  color: var(--bd-red);
+}
+
+/* ── Xem chi tiết: the read-only "Thông tin chung" modal ─────────────────
+   Measured on the reference on 2026-09-08: two 350px columns 24px apart in
+   the 772px dialog, block titles 16px/600 uppercase, rows of a 140px label and
+   the value 12px after it, 8px between rows, 12px between a block's parts. */
+.pd-labo-detail {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+.pd-labo-detail-block {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.pd-labo-detail-block h3 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--bd-ink);
+}
+.pd-labo-detail-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pd-labo-detail-row {
+  display: flex;
+  gap: 12px;
+  font-size: 14px;
+  line-height: 21px;
+  color: var(--bd-ink);
+}
+.pd-labo-detail-row > span:first-child {
+  flex: 0 0 140px;
+  font-weight: 500;
+}
+.pd-labo-detail-row > span:last-child {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+/* The status pill: the table's tone, at the modal's 32px height. */
+.pd-labo-detail-pill {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--pill-bg);
+  color: var(--pill-color);
+}
+.pd-labo-detail-footer {
+  gap: 12px;
+}
+/* The eye in Thao tác follows the other two icons' scheme, in the app's info blue. */
+.pd-labo-act.ant-btn.pd-labo-act--info,
+.pd-labo-act.ant-btn.pd-labo-act--info:not(:disabled):hover,
+.pd-labo-act.ant-btn.pd-labo-act--info:not(:disabled):active {
+  color: var(--bd-link);
+}
+@media (max-width: 640px) {
+  .pd-labo-detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ── PHIẾU ĐẶT HÀNG LABO: the printed sheet behind "In Phiếu Labo" ─────────
+   Shares the letterhead grid and the print mechanism of the treatment-history
+   sheet above; the body is the reference's own Times New Roman read-out with
+   two-column blocks, rule-under titles and a single signature at the right.
+   The rule colour is the reference's, on paper, not a screen token. */
+.pd-print-sheet article.pd-labo-sheet {
+  font-family: "Times New Roman", Times, serif;
+}
+.pd-labo-sheet-body {
+  margin-top: 24px;
+  font-size: 16px;
+  line-height: 24px;
+}
+.pd-labo-sheet-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  margin-bottom: 24px;
+}
+.pd-labo-sheet-body h3 {
+  margin: 0 0 10px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.pd-labo-sheet-row {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 8px;
+}
+.pd-labo-sheet-row b {
+  white-space: nowrap;
+}
+.pd-labo-sheet-sign {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 64px;
+}
+.pd-labo-sheet-sign > div {
+  min-width: 220px;
+  font-size: 12px;
+  text-align: center;
+}
+.pd-labo-sheet-sign p {
+  margin: 0;
+}
+/* The role line reads as a heading over the signature (owner's ask, 2026-09-08). */
+.pd-labo-sheet-sign p:first-child {
+  font-size: 13px;
+  font-weight: 700;
+}
+.pd-labo-sheet-sign p:last-child {
+  padding-top: 64px;
+  font-size: 13px;
+  font-weight: 700;
 }

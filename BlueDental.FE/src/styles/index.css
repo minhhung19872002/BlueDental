@@ -2207,7 +2207,8 @@ button {
   box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
 }
 
-.ss-wrapper--error .ss-trigger {
+.ss-wrapper--error .ss-trigger,
+.ant-form-item-has-error .ss-wrapper .ss-trigger {
   border-color: #e5484d;
 }
 

@@ -586,9 +586,12 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Kind).HasConversion<short>();
             entity.Property(x => x.AttachmentUrl).HasMaxLength(500);
             entity.Property(x => x.ToothShade).HasMaxLength(100);
-            entity.HasIndex(x => x.OrderCode).IsUnique();
+            // A child (Làm tiếp công đoạn / Bảo hành) keeps its parent's code,
+            // so only the orders without a parent hold the code uniquely.
+            entity.HasIndex(x => x.OrderCode).IsUnique().HasFilter("\"ParentOrderId\" IS NULL");
             entity.HasIndex(x => new { x.BranchId, x.Status });
             entity.HasIndex(x => x.TreatmentStageId);
+            entity.HasIndex(x => x.ParentOrderId);
         });
 
         builder.Entity<LaboSupplier>(entity =>

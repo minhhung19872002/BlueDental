@@ -49,6 +49,14 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
     public Guid? TreatmentServiceId { get; private set; }
     public Guid? TreatmentStageId { get; private set; }
 
+    /// <summary>
+    /// The order a "Làm tiếp công đoạn" or "Bảo hành" order was raised from
+    /// (the reference's <c>sourceLabOrderId</c>). Null on an order raised with
+    /// Đặt mới. A child shares its parent's code, patient, branch and service
+    /// line, so the code is only unique among the orders without a parent.
+    /// </summary>
+    public Guid? ParentOrderId { get; private set; }
+
     protected LaboOrder() { }
 
     public LaboOrder(
@@ -100,6 +108,76 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
         TreatmentServiceId = treatmentServiceId;
         TreatmentStageId = treatmentStageId;
         Status = LaboStatus.Draft;
+    }
+
+    /// <summary>
+    /// Làm tiếp công đoạn / Bảo hành: a new order under <paramref name="parent"/>.
+    ///
+    /// The code, patient, branch, service line and công đoạn are the parent's —
+    /// the reference disables those fields and posts the parent's values. The
+    /// caller may swap the material (Thay đổi vật liệu mới); a child with no
+    /// material at all is refused, the way the reference answers
+    /// "Vui lòng chọn vật liệu.". Whether the service line is still open is the
+    /// application layer's check, since the line lives on another aggregate.
+    /// </summary>
+    public static LaboOrder CreateChild(
+        Guid id,
+        LaboOrder parent,
+        LaboOrderKind kind,
+        Guid patientId,
+        Guid branchId,
+        string labProviderName,
+        Guid? materialId,
+        Guid? dentistId = null,
+        string? toothNumbers = null,
+        DateOnly? dueDate = null,
+        Guid? supplierId = null,
+        Guid? biteId = null,
+        Guid? finishLineId = null,
+        Guid? rhythmId = null,
+        string? notes = null,
+        DateTimeOffset? sentAt = null,
+        string? toothShade = null,
+        int quantity = 1,
+        decimal estimatedCost = 0m)
+    {
+        Check.NotNull(parent, nameof(parent));
+        if (kind == LaboOrderKind.New)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.ParentRequired,
+                "An order raised with Đặt mới has no parent.");
+        if (parent.PatientId != patientId || parent.BranchId != branchId)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.ParentMismatch);
+
+        var material = materialId ?? parent.MaterialId;
+        if (!material.HasValue)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.MaterialRequired);
+
+        return new LaboOrder(
+            id,
+            parent.OrderCode,
+            parent.PatientId,
+            parent.BranchId,
+            labProviderName,
+            estimatedCost,
+            dentistId ?? parent.DentistId,
+            toothNumbers,
+            parent.WorkDescription,
+            dueDate,
+            kind,
+            supplierId ?? parent.SupplierId,
+            material,
+            biteId,
+            finishLineId,
+            rhythmId,
+            notes,
+            sentAt,
+            toothShade,
+            quantity,
+            parent.TreatmentServiceId,
+            parent.TreatmentStageId)
+        {
+            ParentOrderId = parent.Id
+        };
     }
 
     /// <summary>The file the clinic sent back, replacing whatever was there.</summary>
