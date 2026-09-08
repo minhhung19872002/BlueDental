@@ -1,6 +1,7 @@
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { receptionApi } from "./receptionApi";
 import { staffApi } from "@/features/staff/api/staffApi";
+import { t } from "@/lib/i18n";
 import type { ReceptionFilter } from "../types/reception";
 
 const PAGE_SIZE = 20;
@@ -33,7 +34,7 @@ export function useReceptionDoctors(branchId?: string) {
       return result.items.map((s) => ({
         id: s.id,
         name: s.name ?? s.userName ?? "",
-        title: s.roleNames[0] ?? "Bác sĩ",
+        title: s.roleNames[0] ?? t("Bác sĩ"),
         branchIds: s.branchIds,
       }));
     },

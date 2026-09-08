@@ -1,3 +1,5 @@
+import { t } from "@/lib/i18n";
+
 const DIGITS = ["không", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín"];
 const SCALES = ["", "nghìn", "triệu"];
 
@@ -40,7 +42,7 @@ function scaleOf(index: number): string {
  */
 export function moneyInWords(amount: number): string {
   const value = Math.floor(Math.abs(amount));
-  if (!Number.isFinite(value) || value === 0) return "Không đồng";
+  if (!Number.isFinite(value) || value === 0) return t("Không đồng");
 
   const groups: number[] = [];
   for (let rest = value; rest > 0; rest = Math.floor(rest / 1000)) groups.push(rest % 1000);
@@ -54,6 +56,6 @@ export function moneyInWords(amount: number): string {
     if (scale) words.push(scale);
   }
 
-  const text = `${words.join(" ")} đồng`;
+  const text = `${words.join(" ")} ${t("đồng")}`;
   return text.charAt(0).toUpperCase() + text.slice(1);
 }

@@ -1,5 +1,6 @@
 import dayjs from "dayjs";
 import { api } from "@/lib/axios";
+import { t } from "@/lib/i18n";
 import type {
   AppointmentCounterType,
   AppointmentOutcome,
@@ -124,12 +125,12 @@ function mapAppointmentDto(dto: ServerAppointmentDto): ReceptionItem {
     id: dto.id,
     voucherCode: dto.patientCode || `TN-${dto.id.slice(0, 8).toUpperCase()}`,
     patientId: dto.patientId ?? "",
-    patientName: dto.patientName || "Bệnh nhân",
+    patientName: dto.patientName || t("Bệnh nhân"),
     patientPhone: dto.patientPhone ?? "",
     patientYearOfBirth: dto.patientYearOfBirth ?? undefined,
     patientType: "New",
     doctorId: dto.dentistId ?? "",
-    doctorName: dto.dentistName || "Bác sĩ",
+    doctorName: dto.dentistName || t("Bác sĩ"),
     refType: "Medical",
     status: mapStatusFromBe(dto.status),
     counterStatus,

@@ -126,7 +126,7 @@ export function GlobalSearch({ open, onClose }: Props) {
                     }
                   }}
                 >
-                  <span className="app-search-hit-badge">BN</span>
+                  <span className="app-search-hit-badge">{t("BN")}</span>
                   <span className="app-search-hit-text">
                     <span className="app-search-hit-name">{hit.fullName}</span>
                     <span className="app-search-hit-meta">

@@ -122,7 +122,7 @@ export function WeekViewCalendar({
       <div className="cal-week-grid">
         {/* Header row */}
         <div className="cal-week-time-header">
-          <div className="cal-week-time-header-label">Giờ/Ngày</div>
+          <div className="cal-week-time-header-label">{t("Giờ/Ngày")}</div>
         </div>
         {days.map((day, i) => {
           const isToday = day.isSame(today, "day");

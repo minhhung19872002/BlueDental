@@ -13,10 +13,10 @@ export const invoicePaymentOptions = (): { value: InvoicePaymentMethod; label: s
 
 export const TAX_TYPE_OPTIONS = (): { value: string; label: string }[] => [
   { value: "CX", label: t("Chưa xuất") },
-  { value: "KCT", label: "KCT" },
+  { value: "KCT", label: t("KCT") },
 ];
 
 export const DEFAULT_TAX_TYPE = "CX";
-export const DEFAULT_UNIT = "Răng";
+export const DEFAULT_UNIT_KEY = "Răng";
 export const DEFAULT_CURRENCY = "VND";
 export const DEFAULT_EXCHANGE_RATE = 1;

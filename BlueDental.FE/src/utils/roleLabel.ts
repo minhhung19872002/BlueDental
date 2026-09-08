@@ -1,9 +1,6 @@
-/**
- * Roles reach the client as their technical names. The ones the seeder creates
- * are already Vietnamese and pass through untouched; these are the
- * ABP-flavoured ones nobody wants to read on screen.
- */
-const ROLE_LABELS: Record<string, string> = {
+import { t } from "@/lib/i18n";
+
+const ROLE_KEYS: Record<string, string> = {
   admin: "Quản trị viên",
   dentist: "Bác sĩ",
   nurse: "Điều dưỡng",
@@ -12,11 +9,8 @@ const ROLE_LABELS: Record<string, string> = {
   manager: "Quản lý",
 };
 
-/**
- * @param role The technical role name, if the account has one.
- * @param fallback What to show when it has none.
- */
 export function roleLabel(role: string | undefined, fallback: string): string {
   if (!role) return fallback;
-  return ROLE_LABELS[role.toLowerCase()] ?? role;
+  const key = ROLE_KEYS[role.toLowerCase()];
+  return key ? t(key) : role;
 }

@@ -4,10 +4,11 @@ import type { PatientDto } from "@/features/patient-management/types/patient";
 import type { TreatmentPlanSlipDto } from "../api/treatmentPlanApi";
 import { SERVICE_LINE_STATUS } from "../api/treatmentPlanApi";
 import type { InvoiceServiceRow, InvoicePaymentMethod } from "./invoiceTypes";
+import { t } from "@/lib/i18n";
 import {
   INVOICE_TEMPLATES,
   DEFAULT_TAX_TYPE,
-  DEFAULT_UNIT,
+  DEFAULT_UNIT_KEY,
   DEFAULT_CURRENCY,
   DEFAULT_EXCHANGE_RATE,
 } from "./invoiceConstants";
@@ -23,7 +24,7 @@ function buildRows(plan: TreatmentPlanSlipDto): InvoiceServiceRow[] {
         stt: i + 1,
         serviceName: s.serviceName ?? s.code,
         taxType: DEFAULT_TAX_TYPE,
-        unit: DEFAULT_UNIT,
+        unit: t(DEFAULT_UNIT_KEY),
         quantity: s.quantity,
         unitPrice,
         taxBasePrice,

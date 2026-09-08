@@ -81,7 +81,7 @@ const STATUS_LOOK: Record<AppointmentStatus, StatusLook> = {
   },
 };
 
-const BADGE_LABEL: Record<AppointmentStatus, string> = {
+const BADGE_LABEL_KEYS: Record<AppointmentStatus, string> = {
   scheduled: "Đã hẹn",
   confirmed: "Đã xác nhận",
   inProgress: "Đang khám",
@@ -114,7 +114,7 @@ export const EventCard = React.memo(function EventCard({
   const start = dayjs(appointment.startTime);
   const end = dayjs(appointment.endTime);
   const durationMinutes = end.diff(start, "minute");
-  const timeLabel = `${start.format("HH:mm")} - ${end.format("HH:mm")} (${durationMinutes} phút)`;
+  const timeLabel = `${start.format("HH:mm")} - ${end.format("HH:mm")} (${durationMinutes} ${t("phút")})`;
 
   const menuItems: MenuProps["items"] = useMemo(() => [
     {
@@ -262,7 +262,7 @@ export const EventCard = React.memo(function EventCard({
             "--badge-text": look.badgeText,
           } as React.CSSProperties}
         >
-          {BADGE_LABEL[appointment.status]}
+          {t(BADGE_LABEL_KEYS[appointment.status])}
         </span>
       </div>
 
@@ -274,7 +274,7 @@ export const EventCard = React.memo(function EventCard({
             <circle cx="12" cy="7" r="4" />
           </svg>
         </span>
-        <span className="evt-card-label">{appointment.doctorName || "Admin"}</span>
+        <span className="evt-card-label">{appointment.doctorName || t("Quản trị viên")}</span>
       </div>
     </div>
   );

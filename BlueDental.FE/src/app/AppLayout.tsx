@@ -37,7 +37,7 @@ interface NavItem {
 }
 
 /** The rail's own wordmark — the header carries the clinic's full name. */
-const CLINIC_SHORT_NAME = "Đức Hạnh Premium";
+const CLINIC_SHORT_NAME_KEY = "Đức Hạnh Premium";
 
 /** Translator type, so the builders below stay readable. */
 type Translate = (vietnamese: string) => string;
@@ -263,12 +263,10 @@ export function AppLayout() {
     },
   ];
 
-  const clinicName = user?.clinicName ?? "NHA KHOA ĐỨC HẠNH PREMIUM";
+  const clinicName = user?.clinicName ?? t("NHA KHOA ĐỨC HẠNH PREMIUM");
   const clinicLogoUrl = user?.clinicLogoUrl ?? "/logo.png";
-  const clinicTagline = user?.clinicTagline ?? "Kiến Tạo Nụ Cười - Giá Trị Bền Vững";
-  /* The rail is 236px wide, so it takes the short form of the name; the
-     header beside it carries the full one from the clinic record. */
-  const clinicShortName = CLINIC_SHORT_NAME;
+  const clinicTagline = user?.clinicTagline ?? t("Kiến Tạo Nụ Cười - Giá Trị Bền Vững");
+  const clinicShortName = t(CLINIC_SHORT_NAME_KEY);
   const sidebarWidth = sidebarExpanded ? SIDEBAR_EXPANDED_WIDTH : SIDEBAR_WIDTH;
 
   /*
@@ -387,7 +385,7 @@ export function AppLayout() {
 
         {/* Main nav */}
         <nav className="sidebar-nav-main" ref={railListRef}>
-          {sidebarExpanded && <div className="sidebar-nav-heading">MENU</div>}
+          {sidebarExpanded && <div className="sidebar-nav-heading">{t("MENU")}</div>}
           {mainNav(t).map((item) => (
             <SidebarNavItem
               key={item.key}
@@ -512,7 +510,7 @@ export function AppLayout() {
                     {initialsOf(user?.name)}
                   </Avatar>
                   <span className="app-header-user-text">
-                    <span className="app-header-user-name">{user?.name ?? "Admin"}</span>
+                    <span className="app-header-user-name">{user?.name ?? t("Quản trị viên")}</span>
                     <span className="app-header-user-role">{userRole}</span>
                   </span>
                   <DownOutlined style={{ fontSize: 14, color: "#78819c" }} />

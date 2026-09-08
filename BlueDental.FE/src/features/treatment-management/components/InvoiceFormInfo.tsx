@@ -20,9 +20,9 @@ interface InvoiceFormInfoProps {
   onExchangeRateChange: (value: string) => void;
 }
 
-const templateOptions = INVOICE_TEMPLATES.map((tpl) => ({
+const templateOptions = () => INVOICE_TEMPLATES.map((tpl) => ({
   value: tpl.id,
-  label: tpl.label,
+  label: t(tpl.label),
 }));
 
 export function InvoiceFormInfo({
@@ -48,7 +48,7 @@ export function InvoiceFormInfo({
           <Select
             value={templateId}
             onChange={onTemplateChange}
-            options={templateOptions}
+            options={templateOptions()}
             showSearch
             optionFilterProp="label"
             suffixIcon={<SearchOutlined />}
