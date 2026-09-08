@@ -3218,3 +3218,20 @@ form trùng mép dưới header sticky (300.56px); kiểm tra maths zoom bằng 
 thử `zoom:1.25` (box 250 / layout 200). Chưa vẽ thử trên tờ có HTML vì dữ liệu
 seed local hai nội dung đều rỗng. tsc, eslint, prettier, build sạch.
 **Chưa commit.**
+
+## 2026-09-08 (tối) — "Chọn ảnh hiển thị": kéo sắp xếp bị giật
+
+| ID | Sai lệch | Sửa |
+|---|---|---|
+| R-301 | Kéo thẻ trong modal "Chọn ảnh hiển thị" (tab Chẩn đoán & Tư vấn) thấy giật lúc thả; cùng thao tác trên tab Hình ảnh thì mượt. Đo trên build :8081 (tab foreground): pointerup → +6.5ms commit A (dnd-kit reset `--pd-drag-transform:none`, `transition 200ms`) → long task 56ms (render lại cả tab: 2 DataTable antd + panel + modal, do `setQueryData` lạc quan báo qua `notifyManager` setTimeout 0) → +63ms commit B (đổi chỗ DOM, transition 0ms). Trong ~56ms đó thẻ bên cạnh trượt về chỗ cũ ~⅓ đường (88px → 309px) rồi bị đổi chỗ trong DOM → nhảy. Tab Hình ảnh render commit B rẻ nên A và B cùng một frame, không thấy. Không phải do CSS/sensor/key/network (PUT reorder 7–28ms, GET 97–112ms) | `hooks/useDraggedOrder.ts` giữ thứ tự vừa thả cục bộ (state `{ base, ids }`, chỉ áp khi `base === day.images`, không dùng effect) và `ConsultingImageDay.tsx` tách từ `ConsultingImagePicker` (mỗi ngày một `DndContext`, `SortableContext items` lấy từ `ordered`). `move()` chạy cùng batch với `onDragEnd` nên `items` đổi cùng commit với reset của dnd-kit → nhánh `itemsHaveChanged` tắt transition, thẻ đổi chỗ tức thì; cache về sau render cùng thứ tự (không đổi DOM); rollback đổi identity `day.images` → bỏ thứ tự cục bộ. `onReorder` nhận `{ ...day, images: ordered }` để kéo lần hai trước khi cache kịp vẫn đúng chỉ số |
+
+Retest R-301 (2026-09-08, build production :8081, tab foreground, script dispatch
+pointer events lên grip "Sắp xếp" thẻ 0 → thẻ 1): reset dnd-kit và `childList`
+đổi chỗ DOM cùng mốc +5.2ms sau pointerup, 20 frame sau thẻ bên cạnh đứng yên
+(left 37px), PUT `patient-images/reorder` +5→30ms, GET refetch +57→72ms không
+đổi DOM; reload → mở lại modal, thứ tự 7 thẻ giữ nguyên. Không viết test theo
+yêu cầu, chủ dự án tự kiểm tra bằng tay. tsc, eslint, prettier, build sạch.
+Chưa sửa tab Hình ảnh (`PatientImageDayRow`) — cùng race tiềm ẩn nhưng render
+nhẹ nên không thấy; chưa memo `ConsultingImageCard`; chưa tách
+`usePatientImages` khỏi `useConsultingData` (nguyên nhân cả tab render 56ms).
+**Chưa commit.**

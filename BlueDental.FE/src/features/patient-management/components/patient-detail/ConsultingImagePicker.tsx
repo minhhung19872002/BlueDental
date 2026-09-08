@@ -1,26 +1,12 @@
 import { useMemo } from "react";
 import { Button, Modal } from "antd";
-import {
-  DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  horizontalListSortingStrategy,
-  sortableKeyboardCoordinates,
-} from "@dnd-kit/sortable";
 import { t } from "@/lib/i18n";
 import {
   groupImagesByDay,
   type PatientImageDay,
   type PatientImageViewModel,
 } from "../../api/patientImageAdapters";
-import { ConsultingImageCard } from "./ConsultingImageCard";
+import { ConsultingImageDay } from "./ConsultingImageDay";
 
 interface Props {
   open: boolean;
@@ -55,17 +41,6 @@ export function ConsultingImagePicker({
   onReorder,
 }: Props) {
   const days = useMemo(() => groupImagesByDay(images), [images]);
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-  );
-
-  const handleDragEnd = (day: PatientImageDay, { active, over }: DragEndEvent) => {
-    if (!over || active.id === over.id) return;
-    const from = day.images.findIndex((image) => image.id === active.id);
-    const to = day.images.findIndex((image) => image.id === over.id);
-    if (from >= 0 && to >= 0) onReorder(day, from, to);
-  };
 
   return (
     <Modal
@@ -88,30 +63,15 @@ export function ConsultingImagePicker({
         <div className="pd-image-list-empty">{t("Chưa có ảnh nào.")}</div>
       ) : (
         days.map((day) => (
-          <section key={day.key} className="pd-image-day" data-day={day.key}>
-            <h4>{day.label}</h4>
-            <DndContext
-              id={`consulting-image-day-${day.key}`}
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={(event) => handleDragEnd(day, event)}
-            >
-              <SortableContext items={day.images.map((image) => image.id)} strategy={horizontalListSortingStrategy}>
-                <div className="pd-image-cards">
-                  {day.images.map((image) => (
-                    <ConsultingImageCard
-                      key={image.id}
-                      image={image}
-                      checked={!hidden.includes(image.id)}
-                      canSort={canSort}
-                      onToggle={onToggle}
-                      onDelete={onDelete}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
-          </section>
+          <ConsultingImageDay
+            key={day.key}
+            day={day}
+            hidden={hidden}
+            canSort={canSort}
+            onToggle={onToggle}
+            onDelete={onDelete}
+            onReorder={onReorder}
+          />
         ))
       )}
     </Modal>

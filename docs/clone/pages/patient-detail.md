@@ -2640,6 +2640,7 @@ Nguồn: ảnh chụp production do chủ dự án gửi, staging (được bấ
 | Bút vẽ | lần đầu bấm: bật vẽ + mở popover "Màu bút / Độ dày nét / Tắt chế độ vẽ"; đang vẽ bấm lại chỉ mở popover; **đóng popover khi đang vẽ** → hiện nút **X đỏ** cạnh bút (tooltip "Tắt chế độ vẽ", nền đỏ 10%, hover 20%); vẽ được cả trên trạng thái rỗng "Chưa có dữ liệu tư vấn" | `ConsultingLibraryToolbar`: `drawing && !paletteOpen` → `Tool danger` (lucide `X` 16); `ConsultingLibrarySheet` đặt `ViewerAnnotationCanvas` lên cả `.pd-lib-body` rỗng; điều kiện hiện X theo bản gốc (không phụ thuộc đã có nét vẽ hay chưa) |
 | Nét vẽ khi tờ zoom 125% | nét nằm đúng dưới con trỏ | `ViewerAnnotationCanvas.pointOf` chia offset con trỏ cho hệ số CSS `zoom` (= bề rộng box trên màn / bề rộng layout sau ma trận transform) trước khi nghịch đảo transform — viewer Hình ảnh (transform) không đổi |
 | Mũi tên ‹ › trên tờ | đứng yên khi bấm | `.pd-lib-arrow:active` giữ `translateY(-50%)` + `transition:none` (rule toàn cục `button:active { transform: scale(.97) }` đè mất translate → nút tụt nửa chiều cao rồi bật lại) |
+| Kéo sắp xếp thẻ trong "Chọn ảnh hiển thị" | thẻ đổi chỗ ngay khi thả, không giật | `ConsultingImageDay` (mỗi ngày một `DndContext`) + hook `useDraggedOrder`: thứ tự vừa thả được giữ cục bộ trong cùng batch với lúc thả, cache TanStack xác nhận sau; thứ tự cục bộ bỏ khi `day.images` đổi identity (cache/rollback). Xem R-301 |
 
 Ghi chú kỹ thuật:
 
