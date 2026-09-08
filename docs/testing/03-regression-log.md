@@ -3195,3 +3195,26 @@ Retest R-293 (2026-09-08): không đo, chủ dự án tự kiểm tra (không vi
 theo yêu cầu). tsc + eslint (thư mục mới) + build production sạch; preview
 cổng 8081 đã build lại; mở thử dialog + toàn màn hình trên preview: thanh công cụ nằm trên khay "Nội dung tư vấn" (fixed, bottom 144px như bản gốc) và hạ xuống 24px khi gập khay, nút mở lại khay là nút tròn ArrowUpFromLine bên phải thanh công cụ. Màu nhấn dùng `--bd-primary`, không dùng xanh
 #2671D8 của bản gốc. **Chưa commit.**
+
+## 2026-09-08 (chiều) — Chẩn đoán & Tư vấn: phản hồi chủ dự án sau R-293
+
+| ID | Sai lệch | Sửa |
+|---|---|---|
+| R-294 | Click dòng "Phiếu tư vấn" không làm gì; bản gốc mở "Cập nhật phiếu dịch vụ" | `PatientAdviseCard.onEdit` → `CreatePlanDialog advise={row}` dùng lại (không tạo modal mới); bỏ qua click vào checkbox / nút thao tác |
+| R-295 | Form "Tạo chẩn đoán" chèn vào bảng nên cuộn xuống mất bảng; nút "Cột hiển thị" dính sát bảng | Form thành `children` của `PatientDiagnosisCard` nằm ngoài `.pd-diagnosis-table`, thẻ tự cuộn với header sticky; `.pd-advise-tools` gap 8px, nút 32px, bảng có viền |
+| R-296 | Click dòng "Phiếu chẩn đoán" không mở cập nhật; tooltip/hành động toolbar thư viện thiếu | `useDiagnosisEditor` (expanded/editing/edit/submit), form prefill + `PUT patient-diagnoses/{id}` + toast, select Chẩn đoán khoá (server); toolbar: `Tool` có `Tooltip`, bút mở popover `PenPalette` dùng chung, Đặt lại về zoom nghỉ |
+| R-297 | Popover bút lệch ~200px xuống dưới khi mở trong dialog (hết motion mới nhảy); nghi do tooltip nhưng click JS không hover vẫn lệch | Nguyên nhân: rc-trigger đo lại lúc popup còn scale 0.8 của motion `zoom-big-fast` (`inset` ≈ 878/0.8 = 1097.5px). Tắt motion: `motion={NO_MOTION}` trên Popover bút; đo trên :8081 ổn định 12s, gap 12px, canh giữa bút |
+| R-298 | Chưa vẽ được trong thư viện khi rỗng (canvas chỉ mount trong `.pd-lib-sheet` có HTML); chưa có nút X đỏ "Tắt chế độ vẽ" khi đóng popover; nét vẽ lệch khi tờ zoom 125% (`pointOf` không biết CSS `zoom`) | Canvas đặt thêm lên `.pd-lib-body` rỗng; `Tool danger` X đỏ hiện khi `drawing && !paletteOpen` (theo bundle bản gốc `eP && !eE`), `.pd-lib-tool--danger` màu `--bd-red` 10%/20%; `pointOf` chia offset con trỏ cho hệ số zoom suy từ `box.width / (clientWidth·|a| + clientHeight·|b|)` |
+| R-299 | Click dòng chẩn đoán (hoặc nút "+" header) khi thẻ đã cuộn xuống: form mở ở trên nhưng không thấy | `revealForm(card)`: `scrollTo({top:0})` + `scrollIntoView({block:"nearest"})` trong `PatientDiagnosisCard` cho cả click dòng và nút "+" |
+| R-300 | Bấm mũi tên ‹ › trên tờ thư viện: nút "nhảy" | Rule toàn cục `button:active { transform: scale(.97) }` đè `translateY(-50%)` của `.pd-lib-arrow` → tụt 22px rồi bật lại. `.pd-lib-arrow:active` giữ translate, `transition:none` |
+
+Retest R-294…R-300 (2026-09-08): không đo, chủ dự án tự kiểm tra (không viết
+test theo yêu cầu). Smoke bằng script trên build production cổng 8081: mở thư
+viện rỗng → bút → dispatch pointer events lên `.pi-annotation--active` vẽ được
+(1097 px có alpha, "Hoàn tác" bật), đóng popover → X đỏ (`Tắt chế độ vẽ`, nền
+`--bd-red` 10%), bấm X → bút về "Bật chế độ vẽ", canvas hết active; cuộn thẻ
+chẩn đoán 400px + pane 300px rồi click dòng / nút "+" → cả hai về 0, mép trên
+form trùng mép dưới header sticky (300.56px); kiểm tra maths zoom bằng canvas
+thử `zoom:1.25` (box 250 / layout 200). Chưa vẽ thử trên tờ có HTML vì dữ liệu
+seed local hai nội dung đều rỗng. tsc, eslint, prettier, build sạch.
+**Chưa commit.**

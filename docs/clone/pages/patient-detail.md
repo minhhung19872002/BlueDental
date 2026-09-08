@@ -2624,3 +2624,32 @@ Mã: `patient-management/components/patient-detail/quote/` (`QuoteDetailModal`,
 `QuoteServiceTable`, `QuoteSheet`, `DiagnosisInvoiceSheet`,
 `DiagnosisGroupBlock`, `DiagnosisDoctorCard`, `useQuoteSheet`, `quoteModel`,
 `printQuote`, `quote.css`); nối vào `PatientConsultingTab` qua `quoteOpen`.
+
+## Chẩn đoán & Tư vấn — sửa theo phản hồi chủ dự án (2026-09-08, chiều)
+
+Nguồn: ảnh chụp production do chủ dự án gửi, staging (được bấm), bundle tĩnh
+`reference-private/chunk-quote.js`. Không bấm gì trên production.
+
+| Việc | Bản gốc | BlueDental |
+|---|---|---|
+| Click dòng "Phiếu tư vấn" | mở dialog "Cập nhật phiếu dịch vụ" (cùng khung với "Tạo kế hoạch điều trị") | dùng lại `CreatePlanDialog` với prop `advise` (không tạo modal mới); click ô tick / nút thao tác không mở |
+| Form "Tạo chẩn đoán" | form nằm **ngoài** bảng, cuộn xuống vẫn thấy hết bảng | `PatientDiagnosisCard` nhận form qua `children`, đặt giữa header sticky và `.pd-diagnosis-table`; thẻ tự cuộn (`overflow:auto`), header `position:sticky` |
+| Click dòng "Phiếu chẩn đoán" | mở lại form phía trên với dữ liệu phiếu, nút xanh lá "Cập nhật Chẩn Đoán" | `useDiagnosisEditor.edit(row)` → `PatientDiagnosisForm editing=…` (select Chẩn đoán khoá — server chưa đổi được, xem unknowns.md), `PUT patient-diagnoses/{id}` + toast; **tự cuộn** thẻ lên đầu để lộ form (`revealForm`: `scrollTo top 0` + `scrollIntoView nearest`), cả khi mở bằng nút "+" trên header |
+| Nút "Cột hiển thị" | nút 32px, cách bảng 8px, bảng có viền | `.pd-advise-tools` gap 8 + `.pd-advise-table` |
+| Toolbar thư viện | mỗi nút có tooltip: "Thu nhỏ", "Phóng to", "Đặt lại", "Đảo tương phản", "Bật chế độ vẽ" / "Đổi màu hoặc độ dày nét vẽ", "Hoàn tác nét vẽ" | `Tool` bọc `Tooltip`, popup mount trong `.pd-lib` (dialog z-index cao hơn body) |
+| Bút vẽ | lần đầu bấm: bật vẽ + mở popover "Màu bút / Độ dày nét / Tắt chế độ vẽ"; đang vẽ bấm lại chỉ mở popover; **đóng popover khi đang vẽ** → hiện nút **X đỏ** cạnh bút (tooltip "Tắt chế độ vẽ", nền đỏ 10%, hover 20%); vẽ được cả trên trạng thái rỗng "Chưa có dữ liệu tư vấn" | `ConsultingLibraryToolbar`: `drawing && !paletteOpen` → `Tool danger` (lucide `X` 16); `ConsultingLibrarySheet` đặt `ViewerAnnotationCanvas` lên cả `.pd-lib-body` rỗng; điều kiện hiện X theo bản gốc (không phụ thuộc đã có nét vẽ hay chưa) |
+| Nét vẽ khi tờ zoom 125% | nét nằm đúng dưới con trỏ | `ViewerAnnotationCanvas.pointOf` chia offset con trỏ cho hệ số CSS `zoom` (= bề rộng box trên màn / bề rộng layout sau ma trận transform) trước khi nghịch đảo transform — viewer Hình ảnh (transform) không đổi |
+| Mũi tên ‹ › trên tờ | đứng yên khi bấm | `.pd-lib-arrow:active` giữ `translateY(-50%)` + `transition:none` (rule toàn cục `button:active { transform: scale(.97) }` đè mất translate → nút tụt nửa chiều cao rồi bật lại) |
+
+Ghi chú kỹ thuật:
+
+- antd 6 không còn `.ant-popover-inner` / `.ant-tooltip-inner`; DOM là
+  `.ant-popover > .ant-popover-container > .ant-popover-content` và
+  `.ant-tooltip > .ant-tooltip-container`. CSS mới trong `consulting-library.css`
+  / `patient-image.css` nhắm `-container`. Các selector `-inner` cũ ở
+  `patient-detail.css`, `treatment-plan.css`, `calendar.css` có thể đã chết —
+  chưa đụng.
+- Popover bút mount trong `.pd-lib` bị lệch ~200px lúc mở: rc-trigger đo lại
+  vị trí khi popup còn đang zoom-in ở scale 0.8 (motion `zoom-big-fast`). Tắt
+  motion bằng `motion={{ motionName: "" }}` (`NO_MOTION`), popover đứng đúng
+  trên bút (gap 12px, giữa).

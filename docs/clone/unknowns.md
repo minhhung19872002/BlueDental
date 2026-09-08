@@ -1864,3 +1864,30 @@ Reason: Tài khoản staging bị 403 ở `GET /api/v1/taxonomy/?group=consultin
   "Cuộn" / "Space + kéo"; BlueDental chưa làm chế độ kéo, chỉ có cuộn.
 Action taken: NONE — không bấm gì trên production; staging chỉ mở/đóng dialog
   rỗng.
+
+---
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/:id?tab=consulting (staging + production)
+Control: "Cập nhật phiếu dịch vụ" (click dòng Phiếu tư vấn) và "Cập nhật Chẩn
+  Đoán" (click dòng Phiếu chẩn đoán)
+Reason: Chỉ quan sát được form mở ra với dữ liệu phiếu; không lưu trên
+  production. Phía BlueDental hiện `PUT patient-advises/{id}` bỏ qua Note /
+  nhân sự / răng / dịch vụ, và `PUT patient-diagnoses/{id}` không đổi được
+  DiagnosisId (select "Chẩn đoán" trên form cập nhật bị khoá vì thế). Staging
+  ở chế độ cập nhật hiện thêm một ô "Chẩn đoán 2" trống, production chỉ có
+  nút "+". BlueDental theo production.
+Action taken: NONE — không bấm lưu trên production; staging chỉ mở/đóng form.
+
+---
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/:id?tab=consulting → "Thư viện ảnh lâm sàng" → bút vẽ
+Control: nút X đỏ "Tắt chế độ vẽ" (hiện khi đóng popover mà vẫn đang vẽ)
+Reason: Từ bundle bản gốc chỉ thấy nút gọi cùng handler với "Tắt chế độ vẽ"
+  trong popover; chưa quan sát được bản gốc có xoá nét đã vẽ khi tắt hay
+  giữ lại. BlueDental xoá nét (như viewer Hình ảnh). Điều kiện hiện nút theo
+  bundle là `đang vẽ && popover đóng`, không phụ thuộc đã có nét hay chưa.
+Action taken: NONE — không vẽ trên production.
