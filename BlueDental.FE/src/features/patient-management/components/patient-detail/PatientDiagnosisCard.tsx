@@ -1,10 +1,5 @@
 import { Button, Tooltip, type TableColumnsType } from "antd";
-import {
-  CalendarOutlined,
-  CloseOutlined,
-  DeleteOutlined,
-  PlusOutlined,
-} from "@ant-design/icons";
+import { CalendarOutlined, CloseOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import { DataTable } from "@/components/DataTable";
 import {
   formatTeeth,
@@ -146,22 +141,22 @@ export function PatientDiagnosisCard({
         </div>
         <div className="pd-card-note">
           <b>{t("Bác sĩ có trách nhiệm thông báo")}</b>
-          <span>
-            {t("Những vấn đề răng miệng đang gặp phải – Hiểu về tiến trình của bệnh lý")}
-          </span>
+          <span>{t("Những vấn đề răng miệng đang gặp phải – Hiểu về tiến trình của bệnh lý")}</span>
         </div>
       </header>
 
       {children}
 
-      <DataTable<PatientDiagnosisDto>
-        rowKey="id"
-        loading={loading}
-        columns={columns}
-        dataSource={rows}
-        locale={{ emptyText: t("Chưa có chẩn đoán") }}
-        pagination={pagination.buildConfig(totalCount, countedTotal(t("chẩn đoán")))}
-      />
+      <div className="pd-diagnosis-table">
+        <DataTable<PatientDiagnosisDto>
+          rowKey="id"
+          loading={loading}
+          columns={columns}
+          dataSource={rows}
+          locale={{ emptyText: t("Chưa có chẩn đoán") }}
+          pagination={pagination.buildConfig(totalCount, countedTotal(t("chẩn đoán")))}
+        />
+      </div>
     </div>
   );
 }

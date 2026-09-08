@@ -66,6 +66,8 @@ interface Props {
   selected: string[];
   onSelect: (ids: string[]) => void;
   onOpenAdvise: () => void;
+  /** A row was clicked: open that slip in "Cập nhật phiếu dịch vụ". */
+  onEdit: (row: PatientAdviseDto) => void;
   onDelete: (row: PatientAdviseDto) => void;
   onAddToPlan: (dentistId?: string) => void;
   onQuote: () => void;
@@ -82,6 +84,7 @@ export function PatientAdviseCard({
   selected,
   onSelect,
   onOpenAdvise,
+  onEdit,
   onDelete,
   onAddToPlan,
   onQuote,
@@ -282,6 +285,15 @@ export function PatientAdviseCard({
         columns={columns}
         dataSource={rows}
         rowSelection={{ selectedRowKeys: selected, onChange: (keys) => onSelect(keys as string[]) }}
+        onRow={(row) => ({
+          onClick: (event) => {
+            // The checkbox and the action buttons keep their own meaning.
+            const target = event.target instanceof Element ? event.target : null;
+            if (target?.closest("button, a, .ant-checkbox-wrapper, .ant-table-selection-column"))
+              return;
+            onEdit(row);
+          },
+        })}
         locale={{ emptyText: t("Chưa có kế hoạch") }}
         pagination={pagination.buildConfig(totalCount, countedTotal(t("dịch vụ")))}
       />

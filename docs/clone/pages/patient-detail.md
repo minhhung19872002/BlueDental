@@ -1794,7 +1794,77 @@ page scrolls.
 |------------|-----------|
 | `Thêm ảnh` | Opens the OS file chooser directly |
 | `Danh sách ảnh` | Dialog **Chọn ảnh hiển thị** — grid of the patient's images, footer `Chọn tất cả` + `Xong`, empty `Chưa có ảnh nào.` |
-| `Danh mục` | Popover **Dữ liệu tư vấn**, from `GET /api/v1/taxonomy/?group=consulting_data&perPage=20&branchId=`, empty `Không có danh mục.` |
+| `Danh mục` | Full-screen dialog **Thư viện ảnh lâm sàng** (see below). Corrected 2026-09-08: the earlier "popover" reading was wrong — the same dialog is in both the staging and the production bundle. |
+
+**Thư viện ảnh lâm sàng** (`role=dialog`, `z-[1700]`, backdrop `bg-black/50 p-4`,
+sheet `calc(100vw-30px) × calc(100vh-32px)`, `rounded-2xl`, `bg-[#F6F8FB]`,
+`shadow 0 20px 60px rgba(0,0,0,.2)`; grid `256px | 1fr` from 1024px):
+
+- **Left aside** (white, `border-r`): 40px `rounded-xl` blue-50 box with
+  `lucide-stethoscope`, `h2` "Dữ liệu tư vấn" 15px/600, `p` "{n} nhóm chủ đề"
+  12px; floating-label search "Tìm chủ đề nha khoa..." (h-9, 13px, debounced
+  300ms, **server** search); list `px-3 py-4` of topics — each a button
+  `gap-3 rounded-lg px-3 py-2.5 text-[14px]` with `lucide-file-text` tinted by
+  a hash of the id (6 colours), active = `font-semibold` blue on a `#DDF1FC`
+  pill, `aria-current=page`; infinite scroll at 80px from the bottom.
+  Topics = `GET /api/v1/taxonomy/?group=consulting_data&perPage=20&search=&cursor=&branchId=`
+  (filter `!isDeleted`; the first topic is auto-selected).
+- **Header** (`h-14 border-b bg-white px-5 gap-3`): `size-2.5` dot (9-colour
+  palette by topic index, red when none) · **topic name** · `lucide-chevron-right`
+  · content name (both fall back to "Dữ liệu tư vấn") · badge `"{idx+1}/{count}"`
+  or `0/0` (`rounded-md border blue/20 bg-blue-50 px-2 py-0.5 text-[11px]
+  font-semibold`, hidden <769px) · secondary button `lucide-expand`
+  "Toàn màn hình" (h-10 rounded-lg px-4) · `size-9 rounded-lg` `lucide-x`
+  aria-label "Đóng thư viện ảnh".
+- **Body**: the selected content's HTML in
+  `article.prose max-w-5xl bg-white px-6 py-8 shadow-sm` with `style="zoom:
+  {percent/100}"` (default **125%**, full-screen **75%**, ±25, 50–300), on a
+  `bg-[#F6F8FB] p-2` scroller; `[&_img]:invert` when the contrast toggle is on.
+  Content body = `GET /api/v1/treatment/{id}` → `{id, content}`. States:
+  "Đang tải nội dung tư vấn..." (24px spinner) · "Không thể tải nội dung tư
+  vấn." + "Thử lại" · `size-12 rounded-full bg-blue-50` + `lucide-file-x-corner`
+  with "Nội dung tư vấn đang trống" / "Hãy cập nhật nội dung cho mục này."
+  (content chosen, empty body) or "Chưa có dữ liệu tư vấn" / "Chọn một chủ đề
+  để xem nội dung." (nothing chosen). While nothing is chosen, `size-11
+  rounded-full bg-white/90 shadow` prev/next arrows sit `left-3`/`right-3`,
+  disabled with fewer than 2 patient images (ArrowLeft/ArrowRight keys; Escape
+  closes).
+- **Floating toolbar** (`absolute bottom-6 left-1/2 rounded-full
+  border-white/90 bg-white/75 px-2 py-2 backdrop-blur shadow`): `lucide-minus`
+  "Thu nhỏ ảnh" · `{zoom}%` (min-w-12 13px semibold) · `lucide-plus` "Phóng to
+  ảnh" · `lucide-rotate-ccw` "Đặt lại kích thước ảnh" · divider ·
+  `lucide-contrast` "Đảo độ tương phản phim X-quang" / "Khôi phục độ tương phản
+  phim X-quang" (`aria-pressed`) · divider · `lucide-pencil-line` "Bật chế độ
+  vẽ" (popover: colour + pen size; while drawing a red `lucide-x` "Tắt chế độ
+  vẽ") · `lucide-undo-2` "Hoàn tác nét vẽ" (disabled with no strokes).
+- **Section "Nội dung tư vấn"** (`order-2 border-t bg-white px-4 py-[18px]`):
+  `lucide-file-text` blue + bold "Nội dung tư vấn" + count badge; a search
+  "Tìm nội dung tư vấn..." (h-8 w-56 12px) only when there are more than 10
+  items or more pages; horizontal chip strip `mt-1.5 gap-2 overflow-x-auto` —
+  each chip `h-11 w-44 rounded-md border px-2.5 pr-6.5 text-[13px]`: 24px
+  avatar square with the first letter (10-colour palette by index),
+  `line-clamp-2` name, index badge `text-[9px] font-bold` bottom-right; active
+  chip = that palette's border/bg/text tint; spinner while loading more.
+  Contents = `GET /api/v1/treatment/?includeContent=false&taxonomyId=&page=&perPage=20&search=&branchId=`
+  (first content auto-selected).
+- **Toàn màn hình**: `fixed inset-0 z-[1700] bg-[#F6F8FB]`, aria-label "Thư
+  viện ảnh lâm sàng toàn màn hình"; the aside becomes a floating 256×350
+  `rounded-2xl` card top-left (collapses to a 40px round `lucide-list-collapse`
+  button "Mở danh mục ảnh"; "Đóng danh mục" chevron inside); the content
+  section becomes a `h-28 w-[min(720px,100vw-40px)]` tray bottom-centre
+  ("Đóng danh sách nội dung tư vấn" / "Mở danh sách nội dung tư vấn"); a red
+  pill "Thoát" top-right; the toolbar gains a "Cuộn" / "Space + kéo" pan-mode
+  toggle (`react-zoom-pan-pinch`). Escape leaves full-screen first.
+
+BlueDental (2026-09-08): `patient-detail/library/` — `ConsultingLibraryDialog`
+(portal), `ConsultingTopicAside`, `ConsultingContentStrip`,
+`ConsultingLibrarySheet`, `ConsultingLibraryToolbar`, hook
+`useConsultingLibrary`; topics = `useTaxonomyGroups(branchId,
+consulting_data, search)`, contents = `useCatalogEntries(scope "group",
+taxonomyId, filter, 20/page)` and the body is the entry's own `content` HTML
+(no separate detail call). Drawing reuses `useViewerAnnotation` +
+`ViewerAnnotationCanvas` + `PenPalette` of the Hình ảnh viewer. The pan-mode
+toggle is **not** built (see unknowns.md); accents use `--bd-primary`.
 
 **Tạo chẩn đoán** card — title plus a round `+`, and on the right two blue lines:
 `Bác sĩ có trách nhiệm thông báo` /
@@ -2315,7 +2385,7 @@ hơn tiêu đề. Đã ép về 28px, icon 16px, và nhãn đổi 600 → **700*
 |---|---|---|
 | `Thêm ảnh` | `lucide-zoom-in` | Mở hộp chọn file để tải ảnh (**không thử**) |
 | `Danh sách ảnh` | `lucide-grid-2x2` | Modal **"Chọn ảnh hiển thị"**, rỗng ghi "Chưa có ảnh nào.", footer `Chọn tất cả` + `Xong` |
-| `Danh mục` | `lucide-list` | Popover **"Dữ liệu tư vấn"**, rỗng ghi "Không có danh mục." |
+| `Danh mục` | `lucide-list` | Dialog toàn khung **"Thư viện ảnh lâm sàng"** (cột chủ đề 256px + tờ nội dung + dải chip "Nội dung tư vấn"); staging rỗng ghi "0 nhóm chủ đề" và "Chưa có dữ liệu tư vấn". Ghi nhận cũ "Popover" là sai — sửa 2026-09-08, chi tiết ở mục panel ảnh phía trên |
 
 Lưu ý: icon nút đầu là kính lúp nhưng **chức năng là tải ảnh**, không phải zoom.
 

@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { PatientDiagnosisDto } from "@/features/treatment-management/api/consultingApi";
+import type {
+  PatientAdviseDto,
+  PatientDiagnosisDto,
+} from "@/features/treatment-management/api/consultingApi";
 import { AdviseModal } from "@/features/treatment-management/components/AdviseModal";
+import { CreatePlanDialog } from "@/features/treatment-management/components/plan/CreatePlanDialog";
 import { AppointmentEditorModal } from "@/features/appointments/components/AppointmentEditorModal";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
@@ -33,6 +37,7 @@ export function PatientConsultingTab({ patientId }: { patientId: string }) {
 
   const [expanded, setExpanded] = useState(false);
   const [adviseDiagnosis, setAdviseDiagnosis] = useState<PatientDiagnosisDto | null>(null);
+  const [editingAdvise, setEditingAdvise] = useState<PatientAdviseDto | null>(null);
   const [scheduling, setScheduling] = useState<PatientDiagnosisDto | null>(null);
   const [selectedAdvises, setSelectedAdvises] = useState<string[]>([]);
   const [quoteOpen, setQuoteOpen] = useState(false);
@@ -52,7 +57,7 @@ export function PatientConsultingTab({ patientId }: { patientId: string }) {
       <div className="pd-consulting-grid">
         <PatientConsultingImagePanel
           images={data.images}
-          catalog={data.consultingData}
+          branchId={branchId ?? undefined}
           uploading={actions.uploading}
           canSort={permissions.canSort}
           onUpload={(files) => void actions.upload(files)}
@@ -93,6 +98,7 @@ export function PatientConsultingTab({ patientId }: { patientId: string }) {
         selected={selectedAdvises}
         onSelect={setSelectedAdvises}
         onOpenAdvise={() => setAdviseDiagnosis(data.diagnoses.data?.items[0] ?? null)}
+        onEdit={setEditingAdvise}
         onDelete={actions.setRemovingAdvise}
         onAddToPlan={() =>
           navigate(`?tab=treatment-plan${branchId ? `&branchId=${branchId}` : ""}`)
@@ -110,6 +116,14 @@ export function PatientConsultingTab({ patientId }: { patientId: string }) {
         images={data.images}
         voucherDiscount={plan.discount}
         onClose={() => setQuoteOpen(false)}
+      />
+
+      <CreatePlanDialog
+        open={Boolean(editingAdvise)}
+        patientId={patientId}
+        branchId={branchId}
+        advise={editingAdvise}
+        onClose={() => setEditingAdvise(null)}
       />
 
       <AdviseModal

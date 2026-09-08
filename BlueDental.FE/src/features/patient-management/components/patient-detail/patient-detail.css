@@ -373,7 +373,10 @@
   color: #5a6b82;
   font-size: 13px;
   font-weight: 600;
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 .pd-appt-step-label {
   /* #1b2a41 — measured on the reference, a shade off our --bd-ink. */
@@ -716,20 +719,6 @@
   background: rgb(0 0 0 / 92%) !important;
   color: #fff !important;
 }
-.pd-catalog-list {
-  min-width: 220px;
-  max-height: 280px;
-  overflow: auto;
-  list-style: none;
-  padding: 0;
-}
-.pd-catalog-list > li {
-  padding: 6px 0;
-  font-size: 13px;
-}
-.pd-catalog-empty {
-  color: var(--bd-faint);
-}
 .pd-image-list-empty {
   display: grid;
   min-height: 180px;
@@ -910,6 +899,37 @@
    Measured off staging at 1600×950: an 8px-padded box, the doctors, the tab
    strip and the chart on the left, a 260px column on the right, and a 28px
    red "Đóng" pinned to the top-right corner over the column. */
+/* "Tạo chẩn đoán" — the reference scrolls the whole card (max 600px, header
+   sticky) with the form and the table stacked in normal flow: the table is a
+   bordered block of its own height with its pager underneath, so scrolling
+   the card shows the form, every row and the pager, not rows squeezed into
+   whatever the form left over. */
+.pd-diagnosis-card {
+  overflow: auto;
+}
+.pd-diagnosis-card > .pd-card-head {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: #fff;
+}
+.pd-diagnosis-table {
+  flex-shrink: 0;
+  padding: 12px;
+}
+.pd-diagnosis-table .ant-table-wrapper {
+  border: 1px solid var(--bd-line);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.pd-diagnosis-table .ant-table-content,
+.pd-diagnosis-table .ant-table-body {
+  overflow: auto hidden !important;
+}
+.pd-diagnosis-table .ant-table-thead > tr > th {
+  position: static;
+}
+
 .pd-diagnosis-form {
   position: relative;
   display: grid;
@@ -1073,6 +1093,13 @@
 .pd-advise-card {
   flex: none;
   min-height: 420px;
+}
+/* A row opens "Cập nhật phiếu dịch vụ". */
+.pd-advise-card .ant-table-tbody > tr > td {
+  cursor: pointer;
+}
+.pd-advise-card .ant-table-tbody > tr > td.ant-table-selection-column {
+  cursor: default;
 }
 
 /* The reference gives an empty consulting sheet a box of its own rather than a
@@ -3119,7 +3146,10 @@
   background: #fff;
   color: var(--bd-ink);
   cursor: pointer;
-  transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
 }
 .pd-stage-teeth > div > button:hover {
   border-color: var(--bd-primary);

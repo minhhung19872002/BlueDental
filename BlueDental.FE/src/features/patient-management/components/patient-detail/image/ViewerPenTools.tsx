@@ -17,7 +17,7 @@ function popupContainerOf(trigger: HTMLElement): HTMLElement {
   return trigger.closest<HTMLElement>(".pi-viewer") ?? document.body;
 }
 
-function PenPalette({ annotation }: { annotation: ViewerAnnotation }) {
+export function PenPalette({ annotation }: { annotation: ViewerAnnotation }) {
   const { color, size, setColor, setSize } = annotation;
   const isCustomColor = !PEN_COLORS.includes(color);
   return (

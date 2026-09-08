@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Button, Popover, Spin, Tooltip } from "antd";
+import { Button, Spin, Tooltip } from "antd";
 import {
   FileImageOutlined,
   TableOutlined,
@@ -14,6 +14,7 @@ import {
 } from "../../api/patientImageAdapters";
 import { ConsultingImagePicker } from "./ConsultingImagePicker";
 import { PatientImageViewer } from "./image/PatientImageViewer";
+import { ConsultingLibraryDialog } from "./library/ConsultingLibraryDialog";
 
 /**
  * The image panel that fills the left half of Chẩn đoán & Tư vấn.
@@ -24,7 +25,7 @@ import { PatientImageViewer } from "./image/PatientImageViewer";
  *
  *   Thêm ảnh       → the OS file chooser
  *   Danh sách ảnh  → "Chọn ảnh hiển thị" (Chọn tất cả / Xong)
- *   Danh mục       → "Dữ liệu tư vấn" popover, from the consulting_data group
+ *   Danh mục       → "Thư viện ảnh lâm sàng", the consulting-data library dialog
  *
  * Whatever is ticked in that dialog is stacked down the panel, and clicking one
  * opens the same full-screen viewer the Hình ảnh tab uses — zoom, rotate, flip,
@@ -33,8 +34,8 @@ import { PatientImageViewer } from "./image/PatientImageViewer";
 
 interface Props {
   images: PatientImageViewModel[];
-  /** Rows of the "Dữ liệu tư vấn" catalogue. */
-  catalog: { id: string; name: string }[];
+  /** Which branch's consulting data the library reads. */
+  branchId: string | undefined;
   uploading?: boolean;
   canSort: boolean;
   onUpload: (files: File[]) => void;
@@ -44,7 +45,7 @@ interface Props {
 
 export function PatientConsultingImagePanel({
   images,
-  catalog,
+  branchId,
   uploading,
   canSort,
   onUpload,
@@ -53,6 +54,7 @@ export function PatientConsultingImagePanel({
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [listOpen, setListOpen] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
   const [hidden, setHidden] = useState<string[]>([]);
   const [dragging, setDragging] = useState(false);
   const [viewingId, setViewingId] = useState<string | null>(null);
@@ -81,14 +83,14 @@ export function PatientConsultingImagePanel({
   };
 
   const toggle = (id: string, checked: boolean) => {
-    setHidden((current) =>
-      checked ? current.filter((other) => other !== id) : [...current, id],
-    );
+    setHidden((current) => (checked ? current.filter((other) => other !== id) : [...current, id]));
   };
 
   // The whole panel takes a drop, so dragging over the photographs uploads
   // just as dragging onto the empty zone does.
-  const panelClass = ["pd-image-panel", dragging && "pd-image-panel--over"].filter(Boolean).join(" ");
+  const panelClass = ["pd-image-panel", dragging && "pd-image-panel--over"]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <div
@@ -122,30 +124,21 @@ export function PatientConsultingImagePanel({
           />
         </Tooltip>
 
-        <Popover
-          trigger="click"
-          placement="rightTop"
-          title={t("Dữ liệu tư vấn")}
-          content={
-            <ul className="pd-catalog-list">
-              {catalog.length === 0 ? (
-                <li className="pd-catalog-empty">{t("Không có danh mục.")}</li>
-              ) : (
-                catalog.map((row) => <li key={row.id}>{row.name}</li>)
-              )}
-            </ul>
-          }
-        >
-          <Tooltip title={t("Danh mục")} placement="right">
-            <Button aria-label={t("Danh mục")} icon={<UnorderedListOutlined />} />
-          </Tooltip>
-        </Popover>
+        <Tooltip title={t("Danh mục")} placement="right">
+          <Button
+            aria-label={t("Danh mục")}
+            icon={<UnorderedListOutlined />}
+            onClick={() => setLibraryOpen(true)}
+          />
+        </Tooltip>
       </div>
 
       {/* The empty zone gives way to the photographs once there are any: the
           reference stacks them from the top, under the three commands. */}
       {shown.length === 0 && (
-        <div className={["pd-image-drop", dragging && "pd-image-drop--over"].filter(Boolean).join(" ")}>
+        <div
+          className={["pd-image-drop", dragging && "pd-image-drop--over"].filter(Boolean).join(" ")}
+        >
           {uploading ? (
             <Spin />
           ) : (
@@ -192,6 +185,13 @@ export function PatientConsultingImagePanel({
           handleFiles(event.target.files);
           event.target.value = "";
         }}
+      />
+
+      <ConsultingLibraryDialog
+        open={libraryOpen}
+        branchId={branchId}
+        imageCount={shown.length}
+        onClose={() => setLibraryOpen(false)}
       />
 
       <ConsultingImagePicker

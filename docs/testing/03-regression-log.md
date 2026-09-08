@@ -3184,3 +3184,14 @@ không ngắt dòng được và "Sao chép" ra chuỗi đầy `&nbsp;` — Quil
 (mỗi chuỗi dấu cách giữ n-1 `&nbsp;` + 1 dấu cách thường) áp khi "Lưu lại", và
 `htmlToPlainText` (DOMParser, mỗi khối một dòng) cho nút "Sao chép". Chỉ sửa
 trong thư mục quote, không đụng `RichTextField` dùng chung. Chủ dự án tự thử.
+
+## 2026-09-08 (trưa) — Chẩn đoán & Tư vấn: nút "Danh mục" mở Thư viện ảnh lâm sàng
+
+| ID | Sai lệch | Sửa |
+|---|---|---|
+| R-293 | Nút "Danh mục" trên panel ảnh chỉ mở một Popover "Dữ liệu tư vấn" liệt kê tên mục; bản gốc (cả staging lẫn production, đối chiếu bằng bundle JS tĩnh — không bấm gì trên production) mở dialog toàn khung **"Thư viện ảnh lâm sàng"**: cột trái nhóm chủ đề (`consulting_data`, tìm trên server, đếm "n nhóm chủ đề"), header breadcrumb chủ đề › nội dung + badge `i/n` + "Toàn màn hình", tờ nội dung HTML zoom 125% (±25, 50–300) có đảo tương phản, vẽ chú thích, hoàn tác; dải chip "Nội dung tư vấn" có avatar chữ cái + số thứ tự, cuộn ngang tải thêm 20/lần; chế độ toàn màn hình với panel nổi | Thư mục mới `patient-detail/library/` (`ConsultingLibraryDialog`, `ConsultingTopicAside`, `ConsultingContentStrip`, `ConsultingLibrarySheet`, `ConsultingLibraryToolbar`, `useConsultingLibrary`, `consulting-library.css`); Popover và `.pd-catalog-*` bỏ; `useConsultingData` không còn tải `consultingData`, panel nhận `branchId`; `PenPalette` của viewer Hình ảnh được export để dùng chung. Chưa làm nút "Cuộn / Space + kéo" (pan) của chế độ toàn màn hình — ghi ở unknowns.md |
+
+Retest R-293 (2026-09-08): không đo, chủ dự án tự kiểm tra (không viết test
+theo yêu cầu). tsc + eslint (thư mục mới) + build production sạch; preview
+cổng 8081 đã build lại; mở thử dialog + toàn màn hình trên preview: thanh công cụ nằm trên khay "Nội dung tư vấn" (fixed, bottom 144px như bản gốc) và hạ xuống 24px khi gập khay, nút mở lại khay là nút tròn ArrowUpFromLine bên phải thanh công cụ. Màu nhấn dùng `--bd-primary`, không dùng xanh
+#2671D8 của bản gốc. **Chưa commit.**

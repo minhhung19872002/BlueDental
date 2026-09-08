@@ -4,6 +4,7 @@ import {
   type CreatePatientAdviseDto,
   type CreatePatientDiagnosisDto,
   type ListByPatientInput,
+  type UpdatePatientAdviseDto,
 } from "./consultingApi";
 
 export const consultingKeys = {
@@ -85,4 +86,10 @@ export function useAcceptAdvise() {
 
 export function useRejectAdvise() {
   return useConsultingMutation((id: string) => consultingApi.rejectAdvise(id));
+}
+
+export function useUpdateAdvise() {
+  return useConsultingMutation((input: { id: string; data: UpdatePatientAdviseDto }) =>
+    consultingApi.updateAdvise(input.id, input.data),
+  );
 }

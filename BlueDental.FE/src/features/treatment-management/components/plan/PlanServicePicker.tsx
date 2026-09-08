@@ -14,6 +14,8 @@ interface Props {
   services: CatalogOption[];
   groups: TaxonomyGroupOption[];
   loading?: boolean;
+  /** Editing a slip: the service is shown but cannot be swapped. */
+  disabled?: boolean;
   /** A service was chosen, from the list or from a group's table. */
   onPickService?: (service: CatalogOption) => void;
 }
@@ -123,7 +125,7 @@ function matches(name: string, search: string): boolean {
  * surrounding Form's `serviceId`; `onPickService` fires with the catalog
  * entry whichever way it was chosen.
  */
-export function PlanServicePicker({ services, groups, loading, onPickService }: Props) {
+export function PlanServicePicker({ services, groups, loading, disabled, onPickService }: Props) {
   const form = Form.useFormInstance();
   const [mode, setMode] = useState<PickerMode>("service");
   const [groupId, setGroupId] = useState<string | null>(null);
@@ -132,12 +134,20 @@ export function PlanServicePicker({ services, groups, loading, onPickService }: 
   const selectRef = useRef<RefSelectProps>(null);
 
   const options = useMemo<ServiceOption[]>(
-    () => services.map((service) => ({ value: service.id, label: service.name, price: service.price ?? 0 })),
+    () =>
+      services.map((service) => ({
+        value: service.id,
+        label: service.name,
+        price: service.price ?? 0,
+      })),
     [services],
   );
 
   const openGroup = groupId ? (groups.find((group) => group.id === groupId) ?? null) : null;
-  const visibleGroups = useMemo(() => groups.filter((group) => matches(group.name, search)), [groups, search]);
+  const visibleGroups = useMemo(
+    () => groups.filter((group) => matches(group.name, search)),
+    [groups, search],
+  );
   const groupServices = useMemo(
     () => (groupId ? services.filter((service) => service.taxonomyId === groupId) : []),
     [services, groupId],
@@ -192,7 +202,8 @@ export function PlanServicePicker({ services, groups, loading, onPickService }: 
         <Select<string, ServiceOption>
           ref={selectRef}
           showSearch
-          allowClear
+          allowClear={!disabled}
+          disabled={disabled}
           loading={loading}
           open={open}
           onOpenChange={handleOpenChange}
@@ -216,21 +227,27 @@ export function PlanServicePicker({ services, groups, loading, onPickService }: 
           )}
         />
       </FloatingField>
-      <Tooltip title={mode === "service" ? t("Chuyển sang nhóm dịch vụ") : t("Chuyển sang dịch vụ")}>
-        <button
-          type="button"
-          className="tp-service-toggle"
-          aria-label={mode === "service" ? t("Chuyển sang nhóm dịch vụ") : t("Chuyển sang dịch vụ")}
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={toggleMode}
+      {!disabled && (
+        <Tooltip
+          title={mode === "service" ? t("Chuyển sang nhóm dịch vụ") : t("Chuyển sang dịch vụ")}
         >
-          {mode === "service" ? (
-            <Folder size={16} aria-hidden="true" />
-          ) : (
-            <BookOpen size={16} aria-hidden="true" />
-          )}
-        </button>
-      </Tooltip>
+          <button
+            type="button"
+            className="tp-service-toggle"
+            aria-label={
+              mode === "service" ? t("Chuyển sang nhóm dịch vụ") : t("Chuyển sang dịch vụ")
+            }
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={toggleMode}
+          >
+            {mode === "service" ? (
+              <Folder size={16} aria-hidden="true" />
+            ) : (
+              <BookOpen size={16} aria-hidden="true" />
+            )}
+          </button>
+        </Tooltip>
+      )}
     </div>
   );
 }

@@ -123,6 +123,20 @@ export interface CreatePatientDiagnosisDto {
   teeth: ToothSelectionDto[];
 }
 
+/**
+ * PUT body of `patient-advises/{id}`: pricing, discount, group and order.
+ * The note rides along for the day the backend reads it (it does not yet).
+ */
+export interface UpdatePatientAdviseDto {
+  price: number;
+  quantity: number;
+  discountType: DiscountType;
+  discountValue: number;
+  adviseGroupId?: string;
+  sortOrder: number;
+  note?: string;
+}
+
 export interface CreatePatientAdviseDto {
   patientId: string;
   clinicBranchId: string;
@@ -173,6 +187,9 @@ export const consultingApi = {
 
   createAdvise: (data: CreatePatientAdviseDto): Promise<PatientAdviseDto> =>
     api.post<PatientAdviseDto>("/v1/app/patient-advises", data).then((r) => r.data),
+
+  updateAdvise: (id: string, data: UpdatePatientAdviseDto): Promise<PatientAdviseDto> =>
+    api.put<PatientAdviseDto>(`/v1/app/patient-advises/${id}`, data).then((r) => r.data),
 
   acceptAdvise: (id: string): Promise<PatientAdviseDto> =>
     api.post<PatientAdviseDto>(`/v1/app/patient-advises/${id}/accept`).then((r) => r.data),

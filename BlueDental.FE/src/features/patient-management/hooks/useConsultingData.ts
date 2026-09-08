@@ -3,15 +3,15 @@ import {
   usePatientDiagnoses,
 } from "@/features/treatment-management/api/consultingQueries";
 import { useDentistList } from "@/features/staff/api/staffQueries";
-import { TAXONOMY_GROUP, useCatalogEntries } from "@/features/taxonomy/api/taxonomyApi";
 import { CATALOG_GROUP, useCatalogOptions } from "@/hooks/useCatalogOptions";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { adaptPatientImage } from "../api/patientImageAdapters";
 import { usePatientImages } from "../api/patientImageApi";
 
 /**
- * Everything Chẩn đoán & Tư vấn reads: the two paged lists, the doctor and diagnosis catalogues, the "Dữ liệu tư vấn" group and the
- * patient's photographs. The tab only renders what comes back.
+ * Everything Chẩn đoán & Tư vấn reads: the two paged lists, the doctor and
+ * diagnosis catalogues and the patient's photographs. The tab only renders
+ * what comes back; the Danh mục library reads its own topics when opened.
  */
 export function useConsultingData(patientId: string, branchId: string | null) {
   const diagnosisPaging = useTablePagination(20);
@@ -30,14 +30,6 @@ export function useConsultingData(patientId: string, branchId: string | null) {
   });
   const dentists = useDentistList().data ?? [];
   const diagnosisOptions = useCatalogOptions(CATALOG_GROUP.Diagnosis).data ?? [];
-  // "Dữ liệu tư vấn" is a catalog group like any other, read through the same
-  // endpoint the Danh mục screen uses.
-  const consultingData =
-    useCatalogEntries(branchId ?? undefined, TAXONOMY_GROUP.ConsultingData, {
-      scope: "catalog",
-      skipCount: 0,
-      maxResultCount: 200,
-    }).data?.items ?? [];
   const images = usePatientImages(patientId, branchId ?? "").data?.items ?? [];
 
   return {
@@ -48,7 +40,6 @@ export function useConsultingData(patientId: string, branchId: string | null) {
     dentists: dentists.map((item) => ({ value: item.id, label: item.name })),
     dentistList: dentists,
     diagnosisOptions: diagnosisOptions.map((item) => ({ value: item.id, label: item.name })),
-    consultingData,
     images: images.map(adaptPatientImage),
   };
 }

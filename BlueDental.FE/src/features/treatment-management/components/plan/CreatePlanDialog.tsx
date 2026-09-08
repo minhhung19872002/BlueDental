@@ -1,11 +1,18 @@
+import { useMemo } from "react";
 import { Form, Input, Modal, Select } from "antd";
 import { ChevronDown, Save, Search, X } from "lucide-react";
 import { FloatingField } from "@/components/FloatingField";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useDentistList } from "@/features/staff/api/staffQueries";
-import { CATALOG_GROUP, useCatalogOptions, useTaxonomyGroupOptions } from "@/hooks/useCatalogOptions";
+import {
+  CATALOG_GROUP,
+  useCatalogOptions,
+  useTaxonomyGroupOptions,
+} from "@/hooks/useCatalogOptions";
 import { t } from "@/lib/i18n";
-import { DISCOUNT_TYPE } from "../../api/consultingApi";
+import { DISCOUNT_TYPE, type PatientAdviseDto } from "../../api/consultingApi";
+import { withAdviseService } from "./adviseEditing";
+import { PlanAdvisorFields } from "./PlanAdvisorFields";
 import { PlanPricingFields } from "./PlanPricingFields";
 import { PlanServicePicker } from "./PlanServicePicker";
 import { ToothPickerDialog } from "./ToothPickerDialog";
@@ -16,6 +23,8 @@ interface Props {
   open: boolean;
   patientId: string;
   branchId: string;
+  /** An existing slip turns the dialog into "Cập nhật phiếu dịch vụ". */
+  advise?: PatientAdviseDto | null;
   onClose: () => void;
 }
 
@@ -25,22 +34,35 @@ const INITIAL_VALUES: Partial<CreatePlanValues> = {
   discountValue: 0,
 };
 
-/** "Tạo phiếu dịch vụ": one service, its diagnosis, teeth and price → a new slip. */
-export function CreatePlanDialog({ open, patientId, branchId, onClose }: Props) {
+/**
+ * "Tạo phiếu dịch vụ": one service, its diagnosis, teeth and price → a new
+ * slip. Given an `advise` it is the reference's "Cập nhật phiếu dịch vụ": the
+ * advising staff on top, service/doctor/diagnosis/price locked, discount,
+ * note and teeth open.
+ */
+export function CreatePlanDialog({ open, patientId, branchId, advise, onClose }: Props) {
   const userName = useAuthStore((state) => state.user?.name ?? "");
   const services = useCatalogOptions(CATALOG_GROUP.CareService);
   const groups = useTaxonomyGroupOptions(CATALOG_GROUP.CareService);
   const diagnoses = useCatalogOptions(CATALOG_GROUP.Diagnosis);
   const dentists = useDentistList();
+  const editing = Boolean(advise);
+
+  const pickerServices = useMemo(
+    () => withAdviseService(services.data ?? [], advise),
+    [services.data, advise],
+  );
 
   const state = useCreatePlanForm({
     patientId,
     branchId,
-    services: services.data ?? [],
+    services: pickerServices,
+    advise,
     onCreated: onClose,
   });
   const { form, teeth, selectedService, totals } = state;
   const hasService = selectedService !== null;
+  const locked = !hasService || editing;
   const diagnosisId = Form.useWatch("diagnosisId", form);
   const diagnosisName = diagnoses.data?.find((item) => item.id === diagnosisId)?.name;
 
@@ -52,6 +74,16 @@ export function CreatePlanDialog({ open, patientId, branchId, onClose }: Props) 
   const handleValuesChange = (changed: Partial<CreatePlanValues>) => {
     if ("serviceId" in changed) state.handleServiceChange(changed.serviceId);
   };
+
+  const picker = (
+    <PlanServicePicker
+      services={pickerServices}
+      groups={groups.data ?? []}
+      loading={services.isLoading || groups.isLoading}
+      disabled={editing}
+      onPickService={(service) => state.handleServiceChange(service.id)}
+    />
+  );
 
   return (
     <Modal
@@ -72,7 +104,7 @@ export function CreatePlanDialog({ open, patientId, branchId, onClose }: Props) 
       }
       width="min(772px, calc(100vw - 32px))"
       className="tp-dialog"
-      title={t("Tạo phiếu dịch vụ")}
+      title={editing ? t("Cập nhật phiếu dịch vụ") : t("Tạo phiếu dịch vụ")}
       closeIcon={<X size={20} aria-hidden="true" />}
       destroyOnHidden
     >
@@ -83,17 +115,21 @@ export function CreatePlanDialog({ open, patientId, branchId, onClose }: Props) 
         initialValues={INITIAL_VALUES}
         onValuesChange={handleValuesChange}
       >
-        <div className="tp-create-doctor" aria-label={t("Người tạo")}>
-          <Search size={16} aria-hidden="true" />
-          <span>{userName}</span>
-        </div>
-
-        <PlanServicePicker
-          services={services.data ?? []}
-          groups={groups.data ?? []}
-          loading={services.isLoading || groups.isLoading}
-          onPickService={(service) => state.handleServiceChange(service.id)}
-        />
+        {editing ? (
+          <PlanAdvisorFields
+            dentists={dentists.data ?? []}
+            hasSecond={Boolean(advise?.secondStaffId)}
+            picker={picker}
+          />
+        ) : (
+          <>
+            <div className="tp-create-doctor" aria-label={t("Người tạo")}>
+              <Search size={16} aria-hidden="true" />
+              <span>{userName}</span>
+            </div>
+            {picker}
+          </>
+        )}
 
         <div className="tp-create-grid">
           <FloatingField
@@ -103,7 +139,7 @@ export function CreatePlanDialog({ open, patientId, branchId, onClose }: Props) 
           >
             <Select
               showSearch
-              disabled={!hasService}
+              disabled={locked}
               prefix={<Search size={20} aria-hidden="true" />}
               suffixIcon={<ChevronDown size={16} aria-hidden="true" />}
               optionFilterProp="label"
@@ -117,7 +153,7 @@ export function CreatePlanDialog({ open, patientId, branchId, onClose }: Props) 
           >
             <Select
               showSearch
-              disabled={!hasService}
+              disabled={locked}
               prefix={<Search size={20} aria-hidden="true" />}
               suffixIcon={<ChevronDown size={16} aria-hidden="true" />}
               optionFilterProp="label"
@@ -130,7 +166,8 @@ export function CreatePlanDialog({ open, patientId, branchId, onClose }: Props) 
           <div>
             <div className="tp-create-teeth">
               <p>
-                <span>{t("Răng")}:</span> <span>{formatToothValue(teeth) ?? t("Chưa chọn răng")}</span>
+                <span>{t("Răng")}:</span>{" "}
+                <span>{formatToothValue(teeth) ?? t("Chưa chọn răng")}</span>
               </p>
               <button
                 type="button"
@@ -148,9 +185,8 @@ export function CreatePlanDialog({ open, patientId, branchId, onClose }: Props) 
               <Input.TextArea rows={4} />
             </FloatingField>
           </div>
-          <PlanPricingFields form={form} enabled={hasService} totals={totals} />
+          <PlanPricingFields form={form} enabled={!locked} totals={totals} />
         </div>
-
       </Form>
 
       <ToothPickerDialog

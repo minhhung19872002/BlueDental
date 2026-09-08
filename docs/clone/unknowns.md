@@ -1846,3 +1846,21 @@ BlueDental: the flag is carried onto the công đoạn (`TreatmentStage
   panel and a warning alert on the advise form. Nothing blocks. Do not re-add a
   block without an observation; if the reference turns out to warn rather than
   refuse, the hint is already the right shape.
+
+---
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/:id?tab=consulting → nút "Danh mục" → dialog "Thư viện ảnh
+  lâm sàng" (staging + production)
+Control: dialog khi CÓ dữ liệu tư vấn; nút "Cuộn" / "Space + kéo" và bảng vẽ
+  ở chế độ "Toàn màn hình"
+Reason: Tài khoản staging bị 403 ở `GET /api/v1/taxonomy/?group=consulting_data`
+  nên chỉ quan sát được trạng thái rỗng ("0 nhóm chủ đề", "Chưa có dữ liệu tư
+  vấn"). Toàn bộ giao diện khi có chủ đề/nội dung (pill chủ đề đang chọn, chip
+  màu theo thứ tự, tờ nội dung zoom 125%, toolbar) được dựng từ mã nguồn bundle
+  (`0568b3ed70779de1.js` staging / `1e310f97e86db7ec.js` production), chưa
+  thấy bằng mắt. Chế độ toàn màn hình dùng `react-zoom-pan-pinch` với hai chế độ
+  "Cuộn" / "Space + kéo"; BlueDental chưa làm chế độ kéo, chỉ có cuộn.
+Action taken: NONE — không bấm gì trên production; staging chỉ mở/đóng dialog
+  rỗng.

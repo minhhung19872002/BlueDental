@@ -1,12 +1,19 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Form } from "antd";
 import { toast } from "sonner";
 import type { CatalogOption } from "@/hooks/useCatalogOptions";
 import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
-import { DISCOUNT_TYPE, type DiscountType } from "../../api/consultingApi";
-import { useAcceptAdvise, useCreateAdvise, useCreateDiagnosis } from "../../api/consultingQueries";
+import { toothSelectionsToValue } from "@/components/ToothChart";
+import { DISCOUNT_TYPE, type DiscountType, type PatientAdviseDto } from "../../api/consultingApi";
+import {
+  useAcceptAdvise,
+  useCreateAdvise,
+  useCreateDiagnosis,
+  useUpdateAdvise,
+} from "../../api/consultingQueries";
 import { useOpenTreatmentPlan } from "../../api/treatmentPlanApi";
+import { adviseToFormValues, adviseToUpdateDto } from "./adviseEditing";
 import {
   EMPTY_TOOTH_VALUE,
   isToothValueEmpty,
@@ -16,6 +23,9 @@ import {
 
 export interface CreatePlanValues {
   serviceId?: string;
+  /** "Nhân sự tư vấn 1/2" — only asked for on an existing slip. */
+  advisorId?: string;
+  secondAdvisorId?: string;
   staffId?: string;
   diagnosisId?: string;
   note?: string;
@@ -47,6 +57,8 @@ interface Options {
   patientId: string;
   branchId: string;
   services: CatalogOption[];
+  /** An existing slip to edit ("Cập nhật phiếu dịch vụ"); null or absent creates one. */
+  advise?: PatientAdviseDto | null;
   onCreated: () => void;
 }
 
@@ -56,7 +68,7 @@ interface Options {
  * accepted advise. The reference's own save request was not observed
  * (docs/clone/unknowns.md), so the form mirrors its fields, not its wire shape.
  */
-export function useCreatePlanForm({ patientId, branchId, services, onCreated }: Options) {
+export function useCreatePlanForm({ patientId, branchId, services, advise, onCreated }: Options) {
   const [form] = Form.useForm<CreatePlanValues>();
   const [teeth, setTeeth] = useState<ToothPickerValue>(EMPTY_TOOTH_VALUE);
   const [toothPickerOpen, setToothPickerOpen] = useState(false);
@@ -66,6 +78,14 @@ export function useCreatePlanForm({ patientId, branchId, services, onCreated }: 
   const createAdvise = useCreateAdvise();
   const acceptAdvise = useAcceptAdvise();
   const openPlan = useOpenTreatmentPlan();
+  const updateAdvise = useUpdateAdvise();
+
+  // Opening on an existing slip: the fields and the teeth start from it.
+  useEffect(() => {
+    if (!advise) return;
+    form.setFieldsValue(adviseToFormValues(advise));
+    setTeeth(toothSelectionsToValue(advise.teeth));
+  }, [advise, form]);
 
   const serviceId = Form.useWatch("serviceId", form);
   const selectedService = services.find((service) => service.id === serviceId) ?? null;
@@ -82,10 +102,33 @@ export function useCreatePlanForm({ patientId, branchId, services, onCreated }: 
     setTeeth(EMPTY_TOOTH_VALUE);
   };
 
+  /**
+   * The update path. The backend's PUT takes pricing, discount, group and
+   * order only — the advisors, teeth and note it shows are not persisted yet.
+   */
+  const submitUpdate = async (values: CreatePlanValues) => {
+    if (!advise) return;
+    setSubmitting(true);
+    try {
+      await updateAdvise.mutateAsync({ id: advise.id, data: adviseToUpdateDto(advise, values) });
+      toast.success(t("Đã cập nhật phiếu dịch vụ"));
+      reset();
+      onCreated();
+    } catch (error) {
+      toast.error(extractApiError(error) || t("Không thể cập nhật phiếu dịch vụ"));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const submit = async () => {
     const values = await form.validateFields();
     if (isToothValueEmpty(teeth)) {
       toast.error(t("Vui lòng chọn răng"));
+      return;
+    }
+    if (advise) {
+      await submitUpdate(values);
       return;
     }
     if (!values.serviceId || !values.staffId || !values.diagnosisId) return;

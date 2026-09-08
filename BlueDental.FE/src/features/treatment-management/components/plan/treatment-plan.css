@@ -632,7 +632,10 @@
 .ant-modal.tp-dialog .ant-input:focus,
 .ant-modal.tp-dialog .ant-input-affix-wrapper:focus-within,
 .ant-modal.tp-dialog .ant-input-number-focused,
-.ant-modal.tp-dialog .ant-select-outlined.ant-select-focused:not(.ant-select-disabled):not(.ant-select-customize-input),
+.ant-modal.tp-dialog
+  .ant-select-outlined.ant-select-focused:not(.ant-select-disabled):not(
+    .ant-select-customize-input
+  ),
 .ant-modal.tp-dialog .ant-select-focused .ant-select-selector {
   border-color: var(--tp-blue);
   box-shadow: 0 0 0 3px var(--tp-blue-ring);
@@ -651,7 +654,9 @@
 .tp-dialog .floating-field:focus-within .floating-field-label {
   color: var(--tp-blue);
 }
-.tp-dialog .floating-field:has(.ant-input-disabled, .ant-input-number-disabled, .ant-select-disabled) .floating-field-label {
+.tp-dialog
+  .floating-field:has(.ant-input-disabled, .ant-input-number-disabled, .ant-select-disabled)
+  .floating-field-label {
   color: rgba(90, 107, 130, 0.5);
 }
 .tp-dialog .floating-field--floated .floating-field-label {
@@ -661,7 +666,13 @@
   font-size: 13px;
   line-height: 19.5px;
 }
-.tp-dialog .floating-field--floated:has(.ant-input-disabled, .ant-input-number-disabled, .ant-select-disabled) .floating-field-label {
+.tp-dialog
+  .floating-field--floated:has(
+    .ant-input-disabled,
+    .ant-input-number-disabled,
+    .ant-select-disabled
+  )
+  .floating-field-label {
   background: #f6f8fb;
 }
 .tp-services-table .ant-table-tbody > tr > td {
@@ -856,6 +867,54 @@
 }
 
 /* Service / group picker — the voucher form's picker, redrawn for this dialog. */
+/* "Cập nhật phiếu dịch vụ": the advising staff on top, one or two of them;
+   the service picker sits beside the first and drops to its own row once a
+   second is opened. */
+.tp-advisors {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-top: 8px;
+}
+.tp-advisor-row {
+  align-items: start;
+}
+.tp-advisor-field {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+.tp-advisor-field > .floating-field {
+  flex: 1;
+  min-width: 0;
+}
+.tp-round-btn {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--tp-blue-line);
+  border-radius: 50%;
+  background: var(--tp-blue-pale);
+  color: var(--tp-blue-dark);
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+.tp-round-btn:hover {
+  filter: brightness(0.96);
+}
+.tp-round-btn--danger {
+  border-color: color-mix(in srgb, var(--tp-red) 30%, transparent);
+  background: var(--tp-red-pale);
+  color: var(--tp-red);
+}
+.tp-service-picker .ant-select-disabled .ant-select-selector {
+  color: var(--tp-ink);
+}
+
 .tp-service-picker {
   position: relative;
 }
