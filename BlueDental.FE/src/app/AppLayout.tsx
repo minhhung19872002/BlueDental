@@ -1,115 +1,28 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Avatar, Dropdown, Popover, type MenuProps } from "antd";
 import {
-  Avatar,
-  Drawer,
-  Dropdown,
-  Popover,
-  type MenuProps,
-} from "antd";
-import {
-  UserOutlined,
-  LogoutOutlined,
-  KeyOutlined,
-  DownOutlined,
-  BellOutlined,
-  GlobalOutlined,
-  SearchOutlined,
   CheckOutlined,
-  MenuOutlined,
-  CloseOutlined,
+  DownOutlined,
+  GlobalOutlined,
+  KeyOutlined,
+  LogoutOutlined,
+  SettingOutlined,
+  UserOutlined,
 } from "@ant-design/icons";
-import { useLanguage, useT } from "@/lib/i18n";
-import { useAuthStore } from "@/features/auth/store/authStore";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { authApi } from "@/features/auth/api";
-import { brand, SIDEBAR_WIDTH, SIDEBAR_EXPANDED_WIDTH } from "@/theme/index";
+
 import { GlobalSearch } from "@/components/GlobalSearch";
+import { authApi } from "@/features/auth/api";
+import { useAuthStore } from "@/features/auth/store/authStore";
+import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 import { useClinicBranches } from "@/features/organizations/api";
-import { useMyNotifications } from "@/features/notifications/api";
-import { roleLabel } from "@/utils/roleLabel";
 import { useBranchStore } from "@/lib/clinicBranch";
+import { useLanguage, useT } from "@/lib/i18n";
+import { brand } from "@/theme/index";
 
-interface NavItem {
-  key: string;
-  icon: React.ReactNode;
-  label: string;
-}
-
-/** The rail's own wordmark — the header carries the clinic's full name. */
-const CLINIC_SHORT_NAME = "Đức Hạnh Premium";
-
-/** Translator type, so the builders below stay readable. */
-type Translate = (vietnamese: string) => string;
-
-/**
- * The rail's icons are the design's own `navDef` paths, traced at 24x24 with a
- * 1.7 stroke, rather than an icon set that only approximates them.
- */
-function NavIcon({ d }: { d: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      width="19"
-      height="19"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d={d} />
-    </svg>
-  );
-}
-
-/**
- * Order, labels and icons follow BlueDental.dc.html's `navDef`.
- *
- * `plan` ("Điều trị") is in that list but has no artboard of its own and no
- * route here — treatment lives inside a patient's record — so it is left out
- * rather than added as a link that goes nowhere.
- *
- * `billing` ("Thanh toán") is also left out: the reference has no such sidebar
- * entry (payments live under a patient's record), so the `/billing` route stays
- * reachable by URL only.
- */
-const NAV_ICON_PATHS = {
-  dashboard: "M4 13h6V4H4v9zm10 7h6v-9h-6v9zM4 20h6v-4H4v4zm10-11h6V4h-6v5z",
-  reception: "M4 20v-2a4 4 0 014-4h8a4 4 0 014 4v2M12 3a4 4 0 100 8 4 4 0 000-8z",
-  calendar: "M3 9h18M7 3v4m10-4v4M5 5h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z",
-  patients: "M16 20v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 3a4 4 0 100 8 4 4 0 000-8zm11 17v-2a4 4 0 00-3-3.87",
-  materials: "M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8",
-  staff: "M17 21v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2M10 3a4 4 0 100 8 4 4 0 000-8zM21 8v6m3-3h-6",
-  labo: "M9 3h6v5l4 9a3 3 0 01-3 4H8a3 3 0 01-3-4l4-9V3z",
-  cskh: "M12 21s-6-4.5-6-9a4 4 0 018-1 4 4 0 018 1c0 4.5-6 9-6 9z",
-  voucher: "M3 8a2 2 0 012-2h14a2 2 0 012 2v2a2 2 0 000 4v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-2a2 2 0 000-4V8zm12-2v12",
-  taxonomy: "M4 6h16M4 12h16M4 18h10",
-  operations: "M3 21V9l9-6 9 6v12M9 21v-7h6v7",
-  tools: "M14 6l4 4-8 8H6v-4l8-8zM17 3l4 4",
-  reports: "M4 19V5m0 14h16M8 19v-6m4 6V8m4 11v-9",
-  settings:
-    "M12 15a3 3 0 100-6 3 3 0 000 6zm7.4-3a7.4 7.4 0 00-.1-1.2l2-1.6-2-3.4-2.4 1a7.5 7.5 0 00-2-1.2L14.5 2h-4l-.4 2.6c-.7.3-1.4.7-2 1.2l-2.4-1-2 3.4 2 1.6a7.4 7.4 0 000 2.4l-2 1.6 2 3.4 2.4-1c.6.5 1.3.9 2 1.2l.4 2.6h4l.4-2.6c.7-.3 1.4-.7 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z",
-} as const;
-
-// The navigation is built per render: its labels follow the chosen language.
-const mainNav = (t: Translate): NavItem[] => [
-  { key: "/dashboard", icon: <NavIcon d={NAV_ICON_PATHS.dashboard} />, label: t("Tổng quan") },
-  { key: "/reception", icon: <NavIcon d={NAV_ICON_PATHS.reception} />, label: t("Tiếp nhận") },
-  { key: "/calendar", icon: <NavIcon d={NAV_ICON_PATHS.calendar} />, label: t("Lịch hẹn") },
-  { key: "/patient", icon: <NavIcon d={NAV_ICON_PATHS.patients} />, label: t("Bệnh nhân") },
-  { key: "/materials", icon: <NavIcon d={NAV_ICON_PATHS.materials} />, label: t("Vật tư") },
-  { key: "/staff", icon: <NavIcon d={NAV_ICON_PATHS.staff} />, label: t("Nhân sự") },
-  { key: "/labo", icon: <NavIcon d={NAV_ICON_PATHS.labo} />, label: t("Labo") },
-  { key: "/cskh-grouping", icon: <NavIcon d={NAV_ICON_PATHS.cskh} />, label: t("CSKH") },
-  { key: "/voucher", icon: <NavIcon d={NAV_ICON_PATHS.voucher} />, label: t("Voucher") },
-  { key: "/taxonomy", icon: <NavIcon d={NAV_ICON_PATHS.taxonomy} />, label: t("Danh mục") },
-  { key: "/operations", icon: <NavIcon d={NAV_ICON_PATHS.operations} />, label: t("Vận hành") },
-  { key: "/tools", icon: <NavIcon d={NAV_ICON_PATHS.tools} />, label: t("Công cụ") },
-  { key: "/report", icon: <NavIcon d={NAV_ICON_PATHS.reports} />, label: t("Báo cáo") },
-  { key: "/settings", icon: <NavIcon d={NAV_ICON_PATHS.settings} />, label: t("Cài đặt") },
-];
+import { HeaderNavGroups, MobileNavDrawer, NavRibbon } from "./HeaderNav";
+import { NAV_GROUPS, type NavEntry, type NavGroup } from "./nav";
 
 function initialsOf(name: string | undefined): string {
   const words = (name ?? "").trim().split(/\s+/).filter(Boolean);
@@ -118,62 +31,19 @@ function initialsOf(name: string | undefined): string {
   return (words[0][0] + words[words.length - 1][0]).toUpperCase();
 }
 
-function SidebarNavItem({
-  item,
-  active,
-  expanded,
-  onClick,
-}: {
-  item: NavItem;
-  active: boolean;
-  expanded: boolean;
-  onClick: () => void;
-}) {
-  if (expanded) {
-    return (
-      <button
-        type="button"
-        title={item.label}
-        onClick={onClick}
-        className={`sidebar-nav-item sidebar-nav-item--expanded ${active ? "sidebar-nav-item--active" : ""}`}
-      >
-        <span className="sidebar-nav-icon">{item.icon}</span>
-        <span className="sidebar-nav-label-expanded">{item.label}</span>
-      </button>
-    );
-  }
-
-  // Collapsed, the design shows the icon alone — the rail is too narrow for a
-  // label, and a clipped one reads worse than none. The title carries the name.
-  return (
-    <button
-      type="button"
-      title={item.label}
-      aria-label={item.label}
-      onClick={onClick}
-      className={`sidebar-nav-item sidebar-nav-item--collapsed ${active ? "sidebar-nav-item--active" : ""}`}
-    >
-      <span className="sidebar-nav-icon">{item.icon}</span>
-    </button>
-  );
-}
-
 export function AppLayout() {
   const [searchOpen, setSearchOpen] = useState(false);
-  const [sidebarExpanded, setSidebarExpanded] = useState(true);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [openGroupId, setOpenGroupId] = useState<string | null>(null);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [branchMenuOpen, setBranchMenuOpen] = useState(false);
   const [language, setLanguage] = useLanguage();
+
   const t = useT();
   const navigate = useNavigate();
   const location = useLocation();
   const user = useAuthStore((s) => s.user);
   const clearAuth = useAuthStore((s) => s.clearAuth);
-
-  /* The bell says how many are waiting; the block under the name says who you
-     are signed in as. Both come from what is already loaded. */
-  const { data: notifications } = useMyNotifications();
-  const unreadCount = (notifications?.items ?? []).filter((n) => !n.isRead).length;
-  const userRole = roleLabel(user?.roles?.[0], t("Người dùng"));
 
   const logoutMutation = useMutation({
     mutationFn: authApi.logout,
@@ -183,8 +53,15 @@ export function AppLayout() {
     },
   });
 
+  /* Nothing that hangs off the bar survives a change of page. */
+  const closeMenus = useCallback(() => {
+    setOpenGroupId(null);
+    setNotifOpen(false);
+  }, []);
+
   useEffect(() => {
-    setMobileMenuOpen(false);
+    setDrawerOpen(false);
+    closeMenus();
 
     const storeBranchId = useBranchStore.getState().currentBranchId;
     const url = new URL(window.location.href);
@@ -204,7 +81,7 @@ export function AppLayout() {
       url.searchParams.delete("branchId");
       window.history.replaceState(null, "", url.toString());
     }
-  }, [location.pathname]);
+  }, [location.pathname, closeMenus]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -212,11 +89,12 @@ export function AppLayout() {
         e.preventDefault();
         setSearchOpen((prev) => !prev);
       }
-      if (e.key === "Escape" && searchOpen) {
+      if (e.key === "Escape") {
         setSearchOpen(false);
+        closeMenus();
       }
     },
-    [searchOpen],
+    [closeMenus],
   );
 
   useEffect(() => {
@@ -224,14 +102,29 @@ export function AppLayout() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
-  const handleNavClick = (item: NavItem) => {
-    navigate(item.key);
+  /*
+   * A group either goes somewhere itself, or opens. It never toggles shut:
+   * moving along the bar would otherwise cost a click to re-open whichever
+   * group you happened to land on first.
+   */
+  const handleOpenGroup = (group: NavGroup) => {
+    setNotifOpen(false);
+    if (group.path) {
+      setOpenGroupId(null);
+      navigate(group.path);
+      return;
+    }
+    setOpenGroupId(group.id);
   };
 
-  const isActive = (key: string) => {
-    if (key === "/reception") return location.pathname === "/reception";
-    return location.pathname.startsWith(key);
+  const handleSelectEntry = (entry: NavEntry) => {
+    closeMenus();
+    setDrawerOpen(false);
+    navigate(entry.path);
   };
+
+  const openGroup = NAV_GROUPS.find((g) => g.id === openGroupId);
+  const ribbonItems = openGroup?.items ?? [];
 
   const userMenuItems: MenuProps["items"] = [
     {
@@ -253,6 +146,34 @@ export function AppLayout() {
       label: t("Đổi mật khẩu"),
       onClick: () => navigate("/settings?tab=password"),
     },
+    {
+      /* The design's menu has no entry for this, so the account block carries
+         it — the only place left that is on every screen. */
+      key: "settings",
+      icon: <SettingOutlined />,
+      label: t("Cài đặt"),
+      onClick: () => navigate("/settings"),
+    },
+    {
+      /* The header's own language switch goes with the other optional
+         controls below 1040px, so the only way left to change language on a
+         small screen is here. */
+      key: "language",
+      icon: <GlobalOutlined />,
+      label: t("Ngôn ngữ"),
+      children: [
+        {
+          key: "lang-vi",
+          label: t("Tiếng Việt"),
+          onClick: () => setLanguage("vi"),
+        },
+        {
+          key: "lang-en",
+          label: "English",
+          onClick: () => setLanguage("en"),
+        },
+      ],
+    },
     { type: "divider" },
     {
       key: "logout",
@@ -265,28 +186,11 @@ export function AppLayout() {
 
   const clinicName = user?.clinicName ?? "NHA KHOA ĐỨC HẠNH PREMIUM";
   const clinicLogoUrl = user?.clinicLogoUrl ?? "/logo.png";
-  const clinicTagline = user?.clinicTagline ?? "Kiến Tạo Nụ Cười - Giá Trị Bền Vững";
-  /* The rail is 236px wide, so it takes the short form of the name; the
-     header beside it carries the full one from the clinic record. */
-  const clinicShortName = CLINIC_SHORT_NAME;
-  const sidebarWidth = sidebarExpanded ? SIDEBAR_EXPANDED_WIDTH : SIDEBAR_WIDTH;
-
-  /*
-   * On a short window the rail's list scrolls, and the page you are on can sit
-   * below the fold — so bring the chosen item into view when it changes.
-   */
-  const railListRef = useRef<HTMLElement>(null);
-  useEffect(() => {
-    const chosen = railListRef.current?.querySelector(".sidebar-nav-item--active");
-    chosen?.scrollIntoView({ block: "nearest" });
-  }, [location.pathname]);
 
   const queryClient = useQueryClient();
   const { data: branches } = useClinicBranches(true);
   const currentBranchId = useBranchStore((s) => s.currentBranchId);
   const setCurrentBranchId = useBranchStore((s) => s.setCurrentBranchId);
-
-  const [branchMenuOpen, setBranchMenuOpen] = useState(false);
 
   const handleBranchChange = (id: string | null) => {
     setBranchMenuOpen(false);
@@ -310,8 +214,20 @@ export function AppLayout() {
   const branchContent = (
     <div className="app-popover-list">
       <div className="app-popover-header">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="6" y1="3" x2="6" y2="15" /><circle cx="18" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><path d="M18 9a9 9 0 0 1-9 9" />
+        <svg
+          viewBox="0 0 24 24"
+          width="14"
+          height="14"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <line x1="6" y1="3" x2="6" y2="15" />
+          <circle cx="18" cy="6" r="3" />
+          <circle cx="6" cy="18" r="3" />
+          <path d="M18 9a9 9 0 0 1-9 9" />
         </svg>
         {t("Chi nhánh")}
       </div>
@@ -362,225 +278,143 @@ export function AppLayout() {
     </div>
   );
 
+  const menusOpen = openGroupId !== null || notifOpen;
+
   return (
-    /* The rail and the content column are siblings in a row: the rail floats
-       clear of the viewport edge, so nothing can be offset against it. */
-    <div className="app-shell" style={{ "--bd-rail-width": `${sidebarWidth}px` } as React.CSSProperties}>
-      {/* ── Sidebar ── */}
-      <aside className="app-sidebar">
-        {/* Logo area */}
-        <div className={`sidebar-logo-area ${!sidebarExpanded ? "sidebar-logo-area--collapsed" : ""}`}>
-          <div className="sidebar-logo-img-wrap">
-            <img
-              src={clinicLogoUrl}
-              alt={clinicName}
-              className="sidebar-logo-img"
-            />
-          </div>
-          {sidebarExpanded && (
-            <div className="sidebar-logo-text">
-              <span className="sidebar-logo-name">{clinicShortName}</span>
-              <span className="sidebar-logo-sub">{t("Quản trị vận hành")}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Main nav */}
-        <nav className="sidebar-nav-main" ref={railListRef}>
-          {sidebarExpanded && <div className="sidebar-nav-heading">MENU</div>}
-          {mainNav(t).map((item) => (
-            <SidebarNavItem
-              key={item.key}
-              item={item}
-              active={isActive(item.key)}
-              expanded={sidebarExpanded}
-              onClick={() => handleNavClick(item)}
-            />
-          ))}
-        </nav>
-
-        {/* Bottom nav — sign out, as the design has it. */}
-        <nav className="sidebar-nav-bottom">
-          <SidebarNavItem
-            item={{ key: "logout", icon: <LogoutOutlined />, label: t("Đăng xuất") }}
-            active={false}
-            expanded={sidebarExpanded}
-            onClick={() => logoutMutation.mutate()}
-          />
-        </nav>
-      </aside>
-
-      {/* ── Main area ── */}
-      <div className="app-main">
-        {/* ── Header ── */}
+    /* One column, full width: the design's v2 has no rail at all. */
+    <div className="app-shell">
+      <div className="app-topbar">
         <header className="app-header">
-          <div className="app-header-left">
-            <button
-              type="button"
-              className="app-header-toggle sidebar-mobile-only"
-              onClick={() => setMobileMenuOpen(true)}
-              title={t("Mở menu")}
-            >
-              <MenuOutlined style={{ fontSize: 18 }} />
-            </button>
-
-            <button
-              type="button"
-              className="app-header-toggle sidebar-desktop-only"
-              onClick={() => setSidebarExpanded((prev) => !prev)}
-              title={sidebarExpanded ? t("Thu gọn menu") : t("Mở rộng menu")}
-            >
-              {/* The design draws three plain rules here, the same whichever
-                  way the rail is sitting; the title says which way it goes. */}
-              <svg
-                width="17"
-                height="17"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                aria-hidden="true"
-              >
-                <path d="M3 5h18M3 12h18M3 19h18" />
-              </svg>
-            </button>
-
-            <div className="app-header-clinic">
-              <div className="app-header-clinic-logo">
-                <img
-                  src={clinicLogoUrl}
-                  alt={clinicName}
-                  className="app-header-clinic-logo-img"
-                />
-              </div>
-              <div className="app-header-clinic-text">
-                <p className="app-header-clinic-name">{clinicName}</p>
-                <p className="app-header-clinic-tagline">{clinicTagline}</p>
-              </div>
-            </div>
+          <div className="app-header-brand">
+            <img src={clinicLogoUrl} alt={clinicName} className="app-header-logo" />
+            <p className="app-header-clinic-name app-header-hide-sm">{clinicName}</p>
           </div>
 
-          <div className="app-header-right">
+          <button
+            type="button"
+            className="app-header-burger"
+            title={t("Mở menu")}
+            aria-label={t("Mở menu")}
+            onClick={() => setDrawerOpen(true)}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="17"
+              height="17"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <path d="M3 6h18M3 12h18M3 18h18" />
+            </svg>
+          </button>
+
+          <HeaderNavGroups
+            pathname={location.pathname}
+            openGroupId={openGroupId}
+            onOpenGroup={handleOpenGroup}
+          />
+
+          <button type="button" className="app-header-search" onClick={() => setSearchOpen(true)}>
+            <svg
+              viewBox="0 0 24 24"
+              width="15"
+              height="15"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              aria-hidden="true"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <path d="M20 20l-4-4" />
+            </svg>
+            <span className="app-header-search-text">
+              {t("Tìm kiếm khách hàng, lịch hẹn, nhân viên…")}
+            </span>
+            <kbd className="app-header-search-kbd">Ctrl K</kbd>
+          </button>
+
+          <Popover
+            content={branchContent}
+            trigger="click"
+            placement="bottomRight"
+            arrow={false}
+            open={branchMenuOpen}
+            onOpenChange={setBranchMenuOpen}
+          >
+            <button type="button" className="app-header-branch app-header-hide-sm">
+              <span className="app-header-branch-dot" />
+              <span className="app-header-branch-name">{selectedBranchName}</span>
+              <DownOutlined style={{ fontSize: 13, color: "#78819c" }} />
+            </button>
+          </Popover>
+
+          <Popover content={langContent} trigger="click" placement="bottomRight" arrow={false}>
             <button
               type="button"
-              className="app-header-search"
-              onClick={() => setSearchOpen(true)}
+              className="app-header-lang app-header-hide-sm"
+              aria-label={t("Ngôn ngữ")}
             >
-              <SearchOutlined style={{ fontSize: 16 }} />
-              <span className="app-header-search-text">
-                {t("Tìm kiếm khách hàng, lịch hẹn, nhân viên…")}
+              <GlobalOutlined style={{ fontSize: 16 }} />
+              <span>{language.toUpperCase()}</span>
+            </button>
+          </Popover>
+
+          <NotificationBell
+            open={notifOpen}
+            onOpen={() => {
+              setOpenGroupId(null);
+              setNotifOpen(true);
+            }}
+            onClose={() => setNotifOpen(false)}
+          />
+
+          <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
+            <div
+              className="app-header-user"
+              role="button"
+              tabIndex={0}
+              aria-label={t("Tài khoản người dùng")}
+            >
+              <Avatar size={34} className="app-header-avatar">
+                {initialsOf(user?.name)}
+              </Avatar>
+              <span className="app-header-user-name app-header-hide-sm">
+                {user?.name ?? "Admin"}
               </span>
-              <kbd className="app-header-search-kbd">Ctrl K</kbd>
-            </button>
-
-            <Popover
-              content={branchContent}
-              trigger="click"
-              placement="bottomRight"
-              arrow={false}
-              open={branchMenuOpen}
-              onOpenChange={setBranchMenuOpen}
-            >
-              <button type="button" className="app-header-branch">
-                <span className="app-header-branch-dot" />
-                <span className="app-header-branch-name">{selectedBranchName}</span>
-                <DownOutlined style={{ fontSize: 14, color: "#78819c" }} />
-              </button>
-            </Popover>
-
-            <div className="app-header-actions">
-              <Popover content={langContent} trigger="click" placement="bottomRight" arrow={false}>
-                <button type="button" className="app-header-lang" aria-label={t("Ngôn ngữ")}>
-                  <GlobalOutlined style={{ fontSize: 16 }} />
-                  <span>{language.toUpperCase()}</span>
-                </button>
-              </Popover>
-
-              <button type="button" className="app-header-icon-btn" aria-label={t("Thông báo")}>
-                <BellOutlined style={{ fontSize: 18 }} />
-                {unreadCount > 0 && (
-                  <span className="app-header-notif-count">
-                    {unreadCount > 99 ? "99+" : unreadCount}
-                  </span>
-                )}
-              </button>
-
-              <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-                <div className="app-header-user" role="button" tabIndex={0} aria-label={t("Tài khoản người dùng")}>
-                  <Avatar size={32} className="app-header-avatar">
-                    {initialsOf(user?.name)}
-                  </Avatar>
-                  <span className="app-header-user-text">
-                    <span className="app-header-user-name">{user?.name ?? "Admin"}</span>
-                    <span className="app-header-user-role">{userRole}</span>
-                  </span>
-                  <DownOutlined style={{ fontSize: 14, color: "#78819c" }} />
-                </div>
-              </Dropdown>
             </div>
-          </div>
+          </Dropdown>
         </header>
+
+        {ribbonItems.length > 0 && (
+          <NavRibbon
+            items={ribbonItems}
+            pathname={location.pathname}
+            onSelect={handleSelectEntry}
+          />
+        )}
+      </div>
+
+      <div className="app-main">
+        {/* Catches the click that dismisses an open menu. It sits inside the
+            scrolling area, which starts below the bar, so the bar itself stays
+            live: over it, the second click of a group-to-group switch would
+            land here instead of on the button. */}
+        {menusOpen && <div className="app-nav-backdrop" onClick={closeMenus} />}
 
         <main className="app-content">
           <Outlet />
         </main>
       </div>
 
-      {/* ── Mobile sidebar drawer ── */}
-      <Drawer
-        open={mobileMenuOpen}
-        onClose={() => setMobileMenuOpen(false)}
-        placement="left"
-        size={260}
-        closable={false}
-        styles={{
-          body: { padding: 0, background: "var(--bd-sidebar-bg)", display: "flex", flexDirection: "column", height: "100%" },
-          wrapper: {},
-        }}
-        className="sidebar-drawer"
-      >
-        <div className="sidebar-mobile-header">
-          <div className="sidebar-logo-area">
-            <div className="sidebar-logo-img-wrap">
-              <img src={clinicLogoUrl} alt={clinicName} className="sidebar-logo-img" />
-            </div>
-            <div className="sidebar-logo-text">
-              <span className="sidebar-logo-name">BlueDental</span>
-              <span className="sidebar-logo-sub">{t("Quản trị vận hành")}</span>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="sidebar-mobile-close"
-            onClick={() => setMobileMenuOpen(false)}
-            aria-label={t("Đóng menu")}
-          >
-            <CloseOutlined style={{ fontSize: 16 }} />
-          </button>
-        </div>
-
-        <nav className="sidebar-nav-main">
-          {mainNav(t).map((item) => (
-            <SidebarNavItem
-              key={item.key}
-              item={item}
-              active={isActive(item.key)}
-              expanded
-              onClick={() => handleNavClick(item)}
-            />
-          ))}
-        </nav>
-
-        <nav className="sidebar-nav-bottom">
-          <SidebarNavItem
-            item={{ key: "logout", icon: <LogoutOutlined />, label: t("Đăng xuất") }}
-            active={false}
-            expanded
-            onClick={() => logoutMutation.mutate()}
-          />
-        </nav>
-      </Drawer>
+      <MobileNavDrawer
+        open={drawerOpen}
+        pathname={location.pathname}
+        onClose={() => setDrawerOpen(false)}
+        onSelect={handleSelectEntry}
+      />
 
       <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
