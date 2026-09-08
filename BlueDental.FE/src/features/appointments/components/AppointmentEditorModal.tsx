@@ -172,6 +172,13 @@ export function AppointmentEditorModal({
   ]);
 
   const onSubmit = async (data: AppointmentEditorValues) => {
+    if (data.date && data.startTime) {
+      const slot = dayjs(`${data.date} ${data.startTime}`);
+      if (slot.isBefore(dayjs().startOf("minute"))) {
+        toast.error(t("Không thể tạo lịch hẹn trong quá khứ"));
+        return;
+      }
+    }
     try {
       await save(data);
     } catch {

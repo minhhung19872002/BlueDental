@@ -124,6 +124,13 @@ export function TempAppointmentEditorModal({
   const activeMutation = isEdit ? updateMutation : createMutation;
 
   const onSubmit = (data: TempAppointmentFormValues) => {
+    if (data.date && data.startTime) {
+      const slot = dayjs(`${data.date} ${data.startTime}`);
+      if (slot.isBefore(dayjs().startOf("minute"))) {
+        toast.error(t("Không thể tạo lịch hẹn trong quá khứ"));
+        return;
+      }
+    }
     const startDateTime = `${data.date}T${data.startTime}:00`;
     const endDateTime = dayjs(startDateTime).add(data.durationMinutes, "minute").format(`${data.date}THH:mm:00`);
 

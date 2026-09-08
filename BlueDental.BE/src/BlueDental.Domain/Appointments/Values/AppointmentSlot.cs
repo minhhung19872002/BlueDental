@@ -24,6 +24,14 @@ public class AppointmentSlot : ValueObject
                 "Appointment end time must be after start time.");
         }
 
+        var nowMinute = new DateTimeOffset(
+            DateTimeOffset.UtcNow.Year, DateTimeOffset.UtcNow.Month, DateTimeOffset.UtcNow.Day,
+            DateTimeOffset.UtcNow.Hour, DateTimeOffset.UtcNow.Minute, 0, TimeSpan.Zero);
+        if (start < nowMinute)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Appointments.SlotInThePast);
+        }
+
         if (DurationMinutes > 480)
         {
             throw new BusinessException(
