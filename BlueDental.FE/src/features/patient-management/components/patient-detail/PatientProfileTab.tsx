@@ -34,7 +34,7 @@ import { useTablePagination } from "@/hooks/useTablePagination";
 import { countedTotal } from "@/utils/countedTotal";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { getLocale, t } from "@/lib/i18n";
-import { formatDate, formatMoneyUnit, formatVND } from "@/utils/format";
+import { formatDate, formatMoneyUnit } from "@/utils/format";
 import type { PatientDto } from "../../types/patient";
 import { GENDER, type GenderCode } from "../../types/patient";
 import { PatientEditorDialog } from "../PatientEditorDialog";
