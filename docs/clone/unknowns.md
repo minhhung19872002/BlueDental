@@ -1524,3 +1524,325 @@ Action taken: NONE trên production. BlueDental (2026-09-08): dựng dialog và
         hai bản xem trước theo bundle, in bằng `window.print` chỉ giữ phần
         phiếu; sửa nội dung chẩn đoán chỉ sống trong bản xem trước, không
         ghi lên server.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id} (Hồ sơ) — Labo "Đặt mới", the Tải ảnh tile
+Control: how a chosen-but-not-yet-saved picture is drawn (the "draft" strip)
+Reason: Reaching that state means putting a file into a production form. The
+  tile sits over a hidden `input[type=file]` (`accept="image/*"`, `multiple`),
+  and a selection there may upload immediately — `.claude/rules/00-reference-readonly.md`
+  forbids uploads and treats an unknown control as unsafe. The saved form could
+  not be read back either: all 20 Labo orders on staging have an empty "File
+  Labo gửi về" cell, so none renders an attached picture.
+Action taken: NONE — the empty tile was measured (80×80, `border-dashed
+  #B9C4D4`, label `#2671D8` 14px/500, hover fill `#E7F0FB`); no file attached.
+BlueDental: ASSUMPTION — drafts render as **80×80** thumbnails in a wrapping
+  flex row beside the tile, each with a 22px × to drop it, uploaded only after
+  the order is saved. 80px is taken from the tile actually measured next to
+  them, replacing an earlier 160px that was not derived from anything. If the
+  reference is ever seen with drafts, this is the first thing to re-measure.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id} (Hồ sơ) — the treatment table, ô Công đoạn
+Control: the disabled "+" shown when the service line reads "Chuyển đổi"
+Reason: Observed on staging 2026-09-07 (patient `HN8516`, two rows on plan DT23):
+  the reference draws the `+` but disabled — `bg-[#F6F8FB]`, `text-[#98A2B3]`,
+  `opacity-.5`, `cursor-not-allowed`, tooltip trigger kept. What the tooltip
+  *says* could not be read: the button carries `disabled:pointer-events-none`,
+  so hovering it fires nothing, and there is no way to reach the text without
+  driving the page's own JS.
+Action taken: NONE — read only; no line was converted to produce the state.
+BlueDental: not modelled. The Công đoạn cell branches on the công đoạn's own
+  `stageDone` and the service's `warrantyDays`, with no branch for a converted
+  line, so such a row keeps a live green `+`. Our own status vocabulary calls
+  the nearest state `Replaced` / "Đã thay thế" rather than "Chuyển đổi", so the
+  mapping between the two is itself unconfirmed.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id} (Hồ sơ) — Labo "Đặt mới", the two chip strips
+Control: the magnifier beside `Lựa chọn dịch vụ*` and `Vật liệu*`
+Reason: The reference puts a round magnifier button next to each strip's label,
+  which opens a "Tìm dịch vụ" popover (recorded in pages/patient-detail.md,
+  Tab 6). On staging the underlying lists are empty ("Không có dữ liệu" /
+  "Chọn dịch vụ trước"), so the popover's own contents — its field, its empty
+  state, whether it filters on the server — were never seen with data.
+Action taken: NONE — the strips were read with their empty pills in place.
+BlueDental: the magnifier is not built. Both strips list every option they have,
+  which is workable while the demo clinic's lists are short but diverges from
+  the reference as soon as they are not.
+
+RESOLVED 2026-09-07 — un-ticking "Hoàn thành" on a công đoạn
+
+Page: /patient/{id} (Hồ sơ) — "Chi tiết phiếu", LỊCH SỬ ĐIỀU TRỊ
+Was: `api.md` recorded the reference's `PUT /v1/patient-stages/{id}/revert-status`
+  beside its `status` route, against which the clone said **"no revert yet"** —
+  its Hoàn thành box was disabled the moment a công đoạn closed.
+Action taken: NONE on the reference. Its box could not be exercised either way:
+  ticking or un-ticking a công đoạn on staging is a write, which
+  .claude/rules/00-reference-readonly.md forbids. The route itself was read from
+  the reference's own JS bundle in the 2026-09-06 survey (a static asset).
+Decided by the project owner: follow the reference — the box turns both ways.
+BlueDental: `TreatmentStage.Revert()` + `POST /treatment-stages/{id}/revert-status`,
+  behind the same `treatmentStage.complete` ability, because the reference's
+  ability list for that subject has no entry of its own for the revert. The
+  công đoạn returns to `InProgress` with `completedAt` cleared, and the service
+  line follows it back out of `Done` (and the slip out of `Completed`).
+
+Still UNKNOWN, and not observable without writing to the reference:
+  - which status the reference restores (we chose `InProgress`, not `Pending`,
+    since the visit did happen — nothing records the status it held before);
+  - whether the reference lets an **earlier** công đoạn of a line be re-opened.
+    We keep the clone's existing rule: only the line's newest công đoạn is
+    workable, so only that one can be un-ticked.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient (Danh sách bệnh nhân) — the Dịch vụ and Bác sĩ columns
+Control: which single service and doctor a row names
+Reason: The reference prints exactly one of each — read 2026-09-07 across 40 of
+  its 54 patients, none carrying a second name, including `HN8516` which holds
+  two slips and several lines. Which one it picks could not be settled: every
+  multi-line patient on staging repeats the *same* catalog service, so "newest",
+  "first" and "any" all give the same answer there. Producing a patient with two
+  different services would be a write.
+Action taken: NONE — read the list response and paged the table, nothing else.
+BlueDental: names the **newest** live service line (`CreationTime` descending)
+  and the dentist of the slip that line belongs to, so the two columns describe
+  one piece of work. The project owner asked for "dịch vụ mới nhất mà bệnh nhân
+  đang khám", which this follows.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient (Danh sách bệnh nhân) — "Lần khám cuối"
+Control: what fills the column
+Reason: `lastTreatmentDate` is **null on every row** of the reference's own
+  response, yet the column shows a time for every patient — and each one matches
+  that record's `createdAt` to the minute (e.g. `2026-09-07T01:32:41Z` → "07/09/2026
+  08:32" at UTC+7). So the reference is showing the profile's creation time under
+  a heading that says "last visit", which is either a fallback or a defect of its
+  own. Its intent is unobservable from outside.
+Action taken: NONE — read only.
+BlueDental: fills it from the patient's last appointment, falling back to
+  `RegisteredAt` — which is what the heading claims, and coincides with the
+  reference for a patient who has never been seen.
+
+RESOLVED 2026-09-07 — "Tạo tái khám": what Tái Khám and Chi Tiết open
+
+Page: /patient/{id} (Hồ sơ) — the "Tạo tái khám" listing
+Was: the clone sent Tái Khám to the appointment editor and Chi Tiết to "Chi tiết
+  phiếu", neither of which is what the reference does.
+Action taken: opened both on the reference and closed them again with Đóng — no
+  form was saved, no công đoạn raised.
+Observed: Tái Khám **replaces** the listing with a "Tạo tái khám" form (same
+  title; Đóng steps back to the rows), laid out exactly like the stage form, with
+  a footer of Đóng and Lưu. Chi Tiết **stacks** a read-only "Chi tiết dịch vụ"
+  over the listing: 772px, four sections in a two-column grid, footer Đóng only.
+BlueDental: both built. Still divergent inside them —
+  - the form's "Danh sách công đoạn" is the service catalog's own checklist
+    (`stageServiceItems`), which BlueDental does not model, so it reads "(Trống)"
+    as it does everywhere else;
+  - "Chi tiết dịch vụ" leaves Chẩn đoán, Bác sĩ chẩn đoán 1, Chẩn đoán 2 and
+    Nhân sự tư vấn 2 as em dashes: BlueDental keeps the diagnosis on the
+    consulting line rather than the slip's service, and records one consultant
+    rather than two of each.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id} (Hồ sơ) — the Tiếp nhận stepper, reached state
+Control: the colour each step turns once it has been reached
+Reason: Reaching a step means pressing it, which checks a patient in, starts or
+  finishes a visit on the reference — a write, forbidden by
+  .claude/rules/00-reference-readonly.md. Every appointment reachable on staging
+  sat at "not arrived", so only the **unreached** state could be measured.
+Action taken: NONE — the unreached stepper was read on patient `HN8521` and
+  nothing was pressed. Measured: a 32px white dot carrying the step number,
+  `1px #DCE3EE` border, 13px/600; a 2px `#DCE3EE` rail in two halves with the
+  outer edges hidden; label 12px/600 and time 12px, both `#1B2A41`. The label
+  colour is set **inline** per step, which is what says the reached colour is
+  the step's own rather than one shared tint.
+BlueDental: ASSUMPTION — step 1 `#2671D8`, step 2 `#F59E0B`, step 3 `#12A960`,
+  with the dot filled, a tick in place of the number, and the rail leading into
+  the step taking its colour. All three are tones the reference does show
+  elsewhere: `#2671D8` is its primary, `#F59E0B` is the `amber-500` its own Bảo
+  hành button hovers to, and `#12A960` is the green of the Công đoạn +. The
+  project owner asked for "3 màu khác nhau", which this follows. Re-measure if a
+  reached stepper is ever observable.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id} (Hồ sơ) — a tái khám row's code
+Control: what the REX counter runs on
+Reason: Only **one** re_examination row was observable on staging (patient
+  `69d315447b2db7404471a619`), carrying `REX001`. Raising a second one to see
+  whether the counter is per patient, per service line or per clinic would mean
+  saving the follow-up form — a write, forbidden by
+  .claude/rules/00-reference-readonly.md.
+Action taken: NONE — the existing row was read and nothing was submitted.
+  Measured: the code is `REX` + **three** digits, zero-padded.
+BlueDental: ASSUMPTION — the counter runs **per patient**, mirroring the DT code
+  of a treatment slip, and formats `REX{n:D3}` so the first is `REX001` like the
+  reference's. Re-measure if a patient with two follow-ups is ever observable;
+  only `NextCodeAsync` in `PatientReExaminationAppService` changes if it turns
+  out to be per line or per clinic.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id} (Hồ sơ) — the Tái khám form
+Control: whether a follow-up can be saved with no tooth ticked
+Reason: The form opens with **none** ticked (observed), so finding out what an
+  empty submit does would mean pressing Lưu on production — a write.
+Action taken: NONE — the form was opened, read and closed.
+BlueDental: ASSUMPTION — refused, `BlueDental:Treatment:EmptyToothSelection`.
+  An empty selection is **not** read as "all of the source stage's teeth":
+  the reference keeps `content` (the source's teeth) apart from
+  `selectedContent` (what was ticked) and prints only the second on the row, so
+  treating empty as "all" would put teeth on a row the user never chose.
+  Covered by `PatientReExaminationTests`.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id} (Hồ sơ) — the treatment table past ~1000 rows
+Control: how the reference pages a timeline that mixes stage and re_examination rows
+Reason: The reference calls `/v1/patient-timeline?page=&take=`, so it pages
+  **server-side** over an already-merged timeline. Reproducing that here would
+  mean a new endpoint that merges công đoạn and tái khám before paging; observing
+  how it orders and splits a day across a page boundary would need a patient with
+  hundreds of rows on staging, and none of the observable patients has one.
+Action taken: NONE — only the request shape was read from existing traffic.
+BlueDental: KNOWN LIMIT — the table fetches both collections in one request each
+  (`maxResultCount: 1000`, ABP's ceiling) and pages/groups in the browser,
+  because two collections merged into one ordering cannot be paged independently
+  server-side. Under 1000 rows this is exact; past it rows are silently dropped,
+  and the server's `(TreatmentServiceId, SequenceNumber)` ordering means the ones
+  dropped are not the oldest but whole trailing service lines (R-273). The fix is
+  a server-paged merged timeline endpoint mirroring the reference's.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id} (Hồ sơ) — the printed sheet's status pill, "Chuyển đổi"
+Control: the colour pair a `replaced` row's pill takes on the print sheet
+Reason: The print dialog ("In lịch sử điều trị") could only be opened on a slip
+  whose rows were `done` and `created`; no slip reachable on staging had a
+  `replaced` row **and** an openable Công đoạn cell — a converted line renders
+  its `+` disabled, so its print dialog cannot be reached from that row.
+  Producing one would mean converting a service on production.
+Action taken: NONE — the two observable pairs were measured on the sheet
+  (`done` = `#DDF6E8` on `#10A861`, `created` = `#D9EEFF` on `#2671D8`) and the
+  table's three were measured separately.
+BlueDental: ASSUMPTION — the sheet's `replaced` pill reuses the table's teal
+  pair (`#E6F8FB` on `#1A606B`). This is a guess: the reference's sheet does
+  **not** reuse the table's colours for the two statuses that *were* observable,
+  so the teal is likely to be a slightly different tint too. `.pd-print-chip--replaced`
+  is the single place to correct. The `cancelled` pair is unobserved in both
+  places and falls back to the app's red.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id} (Hồ sơ) — where a row's status lives
+Control: whether `replaced` / `cancelled` are stored per công đoạn or per line
+Reason: `GET /api/v1/patient-timeline` shows `status` on the **row** (values
+  `created`, `done`, `replaced` observed), but whether the reference writes that
+  onto each công đoạn or derives it from the line cannot be told from a read:
+  every row of the one converted line carried `replaced`, which both models
+  produce.
+Action taken: NONE — the timeline response already in the network log was read;
+  no request was issued.
+BlueDental: MODELLED — `replaced` and `cancelled` stay on `TreatmentService`
+  (the line) and are applied to every row of it; `done` / `active` come from the
+  row's own công đoạn. `stageRowStatus()` is the single place this is decided,
+  and it reproduces every observed row. If a line is ever seen with some rows
+  `replaced` and others not, the flag has to move onto `TreatmentStage`.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id} (Hồ sơ) — "Danh sách công đoạn", the PUT payload
+Control: the exact request body of PUT /v1/patient-stages/{id}/stage-service-items
+Reason: The endpoint was read from the reference's bundle, which gives the verb
+  and the path but not the shape of the body. Seeing the body would mean ticking
+  a box on production, which writes — the reference's own success toast proves
+  it.
+Action taken: NONE — the bundle was read as a static asset and no box was ticked.
+BlueDental: ASSUMPTION — the body is
+  { items: [{ catalogServiceStageId, isCompleted }] }, the **whole** list rather
+  than the one step that moved. The endpoint's plural name and the response
+  (which returns every item) both point that way, and it is what lets one call
+  both tick and untick. UpdateStageServiceItemsDto is the single place to
+  correct.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id} (Hồ sơ) — "Danh sách công đoạn", ticking an unchosen step
+Control: whether the history row can tick a step the công đoạn did not take
+Reason: Every công đoạn observable on staging listed only steps it already
+  carried, so the two models — "the row shows every step the service declares"
+  and "the row shows only the ones chosen on the form" — cannot be told apart by
+  reading. Choosing a step on production would write.
+Action taken: NONE.
+BlueDental: MODELLED — chosen on the form, ticked off later. UpdateServiceItems
+  refuses a step the công đoạn does not carry (BlueDental:Treatment:0025) rather
+  than quietly adding it, so a wrong guess fails loudly instead of writing junk.
+  If the reference turns out to list every step on the row, that guard is the one
+  thing to relax.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id} (Hồ sơ) — "Danh sách công đoạn", the money side
+Control: earningId, earningAmount, isCreatedEarning, valueType, isMarketingSalary,
+  and the line's progress
+Reason: Not unobservable — deliberately out of scope. treatment-lines shows each
+  step carrying a commission (earningByStage, and a step declared as either a
+  fixed value or a percentage), and the tick mutation invalidates the payment
+  queries, so ticking a step moves the doctor's pay. That reaches payroll, which
+  this pass does not touch. The project owner was told before the work started.
+Action taken: The observed fields are recorded here; nothing was built for them.
+BlueDental: NOT IMPLEMENTED — CatalogServiceStage.Value is stored and carried to
+  the front end as ServiceStepDto.Value, unused. A step's tick has no effect on
+  money yet, and progress is not reported on the line.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id} (Hồ sơ) — "Tạo tái khám", the form behind a row's Tái Khám
+Control: the single "Danh sách công đoạn" checkbox on that form
+Reason: The entry is synthesised in the browser, not fetched — the row mapper
+  builds it from the finished công đoạn's Nội dung điều trị
+  (`stageChecklist: a ? [{ id: `${e.id}-re-examination-stage`, label: a,
+  checked: !1 }] : []`, chunk 0568b3ed70779de1.js, read 2026-09-07). Unlike the
+  listing, where the box is `disabled`, the form's box is live and its handler
+  goes through the form's generic `updateItem`. Whether the tick reaches the
+  server would only show on Lưu, which writes a tái khám on the reference — so
+  it was not pressed. Nothing in `POST /v1/patient-stages/.../re-examination`'s
+  observed shape carries a checklist, and the id it would send
+  (`<stageId>-re-examination-stage`) is not a real `stageServiceId`, so the
+  likeliest answer is that the tick is decorative.
+Action taken: NONE — no save was attempted on the reference.
+BlueDental: the box is tickable and its state is local to the form; `save()` in
+  `useFollowUpForm` does not send it. If the reference turns out to persist it,
+  the field has to be modelled first — `PatientReExamination` has no checklist.
+
+---
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /taxonomy/service (Danh mục → Dịch vụ, tab "Cài đặt") and every screen
+  that reads a service's `isImageRequired`
+Control: the checkbox "Yêu cầu hình ảnh khi điều trị"
+Reason: The flag itself is observed — it is in the reference's own service
+  dialog and it rides on the service payload (`service.isImageRequired`, see
+  business-features.md §3). What it *does* was never observed. The first build
+  guessed: it made a công đoạn refuse `Hoàn thành` until a picture was attached,
+  and said so as a stated assumption (commit e835c45). The project owner then
+  checked the reference on 2026-09-07 and reported the opposite — Hoàn thành
+  ticks with no image at all — so that guess was wrong and the block is gone
+  (R-287). Proving what the flag *does* gate would mean ticking Hoàn thành on a
+  production công đoạn of a service that carries it, which is a write.
+Action taken: NONE — no completion was attempted on the reference. The negative
+  half of the answer came from the project owner's own reading of their screen,
+  not from a write of ours.
+BlueDental: the flag is carried onto the công đoạn (`TreatmentStage
+  .IsImageRequired`) and shown as a hint only — a "Cần ảnh" tag on the stage
+  panel and a warning alert on the advise form. Nothing blocks. Do not re-add a
+  block without an observation; if the reference turns out to warn rather than
+  refuse, the hint is already the right shape.

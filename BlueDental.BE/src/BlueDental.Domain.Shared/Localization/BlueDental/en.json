@@ -1,4 +1,4 @@
-{
+﻿{
   "culture": "en",
   "texts": {
     "Menu:Home": "Home",
@@ -105,12 +105,12 @@
     "BlueDental:Treatment:0016": "Consulting group not found.",
     "BlueDental:Treatment:0017": "Treatment stage not found.",
     "BlueDental:Treatment:0018": "That treatment stage transition is not allowed.",
-    "BlueDental:Treatment:0019": "This service needs a clinical image before the stage can be completed.",
     "BlueDental:Treatment:0020": "A stage sequence number starts at 1.",
     "BlueDental:Treatment:0021": "A prescription needs at least one medicine.",
     "BlueDental:Treatment:0022": "The same medicine is listed more than once.",
     "BlueDental:Treatment:0023": "Times a day, amount per time and number of days must be greater than zero; \"Khác\" needs a note.",
     "BlueDental:Treatment:0024": "Enter a name for the prescription template.",
+    "BlueDental:Treatment:0025": "That step is not part of this stage.",
     "BlueDental:Billing:0001": "Invoice not found.",
     "BlueDental:Billing:0002": "That billing transition is not allowed.",
     "BlueDental:Billing:0003": "This invoice has already been paid.",
@@ -985,6 +985,7 @@
     "Đã gửi mẫu cho Labo": "Model sent to the labo",
     "Đã hoàn thành công việc": "Task completed",
     "Đã hoàn thành công đoạn": "Stage completed",
+    "Đã mở lại công đoạn": "Stage re-opened",
     "Đã hoàn thành dịch vụ": "Service completed",
     "Đã huỷ": "Cancelled",
     "Đã huỷ dịch vụ": "Service cancelled",

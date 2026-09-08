@@ -11,7 +11,7 @@ import { LaboOrderDialog } from "./stage/LaboOrderDialog";
 import { StageForm } from "./stage/StageForm";
 import { StageHistory } from "./stage/StageHistory";
 import { TreatmentHistoryPrintDialog } from "./stage/TreatmentHistoryPrintDialog";
-import { WarrantyDialog } from "./stage/WarrantyDialog";
+import { StageFollowUpDialog } from "./stage/StageFollowUpDialog";
 import { useStageComposer, type StageTab } from "./stage/useStageComposer";
 
 interface Props {
@@ -134,6 +134,9 @@ export function TreatmentStageDialog({
                   <button
                     type="button"
                     key={item.id}
+                    /* Which service line the pick stands for — the history rows
+                       and the treatment table are addressed the same way. */
+                    data-line-id={item.id}
                     className={composer.selected === item.id ? "active" : undefined}
                     onClick={() => composer.setSelected(item.id)}
                   >
@@ -170,6 +173,9 @@ export function TreatmentStageDialog({
                 secondStaffId={composer.secondStaffId}
                 note={composer.note}
                 pending={composer.pending}
+                previews={composer.previews}
+                pickedSteps={composer.pickedSteps}
+                errors={composer.errors}
                 saving={composer.saving}
                 primaryLabel={
                   composer.tab === "add" ? t("Thêm công đoạn") : t("Tiếp tục công đoạn")
@@ -179,6 +185,8 @@ export function TreatmentStageDialog({
                 onSecondStaff={composer.setSecondStaffId}
                 onNote={composer.setNote}
                 onPickImages={() => composer.pickFor(null)}
+                onRemoveImage={composer.removePending}
+                onToggleStep={composer.toggleStep}
                 onCancel={() => composer.setSelected(null)}
                 onSave={() => void composer.save()}
               />
@@ -195,8 +203,12 @@ export function TreatmentStageDialog({
         savingNoteFor={composer.savingNoteFor}
         uploadingFor={composer.uploadingFor}
         completingId={composer.completingId}
+        togglingStepFor={composer.togglingStepFor}
         onSaveNote={(stage, next) => void composer.saveNote(stage, next)}
         onComplete={(stage) => void composer.finish(stage)}
+        onToggleStep={(stage, stepId, next) =>
+          void composer.toggleStageStep(stage, stepId, next)
+        }
         onUpload={(stage) => composer.pickFor(stage.id)}
         onCreateLabo={setLaboStage}
         onWarranty={setWarrantyStage}
@@ -212,12 +224,13 @@ export function TreatmentStageDialog({
         onClose={() => setPrinting(false)}
       />
 
-      <WarrantyDialog
+      <StageFollowUpDialog
         open={warrantyStage !== null}
         patientId={patientId}
         branchId={branchId}
         plan={plan}
         stage={warrantyStage}
+        kind="guarantee"
         onClose={() => setWarrantyStage(null)}
       />
 

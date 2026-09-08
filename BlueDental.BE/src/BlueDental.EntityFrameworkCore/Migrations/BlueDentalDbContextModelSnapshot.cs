@@ -5407,6 +5407,99 @@ namespace BlueDental.Migrations
                     b.ToTable("bd_treatment_services", (string)null);
                 });
 
+            modelBuilder.Entity("BlueDental.TreatmentManagement.PatientReExamination", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClinicBranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("ConcurrencyStamp");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("DeleterId");
+
+                    b.Property<DateTime?>("DeletionTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("DeletionTime");
+
+                    b.Property<string>("ExtraProperties")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("ExtraProperties");
+
+                    b.PrimitiveCollection<string[]>("ImageUrls")
+                        .HasColumnType("text[]");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsDeleted");
+
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("LastModificationTime");
+
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("LastModifierId");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PatientStageId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SecondStaffId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ServiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("StaffId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SubStaffId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TreatmentServiceId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PatientStageId");
+
+                    b.HasIndex("TreatmentServiceId");
+
+                    b.HasIndex("PatientId", "ClinicBranchId");
+
+                    b.ToTable("bd_patient_re_examinations", (string)null);
+                });
+
             modelBuilder.Entity("BlueDental.TreatmentManagement.TreatmentStage", b =>
                 {
                     b.Property<Guid>("Id")
@@ -5501,6 +5594,9 @@ namespace BlueDental.Migrations
                         .HasColumnType("smallint");
 
                     b.Property<bool>("IsGuarantee")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("HasReExamination")
                         .HasColumnType("boolean");
 
                     b.Property<Guid?>("SubStaffId")
@@ -7766,6 +7862,51 @@ namespace BlueDental.Migrations
                     b.Navigation("Teeth");
                 });
 
+            modelBuilder.Entity("BlueDental.TreatmentManagement.PatientReExamination", b =>
+                {
+                    b.OwnsMany("BlueDental.TreatmentManagement.Values.ToothSelection", "Teeth", b1 =>
+                        {
+                            b1.Property<Guid>("PatientReExaminationId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("integer");
+
+                            b1.Property<bool>("Bottom")
+                                .HasColumnType("boolean");
+
+                            b1.Property<bool>("Center")
+                                .HasColumnType("boolean");
+
+                            b1.Property<bool>("Left")
+                                .HasColumnType("boolean");
+
+                            b1.Property<bool>("Right")
+                                .HasColumnType("boolean");
+
+                            b1.Property<bool>("Selected")
+                                .HasColumnType("boolean");
+
+                            b1.Property<int>("ToothCode")
+                                .HasColumnType("integer");
+
+                            b1.Property<bool>("Top")
+                                .HasColumnType("boolean");
+
+                            b1.HasKey("PatientReExaminationId", "__synthesizedOrdinal");
+
+                            b1.ToTable("bd_patient_re_examinations");
+
+                            b1.ToJson("Teeth");
+
+                            b1.WithOwner()
+                                .HasForeignKey("PatientReExaminationId");
+                        });
+
+                    b.Navigation("Teeth");
+                });
+
             modelBuilder.Entity("BlueDental.TreatmentManagement.TreatmentStage", b =>
                 {
                     b.OwnsMany("BlueDental.TreatmentManagement.Values.ToothSelection", "Teeth", b1 =>
@@ -7807,6 +7948,39 @@ namespace BlueDental.Migrations
                             b1.WithOwner()
                                 .HasForeignKey("TreatmentStageId");
                         });
+
+                    b.OwnsMany("BlueDental.TreatmentManagement.Values.StageServiceItem", "ServiceItems", b1 =>
+                        {
+                            b1.Property<Guid>("TreatmentStageId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("integer");
+
+                            b1.Property<Guid>("CatalogServiceStageId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<DateTimeOffset?>("CompletedAt")
+                                .HasColumnType("timestamp with time zone");
+
+                            b1.Property<bool>("IsCompleted")
+                                .HasColumnType("boolean");
+
+                            b1.Property<Guid?>("StaffId")
+                                .HasColumnType("uuid");
+
+                            b1.HasKey("TreatmentStageId", "__synthesizedOrdinal");
+
+                            b1.ToTable("bd_treatment_stages");
+
+                            b1.ToJson("ServiceItems");
+
+                            b1.WithOwner()
+                                .HasForeignKey("TreatmentStageId");
+                        });
+
+                    b.Navigation("ServiceItems");
 
                     b.Navigation("Teeth");
                 });

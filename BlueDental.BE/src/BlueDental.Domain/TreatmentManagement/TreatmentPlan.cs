@@ -255,6 +255,26 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
         return this;
     }
 
+    /// <summary>
+    /// Re-opens a closed slip once one of its lines is back at work — the
+    /// counterpart of <see cref="CloseIfAllServicesDone"/>, for when a công đoạn
+    /// is re-opened on a line the slip had already counted as finished.
+    /// </summary>
+    public TreatmentPlan ReopenIfAnyServiceActive()
+    {
+        if (Status != TreatmentPlanStatus.Completed)
+        {
+            return this;
+        }
+
+        if (CountedServices.Any(s => !s.IsCompleted))
+        {
+            Status = TreatmentPlanStatus.InProgress;
+        }
+
+        return this;
+    }
+
     public TreatmentPlan SubmitForApproval()
     {
         EnsureStatus(TreatmentPlanStatus.Draft, nameof(SubmitForApproval));

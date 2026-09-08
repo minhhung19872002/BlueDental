@@ -295,62 +295,123 @@
   font-weight: 500;
 }
 
-/* Three steps with a rule running between them, as reception draws it. */
+/*
+ * Tiếp nhận — three steps, three colours.
+ *
+ * Measured on the reference 2026-09-07 in its unreached state: a 32px white dot
+ * carrying the step number, 1px #DCE3EE border, 13px/600; a 2px #DCE3EE rail in
+ * two halves with the outer edges hidden; label 12px/600 and time 12px, both
+ * #1B2A41.
+ *
+ * The reached colours could not be measured — walking the reference's stepper
+ * writes to production — so they are taken from tones the reference does show
+ * elsewhere: its primary blue #2671D8, the amber-500 its own Bảo hành button
+ * hovers to, and the #12A960 green of the Công đoạn +. Recorded in
+ * docs/clone/unknowns.md.
+ */
 .pd-appt-steps {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   margin: 12px 0 0;
   padding: 0;
   list-style: none;
+
+  --step-rail: #dce3ee;
 }
-.pd-appt-steps > li {
-  position: relative;
+.pd-appt-steps > li[data-step="1"] {
+  --step-color: #2671d8;
+}
+.pd-appt-steps > li[data-step="2"] {
+  --step-color: #f59e0b;
+}
+.pd-appt-steps > li[data-step="3"] {
+  --step-color: #12a960;
+}
+.pd-appt-steps > li > button {
   display: flex;
+  width: 100%;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  border: 0;
+  background: none;
+  padding: 0;
+  text-align: center;
+  cursor: pointer;
 }
-/* The connector sits behind the dots and stops at the last one. */
-.pd-appt-steps > li:not(:last-child)::after {
-  content: "";
-  position: absolute;
-  top: 13px;
-  left: 50%;
+.pd-appt-steps > li > button:disabled {
+  cursor: not-allowed;
+}
+
+/* The rail runs through the dot in two halves; the row's outer edges are blank. */
+.pd-appt-step-rail {
+  display: flex;
   width: 100%;
-  height: 1px;
-  background: var(--bd-line);
+  align-items: center;
 }
+.pd-appt-step-rail-in,
+.pd-appt-step-rail-out {
+  flex: 1;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--step-rail);
+}
+.pd-appt-steps > li:first-child .pd-appt-step-rail-in,
+.pd-appt-steps > li:last-child .pd-appt-step-rail-out {
+  visibility: hidden;
+}
+
 .pd-appt-step-dot {
-  position: relative;
-  z-index: 1;
   display: grid;
+  flex-shrink: 0;
   place-items: center;
-  width: 26px;
-  height: 26px;
-  border: 1px solid var(--bd-line);
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--step-rail);
   border-radius: 50%;
   background: #fff;
-  color: var(--bd-faint);
+  color: #5a6b82;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.pd-appt-step-label {
+  /* #1b2a41 — measured on the reference, a shade off our --bd-ink. */
+  color: #1b2a41;
   font-size: 12px;
   font-weight: 600;
 }
-.pd-appt-steps > li.reached .pd-appt-step-dot {
-  border-color: var(--bd-blue);
-  background: var(--bd-blue);
-  color: #fff;
-}
-.pd-appt-step-label {
-  color: var(--bd-muted);
-  font-size: 12.5px;
-}
-.pd-appt-steps > li.reached .pd-appt-step-label {
-  color: var(--bd-sub);
-}
 .pd-appt-step-time {
-  color: var(--bd-faint);
+  color: #1b2a41;
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
+
+/* Reached: the dot fills with the step's own colour and wears a tick, the label
+   follows it, and the rail leading into the step is coloured with it too. */
+.pd-appt-steps > li.reached .pd-appt-step-dot {
+  border-color: var(--step-color);
+  background: var(--step-color);
+  color: #fff;
+}
+.pd-appt-steps > li.reached .pd-appt-step-label {
+  color: var(--step-color);
+}
+.pd-appt-steps > li.reached .pd-appt-step-rail-in {
+  background: var(--step-color);
+}
+/*
+ * …and the outgoing half of the step behind it, so each run reads as one solid
+ * line. The colour has to be named per pair: `:has(+ li.reached)` selects the
+ * step *before* the reached one, where --step-color is still its own.
+ */
+.pd-appt-steps > li[data-step="1"]:has(+ li.reached) .pd-appt-step-rail-out {
+  background: #f59e0b;
+}
+.pd-appt-steps > li[data-step="2"]:has(+ li.reached) .pd-appt-step-rail-out {
+  background: #12a960;
+}
+
 .pd-info-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2460,27 +2521,54 @@
 .pd-tr-code:hover {
   text-decoration: underline;
 }
+/*
+ * Status chips on the treatment table.
+ *
+ * Measured on the reference 2026-09-07 (patient HN8516, three statuses on one
+ * table): 32px tall, 8px radius, 12px/600, padding 0 8px, margin-top 4px. The
+ * three tints below are read straight off it — they are **not** on the app's
+ * own palette, and each status has its own pair, so do not fold them into the
+ * --bd-* scale. The print sheet's chips are a different shape and different
+ * tints again; see .pd-print-chip.
+ */
 .pd-tr-chip {
   display: inline-flex;
   align-items: center;
-  height: 28px;
+  height: 32px;
   margin-top: 4px;
   border-radius: 8px;
   padding: 0 8px;
-  background: var(--bd-blue-pale);
-  color: var(--bd-blue-dark);
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
 }
-.pd-tr-chip--3 {
-  background: var(--bd-green-pale);
-  color: var(--bd-green);
+/* Đang điều trị — the reference labels a `created` row this, not "Chưa điều trị". */
+.pd-tr-chip--active {
+  background: #eff6ff;
+  color: #1d4ed8;
 }
-.pd-tr-chip--4,
-.pd-tr-chip--5 {
+.pd-tr-chip--done {
+  background: #e7f8ef;
+  color: #12a960;
+}
+/* Chuyển đổi — a line converted to another service. */
+.pd-tr-chip--replaced {
+  background: #e6f8fb;
+  color: #1a606b;
+}
+.pd-tr-chip--cancelled {
   background: var(--bd-red-pale);
   color: var(--bd-red);
+}
+
+/*
+ * The Tái khám chip is **grey**, not the primary — measured on the reference
+ * 2026-09-07: a re_examination row is a label, not a status, so it stays quiet
+ * and lets the row's own code carry the colour.
+ */
+.pd-tr-chip--recall {
+  background: var(--bd-bg-head);
+  color: #667085;
 }
 .pd-tr-teeth {
   display: inline-block;
@@ -3005,18 +3093,92 @@
   flex-wrap: wrap;
   gap: 8px;
 }
-.pd-stage-teeth > div > span {
+/*
+ * Teeth on a follow-up form. A warranty visit inherits the công đoạn's teeth and
+ * only shows them (a plain span); a tái khám picks among them, so each is a
+ * toggle button that starts unticked and fills with the app's primary once on.
+ */
+.pd-stage-teeth > div > span,
+.pd-stage-teeth > div > button {
   display: inline-flex;
   min-width: 36px;
   align-items: center;
   justify-content: center;
   border-radius: 4px;
   padding: 4px;
-  background: var(--bd-primary);
-  color: #fff;
   font-size: 13px;
   font-weight: 600;
+}
+.pd-stage-teeth > div > span {
+  background: var(--bd-primary);
+  color: #fff;
   opacity: 0.7;
+}
+.pd-stage-teeth > div > button {
+  border: 1px solid var(--bd-line);
+  background: #fff;
+  color: var(--bd-ink);
+  cursor: pointer;
+  transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+.pd-stage-teeth > div > button:hover {
+  border-color: var(--bd-primary);
+  color: var(--bd-primary);
+}
+.pd-stage-teeth > div > button.active {
+  border-color: var(--bd-primary);
+  background: var(--bd-primary);
+  color: #fff;
+}
+
+/* The chosen pictures, held until the form is saved. */
+/*
+ * Field-level validation text, under the field it belongs to. The reference
+ * reports an empty required field here rather than in a toast — a toast does
+ * not say which of the three inputs it meant, and it is gone by the time you
+ * look away from it.
+ */
+.pd-stage-error {
+  margin: 2px 0 0;
+  color: var(--bd-red);
+  font-size: 12px;
+  line-height: 16px;
+}
+.pd-stage-shots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.pd-stage-shots > div {
+  position: relative;
+  width: 68px;
+  height: 68px;
+  overflow: hidden;
+  border: 1px solid var(--bd-line);
+  border-radius: 8px;
+}
+.pd-stage-shots img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.pd-stage-shots button {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  display: flex;
+  width: 20px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 5px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgb(27 42 65 / 20%);
+  color: var(--bd-ink);
+  font-size: 11px;
+  cursor: pointer;
 }
 .pd-stage-list {
   margin: 14px 0 4px;
@@ -3028,6 +3190,38 @@
   margin: 0;
   color: var(--bd-muted);
   font-size: 13.5px;
+}
+/*
+ * "Danh sách công đoạn" — the service's own steps as checkboxes, on the công
+ * đoạn form and again in the history row's Công đoạn column. Measured on the
+ * reference 2026-09-07: rows 12px apart, 14px text on the ink colour, and the
+ * box itself 20px with a 4px radius. The tick colour is the app's primary, like
+ * every other accent on this screen.
+ */
+.pd-stage-steps > div {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+}
+.pd-stage-steps .ant-checkbox-wrapper {
+  align-items: center;
+  color: var(--bd-ink);
+  font-size: 14px;
+}
+.pd-stage-steps .ant-checkbox .ant-checkbox-inner {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+}
+/*
+ * The read-only variant on "Tạo tái khám": the reference prints those step
+ * names `font-semibold text-primary`, measured 2026-09-07 as #2671D8 at
+ * weight 600, and keeps the box disabled — so the label must not fade with it
+ * the way AntD dims a disabled wrapper by default.
+ */
+.pd-stage-steps--accent .ant-checkbox-wrapper-disabled span:not(.ant-checkbox) {
+  color: var(--bd-link);
+  font-weight: 600;
 }
 .pd-stage-formactions {
   display: flex;
@@ -3253,6 +3447,14 @@
   color: var(--bd-ink);
   font-weight: 600;
 }
+/* Inside the history row the heading is redundant — the column is already
+   called Công đoạn — so only the boxes show. */
+.pd-stage-histstage .pd-stage-list {
+  display: none;
+}
+.pd-stage-histstage .ant-checkbox-wrapper {
+  font-weight: 400;
+}
 .pd-stage-rowactions {
   display: grid;
   gap: 12px;
@@ -3424,24 +3626,55 @@
 .pd-print-note {
   white-space: pre-wrap;
 }
+/*
+ * Status chips on the printed sheet. Measured on the reference 2026-09-07: a
+ * 26px **fully rounded** pill at 12px/500 — a different shape *and* different
+ * tints from the table's chips above, so the two sets are kept apart on
+ * purpose. Only `done` and `active` were observable in the print dialog; the
+ * replaced pair below is carried over from the table (docs/clone/unknowns.md).
+ */
 .pd-print-chip {
   display: inline-flex;
+  align-items: center;
+  height: 26px;
   margin-top: 8px;
   border-radius: 999px;
-  padding: 4px 12px;
-  background: color-mix(in srgb, var(--bd-primary) 16%, #fff);
-  color: var(--bd-primary);
+  padding: 0 12px;
   font-size: 12px;
   font-weight: 500;
+}
+.pd-print-chip--active {
+  background: #d9eeff;
+  color: #2671d8;
+}
+.pd-print-chip--done {
+  background: #ddf6e8;
+  color: #10a861;
+}
+.pd-print-chip--replaced {
+  background: #e6f8fb;
+  color: #1a606b;
+}
+.pd-print-chip--cancelled {
+  background: var(--bd-red-pale);
+  color: var(--bd-red);
 }
 
 /* The A4 copy: off-screen until the browser is actually printing. */
 .pd-print-sheet {
   display: none;
 }
+/*
+ * A4 at 96dpi is 794px, which is the width the reference pins its sheet to
+ * (`max-w-[794px] mx-auto`) so the layout is the same whatever the window is
+ * doing. Without it the sheet stretches to the viewport and the header's three
+ * columns drift far apart before the paper ever constrains them.
+ */
 .pd-print-sheet article {
   display: flex;
   min-height: 980px;
+  max-width: 794px;
+  margin: 0 auto;
   flex-direction: column;
   padding: 32px;
   background: #fff;
@@ -3517,47 +3750,50 @@
   font-weight: 600;
 }
 
+/*
+ * Printing. The sheet is portaled straight onto <body> (see
+ * TreatmentHistoryPrintDialog), so hiding the body's *other* children is enough
+ * and nothing has to reach down through AntD's portal wrapper. The previous
+ * version hid every body child and then tried to un-hide the sheet from inside
+ * the modal, which cannot work — a display:none ancestor wins — and the preview
+ * came out blank.
+ */
 @media print {
-  body.pd-printing > * {
+  body.pd-printing > *:not(.pd-print-sheet) {
     display: none !important;
   }
-  body.pd-printing .pd-print-sheet {
-    position: absolute;
-    inset: 0;
+  body.pd-printing > .pd-print-sheet {
     display: block !important;
   }
-  body.pd-printing .ant-modal-root,
-  body.pd-printing .ant-modal-wrap,
-  body.pd-printing .ant-modal,
-  body.pd-printing .ant-modal-content,
-  body.pd-printing .ant-modal-body {
-    position: static !important;
-    display: block !important;
-    max-width: none;
-    padding: 0;
-    background: none;
-    box-shadow: none;
+  /* No page margin of our own: the sheet carries the reference's own padding. */
+  @page {
+    margin: 0;
   }
-  body.pd-printing .ant-modal-mask,
-  body.pd-printing .ant-modal-header,
-  body.pd-printing .ant-modal-footer,
-  body.pd-printing .ant-modal-close,
-  body.pd-printing .pd-print-body {
-    display: none !important;
+  html,
+  body {
+    background: #fff !important;
   }
 }
 
 /* ── "Đặt mới" — the Labo order raised from a công đoạn ────────────────── */
 
-.pd-labo-grid {
+/*
+ * Two columns, 20px both ways — measured on the reference at a 772px dialog:
+ * content 718px wide, columns 349px at x=24 and x=393, rows pitched 60px on a
+ * 40px field. Scoped to this dialog: "Tạo phiếu Labo" (PatientRecordDialogs,
+ * 1180px wide) shares the class name and needs the three columns declared
+ * further up this file, which a bare rule here would silently override.
+ */
+.pd-labo-dialog .pd-labo-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px 16px;
+  gap: 20px;
 }
+/* The date/time couple inside one column: 193px + 16px + 140px of that 349px. */
 .pd-labo-pair {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-  gap: 12px;
+  gap: 16px;
 }
 .pd-labo-dialog .floating-field,
 .pd-labo-dialog .ant-select,
@@ -3588,11 +3824,18 @@
   display: inline-flex;
   min-height: 36px;
   align-items: center;
-  border: 1px dashed var(--bd-border);
+  border: 1px dashed var(--pd-dash-soft);
   border-radius: 999px;
   padding: 0 16px;
-  color: var(--bd-muted);
+  color: rgb(var(--pd-field-label));
   font-size: 13px;
+}
+/* The reference centres this dashed placeholder across the strip. Real chips
+   stay left-aligned, so only the empty case is centred. */
+.pd-labo-strip > .pd-labo-emptypill {
+  display: flex;
+  width: fit-content;
+  margin-inline: auto;
 }
 .pd-labo-chips {
   display: flex;
@@ -3658,7 +3901,11 @@
 .pd-labo-notes {
   margin-top: 16px;
 }
-/* The reference's square drop tile, not a wide button. */
+/*
+ * The reference's square drop tile, not a wide button: 80×80, dashed #b9c4d4,
+ * the label in link blue, and the hover fills rather than only recolouring —
+ * the same treatment the Hình ảnh tab's Tải ảnh already carries.
+ */
 .pd-labo-drop {
   display: flex;
   width: 80px;
@@ -3668,12 +3915,13 @@
   justify-content: center;
   gap: 4px;
   margin-top: 16px;
-  border: 1px dashed var(--bd-border);
+  border: 1px dashed var(--pd-dash);
   border-radius: 8px;
   background: #fff;
-  color: var(--bd-muted);
+  color: var(--bd-primary);
   font: inherit;
   font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
 }
 .pd-labo-drop > span {
@@ -3686,6 +3934,7 @@
 .pd-labo-drop:hover {
   border-color: var(--bd-primary);
   color: var(--bd-primary);
+  background: var(--pd-upload-hover);
 }
 
 @media (max-width: 900px) {
@@ -3800,7 +4049,15 @@
   }
 }
 
-/* Chosen pictures, held as drafts until the order is saved. */
+/*
+ * Chosen pictures, held as drafts until the order is saved.
+ *
+ * Sized to the 80×80 Tải ảnh tile they sit beside so the two read as one strip.
+ * The reference's own draft rendering is UNKNOWN_REFERENCE_BEHAVIOR: reaching
+ * it means attaching a file to a production form, which may upload on select —
+ * and no Labo order on staging carries an image to read the saved form back
+ * from. See docs/clone/unknowns.md.
+ */
 .pd-labo-drafts {
   display: flex;
   flex-wrap: wrap;
@@ -3809,10 +4066,10 @@
 }
 .pd-labo-drafts > div {
   position: relative;
-  width: 160px;
-  height: 160px;
+  width: 80px;
+  height: 80px;
   overflow: hidden;
-  border: 1px solid var(--bd-border);
+  border: 1px solid var(--pd-dash-soft);
   border-radius: 8px;
 }
 .pd-labo-drafts img {
@@ -3822,11 +4079,11 @@
 }
 .pd-labo-drafts button {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 4px;
+  right: 4px;
   display: flex;
-  width: 28px;
-  height: 28px;
+  width: 22px;
+  height: 22px;
   align-items: center;
   justify-content: center;
   border: 0;
@@ -3842,18 +4099,92 @@
  * field has focus, dimming it further when the field is a read-out. Scoped to
  * these two dialogs rather than changed app-wide: every other screen was built
  * against the blue resting label.
+ *
+ * One slate carries all three states, measured on the reference: it sits at 80%
+ * while resting inside the field, at full strength once floated, and drops to
+ * --bd-link on focus. `--bd-muted` is close but reads bluer, so the label keeps
+ * its own channel triple here rather than bending an app-wide token.
  */
+.pd-labo-dialog,
+.pd-stage-dialog,
+.pd-svcdetail-dialog {
+  /* #5a6b82 — the same slate the Hình ảnh tab measured as --pi-muted. */
+  --pd-field-label: 90 107 130;
+  --pd-dash: #b9c4d4;
+  --pd-dash-soft: #dce3ee;
+  --pd-upload-hover: #e7f0fb;
+}
+.pd-labo-dialog .floating-field:not(.floating-field--floated) .floating-field-label,
+.pd-stage-dialog .floating-field:not(.floating-field--floated) .floating-field-label {
+  color: rgb(var(--pd-field-label) / 80%);
+  font-weight: 500;
+}
 .pd-labo-dialog .floating-field--floated .floating-field-label,
 .pd-stage-dialog .floating-field--floated .floating-field-label {
-  color: var(--bd-muted);
+  color: rgb(var(--pd-field-label));
 }
+/*
+ * Focus, and every other accent inside these dialogs, follows the **app's**
+ * primary rather than the reference's blue. The project owner asked for that on
+ * 2026-09-07: the clone's brand is indigo, and a modal mixing #2671D8 chips with
+ * an indigo Lưu button read as two different accents.
+ */
 .pd-labo-dialog .floating-field--floated:focus-within .floating-field-label,
 .pd-stage-dialog .floating-field--floated:focus-within .floating-field-label {
-  color: var(--bd-link);
+  color: var(--bd-primary);
 }
 .pd-labo-dialog .floating-field:has(.ant-input-disabled) .floating-field-label,
 .pd-labo-dialog .floating-field:has(.ant-select-disabled) .floating-field-label,
 .pd-stage-dialog .floating-field:has(.ant-input-disabled) .floating-field-label,
 .pd-stage-dialog .floating-field:has(.ant-select-disabled) .floating-field-label {
   opacity: 0.5;
+}
+
+/* ── "Chi tiết dịch vụ" — read-only, opened by Chi Tiết on a tái khám row ── */
+
+/*
+ * Measured on the reference 2026-09-07: a 772px dialog holding a two-column
+ * grid, 48px between columns and 32px between rows, each section a bold blue
+ * uppercase heading over 15px `label: value` lines 8px apart. The label carries
+ * the muted slate; only the value is inked.
+ */
+.pd-svcdetail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 32px 48px;
+}
+.pd-svcdetail-grid section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.pd-svcdetail-grid h3 {
+  margin: 0;
+  color: var(--bd-primary);
+  font-size: 16px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.pd-svcdetail-grid section > div {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pd-svcdetail-fact {
+  margin: 0;
+  color: rgb(var(--pd-field-label));
+  font-size: 15px;
+  line-height: 1.5;
+}
+.pd-svcdetail-fact > span {
+  /* #1b2a41 — the reference inks the value itself, not the label. Same slate
+     the Hình ảnh tab records as --pi-ink; --bd-ink is a shade off it. */
+  color: #1b2a41;
+  font-weight: 500;
+}
+
+@media (max-width: 720px) {
+  .pd-svcdetail-grid {
+    grid-template-columns: 1fr;
+  }
 }

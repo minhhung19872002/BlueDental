@@ -35,6 +35,7 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
 {
     private readonly List<ToothSelection> _teeth = new();
     private readonly List<string> _imageUrls = new();
+    private readonly List<StageServiceItem> _serviceItems = new();
 
     public Guid PatientId { get; private set; }
     public Guid ClinicBranchId { get; private set; }
@@ -87,6 +88,21 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
     /// </summary>
     public bool IsGuarantee { get; private set; }
 
+    /// <summary>
+    /// Whether a tái khám has been raised from this công đoạn — the reference's
+    /// own <c>hasReExamination</c>, which it carries on the **source** stage.
+    /// The follow-up itself is a <see cref="PatientReExamination"/>, a row of its
+    /// own on the timeline, not another công đoạn.
+    /// </summary>
+    public bool HasReExamination { get; private set; }
+
+    /// <summary>Called when a follow-up visit is raised from this step.</summary>
+    public TreatmentStage MarkReExamined()
+    {
+        HasReExamination = true;
+        return this;
+    }
+
     public DateTimeOffset? StartedAt { get; private set; }
     public DateTimeOffset? CompletedAt { get; private set; }
 
@@ -95,6 +111,12 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
 
     /// <summary>Clinical photos attached to the step (stored as links, never binaries).</summary>
     public IReadOnlyCollection<string> ImageUrls => _imageUrls.AsReadOnly();
+
+    /// <summary>
+    /// "Danh sách công đoạn" — which of the service's own steps this công đoạn
+    /// covers, and which of those are done. See <see cref="StageServiceItem"/>.
+    /// </summary>
+    public IReadOnlyCollection<StageServiceItem> ServiceItems => _serviceItems.AsReadOnly();
 
     protected TreatmentStage() { }
 
@@ -114,7 +136,8 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
         IEnumerable<ToothSelection>? teeth = null,
         Guid? secondStaffId = null,
         Guid? subStaffId = null,
-        bool isGuarantee = false)
+        bool isGuarantee = false,
+        IEnumerable<Guid>? serviceItemIds = null)
     {
         Check.NotNullOrWhiteSpace(name, nameof(name));
 
@@ -149,7 +172,53 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
         };
 
         stage._teeth.AddRange(toothList);
+        stage.SetServiceItems(serviceItemIds ?? []);
         return stage;
+    }
+
+    /// <summary>
+    /// The service steps this công đoạn covers, as chosen on the form. All start
+    /// unticked: the reference opens every box empty and they are ticked off
+    /// afterwards, from the history row.
+    /// </summary>
+    public TreatmentStage SetServiceItems(IEnumerable<Guid> catalogServiceStageIds)
+    {
+        var ids = catalogServiceStageIds.Distinct().ToList();
+        _serviceItems.Clear();
+        _serviceItems.AddRange(ids.Select(id => new StageServiceItem(id)));
+        return this;
+    }
+
+    /// <summary>
+    /// Ticks or unticks the steps named in <paramref name="completedByStageId"/>,
+    /// which is the whole picture for this công đoạn — anything left out is
+    /// unticked. Steps this công đoạn does not cover are refused rather than
+    /// quietly added: the list is fixed when the công đoạn is created.
+    /// </summary>
+    public TreatmentStage UpdateServiceItems(
+        IReadOnlyDictionary<Guid, bool> completedByStageId,
+        DateTimeOffset now,
+        Guid? staffId)
+    {
+        foreach (var id in completedByStageId.Keys)
+        {
+            if (!_serviceItems.Exists(item => item.CatalogServiceStageId == id))
+            {
+                throw new BusinessException(
+                    BlueDentalDomainErrorCodes.TreatmentManagement.UnknownStageServiceItem,
+                    "That step does not belong to this công đoạn.");
+            }
+        }
+
+        for (var index = 0; index < _serviceItems.Count; index++)
+        {
+            var item = _serviceItems[index];
+            var wanted = completedByStageId.TryGetValue(item.CatalogServiceStageId, out var value)
+                && value;
+            _serviceItems[index] = item.With(wanted, now, staffId);
+        }
+
+        return this;
     }
 
     public TreatmentStage UpdateDetails(
@@ -197,6 +266,18 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
     /// <summary>
     /// Close the step. Allowed straight from Pending, because continue and complete
     /// are separate abilities on the reference and a user may hold only the latter.
+    ///
+    /// <para>
+    /// <see cref="IsImageRequired"/> does <b>not</b> gate this. It used to: the
+    /// original commit assumed a service carrying "Yêu cầu hình ảnh khi điều trị"
+    /// would refuse completion until a picture was attached, and said so as a
+    /// stated assumption rather than an observation. The project owner then
+    /// checked the reference and reported that Hoàn thành ticks with no image at
+    /// all, so the guard was invented and is gone. The flag is still recorded on
+    /// the stage because it is the catalog's own, but what the reference actually
+    /// does with it is UNKNOWN_REFERENCE_BEHAVIOR — see docs/clone/unknowns.md.
+    /// Do not re-add a block here without an observation to back it.
+    /// </para>
     /// </summary>
     public TreatmentStage Complete()
     {
@@ -207,16 +288,31 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
                 "The stage is already completed.");
         }
 
-        if (IsImageRequired && _imageUrls.Count == 0)
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.TreatmentManagement.StageImageRequired,
-                "This service requires a clinical image before the stage can be completed.");
-        }
-
         Status = TreatmentStageStatus.Completed;
         StartedAt ??= DateTimeOffset.UtcNow;
         CompletedAt = DateTimeOffset.UtcNow;
+        return this;
+    }
+
+    /// <summary>
+    /// Re-open a closed step — the reference's <c>revert-status</c>, which is how
+    /// un-ticking its Hoàn thành box works, so completion is not final.
+    ///
+    /// The step returns to InProgress rather than Pending: the visit did happen,
+    /// it simply is not finished. Nothing records what the status was before, and
+    /// no caller asks for more than "is this step closed".
+    /// </summary>
+    public TreatmentStage Revert()
+    {
+        if (Status != TreatmentStageStatus.Completed)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.InvalidStageTransition,
+                "Only a completed stage can be re-opened.");
+        }
+
+        Status = TreatmentStageStatus.InProgress;
+        CompletedAt = null;
         return this;
     }
 

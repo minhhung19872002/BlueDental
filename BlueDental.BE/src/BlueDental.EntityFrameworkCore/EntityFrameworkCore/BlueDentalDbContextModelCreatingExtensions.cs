@@ -771,9 +771,28 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.OwnsMany(x => x.Teeth, t => t.ToJson());
             entity.Navigation(x => x.Teeth).UsePropertyAccessMode(PropertyAccessMode.Field);
             entity.PrimitiveCollection(x => x.ImageUrls).UsePropertyAccessMode(PropertyAccessMode.Field);
+            // "Danh sách công đoạn" — a short, always-read-with-the-stage list,
+            // so it rides in JSON like Teeth rather than earning a table.
+            entity.OwnsMany(x => x.ServiceItems, t => t.ToJson());
+            entity.Navigation(x => x.ServiceItems).UsePropertyAccessMode(PropertyAccessMode.Field);
             entity.HasIndex(x => new { x.TreatmentServiceId, x.SequenceNumber });
             entity.HasIndex(x => new { x.PatientId, x.Status });
             entity.HasIndex(x => new { x.ClinicBranchId, x.Status });
+        });
+
+        // Tai kham — a follow-up raised from a finished cong doan
+        builder.Entity<PatientReExamination>(entity =>
+        {
+            entity.ToTable("bd_patient_re_examinations");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Code).HasMaxLength(40).IsRequired();
+            entity.Property(x => x.Note).HasMaxLength(2000);
+            entity.OwnsMany(x => x.Teeth, t => t.ToJson());
+            entity.Navigation(x => x.Teeth).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.PrimitiveCollection(x => x.ImageUrls).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.HasIndex(x => new { x.PatientId, x.ClinicBranchId });
+            entity.HasIndex(x => x.PatientStageId);
+            entity.HasIndex(x => x.TreatmentServiceId);
         });
 
         // Nhom tu van

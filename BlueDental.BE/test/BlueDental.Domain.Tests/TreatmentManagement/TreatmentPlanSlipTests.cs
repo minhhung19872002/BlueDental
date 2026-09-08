@@ -291,4 +291,76 @@ public class TreatmentPlanSlipTests
         Should.Throw<BusinessException>(() => line.Cancel())
             .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.InvalidPlanTransition);
     }
+    [Fact]
+    public void A_finished_line_goes_back_to_work_when_a_step_is_re_opened()
+    {
+        // Un-ticking Hoàn thành on the last open công đoạn has to carry the line
+        // back with it, or the row would keep reading "Hoàn thành" over a step
+        // that is open again.
+        var plan = OpenPlan();
+        var line = AddLine(plan, 1_000_000m);
+        line.Complete();
+        line.IsCompleted.ShouldBeTrue();
+
+        line.Reopen();
+
+        line.Status.ShouldBe(TreatmentServiceStatus.InProgress);
+        line.IsCompleted.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Re_opening_a_line_that_was_never_finished_changes_nothing()
+    {
+        var plan = OpenPlan();
+        var line = AddLine(plan, 1_000_000m);
+
+        line.Reopen();
+
+        line.Status.ShouldBe(TreatmentServiceStatus.Created);
+    }
+
+    [Fact]
+    public void A_cancelled_line_stays_closed_when_a_step_is_re_opened()
+    {
+        // Cancelling is a decision about the line; its công đoạn do not overturn it.
+        var plan = OpenPlan();
+        var line = AddLine(plan, 1_000_000m);
+        line.Cancel();
+
+        Should.Throw<BusinessException>(() => line.Reopen())
+            .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.InvalidPlanTransition);
+    }
+
+    [Fact]
+    public void A_closed_slip_re_opens_once_one_of_its_lines_is_back_at_work()
+    {
+        var plan = OpenPlan();
+        var first = AddLine(plan, 1_000_000m);
+        var second = AddLine(plan, 500_000m);
+        // TreatmentPlan.Open already lands InProgress — no approval step here.
+
+        first.Complete();
+        second.Complete();
+        plan.CloseIfAllServicesDone();
+        plan.Status.ShouldBe(TreatmentPlanStatus.Completed);
+
+        second.Reopen();
+        plan.ReopenIfAnyServiceActive();
+
+        plan.Status.ShouldBe(TreatmentPlanStatus.InProgress);
+    }
+
+    [Fact]
+    public void A_closed_slip_stays_closed_while_every_line_is_still_finished()
+    {
+        var plan = OpenPlan();
+        var line = AddLine(plan, 1_000_000m);
+        line.Complete();
+        plan.CloseIfAllServicesDone();
+
+        plan.ReopenIfAnyServiceActive();
+
+        plan.Status.ShouldBe(TreatmentPlanStatus.Completed);
+    }
+
 }

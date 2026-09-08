@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using BlueDental.TreatmentManagement;
 using BlueDental.TreatmentManagement.Values;
 using Shouldly;
@@ -78,17 +80,61 @@ public class TreatmentStageTests
     }
 
     [Fact]
-    public void A_service_that_requires_an_image_refuses_completion_without_one()
+    public void A_completed_step_can_be_re_opened()
     {
-        var stage = CreateStage(isImageRequired: true);
+        // The reference un-ticks its Hoàn thành box through revert-status, so
+        // completion is not final.
+        var stage = CreateStage();
+        stage.Complete();
 
-        Should.Throw<BusinessException>(() => stage.Complete())
-            .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.StageImageRequired);
+        stage.Revert();
 
-        stage.AttachImage("https://files.local/xray-1.png");
+        stage.Status.ShouldBe(TreatmentStageStatus.InProgress);
+        stage.CompletedAt.ShouldBeNull();
+        // The visit still happened, so the start is left standing.
+        stage.StartedAt.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void Re_opening_a_step_that_was_never_finished_is_refused()
+    {
+        var stage = CreateStage();
+
+        Should.Throw<BusinessException>(() => stage.Revert())
+            .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.InvalidStageTransition);
+
+        stage.Status.ShouldBe(TreatmentStageStatus.Pending);
+    }
+
+    [Fact]
+    public void A_re_opened_step_can_be_finished_again()
+    {
+        var stage = CreateStage();
+        stage.Complete();
+        stage.Revert();
+
         stage.Complete();
 
         stage.Status.ShouldBe(TreatmentStageStatus.Completed);
+        stage.CompletedAt.ShouldNotBeNull();
+    }
+
+    /// <summary>
+    /// The image flag records the catalog's setting; it does not gate Hoàn thành.
+    /// This test is the inverse of the one it replaces: the original assumed a
+    /// service carrying "Yêu cầu hình ảnh khi điều trị" would refuse completion,
+    /// and the reference was then seen to close a công đoạn with no image at all.
+    /// </summary>
+    [Fact]
+    public void A_service_that_requires_an_image_still_completes_without_one()
+    {
+        var stage = CreateStage(isImageRequired: true);
+
+        stage.Complete();
+
+        stage.Status.ShouldBe(TreatmentStageStatus.Completed);
+        stage.CompletedAt.ShouldNotBeNull();
+        stage.ImageUrls.ShouldBeEmpty();
     }
 
     [Fact]
@@ -196,5 +242,95 @@ public class TreatmentStageTests
         stage.Note.ShouldBe("Ghi chú mới");
         stage.SecondStaffId.ShouldBeNull();
         stage.SubStaffId.ShouldBeNull();
+    }
+
+    [Fact]
+    public void A_stage_records_that_a_follow_up_was_raised_from_it()
+    {
+        // The reference flips hasReExamination on the source công đoạn; the
+        // follow-up itself lives in its own row.
+        var stage = CreateStage();
+        stage.HasReExamination.ShouldBeFalse();
+
+        stage.MarkReExamined();
+        stage.MarkReExamined();
+
+        stage.HasReExamination.ShouldBeTrue();
+    }
+
+    // ── "Danh sách công đoạn" — the service's own steps, ticked off per row ──
+
+    private static readonly Guid StepA = Guid.NewGuid();
+    private static readonly Guid StepB = Guid.NewGuid();
+
+    [Fact]
+    public void The_steps_a_stage_covers_are_chosen_when_it_is_created_and_start_unticked()
+    {
+        var stage = TreatmentStage.Add(
+            Guid.NewGuid(), _patientId, _branchId, _treatmentId, _treatmentServiceId,
+            _serviceId, 1, "Gắn mắc cài", _staffId, serviceItemIds: [StepA, StepB]);
+
+        stage.ServiceItems.Count.ShouldBe(2);
+        stage.ServiceItems.ShouldAllBe(item => !item.IsCompleted);
+        stage.ServiceItems.ShouldAllBe(item => item.CompletedAt == null);
+    }
+
+    [Fact]
+    public void The_same_step_is_not_taken_twice()
+    {
+        var stage = TreatmentStage.Add(
+            Guid.NewGuid(), _patientId, _branchId, _treatmentId, _treatmentServiceId,
+            _serviceId, 1, "Gắn mắc cài", _staffId, serviceItemIds: [StepA, StepA]);
+
+        stage.ServiceItems.ShouldHaveSingleItem();
+    }
+
+    [Fact]
+    public void Ticking_a_step_stamps_who_and_when_and_unticking_clears_both()
+    {
+        var stage = CreateStage().SetServiceItems([StepA, StepB]);
+        var now = DateTimeOffset.UtcNow;
+
+        stage.UpdateServiceItems(new Dictionary<Guid, bool> { [StepA] = true }, now, _staffId);
+
+        var ticked = stage.ServiceItems.Single(x => x.CatalogServiceStageId == StepA);
+        ticked.IsCompleted.ShouldBeTrue();
+        ticked.CompletedAt.ShouldBe(now);
+        ticked.StaffId.ShouldBe(_staffId);
+
+        // Anything left out of the call is unticked: one call is the whole picture,
+        // which is what lets the history row's checkbox turn both ways.
+        stage.ServiceItems.Single(x => x.CatalogServiceStageId == StepB).IsCompleted.ShouldBeFalse();
+
+        stage.UpdateServiceItems(new Dictionary<Guid, bool> { [StepA] = false }, now, _staffId);
+
+        var cleared = stage.ServiceItems.Single(x => x.CatalogServiceStageId == StepA);
+        cleared.IsCompleted.ShouldBeFalse();
+        cleared.CompletedAt.ShouldBeNull();
+        cleared.StaffId.ShouldBeNull();
+    }
+
+    [Fact]
+    public void A_step_the_stage_does_not_cover_cannot_be_ticked()
+    {
+        var stage = CreateStage().SetServiceItems([StepA]);
+
+        Should.Throw<BusinessException>(() => stage.UpdateServiceItems(
+                new Dictionary<Guid, bool> { [StepB] = true }, DateTimeOffset.UtcNow, _staffId))
+            .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.UnknownStageServiceItem);
+    }
+
+    [Fact]
+    public void Ticking_the_same_step_twice_keeps_the_first_time()
+    {
+        var stage = CreateStage().SetServiceItems([StepA]);
+        var first = DateTimeOffset.UtcNow;
+
+        stage.UpdateServiceItems(new Dictionary<Guid, bool> { [StepA] = true }, first, _staffId);
+        stage.UpdateServiceItems(
+            new Dictionary<Guid, bool> { [StepA] = true }, first.AddHours(1), Guid.NewGuid());
+
+        stage.ServiceItems.Single().CompletedAt.ShouldBe(first);
+        stage.ServiceItems.Single().StaffId.ShouldBe(_staffId);
     }
 }

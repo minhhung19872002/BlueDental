@@ -16,6 +16,7 @@ import { PlanSummaryCards } from "./plan/PlanSummaryCards";
 import { PlanTable } from "./plan/PlanTable";
 import { PlanToolbar } from "./plan/PlanToolbar";
 import type { PlanRowActions } from "./plan/planColumns";
+import { PLAN_TAB } from "./plan-detail/planDetailTypes";
 import {
   defaultPlanColumns,
   flattenServices,
@@ -130,7 +131,14 @@ export function TreatmentPlanPanel({ patientId, patient }: Props) {
         plan={stagePlan}
         focusServiceId={null}
         onClose={() => setStagePlan(null)}
-        onOpenPlan={() => setStagePlan(null)}
+        onOpenPlan={() => {
+          // Same jump as from the Hồ sơ tab: the slip's own Chi tiết screen.
+          const target = stagePlan;
+          setStagePlan(null);
+          if (target) {
+            navigate(planDetailPath(patientId, target.id, branchId, PLAN_TAB.detail));
+          }
+        }}
       />
       {invoicePlan && (
         <InvoiceModal open patient={patient} plan={invoicePlan} onClose={() => setInvoicePlan(null)} />

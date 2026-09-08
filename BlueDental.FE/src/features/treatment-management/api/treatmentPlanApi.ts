@@ -125,6 +125,14 @@ export interface PaymentSummaryDto {
   carryOverAmount: number | null;
 }
 
+/** One step of a service — the reference's service.stages[] entry. */
+export interface ServiceStepDto {
+  id: string;
+  name: string;
+  /** The reference's "Giá trị" — what the step pays. Not used on this screen. */
+  value: number;
+}
+
 export interface TreatmentServiceDto {
   id: string;
   treatmentPlanId: string;
@@ -145,6 +153,11 @@ export interface TreatmentServiceDto {
   completedStageCount: number;
   /** Warranty period of the service, in days; 0 means "Không bảo hành". */
   warrantyDays: number;
+  /**
+   * "Danh sách công đoạn" — the steps this service declares in Danh mục, in
+   * their own order. The công đoạn form lists them as checkboxes.
+   */
+  serviceSteps: ServiceStepDto[];
   /** Nội dung điều trị — the notes on this line's stages, in order. */
   stageNotes: string[];
   /** Đã thu on this line alone — slip-wide payments are not counted here. */

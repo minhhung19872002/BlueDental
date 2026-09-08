@@ -171,7 +171,11 @@ This is the reference's dental-chart primitive — one row per tooth touched.
 PatientAdvise (priced, per service) -> grouped by AdviseGroup -> converted into
 PatientTreatment (kế hoạch điều trị)`.
 
-`service.isImageRequired` forces attaching an image before the advise can proceed.
+`service.isImageRequired` is the catalog's "Yêu cầu hình ảnh khi điều trị" flag,
+carried on the service payload. BlueDental **records** it and shows it as a hint;
+it blocks nothing. An earlier build made it refuse a công đoạn's completion — an
+invented rule, removed once the reference was seen to close one with no image
+(R-287). What it actually drives there is UNKNOWN_REFERENCE_BEHAVIOR.
 
 ---
 

@@ -4,7 +4,10 @@ import { useAuthStore } from "@/features/auth/store/authStore";
 import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
 import {
+  STAGE_STATUS,
   useCompleteStage,
+  useRevertStage,
+  useUpdateStageServiceItems,
   useCreateStage,
   useTreatmentStages,
   useUpdateStage,
@@ -16,6 +19,11 @@ import type {
 } from "@/features/treatment-management/api/treatmentPlanApi";
 import { usePatientImages, useUploadPatientImage } from "../../../api/patientImageApi";
 import type { StageDay } from "./StageHistory";
+import {
+  hasStageFieldError,
+  stageFieldErrors,
+  type StageFieldErrors,
+} from "./stageFieldErrors";
 
 /**
  * The reference splits the eligible services in two: those with no công đoạn
@@ -60,6 +68,8 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
   const createStage = useCreateStage();
   const updateStage = useUpdateStage();
   const completeStage = useCompleteStage();
+  const revertStage = useRevertStage();
+  const updateServiceItems = useUpdateStageServiceItems();
   const uploadImage = useUploadPatientImage();
 
   const fileInput = useRef<HTMLInputElement>(null);
@@ -77,7 +87,11 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
   const [secondStaffId, setSecondStaffId] = useState<string>();
   const [note, setNote] = useState("");
   const [pending, setPending] = useState<File[]>([]);
+  /** Step ids ticked under "Danh sách công đoạn" on the form. */
+  const [pickedSteps, setPickedSteps] = useState<string[]>([]);
   const [busyStage, setBusyStage] = useState<string | null>(null);
+  /** Which fields failed the last save attempt — see {@link StageFieldErrors}. */
+  const [errors, setErrors] = useState<StageFieldErrors>({});
 
   const services = useMemo(() => plan?.services ?? [], [plan]);
   const stages = useTreatmentStages(
@@ -104,19 +118,54 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
    * earlier one `disabled` and only that one keeps its Tạo Labo — a line is
    * worked one step at a time.
    */
-  const liveStageIds = useMemo(() => {
+  const liveStages = useMemo(() => {
     const newest = new Map<string, TreatmentStageDto>();
     for (const stage of slipStages) {
       const held = newest.get(stage.treatmentServiceId);
       if (!held || stage.creationTime > held.creationTime) newest.set(stage.treatmentServiceId, stage);
     }
-    return new Set([...newest.values()].map((stage) => stage.id));
+    return newest;
   }, [slipStages]);
+
+  const liveStageIds = useMemo(
+    () => new Set([...liveStages.values()].map((stage) => stage.id)),
+    [liveStages],
+  );
+
+  /**
+   * Lines whose live công đoạn is Hoàn thành.
+   *
+   * The reference drops these from "TIẾP TỤC CÔNG ĐOẠN": there is nothing left
+   * to continue once the step being worked is closed. Read off the **live**
+   * công đoạn rather than off all of them because that is the only one the
+   * history lets anyone tick — every earlier row is `disabled` — so a rule
+   * demanding all of them be closed would strand a line here for good. Ticking
+   * Hoàn thành therefore removes the line, and un-ticking it brings it back.
+   */
+  const closedLineIds = useMemo(
+    () =>
+      new Set(
+        [...liveStages.entries()]
+          .filter(([, stage]) => stage.status === STAGE_STATUS.Completed)
+          .map(([lineId]) => lineId),
+      ),
+    [liveStages],
+  );
+
+  /**
+   * Which tab a line belongs to: none yet in "THÊM CÔNG ĐOẠN", still being
+   * worked in "TIẾP TỤC CÔNG ĐOẠN". A line whose live công đoạn is closed
+   * belongs to neither — it lives on in the history underneath, not in the
+   * picker.
+   */
+  const inTab = (line: TreatmentServiceDto, which: StageTab) =>
+    which === "add"
+      ? !stagedLineIds.has(line.id)
+      : stagedLineIds.has(line.id) && !closedLineIds.has(line.id);
+
   const focused = services.find((line) => line.id === focusServiceId);
-  const tab: StageTab =
-    chosenTab ?? (focused && stagedLineIds.has(focused.id) ? "continue" : "add");
-  const inTab = (line: TreatmentServiceDto) =>
-    tab === "add" ? !stagedLineIds.has(line.id) : stagedLineIds.has(line.id);
+  const tab: StageTab = chosenTab ?? (focused && inTab(focused, "continue") ? "continue" : "add");
+  const offered = services.filter((line) => inTab(line, tab));
 
   useEffect(() => {
     if (!open) return;
@@ -127,11 +176,51 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
     setSecondStaffId(undefined);
     setNote("");
     setPending([]);
+    setPickedSteps([]);
+    setErrors({});
     // Re-seeding on every stage refetch would wipe what is being typed.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, focusServiceId, plan?.id]);
 
-  const line = services.find((item) => item.id === selected) ?? null;
+  /**
+   * The line the form is bound to, looked up in what the tab offers rather than
+   * in the whole slip: a line that has just left the tab — its last công đoạn
+   * closed while the dialog was open — must not keep the form standing behind
+   * it.
+   */
+  const line = offered.find((item) => item.id === selected) ?? null;
+
+  /** Picking a line, or leaving one, starts its form clean. */
+  const pick = (lineId: string | null) => {
+    setErrors({});
+    setSelected(lineId);
+  };
+
+  const changeStaff = (value: string) => {
+    setErrors((current) => ({ ...current, staff: undefined }));
+    setStaffId(value);
+  };
+
+  const changeNote = (value: string) => {
+    if (value.trim()) setErrors((current) => ({ ...current, note: undefined }));
+    setNote(value);
+  };
+
+  /**
+   * Blob previews for the chosen files, revoked when the list changes or the
+   * dialog closes — minting them in the render would hand out a fresh URL on
+   * every keystroke and never release one.
+   */
+  const previews = useMemo(() => pending.map((file) => URL.createObjectURL(file)), [pending]);
+  useEffect(() => () => previews.forEach((url) => URL.revokeObjectURL(url)), [previews]);
+
+  const removePending = (at: number) =>
+    setPending((current) => current.filter((_, index) => index !== at));
+
+  const toggleStep = (stepId: string, next: boolean) =>
+    setPickedSteps((current) =>
+      next ? [...current, stepId] : current.filter((id) => id !== stepId),
+    );
 
   const upload = async (stageId: string, files: File[]) => {
     for (const file of files) {
@@ -146,20 +235,14 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
 
   const save = async () => {
     if (!line || !plan) return;
+
     // The reference's own schema: doctor, teeth and the treatment note are all
-    // required, and the note is capped at 1000 characters.
-    if (!staffId) {
-      toast.error(t("Vui lòng chọn bác sĩ"));
-      return;
-    }
-    if (line.teeth.length === 0) {
-      toast.error(t("Vui lòng chọn răng"));
-      return;
-    }
-    if (!note.trim()) {
-      toast.error(t("Vui lòng nhập nội dung điều trị"));
-      return;
-    }
+    // required, and the note is capped at 1000 characters. Each failure is
+    // reported under its own field, the way "Tạo tái khám" does it — a toast
+    // does not say which of the three inputs it meant.
+    const found = stageFieldErrors({ staffId, note, teethPicked: line.teeth.length > 0 });
+    setErrors(found);
+    if (hasStageFieldError(found) || !staffId) return;
 
     try {
       const created = await createStage.mutateAsync({
@@ -176,6 +259,7 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
         subStaffId,
         secondStaffId,
         teeth: line.teeth,
+        serviceItemIds: pickedSteps,
       });
 
       // Pictures chosen in the form belong to a công đoạn that did not exist
@@ -188,6 +272,33 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
       setPending([]);
     } catch (error) {
       toast.error(extractApiError(error));
+    }
+  };
+
+  /**
+   * Ticks or unticks one step on a saved công đoạn, from the history row.
+   *
+   * The whole list goes up, not just the step that moved: the endpoint treats
+   * its payload as the complete picture, which is what lets one call both tick
+   * and untick.
+   */
+  const toggleStageStep = async (stage: TreatmentStageDto, stepId: string, next: boolean) => {
+    setBusyStage(stage.id);
+    try {
+      await updateServiceItems.mutateAsync({
+        id: stage.id,
+        items: stage.serviceItems.map((item) => ({
+          catalogServiceStageId: item.catalogServiceStageId,
+          isCompleted:
+            item.catalogServiceStageId === stepId ? next : item.isCompleted,
+        })),
+      });
+      toast.success(t("Cập nhật thành công"));
+    } catch (error) {
+      // The reference's own wording when this call fails.
+      toast.error(extractApiError(error) || t("Không thể cập nhật công đoạn"));
+    } finally {
+      setBusyStage(null);
     }
   };
 
@@ -212,11 +323,22 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
     }
   };
 
+  /**
+   * Ticks or un-ticks Hoàn thành. The reference's box turns both ways — it has a
+   * `revert-status` beside its `status` — so un-ticking re-opens the công đoạn
+   * and carries its service line back out of Hoàn thành with it.
+   */
   const finish = async (stage: TreatmentStageDto) => {
+    const reopening = stage.completedAt !== null;
     setBusyStage(stage.id);
     try {
-      await completeStage.mutateAsync(stage.id);
-      toast.success(t("Đã hoàn thành công đoạn"));
+      if (reopening) {
+        await revertStage.mutateAsync(stage.id);
+        toast.success(t("Đã mở lại công đoạn"));
+      } else {
+        await completeStage.mutateAsync(stage.id);
+        toast.success(t("Đã hoàn thành công đoạn"));
+      }
     } catch (error) {
       toast.error(extractApiError(error));
     } finally {
@@ -257,22 +379,27 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
     tab,
     setTab: setChosenTab,
     counts: {
-      add: services.filter((item) => !stagedLineIds.has(item.id)).length,
-      continue: services.filter((item) => stagedLineIds.has(item.id)).length,
+      add: services.filter((item) => inTab(item, "add")).length,
+      continue: services.filter((item) => inTab(item, "continue")).length,
     },
-    offered: services.filter(inTab),
+    offered,
     selected,
-    setSelected,
+    setSelected: pick,
     line,
+    errors,
     staffId,
-    setStaffId,
+    setStaffId: changeStaff,
     subStaffId,
     setSubStaffId,
     secondStaffId,
     setSecondStaffId,
     note,
-    setNote,
+    setNote: changeNote,
     pending,
+    previews,
+    removePending,
+    pickedSteps,
+    toggleStep,
     saving: createStage.isPending || uploadImage.isPending,
 
     days: byDay(slipStages),
@@ -288,8 +415,10 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
       (services.find((item) => item.id === stage.treatmentServiceId)?.warrantyDays ?? 0) > 0,
 
     savingNoteFor: updateStage.isPending ? busyStage : null,
+    togglingStepFor: updateServiceItems.isPending ? busyStage : null,
+    toggleStageStep,
     uploadingFor: uploadImage.isPending ? busyStage : null,
-    completingId: completeStage.isPending ? busyStage : null,
+    completingId: completeStage.isPending || revertStage.isPending ? busyStage : null,
 
     fileInput,
     pickFor,

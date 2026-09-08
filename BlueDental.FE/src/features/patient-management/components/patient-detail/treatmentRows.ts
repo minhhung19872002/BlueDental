@@ -1,5 +1,6 @@
 import {
   STAGE_STATUS,
+  type PatientReExaminationDto,
   type TreatmentStageDto,
 } from "@/features/treatment-management/api/stageApi";
 import {
@@ -19,6 +20,15 @@ import type { ToothSelectionDto } from "@/features/treatment-management/api/cons
  * docs/clone/unknowns.md).
  */
 export interface TreatmentRow extends TreatmentServiceDto {
+  /**
+   * Which kind of row this is. The reference's timeline returns two —
+   * `type: "stage"` and `type: "re_examination"` — and a tái khám is a row of
+   * its own beside the công đoạn, carrying code REX01, no status chip of the
+   * line's, and neither a Công đoạn nor a Chăm sóc cell.
+   */
+  kind: "stage" | "reExamination";
+  /** REX01 on a tái khám row; null on a công đoạn row. */
+  recallCode: string | null;
   /** The công đoạn this row stands for; null for a line that has none yet. */
   stageId: string | null;
   /**
@@ -48,12 +58,15 @@ function dayOf(value: string): string {
 }
 
 /**
- * Expands the slips into one row per công đoạn, newest first, and works out how
- * far each day's date cell has to span.
+ * Expands the slips into one row per công đoạn, newest first.
+ *
+ * The day spans are {@link regroupByDay}'s job, over the rows actually being
+ * rendered.
  */
 export function buildTreatmentRows(
   plans: TreatmentPlanSlipDto[],
   stages: TreatmentStageDto[],
+  reExaminations: PatientReExaminationDto[] = [],
 ): TreatmentRow[] {
   const byLine = new Map<string, TreatmentStageDto[]>();
   for (const stage of stages) {
@@ -67,6 +80,8 @@ export function buildTreatmentRows(
     for (const service of plan.services) {
       const base = {
         ...service,
+        kind: "stage" as const,
+        recallCode: null,
         dentist: plan.dentistName,
         planCode: plan.code,
         daySpan: 0,
@@ -105,27 +120,57 @@ export function buildTreatmentRows(
     }
   }
 
-  rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  /*
+   * Tái khám rows, folded in beside the công đoạn. Each hangs off the same
+   * service line as the công đoạn it was raised from, so it borrows the line for
+   * its money and its SL and overrides everything the reference shows
+   * differently: its own REX code, its own chosen teeth, its own note and staff,
+   * and no Công đoạn or Chăm sóc cell at all.
+   */
+  const lineById = new Map(
+    plans.flatMap((plan) => plan.services.map((service) => [service.id, { plan, service }] as const)),
+  );
 
-  // The date cell spans its whole day, the way the reference sets rowSpan.
-  for (let index = 0; index < rows.length; index += 1) {
-    const day = dayOf(rows[index].createdAt);
-    if (index > 0 && dayOf(rows[index - 1].createdAt) === day) continue;
+  for (const visit of reExaminations) {
+    const held = lineById.get(visit.treatmentServiceId);
+    if (!held) continue;
 
-    let span = 1;
-    while (index + span < rows.length && dayOf(rows[index + span].createdAt) === day) span += 1;
-    rows[index].daySpan = span;
+    rows.push({
+      ...held.service,
+      kind: "reExamination",
+      recallCode: visit.code,
+      planCode: held.plan.code,
+      daySpan: 0,
+      stageId: null,
+      stageDone: false,
+      isWarranty: false,
+      createdAt: visit.creationTime,
+      stageNote: visit.note,
+      rowTeeth: visit.teeth,
+      quantity: visit.quantity,
+      serviceName: visit.serviceName ?? held.service.serviceName,
+      dentist: visit.staffName,
+      assistant: visit.subStaffName,
+      secondDentist: visit.secondStaffName,
+    });
   }
 
+  rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+  // The spans are left to regroupByDay: they are positional, and every caller
+  // filters and pages this list before rendering it, so a span worked out here
+  // would be overwritten anyway.
   return rows;
 }
 
 /**
- * Re-works the day spans over a filtered list.
+ * Works out the day spans over exactly the rows about to be rendered.
  *
- * The spans are positional: dropping rows in the middle of a day would leave a
- * cell claiming more rows than are still there, and AntD would swallow the next
- * day's date.
+ * The spans are positional, so this has to run **after** filtering *and* after
+ * the page slice. Dropping rows from the middle of a day leaves a cell claiming
+ * more rows than are still there and AntD swallows the next day's date; slicing
+ * a page can also cut a day's first row away, leaving the rest of that day with
+ * no date cell at all.
  */
 export function regroupByDay(rows: TreatmentRow[]): TreatmentRow[] {
   const next = rows.map((row) => ({ ...row, daySpan: 0 }));

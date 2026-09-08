@@ -5,11 +5,9 @@ import { formatDate } from "@/utils/format";
 import { formatTeeth } from "@/features/treatment-management/api/consultingApi";
 import {
   afterCareLabels,
-  serviceLineStatusConfig,
-  SERVICE_LINE_STATUS,
   type CareStatusCode,
-  type TreatmentServiceStatus,
 } from "@/features/treatment-management/api/treatmentPlanApi";
+import { stageRowStatus, stageRowStatusLabel } from "./stageRowStatus";
 import type { TreatmentRow } from "./treatmentRows";
 
 export type { TreatmentRow };
@@ -76,13 +74,16 @@ function BanknoteIcon() {
  * A row is one **công đoạn** — see {@link buildTreatmentRows} — so Ngày spans
  * its whole day through `rowSpan`, exactly as the reference's table does.
  */
+/** The status one row shows — see stageRowStatus for what the reference does. */
+const rowStatus = (row: TreatmentRow) => stageRowStatus(row.status ?? null, row.stageDone);
+
 export function treatmentColumns({
   onOpenPlan,
   onAddStage,
   onWarranty,
   onPay,
 }: Handlers): TableColumnsType<TreatmentRow> {
-  const lineStatus = serviceLineStatusConfig();
+
   const careLabels = afterCareLabels();
 
   return [
@@ -102,24 +103,19 @@ export function treatmentColumns({
         <div className="pd-tr-service">
           <p>
             <button type="button" className="pd-tr-code" onClick={onOpenPlan}>
-              {row.planCode}
+              {row.recallCode ?? row.planCode}
             </button>
             {value ? ` - ${value}` : ` - ${row.code}`}
           </p>
-          {/* The chip is the công đoạn's own state, not the line's. */}
-          <span
-            className={`pd-tr-chip pd-tr-chip--${
-              row.stageDone ? SERVICE_LINE_STATUS.Done : SERVICE_LINE_STATUS.InProgress
-            }`}
-          >
-            {
-              lineStatus[
-                (row.stageDone
-                  ? SERVICE_LINE_STATUS.Done
-                  : SERVICE_LINE_STATUS.InProgress) as TreatmentServiceStatus
-              ].label
-            }
-          </span>
+          {/* A tái khám says so; a công đoạn row shows its own state, not the
+              line's. */}
+          {row.kind === "reExamination" ? (
+            <span className="pd-tr-chip pd-tr-chip--recall">{t("Tái khám")}</span>
+          ) : (
+            <span className={`pd-tr-chip pd-tr-chip--${rowStatus(row)}`}>
+              {stageRowStatusLabel(rowStatus(row))}
+            </span>
+          )}
         </div>
       ),
     },
@@ -147,10 +143,13 @@ export function treatmentColumns({
       render: (value: string | null, row) => (
         <div className="pd-tr-doctor">
           <div>{value ?? "—"}</div>
-          {/* Phụ tá rides on the công đoạn, so it is the row's own, not the plan's. */}
-          <div className="pd-tr-sub">
-            {t("Phụ tá")}: {row.assistant ?? "—"}
-          </div>
+          {/* Phụ tá rides on the công đoạn, so it is the row's own, not the
+              plan's — and the reference leaves the line off a tái khám row. */}
+          {row.kind === "stage" && (
+            <div className="pd-tr-sub">
+              {t("Phụ tá")}: {row.assistant ?? "—"}
+            </div>
+          )}
         </div>
       ),
     },
@@ -164,6 +163,10 @@ export function treatmentColumns({
       width: 120,
       align: "center",
       render: (_, row) => {
+        // A tái khám is not a công đoạn, and the reference leaves this cell of
+        // its row empty.
+        if (row.kind === "reExamination") return null;
+
         // Three states, as the reference draws them. A công đoạn still being
         // worked keeps the green + — adding a new one never closes the old, so
         // every unfinished row stays clickable.
@@ -212,12 +215,14 @@ export function treatmentColumns({
       title: t("Chăm sóc sau điều trị"),
       dataIndex: "afterCareStatus",
       width: 180,
-      render: (value: CareStatusCode | null) => (
-        <span className="pd-tr-care">
-          <i />
-          {value === null ? t("Chưa chăm sóc") : careLabels[value]}
-        </span>
-      ),
+      render: (value: CareStatusCode | null, row) =>
+        // Aftercare follows a công đoạn; the reference leaves it off a tái khám.
+        row.kind === "reExamination" ? null : (
+          <span className="pd-tr-care">
+            <i />
+            {value === null ? t("Chưa chăm sóc") : careLabels[value]}
+          </span>
+        ),
     },
     {
       title: t("Thao tác"),

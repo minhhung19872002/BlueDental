@@ -26,6 +26,16 @@ public class PaymentSummaryDto
     public decimal? CarryOverAmount { get; set; }
 }
 
+/// <summary>One step of a service — the reference's <c>service.stages[]</c> entry.</summary>
+public class ServiceStepDto
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>The reference's "Giá trị" — what the step pays. Not used yet.</summary>
+    public decimal Value { get; set; }
+}
+
 public class TreatmentServiceDto : EntityDto<Guid>
 {
     public Guid TreatmentPlanId { get; set; }
@@ -53,6 +63,13 @@ public class TreatmentServiceDto : EntityDto<Guid>
     /// offers no Bảo hành at all.
     /// </summary>
     public int WarrantyDays { get; set; }
+
+    /// <summary>
+    /// "Danh sách công đoạn" — the steps this service declares in Danh mục, in
+    /// their own order. The công đoạn form lists them as checkboxes; the row
+    /// itself has no state, each công đoạn keeps its own ticks.
+    /// </summary>
+    public List<ServiceStepDto> ServiceSteps { get; set; } = new();
 
     /// <summary>
     /// Nội dung điều trị — the notes written on this line's stages, in order.

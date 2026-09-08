@@ -6,6 +6,7 @@ import { formatShortDate } from "@/utils/format";
 import { toothLabels } from "@/features/treatment-management/api/consultingApi";
 import type { TreatmentStageDto } from "@/features/treatment-management/api/stageApi";
 import type { PatientImageDto } from "../../../api/patientImageApi";
+import { StageStepList } from "./StageStepList";
 
 /** One calendar day's stages, the way the reference groups its rows. */
 export interface StageDay {
@@ -26,8 +27,11 @@ interface Props {
   savingNoteFor: string | null;
   uploadingFor: string | null;
   completingId: string | null;
+  /** The công đoạn whose steps are mid-request, so its list is disabled. */
+  togglingStepFor: string | null;
   onSaveNote: (stage: TreatmentStageDto, note: string) => void;
   onComplete: (stage: TreatmentStageDto) => void;
+  onToggleStep: (stage: TreatmentStageDto, stepId: string, next: boolean) => void;
   onUpload: (stage: TreatmentStageDto) => void;
   onCreateLabo: (stage: TreatmentStageDto) => void;
   /** Bảo hành, offered in place of Tạo Labo once a công đoạn is finished. */
@@ -135,8 +139,10 @@ export function StageHistory({
   savingNoteFor,
   uploadingFor,
   completingId,
+  togglingStepFor,
   onSaveNote,
   onComplete,
+  onToggleStep,
   onUpload,
   onCreateLabo,
   onWarranty,
@@ -179,6 +185,14 @@ export function StageHistory({
                           live ? "pd-stage-histrow" : "pd-stage-histrow pd-stage-histrow--off"
                         }
                         aria-disabled={!live}
+                        /*
+                         * A slip can hold several service lines, each with its
+                         * own live công đoạn, so a row has to say which line it
+                         * belongs to — the treatment table is addressed the
+                         * same way through its data-row-key.
+                         */
+                        data-line-id={stage.treatmentServiceId}
+                        data-stage-id={stage.id}
                         key={stage.id}
                       >
                         <div>
@@ -208,14 +222,31 @@ export function StageHistory({
                           onSave={(note) => onSaveNote(stage, note)}
                         />
 
-                        <div className="pd-stage-histstage">{stage.name}</div>
+                        {/* Công đoạn — the service steps this công đoạn covers,
+                            ticked off here as they are done. The reference puts
+                            the checkboxes in this column, not the stage name. */}
+                        <div className="pd-stage-histstage">
+                          <StageStepList
+                            steps={stage.serviceItems.map((item) => ({
+                              id: item.catalogServiceStageId,
+                              name: item.name,
+                            }))}
+                            checked={stage.serviceItems
+                              .filter((item) => item.isCompleted)
+                              .map((item) => item.catalogServiceStageId)}
+                            onToggle={(stepId, next) => void onToggleStep(stage, stepId, next)}
+                            busy={togglingStepFor === stage.id}
+                          />
+                        </div>
 
                         <div className="pd-stage-rowactions">
+                          {/* Turns both ways: the reference keeps a
+                              `revert-status` beside its `status`, so un-ticking
+                              re-opens the công đoạn. Only an earlier công đoạn
+                              of the line, or one mid-request, is locked. */}
                           <Checkbox
                             checked={stage.completedAt !== null}
-                            disabled={
-                              !live || stage.completedAt !== null || completingId === stage.id
-                            }
+                            disabled={!live || completingId === stage.id}
                             onChange={() => onComplete(stage)}
                           >
                             {t("Hoàn thành")}

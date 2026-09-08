@@ -348,13 +348,33 @@ public class PatientTreatmentAppService : ApplicationService, IPatientTreatmentA
             .Where(x => x != Guid.Empty)
             .Distinct()
             .ToList();
-        var catalogQuery = await _catalogRepository.GetQueryableAsync();
+        // **Both** navigations, or the one left out comes back null and its
+        // column silently reads zero: this used to be a projection, which loaded
+        // ServiceConfig implicitly, and including only Stages made every line
+        // report warrantyDays 0 — no line offered Bảo hành any more (R-282).
+        var catalogQuery = await _catalogRepository.WithDetailsAsync(
+            c => c.Stages,
+            c => c.ServiceConfig);
         var catalogRows = catalogQuery
             .Where(c => serviceIds.Contains(c.Id))
-            .Select(c => new { c.Id, c.Name, Warranty = c.ServiceConfig == null ? 0 : c.ServiceConfig.WarrantyDays })
             .ToList();
         var serviceNames = catalogRows.ToDictionary(c => c.Id, c => c.Name);
-        var warrantyDays = catalogRows.ToDictionary(c => c.Id, c => c.Warranty);
+        var warrantyDays = catalogRows.ToDictionary(
+            c => c.Id,
+            c => c.ServiceConfig?.WarrantyDays ?? 0);
+        // The công đoạn form needs the step names, so the line carries the
+        // service's own list rather than the form fetching the catalog again.
+        var serviceSteps = catalogRows.ToDictionary(
+            c => c.Id,
+            c => c.Stages
+                .OrderBy(step => step.SortOrder)
+                .Select(step => new ServiceStepDto
+                {
+                    Id = step.Id,
+                    Name = step.Name,
+                    Value = step.Value,
+                })
+                .ToList());
 
         var staffIds = plans
             .SelectMany(p => new[] { p.DentistId, p.ConsultantStaffId ?? Guid.Empty })
@@ -411,6 +431,9 @@ public class PatientTreatmentAppService : ApplicationService, IPatientTreatmentA
                     Teeth = PatientDiagnosisAppService.ToToothDtos(line.Teeth),
                     ServiceName = serviceNames.TryGetValue(line.ServiceId, out var name) ? name : null,
                     WarrantyDays = warrantyDays.TryGetValue(line.ServiceId, out var days) ? days : 0,
+                    ServiceSteps = serviceSteps.TryGetValue(line.ServiceId, out var steps)
+                        ? steps
+                        : [],
                     StageCount = stages.Count(s => s.TreatmentServiceId == line.Id),
                     CompletedStageCount = stages.Count(s =>
                         s.TreatmentServiceId == line.Id && s.Status == TreatmentStageStatus.Completed),
