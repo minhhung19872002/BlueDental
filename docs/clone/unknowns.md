@@ -1941,10 +1941,16 @@ Reason: Chủ dự án đã chỉ rõ luồng: `Tạo báo giá` hỏi xác nh�
   tải lại, tức là một lần ghi.
 Action taken: NONE — không bấm tạo trên bản gốc; luồng ở trên do chủ dự án cung
   cấp ảnh chụp.
-BlueDental: tab báo giá giữ trong bộ nhớ trình duyệt (`useAdviseQuotes`) — tải
-  lại là mất, và BlueDental **chưa có** aggregate báo giá nào. Cố ý dừng ở đó:
-  dựng entity + endpoint là một đợt riêng, không đoán trước bản gốc lưu gì.
-  Số thứ tự "BG n" chỉ tăng, xoá "BG 1" không đổi tên "BG 2".
+BlueDental (cập nhật 2026-09-09): **đã lưu** — aggregate `PatientQuote`
+  (`bd_patient_quotes`), endpoint `api/v1/app/patient-quotes`. Tab báo giá sống
+  qua reload. Shape là **của BlueDental**, không phải đo từ bản gốc: chỉ lưu tập
+  dòng tư vấn, thứ tự và tick — **không** lưu giá, tiền tính lại từ chính các
+  dòng mỗi lần đọc. Số "BG n" do server đánh, đếm kể cả bản đã xoá mềm, nên xoá
+  "BG 1" không làm bản sau lấy lại số 1.
+  Vẫn chưa biết: bản gốc có số phiếu riêng cho báo giá không, có trạng thái
+  không, có lưu giá tại thời điểm báo giá (giá "đóng băng") không. Nếu đo lại
+  thấy bản gốc đóng băng giá thì đây là **khác biệt về hành vi**, không chỉ là
+  thiếu trường — sửa thì thêm cột giá vào `PatientQuoteLine`.
 
 ---
 
@@ -1960,3 +1966,19 @@ BlueDental: `PUT patient-advises/reorder` nhận vị trí **theo toàn bộ dan
   của bệnh nhân (client cộng `skipCount` của trang vào), và server đánh số lại
   1..N quanh dòng được chuyển. Kéo qua trang thì giao diện không mời — mỗi trang
   chỉ kéo trong phạm vi các dòng đang hiện.
+
+---
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: Chẩn đoán & Tư vấn → tab báo giá ("BG n") → "Voucher áp dụng"
+Control: voucher đã chọn có riêng cho từng bản báo giá không
+Reason: Hai ảnh chụp chủ dự án cung cấp (BG 1 và BG 2 sau khi sao chép) đều ở
+  trạng thái `Chọn voucher` chưa chọn gì, nên không thấy được: chọn voucher ở
+  `BG 1` rồi sang `BG 2` thì bản gốc còn giữ hay bỏ. Muốn biết phải chọn thật
+  trên bản gốc.
+Action taken: NONE — chỉ đọc ảnh chụp.
+BlueDental: **số tiền** thì đúng theo tab (`usePlanVoucher` tính lại `gross`
+  theo bộ dòng và tick của tab đang mở), nhưng **id voucher đã chọn dùng chung**
+  giữa các tab. Nếu đo lại thấy bản gốc tách riêng thì thêm `voucherIds` vào
+  `AdviseQuote` trong `useAdviseQuotes` — chỗ nối gọn trong đúng hook đó.

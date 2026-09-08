@@ -174,6 +174,13 @@ public class OpenTreatmentPlanDto
     public DiscountType DiscountType { get; set; }
     public decimal DiscountValue { get; set; }
 
+    /// <summary>
+    /// The plan-level voucher already worked out on Chẩn đoán &amp; Tư vấn, so the
+    /// slip opens on the same "Tổng tiền" the screen showed. Added on top of the
+    /// slip discount above, and capped with it at the slip total.
+    /// </summary>
+    public decimal? VoucherDiscountAmount { get; set; }
+
     /// <summary>Accepted advises to pull in. Empty means every accepted advise.</summary>
     public List<Guid> AdviseIds { get; set; } = new();
 }

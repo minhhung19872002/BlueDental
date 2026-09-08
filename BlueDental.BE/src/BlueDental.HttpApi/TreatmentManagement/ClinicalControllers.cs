@@ -90,6 +90,31 @@ public sealed class PatientAdviseController(IPatientAdviseAppService service) : 
     public Task DeleteAsync(Guid id) => service.DeleteAsync(id);
 }
 
+/// <summary>Báo giá — các tab "BG n" của Chẩn đoán & Tư vấn.</summary>
+[RemoteService]
+[Authorize]
+[Route("api/v1/app/patient-quotes")]
+public sealed class PatientQuoteController(IPatientQuoteAppService service) : BlueDentalController
+{
+    [HttpGet]
+    public Task<PagedResultDto<PatientQuoteDto>> GetListAsync(
+        [FromQuery] GetPatientQuoteListInput input) => service.GetListAsync(input);
+
+    [HttpPost]
+    public Task<PatientQuoteDto> CreateAsync([FromBody] CreatePatientQuoteDto input) =>
+        service.CreateAsync(input);
+
+    [HttpPost("{id:guid}/duplicate")]
+    public Task<PatientQuoteDto> DuplicateAsync(Guid id) => service.DuplicateAsync(id);
+
+    [HttpPut("{id:guid}")]
+    public Task<PatientQuoteDto> UpdateAsync(Guid id, [FromBody] UpdatePatientQuoteDto input) =>
+        service.UpdateAsync(id, input);
+
+    [HttpDelete("{id:guid}")]
+    public Task DeleteAsync(Guid id) => service.DeleteAsync(id);
+}
+
 /// <summary>Nhóm tư vấn.</summary>
 [RemoteService]
 [Authorize]

@@ -114,6 +114,8 @@ public class PatientTreatmentAppService : ApplicationService, IPatientTreatmentA
             input.DiscountType,
             input.DiscountValue);
 
+        plan.ApplyVoucher(input.VoucherDiscountAmount);
+
         foreach (var advise in advises)
         {
             plan.AddService(

@@ -3028,3 +3028,31 @@ bấm ra ngoài là bỏ nháp.
 - Cột grip chỉ rộng bằng cái grip (28px). Đặt `width` thôi không đủ: padding
   mặc định của ô bảng antd vẫn giữ cột rộng gần bằng một cột thường, nên cần
   class riêng cắt padding.
+
+### 7. Tab báo giá: chân phiếu và "Sao chép báo giá" (2026-09-09)
+
+Đo lại từ ảnh chụp chủ dự án cung cấp, sửa hai chỗ ghi sai ở mục 1:
+
+- **Chân `TỔNG KẾ HOẠCH` vẫn ở đó trên tab báo giá.** Mục 1 ghi là không lặp lại
+  — sai. Bản gốc giữ nguyên khối đó, tính theo **các dòng đã tick của chính bản
+  báo giá**, và chỉ đổi lệnh giữa:
+
+  | Tab | Hàng lệnh |
+  |---|---|
+  | `Phiếu tư vấn` | Chọn bác sĩ điều trị · `+ Thêm kế hoạch điều trị` · `+ Tạo báo giá` (primary) · 🖨 |
+  | `BG n` | Chọn bác sĩ điều trị · `+ Thêm kế hoạch điều trị` · `⧉ Sao chép báo giá` (viền) · 🖨 |
+
+- **Thứ tự tab: mới nhất đứng trước.** Sau khi sao chép `BG 1`, dải tab đọc
+  `Phiếu tư vấn | BG 2 | BG 1`. Và **✕ chỉ có ở tab đang mở**, không phải ở mọi
+  tab báo giá.
+
+`Sao chép báo giá` tạo một bản báo giá **mới** mang cùng dòng và cùng tick, đánh
+số tiếp (`BG 2`) và mở luôn. Số thứ tự chỉ tăng: bỏ `BG 1` không làm `BG 2` đổi tên.
+
+BlueDental: trạng thái báo giá nằm ở `PatientConsultingTab` (không phải trong
+card), vì `usePlanVoucher` phải nhận đúng bộ dòng và tick của tab đang mở. Mỗi
+bản báo giá giữ `selected` riêng.
+
+UNKNOWN_REFERENCE_BEHAVIOR: voucher đã chọn hiện dùng chung giữa các tab (số
+tiền thì tính lại đúng theo tab). Hai ảnh đều chưa chọn voucher nên không biết
+bản gốc có tách riêng cho từng bản báo giá không.

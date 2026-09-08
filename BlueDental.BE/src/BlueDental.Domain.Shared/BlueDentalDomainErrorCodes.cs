@@ -85,6 +85,7 @@ public static class BlueDentalDomainErrorCodes
         public const string PatientDiagnosisNotFound = "BlueDental:Treatment:0014";
         public const string PatientAdviseNotFound = "BlueDental:Treatment:0015";
         public const string AdviseGroupNotFound = "BlueDental:Treatment:0016";
+        public const string PatientQuoteNotFound = "BlueDental:Treatment:0026";
         public const string InvalidStageSequence = "BlueDental:Treatment:0017";
         public const string InvalidStageTransition = "BlueDental:Treatment:0018";
         // 0019 was StageImageRequired — an invented rule, removed once the

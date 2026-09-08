@@ -1319,6 +1319,44 @@ The position counts the whole list, so a paged client adds its `skipCount`.
 Scoped to `X-Clinic-Branch-Id` exactly as the list is; a row of another branch
 answers `403 BlueDental:Treatment:0015`, the same as one that does not exist.
 
+```
+POST /api/v1/app/patient-treatments
+{ "patientId", "clinicBranchId", "dentistId", "adviseIds": [...],
+  "voucherDiscountAmount": <number|null> }
+→ TreatmentPlanSlipDto
+```
+
+What **Thêm kế hoạch điều trị** sends. Already existed; the consulting screen
+now uses it. The server pulls in **accepted** lines only, so the client accepts
+each ticked line still `Created` first — `PatientAdvise.Accept` refuses any
+other status, so accepting blindly throws on a line that has been through
+before. Opening converts the lines, and `ConvertTo` makes each immutable.
+`voucherDiscountAmount` (added 2026-09-09) lands on the slip's own
+`VoucherDiscountAmount`, which `PlanDiscountAmount` adds to the slip discount
+and caps at the slip total — so the slip opens on the "Tổng tiền" the screen
+showed.
+
+```
+GET    /api/v1/app/patient-quotes?patientId&clinicBranchId   → newest first
+POST   /api/v1/app/patient-quotes  { patientId, clinicBranchId, adviseIds }
+POST   /api/v1/app/patient-quotes/{id}/duplicate
+PUT    /api/v1/app/patient-quotes/{id}
+       { "lines": [{ "adviseId", "isSelected", "sortOrder" }] }
+DELETE /api/v1/app/patient-quotes/{id}                        → 204
+```
+
+Báo giá — the "BG n" tabs. **BlueDental's own contract**: the reference was only
+ever read, so what it stores against a quote is unobserved
+(docs/clone/unknowns.md).
+
+A quote keeps only the **set** of consulting lines, their order and their ticks
+— never a copy of a price, so a corrected price is never stale on a quote. The
+number is the server's: it counts every quote ever raised for the patient,
+soft-deleted ones included, so dropping "BG 1" never renames "BG 2". `PUT` takes
+the whole set rather than a diff and renumbers it 1..N. A quote of another
+branch answers `403 BlueDental:Treatment:0026`, the same as one that does not
+exist, and every line must belong to that patient and branch.
+
 `POST` / `PUT /api/v1/app/appointments` now carry `notes` and `color`
 (`AppointmentColor`: 1 Default, 2 Green, 3 Orange, 4 Red) alongside
 `chiefComplaint`, `slotStart`, `slotEnd`, `dentistId`.

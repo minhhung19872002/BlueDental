@@ -3578,3 +3578,173 @@ chỗ trong `treatment-stage`: "Phiếu tư vấn" giờ là `role=tab`, không 
 API :5019, DB thật). Sửa một chỗ trong `patient.spec.ts`: panel cột giờ cần
 `Lưu` mới áp dụng, nên test bật/tắt cột phải bấm Lưu. `tsc -b`, `eslint`,
 `vite build` sạch.
+
+---
+
+## 2026-09-09 — Tab báo giá: giữ chân kế hoạch, và "Sao chép báo giá"
+
+Ba chỗ đo lại từ ảnh chụp chủ dự án cung cấp, sửa lại chỗ đợt trước làm sai.
+
+| # | Hiện tượng | Xử lý |
+|---|---|---|
+| R-318 | Cột grip vẫn hơi sát lề | `width` 28 → **34**, `padding-left` 8 → **14px** (`padding-right: 2px`). Grip cách mép bảng ~16px thay vì ~12px |
+| R-319 | Đợt trước **ẩn** chân TỔNG KẾ HOẠCH trên tab báo giá — sai. Bản gốc giữ nguyên khối đó, tính theo **các dòng đã tick của chính bản báo giá**, chỉ đổi lệnh giữa | Chân phiếu hiện ở mọi tab. Trạng thái báo giá dời từ `PatientAdviseCard` **lên** `PatientConsultingTab`, vì `usePlanVoucher` phải nhận đúng bộ dòng + tick của tab đang mở. Mỗi bản báo giá giữ `selected` riêng, khởi tạo bằng chính các dòng nó được tạo từ |
+| R-320 | Thiếu nút **`Sao chép báo giá`**; và bản sao phải là một bản báo giá mới (`BG 1` → `BG 2`) | Trên tab báo giá, `Tạo báo giá` (primary) đổi thành `Sao chép báo giá` (viền, icon copy). `useAdviseQuotes.duplicate(id)` tạo bản mới mang **cùng dòng và cùng tick**, đánh số tiếp và mở luôn |
+| R-321 | Thứ tự tab và chỗ đặt ✕ chưa đúng: ảnh 2 cho thấy `Phiếu tư vấn \| BG 2 \| BG 1` — bản **mới nhất đứng trước**, và ✕ chỉ có ở tab **đang mở** | `create`/`duplicate` **prepend** thay vì append; `AdviseQuoteTabs` chỉ vẽ ✕ khi `open`. Số thứ tự vẫn chỉ tăng, nên bỏ `BG 1` không làm `BG 2` đổi tên |
+
+### Chưa đo được
+
+Voucher: `usePlanVoucher` tính lại `gross` theo tab đang mở nên số tiền đúng,
+nhưng **id voucher đã chọn** vẫn dùng chung giữa các tab — chọn voucher ở `BG 1`
+rồi sang `BG 2` thì vẫn thấy chọn. Hai ảnh chụp đều ở trạng thái "Chọn voucher"
+chưa chọn gì nên không biết bản gốc tách riêng hay không. Chưa làm state voucher
+riêng cho từng bản báo giá; nếu đo lại thấy cần thì chỗ nối nằm gọn trong
+`useAdviseQuotes` (thêm `voucherIds` vào `AdviseQuote`).
+
+### Chạy thật
+
+`e2e/consulting-plan.spec.ts` **11/11** — test tab báo giá mở rộng: chân phiếu
+còn đó và có `Thêm kế hoạch điều trị` + `In Báo giá`, `Tạo báo giá` biến mất,
+`Sao chép báo giá` tạo `BG 2` **đứng trước** `BG 1` và mở luôn, ✕ chỉ có ở tab
+đang mở, và ✕ bỏ đúng bản của nó. `patient.spec.ts` + `treatment-stage` +
+`treatment-plan`: **70/70**. Tổng **81/81** xanh trên bản build production
+(:8080, API :5019, DB thật). `tsc -b`, `eslint`, `vite build` sạch.
+
+---
+
+## 2026-09-09 (tối) — Báo giá bị nhân đôi: một updater không thuần khiết
+
+| # | Hiện tượng | Xử lý |
+|---|---|---|
+| R-322 | Tạo/sao chép báo giá ra **hai tab trùng nhau**, nhãn lặp (`BG 1 \| BG 2 \| BG 2 \| BG 1 \| BG 1`) và **ba tab cùng vẽ như đang mở**, cùng có ✕ | `useAdviseQuotes.add` gọi `setQuotes` và `setActiveId` **bên trong** updater của `setRaised`. Updater phải thuần khiết — StrictMode gọi nó **hai lần**, nên mỗi lần tạo chèn hai bản mang **cùng một `id`**, và cả hai đều khớp `activeId === quote.id` nên đều vẽ như tab đang mở. Đổi bộ đếm sang `useRef` và gọi mọi setter từ chính handler |
+| R-323 | Thứ tự tab phải giảm dần theo thời gian tạo | Thêm `createdAt` và `ordinal` vào `AdviseQuote`, sắp theo **`ordinal` giảm dần** (không theo `createdAt`: hai bản tạo trong cùng một milli-giây sẽ bằng nhau ở đồng hồ, không bao giờ bằng nhau ở `ordinal`) |
+
+### Bài học về chỗ chạy test
+
+**Bản build production che đúng loại lỗi này.** StrictMode chỉ gọi updater hai
+lần ở **development**, nên `consulting-plan.spec.ts` xanh 11/11 trên `:8080`
+trong khi dev server `:5173` — chỗ chủ dự án thật sự dùng — thì nhân đôi tab.
+Mục 17 CLAUDE.md cảnh báo chiều ngược lại (StrictMode gây **đỏ giả** trên dev);
+chiều này thì nó gây **xanh giả** trên prod.
+
+Đã làm hai việc:
+
+1. Test khẳng định luôn cái bất biến bị vỡ: `toHaveCount(1)` cho mỗi nhãn tab và
+   `.pd-advise-tab--on` phải đúng **một** cái. Đã dựng lại đúng phiên bản lỗi để
+   chứng minh test bắt được (đỏ với bản cũ, xanh với bản đã sửa) rồi mới bỏ đi.
+2. Từ giờ chạy spec này trên **cả hai**: `:8080` (bản nghiệm thu) và `:5173`
+   (StrictMode). Ba chỗ trong spec phải thêm `:visible` mới chạy được trên dev,
+   vì antd **giữ nội dung popover/modal đã đóng** trong DOM: `.pd-column-popover`,
+   `.pd-column-close`, `.pq-sheet` / `.pq-dx` — không có `:visible` thì locator
+   trúng bản ẩn của lần mở trước (đo lệch 914px ở chân tờ in). Cùng lý do
+   `patient-image.spec.ts` đã dùng `.ant-popover:visible`.
+   Cũng bỏ luôn bước "kéo trả lại thứ tự cột" ở cuối test cột: cấu hình cột là
+   state của card, test sau điều hướng lại là tự về mặc định — kéo lần hai chỉ
+   thêm chỗ vỡ (popover đóng giữa lúc kéo trên dev).
+
+### Chạy thật
+
+`consulting-plan.spec.ts` **11/11 trên `:5173`** và **11/11 trên `:8080`**.
+`patient.spec.ts` + `treatment-stage` + `treatment-plan`: **69/69** trên `:8080`.
+`tsc -b`, `eslint`, `vite build` sạch.
+
+### Còn treo: báo giá **chưa lưu**
+
+Chủ dự án cũng nhận ra "hình như nó không lưu luôn thì phải" — đúng. Tab báo giá
+giữ trong bộ nhớ trình duyệt, tải lại trang là mất, vì BlueDental **chưa có**
+aggregate báo giá nào. Xem `docs/clone/unknowns.md`. Dựng phần server là một đợt
+riêng và cần biết bản gốc lưu những gì (số phiếu? trạng thái? có nằm cùng bảng
+với `TreatmentPlan` không?).
+
+---
+
+## 2026-09-09 (khuya) — Hai việc server: mở kế hoạch điều trị, và lưu báo giá
+
+### R-324 — "Thêm kế hoạch điều trị" tạo thật
+
+Trước đó nút này chỉ **điều hướng** sang tab kế hoạch, không tạo gì. Endpoint
+đã có sẵn từ trước: `POST /api/v1/app/patient-treatments`
+(`PatientTreatmentAppService.OpenAsync`). Đã nối:
+
+- `useConsultingActions.addToPlan(dentistId, rows, voucherDiscountAmount)`:
+  **accept** các dòng còn `Created` rồi mới `openPlan`. Chỉ accept dòng
+  `Created` — `PatientAdvise.Accept()` từ chối mọi trạng thái khác, nên accept
+  bừa sẽ ném lỗi ở dòng đã accept trước đó. Dòng đã `Converted` thì bỏ ra (đã
+  thuộc một kế hoạch khác), không có dòng nào dùng được thì báo lỗi rõ ràng.
+- Chỉ đổi tab **sau khi** server nhận, để lần mở thất bại còn thấy toast.
+- Voucher của chân phiếu đi kèm: thêm `VoucherDiscountAmount` vào
+  `OpenTreatmentPlanDto` và `TreatmentPlan.ApplyVoucher(decimal?)` — trường này
+  đã **được map từ trước nhưng chưa có chỗ nào gán**. `PlanDiscountAmount` cộng
+  nó vào giảm giá phiếu rồi chặn trên tổng, nên "Tổng tiền" trên màn khớp với
+  tổng của phiếu vừa mở.
+
+Kiểm chứng thật: slip `DT02` được tạo, mang đúng dòng đã tick
+(`sourceAdviseId`), advise chuyển `Converted` kèm `TreatmentPlanId`.
+
+### R-325 — Báo giá lưu xuống server
+
+Aggregate mới `PatientQuote` (`bd_patient_quotes`), migration
+`20260908103740_AddPatientQuotes`, endpoint `api/v1/app/patient-quotes`
+(list / create / duplicate / update / delete).
+
+Quan trọng về thiết kế: **báo giá chỉ lưu tập dòng, thứ tự và tick — không lưu
+giá**. Tiền tính lại từ chính các dòng tư vấn mỗi lần đọc, nên sửa giá một dịch
+vụ không để lại số cũ trên báo giá. Có test chặn: `PatientQuoteLineDto` chỉ được
+có đúng ba thuộc tính.
+
+- Số "BG n" do server đánh, đếm **kể cả bản đã xoá mềm** (đếm với filter
+  soft-delete tắt), nên xoá "BG 1" không làm bản sau lấy lại số 1.
+- Danh sách trả về mới nhất trước.
+- `PUT` nhận **cả tập** (tick + thứ tự) chứ không phải diff; server đánh số lại
+  1..N.
+- Cách ly chi nhánh: báo giá của chi nhánh khác trả cùng "not found" như báo giá
+  không tồn tại (403 `BlueDental:Treatment:0026`).
+- Mọi dòng phải là dòng tư vấn **của chính bệnh nhân và chi nhánh đó** — chặn
+  việc một báo giá trỏ vào hồ sơ người khác.
+
+FE: `patientQuoteApi.ts` + `useAdviseQuotes` viết lại thành server-backed
+(TanStack Query). Hook nhận thêm `adviseRows` để phân giải `adviseId` thành
+dòng; dòng nào mất thì bỏ khỏi khung, không vẽ rỗng.
+
+### Về snapshot EF — đã sửa được chỗ chặn `migrations add`
+
+`dotnet ef migrations add` **trước giờ không chạy được** trong dự án này (ghi ở
+`AddStageServiceItems`, `AddDiagnosisPrintContent`): snapshot gọi
+`b.Navigation("ExaminationReasons")` ở khối owned-types (dòng ~7628), **trước**
+khối quan hệ tạo ra navigation đó (~7808). Đã chuyển lời gọi đó xuống mục
+navigations ở cuối — một chỗ, và `migrations add` chạy lại được. Từ giờ không
+cần viết migration bằng tay nữa.
+
+Nhưng migration sinh ra vẫn phải **cắt bằng tay**: EF còn dồn thêm 7 `AddColumn`
+trên `bd_treatment_services`, 3 `AlterColumn` và một `DropColumn`
+`ExtraProperties` trên `bd_appointment_change_logs` — đó là drift tích từ các
+migration viết tay trước đây. **Cả 7 cột đó đã có trong DB** (kiểm bằng
+`information_schema`), nên áp vào sẽ lỗi "column already exists", còn
+`DropColumn` thì xoá mất một cột đang sống. Chỉ giữ lại `CreateTable` +
+`CreateIndex`; drift để nguyên như trạng thái ứng dụng vẫn đang chạy. Ghi rõ
+trong chính file migration.
+
+### Chạy thật
+
+- API thật có đăng nhập: create → ordinal 1, duplicate → ordinal 2, list mới
+  nhất trước, `PUT` đổi thứ tự + bỏ tick đọc lại thấy đúng, header chi nhánh
+  khác → **403**, `DELETE` → 204, và tạo lại sau khi xoá cho **ordinal 3** (số
+  chỉ tăng).
+- `e2e/consulting-plan.spec.ts` **12/12 trên `:8080` và 12/12 trên `:5173`** —
+  thêm hai test: "Thêm kế hoạch điều trị" tự tạo dòng tư vấn của nó qua API rồi
+  kiểm slip + `Converted` (tự cấp dữ liệu vì mở slip **converts** dòng, dùng lại
+  dòng seed thì chỉ chạy được một lần); và tab báo giá **sống qua reload**, xoá
+  rồi reload vẫn mất. Test cũng tự dọn báo giá cũ của bệnh nhân trước khi chạy,
+  và không đoán số "BG n" nữa — số là của server.
+- BE: Domain.Tests **310/310**, Application.Tests **556/556**.
+- FE khác: `patient` + `treatment-stage` + `treatment-plan` +
+  `treatment-plan-detail` **74/75**; một đỏ là lỗi `RefundDialog` đã báo từ
+  trước (min-height đặt lên `.ant-input-affix-wrapper` mà antd 6 không còn dựng
+  cho `Input.TextArea showCount`) — không thuộc đợt này.
+- `tsc -b`, `eslint`, `vite build` sạch.
+
+### Còn treo
+
+Việc bản gốc lưu gì cho một báo giá thì vẫn **chưa soi được** — shape ở đây là
+của BlueDental, ghi trong `docs/clone/unknowns.md`. Nếu bản gốc có số phiếu hay
+trạng thái riêng thì thêm vào aggregate này.

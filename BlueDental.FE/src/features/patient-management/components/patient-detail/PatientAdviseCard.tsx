@@ -1,6 +1,12 @@
 import { createContext, useContext, useMemo, useState, type HTMLAttributes } from "react";
 import { Button, Select, Table, Tooltip, type TableColumnsType } from "antd";
-import { DeleteOutlined, HolderOutlined, PlusOutlined, PrinterOutlined } from "@ant-design/icons";
+import {
+  CopyOutlined,
+  DeleteOutlined,
+  HolderOutlined,
+  PlusOutlined,
+  PrinterOutlined,
+} from "@ant-design/icons";
 import { DataTable } from "@/components/DataTable";
 import {
   formatTeeth,
@@ -12,7 +18,7 @@ import type { TablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
 import { countedTotal } from "@/utils/countedTotal";
 import { formatDate, formatMoneyUnit } from "@/utils/format";
-import { useAdviseQuotes } from "../../hooks/useAdviseQuotes";
+import type { AdviseQuotesState } from "../../hooks/useAdviseQuotes";
 import type { PlanVoucherState } from "../../hooks/usePlanVoucher";
 import {
   DEFAULT_COLUMN_SETTINGS,
@@ -80,6 +86,8 @@ interface Props {
   onReorder: (id: string, sortOrder: number) => void | Promise<void>;
   onAddToPlan: (dentistId: string) => void;
   onPrint: () => void;
+  /** The báo giá tabs beside "Phiếu tư vấn"; owned by the tab, not this card. */
+  quotes: AdviseQuotesState;
 }
 
 export function PatientAdviseCard({
@@ -98,18 +106,15 @@ export function PatientAdviseCard({
   onReorder,
   onAddToPlan,
   onPrint,
+  quotes,
 }: Props) {
   const [columnSettings, setColumnSettings] = useState<ColumnSetting[]>(DEFAULT_COLUMN_SETTINGS);
   const [dentistId, setDentistId] = useState<string>();
   const [dentistError, setDentistError] = useState(false);
   const [confirmQuote, setConfirmQuote] = useState(false);
 
-  const quotes = useAdviseQuotes();
-  /** The open tab decides what the table shows: the plan, or one báo giá. */
-  const tableRows = quotes.active?.rows ?? rows;
-
   const drag = useDragReorder({
-    items: tableRows,
+    items: rows,
     getKey: (row) => row.id,
     enabled: true,
     // On the plan, `from` indexes the list as it was, so tableRows[from] is the
@@ -118,12 +123,14 @@ export function PatientAdviseCard({
     onCommit: (from, to) =>
       quotes.active
         ? quotes.move(from, to)
-        : onReorder(tableRows[from].id, pagination.skipCount + to + 1),
+        : onReorder(rows[from].id, pagination.skipCount + to + 1),
   });
   const ordered = drag.items;
 
   /** Nothing ticked, nothing to price: every command below the table needs a row. */
   const hasTicked = selected.length > 0;
+  /** Captured so the copy handler needs no non-null assertion. */
+  const openQuote = quotes.active;
 
   const handleAddToPlan = () => {
     if (!dentistId) {
@@ -387,12 +394,9 @@ export function PatientAdviseCard({
         </DragContext.Provider>
       </div>
 
-      {/* The plan total belongs to the plan: a báo giá is priced on its own
-          sheet, and the reference does not repeat this block under it. Left out
-          rather than hidden — `.pd-plan-summary` sets a display of its own,
-          which beats the hidden attribute. */}
-      {!quotes.active && (
-        <footer className="pd-plan-summary">
+      {/* The reference keeps this block under a báo giá too, priced on that
+          quote's own ticked rows — only the middle command changes. */}
+      <footer className="pd-plan-summary">
           <div className="pd-plan-total">
             <strong>{t("TỔNG KẾ HOẠCH")}</strong>
 
@@ -434,14 +438,20 @@ export function PatientAdviseCard({
               <Button icon={<PlusOutlined />} disabled={!hasTicked} onClick={handleAddToPlan}>
                 {t("Thêm kế hoạch điều trị")}
               </Button>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                disabled={!hasTicked}
-                onClick={() => setConfirmQuote(true)}
-              >
-                {t("Tạo báo giá")}
-              </Button>
+              {openQuote ? (
+                <Button icon={<CopyOutlined />} onClick={() => quotes.duplicate(openQuote.id)}>
+                  {t("Sao chép báo giá")}
+                </Button>
+              ) : (
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  disabled={!hasTicked}
+                  onClick={() => setConfirmQuote(true)}
+                >
+                  {t("Tạo báo giá")}
+                </Button>
+              )}
               <Tooltip title={t("In Báo giá")}>
                 <Button
                   className="pd-plan-print"
@@ -453,8 +463,7 @@ export function PatientAdviseCard({
               </Tooltip>
             </div>
           </div>
-        </footer>
-      )}
+      </footer>
 
       {/* Worded as the reference words it, doubled "đã chọn" and all — see
           docs/clone/pages/patient-detail.md. */}

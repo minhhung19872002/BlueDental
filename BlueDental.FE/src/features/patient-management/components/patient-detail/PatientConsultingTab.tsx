@@ -10,6 +10,7 @@ import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { useBranchInfo } from "@/hooks/useBranchInfo";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
+import { useAdviseQuotes } from "../../hooks/useAdviseQuotes";
 import { useConsultingActions } from "../../hooks/useConsultingActions";
 import { useConsultingData } from "../../hooks/useConsultingData";
 import { useDiagnosisEditor } from "../../hooks/useDiagnosisEditor";
@@ -46,7 +47,14 @@ export function PatientConsultingTab({ patient }: { patient: PatientDto }) {
   const [selectedAdvises, setSelectedAdvises] = useState<string[]>([]);
   const [quoteOpen, setQuoteOpen] = useState(false);
   const adviseRows = data.advises.data?.items ?? [];
-  const plan = usePlanVoucher(adviseRows, selectedAdvises, branchId);
+
+  // The báo giá tabs live here rather than in the card, because the plan block
+  // under the table is priced on whichever tab is open — the consulting list,
+  // or one quote and its own ticks.
+  const quotes = useAdviseQuotes(patientId, branchId, adviseRows);
+  const shownRows = quotes.active?.rows ?? adviseRows;
+  const shownSelected = quotes.active ? quotes.active.selected : selectedAdvises;
+  const plan = usePlanVoucher(shownRows, shownSelected, branchId);
 
   // Phiếu tư vấn prints each row's diagnosis note under the diagnosis itself,
   // and the note lives on the slip rather than the advise row.
@@ -118,24 +126,36 @@ export function PatientConsultingTab({ patient }: { patient: PatientDto }) {
       </div>
 
       <PatientAdviseCard
-        rows={adviseRows}
-        totalCount={data.advises.data?.totalCount ?? 0}
-        loading={data.advises.isFetching}
+        quotes={quotes}
+        rows={shownRows}
+        totalCount={quotes.active ? shownRows.length : (data.advises.data?.totalCount ?? 0)}
+        loading={quotes.active ? false : data.advises.isFetching}
         pagination={data.advisePaging}
         plan={plan}
         dentists={data.dentistList}
         diagnosisNotes={diagnosisNotes}
-        selected={selectedAdvises}
-        onSelect={setSelectedAdvises}
+        selected={shownSelected}
+        onSelect={quotes.active ? quotes.select : setSelectedAdvises}
         onOpenAdvise={() => setAdviseDiagnosis(data.diagnoses.data?.items[0] ?? null)}
         onEdit={setEditingAdvise}
         onDelete={actions.setRemovingAdvise}
         onReorder={actions.moveAdvise}
-        onAddToPlan={(dentistId) =>
-          navigate(
-            `?tab=treatment-plan&dentistId=${dentistId}${branchId ? `&branchId=${branchId}` : ""}`,
-          )
-        }
+        onAddToPlan={(dentistId) => {
+          // The slip is raised off the ticked lines before the tab moves, and
+          // only moves if the server took it — a failed open leaves the user
+          // where they can see the toast and try again.
+          void actions
+            .addToPlan(
+              dentistId,
+              shownRows.filter((row) => shownSelected.includes(row.id)),
+              plan.discount || undefined,
+            )
+            .then((opened) => {
+              if (opened) {
+                navigate(`?tab=treatment-plan${branchId ? `&branchId=${branchId}` : ""}`);
+              }
+            });
+        }}
         onPrint={() => setQuoteOpen(true)}
       />
 

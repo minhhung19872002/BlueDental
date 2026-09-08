@@ -239,6 +239,25 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
         return this;
     }
 
+    /// <summary>
+    /// The voucher taken off the whole slip, on top of any slip discount — see
+    /// <see cref="PlanDiscountAmount"/>, which adds the two and caps the sum at
+    /// the slip total. Held apart from <see cref="DiscountValue"/> because the
+    /// two have different reasons and the reference reports them separately.
+    /// </summary>
+    public TreatmentPlan ApplyVoucher(decimal? voucherDiscountAmount)
+    {
+        if (voucherDiscountAmount is < 0m)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.InvalidDiscount,
+                "Voucher discount must not be negative.");
+        }
+
+        VoucherDiscountAmount = voucherDiscountAmount;
+        return this;
+    }
+
     /// <summary>Closes the slip once every counted line is finished.</summary>
     public TreatmentPlan CloseIfAllServicesDone()
     {

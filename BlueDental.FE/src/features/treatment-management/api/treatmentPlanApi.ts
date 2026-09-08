@@ -271,6 +271,8 @@ export interface OpenPlanInput {
   title?: string;
   discountType?: DiscountType;
   discountValue?: number;
+  /** The plan-level voucher worked out on Chẩn đoán & Tư vấn. */
+  voucherDiscountAmount?: number;
   adviseIds?: string[];
 }
 

@@ -29,32 +29,36 @@ export function AdviseQuoteTabs({
         {t("Phiếu tư vấn")}
       </button>
 
-      {quotes.quotes.map((quote) => (
-        <span key={quote.id} className="pd-advise-tab-wrap">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={quotes.activeId === quote.id}
-            className={[
-              "pd-advise-tab",
-              quotes.activeId === quote.id && "pd-advise-tab--on",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-            onClick={() => quotes.show(quote.id)}
-          >
-            {quote.label}
-          </button>
-          <button
-            type="button"
-            className="pd-advise-tab-drop"
-            aria-label={t("Bỏ {0}", quote.label)}
-            onClick={() => quotes.remove(quote.id)}
-          >
-            <CloseCircleFilled aria-hidden="true" />
-          </button>
-        </span>
-      ))}
+      {quotes.quotes.map((quote) => {
+        const open = quotes.activeId === quote.id;
+        return (
+          <span key={quote.id} className="pd-advise-tab-wrap">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={open}
+              className={["pd-advise-tab", open && "pd-advise-tab--on"]
+                .filter(Boolean)
+                .join(" ")}
+              onClick={() => quotes.show(quote.id)}
+            >
+              {quote.label}
+            </button>
+            {/* Only the open quote offers its ✕, as the reference does: the
+                others are just a way back to what they hold. */}
+            {open && (
+              <button
+                type="button"
+                className="pd-advise-tab-drop"
+                aria-label={t("Bỏ {0}", quote.label)}
+                onClick={() => quotes.remove(quote.id)}
+              >
+                <CloseCircleFilled aria-hidden="true" />
+              </button>
+            )}
+          </span>
+        );
+      })}
     </div>
   );
 }

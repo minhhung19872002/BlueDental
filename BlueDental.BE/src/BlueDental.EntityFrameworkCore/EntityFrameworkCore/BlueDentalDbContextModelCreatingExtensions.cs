@@ -410,6 +410,19 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Notes).HasMaxLength(2000);
             entity.HasIndex(x => x.PatientId);
         });
+
+        // Bao gia — the "BG n" tabs of Chan doan & Tu van. The lines are a JSON
+        // column rather than a table of their own: they carry no keys of their
+        // own and are only ever read and written whole, the same reason
+        // PatientAdvise keeps its teeth that way.
+        builder.Entity<PatientQuote>(entity =>
+        {
+            entity.ToTable("bd_patient_quotes");
+            entity.ConfigureByConvention();
+            entity.OwnsMany(x => x.Lines, line => line.ToJson());
+            entity.Navigation(x => x.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.HasIndex(x => new { x.PatientId, x.ClinicBranchId });
+        });
     }
 
     private static void ConfigureBilling(ModelBuilder builder)

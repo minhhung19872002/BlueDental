@@ -1,17 +1,20 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import {
+  useAcceptAdvise,
   useCancelDiagnosis,
   useCreateDiagnosis,
   useRejectAdvise,
   useReorderAdvise,
   useUpdateDiagnosis,
 } from "@/features/treatment-management/api/consultingQueries";
-import type {
-  CreatePatientDiagnosisDto,
-  PatientAdviseDto,
-  PatientDiagnosisDto,
-  UpdatePatientDiagnosisDto,
+import { useOpenTreatmentPlan } from "@/features/treatment-management/api/treatmentPlanApi";
+import {
+  ADVISE_STATUS,
+  type CreatePatientDiagnosisDto,
+  type PatientAdviseDto,
+  type PatientDiagnosisDto,
+  type UpdatePatientDiagnosisDto,
 } from "@/features/treatment-management/api/consultingApi";
 import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
@@ -34,6 +37,8 @@ export function useConsultingActions(patientId: string, branchId: string | null)
   const cancelDiagnosis = useCancelDiagnosis();
   const rejectAdvise = useRejectAdvise();
   const reorderAdvise = useReorderAdvise();
+  const acceptAdvise = useAcceptAdvise();
+  const openPlan = useOpenTreatmentPlan();
 
   const upload = async (files: File[]) => {
     if (!branchId) return;
@@ -129,6 +134,57 @@ export function useConsultingActions(patientId: string, branchId: string | null)
     }
   };
 
+  /**
+   * "Thêm kế hoạch điều trị": opens a slip off the ticked consulting lines.
+   *
+   * The server pulls in **accepted** lines only, so a line still `Created` is
+   * accepted first — the same order the single-service dialog uses. Only those:
+   * `PatientAdvise.Accept` refuses anything that is not `Created`, so accepting
+   * a line blindly would throw on one that had already been through here.
+   *
+   * A line already `Converted` belongs to a slip and cannot join another, so it
+   * is left out rather than sent and refused. Nothing to send means nothing to
+   * open, which is a refusal the caller reports.
+   *
+   * Opening converts the lines, and `ConvertTo` makes each immutable — so this
+   * is deliberately the last step.
+   *
+   * Resolves true once the slip exists, so the caller can move to its tab.
+   */
+  const addToPlan = async (
+    dentistId: string,
+    rows: PatientAdviseDto[],
+    voucherDiscountAmount?: number,
+  ): Promise<boolean> => {
+    if (!branchId) return false;
+
+    const usable = rows.filter(
+      (row) => row.status === ADVISE_STATUS.Created || row.status === ADVISE_STATUS.Accepted,
+    );
+    if (usable.length === 0) {
+      toast.error(t("Những dịch vụ đã chọn đều đã nằm trong một kế hoạch điều trị"));
+      return false;
+    }
+
+    try {
+      for (const row of usable.filter((item) => item.status === ADVISE_STATUS.Created)) {
+        await acceptAdvise.mutateAsync(row.id);
+      }
+      await openPlan.mutateAsync({
+        patientId,
+        clinicBranchId: branchId,
+        dentistId,
+        adviseIds: usable.map((row) => row.id),
+        voucherDiscountAmount,
+      });
+      toast.success(t("Đã tạo kế hoạch điều trị"));
+      return true;
+    } catch (error) {
+      toast.error(extractApiError(error));
+      return false;
+    }
+  };
+
   return {
     upload,
     uploading: uploadImage.isPending,
@@ -148,5 +204,7 @@ export function useConsultingActions(patientId: string, branchId: string | null)
     confirmRejectAdvise,
     rejectingAdvise: rejectAdvise.isPending,
     moveAdvise,
+    addToPlan,
+    addingToPlan: acceptAdvise.isPending || openPlan.isPending,
   };
 }
