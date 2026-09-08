@@ -46,17 +46,37 @@
   --bd-line: #e7eaf6;
   --bd-line-soft: #f0f2fa;
   --bd-border: #e7eaf6;
-  --bd-bg: #eef1fb;
+  --bd-bg: #f7f9ff;
   --bd-bg-soft: #f7f8fd;
   --bd-bg-head: #f7f8fd;
   --bd-card: #ffffff;
 
+  /* The planes below a card: input fill, row hover, table head. */
+  --bd-surface-2: #f6f8fe;
+  --bd-surface-3: #f4f6fd;
+  --bd-row-alt: #fafbff;
+  --bd-divider: #eef0f9;
+  --bd-border-2: #e3e7f5;
+
+  /* Nav ink, and the tint a nav item takes under the pointer. */
+  --bd-nav-ink: #4c5675;
+  --bd-ink-3: #6a7390;
+  --bd-ink-4: #98a0b6;
+  --bd-hover-tint: #eef0fb;
+  --bd-primary-strong: #4f52e0;
+
+  /* The gradients that are not the CTA: nav pill, chart column, progress. */
+  --bd-grad-nav: linear-gradient(100deg, #6366f1, #7c5ce0 60%, #22d3ee 140%);
+  --bd-grad-bar: linear-gradient(180deg, #6366f1, #22d3ee);
+  --bd-grad-progress: linear-gradient(90deg, #6366f1, #22d3ee);
+
+  /* Scrollbar — the trough matches the ground so no dark rail shows. */
+  --bd-scroll-thumb: #c5cbe4;
+  --bd-scroll-thumb-hover: #a9b1d4;
+
   /* Header glass — the only blurred surface; cards stay opaque. */
   --bd-glass: rgba(255, 255, 255, 0.82);
   --bd-glass-blur: 20px;
-
-  /* Sidebar — floats free of the viewport edge. */
-  --bd-sidebar-grad: linear-gradient(165deg, #232a56, #2c3a7a);
 
   /* Status accents. */
   --bd-green: #0e9f6e;
@@ -88,7 +108,6 @@
   --bd-radius-card: 20px;
   --bd-radius-header: 18px;
   --bd-radius-modal: 18px;
-  --bd-radius-sidebar: 24px;
 
   --bd-shadow-card: 0 2px 10px rgba(35, 42, 86, 0.05);
   --bd-shadow-lift: 0 6px 18px rgba(35, 42, 86, 0.08);
@@ -97,12 +116,7 @@
   --bd-shadow-focus: 0 0 0 3px rgba(99, 102, 241, 0.22);
   --bd-shadow-glow: 0 10px 30px rgba(99, 102, 241, 0.28);
 
-  --bd-sidebar-width: 76px;
-  --bd-sidebar-expanded-width: 236px;
-  --bd-sidebar-margin: 14px;
   --bd-header-height: 62px;
-  --bd-header-top: 12px;
-  --bd-sidebar-bg: #232a56;
 
   --fc-border-color: var(--bd-border);
   --fc-button-text-color: #fff;
@@ -147,9 +161,9 @@ body::before {
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(640px at 12% 8%, #eceefe, transparent 62%),
-    radial-gradient(760px at 88% 14%, rgba(34, 211, 238, 0.12), transparent 62%),
-    radial-gradient(900px at 50% 105%, rgba(167, 139, 250, 0.1), transparent 62%);
+    radial-gradient(640px at 12% 8%, rgba(99, 102, 241, 0.09), transparent 62%),
+    radial-gradient(760px at 88% 14%, rgba(34, 211, 238, 0.08), transparent 62%),
+    radial-gradient(900px at 50% 105%, rgba(167, 139, 250, 0.07), transparent 62%);
   animation: meshDrift 16s ease-in-out infinite alternate;
   /*
    * The ground is three large gradients that never stop moving, so it is
@@ -301,20 +315,50 @@ button {
   min-height: 100vh;
 }
 
-/* Scrollbars, as the design draws them: a thin inset thumb, no track. */
+/* Scrollbars, as the design draws them: a thin inset thumb on a trough the
+   colour of the ground. Left alone, the document's own bar paints a dark rail
+   down the right edge of every page. */
+html,
+body {
+  scrollbar-width: thin;
+  scrollbar-color: var(--bd-scroll-thumb) var(--bd-bg);
+  background-color: var(--bd-bg);
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 10px;
+  background: var(--bd-bg);
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track {
+  background: var(--bd-bg);
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cdd3e8;
-  border-radius: 10px;
+  background: var(--bd-scroll-thumb);
+  border-radius: 8px;
   border: 3px solid transparent;
   background-clip: content-box;
 }
 
+::-webkit-scrollbar-thumb:hover {
+  background: var(--bd-scroll-thumb-hover);
+  background-clip: content-box;
+}
+
 ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-corner {
   background: transparent;
 }
 
@@ -341,69 +385,35 @@ button {
   }
 }
 
-/* ── Sidebar ── */
+/* ── Shell ── */
 
-/* The shell is a row, not a fixed rail with an offset beside it: the rail is
-   an ordinary flex child, so it can float free of the viewport edge. */
 /*
  * The shell owns the scrolling, not the document.
  *
  * Ant Design locks the body while a dialog is open. With the page itself
- * scrolling, that lock stopped the rail's sticky positioning dead — on a page
- * scrolled 400px the rail and the header snapped 400px up the moment a dialog
+ * scrolling, that lock stopped the header's sticky positioning dead — on a
+ * page scrolled 400px the header snapped 400px up the moment a dialog
  * appeared, and removing the body scrollbar widened everything by another 9px.
- * Scrolling inside the shell leaves nothing on the body for the lock to take.
+ * Scrolling inside the shell leaves nothing on the body for the lock to take,
+ * and the bar, a flex sibling of the scroller rather than a sticky child of
+ * it, stays put without `position: sticky` at all.
  */
 .app-shell {
   display: flex;
+  flex-direction: column;
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
-  align-items: stretch;
 }
 
-.app-sidebar {
-  width: var(--bd-rail-width, var(--bd-sidebar-expanded-width));
+/* Header and ribbon travel as one bar the page scrolls under. */
+.app-topbar {
   flex: 0 0 auto;
-  background: var(--bd-sidebar-grad);
-  border: 1px solid var(--bd-border);
-  color: #fff;
-  display: flex;
-  flex-direction: column;
-  position: sticky;
-  top: var(--bd-sidebar-margin);
-  height: calc(100vh - (var(--bd-sidebar-margin) * 2));
-  margin: var(--bd-sidebar-margin) 0 var(--bd-sidebar-margin) var(--bd-sidebar-margin);
-  border-radius: var(--bd-radius-sidebar);
-  box-shadow: 0 30px 60px -30px rgba(44, 58, 122, 0.7);
-  z-index: 100;
-  overflow: hidden;
-  transition: width 0.2s ease;
+  position: relative;
+  z-index: 30;
+  width: 100%;
 }
 
-/* The rail's own list scrolls; the rail itself never does. */
-.app-sidebar > nav {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.app-sidebar > nav::-webkit-scrollbar {
-  width: 0;
-  height: 0;
-}
-
-.app-sidebar::-webkit-scrollbar {
-  width: 0;
-  height: 0;
-}
-
-/*
- * The content scrolls, not the whole column.
- *
- * With the column scrolling, the header stuck 12px down and page content ran
- * through the strip above it — a visible seam along the top. Keeping the
- * header outside the scrolling area means nothing can pass over it.
- */
 .app-main {
   flex: 1;
   min-width: 0;
@@ -411,238 +421,204 @@ button {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  /* The click-catcher below is measured against this box, which begins under
+     the bar — so the bar itself never ends up behind it. */
+  position: relative;
 }
 
-/* Logo area — sits on the navy rail, gold-ringed mark. */
-.sidebar-logo-area {
+/* ── Menu groups ── */
+
+.app-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+  position: relative;
+  z-index: 50;
+}
+
+/* A group squares off at the bottom so its underline reads as one rule with
+   the ribbon beneath it rather than as a floating pill. */
+.app-nav-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  cursor: pointer;
+  padding: 8px 11px;
+  border-radius: 10px 10px 0 0;
+  background: transparent;
+  color: var(--bd-nav-ink);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.app-nav-group:hover {
+  background: var(--bd-hover-tint);
+  color: var(--bd-primary);
+}
+
+.app-nav-group--active {
+  background: var(--bd-grad-nav);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Hovering the chosen group must not wash its label out to white on white. */
+.app-nav-group--active:hover {
+  background: var(--bd-grad-nav);
+  color: #fff;
+}
+
+.app-nav-group--open {
+  box-shadow: inset 0 -3px 0 0 var(--bd-primary);
+}
+
+.app-nav-group-label {
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+/* ── Ribbon ── */
+
+/* Full width and square, directly under the header — not a floating panel. */
+.app-ribbon {
+  position: relative;
+  z-index: 40;
+  background: #fff;
+  border: 0;
+  border-bottom: 1px solid var(--bd-border);
+  border-radius: 0;
+  box-shadow: 0 14px 34px -26px rgba(44, 58, 122, 0.6);
+  padding: 7px 8px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 3px;
+  animation: popIn 0.16s ease;
+}
+
+.app-ribbon-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: 0 0 auto;
+  border: 0;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: var(--bd-radius-control);
+  background: transparent;
+  color: var(--bd-nav-ink);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.app-ribbon-item:hover {
+  background: var(--bd-hover-tint);
+  color: var(--bd-primary);
+}
+
+.app-ribbon-item--active {
+  background: var(--bd-grad-nav);
+  color: #fff;
+  font-weight: 600;
+}
+
+.app-ribbon-item--active:hover {
+  background: var(--bd-grad-nav);
+  color: #fff;
+}
+
+/*
+ * The sheet that catches a click outside the menu. It lives inside the
+ * scrolling area, which starts below the bar, so header and ribbon stay
+ * clickable: were it over them, the second click of a group-to-group switch
+ * would land on the sheet instead of on the button.
+ */
+.app-nav-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+}
+
+/* ── Mobile drawer ── */
+
+.app-drawer .ant-drawer-body {
+  padding: 14px;
+  background: #fff;
+}
+
+.app-drawer .ant-drawer-body::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.app-drawer-heading {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  color: var(--bd-ink-4);
+  padding: 4px 8px 10px;
+}
+
+.app-drawer-item {
   display: flex;
   align-items: center;
   gap: 11px;
-  border-bottom: 0;
-  flex-shrink: 0;
-  padding: 18px 16px 14px 18px;
-  background: transparent;
-  overflow: hidden;
-}
-
-/* Collapsed: centre the mark over the rail. */
-.sidebar-logo-area.sidebar-logo-area--collapsed {
-  justify-content: center;
-  padding: 18px 12px 14px;
-}
-
-.sidebar-logo-img-wrap {
-  width: 36px;
-  height: 36px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: transparent;
-  border: 1.5px solid rgba(34, 211, 238, 0.5);
-  overflow: hidden;
-  min-width: 36px;
-}
-
-.sidebar-logo-img {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.sidebar-logo-text {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  min-width: 0;
-  line-height: 1.25;
-  overflow: hidden;
-}
-
-.sidebar-logo-name {
-  font-size: 14.5px;
-  font-weight: 700;
-  letter-spacing: -0.3px;
-  color: #ffffff;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.sidebar-logo-sub {
-  font-size: 10.5px;
-  font-weight: 400;
-  color: #8496af;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Nav containers */
-/*
- * The list, not the rail, is what scrolls.
- *
- * The rail is a fixed-height flex column that clips, so this needs min-height:
- * 0 to be allowed to shrink below its content — without it the list kept its
- * full 664px inside a 438px slot and the last few items were simply cut off.
- */
-.sidebar-nav-main {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 10px 10px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-/* Section heading above the rail's links — gold, only while expanded. */
-.sidebar-nav-heading {
-  padding: 8px 10px;
-  font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: 1.6px;
-  color: var(--bd-accent);
-}
-
-.sidebar-nav-bottom {
-  padding: 12px 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-/* Base nav item */
-.sidebar-nav-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 10px 12px;
-  border: none;
-  border-radius: var(--bd-radius-nav);
-  background: transparent;
-  color: #78819c;
-  font-size: 13px;
-  font-weight: 400;
+  border: 0;
   cursor: pointer;
   text-align: left;
-  transition:
-    background 0.18s ease,
-    color 0.18s ease;
-  text-decoration: none;
-  outline: none;
-}
-
-.sidebar-nav-item:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
-}
-
-/* Collapsed, the rail is icons only, so they centre. */
-.app-sidebar .sidebar-nav-item--collapsed {
-  justify-content: center;
-}
-
-/* Collapsed item — a centred icon on the narrow rail. */
-.sidebar-nav-item--collapsed {
-  flex-direction: row;
-  justify-content: center;
-  gap: 0;
-  min-height: 42px;
-  padding: 10px 12px;
-  border-radius: var(--bd-radius-nav);
-}
-
-/* Expanded item — row layout */
-.sidebar-nav-item--expanded {
-  flex-direction: row;
-  justify-content: flex-start;
-  gap: 12px;
-  min-height: 40px;
-  padding: 10px 12px;
-  border-radius: var(--bd-radius-nav);
-}
-
-/* Active state — the design's navy→gold sweep, white text. */
-.sidebar-nav-item--active {
-  background: linear-gradient(100deg, #6366f1, #7c5ce0 60%, #22d3ee 140%) !important;
-  color: #ffffff !important;
-  font-weight: 600;
-  box-shadow: none;
-  transform: none;
-}
-
-/* Hovering the chosen item only lightens its label — the fill stays the CTA
-   gradient, so it must not be re-declared here. */
-.sidebar-nav-item--active:hover {
-  color: #ffffff !important;
-}
-
-.sidebar-nav-icon {
-  font-size: 19px;
-  line-height: 1;
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 19px;
-  height: 19px;
-}
-
-.sidebar-nav-item--active .sidebar-nav-icon {
-  color: #ffffff;
-}
-
-/* Collapsed label — 12px centered, 2-line clamp */
-.sidebar-nav-label-collapsed {
-  font-size: 10.5px;
-  font-weight: 500;
-  line-height: 1.25;
-  text-align: center;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  max-width: 100%;
-  padding: 0 2px;
-  color: inherit;
-}
-
-/* Expanded label — 13.5px left-aligned */
-.sidebar-nav-label-expanded {
+  padding: 11px 12px;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--bd-nav-ink);
   font-size: 13px;
-  font-weight: inherit;
-  text-align: left;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: inherit;
+  font-weight: 500;
+}
+
+.app-drawer-item:hover {
+  background: var(--bd-hover-tint);
+  color: var(--bd-primary);
+}
+
+.app-drawer-item--active {
+  background: var(--bd-grad-nav);
+  color: #fff;
+  font-weight: 600;
+}
+
+.app-drawer-item--active:hover {
+  background: var(--bd-grad-nav);
+  color: #fff;
 }
 
 /* ── Header ── */
 
-/* The one blurred surface in the app: a pane of glass floating over the mesh.
-   Cards stay opaque so text never sits on a moving ground. */
+/* The one blurred surface in the app: a pane of glass the page runs under.
+   Cards stay opaque so text never sits on a moving ground.
+
+   It spans the full width and squares its corners: any margin or radius here
+   opens a gap at the edges that the scrolling page shows through. */
 .app-header {
   display: flex;
   align-items: center;
-  gap: 14px;
+  flex-wrap: nowrap;
+  gap: 8px;
   height: var(--bd-header-height);
+  min-height: var(--bd-header-height);
   flex: 0 0 auto;
-  margin: 14px 18px 22px;
-  padding: 0 22px;
-  border-radius: var(--bd-radius-header);
-  background: var(--bd-glass);
+  margin: 0;
+  padding: 0 16px;
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.94);
   -webkit-backdrop-filter: blur(var(--bd-glass-blur));
   backdrop-filter: blur(var(--bd-glass-blur));
-  border: 1px solid rgba(255, 255, 255, 0.95);
+  border: 0;
+  border-bottom: 1px solid var(--bd-border);
   box-shadow: 0 20px 44px -30px rgba(76, 81, 191, 0.45);
   position: relative;
-  z-index: 30;
+  z-index: 40;
 }
 
 /* Page bodies fade in on route change rather than snapping. */
@@ -652,48 +628,67 @@ button {
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  /* No top padding: it would be space the content could scroll into, and
-     anything sticking to the top of this box would float above it. The gap
-     below the header comes from the header's own margin instead. */
-  padding: 0 22px 40px;
+  padding: 18px 22px 40px;
   animation: fadeIn 0.22s ease;
 }
 
-.app-header-left {
+/* Mark and name. The name is allowed two lines and no more: the clinics in
+   this system have long ones, and a single ellipsised line loses the branch. */
+.app-header-brand {
   display: flex;
   align-items: center;
-  gap: 12px;
-  min-width: 0;
+  gap: 9px;
+  min-width: 38px;
+  flex: 0 0 auto;
+  overflow: hidden;
 }
 
-.app-header-toggle {
-  width: 34px;
-  height: 34px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid #e3e7f5;
-  border-radius: 9px;
+.app-header-logo {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex: 0 0 auto;
+  border: 1.5px solid #dde2f2;
   background: #fff;
-  color: #3c445f;
-  cursor: pointer;
-  transition: all 0.15s;
-  padding: 0;
-  flex-shrink: 0;
 }
 
-.app-header-toggle:hover {
+.app-header-clinic-name {
+  min-width: 0;
+  max-width: 132px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  line-height: 1.25;
+  color: var(--bd-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* Hidden until the group bar goes; then it is the only way into the menu. */
+.app-header-burger {
+  display: none;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  border: 1px solid var(--bd-border-2);
+  background: #fff;
+  border-radius: 9px;
+  cursor: pointer;
+  place-items: center;
+  color: var(--bd-sub);
+  padding: 0;
+}
+
+.app-header-burger:hover {
   border-color: var(--bd-primary);
   color: var(--bd-primary);
-}
-
-/* Desktop toggle shown by default, mobile hamburger hidden */
-.sidebar-mobile-only {
-  display: none;
-}
-
-.sidebar-desktop-only {
-  display: inline-flex;
 }
 
 /* General responsive visibility — mobile breakpoint matches the sidebar drawer. */
@@ -775,86 +770,19 @@ button {
   padding: 4px;
 }
 
-.app-header-clinic {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-  padding: 0 6px 0 0;
-}
-
-.app-header-clinic-logo {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: 1.5px solid var(--bd-line);
-  background: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  overflow: hidden;
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--bd-primary);
-}
-
-.app-header-clinic-logo-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  flex-shrink: 0;
-}
-
-.app-header-clinic-text {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  max-width: 460px;
-}
-
-.app-header-clinic-name {
-  font-size: 13.5px;
-  font-weight: 700;
-  letter-spacing: -0.2px;
-  color: var(--bd-ink);
-  line-height: 1.25;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  margin: 0;
-}
-
-.app-header-clinic-tagline {
-  font-size: 11px;
-  font-style: normal;
-  color: var(--bd-muted);
-  margin: 1px 0 0;
-  line-height: 1.25;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 /* ── Header search button ── */
 
-/* A flex item's automatic minimum size is its content, so without min-width:0
-   none of these blocks shrink: anywhere between the rail's width and 1440px
-   the row grew past the header and pushed the account button off screen. They
-   shrink now, and the text inside each one ellipsizes instead. */
-.app-header-right {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
+/* The search is the row's one elastic item: it takes the slack and pushes the
+   account block to the right edge. Its floor is 150px, below which the
+   placeholder collapses to a couple of letters and reads as a bug. */
 .app-header-search {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-width: 0;
+  gap: 9px;
+  flex: 1 1 180px;
+  min-width: 150px;
+  max-width: 340px;
+  overflow: hidden;
   height: 38px;
   border-radius: var(--bd-radius-control);
   border: 1px solid var(--bd-line);
@@ -899,12 +827,6 @@ button {
 
 /* ── Header actions ── */
 
-.app-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
 .app-header-branch {
   display: flex !important;
   align-items: center !important;
@@ -925,7 +847,11 @@ button {
 }
 
 .app-header-branch {
-  min-width: 0 !important;
+  flex: 0 1 auto !important;
+  min-width: 44px !important;
+  max-width: 170px !important;
+  overflow: hidden !important;
+  padding: 0 10px !important;
 }
 
 .app-header-branch-dot {
@@ -937,10 +863,15 @@ button {
 }
 
 .app-header-branch-name {
-  max-width: 200px;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.app-header-bell {
+  position: relative;
+  flex: 0 0 auto;
 }
 
 .app-header-icon-btn {
@@ -1008,33 +939,16 @@ button {
   color: var(--bd-primary);
 }
 
-/* Name over role, as the design stacks them. */
-.app-header-user-text {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.25;
-  min-width: 0;
-}
-
-.app-header-user-role {
-  font-size: 10.5px;
-  color: #78819c;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .app-header-user {
   cursor: pointer;
   display: flex;
   align-items: center;
-  flex-shrink: 0;
-  gap: 9px;
-  padding: 0 0 0 12px;
-  border-left: 1px solid var(--bd-line);
+  flex: 0 0 auto;
+  padding: 0 0 0 8px;
+  border-left: 1px solid var(--bd-border-2);
   border-radius: 0;
   transition: opacity 0.12s;
-  margin-left: 4px;
+  margin-left: 2px;
 }
 
 .app-header-user:hover {
@@ -1049,9 +963,159 @@ button {
 }
 
 .app-header-user-name {
+  margin-left: 8px;
   font-size: 12.5px;
   font-weight: 600;
+  color: #242b47;
+  white-space: nowrap;
+}
+
+/* ── Notification panel ── */
+
+.app-notif-panel {
+  position: absolute;
+  top: 46px;
+  right: 0;
+  z-index: 60;
+  width: 372px;
+  max-width: calc(100vw - 24px);
+  background: #fff;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-card);
+  box-shadow: 0 24px 50px -18px rgba(35, 42, 86, 0.4);
+  overflow: hidden;
+  animation: popIn 0.16s ease;
+}
+
+.app-notif-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--bd-divider);
+}
+
+.app-notif-title {
+  font-size: 14px;
+  font-weight: 650;
   color: var(--bd-ink);
+}
+
+.app-notif-readall {
+  border: 0;
+  background: transparent;
+  color: var(--bd-primary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.app-notif-readall:disabled {
+  color: var(--bd-ink-4);
+  cursor: default;
+}
+
+.app-notif-list {
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+.app-notif-item {
+  display: flex;
+  gap: 11px;
+  width: 100%;
+  text-align: left;
+  padding: 13px 16px;
+  border: 0;
+  border-bottom: 1px solid var(--bd-divider);
+  background: #fff;
+  cursor: pointer;
+}
+
+.app-notif-item:hover {
+  background: var(--bd-surface-3);
+}
+
+/* Unread sits on a faint wash as well as carrying the dot, so a glance at the
+   list tells you how much is new without reading a single line. */
+.app-notif-item--unread {
+  background: var(--bd-bg);
+}
+
+/* Tint and ink come from the notification's kind, handed in as two custom
+     properties so the tsx names no colours of its own. */
+.app-notif-icon {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  border-radius: var(--bd-radius-control);
+  display: grid;
+  place-items: center;
+  background: var(--notif-tint, var(--bd-blue-pale));
+  color: var(--notif-ink, var(--bd-primary));
+}
+
+.app-notif-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.app-notif-item-title {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--bd-ink);
+}
+
+.app-notif-item--unread .app-notif-item-title {
+  font-weight: 650;
+}
+
+.app-notif-item-text {
+  display: block;
+  font-size: 11.5px;
+  color: var(--bd-ink-3);
+  margin-top: 2px;
+}
+
+.app-notif-item-time {
+  display: block;
+  font-size: 10.5px;
+  color: var(--bd-ink-4);
+  margin-top: 4px;
+}
+
+.app-notif-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--bd-red);
+  flex: 0 0 auto;
+  margin-top: 5px;
+}
+
+.app-notif-empty {
+  padding: 30px 16px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--bd-ink-4);
+}
+
+.app-notif-close {
+  width: 100%;
+  border: 0;
+  background: var(--bd-surface-3);
+  padding: 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--bd-primary);
+  cursor: pointer;
+}
+
+.app-notif-close:hover {
+  background: #eceefe;
 }
 
 /* ── Global search overlay ── */
@@ -1411,11 +1475,12 @@ button {
   grid-template-columns: 1.05fr 0.95fr;
 }
 
-/* Navy panel, lit by an indigo well top-right and a cyan one bottom-left. */
+/* Indigo panel, lit by a violet well top-right and a cyan one bottom-left. */
 .login-aside {
   background:
-    radial-gradient(800px at 80% -10%, rgba(99, 102, 241, 0.55), transparent 60%),
-    radial-gradient(700px at 0% 110%, rgba(34, 211, 238, 0.4), transparent 60%), var(--bd-navy);
+    radial-gradient(760px at 82% -12%, rgba(129, 140, 248, 0.55), transparent 62%),
+    radial-gradient(720px at 0% 112%, rgba(34, 211, 238, 0.42), transparent 62%),
+    linear-gradient(160deg, #3a44a0 0%, #4c53c9 55%, #5a5fd4 100%);
   color: #fff;
   padding: 44px 60px;
   gap: 36px;
@@ -1468,14 +1533,17 @@ button {
 }
 
 .login-brand-name {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
   letter-spacing: -0.3px;
+  line-height: 1.3;
 }
 
 .login-brand-sub {
   font-size: 11px;
-  color: #8496af;
+  color: #e2e6fc;
+  line-height: 1.4;
+  margin-top: 2px;
 }
 
 .login-aside-body {
@@ -1496,7 +1564,7 @@ button {
   margin: 18px 0 0;
   font-size: 15px;
   line-height: 1.6;
-  color: #b9c2dd;
+  color: #e6e9fd;
 }
 
 .login-stats {
@@ -1512,14 +1580,14 @@ button {
 
 .login-stat-label {
   font-size: 11.5px;
-  color: #8496af;
+  color: #dfe4fb;
   letter-spacing: 0.3px;
 }
 
 .login-aside-foot {
   position: relative;
   font-size: 11.5px;
-  color: var(--bd-dim);
+  color: #d3d9f7;
 }
 
 .login-panel {
@@ -2390,24 +2458,44 @@ button {
     font-size: 20px;
   }
 
-  .app-header {
-    padding: 0 16px;
+}
+
+/* Between the group bar's own breakpoint and a comfortable desktop the row is
+   at its tightest, and the search would sit on its 150px floor showing "Tìm…" —
+   which reads as a broken control rather than a field. It becomes the icon it
+   started as instead; below 1100 the group bar goes and the room comes back. */
+@media (min-width: 1101px) and (max-width: 1240px) {
+  .app-header-search {
+    flex: 0 0 auto;
+    width: 38px;
+    min-width: 38px;
+    padding: 0;
+    justify-content: center;
   }
 
   .app-header-search-text,
-  .app-header-clinic-tagline,
-  .app-header-branch-name,
-  .app-header-user-name {
+  .app-header-search-kbd {
     display: none;
   }
 }
 
-/* The header crowds long before the tablet breakpoint: at 1240 the clinic
-   tagline goes, which is what the design does, so the search keeps its room. */
-@media (max-width: 1240px) {
-  .app-header-clinic-tagline,
-  .app-header-user-role {
-    display: none;
+/* The group bar is the first thing to go, and the hamburger takes its place:
+   four groups plus a search field stop fitting on one row below this. */
+@media (max-width: 1100px) {
+  .app-nav {
+    display: none !important;
+  }
+
+  .app-header-burger {
+    display: grid;
+  }
+}
+
+/* Then everything the account block does not strictly need: the clinic's
+   name, the branch picker, the language switch, the account's own name. */
+@media (max-width: 1040px) {
+  .app-header-hide-sm {
+    display: none !important;
   }
 }
 
@@ -2429,8 +2517,7 @@ button {
   @page {
     margin: 0;
   }
-  .app-sidebar,
-  .app-header {
+  .app-topbar {
     display: none !important;
   }
 }
@@ -2764,30 +2851,25 @@ button {
 }
 
 /* ── Responsive ─────────────────────────────────────────────────────────────
-   The design is drawn at 1440px. Below that the rail collapses on its own via
-   the toggle, so these rules handle what the layout cannot: the header's
-   optional blocks, the KPI row, and the tables that would otherwise force the
-   page to scroll sideways. */
+   The design is drawn at 1440px. These rules handle what the layout cannot on
+   its own: the header's optional blocks, the KPI row, and the tables that
+   would otherwise force the page to scroll sideways. */
 
-/* Tablet: the clinic's tagline and the branch picker are the first to go. */
 @media (max-width: 1180px) {
-  .app-header-clinic-tagline {
-    display: none;
-  }
-
   .kpi-card-value {
     font-size: 23px;
   }
 }
 
-@media (max-width: 1024px) {
+/* Tighter gutters, and the page body loses its wide margins with them. */
+@media (max-width: 900px) {
   .app-header {
-    gap: 10px;
-    padding: 0 14px;
+    gap: 6px;
+    padding: 0 12px;
   }
 
-  .app-header-branch {
-    display: none !important;
+  .app-content {
+    padding: 14px 12px 32px;
   }
 
   .app-header-search {
@@ -2795,67 +2877,16 @@ button {
   }
 }
 
-/* ── Mobile sidebar drawer ── */
-.sidebar-mobile-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 14px 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.sidebar-mobile-header .sidebar-logo-area {
-  padding: 0;
-  border: 0;
-}
-
-.sidebar-mobile-close {
-  width: 30px;
-  height: 30px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.65);
-  cursor: pointer;
-  transition: all 0.15s;
-  padding: 0;
-  flex-shrink: 0;
-}
-
-.sidebar-mobile-close:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
-}
-
-.sidebar-drawer .ant-drawer-body {
-  scrollbar-width: none;
-}
-
-.sidebar-drawer .ant-drawer-body::-webkit-scrollbar {
-  width: 0;
-  height: 0;
-}
-
-/* Tablet / narrow desktop: sidebar becomes a slide-out drawer */
-@media (max-width: 1200px) {
-  .app-sidebar {
-    display: none;
+/* Below this the row cannot hold on one line: let it wrap rather than push
+   the account block off the right edge. */
+@media (max-width: 720px) {
+  .app-header {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 0;
+    padding: 8px 12px;
   }
 
-  .app-main {
-    margin-left: 0 !important;
-  }
-
-  .sidebar-mobile-only {
-    display: inline-flex;
-  }
-
-  .sidebar-desktop-only {
-    display: none;
-  }
 }
 
 /* Phone: compact header and layout */
@@ -2868,16 +2899,17 @@ button {
     display: flex !important;
   }
 
-  .app-header-clinic-text,
-  .app-header-user-name,
   .app-header-search-text,
   .app-header-search-kbd {
     display: none;
   }
 
+  /* Below this the placeholder cannot hold a readable phrase, so the field
+     becomes the icon it started as rather than an ellipsised stub. */
   .app-header-search {
     flex: 0 0 auto;
     width: 38px;
+    min-width: 38px;
     padding: 0;
     justify-content: center;
   }
@@ -2937,17 +2969,8 @@ button {
     min-width: 0;
   }
 
-  .app-header-left,
-  .app-header-right,
-  .app-header-actions,
-  .app-header-clinic {
+  .app-header-brand {
     min-width: 0;
-  }
-
-  .app-header-right {
-    flex: 1 1 auto;
-    justify-content: flex-end;
-    gap: 6px;
   }
 
   .app-header-user {
@@ -2958,14 +2981,27 @@ button {
 
 /* Phone: tighten the header's own spacing rather than dropping controls —
    the language switch is the only way to change language on mobile. */
+@media (max-width: 560px) {
+  .page-header-title {
+    font-size: 19px;
+  }
+
+  .page-card,
+  .reception-card {
+    padding: 14px;
+  }
+
+}
+
 @media (max-width: 460px) {
-  .app-header-clinic-logo {
-    width: 36px;
-    height: 36px;
+  .app-header-logo {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
   }
 
   .app-header {
-    padding: 0 10px;
+    padding: 6px 10px;
     gap: 8px;
   }
 }
@@ -8177,8 +8213,8 @@ html:has(.ant-modal-wrap) {
   animation: barGrow 0.6s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
 }
 
-/* The rail's mark drifts, as the design has it on both rail and login. */
-.sidebar-logo-img {
+/* The mark drifts, as the design has it in both the header and the login. */
+.app-header-logo {
   animation: floatY 5s ease-in-out infinite;
 }
 

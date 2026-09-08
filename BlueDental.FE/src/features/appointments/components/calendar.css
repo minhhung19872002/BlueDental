@@ -500,13 +500,10 @@
 
 /* ── Fullscreen mode ─────────────────────────────────────────────── */
 
-body.cal-fullscreen .app-sidebar,
-body.cal-fullscreen .app-header {
+/* The whole bar goes, header and ribbon together — the rail it used to hide
+   alongside no longer exists. */
+body.cal-fullscreen .app-topbar {
   display: none !important;
-}
-
-body.cal-fullscreen .app-main {
-  margin-left: 0 !important;
 }
 
 body.cal-fullscreen .app-main > main {

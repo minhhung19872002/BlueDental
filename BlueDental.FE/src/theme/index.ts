@@ -27,7 +27,7 @@ export const brand = {
   line: "#e7eaf6",
   lineSoft: "#f0f2fa",
   border: "#e7eaf6",
-  bg: "#eef1fb",
+  bg: "#f7f9ff",
   bgSoft: "#f7f8fd",
   bgHead: "#f7f8fd",
   gold: "#d98b0f",
@@ -241,9 +241,7 @@ export const voucherDialogTheme: ThemeConfig = {
   },
 };
 
-export const SIDEBAR_WIDTH = 76;
-export const SIDEBAR_EXPANDED_WIDTH = 236;
-export const HEADER_HEIGHT = 66;
+export const HEADER_HEIGHT = 62;
 
 export const statusPalette = {
   scheduled: { label: "Đã đặt lịch", bg: "#eef0ff", color: "#6366f1" },

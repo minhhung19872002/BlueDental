@@ -22,7 +22,9 @@ test.describe("Route smoke tests", () => {
     // selected catalog rather than by the word "Danh mục".
     { path: "/taxonomy", marker: /nhóm dịch vụ|dịch vụ/i },
     { path: "/tools", marker: /tổng đài|tin nhắn|zalo oa/i },
-    { path: "/settings", marker: /cài đặt|setting/i },
+    // The screen titles itself by the account section it opens on, not by the
+    // word "Cài đặt" — which used to be matched on the old rail's menu entry.
+    { path: "/settings", marker: /hồ sơ|thông tin cá nhân/i },
     { path: "/organizations", marker: /chi nhánh|branch/i },
     { path: "/identity", marker: /người dùng|user|vai trò|role/i },
     { path: "/audit-logs", marker: /nhật ký|audit/i },

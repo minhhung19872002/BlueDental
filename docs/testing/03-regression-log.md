@@ -3748,3 +3748,56 @@ trong chính file migration.
 Việc bản gốc lưu gì cho một báo giá thì vẫn **chưa soi được** — shape ở đây là
 của BlueDental, ghi trong `docs/clone/unknowns.md`. Nếu bản gốc có số phiếu hay
 trạng thái riêng thì thêm vào aggregate này.
+## 2026-09-08 — Design v2: bỏ sidebar, menu nhóm nằm trên header
+
+(Ghi ngày làm là 08/09, nhưng nằm sau hai mục 09/09 vì nhánh này rebase lên
+`6d6f267` sau khi làm xong.)
+
+Bản `BlueDental v2.dc.html` trên claude.ai/design đã đổi sau ngày 01/09: bỏ hẳn
+rail bên trái, header chạy full width `top: 0`, bốn nhóm menu kiểu Outlook mở
+ribbon ngang ngay dưới header. Bản `.design-ref/` trong repo còn là bản cũ (có
+`<aside>`), nên đã kéo bản mới về qua `claude_design` MCP trước khi code — diff
+chỉ chạm khối style toàn cục, khung shell và phần `navGroups` của script; toàn bộ
+thân trang không đổi, nên các màn hình dựng ở đợt v2 trước giữ nguyên.
+
+| # | Defect | Fix |
+|---|--------|-----|
+| R-234 | Ô tìm kiếm co thành "Tìm…" và nút chi nhánh thành "N…" trong dải 1101–1240px | Đúng lỗi ghi trong checklist của design. Header ở dải này vừa còn thanh nhóm (426px) vừa còn đủ nút phải, nên ô tìm kiếm nằm đúng sàn `min-width: 150px` của design. Thêm media query `(min-width: 1101px) and (max-width: 1240px)` thu ô tìm kiếm về nút icon 38px — dưới 1100 thanh nhóm biến mất nên chỗ trống quay lại và ô tìm kiếm mở lại bình thường |
+| R-235 | Chuông thông báo đếm sai: mọi thông báo đều tính là chưa đọc | `NotificationDto` phía FE không khớp DTO của BE. FE khai `{ message, isRead, creationTime, entityId }`, BE trả `{ subject, body, deliveryStatus, sentAt, referenceEntityId }` — `!undefined` luôn bằng `true` nên badge đếm cả danh sách. Viết lại type theo đúng `NotificationDto`/`DeliveryStatus` của BE, thêm adapter ở tầng `api/` (`deliveryStatus === Read`, thời gian tương đối, route theo `NotificationType`) |
+| R-236 | `/settings` trong `routes.spec.ts` đỏ sau khi bỏ rail | Marker cũ là `/cài đặt|setting/i`, trước đây khớp **mục menu của sidebar** chứ không phải nội dung trang — trang tự đặt tiêu đề là "Hồ sơ". Đổi marker sang `/hồ sơ|thông tin cá nhân/i`. "Cài đặt" nay nằm trong dropdown tài khoản, đúng như design v2 (đã bỏ `settings` khỏi `navDef`) |
+
+Lệch có chủ ý so với design, ghi lại để khỏi tưởng là thiếu:
+
+- **"Điều trị"** trong nhóm Phòng khám bị bỏ. Design cho nó trỏ về hồ sơ bệnh
+  nhân ở tab điều trị; ở đây điều trị cũng nằm trong hồ sơ bệnh nhân nhưng không
+  có route danh sách riêng, nên drawer có **14** mục thay vì 15. Thêm một link
+  không đi đâu thì tệ hơn.
+- **"Cài đặt"** và **bộ chuyển ngôn ngữ** đưa vào dropdown tài khoản. Design bỏ
+  `settings` khỏi menu, còn nút VI bị ẩn từ 1040px xuống — nếu không đưa vào
+  dropdown thì màn hình nhỏ mất hẳn đường đổi ngôn ngữ.
+- Dropdown thông báo trong file design còn sót màu của bản nền tối
+  (`border-bottom: #232a56`, hover `rgba(255,255,255,.06)`) — dùng
+  `--bd-divider` / `--bd-surface-3` thay, đúng ý bản sáng.
+
+Mức retest: **3** — shell dùng chung cho mọi màn.
+
+Kết quả (chạy trên bản build production, `vite preview`, BE thật + PostgreSQL thật):
+
+- `e2e/header-navigation.spec.ts` (mới, thay `sidebar-navigation.spec.ts`):
+  **9/9** — bốn nhóm, ribbon đúng thành viên, nhóm-có-route thì điều hướng thay
+  vì mở, chọn item thì đóng, đổi nhóm thì ribbon đổi ngay, bấm lại chính nhóm đó
+  vẫn mở, Escape và click ra ngoài đều đóng, backdrop không phủ lên thanh menu,
+  dưới 1100px hiện drawer 14 mục, đổi ngôn ngữ.
+- `auth`, `branch-switcher`, `routes`: **21/23**. Hai lỗi còn lại có sẵn từ
+  trước, không liên quan: tài khoản `manager` chưa được seed vào DB local
+  (`branch-switcher`), và `/timekeeping` không còn là route riêng từ `185a179`
+  (đã gộp vào `/calendar?tab=timekeeping`) nhưng `routes.spec.ts` chưa bỏ dòng đó.
+- Bộ Danh mục (`taxonomy`, `taxonomy-groups`, `taxonomy-flat`,
+  `taxonomy-dialogs`, `payment-qr`): **32/34**. Hai lỗi đã **đối chứng bằng
+  `git stash`**: chạy lại trên cây gốc vẫn đỏ y hệt, tức có sẵn từ trước.
+- `tsc -b` sạch, `oxlint` không thêm cảnh báo, `vite build` xanh.
+
+Kiểm chứng runtime thật của chuông thông báo: chèn 3 bản ghi vào
+`bd_notifications` của DB dev, mở panel thấy badge **2** chưa đọc, bấm vào dòng
+"Đã ghi nhận thanh toán" → điều hướng sang `/billing` và DB đổi
+`DeliveryStatus 2 → 4`, `ReadAt` có giá trị. Không mock request nào.
