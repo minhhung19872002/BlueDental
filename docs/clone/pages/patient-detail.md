@@ -3056,3 +3056,393 @@ bản báo giá giữ `selected` riêng.
 UNKNOWN_REFERENCE_BEHAVIOR: voucher đã chọn hiện dùng chung giữa các tab (số
 tiền thì tính lại đúng theo tab). Hai ảnh đều chưa chọn voucher nên không biết
 bản gốc có tách riêng cho từng bản báo giá không.
+
+## Kế hoạch điều trị — tooltip hàng và modal "In bệnh án" (staging 2026-09-09)
+
+Đo trên `staging.nfcdental.com`, tab `?tab=treatment-plan`. Chỉ đọc: mở modal,
+đổi file, bấm zoom. Không bấm `In bệnh án` (lệnh in thật), không lưu gì.
+
+### 1. Ba nút hàng đều có tooltip
+
+Bản gốc bọc ba nút này bằng `tooltip-trigger`; nút `+` **không** có tooltip.
+
+| Icon (lucide) | Cột | Tooltip |
+|---|---|---|
+| `clipboard-list` | Thao tác | `In bệnh án` |
+| `receipt` | Thao tác | `Hóa đơn` |
+| `eye` | Danh sách dịch vụ | `Danh sách dịch vụ` |
+
+### 2. Modal "In bệnh án"
+
+Bấm `clipboard-list` mở modal `In bệnh án` — **theo bệnh nhân, không theo phiếu**:
+request duy nhất khi mở là `GET /patient-medical-record/clinic-files` cùng một
+lần đọc lại bệnh nhân. Không có mã `DT…` nào trên modal.
+
+```
+┌ In bệnh án                                                              ✕ ┐
+│ [Chọn file bệnh án ▾]   Thông tin bệnh nhân được điền từ API; ô nền vàng  │
+│                          vẫn có thể chỉnh trước khi in   [−] 85% Fit [+]  │
+│ ┌────────────────────── khung xám #F5F5F5, bo 16, viền #E0E0E0 ────────┐ │
+│ │                     tờ A4 xem trước, canh giữa, cuộn                 │ │
+│ └──────────────────────────────────────────────────────────────────────┘ │
+│                                              [ Đóng ]  [ 🖨 In bệnh án ] │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+- Thân modal cao `78vh`, `overflow:hidden`; chỉ khung xem trước cuộn.
+- Bản xem trước là `<iframe srcdoc>` rộng 860px, bọc trong một div
+  `transform: scale(z); transform-origin: left top` và một hộp ngoài đúng
+  kích thước đã thu — nên khung cuộn đo được đúng cỡ tờ giấy đang vẽ.
+- **Zoom: 40% → 120%, bước 5%.** Nút `−`/`+` disable ở hai đầu.
+- **`Fit` không phải fit-width — nó reset về 85%.** Đo ở khung rộng 1511px,
+  811px và 599px đều ra 85%.
+- `Chọn file bệnh án` là select có ô tìm kiếm, dấu ✓ ở dòng đang chọn, mở sẵn
+  ở **Bìa hồ sơ bệnh án**. Danh sách chín file trùng đúng thứ tự và tên với
+  `MEDICAL_RECORD_FORMS` của BlueDental.
+- Ô nền vàng sửa được tại chỗ; bản gốc nói rõ là "chỉnh trước khi in", không lưu.
+- `Esc` đóng modal.
+
+Ghi chú lệch có chủ ý: bản gốc in **hai** nhãn "Chọn file bệnh án" (một nhãn
+tĩnh phía trên, một nhãn nổi trên viền). BlueDental chỉ giữ nhãn nổi —
+`FloatingLabel` như mọi form khác trong source.
+
+### 3. Dữ liệu bệnh nhân trên từng file
+
+Mỗi file của bản gốc khai `data-medical-record-field="…patient.…"`, nên danh
+tính bệnh nhân được điền sẵn ở **tám trên chín** file (chỉ `Phiếu Tư Vấn Tổng
+Quát` không có ô nào).
+
+BlueDental hiện điền cho `Bìa hồ sơ bệnh án` (mã, họ tên, ngày sinh, tuổi, giới
+tính, địa chỉ). Các tờ còn lại vẫn để chỗ trống / dòng chấm như trước.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Trang: In bệnh án
+Điều khiển: nút `In bệnh án` ở chân modal
+Lý do: là lệnh in thật trên hệ thống chạy thật — không bấm.
+Action taken: NONE
+
+### 4. Modal "Hóa đơn" — các ô nhập là floating label
+
+Đo lại vì bản BlueDental đang để nhãn tĩnh phía trên ô. Bản gốc dùng đúng kiểu
+nhãn nổi như phần còn lại của source (ảnh "Chỉnh sửa hồ sơ"):
+
+| Đo | Giá trị |
+|---|---|
+| Ô nhập | cao 40px, `padding 0 12px`, viền `#DCE3EE`, bo 8px, chữ 14px |
+| Nhãn khi nổi | 13px, `#5A6B82`, nền trắng, `top:0; translateY(-50%)`, `left:18px`, `padding: 0 4px` |
+| Nhãn khi nghỉ | 14px, `rgba(90,107,130,.8)` — nằm trong ô, thay placeholder |
+| Hai cột | `grid gap-5` (20px), mỗi cột 750px |
+| Lưới trong cột | 2 cột, gap 12px |
+| Tiêu đề mục | `<h3>` 16px/700 `#1B2A41` |
+| `Mẫu` | select có **kính lúp bên trái (prefix)** và chevron bên phải |
+
+BlueDental dùng `FloatingLabel` (không phải `FloatingField` — modal này không
+nằm trong `Form`), `floated` lấy từ chỗ ô có giá trị hay không.
+
+## Bệnh án — dựng lại chín tờ A4 từ chính bản in (staging 2026-09-09)
+
+Khảo sát **chỉ đọc**: mở tab, bấm đổi tờ, bấm zoom, đọc `getComputedStyle`, và
+đọc **asset tĩnh** (bundle JS) — rule 00 cho phép. Không bấm In, không tick
+"có tem", không chọn bác sĩ, không lưu gì lên bản gốc.
+
+### 1. Vì sao phải đổi cách dựng
+
+Bản gốc **không** vẽ chín biểu mẫu bằng component. Mỗi biểu mẫu là **một tài
+liệu HTML** của phòng khám (`GET /patient-medical-record/clinic-files`), render
+trong `<iframe srcdoc>`. Đo được tổng cộng:
+
+| | Bìa | Ngoại trú | Chỉnh nha | TVTQ | TV+đồng ý | Đồng ý PT | Phiếu PT | Theo dõi | Chăm sóc | **Tổng** |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Ô nhập | 56 | 142 | 182 | 23 | 82 | 49 | 38 | 111 | 118 | **801** |
+| Ô tick | 20 | 18 | 64 | 0 | 21 | 26 | 2 | 2 | 2 | **155** |
+| Trang A4 | 3 | 3 | 3 | 1 | 2 | 2 | 1 | 1 | 1 | **17** |
+
+BlueDental trước đó vẽ tay **ba** tờ bằng React và cho sáu tờ còn lại một trang
+kẻ dòng trống. Không có cách nào để ba component React đuổi kịp 801 ô trên 17
+trang — nên tab này chuyển sang đúng kiến trúc của bản gốc: **tài liệu + lớp
+điền ô**, một đường code cho cả chín tờ.
+
+### 2. Hợp đồng của một biểu mẫu
+
+```html
+<span data-medical-record-field="cover.patient.code"
+      data-field-source="patient.code"        <!-- không bắt buộc -->
+      data-placeholder="" data-field-width="100" data-field-full-width="false"
+      class="nfc-medical-record-text-field" data-field-type="text"
+      contenteditable="true" style="min-width: 100px;"></span>
+
+<input data-medical-record-field="cover.patient.gender-male"
+       class="nfc-medical-record-checkbox" type="checkbox" aria-label="Nam">
+```
+
+- Ô được điền theo **id của chính nó trước**, rồi mới tới `data-field-source`.
+  Nhờ vậy tám tờ dùng chung `patient.nameUppercase`, còn tờ Bìa (vẽ trước khi có
+  `data-field-source`) được đặt tên từng ô một.
+- `{{branch.name}}`, `{{branch.address}}`, `{{branch.phone}}`, `{{patient.reason}}`
+  là token thay trong **text**, không phải trong thuộc tính.
+- Trang phân cách bằng `<hr>`: trên màn là nét đứt `2px #b7c0ce`, khi in là
+  ngắt trang.
+- Các nguồn `data-field-source` bản gốc dùng: `patient.` + `code · name ·
+  nameUppercase · dateOfBirth · birthDay · birthMonth · birthYear · age ·
+  genderMale · genderFemale · phone · cccd · email · job · reason · history ·
+  insuranceNumber · address · country`.
+- **`address` và `country` khai ô nhưng bản gốc cố tình không điền** — để phòng
+  khám viết tay. BlueDental làm y hệt.
+- Ô nào **không** khác với dữ liệu hồ sơ thì **không lưu**. Bản gốc chỉ lưu ô đã
+  ghi đè; nhờ vậy sửa hồ sơ bệnh nhân sau này vẫn hiện lên phiếu.
+
+### 3. Bộ style của tờ A4 (đo nguyên văn từ `<style>` của iframe bản gốc)
+
+| Thứ | Giá trị |
+|---|---|
+| Chữ | `'Times New Roman', Times, serif` · 13px · line-height 1.5 · `#000` |
+| Trang | `210mm × min 297mm`, padding `12mm`, nền trắng, `box-shadow 0 0 10px rgba(0,0,0,.1)` |
+| Nền quanh trang | `#f0f0f0`, body padding 20px |
+| Ô nhập | `inline-block · min-width 72px · min-height 1.3em · padding 0 3px · border-bottom 1px dotted #000 · background #fffde7 · outline 1px dashed #f4b942` |
+| Ô đã có chữ | `color #1769E0 · background #EAF2FD` |
+| Ô đang focus | `background #fff9c4 · outline 2px solid #f59e0b` |
+| Ô gợi ý | `outline 1px solid #f59e0b` |
+| Ô rỗng | in `data-placeholder` màu `#9ca3af`, in nghiêng |
+| Ô tick | `15×15 · margin 0 3px · vertical-align -2px · accent-color #2671d8` |
+| Bìa | `h1/h2 29pt · h3 18pt · h4 11pt` |
+| Khi in | chữ về đen, nền trong suốt, bỏ outline, `@page{size:A4;margin:0}` |
+
+### 4. Tab và các nút
+
+```
+┌ Mục lục bệnh án ──────┐┌ Bản 01 / <tên phiếu>              [🔍 Bác sĩ ▾] ┐
+│ N biểu mẫu        [⇤] ││                                                 │
+│ ┌ 1. Bìa hồ sơ [+Thêm]││              tờ A4 xem trước, cuộn              │
+│ │  ┌───────────────┐  ││                                                 │
+│ │  │[icon] tên   [ ]│  ││   [Từng phiếu|Toàn bộ] Zoom [−] 100% [+]        │
+│ │  │ Bản 01  🖨 ✏ 🗑│  ││   [In biểu mẫu] [Đồng bộ phiếu] [Lưu]           │
+│ │  │ Tạo: …         │  ││                                                 │
+└───┴────────────────┴──┘└─────────────────────────────────────────────────┘
+```
+
+- Tiêu đề phụ **đếm số phiếu đã tạo**, không phải số biểu mẫu (ảnh chủ dự án:
+  3 thẻ → "3 biểu mẫu").
+- Thẻ phiếu: `rounded-xl border-2`, đang mở thì `border #2671D8 · bg #EAF2FD ·
+  ring 2px`; chip icon `36px`; tên `line-clamp 2`, **chừa `padding-right 40px`**;
+  hàng meta chừa `84px`; pill `Bản NN` nền `#E5F0FF` chữ `#1769E0`.
+  Ô tick nằm **tuyệt đối** ở góc phải trên (8/8, 16×16), ba nút hành động nằm
+  **tuyệt đối** giữa cạnh phải — nếu để chúng trong luồng thì cột chữ chỉ còn
+  121px và tên bị cắt giữa chữ ("Bệnh án chỉnh nh|a").
+- Nhãn thật của ô tick là **"Phiếu … có tem"**, và nó là thứ bật/tắt nút
+  **"Đồng bộ phiếu"** (`disabled: !checked.size`).
+- **Zoom 60% → 140%, bước 10%**, mặc định 100%.
+- **"In biểu mẫu" có hai dạng**: ở `Từng phiếu` là nút thường (in phiếu đang mở);
+  ở `Toàn bộ` là **popover "Chọn phiếu in"** — dòng nhắc *"Chọn các phiếu cần in
+  trong cùng một lần."*, ô "Tất cả phiếu" (có trạng thái indeterminate), danh
+  sách phiếu kèm pill `Bản NN`, chân có nút `In` primary.
+- Bản gốc **không** có nút "Xoá phiếu" ở thanh dưới — xoá nằm ở icon thùng rác
+  trên thẻ. BlueDental đã bỏ nút đó.
+- Khi in, bản gốc đẩy nội dung vào một khối ẩn `.nfc-tpl` rộng `180mm` đặt ở
+  `left:-100000px`, và ngắt trang bằng `<hr>` + `[data-batch-print-document]`.
+
+### 5. Sửa dòng trên tờ, và bản in (đo 2026-09-09, chiều)
+
+**Hai ảnh của biểu mẫu.** Tờ "Bệnh án ngoại trú" mục IV-3 là **hình vẽ**, trỏ
+`/medical-record-templates/outpatient-dental-diagram.png` và
+`…-legend.png`. BlueDental để hai file đó trong `public/` cùng đường dẫn, nên
+markup của template không phải sửa gì.
+
+**Số ngoại trú không bám mã bệnh nhân.** Tờ "Phiếu theo dõi điều trị" khai ô
+`treatment-tracking.page-N.patient.code` **có** `data-field-source="patient.code"`,
+nhưng bản gốc **bỏ nguồn đó khi render** — số ngoại trú là số chạy của phòng
+khám. Bỏ nguồn chứ không bỏ ô, nên vẫn còn chỗ viết.
+
+**Nút `+` / `−` khi hover.** Nằm trong tài liệu của tờ, `position: fixed`:
+
+| | `−` Xóa dòng | `+` Thêm dòng |
+|---|---|---|
+| Màu | `#dc2626` | `#16a34a` |
+| Cỡ | 20×20, bo tròn, chữ `700 18px/1 sans-serif`, `box-shadow 0 1px 3px rgba(0,0,0,.25)` | như trái |
+| Vị trí | `left = right(dòng) − 10`, `top = top + 4` | `left = right(dòng) + 4`, `top = top + 4` |
+| Có ở tờ | 8 (`file-7`), 9 (`file-9`) | 5 (`file-4`), 8, 9 |
+| Điều kiện | dòng là con trực tiếp của `tbody` **và** có ít nhất một ô (dòng tiêu đề in sẵn thì không) | dòng thuộc một trong ba bảng-danh-sách |
+| Quyền | quản trị phòng khám | quản trị phòng khám |
+
+Ba bảng là danh sách, nhận ra qua tên ô:
+
+- `treatment-cost`: `consultation.treatment-cost.row-N.…`, **hoặc** 8 dòng in
+  sẵn còn tên cũ `consultation.text.21…44` (3 ô một dòng, `floor((n−21)/3)+1`)
+- `treatment-tracking`: `treatment-tracking.page-N.row-M.…`
+- `care`: `care.row-N.…`
+
+**Thêm dòng** = nhân bản dòng dưới con trỏ, đánh số lại quá dòng cao nhất
+(`serial`/`service`/`amount` với bảng chi phí, còn lại thay `.row-\d+.`), bỏ
+`data-field-source`, xoá nội dung, đánh dấu `data-medical-record-generated-row`.
+
+**Xoá dòng** = bỏ `<tr>` và để lại một ô **ẩn** mang
+`custom.deleted-table-row.<hash>`, trong đó `hash` là băm 32-bit của id ô đầu
+dòng (`t = t*31 + charCode | 0`, in base 36) — khoá theo ô chứ không theo vị
+trí, nên chèn dòng phía trên sau này không làm nó sống lại.
+
+BlueDental: `rowEditing.ts` (nhận dạng, đánh số, thêm, xoá, dựng lại) và
+`rowHandles.ts` (hai nút hover). Dựng lại hình dạng đã lưu chạy **trước** bước
+điền ô, và ô của dòng do người dùng thêm thì **luôn** được lưu kể cả khi rỗng —
+ở đó sự rỗng là thứ nói rằng dòng đó tồn tại.
+
+**Thẻ phiếu đang mở ăn màu của biểu mẫu**, không phải một màu xanh dùng chung:
+viền, nền, chip icon (đặc + chữ trắng) và pill `Bản NN` đều theo accent của
+biểu mẫu — đo trên ảnh chụp tờ "Bệnh án chỉnh nha" (cam) của bản gốc.
+
+**Bản in.** Bản gốc đẩy nội dung vào một khối ẩn `.nfc-tpl` rộng `180mm` ở
+`left:-100000px` rồi in. BlueDental **không** làm được vậy: tờ là iframe, chuyển
+chỗ là nó tải lại và mất chữ vừa gõ. Thay vào đó in tại chỗ — `printing.ts` gỡ
+khỏi layout mọi nhánh không chứa `.mr-doc` rồi trả lại ở `afterprint`. Chỉ
+`visibility:hidden` thì không đủ: hộp vô hình vẫn chiếm giấy (đo được tờ bắt đầu
+ở y=946px, in ra một trang trắng trước). Class riêng `mr-printing`, **không**
+dùng `pd-printing` — class đó mang hợp đồng ngược lại của ba dialog in cũ
+("ẩn mọi con của body trừ `.pd-print-sheet`") và sẽ ẩn luôn cả tờ.
+
+### 6. Responsive của tab Bệnh án (đo 2026-09-09, chiều muộn)
+
+Đo bằng resize + đọc computed style trên bản gốc, **không bấm gì**.
+
+Khung chứa mục lục + khung tờ:
+
+```
+grid min-w-0 gap-4 transition-[grid-template-columns] duration-200
+lg:h-[calc(100dvh-180px)] lg:min-h-0 lg:overflow-hidden
+lg:grid-cols-[320px_minmax(0,1fr)]
+```
+
+| | ≥ 1024px (`lg`) | < 1024px |
+|---|---|---|
+| Cột | `320px` + `minmax(0,1fr)`, gap 16 | **một cột** |
+| Chiều cao | `calc(100dvh − 180px)`, `overflow: hidden` — mỗi cột tự cuộn | **bỏ hẳn**: cả hai cao theo nội dung, trang cuộn |
+| Mục lục | `sticky top-[132px]`, flex-col, cao hết cột | **thu về đúng thanh tiêu đề** (đo được 70px), danh sách `display: none` |
+| Khung tờ | cuộn trong cột | cao tự nhiên (đo được 4072px) |
+| Thanh dưới | `lg:absolute` — canh giữa **trên cột tờ** | `fixed inset-x-3 bottom-3` |
+
+Thanh dưới: `flex flex-wrap items-center justify-center gap-2 rounded-xl border
+bg-white px-2 py-2 shadow-lg`, bọc trong `pointer-events-none … flex
+justify-center`. `flex-wrap` là thứ làm nó **tự xuống hai hàng** khi hẹp — đo
+được ở 1100px: hàng 1 `Từng phiếu|Toàn bộ` + `Zoom − 100% +`, hàng 2
+`In biểu mẫu | Đồng bộ phiếu | Lưu`.
+
+Thẻ phiếu: tên `line-clamp-2`, hộp chữ 200px kể cả `pr-10`, và **thẻ cao theo
+tên** — 93px khi tên một dòng, 113px khi hai dòng. Bản gốc không bao giờ cắt tên.
+
+BlueDental: chốt breakpoint **1024px** cho khớp; mục lục tự thu khi qua
+breakpoint (`matchMedia`, vẫn nhường quyền cho lần bấm tay của người dùng); dưới
+breakpoint khung tờ giữ **cuộn ngang của riêng nó** (`overflow-x: auto`) để cả
+app không trượt ngang; và thanh dưới đổi từ `left: calc(50% + 168px)` sang cấu
+trúc bọc của bản gốc, nhờ vậy nó canh giữa đúng cột tờ (đo lại: tâm thanh 961,
+tâm cột 961) và không lệch khi mục lục thu lại.
+
+Một chỗ nằm **ngoài** CSS của tab và là thứ thực sự bóp hai vùng lại: vỏ trang
+`.pd-page` tự chặn mình ở chiều cao cửa sổ (`height: 520px; overflow: hidden` đo
+ở khổ 768×604). `flex: 1` của lưới bên trong bị thuật toán flex co lại theo đó,
+nên `height: auto` khai ở lưới không thắng được — đo ra mục lục và khung tờ chỉ
+còn **148px / 181px**. Dưới breakpoint phải nhấc chính cái chặn đó
+(`.pd-page:has(.pd-medical)`), và đổi `flex` của lưới / khung tờ sang `0 0 auto`
+để chúng nhận đúng chiều cao nội dung. Đo lại cùng khổ: khung tờ **2856px**, mục
+lục mở **1561px**, trang cuộn. Khoảng chừa cho thanh dưới đặt ở **đáy cả vùng**
+(132px), không đặt ở khung tờ — vì khi gập một cột, mục lục có thể là thứ cuộn
+tới cuối cùng.
+
+### 7. Ô ngày của từng mẫu, và chỗ cuộn khi hẹp (đo 2026-09-09, tối)
+
+**Ô ngày.** Bảng cấu hình của bản gốc (đọc từ bundle) chỉ khai bốn mẫu, cộng
+`file-7` được bật qua một cờ riêng — ra đúng **năm** mẫu:
+
+| Mẫu | Key | Nhãn | Ô in ngày vào |
+|---|---|---|---|
+| 4. Phiếu Tư Vấn Tổng Quát | `file-8` | Ngày thực hiện | `general-consultation.text.14`, `consultation.text.4` |
+| 5. Phiếu tư vấn và xác nhận đồng ý điều trị | `file-4` | **Ngày tư vấn** | `consultation.text.4` |
+| 6. Giấy đồng ý thực hiện PT/TT | `file-5` | Ngày thực hiện | *(không có)* |
+| 8. Phiếu theo dõi điều trị | `file-7` | Ngày thực hiện | *(không có)* |
+| 9. Phiếu chăm sóc | `file-9` | Ngày thực hiện | *(không có)* |
+
+Bốn mẫu 1, 2, 3, 7 không có ô này. Ô nằm cạnh ô chọn **Bác sĩ**, mở sẵn ở
+**hôm nay**.
+
+Ngoài việc in vào tờ, ngày còn là **tham số truy vấn** trên bản gốc: nó gọi
+`patientDiagnoses` theo `fromDate` để sinh các dòng chẩn đoán
+(`generatedFieldPrefix`, `generatedRowAttribute` trong bảng cấu hình), và với
+`file-4`/`file-7` gọi thêm `patient-timeline?type=stage&startTime=…`. Phần đó
+**chưa dựng** — ghi ở `unknowns.md`.
+
+BlueDental: khai trong `medicalRecordForms` (`dateLabel`, `dateFieldKeys`); chọn
+ngày ghi ngay vào ô in trên tờ đang mở (không dựng lại tài liệu, nên không mất
+con trỏ) và lưu cùng phiếu.
+
+**Chỗ cuộn khi hẹp.** Cột tờ của bản gốc là
+`h-[calc(100dvh-180px)] min-h-[560px] overflow-y-auto pb-20 lg:h-full` — tức
+**ở mọi bề rộng** nó có scroller riêng, không phải chỉ để trang cuộn. Đo ở khổ
+768×604: cột cao **560px** (sàn `min-h` thắng vì 604−180 = 424), `scrollHeight`
+4152 → cuộn nội dung của chính nó; trang cũng cuộn thêm một chút vì cả layout
+cao 933px. BlueDental làm đúng vậy; đo lại cùng khổ: cột **560px**,
+`overflow-y: auto`, cuộn được, tờ bên trong **2800px**, app không trượt ngang.
+
+### 8. Ba lớp của khung tờ, và số đo thẻ phiếu (đo 2026-09-09, khuya)
+
+Đo bằng đọc DOM + computed style trên bản gốc, **không bấm gì**.
+
+**Khung tờ có ba lớp, không phải một.** Đây là chỗ trước đó tôi dựng gộp:
+
+```
+div.relative.min-w-0.lg:h-full                              ← cột: neo thanh dưới, KHÔNG cuộn
+  div.h-[calc(100dvh-180px)].min-h-[560px].space-y-4         ← vùng cuộn (client 720 / scroll 4146)
+     .overflow-y-auto.pb-20.lg:h-full.lg:min-h-0
+    article.rounded-xl.border.bg-white                       ← thẻ trắng
+      header.sticky.z-10.rounded-t-xl.border-b               ← dính, cao 65px, nền trắng,
+             .bg-white.px-4.py-3                                bóng 0 8px 16px -14px rgba(27,42,65,.45)
+             .shadow-[0_8px_16px_-14px_rgba(27,42,65,0.45)]
+      div.overflow-auto.rounded-b-xl.bg-[#EEF2F7].p-3.sm:p-4  ← giấy: cao theo tờ (3999),
+        div.mx-auto > iframe                                     scrollH == clientH
+```
+
+Hai điều rút ra:
+
+1. `Bản NN` + tên phiếu + ô ngày/bác sĩ **đứng yên** khi cuộn tờ — đo được lúc
+   `scrollTop = 800`, đầu thẻ vẫn ở đúng mép trên vùng cuộn (viewportTop 175).
+2. Thanh dưới **không** nằm trong vùng cuộn. Nếu nằm trong, hộp `absolute` sẽ
+   neo vào padding box của scroller và trôi theo giấy — đó là lý do bản gốc
+   phải có hai div lồng nhau.
+
+BlueDental dựng đúng ba lớp: `.pd-medical-canvas` › `.pd-medical-canvas-scroll`
+› `.pd-medical-canvas-head` (sticky) + `.pd-medical-paper`. Giấy giữ
+`overflow: auto` của riêng nó cho ca A4 rộng hơn cửa sổ, và cao bằng tờ
+(`flex: 1 0 auto`) nên `scrollHeight == clientHeight` như bản gốc.
+`@media print` phải trung hoà **cả** lớp scroller mới, không thì nó chặn ở
+678px và in ra đúng một trang.
+
+**Thẻ phiếu — số đo đầy đủ.** Thẻ là `div.relative` viền 2px, nút mở là con thứ
+nhất, ô tích và hàng nút là hai con `absolute`:
+
+| | Bản gốc | Ghi chú |
+|---|---|---|
+| Thẻ | **268 × 93**, viền 2px `#D7E0ED`, bo 12px, `shadow-sm` | 113px khi tên hai dòng |
+| Nút mở | `flex-1 items-center gap-2`, `padding: 12px 10px` → 89px | chip icon 36px + hộp chữ 200px |
+| Tên | `line-clamp-2 pr-10`, 14px/**20px** | `pr-10` = 40px, chừa cho ô tích |
+| Meta | `mt-1 gap-x-2 gap-y-1 pr-[84px]`, 11px/**16,5px**, cao **41px** | **hai** hàng: pill 20,5 + 4 + ngày 16,5 |
+| Ô tích | 16px ở `top: 10 / right: 10`, bo 4px, viền `slate-400` | |
+| Hàng nút | **82 × 26** (3 nút 26px, gap 2) ở `right: 8`, canh giữa (`top-1/2 -translate-y-1/2`) | in / sửa / xoá, `#53657D` |
+| Khe tích → nút | **7,5px** (26 → 33,5) | |
+
+Chiều cao thẻ **là** thứ giữ khe đó mở: 93 = 20 (tên) + 4 + 41 (meta) + 24
+(padding) + 4 (viền). Khi mục lục rộng ra một cột, dòng meta gộp lại **một**
+hàng và thẻ tụt xuống ~65px — hàng nút canh giữa dạt lên ngang ô tích, đó là
+lỗi "checkbox dính nút". Bản gốc không gặp ca này vì dưới breakpoint nó ẩn hẳn
+danh sách. BlueDental đặt sàn `min-height: 93px` (chính con số của bản gốc) và
+`line-height: 16.5px` cho meta → ra đúng 93 / 113px.
+
+Còn lệch cố ý: ô tích của ta là AntD 6, hộp **20px** thay vì 16px. Giữ cỡ tích
+chung của app, đặt **tâm** trùng tâm bản gốc (`top/right: 6px` + 2px viền), khe
+còn **5,5px**.
+
+**Mục lục khi hẹp.** Panel bản gốc là
+`self-start rounded-xl border border-line bg-white lg:sticky lg:top-[132px] lg:flex lg:h-full lg:min-h-0`
+— **không có** chiều cao dưới `lg`, vì dưới breakpoint nó ẩn hẳn danh sách
+(panel còn 70px). BlueDental cho mở lại ở khổ hẹp, nên phải tự quyết: chặn
+panel vào `calc(100dvh − 180px)` sàn 560px như cột tờ, để `.pd-medical-forms`
+cuộn bên trong và thanh tiêu đề đứng yên. Bản thu gọn nhả cả `height` và
+`min-height`.
+
+Vùng cuộn thật của app khi hẹp là `main.app-content` (đo 768×604: client 542 /
+scroll 1455), **không** phải `documentElement` — vỏ app cao đúng cửa sổ. Đừng
+đo chỗ cuộn ở `document.documentElement`.

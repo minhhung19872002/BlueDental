@@ -1982,3 +1982,129 @@ BlueDental: **số tiền** thì đúng theo tab (`usePlanVoucher` tính lại `
   theo bộ dòng và tick của tab đang mở), nhưng **id voucher đã chọn dùng chung**
   giữa các tab. Nếu đo lại thấy bản gốc tách riêng thì thêm `voucherIds` vào
   `AdviseQuote` trong `useAdviseQuotes` — chỗ nối gọn trong đúng hook đó.
+
+---
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: Kế hoạch điều trị → modal "In bệnh án"
+Control: nút `In bệnh án` ở chân modal
+Reason: Là lệnh in thật trên hệ thống đang chạy. Không quan sát được nó gọi API
+  (ghi nhận lượt in / sinh PDF phía server) hay chỉ `window.print()` phía client.
+Action taken: NONE — không bấm trên bản gốc.
+BlueDental: in phía client — cùng cách hai bản in đã có (`DiagnosisPrintDialog`,
+  `TreatmentHistoryPrintDialog`): một bản sao của tờ được portal ra `document.body`
+  dưới `.pd-print-sheet`, `body.pd-printing` giấu phần còn lại, rồi `window.print()`.
+
+---
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: Kế hoạch điều trị → modal "In bệnh án" → tờ xem trước
+Control: danh tính bệnh nhân trên tám biểu mẫu còn lại
+Reason: Không phải điều chưa quan sát được — đã đọc `contentHtml` của cả chín
+  file (`GET /patient-medical-record/clinic-files`, chỉ đọc) và thấy rõ tám file
+  khai `data-medical-record-field="…patient.…"`: ngoài tờ bìa còn có tên, ngày
+  sinh, tuổi, giới tính, nghề nghiệp, quốc gia, địa chỉ, số thẻ BHYT, điện thoại
+  (`Bệnh án ngoại trú`), và các cụm tương tự ở `Bệnh án chỉnh nha`,
+  `Phiếu tư vấn…`, `Giấy đồng ý…`, `Phiếu phẫu thuật…`, `Phiếu theo dõi…`,
+  `Phiếu chăm sóc`. Chỉ `Phiếu Tư Vấn Tổng Quát` là không có ô nào.
+Action taken: Ghi nhận, chưa dựng.
+BlueDental: mới điền cho **tờ bìa** (mã, họ tên, ngày sinh, tuổi, giới tính,
+  địa chỉ). `Bệnh án ngoại trú` vẫn in chỗ giữ chỗ `(dữ liệu bệnh nhân)` và các
+  dòng chấm. Lý do hoãn: tờ đó là `features/taxonomy/MedicalRecordSheet` — dùng
+  chung với trình soạn mẫu ở Danh mục, nơi **không có** bệnh nhân nên chỗ giữ chỗ
+  là đúng; sửa nó rơi vào mục 17 CLAUDE.md (phải chạy lại 38 spec Danh mục trên
+  bản build production). Việc riêng, không gộp vào đợt tooltip/modal in.
+
+---
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: Bệnh án → đầu khung xem trước
+Control: ô chọn "Bác sĩ"
+Reason: Là một select có tìm kiếm, liệt kê nhân viên. Không quan sát được chọn
+  một người thì tờ đổi gì — muốn biết phải chọn thật trên hồ sơ đang chạy, mà
+  select này rất có thể ghi (bản gốc điền tên bác sĩ vào các ô ký của phiếu
+  đồng ý khi in từ Kế hoạch điều trị: `surgery-consent.text.1`/`.16` và
+  `consultation.text.3`/`.52`/`.53`/`.57` đều lấy `consultationDoctorName`).
+Action taken: NONE — không chọn.
+BlueDental: dựng đúng ô chọn cho khớp giao diện, chưa nối vào ô nào của tờ.
+  Khi đo được thì chỗ nối gọn trong `useSheetFieldValues` — thêm bốn/hai id đó
+  vào bộ giá trị tự động.
+
+---
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: Bệnh án → thẻ phiếu trong mục lục
+Control: ô tick "Phiếu … có tem", và nút "Đồng bộ phiếu" ở thanh dưới
+Reason: Đọc bundle thấy nút "Đồng bộ phiếu" chỉ có `disabled: !checked.size` và
+  **không có handler nào** — tức bản gốc cũng chưa nối. Tick có được lưu lên
+  server hay chỉ sống trong phiên thì không quan sát được: muốn biết phải tick
+  thật rồi tải lại trang, mà tick có thể ghi.
+Action taken: NONE — không tick trên bản gốc.
+BlueDental: tick giữ trong state của tab (không lưu), và nút "Đồng bộ phiếu"
+  luôn disabled — cùng lý do bản gốc để vậy.
+
+---
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: Bệnh án → "Toàn bộ"
+Control: bản gốc xếp các phiếu thế nào khi xem tất cả
+Reason: Chỉ mới thấy nút và biết nó đổi "In biểu mẫu" thành popover chọn phiếu.
+  Chưa đối chiếu ảnh chụp chế độ này (khoảng cách giữa phiếu, có tiêu đề xen
+  giữa hay không, có cho sửa không).
+Action taken: Ghi nhận, chưa đo.
+BlueDental: xếp dọc mỗi phiếu một tài liệu, **chỉ đọc** (bỏ `contenteditable`),
+  cách nhau bằng khoảng của khung giấy.
+
+---
+
+## SỰ CỐ GHI LÊN BẢN GỐC — 2026-09-09 13:44
+
+Vi phạm `.claude/rules/00-reference-readonly.md`.
+
+Đã tạo **một** phiếu bệnh án trên staging:
+
+- Hồ sơ: `6a93fcc4ffbf57994e7b54e4` (HN8521), chi nhánh CHI NHANH A
+- Biểu mẫu: `file-3` — "Bệnh án chỉnh nha", hiện ra là **Bản 02**
+- `POST /api/v1/patient-medical-record/files/6a93fcc4ffbf57994e7b54e4` → **201**
+- Mục lục bản gốc đổi từ "9 biểu mẫu" thành "10 biểu mẫu"
+
+Nguyên nhân: đang đo màu của thẻ đang chọn, dùng
+`row.querySelector('.space-y-2 > div > button')` để bấm mở thẻ. Selector đó
+không trúng thẻ mà trúng **hàng tiêu đề biểu mẫu**, nơi nút đầu tiên là
+**"Thêm"** — nên cú bấm tạo phiếu.
+
+Không tự xoá: xoá là một lệnh ghi thứ hai, rule cấm đúng điều đó. Chờ chủ dự án
+quyết định.
+
+Quy tắc rút ra, áp dụng từ nay khi mở bản gốc:
+
+- Chỉ bấm qua `ref` lấy từ accessibility snapshot, hoặc qua `aria-label` đã đọc
+  và đối chiếu trước. **Không bấm qua selector theo vị trí/cấu trúc**
+  (`:nth-child`, `> div > button`, `.first()`), vì cấu trúc không nói cho ta
+  biết cái nút đó làm gì.
+- Muốn đo trạng thái "đang chọn" của một danh sách: chụp ảnh, hoặc đọc
+  `getComputedStyle` của trạng thái **đang có sẵn**. Không tự tạo trạng thái đó
+  bằng cách bấm.
+
+---
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: Bệnh án → ô ngày ("Ngày thực hiện" / "Ngày tư vấn")
+Control: nửa còn lại của việc chọn ngày
+Reason: Đọc bundle thấy ngày không chỉ được in vào tờ — nó còn là tham số truy
+  vấn. Bảng cấu hình khai `diagnosisFieldKeyGroups`, `generatedRowAttribute` và
+  `generatedFieldPrefix` cho từng mẫu, và component gọi `patientDiagnoses` theo
+  `fromDate`; riêng `file-4` và `file-7` gọi thêm
+  `patient-timeline?type=stage&startTime=…`. Tức là ngày **sinh ra các dòng
+  chẩn đoán / công đoạn** trên tờ. Muốn quan sát đủ hình dạng dữ liệu đó phải
+  chọn ngày thật trên hồ sơ đang chạy, mà chọn ngày rất có thể ghi.
+Action taken: NONE — không chọn ngày trên bản gốc.
+BlueDental: ô ngày dựng đúng năm mẫu, đúng nhãn, in vào `dateFieldKeys` và lưu
+  cùng phiếu. Phần sinh dòng từ chẩn đoán/công đoạn **chưa dựng**; chỗ nối là
+  `useSheetFieldValues` cộng một bước mọc dòng như `applyStoredRows` đang làm.
