@@ -85,7 +85,7 @@ function PermissionGroupNode({ node, granted, onToggleLeaf, onToggleGroup, depth
           onChange={() => onToggleLeaf(node.id)}
         />
         <FileText className="perm-leaf-icon" size={14} />
-        <span className="perm-leaf-label">{node.label}</span>
+        <span className="perm-leaf-label">{t(node.label)}</span>
       </label>
     );
   }
@@ -122,7 +122,7 @@ function PermissionGroupNode({ node, granted, onToggleLeaf, onToggleGroup, depth
         ) : (
           <Folder className="perm-group-icon" size={16} />
         )}
-        <span className="perm-group-label">{node.label}</span>
+        <span className="perm-group-label">{t(node.label)}</span>
         {isSubGroup && <span className="perm-group-type-badge">{t("Mục")}</span>}
         <span className="perm-group-count">{checked}/{total}</span>
       </div>

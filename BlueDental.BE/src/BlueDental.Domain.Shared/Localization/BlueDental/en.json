@@ -3137,6 +3137,24 @@
     "Bệnh nhân/thân nhân người bệnh sau khi nghe giải thích đã hiểu rõ bệnh lý, phương pháp điều trị, chi phí điều trị. Tôi chấp nhận các rủi ro và chịu trách nhiệm với lựa chọn trên và cam kết thực hiện đầy đủ các nghĩa vụ của người bệnh theo quy định của pháp luật và quy định của phòng khám.": "After hearing the explanation, the patient/family member fully understands the condition, treatment method, and treatment costs. I accept the risks and take responsibility for the above choice, and commit to fulfilling all patient obligations as required by law and clinic regulations.",
     "* Lời dặn của Bác sĩ: Quý khách vui lòng tuân thủ hướng dẫn vệ sinh răng miệng và liên hệ hotline phòng khám khi có bất kỳ thắc mắc nào.": "* Doctor's note: Please follow oral hygiene instructions and contact the clinic hotline if you have any questions.",
     "Cùng với việc thăm khám lâm sàng và phim chụp của bệnh nhân {0}, bác sĩ đưa ra chẩn đoán và giải thích chi tiết:": "Based on the clinical examination and X-ray images of patient {0}, the doctor provides the following diagnosis and detailed explanation:",
-    "Thu Ngân / Bác Sĩ": "Cashier / Doctor"
+    "Thu Ngân / Bác Sĩ": "Cashier / Doctor",
+    "Lưu Thay Đổi": "Save Changes",
+    "chi nhánh": "branch",
+    "quản lý chi nhánh": "branch manager",
+    "Mục": "Section",
+    "Chốt phiếu": "Finalize",
+    "Duyệt chi": "Approve expense",
+    "Duyệt xác nhận số lượng": "Approve quantity confirmation",
+    "Hoàn thành công đoạn": "Complete stage",
+    "In công đoạn": "Print stage",
+    "Quản lý toàn bộ": "Manage all",
+    "Điểm danh NV khác": "Attendance for others",
+    "Ẩn số điện thoại": "Hide phone number",
+    "Bài viết / Tin tức": "Posts / News",
+    "Hướng dẫn và hỗ trợ": "Help & Support",
+    "Kho tri thức": "Knowledge base",
+    "Mẫu labo": "Labo templates",
+    "Phân nhóm & CSKH": "Segmentation & Customer care",
+    "Trợ lý AI": "AI Assistant"
   }
 }
