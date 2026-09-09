@@ -5593,6 +5593,29 @@ html:has(.ant-modal-wrap) {
    needs a real height: main's shell only sets a min-height, so `height: 100%`
    resolves to the content — and the group panel's rows would then decide how
    tall the table beside them is. */
+/* A page whose body is one full-height white shell, with the page title above
+   it on the page background — Vật tư, Vận hành, Labo. The height budget lives
+   on the wrapper so the shell keeps whatever the title block leaves it, rather
+   than the two adding up to more than the viewport. */
+.bd-shell-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: calc(100vh - var(--bd-header-height) - 32px);
+  min-height: 420px;
+}
+
+.bd-shell-page > .page-header {
+  flex-shrink: 0;
+}
+
+.bd-shell-page > .bd-taxonomy-page,
+.bd-shell-page > .bd-labo-page {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+}
+
 .bd-taxonomy-page {
   display: flex;
   flex-direction: column;
@@ -7498,6 +7521,7 @@ html:has(.ant-modal-wrap) {
    every box was already exactly as tall as its parent, so there was nowhere to
    scroll to. */
 @media (max-width: 900px) {
+  .bd-shell-page,
   .bd-taxonomy-page {
     height: auto;
     min-height: 0;

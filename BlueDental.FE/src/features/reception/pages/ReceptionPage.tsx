@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { Input, Spin } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
+import { PageHeader } from "@/components/PageHeader";
 import { ConfirmCancelDialog } from "@/components/ConfirmCancelDialog";
 import { MobileFilterDrawer } from "@/components/MobileFilterDrawer";
 import { SearchSelect } from "@/components/SearchSelect";
@@ -149,6 +150,11 @@ export const ReceptionPage: React.FC = () => {
 
   return (
     <div className="reception-page">
+      <PageHeader
+        title={t("Tiếp nhận")}
+        subtitle={t("Luồng khách trong ngày {0}", currentDate.format("DD/MM/YYYY"))}
+      />
+
       <div className="reception-card reception-card--toolbar">
         <ReceptionToolbar
           keyword={keyword}

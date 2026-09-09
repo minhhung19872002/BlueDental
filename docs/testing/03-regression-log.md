@@ -3801,3 +3801,42 @@ Kiểm chứng runtime thật của chuông thông báo: chèn 3 bản ghi vào
 `bd_notifications` của DB dev, mở panel thấy badge **2** chưa đọc, bấm vào dòng
 "Đã ghi nhận thanh toán" → điều hướng sang `/billing` và DB đổi
 `DeliveryStatus 2 → 4`, `ReadAt` có giá trị. Không mock request nào.
+
+## 2026-09-09 — Design v2: tiêu đề trang trên mọi màn, và khoảng hở dưới thanh nhóm
+
+Chủ dự án chỉ ra hai chỗ sau khi áp design v2: màn Bệnh nhân **không có tiêu đề**
+như bản thiết kế, và có **một dải trống** giữa thanh nhóm và thanh công cụ.
+
+| ID | Triệu chứng | Nguyên nhân & cách xử lý |
+|---|--------|-----|
+| R-237 | Dải trống ~26px dưới thanh nhóm ở `/patient` | Hai phần tử rỗng vẫn nằm trong cột flex `gap: 12px` của `.bd-patient-page`: thanh công cụ thu gọn khi chưa hiện (`height: 0` + 2px viền trong suốt) và ô mốc `sentinel` của `useScrolledPast`. Không cao nhưng mỗi cái vẫn ăn một khoảng `gap`. Thanh thu gọn chuyển sang `display: none` khi chưa vào, `sentinel` chuyển sang `position: absolute` — cả hai không còn chiếm chỗ |
+| R-238 | 9 màn không có tiêu đề trang; 5 màn có tiêu đề nhưng lệch chữ so với design | Bổ sung `PageHeader` (tiêu đề 23px/700/-.6px + phụ đề 13px, đúng thông số design) cho Tiếp nhận, Lịch hẹn, Bệnh nhân, Labo, Vật tư, Vận hành, Báo cáo, Danh mục, Cài đặt phòng khám; sửa chữ cho Nhân sự, CSKH, Voucher, Công cụ theo đúng design |
+| R-239 | Tiêu đề Labo/Vật tư/Vận hành/Danh mục nằm **trong** khối trắng | Bốn màn này có thân là một khối trắng cao hết màn (`height: calc(100vh - …)`). Đặt `PageHeader` vào trong khối làm tiêu đề nằm trên nền trắng, sai với design (tiêu đề nằm trên nền trang). Thêm `.bd-shell-page` bọc ngoài: khối bọc giữ ngân sách chiều cao, khối trắng nhận `flex: 1` — không phải trừ tay chiều cao của tiêu đề |
+
+Lưu ý:
+
+- Đây là thay đổi **thuần UI**: không đụng logic nghiệp vụ, không đổi API,
+  không đổi DTO. Chỉ thêm component tiêu đề và sửa khoảng cách.
+- Phần diff lớn ở `OperationsPage.tsx` (262 dòng) **chỉ là thụt lề** do lồng
+  thêm một cấp. `git diff -w` cho thấy toàn bộ thay đổi thật là 121 dòng thêm /
+  12 dòng bớt trên 16 file.
+- `AppointmentCalendarPage` chạy toàn màn hình được, nên thêm luật ẩn tiêu đề
+  trong `body.cal-fullscreen`.
+
+Mức retest: **1** (thị giác) cho 14 màn, **3** cho `/taxonomy` vì nằm trong
+phạm vi khoá của mục 17 CLAUDE.md.
+
+Kết quả (chạy trên bản build production, `vite preview` cổng 8081, BE thật +
+PostgreSQL thật, đăng nhập qua màn hình đăng nhập thật, không chặn request nào):
+
+- Bộ khoá của Danh mục (`taxonomy`, `taxonomy-groups`, `taxonomy-flat`,
+  `taxonomy-dialogs`, `payment-qr`, `branch-isolation`, `branch-switcher`):
+  **38/42**. Bốn lỗi còn lại đã **đối chứng trên cây gốc** (`git checkout` về
+  HEAD, build lại, chạy lại): đỏ y hệt, tức có sẵn từ trước —
+  `branch-isolation:40`, `branch-switcher:35` (tài khoản `manager`/`branch2`
+  chưa seed), `taxonomy:277` (khối `.bd-cat-card` ở bề ngang 430px),
+  `taxonomy-dialogs:207` (chập chờn — chạy riêng bộ dialogs thì **6/6** xanh).
+- Chụp lại 15 màn ở 1440×900 sau khi đăng nhập thật: mọi màn đều có tiêu đề,
+  nội dung bắt đầu đúng ở mốc 80px, không màn nào tràn ngang
+  (`scrollWidth === clientWidth`), console không có lỗi.
+- `tsc -b` sạch, `oxlint` không thêm cảnh báo, `vite build` xanh.

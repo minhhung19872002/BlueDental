@@ -4,6 +4,7 @@ import { LaboOrdersScreen } from "../components/LaboOrdersScreen";
 import { LaboServiceMaterialScreen } from "../components/LaboServiceMaterialScreen";
 import { LaboSupplierScreen } from "../components/LaboSupplierScreen";
 import { DEFAULT_LABO_TAB, findLaboTab, laboTabs, type LaboTab } from "../laboTabs";
+import { PageHeader } from "@/components/PageHeader";
 import { PageTabBar } from "@/components/PageTabBar";
 import { t } from "@/lib/i18n";
 import "../components/labo.css";
@@ -34,14 +35,21 @@ export function LaboPage() {
   const tab = findLaboTab(tabs, section ?? DEFAULT_LABO_TAB);
 
   return (
-    <div className="bd-labo-page">
-      <PageTabBar
-        label={t("Labo")}
-        activeKey={tab.key}
-        tabs={tabs.map((item) => ({ key: item.key, label: item.label, to: `/labo/${item.key}` }))}
+    <div className="bd-shell-page">
+      <PageHeader
+        title={t("Labo")}
+        subtitle={t("Phiếu labo, nhà cung cấp và danh mục kỹ thuật")}
       />
 
-      <LaboScreen key={tab.key} tab={tab} />
+      <div className="bd-labo-page">
+        <PageTabBar
+          label={t("Labo")}
+          activeKey={tab.key}
+          tabs={tabs.map((item) => ({ key: item.key, label: item.label, to: `/labo/${item.key}` }))}
+        />
+
+        <LaboScreen key={tab.key} tab={tab} />
+      </div>
     </div>
   );
 }

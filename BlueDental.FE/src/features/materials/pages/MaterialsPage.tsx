@@ -3,6 +3,7 @@ import { AllocationTab } from "../components/AllocationTab";
 import { ClinicMaterialsTab } from "../components/ClinicMaterialsTab";
 import { DepartmentTab } from "../components/DepartmentTab";
 import { findMaterialsTab, materialsTabs } from "../materialsTabs";
+import { PageHeader } from "@/components/PageHeader";
 import { PageTabBar } from "@/components/PageTabBar";
 import { t } from "@/lib/i18n";
 
@@ -18,21 +19,28 @@ export function MaterialsPage() {
   const tab = findMaterialsTab(section);
 
   return (
-    <div className="bd-taxonomy-page">
-      <PageTabBar
-        label={t("Vật tư")}
-        activeKey={tab.key}
-        tabs={materialsTabs().map((item) => ({
-          key: item.key,
-          label: item.label,
-          to: `/materials/${item.key}`,
-        }))}
+    <div className="bd-shell-page">
+      <PageHeader
+        title={t("Vật tư phòng khám")}
+        subtitle={t("Tồn kho, cấp phát và định mức vật tư theo bộ phận")}
       />
 
-      <div className="bd-min0h bd-flex1">
-        {tab.key === "clinic" && <ClinicMaterialsTab />}
-        {tab.key === "allocation" && <AllocationTab />}
-        {tab.key === "department" && <DepartmentTab />}
+      <div className="bd-taxonomy-page">
+        <PageTabBar
+          label={t("Vật tư")}
+          activeKey={tab.key}
+          tabs={materialsTabs().map((item) => ({
+            key: item.key,
+            label: item.label,
+            to: `/materials/${item.key}`,
+          }))}
+        />
+
+        <div className="bd-min0h bd-flex1">
+          {tab.key === "clinic" && <ClinicMaterialsTab />}
+          {tab.key === "allocation" && <AllocationTab />}
+          {tab.key === "department" && <DepartmentTab />}
+        </div>
       </div>
     </div>
   );

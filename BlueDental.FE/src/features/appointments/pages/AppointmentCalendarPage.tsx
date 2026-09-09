@@ -27,6 +27,7 @@ import { useDentistList } from "@/features/staff/api/staffQueries";
 import { useAppointmentList } from "../api/appointmentQueries";
 import { useDeleteAppointment, useDeleteManyAppointments } from "../api/appointmentMutations";
 import { exportToExcel } from "@/utils/exportExcel";
+import { PageHeader } from "@/components/PageHeader";
 import { t } from "@/lib/i18n";
 import "../components/calendar.css";
 
@@ -173,6 +174,8 @@ export function AppointmentCalendarPage() {
   return (
     <>
       <div className="cal-page">
+        <PageHeader title={t("Lịch hẹn khách hàng")} />
+
         <CalendarUnderlineTabs
           activeTab={state.topTab}
           onChange={state.setTopTab}

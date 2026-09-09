@@ -232,7 +232,10 @@ export function StaffPage() {
 
   return (
     <div className="reception-page">
-      <PageHeader title={t("Nhân sự")} />
+      <PageHeader
+        title={t("Nhân sự & lịch làm việc")}
+        subtitle={t("Danh sách nhân viên, ca trực và phân công theo chi nhánh")}
+      />
 
       {/* ── Desktop: inline toolbar ── */}
       <div className="reception-card reception-card--toolbar desktop-only">

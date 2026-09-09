@@ -27,6 +27,7 @@ import {
 } from "../api";
 import { authApi } from "@/features/auth/api";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { PageHeader } from "@/components/PageHeader";
 import { describeApiError } from "@/lib/apiError";
 import { BranchEditorModal } from "../components/BranchEditorModal";
 import { BranchManagerEditorModal, type BranchManagerFormValues } from "../components/BranchManagerEditorModal";
@@ -918,11 +919,10 @@ export function ClinicSettingsPage() {
 
   return (
     <div className="page-container">
-      <div className="page-header">
-        <div className="page-header-left">
-          <h1 className="page-header-title">{t("Hồ sơ")}</h1>
-        </div>
-      </div>
+      <PageHeader
+        title={t("Cài đặt phòng khám")}
+        subtitle={t("Thông tin thương hiệu, chi nhánh và phân quyền")}
+      />
 
       <div className="profile-layout">
         <div className="profile-sidebar">
