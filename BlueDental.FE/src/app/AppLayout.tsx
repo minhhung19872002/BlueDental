@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Avatar, Dropdown, Popover, type MenuProps } from "antd";
 import {
-  CheckOutlined,
   DownOutlined,
   GlobalOutlined,
   KeyOutlined,
@@ -37,7 +36,7 @@ export function AppLayout() {
   const [openGroupId, setOpenGroupId] = useState<string | null>(null);
   const [notifOpen, setNotifOpen] = useState(false);
   const [branchMenuOpen, setBranchMenuOpen] = useState(false);
-  const [language, setLanguage] = useLanguage();
+  const [, setLanguage] = useLanguage();
 
   const t = useT();
   const navigate = useNavigate();
@@ -155,9 +154,8 @@ export function AppLayout() {
       onClick: () => navigate("/settings"),
     },
     {
-      /* The header's own language switch goes with the other optional
-         controls below 1040px, so the only way left to change language on a
-         small screen is here. */
+      /* The header carries no language control, so the account block is the
+         only place to change language. */
       key: "language",
       icon: <GlobalOutlined />,
       label: t("Ngôn ngữ"),
@@ -264,20 +262,6 @@ export function AppLayout() {
     </div>
   );
 
-  const langContent = (
-    <div className="app-popover-list">
-      <div className="app-popover-header">{t("Ngôn ngữ")}</div>
-      <button type="button" className="app-popover-item" onClick={() => setLanguage("vi")}>
-        <span>{t("Tiếng Việt")}</span>
-        {language === "vi" && <CheckOutlined style={{ color: brand.blue, fontSize: 12 }} />}
-      </button>
-      <button type="button" className="app-popover-item" onClick={() => setLanguage("en")}>
-        <span>English</span>
-        {language === "en" && <CheckOutlined style={{ color: brand.blue, fontSize: 12 }} />}
-      </button>
-    </div>
-  );
-
   const menusOpen = openGroupId !== null || notifOpen;
 
   return (
@@ -348,17 +332,6 @@ export function AppLayout() {
               <span className="app-header-branch-dot" />
               <span className="app-header-branch-name">{selectedBranchName}</span>
               <DownOutlined style={{ fontSize: 13, color: "#78819c" }} />
-            </button>
-          </Popover>
-
-          <Popover content={langContent} trigger="click" placement="bottomRight" arrow={false}>
-            <button
-              type="button"
-              className="app-header-lang app-header-hide-sm"
-              aria-label={t("Ngôn ngữ")}
-            >
-              <GlobalOutlined style={{ fontSize: 16 }} />
-              <span>{language.toUpperCase()}</span>
             </button>
           </Popover>
 

@@ -102,15 +102,22 @@ test.describe("Header navigation", () => {
     await expect(page.locator(".app-drawer-item").first()).toBeHidden();
   });
 
-  test("language switcher toggles between Vietnamese and English", async ({ page }) => {
-    await expect(page.locator(".app-header-lang")).toHaveText("VI");
+  /* The header carries no language control of its own any more: the account
+     menu is the only way to switch, on every screen size. */
+  test("the account menu toggles between Vietnamese and English", async ({ page }) => {
+    const clinicGroup = page.locator(".app-nav-group").nth(1);
+    await expect(clinicGroup).toHaveText("Phòng khám");
 
-    await page.locator(".app-header-lang").click();
-    await page.getByText("English", { exact: true }).click();
-    await expect(page.locator(".app-header-lang")).toHaveText("EN");
+    await expect(page.locator(".app-header-lang")).toHaveCount(0);
 
-    await page.locator(".app-header-lang").click();
-    await page.getByText("Tiếng Việt", { exact: true }).click();
-    await expect(page.locator(".app-header-lang")).toHaveText("VI");
+    await page.locator(".app-header-user").click();
+    await page.getByRole("menuitem", { name: "Ngôn ngữ" }).hover();
+    await page.getByRole("menuitem", { name: "English", exact: true }).click();
+    await expect(clinicGroup).toHaveText("Clinic");
+
+    await page.locator(".app-header-user").click();
+    await page.getByRole("menuitem", { name: "Language" }).hover();
+    await page.getByRole("menuitem", { name: "Tiếng Việt", exact: true }).click();
+    await expect(clinicGroup).toHaveText("Phòng khám");
   });
 });

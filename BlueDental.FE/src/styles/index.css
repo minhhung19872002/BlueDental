@@ -782,6 +782,11 @@ body::-webkit-scrollbar-track {
   flex: 1 1 180px;
   min-width: 150px;
   max-width: 340px;
+  /* Once the field hits its cap the row still has slack on a wide screen.
+     Give that slack to the search's right margin so the branch picker, bell
+     and account block stay pinned to the right edge instead of leaving a gap
+     after them. */
+  margin-right: auto;
   overflow: hidden;
   height: 38px;
   border-radius: var(--bd-radius-control);
@@ -915,28 +920,6 @@ body::-webkit-scrollbar-track {
   display: grid;
   place-items: center;
   animation: ringPulse 2.2s ease infinite;
-}
-
-/* The language control names the language it is on. */
-.app-header-lang {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  height: 38px;
-  padding: 0 11px;
-  border: 1px solid #e3e7f5;
-  border-radius: 10px;
-  background: #fff;
-  color: #242b47;
-  font-size: 12.5px;
-  font-weight: 600;
-  cursor: pointer;
-  flex: 0 0 auto;
-}
-
-.app-header-lang:hover {
-  border-color: var(--bd-primary);
-  color: var(--bd-primary);
 }
 
 .app-header-user {
@@ -2492,7 +2475,7 @@ body::-webkit-scrollbar-track {
 }
 
 /* Then everything the account block does not strictly need: the clinic's
-   name, the branch picker, the language switch, the account's own name. */
+   name, the branch picker, the account's own name. */
 @media (max-width: 1040px) {
   .app-header-hide-sm {
     display: none !important;
@@ -2887,6 +2870,11 @@ body::-webkit-scrollbar-track {
     padding: 8px 12px;
   }
 
+  /* The row wraps here, so an auto margin would push the account block onto a
+     line of its own. */
+  .app-header-search {
+    margin-right: 0;
+  }
 }
 
 /* Phone: compact header and layout */
@@ -2973,14 +2961,16 @@ body::-webkit-scrollbar-track {
     min-width: 0;
   }
 
+  /* The search is an icon at this width, so the slack that is left belongs
+     before the account block — it stays on the right edge instead of sitting
+     mid-row with empty space after it. */
   .app-header-user {
     padding-left: 6px;
-    margin-left: 0;
+    margin-left: auto;
   }
 }
 
-/* Phone: tighten the header's own spacing rather than dropping controls —
-   the language switch is the only way to change language on mobile. */
+/* Phone: tighten the header's own spacing rather than dropping controls. */
 @media (max-width: 560px) {
   .page-header-title {
     font-size: 19px;
