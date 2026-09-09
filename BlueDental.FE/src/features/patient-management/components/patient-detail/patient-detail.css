@@ -108,10 +108,20 @@
   overflow: hidden;
 }
 /* On a phone the tabs turn their tables into cards, which have no scroller of
-   their own, so the pane scrolls as one page and nothing inside shrinks. */
+   their own, so the pane scrolls as one page and nothing inside shrinks.
+
+   The viewport height budget goes with them: a phone scrolls the document, and
+   a record pinned to 100vh would trap the whole file inside a ~600px window
+   with its own scrollbar while the page behind it stayed still. */
 @media (max-width: 640px) {
+  .pd-page {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+  .pd-pane,
   .pd-pane--fill {
-    overflow: auto;
+    overflow: visible;
   }
   .pd-pane--fill > * {
     flex: 0 0 auto;
@@ -2226,6 +2236,21 @@
 @media (width <= 1100px) {
   .pd-medical-bar {
     left: 50%;
+  }
+}
+/* A phone cannot hold the pill's four controls on one line: capped at the
+   screen width but told not to wrap, they spilled past both edges with the
+   zoom's minus button clipped off. Span the width and wrap instead. */
+@media (max-width: 640px) {
+  .pd-medical-bar {
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
+    flex-wrap: wrap;
+    white-space: normal;
+    row-gap: 8px;
+    transform: none;
   }
 }
 .pd-medical-zoom {

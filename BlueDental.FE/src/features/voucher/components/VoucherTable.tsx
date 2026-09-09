@@ -46,6 +46,9 @@ export function VoucherTable({
         dataSource={data}
         columns={columns}
         size="middle"
+        /* The columns add up to 1320px. Without it a phone squeezes them all
+           into 360 and every cell wraps to four lines. */
+        scroll={{ x: 1320 }}
         locale={{
           emptyText: (
             <Empty

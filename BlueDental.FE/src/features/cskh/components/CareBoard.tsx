@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Table } from "antd";
 import type { Dayjs } from "dayjs";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { t } from "@/lib/i18n";
 import type { CareRecordDto } from "../api/careApi";
 import type { CareDateMode, CareTabConfig } from "../careTabs";
@@ -9,6 +10,8 @@ import { CareCounters } from "./CareCounters";
 import { CareToolbar } from "./CareToolbar";
 import { buildCareColumns } from "./careColumns";
 import { CareBoardDialogs } from "./CareBoardDialogs";
+
+const NARROW_SCREEN = "(max-width: 640px)";
 
 interface CareBoardProps {
   branchId: string;
@@ -24,6 +27,9 @@ interface CareBoardProps {
 /** Head row, care-type tabs + toolbar row, table and dialogs of one care tab. */
 export function CareBoard({ branchId, tab, mode, date, dateSlot, tabsSlot }: CareBoardProps) {
   const board = useCareBoard({ branchId, tab, mode, date });
+  /* A tab whose columns fit a desktop still does not fit a phone: without a
+     horizontal scroller the headers squeeze into each other. */
+  const narrow = useMediaQuery(NARROW_SCREEN);
 
   const columns = buildCareColumns(tab, branchId, {
     onCall: board.handleCall,
@@ -69,7 +75,7 @@ export function CareBoard({ branchId, tab, mode, date, dateSlot, tabsSlot }: Car
           dataSource={board.list.data?.items ?? []}
           loading={board.list.isLoading}
           locale={{ emptyText: t("Không có dữ liệu") }}
-          scroll={tab.wideTable ? { x: "max-content" } : undefined}
+          scroll={tab.wideTable || narrow ? { x: "max-content" } : undefined}
           pagination={board.pagination.buildConfig(board.list.data?.totalCount)}
         />
       </div>
