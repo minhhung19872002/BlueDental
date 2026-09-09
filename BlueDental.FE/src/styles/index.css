@@ -445,11 +445,11 @@ body::-webkit-scrollbar-track {
   gap: 6px;
   border: 0;
   cursor: pointer;
-  padding: 8px 11px;
+  padding: 8px 12px;
   border-radius: 10px 10px 0 0;
   background: transparent;
   color: var(--bd-nav-ink);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
 }
 
@@ -476,7 +476,7 @@ body::-webkit-scrollbar-track {
 
 .app-nav-group-label {
   white-space: nowrap;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 /* ── Ribbon ── */
@@ -509,7 +509,7 @@ body::-webkit-scrollbar-track {
   border-radius: var(--bd-radius-control);
   background: transparent;
   color: var(--bd-nav-ink);
-  font-size: 12.5px;
+  font-size: 14px;
   font-weight: 500;
 }
 
