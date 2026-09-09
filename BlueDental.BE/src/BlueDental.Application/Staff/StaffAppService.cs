@@ -112,6 +112,8 @@ public class StaffAppService(
             Surname = input.Surname
         };
 
+        user.SetIsActive(input.IsActive);
+
         if (!input.PhoneNumber.IsNullOrWhiteSpace())
         {
             user.SetPhoneNumber(input.PhoneNumber, confirmed: false);

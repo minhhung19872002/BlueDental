@@ -141,6 +141,7 @@ export function StaffPage() {
           name: values.name,
           email: values.email,
           phoneNumber: values.phoneNumber || undefined,
+          isActive: values.isActive,
           roleNames: values.roleNames,
           branchIds: values.branchIds,
           ...extraFields,

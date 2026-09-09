@@ -60,6 +60,7 @@ public class CreateStaffDto
     public string? Surname { get; set; }
     public string Email { get; set; } = default!;
     public string? PhoneNumber { get; set; }
+    public bool IsActive { get; set; } = true;
     public List<string> RoleNames { get; set; } = [];
 
     /// <summary>Branches this staff member may work in; empty means clinic-wide.</summary>

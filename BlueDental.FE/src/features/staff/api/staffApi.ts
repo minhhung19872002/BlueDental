@@ -46,6 +46,7 @@ export interface CreateStaffInput {
   surname?: string;
   email: string;
   phoneNumber?: string;
+  isActive: boolean;
   roleNames: string[];
   branchIds: string[];
 
