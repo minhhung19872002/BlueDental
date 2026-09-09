@@ -161,11 +161,49 @@ test.describe("Kế hoạch điều trị", () => {
     await page.keyboard.press("Escape");
     await expect(stage).toBeHidden();
 
+    // The clipboard action opens "In bệnh án": the record files, the patient's
+    // identity filled from their record, and the reference's zoom control.
+    await row.getByRole("button", { name: `In bệnh án ${createdCode}` }).click();
+    const print = page.getByRole("dialog", { name: "In bệnh án" });
+    await expect(print).toBeVisible();
+    // Opens on "Bìa hồ sơ bệnh án" at 85%, as the reference does. The sheet is
+    // its own document, so the assertions reach into it.
+    await expect(print.locator(".pmr-zoom-value")).toHaveText("85%");
+    const sheet = page.frameLocator(".pmr-scale .mr-doc-frame");
+    await expect(sheet.locator(".nfc-tpl")).toContainText("BỆNH ÁN");
+    await expect(
+      sheet.locator('[data-medical-record-field="cover.patient.code"]'),
+    ).not.toBeEmpty();
+    // Zoom steps 5% and "Fit" resets to 85%, both measured on the reference.
+    await print.getByRole("button", { name: "Phóng to bản xem trước" }).click();
+    await expect(print.locator(".pmr-zoom-value")).toHaveText("90%");
+    await print.getByRole("button", { name: "Fit" }).click();
+    await expect(print.locator(".pmr-zoom-value")).toHaveText("85%");
+    // The picker carries the nine printed forms; choosing one redraws the sheet.
+    await print.locator(".pmr-file .ant-select").click();
+    await openDropdown(page).getByText("Bệnh án ngoại trú Răng Hàm Mặt").click();
+    await expect(
+      page.frameLocator(".pmr-scale .mr-doc-frame").locator(".nfc-tpl"),
+    ).toContainText("BỆNH ÁN NGOẠI TRÚ");
+    // Scoped to the footer: the modal's own X is labelled "Đóng" as well.
+    await print.locator(".pmr-foot").getByRole("button", { name: "Đóng" }).click();
+    await expect(print).toBeHidden();
+
     // The receipt action opens the invoice for this slip.
     await row.getByRole("button", { name: `Phiếu thu ${createdCode}` }).click();
     const invoice = page.getByRole("dialog", { name: "Hóa đơn" });
     await expect(invoice).toBeVisible();
     await expect(invoice).toContainText(pickedService);
+    // Every field carries the app's floating label rather than a caption above
+    // it: a filled one lifts the label onto the border, an empty one keeps it
+    // resting inside as the placeholder.
+    await expect(invoice.locator(".inv-field.floating-field")).toHaveCount(13);
+    const customerName = invoice.locator(".inv-field").first();
+    await expect(customerName).toHaveClass(/floating-field--floated/);
+    await expect(customerName).toContainText("Tên khách hàng");
+    await expect(invoice.locator(".inv-field", { hasText: "CMND/CCCD" })).not.toHaveClass(
+      /floating-field--floated/,
+    );
     await page.keyboard.press("Escape");
     await expect(invoice).toBeHidden();
 
@@ -176,6 +214,78 @@ test.describe("Kế hoạch điều trị", () => {
     await expect(all).toContainText(pickedService);
     await expect(all.locator(".ant-pagination-total-text")).toHaveText(PAGER_TOTAL);
     await page.keyboard.press("Escape");
+  });
+
+  /**
+   * Regression: the row reads "Tổng phiếu" − "Giảm giá" = "Thành tiền", but the
+   * rollup the API answers with is already net of both discounts. Only a slip
+   * that actually carries a discount catches the total being taken off twice,
+   * so this one sets its own price and discount rather than taking the
+   * catalogue's.
+   */
+  test("a discounted slip prints the gross, the discount and what is owed", async ({ page }) => {
+    await login(page);
+    // Runs inside the serial file, but stays runnable on its own with -g.
+    const url = patientUrl || (await openFirstPatient(page));
+    await page.goto(`${url}?tab=treatment-plan`);
+    await assertRealApiTraffic(page, PLANS_API);
+
+    const before = await planCodes(page);
+
+    await page.getByRole("button", { name: "Tạo kế hoạch mới" }).click();
+    const dialog = page.getByRole("dialog", { name: "Tạo phiếu dịch vụ" });
+    await expect(dialog).toBeVisible();
+
+    await dialog.getByRole("combobox", { name: /Thêm dịch vụ mới/ }).click();
+    const service = openDropdown(page, ".tp-service-dropdown")
+      .locator(".ant-select-item-option:has(.tp-opt-service)")
+      .first();
+    await expect(service).toBeVisible();
+    const lineName = (await service.locator(".tp-opt-name").innerText()).trim();
+    await service.click();
+
+    await pickFirstOption(page, dialog.getByRole("combobox", { name: /Bác sĩ chẩn đoán/ }));
+    await pickFirstOption(page, dialog.getByRole("combobox", { name: /^Chẩn đoán/ }));
+
+    await dialog.locator(".tp-tooth-btn").click();
+    const picker = page.getByRole("dialog", { name: "Chọn răng" });
+    await expect(picker).toBeVisible();
+    await picker.getByRole("button", { name: "Răng 14", exact: true }).click();
+    await picker.locator(".tp-teeth-foot button").click();
+    await expect(picker).toBeHidden();
+
+    await dialog.getByRole("textbox", { name: "Đơn giá" }).fill("2500000");
+    await dialog.locator(".tp-toggle button", { hasText: "VNĐ" }).click();
+    await dialog.locator(".tp-create-discount input:visible").fill("100000");
+    await expect(dialog.locator(".tp-create-summary")).toContainText("2.400.000");
+
+    await dialog.getByRole("button", { name: "Lưu" }).click();
+    await expect(page.getByText("Đã tạo kế hoạch điều trị")).toBeVisible();
+    await expect(dialog).toBeHidden();
+
+    await expect
+      .poll(async () => (await planCodes(page)).find((code) => !before.includes(code)) ?? "", {
+        timeout: 15_000,
+      })
+      .toMatch(CODE);
+    const code = (await planCodes(page)).find((item) => !before.includes(item)) ?? "";
+
+    const cells = page.locator(".tp-table tr.ant-table-row", { hasText: code }).locator(".tp-cell-money");
+    await expect(cells.nth(0)).toHaveText("2.500.000 đ"); // Tổng phiếu — gross
+    await expect(cells.nth(1)).toHaveText("100.000 đ"); // Giảm giá
+    await expect(cells.nth(2)).toHaveText("2.400.000 đ"); // Thành tiền
+
+    // The line the row rolls up: the same gross, the same amount owed.
+    await page
+      .locator(".tp-table tr.ant-table-row", { hasText: code })
+      .getByRole("button", { name: `Danh sách dịch vụ - ${code}` })
+      .click();
+    const services = page.getByRole("dialog", { name: `Danh sách dịch vụ - ${code}` });
+    const line = services.locator("tr.ant-table-row", { hasText: lineName }).first();
+    await expect(line.locator(".tp-cell-money").nth(0)).toHaveText("2.500.000 đ");
+    await expect(line.locator(".tp-cell-money").nth(1)).toHaveText("2.400.000 đ");
+    await page.keyboard.press("Escape");
+    await expect(services).toBeHidden();
   });
 
   test("Cột hiển thị hides a column until the next reload", async ({ page }) => {

@@ -426,6 +426,10 @@
   display: inline-flex;
   gap: 4px;
 }
+/* The span ActionTooltip wraps each row action in; see that component. */
+.tp-tip {
+  display: inline-flex;
+}
 .tp-action {
   display: inline-flex;
   width: 32px;
