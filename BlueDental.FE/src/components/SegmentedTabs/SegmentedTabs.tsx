@@ -37,8 +37,12 @@ export function SegmentedTabs<K extends string>({
 
   const measureThumb = useCallback(() => {
     const container = containerRef.current;
-    const active = container?.querySelector<HTMLElement>(".seg-tabs-item--active");
-    if (!active || !container) return;
+    if (!container) return;
+    const active = container.querySelector<HTMLElement>(".seg-tabs-item--active");
+    if (!active) {
+      setThumb((prev) => (prev.w === 0 ? prev : { x: 0, w: 0 }));
+      return;
+    }
     setThumb((prev) =>
       prev.x === active.offsetLeft && prev.w === active.offsetWidth
         ? prev

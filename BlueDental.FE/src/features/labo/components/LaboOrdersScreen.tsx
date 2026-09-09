@@ -184,7 +184,7 @@ export function LaboOrdersScreen() {
     <div className="bd-labo-screen">
       <div className="bd-labo-header bd-labo-header--stacked">
         <div className="bd-labo-headrow">
-          <PeriodPicker value={period} onChange={(next) => refilter(() => setPeriod(next))} />
+          <PeriodPicker value={period} onChange={(next) => refilter(() => setPeriod(next))} clearableMode />
 
           <Button icon={<DownloadOutlined />} disabled={items.length === 0} onClick={handleExport}>
             {t("Xuất Excel")}
