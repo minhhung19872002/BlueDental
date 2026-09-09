@@ -1,25 +1,16 @@
-import type { MedicalRecordFields } from "@/features/taxonomy/components/MedicalRecordSheet";
+import type { FieldValues } from "./medical-record/fieldValues";
 
 /**
  * What a sheet stores in its single JSON column.
  *
- * `fields` are the cells of a drawn form; `body` is the free text of a sheet
- * whose printed layout BlueDental does not draw. A sheet carries whichever it
- * needs, so both shapes live in one object rather than two columns.
+ * One entry per blank the clinic has written on, keyed by the blank's
+ * `data-medical-record-field` id: a string for a text blank, a boolean for a
+ * tick box. Blanks nobody has touched are absent, which is what lets the record
+ * keep answering them and lets a later correction to the record show through.
  */
-export interface SheetDraft {
-  fields: SheetFields;
-  body: string;
+export interface SheetContent {
+  fieldValues: FieldValues;
 }
-
-/**
- * A sheet's cells.
- *
- * The outpatient record has seventeen named cells; the cover's tables generate
- * theirs (`contentQtyA0`, `ctrl4_2`, …), so the map stays open. Every value is
- * a string — a ticked box stores `"1"`.
- */
-export type SheetFields = MedicalRecordFields & Record<string, string | undefined>;
 
 function asObject(content: string | null): Record<string, unknown> | null {
   if (!content) return null;
@@ -29,37 +20,34 @@ function asObject(content: string | null): Record<string, unknown> | null {
       ? (parsed as Record<string, unknown>)
       : null;
   } catch {
-    // A sheet whose stored JSON cannot be read opens empty rather than
+    // A sheet whose stored JSON cannot be read opens blank rather than
     // throwing the whole view away.
     return null;
   }
 }
 
 /**
- * The drawn cells. Sheets written before the two shapes were merged stored the
- * cells at the top level, so those are still read.
+ * The blanks written on this sheet.
+ *
+ * Sheets saved before the forms were drawn from the printed originals stored a
+ * different set of names (`nextOfKin`, `illnessHistory`, …). Those names are
+ * not blanks on any of the nine forms, so they are left behind rather than
+ * printed into cells they were never about.
  */
-export function parseFields(content: string | null): SheetFields {
+export function parseFieldValues(content: string | null): FieldValues {
   const parsed = asObject(content);
   if (!parsed) return {};
 
-  if ("fields" in parsed) {
-    const fields = parsed.fields;
-    return typeof fields === "object" && fields !== null ? (fields as SheetFields) : {};
-  }
+  const stored = parsed.fieldValues;
+  if (typeof stored !== "object" || stored === null) return {};
 
-  // Older shape: `{ "<cell>": "<value>" }`, but not the free sheet's `{ body }`.
-  if ("body" in parsed) return {};
-  return parsed as SheetFields;
+  const values: FieldValues = {};
+  for (const [key, value] of Object.entries(stored)) {
+    if (typeof value === "string" || typeof value === "boolean") values[key] = value;
+  }
+  return values;
 }
 
-/** The free sheet's text, under `body` in both the old shape and the new. */
-export function parseBody(content: string | null): string {
-  const parsed = asObject(content);
-  if (!parsed) {
-    // Sheets older still stored the text raw; show it rather than losing it.
-    return content ?? "";
-  }
-
-  return typeof parsed.body === "string" ? parsed.body : "";
+export function serialiseFieldValues(values: FieldValues): string {
+  return JSON.stringify({ fieldValues: values } satisfies SheetContent);
 }

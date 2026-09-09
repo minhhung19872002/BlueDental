@@ -17,13 +17,14 @@ import { MedicalRecordSheetCard } from "./MedicalRecordSheetCard";
 interface Props {
   sheets: PatientMedicalRecordDto[];
   activeId: string | null;
-  checkedIds: ReadonlySet<string>;
+  /** Sheets ticked as carrying the clinic's stamp. */
+  stampedIds: ReadonlySet<string>;
   collapsed: boolean;
   adding: boolean;
   onToggleCollapse: () => void;
   onAdd: (spec: MedicalRecordFormSpec) => void;
   onSelect: (sheet: PatientMedicalRecordDto) => void;
-  onCheck: (sheet: PatientMedicalRecordDto, checked: boolean) => void;
+  onStamp: (sheet: PatientMedicalRecordDto, stamped: boolean) => void;
   onPrint: (sheet: PatientMedicalRecordDto) => void;
   onRename: (sheet: PatientMedicalRecordDto) => void;
   onDelete: (sheet: PatientMedicalRecordDto) => void;
@@ -32,13 +33,13 @@ interface Props {
 export function MedicalRecordIndex({
   sheets,
   activeId,
-  checkedIds,
+  stampedIds,
   collapsed,
   adding,
   onToggleCollapse,
   onAdd,
   onSelect,
-  onCheck,
+  onStamp,
   onPrint,
   onRename,
   onDelete,
@@ -104,9 +105,9 @@ export function MedicalRecordIndex({
                   spec={spec}
                   ordinal={position + 1}
                   active={sheet.id === activeId}
-                  checked={checkedIds.has(sheet.id)}
+                  stamped={stampedIds.has(sheet.id)}
                   onSelect={() => onSelect(sheet)}
-                  onCheck={(checked) => onCheck(sheet, checked)}
+                  onStamp={(stamped) => onStamp(sheet, stamped)}
                   onPrint={() => onPrint(sheet)}
                   onRename={() => onRename(sheet)}
                   onDelete={() => onDelete(sheet)}

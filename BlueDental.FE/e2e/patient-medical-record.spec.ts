@@ -1,9 +1,13 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type FrameLocator, type Page } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
 
 /**
  * Feature: Bệnh án — the record's second view, behind the header's
  * Chi tiết hồ sơ / Bệnh án switch.
+ *
+ * Every form is drawn from the blank it is printed on, filled through its
+ * `data-medical-record-field` blanks, in its own document. So the assertions
+ * reach into that document rather than into the app's DOM.
  *
  * Real stack throughout: adding a sheet POSTs, saving PUTs, and everything is
  * read back from PostgreSQL after a reload. Nothing is intercepted.
@@ -37,8 +41,133 @@ function cardsUnder(page: Page, form: string) {
   return page.locator(".pd-medical-form", { hasText: form }).locator(".pd-sheet-card");
 }
 
-const outpatientCards = (page: Page) => cardsUnder(page, "Bệnh án ngoại trú Răng Hàm Mặt");
-const orthodonticCards = (page: Page) => cardsUnder(page, "Bệnh án chỉnh nha");
+/** The open sheet's own document. */
+function sheet(page: Page): FrameLocator {
+  return page.frameLocator(".mr-doc-frame");
+}
+
+/** One blank on the open sheet, by the id the form gives it. */
+function blank(page: Page, field: string) {
+  return sheet(page).locator(`[data-medical-record-field="${field}"]`);
+}
+
+/** Opens a form's first sheet, adding one if the patient has none yet. */
+async function openSheet(page: Page, form: string) {
+  const cards = cardsUnder(page, form);
+  if ((await cards.count()) === 0) {
+    await page.locator(".pd-medical-form", { hasText: form }).getByRole("button", { name: "Thêm" }).click();
+    await expect(page.getByText("Đã thêm phiếu bệnh án")).toBeVisible();
+  }
+  await cards.first().locator(".pd-sheet-open").click();
+  await sheetReady(page);
+}
+
+/** The frame is in the DOM before its document is; the blanks say when it is. */
+async function sheetReady(page: Page) {
+  await expect(page.locator(".mr-doc-frame").first()).toBeVisible();
+  await expect(sheet(page).locator("[data-medical-record-field]").first()).toBeAttached();
+}
+
+async function save(page: Page) {
+  await page.locator(".pd-medical-bar").getByRole("button", { name: "Lưu" }).click();
+  // Saving twice in one test stacks two toasts; the newest is the one meant.
+  await expect(page.getByText("Đã lưu phiếu bệnh án").first()).toBeVisible();
+}
+
+/**
+ * A brand-new copy of a form, so nothing written on an earlier one is in the
+ * way. The tests that assert what the *record* answers need that.
+ */
+async function openLastSheet(page: Page, form: string) {
+  await cardsUnder(page, form).first().locator(".pd-sheet-open").click();
+  await sheetReady(page);
+}
+
+/** The nine forms, by the number the API stores them under. */
+const FORM_NUMBER: Record<string, number> = {
+  "Bìa hồ sơ bệnh án": 1,
+  "Bệnh án ngoại trú Răng Hàm Mặt": 2,
+  "Bệnh án chỉnh nha": 3,
+  "Phiếu Tư Vấn Tổng Quát": 4,
+  "Phiếu tư vấn và xác nhận đồng ý điều trị": 5,
+  "Giấy đồng ý thực hiện phẫu thuật/thủ thuật": 6,
+  "Phiếu phẫu thuật/thủ thuật": 7,
+  "Phiếu theo dõi điều trị": 8,
+  "Phiếu chăm sóc": 9,
+};
+
+/**
+ * A sheet with nothing written on it, for the tests that assert what the
+ * *record* answers, or what a blank form draws.
+ *
+ * Wipes the form's first copy rather than adding another one: a run that adds
+ * leaves the sheet behind, and after a few of them the index carries dozens of
+ * copies and the suite slows to a crawl. Keyed on the form's number, not its
+ * name — a sheet can be renamed.
+ */
+async function openFreshSheet(page: Page, form: string) {
+  const row = page.locator(".pd-medical-form", { hasText: form });
+  const cards = row.locator(".pd-sheet-card");
+
+  if ((await cards.count()) === 0) {
+    await row.getByRole("button", { name: "Thêm" }).click();
+    await expect(cards).toHaveCount(1);
+  }
+
+  const wiped = await page.evaluate(async (number: number) => {
+    const patientId = window.location.pathname.split("/")[2];
+    const read = async () => {
+      const res = await fetch(
+        `/api/v1/app/patient-medical-records?patientId=${patientId}&maxResultCount=200`,
+        { credentials: "include" },
+      );
+      const items: Array<{ id: string; form: number; creationTime: string; content: string | null }> =
+        (await res.json()).items;
+      return items
+        .filter((item) => item.form === number)
+        .sort((a, b) => a.creationTime.localeCompare(b.creationTime))[0];
+    };
+
+    const sheet = await read();
+    if (!sheet) return "no sheet";
+
+    const put = await fetch(`/api/v1/app/patient-medical-records/${sheet.id}`, {
+      method: "PUT",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      // An explicitly empty set of values, not null: the API treats a null
+      // content as "leave it as it is", which is what lets a rename send only
+      // a title.
+      body: JSON.stringify({ content: JSON.stringify({ fieldValues: {} }) }),
+    });
+    if (!put.ok) return `put ${put.status}`;
+
+    // Read it back: the sheet is drawn again straight after, and it has to be
+    // the wiped copy that appears.
+    for (let tries = 0; tries < 10; tries += 1) {
+      const again = await read();
+      const values = again?.content ? Object.keys(JSON.parse(again.content).fieldValues ?? {}) : [];
+      if (values.length === 0) return "ok";
+      await new Promise((done) => setTimeout(done, 150));
+    }
+    return "still filled";
+  }, FORM_NUMBER[form]);
+  expect(wiped).toBe("ok");
+
+  await page.reload();
+  await cards.first().locator(".pd-sheet-open").click();
+  await sheetReady(page);
+}
+
+/**
+ * Hovering a row inside the sheet's own document, having brought it into view
+ * first — below the breakpoint the column around it is a scroller of its own.
+ */
+async function hoverRow(page: Page, field: string) {
+  const row = blank(page, field);
+  await row.scrollIntoViewIfNeeded();
+  await row.hover();
+}
 
 test.describe("Bệnh án", () => {
   test.beforeEach(async ({ page }) => {
@@ -67,11 +196,13 @@ test.describe("Bệnh án", () => {
       await expect(page.locator(".pd-medical-form").getByText(label, { exact: true })).toBeVisible();
     }
 
-    // The bar the reference floats along the bottom.
-    for (const command of ["Từng phiếu", "Toàn bộ", "In biểu mẫu", "Lưu"]) {
+    // The bar the reference floats along the bottom, and the doctor picker it
+    // puts at the end of the sheet's own heading.
+    for (const command of ["Từng phiếu", "Toàn bộ", "In biểu mẫu", "Đồng bộ phiếu", "Lưu"]) {
       await expect(page.locator(".pd-medical-bar").getByText(command, { exact: true })).toBeVisible();
     }
     await expect(page.locator(".pd-medical-zoom")).toContainText("100%");
+    await expect(page.locator(".pd-medical-doctor")).toBeVisible();
 
     // Switching back to the tabbed view drops the parameter again.
     await page.getByRole("button", { name: "Chi tiết hồ sơ" }).click();
@@ -79,213 +210,482 @@ test.describe("Bệnh án", () => {
     await expect(page.locator(".pd-profile-card")).toBeVisible();
   });
 
-  test("a form without a printed layout still gives a sheet that can be written on", async ({
-    page,
-  }) => {
-    const note = `E2E chinh nha ${runId()}`;
-
+  /**
+   * The nine forms are documents, not code: the only thing worth asserting
+   * about their layout is that each draws the whole of its own printed
+   * original. The counts are the reference's, taken off the same blanks.
+   */
+  test("every form draws the whole of its printed original", async ({ page }) => {
+    // Nine forms, each wiped and reloaded before it is counted.
+    test.slow();
     await openMedicalRecord(page);
 
-    // "Bệnh án chỉnh nha" is one of the eight whose printed layout was never
-    // observed; it opens the clinic's own plain sheet instead of nothing.
-    await page
-      .locator(".pd-medical-form", { hasText: "Bệnh án chỉnh nha" })
-      .getByRole("button", { name: "Thêm" })
-      .click();
+    const expected = [
+      { form: "Bìa hồ sơ bệnh án", blanks: 56, boxes: 20, pages: 3 },
+      { form: "Bệnh án ngoại trú Răng Hàm Mặt", blanks: 142, boxes: 18, pages: 3 },
+      { form: "Bệnh án chỉnh nha", blanks: 182, boxes: 64, pages: 3 },
+      { form: "Phiếu Tư Vấn Tổng Quát", blanks: 23, boxes: 0, pages: 1 },
+      { form: "Phiếu tư vấn và xác nhận đồng ý điều trị", blanks: 82, boxes: 21, pages: 2 },
+      { form: "Giấy đồng ý thực hiện phẫu thuật/thủ thuật", blanks: 49, boxes: 26, pages: 2 },
+      { form: "Phiếu phẫu thuật/thủ thuật", blanks: 38, boxes: 2, pages: 1 },
+      { form: "Phiếu theo dõi điều trị", blanks: 111, boxes: 2, pages: 1 },
+      { form: "Phiếu chăm sóc", blanks: 118, boxes: 2, pages: 1 },
+    ];
 
-    const sheet = page.locator(".pd-a4-free-page").last();
-    await expect(sheet.getByText("BỆNH ÁN CHỈNH NHA")).toBeVisible();
-    await expect(sheet.getByText("Bắt đầu từ mẫu")).toBeVisible();
+    for (const item of expected) {
+      // On a wiped copy: a row added by another test and saved would show up
+      // here as extra blanks. The heading carries the *sheet's* name, which may
+      // have been renamed, so what identifies the form is the blanks it draws.
+      await openFreshSheet(page, item.form);
 
-    const body = sheet.locator(".pd-a4-free-body");
-    await body.fill(note);
+      const document = sheet(page);
+      await expect(document.locator("[data-medical-record-field]")).toHaveCount(item.blanks);
+      await expect(document.locator(".nfc-medical-record-checkbox")).toHaveCount(item.boxes);
+      // Pages are separated by a rule; one rule is two pages.
+      await expect(document.locator(".nfc-tpl > hr")).toHaveCount(item.pages - 1);
+    }
+  });
 
-    const saved = page.waitForResponse(
-      (res) =>
-        res.url().includes("/api/v1/app/patient-medical-records") &&
-        res.request().method() === "PUT",
-    );
-    await page.locator(".pd-medical-bar").getByRole("button", { name: "Lưu" }).click();
-    expect((await saved).ok()).toBeTruthy();
+  test("the cover prints the record's own identity", async ({ page }) => {
+    await openMedicalRecord(page);
+    await openFreshSheet(page, "Bìa hồ sơ bệnh án");
+
+    // The blanks the reference answers from the record. The name is printed in
+    // capitals, which is a different blank from the plain one. The date of
+    // birth is left out on purpose: the front desk may register a patient
+    // without one, and then the sheet has nothing to print there either.
+    await expect(blank(page, "cover.patient.code")).not.toBeEmpty();
+    await expect(blank(page, "cover.patient.name")).not.toBeEmpty();
+    await expect(blank(page, "cover.patient.name")).toHaveText(/^[^a-z]+$/);
+
+    // And the one it deliberately leaves for the clinic's pen.
+    await expect(blank(page, "cover.patient.address")).toBeEmpty();
+
+    // The letterhead comes from the branch, not from the form.
+    await expect(sheet(page).locator(".nfc-tpl")).toContainText("SỞ Y TẾ THÀNH PHỐ HỒ CHÍ MINH");
+    await expect(sheet(page).locator(".nfc-tpl")).toContainText("THUỘC");
+  });
+
+  test("what is written on a sheet survives a reload", async ({ page }) => {
+    await openMedicalRecord(page);
+    await openSheet(page, "Bìa hồ sơ bệnh án");
+
+    const archive = `LT-${runId()}`;
+    await blank(page, "cover.text.1").fill(archive);
+    await blank(page, "cover.checkbox.1").check();
+    await save(page);
 
     await page.reload();
-    await orthodonticCards(page).last().click();
-    await expect(page.locator(".pd-a4-free-body").last()).toHaveValue(note);
+    await openSheet(page, "Bìa hồ sơ bệnh án");
+    await expect(blank(page, "cover.text.1")).toHaveText(archive);
+    await expect(blank(page, "cover.checkbox.1")).toBeChecked();
   });
 
-  test("a sheet is added, filled and survives a reload", async ({ page }) => {
-    const kin = `E2E nguoi nha ${runId()}`;
-
+  /**
+   * A blank left as the record answered it is not stored, so a later correction
+   * to the patient still shows through. Writing something else over it *is*
+   * stored — that is a decision about this sheet — and putting the record's own
+   * answer back drops it again.
+   */
+  test("a blank that agrees with the record is not frozen into the sheet", async ({ page }) => {
     await openMedicalRecord(page);
+    await openFreshSheet(page, "Bìa hồ sơ bệnh án");
 
-    // Every card under this form carries the same title, so waiting on "the
-    // last card says X" proves nothing — it already did. Count from a baseline
-    // taken before the POST instead.
-    const before = await outpatientCards(page).count();
+    const code = blank(page, "cover.patient.code");
+    const fromRecord = (await code.textContent()) ?? "";
+    expect(fromRecord).not.toBe("");
 
-    const added = page.waitForResponse(
-      (res) =>
-        res.url().includes("/api/v1/app/patient-medical-records") &&
-        res.request().method() === "POST",
-    );
-    await page
-      .locator(".pd-medical-form", { hasText: "Bệnh án ngoại trú Răng Hàm Mặt" })
-      .getByRole("button", { name: "Thêm" })
-      .click();
-    expect((await added).ok()).toBeTruthy();
+    const stored = async () => {
+      const raw = await page.evaluate(async () => {
+        const url = new URL(window.location.href);
+        const id = url.pathname.split("/")[2];
+        const res = await fetch(
+          `/api/v1/app/patient-medical-records?patientId=${id}&maxResultCount=100`,
+          { credentials: "include" },
+        );
+        const body = await res.json();
+        const covers = body.items
+          .filter((item: { form: number }) => item.form === 1)
+          .sort((a: { creationTime: string }, b: { creationTime: string }) =>
+            a.creationTime.localeCompare(b.creationTime),
+          );
+        return covers[0]?.content ?? "{}";
+      });
+      return JSON.parse(raw).fieldValues ?? {};
+    };
 
-    // The sheet joins its own form's row in the index and the printed form is
-    // drawn. CreateAsync appends, so the new one is the last card under it.
-    const cardCount = before + 1;
-    const cards = outpatientCards(page);
-    await expect(cards).toHaveCount(cardCount);
-    await expect(cards.last()).toContainText("Bệnh án ngoại trú Răng Hàm Mặt");
-    // Each card carries its own `Bản NN`, numbered within its own form.
-    await expect(cards.last()).toContainText(`Bản ${String(cardCount).padStart(2, "0")}`);
-    await expect(page.locator(".bd-a4-page")).toHaveCount(3);
+    await code.fill(`${fromRecord}-X`);
+    await save(page);
+    expect(Object.keys(await stored())).toContain("cover.patient.code");
 
-    // Fill one of the sheet's own cells and save it.
-    const cell = page.locator(".bd-a4-cellinput").first();
-    await cell.fill(kin);
-
-    const saved = page.waitForResponse(
-      (res) =>
-        res.url().includes("/api/v1/app/patient-medical-records") &&
-        res.request().method() === "PUT",
-    );
-    await page.locator(".pd-medical-bar").getByRole("button", { name: "Lưu" }).click();
-    expect((await saved).ok()).toBeTruthy();
-
-    // Reload: the cell came back from PostgreSQL.
-    await page.reload();
-    await outpatientCards(page).last().click();
-    await expect(page.locator(".bd-a4-cellinput").first()).toHaveValue(kin);
-
-    // And the sheet can be taken off the record again.
-    await page.locator(".pd-medical-bar").getByRole("button", { name: "Xoá phiếu" }).click();
-    const dialog = page.getByRole("dialog");
-    await dialog.getByRole("button", { name: /Xoá$/ }).click();
-
-    await expect(outpatientCards(page)).toHaveCount(cardCount - 1);
+    await code.fill(fromRecord);
+    await save(page);
+    expect(Object.keys(await stored())).not.toContain("cover.patient.code");
   });
 
-  test("the cover form draws the ministry sheet, and a tick survives a reload", async ({ page }) => {
+  test("a sheet can be renamed from its card, and keeps what is written on it", async ({ page }) => {
     await openMedicalRecord(page);
+    await openSheet(page, "Phiếu chăm sóc");
 
-    const before = await cardsUnder(page, "Bìa hồ sơ bệnh án").count();
-    await page
-      .locator(".pd-medical-form", { hasText: "Bìa hồ sơ bệnh án" })
-      .getByRole("button", { name: "Thêm" })
-      .click();
-    await expect(cardsUnder(page, "Bìa hồ sơ bệnh án")).toHaveCount(before + 1);
+    const note = `CS-${runId()}`;
+    await blank(page, "care.patient.code").fill(note);
+    await save(page);
 
-    // Two sides: the cover, then the two control tables and the signatures.
-    await expect(page.locator(".pd-a4-cover .bd-a4-page")).toHaveCount(2);
-    await expect(page.getByText("SỞ Y TẾ THÀNH PHỐ HỒ CHÍ MINH")).toBeVisible();
-    await expect(
-      page.getByText("Thành phần và thứ tự sắp xếp các mẫu giấy, phiếu trong hồ sơ bệnh án"),
-    ).toBeVisible();
-    await expect(
-      page.getByText("Phần kiểm soát của đơn vị nhận và lưu trữ hồ sơ bệnh án"),
-    ).toBeVisible();
-    // Eight numbered content rows, and the twenty tick boxes the reference
-    // draws: two for the sex, fifteen down the control table, three on the
-    // outcome lines.
-    await expect(page.locator(".pd-cover-table").first().locator("tbody tr")).toHaveCount(8);
-    await expect(page.locator(".bd-a4-checkbox")).toHaveCount(20);
-
-    // The patient's identity is seeded from their record but stays editable,
-    // as the reference leaves it — so the name cell already carries a value.
-    await expect(page.locator(".pd-cover-identity")).toContainText("HỌ VÀ TÊN (In hoa)");
-    await expect(page.locator('.pd-cover-identity input[aria-label="fullName"]')).not.toHaveValue(
-      "",
-    );
-
-    const tick = page.locator(".pd-cover-tick .bd-a4-checkbox").first();
-    await tick.check();
-    const saved = page.waitForResponse(
-      (res) =>
-        res.url().includes("/api/v1/app/patient-medical-records") &&
-        res.request().method() === "PUT",
-    );
-    await page.locator(".pd-medical-bar").getByRole("button", { name: "Lưu" }).click();
-    expect((await saved).ok()).toBeTruthy();
-
-    await page.reload();
-    await cardsUnder(page, "Bìa hồ sơ bệnh án").last().click();
-    await expect(page.locator(".pd-cover-tick .bd-a4-checkbox").first()).toBeChecked();
-  });
-
-  test("the consultation form is print-only, so there is nothing to save", async ({ page }) => {
-    await openMedicalRecord(page);
-
-    await page
-      .locator(".pd-medical-form", { hasText: "Phiếu Tư Vấn Tổng Quát" })
-      .getByRole("button", { name: "Thêm" })
-      .click();
-
-    const sheet = page.locator(".pd-a4-consult");
-    await expect(sheet.getByText("PHIẾU TƯ VẤN", { exact: true })).toBeVisible();
-    await expect(sheet.getByText("NỘI DUNG TIẾP XÚC - TƯ VẤN – GIẢI THÍCH")).toBeVisible();
-
-    // The reference's sheet carries no input at all — it is filled in by hand
-    // after printing — so Lưu has nothing to write and stays disabled.
-    await expect(sheet.locator("input, textarea")).toHaveCount(0);
-    await expect(page.locator(".pd-medical-bar").getByRole("button", { name: "Lưu" })).toBeDisabled();
-  });
-
-  test("a sheet can be renamed from its card", async ({ page }) => {
-    const renamed = `E2E doi ten ${runId()}`;
-
-    await openMedicalRecord(page);
-    const before = await cardsUnder(page, "Phiếu chăm sóc").count();
-    await page
-      .locator(".pd-medical-form", { hasText: "Phiếu chăm sóc" })
-      .getByRole("button", { name: "Thêm" })
-      .click();
-    // Wait for the new card, or the rename lands on the previous last one.
-    await expect(cardsUnder(page, "Phiếu chăm sóc")).toHaveCount(before + 1);
-
-    const card = cardsUnder(page, "Phiếu chăm sóc").last();
-    await card.getByRole("button", { name: "Đổi tên phiếu" }).click();
-
-    const dialog = page.getByRole("dialog");
-    await dialog.getByLabel("Tên phiếu").fill(renamed);
+    const card = cardsUnder(page, "Phiếu chăm sóc").first();
+    await card.getByRole("button", { name: /^Đổi tên/ }).click();
+    const dialog = page.getByRole("dialog", { name: "Đổi tên phiếu" });
+    await expect(dialog).toBeVisible();
+    const renamed = `Phiếu chăm sóc ${runId()}`;
+    await dialog.getByRole("textbox").fill(renamed);
     await dialog.getByRole("button", { name: "Lưu" }).click();
-
-    await expect(cardsUnder(page, "Phiếu chăm sóc").last()).toContainText(renamed);
+    await expect(page.getByText("Đã đổi tên phiếu")).toBeVisible();
 
     await page.reload();
-    await expect(cardsUnder(page, "Phiếu chăm sóc").last()).toContainText(renamed);
+    await openSheet(page, "Phiếu chăm sóc");
+    await expect(cardsUnder(page, "Phiếu chăm sóc").first()).toContainText(renamed);
+    await expect(blank(page, "care.patient.code")).toHaveText(note);
   });
 
-  test("renaming a sheet keeps what is written on it", async ({ page }) => {
-    const note = `E2E giu noi dung ${runId()}`;
-
+  test("Toàn bộ shows every sheet at once, and none of them takes edits", async ({ page }) => {
     await openMedicalRecord(page);
-    const before = await cardsUnder(page, "Bệnh án chỉnh nha").count();
-    await page
-      .locator(".pd-medical-form", { hasText: "Bệnh án chỉnh nha" })
-      .getByRole("button", { name: "Thêm" })
-      .click();
-    await expect(cardsUnder(page, "Bệnh án chỉnh nha")).toHaveCount(before + 1);
+    await openSheet(page, "Bìa hồ sơ bệnh án");
 
-    // Write on it and save.
-    await page.locator(".pd-a4-free-body").last().fill(note);
-    await page.locator(".pd-medical-bar").getByRole("button", { name: "Lưu" }).click();
-    await expect(page.getByText("Đã lưu phiếu bệnh án")).toBeVisible();
+    const total = await page.locator(".pd-sheet-card").count();
+    await page.locator(".pd-medical-bar").getByText("Toàn bộ", { exact: true }).click();
+    await expect(page.locator(".mr-doc-frame")).toHaveCount(total);
 
-    // Rename it. The rename sends only the title, and the sheet's content used
-    // to be wiped by that — the update filled unconditionally.
-    const card = cardsUnder(page, "Bệnh án chỉnh nha").last();
-    await card.getByRole("button", { name: "Đổi tên phiếu" }).click();
-    const dialog = page.getByRole("dialog");
-    await dialog.getByLabel("Tên phiếu").fill(`${note} (đổi tên)`);
-    await dialog.getByRole("button", { name: "Lưu" }).click();
-    await expect(dialog).toBeHidden();
+    const first = page.frameLocator(".mr-doc-frame").first();
+    await expect(first.locator("[contenteditable]")).toHaveCount(0);
+  });
+  test("the outpatient form draws the two figures it is printed with", async ({ page }) => {
+    await openMedicalRecord(page);
+    await openSheet(page, "Bệnh án ngoại trú Răng Hàm Mặt");
+
+    // Section IV-3 is a drawing, not text: without the files the sheet prints
+    // a broken box where the clinic marks the teeth.
+    const figures = sheet(page).locator("img");
+    await expect(figures).toHaveCount(2);
+    const loaded = await page
+      .frameLocator(".mr-doc-frame")
+      .locator("img")
+      .evaluateAll((images) =>
+        images.map((image) => (image as HTMLImageElement).naturalWidth),
+      );
+    for (const width of loaded) expect(width).toBeGreaterThan(0);
+  });
+
+  test("the outpatient number is the clinic's own, not the record's code", async ({ page }) => {
+    await openMedicalRecord(page);
+    await openFreshSheet(page, "Phiếu theo dõi điều trị");
+
+    const number = blank(page, "treatment-tracking.page-1.patient.code");
+    await expect(number).toBeEmpty();
+    await expect(number).not.toHaveAttribute("data-field-source", /.+/);
+  });
+
+  /**
+   * The cost table on the consent form is a list, so the reference lets a row
+   * be added — and only added: nothing printed on that form can be taken away.
+   */
+  test("a cost row can be added, and comes back after a reload", async ({ page }) => {
+    await openMedicalRecord(page);
+    await openFreshSheet(page, "Phiếu tư vấn và xác nhận đồng ý điều trị");
+
+    const document = sheet(page);
+    await expect(document.getByRole("button", { name: "Xóa dòng" })).toHaveCount(0);
+
+    const rows = document.locator("tbody > tr");
+    const before = await rows.count();
+    // The eighth cost line: the form prints eight, so the next is row 9.
+    await hoverRow(page, "consultation.text.42");
+    await document.getByRole("button", { name: "Thêm dòng" }).click();
+    await expect(rows).toHaveCount(before + 1);
+
+    const added = blank(page, "consultation.treatment-cost.row-9.service");
+    await expect(added).toBeAttached();
+    await added.fill("Cạo vôi răng");
+    await save(page);
 
     await page.reload();
-    await cardsUnder(page, "Bệnh án chỉnh nha").last().click();
-    await expect(page.locator(".pd-a4-free-body").last()).toHaveValue(note);
+    // The sheet this test made, not the record's first copy of the form.
+    await openLastSheet(page, "Phiếu tư vấn và xác nhận đồng ý điều trị");
+    await expect(blank(page, "consultation.treatment-cost.row-9.service")).toHaveText(
+      "Cạo vôi răng",
+    );
+  });
+
+  /**
+   * The two treatment logs offer both handles: a whole printed block can be
+   * taken off them, and the removal has to outlive the row it removed.
+   */
+  test("a row of the treatment log can be removed for good", async ({ page }) => {
+    await openMedicalRecord(page);
+    await openFreshSheet(page, "Phiếu chăm sóc");
+
+    const document = sheet(page);
+    const rows = document.locator("tbody > tr");
+    const before = await rows.count();
+
+    const firstLogRow = blank(page, "care.row-1.date");
+    await hoverRow(page, "care.row-1.date");
+    await document.getByRole("button", { name: "Xóa dòng" }).click();
+    await expect(rows).toHaveCount(before - 1);
+    await expect(firstLogRow).toHaveCount(0);
+    await save(page);
+
+    await page.reload();
+    await openLastSheet(page, "Phiếu chăm sóc");
+    await expect(blank(page, "care.row-1.date")).toHaveCount(0);
+    await expect(sheet(page).locator("tbody > tr")).toHaveCount(before - 1);
+  });
+
+  test("the open sheet's card wears its own form's colour", async ({ page }) => {
+    await openMedicalRecord(page);
+    await openSheet(page, "Bệnh án chỉnh nha");
+
+    const card = cardsUnder(page, "Bệnh án chỉnh nha").first();
+    const add = page
+      .locator(".pd-medical-form", { hasText: "Bệnh án chỉnh nha" })
+      .getByRole("button", { name: "Thêm" });
+
+    // The card is inside that form's row and next to its own button; a blue
+    // ring on the orange row reads as belonging to something else.
+    const accent = await add.evaluate((node) => getComputedStyle(node).backgroundColor);
+    await expect(card).toHaveClass(/pd-sheet-card--active/);
+    const border = await card.evaluate((node) => getComputedStyle(node).borderTopColor);
+    expect(border).toBe(accent);
+  });
+  test("every sheet's name is shown in full, however long", async ({ page }) => {
+    await openMedicalRecord(page);
+
+    // The longest of the nine is "Giấy đồng ý thực hiện phẫu thuật/thủ thuật";
+    // it wraps onto a second line and the card grows, rather than the name
+    // being cut off — which is what a button's `nowrap` used to do to it.
+    const clipped = await page.locator(".pd-sheet-title").evaluateAll((titles) =>
+      titles
+        .filter(
+          (title) =>
+            title.scrollHeight > Math.ceil(title.getBoundingClientRect().height) + 1 ||
+            title.scrollWidth > Math.ceil(title.getBoundingClientRect().width) + 1,
+        )
+        .map((title) => title.textContent),
+    );
+    expect(clipped).toEqual([]);
+  });
+
+  /**
+   * The reference keeps a 320px index beside the sheet while there is room, and
+   * folds to one column below 1024px — closing the index to its header and
+   * pinning the bar to the window, because there is no column left to sit over.
+   */
+  test("the two columns fold on a narrow window", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openMedicalRecord(page);
+
+    const grid = page.locator(".pd-medical-grid");
+    await expect(grid).toHaveCSS("grid-template-columns", /^320px /);
+    await expect(page.locator(".pd-medical-index")).not.toHaveClass(/--collapsed/);
+    await expect(page.locator(".pd-medical-barwrap")).toHaveCSS("position", "absolute");
+
+    // The bar sits over the sheet, not over the index.
+    const centres = await page.evaluate(() => {
+      const box = (selector: string) => {
+        const rect = document.querySelector(selector)!.getBoundingClientRect();
+        return Math.round(rect.x + rect.width / 2);
+      };
+      return { bar: box(".pd-medical-bar"), canvas: box(".pd-medical-canvas") };
+    });
+    expect(Math.abs(centres.bar - centres.canvas)).toBeLessThanOrEqual(2);
+
+    await page.setViewportSize({ width: 900, height: 900 });
+    await expect(grid).toHaveCSS("grid-template-columns", /^\d+px$/);
+    await expect(page.locator(".pd-medical-index")).toHaveClass(/--collapsed/);
+    await expect(page.locator(".pd-medical-barwrap")).toHaveCSS("position", "fixed");
+
+    /*
+     * The sheet column keeps a scroller of its own here, as the reference does
+     * at every width — a window's worth of height with a 560px floor. Handing
+     * all the scrolling to the page instead meant a record could only be read
+     * by scrolling the whole app past it.
+     */
+    const scrolling = await page.evaluate(() => {
+      const canvas = document.querySelector<HTMLElement>(".pd-medical-canvas")!;
+      const scroller = document.querySelector<HTMLElement>(".pd-medical-canvas-scroll")!;
+      const paper = document.querySelector<HTMLElement>(".pd-medical-paper")!;
+      scroller.scrollTop = 400;
+      return {
+        canvasHeight: Math.round(canvas.getBoundingClientRect().height),
+        scrolls: scroller.scrollHeight > scroller.clientHeight + 1,
+        scrolledTo: scroller.scrollTop,
+        paperHeight: Math.round(paper.getBoundingClientRect().height),
+      };
+    });
+    expect(scrolling.canvasHeight).toBeGreaterThanOrEqual(560);
+    expect(scrolling.scrolls).toBe(true);
+    expect(scrolling.scrolledTo).toBe(400);
+    // The paper is the sheet's own height; the column above is what scrolls it.
+    expect(scrolling.paperHeight).toBeGreaterThan(900);
+
+    /*
+     * The index gets the same treatment. It is bounded to a window's worth and
+     * its list scrolls inside it, so the header stays put — nine form rows and
+     * every copy made from them is several windows of content otherwise.
+     */
+    await page.getByRole("button", { name: "Mở mục lục" }).click();
+    const listScrolling = await page.evaluate(() => {
+      const index = document.querySelector<HTMLElement>(".pd-medical-index")!;
+      const list = document.querySelector<HTMLElement>(".pd-medical-forms")!;
+      const headTop = document.querySelector(".pd-medical-index-head")!.getBoundingClientRect().top;
+      list.scrollTop = 300;
+      return {
+        indexHeight: Math.round(index.getBoundingClientRect().height),
+        scrolls: list.scrollHeight > list.clientHeight + 1,
+        scrolledTo: list.scrollTop,
+        headStaysPut:
+          document.querySelector(".pd-medical-index-head")!.getBoundingClientRect().top === headTop,
+      };
+    });
+    expect(listScrolling.indexHeight).toBeGreaterThanOrEqual(560);
+    expect(listScrolling.scrolls).toBe(true);
+    expect(listScrolling.scrolledTo).toBe(300);
+    expect(listScrolling.headStaysPut).toBe(true);
+
+    // Narrow enough that a sheet of A4 no longer fits: only the paper slides
+    // sideways, never the app around it.
+    await page.setViewportSize({ width: 640, height: 900 });
+    const slides = await page.evaluate(() => ({
+      paper:
+        document.querySelector(".pd-medical-paper")!.scrollWidth >
+        document.querySelector(".pd-medical-paper")!.clientWidth,
+      app: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+    }));
+    expect(slides.paper).toBe(true);
+    expect(slides.app).toBe(false);
+  });
+  /**
+   * The reference's sheet card is a sticky header over a scrolling body, so
+   * `Bản NN`, the sheet's name and the day it is filled in for stay in place
+   * while the A4 moves under them. It holds at both widths: the scroller is
+   * inside the column, and the bar that floats over the column is outside it.
+   */
+  test("the sheet's own head stays put while the paper scrolls", async ({ page }) => {
+    for (const width of [1440, 900]) {
+      await page.setViewportSize({ width, height: 900 });
+      if (width === 1440) await openMedicalRecord(page);
+      await sheetReady(page);
+
+      const head = page.locator(".pd-medical-canvas-head");
+      await expect(head).toHaveCSS("position", "sticky");
+
+      const moved = await page.evaluate(() => {
+        const scroller = document.querySelector<HTMLElement>(".pd-medical-canvas-scroll")!;
+        const at = () => ({
+          head: Math.round(
+            document.querySelector(".pd-medical-canvas-head")!.getBoundingClientRect().top,
+          ),
+          sheet: Math.round(document.querySelector(".mr-doc")!.getBoundingClientRect().top),
+        });
+        scroller.scrollTop = 0;
+        const before = at();
+        scroller.scrollTop = 600;
+        return { before, after: at(), scrolled: scroller.scrollTop };
+      });
+
+      expect(moved.scrolled).toBe(600);
+      // The sheet went up by the whole scroll; the head did not move at all.
+      expect(moved.before.sheet - moved.after.sheet).toBe(600);
+      expect(moved.after.head).toBe(moved.before.head);
+
+      // And the bar rides with the column, not with the sheet.
+      await expect(page.locator(".pd-medical-bar")).toBeVisible();
+    }
+  });
+
+  /**
+   * The card's height is the reference's own 93px — the text block inside
+   * `12px 10px` and a 2px border — and 113px when the name takes two lines.
+   * It is what holds the tick in the corner clear of the three action buttons
+   * across the middle: widen the index into one column and the meta fits on a
+   * single row, which took the card down to ~65px and brought the buttons up
+   * level with the tick.
+   */
+  test("the tick in a card's corner keeps clear of its action buttons", async ({ page }) => {
+    for (const width of [1440, 900]) {
+      await page.setViewportSize({ width, height: 900 });
+      if (width === 1440) await openMedicalRecord(page);
+      if (width === 900) await page.getByRole("button", { name: "Mở mục lục" }).click();
+
+      const geometry = await page.locator(".pd-sheet-card").evaluateAll((cards) =>
+        cards.map((card) => {
+          const box = card.getBoundingClientRect();
+          const tick = card.querySelector(".pd-sheet-check")!.getBoundingClientRect();
+          const actions = card.querySelector(".pd-sheet-actions")!.getBoundingClientRect();
+          return {
+            height: Math.round(box.height),
+            gap: Math.round(actions.top - tick.bottom),
+            // Neither may hang off the card.
+            inside: tick.top >= box.top && actions.bottom <= box.bottom,
+          };
+        }),
+      );
+
+      expect(geometry.length).toBeGreaterThan(0);
+      for (const card of geometry) {
+        expect(card.height).toBeGreaterThanOrEqual(93);
+        expect(card.gap).toBeGreaterThanOrEqual(4);
+        expect(card.inside).toBe(true);
+      }
+    }
+  });
+
+  /**
+   * Five of the nine are filled in for a particular day, and say so beside the
+   * doctor picker. The wording is each form's own.
+   */
+  test("the dated forms carry their own date filter", async ({ page }) => {
+    await openMedicalRecord(page);
+
+    const expected: Array<[string, string | null]> = [
+      ["Bìa hồ sơ bệnh án", null],
+      ["Bệnh án ngoại trú Răng Hàm Mặt", null],
+      ["Bệnh án chỉnh nha", null],
+      ["Phiếu Tư Vấn Tổng Quát", "Ngày thực hiện"],
+      ["Phiếu tư vấn và xác nhận đồng ý điều trị", "Ngày tư vấn"],
+      ["Giấy đồng ý thực hiện phẫu thuật/thủ thuật", "Ngày thực hiện"],
+      ["Phiếu phẫu thuật/thủ thuật", null],
+      ["Phiếu theo dõi điều trị", "Ngày thực hiện"],
+      ["Phiếu chăm sóc", "Ngày thực hiện"],
+    ];
+
+    for (const [form, label] of expected) {
+      await openSheet(page, form);
+      const picker = page.locator(".pd-medical-date");
+      if (label === null) {
+        await expect(picker).toHaveCount(0);
+      } else {
+        await expect(picker).toContainText(label);
+        // Opens on today, as the reference does.
+        await expect(picker.locator("input")).not.toHaveValue("");
+      }
+    }
+  });
+
+  test("picking the day prints it on the sheet, and it survives a reload", async ({ page }) => {
+    await openMedicalRecord(page);
+    await openFreshSheet(page, "Phiếu tư vấn và xác nhận đồng ý điều trị");
+
+    const printed = blank(page, "consultation.text.4");
+    await expect(printed).toBeEmpty();
+
+    await page.locator(".pd-medical-date input").fill("15/08/2026");
+    await page.locator(".pd-medical-date input").press("Enter");
+    // The open document takes the value without being rebuilt under the caret.
+    await expect(printed).toHaveText("15/08/2026");
+    await save(page);
+
+    await page.reload();
+    await openLastSheet(page, "Phiếu tư vấn và xác nhận đồng ý điều trị");
+    await expect(blank(page, "consultation.text.4")).toHaveText("15/08/2026");
+    await expect(page.locator(".pd-medical-date input")).toHaveValue("15/08/2026");
   });
 });

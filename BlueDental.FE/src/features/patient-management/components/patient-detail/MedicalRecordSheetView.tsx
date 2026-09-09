@@ -1,93 +1,63 @@
-import {
-  MedicalRecordSheet,
-  type MedicalRecordFields,
-} from "@/features/taxonomy/components/MedicalRecordSheet";
-import { TAXONOMY_GROUP, useCatalogEntries } from "@/features/taxonomy/api/taxonomyApi";
-import { useCurrentBranchId } from "@/lib/clinicBranch";
 import type { PatientMedicalRecordDto } from "../../api/medicalRecordApi";
-import type { PatientDto } from "../../types/patient";
-import { MedicalRecordCoverSheet } from "./MedicalRecordCoverSheet";
-import { MedicalRecordConsultationSheet } from "./MedicalRecordConsultationSheet";
-import { MedicalRecordFreeSheet } from "./MedicalRecordFreeSheet";
+import { MedicalRecordDocument } from "./medical-record/MedicalRecordDocument";
+import type { FieldValues } from "./medical-record/fieldValues";
+import { templateOf } from "./medical-record/templates";
 import { formSpecOf } from "./medicalRecordForms";
-import type { SheetDraft } from "./medicalRecordDraft";
-import { parseFields, parseBody } from "./medicalRecordDraft";
 
 /**
- * Draws one sheet, choosing the layout its form calls for.
+ * Draws one sheet.
  *
- * Three of the nine forms were observed on the reference and are drawn to its
- * printed layout; the rest open the clinic's own plain A4 page. See
+ * All nine forms are drawn the same way — from the blank form they are printed
+ * from, filled through its `data-medical-record-field` blanks. There is no
+ * per-form component any more: the forms differ by eight hundred blanks and
+ * seventeen pages of layout, which is a document, not code. See
  * docs/clone/pages/patient-detail.md §Bệnh án.
  */
 
 interface Props {
   sheet: PatientMedicalRecordDto;
+  /** Facts from the record and the letterhead, for the blanks that ask. */
+  auto: FieldValues;
   zoom: number;
   /** Only the open sheet takes edits; the others are shown read-only. */
   editable: boolean;
-  draft: SheetDraft | null;
-  onChange: (next: SheetDraft) => void;
-  /** The cover prints the patient's identity, as the reference prints it. */
-  patient?: PatientDto;
+  values: FieldValues;
+  /**
+   * Whether this user may lengthen or shorten the form's table. The reference
+   * keeps that to a clinic administrator.
+   */
+  mayEditRows?: boolean;
+  onChange: (next: FieldValues) => void;
 }
 
-export function MedicalRecordSheetView({ sheet, zoom, editable, draft, onChange, patient }: Props) {
-  const branchId = useCurrentBranchId();
+export function MedicalRecordSheetView({
+  sheet,
+  auto,
+  zoom,
+  editable,
+  values,
+  mayEditRows = false,
+  onChange,
+}: Props) {
   const spec = formSpecOf(sheet.form);
 
-  // "Bệnh án mẫu" from Danh mục: what a free sheet may be started from. One
-  // request no matter how many sheets are on screen — the query key is shared.
-  const templates = (
-    useCatalogEntries(branchId ?? undefined, TAXONOMY_GROUP.MedicalRecordTemplate, {
-      scope: "catalog",
-      skipCount: 0,
-      maxResultCount: 200,
-    }).data?.items ?? []
-  ).map((entry) => ({ id: entry.id, name: entry.name, content: entry.content ?? null }));
-
-  const fields = draft ? draft.fields : parseFields(sheet.content);
-  const body = draft ? draft.body : parseBody(sheet.content);
-  const setFields = (next: typeof fields) => onChange({ fields: next, body });
-  // The outpatient sheet only knows its own seventeen cells, so its edits are
-  // merged over the rest rather than replacing them.
-  const mergeFields = (next: MedicalRecordFields) =>
-    onChange({ fields: { ...fields, ...next }, body });
-  const setBody = (next: string) => onChange({ fields, body: next });
-
-  if (spec.kind === "outpatient") {
-    return (
-      <MedicalRecordSheet
-        zoom={zoom}
-        value={fields}
-        onChange={editable ? mergeFields : () => undefined}
-      />
-    );
-  }
-
-  if (spec.kind === "cover") {
-    return (
-      <MedicalRecordCoverSheet
-        zoom={zoom}
-        value={fields}
-        patient={patient}
-        onChange={editable ? setFields : () => undefined}
-      />
-    );
-  }
-
-  if (spec.kind === "consultation") {
-    return <MedicalRecordConsultationSheet zoom={zoom} />;
-  }
-
   return (
-    <MedicalRecordFreeSheet
+    <MedicalRecordDocument
+      template={templateOf(sheet.form)}
+      auto={auto}
+      stored={values}
+      /*
+       * Rebuilt when the sheet changes, when the server hands back a newer copy
+       * of it — and when the letterhead lands, which is a request of its own and
+       * may arrive after the sheet is first drawn. Never while it is being
+       * written on: the branch cannot change under someone's hands.
+       */
+      documentKey={`${sheet.id}:${sheet.lastModificationTime ?? ""}:${String(auto["branch.name"] ?? "")}`}
+      editable={editable}
       zoom={zoom}
-      title={sheet.title}
-      templates={templates}
-      readOnly={!editable}
-      value={body}
-      onChange={editable ? setBody : () => undefined}
+      canAddRows={mayEditRows && Boolean(spec.canAddRows)}
+      canDeleteRows={mayEditRows && Boolean(spec.canDeleteRows)}
+      onChange={editable ? onChange : undefined}
     />
   );
 }

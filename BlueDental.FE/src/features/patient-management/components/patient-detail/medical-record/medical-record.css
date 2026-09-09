@@ -1,0 +1,232 @@
+/* Bệnh án — the sheet canvas and the controls around it.
+   Measured on staging 2026-09-09; see docs/clone/pages/patient-detail.md. */
+
+/* ── The sheet ── */
+
+/*
+ * The record is its own document in an iframe, so the app can only size it from
+ * outside. CSS zoom rather than a transform: it shrinks the layout box too, so
+ * the scroller measures the sheet at the size it is drawn.
+ */
+.mr-doc {
+  flex: 0 0 auto;
+  zoom: var(--mr-zoom, 1);
+}
+
+/* Sized from the document itself once it has loaded: A4 plus the margin the
+   sheet's own page leaves around it, and taller as the record is written on. */
+.mr-doc-frame {
+  display: block;
+  border: 0;
+  background: transparent;
+}
+
+/* ── Canvas head ── */
+
+.pd-medical-canvas-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+}
+
+.pd-medical-canvas-title {
+  min-width: 0;
+}
+
+/* The day and the doctor, at the far end of the line. They wrap together onto
+   their own row before either of them is squeezed. */
+.pd-medical-canvas-tools {
+  display: flex;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.pd-medical-date {
+  width: 176px;
+  --ff-input-height: 40px;
+}
+
+.pd-medical-date .ant-picker {
+  width: 100%;
+}
+
+.pd-medical-doctor {
+  width: 240px;
+  flex-shrink: 0;
+  --ff-input-height: 40px;
+}
+
+.pd-medical-doctor .ant-select {
+  width: 100%;
+}
+
+/* ── Bottom bar ── */
+
+/* The reference tints this one teal, apart from the rest of the bar. */
+.pd-medical-bar .pd-medical-sync.ant-btn {
+  border-color: #168b80;
+  color: #08796e;
+  background: linear-gradient(#fff, #f4fcfb 60%, #e2f7f4);
+}
+
+.pd-medical-bar .pd-medical-sync.ant-btn:disabled {
+  border-color: var(--bd-border);
+  color: var(--bd-muted);
+  background: var(--bd-bg-soft);
+}
+
+/* ── "Chọn phiếu in" ── */
+
+.pd-print-pick-popover .ant-popover-inner-content,
+.pd-print-pick-popover .ant-popover-inner {
+  padding: 12px;
+}
+
+.pd-print-pick {
+  display: flex;
+  width: 296px;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pd-print-pick-title {
+  margin: 0;
+  color: var(--bd-heading);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.pd-print-pick-hint {
+  margin: 2px 0 0;
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+
+.pd-print-pick-all {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--bd-line);
+  padding-bottom: 10px;
+  color: var(--bd-heading);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.pd-print-pick-list {
+  display: flex;
+  max-height: 224px;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.pd-print-pick-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border-radius: 6px;
+  padding: 4px;
+  color: var(--bd-heading);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.pd-print-pick-row:hover {
+  background: #f4f7fb;
+}
+
+.pd-print-pick-name {
+  display: block;
+  line-height: 20px;
+}
+
+.pd-print-pick-copy {
+  display: inline-flex;
+  margin-top: 4px;
+  border: 1px solid #a6c8ff;
+  border-radius: 8px;
+  background: #e5f0ff;
+  padding: 2px 8px;
+  color: var(--bd-link);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+}
+
+.pd-print-pick-foot {
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid var(--bd-line);
+  padding-top: 12px;
+}
+
+/* ── Printing ── */
+
+/*
+ * Only the sheets go to the printer, and they print where they already sit: a
+ * record is an iframe carrying what has been typed into it, and moving it into
+ * a print container would reload it and lose that.
+ *
+ * Which branches leave the layout is decided in JavaScript — see printing.ts —
+ * because the path down to a sheet differs between the Bệnh án tab and the
+ * "In bệnh án" dialog. All this stylesheet does is honour the marks.
+ *
+ * Its own body class, not the `pd-printing` the older print dialogs use: that
+ * one means "hide every child of body except the `.pd-print-sheet` portalled
+ * onto it", the opposite arrangement, and it would hide the record entirely.
+ */
+@media print {
+  body.mr-printing .mr-print-hide {
+    display: none !important;
+  }
+
+  /* The sheet prints at its own size, whatever the preview was zoomed to. */
+  body.mr-printing .mr-doc {
+    zoom: 1 !important;
+    margin: 0 !important;
+  }
+
+  body.mr-printing .mr-doc + .mr-doc {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  /* Nothing on the path down to a sheet may pad, scroll or frame it. */
+  body.mr-printing .pd-medical,
+  body.mr-printing .pd-medical-grid,
+  body.mr-printing .pd-medical-canvas,
+  body.mr-printing .pd-medical-canvas-scroll,
+  body.mr-printing .pd-medical-paper,
+  body.mr-printing .ant-modal-root,
+  body.mr-printing .ant-modal-wrap,
+  body.mr-printing .ant-modal,
+  body.mr-printing .ant-modal-content,
+  body.mr-printing .ant-modal-body,
+  body.mr-printing .pmr-body,
+  body.mr-printing .pmr-canvas,
+  body.mr-printing .pmr-scale {
+    display: block !important;
+    position: static !important;
+    overflow: visible !important;
+    max-width: none !important;
+    max-height: none !important;
+    width: auto !important;
+    height: auto !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: #fff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    gap: 0 !important;
+    transform: none !important;
+    zoom: 1 !important;
+  }
+}

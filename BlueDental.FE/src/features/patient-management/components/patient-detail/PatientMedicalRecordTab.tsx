@@ -1,12 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Input } from "antd";
-import { DeleteOutlined, MinusOutlined, PlusOutlined, PrinterOutlined, SaveOutlined } from "@ant-design/icons";
+import dayjs, { type Dayjs } from "dayjs";
+import { Minus, Plus, Printer, RefreshCw, Save } from "lucide-react";
 import { toast } from "sonner";
 import { SegmentedTabs } from "@/components/SegmentedTabs";
 import { AppDialog } from "@/components/AppDialog";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { extractApiError } from "@/lib/apiError";
+import { useCurrentBranchId } from "@/lib/clinicBranch";
+import { useAuthStore } from "@/features/auth/store/authStore";
 import { t } from "@/lib/i18n";
+import { isolateSheetsForPrint } from "./medical-record/printing";
 import {
   useAddMedicalRecord,
   useDeleteMedicalRecord,
@@ -15,11 +19,16 @@ import {
   useSaveMedicalRecord,
   type PatientMedicalRecordDto,
 } from "../../api/medicalRecordApi";
+import type { PatientDto } from "../../types/patient";
 import { MedicalRecordIndex } from "./MedicalRecordIndex";
 import { MedicalRecordSheetView } from "./MedicalRecordSheetView";
-import { formSpecOf, type MedicalRecordFormSpec } from "./medicalRecordForms";
-import { parseFields, parseBody, type SheetDraft } from "./medicalRecordDraft";
-import type { PatientDto } from "../../types/patient";
+import { MedicalRecordCanvasHead } from "./medical-record/MedicalRecordCanvasHead";
+import { PrintSheetPicker } from "./medical-record/PrintSheetPicker";
+import { useSheetFieldValues } from "./medical-record/useSheetFieldValues";
+import type { FieldValues } from "./medical-record/fieldValues";
+import { MEDICAL_RECORD_FORMS, formSpecOf, type MedicalRecordFormSpec } from "./medicalRecordForms";
+import { parseFieldValues, serialiseFieldValues } from "./medicalRecordDraft";
+import "./medical-record/medical-record.css";
 
 /**
  * Bệnh án — the second view behind the header's Chi tiết hồ sơ / Bệnh án switch.
@@ -27,14 +36,19 @@ import type { PatientDto } from "../../types/patient";
  * "Mục lục bệnh án" on the left adds a sheet and lists the ones already made,
  * nested under the form each came from; the canvas on the right shows the one
  * being worked on, and the bar along the bottom carries the view mode, the
- * zoom, printing and the save.
+ * zoom, printing and the save. Measured on staging 2026-09-09; see
+ * docs/clone/pages/patient-detail.md §Bệnh án.
  */
 
+/** 60%–140% in tens, as measured on the reference. */
 const ZOOM_STEP = 0.1;
-const ZOOM_MIN = 0.5;
-const ZOOM_MAX = 2;
+const ZOOM_MIN = 0.6;
+const ZOOM_MAX = 1.4;
 
 type ViewMode = "single" | "all";
+
+/** Where the two columns fold into one — the reference's own breakpoint. */
+const TWO_COLUMN_QUERY = "(min-width: 1025px)";
 
 interface TabProps {
   patientId: string;
@@ -43,34 +57,110 @@ interface TabProps {
 }
 
 export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
+  const branchId = useCurrentBranchId();
   const query = usePatientMedicalRecords(patientId);
   const addSheet = useAddMedicalRecord(patientId);
   const saveSheet = useSaveMedicalRecord(patientId);
   const renameSheet = useRenameMedicalRecord(patientId);
   const deleteSheet = useDeleteMedicalRecord(patientId);
 
-  const sheets = useMemo(() => query.data?.items ?? [], [query.data]);
+  /*
+   * In the index's own order: by form, then by when each copy was made. The
+   * API answers in its own order, and the sheet that opens by default is the
+   * first card — so the two have to agree.
+   */
+  /*
+   * Lengthening or shortening a printed form is a clinic administrator's call,
+   * as it is on the reference — a treatment log with a block removed is a
+   * different document.
+   */
+  const mayEditRows = useAuthStore((state) =>
+    (state.user?.roles ?? []).some((role) => /admin/i.test(role)),
+  );
+
+  const sheets = useMemo(() => {
+    const order = new Map(MEDICAL_RECORD_FORMS.map((spec, at) => [spec.form, at]));
+    return [...(query.data?.items ?? [])].sort(
+      (a, b) =>
+        (order.get(a.form) ?? 0) - (order.get(b.form) ?? 0) ||
+        a.creationTime.localeCompare(b.creationTime),
+    );
+  }, [query.data]);
+  const auto = useSheetFieldValues(patient, branchId);
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [mode, setMode] = useState<ViewMode>("single");
   const [zoom, setZoom] = useState(1);
-  const [collapsed, setCollapsed] = useState(false);
-  const [checkedIds, setCheckedIds] = useState<ReadonlySet<string>>(new Set());
-  const [draft, setDraft] = useState<SheetDraft>({ fields: {}, body: "" });
+  /*
+   * The index is open beside the sheet while there are two columns, and closed
+   * to its header once they fold — there is no room for both, which is what the
+   * reference does. Opening or closing it by hand still wins until the window
+   * crosses the breakpoint again.
+   */
+  const [collapsed, setCollapsed] = useState(
+    () => !window.matchMedia(TWO_COLUMN_QUERY).matches,
+  );
+
+  useEffect(() => {
+    const query = window.matchMedia(TWO_COLUMN_QUERY);
+    const follow = (event: MediaQueryListEvent) => setCollapsed(!event.matches);
+    query.addEventListener("change", follow);
+    return () => query.removeEventListener("change", follow);
+  }, []);
+  const [stampedIds, setStampedIds] = useState<ReadonlySet<string>>(new Set());
+  /**
+   * What has been written on a sheet but not saved yet, per sheet.
+   *
+   * Held here rather than seeded into state by an effect: the sheet is built
+   * from its values during the same render it first appears in, and an effect
+   * would run a beat too late — the page would be drawn blank and then never
+   * rebuilt, because rebuilding it as someone types would take the caret.
+   */
+  const [edits, setEdits] = useState<Record<string, FieldValues>>({});
   const [removing, setRemoving] = useState<PatientMedicalRecordDto | null>(null);
   const [renaming, setRenaming] = useState<PatientMedicalRecordDto | null>(null);
   const [newTitle, setNewTitle] = useState("");
+  /** The day each dated sheet is filled in for, until it is saved onto the sheet. */
+  const [dates, setDates] = useState<Record<string, Dayjs>>({});
 
   const active = sheets.find((sheet) => sheet.id === activeId) ?? sheets[0] ?? null;
 
-  // The draft follows whichever sheet is open, and is re-seeded when the server
-  // hands back a newer copy of it.
-  useEffect(() => {
-    setDraft({
-      fields: parseFields(active?.content ?? null),
-      body: parseBody(active?.content ?? null),
+  /** A sheet reads as what is being written on it, or as the saved copy. */
+  const valuesOf = (sheet: PatientMedicalRecordDto): FieldValues =>
+    edits[sheet.id] ?? parseFieldValues(sheet.content);
+
+  /**
+   * The day a dated sheet is filled in for: what has been picked, else what is
+   * already printed on it, else today.
+   */
+  const dateOf = (sheet: PatientMedicalRecordDto): Dayjs => {
+    const picked = dates[sheet.id];
+    if (picked) return picked;
+
+    const [key] = formSpecOf(sheet.form).dateFieldKeys ?? [];
+    const printed = key ? valuesOf(sheet)[key] : undefined;
+    if (typeof printed === "string" && printed) {
+      const parsed = dayjs(printed, "DD/MM/YYYY", true);
+      if (parsed.isValid()) return parsed;
+    }
+    return dayjs();
+  };
+
+  /** Picking the day writes it into whichever blanks the form prints it in. */
+  const handleDateChange = (sheet: PatientMedicalRecordDto, next: Dayjs | null) => {
+    if (!next) return;
+    setDates((current) => ({ ...current, [sheet.id]: next }));
+
+    const keys = formSpecOf(sheet.form).dateFieldKeys ?? [];
+    if (keys.length === 0) return;
+
+    const printed = next.format("DD/MM/YYYY");
+    setEdits((current) => {
+      const values = { ...(current[sheet.id] ?? parseFieldValues(sheet.content)) };
+      for (const key of keys) values[key] = printed;
+      return { ...current, [sheet.id]: values };
     });
-  }, [active?.id, active?.lastModificationTime, active?.content]);
+  };
 
   /** `Bản NN` for a sheet: its position among the sheets of its own form. */
   const ordinalOf = (sheet: PatientMedicalRecordDto) =>
@@ -89,7 +179,16 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
   const handleSave = async () => {
     if (!active) return;
     try {
-      await saveSheet.mutateAsync({ id: active.id, content: JSON.stringify(draft) });
+      await saveSheet.mutateAsync({
+        id: active.id,
+        content: serialiseFieldValues(valuesOf(active)),
+      });
+      // The saved copy is the truth again; the draft has nothing left to add.
+      setEdits((current) => {
+        const rest = { ...current };
+        delete rest[active.id];
+        return rest;
+      });
       toast.success(t("Đã lưu phiếu bệnh án"));
     } catch (error) {
       toast.error(extractApiError(error));
@@ -119,19 +218,39 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
     }
   };
 
-  const handleCheck = (sheet: PatientMedicalRecordDto, checked: boolean) => {
-    setCheckedIds((current) => {
+  /** The tick on a card marks the sheet as one that carries the clinic's stamp. */
+  const handleStamp = (sheet: PatientMedicalRecordDto, stamped: boolean) => {
+    setStampedIds((current) => {
       const next = new Set(current);
-      if (checked) next.add(sheet.id);
+      if (stamped) next.add(sheet.id);
       else next.delete(sheet.id);
       return next;
     });
   };
 
-  // "Toàn bộ" shows every sheet; ticking cards narrows both it and the print to
-  // the chosen ones.
-  const chosen = checkedIds.size > 0 ? sheets.filter((s) => checkedIds.has(s.id)) : sheets;
-  const shown = mode === "all" ? chosen : active ? [active] : [];
+  const shown = mode === "all" ? sheets : active ? [active] : [];
+
+  // Set while a print is in flight, so `afterprint` can put the page back.
+  const restorePage = useRef<(() => void) | null>(null);
+
+  const printSheets = (ids: readonly string[]) => {
+    if (!ids.length) return;
+    restorePage.current?.();
+    restorePage.current = isolateSheetsForPrint();
+    window.print();
+  };
+
+  useEffect(() => {
+    const done = () => {
+      restorePage.current?.();
+      restorePage.current = null;
+    };
+    window.addEventListener("afterprint", done);
+    return () => {
+      window.removeEventListener("afterprint", done);
+      done();
+    };
+  }, []);
 
   return (
     <section className="pd-pane pd-pane--fill pd-medical">
@@ -139,17 +258,17 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
         <MedicalRecordIndex
           sheets={sheets}
           activeId={active?.id ?? null}
-          checkedIds={checkedIds}
+          stampedIds={stampedIds}
           collapsed={collapsed}
           adding={addSheet.isPending}
           onToggleCollapse={() => setCollapsed((value) => !value)}
           onAdd={(spec) => void handleAdd(spec)}
           onSelect={(sheet) => setActiveId(sheet.id)}
-          onCheck={handleCheck}
+          onStamp={handleStamp}
           onPrint={(sheet) => {
             setActiveId(sheet.id);
             setMode("single");
-            window.print();
+            printSheets([sheet.id]);
           }}
           onRename={(sheet) => {
             setRenaming(sheet);
@@ -159,91 +278,109 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
         />
 
         <div className="pd-medical-canvas">
-          {active && (
-            <header className="pd-medical-canvas-head">
-              <small>
-                {t("Bản")} {String(ordinalOf(active)).padStart(2, "0")}
-              </small>
-              <strong>{active.title}</strong>
-            </header>
-          )}
-
-          <div className="pd-medical-paper">
-            {shown.length === 0 ? (
-              <p className="pd-medical-empty">
-                {t('Chưa có phiếu bệnh án. Chọn "Thêm" ở mục lục để tạo phiếu mới.')}
-              </p>
-            ) : (
-              shown.map((sheet) => (
-                <MedicalRecordSheetView
-                  key={sheet.id}
-                  sheet={sheet}
-                  patient={patient}
-                  zoom={zoom}
-                  editable={sheet.id === active?.id}
-                  draft={sheet.id === active?.id ? draft : null}
-                  onChange={setDraft}
-                />
-              ))
+          {/* The scroller sits inside the column rather than being it: the bar
+              below floats over the column and must not scroll away with the
+              sheet, and the head above must stay put while the paper moves.
+              Both are how the reference nests it. */}
+          <div className="pd-medical-canvas-scroll">
+            {active && (
+              <MedicalRecordCanvasHead
+                ordinal={ordinalOf(active)}
+                title={active.title}
+                dateLabel={formSpecOf(active.form).dateLabel}
+                date={dateOf(active)}
+                onDateChange={(next) => handleDateChange(active, next)}
+              />
             )}
+
+            <div className="pd-medical-paper">
+              {shown.length === 0 ? (
+                <p className="pd-medical-empty">
+                  {t('Chưa có phiếu bệnh án. Chọn "Thêm" ở mục lục để tạo phiếu mới.')}
+                </p>
+              ) : (
+                shown.map((sheet) => (
+                  <MedicalRecordSheetView
+                    key={sheet.id}
+                    sheet={sheet}
+                    auto={auto}
+                    zoom={zoom}
+                    editable={mode === "single" && sheet.id === active?.id}
+                    values={valuesOf(sheet)}
+                    mayEditRows={mayEditRows}
+                    onChange={(next) => setEdits((current) => ({ ...current, [sheet.id]: next }))}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+          {/* Centred over the sheet, and pinned to the viewport once the
+              two columns fold into one. */}
+          <div className="pd-medical-barwrap">
+            <div className="pd-medical-bar">
+              <SegmentedTabs
+                items={[
+                  { key: "single" as const, label: t("Từng phiếu") },
+                  { key: "all" as const, label: t("Toàn bộ") },
+                ]}
+                activeKey={mode}
+                onChange={setMode}
+              />
+
+              <div className="pd-medical-zoom">
+                <span>{t("Zoom")}</span>
+                <Button
+                  aria-label={t("Thu nhỏ bệnh án")}
+                  title={t("Thu nhỏ")}
+                  icon={<Minus size={14} />}
+                  disabled={zoom <= ZOOM_MIN}
+                  onClick={() =>
+                    setZoom((value) => Math.max(ZOOM_MIN, Number((value - ZOOM_STEP).toFixed(1))))
+                  }
+                />
+                <b>{Math.round(zoom * 100)}%</b>
+                <Button
+                  aria-label={t("Phóng to bệnh án")}
+                  title={t("Phóng to")}
+                  icon={<Plus size={14} />}
+                  disabled={zoom >= ZOOM_MAX}
+                  onClick={() =>
+                    setZoom((value) => Math.min(ZOOM_MAX, Number((value + ZOOM_STEP).toFixed(1))))
+                  }
+                />
+              </div>
+
+              {mode === "all" ? (
+                <PrintSheetPicker sheets={sheets} ordinalOf={ordinalOf} onPrint={printSheets} />
+              ) : (
+                <Button
+                  icon={<Printer size={14} />}
+                  disabled={!active}
+                  onClick={() => active && printSheets([active.id])}
+                >
+                  {t("In biểu mẫu")}
+                </Button>
+              )}
+
+              {/* The reference offers this once sheets are ticked, but wires nothing
+              to it yet; ours stays disabled for the same reason. */}
+              <Button className="pd-medical-sync" icon={<RefreshCw size={14} />} disabled>
+                {t("Đồng bộ phiếu")}
+              </Button>
+
+              <Button
+                type="primary"
+                icon={<Save size={14} />}
+                loading={saveSheet.isPending}
+                disabled={!active || !formSpecOf(active.form).fillable}
+                onClick={() => void handleSave()}
+              >
+                {saveSheet.isPending ? t("Đang lưu...") : t("Lưu")}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
-
-      <footer className="pd-medical-bar">
-        <SegmentedTabs
-          items={[
-            { key: "single" as const, label: t("Từng phiếu") },
-            { key: "all" as const, label: t("Toàn bộ") },
-          ]}
-          activeKey={mode}
-          onChange={setMode}
-        />
-
-        <div className="pd-medical-zoom">
-          <span>{t("Zoom")}</span>
-          <Button
-            aria-label={t("Thu nhỏ")}
-            icon={<MinusOutlined />}
-            disabled={zoom <= ZOOM_MIN}
-            onClick={() => setZoom((value) => Math.max(ZOOM_MIN, value - ZOOM_STEP))}
-          />
-          <b>{Math.round(zoom * 100)}%</b>
-          <Button
-            aria-label={t("Phóng to")}
-            icon={<PlusOutlined />}
-            disabled={zoom >= ZOOM_MAX}
-            onClick={() => setZoom((value) => Math.min(ZOOM_MAX, value + ZOOM_STEP))}
-          />
-        </div>
-
-        <Button
-          icon={<PrinterOutlined />}
-          disabled={shown.length === 0}
-          onClick={() => window.print()}
-        >
-          {t("In biểu mẫu")}
-        </Button>
-
-        <Button
-          danger
-          icon={<DeleteOutlined />}
-          disabled={!active}
-          onClick={() => setRemoving(active)}
-        >
-          {t("Xoá phiếu")}
-        </Button>
-
-        <Button
-          type="primary"
-          icon={<SaveOutlined />}
-          loading={saveSheet.isPending}
-          disabled={!active || !formSpecOf(active.form).fillable}
-          onClick={() => void handleSave()}
-        >
-          {t("Lưu")}
-        </Button>
-      </footer>
 
       <AppDialog
         open={Boolean(renaming)}

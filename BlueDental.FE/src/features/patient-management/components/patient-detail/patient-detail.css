@@ -2059,6 +2059,15 @@
   flex-direction: column;
   overflow: hidden;
 }
+/*
+ * Two columns while there is room: a 320px index and the sheet. The pair is
+ * given the window's height and scrolls inside itself, so the index and the
+ * sheet each keep their own scrollbar.
+ *
+ * Below that the columns fold, and the height goes with them — see the media
+ * query at the end of this block. Keeping the fixed height there is what left
+ * the cards and the sheet squeezed into a short strip.
+ */
 .pd-medical-grid {
   display: grid;
   min-height: 0;
@@ -2162,7 +2171,21 @@
 }
 
 /* ── The sheet canvas ───────────────────────────────────────────────────── */
+/*
+ * Three layers, as the reference nests them:
+ *
+ *   .pd-medical-canvas         the column — anchors the floating bar, does not scroll
+ *     .pd-medical-canvas-scroll  the scroller — bounded, scrolls the sheet
+ *       .pd-medical-canvas-head  sticky inside it
+ *       .pd-medical-paper        the A4, its own sideways scroll
+ *
+ * The bar cannot live inside the scroller: an absolute box anchors to the
+ * scroll container's padding box and would scroll away with the paper. And the
+ * head cannot live outside it, or it could not be sticky.
+ */
 .pd-medical-canvas {
+  /* The bar is centred on this column, so this is what it anchors to. */
+  position: relative;
   display: flex;
   min-height: 0;
   min-width: 0;
@@ -2172,9 +2195,26 @@
   border-radius: 12px;
   background: #fff;
 }
+.pd-medical-canvas-scroll {
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow-y: auto;
+}
+/* `Bản NN`, the sheet's name and the day it is filled in for stay in place
+   while the paper moves under them — `sticky z-10` with the reference's own
+   downward shadow, which is what separates it from the sheet as it passes. */
 .pd-medical-canvas-head {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   flex-shrink: 0;
   border-bottom: 1px solid var(--bd-line);
+  border-radius: 12px 12px 0 0;
+  background: #fff;
+  box-shadow: 0 8px 16px -14px rgb(27 42 65 / 45%);
   padding: 12px 20px;
 }
 .pd-medical-canvas-head small {
@@ -2187,10 +2227,13 @@
   font-size: 16px;
   font-weight: 500;
 }
+/* Its height is the sheet's — the column above is what scrolls it. It keeps an
+   overflow of its own for the sideways case: a sheet of A4 is wider than a
+   narrow window, and the app itself must never slide sideways. */
 .pd-medical-paper {
   display: flex;
   min-height: 0;
-  flex: 1;
+  flex: 1 0 auto;
   flex-direction: column;
   align-items: center;
   gap: 16px;
@@ -2209,50 +2252,41 @@
 /* ── The bar the reference floats along the bottom ──────────────────────── */
 /* A floating pill centred over the sheet, as the reference draws it — it does
    not span the index, and it does not take a row of its own. */
-.pd-medical-bar {
+.pd-medical-barwrap {
   position: absolute;
-  bottom: 16px;
-  left: calc(50% + 168px);
-  z-index: 5;
+  right: 12px;
+  bottom: 12px;
+  left: 12px;
+  z-index: 20;
   display: flex;
-  width: max-content;
-  max-width: calc(100% - 32px);
-  flex-wrap: nowrap;
+  justify-content: center;
+  /* The wrapper spans the sheet so the card can be centred on it, and must not
+     swallow clicks meant for the sheet underneath. */
+  pointer-events: none;
+}
+.pd-medical-bar {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
   border: 1px solid var(--bd-border);
   border-radius: 12px;
   background: #fff;
-  padding: 8px 12px;
-  box-shadow: 0 6px 16px rgb(27 42 65 / 14%);
-  white-space: nowrap;
-  transform: translateX(-50%);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 10%);
+  padding: 8px;
+  pointer-events: auto;
 }
-/* With the index folded away the sheet takes the full width, so does the bar. */
-.pd-medical:has(.pd-medical-index--collapsed) .pd-medical-bar {
-  left: 50%;
-}
-@media (width <= 1100px) {
-  .pd-medical-bar {
-    left: 50%;
-  }
-}
-/* A phone cannot hold the pill's four controls on one line: capped at the
-   screen width but told not to wrap, they spilled past both edges with the
-   zoom's minus button clipped off. Span the width and wrap instead. */
-@media (max-width: 640px) {
-  .pd-medical-bar {
-    left: 12px;
-    right: 12px;
-    width: auto;
-    max-width: none;
-    flex-wrap: wrap;
-    white-space: normal;
-    row-gap: 8px;
-    transform: none;
-  }
-}
+/*
+ * A phone used to need its own block here, because the bar was one absolute box
+ * placed by hand (`left: calc(50% + 168px)` and a `translateX`) and told not to
+ * wrap — capped at the screen width it spilled past both edges with the zoom's
+ * minus button clipped off. It no longer does: the bar is centred inside
+ * `.pd-medical-barwrap`, which spans the column and is inset 12px from the
+ * window once the columns fold, and it wraps by its own `flex-wrap`. Measured
+ * at 375px and 640px.
+ */
+
 .pd-medical-zoom {
   display: flex;
   align-items: center;
@@ -2267,9 +2301,91 @@
   font-variant-numeric: tabular-nums;
 }
 
-@media (max-width: 1100px) {
+/*
+ * One column below the reference's own breakpoint.
+ *
+ * The cap the pane puts on itself has to go — with one column a record is
+ * taller than any window, and the flex algorithm was shrinking the two areas
+ * into short strips inside whatever was left of it. What replaces it is a
+ * bounded box for each area with its own scroller inside, so the page scrolls
+ * only to move between them. The bar is pinned to the viewport, since there is
+ * no longer a column beside the index for it to sit over.
+ */
+@media (max-width: 1024px) {
+  /*
+   * The page shell caps itself to the window and hides what spills. With one
+   * column a record is taller than any window, so the cap has to go here and
+   * the scrolling goes back to the page — otherwise everything inside is
+   * squeezed into whatever is left of the window, which left the index and the
+   * sheet as two short strips.
+   *
+   * Scoped by `:has`, so only this view lifts the cap.
+   */
+  .pd-page:has(.pd-medical) {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .pd-medical.pd-pane--fill {
+    height: auto;
+    overflow: visible;
+    /*
+     * A little room under the bar, which floats over the window from here down.
+     * Not a bar's worth: the sheet column is the last thing in the column and
+     * ends in the paper's own 76px, so what the bar covers is already empty.
+     * Reserving the full height only let the page scroll far enough to carry
+     * the sticky head off the top of the window.
+     */
+    padding-bottom: 24px;
+  }
+
+  /* `flex: 1` against a zero basis is what the flex algorithm shrinks; these
+     have to claim their content's height instead. */
   .pd-medical-grid {
+    flex: 0 0 auto;
+    height: auto;
+    min-height: 0;
     grid-template-columns: minmax(0, 1fr);
+    overflow: visible;
+  }
+
+  /*
+   * The index keeps a scroller of its own here, exactly as the sheet column
+   * does. Letting it grow to its content instead — nine form rows and every
+   * copy made from them — meant the only way past it was to scroll the whole
+   * app, and the list could be several windows long.
+   *
+   * The bounded box is this panel; what actually scrolls inside it is
+   * `.pd-medical-forms`, which is already a scroller. So the header stays put
+   * and only the list moves.
+   */
+  .pd-medical-index {
+    align-self: start;
+    flex: 0 0 auto;
+    height: calc(100dvh - 180px);
+    min-height: 560px;
+    max-height: none;
+    overflow: hidden;
+  }
+
+  /*
+   * The sheet column keeps a scroller of its own here too — the reference gives
+   * it `h-[calc(100dvh-180px)] min-h-[560px] overflow-y-auto pb-20` at every
+   * width. Letting it grow instead and handing all the scrolling to the page
+   * meant a record could only be read by scrolling the whole app past it.
+   *
+   * The floor matters on a short window: 100dvh − 180px would leave barely
+   * 400px of paper on a 600px-tall one.
+   */
+  .pd-medical-canvas {
+    flex: 0 0 auto;
+    height: calc(100dvh - 180px);
+    min-height: 560px;
+  }
+
+  .pd-medical-barwrap {
+    position: fixed;
   }
 }
 
@@ -2327,10 +2443,23 @@
 }
 
 /* ── One created sheet, inside its form's row ───────────────────────────── */
+/*
+ * 93px is the reference's own card height, measured at the 320px index: the
+ * text block (name 20 + 4 + two rows of meta 41) inside `padding: 12px 10px`
+ * and a 2px border. It is a floor here, not a fixed height — a name that runs
+ * to two lines makes the card 113px there, and does the same here.
+ *
+ * The floor is what keeps the tick clear of the three action buttons. Widen
+ * the index into one column and the meta fits on a single row, which took the
+ * card down to ~65px — and the buttons, centred, rose to sit level with the
+ * tick in the corner. The reference never meets that case, because below its
+ * breakpoint the whole list is collapsed.
+ */
 .pd-sheet-card {
   position: relative;
   display: flex;
   width: 100%;
+  min-height: 93px;
   align-items: center;
   border: 2px solid #d7e0ed;
   border-radius: 12px;
@@ -2340,26 +2469,46 @@
 }
 .pd-sheet-card:hover {
   transform: translateY(-2px);
-  border-color: #b8c5d8;
+  border-color: color-mix(in srgb, var(--form-accent) 45%, #fff);
   background: #f8fafc;
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 10%);
 }
+/* Hovering the sheet that is already open must not pale its border: the card
+   is opened by clicking it, so the pointer is resting on it straight after. */
+.pd-sheet-card--active:hover {
+  border-color: var(--form-accent);
+  background: var(--form-icon-bg);
+}
+/*
+ * The open sheet wears its own form's colour, not one shared blue: the card
+ * sits inside that form's tinted row and next to its "Thêm" button, and a blue
+ * ring on the orange row read as belonging to something else.
+ */
 .pd-sheet-card--active {
-  border-color: var(--bd-link);
-  background: #eaf2fd;
+  border-color: var(--form-accent);
+  background: var(--form-icon-bg);
   box-shadow:
-    0 0 0 2px rgb(38 113 216 / 20%),
+    0 0 0 2px color-mix(in srgb, var(--form-accent) 20%, transparent),
     0 1px 2px rgb(0 0 0 / 5%);
+}
+.pd-sheet-card--active .pd-sheet-icon {
+  background: var(--form-accent);
+  color: #fff;
+}
+.pd-sheet-card--active .pd-sheet-copy {
+  background: color-mix(in srgb, var(--form-accent) 14%, #fff);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--form-accent) 30%, transparent);
+  color: var(--form-accent);
 }
 .pd-sheet-open {
   display: flex;
   min-width: 0;
   flex: 1;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   border: 0;
   background: none;
-  padding: 10px 0 10px 10px;
+  padding: 12px 10px;
   font: inherit;
   text-align: left;
   cursor: pointer;
@@ -2378,10 +2527,18 @@
 .pd-sheet-text {
   min-width: 0;
   flex: 1;
+  /* The card lives in a <button>, whose `nowrap` would otherwise reach the two
+     lines below and leave line-clamp a single line to clamp — which is what cut
+     "Bệnh án ngoại trú Răng Hàm Mặt" mid-word. */
+  white-space: normal;
 }
+/* The tick and the three actions float over the right of the card, so the two
+   lines of text keep clear of them rather than being squeezed to a third of the
+   card's width — which cut "Bệnh án chỉnh nha" mid-word. */
 .pd-sheet-title {
   display: -webkit-box;
   overflow: hidden;
+  padding-right: 40px;
   color: var(--bd-ink);
   font-size: 14px;
   font-weight: 500;
@@ -2395,9 +2552,18 @@
   align-items: center;
   gap: 4px 8px;
   margin-top: 4px;
+  padding-right: 84px;
   color: #6e819d;
   font-size: 11px;
   font-weight: 500;
+  /* The reference's own 11px/16.5px. Left to `normal` the two rows measured 44px
+     against its 41px, and the card came out 95.5px against its 93px. */
+  line-height: 16.5px;
+}
+/* The pill and the date wrap as whole items, never mid-text: the title is the
+   only thing on the card allowed to break across lines. */
+.pd-sheet-meta > * {
+  white-space: nowrap;
 }
 .pd-sheet-copy {
   border-radius: 6px;
@@ -2408,25 +2574,43 @@
   font-style: normal;
   font-weight: 700;
 }
+/* The tick in the top corner, the three buttons across the middle: the
+   reference measures 16px at `top: 10px; right: 10px` and a 82x26 row at
+   `right: 8px` centred, which leaves 7.5px between them. `.pd-sheet-card`'s
+   floor is what holds that gap open. */
+/*
+ * The reference's tick is a bare 16px box at 10px from the card's top and
+ * right edges. Ours is an AntD label: 20px around the same 16px box, so it is
+ * offset by the 2px of slack on each side — 6px here, plus the card's 2px
+ * border, puts the visible tick on 10/10 like the reference's.
+ */
 .pd-sheet-check.ant-checkbox-wrapper {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  /* Without this the label's line box made the wrapper 21px, and the extra
+     pixel came out of the gap under it. */
+  line-height: 0;
 }
 .pd-sheet-actions {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  z-index: 1;
   display: flex;
-  flex-shrink: 0;
   align-items: center;
   gap: 2px;
-  padding-top: 20px;
-  padding-right: 6px;
+  transform: translateY(-50%);
 }
 .pd-sheet-actions button {
   display: grid;
+  width: 26px;
+  height: 26px;
   border: 0;
   border-radius: 4px;
   background: none;
-  padding: 6px;
+  padding: 0;
   place-items: center;
   color: #53657d;
   cursor: pointer;
@@ -2448,8 +2632,11 @@
 .pd-medical-index--collapsed .pd-medical-forms {
   display: none;
 }
+/* Collapsed, the panel is its header and nothing else — it must not hold on to
+   the tall box the media query gives the open one. */
 .pd-medical-index--collapsed {
   height: auto;
+  min-height: 0;
 }
 
 /* ── Bìa hồ sơ bệnh án ──────────────────────────────────────────────────── */
