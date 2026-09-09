@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/PageHeader";
 import { useDebounce } from "@/hooks/useDebounce";
 import { usePatientTagOptions } from "@/hooks/usePatientTagOptions";
 import { useScrolledPast } from "@/hooks/useScrolledPast";
 import { useServiceGroupOptions } from "@/hooks/useServiceGroupOptions";
 import { useStaffOptions } from "@/hooks/useStaffOptions";
+import { t } from "@/lib/i18n";
 import { extractApiError } from "@/lib/apiError";
 import { useBranchFilter } from "@/lib/clinicBranch";
 import { patientApi } from "../api/patientApi";
@@ -100,7 +102,14 @@ export function PatientManagementPage() {
         onCreate={openCreate}
       />
 
-      <div ref={sentinelRef} aria-hidden="true" />
+      {/* Marks the top of the page for the compact toolbar above. It is taken
+          out of the flow so it costs neither height nor a column gap. */}
+      <div ref={sentinelRef} className="bd-patient-sentinel" aria-hidden="true" />
+
+      <PageHeader
+        title={t("Danh sách bệnh nhân")}
+        subtitle={t("{0} hồ sơ", query.data?.totalCount ?? 0)}
+      />
 
       <PatientListToolbar
         keyword={filters.filters.keyword}

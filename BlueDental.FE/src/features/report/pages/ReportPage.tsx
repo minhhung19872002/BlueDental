@@ -1,5 +1,6 @@
 import { useState } from "react";
 import dayjs, { type Dayjs } from "dayjs";
+import { PageHeader } from "@/components/PageHeader";
 import { PillTabs } from "@/components/PillTabs";
 import { t } from "@/lib/i18n";
 import { ReportToolbar } from "../components/ReportToolbar";
@@ -49,6 +50,11 @@ export function ReportPage() {
 
   return (
     <div className="report-page">
+      <PageHeader
+        title={t("Báo cáo")}
+        subtitle={t("Doanh thu, chi phí và kết quả kinh doanh theo kỳ")}
+      />
+
       <section className="report-shell" aria-label={t("Báo cáo")}>
         <ReportToolbar
           viewMode={viewMode}

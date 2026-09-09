@@ -445,11 +445,11 @@ body::-webkit-scrollbar-track {
   gap: 6px;
   border: 0;
   cursor: pointer;
-  padding: 8px 11px;
+  padding: 8px 12px;
   border-radius: 10px 10px 0 0;
   background: transparent;
   color: var(--bd-nav-ink);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
 }
 
@@ -476,7 +476,7 @@ body::-webkit-scrollbar-track {
 
 .app-nav-group-label {
   white-space: nowrap;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 /* ── Ribbon ── */
@@ -509,7 +509,7 @@ body::-webkit-scrollbar-track {
   border-radius: var(--bd-radius-control);
   background: transparent;
   color: var(--bd-nav-ink);
-  font-size: 12.5px;
+  font-size: 14px;
   font-weight: 500;
 }
 
@@ -782,6 +782,11 @@ body::-webkit-scrollbar-track {
   flex: 1 1 180px;
   min-width: 150px;
   max-width: 340px;
+  /* Once the field hits its cap the row still has slack on a wide screen.
+     Give that slack to the search's right margin so the branch picker, bell
+     and account block stay pinned to the right edge instead of leaving a gap
+     after them. */
+  margin-right: auto;
   overflow: hidden;
   height: 38px;
   border-radius: var(--bd-radius-control);
@@ -915,28 +920,6 @@ body::-webkit-scrollbar-track {
   display: grid;
   place-items: center;
   animation: ringPulse 2.2s ease infinite;
-}
-
-/* The language control names the language it is on. */
-.app-header-lang {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  height: 38px;
-  padding: 0 11px;
-  border: 1px solid #e3e7f5;
-  border-radius: 10px;
-  background: #fff;
-  color: #242b47;
-  font-size: 12.5px;
-  font-weight: 600;
-  cursor: pointer;
-  flex: 0 0 auto;
-}
-
-.app-header-lang:hover {
-  border-color: var(--bd-primary);
-  color: var(--bd-primary);
 }
 
 .app-header-user {
@@ -1175,6 +1158,22 @@ body::-webkit-scrollbar-track {
 
 .app-search-esc:hover {
   background: var(--bd-line-soft);
+}
+
+/* The chip floats over the field's right end, and a phone has neither the room
+   for it nor an Esc key to press: the placeholder ran under it. */
+@media (max-width: 640px) {
+  .app-search-overlay {
+    padding-top: 8vh;
+  }
+
+  .app-search-modal {
+    max-width: calc(100% - 24px);
+  }
+
+  .app-search-esc {
+    display: none;
+  }
 }
 
 .app-search-categories {
@@ -2492,7 +2491,7 @@ body::-webkit-scrollbar-track {
 }
 
 /* Then everything the account block does not strictly need: the clinic's
-   name, the branch picker, the language switch, the account's own name. */
+   name, the branch picker, the account's own name. */
 @media (max-width: 1040px) {
   .app-header-hide-sm {
     display: none !important;
@@ -2887,10 +2886,30 @@ body::-webkit-scrollbar-track {
     padding: 8px 12px;
   }
 
+  /* The row wraps here, so an auto margin would push the account block onto a
+     line of its own. */
+  .app-header-search {
+    margin-right: 0;
+  }
 }
 
 /* Phone: compact header and layout */
 @media (max-width: 760px) {
+  /* The bell no longer sits at the right edge here, so a panel anchored to the
+     bell hangs off the left of the screen. Anchor it to the header instead and
+     let it span the row, the way a phone panel is expected to. */
+  .app-header-bell {
+    position: static;
+  }
+
+  .app-notif-panel {
+    top: calc(100% + 4px);
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
+  }
+
   .desktop-only {
     display: none !important;
   }
@@ -2973,14 +2992,16 @@ body::-webkit-scrollbar-track {
     min-width: 0;
   }
 
+  /* The search is an icon at this width, so the slack that is left belongs
+     before the account block — it stays on the right edge instead of sitting
+     mid-row with empty space after it. */
   .app-header-user {
     padding-left: 6px;
-    margin-left: 0;
+    margin-left: auto;
   }
 }
 
-/* Phone: tighten the header's own spacing rather than dropping controls —
-   the language switch is the only way to change language on mobile. */
+/* Phone: tighten the header's own spacing rather than dropping controls. */
 @media (max-width: 560px) {
   .page-header-title {
     font-size: 19px;
@@ -5593,6 +5614,29 @@ html:has(.ant-modal-wrap) {
    needs a real height: main's shell only sets a min-height, so `height: 100%`
    resolves to the content — and the group panel's rows would then decide how
    tall the table beside them is. */
+/* A page whose body is one full-height white shell, with the page title above
+   it on the page background — Vật tư, Vận hành, Labo. The height budget lives
+   on the wrapper so the shell keeps whatever the title block leaves it, rather
+   than the two adding up to more than the viewport. */
+.bd-shell-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: calc(100vh - var(--bd-header-height) - 32px);
+  min-height: 420px;
+}
+
+.bd-shell-page > .page-header {
+  flex-shrink: 0;
+}
+
+.bd-shell-page > .bd-taxonomy-page,
+.bd-shell-page > .bd-labo-page {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+}
+
 .bd-taxonomy-page {
   display: flex;
   flex-direction: column;
@@ -7499,6 +7543,7 @@ html:has(.ant-modal-wrap) {
    every box was already exactly as tall as its parent, so there was nowhere to
    scroll to. */
 @media (max-width: 900px) {
+  .bd-shell-page,
   .bd-taxonomy-page {
     height: auto;
     min-height: 0;
@@ -8225,14 +8270,18 @@ html:has(.ant-modal-wrap) {
     align-items: stretch;
   }
 
+  /* 100% rather than 100vw: vw counts the scrollbar's width and would push a
+     full-screen sheet one pixel past the page. And dvh rather than vh, so a
+     dialog's footer buttons are not left under the phone browser's own bar. */
   .ant-modal-wrap .ant-modal {
-    max-width: 100vw !important;
-    width: 100vw !important;
+    max-width: 100% !important;
+    width: 100% !important;
     padding: 0 !important;
     padding-bottom: 0 !important;
     margin: 0 !important;
     top: 0 !important;
     height: 100vh !important;
+    height: 100dvh !important;
   }
 
   .ant-modal .ant-modal-content,
@@ -8240,10 +8289,11 @@ html:has(.ant-modal-wrap) {
     border-radius: 0 !important;
     max-height: none !important;
     height: 100vh !important;
+    height: 100dvh !important;
   }
 
   .ant-drawer .ant-drawer-content-wrapper {
-    width: 100vw !important;
-    max-width: 100vw !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
 }

@@ -63,7 +63,10 @@ export function VoucherPage() {
 
   return (
     <div className="reception-page">
-      <PageHeader title={t("Voucher khuyến mãi")} />
+      <PageHeader
+        title={t("Voucher khuyến mãi")}
+        subtitle={t("Voucher mới luôn ở trạng thái Nháp — phải kích hoạt mới dùng được")}
+      />
 
       <div className="reception-card reception-card--toolbar">
         <VoucherToolbar

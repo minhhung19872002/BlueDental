@@ -15,7 +15,7 @@ import {
  * The menu's icons are the design's own path data, so they carry its line
  * weight and terminals rather than an icon set's approximation of them.
  */
-export function NavIcon({ d, size = 16 }: { d: string; size?: number }) {
+export function NavIcon({ d, size = 17 }: { d: string; size?: number }) {
   return (
     <svg
       viewBox="0 0 24 24"

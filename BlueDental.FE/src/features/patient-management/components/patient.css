@@ -7,9 +7,21 @@
    reads as part of BlueDental rather than repeating the reference's palette. */
 
 .bd-patient-page {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/* The compact toolbar's trigger. Absolute so that an element with nothing to
+   show costs no height and, in a gapped column, no gap either. */
+.bd-patient-sentinel {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
 }
 
 /* ── Compact toolbar ─────────────────────────────────────────────────────
@@ -48,9 +60,10 @@
   box-shadow: var(--bd-shadow-pop);
 }
 
-/* Off screen it is an empty box; it must not swallow the row it covers. */
+/* Off screen it holds nothing. Leaving it in the column cost a row gap and two
+   border pixels above the toolbar — a strip of empty page under the nav. */
 .bd-patient-sticky:not(.bd-patient-sticky--in) {
-  border-color: transparent;
+  display: none;
 }
 
 /* ── Toolbar card ────────────────────────────────────────────────────────

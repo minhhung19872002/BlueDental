@@ -33,6 +33,7 @@ import {
   type TaxonomyTab,
 } from "../taxonomyTabs";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { PageHeader } from "@/components/PageHeader";
 import { PageTabBar } from "@/components/PageTabBar";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { countedTotal } from "@/utils/countedTotal";
@@ -470,23 +471,30 @@ export function TaxonomyPage() {
   const tab = findTaxonomyTab(tabs, section ?? searchParams.get("tab") ?? DEFAULT_TAXONOMY_TAB);
 
   return (
-    <div className="bd-taxonomy-page">
-      <PageTabBar
-        label={t("Danh mục")}
-        activeKey={tab.key}
-        tabs={tabs.map((item) => ({
-          key: item.key,
-          label: item.label,
-          to: `/taxonomy/${item.key}`,
-        }))}
+    <div className="bd-shell-page">
+      <PageHeader
+        title={t("Danh mục")}
+        subtitle={t("Dữ liệu nền cho dịch vụ, chẩn đoán, thuốc và nguồn khách")}
       />
 
-      <div className="bd-min0h bd-flex1">
-        {tab.group ? (
-          <CatalogWorkspace key={tab.key} tab={tab} />
-        ) : (
-          <StandaloneScreen key={tab.key} tab={tab} />
-        )}
+      <div className="bd-taxonomy-page">
+        <PageTabBar
+          label={t("Danh mục")}
+          activeKey={tab.key}
+          tabs={tabs.map((item) => ({
+            key: item.key,
+            label: item.label,
+            to: `/taxonomy/${item.key}`,
+          }))}
+        />
+
+        <div className="bd-min0h bd-flex1">
+          {tab.group ? (
+            <CatalogWorkspace key={tab.key} tab={tab} />
+          ) : (
+            <StandaloneScreen key={tab.key} tab={tab} />
+          )}
+        </div>
       </div>
     </div>
   );

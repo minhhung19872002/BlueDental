@@ -13,6 +13,12 @@
   background: var(--bd-bg);
 }
 
+/* The column sets gap:0 for the grid rows, so the page title carries its own. */
+.cal-page > .page-header {
+  flex-shrink: 0;
+  margin-bottom: 12px;
+}
+
 /* ── Top tab strip ────────────────────────────────────────────────────── */
 
 .cal-tabs-wrap {
@@ -517,6 +523,7 @@ body.cal-fullscreen .cal-page {
   border-radius: 0;
 }
 
+body.cal-fullscreen .cal-page > .page-header,
 body.cal-fullscreen .cal-tabs-wrap,
 body.cal-fullscreen .cal-toolbar-row1,
 body.cal-fullscreen .cal-toolbar-row2,

@@ -149,7 +149,7 @@ export function ToolsPage() {
     <div className="reception-page">
       <PageHeader
         title={t("Công cụ")}
-        subtitle={t("Gọi thoại, tin nhắn, Zalo OA và hoá đơn điện tử")}
+        subtitle={t("Tổng đài, tin nhắn, Zalo OA và hoá đơn điện tử")}
       />
 
       <div className="bd-tools-shell">

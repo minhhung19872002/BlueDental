@@ -14,14 +14,7 @@ interface Props {
   onDelete: (id: string) => void;
 }
 
-export function VoucherTable({
-  data,
-  loading,
-  onPublish,
-  onUnpublish,
-  onEdit,
-  onDelete,
-}: Props) {
+export function VoucherTable({ data, loading, onPublish, onUnpublish, onEdit, onDelete }: Props) {
   // "Xem chi tiết" in the conditions column — a table concern, so the page
   // doesn't need to know about it.
   const [viewingServices, setViewingServices] = useState<VoucherDto | null>(null);
@@ -51,22 +44,16 @@ export function VoucherTable({
           emptyText: (
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={t(
-                'Chưa có voucher nào — nhấn "Tạo voucher" để bắt đầu.',
-              )}
+              description={t('Chưa có voucher nào — nhấn "Tạo voucher" để bắt đầu.')}
             />
           ),
         }}
         pagination={{
           pageSize: 20,
-          showTotal: (total, range) =>
-            t("Hiển thị {0}–{1} trên {2}", range[0], range[1], total),
+          showTotal: (total, range) => t("Hiển thị {0}–{1} trên {2}", range[0], range[1], total),
         }}
       />
-      <VoucherServicesModal
-        voucher={viewingServices}
-        onClose={() => setViewingServices(null)}
-      />
+      <VoucherServicesModal voucher={viewingServices} onClose={() => setViewingServices(null)} />
     </>
   );
 }

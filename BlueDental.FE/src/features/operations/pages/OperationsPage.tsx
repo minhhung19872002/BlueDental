@@ -35,6 +35,7 @@ import {
 } from "../operationsTabs";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { DataTable } from "@/components/DataTable";
+import { PageHeader } from "@/components/PageHeader";
 import { PageTabBar } from "@/components/PageTabBar";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useTablePagination } from "@/hooks/useTablePagination";
@@ -282,148 +283,155 @@ export function OperationsPage() {
   );
 
   return (
-    <div className="bd-taxonomy-page">
-      <PageTabBar
-        label={t("Vận hành")}
-        activeKey={division.key}
-        tabs={operationsDivisions().map((item) => ({
-          key: item.key,
-          label: item.label,
-          to: divisionHref(item.key),
-        }))}
+    <div className="bd-shell-page">
+      <PageHeader
+        title={t("Quản trị vận hành")}
+        subtitle={t("Chỉ số theo từng khối chức năng trong ngày")}
       />
 
-      {division.middleTabs ? (
-        <div className="bd-ops-middletabs">
-          <div className="bd-ops-middletabs-list" role="tablist" aria-label={division.label}>
-            {division.middleTabs.map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              role="tab"
-              aria-selected={item.key === middleTab?.key}
-              className={cn(
-                "bd-ops-middletab",
-                item.key === middleTab?.key && "bd-ops-middletab--active",
-              )}
-                onClick={() => changeMiddleTab(item.key)}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
+      <div className="bd-taxonomy-page">
+        <PageTabBar
+          label={t("Vận hành")}
+          activeKey={division.key}
+          tabs={operationsDivisions().map((item) => ({
+            key: item.key,
+            label: item.label,
+            to: divisionHref(item.key),
+          }))}
+        />
 
-          {/* The period switch lands here on the divisions that have this row. */}
-          <div id={PERIOD_SLOT_ID} className="bd-ops-tabrow-end" />
-        </div>
-      ) : null}
-
-      {onMiddleReport ? (
-        <div className="bd-min0h bd-flex1">
-          {reportScreenFor(middleTab?.key ?? "", division.key) ?? (
-            <OperationReportPanel label={middleTab?.label ?? ""} />
-          )}
-        </div>
-      ) : (
-        <>
-          <div className="bd-ops-subtabs">
-            <div className="pill-tabs" role="tablist" aria-label={division.label}>
-              {division.subTabs.map((item) => (
-                <button
-                  key={item.key}
-                  type="button"
-                  role="tab"
-                  aria-selected={item.key === subTab.key}
-                  className={cn("pill-tab", item.key === subTab.key && "pill-tab--active")}
-                  onClick={() => changeSubTab(item.key)}
+        {division.middleTabs ? (
+          <div className="bd-ops-middletabs">
+            <div className="bd-ops-middletabs-list" role="tablist" aria-label={division.label}>
+              {division.middleTabs.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                role="tab"
+                aria-selected={item.key === middleTab?.key}
+                className={cn(
+                  "bd-ops-middletab",
+                  item.key === middleTab?.key && "bd-ops-middletab--active",
+                )}
+                  onClick={() => changeMiddleTab(item.key)}
                 >
                   {item.label}
                 </button>
               ))}
             </div>
 
-            {division.middleTabs ? null : (
-              <div id={PERIOD_SLOT_ID} className="bd-ops-tabrow-end" />
+            {/* The period switch lands here on the divisions that have this row. */}
+            <div id={PERIOD_SLOT_ID} className="bd-ops-tabrow-end" />
+          </div>
+        ) : null}
+
+        {onMiddleReport ? (
+          <div className="bd-min0h bd-flex1">
+            {reportScreenFor(middleTab?.key ?? "", division.key) ?? (
+              <OperationReportPanel label={middleTab?.label ?? ""} />
             )}
           </div>
+        ) : (
+          <>
+            <div className="bd-ops-subtabs">
+              <div className="pill-tabs" role="tablist" aria-label={division.label}>
+                {division.subTabs.map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    role="tab"
+                    aria-selected={item.key === subTab.key}
+                    className={cn("pill-tab", item.key === subTab.key && "pill-tab--active")}
+                    onClick={() => changeSubTab(item.key)}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
 
-          {showsArticles ? (
-            <div className="bd-min0h bd-flex1">
-              <div className="bd-ops-shell">
-                <aside className="bd-ops-aside">{categoryPanel}</aside>
+              {division.middleTabs ? null : (
+                <div id={PERIOD_SLOT_ID} className="bd-ops-tabrow-end" />
+              )}
+            </div>
 
-                <Drawer
-                  open={groupsOpen}
-                  onClose={() => setGroupsOpen(false)}
-                  placement="left"
-                  size={288}
-                  title={t("Phân loại")}
-                  className="bd-group-drawer"
-                  styles={{ body: { padding: 0 } }}
-                >
-                  {categoryPanel}
-                </Drawer>
+            {showsArticles ? (
+              <div className="bd-min0h bd-flex1">
+                <div className="bd-ops-shell">
+                  <aside className="bd-ops-aside">{categoryPanel}</aside>
 
-                <main className="bd-ops-main">
-                  <div className="bd-cat-header bd-cat-header--bar">
-                    <Button type="link" icon={<MenuOutlined />} onClick={() => setGroupsOpen(true)}>
-                      {t("Chọn nhóm")}
-                    </Button>
-                  </div>
+                  <Drawer
+                    open={groupsOpen}
+                    onClose={() => setGroupsOpen(false)}
+                    placement="left"
+                    size={288}
+                    title={t("Phân loại")}
+                    className="bd-group-drawer"
+                    styles={{ body: { padding: 0 } }}
+                  >
+                    {categoryPanel}
+                  </Drawer>
 
-                  <div className="bd-ops-toolbar">
-                    <Button
-                      type="primary"
-                      icon={<PlusOutlined />}
-                      // The reference offers this only once an article has a
-                      // category to be filed under.
-                      disabled={!selectedCategoryId}
-                      title={selectedCategoryId ? undefined : t("Chọn một mục trước khi thêm")}
-                      onClick={() => setArticleModal({ open: true, article: null })}
-                    >
-                      {t("Tạo Bài Viết")}
-                    </Button>
+                  <main className="bd-ops-main">
+                    <div className="bd-cat-header bd-cat-header--bar">
+                      <Button type="link" icon={<MenuOutlined />} onClick={() => setGroupsOpen(true)}>
+                        {t("Chọn nhóm")}
+                      </Button>
+                    </div>
 
-                    <Input
-                      className="bd-ops-search"
-                      prefix={<SearchOutlined />}
-                      placeholder={t("Tìm kiếm")}
-                      aria-label={t("Tìm kiếm")}
-                      value={keyword}
-                      allowClear
-                      onChange={(event) => {
-                        setKeyword(event.target.value);
-                        pagination.resetToFirstPage();
-                      }}
-                    />
-                  </div>
+                    <div className="bd-ops-toolbar">
+                      <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        // The reference offers this only once an article has a
+                        // category to be filed under.
+                        disabled={!selectedCategoryId}
+                        title={selectedCategoryId ? undefined : t("Chọn một mục trước khi thêm")}
+                        onClick={() => setArticleModal({ open: true, article: null })}
+                      >
+                        {t("Tạo Bài Viết")}
+                      </Button>
 
-                  <div className="bd-cat-body">
-                    <div className="bd-cat-card">
-                      <DataTable<OperationArticleDto>
-                        columns={columns}
-                        dataSource={articles}
-                        rowKey="id"
-                        loading={articlesQuery.isFetching}
-                        pagination={pagination.buildConfig(totalCount, operationsTotal)}
-                        locale={{
-                          emptyText: debouncedKeyword
-                            ? t("Không tìm thấy kết quả phù hợp")
-                            : t("Không có dữ liệu"),
+                      <Input
+                        className="bd-ops-search"
+                        prefix={<SearchOutlined />}
+                        placeholder={t("Tìm kiếm")}
+                        aria-label={t("Tìm kiếm")}
+                        value={keyword}
+                        allowClear
+                        onChange={(event) => {
+                          setKeyword(event.target.value);
+                          pagination.resetToFirstPage();
                         }}
                       />
                     </div>
-                  </div>
-                </main>
+
+                    <div className="bd-cat-body">
+                      <div className="bd-cat-card">
+                        <DataTable<OperationArticleDto>
+                          columns={columns}
+                          dataSource={articles}
+                          rowKey="id"
+                          loading={articlesQuery.isFetching}
+                          pagination={pagination.buildConfig(totalCount, operationsTotal)}
+                          locale={{
+                            emptyText: debouncedKeyword
+                              ? t("Không tìm thấy kết quả phù hợp")
+                              : t("Không có dữ liệu"),
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </main>
+                </div>
               </div>
-            </div>
-          ) : (
-            <div className="bd-min0h bd-flex1">
-              {reportScreenFor(subTab.key, division.key) ?? <OperationReportPanel label={subTab.label} />}
-            </div>
-          )}
-        </>
-      )}
+            ) : (
+              <div className="bd-min0h bd-flex1">
+                {reportScreenFor(subTab.key, division.key) ?? <OperationReportPanel label={subTab.label} />}
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       <OperationCategoryModal
         open={categoryModal.open}

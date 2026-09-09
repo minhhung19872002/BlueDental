@@ -41,7 +41,10 @@ export function CskhGroupingPage() {
 
   return (
     <div className="reception-page">
-      <PageHeader title={t("Chăm sóc khách hàng")} />
+      <PageHeader
+        title={t("Chăm sóc khách hàng")}
+        subtitle={t("Phân nhóm nhật ký chăm sóc theo mục đích liên hệ")}
+      />
 
       <div className="pill-tabs-row">
         <div className="pill-tabs">
