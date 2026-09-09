@@ -158,6 +158,7 @@ export function MessageTemplateView({ channel }: { channel: number }) {
         title: t("Thao tác"),
         width: 110,
         align: "center",
+        fixed: "right",
         render: (_, tpl) => (
           <div className="bd-cat-rowactions">
             <Tooltip title={t("Chỉnh sửa")}>

@@ -578,6 +578,7 @@ function BranchListTab() {
       title: t("Thao tác"),
       width: 110,
       align: "center",
+      fixed: "right",
       render: (_, record) => {
         if (record.isDeleted) return null;
         return (
@@ -815,6 +816,7 @@ function BranchManageTab() {
       title: t("Thao tác"),
       width: 110,
       align: "center",
+      fixed: "right",
       render: (_, record) => (
         <div style={{ display: "flex", justifyContent: "center", gap: 4 }}>
           <Tooltip title={t("Chỉnh sửa")}>

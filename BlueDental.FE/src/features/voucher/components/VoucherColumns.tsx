@@ -227,6 +227,7 @@ export function buildVoucherColumns(handlers: VoucherTableHandlers): ColumnsType
       key: "actions",
       width: 100,
       align: "center",
+      fixed: "right",
       render: (_, row) => (
         <div className="voucher-actions">
           <Tooltip title={t("Sửa")}>

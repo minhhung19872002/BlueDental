@@ -262,6 +262,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
         title: t("Thao tác"),
         width: 90,
         align: "center",
+        fixed: "right",
         render: (_, stage, index) => (
           <Tooltip title={t("Xoá")}>
             <Button
@@ -492,6 +493,7 @@ export function ServiceDialog({ open, entry, groups, defaultTaxonomyId, onClose 
                     rowKey={(stage, index) => stage.id ?? `${stage.name}-${index}`}
                     pagination={false}
                     size="small"
+                    scroll={{ x: "max-content" }}
                     locale={{ emptyText: t("Chưa có công đoạn nào") }}
                   />
                 </div>

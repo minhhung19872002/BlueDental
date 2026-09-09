@@ -44,6 +44,7 @@ function buildColumns(config: CategoryPanelConfig, onEdit: Props["onEdit"], onDe
     key: "actions",
     width: 110,
     align: "center",
+    fixed: "right",
     render: (_: unknown, row) => (
       <Space size={4}>
         <Tooltip title={t("Chỉnh sửa")}>

@@ -73,6 +73,7 @@ export function CallAssignView() {
         title: t("Thao tác"),
         width: 110,
         align: "center",
+        fixed: "right",
         render: (_, assignment) => (
           <div className="bd-cat-rowactions">
             <Tooltip title={t("Chỉnh sửa")}>

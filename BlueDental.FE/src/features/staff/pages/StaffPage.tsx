@@ -206,6 +206,7 @@ export function StaffPage() {
       title: t("Thao tác"),
       width: 110,
       align: "center",
+      fixed: "right",
       render: (_, record) => (
         <div style={{ display: "flex", justifyContent: "center", gap: 4 }}>
           <Tooltip title={t("Chỉnh sửa")}>

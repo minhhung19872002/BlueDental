@@ -41,6 +41,7 @@ function buildColumns(onEdit: Props["onEdit"], onDelete: (entry: CashflowEntryVm
       key: "actions",
       width: 100,
       align: "center",
+      fixed: "right",
       render: (_: unknown, row) => (
         <Space size={4}>
           <Tooltip title={t("Chỉnh sửa")}>

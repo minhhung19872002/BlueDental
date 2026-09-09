@@ -121,6 +121,7 @@ function BranchTable() {
       title: t("Thao tác"),
       key: "actions",
       width: 120,
+      fixed: "right",
       render: (_: unknown, record: ClinicBranchDto) => (
         <Space>
           <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(record)} />
@@ -156,6 +157,7 @@ function BranchTable() {
         loading={isLoading}
         pagination={{ pageSize: 10 }}
         size="middle"
+        scroll={{ x: "max-content" }}
         locale={{ emptyText: t("Chưa có chi nhánh nào") }}
       />
       <Modal
@@ -266,6 +268,7 @@ function DepartmentTable() {
       title: t("Thao tác"),
       key: "actions",
       width: 120,
+      fixed: "right",
       render: (_: unknown, record: DepartmentDto) => (
         <Space>
           <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(record)} />
@@ -296,6 +299,7 @@ function DepartmentTable() {
         loading={isLoading}
         pagination={{ pageSize: 10 }}
         size="middle"
+        scroll={{ x: "max-content" }}
         locale={{ emptyText: t("Chưa có phòng ban nào") }}
       />
       <Modal

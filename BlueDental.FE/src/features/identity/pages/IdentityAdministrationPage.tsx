@@ -230,6 +230,7 @@ function UsersTab() {
       title: t("Thao tác"),
       key: "actions",
       width: 120,
+      fixed: "right",
       render: (_, record) => (
         <div style={{ display: "flex", gap: 6 }}>
           <Button size="small" icon={<EditOutlined />} onClick={() => { setEditingUser(record); setModalOpen(true); }} />
@@ -276,6 +277,7 @@ function UsersTab() {
           loading={isLoading}
           pagination={{ pageSize: 20, showTotal: (total) => t("{0} người dùng", total) }}
           locale={{ emptyText: t("Không có người dùng") }}
+          scroll={{ x: "max-content" }}
           size="middle"
         />
       </div>
@@ -329,6 +331,7 @@ function RolesTab() {
       title: t("Thao tác"),
       key: "actions",
       width: 100,
+      fixed: "right",
       render: (_, record) =>
         record.isStatic ? (
           <Tag>{t("Không thể xóa")}</Tag>
@@ -363,6 +366,7 @@ function RolesTab() {
           loading={isLoading}
           pagination={false}
           locale={{ emptyText: t("Không có vai trò") }}
+          scroll={{ x: "max-content" }}
           size="middle"
         />
       </div>

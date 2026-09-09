@@ -62,6 +62,7 @@ export function MessageLogView({ channel }: { channel: number }) {
         title: t("Thao tác"),
         width: 100,
         align: "center",
+        fixed: "right",
         // UNKNOWN_REFERENCE_BEHAVIOR: row actions could not be observed.
         render: () => "—",
       },

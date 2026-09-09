@@ -46,6 +46,7 @@ export function VoucherTable({
         dataSource={data}
         columns={columns}
         size="middle"
+        scroll={{ x: "max-content" }}
         locale={{
           emptyText: (
             <Empty

@@ -110,6 +110,7 @@ export function TreatmentStagePanel({ patientId }: TreatmentStagePanelProps) {
       title: t("Thao tác"),
       key: "actions",
       width: 190,
+      fixed: "right",
       render: (_, row) =>
         row.status === STAGE_STATUS.Completed ? (
           <Text type="secondary">{t("Đã xong")}</Text>
@@ -171,6 +172,7 @@ export function TreatmentStagePanel({ patientId }: TreatmentStagePanelProps) {
           loading={isLoading}
           columns={columns}
           dataSource={stages}
+          scroll={{ x: "max-content" }}
           pagination={false}
           locale={{
             emptyText: <Empty description={t("Chưa có công đoạn")} image={Empty.PRESENTED_IMAGE_SIMPLE} />,

@@ -82,6 +82,7 @@ export function CallConfigView() {
         title: t("Thao tác"),
         width: 110,
         align: "center",
+        fixed: "right",
         render: (_, config) => (
           <div className="bd-cat-rowactions">
             <Tooltip title={t("Chỉnh sửa")}>
