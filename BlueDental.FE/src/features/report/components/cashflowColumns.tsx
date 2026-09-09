@@ -31,13 +31,6 @@ interface ColumnOptions {
   onEdit: (entry: SalesEntryVm) => void;
 }
 
-const PATIENT_COLUMN: TableColumnsType<SalesEntryVm>[number] = {
-  title: t("Khách hàng"),
-  dataIndex: "patientLabel",
-  width: 200,
-  render: (v: string | null) => (v ? <span className="report-patient-link">{v}</span> : "—"),
-};
-
 /**
  * Column set for Thu nhập / Chi phí. The reference's income table has no
  * "Ngày thực thu": the customer sits right after "Ngày tạo" and the headers
@@ -45,6 +38,12 @@ const PATIENT_COLUMN: TableColumnsType<SalesEntryVm>[number] = {
  * expense table keeps the generic headers plus "Ngày thực chi" and approval.
  */
 export function buildSalesEntryColumns({ kind, onEdit }: ColumnOptions): TableColumnsType<SalesEntryVm> {
+  const patientColumn: TableColumnsType<SalesEntryVm>[number] = {
+    title: t("Khách hàng"),
+    dataIndex: "patientLabel",
+    width: 200,
+    render: (v: string | null) => (v ? <span className="report-patient-link">{v}</span> : "—"),
+  };
   const channels = paymentChannelLabels();
   const isExpense = kind === "expense";
   const columns: TableColumnsType<SalesEntryVm> = [
@@ -59,11 +58,11 @@ export function buildSalesEntryColumns({ kind, onEdit }: ColumnOptions): TableCo
       render: (v: string) => formatDate(v),
     });
   } else {
-    columns.push(PATIENT_COLUMN);
+    columns.push(patientColumn);
   }
 
   columns.push({ title: isExpense ? t("Nội dung") : t("Nội dung thu"), dataIndex: "description" });
-  if (isExpense) columns.push(PATIENT_COLUMN);
+  if (isExpense) columns.push(patientColumn);
   columns.push(
     { title: isExpense ? t("Nhân viên") : t("Nhân viên thu"), dataIndex: "staffName", width: 170 },
     { title: isExpense ? t("Mục chi") : t("Mục thu"), dataIndex: "categoryName", width: 150 },

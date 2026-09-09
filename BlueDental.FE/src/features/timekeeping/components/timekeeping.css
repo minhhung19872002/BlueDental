@@ -10,11 +10,11 @@
   gap: 6px;
   flex-wrap: wrap;
   margin-left: auto;
-  --stat-chip-width: 100px;
 }
 
 .tk-stat-chips .cal-counter {
   flex-shrink: 0;
+  min-width: 100px;
 }
 
 /* ── Search input inside cal-toolbar-row2 ────────────────────────── */

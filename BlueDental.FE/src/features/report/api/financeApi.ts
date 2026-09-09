@@ -373,26 +373,3 @@ export function useCashflowEntries(params: CashflowQueryInput) {
     queryFn: () => financeApi.cashflowEntries(params),
   });
 }
-
-export const PAYMENT_CHANNEL_LABELS: Record<PaymentChannel, string> = {
-  [PAYMENT_CHANNEL.Cash]: "Tiền mặt",
-  [PAYMENT_CHANNEL.Banking]: "Chuyển khoản",
-  [PAYMENT_CHANNEL.Card]: "Quẹt thẻ",
-  [PAYMENT_CHANNEL.OutstandingDebt]: "Cấn trừ dư nợ",
-};
-
-/** Matches BlueDental.Finance.SalesApprovalStatus */
-
-export const CASH_TRANSACTION_LABELS: Record<CashTransactionType, string> = {
-  [CASH_TRANSACTION_TYPE.Deposit]: "Nạp",
-  [CASH_TRANSACTION_TYPE.Withdraw]: "Rút",
-  [CASH_TRANSACTION_TYPE.Transfer]: "Luân chuyển",
-};
-
-/** Matches BlueDental.Finance.CashHolding */
-
-export const CASH_HOLDING_LABELS: Record<CashHolding, string> = {
-  [CASH_HOLDING.Cash]: "Tiền mặt",
-  [CASH_HOLDING.Bank]: "Chuyển khoản",
-  [CASH_HOLDING.CustomerPrepaid]: "Giữ hộ khách",
-};

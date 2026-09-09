@@ -53,7 +53,6 @@ export function TimekeepingStatChips({ summary }: Props) {
               "--counter-border": chip.border,
               "--counter-bg": chip.bg,
               "--counter-color": chip.color,
-              width: "var(--stat-chip-width, auto)",
             } as React.CSSProperties}
           >
             <span className="cal-counter-value">{display}</span>

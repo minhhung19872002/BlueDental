@@ -284,3 +284,37 @@
   color: #ffffff;
   font-weight: 600;
 }
+
+/* ── Year grid (for year mode picker) ── */
+.date-nav-year-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.date-nav-year-cell {
+  padding: 10px 4px;
+  border: none;
+  background: none;
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--bd-ink);
+  cursor: pointer;
+  font-family: var(--bd-font);
+  transition: background 0.15s;
+  text-align: center;
+}
+
+.date-nav-year-cell:hover {
+  background: var(--bd-line-soft);
+}
+
+.date-nav-year-cell.active {
+  background: var(--bd-blue);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.date-nav-year-cell.outside {
+  color: #ccc;
+}

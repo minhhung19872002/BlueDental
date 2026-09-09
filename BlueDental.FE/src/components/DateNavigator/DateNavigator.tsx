@@ -8,7 +8,7 @@ import { t } from "@/lib/i18n";
 import { endOfWeek, startOfWeek, type WeekStart } from "@/utils/week";
 import "./DateNavigator.css";
 
-export type DateNavigatorMode = "day" | "week" | "month";
+export type DateNavigatorMode = "day" | "week" | "month" | "year";
 
 interface DateNavigatorProps {
   value: Dayjs;
@@ -21,7 +21,7 @@ interface DateNavigatorProps {
 }
 
 function stepDate(date: Dayjs, mode: DateNavigatorMode, dir: 1 | -1): Dayjs {
-  const unit = mode === "day" ? "day" : mode === "week" ? "week" : "month";
+  const unit = mode === "day" ? "day" : mode === "week" ? "week" : mode === "year" ? "year" : "month";
   return dir === 1 ? date.add(1, unit) : date.subtract(1, unit);
 }
 
@@ -30,6 +30,7 @@ function formatDisplay(date: Dayjs, mode: DateNavigatorMode, weekStartsOn?: Week
   if (mode === "week") {
     return `${startOfWeek(date, weekStartsOn).format("DD/MM")} - ${endOfWeek(date, weekStartsOn).format("DD/MM/YYYY")}`;
   }
+  if (mode === "year") return date.format("YYYY");
   return date.format("MM/YYYY");
 }
 
@@ -244,6 +245,62 @@ function MonthPickerPanel({
   );
 }
 
+function YearPickerPanel({
+  value,
+  onSelect,
+}: {
+  value: Dayjs;
+  onSelect: (d: Dayjs) => void;
+}) {
+  const selectedYear = value.year();
+  const [decadeStart, setDecadeStart] = useState(selectedYear - (selectedYear % 10));
+  const years = Array.from({ length: 12 }, (_, i) => decadeStart - 1 + i);
+
+  return (
+    <div className="date-nav-panel">
+      <div className="date-nav-panel-header">
+        <button
+          type="button"
+          className="date-nav-panel-nav"
+          onClick={() => setDecadeStart((s) => s - 10)}
+        >
+          <LeftOutlined />
+        </button>
+        <span className="date-nav-panel-title">
+          {decadeStart} - {decadeStart + 9}
+        </span>
+        <button
+          type="button"
+          className="date-nav-panel-nav"
+          onClick={() => setDecadeStart((s) => s + 10)}
+        >
+          <RightOutlined />
+        </button>
+      </div>
+      <div className="date-nav-year-grid">
+        {years.map((yr) => {
+          const isActive = yr === selectedYear;
+          const isOutside = yr < decadeStart || yr > decadeStart + 9;
+          return (
+            <button
+              key={yr}
+              type="button"
+              className={[
+                "date-nav-year-cell",
+                isActive && "active",
+                isOutside && "outside",
+              ].filter(Boolean).join(" ")}
+              onClick={() => onSelect(dayjs().year(yr).month(value.month()).startOf("month"))}
+            >
+              {yr}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export const DateNavigator: React.FC<DateNavigatorProps> = ({
   value,
   mode,
@@ -351,7 +408,9 @@ export const DateNavigator: React.FC<DateNavigatorProps> = ({
 
       {open && createPortal(
         <div ref={dropdownRef} className="date-nav-dropdown" style={{ top: pos.top, left: pos.left }}>
-          {mode === "month" ? (
+          {mode === "year" ? (
+            <YearPickerPanel value={value} onSelect={handleSelect} />
+          ) : mode === "month" ? (
             <MonthPickerPanel value={value} onSelect={handleSelect} />
           ) : (
             <CalendarPanel

@@ -36,8 +36,6 @@ export function ReportToolbar({
   const { data: doctorOptions = [] } = useMockDoctorOptions();
 
   const segmentedOptions = REPORT_VIEW_MODES.map((m) => ({ value: m, label: VIEW_MODE_LABELS[m]() }));
-  const dateNavMode = viewMode === "year" ? "month" : viewMode;
-
   return (
     <div className="report-toolbar">
       <Segmented
@@ -50,7 +48,7 @@ export function ReportToolbar({
       <DateNavigator
         className="report-toolbar-date"
         value={currentDate}
-        mode={dateNavMode}
+        mode={viewMode}
         onChange={onDateChange}
       />
 

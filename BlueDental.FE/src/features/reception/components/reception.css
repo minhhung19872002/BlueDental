@@ -177,15 +177,9 @@
 
 @media (min-width: 1280px) {
   .rc-grid {
-    grid-template-columns: 180px minmax(0, 1fr) 130px;
+    grid-template-columns: 180px minmax(0, 1fr) auto;
     align-items: center;
     gap: 12px;
-  }
-}
-
-@media (min-width: 1536px) {
-  .rc-grid {
-    grid-template-columns: 180px minmax(0, 1fr) 150px;
   }
 }
 
@@ -412,7 +406,6 @@
 @media (min-width: 1280px) {
   .rc-col-actions {
     margin-left: auto;
-    min-width: 220px;
     justify-self: end;
   }
 }

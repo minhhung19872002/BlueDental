@@ -14,8 +14,6 @@ export function OperationsPeriodBar({ range, periods }: Props) {
   const slot = usePeriodSlot();
   const options = periodOptions().filter((o) => !periods || periods.includes(o.key));
   const segmentedOptions = options.map((o) => ({ value: o.key, label: o.label }));
-  const dateNavMode = range.period === "year" ? "month" : range.period;
-
   const bar = (
     <div className="bd-ops-period">
       <Segmented
@@ -26,7 +24,7 @@ export function OperationsPeriodBar({ range, periods }: Props) {
       />
       <DateNavigator
         value={dayjs(range.anchor)}
-        mode={dateNavMode}
+        mode={range.period}
         onChange={(d) => range.setAnchor(d.toDate())}
       />
     </div>
