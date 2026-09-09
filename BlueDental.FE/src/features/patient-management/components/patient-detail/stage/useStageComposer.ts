@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
+import { validateImageFile } from "@/utils/validateImageFile";
 import {
   STAGE_STATUS,
   useCompleteStage,
@@ -352,7 +353,11 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
   };
 
   const handleFiles = async (list: FileList | null) => {
-    const files = list ? [...list] : [];
+    const files = (list ? [...list] : []).filter((file) => {
+      const error = validateImageFile(file);
+      if (error) toast.error(`${file.name}: ${error}`);
+      return !error;
+    });
     if (fileInput.current) fileInput.current.value = "";
     if (files.length === 0) return;
 

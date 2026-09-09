@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import { toast } from "sonner";
 import {
   Modal,
   Form,
@@ -18,6 +19,7 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { getAllProvinces, getWardsByProvince, type LocationOption } from "@/utils/vietnamLocations";
+import { validateImageFile, IMAGE_ACCEPT } from "@/utils/validateImageFile";
 import { FloatingField } from "@/components/FloatingField";
 import type { StaffDto } from "../api/staffApi";
 import { t } from "@/lib/i18n";
@@ -164,11 +166,13 @@ export function StaffEditorModal({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/png,image/jpeg,image/webp"
+          accept={IMAGE_ACCEPT}
           style={{ display: "none" }}
           onChange={(e) => {
             const file = e.target.files?.[0];
             if (!file) return;
+            const error = validateImageFile(file);
+            if (error) { toast.error(error); e.target.value = ""; return; }
             setAvatarFile(file);
             const url = URL.createObjectURL(file);
             setAvatarPreview((prev) => {

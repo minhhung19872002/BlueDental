@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Form, type FormInstance } from "antd";
 import type { Rule } from "antd/es/form";
 import dayjs, { type Dayjs } from "dayjs";
+import { validateImageFile } from "@/utils/validateImageFile";
 import {
   LABO_TAXONOMY,
   useLaboMaterialOptions,
@@ -154,7 +156,14 @@ export function useLaboOrderForm(
     },
     pictures,
     previews,
-    addPictures: (files) => setPictures((current) => [...current, ...files]),
+    addPictures: (files) => {
+      const valid = files.filter((file) => {
+        const error = validateImageFile(file);
+        if (error) toast.error(`${file.name}: ${error}`);
+        return !error;
+      });
+      if (valid.length > 0) setPictures((current) => [...current, ...valid]);
+    },
     removePicture: (index) => setPictures((current) => current.filter((_, at) => at !== index)),
   };
 }

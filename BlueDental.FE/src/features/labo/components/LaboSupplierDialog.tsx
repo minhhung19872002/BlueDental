@@ -12,6 +12,7 @@ import { AppDialog } from "@/components/AppDialog";
 import { FloatingField } from "@/components/FloatingField";
 import { t } from "@/lib/i18n";
 import { getAllProvinces, getWardsByProvince, type LocationOption } from "@/utils/vietnamLocations";
+import { validateImageFile, IMAGE_ACCEPT } from "@/utils/validateImageFile";
 
 interface Props {
   open: boolean;
@@ -159,6 +160,8 @@ export function LaboSupplierDialog({ open, supplier, onClose }: Props) {
 
   const pickLogo = (file: File | undefined) => {
     if (!file) return;
+    const error = validateImageFile(file);
+    if (error) { toast.error(error); return; }
     setLogoFile(file);
     setLogoPreview((previous) => {
       if (previous?.startsWith("blob:")) URL.revokeObjectURL(previous);
@@ -190,7 +193,7 @@ export function LaboSupplierDialog({ open, supplier, onClose }: Props) {
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/png,image/jpeg,image/webp"
+          accept={IMAGE_ACCEPT}
           className="bd-hidden"
           onChange={(event) => {
             pickLogo(event.target.files?.[0]);

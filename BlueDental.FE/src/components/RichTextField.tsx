@@ -1,7 +1,9 @@
 import { useCallback, useMemo, useRef } from "react";
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
+import { toast } from "sonner";
 import { cn } from "@/lib/cn";
+import { validateImageFile, IMAGE_ACCEPT } from "@/utils/validateImageFile";
 
 interface Props {
   /** Optional so an antd Form.Item can inject them: it controls the field. */
@@ -77,12 +79,15 @@ export function RichTextField({
 
     const input = document.createElement("input");
     input.type = "file";
-    input.accept = "image/png,image/jpeg,image/webp,image/gif";
+    input.accept = IMAGE_ACCEPT;
 
     input.onchange = async () => {
       const file = input.files?.[0];
       const editor = quillRef.current?.getEditor();
       if (!file || !editor) return;
+
+      const error = validateImageFile(file);
+      if (error) { toast.error(error); return; }
 
       // Straight in, before the upload is even started: picking an image and
       // watching nothing happen reads as a failure. This is what Quill's own

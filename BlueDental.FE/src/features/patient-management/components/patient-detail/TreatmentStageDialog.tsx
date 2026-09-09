@@ -4,6 +4,7 @@ import { DollarOutlined, PrinterOutlined } from "@ant-design/icons";
 import { useBranchInfo } from "@/hooks/useBranchInfo";
 import { useStaffOptions } from "@/hooks/useStaffOptions";
 import { t } from "@/lib/i18n";
+import { IMAGE_ACCEPT } from "@/utils/validateImageFile";
 import { toothLabels } from "@/features/treatment-management/api/consultingApi";
 import type { TreatmentStageDto } from "@/features/treatment-management/api/stageApi";
 import type { TreatmentPlanSlipDto } from "@/features/treatment-management/api/treatmentPlanApi";
@@ -82,7 +83,7 @@ export function TreatmentStageDialog({
       <input
         ref={composer.fileInput}
         type="file"
-        accept="image/jpeg,image/jpg,image/png"
+        accept={IMAGE_ACCEPT}
         multiple
         hidden
         onChange={(event) => void composer.handleFiles(event.target.files)}

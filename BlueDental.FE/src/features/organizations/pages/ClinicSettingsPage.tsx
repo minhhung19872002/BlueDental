@@ -18,6 +18,7 @@ import {
   TeamOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
+import { validateImageFile, IMAGE_ACCEPT } from "@/utils/validateImageFile";
 import {
   useClinicBranch,
   useClinicBranches,
@@ -181,11 +182,13 @@ function PersonalInfoTab({ branchId }: { branchId: string }) {
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/png,image/jpeg,image/webp"
+          accept={IMAGE_ACCEPT}
           style={{ display: "none" }}
           onChange={(e) => {
             const file = e.target.files?.[0];
             if (!file) return;
+            const error = validateImageFile(file);
+            if (error) { toast.error(error); e.target.value = ""; return; }
             setAvatarFile(file);
             const url = URL.createObjectURL(file);
             setAvatarPreview((prev) => {

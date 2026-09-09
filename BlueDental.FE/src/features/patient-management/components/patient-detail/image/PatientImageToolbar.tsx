@@ -3,10 +3,8 @@ import { Select, Tooltip } from "antd";
 import { ImagePlus, X } from "lucide-react";
 import { FloatingLabel } from "@/components/FloatingLabel";
 import { t } from "@/lib/i18n";
+import { IMAGE_ACCEPT } from "@/utils/validateImageFile";
 import { PATIENT_IMAGE_TYPE, type PatientImageType } from "../../../api/patientImageApi";
-
-/** The reference's file picker takes JPEG and PNG only. */
-const ACCEPT = "image/jpeg,image/jpg,image/png";
 
 interface Props {
   filter: PatientImageType | null;
@@ -84,7 +82,7 @@ export function PatientImageToolbar({
           <input
             ref={inputRef}
             type="file"
-            accept={ACCEPT}
+            accept={IMAGE_ACCEPT}
             multiple
             hidden
             data-testid="patient-image-input"

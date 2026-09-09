@@ -5,6 +5,7 @@ import { FloatingField } from "@/components/FloatingField";
 import { FloatingLabel } from "@/components/FloatingLabel";
 import { SearchSelect } from "@/components/SearchSelect";
 import { t } from "@/lib/i18n";
+import { IMAGE_ACCEPT } from "@/utils/validateImageFile";
 import { LaboToothRow } from "./LaboToothRow";
 import { useLaboValue, type LaboOrderForm } from "./useLaboOrderForm";
 
@@ -38,7 +39,7 @@ export function LaboOrderFields({ form, emptyTeeth }: Props) {
       <input
         ref={fileInput}
         type="file"
-        accept="image/jpeg,image/jpg,image/png"
+        accept={IMAGE_ACCEPT}
         multiple
         hidden
         onChange={(event) => {

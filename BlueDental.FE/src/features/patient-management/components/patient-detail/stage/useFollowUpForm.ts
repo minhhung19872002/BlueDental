@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
+import { validateImageFile } from "@/utils/validateImageFile";
 import {
   useAttachReExaminationImage,
   useCreateReExamination,
@@ -126,7 +127,14 @@ export function useFollowUpForm({
       next ? [...current, stepId] : current.filter((id) => id !== stepId),
     );
 
-  const addFiles = (files: File[]) => setPending((current) => [...current, ...files]);
+  const addFiles = (files: File[]) => {
+    const valid = files.filter((file) => {
+      const error = validateImageFile(file);
+      if (error) toast.error(`${file.name}: ${error}`);
+      return !error;
+    });
+    if (valid.length > 0) setPending((current) => [...current, ...valid]);
+  };
   const removeFile = (at: number) =>
     setPending((current) => current.filter((_, index) => index !== at));
 

@@ -17,6 +17,7 @@ import { FloatingField } from "@/components/FloatingField";
 import { extractApiError } from "@/lib/apiError";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
+import { validateImageFile, IMAGE_ACCEPT } from "@/utils/validateImageFile";
 
 interface Props {
   open: boolean;
@@ -33,9 +34,7 @@ interface FormValues {
   accountNumber: string;
 }
 
-/** Kept in step with PaymentAccount.MaxQrImageBytes on the server. */
-const MAX_QR_BYTES = 5 * 1024 * 1024;
-const ACCEPTED_QR_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
+/** @see validateImageFile — shared type + size check used app-wide. */
 
 export function PaymentAccountModal({ open, kind, account, onClose }: Props) {
   const branchId = useCurrentBranchId();
@@ -99,13 +98,9 @@ export function PaymentAccountModal({ open, kind, account, onClose }: Props) {
   const shownQrName = qrFile?.name ?? (savedQrUrl ? (account?.qrImageFileName ?? "") : "");
 
   const pickQrFile = (file: File) => {
-    if (!ACCEPTED_QR_TYPES.includes(file.type)) {
-      setQrError(t("Chỉ chấp nhận ảnh PNG, JPG hoặc WEBP"));
-      return;
-    }
-
-    if (file.size > MAX_QR_BYTES) {
-      setQrError(t("Ảnh QR phải nhỏ hơn 5 MB"));
+    const error = validateImageFile(file);
+    if (error) {
+      setQrError(error);
       return;
     }
 
@@ -243,7 +238,7 @@ export function PaymentAccountModal({ open, kind, account, onClose }: Props) {
             ref={qrInputRef}
             id="payment-qr"
             type="file"
-            accept="image/png,image/jpeg,image/webp"
+            accept={IMAGE_ACCEPT}
             data-testid="payment-qr-input"
             className="bd-sr-only"
             aria-invalid={Boolean(qrError)}

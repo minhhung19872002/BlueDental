@@ -6,7 +6,9 @@ import {
   UnorderedListOutlined,
   ZoomInOutlined,
 } from "@ant-design/icons";
+import { toast } from "sonner";
 import { t } from "@/lib/i18n";
+import { validateImageFile, IMAGE_ACCEPT } from "@/utils/validateImageFile";
 import {
   groupImagesByDay,
   type PatientImageDay,
@@ -94,7 +96,11 @@ export function PatientConsultingImagePanel({
   }, [images]);
 
   const handleFiles = (files: FileList | null) => {
-    const picked = [...(files ?? [])];
+    const picked = [...(files ?? [])].filter((file) => {
+      const error = validateImageFile(file);
+      if (error) toast.error(`${file.name}: ${error}`);
+      return !error;
+    });
     if (picked.length > 0) onUpload(picked);
   };
 
@@ -212,7 +218,7 @@ export function PatientConsultingImagePanel({
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept={IMAGE_ACCEPT}
         multiple
         hidden
         onChange={(event) => {

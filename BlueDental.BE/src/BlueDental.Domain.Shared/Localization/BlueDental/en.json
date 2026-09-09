@@ -2127,6 +2127,7 @@
     "Vui lòng nhập số tài khoản": "Please enter an account number",
     "Tải ảnh QR": "Upload QR image",
     "Chỉ chấp nhận ảnh PNG, JPG hoặc WEBP": "Only PNG, JPG or WEBP images are accepted",
+    "Ảnh phải nhỏ hơn 5 MB": "Image must be smaller than 5 MB",
     "Ảnh QR phải nhỏ hơn 5 MB": "QR image must be smaller than 5 MB",
     "Ảnh QR": "QR image",
     "Đổi ảnh": "Change image",

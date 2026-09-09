@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { t } from "@/lib/i18n";
 import { shrinkImageFile } from "@/utils/shrinkImageFile";
+import { validateImageFile } from "@/utils/validateImageFile";
 import {
   PATIENT_IMAGE_TYPE,
   useUploadPatientImage,
@@ -39,9 +40,16 @@ export function usePatientImageUpload(
       const batch = files.slice(0, UPLOAD_BATCH_LIMIT);
       const type = filter ?? PATIENT_IMAGE_TYPE.before;
 
+      const valid = batch.filter((file) => {
+        const error = validateImageFile(file);
+        if (error) toast.error(`${file.name}: ${error}`);
+        return !error;
+      });
+      if (valid.length === 0) return;
+
       setUploading(true);
       try {
-        for (const file of batch) {
+        for (const file of valid) {
           const prepared = await shrinkImageFile(file);
           await mutation.mutateAsync({ patientId, clinicBranchId, type, file: prepared });
         }

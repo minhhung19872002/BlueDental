@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { Button } from "antd";
 import { PictureOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
+import { IMAGE_ACCEPT } from "@/utils/validateImageFile";
 import { StageShots } from "./StageShots";
 
 interface Props {
@@ -24,7 +25,7 @@ export function FollowUpShots({ files, previews, onAdd, onRemove }: Props) {
       <input
         ref={input}
         type="file"
-        accept="image/jpeg,image/jpg,image/png"
+        accept={IMAGE_ACCEPT}
         multiple
         hidden
         onChange={(event) => {
