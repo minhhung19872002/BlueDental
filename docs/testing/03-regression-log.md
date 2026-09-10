@@ -4123,3 +4123,45 @@ thẳng hai file **tại `origin/main`** — lệch sẵn ở đó, và không f
 trong bốn commit của đợt này. Chưa sửa: đó là feature đang làm của người khác,
 sửa kiểu cho hết đỏ có thể chặn đúng cái "year" họ đang thêm. Cách chặn tối
 thiểu nếu cần gấp: `onViewModeChange={(mode) => mode !== "year" && setViewMode(mode)}`.
+
+## 2026-09-10 — Bệnh án: nút `+` không bấm được, bản in cụt một trang; và một bản vá kiểu của main
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-377 | **`+` trên hàng bảng không bấm được** ở mẫu 5, 8, 9: hover thì hiện ở cuối hàng, rê tới thì mất | `−` nằm ở `right − 10` (đè mép hàng) nên đi tới được; `+` ở `right + 4` — **ngoài** hàng — nên phải băng qua 4px trống, và phần tử bên kia khoảng trống là trang giấy, không phải nút. Cách ẩn cũ nghe `mouseout` của hàng nên tắt nút ngay dưới bàn tay. Nay ẩn theo **toạ độ con trỏ**: giữ nút khi con trỏ còn trong hàng nới thêm 44px sang phải hoặc đang trên nút; thêm `mouseleave` ở `documentElement` cho ca rời hẳn tờ |
+| R-378 | **In ra chỉ một trang**, và bản xem trước có cả thanh cuộn của app | Máy in phân trang theo cái mà gốc tài liệu dàn ra; từ `.app-shell` xuống tới vùng cuộn của cột tờ, mỗi lớp là một hộp cao cố định và cắt. Bước cô lập cũ chỉ **ẩn** nhánh ngoài tờ, không **mở** các lớp tờ treo vào. Nay đánh dấu cả hai loại và `@media print` mở hết đường đi, cộng `html`/`body`. Đo mẫu 5 (tờ 2312px): không mở → **1 trang**, gốc tài liệu 900px; có mở → **2 trang**, gốc 2312px, tờ bắt đầu ở y=0 |
+| R-379 | Dấu in bị **mất giữa chừng**: mục lục in cả vào giấy | Dấu đặt bằng `class`, mà `className` là prop React dựng — một lần render đè lên. Đổi sang `data-mr-print` (không ai dựng nên không ai đè). Đo lại: dấu còn nguyên, tờ ở y=0, gốc tài liệu đúng bằng chiều cao tờ, không lớp nào còn cắt |
+
+Kèm bản vá cho lỗi **có sẵn trên `origin/main`** đã báo ở đợt trước:
+`ReceptionPage` khai `ViewMode = "day" | "week" | "month"` rồi truyền
+`setViewMode` vào `onViewModeChange`, trong khi `DateNavigatorMode` đã thêm
+`"year"` — `npm run build` đứt ở `tsc`. Sửa ở chỗ đúng của nó: thanh công cụ
+Tiếp nhận chỉ có **ba** nút (đo trên máy: `Ngày`, `Tuần`, `Tháng`) nên
+`labelToViewMode` không bao giờ trả `"year"`; khai `Exclude<DateNavigatorMode,
+"year">` cho đúng sự thật, thay vì chặn `mode !== "year"` ở chỗ gọi — làm vậy
+là giấu đi, và khi ai đó thêm "Năm" thật thì lỗi biên dịch phải nổ ở
+`ReceptionPage`, đúng nơi cần biết. `npm run build` xanh trở lại; kiểm tay:
+chọn "Tuần" ra `07/09 - 13/09/2026`.
+
+Ba spec mới, và cả ba đều đã **soi đỏ trên code cũ** trước khi nhận:
+
+- `+` sống sót khi con trỏ **đi từng bước** tới nó (3px một nhịp) rồi bấm ra
+  dòng mới. Test cũ không bắt được vì `locator.click()` nhảy thẳng vào nút.
+- In từ tab: bấm nút thật (chỉ chặn hộp thoại `window.print`), rồi ở media
+  `print` khẳng định tờ ở y=0, gốc tài liệu **bằng** chiều cao tờ, không tổ
+  tiên nào còn `overflow` khác `visible`, và mục lục mang dấu `hide`.
+- In từ modal "In bệnh án" — nơi có thêm bốn lớp modal — cùng bộ khẳng định,
+  thêm `zoom: 1` để bản xem trước phóng to không theo vào giấy.
+
+Kết quả: `patient-medical-record.spec.ts` **21/21** trên cả dev :5173 và bản
+build production :8080; `treatment-plan.spec.ts` **6/6** → **27/27**.
+`tsc -b --noEmit` sạch.
+
+Còn đỏ và **không** phải của đợt này: `reception.spec.ts` 2/2 đỏ vì
+`assertRealApiTraffic(page, "/api/v1/app/visits")` chờ một endpoint màn Tiếp
+nhận **không còn gọi**. Bắt mạng trên bản build: màn này nay gọi
+`/api/v1/app/appointments` và `/api/v1/app/appointments/stats`. Đó là hệ quả
+của đợt sửa Tiếp nhận trên main (`35c653f`, `c8e129d`), không phải của bản vá
+kiểu ở trên — sửa kiểu bị xoá lúc biên dịch, JS sinh ra y hệt. Chưa đụng spec
+vì phải biết ý đồ: màn thực sự chuyển sang `appointments`, hay chính việc mất
+`visits` mới là lỗi.

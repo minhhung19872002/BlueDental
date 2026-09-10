@@ -3446,3 +3446,54 @@ cuộn bên trong và thanh tiêu đề đứng yên. Bản thu gọn nhả cả
 Vùng cuộn thật của app khi hẹp là `main.app-content` (đo 768×604: client 542 /
 scroll 1455), **không** phải `documentElement` — vỏ app cao đúng cửa sổ. Đừng
 đo chỗ cuộn ở `document.documentElement`.
+
+### 9. Hai lỗi của tờ A4: nút `+` không bấm được, và bản in cụt (2026-09-10)
+
+**`+` biến mất khi đưa chuột tới.** Bản gốc đặt `−` ở `right − 10` (đè lên mép
+hàng) và `+` ở `right + 4` (**ngoài** hàng). Cách ẩn cũ của ta nghe `mouseout`
+của hàng: đi tới `+` là phải băng qua 4px trống, phần tử bên kia khoảng trống
+là trang giấy chứ không phải cái nút, nên `relatedTarget` không khớp và nút bị
+ẩn **ngay dưới bàn tay đang với tới nó**. `−` không dính vì nó nằm đè lên mép.
+
+Nay việc ẩn quyết định bằng **con trỏ đang ở đâu**, không phải nó vừa rời phần
+tử nào: một `mousemove` ở tài liệu của tờ, giữ nút khi con trỏ còn trong hàng
+nới rộng thêm 44px sang phải (đủ khoảng trống + nút 20px) hoặc đang trên chính
+nút đó. Kèm `mouseleave` ở `documentElement` cho ca con trỏ rời hẳn tờ —
+`mouseleave` là sự kiện của phần tử, `document` không bao giờ nhận.
+
+Đo bằng cách cho con trỏ **đi từng bước** như tay người (`page.mouse.move` 3px
+một nhịp) trên cả ba mẫu có nút:
+
+| Mẫu | Nút hiện khi hover | Còn hiện sau khi đi tới | Bấm ra dòng mới |
+|---|---|---|---|
+| 5. Phiếu tư vấn | `+` | có | 27 → 28 |
+| 8. Phiếu theo dõi | `+` và `−` | có | 28 → 29 |
+| 9. Phiếu chăm sóc | `+` và `−` | có | 23 → 24 |
+
+Chạy lại y hệt trên bản code cũ: nút hiện khi hover nhưng **mất** khi đi tới,
+bấm không thêm dòng (27 → 27). `locator.click()` của Playwright không bắt được
+lỗi này vì nó nhảy thẳng con trỏ vào nút.
+
+**Bản in chỉ ra một trang.** Tờ dài hơn cửa sổ nhưng in ra đúng một trang, và
+trong bản xem trước còn thấy cả **thanh cuộn** của app. Nguyên nhân: máy in
+phân trang theo cái mà **gốc tài liệu** dàn ra, mà từ `.app-shell` → `main.app-content`
+→ `.pd-page` → cột tờ → vùng cuộn, mỗi lớp đều là một hộp cao cố định và cắt.
+Bước cô lập cũ chỉ *ẩn* các nhánh ngoài tờ, không mở các lớp mà tờ treo vào.
+
+Nay `printing.ts` đánh dấu **cả hai** loại nhánh, và `@media print` mở hết các
+lớp trên đường đi (`height: auto; overflow: visible; …`), cộng `html`/`body`.
+Đo trên mẫu 5 (tờ 2312px):
+
+| | Số trang in ra | Gốc tài liệu | Tờ bắt đầu ở |
+|---|---|---|---|
+| Không mở đường đi | **1** | 900px (đúng bằng cửa sổ) | — |
+| Có mở | **2** | 2312px (đúng bằng tờ) | y = 0 |
+
+**Đánh dấu bằng attribute, không phải class.** `className` là prop React dựng,
+nên một lần render đè giá trị của nó lên dấu ta thêm tay — đo được: mục lục
+**in cả vào giấy** ở lần chụp sau khi React render lại. `data-mr-print` thì
+không ai dựng, nên không ai đè. Sau khi đổi, cùng phép đo: tờ ở y=0, gốc tài
+liệu = đúng chiều cao tờ, không lớp nào còn cắt.
+
+Cùng cách đó cho modal "In bệnh án" ở tab Kế hoạch điều trị — ở đó còn thêm bốn
+lớp modal giữa tờ và trang, và chúng cũng được mở bằng chính dấu đường đi.
