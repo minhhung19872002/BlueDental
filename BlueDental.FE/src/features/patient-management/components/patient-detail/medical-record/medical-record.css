@@ -184,7 +184,7 @@
  * onto it", the opposite arrangement, and it would hide the record entirely.
  */
 @media print {
-  body.mr-printing .mr-print-hide {
+  body.mr-printing [data-mr-print="hide"] {
     display: none !important;
   }
 
@@ -199,20 +199,27 @@
     page-break-before: always;
   }
 
-  /* Nothing on the path down to a sheet may pad, scroll or frame it. */
-  body.mr-printing .pd-medical,
-  body.mr-printing .pd-medical-grid,
-  body.mr-printing .pd-medical-canvas,
-  body.mr-printing .pd-medical-canvas-scroll,
-  body.mr-printing .pd-medical-paper,
-  body.mr-printing .ant-modal-root,
-  body.mr-printing .ant-modal-wrap,
-  body.mr-printing .ant-modal,
-  body.mr-printing .ant-modal-content,
-  body.mr-printing .ant-modal-body,
-  body.mr-printing .pmr-body,
-  body.mr-printing .pmr-canvas,
-  body.mr-printing .pmr-scale {
+  /*
+   * The root must be free to grow, or the printer paginates the window rather
+   * than the record: the app shell is exactly the height of the screen.
+   */
+  html:has(body.mr-printing),
+  body.mr-printing {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  /*
+   * Nothing on the path down to a sheet may pad, scroll, cap or frame it.
+   *
+   * The path is marked in JavaScript (`printing.ts`) rather than listed by
+   * class here: it runs from the app shell through the scrolling main and the
+   * page down to the sheet column, and the "In bệnh án" dialog adds four
+   * modal layers of its own. Every one of them is a fixed-height clipping box,
+   * and one missed link costs every page after the first.
+   */
+  body.mr-printing [data-mr-print="path"] {
     display: block !important;
     position: static !important;
     overflow: visible !important;
@@ -220,6 +227,8 @@
     max-height: none !important;
     width: auto !important;
     height: auto !important;
+    min-height: 0 !important;
+    flex: none !important;
     border: 0 !important;
     border-radius: 0 !important;
     background: #fff !important;

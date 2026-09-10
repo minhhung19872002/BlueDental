@@ -639,6 +639,177 @@ test.describe("Bệnh án", () => {
   });
 
   /**
+   * `+` sits just off the row's right edge, so a hand reaching it crosses a few
+   * pixels of nothing. It has to survive that crossing.
+   *
+   * `locator.click()` cannot catch this: Playwright jumps the pointer straight
+   * onto the button, and the handle only vanished for a pointer that travelled.
+   * So this walks it across in small steps, the way a hand does.
+   */
+  test("the + on a row survives the pointer travelling to it", async ({ page }) => {
+    await openMedicalRecord(page);
+    await openSheet(page, "Phiếu tư vấn và xác nhận đồng ý điều trị");
+
+    const document = sheet(page);
+    const rows = document.locator("tbody > tr");
+    const before = await rows.count();
+
+    await hoverRow(page, "consultation.text.42");
+    const plus = document.getByRole("button", { name: "Thêm dòng" });
+    await expect(plus).toBeVisible();
+
+    // Where the row ends and where the button sits, in the page's own frame.
+    const where = await page.evaluate(() => {
+      const frame = document.querySelector("iframe.mr-doc-frame") as HTMLIFrameElement;
+      const origin = frame.getBoundingClientRect();
+      const inner = frame.contentDocument!;
+      const button = [...inner.querySelectorAll("body > button")].find(
+        (node) => node.getAttribute("aria-label") === "Thêm dòng",
+      )!;
+      const box = button.getBoundingClientRect();
+      const row = inner
+        .querySelector('[data-medical-record-field="consultation.text.42"]')!
+        .closest("tr")!
+        .getBoundingClientRect();
+      return {
+        rowRight: origin.x + row.right,
+        midY: origin.y + row.top + row.height / 2,
+        buttonX: origin.x + box.left + box.width / 2,
+        buttonY: origin.y + box.top + box.height / 2,
+        gap: Math.round(box.left - row.right),
+      };
+    });
+
+    // The reference puts it 4px clear of the row; that gap is the whole problem.
+    expect(where.gap).toBeGreaterThan(0);
+
+    await page.mouse.move(where.rowRight - 40, where.midY);
+    for (let x = where.rowRight - 40; x <= where.buttonX; x += 3) {
+      await page.mouse.move(x, where.midY + (where.buttonY - where.midY) / 8);
+    }
+    await page.mouse.move(where.buttonX, where.buttonY);
+
+    // Still there after the journey — and it still does what it says.
+    await expect(plus).toBeVisible();
+    await page.mouse.click(where.buttonX, where.buttonY);
+    await expect(rows).toHaveCount(before + 1);
+  });
+
+  /**
+   * What reaches the paper is the record and nothing else, at its full length.
+   *
+   * Everything from the app shell down to the sheet column is a fixed-height
+   * clipping box, so a record two and a half pages long came out as one page —
+   * the printer paginates what the root lays out. The isolation has to open
+   * every one of them.
+   */
+  test("printing lays out the whole record and nothing else", async ({ page }) => {
+    // The real print button, with only the dialog itself stubbed out.
+    await page.addInitScript(() => {
+      window.print = () => {
+        (window as unknown as { __printed?: boolean }).__printed = true;
+      };
+    });
+    await openMedicalRecord(page);
+    await openSheet(page, "Phiếu tư vấn và xác nhận đồng ý điều trị");
+
+    await page.locator(".pd-medical-bar").getByRole("button", { name: "In biểu mẫu" }).click();
+    expect(await page.evaluate(() => (window as unknown as { __printed?: boolean }).__printed)).toBe(
+      true,
+    );
+
+    // The index is not on the paper; the sheet's own column is.
+    await expect(page.locator('.pd-medical-index[data-mr-print="hide"]')).toHaveCount(1);
+    await expect(page.locator('[data-mr-print="path"]')).not.toHaveCount(0);
+
+    await page.emulateMedia({ media: "print" });
+    const paper = await page.evaluate(() => {
+      const doc = document.querySelector<HTMLElement>(".mr-doc")!;
+      const box = doc.getBoundingClientRect();
+      const clipping: string[] = [];
+      for (let node = doc.parentElement; node; node = node.parentElement) {
+        const style = getComputedStyle(node);
+        if (style.overflowY !== "visible" || style.overflowX !== "visible") {
+          clipping.push(`${node.tagName}.${String(node.className).split(" ")[0]}`);
+        }
+      }
+      return {
+        sheetTop: Math.round(box.top + window.scrollY),
+        sheetHeight: Math.round(box.height),
+        rootHeight: Math.round(document.documentElement.getBoundingClientRect().height),
+        clipping,
+      };
+    });
+    await page.emulateMedia({ media: null });
+
+    // A record is taller than the window; if anything still clipped, the root
+    // would be the window's height and every page after the first would be lost.
+    expect(paper.sheetTop).toBe(0);
+    expect(paper.sheetHeight).toBeGreaterThan(1200);
+    expect(paper.rootHeight).toBe(paper.sheetHeight);
+    expect(paper.clipping).toEqual([]);
+  });
+
+  /**
+   * With one column the index sits above the sheet and is a window tall, so a
+   * sheet picked from it opens a screen and a half below the fold — picking a
+   * card looked like it did nothing. The list has to fold away and the sheet
+   * come into view. With two columns nothing may move.
+   */
+  test("picking a sheet from the folded index opens it and closes the list", async ({ page }) => {
+    // Opened wide — the patient list is a table there — then folded, which is
+    // also how a real window reaches this state.
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openMedicalRecord(page);
+    await page.setViewportSize({ width: 900, height: 700 });
+
+    const index = page.locator(".pd-medical-index");
+    const bar = page.locator(".pd-medical-barwrap");
+    const openTitle = page.locator(".pd-medical-canvas-head strong");
+
+    await expect(index).toHaveClass(/--collapsed/);
+    await page.getByRole("button", { name: "Mở mục lục" }).click();
+    await expect(index).not.toHaveClass(/--collapsed/);
+
+    /*
+     * The bar floats over the window here, so with the list open it floats over
+     * the list — and its buttons swallowed taps meant for the cards under it (a
+     * click on a card landed on the zoom's `+`). It stands down until the list
+     * folds again.
+     */
+    await expect(bar).toBeHidden();
+
+    const target = page.locator(".pd-medical-form", { hasText: "3. Bệnh án chỉnh nha" });
+    const name = await target.locator(".pd-sheet-title").first().textContent();
+    await target.locator(".pd-sheet-open").first().click();
+
+    await expect(index).toHaveClass(/--collapsed/);
+    await expect(openTitle).toHaveText(name!);
+    await expect(bar).toBeVisible();
+
+    // The reveal scrolls smoothly, so this is what it settles on.
+    await expect(async () => {
+      const seen = await page.locator(".pd-medical-canvas").evaluate((node) => {
+        const box = node.getBoundingClientRect();
+        return box.top < window.innerHeight && box.bottom > 0 && box.top < 200;
+      });
+      expect(seen).toBe(true);
+    }).toPass({ timeout: 5000 });
+
+    // Two columns: both are already in view, so the list stays as it was.
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await expect(index).not.toHaveClass(/--collapsed/);
+    await page
+      .locator(".pd-medical-form", { hasText: "1. Bìa hồ sơ bệnh án" })
+      .locator(".pd-sheet-open")
+      .first()
+      .click();
+    await expect(openTitle).toHaveText("Bìa hồ sơ bệnh án");
+    await expect(index).not.toHaveClass(/--collapsed/);
+    await expect(bar).toBeVisible();
+  });
+
+  /**
    * Five of the nine are filled in for a particular day, and say so beside the
    * doctor picker. The wording is each form's own.
    */

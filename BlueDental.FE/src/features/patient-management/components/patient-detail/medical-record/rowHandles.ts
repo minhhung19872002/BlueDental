@@ -38,6 +38,16 @@ function makeHandle(doc: Document, glyph: string, label: string, background: str
 }
 
 /**
+ * How far past a row's right edge the pointer may travel and still be counted
+ * as being on that row.
+ *
+ * `+` sits at `right + 4` — off the row entirely, as the reference places it —
+ * so reaching it means crossing a few pixels of nothing. This is what makes
+ * that crossing safe; it has to clear the gap and the 20px button.
+ */
+const REACH = 44;
+
+/**
  * One hover handle: it follows whichever row the pointer is over, as long as
  * `wants` accepts that row, and `act` is what pressing it does.
  */
@@ -69,14 +79,26 @@ function attachHandle(
     if (row) show(row);
   };
 
-  // Leaving for the button itself, or for something still inside the row, is
-  // not leaving: the handle overlaps the row's own edge.
-  const onOut = (event: MouseEvent) => {
-    const row = (event.target as Element | null)?.closest<HTMLTableRowElement>("tbody > tr");
-    if (!row || row !== over) return;
-    const to = event.relatedTarget as Node | null;
-    if (to && (row.contains(to) || button.contains(to))) return;
-    hide();
+  /** Is the pointer still on the row, on the handle, or on the way between? */
+  const withinReach = (x: number, y: number): boolean => {
+    if (!over) return false;
+    const handle = button.getBoundingClientRect();
+    if (x >= handle.left - 2 && x <= handle.right + 2 && y >= handle.top - 2 && y <= handle.bottom + 2) {
+      return true;
+    }
+    const row = over.getBoundingClientRect();
+    return x >= row.left && x <= row.right + REACH && y >= row.top && y <= row.bottom;
+  };
+
+  /*
+   * Hiding is decided by where the pointer *is*, not by which element it just
+   * left. `mouseout` fires the moment the row's edge is crossed, and the
+   * element on the other side of the 4px gap is the page, not the button — so
+   * the handle used to vanish from under a hand that was reaching for it, and
+   * `+` could not be clicked at all.
+   */
+  const onMove = (event: MouseEvent) => {
+    if (over && !withinReach(event.clientX, event.clientY)) hide();
   };
 
   const onClick = (event: MouseEvent) => {
@@ -87,15 +109,17 @@ function attachHandle(
   };
 
   doc.addEventListener("mouseover", onOver, true);
-  doc.addEventListener("mouseout", onOut as EventListener, true);
+  doc.addEventListener("mousemove", onMove, true);
+  // The pointer leaving the sheet altogether reports no further movement, and
+  // `mouseleave` is an element's event — the document never gets one.
+  doc.documentElement.addEventListener("mouseleave", hide);
   button.addEventListener("click", onClick);
-  button.addEventListener("mouseleave", hide);
 
   return () => {
     doc.removeEventListener("mouseover", onOver, true);
-    doc.removeEventListener("mouseout", onOut as EventListener, true);
+    doc.removeEventListener("mousemove", onMove, true);
+    doc.documentElement.removeEventListener("mouseleave", hide);
     button.removeEventListener("click", onClick);
-    button.removeEventListener("mouseleave", hide);
     button.remove();
   };
 }

@@ -2194,6 +2194,9 @@
   border: 1px solid var(--bd-border);
   border-radius: 12px;
   background: #fff;
+  /* Room above when a sheet picked from the index is scrolled into view, so it
+     does not land flush against the top edge. The reference's `scroll-mt-4`. */
+  scroll-margin-top: 16px;
 }
 .pd-medical-canvas-scroll {
   display: flex;
@@ -2382,6 +2385,20 @@
     flex: 0 0 auto;
     height: calc(100dvh - 180px);
     min-height: 560px;
+  }
+
+  /*
+   * The bar floats over the window here, and with the index open it floats over
+   * the *list* — its buttons then swallow taps meant for the cards underneath
+   * (a click on a sheet card landed on the zoom's `+`). Everything on the bar
+   * acts on the sheet, and the sheet is off-screen while the list is open, so
+   * the bar stands down until the list folds again.
+   *
+   * The reference never meets this: below its breakpoint the list is hidden
+   * outright, so nothing of it is ever under the bar.
+   */
+  .pd-medical:has(.pd-medical-index:not(.pd-medical-index--collapsed)) .pd-medical-barwrap {
+    display: none;
   }
 
   .pd-medical-barwrap {

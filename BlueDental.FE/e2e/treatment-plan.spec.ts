@@ -185,6 +185,49 @@ test.describe("Kế hoạch điều trị", () => {
     await expect(
       page.frameLocator(".pmr-scale .mr-doc-frame").locator(".nfc-tpl"),
     ).toContainText("BỆNH ÁN NGOẠI TRÚ");
+
+    /*
+     * Printing from here has four modal layers between the sheet and the page,
+     * every one of them a fixed-height clipping box — a record longer than the
+     * window came out as a single page. What goes on the paper is the record
+     * alone, at its full length, whatever the preview was zoomed to.
+     */
+    await page.evaluate(() => {
+      window.print = () => {
+        (window as unknown as { __printed?: boolean }).__printed = true;
+      };
+    });
+    await print.locator(".pmr-foot").getByRole("button", { name: "In bệnh án" }).click();
+    expect(await page.evaluate(() => (window as unknown as { __printed?: boolean }).__printed)).toBe(
+      true,
+    );
+
+    await page.emulateMedia({ media: "print" });
+    const paper = await page.evaluate(() => {
+      const doc = document.querySelector<HTMLElement>(".mr-doc")!;
+      const box = doc.getBoundingClientRect();
+      const clipping: string[] = [];
+      for (let node = doc.parentElement; node; node = node.parentElement) {
+        const style = getComputedStyle(node);
+        if (style.overflowY !== "visible" || style.overflowX !== "visible") {
+          clipping.push(`${node.tagName}.${String(node.className).split(" ")[0]}`);
+        }
+      }
+      return {
+        top: Math.round(box.top + window.scrollY),
+        height: Math.round(box.height),
+        zoom: getComputedStyle(doc).zoom,
+        rootHeight: Math.round(document.documentElement.getBoundingClientRect().height),
+        clipping,
+      };
+    });
+    await page.emulateMedia({ media: null });
+
+    expect(paper.top).toBe(0);
+    expect(paper.zoom).toBe("1");
+    expect(paper.rootHeight).toBe(paper.height);
+    expect(paper.clipping).toEqual([]);
+
     // Scoped to the footer: the modal's own X is labelled "Đóng" as well.
     await print.locator(".pmr-foot").getByRole("button", { name: "Đóng" }).click();
     await expect(print).toBeHidden();

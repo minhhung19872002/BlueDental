@@ -14,8 +14,30 @@
 /** On the body while a record is going to the printer. */
 export const PRINTING_CLASS = "mr-printing";
 
+/**
+ * How each branch is marked for the duration of the print.
+ *
+ * An attribute rather than a class: `className` is a rendered prop, so a React
+ * update that touches one of these elements writes its own value straight over
+ * ours and the branch comes back — measured, with the whole index printing
+ * above the record. Nothing renders `data-mr-print`, so nothing overwrites it.
+ */
+const MARK = "data-mr-print";
+
 /** On each branch that must not take up room on the paper. */
-const HIDDEN_CLASS = "mr-print-hide";
+const HIDDEN = "hide";
+
+/**
+ * On each branch the sheet hangs from.
+ *
+ * Hiding the rest is only half of it: what is left standing is the app's own
+ * chrome — the shell, the scrolling main, the page, the sheet column — and
+ * every one of them is a fixed-height box that clips. A record two and a half
+ * pages long came out as **one** page, because the printer paginates what the
+ * root actually lays out and the root was capped at the window. So each of
+ * those is opened up for the duration of the print.
+ */
+const PATH = "path";
 
 /** The sheets themselves — a branch holding one is never hidden. */
 const SHEET_SELECTOR = ".mr-doc";
@@ -25,24 +47,29 @@ function holdsASheet(node: Element): boolean {
 }
 
 /**
- * Takes everything that is not a sheet out of the layout, and returns the call
- * that puts it back.
+ * Takes everything that is not a sheet out of the layout, opens up what the
+ * sheet hangs from, and returns the call that puts both back.
  *
- * Walks up from the body rather than down from a sheet, so that "Toàn bộ" —
+ * Walks down from the body rather than up from a sheet, so that "Toàn bộ" —
  * where several sheets print in one run — keeps all of them.
  */
 export function isolateSheetsForPrint(root: ParentNode = document.body): () => void {
-  const hidden: Element[] = [];
+  const marked: Element[] = [];
+
+  const mark = (node: Element, how: string) => {
+    node.setAttribute(MARK, how);
+    marked.push(node);
+  };
 
   const walk = (parent: ParentNode) => {
     for (const child of Array.from(parent.children)) {
       if (child.matches(SHEET_SELECTOR)) continue;
       if (holdsASheet(child)) {
+        mark(child, PATH);
         walk(child);
         continue;
       }
-      child.classList.add(HIDDEN_CLASS);
-      hidden.push(child);
+      mark(child, HIDDEN);
     }
   };
 
@@ -51,7 +78,7 @@ export function isolateSheetsForPrint(root: ParentNode = document.body): () => v
 
   return () => {
     document.body.classList.remove(PRINTING_CLASS);
-    for (const node of hidden) node.classList.remove(HIDDEN_CLASS);
-    hidden.length = 0;
+    for (const node of marked) node.removeAttribute(MARK);
+    marked.length = 0;
   };
 }

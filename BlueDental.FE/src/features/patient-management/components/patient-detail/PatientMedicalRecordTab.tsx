@@ -107,6 +107,23 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
     query.addEventListener("change", follow);
     return () => query.removeEventListener("change", follow);
   }, []);
+  /**
+   * Set when a sheet is opened from the index while the columns are folded.
+   *
+   * The reveal cannot happen in the click handler: the index folds in the same
+   * render, and scrolling before that lands on where the sheet *was* — a screen
+   * and a half further down. Waiting for the commit means the layout is already
+   * the folded one.
+   */
+  const [revealing, setRevealing] = useState(false);
+  const canvas = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!revealing) return;
+    setRevealing(false);
+    canvas.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, [revealing]);
+
   const [stampedIds, setStampedIds] = useState<ReadonlySet<string>>(new Set());
   /**
    * What has been written on a sheet but not saved yet, per sheet.
@@ -166,10 +183,28 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
   const ordinalOf = (sheet: PatientMedicalRecordDto) =>
     sheets.filter((item) => item.form === sheet.form).findIndex((item) => item.id === sheet.id) + 1;
 
+  /**
+   * Opening a sheet from the index.
+   *
+   * With one column the index sits *above* the sheet and is a window tall, so
+   * the sheet that just opened is off the bottom of the screen — picking a card
+   * looked like it did nothing at all. The list folds away, as it does when the
+   * window crosses the breakpoint, and the sheet is brought up. With two
+   * columns both are already in view and the list stays as the user left it.
+   */
+  const openSheet = (id: string) => {
+    setActiveId(id);
+    if (window.matchMedia(TWO_COLUMN_QUERY).matches) return;
+    setCollapsed(true);
+    setRevealing(true);
+  };
+
   const handleAdd = async (spec: MedicalRecordFormSpec) => {
     try {
       const created = await addSheet.mutateAsync({ form: spec.form, title: t(spec.label) });
-      setActiveId(created.id);
+      // A new sheet opens on the canvas, so it needs the same reveal — a copy
+      // you cannot see is the same thing as one you cannot pick.
+      openSheet(created.id);
       toast.success(t("Đã thêm phiếu bệnh án"));
     } catch (error) {
       toast.error(extractApiError(error));
@@ -263,7 +298,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
           adding={addSheet.isPending}
           onToggleCollapse={() => setCollapsed((value) => !value)}
           onAdd={(spec) => void handleAdd(spec)}
-          onSelect={(sheet) => setActiveId(sheet.id)}
+          onSelect={(sheet) => openSheet(sheet.id)}
           onStamp={handleStamp}
           onPrint={(sheet) => {
             setActiveId(sheet.id);
@@ -277,7 +312,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
           onDelete={(sheet) => setRemoving(sheet)}
         />
 
-        <div className="pd-medical-canvas">
+        <div className="pd-medical-canvas" ref={canvas}>
           {/* The scroller sits inside the column rather than being it: the bar
               below floats over the column and must not scroll away with the
               sheet, and the head above must stay put while the paper moves.
