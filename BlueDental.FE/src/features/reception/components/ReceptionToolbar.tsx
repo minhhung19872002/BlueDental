@@ -5,7 +5,13 @@ import dayjs, { type Dayjs } from "dayjs";
 import { DateNavigator, type DateNavigatorMode } from "@/components/DateNavigator";
 import { t } from "@/lib/i18n";
 
-type ViewMode = DateNavigatorMode;
+/**
+ * The three periods this toolbar offers. `DateNavigator` also knows how to step
+ * a year, but Tiếp nhận has no year button — and the mode travels on to
+ * `useReceptionMetrics`, so a value the Segmented cannot produce must not be
+ * declarable here either. Add "Năm" to `viewOptions` and this alias together.
+ */
+type ViewMode = Exclude<DateNavigatorMode, "year">;
 
 interface ReceptionToolbarProps {
   keyword?: string;
