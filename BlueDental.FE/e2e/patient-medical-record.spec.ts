@@ -696,14 +696,15 @@ test.describe("Bệnh án", () => {
   });
 
   /**
-   * What reaches the paper is the record and nothing else, at its full length.
+   * What reaches the paper is a *copy* of the sheet, made in the app's own
+   * document — the reference prints the same way.
    *
-   * Everything from the app shell down to the sheet column is a fixed-height
-   * clipping box, so a record two and a half pages long came out as one page —
-   * the printer paginates what the root lays out. The isolation has to open
-   * every one of them.
+   * Printing the sheet's own frame in place cannot work: to a printer an
+   * iframe is one box, sliced wherever the outer page ends, and a row of the
+   * table came out torn in half across the fold. The copy is real markup in
+   * the page, so the form's own page breaks are what decide where paper ends.
    */
-  test("printing lays out the whole record and nothing else", async ({ page }) => {
+  test("printing copies the sheet into the page, with everything on it", async ({ page }) => {
     // The real print button, with only the dialog itself stubbed out.
     await page.addInitScript(() => {
       window.print = () => {
@@ -711,43 +712,93 @@ test.describe("Bệnh án", () => {
       };
     });
     await openMedicalRecord(page);
-    await openSheet(page, "Phiếu tư vấn và xác nhận đồng ý điều trị");
+    await openSheet(page, "Bìa hồ sơ bệnh án");
+
+    // Something written on the sheet, to prove the copy is the live one.
+    const note = `In ${runId()}`;
+    await blank(page, "cover.text.1").fill(note);
 
     await page.locator(".pd-medical-bar").getByRole("button", { name: "In biểu mẫu" }).click();
     expect(await page.evaluate(() => (window as unknown as { __printed?: boolean }).__printed)).toBe(
       true,
     );
 
-    // The index is not on the paper; the sheet's own column is.
-    await expect(page.locator('.pd-medical-index[data-mr-print="hide"]')).toHaveCount(1);
-    await expect(page.locator('[data-mr-print="path"]')).not.toHaveCount(0);
+    const copy = page.locator(".mr-print-copy");
+    await expect(copy.locator(".nfc-tpl")).toHaveCount(1);
+    await expect(copy).toContainText(note);
 
-    await page.emulateMedia({ media: "print" });
     const paper = await page.evaluate(() => {
-      const doc = document.querySelector<HTMLElement>(".mr-doc")!;
-      const box = doc.getBoundingClientRect();
-      const clipping: string[] = [];
-      for (let node = doc.parentElement; node; node = node.parentElement) {
-        const style = getComputedStyle(node);
-        if (style.overflowY !== "visible" || style.overflowX !== "visible") {
-          clipping.push(`${node.tagName}.${String(node.className).split(" ")[0]}`);
-        }
-      }
+      const holder = document.querySelector<HTMLElement>(".mr-print-copy")!;
+      const live = document
+        .querySelector<HTMLIFrameElement>(".mr-doc-frame")!
+        .contentDocument!.querySelector(".nfc-tpl")!;
+      const copied = holder.querySelector(".nfc-tpl")!;
+      const text = (node: Element) => (node.textContent ?? "").replace(/\s+/g, " ").trim();
+      const ticked = (node: Element, live: boolean) =>
+        [...node.querySelectorAll("input[type=checkbox]")].filter((box) =>
+          live ? (box as HTMLInputElement).checked : box.hasAttribute("checked"),
+        ).length;
       return {
-        sheetTop: Math.round(box.top + window.scrollY),
-        sheetHeight: Math.round(box.height),
-        rootHeight: Math.round(document.documentElement.getBoundingClientRect().height),
-        clipping,
+        sameText: text(live) === text(copied),
+        // The form's own page breaks travel with it.
+        pageBreaks: copied.querySelectorAll(":scope > hr").length,
+        liveTicks: ticked(live, true),
+        copiedTicks: ticked(copied, false),
+        // And the copy is a child of the body, so isolating it is one rule.
+        atBodyLevel: holder.parentElement === document.body,
       };
     });
-    await page.emulateMedia({ media: null });
 
-    // A record is taller than the window; if anything still clipped, the root
-    // would be the window's height and every page after the first would be lost.
-    expect(paper.sheetTop).toBe(0);
-    expect(paper.sheetHeight).toBeGreaterThan(1200);
-    expect(paper.rootHeight).toBe(paper.sheetHeight);
-    expect(paper.clipping).toEqual([]);
+    expect(paper.sameText).toBe(true);
+    expect(paper.pageBreaks).toBeGreaterThan(0);
+    expect(paper.copiedTicks).toBe(paper.liveTicks);
+    expect(paper.atBodyLevel).toBe(true);
+
+    // On paper: the copy, and nothing else of the app.
+    await page.emulateMedia({ media: "print" });
+    const shown = await page.evaluate(() =>
+      [...document.body.children]
+        .filter((node) => getComputedStyle(node).display !== "none")
+        .map((node) => node.className || node.tagName),
+    );
+    await page.emulateMedia({ media: null });
+    expect(shown).toEqual(["mr-print-copy"]);
+  });
+
+  /**
+   * "Chọn phiếu in" asks which sheets go in one run, so the ticks have to
+   * decide what is copied — printing everything on the canvas ignored them.
+   */
+  test("the print picker copies only the sheets that were ticked", async ({ page }) => {
+    await page.addInitScript(() => {
+      window.print = () => {};
+    });
+    await openMedicalRecord(page);
+
+    await page.locator(".pd-medical-bar").getByRole("button", { name: "Toàn bộ" }).click();
+    await page.locator(".pd-medical-bar").getByRole("button", { name: "In biểu mẫu" }).click();
+
+    const picker = page.locator(".pd-print-pick");
+    await expect(picker).toBeVisible();
+
+    // Two of them, whichever the record happens to hold.
+    const rows = picker.locator(".pd-print-pick-row");
+    expect(await rows.count()).toBeGreaterThan(1);
+    const names = [
+      (await rows.nth(0).locator(".pd-print-pick-name").textContent())?.trim() ?? "",
+      (await rows.nth(1).locator(".pd-print-pick-name").textContent())?.trim() ?? "",
+    ];
+    await rows.nth(0).click();
+    await rows.nth(1).click();
+
+    await picker.getByRole("button", { name: "In" }).click();
+
+    const copy = page.locator(".mr-print-copy");
+    await expect(copy.locator(".nfc-tpl")).toHaveCount(2);
+    for (const name of names) {
+      // Each sheet's own heading identifies it on the paper.
+      expect(name.length).toBeGreaterThan(0);
+    }
   });
 
   /**

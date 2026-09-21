@@ -82,14 +82,24 @@
 
 /* ── "Chọn phiếu in" ── */
 
-.pd-print-pick-popover .ant-popover-inner-content,
+/*
+ * The card: 320x408 with 12px of padding, a 16px radius and a 1px `#DCE3EE`
+ * edge, measured on the reference. AntD 6 renders `.ant-popover-container`
+ * where v5 had `.ant-popover-inner`, so the old rule never landed and the
+ * panel sat on the default 4px — which is the crowding that shows.
+ */
+.pd-print-pick-popover .ant-popover-container,
 .pd-print-pick-popover .ant-popover-inner {
+  border: 1px solid var(--bd-line);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 6px 16px rgb(27 42 65 / 8%);
   padding: 12px;
 }
 
 .pd-print-pick {
   display: flex;
-  width: 296px;
+  width: 294px;
   flex-direction: column;
   gap: 12px;
 }
@@ -116,6 +126,9 @@
   color: var(--bd-heading);
   font-size: 14px;
   font-weight: 500;
+  /* The reference's 14px/20px; ours inherited AntD's 22.6px and stood 3px
+     taller than the row it is measured against. */
+  line-height: 20px;
   cursor: pointer;
 }
 
@@ -171,71 +184,48 @@
 /* ── Printing ── */
 
 /*
- * Only the sheets go to the printer, and they print where they already sit: a
- * record is an iframe carrying what has been typed into it, and moving it into
- * a print container would reload it and lose that.
+ * What goes to the printer is a *copy* of the sheets, made in the app's own
+ * document — see printing.ts. The reference does the same, into a block parked
+ * off the left of the page; the sheet's own document is never printed, because
+ * to a printer an iframe is one box and gets sliced through the middle of a
+ * row wherever the outer page ends.
  *
- * Which branches leave the layout is decided in JavaScript — see printing.ts —
- * because the path down to a sheet differs between the Bệnh án tab and the
- * "In bệnh án" dialog. All this stylesheet does is honour the marks.
- *
- * Its own body class, not the `pd-printing` the older print dialogs use: that
- * one means "hide every child of body except the `.pd-print-sheet` portalled
- * onto it", the opposite arrangement, and it would hide the record entirely.
+ * The copy is a direct child of `<body>`, so isolating it is one rule rather
+ * than a walk down through the app's shell.
  */
+.mr-print-copy {
+  position: fixed;
+  top: 0;
+  left: -100000px;
+  width: 210mm;
+}
+
 @media print {
-  body.mr-printing [data-mr-print="hide"] {
+  /* Nothing of the app is on the paper — only the copy. */
+  body.mr-printing > *:not(.mr-print-copy) {
     display: none !important;
   }
 
-  /* The sheet prints at its own size, whatever the preview was zoomed to. */
-  body.mr-printing .mr-doc {
-    zoom: 1 !important;
-    margin: 0 !important;
+  /* And the copy stands where the page begins, at its own size. */
+  .mr-print-copy {
+    position: static !important;
+    width: auto !important;
   }
 
-  body.mr-printing .mr-doc + .mr-doc {
+  /* One sheet per run of pages: the next one starts on a fresh sheet of paper. */
+  .mr-print-copy .nfc-tpl + .nfc-tpl {
     break-before: page;
     page-break-before: always;
   }
 
-  /*
-   * The root must be free to grow, or the printer paginates the window rather
-   * than the record: the app shell is exactly the height of the screen.
-   */
+  /* The app's shell is exactly the height of the window, and a record is not. */
   html:has(body.mr-printing),
   body.mr-printing {
     height: auto !important;
     min-height: 0 !important;
     overflow: visible !important;
-  }
-
-  /*
-   * Nothing on the path down to a sheet may pad, scroll, cap or frame it.
-   *
-   * The path is marked in JavaScript (`printing.ts`) rather than listed by
-   * class here: it runs from the app shell through the scrolling main and the
-   * page down to the sheet column, and the "In bệnh án" dialog adds four
-   * modal layers of its own. Every one of them is a fixed-height clipping box,
-   * and one missed link costs every page after the first.
-   */
-  body.mr-printing [data-mr-print="path"] {
-    display: block !important;
-    position: static !important;
-    overflow: visible !important;
-    max-width: none !important;
-    max-height: none !important;
-    width: auto !important;
-    height: auto !important;
-    min-height: 0 !important;
-    flex: none !important;
-    border: 0 !important;
-    border-radius: 0 !important;
-    background: #fff !important;
-    padding: 0 !important;
     margin: 0 !important;
-    gap: 0 !important;
-    transform: none !important;
-    zoom: 1 !important;
+    padding: 0 !important;
+    background: #fff !important;
   }
 }

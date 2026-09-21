@@ -9,6 +9,8 @@ const PAGE_WIDTH = 834;
 const PAGE_HEIGHT = 1163;
 
 interface Props {
+  /** Which sheet this is, so printing can find the frame drawing it. */
+  sheetId: string;
   /** The blank form this sheet is printed from. */
   template: string;
   /** Facts from the record and the letterhead. */
@@ -41,6 +43,7 @@ interface Props {
  * is what keeps the caret still.
  */
 export function MedicalRecordDocument({
+  sheetId,
   template,
   auto,
   stored,
@@ -192,7 +195,11 @@ export function MedicalRecordDocument({
   }, [stored]);
 
   return (
-    <div className="mr-doc" style={{ "--mr-zoom": zoom } as CSSProperties}>
+    <div
+      className="mr-doc"
+      data-sheet-id={sheetId}
+      style={{ "--mr-zoom": zoom } as CSSProperties}
+    >
       <iframe
         ref={frame}
         className="mr-doc-frame"

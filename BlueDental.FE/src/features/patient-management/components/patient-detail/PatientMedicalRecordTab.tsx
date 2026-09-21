@@ -10,7 +10,7 @@ import { extractApiError } from "@/lib/apiError";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { t } from "@/lib/i18n";
-import { isolateSheetsForPrint } from "./medical-record/printing";
+import { copySheetsForPrint, framesForSheets } from "./medical-record/printing";
 import {
   useAddMedicalRecord,
   useDeleteMedicalRecord,
@@ -268,10 +268,21 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
   // Set while a print is in flight, so `afterprint` can put the page back.
   const restorePage = useRef<(() => void) | null>(null);
 
-  const printSheets = (ids: readonly string[]) => {
+  /**
+   * Puts the chosen sheets on paper.
+   *
+   * Waits for the frames drawing them first: this usually follows the click
+   * that opened one, and React has not drawn it yet — printing straight away
+   * put the *previous* sheet on the paper. Only the sheets asked for are
+   * copied, which is what makes the picker's ticks mean anything.
+   */
+  const printSheets = async (ids: readonly string[]) => {
     if (!ids.length) return;
+    const frames = await framesForSheets(ids);
+    if (!frames.length) return;
+
     restorePage.current?.();
-    restorePage.current = isolateSheetsForPrint();
+    restorePage.current = copySheetsForPrint(frames);
     window.print();
   };
 
@@ -303,7 +314,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
           onPrint={(sheet) => {
             setActiveId(sheet.id);
             setMode("single");
-            printSheets([sheet.id]);
+            void printSheets([sheet.id]);
           }}
           onRename={(sheet) => {
             setRenaming(sheet);
@@ -386,12 +397,16 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
               </div>
 
               {mode === "all" ? (
-                <PrintSheetPicker sheets={sheets} ordinalOf={ordinalOf} onPrint={printSheets} />
+                <PrintSheetPicker
+                  sheets={sheets}
+                  ordinalOf={ordinalOf}
+                  onPrint={(ids) => void printSheets(ids)}
+                />
               ) : (
                 <Button
                   icon={<Printer size={14} />}
                   disabled={!active}
-                  onClick={() => active && printSheets([active.id])}
+                  onClick={() => active && void printSheets([active.id])}
                 >
                   {t("In biểu mẫu")}
                 </Button>

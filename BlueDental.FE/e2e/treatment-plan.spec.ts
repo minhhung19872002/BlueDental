@@ -187,10 +187,10 @@ test.describe("Kế hoạch điều trị", () => {
     ).toContainText("BỆNH ÁN NGOẠI TRÚ");
 
     /*
-     * Printing from here has four modal layers between the sheet and the page,
-     * every one of them a fixed-height clipping box — a record longer than the
-     * window came out as a single page. What goes on the paper is the record
-     * alone, at its full length, whatever the preview was zoomed to.
+     * Printing from here goes the same way as from the Bệnh án tab: the sheet
+     * is copied into the page's own document and that copy is printed. The
+     * preview's frame cannot be: to a printer an iframe is one box, and four
+     * modal layers of fixed-height boxes sit between it and the paper.
      */
     await page.evaluate(() => {
       window.print = () => {
@@ -202,31 +202,27 @@ test.describe("Kế hoạch điều trị", () => {
       true,
     );
 
+    const copy = page.locator(".mr-print-copy");
+    await expect(copy.locator(".nfc-tpl")).toHaveCount(1);
+    // The sheet the picker is showing, not some other one.
+    await expect(copy).toContainText("BỆNH ÁN NGOẠI TRÚ");
+
     await page.emulateMedia({ media: "print" });
     const paper = await page.evaluate(() => {
-      const doc = document.querySelector<HTMLElement>(".mr-doc")!;
-      const box = doc.getBoundingClientRect();
-      const clipping: string[] = [];
-      for (let node = doc.parentElement; node; node = node.parentElement) {
-        const style = getComputedStyle(node);
-        if (style.overflowY !== "visible" || style.overflowX !== "visible") {
-          clipping.push(`${node.tagName}.${String(node.className).split(" ")[0]}`);
-        }
-      }
+      const holder = document.querySelector<HTMLElement>(".mr-print-copy")!;
       return {
-        top: Math.round(box.top + window.scrollY),
-        height: Math.round(box.height),
-        zoom: getComputedStyle(doc).zoom,
-        rootHeight: Math.round(document.documentElement.getBoundingClientRect().height),
-        clipping,
+        // Only the copy is on the paper — the dialog and the app are not.
+        shown: [...document.body.children]
+          .filter((node) => getComputedStyle(node).display !== "none")
+          .map((node) => node.className || node.tagName),
+        // And it prints at its own size, whatever the preview was zoomed to.
+        zoom: getComputedStyle(holder.querySelector(".nfc-tpl")!).zoom,
       };
     });
     await page.emulateMedia({ media: null });
 
-    expect(paper.top).toBe(0);
+    expect(paper.shown).toEqual(["mr-print-copy"]);
     expect(paper.zoom).toBe("1");
-    expect(paper.rootHeight).toBe(paper.height);
-    expect(paper.clipping).toEqual([]);
 
     // Scoped to the footer: the modal's own X is labelled "Đóng" as well.
     await print.locator(".pmr-foot").getByRole("button", { name: "Đóng" }).click();

@@ -116,29 +116,69 @@ export const SHEET_CSS = String.raw`
 .nfc-tpl img{max-width:100%}`;
 
 /*
- * The frame around the sheet: A4 at 210x297mm with a 12mm margin, one white
- * page on a grey ground, and `<hr>` between pages — a dashed rule on screen,
- * a page break on paper. Also the three field states the reference draws:
- * filled (blue on pale blue), suggested from the record (amber outline), and
- * both flattened to plain black when printing.
+ * The three field states the reference draws: filled (blue on pale blue),
+ * suggested from the record (amber outline), and both flattened to plain black
+ * on paper. Scoped to the sheet, so it is safe wherever a sheet is drawn.
  */
-export const SHEET_PAGE_CSS = String.raw`    html,body{margin:0;min-height:100%;background:#f0f0f0}
-    body{padding:20px;box-sizing:border-box}
-    .nfc-tpl{width:210mm;min-height:297mm;margin:0 auto;padding:12mm;box-sizing:border-box;background:#fff;box-shadow:0 0 10px rgba(0,0,0,.1)}
-    .nfc-tpl>hr{margin:28px 0;border:0;border-top:2px dashed #b7c0ce}
-    
+const SHEET_FIELD_CSS = String.raw`
   .nfc-tpl .nfc-medical-record-text-field:not(:empty){color:#1769E0;background:#EAF2FD}
   .nfc-tpl .nfc-medical-record-text-field:focus{outline-width:1px}
   .nfc-tpl [data-medical-record-suggested="true"]{outline:1px solid #f59e0b!important;outline-offset:1px}
   @media print{
     .nfc-tpl .nfc-medical-record-text-field:not(:empty){color:#000!important;background:transparent!important}
     .nfc-tpl [data-medical-record-suggested="true"]{outline:none!important}
-  }
+  }`;
 
-    @page{size:A4;margin:0}
+/*
+ * What a sheet does on paper, read off the reference's own stylesheet: A4 with
+ * a **5mm printer margin** and a page number at the bottom right, and a page
+ * break at each `<hr>`, which is how the form marks where one of its pages
+ * ends. The 7mm the sheet adds brings the first page's edge to the 12mm the
+ * preview shows; every later page keeps the 5mm the printer gives it.
+ *
+ * The margin is the part that matters. At `margin: 0` only the first page had
+ * an edge — the form's own padding is on the whole block, not on each page —
+ * so everything after it ran to the very edge of the paper and tore.
+ *
+ * Chrome ignores the `@bottom-right` box (paged-media margin boxes are not
+ * implemented); it is kept because it is what the reference ships, and it
+ * costs nothing.
+ *
+ * This is the part that has to travel with the sheet wherever it is printed
+ * from. Printing the sheet's *frame* from outside cannot honour it: an iframe
+ * is one box to the printer, and it gets sliced wherever the outer page ends,
+ * through the middle of a row.
+ */
+const SHEET_PRINT_CSS = String.raw`
+    @page{size:A4;margin:5mm;@bottom-right{content:counter(page);font-family:'Times New Roman',Times,serif;font-size:10pt;color:#000}}
     @media print{
-      html,body{width:210mm;height:auto!important;min-height:0!important;margin:0;padding:0;background:#fff}
-      .nfc-tpl{width:210mm;height:auto;min-height:0;margin:0;padding:12mm;box-shadow:none}
+      .nfc-tpl{width:200mm;height:auto;min-height:0;margin:0 auto;padding:7mm;box-shadow:none}
       .nfc-tpl>hr{height:0;margin:0;border:0;break-after:page;page-break-after:always}
-    }
+    }`;
+
+/*
+ * The frame around the sheet inside its own document: one white A4 page on a
+ * grey ground, with `<hr>` drawn as a dashed rule between pages.
+ */
+export const SHEET_PAGE_CSS = String.raw`    html,body{margin:0;min-height:100%;background:#f0f0f0}
+    body{padding:20px;box-sizing:border-box}
+    .nfc-tpl{width:210mm;min-height:297mm;margin:0 auto;padding:12mm;box-sizing:border-box;background:#fff;box-shadow:0 0 10px rgba(0,0,0,.1)}
+    .nfc-tpl>hr{margin:28px 0;border:0;border-top:2px dashed #b7c0ce}
+    ${SHEET_FIELD_CSS}
+    @media print{html,body{width:210mm;height:auto!important;min-height:0!important;margin:0;padding:0;background:#fff}}
+${SHEET_PRINT_CSS}
+  `;
+
+/**
+ * Everything a sheet needs to print from the *app's* document rather than its
+ * own — the copy made for the printer, as the reference does it.
+ *
+ * Only rules scoped to `.nfc-tpl` (plus `@page`, which is the print job's):
+ * the sheet's own `html, body` rules would repaint the whole app.
+ */
+export const PRINT_COPY_CSS = String.raw`${SHEET_CSS}
+    .nfc-tpl{width:210mm;margin:0 auto;padding:12mm;box-sizing:border-box;background:#fff}
+    .nfc-tpl>hr{margin:0;border:0}
+${SHEET_FIELD_CSS}
+${SHEET_PRINT_CSS}
   `;

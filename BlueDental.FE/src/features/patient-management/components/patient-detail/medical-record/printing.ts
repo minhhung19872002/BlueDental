@@ -1,84 +1,108 @@
+import { PRINT_COPY_CSS } from "./sheetCss";
+
 /**
  * Getting a record onto paper.
  *
- * The sheet is an iframe carrying what has been typed into it, so it cannot be
- * cloned into a print container the way the other print dialogs do — moving it
- * reloads it and the typing is gone. It has to print where it already sits.
+ * A sheet is drawn in its own document, inside an iframe, and that document
+ * already knows how to print itself: A4 with no printer margin, a page break at
+ * every `<hr>`, and rows that may not be split. None of that reaches the
+ * printer when the *app's* page is what is printed — to the printer an iframe
+ * is a single box, sliced wherever the outer page happens to end, straight
+ * through the middle of a row.
  *
- * Hiding the rest with `visibility` is not enough either: an invisible box
- * still takes up paper, and the record would print after a page of nothing. So
- * every branch that is not on the path down to a sheet is taken out of the
- * layout for the duration of the print, and put back afterwards.
+ * So the sheets are copied into the app's own document for the duration of the
+ * print — the reference does the same, into a hidden block off the left of the
+ * page — and the copy is what goes to the printer. The iframe itself is never
+ * moved: moving it reloads it and what has been typed is gone.
  */
 
 /** On the body while a record is going to the printer. */
 export const PRINTING_CLASS = "mr-printing";
 
-/**
- * How each branch is marked for the duration of the print.
- *
- * An attribute rather than a class: `className` is a rendered prop, so a React
- * update that touches one of these elements writes its own value straight over
- * ours and the branch comes back — measured, with the whole index printing
- * above the record. Nothing renders `data-mr-print`, so nothing overwrites it.
- */
-const MARK = "data-mr-print";
+/** The block holding the copies. It is a direct child of `<body>`. */
+export const COPY_CLASS = "mr-print-copy";
 
-/** On each branch that must not take up room on the paper. */
-const HIDDEN = "hide";
+/** The sheet inside a frame's document — the form itself, not its chrome. */
+const SHEET_SELECTOR = ".nfc-tpl";
 
 /**
- * On each branch the sheet hangs from.
- *
- * Hiding the rest is only half of it: what is left standing is the app's own
- * chrome — the shell, the scrolling main, the page, the sheet column — and
- * every one of them is a fixed-height box that clips. A record two and a half
- * pages long came out as **one** page, because the printer paginates what the
- * root actually lays out and the root was capped at the window. So each of
- * those is opened up for the duration of the print.
+ * `cloneNode` copies the markup, and the markup is where a blank's text lives,
+ * so the writing comes across on its own. A tick box is different: `checked` is
+ * a property the clone does not inherit, and the attribute is what the copy
+ * will be drawn from.
  */
-const PATH = "path";
+function carryTickBoxes(from: Element, to: Element): void {
+  const live = from.querySelectorAll("input");
+  const copies = to.querySelectorAll("input");
 
-/** The sheets themselves — a branch holding one is never hidden. */
-const SHEET_SELECTOR = ".mr-doc";
-
-function holdsASheet(node: Element): boolean {
-  return node.matches(SHEET_SELECTOR) || node.querySelector(SHEET_SELECTOR) !== null;
+  live.forEach((input, at) => {
+    const copy = copies[at];
+    if (!copy) return;
+    if (input.type === "checkbox" || input.type === "radio") {
+      if (input.checked) copy.setAttribute("checked", "");
+      else copy.removeAttribute("checked");
+      return;
+    }
+    copy.setAttribute("value", input.value);
+  });
 }
 
 /**
- * Takes everything that is not a sheet out of the layout, opens up what the
- * sheet hangs from, and returns the call that puts both back.
+ * Copies these sheets into the app's document, hides everything else, and
+ * returns the call that puts the page back.
  *
- * Walks down from the body rather than up from a sheet, so that "Toàn bộ" —
- * where several sheets print in one run — keeps all of them.
+ * The caller prints between the two.
  */
-export function isolateSheetsForPrint(root: ParentNode = document.body): () => void {
-  const marked: Element[] = [];
+export function copySheetsForPrint(frames: readonly HTMLIFrameElement[]): () => void {
+  const holder = document.createElement("div");
+  holder.className = COPY_CLASS;
 
-  const mark = (node: Element, how: string) => {
-    node.setAttribute(MARK, how);
-    marked.push(node);
-  };
+  const style = document.createElement("style");
+  style.textContent = PRINT_COPY_CSS;
+  holder.append(style);
 
-  const walk = (parent: ParentNode) => {
-    for (const child of Array.from(parent.children)) {
-      if (child.matches(SHEET_SELECTOR)) continue;
-      if (holdsASheet(child)) {
-        mark(child, PATH);
-        walk(child);
-        continue;
-      }
-      mark(child, HIDDEN);
-    }
-  };
+  for (const frame of frames) {
+    const sheet = frame.contentDocument?.querySelector(SHEET_SELECTOR);
+    if (!sheet) continue;
+    // From another document, so it has to be imported rather than adopted.
+    const copy = document.importNode(sheet, true);
+    carryTickBoxes(sheet, copy);
+    holder.append(copy);
+  }
 
-  walk(root);
+  document.body.append(holder);
   document.body.classList.add(PRINTING_CLASS);
 
   return () => {
     document.body.classList.remove(PRINTING_CLASS);
-    for (const node of marked) node.removeAttribute(MARK);
-    marked.length = 0;
+    holder.remove();
   };
+}
+
+/**
+ * The frames drawing these sheets, once each of them has a form in it.
+ *
+ * Printing usually follows a click that opens the sheet, and React has not
+ * drawn it yet when the handler runs — let alone loaded the document inside.
+ * Whoever asked to print waits here for the paper to exist.
+ */
+export async function framesForSheets(
+  ids: readonly string[],
+  within = 4000,
+): Promise<HTMLIFrameElement[]> {
+  const deadline = performance.now() + within;
+
+  for (;;) {
+    const frames = ids.map((id) =>
+      document.querySelector<HTMLIFrameElement>(`[data-sheet-id="${CSS.escape(id)}"] iframe`),
+    );
+    const ready = frames.filter(
+      (frame): frame is HTMLIFrameElement =>
+        frame !== null && Boolean(frame.contentDocument?.querySelector(SHEET_SELECTOR)),
+    );
+
+    if (ready.length === ids.length) return ready;
+    if (performance.now() > deadline) return ready;
+    await new Promise((settle) => requestAnimationFrame(settle));
+  }
 }

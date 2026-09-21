@@ -11,7 +11,10 @@ import type { FieldValues } from "@/features/patient-management/components/patie
 import { useSheetFieldValues } from "@/features/patient-management/components/patient-detail/medical-record/useSheetFieldValues";
 import type { PatientDto } from "@/features/patient-management/types/patient";
 import { t } from "@/lib/i18n";
-import { isolateSheetsForPrint } from "@/features/patient-management/components/patient-detail/medical-record/printing";
+import {
+  copySheetsForPrint,
+  framesForSheets,
+} from "@/features/patient-management/components/patient-detail/medical-record/printing";
 import {
   clampZoom,
   DEFAULT_PRINT_FORM,
@@ -75,9 +78,17 @@ export function PrintMedicalRecordDialog({ patient, onClose }: Props) {
     };
   }, []);
 
-  const handlePrint = () => {
+  /**
+    * The sheet is copied into the page's own document and *that* is printed —
+    * see `printing.ts`. Printing the preview's frame in place gave the printer
+    * one tall box to slice, and it cut through the middle of a row.
+    */
+  const handlePrint = async () => {
+    const frames = await framesForSheets([sheet.id]);
+    if (!frames.length) return;
+
     restorePage.current?.();
-    restorePage.current = isolateSheetsForPrint();
+    restorePage.current = copySheetsForPrint(frames);
     window.print();
   };
 
@@ -92,7 +103,7 @@ export function PrintMedicalRecordDialog({ patient, onClose }: Props) {
       footer={
         <div className="pmr-foot">
           <Button onClick={onClose}>{t("Đóng")}</Button>
-          <Button type="primary" icon={<Printer size={16} />} onClick={handlePrint}>
+          <Button type="primary" icon={<Printer size={16} />} onClick={() => void handlePrint()}>
             {t("In bệnh án")}
           </Button>
         </div>
