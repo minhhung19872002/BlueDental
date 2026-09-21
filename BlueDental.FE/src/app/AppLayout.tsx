@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Avatar, Dropdown, Popover, type MenuProps } from "antd";
 import {
+  CheckOutlined,
   DownOutlined,
   GlobalOutlined,
   KeyOutlined,
@@ -36,7 +37,7 @@ export function AppLayout() {
   const [openGroupId, setOpenGroupId] = useState<string | null>(null);
   const [notifOpen, setNotifOpen] = useState(false);
   const [branchMenuOpen, setBranchMenuOpen] = useState(false);
-  const [, setLanguage] = useLanguage();
+  const [currentLang, setLanguage] = useLanguage();
 
   const t = useT();
   const navigate = useNavigate();
@@ -125,6 +126,14 @@ export function AppLayout() {
   const openGroup = NAV_GROUPS.find((g) => g.id === openGroupId);
   const ribbonItems = openGroup?.items ?? [];
 
+  const isSettingsPage = location.pathname === "/settings";
+  const settingsTab = isSettingsPage
+    ? new URLSearchParams(location.search).get("tab")
+    : null;
+  const userMenuActiveKey = settingsTab === "info" ? "profile"
+    : settingsTab === "password" ? "change-password"
+    : isSettingsPage ? "settings" : undefined;
+
   const userMenuItems: MenuProps["items"] = [
     {
       key: "user-info",
@@ -151,7 +160,7 @@ export function AppLayout() {
       key: "settings",
       icon: <SettingOutlined />,
       label: t("Cài đặt"),
-      onClick: () => navigate("/settings"),
+      onClick: () => navigate("/settings?tab=clinic"),
     },
     {
       /* The header carries no language control, so the account block is the
@@ -162,12 +171,24 @@ export function AppLayout() {
       children: [
         {
           key: "lang-vi",
-          label: t("Tiếng Việt"),
+          icon: <span className="fi fi-vn" style={{ fontSize: 16, borderRadius: 2 }} />,
+          label: (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+              {t("Tiếng Việt")}
+              {currentLang === "vi" && <CheckOutlined style={{ fontSize: 12, color: "var(--bd-primary)" }} />}
+            </span>
+          ),
           onClick: () => setLanguage("vi"),
         },
         {
           key: "lang-en",
-          label: "English",
+          icon: <span className="fi fi-gb" style={{ fontSize: 16, borderRadius: 2 }} />,
+          label: (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+              English
+              {currentLang === "en" && <CheckOutlined style={{ fontSize: 12, color: "var(--bd-primary)" }} />}
+            </span>
+          ),
           onClick: () => setLanguage("en"),
         },
       ],
@@ -335,6 +356,7 @@ export function AppLayout() {
             </button>
           </Popover>
 
+          {/* TODO: NotificationBell — handle later
           <NotificationBell
             open={notifOpen}
             onOpen={() => {
@@ -343,8 +365,9 @@ export function AppLayout() {
             }}
             onClose={() => setNotifOpen(false)}
           />
+          */}
 
-          <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
+          <Dropdown menu={{ items: userMenuItems, selectedKeys: userMenuActiveKey ? [userMenuActiveKey] : [] }} placement="bottomRight">
             <div
               className="app-header-user"
               role="button"

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Button, Descriptions, Divider, Form, Input, Modal, Select, Spin, Typography } from "antd";
 import { toast } from "sonner";
 import { PillTabs } from "@/components/PillTabs";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { EditOutlined, UserOutlined } from "@ant-design/icons";
 import { useClinicInfo, useUpdateClinicInfo, type UpdateClinicInfoDto } from "../api";
 import { t, useLanguage, type Language } from "@/lib/i18n";
@@ -206,6 +206,9 @@ function PermissionsTab() {
 }
 
 export function SettingsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") ?? "clinic";
+
   const tabItems = [
     {
       key: "clinic",
@@ -264,7 +267,11 @@ export function SettingsPage() {
           padding: "0 20px",
         }}
       >
-        <PillTabs items={tabItems} />
+        <PillTabs
+          items={tabItems}
+          activeKey={activeTab}
+          onChange={(key) => setSearchParams({ tab: key }, { replace: true })}
+        />
       </div>
     </div>
   );

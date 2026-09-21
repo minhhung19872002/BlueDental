@@ -640,7 +640,7 @@ body::-webkit-scrollbar-track {
   gap: 9px;
   min-width: 38px;
   flex: 0 0 auto;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .app-header-logo {

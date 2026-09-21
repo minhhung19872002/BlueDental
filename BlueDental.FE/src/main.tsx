@@ -13,6 +13,7 @@ import { router } from "./app/router";
 import { themeConfig } from "./theme/index";
 import { I18nProvider, useLanguage } from "./lib/i18n";
 import { initTableGrabScroll } from "./hooks/useDragScroll";
+import "flag-icons/css/flag-icons.min.css";
 import "./styles/index.css";
 
 dayjs.locale("vi");
