@@ -55,7 +55,15 @@ function fillFields(root: ParentNode, options: RenderOptions) {
       // survives serialisation back to the iframe's markup.
       if (node.checked) node.setAttribute("checked", "checked");
       else node.removeAttribute("checked");
-      node.disabled = !options.editable;
+      /*
+       * Never `disabled`: a disabled box is greyed by the browser, tick and
+       * all, so every sheet in "Toàn bộ" lost the reference's blue — on screen
+       * and on paper. A read-only sheet is held still by `pointer-events`
+       * instead; see the `[data-readonly]` rule in the sheet's stylesheet.
+       *
+       * (The reference locks nothing here at all — in "Toàn bộ" its sheets stay
+       * editable. Ours stay read-only because "Lưu" only saves the open sheet.)
+       */
       return;
     }
 
@@ -107,7 +115,10 @@ export function renderSheetHtml(template: string, options: RenderOptions): strin
  * fixed 13px on a 210mm page, and BlueDental's stylesheet reaching it would
  * move the layout off the printed original.
  */
-export function sheetDocument(body: string): string {
+export function sheetDocument(body: string, editable = true): string {
+  // A read-only sheet is marked, not disabled: `disabled` greys a tick box and
+  // the reference's blue with it. The stylesheet holds the sheet still.
+  const readOnly = editable ? "" : ' data-readonly="true"';
   return [
     "<!DOCTYPE html>",
     '<html lang="vi"><head><meta charset="UTF-8" />',
@@ -115,6 +126,6 @@ export function sheetDocument(body: string): string {
     SHEET_CSS,
     SHEET_PAGE_CSS,
     "</style></head>",
-    `<body><main class="nfc-tpl">${body}</main></body></html>`,
+    `<body><main class="nfc-tpl"${readOnly}>${body}</main></body></html>`,
   ].join("");
 }

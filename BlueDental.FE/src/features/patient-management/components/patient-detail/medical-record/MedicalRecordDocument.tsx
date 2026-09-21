@@ -71,7 +71,7 @@ export function MedicalRecordDocument({
       stored: startingValues.current.stored,
       editable,
     });
-    return sheetDocument(body);
+    return sheetDocument(body, editable);
     // Keyed on documentKey, not on the values: rebuilding the page as someone
     // types would take the caret with it. See the prop's note.
   }, [template, documentKey, editable]);

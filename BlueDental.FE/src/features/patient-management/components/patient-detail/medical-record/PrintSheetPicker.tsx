@@ -19,7 +19,17 @@ interface Props {
  */
 export function PrintSheetPicker({ sheets, ordinalOf, onPrint }: Props) {
   const [open, setOpen] = useState(false);
-  const [picked, setPicked] = useState<string[]>([]);
+  const [picked, setPicked] = useState<string[]>(() => sheets.map((sheet) => sheet.id));
+
+  /**
+   * Opening the panel starts from everything ticked — printing the whole
+   * record is what it is usually opened for, and unticking the two or three
+   * that are not wanted is less work than ticking the rest.
+   */
+  const show = (next: boolean) => {
+    if (next) setPicked(sheets.map((sheet) => sheet.id));
+    setOpen(next);
+  };
 
   const allPicked = sheets.length > 0 && picked.length === sheets.length;
   const somePicked = picked.length > 0 && !allPicked;
@@ -83,7 +93,7 @@ export function PrintSheetPicker({ sheets, ordinalOf, onPrint }: Props) {
   return (
     <Popover
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={show}
       trigger="click"
       placement="topRight"
       content={content}

@@ -356,6 +356,13 @@ test.describe("Bệnh án", () => {
 
     const first = page.frameLocator(".mr-doc-frame").first();
     await expect(first.locator("[contenteditable]")).toHaveCount(0);
+    /*
+     * Held still by the stylesheet, never `disabled`: a disabled box is greyed
+     * by the browser and the reference's blue tick goes with it — which is
+     * exactly what these sheets lost.
+     */
+    await expect(first.locator(".nfc-medical-record-checkbox:disabled")).toHaveCount(0);
+    await expect(first.locator('.nfc-tpl[data-readonly="true"]')).toHaveCount(1);
   });
   test("the outpatient form draws the two figures it is printed with", async ({ page }) => {
     await openMedicalRecord(page);
@@ -794,24 +801,19 @@ test.describe("Bệnh án", () => {
     const picker = page.locator(".pd-print-pick");
     await expect(picker).toBeVisible();
 
-    // Two of them, whichever the record happens to hold.
+    // It opens with the whole record ticked: printing all of it is what the
+    // panel is usually opened for.
     const rows = picker.locator(".pd-print-pick-row");
-    expect(await rows.count()).toBeGreaterThan(1);
-    const names = [
-      (await rows.nth(0).locator(".pd-print-pick-name").textContent())?.trim() ?? "",
-      (await rows.nth(1).locator(".pd-print-pick-name").textContent())?.trim() ?? "",
-    ];
-    await rows.nth(0).click();
-    await rows.nth(1).click();
+    const total = await rows.count();
+    expect(total).toBeGreaterThan(2);
+    await expect(picker.locator(".pd-print-pick-row .ant-checkbox-checked")).toHaveCount(total);
+
+    // Leave two ticked, and only those two reach the paper.
+    for (let at = 2; at < total; at++) await rows.nth(at).click();
+    await expect(picker.locator(".pd-print-pick-row .ant-checkbox-checked")).toHaveCount(2);
 
     await picker.getByRole("button", { name: "In" }).click();
-
-    const copy = page.locator(".mr-print-copy");
-    await expect(copy.locator(".nfc-tpl")).toHaveCount(2);
-    for (const name of names) {
-      // Each sheet's own heading identifies it on the paper.
-      expect(name.length).toBeGreaterThan(0);
-    }
+    await expect(page.locator(".mr-print-copy .nfc-tpl")).toHaveCount(2);
   });
 
   /**

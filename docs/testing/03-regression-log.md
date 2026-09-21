@@ -4222,3 +4222,20 @@ thể bỏ màu giao diện:
 
 Chỉ ghim **ô tích**: màu xanh của ô đã điền và viền hổ phách của ô gợi ý là thứ
 **cố ý** phẳng về đen khi in. Spec in kiểm thêm hai điều này ở media `print`.
+
+### Tick ở "Toàn bộ" bị xám, và popover nên tick sẵn tất cả
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-383 | **Ô tích ở chế độ "Toàn bộ" không xanh** (bên "Từng phiếu" thì xanh), và bản in từ đó cũng xám | `renderSheet` đặt `node.disabled = !editable`, mà ở "Toàn bộ" mọi tờ đều không cho sửa — trình duyệt tô xám ô bị vô hiệu hoá, tick và tất cả. Bỏ hẳn `disabled`; tờ chỉ-đọc nay mang `data-readonly="true"` và giữ yên bằng `pointer-events: none` trong stylesheet của tờ. Đo lại ở "Toàn bộ": `disabled: false`, `accent-color: rgb(38,113,216)`, `pointer-events: none`, không ô chữ nào sửa được |
+| R-384 | Popover "Chọn phiếu in" mở ra **chưa tick gì** | Mỗi lần mở panel là tick sẵn toàn bộ — in cả bệnh án là việc người ta mở nó ra để làm; bỏ tick vài tờ nhẹ hơn là tick từng tờ |
+
+Một điều đo được trên bản gốc và **cố ý không theo**: ở "Toàn bộ" bản gốc
+**không khoá gì cả** — ô tích `disabled: false`, ô chữ vẫn `contenteditable`,
+`pointer-events: auto`. Ta giữ chỉ-đọc vì nút **"Lưu" của ta chỉ lưu tờ đang
+mở**, nên cho sửa mọi tờ ở đó là mời người dùng gõ vào chỗ sẽ mất. Muốn theo
+đúng bản gốc thì phải mở rộng đường lưu trước.
+
+Chưa chạy lại e2e cho hai mục này — chủ dự án nói để tự thao tác kiểm cho nhanh.
+Hai spec liên quan đã sửa theo hợp đồng mới (tờ chỉ-đọc không dùng `disabled`;
+popover mở ra tick sẵn, bỏ bớt còn hai tờ thì chỉ hai tờ ra giấy). `tsc` sạch.

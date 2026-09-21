@@ -121,6 +121,7 @@ export const SHEET_CSS = String.raw`
  * on paper. Scoped to the sheet, so it is safe wherever a sheet is drawn.
  */
 const SHEET_FIELD_CSS = String.raw`
+  .nfc-tpl[data-readonly="true"] .nfc-medical-record-checkbox{pointer-events:none}
   .nfc-tpl .nfc-medical-record-text-field:not(:empty){color:#1769E0;background:#EAF2FD}
   .nfc-tpl .nfc-medical-record-text-field:focus{outline-width:1px}
   .nfc-tpl [data-medical-record-suggested="true"]{outline:1px solid #f59e0b!important;outline-offset:1px}
