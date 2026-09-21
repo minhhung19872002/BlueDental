@@ -88,10 +88,14 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         // clicked, so the stats ignore the status filter but keep the rest.
         var query = await FilteredQueryAsync(input, applyStatus: false);
 
-        var stats = await AsyncExecuter.FirstOrDefaultAsync(
-            query.GroupBy(r => 1).Select(g => new CareStatsDto
+        // Distinct().Count() inside a GroupBy projection is not translatable
+        // by Npgsql, so compute the distinct patient count separately.
+        var totalPatients = await AsyncExecuter.CountAsync(
+            query.Select(r => r.PatientId).Distinct());
+
+        var counters = await AsyncExecuter.FirstOrDefaultAsync(
+            query.GroupBy(r => 1).Select(g => new
             {
-                TotalPatients = g.Select(r => r.PatientId).Distinct().Count(),
                 Succeeded = g.Count(r => r.Status == CareStatus.Succeeded),
                 Failed = g.Count(r => r.Status == CareStatus.Failed),
                 NotCaredYet = g.Count(r =>
@@ -106,7 +110,23 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
                 Base = g.Count(r => r.Type == CareType.Base),
             }));
 
-        return stats ?? new CareStatsDto();
+        if (counters is null) return new CareStatsDto();
+
+        return new CareStatsDto
+        {
+            TotalPatients = totalPatients,
+            Succeeded = counters.Succeeded,
+            Failed = counters.Failed,
+            NotCaredYet = counters.NotCaredYet,
+            ZaloSent = counters.ZaloSent,
+            Good = counters.Good,
+            Fair = counters.Fair,
+            Normal = counters.Normal,
+            Complaint = counters.Complaint,
+            Special = counters.Special,
+            Periodic = counters.Periodic,
+            Base = counters.Base,
+        };
     }
 
     [Authorize(BlueDentalPermissions.CustomerCare.View)]
@@ -387,19 +407,22 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
 
         // The reference windows periodic/special by the care-appointment slot
         // and every other tab by the care date.
+        // Npgsql requires UTC offset for timestamptz parameters.
         var bySchedule = input.Type is CareType.Periodic or CareType.Special;
         if (input.FromDate.HasValue)
         {
+            var from = input.FromDate.Value.ToUniversalTime();
             query = bySchedule
-                ? query.Where(r => r.ScheduledStart >= input.FromDate.Value)
-                : query.Where(r => r.DueAt >= input.FromDate.Value);
+                ? query.Where(r => r.ScheduledStart >= from)
+                : query.Where(r => r.DueAt >= from);
         }
 
         if (input.ToDate.HasValue)
         {
+            var to = input.ToDate.Value.ToUniversalTime();
             query = bySchedule
-                ? query.Where(r => r.ScheduledStart <= input.ToDate.Value)
-                : query.Where(r => r.DueAt <= input.ToDate.Value);
+                ? query.Where(r => r.ScheduledStart <= to)
+                : query.Where(r => r.DueAt <= to);
         }
 
         if (!string.IsNullOrWhiteSpace(input.Filter))

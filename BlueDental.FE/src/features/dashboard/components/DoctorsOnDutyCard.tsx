@@ -39,17 +39,21 @@ export function DoctorsOnDutyCard() {
   const doctors = [...byDoctor.values()].sort((a, b) => b.count - a.count);
 
   return (
-    <div className="page-card">
+    <div className="page-card" style={{ display: "flex", flexDirection: "column" }}>
       <div className="dash-card-title" style={{ marginBottom: 12 }}>
         {t("Bác sĩ trực hôm nay")}
       </div>
       {isLoading ? (
-        <Spin size="small" />
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Spin size="small" />
+        </div>
       ) : doctors.length === 0 ? (
-        <Empty
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description={t("Chưa có bác sĩ nào có lịch hôm nay")}
-        />
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description={t("Chưa có bác sĩ nào có lịch hôm nay")}
+          />
+        </div>
       ) : (
         <div className="dash-list">
           {doctors.map((doc, i) => {

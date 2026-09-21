@@ -2575,23 +2575,34 @@ body::-webkit-scrollbar-track {
   margin-top: 3px;
 }
 
-/* Chart on the left, the two stacked panels on the right. */
+/* Chart on the left, doctor card on the right. */
 .dash-split {
   display: grid;
   grid-template-columns: 1.55fr 1fr;
   gap: 14px;
-  align-items: start;
+  align-items: stretch;
 }
 
-.dash-side {
-  display: flex;
-  flex-direction: column;
+/* Three equal cards across the middle band. */
+.dash-trio {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 14px;
 }
 
 @media (max-width: 1100px) {
   .dash-split {
     grid-template-columns: 1fr;
+  }
+
+  .dash-trio {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1100px) {
+  .dash-trio {
+    grid-template-columns: 1fr 1fr;
   }
 }
 
@@ -2770,6 +2781,54 @@ body::-webkit-scrollbar-track {
 
 .dash-stock-min {
   color: var(--bd-faint);
+}
+
+/* Care stats — 2×2 mini-grid inside its card. */
+.dash-care-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.dash-care-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 10px;
+  border-radius: var(--bd-radius-btn);
+  background: var(--bd-bg-soft);
+}
+
+.dash-care-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+}
+
+.dash-care-label {
+  flex: 1;
+  font-size: 12px;
+  color: var(--bd-sub);
+}
+
+.dash-care-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--bd-ink);
+}
+
+/* Patient insight — stacked rows. */
+.dash-insight-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dash-insight-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
 }
 
 /* The ongoing-receptions panel runs edge to edge inside its card. */

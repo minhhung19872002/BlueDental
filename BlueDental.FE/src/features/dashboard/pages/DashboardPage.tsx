@@ -18,6 +18,8 @@ import { KpiCard } from "../components/KpiCard";
 import { RevenueBarChart } from "../components/RevenueBarChart";
 import { DoctorsOnDutyCard } from "../components/DoctorsOnDutyCard";
 import { LowStockCard } from "../components/LowStockCard";
+import { CareStatsCard } from "../components/CareStatsCard";
+import { PatientInsightCard } from "../components/PatientInsightCard";
 import { OngoingReceptionsCard } from "../components/OngoingReceptionsCard";
 import { AppointmentEditorModal } from "@/features/appointments";
 import { t } from "@/lib/i18n";
@@ -100,10 +102,13 @@ export function DashboardPage() {
 
       <div className="dash-split">
         <RevenueBarChart />
-        <div className="dash-side">
-          <DoctorsOnDutyCard />
-          <LowStockCard />
-        </div>
+        <DoctorsOnDutyCard />
+      </div>
+
+      <div className="dash-trio">
+        <CareStatsCard />
+        <PatientInsightCard />
+        <LowStockCard />
       </div>
 
       <OngoingReceptionsCard />
