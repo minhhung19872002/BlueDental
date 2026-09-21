@@ -144,6 +144,13 @@ const SHEET_FIELD_CSS = String.raw`
  * implemented); it is kept because it is what the reference ships, and it
  * costs nothing.
  *
+ * A ticked box keeps the reference's blue on paper. Chrome paints
+ * `accent-color` even with "Background graphics" off — measured, and the same
+ * on the reference, which forces nothing — but a driver set to economy would
+ * grey it out, so the tick asks for its colour explicitly. Only the tick: the
+ * blue of a filled blank and the amber of a suggested one are *meant* to
+ * flatten to black on paper.
+ *
  * This is the part that has to travel with the sheet wherever it is printed
  * from. Printing the sheet's *frame* from outside cannot honour it: an iframe
  * is one box to the printer, and it gets sliced wherever the outer page ends,
@@ -154,6 +161,7 @@ const SHEET_PRINT_CSS = String.raw`
     @media print{
       .nfc-tpl{width:200mm;height:auto;min-height:0;margin:0 auto;padding:7mm;box-shadow:none}
       .nfc-tpl>hr{height:0;margin:0;border:0;break-after:page;page-break-after:always}
+      .nfc-tpl .nfc-medical-record-checkbox{accent-color:#2671d8;print-color-adjust:exact;-webkit-print-color-adjust:exact}
     }`;
 
 /*

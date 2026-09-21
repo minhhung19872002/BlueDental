@@ -756,13 +756,26 @@ test.describe("Bệnh án", () => {
 
     // On paper: the copy, and nothing else of the app.
     await page.emulateMedia({ media: "print" });
-    const shown = await page.evaluate(() =>
-      [...document.body.children]
-        .filter((node) => getComputedStyle(node).display !== "none")
-        .map((node) => node.className || node.tagName),
-    );
+    const onPaper = await page.evaluate(() => {
+      const tick = document
+        .querySelector(".mr-print-copy")!
+        .querySelector<HTMLElement>(".nfc-medical-record-checkbox");
+      const style = tick && getComputedStyle(tick);
+      return {
+        shown: [...document.body.children]
+          .filter((node) => getComputedStyle(node).display !== "none")
+          .map((node) => node.className || node.tagName),
+        // A ticked box keeps the reference's blue; a printer set to economy
+        // would otherwise grey it out.
+        tickAccent: style?.accentColor,
+        tickColours: style?.printColorAdjust,
+      };
+    });
     await page.emulateMedia({ media: null });
-    expect(shown).toEqual(["mr-print-copy"]);
+
+    expect(onPaper.shown).toEqual(["mr-print-copy"]);
+    expect(onPaper.tickAccent).toBe("rgb(38, 113, 216)");
+    expect(onPaper.tickColours).toBe("exact");
   });
 
   /**

@@ -4201,3 +4201,24 @@ do chủ dự án tự chạy FE/BE). Hai spec mới: bản in là **bản chép
 đã gõ và ô đã tick, và trên giấy chỉ còn `.mr-print-copy`; ô tích của popover
 quyết định đúng số tờ được chép. Spec in của modal "In bệnh án" cập nhật sang
 cùng hợp đồng. `tsc -b --noEmit` sạch.
+
+### Ô tick phải giữ màu xanh trên giấy (cùng đợt R-380…R-382)
+
+Chủ dự án lưu ý: chỗ có dấu tick trong bản in phải **xanh** như trang đích.
+
+Đo trước khi sửa: bản in của ta **đã xanh sẵn**, kể cả khi tắt "Background
+graphics" trong hộp thoại in (đo bằng `page.pdf({printBackground:false})` rồi
+dựng ảnh trang 1) — Chrome vẽ `accent-color` của ô tích bất kể tuỳ chọn đó.
+Bản gốc cũng không ép gì: đọc stylesheet của họ chỉ có
+`accent-color:#2671d8`, `print-color-adjust` để mặc định (`economy`).
+
+Dù vậy vẫn ghim màu lại cho chắc — máy in hoặc driver đặt ở chế độ tiết kiệm có
+thể bỏ màu giao diện:
+
+```css
+@media print{ .nfc-tpl .nfc-medical-record-checkbox{
+  accent-color:#2671d8;print-color-adjust:exact} }
+```
+
+Chỉ ghim **ô tích**: màu xanh của ô đã điền và viền hổ phách của ô gợi ý là thứ
+**cố ý** phẳng về đen khi in. Spec in kiểm thêm hai điều này ở media `print`.
