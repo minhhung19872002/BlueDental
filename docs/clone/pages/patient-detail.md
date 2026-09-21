@@ -3497,3 +3497,70 @@ liệu = đúng chiều cao tờ, không lớp nào còn cắt.
 
 Cùng cách đó cho modal "In bệnh án" ở tab Kế hoạch điều trị — ở đó còn thêm bốn
 lớp modal giữa tờ và trang, và chúng cũng được mở bằng chính dấu đường đi.
+
+### 10. "Chọn phiếu in", và vì sao bản in bị rách (đo 2026-09-21)
+
+**Popover "Chọn phiếu in".** Số đo bản gốc, đọc trực tiếp:
+
+| | Bản gốc | Ghi chú |
+|---|---|---|
+| Thẻ | **320 × 408**, padding **12px**, bo **16px**, viền 1px `#DCE3EE`, bóng `0 6px 16px rgba(27,42,65,.08)` | z-index 1200 |
+| Panel | 294 rộng, `space-y-3` (12px) | |
+| Tiêu đề | 600 14px/20px `#1B2A41`; phụ đề 12px/16px `#5A6B82`, cách 2px | |
+| "Tất cả phiếu" | `gap 10px`, gạch dưới, `padding-bottom 10px`, 14px/**20px**/500 | cao 31 |
+| Danh sách | `max-height 224px`, cách nhau 8px, `padding-right 4px` | cao 224 |
+| Dòng | **284 × 54**, padding 4px, gap 10px, `align-items: flex-start`, bo 6px, hover `#F4F7FB` | bước dòng **62** |
+| Ô tích | 20 × 20, bo 4px | |
+| Chân | gạch trên, `padding-top 12px`; nút "In" 40px cao, bo 8px | |
+
+BlueDental đã khớp gần hết phần trong panel, nhưng **thẻ ngoài chỉ có padding
+4px**: luật cũ nhắm `.ant-popover-inner-content` / `.ant-popover-inner`, mà AntD
+6 dựng `.ant-popover-container` — luật không trúng đâu cả nên rơi về mặc định.
+Đó chính là cảm giác "chật" anh thấy. Sửa: nhắm đúng class của AntD 6, thêm
+viền + bo 16 + bóng, panel 294. Đo lại: thẻ **320 × 415**, dòng 54, bước 62.
+
+Lệch còn lại và cố ý: viền của ta là token chung `--bd-line` (`#E7EAF6`) so với
+`#DCE3EE` của bản gốc — đó là khác biệt bảng màu toàn app, không sửa riêng ở
+đây; và ô tích/nút mang màu primary của ta.
+
+**Bản in bị rách.** Ảnh chủ dự án gửi: một dải nội dung chồng lên nhau giữa
+trang, cắt ngang hàng "Giấy cam kết chấp thuận phẫu thuật…".
+
+Gốc rễ: ta in **tài liệu của app**, mà tờ thì nằm trong `<iframe>`. Với máy in,
+một iframe là **một khối**, bị cắt đúng chỗ trang giấy hết — bất kể bên trong
+nó có `break-after:page` hay `tr{break-inside:avoid}`. Toàn bộ hợp đồng in mà
+tờ tự mang theo đều vô hiệu.
+
+Bản gốc không in iframe: nó **chép nội dung tờ vào một khối ẩn** trong chính
+tài liệu của trang (`left:-100000px`) rồi in khối đó. Và trong stylesheet của
+tờ, bản gốc khai:
+
+```css
+@page{size:A4;margin:5mm;@bottom-right{content:counter(page);
+      font-family:'Times New Roman',Times,serif;font-size:10pt;color:#000}}
+```
+
+Hai điều rút ra: **lề 5mm cho mọi trang** (ta đang để `margin:0`, nên chỉ trang
+đầu có lề — padding 12mm nằm trên cả khối chứ không trên từng trang — còn các
+trang sau chạy sát mép và tràn), và **số trang ở góc dưới phải**.
+
+BlueDental làm theo: `printing.ts` chép `.nfc-tpl` của từng tờ cần in vào một
+khối `.mr-print-copy` là con trực tiếp của `<body>`, mang theo trạng thái ô
+tích (thuộc tính `checked` không đi theo `cloneNode`), kèm một `<style>` chỉ
+gồm các luật phạm vi `.nfc-tpl` cộng `@page`. Nhờ khối nằm ngay dưới `body`,
+việc cô lập chỉ còn **một** luật (`body.mr-printing > *:not(.mr-print-copy)`)
+thay cho cả bộ đánh dấu đường đi trước đây.
+
+Đo trên tờ Bìa (3 trang) sau khi sửa: in ra **3 trang**, chữ và số ô tích của
+bản chép **trùng khít** bản đang mở, và dựng ảnh từng trang PDF để nhìn tận
+mắt — trang 2 và trang 3 liền lạc, không hàng nào bị cắt, có số trang góc dưới
+phải. Đúng chỗ rách trong ảnh chủ dự án gửi nay nguyên vẹn.
+
+Hai lỗi cùng đường đi, lộ ra khi sửa và sửa luôn:
+
+- Ô tích trong "Chọn phiếu in" **không có tác dụng**: `printSheets` chỉ kiểm
+  tra danh sách rỗng rồi in tất cả những gì đang vẽ. Nay chỉ chép đúng các tờ
+  được tick.
+- "In nhanh" từ thẻ phiếu in **nhầm tờ trước đó**: nó gọi in ngay sau
+  `setActiveId`, trước khi React kịp vẽ tờ mới. Nay chờ khung của đúng tờ xuất
+  hiện và tải xong (`framesForSheets`) rồi mới in.

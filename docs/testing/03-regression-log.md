@@ -4165,3 +4165,39 @@ của đợt sửa Tiếp nhận trên main (`35c653f`, `c8e129d`), không phả
 kiểu ở trên — sửa kiểu bị xoá lúc biên dịch, JS sinh ra y hệt. Chưa đụng spec
 vì phải biết ý đồ: màn thực sự chuyển sang `appointments`, hay chính việc mất
 `visits` mới là lỗi.
+
+## 2026-09-21 — Bệnh án: popover "Chọn phiếu in" bị chật, và bản in bị rách giữa trang
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-380 | **Popover "Chọn phiếu in" chật hơn bản gốc** | Thẻ ngoài chỉ có **padding 4px**: luật cũ nhắm `.ant-popover-inner-content`/`.ant-popover-inner`, mà AntD 6 dựng `.ant-popover-container` nên không trúng đâu cả. Nhắm đúng class, cộng viền 1px + bo 16px + bóng `0 6px 16px rgba(27,42,65,.08)`, panel 294 — đúng số đo bản gốc (thẻ 320×408, dòng 54, bước dòng 62). Thêm `line-height: 20px` cho dòng "Tất cả phiếu", vốn thừa hưởng 22.6px của AntD |
+| R-381 | **Bản in rách giữa trang**: một dải nội dung chồng lên nhau, cắt ngang hàng "Giấy cam kết chấp thuận phẫu thuật…" | Ta in **tài liệu của app**, mà tờ nằm trong iframe — với máy in, iframe là **một khối**, bị cắt đúng chỗ hết trang, bất kể `break-after:page` và `tr{break-inside:avoid}` bên trong nó. Bản gốc chép nội dung tờ vào một khối ẩn trong chính trang rồi in khối đó; làm theo (`copySheetsForPrint`), khối là con trực tiếp của `<body>` nên cô lập chỉ còn **một** luật thay cho cả bộ đánh dấu đường đi của R-374/R-378 |
+| R-382 | **Chỉ trang đầu có lề**, các trang sau chạy sát mép giấy | Đọc stylesheet bản gốc: `@page{size:A4;margin:5mm;@bottom-right{content:counter(page)}}` — lề **5mm cho mọi trang** và **số trang góc dưới phải**. Ta đang để `margin:0`, mà 12mm padding của tờ nằm trên cả khối chứ không trên từng trang, nên chỉ trang đầu có mép. Lấy đúng 5mm của họ, cộng 7mm của tờ để trang đầu vẫn ra 12mm như bản xem trước |
+
+Hai lỗi cùng đường đi, lộ ra khi sửa:
+
+- **Ô tích trong "Chọn phiếu in" không có tác dụng** — `printSheets` chỉ kiểm
+  tra danh sách rỗng rồi in tất cả những gì đang vẽ. Nay chỉ chép đúng các tờ
+  được tick.
+- **"In nhanh" từ thẻ phiếu in nhầm tờ trước đó** — nó in ngay sau
+  `setActiveId`, trước khi React vẽ tờ mới. Nay chờ khung của đúng tờ xuất hiện
+  và tải xong rồi mới in.
+
+Cách đo, vì chỉ số đầu tiên tôi dùng đã **sai**: đếm "hàng nằm vắt qua ranh giới
+trang" trên layout chưa phân trang là một **dự đoán**, nó bỏ qua việc Chrome tự
+đẩy hàng sang trang nhờ `break-inside:avoid` — chỉ số đó vẫn báo đỏ cả khi bản
+in đã đúng. Phải nhìn trang in thật: xuất PDF rồi **dựng ảnh từng trang bằng
+pdf.js** (máy không có `pdftoppm`/Ghostscript). Tờ Bìa sau khi sửa: **3 trang**,
+trang 2 và 3 liền lạc, không hàng nào bị cắt, có số trang góc dưới phải; chữ và
+số ô tích của bản chép trùng khít bản đang mở.
+
+Một điều đáng ghi về công cụ: `page.pdf()` của Playwright **bắn sự kiện
+`afterprint`**, và app dọn bản chép ngay khi nhận sự kiện đó — nên mọi phép đo
+trên bản chép phải làm **trước** khi gọi `page.pdf()`.
+
+Kết quả: `patient-medical-record.spec.ts` **22/22**, `treatment-plan.spec.ts`
+**6/6** trên dev :5173 (bản preview :8080 không chạy trong phiên này — máy đang
+do chủ dự án tự chạy FE/BE). Hai spec mới: bản in là **bản chép** mang đủ chữ
+đã gõ và ô đã tick, và trên giấy chỉ còn `.mr-print-copy`; ô tích của popover
+quyết định đúng số tờ được chép. Spec in của modal "In bệnh án" cập nhật sang
+cùng hợp đồng. `tsc -b --noEmit` sạch.
