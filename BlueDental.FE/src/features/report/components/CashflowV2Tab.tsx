@@ -92,7 +92,7 @@ const EXPORT_OPTIONS = {
  * balance, so neither follows the toolbar date.
  */
 export function CashflowV2Tab() {
-  const [sub, setSub] = useState<SubKey>("overview");
+  const [rawSub, setRawSub] = useState<SubKey>("overview");
   const [editor, setEditor] = useState<EditorState | null>(null);
   const branchId = useCurrentBranchId();
   const pagination = useTablePagination(20, { pageSizeOptions: REPORT_PAGE_SIZE_OPTIONS });
@@ -120,6 +120,8 @@ export function CashflowV2Tab() {
     const readable: Record<SubKey, boolean> = { overview: mayReadLedger, category: mayReadCategory };
     return SUB_TABS.filter((s) => readable[s.key]).map((s) => ({ key: s.key, label: s.label() }));
   }, [mayReadLedger, mayReadCategory]);
+  const sub: SubKey = items.some((i) => i.key === rawSub) ? rawSub : (items[0]?.key as SubKey) ?? "overview";
+  const setSub = setRawSub;
 
   const openCreate = useCallback(
     (transactionType: CashTransactionType) => setEditor({ transactionType, entry: null }),

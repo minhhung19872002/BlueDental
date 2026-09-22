@@ -25,6 +25,7 @@ import { staffApi, type StaffDto } from "../api/staffApi";
 import { StaffEditorModal, type StaffFormValues } from "../components/StaffEditorModal";
 import { useClinicBranches } from "@/features/organizations/api";
 import { useBranchStore } from "@/lib/clinicBranch";
+import { useAbility } from "@/hooks/useAbility";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useTablePagination } from "@/hooks/useTablePagination";
 
@@ -43,6 +44,7 @@ const statusTabs = (): { key: StatusFilter; label: string }[] => [
 ];
 
 export function StaffPage() {
+  const ability = useAbility("staff");
   const queryClient = useQueryClient();
   const pagination = useTablePagination(20);
   const [keyword, setKeyword] = useState("");
@@ -124,6 +126,7 @@ export function StaffPage() {
         await updateStaff.mutateAsync({
           id: editing.id,
           data: {
+            password: values.password || undefined,
             name: values.name,
             email: values.email,
             phoneNumber: values.phoneNumber || undefined,
@@ -210,23 +213,27 @@ export function StaffPage() {
       fixed: "right",
       render: (_, record) => (
         <div style={{ display: "flex", justifyContent: "center", gap: 4 }}>
-          <Tooltip title={t("Chỉnh sửa")}>
-            <Button
-              type="text"
-              size="small"
-              icon={<EditOutlined />}
-              onClick={(e) => { e.stopPropagation(); openEdit(record); }}
-            />
-          </Tooltip>
-          <Tooltip title={t("Xoá")}>
-            <Button
-              type="text"
-              size="small"
-              danger
-              icon={<DeleteOutlined />}
-              onClick={(e) => { e.stopPropagation(); setPendingDelete(record); }}
-            />
-          </Tooltip>
+          {ability.canUpdate && (
+            <Tooltip title={t("Chỉnh sửa")}>
+              <Button
+                type="text"
+                size="small"
+                icon={<EditOutlined />}
+                onClick={(e) => { e.stopPropagation(); openEdit(record); }}
+              />
+            </Tooltip>
+          )}
+          {ability.canDelete && (
+            <Tooltip title={t("Xoá")}>
+              <Button
+                type="text"
+                size="small"
+                danger
+                icon={<DeleteOutlined />}
+                onClick={(e) => { e.stopPropagation(); setPendingDelete(record); }}
+              />
+            </Tooltip>
+          )}
         </div>
       ),
     },
@@ -250,9 +257,11 @@ export function StaffPage() {
             style={{ flex: 1 }}
             allowClear
           />
-          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-            {t("Tạo")}
-          </Button>
+          {ability.canCreate && (
+            <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+              {t("Tạo")}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -307,9 +316,11 @@ export function StaffPage() {
           </div>
         </MobileFilterDrawer>
 
-        <Button type="primary" icon={<PlusOutlined />} block onClick={openCreate}>
-          {t("Tạo")}
-        </Button>
+        {ability.canCreate && (
+          <Button type="primary" icon={<PlusOutlined />} block onClick={openCreate}>
+            {t("Tạo")}
+          </Button>
+        )}
       </div>
 
       <div className="page-card" style={{ padding: 0 }}>

@@ -3,6 +3,7 @@ import { Button } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import { useSearchParams } from "react-router-dom";
 import { DataTable } from "@/components/DataTable";
+import { useAbility } from "@/hooks/useAbility";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
@@ -43,6 +44,7 @@ const COUNTERS: ReadonlyArray<{
 
 /** Tab 6 of the patient record: the patient's labo orders and the order dialog. */
 export function PatientLaboTab({ patient }: { patient: PatientDto }) {
+  const ability = useAbility("treatmentLabo");
   const branchId = useCurrentBranchId();
   const [searchParams, setSearchParams] = useSearchParams();
   const [kind, setKind] = useState<LaboOrderKind | null>(null);
@@ -77,8 +79,8 @@ export function PatientLaboTab({ patient }: { patient: PatientDto }) {
 
   const columns = buildPatientLaboColumns({
     onDetail: setDetail,
-    onContinue: (order) => openDialog("continue-process", order),
-    onWarranty: (order) => openDialog("warranty", order),
+    onContinue: ability.canCreate ? (order) => openDialog("continue-process", order) : undefined,
+    onWarranty: ability.canCreate ? (order) => openDialog("warranty", order) : undefined,
   });
 
   return (
@@ -98,9 +100,11 @@ export function PatientLaboTab({ patient }: { patient: PatientDto }) {
             </button>
           ))}
         </div>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => openDialog("new-order")}>
-          {t("Tạo phiếu Labo")}
-        </Button>
+        {ability.canCreate && (
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => openDialog("new-order")}>
+            {t("Tạo phiếu Labo")}
+          </Button>
+        )}
       </div>
       <div className="bd-cat-card">
         <DataTable<LaboOrderDto>

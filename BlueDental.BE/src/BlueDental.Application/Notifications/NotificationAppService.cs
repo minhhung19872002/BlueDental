@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
+using Volo.Abp.Authorization;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Users;
 
@@ -44,6 +45,14 @@ public class NotificationAppService : ApplicationService, INotificationAppServic
     public async Task MarkReadAsync(Guid id)
     {
         var notification = await _repository.GetAsync(id);
+
+        // A notification is the recipient's alone; a guessed id must not let
+        // one user clear another's unread mark.
+        if (notification.RecipientUserId != _currentUser.GetId())
+        {
+            throw new AbpAuthorizationException("Notification does not belong to the current user.");
+        }
+
         notification.MarkRead();
         await _repository.UpdateAsync(notification, autoSave: true);
     }

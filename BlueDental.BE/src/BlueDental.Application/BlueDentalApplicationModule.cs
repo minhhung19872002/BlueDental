@@ -1,8 +1,10 @@
+using BlueDental.Permissions;
 using BlueDental.Promotions;
 using BlueDental.Timekeeping;
 using Microsoft.Extensions.DependencyInjection;
 using Volo.Abp;
 using Volo.Abp.Account;
+using Volo.Abp.Authorization.Permissions;
 using Volo.Abp.AutoMapper;
 using Volo.Abp.BackgroundWorkers;
 using Volo.Abp.BlobStoring;
@@ -41,6 +43,14 @@ public class BlueDentalApplicationModule : AbpModule
         Configure<AbpVirtualFileSystemOptions>(options =>
         {
             options.FileSets.AddEmbedded<BlueDentalApplicationModule>();
+        });
+
+        // Legacy module permissions are satisfied by the ability leaves the
+        // Phân quyền screen grants. Registered last so it only decides names
+        // the user/role/client providers left undefined.
+        Configure<AbpPermissionOptions>(options =>
+        {
+            options.ValueProviders.Add<AbilityBridgePermissionValueProvider>();
         });
     }
 

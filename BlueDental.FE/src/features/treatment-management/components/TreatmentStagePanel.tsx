@@ -13,6 +13,7 @@ import {
 } from "../api/stageApi";
 import { StageModal } from "./StageModal";
 import { formatTeeth } from "../api/consultingApi";
+import { useAbility } from "@/hooks/useAbility";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { toast } from "sonner";
 import { extractApiError } from "@/lib/apiError";
@@ -34,6 +35,7 @@ interface TreatmentStagePanelProps {
  */
 export function TreatmentStagePanel({ patientId }: TreatmentStagePanelProps) {
   const branchId = useCurrentBranchId();
+  const ability = useAbility("treatmentStage");
   const [modalOpen, setModalOpen] = useState(false);
 
   const { data, isLoading } = useTreatmentStages({
@@ -106,12 +108,12 @@ export function TreatmentStagePanel({ patientId }: TreatmentStagePanelProps) {
         );
       },
     },
-    {
+    ...(ability.canUpdate ? [{
       title: t("Thao tác"),
       key: "actions",
       width: 190,
-      fixed: "right",
-      render: (_, row) =>
+      fixed: "right" as const,
+      render: (_: unknown, row: TreatmentStageDto) =>
         row.status === STAGE_STATUS.Completed ? (
           <Text type="secondary">{t("Đã xong")}</Text>
         ) : (
@@ -138,7 +140,7 @@ export function TreatmentStagePanel({ patientId }: TreatmentStagePanelProps) {
             </Button>
           </Space>
         ),
-    },
+    }] : []),
   ];
 
   return (
@@ -146,11 +148,11 @@ export function TreatmentStagePanel({ patientId }: TreatmentStagePanelProps) {
       <Card
         size="small"
         title={t("Công đoạn điều trị")}
-        extra={
+        extra={ability.canCreate ? (
           <Button size="small" type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
             {t("Công đoạn")}
           </Button>
-        }
+        ) : undefined}
         style={{ marginTop: 16 }}
       >
         <div style={{ marginBottom: 12 }} data-testid="stage-progress">

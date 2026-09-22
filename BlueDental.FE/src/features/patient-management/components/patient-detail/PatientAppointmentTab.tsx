@@ -9,6 +9,7 @@ import { AppointmentHistoryModal } from "@/features/appointments/components/hist
 import { useDeleteAppointment } from "@/features/appointments/api/appointmentMutations";
 import { useAppointmentList } from "@/features/appointments/api/appointmentQueries";
 import type { Appointment } from "@/features/appointments/types/appointment";
+import { useAbility } from "@/hooks/useAbility";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
 import { countedTotal } from "@/utils/countedTotal";
@@ -28,6 +29,7 @@ import {
  * do on every other BlueDental screen that has them.
  */
 export function PatientAppointmentTab({ patientId }: { patientId: string }) {
+  const ability = useAbility("appointment");
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<Appointment | null>(null);
   const [deleting, setDeleting] = useState<Appointment | null>(null);
@@ -55,7 +57,10 @@ export function PatientAppointmentTab({ patientId }: { patientId: string }) {
     ? everything.filter((row) => inAppointmentGroup(group, row.status)).length
     : page.data?.totalCount ?? 0;
 
-  const columns = buildAppointmentColumns({ onEdit: setEditing, onDelete: setDeleting });
+  const columns = buildAppointmentColumns({
+    onEdit: ability.canUpdate ? setEditing : undefined,
+    onDelete: ability.canDelete ? setDeleting : undefined,
+  });
 
   const refresh = () => {
     void page.refetch();
@@ -103,9 +108,11 @@ export function PatientAppointmentTab({ patientId }: { patientId: string }) {
           <Button icon={<HistoryOutlined />} onClick={() => setHistoryOpen(true)}>
             {t("Lịch sử thay đổi")}
           </Button>
-          <Button type="primary" icon={<CalendarOutlined />} onClick={() => setCreating(true)}>
-            {t("Tạo lịch hẹn mới")}
-          </Button>
+          {ability.canCreate && (
+            <Button type="primary" icon={<CalendarOutlined />} onClick={() => setCreating(true)}>
+              {t("Tạo lịch hẹn mới")}
+            </Button>
+          )}
         </div>
       </div>
 

@@ -21,12 +21,12 @@ interface Props {
   collapsed: boolean;
   adding: boolean;
   onToggleCollapse: () => void;
-  onAdd: (spec: MedicalRecordFormSpec) => void;
+  onAdd?: (spec: MedicalRecordFormSpec) => void;
   onSelect: (sheet: PatientMedicalRecordDto) => void;
   onCheck: (sheet: PatientMedicalRecordDto, checked: boolean) => void;
-  onPrint: (sheet: PatientMedicalRecordDto) => void;
-  onRename: (sheet: PatientMedicalRecordDto) => void;
-  onDelete: (sheet: PatientMedicalRecordDto) => void;
+  onPrint?: (sheet: PatientMedicalRecordDto) => void;
+  onRename?: (sheet: PatientMedicalRecordDto) => void;
+  onDelete?: (sheet: PatientMedicalRecordDto) => void;
 }
 
 export function MedicalRecordIndex({
@@ -87,14 +87,16 @@ export function MedicalRecordIndex({
                 <p>
                   {spec.index}. {t(spec.label)}
                 </p>
-                <Button
-                  className="pd-medical-add"
-                  icon={<PlusOutlined />}
-                  loading={adding}
-                  onClick={() => onAdd(spec)}
-                >
-                  {t("Thêm")}
-                </Button>
+                {onAdd && (
+                  <Button
+                    className="pd-medical-add"
+                    icon={<PlusOutlined />}
+                    loading={adding}
+                    onClick={() => onAdd(spec)}
+                  >
+                    {t("Thêm")}
+                  </Button>
+                )}
               </div>
 
               {own.map((sheet, position) => (
@@ -107,9 +109,9 @@ export function MedicalRecordIndex({
                   checked={checkedIds.has(sheet.id)}
                   onSelect={() => onSelect(sheet)}
                   onCheck={(checked) => onCheck(sheet, checked)}
-                  onPrint={() => onPrint(sheet)}
-                  onRename={() => onRename(sheet)}
-                  onDelete={() => onDelete(sheet)}
+                  onPrint={onPrint ? () => onPrint(sheet) : undefined}
+                  onRename={onRename ? () => onRename(sheet) : undefined}
+                  onDelete={onDelete ? () => onDelete(sheet) : undefined}
                 />
               ))}
             </li>

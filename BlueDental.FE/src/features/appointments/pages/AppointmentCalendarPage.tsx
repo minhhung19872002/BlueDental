@@ -20,6 +20,7 @@ import { CalendarFabs } from "../components/CalendarFabs";
 import { CalendarControlPanel } from "../components/CalendarControlPanel";
 import { TimekeepingBoard } from "@/features/timekeeping/components/TimekeepingBoard";
 import { WorkScheduleBuilder } from "@/features/timekeeping/components/WorkScheduleBuilder";
+import { useAbility } from "@/hooks/useAbility";
 import { useCalendarState } from "../hooks/useCalendarState";
 import { useCalendarFilters } from "../hooks/useCalendarFilters";
 import { useStatusCounts } from "../hooks/useStatusCounts";
@@ -32,6 +33,7 @@ import { t } from "@/lib/i18n";
 import "../components/calendar.css";
 
 export function AppointmentCalendarPage() {
+  const ability = useAbility("appointment");
   const state = useCalendarState();
   const filters = useCalendarFilters();
   const { data: dentistData } = useDentistList();
@@ -181,7 +183,7 @@ export function AppointmentCalendarPage() {
           onChange={state.setTopTab}
         />
 
-        {state.topTab === "customer" && (
+        {state.topTab === "customer" && ability.canCreate && (
           <div className="mobile-only cal-mobile-actions">
             <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditId(null); setInitialTime(undefined); setInitialDoctorId(undefined); setAddOpen(true); }}>
               {t("Tạo lịch hẹn")}
@@ -233,14 +235,16 @@ export function AppointmentCalendarPage() {
                   >
                     {t("Bỏ chọn")}
                   </button>
-                  <button
-                    type="button"
-                    className="cal-selection-btn cal-selection-btn--danger"
-                    onClick={handleDeleteSelected}
-                    disabled={deleteMutation.isPending || deleteManyMutation.isPending}
-                  >
-                    {t("Xoá {0} mục").replace("{0}", String(selectedIds.size))}
-                  </button>
+                  {ability.canDelete && (
+                    <button
+                      type="button"
+                      className="cal-selection-btn cal-selection-btn--danger"
+                      onClick={handleDeleteSelected}
+                      disabled={deleteMutation.isPending || deleteManyMutation.isPending}
+                    >
+                      {t("Xoá {0} mục").replace("{0}", String(selectedIds.size))}
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -372,8 +376,8 @@ export function AppointmentCalendarPage() {
         <>
           <CalendarFabs
             onExitFullscreen={() => setFullscreen(false)}
-            onCreateTemp={() => setTempOpen(true)}
-            onCreateAppointment={() => { setEditId(null); setInitialTime(undefined); setInitialDoctorId(undefined); setAddOpen(true); }}
+            onCreateTemp={ability.canCreate ? () => setTempOpen(true) : undefined}
+            onCreateAppointment={ability.canCreate ? () => { setEditId(null); setInitialTime(undefined); setInitialDoctorId(undefined); setAddOpen(true); } : undefined}
             onTogglePanel={() => setPanelOpen((v) => !v)}
             filterCount={filters.filterCount}
           />

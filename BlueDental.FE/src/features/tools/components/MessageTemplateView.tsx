@@ -113,8 +113,15 @@ function MessageTemplateDialog({ open, template, channel, onClose }: DialogProps
   );
 }
 
+interface MessageTemplateViewProps {
+  channel: number;
+  canCreate: boolean;
+  canUpdate: boolean;
+  canDelete: boolean;
+}
+
 /** Mẫu tin nhắn / Mẫu ZBS — shared by Tin nhắn (channel 0) and Zalo (1). */
-export function MessageTemplateView({ channel }: { channel: number }) {
+export function MessageTemplateView({ channel, canCreate, canUpdate, canDelete }: MessageTemplateViewProps) {
   const [keyword, setKeyword] = useState("");
   const [dialog, setDialog] = useState<{ open: boolean; template: MessageTemplateDto | null }>({
     open: false,
@@ -161,30 +168,34 @@ export function MessageTemplateView({ channel }: { channel: number }) {
         fixed: "right",
         render: (_, tpl) => (
           <div className="bd-cat-rowactions">
-            <Tooltip title={t("Chỉnh sửa")}>
-              <Button
-                type="text"
-                size="small"
-                icon={<EditOutlined />}
-                aria-label={t("Chỉnh sửa {0}", tpl.name)}
-                onClick={() => setDialog({ open: true, template: tpl })}
-              />
-            </Tooltip>
-            <Tooltip title={t("Xoá")}>
-              <Button
-                type="text"
-                size="small"
-                danger
-                icon={<DeleteOutlined />}
-                aria-label={t("Xoá {0}", tpl.name)}
-                onClick={() => setPendingDelete(tpl)}
-              />
-            </Tooltip>
+            {canUpdate && (
+              <Tooltip title={t("Chỉnh sửa")}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<EditOutlined />}
+                  aria-label={t("Chỉnh sửa {0}", tpl.name)}
+                  onClick={() => setDialog({ open: true, template: tpl })}
+                />
+              </Tooltip>
+            )}
+            {canDelete && (
+              <Tooltip title={t("Xoá")}>
+                <Button
+                  type="text"
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  aria-label={t("Xoá {0}", tpl.name)}
+                  onClick={() => setPendingDelete(tpl)}
+                />
+              </Tooltip>
+            )}
           </div>
         ),
       },
     ],
-    [],
+    [canUpdate, canDelete],
   );
 
   return (
@@ -202,14 +213,16 @@ export function MessageTemplateView({ channel }: { channel: number }) {
             pagination.resetToFirstPage();
           }}
         />
-        <Button
-          className="bd-tools-toolbar-end"
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => setDialog({ open: true, template: null })}
-        >
-          {t("Tạo mẫu tin nhắn")}
-        </Button>
+        {canCreate && (
+          <Button
+            className="bd-tools-toolbar-end"
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => setDialog({ open: true, template: null })}
+          >
+            {t("Tạo mẫu tin nhắn")}
+          </Button>
+        )}
       </div>
 
       <DataTable<MessageTemplateDto>

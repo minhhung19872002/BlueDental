@@ -17,8 +17,14 @@ import { useTablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
 import { pagerTotal } from "@/utils/pagerTotal";
 
+interface CallConfigViewProps {
+  canCreate: boolean;
+  canUpdate: boolean;
+  canDelete: boolean;
+}
+
 /** Cấu Hình — the PBX configurations, as the reference lists them. */
-export function CallConfigView() {
+export function CallConfigView({ canCreate, canUpdate, canDelete }: CallConfigViewProps) {
   const [keyword, setKeyword] = useState("");
   const [dialog, setDialog] = useState<{ open: boolean; config: CallConfigurationDto | null }>({
     open: false,
@@ -85,30 +91,34 @@ export function CallConfigView() {
         fixed: "right",
         render: (_, config) => (
           <div className="bd-cat-rowactions">
-            <Tooltip title={t("Chỉnh sửa")}>
-              <Button
-                type="text"
-                size="small"
-                icon={<EditOutlined />}
-                aria-label={t("Chỉnh sửa {0}", config.name)}
-                onClick={() => setDialog({ open: true, config })}
-              />
-            </Tooltip>
-            <Tooltip title={t("Xoá")}>
-              <Button
-                type="text"
-                size="small"
-                danger
-                icon={<DeleteOutlined />}
-                aria-label={t("Xoá {0}", config.name)}
-                onClick={() => setPendingDelete(config)}
-              />
-            </Tooltip>
+            {canUpdate && (
+              <Tooltip title={t("Chỉnh sửa")}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<EditOutlined />}
+                  aria-label={t("Chỉnh sửa {0}", config.name)}
+                  onClick={() => setDialog({ open: true, config })}
+                />
+              </Tooltip>
+            )}
+            {canDelete && (
+              <Tooltip title={t("Xoá")}>
+                <Button
+                  type="text"
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  aria-label={t("Xoá {0}", config.name)}
+                  onClick={() => setPendingDelete(config)}
+                />
+              </Tooltip>
+            )}
           </div>
         ),
       },
     ],
-    [],
+    [canUpdate, canDelete],
   );
 
   return (
@@ -126,14 +136,16 @@ export function CallConfigView() {
             pagination.resetToFirstPage();
           }}
         />
-        <Button
-          className="bd-tools-toolbar-end"
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => setDialog({ open: true, config: null })}
-        >
-          {t("Tạo cấu hình")}
-        </Button>
+        {canCreate && (
+          <Button
+            className="bd-tools-toolbar-end"
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => setDialog({ open: true, config: null })}
+          >
+            {t("Tạo cấu hình")}
+          </Button>
+        )}
       </div>
 
       <DataTable<CallConfigurationDto>

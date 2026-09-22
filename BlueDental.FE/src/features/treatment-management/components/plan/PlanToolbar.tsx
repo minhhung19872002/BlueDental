@@ -2,7 +2,7 @@ import { Eye, Plus } from "lucide-react";
 import { t } from "@/lib/i18n";
 
 interface Props {
-  onCreate: () => void;
+  onCreate?: () => void;
   onViewAll: () => void;
 }
 
@@ -10,10 +10,12 @@ interface Props {
 export function PlanToolbar({ onCreate, onViewAll }: Props) {
   return (
     <div className="tp-toolbar">
-      <button type="button" className="tp-btn tp-btn--primary" onClick={onCreate}>
-        <Plus size={16} aria-hidden="true" />
-        {t("Tạo kế hoạch mới")}
-      </button>
+      {onCreate && (
+        <button type="button" className="tp-btn tp-btn--primary" onClick={onCreate}>
+          <Plus size={16} aria-hidden="true" />
+          {t("Tạo kế hoạch mới")}
+        </button>
+      )}
       <button type="button" className="tp-btn tp-btn--outline" onClick={onViewAll}>
         <Eye size={16} aria-hidden="true" />
         {t("Xem tất cả dịch vụ")}

@@ -10,6 +10,7 @@ import {
 import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
 import { useBranchFilter } from "@/lib/clinicBranch";
+import { useAbility } from "@/hooks/useAbility";
 import { PageHeader } from "@/components/PageHeader";
 import { VoucherToolbar } from "../components/VoucherToolbar";
 import { VoucherTable } from "../components/VoucherTable";
@@ -24,6 +25,7 @@ export function VoucherPage() {
   const [editing, setEditing] = useState<VoucherDto | null>(null);
 
   const branchId = useBranchFilter();
+  const ability = useAbility("voucher");
   const { data: page, isLoading } = useVouchers(
     statusFilter || undefined,
     keyword,
@@ -74,7 +76,7 @@ export function VoucherPage() {
           statusFilter={statusFilter}
           onKeywordChange={setKeyword}
           onStatusFilterChange={setStatusFilter}
-          onCreateClick={() => setCreateOpen(true)}
+          onCreateClick={ability.canCreate ? () => setCreateOpen(true) : undefined}
         />
       </div>
 
@@ -82,10 +84,10 @@ export function VoucherPage() {
         <VoucherTable
           data={page?.items ?? []}
           loading={isLoading}
-          onPublish={handlePublish}
-          onUnpublish={handleUnpublish}
-          onEdit={setEditing}
-          onDelete={handleDelete}
+          onPublish={ability.canUpdate ? handlePublish : undefined}
+          onUnpublish={ability.canUpdate ? handleUnpublish : undefined}
+          onEdit={ability.canUpdate ? setEditing : undefined}
+          onDelete={ability.canDelete ? handleDelete : undefined}
         />
       </div>
 

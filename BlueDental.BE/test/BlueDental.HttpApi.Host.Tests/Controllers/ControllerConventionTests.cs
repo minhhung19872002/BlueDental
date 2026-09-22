@@ -8,9 +8,12 @@ using BlueDental.Controllers;
 using BlueDental.Inventory;
 using BlueDental.Labo;
 using BlueDental.Notifications;
+using BlueDental.Operations;
 using BlueDental.Organizations;
 using BlueDental.PatientManagement;
+using BlueDental.Permissions;
 using BlueDental.Reporting;
+using BlueDental.RolePermission;
 using BlueDental.TreatmentManagement;
 
 using Microsoft.AspNetCore.Authorization;
@@ -183,5 +186,54 @@ public class ControllerConventionTests
         var controller = typeof(ClinicBranchController);
         controller.GetCustomAttribute<RouteAttribute>()!.Template.ShouldContain("branch");
         controller.GetCustomAttribute<AuthorizeAttribute>().ShouldNotBeNull();
+    }
+
+    /// <summary>
+    /// The permission tree feeds the Phân quyền tab; a bare [Authorize] let any
+    /// signed-in account read the whole ability catalogue.
+    /// </summary>
+    [Fact]
+    public void RolePermissionController_Should_Require_RolePermission_Read()
+    {
+        var controller = typeof(RolePermissionController);
+        controller.GetCustomAttribute<RouteAttribute>()!.Template.ShouldBe("api/v1/app/role-permission");
+        controller.GetCustomAttribute<AuthorizeAttribute>()!.Policy
+            .ShouldBe(BlueDentalAbilityPermissions.RolePermission.Read);
+    }
+
+    /// <summary>
+    /// The header branch picker is drawn for every signed-in user, so the
+    /// route feeding it must not sit behind the Organizations permission; the
+    /// service narrows the list to the caller's own branches instead.
+    /// </summary>
+    [Fact]
+    public void ClinicBranchController_Should_Expose_An_Accessible_Route()
+    {
+        var method = typeof(ClinicBranchController).GetMethod(nameof(ClinicBranchController.GetAccessibleAsync));
+        method.ShouldNotBeNull();
+        method.GetCustomAttribute<HttpGetAttribute>()!.Template.ShouldBe("accessible");
+    }
+
+    /// <summary>
+    /// Vận hành reports: one route per screen, and the controller only asks
+    /// for a signed-in user because each service method checks its own
+    /// reference ability.
+    /// </summary>
+    [Fact]
+    public void OperationReportController_Should_Be_Properly_Configured()
+    {
+        var controller = typeof(OperationReportController);
+        controller.GetCustomAttribute<RouteAttribute>()!.Template.ShouldBe("api/v1/app/operations/reports");
+        controller.GetCustomAttribute<AuthorizeAttribute>()!.Policy.ShouldBeNull();
+
+        var routes = controller
+            .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+            .Select(m => m.GetCustomAttribute<HttpGetAttribute>()?.Template)
+            .Where(t => t is not null)
+            .ToList();
+
+        routes.ShouldBe(
+            ["work-log", "untreated-diagnoses", "consultant-summary", "invoices", "service-completion", "sales-access"],
+            ignoreOrder: true);
     }
 }

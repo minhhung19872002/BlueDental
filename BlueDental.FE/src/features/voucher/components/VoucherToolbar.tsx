@@ -16,7 +16,7 @@ interface Props {
   statusFilter: string;
   onKeywordChange: (value: string) => void;
   onStatusFilterChange: (value: string) => void;
-  onCreateClick: () => void;
+  onCreateClick?: () => void;
 }
 
 export function VoucherToolbar({
@@ -45,14 +45,16 @@ export function VoucherToolbar({
           label: o.label(),
         }))}
       />
-      <Button
-        type="primary"
-        icon={<PlusOutlined />}
-        style={{ marginLeft: "auto" }}
-        onClick={onCreateClick}
-      >
-        {t("Tạo voucher")}
-      </Button>
+      {onCreateClick && (
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          style={{ marginLeft: "auto" }}
+          onClick={onCreateClick}
+        >
+          {t("Tạo voucher")}
+        </Button>
+      )}
     </div>
   );
 }

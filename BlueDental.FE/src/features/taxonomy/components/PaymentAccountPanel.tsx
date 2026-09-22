@@ -16,6 +16,7 @@ import { countedTotal } from "@/utils/countedTotal";
 import { PaymentAccountModal } from "./PaymentAccountModal";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { DataTable } from "@/components/DataTable";
+import { useAbility } from "@/hooks/useAbility";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { useBranchFilter, useIsAllBranches } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
@@ -33,6 +34,7 @@ const TAB_KIND: Record<TabKey, PaymentAccountKind> = {
 
 /** Danh mục / Phương thức thanh toán — MoMo wallets and bank accounts. */
 export function PaymentAccountPanel() {
+  const { canCreate, canUpdate, canDelete } = useAbility("catalogPaymentMethod");
   /** The list follows the header's branch; a record needs one concrete branch. */
   const branchFilter = useBranchFilter();
   const isAllBranches = useIsAllBranches();
@@ -104,40 +106,44 @@ export function PaymentAccountPanel() {
           </span>
         ),
       },
-      {
-        key: "actions",
+      ...((canUpdate || canDelete) ? [{
+        key: "actions" as const,
         title: t("Thao tác"),
         width: 110,
-        align: "center",
-        fixed: "right",
-        render: (_, account) => (
+        align: "center" as const,
+        fixed: "right" as const,
+        render: (_: unknown, account: PaymentAccountDto) => (
           <div className="bd-cat-rowactions">
-            <Tooltip title={t("Chỉnh sửa")}>
-              <Button
-                type="text"
-                size="small"
-                icon={<EditOutlined />}
-                aria-label={t("Chỉnh sửa {0}", account.holderName)}
-                onClick={() => setModal({ open: true, account })}
-              />
-            </Tooltip>
-            <Tooltip title={t("Xoá")}>
-              <Button
-                type="text"
-                size="small"
-                danger
-                icon={<DeleteOutlined />}
-                aria-label={t("Xoá {0}", account.holderName)}
-                onClick={() => setPendingDelete(account)}
-              />
-            </Tooltip>
+            {canUpdate && (
+              <Tooltip title={t("Chỉnh sửa")}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<EditOutlined />}
+                  aria-label={t("Chỉnh sửa {0}", account.holderName)}
+                  onClick={() => setModal({ open: true, account })}
+                />
+              </Tooltip>
+            )}
+            {canDelete && (
+              <Tooltip title={t("Xoá")}>
+                <Button
+                  type="text"
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  aria-label={t("Xoá {0}", account.holderName)}
+                  onClick={() => setPendingDelete(account)}
+                />
+              </Tooltip>
+            )}
           </div>
         ),
-      },
+      }] : []),
     );
 
     return list;
-  }, [isMoMo]);
+  }, [isMoMo, canUpdate, canDelete]);
 
   return (
     <div className="bd-cat-screen">
@@ -145,8 +151,8 @@ export function PaymentAccountPanel() {
         icon={<CreditCardOutlined />}
         title={t("Quản lý phương thức thanh toán")}
         subtitle={t("Tạo và quản lý tài khoản MoMo, ngân hàng dùng khi thanh toán.")}
-        actionLabel={t("Thêm phương thức")}
-        onAction={() => setModal({ open: true, account: null })}
+        actionLabel={canCreate ? t("Thêm phương thức") : undefined}
+        onAction={canCreate ? () => setModal({ open: true, account: null }) : undefined}
         actionDisabled={isAllBranches}
         actionDisabledHint={t("Chọn một chi nhánh cụ thể trước khi thêm")}
       />

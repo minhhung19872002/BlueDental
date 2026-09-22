@@ -16,8 +16,14 @@ import { useTablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
 import { pagerTotal } from "@/utils/pagerTotal";
 
+interface CallAssignViewProps {
+  canCreate: boolean;
+  canUpdate: boolean;
+  canDelete: boolean;
+}
+
 /** Phân Công Gọi — which SIP extension belongs to which staff member. */
-export function CallAssignView() {
+export function CallAssignView({ canCreate, canUpdate, canDelete }: CallAssignViewProps) {
   const [dialog, setDialog] = useState<{ open: boolean; assignment: CallAssignmentDto | null }>({
     open: false,
     assignment: null,
@@ -76,43 +82,49 @@ export function CallAssignView() {
         fixed: "right",
         render: (_, assignment) => (
           <div className="bd-cat-rowactions">
-            <Tooltip title={t("Chỉnh sửa")}>
-              <Button
-                type="text"
-                size="small"
-                icon={<EditOutlined />}
-                aria-label={t("Chỉnh sửa SIP {0}", assignment.sip)}
-                onClick={() => setDialog({ open: true, assignment })}
-              />
-            </Tooltip>
-            <Tooltip title={t("Xoá")}>
-              <Button
-                type="text"
-                size="small"
-                danger
-                icon={<DeleteOutlined />}
-                aria-label={t("Xoá SIP {0}", assignment.sip)}
-                onClick={() => setPendingDelete(assignment)}
-              />
-            </Tooltip>
+            {canUpdate && (
+              <Tooltip title={t("Chỉnh sửa")}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<EditOutlined />}
+                  aria-label={t("Chỉnh sửa SIP {0}", assignment.sip)}
+                  onClick={() => setDialog({ open: true, assignment })}
+                />
+              </Tooltip>
+            )}
+            {canDelete && (
+              <Tooltip title={t("Xoá")}>
+                <Button
+                  type="text"
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  aria-label={t("Xoá SIP {0}", assignment.sip)}
+                  onClick={() => setPendingDelete(assignment)}
+                />
+              </Tooltip>
+            )}
           </div>
         ),
       },
     ],
-    [],
+    [canUpdate, canDelete],
   );
 
   return (
     <div className="reception-card reception-card--content">
       <div className="bd-ops-toolbar">
-        <Button
-          className="bd-tools-toolbar-end"
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => setDialog({ open: true, assignment: null })}
-        >
-          {t("Tạo phân công")}
-        </Button>
+        {canCreate && (
+          <Button
+            className="bd-tools-toolbar-end"
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => setDialog({ open: true, assignment: null })}
+          >
+            {t("Tạo phân công")}
+          </Button>
+        )}
       </div>
 
       <DataTable<CallAssignmentDto>

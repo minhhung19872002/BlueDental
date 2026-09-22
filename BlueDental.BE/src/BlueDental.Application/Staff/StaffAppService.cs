@@ -162,6 +162,12 @@ public class StaffAppService(
             (await userManager.AddToRolesAsync(user, input.RoleNames)).CheckErrors();
         }
 
+        if (!string.IsNullOrWhiteSpace(input.Password))
+        {
+            var token = await userManager.GeneratePasswordResetTokenAsync(user);
+            (await userManager.ResetPasswordAsync(user, token, input.Password)).CheckErrors();
+        }
+
         (await userManager.UpdateAsync(user)).CheckErrors();
 
         await ReplaceBranchAssignmentsAsync(user.Id, input.BranchIds);

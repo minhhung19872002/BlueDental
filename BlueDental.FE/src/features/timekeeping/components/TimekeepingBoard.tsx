@@ -22,6 +22,7 @@ import {
 import { useStaffList } from "@/features/staff/api/staffQueries";
 import { useCurrentBranchId, useBranchFilter } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
+import { useAbility } from "@/hooks/useAbility";
 import type { ViewMode } from "@/features/appointments/hooks/useCalendarState";
 import "./timekeeping.css";
 
@@ -68,6 +69,7 @@ interface Props {
 export function TimekeepingBoard({ currentDate, viewMode, onViewModeChange, onDateChange, onOpenBuilder }: Props) {
   const branchId = useCurrentBranchId();
   const branchFilter = useBranchFilter();
+  const workScheduleAbility = useAbility("workSchedule");
   const workDate = currentDate.format("YYYY-MM-DD");
   const [keyword, setKeyword] = useState("");
 
@@ -201,13 +203,15 @@ export function TimekeepingBoard({ currentDate, viewMode, onViewModeChange, onDa
           </Popover>
         </div>
         <div className="cal-toolbar-row2-right">
-          <Button
-            type="primary"
-            icon={<CalendarOutlined />}
-            onClick={onOpenBuilder}
-          >
-            {t("Lịch làm việc")}
-          </Button>
+          {workScheduleAbility.canUpdate && (
+            <Button
+              type="primary"
+              icon={<CalendarOutlined />}
+              onClick={onOpenBuilder}
+            >
+              {t("Lịch làm việc")}
+            </Button>
+          )}
         </div>
       </div>
 

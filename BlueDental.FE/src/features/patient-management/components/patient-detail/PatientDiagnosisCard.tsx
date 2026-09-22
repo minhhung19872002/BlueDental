@@ -37,12 +37,12 @@ interface Props {
   loading: boolean;
   pagination: TablePagination;
   expanded: boolean;
-  onToggleForm: () => void;
+  onToggleForm?: () => void;
   /** A row was clicked: open that slip in the form above, for updating. */
-  onEdit: (row: PatientDiagnosisDto) => void;
-  onCreateService: (row: PatientDiagnosisDto) => void;
-  onPrint: (row: PatientDiagnosisDto) => void;
-  onDelete: (row: PatientDiagnosisDto) => void;
+  onEdit?: (row: PatientDiagnosisDto) => void;
+  onCreateService?: (row: PatientDiagnosisDto) => void;
+  onPrint?: (row: PatientDiagnosisDto) => void;
+  onDelete?: (row: PatientDiagnosisDto) => void;
   children?: React.ReactNode;
 }
 
@@ -61,7 +61,7 @@ export function PatientDiagnosisCard({
 }: Props) {
   const cardRef = useRef<HTMLDivElement>(null);
   const handleToggleForm = () => {
-    onToggleForm();
+    onToggleForm?.();
     if (!expanded) revealForm(cardRef.current);
   };
   const columns: TableColumnsType<PatientDiagnosisDto> = [
@@ -113,39 +113,43 @@ export function PatientDiagnosisCard({
       dataIndex: "note",
       render: (value: string | null) => value ?? "—",
     },
-    {
+    ...((onCreateService || onPrint || onDelete) ? [{
       title: t("Thao tác"),
       key: "actions",
       width: 200,
-      align: "right",
-      fixed: "right",
-      render: (_, row) => (
+      align: "right" as const,
+      fixed: "right" as const,
+      render: (_: unknown, row: PatientDiagnosisDto) => (
         <div className="bd-cat-rowactions">
-          <Button type="primary" size="small" onClick={() => onCreateService(row)}>
-            {t("Tạo Dịch Vụ")}
-          </Button>
-          {/* The reference draws a calendar here and calls it "In chẩn đoán";
-              the icon is theirs, the sheet behind it is what it opens. */}
-          <Tooltip title={t("In chẩn đoán")}>
-            <Button
-              type="text"
-              aria-label={t("In chẩn đoán")}
-              icon={<CalendarDays size={20} className="pd-print-icon" />}
-              onClick={() => onPrint(row)}
-            />
-          </Tooltip>
-          <Tooltip title={t("Xoá chẩn đoán")}>
-            <Button
-              type="text"
-              danger
-              aria-label={t("Xoá chẩn đoán")}
-              icon={<DeleteOutlined />}
-              onClick={() => onDelete(row)}
-            />
-          </Tooltip>
+          {onCreateService && (
+            <Button type="primary" size="small" onClick={() => onCreateService(row)}>
+              {t("Tạo Dịch Vụ")}
+            </Button>
+          )}
+          {onPrint && (
+            <Tooltip title={t("In chẩn đoán")}>
+              <Button
+                type="text"
+                aria-label={t("In chẩn đoán")}
+                icon={<CalendarDays size={20} className="pd-print-icon" />}
+                onClick={() => onPrint(row)}
+              />
+            </Tooltip>
+          )}
+          {onDelete && (
+            <Tooltip title={t("Xoá chẩn đoán")}>
+              <Button
+                type="text"
+                danger
+                aria-label={t("Xoá chẩn đoán")}
+                icon={<DeleteOutlined />}
+                onClick={() => onDelete(row)}
+              />
+            </Tooltip>
+          )}
         </div>
       ),
-    },
+    }] : []),
   ];
 
   return (
@@ -153,14 +157,16 @@ export function PatientDiagnosisCard({
       <header className="pd-card-head">
         <div className="pd-card-title">
           <h3>{t("Tạo chẩn đoán")}</h3>
-          <Button
-            type="primary"
-            shape="circle"
-            aria-label={t("Tạo chẩn đoán")}
-            aria-expanded={expanded}
-            icon={expanded ? <CloseOutlined /> : <PlusOutlined />}
-            onClick={handleToggleForm}
-          />
+          {onToggleForm && (
+            <Button
+              type="primary"
+              shape="circle"
+              aria-label={t("Tạo chẩn đoán")}
+              aria-expanded={expanded}
+              icon={expanded ? <CloseOutlined /> : <PlusOutlined />}
+              onClick={handleToggleForm}
+            />
+          )}
         </div>
         <div className="pd-card-note">
           <b>{t("Bác sĩ có trách nhiệm thông báo")}</b>
@@ -176,15 +182,14 @@ export function PatientDiagnosisCard({
           loading={loading}
           columns={columns}
           dataSource={rows}
-          onRow={(row) => ({
+          onRow={onEdit ? (row) => ({
             onClick: (event) => {
-              // The action buttons keep their own meaning.
               const target = event.target instanceof Element ? event.target : null;
               if (target?.closest("button, a")) return;
               onEdit(row);
               revealForm(cardRef.current);
             },
-          })}
+          }) : undefined}
           locale={{ emptyText: t("Chưa có chẩn đoán") }}
           pagination={pagination.buildConfig(totalCount, countedTotal(t("chẩn đoán")))}
         />

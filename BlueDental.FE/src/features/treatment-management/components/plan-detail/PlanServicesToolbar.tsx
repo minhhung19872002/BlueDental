@@ -7,6 +7,7 @@ import {
   useTaxonomyGroupOptions,
   type CatalogOption,
 } from "@/hooks/useCatalogOptions";
+import { useAbility } from "@/hooks/useAbility";
 import { t } from "@/lib/i18n";
 import { PlanServicePicker } from "../plan/PlanServicePicker";
 
@@ -42,6 +43,8 @@ export function PlanServicesToolbar({
   onPrint,
 }: Props) {
   const [form] = Form.useForm<PickerValues>();
+  const stageAbility = useAbility("treatmentStage");
+  const rxAbility = useAbility("prescription");
   const services = useCatalogOptions(CATALOG_GROUP.CareService);
   const groups = useTaxonomyGroupOptions(CATALOG_GROUP.CareService);
 
@@ -60,16 +63,20 @@ export function PlanServicesToolbar({
             onPickService={onPickService}
           />
         </Form>
-        <button type="button" className="tp-btn tp-btn--primary" onClick={onAddStage}>
-          <Plus size={16} aria-hidden="true" />
-          {t("Thêm công đoạn")}
-        </button>
+        {stageAbility.canCreate && (
+          <button type="button" className="tp-btn tp-btn--primary" onClick={onAddStage}>
+            <Plus size={16} aria-hidden="true" />
+            {t("Thêm công đoạn")}
+          </button>
+        )}
       </div>
       <div className="pdt-toolbar-end">
-        <button type="button" className="tp-btn tp-btn--outline" onClick={onPrescription}>
-          <Pill size={16} aria-hidden="true" />
-          {t("Tạo Đơn Thuốc")}
-        </button>
+        {rxAbility.canCreate && (
+          <button type="button" className="tp-btn tp-btn--outline" onClick={onPrescription}>
+            <Pill size={16} aria-hidden="true" />
+            {t("Tạo Đơn Thuốc")}
+          </button>
+        )}
         <button type="button" className="tp-btn tp-btn--outline" onClick={onInvoice}>
           <Receipt size={16} aria-hidden="true" />
           {t("In Hóa Đơn")}

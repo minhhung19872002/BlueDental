@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Input, Select } from "antd";
 import { CheckCircleOutlined } from "@ant-design/icons";
 import { useWorkLog, type WorkLogAction, type WorkLogRow } from "../api/operationReportApi";
+import { DEPARTMENT_BY_TAB } from "../api/operationsApi";
 import { formatMoney } from "./formatMoney";
 import { OperationsPeriodBar } from "./OperationsPeriodBar";
 import { StaffFilter } from "./StaffFilter";
@@ -61,7 +62,7 @@ export function WorkLogReport({ division }: Props) {
       maxResultCount: pagination.maxResultCount,
       filter: debounced.trim() || undefined,
     },
-    { Actions: actions, StaffId: staffId },
+    { Department: DEPARTMENT_BY_TAB[division], Actions: actions, StaffId: staffId },
   );
 
   const rows = useMemo<WorkLogRow[]>(() => query.data?.items ?? [], [query.data]);

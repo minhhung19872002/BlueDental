@@ -9,7 +9,14 @@ What to retest when a shared piece changes. Levels are defined in
 |-------------|-------|--------|
 | `lib/axios.ts` (API client, auth interceptor) | 3 | Every acceptance spec |
 | `features/auth/*`, `AccountAppService` | 3 | Every acceptance spec |
+| `app/routePermissions.ts`, `app/useVisibleNav.ts`, `app/PermissionRoute.tsx`, `lib/permissions.ts` | 3 | F-40 first, then `header-navigation` and `routes` — a wrong or missing key hides a menu entry for **admin** too, and every route is wrapped, so a typo here turns a screen into the 403 Result |
+| `AccountAppService.GetCurrentUserAsync` branch fallback (`clinicId`) | 3 | F-40, F-20, F-30 — it decides which branch a session starts in when no header and no claim name one; dialog-created staff depend on it entirely |
+| Per-service `[Authorize(BlueDentalAbilityPermissions.…)]` attributes (FileAttachment, Operations narrowing, Notification recipient check) | 2 per service | F-24 (attachments), F-15 (operations), F-40 contract tests |
 | `BlueDentalAbilities` / `BlueDentalAbilityPermissions` / permission provider | 3 | Every acceptance spec — a missing grant is a 403 on every screen |
+| `BlueDentalHttpApiHostModule.PreConfigureServices` (controller registration, dynamic proxies) | 3 | `HostModuleConfigurationTests` + `ApplicationServiceInterceptionTests` first, then F-40 and every acceptance spec — re-adding conventional controllers silently switches off every app-service `[Authorize]` (R-401) |
+| `BlueDentalPermissionBridge` / `AbilityBridgePermissionValueProvider` | 3 | F-40 (`role-permissions-abilities.spec.ts`), then any spec signing in as a non-admin role — a dropped pairing refuses a whole module for custom roles |
+| A new `I*AppService` contract or a new hand-written controller | 2 | `HostModuleConfigurationTests.Every_Application_Service_Contract_Should_Be_Served_By_A_Controller` — a contract without a controller (or `[RemoteService(IsEnabled = false)]`) has no route at all now |
+| `src/hooks/useAbility.ts` | 3 | F-40, then Bệnh nhân / Lịch hẹn / Thanh toán / Nhân sự specs — every gated button reads it |
 | `BlueDentalAbilitySeedContributor` | 3 | Every acceptance spec |
 | `lib/clinicBranch.ts` (branch scope, branch store) | 3 | F-30 first, then F-02, F-03, F-04, F-05, F-06, F-08, F-12..F-15, F-19, F-20 — every screen reads its branch from here |
 | `BranchAccessChecker` / `StaffBranchAssignment` | 3 | F-20 first, then every branch-scoped spec |

@@ -15,14 +15,14 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { authApi } from "@/features/auth/api";
 import { useAuthStore } from "@/features/auth/store/authStore";
-import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 import { useClinicBranches } from "@/features/organizations/api";
 import { useBranchStore } from "@/lib/clinicBranch";
 import { useLanguage, useT } from "@/lib/i18n";
 import { brand } from "@/theme/index";
 
 import { HeaderNavGroups, MobileNavDrawer, NavRibbon } from "./HeaderNav";
-import { NAV_GROUPS, type NavEntry, type NavGroup } from "./nav";
+import { type NavEntry, type NavGroup } from "./nav";
+import { useVisibleNav } from "./useVisibleNav";
 
 function initialsOf(name: string | undefined): string {
   const words = (name ?? "").trim().split(/\s+/).filter(Boolean);
@@ -44,6 +44,7 @@ export function AppLayout() {
   const location = useLocation();
   const user = useAuthStore((s) => s.user);
   const clearAuth = useAuthStore((s) => s.clearAuth);
+  const visibleNav = useVisibleNav();
 
   const logoutMutation = useMutation({
     mutationFn: authApi.logout,
@@ -123,7 +124,7 @@ export function AppLayout() {
     navigate(entry.path);
   };
 
-  const openGroup = NAV_GROUPS.find((g) => g.id === openGroupId);
+  const openGroup = visibleNav.groups.find((g) => g.id === openGroupId);
   const ribbonItems = openGroup?.items ?? [];
 
   const isSettingsPage = location.pathname === "/settings";
@@ -317,6 +318,7 @@ export function AppLayout() {
           </button>
 
           <HeaderNavGroups
+            groups={visibleNav.groups}
             pathname={location.pathname}
             openGroupId={openGroupId}
             onOpenGroup={handleOpenGroup}
@@ -407,6 +409,7 @@ export function AppLayout() {
 
       <MobileNavDrawer
         open={drawerOpen}
+        items={visibleNav.items}
         pathname={location.pathname}
         onClose={() => setDrawerOpen(false)}
         onSelect={handleSelectEntry}

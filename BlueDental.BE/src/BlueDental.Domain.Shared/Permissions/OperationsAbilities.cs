@@ -42,4 +42,27 @@ public static class OperationsAbilities
 
     public static string TaskPermissionFor(OperationsDepartment department, string action) =>
         BlueDentalAbilities.Permission(TaskSubjectFor(department), action);
+
+    /// <summary>
+    /// Ability subject for a department's Báo cáo (work log) tab. Only the
+    /// departments the reference gives that tab have one — see
+    /// <see cref="HasReportSubject"/>.
+    /// </summary>
+    public static string ReportSubjectFor(OperationsDepartment department) =>
+        $"operations{DepartmentNames[department]}Report";
+
+    public static bool HasReportSubject(OperationsDepartment department) =>
+        BlueDentalAbilities.Catalog.ContainsKey(ReportSubjectFor(department));
+
+    public static string ReportPermissionFor(OperationsDepartment department, string action) =>
+        BlueDentalAbilities.Permission(ReportSubjectFor(department), action);
+
+    /// <summary>Every department that has a Báo cáo tab, in enum order.</summary>
+    public static IEnumerable<OperationsDepartment> DepartmentsWithReport()
+    {
+        foreach (var department in DepartmentNames.Keys)
+        {
+            if (HasReportSubject(department)) yield return department;
+        }
+    }
 }

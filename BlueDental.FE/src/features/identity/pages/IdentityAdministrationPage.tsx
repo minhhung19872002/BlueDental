@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Table, Button, Input, Tag, Modal, Form, Select, Popconfirm, Switch } from "antd";
 import { toast } from "sonner";
 import { PillTabs } from "@/components/PillTabs";
@@ -7,6 +7,8 @@ import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
 import { PageHeader } from "@/components/PageHeader";
+import { useAuthStore } from "@/features/auth/store/authStore";
+import { LegacyPermissions } from "@/lib/permissionConstants";
 import {
   useIdentityUserList,
   useIdentityRoleList,
@@ -186,6 +188,11 @@ function UsersTab() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<IdentityUserDto | null>(null);
 
+  const hasPermission = useAuthStore((s) => s.hasPermission);
+  const canCreateUser = hasPermission(LegacyPermissions.SystemAdmin.UsersCreate);
+  const canEditUser = hasPermission(LegacyPermissions.SystemAdmin.UsersEdit);
+  const canDeleteUser = hasPermission(LegacyPermissions.SystemAdmin.UsersDelete);
+
   const { data: usersData, isLoading } = useIdentityUserList({ filter: keyword || undefined });
   const { data: rolesData } = useIdentityRoleList();
   const deleteMutation = useDeleteIdentityUser();
@@ -226,39 +233,45 @@ function UsersTab() {
       key: "creationTime",
       render: (v: string) => dayjs(v).format("DD/MM/YYYY"),
     },
-    {
+    ...((canEditUser || canDeleteUser) ? [{
       title: t("Thao tác"),
-      key: "actions",
+      key: "actions" as const,
       width: 120,
-      fixed: "right",
-      render: (_, record) => (
+      fixed: "right" as const,
+      render: (_: unknown, record: IdentityUserDto) => (
         <div style={{ display: "flex", gap: 6 }}>
-          <Button size="small" icon={<EditOutlined />} onClick={() => { setEditingUser(record); setModalOpen(true); }} />
-          <Popconfirm
-            title={t("Xóa người dùng này?")}
-            onConfirm={() => handleDelete(record.id)}
-            okText={t("Xóa")}
-            cancelText={t("Hủy")}
-            okButtonProps={{ danger: true }}
-          >
-            <Button size="small" danger icon={<DeleteOutlined />} />
-          </Popconfirm>
+          {canEditUser && (
+            <Button size="small" icon={<EditOutlined />} onClick={() => { setEditingUser(record); setModalOpen(true); }} />
+          )}
+          {canDeleteUser && (
+            <Popconfirm
+              title={t("Xóa người dùng này?")}
+              onConfirm={() => handleDelete(record.id)}
+              okText={t("Xóa")}
+              cancelText={t("Hủy")}
+              okButtonProps={{ danger: true }}
+            >
+              <Button size="small" danger icon={<DeleteOutlined />} />
+            </Popconfirm>
+          )}
         </div>
       ),
-    },
+    }] : []),
   ];
 
   return (
     <>
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => { setEditingUser(null); setModalOpen(true); }}
-          >
-            {t("Tạo người dùng")}
-          </Button>
+          {canCreateUser && (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => { setEditingUser(null); setModalOpen(true); }}
+            >
+              {t("Tạo người dùng")}
+            </Button>
+          )}
           <Input
             prefix={<SearchOutlined />}
             placeholder={t("Tìm theo tên, email...")}
@@ -298,6 +311,10 @@ function RolesTab() {
   const { data, isLoading } = useIdentityRoleList();
   const deleteMutation = useDeleteIdentityRole();
 
+  const hasPermission = useAuthStore((s) => s.hasPermission);
+  const canCreateRole = hasPermission(LegacyPermissions.SystemAdmin.RolesCreate);
+  const canDeleteRole = hasPermission(LegacyPermissions.SystemAdmin.RolesDelete);
+
   const handleDelete = async (id: string) => {
     try {
       await deleteMutation.mutateAsync(id);
@@ -335,7 +352,7 @@ function RolesTab() {
       render: (_, record) =>
         record.isStatic ? (
           <Tag>{t("Không thể xóa")}</Tag>
-        ) : (
+        ) : canDeleteRole ? (
           <Popconfirm
             title={t("Xóa vai trò này?")}
             onConfirm={() => handleDelete(record.id)}
@@ -345,7 +362,7 @@ function RolesTab() {
           >
             <Button size="small" danger icon={<DeleteOutlined />} />
           </Popconfirm>
-        ),
+        ) : null,
     },
   ];
 
@@ -353,9 +370,11 @@ function RolesTab() {
     <>
       <div className="reception-card reception-card--toolbar">
         <div style={{ display: "flex", gap: 8 }}>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
-            {t("Tạo vai trò")}
-          </Button>
+          {canCreateRole && (
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
+              {t("Tạo vai trò")}
+            </Button>
+          )}
         </div>
       </div>
       <div className="reception-card reception-card--content">
@@ -378,6 +397,29 @@ function RolesTab() {
 // ── Main ──────────────────────────────────────────────────────────────────
 
 export function IdentityAdministrationPage() {
+  const hasPermission = useAuthStore((s) => s.hasPermission);
+  const canUsers = hasPermission(LegacyPermissions.SystemAdmin.Users);
+  const canRoles = hasPermission(LegacyPermissions.SystemAdmin.Roles);
+
+  const items = useMemo(() => {
+    const all: Array<{ key: string; label: React.ReactNode; children: React.ReactNode }> = [];
+    if (canUsers) {
+      all.push({
+        key: "users",
+        label: <span><UserOutlined style={{ marginRight: 6 }} />{t("Người dùng")}</span>,
+        children: <UsersTab />,
+      });
+    }
+    if (canRoles) {
+      all.push({
+        key: "roles",
+        label: <span><SafetyOutlined style={{ marginRight: 6 }} />{t("Vai trò")}</span>,
+        children: <RolesTab />,
+      });
+    }
+    return all;
+  }, [canUsers, canRoles]);
+
   return (
     <div className="reception-page">
       <PageHeader
@@ -395,23 +437,8 @@ export function IdentityAdministrationPage() {
       </div>
       <PillTabs
         className="identity-tabs"
-        defaultActiveKey="users"
-        items={[
-          {
-            key: "users",
-            label: (
-              <span><UserOutlined style={{ marginRight: 6 }} />{t("Người dùng")}</span>
-            ),
-            children: <UsersTab />,
-          },
-          {
-            key: "roles",
-            label: (
-              <span><SafetyOutlined style={{ marginRight: 6 }} />{t("Vai trò")}</span>
-            ),
-            children: <RolesTab />,
-          },
-        ]}
+        defaultActiveKey={items[0]?.key ?? "users"}
+        items={items}
       />
     </div>
   );

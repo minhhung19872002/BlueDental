@@ -12,6 +12,8 @@ interface Props {
   filters: PatientFilters;
   options: PatientFilterOptions;
   exporting: boolean;
+  canExport: boolean;
+  canCreate: boolean;
   onPeriodChange: (next: Period) => void;
   onApplyFilters: (next: PatientFilters) => void;
   onClearFilters: () => void;
@@ -32,6 +34,8 @@ export function PatientStickyToolbar({
   filters,
   options,
   exporting,
+  canExport,
+  canCreate,
   onPeriodChange,
   onApplyFilters,
   onClearFilters,
@@ -57,13 +61,17 @@ export function PatientStickyToolbar({
           onClear={onClearFilters}
         />
 
-        <Button icon={<DownloadOutlined />} loading={exporting} onClick={onExport}>
-          {t("Xuất file")}
-        </Button>
+        {canExport && (
+          <Button icon={<DownloadOutlined />} loading={exporting} onClick={onExport}>
+            {t("Xuất file")}
+          </Button>
+        )}
 
-        <Button type="primary" icon={<PlusOutlined />} onClick={onCreate}>
-          {t("Tạo hồ sơ")}
-        </Button>
+        {canCreate && (
+          <Button type="primary" icon={<PlusOutlined />} onClick={onCreate}>
+            {t("Tạo hồ sơ")}
+          </Button>
+        )}
       </div>
     </div>
   );

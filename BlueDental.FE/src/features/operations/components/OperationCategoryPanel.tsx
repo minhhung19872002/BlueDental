@@ -9,8 +9,8 @@ interface RowProps {
   category: OperationCategoryDto;
   active: boolean;
   onSelect: (id: string) => void;
-  onRename: (category: OperationCategoryDto) => void;
-  onDelete: (category: OperationCategoryDto) => void;
+  onRename?: (category: OperationCategoryDto) => void;
+  onDelete?: (category: OperationCategoryDto) => void;
 }
 
 /**
@@ -44,22 +44,26 @@ const CategoryRow = memo(function CategoryRow({
         {/* Out of the way until the row is pointed at or selected, as the
             reference keeps them. Both stay reachable by keyboard. */}
         <div className="bd-ops-cat-actions">
-          <button
-            type="button"
-            className="bd-ops-cat-action"
-            aria-label={t("Chỉnh sửa {0}", category.name)}
-            onClick={() => onRename(category)}
-          >
-            <EditOutlined aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className="bd-ops-cat-action bd-ops-cat-action--danger"
-            aria-label={t("Xoá {0}", category.name)}
-            onClick={() => onDelete(category)}
-          >
-            <DeleteOutlined aria-hidden="true" />
-          </button>
+          {onRename && (
+            <button
+              type="button"
+              className="bd-ops-cat-action"
+              aria-label={t("Chỉnh sửa {0}", category.name)}
+              onClick={() => onRename(category)}
+            >
+              <EditOutlined aria-hidden="true" />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              type="button"
+              className="bd-ops-cat-action bd-ops-cat-action--danger"
+              aria-label={t("Xoá {0}", category.name)}
+              onClick={() => onDelete(category)}
+            >
+              <DeleteOutlined aria-hidden="true" />
+            </button>
+          )}
         </div>
       </div>
     </li>
@@ -72,9 +76,9 @@ interface Props {
   isLoading: boolean;
   selectedId: string | null;
   onSelect: (id: string) => void;
-  onCreate: () => void;
-  onRename: (category: OperationCategoryDto) => void;
-  onDelete: (category: OperationCategoryDto) => void;
+  onCreate?: () => void;
+  onRename?: (category: OperationCategoryDto) => void;
+  onDelete?: (category: OperationCategoryDto) => void;
 }
 
 /**
@@ -97,11 +101,13 @@ export function OperationCategoryPanel({
 }: Props) {
   return (
     <div className="bd-ops-panel">
-      <div className="bd-ops-panel-head">
-        <Button type="primary" icon={<PlusOutlined />} block onClick={onCreate}>
-          {t("Thêm Mới")}
-        </Button>
-      </div>
+      {onCreate && (
+        <div className="bd-ops-panel-head">
+          <Button type="primary" icon={<PlusOutlined />} block onClick={onCreate}>
+            {t("Thêm Mới")}
+          </Button>
+        </div>
+      )}
 
       <nav aria-label={label} className="bd-ops-panel-list">
         {isLoading ? (

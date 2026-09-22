@@ -26,6 +26,8 @@ import { reportScreenFor } from "../reports/reportScreens";
 import { PERIOD_SLOT_ID } from "../reports/periodBarSlot";
 import { operationsTotal } from "../operationsTotal";
 import {
+  abilitySubjectFor,
+  abilitySubjectForMiddle,
   DEFAULT_MIDDLE_TAB,
   DEFAULT_SUB_TAB,
   findDivision,
@@ -37,6 +39,8 @@ import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
 import { PageTabBar } from "@/components/PageTabBar";
+import { useAbility, abilityName } from "@/hooks/useAbility";
+import { useAuthStore } from "@/features/auth/store/authStore";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { cn } from "@/lib/cn";
@@ -64,22 +68,59 @@ export function OperationsPage() {
   const { division: divisionParam } = useParams<{ division?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const division = findDivision(divisionParam);
+  const permissions = useAuthStore((s) => s.user?.permissions);
+  const grantedSet = useMemo(() => new Set(permissions ?? []), [permissions]);
+
+  const allDivisions = useMemo(() => operationsDivisions(), []);
+
+  const visibleDivisions = useMemo(
+    () =>
+      allDivisions.filter((div) =>
+        div.subTabs.some((st) =>
+          grantedSet.has(abilityName(abilitySubjectFor(div.key, st.key), "read")),
+        ) ||
+        div.middleTabs?.some((mt) =>
+          grantedSet.has(abilityName(abilitySubjectForMiddle(div.key, mt.key), "read")),
+        ),
+      ),
+    [allDivisions, grantedSet],
+  );
+
+  const division = visibleDivisions.find((d) => d.key === divisionParam) ?? visibleDivisions[0] ?? findDivision(divisionParam);
+
+  const visibleSubTabs = useMemo(
+    () =>
+      division.subTabs.filter((st) =>
+        grantedSet.has(abilityName(abilitySubjectFor(division.key, st.key), "read")),
+      ),
+    [division, grantedSet],
+  );
+  const visibleMiddleTabs = useMemo(
+    () =>
+      division.middleTabs?.filter((mt) =>
+        grantedSet.has(abilityName(abilitySubjectForMiddle(division.key, mt.key), "read")),
+      ),
+    [division, grantedSet],
+  );
+
   const subTabParam = subTabParamOf(division);
   const subTabKey = searchParams.get(subTabParam) ?? DEFAULT_SUB_TAB;
-  const subTab = division.subTabs.find((s) => s.key === subTabKey) ?? division.subTabs[0];
+  const subTab = visibleSubTabs.find((s) => s.key === subTabKey) ?? visibleSubTabs[0] ?? division.subTabs[0];
 
   const middleParam = middleTabParamOf(division);
-  const middleKey = division.middleTabs
+  const middleKey = visibleMiddleTabs
     ? (searchParams.get(middleParam) ?? DEFAULT_MIDDLE_TAB)
     : null;
-  const middleTab = division.middleTabs?.find((m) => m.key === middleKey) ?? null;
+  const middleTab = visibleMiddleTabs?.find((m) => m.key === middleKey) ?? null;
 
   // Truy cập is a screen of its own; the sub-tabs belong to Tổng quan.
   const onMiddleReport = middleTab !== null && middleTab.key !== DEFAULT_MIDDLE_TAB;
   const showsArticles = !onMiddleReport && subTab.kind === "articles";
 
   const selectedCategoryId = searchParams.get("category");
+
+  const currentSubject = abilitySubjectFor(division.key, subTab.key);
+  const ability = useAbility(currentSubject);
 
   const pagination = useTablePagination(DEFAULT_PAGE_SIZE);
   const [keyword, setKeyword] = useState("");
@@ -228,40 +269,44 @@ export function OperationsPage() {
           </span>
         ),
       },
-      {
-        key: "actions",
+      ...((ability.canUpdate || ability.canDelete) ? [{
+        key: "actions" as const,
         title: t("Thao tác"),
         width: 110,
-        align: "center",
-        fixed: "right",
-        render: (_, article) => (
+        align: "center" as const,
+        fixed: "right" as const,
+        render: (_: unknown, article: OperationArticleDto) => (
           <div className="bd-cat-rowactions">
-            <Tooltip title={t("Chỉnh sửa")}>
-              <Button
-                type="text"
-                size="small"
-                icon={<EditOutlined />}
-                aria-label={t("Chỉnh sửa {0}", article.title)}
-                onClick={() => setArticleModal({ open: true, article })}
-              />
-            </Tooltip>
-            <Tooltip title={t("Xoá")}>
-              <Button
-                type="text"
-                size="small"
-                danger
-                icon={<DeleteOutlined />}
-                aria-label={t("Xoá {0}", article.title)}
-                onClick={() =>
-                  setPendingDelete({ kind: "article", id: article.id, name: article.title })
-                }
-              />
-            </Tooltip>
+            {ability.canUpdate && (
+              <Tooltip title={t("Chỉnh sửa")}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<EditOutlined />}
+                  aria-label={t("Chỉnh sửa {0}", article.title)}
+                  onClick={() => setArticleModal({ open: true, article })}
+                />
+              </Tooltip>
+            )}
+            {ability.canDelete && (
+              <Tooltip title={t("Xoá")}>
+                <Button
+                  type="text"
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  aria-label={t("Xoá {0}", article.title)}
+                  onClick={() =>
+                    setPendingDelete({ kind: "article", id: article.id, name: article.title })
+                  }
+                />
+              </Tooltip>
+            )}
           </div>
         ),
-      },
+      }] : []),
     ],
-    [],
+    [ability.canUpdate, ability.canDelete],
   );
 
   const categoryPanel = (
@@ -274,11 +319,10 @@ export function OperationsPage() {
         selectCategory(id === selectedCategoryId ? null : id);
         setGroupsOpen(false);
       }}
-      onCreate={() => setCategoryModal({ open: true, category: null })}
-      onRename={(category) => setCategoryModal({ open: true, category })}
-      onDelete={(category) =>
-        setPendingDelete({ kind: "category", id: category.id, name: category.name })
-      }
+      onCreate={ability.canCreate ? () => setCategoryModal({ open: true, category: null }) : undefined}
+      onRename={ability.canUpdate ? (category) => setCategoryModal({ open: true, category }) : undefined}
+      onDelete={ability.canDelete ? (category) =>
+        setPendingDelete({ kind: "category", id: category.id, name: category.name }) : undefined}
     />
   );
 
@@ -293,17 +337,17 @@ export function OperationsPage() {
         <PageTabBar
           label={t("Vận hành")}
           activeKey={division.key}
-          tabs={operationsDivisions().map((item) => ({
+          tabs={visibleDivisions.map((item) => ({
             key: item.key,
             label: item.label,
             to: divisionHref(item.key),
           }))}
         />
 
-        {division.middleTabs ? (
+        {visibleMiddleTabs && visibleMiddleTabs.length > 0 ? (
           <div className="bd-ops-middletabs">
             <div className="bd-ops-middletabs-list" role="tablist" aria-label={division.label}>
-              {division.middleTabs.map((item) => (
+              {visibleMiddleTabs.map((item) => (
               <button
                 key={item.key}
                 type="button"
@@ -335,7 +379,7 @@ export function OperationsPage() {
           <>
             <div className="bd-ops-subtabs">
               <div className="pill-tabs" role="tablist" aria-label={division.label}>
-                {division.subTabs.map((item) => (
+                {visibleSubTabs.map((item) => (
                   <button
                     key={item.key}
                     type="button"
@@ -349,7 +393,7 @@ export function OperationsPage() {
                 ))}
               </div>
 
-              {division.middleTabs ? null : (
+              {visibleMiddleTabs && visibleMiddleTabs.length > 0 ? null : (
                 <div id={PERIOD_SLOT_ID} className="bd-ops-tabrow-end" />
               )}
             </div>
@@ -379,17 +423,19 @@ export function OperationsPage() {
                     </div>
 
                     <div className="bd-ops-toolbar">
-                      <Button
-                        type="primary"
-                        icon={<PlusOutlined />}
-                        // The reference offers this only once an article has a
-                        // category to be filed under.
-                        disabled={!selectedCategoryId}
-                        title={selectedCategoryId ? undefined : t("Chọn một mục trước khi thêm")}
-                        onClick={() => setArticleModal({ open: true, article: null })}
-                      >
-                        {t("Tạo Bài Viết")}
-                      </Button>
+                      {ability.canCreate && (
+                        <Button
+                          type="primary"
+                          icon={<PlusOutlined />}
+                          // The reference offers this only once an article has a
+                          // category to be filed under.
+                          disabled={!selectedCategoryId}
+                          title={selectedCategoryId ? undefined : t("Chọn một mục trước khi thêm")}
+                          onClick={() => setArticleModal({ open: true, article: null })}
+                        >
+                          {t("Tạo Bài Viết")}
+                        </Button>
+                      )}
 
                       <Input
                         className="bd-ops-search"

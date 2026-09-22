@@ -25,7 +25,13 @@ import { getAllProvinces, getWardsByProvince, type LocationOption } from "@/util
  * province — from the codes the record stores, so a renamed province is not
  * left as stale text on the row.
  */
-export function LaboSupplierScreen() {
+interface LaboSupplierScreenProps {
+  canCreate?: boolean;
+  canUpdate?: boolean;
+  canDelete?: boolean;
+}
+
+export function LaboSupplierScreen({ canCreate, canUpdate, canDelete }: LaboSupplierScreenProps) {
   const [keyword, setKeyword] = useState("");
   const [dialog, setDialog] = useState<{ open: boolean; supplier: LaboSupplierDto | null }>({
     open: false,
@@ -140,36 +146,44 @@ export function LaboSupplierScreen() {
         </span>
       ),
     },
-    {
-      key: "actions",
-      title: t("Thao tác"),
-      width: 100,
-      align: "center",
-      fixed: "right",
-      render: (_, row) => (
-        <div className="bd-cat-rowactions">
-          <Tooltip title={t("Chỉnh sửa")}>
-            <Button
-              type="text"
-              size="small"
-              icon={<EditOutlined />}
-              aria-label={t("Chỉnh sửa {0}", row.name)}
-              onClick={() => setDialog({ open: true, supplier: row })}
-            />
-          </Tooltip>
-          <Tooltip title={t("Xoá")}>
-            <Button
-              type="text"
-              size="small"
-              danger
-              icon={<DeleteOutlined />}
-              aria-label={t("Xoá {0}", row.name)}
-              onClick={() => setPendingDelete(row)}
-            />
-          </Tooltip>
-        </div>
-      ),
-    },
+    ...(canUpdate || canDelete
+      ? [
+          {
+            key: "actions",
+            title: t("Thao tác"),
+            width: 100,
+            align: "center" as const,
+            fixed: "right" as const,
+            render: (_: unknown, row: LaboSupplierDto) => (
+              <div className="bd-cat-rowactions">
+                {canUpdate && (
+                  <Tooltip title={t("Chỉnh sửa")}>
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<EditOutlined />}
+                      aria-label={t("Chỉnh sửa {0}", row.name)}
+                      onClick={() => setDialog({ open: true, supplier: row })}
+                    />
+                  </Tooltip>
+                )}
+                {canDelete && (
+                  <Tooltip title={t("Xoá")}>
+                    <Button
+                      type="text"
+                      size="small"
+                      danger
+                      icon={<DeleteOutlined />}
+                      aria-label={t("Xoá {0}", row.name)}
+                      onClick={() => setPendingDelete(row)}
+                    />
+                  </Tooltip>
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -186,13 +200,15 @@ export function LaboSupplierScreen() {
           onChange={(event) => handleSearch(event.target.value)}
         />
 
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => setDialog({ open: true, supplier: null })}
-        >
-          {t("Tạo nhà cung cấp")}
-        </Button>
+        {canCreate && (
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => setDialog({ open: true, supplier: null })}
+          >
+            {t("Tạo nhà cung cấp")}
+          </Button>
+        )}
       </div>
 
       <div className="bd-cat-body">

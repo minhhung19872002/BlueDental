@@ -1,22 +1,24 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { Dayjs } from "dayjs";
 import { PageHeader } from "@/components/PageHeader";
 import { PillTabs } from "@/components/PillTabs";
+import { useAuthStore } from "@/features/auth/store/authStore";
 import { t } from "@/lib/i18n";
 import { ReportToolbar } from "../components/ReportToolbar";
 import { ExpenseTab } from "../components/ExpenseTab";
 import { CashflowTab } from "../components/CashflowTab";
 import { BusinessResultTab } from "../components/BusinessResultTab";
 import { CashflowV2Tab } from "../components/CashflowV2Tab";
+import { REPORT_PERMISSION } from "../hooks/useReportPermissions";
 import { useReportUrlState, type ReportTabKey } from "../hooks/useReportUrlState";
 import type { ReportViewMode } from "../types/viewMode";
 import "../components/report.css";
 
-const REPORT_TABS: { key: ReportTabKey; label: () => string }[] = [
-  { key: "sales", label: () => t("Doanh số và lượt khách") },
-  { key: "cashflow", label: () => t("Quản lý thu chi") },
-  { key: "result", label: () => t("Kết quả kinh doanh") },
-  { key: "cashflow-v2", label: () => t("Luân chuyển dòng tiền V2") },
+const REPORT_TABS: { key: ReportTabKey; label: () => string; permissions: string[] }[] = [
+  { key: "sales", label: () => t("Doanh số và lượt khách"), permissions: [REPORT_PERMISSION.salesRead] },
+  { key: "cashflow", label: () => t("Quản lý thu chi"), permissions: [REPORT_PERMISSION.incomeRead, REPORT_PERMISSION.costRead, REPORT_PERMISSION.cashflowCategoryRead] },
+  { key: "result", label: () => t("Kết quả kinh doanh"), permissions: [REPORT_PERMISSION.resultRead] },
+  { key: "cashflow-v2", label: () => t("Luân chuyển dòng tiền V2"), permissions: [REPORT_PERMISSION.transferRead, REPORT_PERMISSION.transferCategoryRead] },
 ];
 
 /** Tabs where the reference hides the "Bác sĩ điều trị" filter. */
@@ -51,6 +53,8 @@ export function ReportPage() {
     setCashflowSub,
   } = useReportUrlState();
   const [doctorId, setDoctorId] = useState<string | undefined>();
+  const permissions = useAuthStore((s) => s.user?.permissions);
+  const grantedSet = useMemo(() => new Set(permissions ?? []), [permissions]);
 
   const bounds = getBounds(viewMode, currentDate);
   const range = {
@@ -58,7 +62,14 @@ export function ReportPage() {
     toDate: bounds.end.format("YYYY-MM-DD"),
   };
 
-  const tabItems = REPORT_TABS.map((tab) => ({ key: tab.key, label: tab.label() }));
+  const visibleTabs = useMemo(
+    () => REPORT_TABS.filter((tab) => tab.permissions.some((p) => grantedSet.has(p))),
+    [grantedSet],
+  );
+  const safeTab: ReportTabKey = visibleTabs.some((t) => t.key === activeTab)
+    ? activeTab
+    : (visibleTabs[0]?.key ?? activeTab);
+  const tabItems = visibleTabs.map((tab) => ({ key: tab.key, label: tab.label() }));
 
   return (
     <div className="report-page">
@@ -72,8 +83,8 @@ export function ReportPage() {
           viewMode={viewMode}
           currentDate={currentDate}
           doctorId={doctorId}
-          showDoctor={!TABS_WITHOUT_DOCTOR.includes(activeTab)}
-          periodLocked={TABS_WITH_LOCKED_PERIOD.includes(activeTab)}
+          showDoctor={!TABS_WITHOUT_DOCTOR.includes(safeTab)}
+          periodLocked={TABS_WITH_LOCKED_PERIOD.includes(safeTab)}
           onViewModeChange={setViewMode}
           onDateChange={setCurrentDate}
           onDoctorChange={setDoctorId}
@@ -82,14 +93,14 @@ export function ReportPage() {
         <PillTabs
           className="report-main-tabs"
           items={tabItems}
-          activeKey={activeTab}
+          activeKey={safeTab}
           onChange={(key) => setActiveTab(key as ReportTabKey)}
         />
 
-        {activeTab === "sales" && <ExpenseTab {...range} doctorId={doctorId} sub={salesSub} onSubChange={setSalesSub} />}
-        {activeTab === "cashflow" && <CashflowTab {...range} sub={cashflowSub} onSubChange={setCashflowSub} />}
-        {activeTab === "result" && <BusinessResultTab {...range} />}
-        {activeTab === "cashflow-v2" && <CashflowV2Tab />}
+        {safeTab === "sales" && <ExpenseTab {...range} doctorId={doctorId} sub={salesSub} onSubChange={setSalesSub} />}
+        {safeTab === "cashflow" && <CashflowTab {...range} sub={cashflowSub} onSubChange={setCashflowSub} />}
+        {safeTab === "result" && <BusinessResultTab {...range} />}
+        {safeTab === "cashflow-v2" && <CashflowV2Tab />}
       </section>
     </div>
   );

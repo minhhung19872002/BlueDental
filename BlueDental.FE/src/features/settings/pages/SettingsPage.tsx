@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button, Descriptions, Divider, Form, Input, Modal, Select, Spin, Typography } from "antd";
 import { toast } from "sonner";
 import { PillTabs } from "@/components/PillTabs";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { EditOutlined, UserOutlined } from "@ant-design/icons";
 import { useClinicInfo, useUpdateClinicInfo, type UpdateClinicInfoDto } from "../api";
+import { useAuthStore } from "@/features/auth/store/authStore";
+import { LegacyPermissions } from "@/lib/permissionConstants";
 import { t, useLanguage, type Language } from "@/lib/i18n";
 import { PageHeader } from "@/components/PageHeader";
 
@@ -207,37 +209,48 @@ function PermissionsTab() {
 
 export function SettingsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = searchParams.get("tab") ?? "clinic";
+  const hasPermission = useAuthStore((s) => s.hasPermission);
+  const canPermissions =
+    hasPermission(LegacyPermissions.SystemAdmin.Users) ||
+    hasPermission(LegacyPermissions.SystemAdmin.Roles);
 
-  const tabItems = [
-    {
-      key: "clinic",
-      label: t("Thông tin phòng khám"),
-      children: (
-        <div style={{ paddingBottom: 24 }}>
-          <ClinicInfoTab />
-        </div>
-      ),
-    },
-    {
-      key: "general",
-      label: t("Cài đặt chung"),
-      children: (
-        <div style={{ paddingBottom: 24 }}>
-          <GeneralSettingsTab />
-        </div>
-      ),
-    },
-    {
-      key: "permissions",
-      label: t("Phân quyền"),
-      children: (
-        <div style={{ paddingBottom: 24 }}>
-          <PermissionsTab />
-        </div>
-      ),
-    },
-  ];
+  const tabItems = useMemo(() => {
+    const items: Array<{ key: string; label: string; children: React.ReactNode }> = [
+      {
+        key: "clinic",
+        label: t("Thông tin phòng khám"),
+        children: (
+          <div style={{ paddingBottom: 24 }}>
+            <ClinicInfoTab />
+          </div>
+        ),
+      },
+      {
+        key: "general",
+        label: t("Cài đặt chung"),
+        children: (
+          <div style={{ paddingBottom: 24 }}>
+            <GeneralSettingsTab />
+          </div>
+        ),
+      },
+    ];
+    if (canPermissions) {
+      items.push({
+        key: "permissions",
+        label: t("Phân quyền"),
+        children: (
+          <div style={{ paddingBottom: 24 }}>
+            <PermissionsTab />
+          </div>
+        ),
+      });
+    }
+    return items;
+  }, [canPermissions]);
+
+  const activeTab = searchParams.get("tab") ?? "clinic";
+  const safeTab = tabItems.some((t) => t.key === activeTab) ? activeTab : (tabItems[0]?.key ?? "clinic");
 
   return (
     <div>
@@ -269,7 +282,7 @@ export function SettingsPage() {
       >
         <PillTabs
           items={tabItems}
-          activeKey={activeTab}
+          activeKey={safeTab}
           onChange={(key) => setSearchParams({ tab: key }, { replace: true })}
         />
       </div>

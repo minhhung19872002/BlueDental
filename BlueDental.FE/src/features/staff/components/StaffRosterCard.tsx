@@ -8,6 +8,7 @@ import {
 import type { TimeKeepingRecordDto } from "@/features/timekeeping/api/timekeepingApi";
 import type { StaffDto } from "../api/staffApi";
 import type { RosterDay } from "../api/rosterQueries";
+import { useAbility } from "@/hooks/useAbility";
 import { extractApiError } from "@/lib/apiError";
 import { brand } from "@/theme/index";
 import { t } from "@/lib/i18n";
@@ -49,6 +50,7 @@ export function StaffRosterCard({
   onEdit,
   onDelete,
 }: StaffRosterCardProps) {
+  const ability = useAbility("staff");
   const openWorkDay = useOpenWorkDay();
   const registerWorking = useRegisterWorking();
   const registerDayOff = useRegisterDayOff();
@@ -113,19 +115,23 @@ export function StaffRosterCard({
       </div>
 
       <div className="staff-card-actions">
-        <Button size="small" onClick={onEdit}>
-          {t("Chỉnh sửa")}
-        </Button>
-        <Popconfirm
-          title={t("Xoá nhân viên này?")}
-          okText={t("Xoá")}
-          cancelText={t("Huỷ")}
-          onConfirm={onDelete}
-        >
-          <Button size="small" danger>
-            {t("Xoá")}
+        {ability.canUpdate && (
+          <Button size="small" onClick={onEdit}>
+            {t("Chỉnh sửa")}
           </Button>
-        </Popconfirm>
+        )}
+        {ability.canDelete && (
+          <Popconfirm
+            title={t("Xoá nhân viên này?")}
+            okText={t("Xoá")}
+            cancelText={t("Huỷ")}
+            onConfirm={onDelete}
+          >
+            <Button size="small" danger>
+              {t("Xoá")}
+            </Button>
+          </Popconfirm>
+        )}
       </div>
     </div>
   );

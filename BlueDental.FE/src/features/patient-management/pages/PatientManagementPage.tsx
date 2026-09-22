@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
+import { useAbility } from "@/hooks/useAbility";
 import { useDebounce } from "@/hooks/useDebounce";
 import { usePatientTagOptions } from "@/hooks/usePatientTagOptions";
 import { useScrolledPast } from "@/hooks/useScrolledPast";
@@ -33,6 +34,7 @@ export function PatientManagementPage() {
   const filters = usePatientListFilters();
   const [editing, setEditing] = useState<Editing>({ mode: "closed" });
   const [exporting, setExporting] = useState(false);
+  const ability = useAbility("patient");
 
   // The compact toolbar takes over once the real one has scrolled under the
   // app header, which is what the header's own height is doing here.
@@ -95,6 +97,8 @@ export function PatientManagementPage() {
         filters={filters.filters}
         options={options}
         exporting={exporting}
+        canExport={ability.canExport}
+        canCreate={ability.canCreate}
         onPeriodChange={filters.setPeriod}
         onApplyFilters={filters.setFilters}
         onClearFilters={filters.clearFilters}
@@ -115,6 +119,8 @@ export function PatientManagementPage() {
         keyword={filters.filters.keyword}
         period={filters.period}
         exporting={exporting}
+        canExport={ability.canExport}
+        canCreate={ability.canCreate}
         onKeywordChange={(keyword) => filters.setFilters({ keyword })}
         onPeriodChange={filters.setPeriod}
         onExport={() => void handleExport()}

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
@@ -9,6 +10,12 @@ using Volo.Abp.Domain.Repositories;
 
 namespace BlueDental.FileManagement;
 
+/// <summary>
+/// Generic attachments (X-ray images, documents) hung off another entity.
+/// They are gated as treatment images (<c>treatmentImage</c>), the closest
+/// subject the reference's ability tree offers — an ASSUMPTION recorded in
+/// docs/testing/features/role-permissions.md.
+/// </summary>
 [Authorize]
 public class FileAttachmentAppService : ApplicationService, IFileAttachmentAppService
 {
@@ -19,6 +26,7 @@ public class FileAttachmentAppService : ApplicationService, IFileAttachmentAppSe
         _repository = repository;
     }
 
+    [Authorize(BlueDentalAbilityPermissions.TreatmentImage.Read)]
     public async Task<PagedResultDto<FileAttachmentDto>> GetListAsync(GetFileAttachmentListInput input)
     {
         var query = await _repository.GetQueryableAsync();
@@ -43,12 +51,14 @@ public class FileAttachmentAppService : ApplicationService, IFileAttachmentAppSe
             ObjectMapper.Map<List<FileAttachment>, List<FileAttachmentDto>>(items));
     }
 
+    [Authorize(BlueDentalAbilityPermissions.TreatmentImage.Read)]
     public async Task<FileAttachmentDto> GetAsync(Guid id)
     {
         var attachment = await _repository.GetAsync(id);
         return ObjectMapper.Map<FileAttachment, FileAttachmentDto>(attachment);
     }
 
+    [Authorize(BlueDentalAbilityPermissions.TreatmentImage.Create)]
     public async Task<FileAttachmentDto> CreateAsync(CreateFileAttachmentDto input)
     {
         var attachment = new FileAttachment(
@@ -66,6 +76,7 @@ public class FileAttachmentAppService : ApplicationService, IFileAttachmentAppSe
         return ObjectMapper.Map<FileAttachment, FileAttachmentDto>(attachment);
     }
 
+    [Authorize(BlueDentalAbilityPermissions.TreatmentImage.Delete)]
     public async Task DeleteAsync(Guid id)
     {
         await _repository.DeleteAsync(id, autoSave: true);

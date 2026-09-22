@@ -65,6 +65,7 @@ export interface CreateStaffInput {
 }
 
 export interface UpdateStaffInput {
+  password?: string;
   name?: string;
   surname?: string;
   email: string;

@@ -9,6 +9,7 @@ import { countedTotal } from "@/utils/countedTotal";
 import { PatientTagModal } from "./PatientTagModal";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { DataTable } from "@/components/DataTable";
+import { useAbility } from "@/hooks/useAbility";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { useBranchFilter, useIsAllBranches } from "@/lib/clinicBranch";
@@ -18,6 +19,7 @@ const DEFAULT_PAGE_SIZE = 20;
 
 /** Danh mục / Thẻ hồ sơ — one flat table of coloured record labels. */
 export function PatientTagPanel() {
+  const { canCreate, canUpdate, canDelete } = useAbility("catalogRecordTag");
   /** The list follows the header's branch; a record needs one concrete branch. */
   const branchFilter = useBranchFilter();
   const isAllBranches = useIsAllBranches();
@@ -80,38 +82,42 @@ export function PatientTagPanel() {
           </span>
         ),
       },
-      {
-        key: "actions",
+      ...((canUpdate || canDelete) ? [{
+        key: "actions" as const,
         title: t("Thao tác"),
         width: 110,
-        align: "center",
-        fixed: "right",
-        render: (_, tag) => (
+        align: "center" as const,
+        fixed: "right" as const,
+        render: (_: unknown, tag: PatientTagDto) => (
           <div className="bd-cat-rowactions">
-            <Tooltip title={t("Chỉnh sửa")}>
-              <Button
-                type="text"
-                size="small"
-                icon={<EditOutlined />}
-                aria-label={t("Chỉnh sửa {0}", tag.name)}
-                onClick={() => setModal({ open: true, tag })}
-              />
-            </Tooltip>
-            <Tooltip title={t("Xoá")}>
-              <Button
-                type="text"
-                size="small"
-                danger
-                icon={<DeleteOutlined />}
-                aria-label={t("Xoá {0}", tag.name)}
-                onClick={() => setPendingDelete(tag)}
-              />
-            </Tooltip>
+            {canUpdate && (
+              <Tooltip title={t("Chỉnh sửa")}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<EditOutlined />}
+                  aria-label={t("Chỉnh sửa {0}", tag.name)}
+                  onClick={() => setModal({ open: true, tag })}
+                />
+              </Tooltip>
+            )}
+            {canDelete && (
+              <Tooltip title={t("Xoá")}>
+                <Button
+                  type="text"
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  aria-label={t("Xoá {0}", tag.name)}
+                  onClick={() => setPendingDelete(tag)}
+                />
+              </Tooltip>
+            )}
           </div>
         ),
-      },
+      }] : []),
     ],
-    [],
+    [canUpdate, canDelete],
   );
 
   return (
@@ -120,8 +126,8 @@ export function PatientTagPanel() {
         icon={<TagOutlined />}
         title={t("Quản lý Thẻ hồ sơ")}
         subtitle={t("Tạo và quản lý danh mục thẻ hồ sơ.")}
-        actionLabel={t("Thêm tag")}
-        onAction={() => setModal({ open: true, tag: null })}
+        actionLabel={canCreate ? t("Thêm tag") : undefined}
+        onAction={canCreate ? () => setModal({ open: true, tag: null }) : undefined}
         actionDisabled={isAllBranches}
         actionDisabledHint={t("Chọn một chi nhánh cụ thể trước khi thêm")}
         search={{

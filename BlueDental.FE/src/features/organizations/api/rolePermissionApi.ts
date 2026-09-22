@@ -61,9 +61,13 @@ const rolePermissionApi = {
     }),
 };
 
+import { PERMISSION_GROUP } from "@/lib/permissionConstants";
+
+const GROUP_PREFIX = `${PERMISSION_GROUP}.`;
+
 function extractAbilityId(abpPermName: string): string | null {
-  if (!abpPermName.startsWith("BlueDental.")) return null;
-  const rest = abpPermName.substring("BlueDental.".length);
+  if (!abpPermName.startsWith(GROUP_PREFIX)) return null;
+  const rest = abpPermName.substring(GROUP_PREFIX.length);
   const dotIndex = rest.indexOf(".");
   if (dotIndex === -1) return null;
   return rest;

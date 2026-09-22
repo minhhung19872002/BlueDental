@@ -1511,3 +1511,21 @@ fire it. Structure only, no data.
 
 Dates travel as `YYYY-MM-DD` (`API_DATE_FORMAT`); a `DateOnly` parameter
 answers 400 to anything else.
+
+## Session and authorization routes (local only) — 2026-09-22
+
+The reference's account endpoints were never captured (login is out of the
+read-only survey). Local routes, all hand-written controllers now that the
+host no longer generates auto API controllers (R-401):
+
+| Purpose | BlueDental |
+|---------|------------|
+| signed-in user, roles, `permissions[]`, `clinicId` | `GET /api/v1/app/account/current-user` (was `/api/app/account/current-user` until 2026-09-22) |
+| change password | `POST /api/v1/app/account/change-password` |
+| header branch picker (every signed-in user; narrowed to the caller's assignments) | `GET /api/v1/app/clinic-branches/accessible` |
+| branch admin list | `GET /api/v1/app/clinic-branches` — `BlueDental.Organizations.View` |
+| attachments, insurance plans, insurance claims | `/api/v1/app/file-attachments`, `/api/v1/app/insurance-plans`, `/api/v1/app/insurance-claims` (claims table got its missing `BranchId` column on 2026-09-22 — R-405) |
+
+Every `[Authorize(BlueDental.<Module>.<Action>)]` on a service is also
+satisfied by any of the Phân quyền leaves `BlueDentalPermissionBridge` lists
+for it; a 403 body carries `error.code = Volo.Authorization:010001`.

@@ -1,5 +1,6 @@
 using System.Reflection;
 using BlueDental.FileManagement;
+using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Shouldly;
 using Volo.Abp.Application.Services;
@@ -52,5 +53,23 @@ public class FileAttachmentAppServiceContractTests
     public void DeleteAsync_Should_Exist_As_Public_Method()
     {
         _serviceType.GetMethod("DeleteAsync").ShouldNotBeNull();
+    }
+
+    /// <summary>
+    /// Attachments are gated as treatment images (the closest subject the
+    /// reference's ability tree offers), method by method, so a role with no
+    /// grants cannot list, read, upload or delete them.
+    /// </summary>
+    [Theory]
+    [InlineData("GetListAsync", BlueDentalAbilityPermissions.TreatmentImage.Read)]
+    [InlineData("GetAsync", BlueDentalAbilityPermissions.TreatmentImage.Read)]
+    [InlineData("CreateAsync", BlueDentalAbilityPermissions.TreatmentImage.Create)]
+    [InlineData("DeleteAsync", BlueDentalAbilityPermissions.TreatmentImage.Delete)]
+    public void Methods_Should_Require_TreatmentImage_Ability(string methodName, string expectedPolicy)
+    {
+        var method = _serviceType.GetMethod(methodName);
+        method.ShouldNotBeNull();
+
+        method.GetCustomAttribute<AuthorizeAttribute>()!.Policy.ShouldBe(expectedPolicy);
     }
 }

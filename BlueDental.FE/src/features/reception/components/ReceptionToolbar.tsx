@@ -5,7 +5,8 @@ import dayjs, { type Dayjs } from "dayjs";
 import { DateNavigator, type DateNavigatorMode } from "@/components/DateNavigator";
 import { t } from "@/lib/i18n";
 
-type ViewMode = DateNavigatorMode;
+/** The three views the segmented control offers; the navigator also knows "year". */
+type ViewMode = Exclude<DateNavigatorMode, "year">;
 
 interface ReceptionToolbarProps {
   keyword?: string;
@@ -71,13 +72,15 @@ export const ReceptionToolbar: React.FC<ReceptionToolbarProps> = ({
         </div>
 
         <div className="reception-toolbar-right">
-          <Button
-            type="primary"
-            icon={<FormOutlined />}
-            onClick={onCreateClick}
-          >
-            {t("Tạo tiếp nhận")}
-          </Button>
+          {onCreateClick && (
+            <Button
+              type="primary"
+              icon={<FormOutlined />}
+              onClick={onCreateClick}
+            >
+              {t("Tạo tiếp nhận")}
+            </Button>
+          )}
         </div>
       </div>
 

@@ -6,6 +6,7 @@ import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { t } from "@/lib/i18n";
 import { PageHeader } from "@/components/PageHeader";
+import { useAbility } from "@/hooks/useAbility";
 import {
   useClinicBranches,
   useCreateBranch,
@@ -34,6 +35,7 @@ const BRANCH_STATUS_KEY: Record<string, string> = {
 };
 
 function BranchTable() {
+  const { canCreate, canUpdate, canDelete } = useAbility("branchManager");
   const { data, isLoading } = useClinicBranches();
   const createMutation = useCreateBranch();
   const updateMutation = useUpdateBranch();
@@ -117,25 +119,29 @@ function BranchTable() {
         </Tag>
       ),
     },
-    {
+    ...((canUpdate || canDelete) ? [{
       title: t("Thao tác"),
-      key: "actions",
+      key: "actions" as const,
       width: 120,
-      fixed: "right",
+      fixed: "right" as const,
       render: (_: unknown, record: ClinicBranchDto) => (
         <Space>
-          <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(record)} />
-          <Popconfirm
-            title={t("Bạn có chắc muốn xóa chi nhánh này?")}
-            onConfirm={() => handleDelete(record.id)}
-            okText={t("Xác nhận")}
-            cancelText={t("Hủy")}
-          >
-            <Button size="small" danger icon={<DeleteOutlined />} />
-          </Popconfirm>
+          {canUpdate && (
+            <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(record)} />
+          )}
+          {canDelete && (
+            <Popconfirm
+              title={t("Bạn có chắc muốn xóa chi nhánh này?")}
+              onConfirm={() => handleDelete(record.id)}
+              okText={t("Xác nhận")}
+              cancelText={t("Hủy")}
+            >
+              <Button size="small" danger icon={<DeleteOutlined />} />
+            </Popconfirm>
+          )}
         </Space>
       ),
-    },
+    }] : []),
   ];
 
   return (
@@ -145,11 +151,13 @@ function BranchTable() {
         subtitle={t("Danh sách cơ sở của phòng khám")}
       />
 
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
-        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-          {t("Thêm chi nhánh")}
-        </Button>
-      </div>
+      {canCreate && (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+            {t("Thêm chi nhánh")}
+          </Button>
+        </div>
+      )}
       <Table<ClinicBranchDto>
         rowKey="id"
         columns={columns}
@@ -201,6 +209,7 @@ function BranchTable() {
 }
 
 function DepartmentTable() {
+  const { canCreate, canUpdate, canDelete } = useAbility("branchManager");
   const { data, isLoading } = useDepartments();
   const createMutation = useCreateDepartment();
   const updateMutation = useUpdateDepartment();
@@ -264,34 +273,40 @@ function DepartmentTable() {
         <Tag color={v ? "green" : "default"}>{v ? t("Đang hoạt động") : t("Ngừng hoạt động")}</Tag>
       ),
     },
-    {
+    ...((canUpdate || canDelete) ? [{
       title: t("Thao tác"),
-      key: "actions",
+      key: "actions" as const,
       width: 120,
-      fixed: "right",
+      fixed: "right" as const,
       render: (_: unknown, record: DepartmentDto) => (
         <Space>
-          <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(record)} />
-          <Popconfirm
-            title={t("Bạn có chắc muốn xóa phòng ban này?")}
-            onConfirm={() => handleDelete(record.id)}
-            okText={t("Xác nhận")}
-            cancelText={t("Hủy")}
-          >
-            <Button size="small" danger icon={<DeleteOutlined />} />
-          </Popconfirm>
+          {canUpdate && (
+            <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(record)} />
+          )}
+          {canDelete && (
+            <Popconfirm
+              title={t("Bạn có chắc muốn xóa phòng ban này?")}
+              onConfirm={() => handleDelete(record.id)}
+              okText={t("Xác nhận")}
+              cancelText={t("Hủy")}
+            >
+              <Button size="small" danger icon={<DeleteOutlined />} />
+            </Popconfirm>
+          )}
         </Space>
       ),
-    },
+    }] : []),
   ];
 
   return (
     <>
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
-        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-          {t("Thêm phòng ban")}
-        </Button>
-      </div>
+      {canCreate && (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+            {t("Thêm phòng ban")}
+          </Button>
+        </div>
+      )}
       <Table<DepartmentDto>
         rowKey="id"
         columns={columns}

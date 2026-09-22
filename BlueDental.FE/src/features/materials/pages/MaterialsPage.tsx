@@ -5,6 +5,7 @@ import { DepartmentTab } from "../components/DepartmentTab";
 import { findMaterialsTab, materialsTabs } from "../materialsTabs";
 import { PageHeader } from "@/components/PageHeader";
 import { PageTabBar } from "@/components/PageTabBar";
+import { useAbility } from "@/hooks/useAbility";
 import { t } from "@/lib/i18n";
 
 /**
@@ -17,6 +18,7 @@ import { t } from "@/lib/i18n";
 export function MaterialsPage() {
   const { section } = useParams<{ section?: string }>();
   const tab = findMaterialsTab(section);
+  const ability = useAbility("materials");
 
   return (
     <div className="bd-shell-page">
@@ -37,9 +39,23 @@ export function MaterialsPage() {
         />
 
         <div className="bd-min0h bd-flex1">
-          {tab.key === "clinic" && <ClinicMaterialsTab />}
-          {tab.key === "allocation" && <AllocationTab />}
-          {tab.key === "department" && <DepartmentTab />}
+          {tab.key === "clinic" && (
+            <ClinicMaterialsTab
+              canCreate={ability.canCreate}
+              canUpdate={ability.canUpdate}
+              canDelete={ability.canDelete}
+            />
+          )}
+          {tab.key === "allocation" && (
+            <AllocationTab canDelete={ability.canDelete} />
+          )}
+          {tab.key === "department" && (
+            <DepartmentTab
+              canCreate={ability.canCreate}
+              canUpdate={ability.canUpdate}
+              canDelete={ability.canDelete}
+            />
+          )}
         </div>
       </div>
     </div>

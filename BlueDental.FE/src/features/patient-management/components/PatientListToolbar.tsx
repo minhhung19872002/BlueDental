@@ -7,6 +7,10 @@ interface Props {
   keyword: string;
   period: Period;
   exporting: boolean;
+  /** "Xuất file" is offered. */
+  canExport: boolean;
+  /** "Tạo hồ sơ" is offered. */
+  canCreate: boolean;
   onKeywordChange: (value: string) => void;
   onPeriodChange: (next: Period) => void;
   onExport: () => void;
@@ -23,6 +27,8 @@ export function PatientListToolbar({
   keyword,
   period,
   exporting,
+  canExport,
+  canCreate,
   onKeywordChange,
   onPeriodChange,
   onExport,
@@ -47,13 +53,17 @@ export function PatientListToolbar({
       </div>
 
       <div className="bd-patient-toolbar-actions">
-        <Button icon={<DownloadOutlined />} loading={exporting} onClick={onExport}>
-          {t("Xuất file")}
-        </Button>
+        {canExport && (
+          <Button icon={<DownloadOutlined />} loading={exporting} onClick={onExport}>
+            {t("Xuất file")}
+          </Button>
+        )}
 
-        <Button type="primary" icon={<PlusOutlined />} onClick={onCreate}>
-          {t("Tạo hồ sơ")}
-        </Button>
+        {canCreate && (
+          <Button type="primary" icon={<PlusOutlined />} onClick={onCreate}>
+            {t("Tạo hồ sơ")}
+          </Button>
+        )}
       </div>
     </div>
   );

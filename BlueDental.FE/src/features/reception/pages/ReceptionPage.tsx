@@ -26,6 +26,7 @@ import {
 import { t } from "@/lib/i18n";
 import { useBranchFilter } from "@/lib/clinicBranch";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useAbility } from "@/hooks/useAbility";
 import type {
   ReceptionStatus,
   ReceptionFilter,
@@ -49,6 +50,7 @@ export const ReceptionPage: React.FC = () => {
   const [draftKeyword, setDraftKeyword] = useState("");
   const [draftDoctorId, setDraftDoctorId] = useState<string | undefined>();
   const branchId = useBranchFilter();
+  const ability = useAbility("reception");
   const debouncedKeyword = useDebounce(keyword);
 
   const filter: ReceptionFilter = {
@@ -163,7 +165,7 @@ export const ReceptionPage: React.FC = () => {
           onSearchChange={setKeyword}
           onViewModeChange={setViewMode}
           onDateChange={setCurrentDate}
-          onCreateClick={() => setDrawerOpen(true)}
+          onCreateClick={ability.canCreate ? () => setDrawerOpen(true) : undefined}
         />
       </div>
 
@@ -227,10 +229,10 @@ export const ReceptionPage: React.FC = () => {
                   key={item.id}
                   item={item}
                   doctors={doctors}
-                  onStatusChange={handleStatusChange}
-                  onCancel={handleCancel}
-                  onOutcomeChange={handleOutcomeChange}
-                  onDoctorChange={handleDoctorChange}
+                  onStatusChange={ability.canUpdate ? handleStatusChange : undefined}
+                  onCancel={ability.canUpdate ? handleCancel : undefined}
+                  onOutcomeChange={ability.canUpdate ? handleOutcomeChange : undefined}
+                  onDoctorChange={ability.canUpdate ? handleDoctorChange : undefined}
                 />
               ))}
             </div>

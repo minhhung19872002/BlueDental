@@ -1,9 +1,11 @@
+import { useMemo } from "react";
 import { Spin } from "antd";
 import { ArrowLeftOutlined, FileTextOutlined, UserOutlined } from "@ant-design/icons";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { EmptyState } from "@/components/EmptyState";
 import { PageTabBar, type PageTab } from "@/components/PageTabBar";
 import { SegmentedTabs } from "@/components/SegmentedTabs";
+import { useAbility } from "@/hooks/useAbility";
 import { t } from "@/lib/i18n";
 import { usePatientDto } from "../api/patientQueries";
 import { PatientDetailContent } from "../components/patient-detail/PatientDetailContent";
@@ -12,7 +14,7 @@ import "../components/patient-detail/patient-detail.css";
 import "../components/patient-detail/image/patient-image.css";
 import "../components/patient-detail/care/patient-care.css";
 
-const PATIENT_TABS = [
+const ALL_PATIENT_TABS = [
   ["profile", "Hồ sơ"],
   ["consulting", "Chẩn đoán & Tư vấn"],
   ["treatment-plan", "Kế hoạch điều trị"],
@@ -25,7 +27,7 @@ const PATIENT_TABS = [
   ["debt-history", "Lịch sử dư nợ"],
 ] as const;
 
-type PatientTab = (typeof PATIENT_TABS)[number][0];
+type PatientTab = (typeof ALL_PATIENT_TABS)[number][0];
 
 /**
  * The record has two whole views, switched from the right of the tab row:
@@ -40,7 +42,7 @@ const RECORD_VIEWS = [
 ];
 
 const isPatientTab = (value: string | null): value is PatientTab =>
-  PATIENT_TABS.some(([key]) => key === value);
+  ALL_PATIENT_TABS.some(([key]) => key === value);
 
 export function PatientProfilePage() {
   const { id = "" } = useParams<{ id: string }>();
@@ -48,8 +50,14 @@ export function PatientProfilePage() {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const patientQuery = usePatientDto(id);
+  const laboAbility = useAbility("treatmentLabo");
+  const cskhAbility = useAbility("treatmentCskh");
+  const appointmentAbility = useAbility("appointment");
+  const prescriptionAbility = useAbility("prescription");
+  const paymentAbility = useAbility("payment");
+  const imageAbility = useAbility("treatmentImage");
+  const medicalRecordAbility = useAbility("patientMedicalRecord");
   const requestedTab = searchParams.get("tab");
-  const activeTab: PatientTab = isPatientTab(requestedTab) ? requestedTab : "profile";
   const view: RecordView = searchParams.get("view") === "medical-record" ? "medical-record" : "details";
   const listSearch = new URLSearchParams(searchParams);
   listSearch.delete("tab");
@@ -63,7 +71,30 @@ export function PatientProfilePage() {
     navigate({ pathname: location.pathname, search: params.toString() }, { replace: true });
   };
 
-  const tabs: PageTab[] = PATIENT_TABS.map(([key, label]) => {
+  const visibleTabs = useMemo(() => {
+    const hidden = new Set<string>();
+    if (!laboAbility.canRead) hidden.add("labo");
+    if (!cskhAbility.canRead) hidden.add("care");
+    if (!appointmentAbility.canRead) hidden.add("appointment");
+    if (!prescriptionAbility.canRead) hidden.add("prescription");
+    if (!paymentAbility.canRead) hidden.add("invoice");
+    if (!imageAbility.canRead) hidden.add("image");
+    return ALL_PATIENT_TABS.filter(([key]) => !hidden.has(key));
+  }, [
+    laboAbility.canRead,
+    cskhAbility.canRead,
+    appointmentAbility.canRead,
+    prescriptionAbility.canRead,
+    paymentAbility.canRead,
+    imageAbility.canRead,
+  ]);
+
+  const activeTab: PatientTab =
+    isPatientTab(requestedTab) && visibleTabs.some(([key]) => key === requestedTab)
+      ? requestedTab
+      : (visibleTabs[0]?.[0] as PatientTab) ?? "profile";
+
+  const tabs: PageTab[] = visibleTabs.map(([key, label]) => {
     const next = new URLSearchParams(searchParams);
     // The open Đơn thuốc dialog rides in the URL; it does not follow to another tab.
     next.delete("create");
@@ -113,23 +144,25 @@ export function PatientProfilePage() {
 
       <div className="pd-tabrow">
         <PageTabBar tabs={tabs} activeKey={activeTab} label={t("Chi tiết bệnh nhân")} />
-        <SegmentedTabs
-          className="pd-viewswitch"
-          items={RECORD_VIEWS.map((item) => ({
-            key: item.key,
-            label: (
-              <>
-                {item.icon}
-                {t(item.label)}
-              </>
-            ),
-          }))}
-          activeKey={view}
-          onChange={openView}
-        />
+        {medicalRecordAbility.canRead && (
+          <SegmentedTabs
+            className="pd-viewswitch"
+            items={RECORD_VIEWS.map((item) => ({
+              key: item.key,
+              label: (
+                <>
+                  {item.icon}
+                  {t(item.label)}
+                </>
+              ),
+            }))}
+            activeKey={view}
+            onChange={openView}
+          />
+        )}
       </div>
 
-      {view === "medical-record" ? (
+      {view === "medical-record" && medicalRecordAbility.canRead ? (
         <PatientMedicalRecordTab patientId={patient.id} patient={patient} />
       ) : (
         <PatientDetailContent activeTab={activeTab} patient={patient} />

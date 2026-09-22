@@ -50,8 +50,8 @@ const FILE_HEART = (
 );
 
 interface CareRowActionsProps {
-  onCall: () => void;
-  onMessage: () => void;
+  onCall?: () => void;
+  onMessage?: () => void;
   /** Reference shows send on Nhắc lịch hẹn and Chúc mừng sinh nhật rows. */
   onSend?: () => void;
   /** Reference varies the file-heart dialog per tab; absent on periodic/special. */
@@ -61,22 +61,26 @@ interface CareRowActionsProps {
 export function CareRowActions({ onCall, onMessage, onSend, onCare }: CareRowActionsProps) {
   return (
     <div className="cskh-actions">
-      <button
-        type="button"
-        className="cskh-action cskh-action--phone"
-        title={t("Gọi điện")}
-        onClick={onCall}
-      >
-        {PHONE}
-      </button>
-      <button
-        type="button"
-        className="cskh-action cskh-action--message"
-        title={t("Lưu tin nhắn")}
-        onClick={onMessage}
-      >
-        {MESSAGE}
-      </button>
+      {onCall && (
+        <button
+          type="button"
+          className="cskh-action cskh-action--phone"
+          title={t("Gọi điện")}
+          onClick={onCall}
+        >
+          {PHONE}
+        </button>
+      )}
+      {onMessage && (
+        <button
+          type="button"
+          className="cskh-action cskh-action--message"
+          title={t("Lưu tin nhắn")}
+          onClick={onMessage}
+        >
+          {MESSAGE}
+        </button>
+      )}
       {onSend && (
         <button
           type="button"

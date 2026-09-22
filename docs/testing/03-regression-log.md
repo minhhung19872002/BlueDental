@@ -3969,3 +3969,47 @@ Không dựng (ghi `unknowns.md`): sự kiện "Tiêu tạm ứng theo tiến đ
 "Chuyển tạm ứng sang dịch vụ mới" / "Xóa tạm ứng dịch vụ cũ (thay thế)" —
 tạm ứng bản gốc gắn phiếu điều trị và tiêu theo tiến độ, tạm ứng local là
 tiền giữ hộ ngoài phiếu.
+
+## 2026-09-22 — Phân quyền theo vai trò (BA feedback #3, F-40)
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-395 | User vai trò `dentist` với 0/378 quyền vẫn thấy đủ menu và mở được mọi màn hình | Phân quyền trên Cài đặt không có tác dụng gì ở giao diện | FE chưa bao giờ đọc `user.permissions`: `nav.ts` tĩnh, router không bọc, `/account/me` trả quyền về rồi bỏ đó | `routePermissions.ts` (route → quyền, "any of"), `useVisibleNav` ẩn mục/nhóm không có quyền, `PermissionRoute` + `ForbiddenResult` cho địa chỉ gõ tay; Tổng quan mở cho mọi người (quyết định chủ dự án) | F-40 (`role-permissions.spec.ts`: 1 nhóm menu, 403 Result, cấp `patient.read` → Phòng khám hiện đúng 1 mục) |
+| R-396 | `GET role-permission/permission-tree` chỉ `[Authorize]` | Mọi tài khoản đăng nhập tải được toàn bộ cây quyền | Controller viết tay, không đi qua AppService có ability | `[Authorize(BlueDentalAbilityPermissions.RolePermission.Read)]` | `ControllerConventionTests.RolePermissionController_Should_Require_RolePermission_Read`; F-40 (dentist → 403 trước và sau khi cấp `patient.read`) |
+| R-397 | `FileAttachmentAppService` không có ability nào | Ảnh X-quang / tài liệu đọc, tạo, xoá được bởi bất kỳ ai đăng nhập | Service viết trước khi có cây ability, chưa gắn subject | Gắn `treatmentImage.read/create/delete` (ASSUMPTION — `features/role-permissions.md`) | `FileAttachmentAppServiceContractTests.Methods_Should_Require_TreatmentImage_Ability` |
+| R-398 | `NotificationAppService.MarkReadAsync` nhận id bất kỳ | Đoán id là đánh dấu đã đọc thông báo của người khác | Không so `RecipientUserId` với người gọi | Ném `AbpAuthorizationException` khi không phải người nhận | Review mã; chưa có spec runtime cho user bị chặn |
+| R-399 | Danh sách Vận hành "tất cả khối" (không truyền `department`) không kiểm quyền | User không có quyền khối nào vẫn xem toàn bộ bài viết / công việc | `GetListAsync` / `QueryAsync` chỉ check khi có `department`; nhánh còn lại đi thẳng xuống query | Thu hẹp về các cặp khối+mục người gọi được đọc; không đọc được cặp nào → 403 thay vì trang rỗng | F-15 (`operations.spec.ts`, đường admin); chưa có spec runtime cho user bị chặn |
+| R-400 | Nhân viên tạo qua dialog Nhân sự, sau khi vai trò được cấp `patient.read`, vào Bệnh nhân vẫn 403 `BlueDental:Organizations:0005` | Cấp quyền xong vẫn không dùng được — đúng ca của BA (user tạo bằng dialog) | Dialog chỉ ghi `StaffBranchAssignment`, không ghi extra property chi nhánh nhà → không có claim; `/account/me` trả `clinicId: null` → FE không gửi `X-Clinic-Branch-Id` → `GetRequiredClinicBranchId()` ném | `AccountAppService.GetCurrentUserAsync`: không có header lẫn claim thì lấy `Min()` của các chi nhánh được phân công (ASSUMPTION chi nhánh nhà = id nhỏ nhất) | F-40 (`assertRealApiTraffic` trên `/api/v1/app/patients` sau khi cấp quyền) |
+
+Không sửa, chỉ ghi nhận: `routes.spec.ts` → `/timekeeping loads without error`
+đỏ **trước và sau** thay đổi này, và đỏ cả trên build của phiên khác (cổng
+8080): router đã cam kết không có route `/timekeeping` (chấm công nằm ở
+`/calendar?tab=timekeeping`), dòng smoke đó đã cũ. Còn lại 25/26 xanh.
+
+## 2026-09-22 — Phân quyền vòng 2: quyền hiện có phải có tác dụng thật (F-40)
+
+Chủ dự án: "b đã handle các quyền hiện có chưa". Kiểm tra bằng tài khoản
+`dentist` tạo qua dialog Nhân sự, phiên cookie thật, gọi thẳng API.
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-401 | `[Authorize(...)]` trên mọi `*AppService` **chưa từng** được thực thi: dentist 0/378 quyền gọi `GET /api/v1/app/dental-procedures`, `/patients`, `/operations/reports/work-log` đều 200 | Toàn bộ phân quyền phía server chỉ còn lại attribute trên controller; cây 378 quyền vô nghĩa với API | Host đăng ký assembly Application làm conventional (auto API) controllers **đồng thời** HttpApi có controller viết tay cho từng service → ABP coi mỗi service là controller, đưa vào `DynamicProxyIgnoreTypes`, Autofac không bọc proxy → không có `AuthorizationInterceptor` | Bỏ `ConventionalControllers.Create(...)` khỏi `BlueDentalHttpApiHostModule`; thêm `AccountController` (`api/v1/app/account`), `FileAttachmentController`, `InsurancePlanController`, `InsuranceClaimController`; 8 contract taxonomy không có màn hình nào gọi → `[RemoteService(IsEnabled = false)]` | `ApplicationServiceInterceptionTests` (service resolve ra phải là proxy có `AuthorizationInterceptor`), `HostModuleConfigurationTests` (không conventional controller; mọi contract bật đều có controller); F-40 (`role-permissions-abilities.spec.ts`: 403 khi chưa cấp) |
+| R-402 | Cấp đủ lá Danh mục trên Phân quyền vẫn bị từ chối ở route cần `BlueDental.Catalogs.View` (và mọi policy module cũ khác) | Vai trò tự tạo không bao giờ dùng được các màn hình còn giữ tên quyền cũ | Hai hệ tên quyền song song: `BlueDentalPermissions.*` (seed cho 3 vai trò tĩnh) và lá `BlueDental.<subject>.<action>` (thứ duy nhất tab Phân quyền ghi) | `BlueDentalPermissionBridge` (tên cũ → "any of" các lá; `SystemAdministration.*` cố ý không bắc cầu — ASSUMPTION các cặp ghi trong file) + `AbilityBridgePermissionValueProvider` ("AB") | `PermissionBridgeTests`, `AbilityBridgePermissionValueProviderTests`; F-40 (`catalogService.read` → `dental-procedures` 200) |
+| R-403 | Sau R-401, `GET /api/v1/app/clinic-branches/accessible` 403 cho dentist dù method chỉ `[Authorize]` | Popover chi nhánh trống với mọi user hạn chế | ABP **hợp** policy class-level và method-level (method `[Authorize]` trần không ghi đè `[Authorize(Organizations.Default)]` ở class) | `ClinicBranchAppService`: class chỉ `[Authorize]`, từng method tự nêu policy Organizations | `ControllerConventionTests.ClinicBranchController_Should_Expose_An_Accessible_Route`; F-40 (accessible 200, danh sách quản trị 403) |
+| R-404 | `/api/app/account/current-user` 404 sau khi bỏ conventional controllers | Không đăng nhập được | Route đó do auto API sinh ra | `AccountController` tại `api/v1/app/account/current-user` + `change-password`; `features/auth/api` trỏ theo | `login.spec.ts`, `auth`, mọi spec đăng nhập |
+| R-405 | `GET /api/v1/app/insurance-claims` 500 với admin: `42703: column b.BranchId does not exist` | Chưa màn hình nào gọi; lộ ra vì giờ mới có route | Commit `72194d7` thêm `BranchId` vào entity và snapshot nhưng **không sinh migration** → bảng thiếu cột | Migration viết tay `20260922100000_AddInsuranceClaimBranchId` (cột + backfill từ `bd_invoices.BranchId` + index), đã chạy DbMigrator | F-40 (`role-permissions-abilities.spec.ts`: admin GET claims 200) |
+| R-406 | `tsc --noEmit` đỏ ở `ReceptionPage.tsx:164` (`setViewMode` không nhận `"year"`) | Build type-check toàn dự án không sạch | `ReceptionToolbar` khai `ViewMode = DateNavigatorMode` (có `year`) trong khi Segmented chỉ có Ngày/Tuần/Tháng | `ViewMode = Exclude<DateNavigatorMode, "year">` ở toolbar; không đổi hành vi | `tsc --noEmit` sạch |
+
+Đã làm thêm trong vòng này (Phase 2 hoãn từ vòng 1): `src/hooks/useAbility.ts`
+gate nút trên Bệnh nhân ("Tạo hồ sơ" ← `patient.create`, "Xuất file" ←
+`patient.export`), Nhân sự, Thanh toán, Lịch hẹn; popover chi nhánh đọc
+`clinic-branches/accessible`. Phase 4 (seed mặc định) vẫn hoãn theo quyết
+định D. Host.Tests 19/19, Application.Tests 588/588, Domain.Tests 310/310.
+
+
+Hồi quy vòng 2 (preview 8082, host 5000, sau khi bật thực thi `[Authorize]`):
+`role-permissions*`, `header-navigation`, `routes`, `branch-*`, `taxonomy*`,
+`payment-qr`, `login`, `auth` — **69 xanh / 4 đỏ**, cả 4 đều là lỗi cũ đã ghi:
+`routes` "/timekeeping" (route không tồn tại), `taxonomy-dialogs` :152 và :207
+(option Tên thuốc ngoài viewport, cặn e2e), `taxonomy` :277 (document không
+cuộn từ shell v2). Không có màn hình nào của admin bị 403 mới.

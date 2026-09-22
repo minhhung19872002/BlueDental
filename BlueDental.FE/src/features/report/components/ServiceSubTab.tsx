@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { t } from "@/lib/i18n";
 import { useServiceLines, useSalesSummary, type RangeQuery } from "../api/clinicReportApi";
+import { useReportPermission, REPORT_PERMISSION } from "../hooks/useReportPermissions";
 import { exportServiceLines } from "./serviceExport";
 import { ReportStatsBar } from "./ReportStatsBar";
 import { ExpenseTable } from "./ExpenseTable";
@@ -12,6 +13,7 @@ import { ExpenseTable } from "./ExpenseTable";
 export function ServiceSubTabActions(range: RangeQuery) {
   const { data: lines = [] } = useServiceLines(range);
   const { data: summary, isLoading } = useSalesSummary(range);
+  const canExport = useReportPermission(REPORT_PERMISSION.salesExport);
 
   const handleExport = useCallback(() => exportServiceLines(lines), [lines]);
 
@@ -21,7 +23,7 @@ export function ServiceSubTabActions(range: RangeQuery) {
       value={summary?.revenue ?? 0}
       tone="gold"
       loading={isLoading}
-      onExport={handleExport}
+      onExport={canExport ? handleExport : undefined}
     />
   );
 }

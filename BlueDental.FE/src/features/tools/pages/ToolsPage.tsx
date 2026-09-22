@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { t } from "@/lib/i18n";
+import { useAbility } from "@/hooks/useAbility";
 import { PageHeader } from "@/components/PageHeader";
 import { PageTabBar } from "@/components/PageTabBar";
 import { cn } from "@/lib/cn";
@@ -53,12 +54,18 @@ function SubTabBar({
   );
 }
 
+interface ToolAbilityProps {
+  canCreate: boolean;
+  canUpdate: boolean;
+  canDelete: boolean;
+}
+
 /**
  * Gọi thoại. The reference keeps the open sub-tab in `?subTab=` — absent for
  * Cấu Hình, `assign` and `history` for the other two — so this does the same:
  * bookmarkable, and the back button walks the tabs.
  */
-function CallView() {
+function CallView({ canCreate, canUpdate, canDelete }: ToolAbilityProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const sub = searchParams.get("subTab") ?? "config";
 
@@ -81,12 +88,18 @@ function CallView() {
         active={sub}
         onChange={changeSub}
       />
-      {sub === "assign" ? <CallAssignView /> : sub === "history" ? <CallListView /> : <CallConfigView />}
+      {sub === "assign" ? (
+        <CallAssignView canCreate={canCreate} canUpdate={canUpdate} canDelete={canDelete} />
+      ) : sub === "history" ? (
+        <CallListView />
+      ) : (
+        <CallConfigView canCreate={canCreate} canUpdate={canUpdate} canDelete={canDelete} />
+      )}
     </div>
   );
 }
 
-function MessageView() {
+function MessageView({ canCreate, canUpdate, canDelete }: ToolAbilityProps) {
   const [sub, setSub] = useState("config");
 
   return (
@@ -100,14 +113,23 @@ function MessageView() {
         active={sub}
         onChange={setSub}
       />
-      {sub === "config" && <MessageConfigView />}
-      {sub === "template" && <MessageTemplateView channel={0} />}
+      {sub === "config" && (
+        <MessageConfigView canCreate={canCreate} canUpdate={canUpdate} canDelete={canDelete} />
+      )}
+      {sub === "template" && (
+        <MessageTemplateView
+          channel={0}
+          canCreate={canCreate}
+          canUpdate={canUpdate}
+          canDelete={canDelete}
+        />
+      )}
       {sub === "list" && <MessageLogView channel={0} />}
     </div>
   );
 }
 
-function ZaloView() {
+function ZaloView({ canCreate, canUpdate, canDelete }: ToolAbilityProps) {
   const [sub, setSub] = useState("config");
 
   return (
@@ -122,7 +144,14 @@ function ZaloView() {
         onChange={setSub}
       />
       {sub === "config" && <ZaloConfigView />}
-      {sub === "templates" && <MessageTemplateView channel={1} />}
+      {sub === "templates" && (
+        <MessageTemplateView
+          channel={1}
+          canCreate={canCreate}
+          canUpdate={canUpdate}
+          canDelete={canDelete}
+        />
+      )}
       {sub === "list" && <MessageLogView channel={1} />}
     </div>
   );
@@ -143,7 +172,26 @@ function InvoiceView() {
 
 export function ToolsPage() {
   const { category: categoryParam } = useParams<{ category?: string }>();
-  const category = findCategory(categoryParam);
+
+  const callAbility = useAbility("toolCall");
+  const messageAbility = useAbility("toolMessage");
+
+  const ALL_TABS: { key: ToolCategory; label: () => string; visible: boolean }[] = [
+    { key: "call", label: () => t("Gọi thoại"), visible: callAbility.canRead },
+    { key: "message", label: () => t("Tin nhắn"), visible: messageAbility.canRead },
+    { key: "zalo-oa", label: () => t("Zalo OA"), visible: true },
+    { key: "invoice", label: () => t("Hóa đơn"), visible: true },
+  ];
+
+  const visibleTabs = useMemo(
+    () => ALL_TABS.filter((t) => t.visible),
+    [callAbility.canRead, messageAbility.canRead],
+  );
+
+  const rawCategory = findCategory(categoryParam);
+  const category = visibleTabs.some((t) => t.key === rawCategory)
+    ? rawCategory
+    : visibleTabs[0]?.key ?? "call";
 
   return (
     <div className="reception-page">
@@ -156,17 +204,30 @@ export function ToolsPage() {
         <PageTabBar
           label={t("Công cụ")}
           activeKey={category}
-          tabs={[
-            { key: "call", label: t("Gọi thoại"), to: "/tools/call" },
-            { key: "message", label: t("Tin nhắn"), to: "/tools/message" },
-            { key: "zalo-oa", label: t("Zalo OA"), to: "/tools/zalo-oa" },
-            { key: "invoice", label: t("Hóa đơn"), to: "/tools/invoice" },
-          ]}
+          tabs={visibleTabs.map((t) => ({ key: t.key, label: t.label(), to: `/tools/${t.key}` }))}
         />
 
-        {category === "call" && <CallView />}
-        {category === "message" && <MessageView />}
-        {category === "zalo-oa" && <ZaloView />}
+        {category === "call" && (
+          <CallView
+            canCreate={callAbility.canCreate}
+            canUpdate={callAbility.canUpdate}
+            canDelete={callAbility.canDelete}
+          />
+        )}
+        {category === "message" && (
+          <MessageView
+            canCreate={messageAbility.canCreate}
+            canUpdate={messageAbility.canUpdate}
+            canDelete={messageAbility.canDelete}
+          />
+        )}
+        {category === "zalo-oa" && (
+          <ZaloView
+            canCreate={messageAbility.canCreate}
+            canUpdate={messageAbility.canUpdate}
+            canDelete={messageAbility.canDelete}
+          />
+        )}
         {category === "invoice" && <InvoiceView />}
       </div>
     </div>

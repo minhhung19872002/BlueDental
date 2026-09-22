@@ -22,10 +22,13 @@ interface CareBoardProps {
   dateSlot?: ReactNode;
   /** The care-type tabs, shown left of the toolbar on the tabs row. */
   tabsSlot?: ReactNode;
+  /** Permission gates — hide export when false/absent, hide create when false/absent. */
+  canExport?: boolean;
+  canCreate?: boolean;
 }
 
 /** Head row, care-type tabs + toolbar row, table and dialogs of one care tab. */
-export function CareBoard({ branchId, tab, mode, date, dateSlot, tabsSlot }: CareBoardProps) {
+export function CareBoard({ branchId, tab, mode, date, dateSlot, tabsSlot, canExport, canCreate }: CareBoardProps) {
   const board = useCareBoard({ branchId, tab, mode, date });
   /* A tab whose columns fit a desktop still does not fit a phone: without a
      horizontal scroller the headers squeeze into each other. */
@@ -62,8 +65,8 @@ export function CareBoard({ branchId, tab, mode, date, dateSlot, tabsSlot }: Car
           onSearchChange={board.setSearch}
           onDoctorChange={board.setDoctorId}
           onCareStaffChange={board.setCareStaffId}
-          onExport={board.handleExport}
-          onCreate={() => board.openDialog("create")}
+          onExport={canExport ? board.handleExport : undefined}
+          onCreate={canCreate ? () => board.openDialog("create") : undefined}
         />
       </div>
 

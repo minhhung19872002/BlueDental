@@ -125,6 +125,54 @@ export const DEFAULT_DIVISION = "overview";
 export const DEFAULT_SUB_TAB = "home";
 export const DEFAULT_MIDDLE_TAB = "overview";
 
+/**
+ * Maps a sub-tab key to the suffix the BE uses in its ability subject name.
+ * `operationsTabs.ts` uses kebab-case keys; the BE uses PascalCase suffixes.
+ */
+const SUB_TAB_SUFFIX: Record<string, string> = {
+  home: "Home",
+  process: "Process",
+  task: "Task",
+  report: "Report",
+  untreated: "Diagnosis",
+  prescription: "Prescription",
+  "customer-report": "Report",
+  invoice: "Invoice",
+  "service-complete": "ServiceComplete",
+};
+
+const DIVISION_PREFIX: Record<string, string> = {
+  overview: "operationsOverview",
+  assistant: "operationsAssistant",
+  reception: "operationsReception",
+  cskh: "operationsCskh",
+  marketing: "operationsMarketing",
+  security: "operationsSecurity",
+  treatment: "operationsTreatment",
+  finance: "operationsFinance",
+};
+
+/**
+ * Returns the BE ability subject for a given (division, subTab) pair, e.g.
+ * `("overview", "report")` → `"operationsOverviewReport"`.
+ * Falls back to `"operationsOverviewHome"` for unknown combinations.
+ */
+export function abilitySubjectFor(divisionKey: string, subTabKey: string): string {
+  const prefix = DIVISION_PREFIX[divisionKey] ?? "operationsOverview";
+  const suffix = SUB_TAB_SUFFIX[subTabKey] ?? "Home";
+  return `${prefix}${suffix}`;
+}
+
+/**
+ * Returns the BE ability subject for the middle tab "Truy cập" screen.
+ * `("treatment", "access")` → `"operationsTreatmentAccess"`.
+ */
+export function abilitySubjectForMiddle(divisionKey: string, middleKey: string): string {
+  const prefix = DIVISION_PREFIX[divisionKey] ?? "operationsOverview";
+  const suffix = middleKey === "access" ? "Access" : "Home";
+  return `${prefix}${suffix}`;
+}
+
 export function findDivision(key: string | undefined): OperationsDivision {
   const all = operationsDivisions();
   return all.find((d) => d.key === key) ?? all[0];

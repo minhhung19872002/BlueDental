@@ -12,6 +12,7 @@ using BlueDental.Appointments;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
+using Volo.Abp.Authorization;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Identity;
 
@@ -30,8 +31,16 @@ namespace BlueDental.Operations.Reports;
 /// These are per-branch, per-period slices — hundreds of rows, not millions —
 /// and the alternative is six hand-written multi-table queries whose EF
 /// translations are far harder to keep honest than the projections below.
+///
+/// Each report is one ability subject in the reference's tree, checked at the
+/// top of its method: <c>operations&lt;Division&gt;Report</c> for Báo cáo,
+/// <c>operationsOverviewDiagnosis</c>, <c>operationsFinanceInvoice</c>,
+/// <c>operationsFinanceServiceComplete</c>, and either Truy cập subject for
+/// sales access. Khách hàng phát sinh has no subject of its own, so it is
+/// gated by the finance division's home page (ASSUMPTION, see
+/// docs/testing/features/role-permissions.md).
 /// </summary>
-[Authorize(BlueDentalPermissions.Catalogs.Default)]
+[Authorize]
 public class OperationsReportAppService(
     IRepository<PatientDiagnosis, Guid> diagnosisRepository,
     IRepository<PatientAdvise, Guid> adviseRepository,
@@ -47,6 +56,43 @@ public class OperationsReportAppService(
     IIdentityUserRepository userRepository,
     BranchAccessChecker branchAccess) : ApplicationService, IOperationsReportAppService
 {
+    // ── Abilities ───────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Báo cáo asked for one division must hold that division's report
+    /// ability; asked without one, any division's report ability will do.
+    /// </summary>
+    private async Task CheckWorkLogAbilityAsync(OperationsDepartment? department)
+    {
+        if (department.HasValue)
+        {
+            if (!OperationsAbilities.HasReportSubject(department.Value))
+            {
+                throw new AbpAuthorizationException(
+                    $"Department {department.Value} has no Báo cáo tab.");
+            }
+
+            await AuthorizationService.CheckAsync(
+                OperationsAbilities.ReportPermissionFor(department.Value, BlueDentalAbilities.Actions.Read));
+            return;
+        }
+
+        await CheckAnyAsync(OperationsAbilities.DepartmentsWithReport()
+            .Select(d => OperationsAbilities.ReportPermissionFor(d, BlueDentalAbilities.Actions.Read))
+            .ToArray());
+    }
+
+    private async Task CheckAnyAsync(params string[] permissions)
+    {
+        foreach (var permission in permissions)
+        {
+            if (await AuthorizationService.IsGrantedAsync(permission)) return;
+        }
+
+        throw new AbpAuthorizationException(
+            $"None of the required abilities is granted: {string.Join(", ", permissions)}.");
+    }
+
     // ── Window ──────────────────────────────────────────────────────────────
 
     /// <summary>
@@ -197,6 +243,8 @@ public class OperationsReportAppService(
 
     public async Task<WorkLogResultDto> GetWorkLogAsync(WorkLogInput input)
     {
+        await CheckWorkLogAbilityAsync(input.Department);
+
         var branchIds = await branchAccess.ResolveFilterAsync(input.ClinicBranchId);
         var window = WindowOf(input.Period, input.Anchor);
 
@@ -349,6 +397,8 @@ public class OperationsReportAppService(
     public async Task<PagedResultDto<UntreatedDiagnosisRowDto>> GetUntreatedDiagnosesAsync(
         StaffScopedReportInput input)
     {
+        await AuthorizationService.CheckAsync(BlueDentalAbilityPermissions.OperationsOverviewDiagnosis.Read);
+
         var branchIds = await branchAccess.ResolveFilterAsync(input.ClinicBranchId);
         var window = WindowOf(input.Period, input.Anchor);
 
@@ -396,6 +446,8 @@ public class OperationsReportAppService(
     public async Task<PagedResultDto<ConsultantSummaryRowDto>> GetConsultantSummaryAsync(
         StaffScopedReportInput input)
     {
+        await AuthorizationService.CheckAsync(BlueDentalAbilityPermissions.OperationsFinanceHome.Read);
+
         var branchIds = await branchAccess.ResolveFilterAsync(input.ClinicBranchId);
         var window = WindowOf(input.Period, input.Anchor);
         var staff = await StaffNamesAsync();
@@ -453,6 +505,8 @@ public class OperationsReportAppService(
     public async Task<PagedResultDto<InvoiceReportRowDto>> GetInvoicesAsync(
         InvoiceReportInput input)
     {
+        await AuthorizationService.CheckAsync(BlueDentalAbilityPermissions.OperationsFinanceInvoice.Read);
+
         var branchIds = await branchAccess.ResolveFilterAsync(input.ClinicBranchId);
         var window = WindowOf(input.Period, input.Anchor);
 
@@ -585,6 +639,8 @@ public class OperationsReportAppService(
     public async Task<ServiceCompletionResultDto> GetServiceCompletionAsync(
         ServiceCompletionInput input)
     {
+        await AuthorizationService.CheckAsync(BlueDentalAbilityPermissions.OperationsFinanceServiceComplete.Read);
+
         var branchIds = await branchAccess.ResolveFilterAsync(input.ClinicBranchId);
         var window = WindowOf(input.Period, input.Anchor);
 
@@ -643,6 +699,12 @@ public class OperationsReportAppService(
 
     public async Task<SalesAccessResultDto> GetSalesAccessAsync(SalesAccessInput input)
     {
+        // Truy cập sits under both Khối điều trị and Khối tài chính and shows
+        // the same screen, so either division's ability opens it.
+        await CheckAnyAsync(
+            BlueDentalAbilityPermissions.OperationsTreatmentAccess.Read,
+            BlueDentalAbilityPermissions.OperationsFinanceAccess.Read);
+
         var branchIds = await branchAccess.ResolveFilterAsync(input.ClinicBranchId);
         var window = WindowOf(input.Period, input.Anchor);
 

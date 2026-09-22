@@ -6,8 +6,13 @@ using Volo.Abp;
 
 namespace BlueDental.RolePermission;
 
+/// <summary>
+/// The permission tree the Phân quyền tab draws. Reading it is the same
+/// ability as reading a role's grants, so the tab and its data agree on who
+/// may look.
+/// </summary>
 [RemoteService]
-[Authorize]
+[Authorize(BlueDentalAbilityPermissions.RolePermission.Read)]
 [Route("api/v1/app/role-permission")]
 public sealed class RolePermissionController : BlueDentalController
 {

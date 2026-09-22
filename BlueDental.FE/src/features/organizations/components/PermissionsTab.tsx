@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { PERMISSION_GROUP } from "@/lib/permissionConstants";
 import { Button, Checkbox, Empty, Form, Input, Modal, Spin } from "antd";
 import {
   PlusOutlined,
@@ -207,7 +208,7 @@ function RolePermissionEditor({
   const handleSave = useCallback(async () => {
     if (!localGranted) return;
     const permissions = allLeafIds.map((id) => ({
-      name: `BlueDental.${id}`,
+      name: `${PERMISSION_GROUP}.${id}`,
       isGranted: localGranted.has(id),
     }));
     try {

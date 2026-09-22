@@ -78,14 +78,14 @@ interface Props {
   diagnosisNotes: Record<string, string | null>;
   selected: string[];
   onSelect: (ids: string[]) => void;
-  onOpenAdvise: () => void;
+  onOpenAdvise?: () => void;
   /** A row was clicked: open that slip in "Cập nhật phiếu dịch vụ". */
-  onEdit: (row: PatientAdviseDto) => void;
-  onDelete: (row: PatientAdviseDto) => void;
+  onEdit?: (row: PatientAdviseDto) => void;
+  onDelete?: (row: PatientAdviseDto) => void;
   /** One row moved to a 1-based position across the whole list, not the page. */
   onReorder: (id: string, sortOrder: number) => void | Promise<void>;
-  onAddToPlan: (dentistId: string) => void;
-  onPrint: () => void;
+  onAddToPlan?: (dentistId: string) => void;
+  onPrint?: () => void;
   /** The báo giá tabs beside "Phiếu tư vấn"; owned by the tab, not this card. */
   quotes: AdviseQuotesState;
 }
@@ -311,13 +311,13 @@ export function PatientAdviseCard({
         .filter((column): column is TableColumnsType<PatientAdviseDto>[number] =>
           Boolean(column),
         ),
-      {
+      ...(onDelete ? [{
         title: t("Thao tác"),
         key: "actions",
         width: 90,
-        align: "center",
-        fixed: "right",
-        render: (_, row) => (
+        align: "center" as const,
+        fixed: "right" as const,
+        render: (_: unknown, row: PatientAdviseDto) => (
           <Tooltip title={t("Xoá dịch vụ tư vấn")}>
             <Button
               type="text"
@@ -328,7 +328,7 @@ export function PatientAdviseCard({
             />
           </Tooltip>
         ),
-      },
+      }] : []),
     ];
   }, [
     columnSettings,
@@ -373,9 +373,8 @@ export function PatientAdviseCard({
               selectedRowKeys: selected,
               onChange: (keys) => onSelect(keys as string[]),
             }}
-            onRow={(row) => ({
+            onRow={onEdit ? (row) => ({
               onClick: (event) => {
-                // The checkbox, the grip and the action buttons keep their own meaning.
                 const target = event.target instanceof Element ? event.target : null;
                 if (
                   target?.closest("button, a, .ant-checkbox-wrapper, .ant-table-selection-column")
@@ -383,7 +382,7 @@ export function PatientAdviseCard({
                   return;
                 onEdit(row);
               },
-            })}
+            }) : undefined}
             locale={{ emptyText: t("Chưa có kế hoạch") }}
             pagination={
               quotes.active
@@ -435,9 +434,11 @@ export function PatientAdviseCard({
                   </span>
                 )}
               </div>
-              <Button icon={<PlusOutlined />} disabled={!hasTicked} onClick={handleAddToPlan}>
-                {t("Thêm kế hoạch điều trị")}
-              </Button>
+              {onAddToPlan && (
+                <Button icon={<PlusOutlined />} disabled={!hasTicked} onClick={handleAddToPlan}>
+                  {t("Thêm kế hoạch điều trị")}
+                </Button>
+              )}
               {openQuote ? (
                 <Button icon={<CopyOutlined />} onClick={() => quotes.duplicate(openQuote.id)}>
                   {t("Sao chép báo giá")}
@@ -452,15 +453,17 @@ export function PatientAdviseCard({
                   {t("Tạo báo giá")}
                 </Button>
               )}
-              <Tooltip title={t("In Báo giá")}>
-                <Button
-                  className="pd-plan-print"
-                  aria-label={t("In Báo giá")}
-                  icon={<PrinterOutlined />}
-                  disabled={!hasTicked}
-                  onClick={onPrint}
-                />
-              </Tooltip>
+              {onPrint && (
+                <Tooltip title={t("In Báo giá")}>
+                  <Button
+                    className="pd-plan-print"
+                    aria-label={t("In Báo giá")}
+                    icon={<PrinterOutlined />}
+                    disabled={!hasTicked}
+                    onClick={onPrint}
+                  />
+                </Tooltip>
+              )}
             </div>
           </div>
       </footer>

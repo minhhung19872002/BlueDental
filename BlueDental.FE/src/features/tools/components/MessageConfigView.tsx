@@ -117,8 +117,14 @@ function MessageConfigDialog({ open, onClose }: { open: boolean; onClose: () => 
   );
 }
 
+interface MessageConfigViewProps {
+  canCreate: boolean;
+  canUpdate: boolean;
+  canDelete: boolean;
+}
+
 /** Cấu Hình — message provider configurations (FPT, etc.). */
-export function MessageConfigView() {
+export function MessageConfigView({ canCreate, canUpdate, canDelete }: MessageConfigViewProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const columns = useMemo<ColumnsType<MessageConfigRow>>(
@@ -142,17 +148,21 @@ export function MessageConfigView() {
         fixed: "right",
         render: (_, row) => (
           <div className="bd-cat-rowactions">
-            <Tooltip title={t("Chỉnh sửa")}>
-              <Button type="text" size="small" icon={<EditOutlined />} aria-label={t("Chỉnh sửa {0}", row.name)} />
-            </Tooltip>
-            <Tooltip title={t("Xoá")}>
-              <Button type="text" size="small" danger icon={<DeleteOutlined />} aria-label={t("Xoá {0}", row.name)} />
-            </Tooltip>
+            {canUpdate && (
+              <Tooltip title={t("Chỉnh sửa")}>
+                <Button type="text" size="small" icon={<EditOutlined />} aria-label={t("Chỉnh sửa {0}", row.name)} />
+              </Tooltip>
+            )}
+            {canDelete && (
+              <Tooltip title={t("Xoá")}>
+                <Button type="text" size="small" danger icon={<DeleteOutlined />} aria-label={t("Xoá {0}", row.name)} />
+              </Tooltip>
+            )}
           </div>
         ),
       },
     ],
-    [],
+    [canUpdate, canDelete],
   );
 
   return (
@@ -165,14 +175,16 @@ export function MessageConfigView() {
           aria-label={t("Tìm kiếm")}
           allowClear
         />
-        <Button
-          className="bd-tools-toolbar-end"
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => setDialogOpen(true)}
-        >
-          {t("Tạo cấu hình")}
-        </Button>
+        {canCreate && (
+          <Button
+            className="bd-tools-toolbar-end"
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => setDialogOpen(true)}
+          >
+            {t("Tạo cấu hình")}
+          </Button>
+        )}
       </div>
 
       <DataTable<MessageConfigRow>

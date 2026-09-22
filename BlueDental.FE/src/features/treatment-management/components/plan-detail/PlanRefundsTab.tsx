@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Undo2 } from "lucide-react";
 import { DataTable } from "@/components/DataTable";
 import type { PatientDto } from "@/features/patient-management/types/patient";
+import { useAbility } from "@/hooks/useAbility";
 import { useBranchInfo } from "@/hooks/useBranchInfo";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useTablePagination } from "@/hooks/useTablePagination";
@@ -32,6 +33,7 @@ interface Props {
 
 /** Tab "Hoàn tiền": refunds filed against this slip and the "Hoàn Tiền" button. */
 export function PlanRefundsTab({ patient, plan, branchId }: Props) {
+  const { canCreate } = useAbility("payment");
   const narrow = useMediaQuery(NARROW_SCREEN);
   const pagination = useTablePagination(20);
   const query = usePatientPayments({
@@ -57,12 +59,14 @@ export function PlanRefundsTab({ patient, plan, branchId }: Props) {
 
   return (
     <div className="pdt-pane">
-      <div className="pdt-toolbar">
-        <button type="button" className="tp-btn tp-btn--primary" onClick={() => setCreating(true)}>
-          <Undo2 size={16} aria-hidden="true" />
-          {t("Hoàn Tiền")}
-        </button>
-      </div>
+      {canCreate && (
+        <div className="pdt-toolbar">
+          <button type="button" className="tp-btn tp-btn--primary" onClick={() => setCreating(true)}>
+            <Undo2 size={16} aria-hidden="true" />
+            {t("Hoàn Tiền")}
+          </button>
+        </div>
+      )}
 
       {narrow ? (
         <PaymentCardList

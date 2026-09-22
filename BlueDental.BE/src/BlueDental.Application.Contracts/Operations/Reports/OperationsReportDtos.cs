@@ -63,6 +63,12 @@ public class OperationsReportInput : PagedAndSortedResultRequestDto
 
 public class WorkLogInput : OperationsReportInput
 {
+    /// <summary>
+    /// Which division's Báo cáo tab is asking. Each has its own ability
+    /// subject; left empty, holding any division's report ability is enough.
+    /// </summary>
+    public OperationsDepartment? Department { get; set; }
+
     /// <summary>Empty means every action.</summary>
     public List<WorkLogAction> Actions { get; set; } = [];
 

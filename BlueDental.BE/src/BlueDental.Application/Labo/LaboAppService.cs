@@ -583,7 +583,7 @@ public class LaboAppService : ApplicationService, ILaboAppService
         order.Reject(reason);
         await _repository.UpdateAsync(order, autoSave: true);
     }
-    [Authorize]
+    [Authorize(BlueDentalPermissions.LaboOrders.View)]
     public async Task<byte[]> ExportAsync(GetLaboOrderListInput input)
     {
         var page = await GetListAsync(new GetLaboOrderListInput

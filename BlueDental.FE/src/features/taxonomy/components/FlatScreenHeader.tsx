@@ -6,8 +6,8 @@ interface Props {
   icon: ReactNode;
   title: string;
   subtitle: string;
-  actionLabel: string;
-  onAction: () => void;
+  actionLabel?: string;
+  onAction?: () => void;
   /** Set while "Tất cả chi nhánh" is selected — a record needs one branch. */
   actionDisabled?: boolean;
   actionDisabledHint?: string;
@@ -47,15 +47,17 @@ export function FlatScreenHeader({
           <p className="bd-cat-sub">{subtitle}</p>
         </div>
 
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          disabled={actionDisabled}
-          title={actionDisabled ? actionDisabledHint : undefined}
-          onClick={onAction}
-        >
-          {actionLabel}
-        </Button>
+        {actionLabel && onAction && (
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            disabled={actionDisabled}
+            title={actionDisabled ? actionDisabledHint : undefined}
+            onClick={onAction}
+          >
+            {actionLabel}
+          </Button>
+        )}
       </div>
 
       {search && (

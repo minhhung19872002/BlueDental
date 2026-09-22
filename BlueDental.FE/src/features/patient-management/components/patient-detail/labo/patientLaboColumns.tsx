@@ -11,8 +11,8 @@ import {
 
 interface Actions {
   onDetail: (order: LaboOrderDto) => void;
-  onContinue: (order: LaboOrderDto) => void;
-  onWarranty: (order: LaboOrderDto) => void;
+  onContinue?: (order: LaboOrderDto) => void;
+  onWarranty?: (order: LaboOrderDto) => void;
 }
 
 interface DatePillProps {
@@ -108,24 +108,28 @@ export function buildPatientLaboColumns({
               onClick={() => onDetail(row)}
             />
           </Tooltip>
-          <Tooltip title={t("Tiếp tục công đoạn")}>
-            <Button
-              type="text"
-              className="pd-labo-act pd-labo-act--primary"
-              icon={<PlusOutlined />}
-              aria-label={t("Tiếp tục công đoạn")}
-              onClick={() => onContinue(row)}
-            />
-          </Tooltip>
-          <Tooltip title={t("Bảo hành")}>
-            <Button
-              type="text"
-              className="pd-labo-act pd-labo-act--success"
-              icon={<SafetyOutlined />}
-              aria-label={t("Bảo hành")}
-              onClick={() => onWarranty(row)}
-            />
-          </Tooltip>
+          {onContinue && (
+            <Tooltip title={t("Tiếp tục công đoạn")}>
+              <Button
+                type="text"
+                className="pd-labo-act pd-labo-act--primary"
+                icon={<PlusOutlined />}
+                aria-label={t("Tiếp tục công đoạn")}
+                onClick={() => onContinue(row)}
+              />
+            </Tooltip>
+          )}
+          {onWarranty && (
+            <Tooltip title={t("Bảo hành")}>
+              <Button
+                type="text"
+                className="pd-labo-act pd-labo-act--success"
+                icon={<SafetyOutlined />}
+                aria-label={t("Bảo hành")}
+                onClick={() => onWarranty(row)}
+              />
+            </Tooltip>
+          )}
         </span>
       ),
     },

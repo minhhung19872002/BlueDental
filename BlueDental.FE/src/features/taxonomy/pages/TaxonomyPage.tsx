@@ -35,6 +35,8 @@ import {
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { PageHeader } from "@/components/PageHeader";
 import { PageTabBar } from "@/components/PageTabBar";
+import { useAbility, abilityName } from "@/hooks/useAbility";
+import { useAuthStore } from "@/features/auth/store/authStore";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { countedTotal } from "@/utils/countedTotal";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -51,6 +53,7 @@ type PendingDelete =
   { kind: "group"; id: string; name: string } | { kind: "entry"; id: string; name: string };
 
 function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
+  const ability = useAbility(tab.subject);
   /**
    * Lists follow the header's branch selection, including "Tất cả chi nhánh";
    * a record can only be created in one branch, so writes use the concrete id
@@ -349,9 +352,9 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
       onKeywordChange={setGroupKeyword}
       selectedId={selectedGroupId}
       onSelect={selectGroup}
-      onCreate={openGroupModalForCreate}
-      onRename={openGroupModal}
-      onDelete={requestGroupDelete}
+      onCreate={ability.canCreate ? openGroupModalForCreate : undefined}
+      onRename={ability.canUpdate ? openGroupModal : undefined}
+      onDelete={ability.canDelete ? requestGroupDelete : undefined}
       onReorder={reorderGroups}
     />
   );
@@ -386,8 +389,8 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
           totalCount={totalCount}
           keyword={keyword}
           onKeywordChange={changeKeyword}
-          onCreate={() => void openEntryModal(null)}
-          onExport={tab.exportable === false ? null : handleExport}
+          onCreate={ability.canCreate ? () => void openEntryModal(null) : null}
+          onExport={tab.exportable === false || !ability.canExport ? null : handleExport}
           createDisabled={isAllBranches || (grouped && groups.length === 0)}
           exportDisabled={entries.length === 0}
           onOpenGroups={grouped ? () => setGroupsOpen(true) : null}
@@ -409,10 +412,9 @@ function CatalogWorkspace({ tab }: { tab: TaxonomyTab }) {
                     : t("Không có dữ liệu")
               }
               canReorder={!debouncedKeyword && (!grouped || selectedGroupId !== null)}
-              onEdit={(entry) => setEntryModal({ open: true, entry })}
-              onDelete={(entry) =>
-                setPendingDelete({ kind: "entry", id: entry.id, name: entry.name })
-              }
+              onEdit={ability.canUpdate ? (entry) => setEntryModal({ open: true, entry }) : undefined}
+              onDelete={ability.canDelete ? (entry) =>
+                setPendingDelete({ kind: "entry", id: entry.id, name: entry.name }) : undefined}
               onReorder={reorderEntries}
               pagination={pagination.buildConfig(totalCount, countedTotal(t("bản ghi")))}
             />
@@ -465,10 +467,18 @@ function StandaloneScreen({ tab }: { tab: TaxonomyTab }) {
 }
 
 export function TaxonomyPage() {
-  const tabs = taxonomyTabs();
+  const allTabs = taxonomyTabs();
+  const permissions = useAuthStore((s) => s.user?.permissions);
+  const grantedSet = useMemo(() => new Set(permissions ?? []), [permissions]);
+
+  const visibleTabs = useMemo(
+    () => allTabs.filter((item) => grantedSet.has(abilityName(item.subject, "read"))),
+    [allTabs, grantedSet],
+  );
+
   const { section } = useParams();
   const [searchParams] = useSearchParams();
-  const tab = findTaxonomyTab(tabs, section ?? searchParams.get("tab") ?? DEFAULT_TAXONOMY_TAB);
+  const tab = findTaxonomyTab(visibleTabs, section ?? searchParams.get("tab") ?? DEFAULT_TAXONOMY_TAB);
 
   return (
     <div className="bd-shell-page">
@@ -481,7 +491,7 @@ export function TaxonomyPage() {
         <PageTabBar
           label={t("Danh mục")}
           activeKey={tab.key}
-          tabs={tabs.map((item) => ({
+          tabs={visibleTabs.map((item) => ({
             key: item.key,
             label: item.label,
             to: `/taxonomy/${item.key}`,

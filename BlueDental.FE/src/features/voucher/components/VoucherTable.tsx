@@ -8,10 +8,10 @@ import { VoucherServicesModal } from "./VoucherServicesModal";
 interface Props {
   data: VoucherDto[];
   loading: boolean;
-  onPublish: (id: string) => void;
-  onUnpublish: (id: string) => void;
-  onEdit: (row: VoucherDto) => void;
-  onDelete: (id: string) => void;
+  onPublish?: (id: string) => void;
+  onUnpublish?: (id: string) => void;
+  onEdit?: (row: VoucherDto) => void;
+  onDelete?: (id: string) => void;
 }
 
 export function VoucherTable({ data, loading, onPublish, onUnpublish, onEdit, onDelete }: Props) {

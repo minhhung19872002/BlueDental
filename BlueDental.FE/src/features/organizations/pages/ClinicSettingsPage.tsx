@@ -29,6 +29,7 @@ import {
 import { authApi } from "@/features/auth/api";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { PageHeader } from "@/components/PageHeader";
+import { useAbility } from "@/hooks/useAbility";
 import { describeApiError } from "@/lib/apiError";
 import { BranchEditorModal } from "../components/BranchEditorModal";
 import { BranchManagerEditorModal, type BranchManagerFormValues } from "../components/BranchManagerEditorModal";
@@ -46,6 +47,9 @@ import { DataTable } from "@/components/DataTable";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { useCurrentBranchId, useBranchStore } from "@/lib/clinicBranch";
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { ForbiddenResult } from "@/components/ForbiddenResult";
+import { isAnyGranted } from "@/lib/permissions";
+import { abilityPermission, LegacyPermissions } from "@/lib/permissionConstants";
 import { useMyProfile, useUpdateProfile, uploadProfileAvatar, deleteProfileAvatar } from "@/features/account/api/accountMutations";
 import { useStaff, staffKeys } from "@/features/staff/api/staffQueries";
 import { getAllProvinces, getWardsByProvince, getProvinceName, getWardName, type LocationOption } from "@/utils/vietnamLocations";
@@ -53,13 +57,19 @@ import { getLocale, t } from "@/lib/i18n";
 
 type TabKey = "info" | "password" | "clinic" | "permission" | "branches" | "branch-manage";
 
-const TAB_ITEMS: { key: TabKey; icon: React.ReactNode; label: string }[] = [
-  { key: "info", icon: <UserOutlined />, label: "Thông tin cá nhân" },
-  { key: "password", icon: <LockOutlined />, label: "Đổi mật khẩu" },
-  { key: "clinic", icon: <ShopOutlined />, label: "Thông tin phòng khám" },
-  { key: "permission", icon: <SafetyOutlined />, label: "Phân quyền" },
-  { key: "branches", icon: <BranchesOutlined />, label: "Danh sách chi nhánh" },
-  { key: "branch-manage", icon: <TeamOutlined />, label: "Quản lý chi nhánh" },
+/**
+ * The account's own tabs carry no permission; the clinic-wide ones need the
+ * same permission their server endpoints check (the permission tree, the
+ * branch list, the branch-manager list), so a tab the user may not use is
+ * not offered (owner's decision, 2026-09-22: hide, do not disable).
+ */
+const TAB_ITEMS: { key: TabKey; icon: React.ReactNode; label: string; permissions: readonly string[] }[] = [
+  { key: "info", icon: <UserOutlined />, label: "Thông tin cá nhân", permissions: [] },
+  { key: "password", icon: <LockOutlined />, label: "Đổi mật khẩu", permissions: [] },
+  { key: "clinic", icon: <ShopOutlined />, label: "Thông tin phòng khám", permissions: [LegacyPermissions.Organizations.View] },
+  { key: "permission", icon: <SafetyOutlined />, label: "Phân quyền", permissions: [abilityPermission("rolePermission", "read")] },
+  { key: "branches", icon: <BranchesOutlined />, label: "Danh sách chi nhánh", permissions: [LegacyPermissions.Organizations.View] },
+  { key: "branch-manage", icon: <TeamOutlined />, label: "Quản lý chi nhánh", permissions: [LegacyPermissions.BranchManager.View] },
 ];
 
 /* ── Tab: Thông tin cá nhân ───────────────────────────────────────────── */
@@ -70,9 +80,9 @@ function PersonalInfoTab({ branchId }: { branchId: string }) {
   const queryClient = useQueryClient();
   const { data: profile, isLoading: profileLoading } = useMyProfile();
   const updateProfile = useUpdateProfile();
-  const { data: branch, isLoading: branchLoading } = useClinicBranch(branchId);
+  const { data: branch } = useClinicBranch(branchId);
   const updateBranch = useUpdateClinicBranch();
-  const { data: staffData, isLoading: staffLoading } = useStaff(user?.id ?? "");
+  const { data: staffData } = useStaff(user?.id ?? "");
   const [form] = Form.useForm();
   const selectedProvinceId = Form.useWatch("provinceId", form);
 
@@ -102,17 +112,16 @@ function PersonalInfoTab({ branchId }: { branchId: string }) {
   }, [selectedProvinceId, loadWards]);
 
   useEffect(() => {
-    if (profile && branch) {
-      form.setFieldsValue({
-        name: profile.name ?? "",
-        phoneNumber: profile.phoneNumber ?? branch.phoneNumber ?? "",
-        email: profile.email ?? "",
-        provinceId: branch.provinceId ?? undefined,
-        wardId: branch.wardId ?? undefined,
-        address: branch.address ?? "",
-      });
-      if (branch.provinceId) loadWards(branch.provinceId);
-    }
+    if (!profile) return;
+    form.setFieldsValue({
+      name: profile.name ?? "",
+      phoneNumber: profile.phoneNumber ?? branch?.phoneNumber ?? "",
+      email: profile.email ?? "",
+      provinceId: branch?.provinceId ?? undefined,
+      wardId: branch?.wardId ?? undefined,
+      address: branch?.address ?? "",
+    });
+    if (branch?.provinceId) loadWards(branch.provinceId);
   }, [profile, branch, form, loadWards]);
 
   useEffect(() => {
@@ -152,17 +161,19 @@ function PersonalInfoTab({ branchId }: { branchId: string }) {
         void queryClient.invalidateQueries({ queryKey: staffKeys.detail(user.id) });
       }
 
-      await updateBranch.mutateAsync({
-        id: branchId,
-        input: {
-          name: branch?.name ?? "",
-          phoneNumber: clean(values.phoneNumber),
-          email: clean(values.email),
-          address: clean(values.address),
-          provinceId: values.provinceId || undefined,
-          wardId: values.wardId || undefined,
-        },
-      });
+      if (branch) {
+        await updateBranch.mutateAsync({
+          id: branchId,
+          input: {
+            name: branch.name ?? "",
+            phoneNumber: clean(values.phoneNumber),
+            email: clean(values.email),
+            address: clean(values.address),
+            provinceId: values.provinceId || undefined,
+            wardId: values.wardId || undefined,
+          },
+        });
+      }
       toast.success(t("Cập nhật thông tin thành công"));
     } catch {
       // Global MutationCache.onError handles toast
@@ -171,8 +182,7 @@ function PersonalInfoTab({ branchId }: { branchId: string }) {
     }
   };
 
-  const isLoading = profileLoading || branchLoading || staffLoading;
-  if (isLoading) return <Spin style={{ display: "block", textAlign: "center", padding: 40 }} />;
+  if (profileLoading) return <Spin style={{ display: "block", textAlign: "center", padding: 40 }} />;
 
   return (
     <>
@@ -519,6 +529,7 @@ function ClinicInfoTab({ branchId }: { branchId: string }) {
 /* ── Tab: Danh sách chi nhánh ─────────────────────────────────────────── */
 
 function BranchListTab() {
+  const ability = useAbility("branchManager");
   const { data: branches, isLoading } = useClinicBranches(false, true);
   const deleteBranch = useDeleteBranch();
   const pagination = useTablePagination(20);
@@ -577,50 +588,56 @@ function BranchListTab() {
         return d.toLocaleDateString(getLocale(), { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
       },
     },
-    {
-      key: "actions",
+    ...((ability.canUpdate || ability.canDelete) ? [{
+      key: "actions" as const,
       title: t("Thao tác"),
       width: 110,
-      align: "center",
-      fixed: "right",
-      render: (_, record) => {
+      align: "center" as const,
+      fixed: "right" as const,
+      render: (_: unknown, record: ClinicBranchDto) => {
         if (record.isDeleted) return null;
         return (
           <div style={{ display: "flex", justifyContent: "center", gap: 4 }}>
-            <Tooltip title={t("Chỉnh sửa")}>
-              <Button
-                type="text"
-                size="small"
-                icon={<EditOutlined />}
-                onClick={(e) => { e.stopPropagation(); setEditingBranch(record); setBranchModalOpen(true); }}
-              />
-            </Tooltip>
-            <Tooltip title={t("Xóa")}>
-              <Button
-                type="text"
-                size="small"
-                danger
-                icon={<DeleteOutlined />}
-                onClick={(e) => { e.stopPropagation(); setPendingDelete(record); }}
-              />
-            </Tooltip>
+            {ability.canUpdate && (
+              <Tooltip title={t("Chỉnh sửa")}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<EditOutlined />}
+                  onClick={(e) => { e.stopPropagation(); setEditingBranch(record); setBranchModalOpen(true); }}
+                />
+              </Tooltip>
+            )}
+            {ability.canDelete && (
+              <Tooltip title={t("Xóa")}>
+                <Button
+                  type="text"
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={(e) => { e.stopPropagation(); setPendingDelete(record); }}
+                />
+              </Tooltip>
+            )}
           </div>
         );
       },
-    },
+    }] : []),
   ];
 
   return (
     <>
       <div className="settings-section-header">
         <div className="profile-content-title" style={{ marginBottom: 0 }}>{t("Danh sách chi nhánh")}</div>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => { setEditingBranch(null); setBranchModalOpen(true); }}
-        >
-          {t("Thêm chi nhánh")}
-        </Button>
+        {ability.canCreate && (
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => { setEditingBranch(null); setBranchModalOpen(true); }}
+          >
+            {t("Thêm chi nhánh")}
+          </Button>
+        )}
       </div>
 
       <DataTable<ClinicBranchDto>
@@ -680,6 +697,7 @@ function useFullAddressMap(managers: BranchManagerDto[]) {
 }
 
 function BranchManageTab() {
+  const ability = useAbility("branchManager");
   const queryClient = useQueryClient();
   const pagination = useTablePagination(20);
   const [keyword, setKeyword] = useState("");
@@ -815,34 +833,38 @@ function BranchManageTab() {
       width: 350,
       render: (_, record) => fullAddressMap.get(record.id) || record.address || "—",
     },
-    {
-      key: "actions",
+    ...((ability.canUpdate || ability.canDelete) ? [{
+      key: "actions" as const,
       title: t("Thao tác"),
       width: 110,
-      align: "center",
-      fixed: "right",
-      render: (_, record) => (
+      align: "center" as const,
+      fixed: "right" as const,
+      render: (_: unknown, record: BranchManagerDto) => (
         <div style={{ display: "flex", justifyContent: "center", gap: 4 }}>
-          <Tooltip title={t("Chỉnh sửa")}>
-            <Button
-              type="text"
-              size="small"
-              icon={<EditOutlined />}
-              onClick={(e) => { e.stopPropagation(); openEdit(record); }}
-            />
-          </Tooltip>
-          <Tooltip title={t("Xoá")}>
-            <Button
-              type="text"
-              size="small"
-              danger
-              icon={<DeleteOutlined />}
-              onClick={(e) => { e.stopPropagation(); setPendingDeleteMgr(record); }}
-            />
-          </Tooltip>
+          {ability.canUpdate && (
+            <Tooltip title={t("Chỉnh sửa")}>
+              <Button
+                type="text"
+                size="small"
+                icon={<EditOutlined />}
+                onClick={(e) => { e.stopPropagation(); openEdit(record); }}
+              />
+            </Tooltip>
+          )}
+          {ability.canDelete && (
+            <Tooltip title={t("Xoá")}>
+              <Button
+                type="text"
+                size="small"
+                danger
+                icon={<DeleteOutlined />}
+                onClick={(e) => { e.stopPropagation(); setPendingDeleteMgr(record); }}
+              />
+            </Tooltip>
+          )}
         </div>
       ),
-    },
+    }] : []),
   ];
 
   return (
@@ -858,9 +880,11 @@ function BranchManageTab() {
           style={{ flex: 1 }}
           allowClear
         />
-        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-          {t("Tạo")}
-        </Button>
+        {ability.canCreate && (
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+            {t("Tạo")}
+          </Button>
+        )}
       </div>
 
       <DataTable<BranchManagerDto>
@@ -898,12 +922,18 @@ export function ClinicSettingsPage() {
   const branchId = useCurrentBranchId();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get("tab") as TabKey) || "info";
+  const permissions = useAuthStore((s) => s.user?.permissions);
+  const grantedSet = new Set(permissions ?? []);
+  const visibleTabs = TAB_ITEMS.filter((item) => isAnyGranted(item.permissions, (p) => grantedSet.has(p)));
+  const activeAllowed = visibleTabs.some((item) => item.key === activeTab);
 
   const handleTabChange = (key: TabKey) => {
     setSearchParams({ tab: key }, { replace: true });
   };
 
   const renderContent = () => {
+    // A typed `?tab=` for a hidden tab gets the same answer a hidden route does.
+    if (!activeAllowed) return <ForbiddenResult />;
     switch (activeTab) {
       case "info":
         return <PersonalInfoTab branchId={branchId} />;
@@ -933,7 +963,7 @@ export function ClinicSettingsPage() {
         <div className="profile-sidebar">
           <div className="profile-sidebar-title">{t("Hồ sơ")}</div>
           <div className="profile-sidebar-menu">
-            {TAB_ITEMS.map((item) => (
+            {visibleTabs.map((item) => (
               <button
                 key={item.key}
                 className={[

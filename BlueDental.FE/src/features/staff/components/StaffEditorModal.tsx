@@ -332,19 +332,15 @@ export function StaffEditorModal({
               label={t("Nhập lại mật khẩu")}
               required={!isEditing}
               dependencies={["password"]}
-              rules={
-                isEditing
-                  ? []
-                  : [
-                      { required: true, message: t("Vui lòng nhập lại mật khẩu") },
-                      ({ getFieldValue }) => ({
-                        validator(_, val) {
-                          if (!val || getFieldValue("password") === val) return Promise.resolve();
-                          return Promise.reject(new Error(t("Mật khẩu không khớp")));
-                        },
-                      }),
-                    ]
-              }
+              rules={[
+                ...(!isEditing ? [{ required: true, message: t("Vui lòng nhập lại mật khẩu") }] : []),
+                ({ getFieldValue }: { getFieldValue: (name: string) => string }) => ({
+                  validator(_: unknown, val: string) {
+                    if (!val || getFieldValue("password") === val) return Promise.resolve();
+                    return Promise.reject(new Error(t("Mật khẩu không khớp")));
+                  },
+                }),
+              ]}
             >
               <Input.Password />
             </FloatingField>

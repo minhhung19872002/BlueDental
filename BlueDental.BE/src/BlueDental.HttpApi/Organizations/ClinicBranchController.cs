@@ -17,6 +17,9 @@ public sealed class ClinicBranchController(IClinicBranchAppService service) : Bl
     public Task<PagedResultDto<ClinicBranchDto>> GetListAsync(
         [FromQuery] GetClinicBranchListInput input) => service.GetListAsync(input);
 
+    [HttpGet("accessible")]
+    public Task<ListResultDto<ClinicBranchDto>> GetAccessibleAsync() => service.GetAccessibleAsync();
+
     [HttpGet("{id:guid}")]
     public Task<ClinicBranchDto> GetAsync(Guid id) => service.GetAsync(id);
 

@@ -20,10 +20,12 @@ interface GroupPatientsPanelProps {
   branchId: string;
   taxonomyId: string | undefined;
   onTaxonomyChange: (value: string | undefined) => void;
+  /** Hide row action buttons (call / message / care) when false/absent. */
+  canUpdate?: boolean;
 }
 
 /** Phân nhóm CSKH tab: filter row + 12-column patient table. */
-export function GroupPatientsPanel({ branchId, taxonomyId, onTaxonomyChange }: GroupPatientsPanelProps) {
+export function GroupPatientsPanel({ branchId, taxonomyId, onTaxonomyChange, canUpdate }: GroupPatientsPanelProps) {
   const [tagId, setTagId] = useState<string | undefined>();
   const [birthday, setBirthday] = useState<Dayjs | null>(null);
   const [search, setSearch] = useState("");
@@ -51,11 +53,11 @@ export function GroupPatientsPanel({ branchId, taxonomyId, onTaxonomyChange }: G
   const columns = useMemo(
     () =>
       buildGroupColumns(branchId, {
-        onCall: () => toast.error(t("Chưa có cấu hình tổng đài gọi điện")),
-        onMessage: setMessagePatient,
-        onCare: setCarePatient,
+        onCall: canUpdate ? () => toast.error(t("Chưa có cấu hình tổng đài gọi điện")) : undefined,
+        onMessage: canUpdate ? setMessagePatient : undefined,
+        onCare: canUpdate ? setCarePatient : undefined,
       }),
-    [branchId],
+    [branchId, canUpdate],
   );
 
   return (

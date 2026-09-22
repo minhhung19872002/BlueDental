@@ -16,10 +16,10 @@ function formatPublishedAt(value: string): string {
 }
 
 interface VoucherTableHandlers {
-  onPublish: (id: string) => void;
-  onUnpublish: (id: string) => void;
-  onEdit: (row: VoucherDto) => void;
-  onDelete: (id: string) => void;
+  onPublish?: (id: string) => void;
+  onUnpublish?: (id: string) => void;
+  onEdit?: (row: VoucherDto) => void;
+  onDelete?: (id: string) => void;
   onShowServices: (row: VoucherDto) => void;
 }
 
@@ -98,18 +98,20 @@ function DisplayCell({
   onEdit,
 }: {
   row: VoucherDto;
-  onPublish: (id: string) => void;
-  onUnpublish: (id: string) => void;
-  onEdit: (row: VoucherDto) => void;
+  onPublish?: (id: string) => void;
+  onUnpublish?: (id: string) => void;
+  onEdit?: (row: VoucherDto) => void;
 }) {
   if (row.status === "expired") {
     return (
       <div className="voucher-terminal-card voucher-terminal-card--expired">
         <strong>{t("Đã hết hạn")}</strong>
         <span>{t("Hạn cuối")}: {formatDate(row.endDate)}</span>
-        <a className="voucher-reactivate-link" onClick={() => onEdit(row)}>
-          {t("Sửa để kích hoạt lại")}
-        </a>
+        {onEdit && (
+          <a className="voucher-reactivate-link" onClick={() => onEdit(row)}>
+            {t("Sửa để kích hoạt lại")}
+          </a>
+        )}
       </div>
     );
   }
@@ -119,21 +121,26 @@ function DisplayCell({
       <div className="voucher-terminal-card voucher-terminal-card--exhausted">
         <strong>{t("Đã hết lượt")}</strong>
         <span>{row.usedCount} / {row.usageLimit ?? "∞"} {t("lượt")}</span>
-        <a className="voucher-reactivate-link" onClick={() => onEdit(row)}>
-          {t("Sửa để kích hoạt lại")}
-        </a>
+        {onEdit && (
+          <a className="voucher-reactivate-link" onClick={() => onEdit(row)}>
+            {t("Sửa để kích hoạt lại")}
+          </a>
+        )}
       </div>
     );
   }
+
+  const canToggle = onPublish && onUnpublish;
 
   return (
     <div className="voucher-display-active">
       <div className="voucher-display-toggle-row">
         <Switch
           checked={row.isPublished}
+          disabled={!canToggle}
           onChange={(checked) => {
-            if (checked) onPublish(row.id);
-            else onUnpublish(row.id);
+            if (checked) onPublish?.(row.id);
+            else onUnpublish?.(row.id);
           }}
           size="small"
         />
@@ -222,39 +229,43 @@ export function buildVoucherColumns(handlers: VoucherTableHandlers): ColumnsType
         />
       ),
     },
-    {
+    ...((handlers.onEdit || handlers.onDelete) ? [{
       title: t("Thao tác"),
       key: "actions",
       width: 100,
-      align: "center",
-      fixed: "right",
-      render: (_, row) => (
+      align: "center" as const,
+      fixed: "right" as const,
+      render: (_: unknown, row: VoucherDto) => (
         <div className="voucher-actions">
-          <Tooltip title={t("Sửa")}>
-            <Button
-              type="text"
-              size="small"
-              icon={<EditOutlined />}
-              onClick={() => handlers.onEdit(row)}
-            />
-          </Tooltip>
-          <Popconfirm
-            title={t("Xoá voucher này?")}
-            okText={t("Xoá")}
-            cancelText={t("Huỷ")}
-            onConfirm={() => handlers.onDelete(row.id)}
-          >
-            <Tooltip title={t("Xoá")}>
+          {handlers.onEdit && (
+            <Tooltip title={t("Sửa")}>
               <Button
                 type="text"
                 size="small"
-                danger
-                icon={<DeleteOutlined />}
+                icon={<EditOutlined />}
+                onClick={() => handlers.onEdit!(row)}
               />
             </Tooltip>
-          </Popconfirm>
+          )}
+          {handlers.onDelete && (
+            <Popconfirm
+              title={t("Xoá voucher này?")}
+              okText={t("Xoá")}
+              cancelText={t("Huỷ")}
+              onConfirm={() => handlers.onDelete!(row.id)}
+            >
+              <Tooltip title={t("Xoá")}>
+                <Button
+                  type="text"
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                />
+              </Tooltip>
+            </Popconfirm>
+          )}
         </div>
       ),
-    },
+    }] : []),
   ];
 }

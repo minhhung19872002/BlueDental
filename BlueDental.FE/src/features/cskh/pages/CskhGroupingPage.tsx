@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
@@ -5,13 +6,16 @@ import { PageHeader } from "@/components/PageHeader";
 import { RemainingHeight } from "@/components/RemainingHeight";
 import { SegmentedTabs } from "@/components/SegmentedTabs";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
+import { useAbility } from "@/hooks/useAbility";
 import { anchorForMode, careDateModeOf, careTabByKey, CARE_TABS } from "../careTabs";
 import { CareBoard } from "../components/CareBoard";
 import { CareDateBar } from "../components/CareDateBar";
 import { GroupPatientsPanel } from "../components/GroupPatientsPanel";
 import "../components/cskh.css";
 
-const TOP_TABS: Array<{ key: "care" | "group"; label: () => string }> = [
+type TopTabKey = "care" | "group";
+
+const TOP_TABS: Array<{ key: TopTabKey; label: () => string }> = [
   { key: "care", label: () => t("Chăm sóc khách hàng") },
   { key: "group", label: () => t("Phân nhóm CSKH") },
 ];
@@ -24,7 +28,23 @@ export function CskhGroupingPage() {
   const branchId = useCurrentBranchId();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const topTab = searchParams.get("tab") === "group" ? "group" : "care";
+  const careAbility = useAbility("cskhCare");
+  const groupAbility = useAbility("cskhGroup");
+
+  const tabAccess: Record<TopTabKey, boolean> = {
+    care: careAbility.canRead,
+    group: groupAbility.canRead,
+  };
+  const visibleTabs = useMemo(
+    () => TOP_TABS.filter((item) => tabAccess[item.key]),
+    [tabAccess.care, tabAccess.group], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
+  const rawTab = searchParams.get("tab");
+  const topTab: TopTabKey =
+    rawTab === "group" && tabAccess.group ? "group"
+    : rawTab === "care" && tabAccess.care ? "care"
+    : visibleTabs[0]?.key ?? "care";
   const careTab = careTabByKey(searchParams.get("page"));
   const mode = careDateModeOf(searchParams.get("care_dateMode"));
   const rawParam = searchParams.get("care_date");
@@ -48,7 +68,7 @@ export function CskhGroupingPage() {
 
       <div className="pill-tabs-row">
         <div className="pill-tabs">
-          {TOP_TABS.map((item) => (
+          {visibleTabs.map((item) => (
             <button
               key={item.key}
               type="button"
@@ -71,6 +91,8 @@ export function CskhGroupingPage() {
               tab={careTab}
               mode={mode}
               date={date}
+              canExport={careAbility.canExport}
+              canCreate={careAbility.canCreate}
               dateSlot={
                 <CareDateBar
                   mode={mode}
@@ -105,6 +127,7 @@ export function CskhGroupingPage() {
             <GroupPatientsPanel
               branchId={branchId}
               taxonomyId={taxonomyId}
+              canUpdate={groupAbility.canUpdate}
               onTaxonomyChange={(value) =>
                 setParam((params) => {
                   if (value) params.set("taxonomyId", value);

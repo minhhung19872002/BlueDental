@@ -23,9 +23,9 @@ interface Props {
   checked: boolean;
   onSelect: () => void;
   onCheck: (checked: boolean) => void;
-  onPrint: () => void;
-  onRename: () => void;
-  onDelete: () => void;
+  onPrint?: () => void;
+  onRename?: () => void;
+  onDelete?: () => void;
 }
 
 /** `Bản 01` — the reference pads the ordinal to two digits. */
@@ -80,23 +80,31 @@ export function MedicalRecordSheetCard({
         aria-label={t("Chọn {0} để in", sheet.title)}
       />
 
-      <div className="pd-sheet-actions">
-        <Tooltip title={t("In phiếu")}>
-          <button type="button" aria-label={t("In phiếu")} onClick={onPrint}>
-            <PrinterOutlined />
-          </button>
-        </Tooltip>
-        <Tooltip title={t("Đổi tên phiếu")}>
-          <button type="button" aria-label={t("Đổi tên phiếu")} onClick={onRename}>
-            <EditOutlined />
-          </button>
-        </Tooltip>
-        <Tooltip title={t("Xoá phiếu")}>
-          <button type="button" aria-label={t("Xoá phiếu")} onClick={onDelete}>
-            <DeleteOutlined />
-          </button>
-        </Tooltip>
-      </div>
+      {(onPrint || onRename || onDelete) && (
+        <div className="pd-sheet-actions">
+          {onPrint && (
+            <Tooltip title={t("In phiếu")}>
+              <button type="button" aria-label={t("In phiếu")} onClick={onPrint}>
+                <PrinterOutlined />
+              </button>
+            </Tooltip>
+          )}
+          {onRename && (
+            <Tooltip title={t("Đổi tên phiếu")}>
+              <button type="button" aria-label={t("Đổi tên phiếu")} onClick={onRename}>
+                <EditOutlined />
+              </button>
+            </Tooltip>
+          )}
+          {onDelete && (
+            <Tooltip title={t("Xoá phiếu")}>
+              <button type="button" aria-label={t("Xoá phiếu")} onClick={onDelete}>
+                <DeleteOutlined />
+              </button>
+            </Tooltip>
+          )}
+        </div>
+      )}
     </div>
   );
 }

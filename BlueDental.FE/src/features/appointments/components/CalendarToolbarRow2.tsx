@@ -7,6 +7,7 @@ import {
   ExpandOutlined,
 } from "@ant-design/icons";
 import { FloatingLabel } from "@/components/FloatingLabel";
+import { useAbility } from "@/hooks/useAbility";
 import type { ViewMode } from "../hooks/useCalendarState";
 import { t } from "@/lib/i18n";
 
@@ -39,6 +40,7 @@ export function CalendarToolbarRow2({
   onCreateTemp,
   onFullscreen,
 }: Props) {
+  const ability = useAbility("appointment");
   const isMonthView = viewMode === "month";
   const slotTitle = isMonthView
     ? t("Chỉ khả dụng ở chế độ Ngày/Tuần")
@@ -85,15 +87,21 @@ export function CalendarToolbarRow2({
         />
       </div>
       <div className="cal-toolbar-row2-right">
-        <Button className="cal-btn-export" icon={<DownloadOutlined />} onClick={onExport}>
-          {t("Xuất File")}
-        </Button>
-        <Button className="cal-btn-create" type="primary" icon={<PlusOutlined />} onClick={onCreateAppointment}>
-          {t("Tạo lịch hẹn mới")}
-        </Button>
-        <Button className="cal-btn-temp" icon={<PlusOutlined />} onClick={onCreateTemp}>
-          {t("Tạo lịch tạm")}
-        </Button>
+        {ability.canExport && (
+          <Button className="cal-btn-export" icon={<DownloadOutlined />} onClick={onExport}>
+            {t("Xuất File")}
+          </Button>
+        )}
+        {ability.canCreate && (
+          <Button className="cal-btn-create" type="primary" icon={<PlusOutlined />} onClick={onCreateAppointment}>
+            {t("Tạo lịch hẹn mới")}
+          </Button>
+        )}
+        {ability.canCreate && (
+          <Button className="cal-btn-temp" icon={<PlusOutlined />} onClick={onCreateTemp}>
+            {t("Tạo lịch tạm")}
+          </Button>
+        )}
         {/* Slot toggle — visible only on desktop */}
         <Button
           className="cal-btn-slot cal-btn-slot--desktop"

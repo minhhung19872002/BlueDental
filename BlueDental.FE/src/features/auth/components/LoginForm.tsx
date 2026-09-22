@@ -80,11 +80,12 @@ export function LoginForm() {
         roles: user.roles,
         permissions: user.permissions,
       });
-      // Tiếp nhận is where the app opens — the router's index redirects there
-      // too, so signing in should not land somewhere else.
+      // Tổng quan is where the app opens — the router's index redirects there
+      // too, and it is the one screen every account may see, so a user with
+      // few permissions does not land on a 403 the moment they sign in.
       const from =
         (location.state as { from?: { pathname?: string } })?.from?.pathname ??
-        "/reception";
+        "/dashboard";
       navigate(from, { replace: true });
     },
     onError: (error) => {

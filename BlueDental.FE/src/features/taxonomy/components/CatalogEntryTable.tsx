@@ -19,8 +19,8 @@ interface Props {
   isLoading: boolean;
   emptyText?: string;
   canReorder: boolean;
-  onEdit: (entry: CatalogEntryDto) => void;
-  onDelete: (entry: CatalogEntryDto) => void;
+  onEdit?: (entry: CatalogEntryDto) => void;
+  onDelete?: (entry: CatalogEntryDto) => void;
   onReorder: (fromIndex: number, toIndex: number) => void | Promise<void>;
   pagination: NonNullable<Parameters<typeof DataTable>[0]["pagination"]>;
 }
@@ -173,26 +173,26 @@ export function CatalogEntryTable({
           </span>
         ),
       },
-      {
-        key: "actions",
+      ...((onEdit || onDelete) ? [{
+        key: "actions" as const,
         title: t("Thao tác"),
         width: 100,
-        align: "center",
-        fixed: "right",
-        render: (_, entry) => (
+        align: "center" as const,
+        fixed: "right" as const,
+        render: (_: unknown, entry: CatalogEntryDto) => (
           <div className="bd-cat-rowactions">
-            <Tooltip title={t("Chỉnh sửa")}>
-              <Button
-                type="text"
-                size="small"
-                icon={<EditOutlined />}
-                aria-label={t("Chỉnh sửa {0}", entry.name)}
-                onClick={() => onEdit(entry)}
-              />
-            </Tooltip>
-            {/* An entry that is already deleted has nothing left to delete —
-                it is brought back from its own dialog instead. */}
-            {!entry.isDeleted && (
+            {onEdit && (
+              <Tooltip title={t("Chỉnh sửa")}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<EditOutlined />}
+                  aria-label={t("Chỉnh sửa {0}", entry.name)}
+                  onClick={() => onEdit(entry)}
+                />
+              </Tooltip>
+            )}
+            {onDelete && !entry.isDeleted && (
               <Tooltip title={t("Xoá")}>
                 <Button
                   type="text"
@@ -206,7 +206,7 @@ export function CatalogEntryTable({
             )}
           </div>
         ),
-      },
+      }] : []),
     );
 
     return list;

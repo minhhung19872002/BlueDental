@@ -11,6 +11,7 @@ import {
   useDeleteCareRecord,
   type CareRecordDto,
 } from "@/features/cskh/api/careApi";
+import { useAbility } from "@/hooks/useAbility";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { extractApiError } from "@/lib/apiError";
 import { t, tRich } from "@/lib/i18n";
@@ -47,6 +48,7 @@ function showPageTotal(total: number, range: [number, number]) {
 }
 
 export function PatientCareTab({ patient }: { patient: PatientDto }) {
+  const ability = useAbility("treatmentCskh");
   const [chip, setChip] = useState<CareChipKey | null>(null);
   const [dialog, setDialog] = useState<DialogState>(CLOSED);
   const pagination = useTablePagination(20);
@@ -79,24 +81,26 @@ export function PatientCareTab({ patient }: { patient: PatientDto }) {
     () =>
       buildCareColumns({
         onDetail: (record) => setDialog({ kind: "detail", record }),
-        onEdit: (record) => setDialog({ kind: "edit", record }),
-        onDelete: (record) => setDialog({ kind: "delete", record }),
+        onEdit: ability.canUpdate ? (record) => setDialog({ kind: "edit", record }) : undefined,
+        onDelete: ability.canDelete ? (record) => setDialog({ kind: "delete", record }) : undefined,
       }),
-    [],
+    [ability.canUpdate, ability.canDelete],
   );
 
   return (
     <section className="pd-pane pd-pane--fill pc-tab">
       <div className="pc-toolbar">
         <CareStatChips stats={stats.data} active={chip} onToggle={handleToggle} />
-        <Button
-          type="primary"
-          className="pc-add"
-          icon={<Plus size={16} />}
-          onClick={() => setDialog({ kind: "create" })}
-        >
-          {t("CSKH đặc biệt")}
-        </Button>
+        {ability.canCreate && (
+          <Button
+            type="primary"
+            className="pc-add"
+            icon={<Plus size={16} />}
+            onClick={() => setDialog({ kind: "create" })}
+          >
+            {t("CSKH đặc biệt")}
+          </Button>
+        )}
       </div>
       <div className="bd-cat-card pc-card">
         <DataTable<CareRecordDto>

@@ -7,6 +7,7 @@ import type {
 import { AdviseModal } from "@/features/treatment-management/components/AdviseModal";
 import { CreatePlanDialog } from "@/features/treatment-management/components/plan/CreatePlanDialog";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { useAbility } from "@/hooks/useAbility";
 import { useBranchInfo } from "@/hooks/useBranchInfo";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
@@ -36,6 +37,8 @@ export function PatientConsultingTab({ patient }: { patient: PatientDto }) {
   const patientId = patient.id;
   const branchId = useCurrentBranchId();
   const navigate = useNavigate();
+  const diagnosisAbility = useAbility("treatmentDiagnosis");
+  const consultationAbility = useAbility("treatmentConsultation");
   const data = useConsultingData(patientId, branchId);
   const actions = useConsultingActions(patientId, branchId);
   const permissions = usePatientImagePermissions();
@@ -106,11 +109,11 @@ export function PatientConsultingTab({ patient }: { patient: PatientDto }) {
           loading={data.diagnoses.isFetching}
           pagination={data.diagnosisPaging}
           expanded={editor.expanded}
-          onToggleForm={editor.toggle}
-          onEdit={editor.edit}
-          onCreateService={setAdviseDiagnosis}
+          onToggleForm={diagnosisAbility.canCreate ? editor.toggle : undefined}
+          onEdit={diagnosisAbility.canUpdate ? editor.edit : undefined}
+          onCreateService={consultationAbility.canCreate ? setAdviseDiagnosis : undefined}
           onPrint={setPrinting}
-          onDelete={actions.setRemovingDiagnosis}
+          onDelete={diagnosisAbility.canDelete ? actions.setRemovingDiagnosis : undefined}
         >
           {editor.expanded && (
             <PatientDiagnosisForm
@@ -136,14 +139,11 @@ export function PatientConsultingTab({ patient }: { patient: PatientDto }) {
         diagnosisNotes={diagnosisNotes}
         selected={shownSelected}
         onSelect={quotes.active ? quotes.select : setSelectedAdvises}
-        onOpenAdvise={() => setAdviseDiagnosis(data.diagnoses.data?.items[0] ?? null)}
-        onEdit={setEditingAdvise}
-        onDelete={actions.setRemovingAdvise}
+        onOpenAdvise={consultationAbility.canCreate ? () => setAdviseDiagnosis(data.diagnoses.data?.items[0] ?? null) : undefined}
+        onEdit={consultationAbility.canUpdate ? setEditingAdvise : undefined}
+        onDelete={consultationAbility.canDelete ? actions.setRemovingAdvise : undefined}
         onReorder={actions.moveAdvise}
-        onAddToPlan={(dentistId) => {
-          // The slip is raised off the ticked lines before the tab moves, and
-          // only moves if the server took it — a failed open leaves the user
-          // where they can see the toast and try again.
+        onAddToPlan={consultationAbility.canCreate ? (dentistId) => {
           void actions
             .addToPlan(
               dentistId,
@@ -155,8 +155,8 @@ export function PatientConsultingTab({ patient }: { patient: PatientDto }) {
                 navigate(`?tab=treatment-plan${branchId ? `&branchId=${branchId}` : ""}`);
               }
             });
-        }}
-        onPrint={() => setQuoteOpen(true)}
+        } : undefined}
+        onPrint={consultationAbility.canRead ? () => setQuoteOpen(true) : undefined}
       />
 
       <QuoteDetailModal

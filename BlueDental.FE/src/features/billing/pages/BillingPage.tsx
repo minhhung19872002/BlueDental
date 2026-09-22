@@ -11,6 +11,7 @@ import {
 } from "../api";
 import { PaymentModal } from "../components/PaymentModal";
 import { PageHeader } from "@/components/PageHeader";
+import { useAbility } from "@/hooks/useAbility";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
@@ -39,6 +40,7 @@ function isCollectable(row: InvoiceDto): boolean {
  * này" rather than implying a figure the server never sent.
  */
 export function BillingPage() {
+  const ability = useAbility("payment");
   const branchId = useCurrentBranchId();
   const pagination = useTablePagination(20);
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | undefined>();
@@ -155,16 +157,17 @@ export function BillingPage() {
       key: "actions",
       width: 158,
       fixed: "right",
-      render: (_: unknown, row) => (
-        <Button
-          size="small"
-          type="primary"
-          disabled={!isCollectable(row)}
-          onClick={() => setPaying(row)}
-        >
-          {t("Thu tiền")}
-        </Button>
-      ),
+      render: (_: unknown, row) =>
+        ability.canCreate ? (
+          <Button
+            size="small"
+            type="primary"
+            disabled={!isCollectable(row)}
+            onClick={() => setPaying(row)}
+          >
+            {t("Thu tiền")}
+          </Button>
+        ) : null,
     },
   ];
 
@@ -174,9 +177,11 @@ export function BillingPage() {
         title={t("Thanh toán & hoá đơn")}
         subtitle={t("Bấm “Thu tiền” để ghi nhận thanh toán từng phiếu")}
         actions={
-          <Button icon={<ExportOutlined />} onClick={() => void handleExport()}>
-            {t("Xuất Excel")}
-          </Button>
+          ability.canExport && (
+            <Button icon={<ExportOutlined />} onClick={() => void handleExport()}>
+              {t("Xuất Excel")}
+            </Button>
+          )
         }
       />
 

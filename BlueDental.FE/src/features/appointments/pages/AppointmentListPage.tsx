@@ -3,6 +3,7 @@ import { Table, Tag, Button, Input, Select } from "antd";
 import { SearchOutlined, PlusOutlined } from "@ant-design/icons";
 import { useAppointmentList } from "../api/appointmentQueries";
 import { AppointmentEditorModal } from "../components/AppointmentEditorModal";
+import { useAbility } from "@/hooks/useAbility";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { useDebounce } from "@/hooks/useDebounce";
 import { StatusBadge } from "../components/StatusBadge";
@@ -24,6 +25,7 @@ const statusTabs = (): { key: StatusFilter; label: string }[] => [
 ];
 
 export function AppointmentListPage() {
+  const ability = useAbility("appointment");
   const pagination = useTablePagination(20);
   const [keyword, setKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -71,7 +73,9 @@ export function AppointmentListPage() {
               options={[]}
             />
           </div>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setEditorOpen(true)}>{t("Tạo lịch hẹn")}</Button>
+          {ability.canCreate && (
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => setEditorOpen(true)}>{t("Tạo lịch hẹn")}</Button>
+          )}
         </div>
       </div>
 

@@ -138,7 +138,7 @@ interface Props extends RangeQuery {
 }
 
 /** Tab "Quản lý thu chi": Thu nhập / Chi phí / Danh mục with Xuất Excel + Thêm mới on the pill row. */
-export function CashflowTab({ sub, onSubChange, ...range }: Props) {
+export function CashflowTab({ sub: rawSub, onSubChange, ...range }: Props) {
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState<SalesEntryDto | null>(null);
 
@@ -158,6 +158,7 @@ export function CashflowTab({ sub, onSubChange, ...range }: Props) {
     const readable: Record<SubKey, boolean> = { income: mayReadIncome, expense: mayReadCost, category: mayReadCategory };
     return SUB_TABS.filter((s) => readable[s.key]).map((s) => ({ key: s.key, label: s.label() }));
   }, [mayReadIncome, mayReadCost, mayReadCategory]);
+  const sub: SubKey = items.some((i) => i.key === rawSub) ? rawSub : (items[0]?.key as SubKey) ?? "income";
   const actions = sub === "category" ? null : SUB_ACTIONS[sub];
   const mayExport = useReportPermission(actions?.export ?? REPORT_PERMISSION.incomeExport);
   const mayCreate = useReportPermission(actions?.create ?? REPORT_PERMISSION.incomeCreate);

@@ -12,7 +12,12 @@ using Volo.Abp.Domain.Repositories;
 
 namespace BlueDental.Organizations;
 
-[Authorize(BlueDentalPermissions.Organizations.Default)]
+/// <summary>
+/// Only a signed-in user at class level: ABP unions the class and method
+/// policies, so a class-level Organizations policy would also close the
+/// accessible-branch list that every user needs. Each method names its own.
+/// </summary>
+[Authorize]
 public class ClinicBranchAppService : ApplicationService, IClinicBranchAppService
 {
     private readonly IRepository<ClinicBranch, Guid> _repository;
@@ -66,6 +71,28 @@ public class ClinicBranchAppService : ApplicationService, IClinicBranchAppServic
 
         return new PagedResultDto<ClinicBranchDto>(
             totalCount,
+            ObjectMapper.Map<System.Collections.Generic.List<ClinicBranch>, System.Collections.Generic.List<ClinicBranchDto>>(items));
+    }
+
+    /// <summary>
+    /// Every signed-in user needs the list of branches they may switch to,
+    /// whether or not they can administer branches. No policy beyond a
+    /// signed-in user, and the list is always narrowed to the caller's
+    /// allowed branches.
+    /// </summary>
+    [Authorize]
+    public async Task<ListResultDto<ClinicBranchDto>> GetAccessibleAsync()
+    {
+        var query = await _repository.GetQueryableAsync();
+
+        var allowed = await _branchAccess.GetAllowedBranchIdsAsync();
+        if (allowed.Count > 0)
+        {
+            query = query.Where(b => allowed.Contains(b.Id));
+        }
+
+        var items = query.OrderBy(b => b.Name).ToList();
+        return new ListResultDto<ClinicBranchDto>(
             ObjectMapper.Map<System.Collections.Generic.List<ClinicBranch>, System.Collections.Generic.List<ClinicBranchDto>>(items));
     }
 

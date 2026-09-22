@@ -31,8 +31,8 @@ const STATUS_TONES: Record<AppointmentStatus, { label: string; bg: string; color
 };
 
 interface RowHandlers {
-  onEdit: (row: Appointment) => void;
-  onDelete: (row: Appointment) => void;
+  onEdit?: (row: Appointment) => void;
+  onDelete?: (row: Appointment) => void;
 }
 
 /**
@@ -78,33 +78,37 @@ export function buildAppointmentColumns({
         return <StatusBadge label={t(tone.label)} bg={tone.bg} color={tone.color} />;
       },
     },
-    {
+    ...((onEdit || onDelete) ? [{
       title: t("Thao tác"),
-      key: "actions",
+      key: "actions" as const,
       width: 110,
-      align: "center",
-      fixed: "right",
-      render: (_, row) => (
+      align: "center" as const,
+      fixed: "right" as const,
+      render: (_: unknown, row: Appointment) => (
         <span className="pd-icon-actions">
-          <Tooltip title={t("Chỉnh sửa lịch hẹn")}>
-            <Button
-              type="text"
-              icon={<EditOutlined />}
-              aria-label={t("Chỉnh sửa lịch hẹn")}
-              onClick={() => onEdit(row)}
-            />
-          </Tooltip>
-          <Tooltip title={t("Xoá lịch hẹn")}>
-            <Button
-              type="text"
-              danger
-              icon={<DeleteOutlined />}
-              aria-label={t("Xoá lịch hẹn")}
-              onClick={() => onDelete(row)}
-            />
-          </Tooltip>
+          {onEdit && (
+            <Tooltip title={t("Chỉnh sửa lịch hẹn")}>
+              <Button
+                type="text"
+                icon={<EditOutlined />}
+                aria-label={t("Chỉnh sửa lịch hẹn")}
+                onClick={() => onEdit(row)}
+              />
+            </Tooltip>
+          )}
+          {onDelete && (
+            <Tooltip title={t("Xoá lịch hẹn")}>
+              <Button
+                type="text"
+                danger
+                icon={<DeleteOutlined />}
+                aria-label={t("Xoá lịch hẹn")}
+                onClick={() => onDelete(row)}
+              />
+            </Tooltip>
+          )}
         </span>
       ),
-    },
+    }] : []),
   ];
 }

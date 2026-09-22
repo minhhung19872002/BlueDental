@@ -7,6 +7,7 @@ import {
   DeleteOutlined,
 } from "@ant-design/icons";
 import { DateNavigator } from "@/components/DateNavigator/DateNavigator";
+import { useAbility } from "@/hooks/useAbility";
 import type { ViewMode } from "../hooks/useCalendarState";
 import type { Dayjs } from "dayjs";
 import { t } from "@/lib/i18n";
@@ -68,6 +69,7 @@ export function CalendarControlPanel({
   filterCount,
   onClearFilters,
 }: Props) {
+  const ability = useAbility("appointment");
   const panelRef = useRef<HTMLDivElement>(null);
 
   if (!open) return null;
@@ -141,15 +143,21 @@ export function CalendarControlPanel({
           <div className="cal-panel-section cal-panel-section--bordered" style={{ minWidth: 220 }}>
             <label className="cal-panel-section-label">{t("Thao tác")}</label>
             <div className="cal-panel-actions">
-              <Button type="primary" icon={<PlusOutlined />} onClick={() => { onClose(); onCreateAppointment(); }} block>
-                {t("Tạo lịch hẹn mới")}
-              </Button>
-              <Button icon={<PlusOutlined />} onClick={() => { onClose(); onCreateTemp(); }} block>
-                {t("Tạo lịch tạm")}
-              </Button>
-              <Button icon={<DownloadOutlined />} onClick={() => { onClose(); onExport(); }} block>
-                {t("Xuất File")}
-              </Button>
+              {ability.canCreate && (
+                <Button type="primary" icon={<PlusOutlined />} onClick={() => { onClose(); onCreateAppointment(); }} block>
+                  {t("Tạo lịch hẹn mới")}
+                </Button>
+              )}
+              {ability.canCreate && (
+                <Button icon={<PlusOutlined />} onClick={() => { onClose(); onCreateTemp(); }} block>
+                  {t("Tạo lịch tạm")}
+                </Button>
+              )}
+              {ability.canExport && (
+                <Button icon={<DownloadOutlined />} onClick={() => { onClose(); onExport(); }} block>
+                  {t("Xuất File")}
+                </Button>
+              )}
             </div>
           </div>
 

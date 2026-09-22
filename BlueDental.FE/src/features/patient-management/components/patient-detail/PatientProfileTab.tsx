@@ -30,6 +30,7 @@ import { planDetailPath } from "@/features/treatment-management/components/plan/
 import { PLAN_TAB } from "@/features/treatment-management/components/plan-detail/planDetailTypes";
 import { CATALOG_GROUP, useCatalogOptions } from "@/hooks/useCatalogOptions";
 import { usePatientTagOptions } from "@/hooks/usePatientTagOptions";
+import { useAbility } from "@/hooks/useAbility";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { countedTotal } from "@/utils/countedTotal";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
@@ -138,6 +139,10 @@ function minutesBetween(from: string, to: string | null | undefined) {
 export function PatientProfileTab({ patient }: Props) {
   const branchId = useCurrentBranchId();
   const navigate = useNavigate();
+  const patientAbility = useAbility("patient");
+  const appointmentAbility = useAbility("appointment");
+  const stageAbility = useAbility("treatmentStage");
+  const paymentAbility = useAbility("payment");
   const [editing, setEditing] = useState(false);
   const [creatingAppointment, setCreatingAppointment] = useState(false);
   const [reasonOpen, setReasonOpen] = useState(false);
@@ -301,12 +306,14 @@ export function PatientProfileTab({ patient }: Props) {
               <strong>
                 ({patient.patientCode}) - {patient.fullName}
               </strong>
-              <Button
-                type="text"
-                icon={<EditOutlined />}
-                onClick={() => setEditing(true)}
-                aria-label={t("Chỉnh sửa hồ sơ")}
-              />
+              {patientAbility.canUpdate && (
+                <Button
+                  type="text"
+                  icon={<EditOutlined />}
+                  onClick={() => setEditing(true)}
+                  aria-label={t("Chỉnh sửa hồ sơ")}
+                />
+              )}
               {tagsOnRecord.map((tag) => (
                 <PatientTagChip key={tag.value} color={tag.color} label={tag.label} />
               ))}
@@ -378,14 +385,16 @@ export function PatientProfileTab({ patient }: Props) {
         <div className="pd-profile-column pd-next-appointment">
           <h3>
             {t("LỊCH HẸN GẦN NHẤT")}{" "}
-            <Button
-              type="primary"
-              shape="circle"
-              size="small"
-              icon={<PlusOutlined />}
-              onClick={() => setCreatingAppointment(true)}
-              aria-label={t("Tạo lịch hẹn mới")}
-            />
+            {appointmentAbility.canCreate && (
+              <Button
+                type="primary"
+                shape="circle"
+                size="small"
+                icon={<PlusOutlined />}
+                onClick={() => setCreatingAppointment(true)}
+                aria-label={t("Tạo lịch hẹn mới")}
+              />
+            )}
           </h3>
           {upcoming ? (
             <>
@@ -457,16 +466,20 @@ export function PatientProfileTab({ patient }: Props) {
             ))}
           </div>
           <div>
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => setRecallOpen(true)}>
-              {t("Tạo Tái khám")}
-            </Button>
-            <Button
-              className="pd-btn-outline"
-              icon={<DollarOutlined />}
-              onClick={() => setPaymentOpen(true)}
-            >
-              {t("Thanh toán")}
-            </Button>
+            {stageAbility.canCreate && (
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => setRecallOpen(true)}>
+                {t("Tạo Tái khám")}
+              </Button>
+            )}
+            {paymentAbility.canCreate && (
+              <Button
+                className="pd-btn-outline"
+                icon={<DollarOutlined />}
+                onClick={() => setPaymentOpen(true)}
+              >
+                {t("Thanh toán")}
+              </Button>
+            )}
           </div>
         </div>
         <DataTable<TreatmentRow>

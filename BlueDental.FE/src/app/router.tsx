@@ -3,8 +3,10 @@ import type { RouteObject } from "react-router-dom";
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { Spin } from "antd";
 import { AppLayout } from "./AppLayout";
+import { PermissionRoute } from "./PermissionRoute";
 import { PrivateRoute } from "./PrivateRoute";
 import { RouteErrorBoundary } from "./RouteErrorBoundary";
+import { ROUTE_PERMISSIONS, type RoutePermissionKey } from "./routePermissions";
 
 const LoginPage = lazy(() =>
   import("@/features/auth/pages/LoginPage").then((m) => ({
@@ -156,6 +158,18 @@ function S({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<RouteLoading />}>{children}</Suspense>;
 }
 
+/**
+ * A lazy page behind the permission its menu entry carries, so a typed
+ * address is turned away the same way the menu hides it.
+ */
+function G({ k, children }: { k: RoutePermissionKey; children: React.ReactNode }) {
+  return (
+    <PermissionRoute permission={ROUTE_PERMISSIONS[k]}>
+      <S>{children}</S>
+    </PermissionRoute>
+  );
+}
+
 const appRoutes: RouteObject[] = [
   {
     path: "/login",
@@ -179,72 +193,72 @@ const appRoutes: RouteObject[] = [
         // a reception list the user may not have come for.
         element: <Navigate to="/dashboard" replace />,
       },
-      // ── Reception (default page) ──
+      // ── Reception ──
       {
         path: "reception",
         element: (
-          <S>
+          <G k="reception">
             <ReceptionPage />
-          </S>
+          </G>
         ),
       },
       // ── Patient list ──
       {
         path: "patient",
         element: (
-          <S>
+          <G k="patients">
             <PatientManagementPage />
-          </S>
+          </G>
         ),
       },
       {
         path: "patient/:id",
         element: (
-          <S>
+          <G k="patients">
             <PatientProfilePage />
-          </S>
+          </G>
         ),
       },
       {
         path: "patient/:id/treatment-plan/:planId",
         element: (
-          <S>
+          <G k="patients">
             <TreatmentPlanDetailPage />
-          </S>
+          </G>
         ),
       },
       // ── Calendar (appointments) ──
       {
         path: "calendar",
         element: (
-          <S>
+          <G k="calendar">
             <AppointmentCalendarPage />
-          </S>
+          </G>
         ),
       },
       {
         path: "calendar/list",
         element: (
-          <S>
+          <G k="calendar">
             <AppointmentListPage />
-          </S>
+          </G>
         ),
       },
       // ── Feature routes ──
       {
         path: "cskh-grouping",
         element: (
-          <S>
+          <G k="cskh">
             <CskhGroupingPage />
-          </S>
+          </G>
         ),
       },
       {
         path: "labo",
         element: (
-          <S>
+          <G k="labo">
             <LaboPage />
-          </S>
+          </G>
         ),
       },
       {
@@ -252,25 +266,25 @@ const appRoutes: RouteObject[] = [
         // a tab can be bookmarked and reached with the back button.
         path: "labo/:section",
         element: (
-          <S>
+          <G k="labo">
             <LaboPage />
-          </S>
+          </G>
         ),
       },
       {
         path: "billing",
         element: (
-          <S>
+          <G k="billing">
             <BillingPage />
-          </S>
+          </G>
         ),
       },
       {
         path: "operations",
         element: (
-          <S>
+          <G k="operations">
             <OperationsPage />
-          </S>
+          </G>
         ),
       },
       {
@@ -278,33 +292,33 @@ const appRoutes: RouteObject[] = [
         // can be bookmarked and reached with the back button.
         path: "operations/:division",
         element: (
-          <S>
+          <G k="operations">
             <OperationsPage />
-          </S>
+          </G>
         ),
       },
       {
         path: "report",
         element: (
-          <S>
+          <G k="reports">
             <ReportPage />
-          </S>
+          </G>
         ),
       },
       {
         path: "staff",
         element: (
-          <S>
+          <G k="staff">
             <StaffPage />
-          </S>
+          </G>
         ),
       },
       {
         path: "materials",
         element: (
-          <S>
+          <G k="materials">
             <MaterialsPage />
-          </S>
+          </G>
         ),
       },
       {
@@ -312,17 +326,17 @@ const appRoutes: RouteObject[] = [
         // sub-screen can be bookmarked and reached with the back button.
         path: "materials/:section",
         element: (
-          <S>
+          <G k="materials">
             <MaterialsPage />
-          </S>
+          </G>
         ),
       },
       {
         path: "taxonomy",
         element: (
-          <S>
+          <G k="taxonomy">
             <TaxonomyPage />
-          </S>
+          </G>
         ),
       },
       {
@@ -330,13 +344,15 @@ const appRoutes: RouteObject[] = [
         // sub-screen can be bookmarked and reached with the back button.
         path: "taxonomy/:section",
         element: (
-          <S>
+          <G k="taxonomy">
             <TaxonomyPage />
-          </S>
+          </G>
         ),
       },
       {
         // Reached from the account menu; the design gives it its own screen.
+        // Open to everyone for the account's own tabs — the page gates the
+        // clinic-wide tabs itself.
         path: "settings",
         element: (
           <S>
@@ -349,17 +365,17 @@ const appRoutes: RouteObject[] = [
         // screen and by direct link.
         path: "voucher",
         element: (
-          <S>
+          <G k="voucher">
             <VoucherPage />
-          </S>
+          </G>
         ),
       },
       {
         path: "tools",
         element: (
-          <S>
+          <G k="tools">
             <ToolsPage />
-          </S>
+          </G>
         ),
       },
       {
@@ -367,36 +383,37 @@ const appRoutes: RouteObject[] = [
         // screen can be bookmarked and reached with the back button.
         path: "tools/:category",
         element: (
-          <S>
+          <G k="tools">
             <ToolsPage />
-          </S>
+          </G>
         ),
       },
       // ── Dashboard (Tổng quan — the design's first screen) ──
+      // Every signed-in account may open it, by the owner's decision.
       {
         path: "dashboard",
         element: (
-          <S>
+          <G k="dashboard">
             <DashboardPage />
-          </S>
+          </G>
         ),
       },
       // ── Identity Administration ──
       {
         path: "identity",
         element: (
-          <S>
+          <G k="identity">
             <IdentityAdministrationPage />
-          </S>
+          </G>
         ),
       },
       // ── Audit Logs ──
       {
         path: "audit-logs",
         element: (
-          <S>
+          <G k="auditLogs">
             <AuditLogPage />
-          </S>
+          </G>
         ),
       },
       // ── Billing ──
@@ -418,9 +435,9 @@ const appRoutes: RouteObject[] = [
       {
         path: "organizations",
         element: (
-          <S>
+          <G k="organizations">
             <OrganizationListPage />
-          </S>
+          </G>
         ),
       },
       // ── Account (redirect to unified profile page) ──

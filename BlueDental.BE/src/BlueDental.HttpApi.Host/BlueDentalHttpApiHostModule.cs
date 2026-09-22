@@ -42,16 +42,13 @@ public class BlueDentalHttpApiHostModule : AbpModule
 {
     public override void PreConfigureServices(ServiceConfigurationContext context)
     {
-        PreConfigure<AbpAspNetCoreMvcOptions>(options =>
-        {
-            options.ConventionalControllers.Create(
-                typeof(BlueDentalApplicationModule).Assembly,
-                controllerOptions =>
-                {
-                    controllerOptions.RootPath = "app";
-                });
-        });
-
+        // No conventional (auto API) controllers for the Application assembly.
+        //
+        // Every service is exposed by a hand-written controller in
+        // BlueDental.HttpApi. Registering the assembly here as well made ABP
+        // treat each application service as a controller type and exclude it
+        // from dynamic proxying, so the [Authorize] attributes on the services
+        // were never enforced when the controllers called them.
         PreConfigure<OpenIddictBuilder>(builder =>
         {
             builder.AddValidation(options =>
@@ -274,7 +271,6 @@ public class BlueDentalHttpApiHostModule : AbpModule
     {
         var app = context.GetApplicationBuilder();
         var env = context.GetEnvironment();
-
         if (!env.IsDevelopment())
         {
             app.UseHsts();

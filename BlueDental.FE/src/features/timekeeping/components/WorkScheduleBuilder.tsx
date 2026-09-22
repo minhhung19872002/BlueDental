@@ -22,6 +22,7 @@ import { useStaffList } from "@/features/staff/api/staffQueries";
 import { useBranchFilter } from "@/lib/clinicBranch";
 import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
+import { useAbility } from "@/hooks/useAbility";
 
 const ChevronLeftIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -65,6 +66,7 @@ interface Props {
 
 export function WorkScheduleBuilder({ currentDate, onBack }: Props) {
   const branchFilter = useBranchFilter();
+  const workScheduleAbility = useAbility("workSchedule");
   const [builderMonth, setBuilderMonth] = useState(() => currentDate.startOf("month"));
   const [keyword, setKeyword] = useState("");
   const [localChanges, setLocalChanges] = useState<Map<string, WorkRegistration>>(new Map());
@@ -379,7 +381,7 @@ export function WorkScheduleBuilder({ currentDate, onBack }: Props) {
           >
             {t("Đặt lại")}
           </Button>
-          {selectedStaff.size > 0 && (
+          {workScheduleAbility.canUpdate && selectedStaff.size > 0 && (
             <Button
               icon={<UserCheckIcon />}
               loading={bulkRegister.isPending && saveScope === "selected"}
@@ -388,15 +390,17 @@ export function WorkScheduleBuilder({ currentDate, onBack }: Props) {
               {t("Lưu lịch với nhân viên đã chọn ({0})").replace("{0}", String(selectedStaff.size))}
             </Button>
           )}
-          <Button
-            type="primary"
-            icon={<SaveOutlined />}
-            disabled={!hasChanges}
-            loading={bulkRegister.isPending && saveScope === "all"}
-            onClick={handleSaveClick}
-          >
-            {t("Lưu thay đổi")}
-          </Button>
+          {workScheduleAbility.canUpdate && (
+            <Button
+              type="primary"
+              icon={<SaveOutlined />}
+              disabled={!hasChanges}
+              loading={bulkRegister.isPending && saveScope === "all"}
+              onClick={handleSaveClick}
+            >
+              {t("Lưu thay đổi")}
+            </Button>
+          )}
         </div>
       </div>
 

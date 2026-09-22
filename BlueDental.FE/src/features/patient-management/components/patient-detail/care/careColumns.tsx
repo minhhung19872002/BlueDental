@@ -14,8 +14,8 @@ import { ratingOf } from "./careRating";
 
 interface Handlers {
   onDetail: (row: CareRecordDto) => void;
-  onEdit: (row: CareRecordDto) => void;
-  onDelete: (row: CareRecordDto) => void;
+  onEdit?: (row: CareRecordDto) => void;
+  onDelete?: (row: CareRecordDto) => void;
 }
 
 /** Column set of the care log, in the reference's order and widths. */
@@ -95,30 +95,34 @@ export function buildCareColumns({
         );
       },
     },
-    {
+    ...((onEdit || onDelete) ? [{
       title: t("Thao tác"),
-      key: "actions",
+      key: "actions" as const,
       width: 70,
-      fixed: "right",
-      render: (_, row) => (
+      fixed: "right" as const,
+      render: (_: unknown, row: CareRecordDto) => (
         <div className="pc-actions">
-          <Button
-            type="text"
-            size="small"
-            icon={<Pencil size={16} />}
-            aria-label={t("Chỉnh sửa")}
-            onClick={() => onEdit(row)}
-          />
-          <Button
-            type="text"
-            size="small"
-            danger
-            icon={<Trash2 size={16} />}
-            aria-label={t("Xoá")}
-            onClick={() => onDelete(row)}
-          />
+          {onEdit && (
+            <Button
+              type="text"
+              size="small"
+              icon={<Pencil size={16} />}
+              aria-label={t("Chỉnh sửa")}
+              onClick={() => onEdit(row)}
+            />
+          )}
+          {onDelete && (
+            <Button
+              type="text"
+              size="small"
+              danger
+              icon={<Trash2 size={16} />}
+              aria-label={t("Xoá")}
+              onClick={() => onDelete(row)}
+            />
+          )}
         </div>
       ),
-    },
+    }] : []),
   ];
 }

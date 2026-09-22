@@ -1,31 +1,23 @@
 import type { ReactNode } from "react";
-import { Button, Result } from "antd";
-import { useAuthStore } from "@/features/auth/store/authStore";
-import { t } from "@/lib/i18n";
+
+import { ForbiddenResult } from "@/components/ForbiddenResult";
+import { useHasAnyPermission } from "@/lib/permissions";
 
 interface Props {
+  /** Any one of these opens the screen; an empty list opens it for everyone. */
   permission: string | readonly string[];
   children: ReactNode;
 }
 
+/**
+ * Keeps a route behind its permission. The menu already hides what the user
+ * may not open (`useVisibleNav`); this catches a typed or bookmarked address.
+ */
 export function PermissionRoute({ permission, children }: Props) {
   const required = typeof permission === "string" ? [permission] : permission;
-  const allowed = useAuthStore((state) => required.some(state.hasPermission));
+  const allowed = useHasAnyPermission(required);
 
-  if (!allowed) {
-    return (
-      <Result
-        status="403"
-        title={t("Không có quyền truy cập")}
-        subTitle={t("Tài khoản của bạn không được cấp quyền sử dụng chức năng này.")}
-        extra={
-          <Button type="primary" href="/">
-            {t("Về trang chủ")}
-          </Button>
-        }
-      />
-    );
-  }
+  if (!allowed) return <ForbiddenResult />;
 
   return <>{children}</>;
 }

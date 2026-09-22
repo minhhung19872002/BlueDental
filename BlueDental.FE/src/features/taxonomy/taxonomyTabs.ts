@@ -11,6 +11,8 @@ export interface TaxonomyTab {
   /** Route slug under /taxonomy, matching the reference URLs. */
   key: string;
   label: string;
+  /** The BE ability subject used for permission gating on this tab. */
+  subject: string;
   /** Taxonomy group slug, or null for catalogs BlueDental has not modelled yet. */
   group: string | null;
   /** Lowercase noun used in headings, buttons and placeholders. */
@@ -44,6 +46,7 @@ export function taxonomyTabs(): TaxonomyTab[] {
     {
       key: "service",
       label: t("Dịch vụ"),
+      subject: "catalogService",
       group: TAXONOMY_GROUP.CareService,
       noun: t("dịch vụ"),
       priced: true,
@@ -52,6 +55,7 @@ export function taxonomyTabs(): TaxonomyTab[] {
     {
       key: "diagnosis",
       label: t("Chẩn đoán"),
+      subject: "catalogDiagnosis",
       group: TAXONOMY_GROUP.Diagnosis,
       noun: t("chẩn đoán"),
       dialog: "rich",
@@ -59,6 +63,7 @@ export function taxonomyTabs(): TaxonomyTab[] {
     {
       key: "medicine",
       label: t("Loại thuốc"),
+      subject: "catalogMedicine",
       group: TAXONOMY_GROUP.MedicationType,
       noun: t("loại thuốc"),
       priced: true,
@@ -67,6 +72,7 @@ export function taxonomyTabs(): TaxonomyTab[] {
     {
       key: "consulting",
       label: t("Dữ liệu tư vấn"),
+      subject: "catalogConsultation",
       group: TAXONOMY_GROUP.ConsultingData,
       noun: t("dữ liệu tư vấn"),
       dialog: "rich",
@@ -74,6 +80,7 @@ export function taxonomyTabs(): TaxonomyTab[] {
     {
       key: "source",
       label: t("Nguồn đến"),
+      subject: "catalogSource",
       group: TAXONOMY_GROUP.Source,
       noun: t("nguồn đến"),
       dialog: "simple",
@@ -81,6 +88,7 @@ export function taxonomyTabs(): TaxonomyTab[] {
     {
       key: "history",
       label: t("Lịch sử bệnh"),
+      subject: "catalogHistory",
       group: TAXONOMY_GROUP.DiseaseHistory,
       noun: t("lịch sử bệnh"),
       dialog: "simple",
@@ -88,6 +96,7 @@ export function taxonomyTabs(): TaxonomyTab[] {
     {
       key: "prescription-template",
       label: t("Đơn thuốc mẫu"),
+      subject: "catalogPrescription",
       group: TAXONOMY_GROUP.PrescriptionTemplate,
       noun: t("đơn thuốc mẫu"),
       grouped: false,
@@ -97,15 +106,17 @@ export function taxonomyTabs(): TaxonomyTab[] {
     {
       key: "medical-record-template",
       label: t("Bệnh án mẫu"),
+      subject: "catalogTemplate",
       group: TAXONOMY_GROUP.MedicalRecordTemplate,
       noun: t("bệnh án mẫu"),
       templated: true,
       dialog: "medical-record",
     },
-    { key: "tags", label: t("Thẻ hồ sơ"), group: null, noun: t("thẻ hồ sơ"), screen: "tags" },
+    { key: "tags", label: t("Thẻ hồ sơ"), subject: "catalogRecordTag", group: null, noun: t("thẻ hồ sơ"), screen: "tags" },
     {
       key: "payment-method",
       label: t("Phương thức thanh toán"),
+      subject: "catalogPaymentMethod",
       group: null,
       noun: t("phương thức"),
       screen: "payment-method",
@@ -113,10 +124,10 @@ export function taxonomyTabs(): TaxonomyTab[] {
     {
       key: "occupation",
       label: t("Nghề nghiệp"),
+      subject: "catalogOccupation",
       group: TAXONOMY_GROUP.Occupation,
       noun: t("nghề nghiệp"),
       dialog: "simple",
-      // The only catalog the reference gives no "Xuất" button.
       exportable: false,
     },
   ];

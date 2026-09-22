@@ -35,6 +35,12 @@ import { formatDate, formatVND } from "@/utils/format";
 
 type PendingDelete = { id: string; name: string };
 
+interface Props {
+  canCreate?: boolean;
+  canUpdate?: boolean;
+  canDelete?: boolean;
+}
+
 /**
  * Vật tư phòng khám — the material groups on the left, the materials of the
  * selected one on the right.
@@ -43,7 +49,7 @@ type PendingDelete = { id: string; name: string };
  * keeps them, so this draws the same panel Danh mục does rather than a second
  * one that merely looks like it.
  */
-export function ClinicMaterialsTab() {
+export function ClinicMaterialsTab({ canCreate = true, canUpdate = true, canDelete = true }: Props) {
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedGroupId = searchParams.get("group");
 
@@ -209,30 +215,34 @@ export function ClinicMaterialsTab() {
         fixed: "right",
         render: (_, row) => (
           <div className="bd-cat-rowactions">
-            <Tooltip title={t("Chỉnh sửa")}>
-              <Button
-                type="text"
-                size="small"
-                icon={<EditOutlined />}
-                aria-label={t("Chỉnh sửa {0}", row.name)}
-                onClick={() => setMaterialDialog({ open: true, material: row })}
-              />
-            </Tooltip>
-            <Tooltip title={t("Xoá")}>
-              <Button
-                type="text"
-                size="small"
-                danger
-                icon={<DeleteOutlined />}
-                aria-label={t("Xoá {0}", row.name)}
-                onClick={() => setPendingDelete({ id: row.id, name: row.name })}
-              />
-            </Tooltip>
+            {canUpdate && (
+              <Tooltip title={t("Chỉnh sửa")}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<EditOutlined />}
+                  aria-label={t("Chỉnh sửa {0}", row.name)}
+                  onClick={() => setMaterialDialog({ open: true, material: row })}
+                />
+              </Tooltip>
+            )}
+            {canDelete && (
+              <Tooltip title={t("Xoá")}>
+                <Button
+                  type="text"
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  aria-label={t("Xoá {0}", row.name)}
+                  onClick={() => setPendingDelete({ id: row.id, name: row.name })}
+                />
+              </Tooltip>
+            )}
           </div>
         ),
       },
     ],
-    [],
+    [canUpdate, canDelete],
   );
 
   // The ticked rows, in the order the table shows them. Paging away from a
@@ -259,9 +269,9 @@ export function ClinicMaterialsTab() {
       onKeywordChange={setGroupKeyword}
       selectedId={selectedGroupId}
       onSelect={(id) => selectGroup(id === selectedGroupId ? null : id)}
-      onCreate={() => setGroupDialog({ open: true, group: null })}
-      onRename={(group) => setGroupDialog({ open: true, group })}
-      onDelete={(group) => setPendingGroupDelete(group)}
+      onCreate={canCreate ? () => setGroupDialog({ open: true, group: null }) : undefined}
+      onRename={canUpdate ? (group) => setGroupDialog({ open: true, group }) : undefined}
+      onDelete={canDelete ? (group) => setPendingGroupDelete(group) : undefined}
       onReorder={(from, to) => {
         const ids = groups.map((group) => group.id);
         const [moved] = ids.splice(from, 1);
@@ -296,16 +306,18 @@ export function ClinicMaterialsTab() {
           </Button>
         </div>
         <div className="bd-materials-toolbar">
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            // Offered whether or not a group is selected, as the reference does:
-            // the dialog's required "Nhóm phân loại" is where one is chosen, and
-            // the panel's selection only pre-fills it.
-            onClick={() => setMaterialDialog({ open: true, material: null })}
-          >
-            {t("Thêm vật tư")}
-          </Button>
+          {canCreate && (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              // Offered whether or not a group is selected, as the reference does:
+              // the dialog's required "Nhóm phân loại" is where one is chosen, and
+              // the panel's selection only pre-fills it.
+              onClick={() => setMaterialDialog({ open: true, material: null })}
+            >
+              {t("Thêm vật tư")}
+            </Button>
+          )}
 
           <Input
             className="bd-materials-search"

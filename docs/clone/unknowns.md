@@ -2134,3 +2134,20 @@ BlueDental: **số tiền** thì đúng theo tab (`usePlanVoucher` tính lại `
   theo bộ dòng và tick của tab đang mở), nhưng **id voucher đã chọn dùng chung**
   giữa các tab. Nếu đo lại thấy bản gốc tách riêng thì thêm `voucherIds` vào
   `AdviseQuote` trong `useAdviseQuotes` — chỗ nối gọn trong đúng hook đó.
+
+---
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: Header menu / mọi màn hình khi đăng nhập bằng tài khoản **không** phải admin
+Control: mục menu và nút hành động mà vai trò không có quyền
+Reason: Chỉ có tài khoản admin trên bản gốc, nên không quan sát được bản gốc
+  **ẩn** hay **vô hiệu hoá** mục menu / nút khi vai trò thiếu quyền, và màn hình
+  mở bằng địa chỉ gõ tay hiện gì (403, chuyển hướng, hay trang trống). Muốn biết
+  phải sửa quyền của một vai trò trên bản gốc — là ghi dữ liệu.
+Action taken: NONE — không đổi quyền trên bản gốc.
+BlueDental: theo quyết định chủ dự án 2026-09-22 — **ẩn** mục menu / nhóm không
+  có quyền (`useVisibleNav`), địa chỉ gõ tay hiện Result 403 "Không có quyền
+  truy cập" (`PermissionRoute`), Tổng quan mở cho mọi tài khoản. Nút hành động
+  trên từng trang chưa gating (Phase 2 — `docs/testing/features/role-permissions.md`).
+

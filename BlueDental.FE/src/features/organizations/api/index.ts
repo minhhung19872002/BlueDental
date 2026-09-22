@@ -68,6 +68,10 @@ const organizationApi = {
       .get("/v1/app/clinic-branches", { params: { maxResultCount: 50, accessibleOnly, includeDeleted } })
       .then((r) => r.data),
 
+  /** The branches this account may switch to; needs only a signed-in user. */
+  listAccessibleBranches: (): Promise<{ items: ClinicBranchDto[] }> =>
+    api.get("/v1/app/clinic-branches/accessible").then((r) => r.data),
+
   getBranch: (id: string): Promise<ClinicBranchDto> =>
     api.get(`/v1/app/clinic-branches/${id}`).then((r) => r.data),
 
@@ -101,7 +105,10 @@ const organizationApi = {
 export function useClinicBranches(accessibleOnly = false, includeDeleted = false) {
   return useQuery({
     queryKey: ["clinic-branches", { accessibleOnly, includeDeleted }],
-    queryFn: () => organizationApi.listBranches(accessibleOnly, includeDeleted),
+    queryFn: () =>
+      accessibleOnly && !includeDeleted
+        ? organizationApi.listAccessibleBranches()
+        : organizationApi.listBranches(accessibleOnly, includeDeleted),
     select: (d) => d.items,
     staleTime: 10 * 60_000,
   });

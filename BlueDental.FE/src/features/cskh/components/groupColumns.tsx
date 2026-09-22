@@ -19,9 +19,9 @@ const TREATMENT_BADGE_CLASS: Record<CareTreatmentStatus, string | undefined> = {
 };
 
 export interface GroupRowHandlers {
-  onCall: (patient: CareGroupingPatientDto) => void;
-  onMessage: (patient: CareGroupingPatientDto) => void;
-  onCare: (patient: CareGroupingPatientDto) => void;
+  onCall: ((patient: CareGroupingPatientDto) => void) | undefined;
+  onMessage: ((patient: CareGroupingPatientDto) => void) | undefined;
+  onCare: ((patient: CareGroupingPatientDto) => void) | undefined;
 }
 
 /** 12 columns of the Phân nhóm CSKH patient table. */
@@ -99,9 +99,9 @@ export function buildGroupColumns(
       fixed: "right",
       render: (_, p) => (
         <CareRowActions
-          onCall={() => handlers.onCall(p)}
-          onMessage={() => handlers.onMessage(p)}
-          onCare={() => handlers.onCare(p)}
+          onCall={handlers.onCall ? () => handlers.onCall!(p) : undefined}
+          onMessage={handlers.onMessage ? () => handlers.onMessage!(p) : undefined}
+          onCare={handlers.onCare ? () => handlers.onCare!(p) : undefined}
         />
       ),
     },

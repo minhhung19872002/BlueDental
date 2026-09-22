@@ -58,6 +58,12 @@ export function CashflowCategoryManager({ variant }: Props) {
   const canCreate = useReportPermission(
     isCashbook ? REPORT_PERMISSION.transferCategoryCreate : REPORT_PERMISSION.cashflowCategoryCreate,
   );
+  const canUpdate = useReportPermission(
+    isCashbook ? REPORT_PERMISSION.transferCategoryUpdate : REPORT_PERMISSION.cashflowCategoryUpdate,
+  );
+  const canDelete = useReportPermission(
+    isCashbook ? REPORT_PERMISSION.transferCategoryDelete : REPORT_PERMISSION.cashflowCategoryDelete,
+  );
 
   const { data: salesResult, isLoading: salesLoading } = useCashflowCategories(branchId, false);
   const { data: cashbookResult, isLoading: cashbookLoading } = useCashflowCategories(branchId, true);
@@ -106,8 +112,8 @@ export function CashflowCategoryManager({ variant }: Props) {
       loading={loading}
       canCreate={canCreate}
       onAdd={handleAdd}
-      onEdit={handleEdit}
-      onDelete={setDeleting}
+      onEdit={canUpdate ? handleEdit : undefined}
+      onDelete={canDelete ? setDeleting : undefined}
     />
   );
 

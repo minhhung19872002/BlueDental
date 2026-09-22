@@ -31,8 +31,8 @@ interface Props {
   /** "Thêm mục" needs the list's `create` grant on the reference. */
   canCreate: boolean;
   onAdd: () => void;
-  onEdit: (category: CategoryVm) => void;
-  onDelete: (category: CategoryVm) => void;
+  onEdit?: (category: CategoryVm) => void;
+  onDelete?: (category: CategoryVm) => void;
 }
 
 function ColorCell({ code }: { code: string | null }) {
@@ -55,24 +55,29 @@ function buildColumns(config: CategoryPanelConfig, onEdit: Props["onEdit"], onDe
       { title: t("Mã màu"), dataIndex: "colorCode", width: 160, render: (v: string | null) => <ColorCell code={v} /> },
     );
   }
-  // The reference gives the sales list 120px and the cashbook list 70px for its two buttons.
-  columns.push({
-    title: t("Thao tác"),
-    key: "actions",
-    width: config.showColor ? 70 : 120,
-    align: "center",
-    fixed: "right",
-    render: (_: unknown, row) => (
-      <Space size={4}>
-        <Tooltip title={t("Chỉnh sửa")}>
-          <Button size="small" type="text" icon={<EditOutlined />} onClick={() => onEdit(row)} />
-        </Tooltip>
-        <Tooltip title={t("Xóa")}>
-          <Button size="small" type="text" danger icon={<DeleteOutlined />} onClick={() => onDelete(row)} />
-        </Tooltip>
-      </Space>
-    ),
-  });
+  if (onEdit || onDelete) {
+    columns.push({
+      title: t("Thao tác"),
+      key: "actions",
+      width: config.showColor ? 70 : 120,
+      align: "center",
+      fixed: "right",
+      render: (_: unknown, row) => (
+        <Space size={4}>
+          {onEdit && (
+            <Tooltip title={t("Chỉnh sửa")}>
+              <Button size="small" type="text" icon={<EditOutlined />} onClick={() => onEdit(row)} />
+            </Tooltip>
+          )}
+          {onDelete && (
+            <Tooltip title={t("Xóa")}>
+              <Button size="small" type="text" danger icon={<DeleteOutlined />} onClick={() => onDelete(row)} />
+            </Tooltip>
+          )}
+        </Space>
+      ),
+    });
+  }
   return columns;
 }
 

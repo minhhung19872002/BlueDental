@@ -7,6 +7,7 @@ using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
+using Volo.Abp.Authorization;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Identity;
 
@@ -35,9 +36,37 @@ public class OperationsArticleAppService : ApplicationService, IOperationsArticl
     public async Task<PagedResultDto<OperationsArticleDto>> GetListAsync(
         GetOperationsArticleListInput input)
     {
-        if (input.Department.HasValue && input.Section.HasValue)
+        // A department+section pair is one ability subject. Asked for a single
+        // pair, the caller must hold it; asked for a wider list, the caller
+        // sees only the pairs it may read — and none at all is a refusal, not
+        // an empty page, so a caller with no operations ability learns why.
+        var readableHome = new List<OperationsDepartment>();
+        var readableProcess = new List<OperationsDepartment>();
+        var narrowToReadable = !(input.Department.HasValue && input.Section.HasValue);
+
+        if (!narrowToReadable)
         {
-            await CheckAsync(input.Department.Value, input.Section.Value, BlueDentalAbilities.Actions.Read);
+            await CheckAsync(input.Department!.Value, input.Section!.Value, BlueDentalAbilities.Actions.Read);
+        }
+        else
+        {
+            foreach (var department in Enum.GetValues<OperationsDepartment>())
+            {
+                if (input.Department.HasValue && input.Department.Value != department) continue;
+
+                if ((input.Section is null or OperationsSection.Home)
+                    && await IsReadableAsync(department, OperationsSection.Home))
+                    readableHome.Add(department);
+
+                if ((input.Section is null or OperationsSection.Process)
+                    && await IsReadableAsync(department, OperationsSection.Process))
+                    readableProcess.Add(department);
+            }
+
+            if (readableHome.Count == 0 && readableProcess.Count == 0)
+            {
+                throw new AbpAuthorizationException("No operations section is readable by the current user.");
+            }
         }
 
         var branchFilter = await _branchAccess.ResolveFilterAsync(input.ClinicBranchId);
@@ -49,6 +78,10 @@ public class OperationsArticleAppService : ApplicationService, IOperationsArticl
             query = query.Where(x => x.Department == input.Department.Value);
         if (input.Section.HasValue)
             query = query.Where(x => x.Section == input.Section.Value);
+        if (narrowToReadable)
+            query = query.Where(x =>
+                (x.Section == OperationsSection.Home && readableHome.Contains(x.Department))
+                || (x.Section == OperationsSection.Process && readableProcess.Contains(x.Department)));
         if (input.IsPublished.HasValue)
             query = query.Where(x => x.IsPublished == input.IsPublished.Value);
         if (!string.IsNullOrWhiteSpace(input.Filter))
@@ -143,6 +176,10 @@ public class OperationsArticleAppService : ApplicationService, IOperationsArticl
     /// <summary>Each department+section pair has its own ability subject.</summary>
     private Task CheckAsync(OperationsDepartment department, OperationsSection section, string action) =>
         AuthorizationService.CheckAsync(OperationsAbilities.PermissionFor(department, section, action));
+
+    private Task<bool> IsReadableAsync(OperationsDepartment department, OperationsSection section) =>
+        AuthorizationService.IsGrantedAsync(
+            OperationsAbilities.PermissionFor(department, section, BlueDentalAbilities.Actions.Read));
 
     private async Task<Dictionary<Guid, string>> GetAuthorNamesAsync(
         IReadOnlyCollection<OperationsArticle> articles)

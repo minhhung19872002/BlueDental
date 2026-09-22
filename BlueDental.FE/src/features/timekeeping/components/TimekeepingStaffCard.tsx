@@ -19,6 +19,7 @@ import {
 } from "../api/timekeepingQueries";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
+import { useAbility } from "@/hooks/useAbility";
 import dayjs from "dayjs";
 
 interface Props {
@@ -64,6 +65,7 @@ const MoreIcon = () => (
 export function TimekeepingStaffCard({ record, staffCreationDate }: Props) {
   const [infoOpen, setInfoOpen] = useState(false);
   const branchId = useCurrentBranchId();
+  const workScheduleAbility = useAbility("workSchedule");
   const openWorkDay = useOpenWorkDay();
   const registerWorking = useRegisterWorking();
   const registerDayOff = useRegisterDayOff();
@@ -128,7 +130,7 @@ export function TimekeepingStaffCard({ record, staffCreationDate }: Props) {
         <div className="tk-card-header">
           <WorkStatusToggle
             value={record.registration}
-            disabled={hasAttendance || isPastDay}
+            disabled={!workScheduleAbility.canUpdate || hasAttendance || isPastDay}
             onChange={handleRegistrationChange}
           />
           <div className="tk-card-header-right">
@@ -136,7 +138,7 @@ export function TimekeepingStaffCard({ record, staffCreationDate }: Props) {
               <ShiftTimeline
                 morningShift={record.morningShift}
                 afternoonShift={record.afternoonShift}
-                disabled={isDayOff || isPastDay}
+                disabled={!workScheduleAbility.canUpdate || isDayOff || isPastDay}
                 onCheckIn={handleCheckIn}
                 onCheckOut={handleCheckOut}
               />

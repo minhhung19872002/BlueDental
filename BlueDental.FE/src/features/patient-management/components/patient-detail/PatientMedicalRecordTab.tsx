@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { SegmentedTabs } from "@/components/SegmentedTabs";
 import { AppDialog } from "@/components/AppDialog";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { useAbility } from "@/hooks/useAbility";
 import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
 import {
@@ -43,6 +44,7 @@ interface TabProps {
 }
 
 export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
+  const ability = useAbility("patientMedicalRecord");
   const query = usePatientMedicalRecords(patientId);
   const addSheet = useAddMedicalRecord(patientId);
   const saveSheet = useSaveMedicalRecord(patientId);
@@ -143,7 +145,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
           collapsed={collapsed}
           adding={addSheet.isPending}
           onToggleCollapse={() => setCollapsed((value) => !value)}
-          onAdd={(spec) => void handleAdd(spec)}
+          onAdd={ability.canCreate ? (spec) => void handleAdd(spec) : undefined}
           onSelect={(sheet) => setActiveId(sheet.id)}
           onCheck={handleCheck}
           onPrint={(sheet) => {
@@ -151,11 +153,11 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
             setMode("single");
             window.print();
           }}
-          onRename={(sheet) => {
+          onRename={ability.canUpdate ? (sheet) => {
             setRenaming(sheet);
             setNewTitle(sheet.title);
-          }}
-          onDelete={(sheet) => setRemoving(sheet)}
+          } : undefined}
+          onDelete={ability.canDelete ? (sheet) => setRemoving(sheet) : undefined}
         />
 
         <div className="pd-medical-canvas">
@@ -225,24 +227,28 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
           {t("In biểu mẫu")}
         </Button>
 
-        <Button
-          danger
-          icon={<DeleteOutlined />}
-          disabled={!active}
-          onClick={() => setRemoving(active)}
-        >
-          {t("Xoá phiếu")}
-        </Button>
+        {ability.canDelete && (
+          <Button
+            danger
+            icon={<DeleteOutlined />}
+            disabled={!active}
+            onClick={() => setRemoving(active)}
+          >
+            {t("Xoá phiếu")}
+          </Button>
+        )}
 
-        <Button
-          type="primary"
-          icon={<SaveOutlined />}
-          loading={saveSheet.isPending}
-          disabled={!active || !formSpecOf(active.form).fillable}
-          onClick={() => void handleSave()}
-        >
-          {t("Lưu")}
-        </Button>
+        {ability.canUpdate && (
+          <Button
+            type="primary"
+            icon={<SaveOutlined />}
+            loading={saveSheet.isPending}
+            disabled={!active || !formSpecOf(active.form).fillable}
+            onClick={() => void handleSave()}
+          >
+            {t("Lưu")}
+          </Button>
+        )}
       </footer>
 
       <AppDialog

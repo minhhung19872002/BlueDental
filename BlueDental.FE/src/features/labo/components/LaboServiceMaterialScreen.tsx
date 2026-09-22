@@ -44,7 +44,17 @@ type PendingDelete =
  * a group, not to a supplier — the reference's own groups are named after labs
  * but are separate records from the supplier list.
  */
-export function LaboServiceMaterialScreen() {
+interface LaboServiceMaterialScreenProps {
+  canCreate?: boolean;
+  canUpdate?: boolean;
+  canDelete?: boolean;
+}
+
+export function LaboServiceMaterialScreen({
+  canCreate,
+  canUpdate,
+  canDelete,
+}: LaboServiceMaterialScreenProps) {
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [groupKeyword, setGroupKeyword] = useState("");
   const [keyword, setKeyword] = useState("");
@@ -138,36 +148,46 @@ export function LaboServiceMaterialScreen() {
         </span>
       ),
     },
-    {
-      key: "actions",
-      title: t("Thao tác"),
-      width: 100,
-      align: "center",
-      fixed: "right",
-      render: (_, row) => (
-        <div className="bd-cat-rowactions">
-          <Tooltip title={t("Chỉnh sửa")}>
-            <Button
-              type="text"
-              size="small"
-              icon={<EditOutlined />}
-              aria-label={t("Chỉnh sửa {0}", row.name)}
-              onClick={() => setMaterialDialog({ open: true, material: row })}
-            />
-          </Tooltip>
-          <Tooltip title={t("Xoá")}>
-            <Button
-              type="text"
-              size="small"
-              danger
-              icon={<DeleteOutlined />}
-              aria-label={t("Xoá {0}", row.name)}
-              onClick={() => setPendingDelete({ kind: "material", id: row.id, name: row.name })}
-            />
-          </Tooltip>
-        </div>
-      ),
-    },
+    ...(canUpdate || canDelete
+      ? [
+          {
+            key: "actions",
+            title: t("Thao tác"),
+            width: 100,
+            align: "center" as const,
+            fixed: "right" as const,
+            render: (_: unknown, row: LaboMaterialDto) => (
+              <div className="bd-cat-rowactions">
+                {canUpdate && (
+                  <Tooltip title={t("Chỉnh sửa")}>
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<EditOutlined />}
+                      aria-label={t("Chỉnh sửa {0}", row.name)}
+                      onClick={() => setMaterialDialog({ open: true, material: row })}
+                    />
+                  </Tooltip>
+                )}
+                {canDelete && (
+                  <Tooltip title={t("Xoá")}>
+                    <Button
+                      type="text"
+                      size="small"
+                      danger
+                      icon={<DeleteOutlined />}
+                      aria-label={t("Xoá {0}", row.name)}
+                      onClick={() =>
+                        setPendingDelete({ kind: "material", id: row.id, name: row.name })
+                      }
+                    />
+                  </Tooltip>
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   const groupPanel = (
@@ -181,9 +201,13 @@ export function LaboServiceMaterialScreen() {
       onKeywordChange={setGroupKeyword}
       selectedId={selectedGroupId}
       onSelect={selectGroup}
-      onCreate={() => setGroupDialog({ open: true, group: null })}
-      onRename={(group) => setGroupDialog({ open: true, group })}
-      onDelete={(group) => setPendingDelete({ kind: "group", id: group.id, name: group.name })}
+      onCreate={canCreate ? () => setGroupDialog({ open: true, group: null }) : undefined}
+      onRename={canUpdate ? (group) => setGroupDialog({ open: true, group }) : undefined}
+      onDelete={
+        canDelete
+          ? (group) => setPendingDelete({ kind: "group", id: group.id, name: group.name })
+          : undefined
+      }
       // The reference orders these groups by the priority its own dialog
       // collects, and offers no drag — so there is nothing to persist here.
       onReorder={() => undefined}
@@ -235,14 +259,16 @@ export function LaboServiceMaterialScreen() {
               />
             </div>
 
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              disabled={groups.length === 0}
-              onClick={() => setMaterialDialog({ open: true, material: null })}
-            >
-              {t("Tạo vật liệu")}
-            </Button>
+            {canCreate && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                disabled={groups.length === 0}
+                onClick={() => setMaterialDialog({ open: true, material: null })}
+              >
+                {t("Tạo vật liệu")}
+              </Button>
+            )}
           </div>
 
           <div className="bd-cat-body">

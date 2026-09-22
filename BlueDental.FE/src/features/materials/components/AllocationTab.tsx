@@ -16,13 +16,17 @@ import { useBranchFilter } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { formatDateTime } from "@/utils/format";
 
+interface Props {
+  canDelete?: boolean;
+}
+
 /**
  * Phân bổ vật tư — the vouchers moving material out to a department.
  *
  * No group panel here: the reference gives this section the full width, a
  * search, and one command for the stock-take history.
  */
-export function AllocationTab() {
+export function AllocationTab({ canDelete = true }: Props) {
   const [keyword, setKeyword] = useState("");
   const [pendingDelete, setPendingDelete] = useState<MaterialAllocationDto | null>(null);
 
@@ -143,21 +147,23 @@ export function AllocationTab() {
         fixed: "right",
         render: (_, row) => (
           <div className="bd-cat-rowactions">
-            <Tooltip title={t("Xoá")}>
-              <Button
-                type="text"
-                size="small"
-                danger
-                icon={<DeleteOutlined />}
-                aria-label={t("Xoá {0}", row.allocationCode)}
-                onClick={() => setPendingDelete(row)}
-              />
-            </Tooltip>
+            {canDelete && (
+              <Tooltip title={t("Xoá")}>
+                <Button
+                  type="text"
+                  size="small"
+                  danger
+                  icon={<DeleteOutlined />}
+                  aria-label={t("Xoá {0}", row.allocationCode)}
+                  onClick={() => setPendingDelete(row)}
+                />
+              </Tooltip>
+            )}
           </div>
         ),
       },
     ],
-    [],
+    [canDelete],
   );
 
   return (

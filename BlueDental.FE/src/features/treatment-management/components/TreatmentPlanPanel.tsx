@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Spin } from "antd";
 import { TreatmentStageDialog } from "@/features/patient-management/components/patient-detail/TreatmentStageDialog";
 import type { PatientDto } from "@/features/patient-management/types/patient";
+import { useAbility } from "@/hooks/useAbility";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
@@ -41,6 +42,7 @@ type ServiceListTarget = { kind: "plan"; plan: TreatmentPlanSlipDto } | { kind: 
 export function TreatmentPlanPanel({ patientId, patient }: Props) {
   const navigate = useNavigate();
   const branchId = useCurrentBranchId();
+  const ability = useAbility("treatmentPlan");
   const pagination = useTablePagination(20);
   const [columns, setColumns] = useState(defaultPlanColumns);
   const [createOpen, setCreateOpen] = useState(false);
@@ -95,7 +97,7 @@ export function TreatmentPlanPanel({ patientId, patient }: Props) {
   return (
     <div className="tp-root">
       <PlanToolbar
-        onCreate={() => setCreateOpen(true)}
+        onCreate={ability.canCreate ? () => setCreateOpen(true) : undefined}
         onViewAll={() => setServiceList({ kind: "all" })}
       />
       <PlanSummaryCards

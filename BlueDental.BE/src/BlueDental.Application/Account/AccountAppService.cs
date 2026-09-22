@@ -33,6 +33,21 @@ public class AccountAppService(
         // reading only the header left a branch-scoped user on "Tất cả chi
         // nhánh" and pointed its writes at the default branch.
         var clinicId = branchResolver.ClinicBranchId ?? branchResolver.OwnClinicBranchId;
+
+        // Staff created through the Nhân sự dialog carry branch assignments,
+        // not the home-branch claim, so without this they would log in with
+        // no branch and every branch-scoped list would refuse them. The
+        // lowest id is the home branch — an ASSUMPTION recorded in
+        // docs/testing/features/role-permissions.md.
+        if (!clinicId.HasValue)
+        {
+            var accessible = await branchResolver.GetAccessibleBranchIdsAsync();
+            if (accessible.Count > 0)
+            {
+                clinicId = accessible.Min();
+            }
+        }
+
         string? clinicName = null;
 
         string? clinicTagline = null;

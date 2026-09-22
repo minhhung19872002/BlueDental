@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 
@@ -36,6 +37,11 @@ public class GetPrescriptionTemplateListInput : PagedAndSortedResultRequestDto
     public bool? IsActive { get; set; }
 }
 
+/// <summary>
+/// Not exposed over HTTP: the Danh mục screen works through the catalog-entry
+/// routes, and no controller serves this contract.
+/// </summary>
+[RemoteService(IsEnabled = false)]
 public interface IPrescriptionTemplateAppService : IApplicationService
 {
     Task<PagedResultDto<PrescriptionTemplateDto>> GetListAsync(GetPrescriptionTemplateListInput input);

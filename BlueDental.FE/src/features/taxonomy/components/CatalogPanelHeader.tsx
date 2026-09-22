@@ -12,7 +12,7 @@ interface Props {
   totalCount: number;
   keyword: string;
   onKeywordChange: (value: string) => void;
-  onCreate: () => void;
+  onCreate: (() => void) | null;
   /** null on the catalogs the reference gives no "Xuất" button. */
   onExport: (() => void) | null;
   createDisabled: boolean;
@@ -71,14 +71,16 @@ export function CatalogPanelHeader({
               </Button>
             )}
 
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              disabled={createDisabled}
-              onClick={onCreate}
-            >
-              {t("Thêm {0}", noun)}
-            </Button>
+            {onCreate && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                disabled={createDisabled}
+                onClick={onCreate}
+              >
+                {t("Thêm {0}", noun)}
+              </Button>
+            )}
           </div>
         </div>
 

@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 
@@ -33,6 +34,11 @@ public class GetMedicalHistoryTypeListInput : PagedAndSortedResultRequestDto
     public bool? IsActive { get; set; }
 }
 
+/// <summary>
+/// Not exposed over HTTP: the Danh mục screen works through the catalog-entry
+/// routes, and no controller serves this contract.
+/// </summary>
+[RemoteService(IsEnabled = false)]
 public interface IMedicalHistoryTypeAppService : IApplicationService
 {
     Task<PagedResultDto<MedicalHistoryTypeDto>> GetListAsync(GetMedicalHistoryTypeListInput input);

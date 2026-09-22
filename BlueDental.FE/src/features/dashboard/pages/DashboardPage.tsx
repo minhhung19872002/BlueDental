@@ -13,6 +13,7 @@ import { useAppointmentList } from "@/features/appointments/api/appointmentQueri
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { formatVND } from "@/utils/format";
 import { PageHeader } from "@/components/PageHeader";
+import { useAbility } from "@/hooks/useAbility";
 import { brand } from "@/theme/index";
 import { KpiCard } from "../components/KpiCard";
 import { RevenueBarChart } from "../components/RevenueBarChart";
@@ -27,6 +28,7 @@ import { t } from "@/lib/i18n";
 export function DashboardPage() {
   const navigate = useNavigate();
   const [newApptOpen, setNewApptOpen] = useState(false);
+  const appointmentAbility = useAbility("appointment");
   const today = dayjs().format("YYYY-MM-DD");
   const branchId = useCurrentBranchId();
 
@@ -58,9 +60,11 @@ export function DashboardPage() {
         actions={
           <>
             <Button onClick={() => navigate("/report")}>{t("Xuất báo cáo")}</Button>
-            <Button type="primary" onClick={() => setNewApptOpen(true)}>
-              + {t("Tạo lịch hẹn")}
-            </Button>
+            {appointmentAbility.canCreate && (
+              <Button type="primary" onClick={() => setNewApptOpen(true)}>
+                + {t("Tạo lịch hẹn")}
+              </Button>
+            )}
           </>
         }
       />

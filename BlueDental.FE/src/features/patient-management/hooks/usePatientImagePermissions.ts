@@ -1,9 +1,10 @@
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { abilityPermission } from "@/lib/permissionConstants";
 
 const PERMISSION = {
-  create: "BlueDental.treatmentImage.create",
-  update: "BlueDental.treatmentImage.update",
-  delete: "BlueDental.treatmentImage.delete",
+  create: abilityPermission("treatmentImage", "create"),
+  update: abilityPermission("treatmentImage", "update"),
+  delete: abilityPermission("treatmentImage", "delete"),
 } as const;
 
 export interface PatientImagePermissions {

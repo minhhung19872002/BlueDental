@@ -49,6 +49,12 @@ interface MaterialSummary {
   latestAllocatedAt: string;
 }
 
+interface Props {
+  canCreate?: boolean;
+  canUpdate?: boolean;
+  canDelete?: boolean;
+}
+
 /**
  * Phòng ban — the departments on the left, what has been issued to the selected
  * one on the right.
@@ -56,7 +62,7 @@ interface MaterialSummary {
  * The panel is the same one the material groups use; the reference draws them
  * alike, down to the subtitle telling you to pick one.
  */
-export function DepartmentTab() {
+export function DepartmentTab({ canCreate = true, canUpdate = true, canDelete = true }: Props) {
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedId = searchParams.get("department");
 
@@ -323,13 +329,14 @@ export function DepartmentTab() {
           onKeywordChange={setPanelKeyword}
           selectedId={selectedId}
           onSelect={(id) => selectDepartment(id === selectedId ? null : id)}
-          onCreate={() => setDialog({ open: true, department: null })}
+          onCreate={canCreate ? () => setDialog({ open: true, department: null }) : undefined}
           onRename={(group) => {
+            if (!canUpdate) return;
             const department =
               departments.find((row: DepartmentDto) => row.id === group.id) ?? null;
             setDialog({ open: true, department });
           }}
-          onDelete={(department) => setPendingDelete(department)}
+          onDelete={canDelete ? (department) => setPendingDelete(department) : undefined}
           onReorder={(from, to) => {
             const ids = departments.map((row: DepartmentDto) => row.id);
             const [moved] = ids.splice(from, 1);

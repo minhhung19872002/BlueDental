@@ -10,6 +10,7 @@ import {
 import { PaymentModal } from "@/features/billing/components/PaymentModal";
 import { PrescriptionPanel } from "@/features/treatment-management/components/PrescriptionPanel";
 import type { PrescriptionPatientSummary } from "@/features/treatment-management/types/prescription";
+import { useAbility } from "@/hooks/useAbility";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
 import { countedTotal } from "@/utils/countedTotal";
@@ -41,6 +42,7 @@ export function PatientPrescriptionTab({ patient }: { patient: PatientDto }) {
 }
 
 export function PatientInvoiceTab({ patientId }: { patientId: string }) {
+  const ability = useAbility("payment");
   const query = usePatientInvoices(patientId);
   const [selected, setSelected] = useState<InvoiceDto | null>(null);
   const pagination = useTablePagination(20);
@@ -78,16 +80,16 @@ export function PatientInvoiceTab({ patientId }: { patientId: string }) {
         return <span style={{ color: config.color, fontWeight: 600 }}>{config.label}</span>;
       },
     },
-    {
+    ...(ability.canCreate ? [{
       title: t("Thao tác"),
       width: 110,
-      fixed: "right",
-      render: (_, row) => (
+      fixed: "right" as const,
+      render: (_: unknown, row: InvoiceDto) => (
         <Button type="link" disabled={row.balanceDue <= 0} onClick={() => setSelected(row)}>
           {t("Thu tiền")}
         </Button>
       ),
-    },
+    }] : []),
   ];
   return (
     <section className="pd-pane pd-pane--fill">

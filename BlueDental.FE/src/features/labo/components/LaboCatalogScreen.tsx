@@ -25,7 +25,14 @@ import { formatDateTime } from "@/utils/format";
  * with only the catalog's label and noun changing, so this does too rather
  * than repeating a table and a dialog three times.
  */
-export function LaboCatalogScreen({ tab }: { tab: LaboTab }) {
+interface LaboCatalogScreenProps {
+  tab: LaboTab;
+  canCreate?: boolean;
+  canUpdate?: boolean;
+  canDelete?: boolean;
+}
+
+export function LaboCatalogScreen({ tab, canCreate, canUpdate, canDelete }: LaboCatalogScreenProps) {
   const group = tab.group as string;
   const noun = tab.noun as string;
 
@@ -84,36 +91,44 @@ export function LaboCatalogScreen({ tab }: { tab: LaboTab }) {
         </span>
       ),
     },
-    {
-      key: "actions",
-      title: t("Thao tác"),
-      width: 100,
-      align: "center",
-      fixed: "right",
-      render: (_, row) => (
-        <div className="bd-cat-rowactions">
-          <Tooltip title={t("Chỉnh sửa")}>
-            <Button
-              type="text"
-              size="small"
-              icon={<EditOutlined />}
-              aria-label={t("Chỉnh sửa {0}", row.name)}
-              onClick={() => setDialog({ open: true, item: row })}
-            />
-          </Tooltip>
-          <Tooltip title={t("Xoá")}>
-            <Button
-              type="text"
-              size="small"
-              danger
-              icon={<DeleteOutlined />}
-              aria-label={t("Xoá {0}", row.name)}
-              onClick={() => setPendingDelete(row)}
-            />
-          </Tooltip>
-        </div>
-      ),
-    },
+    ...(canUpdate || canDelete
+      ? [
+          {
+            key: "actions",
+            title: t("Thao tác"),
+            width: 100,
+            align: "center" as const,
+            fixed: "right" as const,
+            render: (_: unknown, row: LaboCatalogItem) => (
+              <div className="bd-cat-rowactions">
+                {canUpdate && (
+                  <Tooltip title={t("Chỉnh sửa")}>
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<EditOutlined />}
+                      aria-label={t("Chỉnh sửa {0}", row.name)}
+                      onClick={() => setDialog({ open: true, item: row })}
+                    />
+                  </Tooltip>
+                )}
+                {canDelete && (
+                  <Tooltip title={t("Xoá")}>
+                    <Button
+                      type="text"
+                      size="small"
+                      danger
+                      icon={<DeleteOutlined />}
+                      aria-label={t("Xoá {0}", row.name)}
+                      onClick={() => setPendingDelete(row)}
+                    />
+                  </Tooltip>
+                )}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -130,13 +145,15 @@ export function LaboCatalogScreen({ tab }: { tab: LaboTab }) {
           onChange={(event) => handleSearch(event.target.value)}
         />
 
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => setDialog({ open: true, item: null })}
-        >
-          {t("Tạo {0}", noun)}
-        </Button>
+        {canCreate && (
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => setDialog({ open: true, item: null })}
+          >
+            {t("Tạo {0}", noun)}
+          </Button>
+        )}
       </div>
 
       <div className="bd-cat-body">

@@ -3,6 +3,7 @@ import { DollarSign, Printer } from "lucide-react";
 import { DataTable } from "@/components/DataTable";
 import { CreatePaymentDialog } from "@/features/patient-management/components/patient-detail/CreatePaymentDialog";
 import type { PatientDto } from "@/features/patient-management/types/patient";
+import { useAbility } from "@/hooks/useAbility";
 import { useBranchInfo } from "@/hooks/useBranchInfo";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useTablePagination } from "@/hooks/useTablePagination";
@@ -35,6 +36,7 @@ interface Props {
  * "Tạo Phiếu Thanh Toán" and "In hóa đơn tổng" above the table.
  */
 export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
+  const { canCreate } = useAbility("payment");
   const narrow = useMediaQuery(NARROW_SCREEN);
   const pagination = useTablePagination(20);
   const query = usePatientPayments({
@@ -62,10 +64,12 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
   return (
     <div className="pdt-pane">
       <div className="pdt-toolbar">
-        <button type="button" className="tp-btn tp-btn--primary" onClick={() => setCreating(true)}>
-          <DollarSign size={16} aria-hidden="true" />
-          {t("Tạo Phiếu Thanh Toán")}
-        </button>
+        {canCreate && (
+          <button type="button" className="tp-btn tp-btn--primary" onClick={() => setCreating(true)}>
+            <DollarSign size={16} aria-hidden="true" />
+            {t("Tạo Phiếu Thanh Toán")}
+          </button>
+        )}
         <button type="button" className="tp-btn tp-btn--outline" onClick={handleAggregate}>
           <Printer size={16} aria-hidden="true" />
           {t("In hóa đơn tổng")}

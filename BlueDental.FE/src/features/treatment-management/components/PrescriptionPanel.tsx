@@ -5,6 +5,7 @@ import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { DataTable } from "@/components/DataTable";
+import { useAbility } from "@/hooks/useAbility";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
@@ -33,6 +34,7 @@ export function PrescriptionPanel({ patient }: { patient: PrescriptionPatientSum
   const [searchParams, setSearchParams] = useSearchParams();
   const [editing, setEditing] = useState<PrescriptionDto | null>(null);
   const [deleting, setDeleting] = useState<PrescriptionDto | null>(null);
+  const ability = useAbility("prescription");
   const query = usePrescriptions(patient.id);
   const remove = useDeletePrescription();
   const pagination = useTablePagination(20);
@@ -88,30 +90,36 @@ export function PrescriptionPanel({ patient }: { patient: PrescriptionPatientSum
       width: 130,
       render: (value: string) => formatDate(value),
     },
-    {
+    ...((ability.canUpdate || ability.canDelete) ? [{
       title: t("Thao tác"),
       key: "actions",
       width: 90,
-      fixed: "right",
-      render: (_, row) => (
+      fixed: "right" as const,
+      render: (_: unknown, row: PrescriptionDto) => (
         <span className="pd-icon-actions">
-          <Tooltip title={t("Sửa")}>
-            <Button type="text" aria-label={t("Sửa")} icon={<EditOutlined />} onClick={() => setEditing(row)} />
-          </Tooltip>
-          <Tooltip title={t("Xóa")}>
-            <Button type="text" danger aria-label={t("Xóa")} icon={<DeleteOutlined />} onClick={() => setDeleting(row)} />
-          </Tooltip>
+          {ability.canUpdate && (
+            <Tooltip title={t("Sửa")}>
+              <Button type="text" aria-label={t("Sửa")} icon={<EditOutlined />} onClick={() => setEditing(row)} />
+            </Tooltip>
+          )}
+          {ability.canDelete && (
+            <Tooltip title={t("Xóa")}>
+              <Button type="text" danger aria-label={t("Xóa")} icon={<DeleteOutlined />} onClick={() => setDeleting(row)} />
+            </Tooltip>
+          )}
         </span>
       ),
-    },
+    }] : []),
   ];
 
   return (
     <>
       <div className="rx-toolbar">
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreating(true)}>
-          {t("Tạo đơn thuốc")}
-        </Button>
+        {ability.canCreate && (
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreating(true)}>
+            {t("Tạo đơn thuốc")}
+          </Button>
+        )}
       </div>
       <div className="bd-cat-card">
         <DataTable<PrescriptionDto>

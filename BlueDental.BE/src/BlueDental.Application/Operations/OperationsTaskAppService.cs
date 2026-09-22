@@ -7,6 +7,7 @@ using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
+using Volo.Abp.Authorization;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Identity;
 
@@ -143,9 +144,27 @@ public class OperationsTaskAppService : ApplicationService, IOperationsTaskAppSe
     /// <summary>Overdue is derived, so that filter runs after the query.</summary>
     private async Task<List<OperationsTask>> QueryAsync(GetOperationsTaskListInput input)
     {
+        // Asked for one department, the caller must hold its task ability;
+        // asked for all, the caller sees only the departments it may read, and
+        // none at all is a refusal rather than an empty board.
+        var readable = new List<OperationsDepartment>();
         if (input.Department.HasValue)
         {
             await CheckAsync(input.Department.Value, BlueDentalAbilities.Actions.Read);
+        }
+        else
+        {
+            foreach (var department in Enum.GetValues<OperationsDepartment>())
+            {
+                if (await AuthorizationService.IsGrantedAsync(
+                        OperationsAbilities.TaskPermissionFor(department, BlueDentalAbilities.Actions.Read)))
+                    readable.Add(department);
+            }
+
+            if (readable.Count == 0)
+            {
+                throw new AbpAuthorizationException("No operations task board is readable by the current user.");
+            }
         }
 
         var branchFilter = await _branchAccess.ResolveFilterAsync(input.ClinicBranchId);
@@ -155,6 +174,8 @@ public class OperationsTaskAppService : ApplicationService, IOperationsTaskAppSe
             query = query.Where(x => branchFilter.Contains(x.ClinicBranchId));
         if (input.Department.HasValue)
             query = query.Where(x => x.Department == input.Department.Value);
+        else
+            query = query.Where(x => readable.Contains(x.Department));
         if (input.Status.HasValue)
             query = query.Where(x => x.Status == input.Status.Value);
         if (input.AssigneeStaffId.HasValue)

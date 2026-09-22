@@ -43,9 +43,12 @@ interface Props<TGroup extends PanelGroup> {
   onKeywordChange: (value: string) => void;
   selectedId: string | null;
   onSelect: (id: string) => void;
-  onCreate: () => void;
-  onRename: (group: TGroup) => void;
-  onDelete: (group: TGroup) => void;
+  /** Omit to hide the create button (permission gate). */
+  onCreate?: () => void;
+  /** Omit to hide the rename command (permission gate). */
+  onRename?: (group: TGroup) => void;
+  /** Omit to hide the delete command (permission gate). */
+  onDelete?: (group: TGroup) => void;
   /** Persists a new order after a drag or a move-up/move-down command. */
   onReorder: (fromIndex: number, toIndex: number) => void | Promise<void>;
   /** e.g. "Tìm nhóm vật tư...". Defaults to the wording Danh mục uses. */
@@ -73,8 +76,8 @@ interface RowProps {
     style: React.CSSProperties;
   };
   onSelect: (id: string) => void;
-  onRename: (id: string) => void;
-  onDelete: (id: string) => void;
+  onRename?: (id: string) => void;
+  onDelete?: (id: string) => void;
   onReorder: (fromIndex: number, toIndex: number) => void | Promise<void>;
 }
 
@@ -135,25 +138,33 @@ const GroupRow = memo(function GroupRow({
           <Tooltip title={t("Nhóm hệ thống, không thể sửa hoặc xoá")}>
             <InfoCircleOutlined aria-hidden="true" className="bd-group-system-mark" />
           </Tooltip>
-        ) : (
+        ) : (onRename || onDelete) ? (
         <Dropdown
           trigger={["click"]}
           placement="bottomRight"
           menu={{
             items: [
-              {
-                key: "rename",
-                icon: <EditOutlined />,
-                label: t("Chỉnh sửa"),
-                onClick: () => onRename(group.id),
-              },
-              {
-                key: "delete",
-                danger: true,
-                icon: <DeleteOutlined />,
-                label: t("Xoá"),
-                onClick: () => onDelete(group.id),
-              },
+              ...(onRename
+                ? [
+                    {
+                      key: "rename",
+                      icon: <EditOutlined />,
+                      label: t("Chỉnh sửa"),
+                      onClick: () => onRename(group.id),
+                    },
+                  ]
+                : []),
+              ...(onDelete
+                ? [
+                    {
+                      key: "delete",
+                      danger: true,
+                      icon: <DeleteOutlined />,
+                      label: t("Xoá"),
+                      onClick: () => onDelete(group.id),
+                    },
+                  ]
+                : []),
             ],
           }}
         >
@@ -167,7 +178,7 @@ const GroupRow = memo(function GroupRow({
             <MoreOutlined aria-hidden="true" />
           </button>
         </Dropdown>
-        )}
+        ) : null}
 
         {/* A real button, not a decoration: dragging is a pointer gesture, so
             the same move has to be reachable with the arrow keys once the grip
@@ -236,6 +247,7 @@ export function GroupPanel<TGroup extends PanelGroup>({
   const byId = (id: string) => groups.find((group) => group.id === id);
   const renameById = useCallback(
     (id: string) => {
+      if (!onRename) return;
       const group = byId(id);
       if (group) onRename(group);
     },
@@ -244,6 +256,7 @@ export function GroupPanel<TGroup extends PanelGroup>({
   );
   const deleteById = useCallback(
     (id: string) => {
+      if (!onDelete) return;
       const group = byId(id);
       if (group) onDelete(group);
     },
@@ -286,13 +299,15 @@ export function GroupPanel<TGroup extends PanelGroup>({
             allowClear
             onChange={(event) => onKeywordChange(event.target.value)}
           />
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            aria-label={createLabel ?? t("Thêm nhóm phân loại")}
-            title={createLabel ?? t("Thêm nhóm phân loại")}
-            onClick={onCreate}
-          />
+          {onCreate && (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              aria-label={createLabel ?? t("Thêm nhóm phân loại")}
+              title={createLabel ?? t("Thêm nhóm phân loại")}
+              onClick={onCreate}
+            />
+          )}
         </div>
       </div>
 
@@ -324,8 +339,8 @@ export function GroupPanel<TGroup extends PanelGroup>({
                 registerRow={drag.registerRow(group.id)}
                 handleProps={drag.handleProps(group.id)}
                 onSelect={onSelect}
-                onRename={renameById}
-                onDelete={deleteById}
+                onRename={onRename ? renameById : undefined}
+                onDelete={onDelete ? deleteById : undefined}
                 onReorder={onReorder}
               />
             ))}

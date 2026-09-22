@@ -20,8 +20,8 @@ interface CareToolbarProps {
   onSearchChange: (value: string) => void;
   onDoctorChange: (value: string | undefined) => void;
   onCareStaffChange: (value: string | undefined) => void;
-  onExport: () => void;
-  onCreate: () => void;
+  onExport?: () => void;
+  onCreate?: () => void;
 }
 
 /** Per-tab toolbar row: Xuất Excel · Tìm kiếm · Bác sĩ · NV CSKH · Tạo mới. */
@@ -41,14 +41,16 @@ export function CareToolbar({
 
   return (
     <div className="cskh-toolbar">
-      <Button
-        className="cskh-excel-btn"
-        icon={exporting ? <LoadingOutlined /> : <FileExcelOutlined />}
-        disabled={exporting}
-        onClick={onExport}
-      >
-        {t("Xuất Excel")}
-      </Button>
+      {onExport && (
+        <Button
+          className="cskh-excel-btn"
+          icon={exporting ? <LoadingOutlined /> : <FileExcelOutlined />}
+          disabled={exporting}
+          onClick={onExport}
+        >
+          {t("Xuất Excel")}
+        </Button>
+      )}
 
       <div className="cskh-toolbar-search">
         <MessageField label={t("Tìm kiếm")} hasValue={Boolean(search)}>
@@ -88,7 +90,7 @@ export function CareToolbar({
         </div>
       )}
 
-      {tab.showCreate && (
+      {tab.showCreate && onCreate && (
         <Button type="primary" icon={<PlusOutlined />} onClick={onCreate}>
           {t("Tạo mới")}
         </Button>

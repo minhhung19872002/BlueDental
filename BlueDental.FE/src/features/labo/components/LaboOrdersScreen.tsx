@@ -51,7 +51,12 @@ function sampleTabs() {
   ];
 }
 
-export function LaboOrdersScreen() {
+interface LaboOrdersScreenProps {
+  /** When undefined the user lacks the export permission — the button is hidden. */
+  canExport?: boolean;
+}
+
+export function LaboOrdersScreen({ canExport }: LaboOrdersScreenProps) {
   const [tab, setTab] = useState<SampleTabKey>("all");
   const [period, setPeriod] = useState<Period>({ mode: null, anchor: new Date() });
   const [patientId, setPatientId] = useState<string | undefined>();
@@ -186,9 +191,11 @@ export function LaboOrdersScreen() {
         <div className="bd-labo-headrow">
           <PeriodPicker value={period} onChange={(next) => refilter(() => setPeriod(next))} clearableMode />
 
-          <Button icon={<DownloadOutlined />} disabled={items.length === 0} onClick={handleExport}>
-            {t("Xuất Excel")}
-          </Button>
+          {canExport && (
+            <Button icon={<DownloadOutlined />} disabled={items.length === 0} onClick={handleExport}>
+              {t("Xuất Excel")}
+            </Button>
+          )}
         </div>
 
         <div className="bd-labo-headrow">

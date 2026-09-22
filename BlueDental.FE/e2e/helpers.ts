@@ -12,5 +12,6 @@ export async function login(page: Page) {
   await page.getByPlaceholder(/tên đăng nhập|username/i).fill(TEST_USER.username);
   await page.getByPlaceholder(/mật khẩu|password/i).fill(TEST_USER.password);
   await page.getByRole("button", { name: /đăng nhập|login|sign in/i }).click();
-  await page.waitForURL("**/reception", { timeout: 15000 });
+  // Signing in lands on Tổng quan, the one screen every account may open.
+  await page.waitForURL("**/dashboard", { timeout: 15000 });
 }

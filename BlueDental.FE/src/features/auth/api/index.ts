@@ -24,7 +24,7 @@ export const authApi = {
 
   getCurrentUser: (): Promise<CurrentUserDto> =>
     api
-      .get<CurrentUserDto>("/app/account/current-user")
+      .get<CurrentUserDto>("/v1/app/account/current-user")
       .then((r) => r.data),
 
   changePassword: async (data: {
@@ -33,7 +33,7 @@ export const authApi = {
   }): Promise<void> => {
     await authApi.initializeCsrf();
     return api
-      .post<void>("/app/account/change-password", data)
+      .post<void>("/v1/app/account/change-password", data)
       .then(() => undefined);
   },
 };

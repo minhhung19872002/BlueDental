@@ -5,8 +5,6 @@ import { useT } from "@/lib/i18n";
 import {
   isNavGroupActive,
   isNavPathActive,
-  NAV_FLAT,
-  NAV_GROUPS,
   type NavEntry,
   type NavGroup,
 } from "./nav";
@@ -39,24 +37,27 @@ function classes(...parts: (string | false | undefined)[]): string {
 }
 
 interface GroupsProps {
+  /** The groups the signed-in user may see — see `useVisibleNav`. */
+  groups: readonly NavGroup[];
   pathname: string;
   openGroupId: string | null;
   onOpenGroup: (group: NavGroup) => void;
 }
 
 /**
- * The four group buttons in the header.
+ * The group buttons in the header — four for an account that may open
+ * everything, fewer for one that may not.
  *
  * A group that carries members only ever opens: clicking the one already open
  * leaves it open, so moving along the bar never costs a click to re-open what
  * you just closed by accident.
  */
-export function HeaderNavGroups({ pathname, openGroupId, onOpenGroup }: GroupsProps) {
+export function HeaderNavGroups({ groups, pathname, openGroupId, onOpenGroup }: GroupsProps) {
   const t = useT();
 
   return (
     <nav className="app-nav" aria-label={t("Menu chính")}>
-      {NAV_GROUPS.map((group) => {
+      {groups.map((group) => {
         const active = isNavGroupActive(group, pathname);
         const open = openGroupId === group.id;
         return (
@@ -114,13 +115,15 @@ export function NavRibbon({ items, pathname, onSelect }: RibbonProps) {
 
 interface DrawerProps {
   open: boolean;
+  /** The entries the signed-in user may open — see `useVisibleNav`. */
+  items: readonly NavEntry[];
   pathname: string;
   onClose: () => void;
   onSelect: (entry: NavEntry) => void;
 }
 
 /** Below 1100px the group bar cannot fit, and this holds the whole menu. */
-export function MobileNavDrawer({ open, pathname, onClose, onSelect }: DrawerProps) {
+export function MobileNavDrawer({ open, items, pathname, onClose, onSelect }: DrawerProps) {
   const t = useT();
 
   return (
@@ -134,7 +137,7 @@ export function MobileNavDrawer({ open, pathname, onClose, onSelect }: DrawerPro
       styles={{ body: { padding: 14, background: "#fff" } }}
     >
       <div className="app-drawer-heading">{t("MENU")}</div>
-      {NAV_FLAT.map((item) => (
+      {items.map((item) => (
         <button
           key={item.path}
           type="button"
