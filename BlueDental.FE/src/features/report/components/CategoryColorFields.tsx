@@ -3,19 +3,19 @@ import { BgColorsOutlined } from "@ant-design/icons";
 import { cn } from "@/lib/cn";
 import { t } from "@/lib/i18n";
 
-/** Same eight swatches the "Thêm thẻ hồ sơ mới" dialog offers before the custom picker. */
+/** The eight swatches the reference "Thêm danh mục sổ quỹ mới" dialog offers before the custom picker. */
 const PRESET_COLORS = [
+  "#2671D8",
   "#EF4444",
-  "#F59E0B",
   "#10B981",
-  "#3B82F6",
+  "#F59E0B",
   "#6366F1",
-  "#A855F7",
   "#EC4899",
+  "#14B8A6",
   "#64748B",
 ] as const;
 
-export const DEFAULT_CATEGORY_COLOR = "#3B82F6";
+export const DEFAULT_CATEGORY_COLOR = "#2671D8";
 
 interface Props {
   color: string;
@@ -33,7 +33,7 @@ export function CategoryColorFields({ color, previewName, onChange }: Props) {
       </Form.Item>
 
       <div className="bd-dialog-section">
-        <p className="bd-dialog-section-title">{t("Mã màu")}</p>
+        <p className="bd-dialog-section-title">{t("Màu")}</p>
         <div className="bd-cat-inline">
           {PRESET_COLORS.map((preset) => (
             <button
@@ -65,7 +65,7 @@ export function CategoryColorFields({ color, previewName, onChange }: Props) {
       <div className="bd-tag-preview">
         <p className="bd-cat-hint">{t("Xem trước")}</p>
         <span style={{ backgroundColor: color }} className="bd-tag-chip">
-          {previewName || t("Danh mục mới")}
+          {previewName || t("Danh mục sổ quỹ")}
         </span>
       </div>
     </>

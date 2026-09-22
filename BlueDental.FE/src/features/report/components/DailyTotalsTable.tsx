@@ -1,9 +1,9 @@
 import { formatDate, formatMoneyUnit } from "@/utils/format";
 import { t } from "@/lib/i18n";
-import type { DailyTotalVm } from "../types/mock";
+import type { DailyTotalDto } from "../api/clinicReportApi";
 
 interface Props {
-  rows: DailyTotalVm[];
+  rows: DailyTotalDto[];
   valueLabel: string;
 }
 

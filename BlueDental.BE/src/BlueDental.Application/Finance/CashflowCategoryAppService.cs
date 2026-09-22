@@ -18,19 +18,13 @@ namespace BlueDental.Finance;
 public class CashflowCategoryAppService : ApplicationService, ICashflowCategoryAppService
 {
     private readonly IRepository<CashflowCategory, Guid> _repository;
-    private readonly IRepository<SalesEntry, Guid> _salesRepository;
-    private readonly IRepository<CashflowEntry, Guid> _cashflowRepository;
     private readonly ICurrentClinicBranchResolver _branchResolver;
 
     public CashflowCategoryAppService(
         IRepository<CashflowCategory, Guid> repository,
-        IRepository<SalesEntry, Guid> salesRepository,
-        IRepository<CashflowEntry, Guid> cashflowRepository,
         ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
-        _salesRepository = salesRepository;
-        _cashflowRepository = cashflowRepository;
         _branchResolver = branchResolver;
     }
 
@@ -77,7 +71,8 @@ public class CashflowCategoryAppService : ApplicationService, ICashflowCategoryA
             input.AppliesToTransfers,
             isSystem: false,
             input.SortOrder,
-            input.Description);
+            input.Description,
+            input.ColorCode);
 
         await _repository.InsertAsync(category, autoSave: true);
         return MapToDto(category);
@@ -90,6 +85,7 @@ public class CashflowCategoryAppService : ApplicationService, ICashflowCategoryA
 
         category.Rename(input.Name);
         category.UpdateDescription(input.Description);
+        category.SetColor(input.ColorCode);
         category.Reorder(input.SortOrder);
 
         if (input.IsActive)
@@ -117,16 +113,9 @@ public class CashflowCategoryAppService : ApplicationService, ICashflowCategoryA
                 "A system cashflow category cannot be deleted.");
         }
 
-        var salesQuery = await _salesRepository.GetQueryableAsync();
-        var cashflowQuery = await _cashflowRepository.GetQueryableAsync();
-
-        if (salesQuery.Any(x => x.CategoryId == id) || cashflowQuery.Any(x => x.CategoryId == id))
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.Finance.SystemCategoryLocked,
-                "This category is in use and cannot be deleted; deactivate it instead.");
-        }
-
+        // Like the reference, a category in use can still be deleted: vouchers keep
+        // the name (the lookups read through the soft-delete filter), only the
+        // category leaves the pick lists.
         await _repository.DeleteAsync(id, autoSave: true);
     }
 
@@ -141,6 +130,7 @@ public class CashflowCategoryAppService : ApplicationService, ICashflowCategoryA
         IsActive = entity.IsActive,
         SortOrder = entity.SortOrder,
         Description = entity.Description,
+        ColorCode = entity.ColorCode,
         CreationTime = entity.CreationTime,
         CreatorId = entity.CreatorId,
         LastModificationTime = entity.LastModificationTime,

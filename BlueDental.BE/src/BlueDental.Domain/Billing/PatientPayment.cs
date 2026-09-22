@@ -162,6 +162,29 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>
     public static bool RequiresAccount(PaymentMethodKind method) =>
         method is PaymentMethodKind.Banking or PaymentMethodKind.EWallet;
 
+    /// <summary>
+    /// Voucher code in the reference's own shape: payment
+    /// <c>THANHTOAN-31/DT32/2026</c>, refund <c>HOANTIEN-02/2026</c>. The middle
+    /// part of a payment code is the slip's own code, not a second counter:
+    /// staging (2026-09-22) paid patient HN8521's slip "DT32 - Test DV" as
+    /// THANHTOAN-31/DT32/2026 and its next slip DT33 as THANHTOAN-34/DT33/2026.
+    /// A top-up held for the patient outside any slip never appeared on the
+    /// reference (its "Tạm ứng phát sinh" rows all sit on a slip), so
+    /// <c>TAMUNG-NN/yyyy</c> follows the refund pattern (UNKNOWN_REFERENCE_BEHAVIOR).
+    /// </summary>
+    public static string FormatCode(PatientPaymentKind kind, int sequence, int year, string? planCode = null)
+    {
+        if (kind == PatientPaymentKind.Payment)
+        {
+            Check.NotNullOrWhiteSpace(planCode, nameof(planCode));
+            return $"THANHTOAN-{sequence:D2}/{planCode}/{year}";
+        }
+
+        return kind == PatientPaymentKind.Refund
+            ? $"HOANTIEN-{sequence:D2}/{year}"
+            : $"TAMUNG-{sequence:D2}/{year}";
+    }
+
     public PatientPayment UpdateNote(string? note)
     {
         Note = note;

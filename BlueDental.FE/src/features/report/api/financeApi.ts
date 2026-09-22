@@ -2,17 +2,25 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import { t } from "@/lib/i18n";
 import type { PagedResult } from "@/types";
+import { clinicReportKeys } from "./clinicReportApi";
+
+/** The API binds `entryDate` to a DateOnly, which only accepts a bare calendar date. */
+export const API_DATE_FORMAT = "YYYY-MM-DD";
 
 /** Matches BlueDental.Finance.SalesEntryType */
 export const SALES_ENTRY_TYPE = { Income: 1, Expense: 2 } as const;
 export type SalesEntryType = (typeof SALES_ENTRY_TYPE)[keyof typeof SALES_ENTRY_TYPE];
 
-/** Matches BlueDental.Finance.PaymentChannel */
+/**
+ * Matches BlueDental.Finance.PaymentChannel for sales entries; the report's
+ * payment / refund lines carry the same numbering (PaymentMethodKind).
+ */
 export const PAYMENT_CHANNEL = {
   Cash: 1,
   Banking: 2,
   Card: 3,
   OutstandingDebt: 4,
+  EWallet: 5,
 } as const;
 export type PaymentChannel = (typeof PAYMENT_CHANNEL)[keyof typeof PAYMENT_CHANNEL];
 
@@ -20,7 +28,8 @@ export const paymentChannelLabels = (): Record<PaymentChannel, string> => ({
   [PAYMENT_CHANNEL.Cash]: t("Tiền mặt"),
   [PAYMENT_CHANNEL.Banking]: t("Chuyển khoản"),
   [PAYMENT_CHANNEL.Card]: t("Quẹt thẻ"),
-  [PAYMENT_CHANNEL.OutstandingDebt]: t("Cấn trừ dư nợ"),
+  [PAYMENT_CHANNEL.OutstandingDebt]: t("Dư nợ"),
+  [PAYMENT_CHANNEL.EWallet]: t("Ví điện tử"),
 });
 
 /** Matches BlueDental.Finance.SalesApprovalStatus */
@@ -45,14 +54,24 @@ export const cashTransactionLabels = (): Record<CashTransactionType, string> => 
 });
 
 /** Matches BlueDental.Finance.CashHolding */
-export const CASH_HOLDING = { Cash: 1, Bank: 2, CustomerPrepaid: 3 } as const;
+export const CASH_HOLDING = { Cash: 1, Bank: 2, CustomerPrepaid: 3, Card: 4 } as const;
 export type CashHolding = (typeof CASH_HOLDING)[keyof typeof CASH_HOLDING];
 
 export const cashHoldingLabels = (): Record<CashHolding, string> => ({
   [CASH_HOLDING.Cash]: t("Tiền mặt"),
   [CASH_HOLDING.Bank]: t("Chuyển khoản"),
   [CASH_HOLDING.CustomerPrepaid]: t("Giữ hộ khách"),
+  [CASH_HOLDING.Card]: t("Cà thẻ (đối soát)"),
 });
+
+/**
+ * Which holdings each tab-4 dialog lists under "Hình thức" — read off the
+ * reference: only a deposit (Nạp) may land on the card holding.
+ */
+export const cashHoldingsFor = (transactionType: CashTransactionType): CashHolding[] =>
+  transactionType === CASH_TRANSACTION_TYPE.Deposit
+    ? [CASH_HOLDING.Cash, CASH_HOLDING.Bank, CASH_HOLDING.Card]
+    : [CASH_HOLDING.Cash, CASH_HOLDING.Bank];
 
 /**
  * "Hình thức" of a cash movement: "Tiền mặt → Chuyển khoản" for a transfer,
@@ -82,9 +101,13 @@ export interface SalesEntryDto {
   approvedAt: string | null;
   rejectionReason: string | null;
   countsTowardsCashflow: boolean;
+  /** Free-text "Người nộp" / "Người nhận" when the voucher is not tied to a patient. */
+  payerName: string | null;
   categoryName: string | null;
   staffName: string | null;
   patientName: string | null;
+  /** The patient's code, so the table can read "[code] - name" like the reference. */
+  patientCode: string | null;
 }
 
 export interface SalesStatsDto {
@@ -104,6 +127,10 @@ export interface CashBalanceDto {
   cash: number;
   bank: number;
   customerPrepaid: number;
+  /** Treatment payments net of refunds ("Doanh thu dịch vụ"). */
+  serviceRevenue: number;
+  /** Card payments net of refunds plus deposits into the card holding ("Cà thẻ (đối soát)"). */
+  cardPending: number;
 }
 
 export interface CashflowCategoryTotalDto {
@@ -134,7 +161,10 @@ export interface CashflowEntryDto {
   entryDate: string;
   note: string | null;
   categoryName: string | null;
+  /** The category's colour code, so the ledger pill can wear it like the reference. */
+  categoryColor: string | null;
   createdByStaffName: string | null;
+  creationTime: string;
 }
 
 export interface CashflowCategoryDto {
@@ -147,6 +177,26 @@ export interface CashflowCategoryDto {
   isActive: boolean;
   sortOrder: number;
   description: string | null;
+  /** Hex swatch of a cashbook category; sales categories carry none. */
+  colorCode: string | null;
+}
+
+export interface CreateCashflowCategoryInput {
+  clinicBranchId: string;
+  name: string;
+  type: SalesEntryType;
+  appliesToTransfers: boolean;
+  sortOrder?: number;
+  description?: string;
+  colorCode?: string;
+}
+
+export interface UpdateCashflowCategoryInput {
+  name: string;
+  description?: string;
+  sortOrder: number;
+  isActive: boolean;
+  colorCode?: string;
 }
 
 export interface CreateSalesEntryInput {
@@ -159,6 +209,7 @@ export interface CreateSalesEntryInput {
   channel: PaymentChannel;
   description: string;
   entryDate: string;
+  payerName?: string;
 }
 
 export interface UpdateSalesEntryInput {
@@ -168,6 +219,7 @@ export interface UpdateSalesEntryInput {
   channel: PaymentChannel;
   description: string;
   entryDate: string;
+  payerName?: string;
 }
 
 export interface CreateCashflowEntryInput {
@@ -179,6 +231,15 @@ export interface CreateCashflowEntryInput {
   categoryId?: string | null;
   createdByStaffId: string;
   entryDate: string;
+  note?: string;
+}
+
+/** PUT cashflow-entries/{id}: the type and the execution date stay as booked. */
+export interface UpdateCashflowEntryInput {
+  fromHolding?: CashHolding | null;
+  toHolding?: CashHolding | null;
+  amount: number;
+  categoryId?: string | null;
   note?: string;
 }
 
@@ -212,13 +273,14 @@ const financeApi = {
       .get<PagedResult<CashflowCategoryDto>>("/v1/app/cashflow-categories", { params })
       .then((r) => r.data),
 
-  createCategory: (input: {
-    clinicBranchId: string;
-    name: string;
-    type: SalesEntryType;
-    appliesToTransfers: boolean;
-  }): Promise<CashflowCategoryDto> =>
+  createCategory: (input: CreateCashflowCategoryInput): Promise<CashflowCategoryDto> =>
     api.post<CashflowCategoryDto>("/v1/app/cashflow-categories", input).then((r) => r.data),
+
+  updateCategory: (id: string, input: UpdateCashflowCategoryInput): Promise<CashflowCategoryDto> =>
+    api.put<CashflowCategoryDto>(`/v1/app/cashflow-categories/${id}`, input).then((r) => r.data),
+
+  deleteCategory: (id: string): Promise<void> =>
+    api.delete(`/v1/app/cashflow-categories/${id}`).then(() => undefined),
 
   createSales: (input: CreateSalesEntryInput): Promise<SalesEntryDto> =>
     api.post<SalesEntryDto>("/v1/app/sales", input).then((r) => r.data),
@@ -226,11 +288,9 @@ const financeApi = {
   updateSales: (id: string, input: UpdateSalesEntryInput): Promise<SalesEntryDto> =>
     api.put<SalesEntryDto>(`/v1/app/sales/${id}`, input).then((r) => r.data),
 
-  approveSales: (id: string, staffId: string): Promise<SalesEntryDto> =>
-    api.post<SalesEntryDto>(`/v1/app/sales/${id}/approve`, { staffId }).then((r) => r.data),
-
-  rejectSales: (id: string, staffId: string, reason: string): Promise<SalesEntryDto> =>
-    api.post<SalesEntryDto>(`/v1/app/sales/${id}/reject`, { staffId, reason }).then((r) => r.data),
+  /** The reference approves with a bodiless PUT; the server stamps the current user as approver. */
+  approveSales: (id: string): Promise<SalesEntryDto> =>
+    api.put<SalesEntryDto>(`/v1/app/sales/${id}/approve`).then((r) => r.data),
 
   deleteSales: (id: string): Promise<void> =>
     api.delete(`/v1/app/sales/${id}`).then(() => undefined),
@@ -239,6 +299,14 @@ const financeApi = {
     api
       .post<CashflowEntryDto>("/v1/app/cash-management/cashflow-entries", input)
       .then((r) => r.data),
+
+  updateCashflowEntry: (id: string, input: UpdateCashflowEntryInput): Promise<CashflowEntryDto> =>
+    api
+      .put<CashflowEntryDto>(`/v1/app/cash-management/cashflow-entries/${id}`, input)
+      .then((r) => r.data),
+
+  deleteCashflowEntry: (id: string): Promise<void> =>
+    api.delete(`/v1/app/cash-management/cashflow-entries/${id}`).then(() => undefined),
 
   sales: (params: SalesQueryInput): Promise<PagedResult<SalesEntryDto>> =>
     api.get<PagedResult<SalesEntryDto>>("/v1/app/sales", { params }).then((r) => r.data),
@@ -287,7 +355,11 @@ export function useCashflowCategories(clinicBranchId: string, appliesToTransfers
   });
 }
 
-/** Any finance write invalidates the whole finance tree — lists, stats and balances move together. */
+/**
+ * Any finance write invalidates the whole finance tree — lists, stats and balances move together.
+ * The clinic reports (overview "Thông tin thu chi", business result) also aggregate sales entries,
+ * so they are refreshed as well.
+ */
 function useFinanceMutation<TVariables, TData>(fn: (variables: TVariables) => Promise<TData>) {
   const queryClient = useQueryClient();
 
@@ -295,15 +367,23 @@ function useFinanceMutation<TVariables, TData>(fn: (variables: TVariables) => Pr
     mutationFn: fn,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: financeKeys.all });
+      void queryClient.invalidateQueries({ queryKey: clinicReportKeys.all });
     },
   });
 }
 
 export function useCreateCashflowCategory() {
-  return useFinanceMutation(
-    (input: { clinicBranchId: string; name: string; type: SalesEntryType; appliesToTransfers: boolean }) =>
-      financeApi.createCategory(input),
+  return useFinanceMutation((input: CreateCashflowCategoryInput) => financeApi.createCategory(input));
+}
+
+export function useUpdateCashflowCategory() {
+  return useFinanceMutation(({ id, input }: { id: string; input: UpdateCashflowCategoryInput }) =>
+    financeApi.updateCategory(id, input),
   );
+}
+
+export function useDeleteCashflowCategory() {
+  return useFinanceMutation((id: string) => financeApi.deleteCategory(id));
 }
 
 export function useCreateSalesEntry() {
@@ -317,15 +397,7 @@ export function useUpdateSalesEntry() {
 }
 
 export function useApproveSalesEntry() {
-  return useFinanceMutation(({ id, staffId }: { id: string; staffId: string }) =>
-    financeApi.approveSales(id, staffId),
-  );
-}
-
-export function useRejectSalesEntry() {
-  return useFinanceMutation(({ id, staffId, reason }: { id: string; staffId: string; reason: string }) =>
-    financeApi.rejectSales(id, staffId, reason),
-  );
+  return useFinanceMutation((id: string) => financeApi.approveSales(id));
 }
 
 export function useDeleteSalesEntry() {
@@ -336,6 +408,16 @@ export function useCreateCashflowEntry() {
   return useFinanceMutation((input: CreateCashflowEntryInput) =>
     financeApi.createCashflowEntry(input),
   );
+}
+
+export function useUpdateCashflowEntry() {
+  return useFinanceMutation(({ id, input }: { id: string; input: UpdateCashflowEntryInput }) =>
+    financeApi.updateCashflowEntry(id, input),
+  );
+}
+
+export function useDeleteCashflowEntry() {
+  return useFinanceMutation((id: string) => financeApi.deleteCashflowEntry(id));
 }
 
 export function useSalesEntries(params: SalesQueryInput) {

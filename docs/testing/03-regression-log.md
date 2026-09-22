@@ -3840,3 +3840,132 @@ PostgreSQL thật, đăng nhập qua màn hình đăng nhập thật, không ch�
   nội dung bắt đầu đúng ở mốc 80px, không màn nào tràn ngang
   (`scrollWidth === clientWidth`), console không có lỗi.
 - `tsc -b` sạch, `oxlint` không thêm cảnh báo, `vite build` xanh.
+
+## 2026-09-21 — Báo cáo: nối API thật cho cả bốn tab, đối chiếu dialog và file Excel với bản gốc
+
+Yêu cầu: bỏ hẳn mock ở `/report`, kiểm kỹ với bản gốc (mở dialog, không lưu)
+và làm các file Excel giống hệt. Chạy lại mức **2** trên bản build production
+(`vite preview` :8080, API :5000, PostgreSQL thật, không chặn request nào):
+`report.spec.ts` **5/5**, `finance.spec.ts` **2/2**.
+
+| ID | Triệu chứng | Nguyên nhân & cách xử lý |
+|---|--------|-----|
+| R-343 | Xoá `useClientPaging.ts` cùng lúc với mock thì **8 component** mất import | Hook không phải mock — tám bảng của tab 1/2/4 vẫn phân trang phía trình duyệt bằng nó. Lấy lại bằng `git checkout --`. Bài học: `grep` chỗ dùng trước khi xoá file |
+| R-344 | Sửa một giao dịch ở tab 4 tạo **thêm một dòng** thay vì sửa | BE chỉ có `POST cashflow-entries`; modal sửa gọi lại create. Thêm `PUT /cash-management/cashflow-entries/{id}` (đọc bản ghi theo chi nhánh, đổi holding / số tiền / danh mục / ghi chú, số dư tính lại), hook `useUpdateCashflowEntry`, modal rẽ nhánh theo `entry` |
+| R-345 | Cột "Người tạo" tab 4 ghi "Không xác định" cho mọi dòng | `CreatedByStaffName` không bao giờ được gán. Tra tên qua `IIdentityUserRepository.GetListByIdsAsync` một lần cho cả trang rồi gán vào DTO |
+| R-346 | Thẻ "Thông tin thu chi" ở tab 1 không đổi sau khi thêm phiếu ở tab 2 | Mutation của `sales` chỉ invalidate key của chính nó. Invalidate thêm `clinicReportKeys.all` sau mọi ghi ở tab 2 / 4 |
+| R-347 | Gửi ngày dạng ISO đầy đủ tới tham số `DateOnly` → 400 | Mọi ngày lên API đi qua `API_DATE_FORMAT` (`YYYY-MM-DD`) |
+| R-348 | Tổng theo ngày ở tab 1 **nhảy mất một ngày** trên trình duyệt múi giờ âm (và eslint `prefer-const`) | Vòng lặp cộng mili-giây UTC rồi cắt `toISOString`. Đi theo ngày lịch bằng `dayjs(...).add(1, "day")`, chốt 400 ngày |
+| R-349 | Tạo phiếu thứ hai trong cùng giây → Postgres 23505 trùng mã | Sinh mã bằng max-suffix trong chi nhánh thay vì đếm số dòng |
+| R-350 | Tab 2 / 4: thêm / sửa / xoá danh mục và giao dịch **không có** toast, người dùng không biết đã lưu | Chữ lấy từ bundle gốc chỗ nào có, còn lại theo khuôn của app: "Tạo/Cập nhật danh mục thành công", "Đã xoá danh mục", "Tạo/Cập nhật giao dịch thành công", "Đã xoá giao dịch". Phiếu thu/chi giữ **không** toast (bản gốc UNKNOWN) |
+| R-351 | Xuất Excel tab 2 / 4 chỉ có header, không có tiêu đề, độ rộng cột mặc định | Bundle gốc ghi tiêu đề gộp dòng 1, dòng 2 trống, header dòng 3 và `!cols`. `exportToExcel` nhận `{ sheetName, title, columnWidths }`; ba file dùng đúng tên file / sheet / tiêu đề / cột / mapper của bundle (`pages/report.md`) |
+| R-352 | Spec đọc file tải về thấy `!cols` **rỗng** dù file có độ rộng | SheetJS chỉ nạp `!cols` khi `XLSX.read(..., { cellStyles: true })` |
+| R-353 | Spec kỳ vọng mã `THANHTOAN-…` nhưng file local ghi `PT26-0027` | Mã phiếu là bộ đếm của Billing, không phải định dạng của bản gốc — khác biệt đã nêu, spec so `/^PT\d{2}-\d{4}$/` |
+| R-354 | `getByRole("button", { name: "Nạp", exact: true })` không tìm thấy nút | AntD ghép tên icon vào tên truy cập: "vertical-align-bottom Nạp", "vertical-align-top Rút", "swap Luân chuyển", "download Xuất Excel". Dùng `/Nạp$/`, không `exact` |
+| R-355 | `git worktree add` và host :5000 chết vì phiên khác dùng chung checkout | Chạy host bằng `dotnet run --no-build` ghi log ra scratchpad, preview `--strictPort`; dừng host trước `dotnet build` (MSB3027 khoá DLL) |
+
+Đã đối chiếu với bản gốc (chỉ mở, không lưu): bảy dialog của tab 2 / 4 khớp
+trường và chiều rộng (772 / 500); nút Lưu "Thêm danh mục sổ quỹ mới" disabled
+tới khi có tên — local cũng vậy. File Excel tab 2 / 4 của bản gốc **chưa tải
+được với dữ liệu** (chi nhánh gốc không có dòng nào, chỉ thấy toast rỗng) —
+cấu trúc lấy từ bundle, ghi ở `pages/report.md`.
+
+Chưa có test HTTP thật phía BE cho `ClinicReport` / `SalesEntry` /
+`CashManagement` — `HttpApi.Host.Tests` chưa có hạ tầng WebApplicationFactory
+/ Testcontainers; bằng chứng runtime là hai spec trình duyệt trên. Chưa commit.
+
+## 2026-09-22 — Báo cáo: bỏ hết khác biệt với bản gốc (mã phiếu, màu danh mục, người nộp, kho thẻ, option dialog, kỳ mặc định)
+
+Chủ dự án: "Làm cho giống ref App đi k cần hỏi" và "check lại toàn bộ option của
+modal". Bảy dialog của bản gốc được mở lại (không lưu) để đối chiếu từng danh
+sách chọn; kết quả và giả định ghi ở `docs/clone/pages/report.md` §"Đợt đồng bộ
+2026-09-22". Retest mức 2, `report.spec.ts` + `finance.spec.ts` 7/7 xanh.
+
+| ID | Triệu chứng | Nguyên nhân & cách xử lý |
+|---|---|---|
+| R-356 | `DbMigrator` báo `Failed to connect to 127.0.0.1:15432` dù PostgreSQL đang chạy | `DbMigrator/appsettings.json` trỏ cổng 15432, còn container và host dùng 5432. Không sửa file; chạy với biến môi trường `ConnectionStrings__Default="Host=localhost;Port=5432;…"` |
+| R-357 | `browser_click` (Playwright MCP) báo `expected string, received undefined → target` | Tool nhận `target` (ref từ snapshot) chứ không phải `ref`; truyền `target` + `element` |
+| R-358 | Dialog phiếu thu/chi cần Hình thức 4 mục có ô tìm kiếm như bản gốc nhưng `SearchSelect` chỉ nhận `string` | Không ép kiểu: bọc `ChannelSelect` chuyển số ↔ chuỗi qua tra cứu option (`SalesEntryModal.tsx`) — `PaymentChannel` giữ là số trong form và DTO |
+| R-359 | Nạp của bản gốc có "Cà thẻ (đối soát)" nhưng enum local chỉ có Cash / Bank / CustomerPrepaid | Thêm `CashHolding.Card = 4`; `cashHoldingsFor(type)` trả 3 kho cho Nạp, 2 kho cho Rút / Luân chuyển; balance tính `cardPending` từ kho này + thanh toán kênh thẻ (GIẢ ĐỊNH, bản gốc hiện 0) |
+| R-360 | "Luân chuyển đến" của bản gốc liệt kê cả hai kho (mặc định kho còn lại), local lọc bỏ kho nguồn | Bỏ lọc, thêm validator "Nơi nhận phải khác hình thức chuyển" + `dependencies={["holding"]}`, effect đặt lại nơi nhận khi trùng |
+| R-361 | Sau khi thêm `salesTab=real-revenue`, bấm "Thanh toán" / "Hoàn tiền"… lại nhảy về "Khách hàng phát sinh dịch vụ" | Sub-pill đọc thuần từ URL mà chỉ "Doanh số thực" có giá trị URL → các pill khác luôn về mặc định. Giữ pill trong `useState`, URL chỉ ghi/đọc `real-revenue` (`useReportUrlState.ts`) |
+| R-362 | Bản gốc `/report` tự ghi `?report_dateMode=day&report_date=<hôm nay>` khi mở, local xoá tham số khi là mặc định | `useEffect` ghi cả hai tham số (`replace: true`) khi thiếu / sai; `setViewMode` luôn ghi. Spec: mode loop kết thúc ở Tháng để file Thanh toán có dòng (mặc định ngày → hôm nay rỗng) |
+| R-363 | `vite build` chết `EPERM … dist/assets/stethoscope-*.js` rồi `Access is denied` — file không xoá / đổi tên được | Một tiến trình khác giữ file trong `dist` (phiên khác dùng chung checkout). Build sang `--outDir dist-preview` và chạy `vite preview --outDir dist-preview --port 8080 --strictPort` |
+| R-364 | Escape để đóng dropdown `SearchSelect` trong modal làm đóng luôn modal → bước sau timeout | `SearchSelect` không chặn keydown, AntD Modal bắt Escape. Trong spec đóng list bằng click ra ngoài (`.ant-modal-title`); AntD `Select` không bị (dừng ở dropdown) |
+| R-365 | Spec kỳ vọng `THANHTOAN-…` nhưng dữ liệu demo cũ vẫn `PT26-0027` / `TT26-…` / `HT26-…` | Dòng tạo trước khi đổi `FormatCode`. Đánh số lại trong DB local bằng SQL (row_number theo chi nhánh / loại / năm) — 27 THANHTOAN, 12 HOANTIEN, 5 TAMUNG, không trùng; `GenerateCodeAsync` đếm dòng nên số mới nối tiếp |
+| R-366 | "Doanh số thực" local vẫn hiện khối biểu đồ Thực thu / Công nợ bên dưới | Bản gốc (mở pill, chỉ xem) chỉ có ô tổng + bảng 8 cột. Thêm `actual` vào `TABLE_ONLY_SUBS` (`ExpenseTab.tsx`) |
+| R-367 | Luân chuyển: đổi Hình thức trùng nơi nhận → nơi nhận đã tự lật nhưng lỗi "Nơi nhận phải khác hình thức chuyển" vẫn đỏ (chủ dự án báo) | Race của AntD Form: `dependencies={["holding"]}` re-validate "toHolding" đồng bộ trong `updateValue` (đã bắt giá trị trùng), kết quả về bất đồng bộ **sau** khi effect xoá lỗi bằng `setFields` → lỗi cũ đè lên. Sửa: lật trong `onValuesChange` (không dùng effect) + `form.validateFields(["toHolding"])` ngay sau `setFieldValue` (validatePromise mới thay promise cũ) + rule đọc `getFieldValue("holding")` lúc validate thay vì closure render |
+| R-368 | Dialog Nạp local không có dòng "Số dư khả dụng"; bản gốc có khi chọn Cà thẻ (đối soát), nhãn "(Cà thẻ chờ đối soát)" | Quan sát bản gốc 2026-09-22 (chỉ đổi select): Nạp hiện dòng này **chỉ** với kho Cà thẻ, Rút / Luân chuyển hiện theo Hình thức. `CashflowEntryModal`: `showBalanceHint = !isDeposit \|\| holding === Card`, nhãn qua `balanceHintLabelsFor()` (Card → "Cà thẻ chờ đối soát", còn lại = nhãn kho) |
+| R-369 | Luân chuyển: chọn "Luân chuyển đến" trùng Hình thức local báo lỗi khi Lưu; bản gốc lật **Hình thức** sang kho kia (nơi nhận giữ nguyên), không có lỗi | `handleValuesChange` đối xứng: bên nào vừa đổi trùng bên kia thì lật bên kia (`otherHolding`), re-validate; validator giữ làm chốt chặn không tới được bằng UI. Spec tab 4 kiểm tra cả hai chiều lật + dòng số dư đổi theo nguồn (thay bước "Lưu → lỗi") |
+
+## 2026-09-22 (tối) — Báo cáo: tab 2 dựng lại theo thao tác thật trên staging
+
+Chủ dự án: "làm local luôn đi hãy làm cho hoàn toàn giống ở ref app 100%". Các
+luồng ghi của tab Quản lý thu chi được bấm thật trên staging.nfcdental.com
+(được phép; bản ghi thử ghi chú "BlueDental clone test … - se xoa"), rồi local
+dựng lại: nút trên dòng, hộp xác nhận, modal in, toast, validate, xoá mềm,
+duyệt không body, xoá danh mục đang dùng, `cashflowTab`, sub-tab Tạm ứng. Retest
+mức 2, `report.spec.ts` + `finance.spec.ts` 7/7 xanh trên preview :8080 (1,3 phút).
+
+| ID | Triệu chứng | Nguyên nhân & cách xử lý |
+|---|---|---|
+| R-370 | Spec tab 4 chờ toast "Đã xoá nhóm" sau khi xoá danh mục sổ quỹ nhưng không thấy | Staging: danh mục thu / chi gọi là "nhóm" ("Tạo nhóm thành công", "Đã xoá nhóm"), danh mục sổ quỹ vẫn là "danh mục". `deleteCategory(page, name, toast)` nhận chữ toast; `CategoryFormModal` / `CashflowCategoryManager` rẽ theo `isCashbook` |
+| R-371 | `getByRole("button", { name: "Close" })` trong modal "Chi tiết phiếu" timeout | App đặt aria-label nút đóng AntD Modal là "Đóng" (snapshot: `button "Đóng"` > `img "close"`). Spec bấm `.ant-modal-close` |
+| R-372 | `dotnet build` HttpApi.Host báo MSB3021 không copy được `BlueDental.HttpApi.dll` (6 lỗi) | Host đang chạy `dotnet run --no-build` giữ file trong `HttpApi.Host/bin`. Chỉ là lỗi copy — kiểm tra biên dịch bằng `dotnet build src/BlueDental.Application` (0 lỗi); muốn host nhận code mới thì TaskStop rồi build + run lại |
+| R-373 | Local duyệt chi bằng `POST /sales/{id}/approve { staffId }`; staging là `PUT /sales/{id}/approve` **không body** → 200 | `ApproveAsync(Guid id)` lấy người duyệt từ `CurrentUser.GetId()`; controller `[HttpPut("{id:guid}/approve")]`; DTO `ApproveSalesEntryInput` xoá. `SalesEntryAppServiceContractTests` chỉ soi attribute nên không đổi. `RejectAsync` giữ trên API (test contract) nhưng không còn UI |
+| R-374 | Local chặn xoá danh mục đang có phiếu (`CategoryInUse`); staging xoá được, phiếu và dòng con tab 3 vẫn hiện tên | `CashflowCategoryAppService.DeleteAsync` chỉ chặn `IsSystem`; tra tên danh mục trong `SalesEntryAppService.MapToDtosAsync` và `ClinicReportAppService.CategoryNamesAsync` bọc `IDataFilter<ISoftDelete>.Disable()`. Spec tab 2 và `finance.spec.ts` xoá danh mục ở cuối rồi khẳng định dòng phiếu vẫn mang tên |
+| R-375 | Thẻ "Tổng chi phí" local cộng cả dự chi; staging chỉ cộng đã duyệt | `CashflowExpenseView`: `sum(approved)`; spec khẳng định thẻ không đổi khi thêm phiếu dự chi và tăng đúng sau duyệt |
+| R-376 | Spec tạo "Mục tạm E2E …" xong không thấy dòng (timeout 5 s) — dòng nằm trang 2 | Bảng danh mục phân trang 20; các lần chạy trước để lại 35 danh mục `Mục … E2E` (BE cũ không cho xoá danh mục có phiếu). Xoá mềm 35 dòng bằng SQL trên DB local; hai spec nay tự xoá danh mục của mình ở cuối (R-374) nên bảng ở lại trang 1 |
+| R-377 | Dòng thu nhập local có nút xoá, dòng chi phí dự chi có nút Từ chối (modal lý do); staging: 4 nút tròn 32px Duyệt chi / Chỉnh sửa / Xoá / In, đã duyệt chỉ còn In, thu nhập chỉ Chỉnh sửa + In, không có Từ chối | `CashflowRowActions` viết lại (aria-label = tooltip), `ConfirmApproveDialog` ("Xác nhận duyệt"), `ConfirmDeleteDialog` với `title="Xác nhận xoá"` + câu "Bạn có chắc muốn xoá phiếu chi **{nội dung}** không?", `SalesEntryDetailModal` ("Chi tiết phiếu", 1024px) + `SalesEntryPrintSheet` (tờ A4 ẩn, `@media print`); `RejectReasonModal.tsx` xoá; CSS trong `report.css` (`.report-row-action`, `.report-print-*`) |
+| R-378 | Sub-tab Tạm ứng local có nhãn / thẻ số khác staging; cột Phiếu thanh toán trống với dòng tạm ứng | Staging: 4 thẻ Tạm ứng phát sinh / Tiêu tạm ứng (âm) / Hoàn tiền (âm) / Số dư, pill = phát sinh − tiêu − hoàn, gộp ô Ngày → Khách hàng → Số dư sau, mã THANHTOAN hoặc "-". `PrepaidSubTab` viết lại với `groupSpans` / `spanCell`; BE `PaymentCode = "-"` cho dòng tạm ứng; `PaymentSubTab` thêm thẻ "Tạm ứng" (6 thẻ). Sub-tab tab 2 ghi URL `cashflowTab=income|expense|category` (`useReportUrlState`), xoá khi rời tab |
+| R-379 | `tsc --noEmit` báo 2 lỗi ngoài feature report: `AppLayout.tsx(18)` TS6133 `NotificationBell` không dùng, `ReceptionPage.tsx(164)` TS2322 `ViewMode` / `DateNavigatorMode` | Hai file sạch trong git (HEAD 8c4e430) và thuộc phiên khác đang làm chung checkout — không sửa. `eslint src/features/report` 0 lỗi, `vite build` thành công; báo lại chủ dự án |
+
+## 2026-09-22 (tối, 2) — Báo cáo: soát lại 4 tab theo bundle staging
+
+Chủ dự án: "Kiểm tra kỹ trang /report … hoàn thiện cho giống 100%". Bundle JS
+của staging (`reference-private/report/bundle/`) được đọc lại hàm theo hàm
+(`ev(type)`, cột modal, tờ in, gate quyền, modal tab 4) rồi so với local từng
+tab; app.nfcdental.com chỉ xem. Spec chạy trên bản build production
+(`vite preview` :8080, API :5000 build lại với DTO mới, PostgreSQL thật).
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-380 | Nút in trên dòng thu nhập ghi "In thu nhập"; modal "Chi tiết phiếu" thiếu cột Khách hàng và cột ngày thứ hai, độ rộng khác bundle | Nhãn và bảng khác bản gốc, spec tìm nút "In" chung chung | Nhãn dựng tay thay vì theo `ev(type)` của bundle ("In khoản thu" / "In chi phí", Ngày thực thu / chi, Nội dung thu / chi, Người nộp / nhận) | `voucherLabels(type)` dùng chung cho cột, dialog, modal, tờ in, `aria-label`; modal 8 cột 130/140/150/220/140/140/130/140, Số tiền phải đậm | F-17 (`report.spec.ts` bấm "In khoản thu" / "In chi phí") |
+| R-381 | Tờ in A4 có cột Khách hàng, Số tiền không canh phải, thiếu "Số: <mã>" | In khác bản gốc | Tờ in copy bảng trên màn hình thay vì mảng cột riêng của bundle (7 cột, khách ở khối đầu trang) | `SalesEntryPrintSheet` 7 cột + `.report-print-cell--amount`; `@page` A4 10mm (giả định, ghi rõ) | F-17 |
+| R-382 | Mọi nút thêm / duyệt / xoá / nạp / rút / luân chuyển / xuất Excel hiện với mọi tài khoản; sub-tab tab 4 không theo quyền | Người không có quyền vẫn thấy nút (server vẫn chặn) | Bundle gate từng nút bằng `usePermission("income.create")`, `cost.approve`, `transfer.deposit`…; local chưa ánh xạ | `useReportPermissions.ts` ánh xạ sang `BlueDental.Finance.*`; `CashflowV2Tab`, `CashflowV2Overview`, `CategoryPanel`, `cashflowLedgerColumns` ẩn nút / sub-tab theo quyền | F-17 (admin đủ quyền nên spec thấy đủ nút; quyền từng vai chưa có spec) |
+| R-383 | Dialog sửa danh mục ghi "Sửa danh mục …", cột Thao tác bảng danh mục 120 cho cả sổ quỹ, mã màu in thường | Chữ và độ rộng khác staging | Tiêu đề và độ rộng dựng theo suy đoán | "Chỉnh sửa danh mục thu nhập / chi phí / sổ quỹ"; Thao tác 70 khi có màu, 120 khi không; `.report-color-code` uppercase; nút "Thêm mục" gate theo quyền tạo | F-17 (`report.spec.ts` đọc "Chỉnh sửa danh mục chi phí") |
+| R-384 | Tab 4: dòng chỉ có bút + thùng, không có Xem chi tiết; ô số dư cùng tone; pill danh mục không màu; hai dòng dưới ô cùng màu | Thiếu modal "Chi tiết phiếu" / "In Hoá Đơn" của bản gốc, màu khác | Bundle có nút mắt mở voucher (PHIẾU THU / CHI / LUÂN CHUYỂN DÒNG TIỀN, Bằng chữ, Người lập phiếu) và tone blue/green/gold/violet; `CashflowEntryDto` không mang màu danh mục / ngày tạo | BE `CashflowEntryDto.CategoryColor` + `CreationTime`; FE `CashflowEntryVoucher`, `CashflowEntryDetailModal`, `cashflowLedgerColumns` (Xem chi tiết / Chỉnh sửa / Hủy có gate), tone `violet` mới, `--pill-color` | F-17 (`report.spec.ts` mở modal, đọc "Chi tiết phiếu", "Bằng chữ", "In Hoá Đơn") |
+| R-385 | Tab 1 Dư nợ không có chip "(đã hủy)" / "(thay thế)"; Thanh toán không ghi đỏ "(đã huỷ)"; độ rộng cột Dư nợ / Chi phí và đơn vị đếm khác | Bảng khác bản gốc | BE không trả trạng thái dịch vụ cho dòng dư nợ, không trả tên dịch vụ đã huỷ cho dòng thanh toán | BE `DebtLineDto.Status`, `PaymentLineDto.CancelledServiceNames`; FE `STATUS_CHIP`, `ServiceList`, cột 130/190/170/180/190/120 và 130/190/170/180/190/120/140/160, `countUnit` "dòng" / "phiếu", tone blue/green/red | F-17 (`report.spec.ts` tab 1 đọc bảng thật; chip cần dữ liệu huỷ — chưa có case trong spec) |
+| R-386 | `report.spec.ts` / `finance.spec.ts` tìm nút theo tên icon AntD (`delete`, `edit`, "In") | Đỏ ngay khi nút mang `aria-label` bản gốc | Spec viết trước khi nút có nhãn | Spec bấm "Hủy", "Chỉnh sửa", "Xem chi tiết", "In khoản thu" / "In chi phí"; helper `expectVoucherPreview` | F-17 |
+| R-387 | `vite build` sập (stack trace) khi chạy song song `dotnet build`; `dotnet run --no-build` báo "Couldn't find a project to run" | Mất một vòng build, host không lên | Hai build cùng lúc tranh CPU/tệp; cwd của shell nhảy sang `BlueDental.FE` giữa các lệnh | Chạy tuần tự; luôn `dotnet run --no-build --project <đường dẫn csproj tuyệt đối>` — ghi để phiên sau khỏi lặp | — (thao tác) |
+
+## 2026-09-22 (tối, 3) — Báo cáo: chủ dự án chốt các UNKNOWN còn lại
+
+Chủ dự án trả lời từng mục: toast sau Duyệt và chữ hộp Hủy tab 4 "tự nghĩ",
+in = window.print, hộp xoá danh mục thu/chi gửi kèm ảnh staging, công thức
+6 ô "b nghĩ như nào", "Nạp vào dư nợ" chưa rõ. Spec chạy trên
+`dist-preview4` :8080, API :5000 không đổi.
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-388 | Hộp xoá danh mục thu/chi local tiêu đề "Xác nhận xoá danh mục"; ảnh staging (Danh mục thu nhập) là "Xác nhận xoá" + "Bạn có chắc muốn xoá danh mục **abc** không?" | Chữ khác bản gốc | Ba biến thể danh mục dùng chung một tiêu đề lấy từ bundle của sổ quỹ | `CashflowCategoryManager` truyền `title="Xác nhận xoá"` cho thu/chi, sổ quỹ giữ "Xác nhận xoá danh mục"; spec đọc tiêu đề bằng `.bd-modal-title` để phân biệt hai chuỗi lồng nhau | F-17 (`report.spec.ts` `deleteCategory(title)`, `finance.spec.ts`) |
+| R-389 | Không có toast sau Duyệt chi | Người dùng không biết duyệt xong (chỉ thấy badge đổi) | Bản gốc chưa bắt được toast; chủ dự án chốt tự chọn | Toast "Duyệt chi phí thành công" trong `onSuccess` của `useApproveSalesEntry` (cùng khuôn "Tạo phiếu thu chi thành công") | F-17 (`report.spec.ts` + `finance.spec.ts` chờ toast) |
+| R-390 | Hộp Hủy tab 4 hỏi chung "hủy giao dịch này", nút đỏ ghi "Xoá", toast "Đã xoá giao dịch" — trong khi bản gốc gọi hành động là Hủy | Chữ nút trái với tên hành động | `ConfirmDeleteDialog` không cho đổi nhãn nút xác nhận | Prop `confirmLabel?` (tuỳ chọn, mặc định "Xoá" — 27 nơi khác không đổi); `CashflowV2Overview`: ghi chú in đậm trong câu hỏi, nút "Hủy giao dịch", toast "Đã hủy giao dịch" (quyết định chủ dự án) | F-17 (`report.spec.ts` `deleteLedgerEntry`, `finance.spec.ts`) |
+
+## 2026-09-22 (tối, 4) — Báo cáo: sub-tab Tạm ứng theo ảnh staging của chủ dự án
+
+Chủ dự án gửi ảnh staging (chế độ Năm, chi nhánh A, `salesTab=prepaid`) —
+lần đầu thấy dòng dữ liệu của sub-tab này (trước chỉ thấy trạng thái
+rỗng). Host build lại, spec chạy trên `dist-preview5` :8080, API :5000.
+
+| # | Defect | Impact | Root cause | Fix | Guarded by |
+|---|--------|--------|------------|-----|------------|
+| R-391 | Mã phiếu thu local lặp số phiếu ở phần "DT" (`THANHTOAN-27/DT27/2026`); ảnh staging: `THANHTOAN-31/DT32/2026` với DT32 = phiếu "Test DV" của HN8521 (khớp `patient-detail.md`), phiếu kế tiếp DT33 → `THANHTOAN-34/DT33/2026` | Mã in trên phiếu / báo cáo không trỏ đúng phiếu điều trị | Giả định cũ "hai nửa cùng một bộ đếm" (bản gốc trước đó chỉ thấy các mã trùng số) | `PatientPayment.FormatCode(kind, seq, year, planCode)` — phiếu thu bắt buộc có mã phiếu điều trị; `PatientPaymentAppService.GenerateCodeAsync` tra `TreatmentPlan.Code`; seeder truyền mã. Mã đã phát hành trong DB giữ nguyên (định danh đã in) | F-17 (`report.spec.ts` regex `THANHTOAN-\d+/DT\d+/\d{4}` trên file Excel Thanh toán) |
+| R-392 | Cột Phiếu thanh toán tab Tạm ứng luôn "-" (giả định "tạm ứng không có phiếu"); staging ghi mã `THANHTOAN…` chữ xanh trên dòng "Tạm ứng phát sinh", các loại khác "-" | Không tra được phiếu từ sổ tạm ứng | Chưa từng thấy dòng dữ liệu | `GetPrepaidLinesAsync`: `PaymentCode = p.Code`; FE `.report-voucher-code` xanh; cột Bác sĩ điều trị "-" (staging = bác sĩ của phiếu điều trị; nạp tạm ứng local không có phiếu, trước hiện nhầm tên người thu) | F-17 (`report.spec.ts`: ô mã khớp `^(THANHTOAN\|TAMUNG)-\d{2,}/`) |
+| R-393 | Thẻ tab Tạm ứng: nhãn "Tiêu tạm ứng theo tiến độ" / "Hoàn tiền", tông xanh lá / vàng / xanh dương / đen; số tiền tô theo loại sự kiện; Số dư sau đen. Staging: "Tiêu dùng tạm ứng" / "Hoàn tiền tạm ứng", tông xanh dương / vàng / đỏ / tím; số tiền `+…` xanh lá / `-…` đỏ theo dấu; Số dư sau xanh dương | Khác bản gốc về chữ và màu | Dựng từ trạng thái rỗng 2026-09-04 | `PrepaidSubTab`: 4 thẻ đổi nhãn + tông, `renderSignedAmount` theo dấu, Số dư sau `report-money--blue`, `EVENT_LABELS` có thêm "Chuyển tạm ứng sang dịch vụ mới" / "Xóa tạm ứng dịch vụ cũ (thay thế)" | F-17 (`report.spec.ts`: 4 nhãn thẻ, `+…` xanh, số dư xanh) |
+| R-394 | "Số dư tạm ứng hiện tại" local = tổng nạp trong kỳ (luôn bằng pill); staging ô 10.070.000 ≠ pill 5.570.000 → ô là số đang giữ hiện tại | Ô thẻ vô nghĩa khi đổi kỳ | Chưa có dữ liệu để phân biệt | `GetSalesSummaryAsync`: `PrepaidBalance` = tổng tạm ứng mọi kỳ theo chi nhánh (ASSUMPTION công thức; local chưa có tiêu dùng / hoàn tạm ứng) | F-17 (`report.spec.ts` thẻ hiển thị; giá trị không khẳng định) |
+
+Không dựng (ghi `unknowns.md`): sự kiện "Tiêu tạm ứng theo tiến độ" /
+"Chuyển tạm ứng sang dịch vụ mới" / "Xóa tạm ứng dịch vụ cũ (thay thế)" —
+tạm ứng bản gốc gắn phiếu điều trị và tiêu theo tiến độ, tạm ứng local là
+tiền giữ hộ ngoài phiếu.

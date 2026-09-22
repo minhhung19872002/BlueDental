@@ -261,12 +261,146 @@ See: docs/clone/pages/operations.md
 
 ---
 
-UNKNOWN_REFERENCE_BEHAVIOR
+RESOLVED — 2026-08-22 / 2026-09-03 / 2026-09-21 / 2026-09-22
 Page: /report
 Control: Entire page
-Reason: Page not yet navigated to. Route confirmed (HTTP 200) but content unknown.
+Reason: Was "not yet navigated to". Since then all four tabs, the seven
+dialogs (opened, never saved) and the two server workbooks were observed;
+see docs/clone/pages/report.md. The items below are what is still unknown.
+Action taken: NONE (read-only observation)
+
+---
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /report (tab Luân chuyển dòng tiền V2, Tổng quan)
+Control: Summary lines "Doanh thu dịch vụ" and "Cà thẻ chờ đối soát"
+Reason: Both read 0 on the reference branch, so their formulas cannot be
+derived. Local ASSUMPTION (2026-09-22): serviceRevenue = patient payments
+net of refunds, cardPending = card-channel patient payments net of refunds
++ deposits into holding "Cà thẻ (đối soát)".
+Action taken: NONE. ĐÃ CHỐT (chủ dự án, 2026-09-22, "b nghĩ như nào"):
+DECISION — keep the local formulas: Cash / Bank / CustomerPrepaid = the net
+effect of every entry (patient payments by channel, deposits +, withdrawals
+−, transfers ±) on that holding, all time; Total = Cash + Bank (money held
+for customers and unsettled card takings excluded); ServiceRevenue = patient
+payments net of refunds, prepaid excluded; CardPending = card payments net
+of refunds + the "Cà thẻ (đối soát)" holding. Documented in
+docs/clone/pages/report.md; no longer blocks acceptance.
+See: docs/clone/api.md (cash-management/balance)
+
+---
+
+PARTLY RESOLVED — 2026-09-22 (owner's staging screenshot, sub-tab Tạm ứng,
+year view)
+Page: /report (tab Doanh số và lượt khách, sub-tab Tạm ứng)
+Control: Code column of a prepaid (tạm ứng) record
+Reason: RESOLVED — the "DT" part of THANHTOAN-NN/DTNN/yyyy is the treatment
+slip's own code, not a second counter: HN8521's slip "DT32 - Test DV"
+(docs/clone/pages/patient-detail.md) was paid as THANHTOAN-31/DT32/2026 and
+its next slip DT33 as THANHTOAN-34/DT33/2026. Local now formats
+THANHTOAN-NN/<TreatmentPlan.Code>/yyyy (rows issued earlier keep their old
+code). STILL UNKNOWN — a "Tạm ứng phát sinh" row on the reference is an
+ordinary payment on a slip; a top-up held outside any slip (local
+PatientPaymentKind.Prepaid) never appeared, so its code shape is unseen.
+Local ASSUMPTION stays TAMUNG-NN/yyyy, modelled on HOANTIEN-NN/yyyy.
+Action taken: NONE (screenshot only)
+
+---
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /report (tab Doanh số và lượt khách, sub-tab Tạm ứng)
+Control: Rows "Tiêu tạm ứng theo tiến độ", "Chuyển tạm ứng sang dịch vụ
+mới", "Xóa tạm ứng dịch vụ cũ (thay thế)" and the "Tiêu dùng tạm ứng" /
+"Hoàn tiền tạm ứng" tiles
+Reason: On the reference a deposit sits on a treatment slip and is consumed
+as the slip's services progress (a consumption row can also be positive, a
+deposit row negative, and a replaced service moves its deposit). Which
+progress event books the consumption, and how a refund of a deposit is
+booked, was not observed — only the resulting rows were. Local prepaid money
+is held outside any slip, so it emits "Tạm ứng phát sinh" only; the two
+outflow tiles stay 0 and the four event labels are ready in
+PrepaidSubTab.EVENT_LABELS. Rebuilding the slip-bound deposit model belongs
+to the treatment / payment feature, not to /report.
 Action taken: NONE
-See: docs/clone/pages/report.md
+
+---
+
+RESOLVED — 2026-09-22 (select changes only, never saved)
+Page: /report (tab Luân chuyển dòng tiền V2, dialog Tạo giao dịch luân chuyển)
+Control: "Luân chuyển đến" when it equals "Hình thức"
+Reason: The two selects can never be equal: picking a target equal to the
+source flips the SOURCE (target kept), and picking a source equal to the
+target flips the TARGET. No error text exists; the "Số dư khả dụng" line
+follows the source. Local mirrors the flips; its validator is unreachable.
+Also observed: Nạp shows the balance line only for Cà thẻ (đối soát),
+labelled "(Cà thẻ chờ đối soát)"; Rút labels it with the chosen holding.
+Action taken: NONE (read-only observation)
+
+---
+
+RESOLVED — 2026-09-22 (staging.nfcdental.com, writes allowed by the owner)
+Page: /report (tab 2 Quản lý thu chi)
+Control: Row actions, their confirm dialogs, the toasts after Lưu / Duyệt / Xoá
+Reason: Exercised on staging with throwaway records. A pending expense has
+four round buttons (Duyệt chi / Chỉnh sửa / Xoá / In), an approved one only
+In, an income row Chỉnh sửa + In — there is no reject. "Xác nhận duyệt" and
+"Xác nhận xoá" dialogs (Huỷ / Duyệt, Huỷ / Xoá, "Hành động này không thể
+hoàn tác."), soft delete, toasts "Tạo / Cập nhật phiếu thu chi thành công",
+"Đã xoá phiếu thu chi", "Tạo / Cập nhật nhóm thành công", "Đã xoá nhóm".
+Local rebuilt to match — docs/clone/pages/report.md §"Đợt đồng bộ staging".
+Action taken: writes on STAGING only (never on app.nfcdental.com)
+
+---
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /report (tab 2 Quản lý thu chi)
+Control: (a) toast after "Duyệt" in "Xác nhận duyệt"; (b) label of the print
+button in "Chi tiết phiếu" for an INCOME voucher; (c) what "In chi phí" does;
+(d) title of the delete dialog for an income / expense CATEGORY
+Reason: (a) the toast was not captured on staging; (b) only an expense
+voucher was printed; (c) the owner declined the click that would have shown
+whether it calls window.print or builds a PDF; (d) only the cashbook
+category was deleted on staging. Local: no toast after approve,
+window.print() of a hidden A4 sheet, "Xác nhận xoá danh mục" for all three.
+Action taken: NONE. 2026-09-22 (2): (b) ĐÃ GIẢI ĐÁP từ bundle `ev(type)` —
+"In khoản thu" (income) / "In chi phí" (expense); local dùng đúng.
+ĐÃ CHỐT (chủ dự án, 2026-09-22): (a) DECISION "Duyệt chi phí thành công"
+(owner: "tự bạn nghĩ đi"); (c) FACT window.print (owner confirmed; print
+layout still from the bundle, `@page` A4 10mm assumed); (d) FACT from a
+staging screenshot: "Xác nhận xoá" / "Bạn có chắc muốn xoá danh mục
+**{tên}** không?" / Huỷ / Xoá — local matches; cashbook keeps "Xác nhận
+xoá danh mục" (bundle). Nothing open here.
+
+---
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /report (tab 4 Luân chuyển dòng tiền V2)
+Control: Hủy on a ledger row and its confirm dialog
+Reason: Not exercised on staging (tab-4 rows there are real cash movements).
+Local keeps "Xác nhận hủy giao dịch" with a Xoá button.
+Action taken: NONE. 2026-09-22 (2): the row's Xem chi tiết modal ("Chi tiết
+phiếu", "In Hoá Đơn") and the Chỉnh sửa / Hủy gating were rebuilt from the
+bundle; the Hủy dialog text is still unobserved. The bundle also carries
+"Nạp vào dư nợ" / "Rút dư nợ" (`debt-topup` / `debt-withdraw`) rows that no
+local channel produces — not built.
+ĐÃ CHỐT (chủ dự án, 2026-09-22, "tùy b nghĩ đi"): DECISION — title "Xác
+nhận hủy giao dịch", "Bạn có chắc muốn hủy giao dịch **{note}** không?",
+"Hành động này không thể hoàn tác.", Huỷ / "Hủy giao dịch" (red), toast
+"Đã hủy giao dịch". The debt-topup / debt-withdraw rows stay UNKNOWN
+(owner: "chưa rõ").
+
+---
+
+UNKNOWN_REFERENCE_BEHAVIOR
+Page: /report (tab Kết quả kinh doanh)
+Control: Child rows under the six fixed rows
+Reason: The reference shows per-taxonomy sub-rows whose grouping rule is
+not visible from the response; local renders the six rows only.
+Action taken: NONE. ĐÃ GIẢI ĐÁP (2026-09-22 tối, staging): child rows are
+the categories under Thu khác and under Chi phí (approved only), in the
+order returned; local `BusinessResultTab` renders `otherIncomeByCategory` /
+`expenseByCategory` the same way (R-374). Nothing open here.
+
 
 ---
 
@@ -804,25 +938,43 @@ Control: nút Lưu trong các dialog "Thêm khoản thu", "Thêm danh mục thu 
       Duyệt / Từ chối trên từng dòng
 Reason: đều ghi dữ liệu lên production. Chỉ mở dialog để đọc cấu trúc trường
       rồi đóng bằng Escape; không nhập, không bấm Lưu.
-Action taken: NONE. Bản local dựng modal cùng cấu trúc trường, submit chỉ hiện
-      toast demo (không có API ghi). Validate phía server, thông báo lỗi và
-      hộp xác nhận xóa/duyệt: chưa biết.
+Action taken: NONE. 2026-09-21: đã mở (không lưu) đủ 7 dialog — Thêm khoản
+      thu, Thêm chi phí, Thêm danh mục thu nhập, Tạo giao dịch nạp / rút /
+      luân chuyển, Thêm danh mục sổ quỹ mới — cấu trúc trường ghi ở
+      docs/clone/pages/report.md. Bản local nay gọi API thật (BE Finance).
+      Vẫn chưa biết: validate lỗi phía server, nội dung hộp xác nhận
+      xóa / duyệt / từ chối, toast sau khi lưu. File Excel tab 2 / 4 với
+      dữ liệu thật cũng chưa tải được (chi nhánh gốc trống mọi kỳ, chỉ thấy
+      toast "Không có dữ liệu để xuất"); cấu trúc lấy từ bundle JS — xem
+      docs/clone/pages/report.md. Tài khoản staging sẽ cho tải file thật.
+      ĐÃ GIẢI ĐÁP (2026-09-22, staging): các nút Lưu / Chỉnh sửa / Duyệt /
+      Xoá / In của tab 2 đã bấm thật trên staging (chủ dự án cho phép):
+      hộp xác nhận, toast, validate, xoá mềm, không có Từ chối — ghi ở
+      docs/clone/pages/report.md §"Đợt đồng bộ staging 2026-09-22"; local
+      đã dựng theo. File Excel tab 2 tải được từ staging (thu-nhap.xlsx /
+      chi-phi.xlsx, cột Khách hàng = payerName hoặc "—"). Còn lại: toast
+      sau Duyệt, nhãn nút in phiếu thu, cơ chế in, nút Hủy tab 4.
+      2026-09-22 (2): nhãn nút in phiếu thu = "In khoản thu" (bundle
+      `ev(type)`) — đã dựng; tab 1 chip "(đã hủy)" / "(thay thế)" và chữ đỏ
+      "(đã huỷ)" ở Thanh toán đã dựng trên màn hình. Còn lại: toast sau
+      Duyệt, cơ chế in, hộp Hủy tab 4, tiêu đề hộp xoá danh mục thu/chi.
+      ĐÃ CHỐT (chủ dự án, 2026-09-22): toast sau Duyệt "Duyệt chi phí
+      thành công" (quyết định), in = window.print (xác nhận), hộp xoá danh
+      mục thu/chi "Xác nhận xoá" (ảnh staging), hộp Hủy tab 4 "Xác nhận hủy
+      giao dịch" / "Hủy giao dịch" / toast "Đã hủy giao dịch" (quyết định).
+      Còn: "Nạp vào dư nợ" / "Rút dư nợ".
 
-UNKNOWN_REFERENCE_BEHAVIOR
-Page: /report?reportTab=cashflow (sub Chi phí)
-Control: dialog "Thêm mới" của tab Chi phí
-Reason: chỉ mở dialog của tab Thu nhập ("Thêm khoản thu": Ngày tạo | Ngày
-      thực thu*, Chọn nhân viên | Chọn khách hàng, Số tiền*, Hình thức |
-      Người nộp | Mục thu*, Nội dung thu). Bản chi được suy ra bằng cách đổi
-      thu→chi và "Người nộp"→"Người nhận".
-Action taken: NONE. Cần quan sát lại khi có dịp an toàn.
+ĐÃ GIẢI ĐÁP (2026-09-21) — dialog "Thêm mới" tab Chi phí: "Thêm chi phí" —
+      Ngày tạo (khóa) | Ngày thực chi*; Chọn nhân viên | Người nhận; Số tiền* |
+      Hình thức | Mục chi*; Nội dung chi (textarea rows=4). Đúng như suy đoán.
 
-UNKNOWN_REFERENCE_BEHAVIOR
-Page: /report?reportTab=cashflow-v2 (sub Danh mục)
-Control: dialog "Thêm mục" của Danh mục sổ quỹ
-Reason: không mở. Cột bảng là Tên danh mục / Mã màu / Thao tác nên bản local
-      dựng form Tên danh mục* + Mã màu (ColorPicker).
-Action taken: NONE.
+ĐÃ GIẢI ĐÁP (2026-09-21) — dialog "Thêm mục" của Danh mục sổ quỹ: tiêu đề
+      "Thêm danh mục sổ quỹ mới", rộng 500; ô "Tên danh mục sổ quỹ", ô "Ghi chú
+      (không bắt buộc)", nhãn "Màu" với 8 ô màu (#2671D8 #EF4444 #10B981
+      #F59E0B #6366F1 #EC4899 #14B8A6 #64748B) + ô chọn màu tuỳ chỉnh, "Xem
+      trước" hiện chip "Danh mục sổ quỹ"; Lưu chỉ bật khi đã nhập tên.
+      Còn mờ: BE local chưa có trường ColorCode nên màu chưa lưu (đã nêu với
+      chủ dự án).
 
 UNKNOWN_REFERENCE_BEHAVIOR
 Page: /patient/<id>?tab=appointment — dialog "Tạo lịch hẹn", khối "Lịch đã hẹn"

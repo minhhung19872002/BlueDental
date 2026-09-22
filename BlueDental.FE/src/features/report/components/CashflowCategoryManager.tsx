@@ -1,11 +1,17 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { CreditCardOutlined, DollarOutlined } from "@ant-design/icons";
+import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { t } from "@/lib/i18n";
-import { SALES_ENTRY_TYPE } from "../api/financeApi";
-import { notifyDemoAction, useMockCashbookCategories, useMockCategories } from "../api/reportMockQueries";
-import type { CategoryVm } from "../types/mock";
-import { CategoryPanel, type CategoryPanelConfig } from "./CategoryPanel";
+import { useCurrentBranchId } from "@/lib/clinicBranch";
+import {
+  SALES_ENTRY_TYPE,
+  useCashflowCategories,
+  useDeleteCashflowCategory,
+  type CashflowCategoryDto,
+} from "../api/financeApi";
+import { REPORT_PERMISSION, useReportPermission } from "../hooks/useReportPermissions";
+import { CategoryPanel, type CategoryPanelConfig, type CategoryVm } from "./CategoryPanel";
 import { CategoryFormModal, type CategoryVariant } from "./CategoryFormModal";
 
 type SalesPanelKey = "income" | "expense";
@@ -21,12 +27,23 @@ const CASHBOOK_CONFIG: CategoryPanelConfig = {
   title: () => t("Danh mục sổ quỹ"),
   description: () => t("Quản lý danh mục con thuộc sổ quỹ."),
   searchPlaceholder: () => t("Tìm theo tên hoặc mã màu..."),
+  emptyText: () => t("Không có danh mục nào"),
   showColor: true,
 };
 
 interface Props {
-  /** "sales" = tab Quản lý thu chi (thu/chi sidebar); "cashbook" = tab Luân chuyển dòng tiền V2. */
   variant: "sales" | "cashbook";
+}
+
+function toVm(dto: CashflowCategoryDto): CategoryVm {
+  return {
+    id: dto.id,
+    name: dto.name,
+    type: dto.type,
+    priority: dto.sortOrder,
+    description: dto.description,
+    colorCode: dto.colorCode ?? null,
+  };
 }
 
 export function CashflowCategoryManager({ variant }: Props) {
@@ -35,15 +52,23 @@ export function CashflowCategoryManager({ variant }: Props) {
   const [editing, setEditing] = useState<CategoryVm | null>(null);
   const [deleting, setDeleting] = useState<CategoryVm | null>(null);
 
-  const sales = useMockCategories();
-  const cashbook = useMockCashbookCategories();
+  const branchId = useCurrentBranchId();
   const isCashbook = variant === "cashbook";
   const formVariant: CategoryVariant = isCashbook ? "cashbook" : panel;
+  const canCreate = useReportPermission(
+    isCashbook ? REPORT_PERMISSION.transferCategoryCreate : REPORT_PERMISSION.cashflowCategoryCreate,
+  );
+
+  const { data: salesResult, isLoading: salesLoading } = useCashflowCategories(branchId, false);
+  const { data: cashbookResult, isLoading: cashbookLoading } = useCashflowCategories(branchId, true);
+
+  const salesCategories = useMemo(() => (salesResult?.items ?? []).map(toVm), [salesResult]);
+  const cashbookCategories = useMemo(() => (cashbookResult?.items ?? []).map(toVm), [cashbookResult]);
 
   const categories = isCashbook
-    ? (cashbook.data ?? [])
-    : (sales.data ?? []).filter((c) => c.type === SALES_TYPE[panel]);
-  const loading = isCashbook ? cashbook.isLoading : sales.isLoading;
+    ? cashbookCategories
+    : salesCategories.filter((c) => c.type === SALES_TYPE[panel]);
+  const loading = isCashbook ? cashbookLoading : salesLoading;
 
   const handleAdd = useCallback(() => {
     setEditing(null);
@@ -55,15 +80,22 @@ export function CashflowCategoryManager({ variant }: Props) {
   }, []);
   const closeForm = useCallback(() => setFormOpen(false), []);
   const closeDelete = useCallback(() => setDeleting(null), []);
+  const deleteMutation = useDeleteCashflowCategory();
   const handleDelete = useCallback(() => {
-    if (deleting) notifyDemoAction(t("Xóa danh mục {0}", deleting.name));
-    setDeleting(null);
-  }, [deleting]);
+    if (!deleting) return;
+    deleteMutation.mutate(deleting.id, {
+      onSuccess: () => {
+        toast.success(isCashbook ? t("Đã xoá danh mục") : t("Đã xoá nhóm"));
+        setDeleting(null);
+      },
+    });
+  }, [deleting, deleteMutation, isCashbook]);
 
   const salesConfig: CategoryPanelConfig = {
     title: SALES_PANELS.find((p) => p.key === panel)?.title ?? (() => ""),
     description: () => t("Dùng làm hình thức / mục khi tạo phiếu thu chi."),
     searchPlaceholder: () => t("Tìm kiếm danh mục"),
+    emptyText: () => t("Không có dữ liệu"),
     showColor: false,
   };
 
@@ -72,6 +104,7 @@ export function CashflowCategoryManager({ variant }: Props) {
       config={isCashbook ? CASHBOOK_CONFIG : salesConfig}
       categories={categories}
       loading={loading}
+      canCreate={canCreate}
       onAdd={handleAdd}
       onEdit={handleEdit}
       onDelete={setDeleting}
@@ -105,10 +138,13 @@ export function CashflowCategoryManager({ variant }: Props) {
       )}
 
       <CategoryFormModal open={formOpen} variant={formVariant} category={editing} onClose={closeForm} />
+      {/* Staging titles the sales-category dialog "Xác nhận xoá"; the cashbook one "Xác nhận xoá danh mục". */}
       <ConfirmDeleteDialog
         open={deleting !== null}
         noun={t("danh mục")}
+        title={isCashbook ? undefined : t("Xác nhận xoá")}
         name={deleting?.name ?? ""}
+        pending={deleteMutation.isPending}
         onConfirm={handleDelete}
         onClose={closeDelete}
       />

@@ -22,9 +22,15 @@ public class SalesEntryDto : FullAuditedEntityDto<Guid>
     public string? RejectionReason { get; set; }
     public bool CountsTowardsCashflow { get; set; }
 
+    /// <summary>Free-text "Người nộp" / "Người nhận" when no patient is tied to the voucher.</summary>
+    public string? PayerName { get; set; }
+
     public string? CategoryName { get; set; }
     public string? StaffName { get; set; }
     public string? PatientName { get; set; }
+
+    /// <summary>The linked patient's code, so the tables can read "[code] - name" like the reference.</summary>
+    public string? PatientCode { get; set; }
 }
 
 public class CreateSalesEntryDto
@@ -38,6 +44,7 @@ public class CreateSalesEntryDto
     public PaymentChannel Channel { get; set; }
     public string Description { get; set; } = string.Empty;
     public DateOnly EntryDate { get; set; }
+    public string? PayerName { get; set; }
 }
 
 public class UpdateSalesEntryDto
@@ -48,6 +55,7 @@ public class UpdateSalesEntryDto
     public PaymentChannel Channel { get; set; }
     public string Description { get; set; } = string.Empty;
     public DateOnly EntryDate { get; set; }
+    public string? PayerName { get; set; }
 }
 
 public class GetSalesEntryListInput : PagedAndSortedResultRequestDto
@@ -69,11 +77,6 @@ public class RejectSalesEntryInput
 {
     public Guid StaffId { get; set; }
     public string Reason { get; set; } = string.Empty;
-}
-
-public class ApproveSalesEntryInput
-{
-    public Guid StaffId { get; set; }
 }
 
 /// <summary>Footer panel "Thông tin thu chi" of the cashflow report tab.</summary>
@@ -104,6 +107,9 @@ public class CashflowCategoryDto : FullAuditedEntityDto<Guid>
     public bool IsActive { get; set; }
     public int SortOrder { get; set; }
     public string? Description { get; set; }
+
+    /// <summary>Hex swatch of a cash-management category; null on sales categories.</summary>
+    public string? ColorCode { get; set; }
 }
 
 public class CreateCashflowCategoryDto
@@ -114,6 +120,7 @@ public class CreateCashflowCategoryDto
     public bool AppliesToTransfers { get; set; }
     public int SortOrder { get; set; }
     public string? Description { get; set; }
+    public string? ColorCode { get; set; }
 }
 
 public class UpdateCashflowCategoryDto
@@ -122,6 +129,7 @@ public class UpdateCashflowCategoryDto
     public string? Description { get; set; }
     public int SortOrder { get; set; }
     public bool IsActive { get; set; }
+    public string? ColorCode { get; set; }
 }
 
 public class GetCashflowCategoryListInput : PagedAndSortedResultRequestDto
@@ -145,6 +153,8 @@ public class CashflowEntryDto : FullAuditedEntityDto<Guid>
     public string? Note { get; set; }
 
     public string? CategoryName { get; set; }
+    /// <summary>The category's <c>ColorCode</c>, painted on the ledger's category pill.</summary>
+    public string? CategoryColor { get; set; }
     public string? CreatedByStaffName { get; set; }
 }
 
@@ -158,6 +168,16 @@ public class CreateCashflowEntryDto
     public Guid? CategoryId { get; set; }
     public Guid CreatedByStaffId { get; set; }
     public DateOnly EntryDate { get; set; }
+    public string? Note { get; set; }
+}
+
+/// <summary>PUT cashflow-entries/{id} — type and entry date stay as booked.</summary>
+public class UpdateCashflowEntryDto
+{
+    public CashHolding? FromHolding { get; set; }
+    public CashHolding? ToHolding { get; set; }
+    public decimal Amount { get; set; }
+    public Guid? CategoryId { get; set; }
     public string? Note { get; set; }
 }
 
@@ -185,6 +205,20 @@ public class CashBalanceDto
 
     /// <summary>Đang Giữ Hộ Khách.</summary>
     public decimal CustomerPrepaid { get; set; }
+
+    /// <summary>
+    /// "Doanh thu dịch vụ" — treatment payments net of refunds, all time.
+    /// ASSUMPTION: the reference showed 0 throughout the survey, so the exact
+    /// formula is UNKNOWN_REFERENCE_BEHAVIOR; this is the natural reading.
+    /// </summary>
+    public decimal ServiceRevenue { get; set; }
+
+    /// <summary>
+    /// "Cà thẻ (đối soát)" — card payments net of card refunds plus deposits
+    /// booked into the Card holding, i.e. money the bank has not yet settled to
+    /// the clinic (same assumption as above).
+    /// </summary>
+    public decimal CardPending { get; set; }
 }
 
 public class CashflowOverviewDto

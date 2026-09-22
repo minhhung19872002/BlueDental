@@ -43,6 +43,12 @@ public class SalesEntry : FullAuditedAggregateRoot<Guid>
     public DateTimeOffset? ApprovedAt { get; private set; }
     public string? RejectionReason { get; private set; }
 
+    /// <summary>
+    /// "Người nộp" (receipt) / "Người nhận" (payment) typed on the voucher when
+    /// the money is not tied to a patient — the reference keeps it as free text.
+    /// </summary>
+    public string? PayerName { get; private set; }
+
     protected SalesEntry() { }
 
     public static SalesEntry Record(
@@ -56,7 +62,8 @@ public class SalesEntry : FullAuditedAggregateRoot<Guid>
         PaymentChannel channel,
         string description,
         DateOnly entryDate,
-        Guid? patientId = null)
+        Guid? patientId = null,
+        string? payerName = null)
     {
         Check.NotNullOrWhiteSpace(code, nameof(code));
         Check.NotNullOrWhiteSpace(description, nameof(description));
@@ -81,6 +88,7 @@ public class SalesEntry : FullAuditedAggregateRoot<Guid>
             Channel = channel,
             Description = description,
             EntryDate = entryDate,
+            PayerName = NormalizeName(payerName),
             // Only expenses need an approval step.
             ApprovalStatus = type == SalesEntryType.Expense
                 ? SalesApprovalStatus.Pending
@@ -94,7 +102,8 @@ public class SalesEntry : FullAuditedAggregateRoot<Guid>
         PaymentChannel channel,
         string description,
         DateOnly entryDate,
-        Guid? patientId)
+        Guid? patientId,
+        string? payerName = null)
     {
         GuardEditable();
         Check.NotNullOrWhiteSpace(description, nameof(description));
@@ -112,7 +121,14 @@ public class SalesEntry : FullAuditedAggregateRoot<Guid>
         Description = description;
         EntryDate = entryDate;
         PatientId = patientId;
+        PayerName = NormalizeName(payerName);
         return this;
+    }
+
+    private static string? NormalizeName(string? name)
+    {
+        var trimmed = name?.Trim();
+        return string.IsNullOrEmpty(trimmed) ? null : trimmed;
     }
 
     public SalesEntry Approve(Guid approvedByStaffId)

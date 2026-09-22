@@ -1,9 +1,10 @@
-import { Segmented } from "antd";
+import { useMemo } from "react";
+import { Button, Segmented } from "antd";
 import type { Dayjs } from "dayjs";
 import { DateNavigator } from "@/components/DateNavigator";
 import { SearchSelect } from "@/components/SearchSelect";
 import { t } from "@/lib/i18n";
-import { useMockDoctorOptions } from "../api/reportMockQueries";
+import { useStaffList } from "@/features/staff/api/staffQueries";
 import { REPORT_VIEW_MODES, type ReportViewMode } from "../types/viewMode";
 
 const VIEW_MODE_LABELS: Record<ReportViewMode, () => string> = {
@@ -18,6 +19,8 @@ interface Props {
   currentDate: Dayjs;
   doctorId?: string;
   showDoctor: boolean;
+  /** Tab 4 on the reference: the mode pills stay, the navigator becomes a disabled "Tổng". */
+  periodLocked?: boolean;
   onViewModeChange: (mode: ReportViewMode) => void;
   onDateChange: (date: Dayjs) => void;
   onDoctorChange: (id?: string) => void;
@@ -29,11 +32,16 @@ export function ReportToolbar({
   currentDate,
   doctorId,
   showDoctor,
+  periodLocked = false,
   onViewModeChange,
   onDateChange,
   onDoctorChange,
 }: Props) {
-  const { data: doctorOptions = [] } = useMockDoctorOptions();
+  const { data: staffResult } = useStaffList({ isActive: true, maxResultCount: 200 });
+  const doctorOptions = useMemo(
+    () => (staffResult?.items ?? []).filter((d) => d.isDentist).map((d) => ({ value: d.id, label: d.fullName })),
+    [staffResult],
+  );
 
   const segmentedOptions = REPORT_VIEW_MODES.map((m) => ({ value: m, label: VIEW_MODE_LABELS[m]() }));
   return (
@@ -45,12 +53,18 @@ export function ReportToolbar({
         onChange={(val) => onViewModeChange(val as ReportViewMode)}
       />
 
-      <DateNavigator
-        className="report-toolbar-date"
-        value={currentDate}
-        mode={viewMode}
-        onChange={onDateChange}
-      />
+      {periodLocked ? (
+        <Button disabled className="report-toolbar-date report-toolbar-total">
+          {t("Tổng")}
+        </Button>
+      ) : (
+        <DateNavigator
+          className="report-toolbar-date"
+          value={currentDate}
+          mode={viewMode}
+          onChange={onDateChange}
+        />
+      )}
 
       {showDoctor && (
         <div className="report-toolbar-doctor">

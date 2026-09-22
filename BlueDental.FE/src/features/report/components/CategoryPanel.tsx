@@ -2,14 +2,25 @@ import { useMemo, useState } from "react";
 import { Button, Input, Space, Tooltip, type TableColumnsType } from "antd";
 import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
-import type { CategoryVm } from "../types/mock";
+import { useClientPaging } from "../hooks/useClientPaging";
 import { ReportTableCard } from "./ReportTableCard";
+
+export interface CategoryVm {
+  id: string;
+  name: string;
+  type: number;
+  priority: number;
+  description: string | null;
+  colorCode: string | null;
+}
 
 export interface CategoryPanelConfig {
   title: () => string;
   description: () => string;
   searchPlaceholder: () => string;
-  /** Cashbook categories carry a colour code column. */
+  /** The reference words the empty row differently per list ("Không có dữ liệu" vs "Không có danh mục nào"). */
+  emptyText: () => string;
+  /** Cashbook categories carry "Ghi chú" and "Mã màu" columns; sales ones only a name. */
   showColor: boolean;
 }
 
@@ -17,6 +28,8 @@ interface Props {
   config: CategoryPanelConfig;
   categories: CategoryVm[];
   loading: boolean;
+  /** "Thêm mục" needs the list's `create` grant on the reference. */
+  canCreate: boolean;
   onAdd: () => void;
   onEdit: (category: CategoryVm) => void;
   onDelete: (category: CategoryVm) => void;
@@ -27,7 +40,7 @@ function ColorCell({ code }: { code: string | null }) {
   return (
     <span className="report-color-cell">
       <span className="report-color-swatch" style={{ "--swatch": code } as React.CSSProperties} />
-      {code}
+      <span className="report-color-code">{code}</span>
     </span>
   );
 }
@@ -37,12 +50,16 @@ function buildColumns(config: CategoryPanelConfig, onEdit: Props["onEdit"], onDe
     { title: config.showColor ? t("Tên danh mục") : t("Tên hình thức"), dataIndex: "name" },
   ];
   if (config.showColor) {
-    columns.push({ title: t("Mã màu"), dataIndex: "colorCode", width: 160, render: (v: string | null) => <ColorCell code={v} /> });
+    columns.push(
+      { title: t("Ghi chú"), dataIndex: "description", render: (v: string | null) => v || "—" },
+      { title: t("Mã màu"), dataIndex: "colorCode", width: 160, render: (v: string | null) => <ColorCell code={v} /> },
+    );
   }
+  // The reference gives the sales list 120px and the cashbook list 70px for its two buttons.
   columns.push({
     title: t("Thao tác"),
     key: "actions",
-    width: 110,
+    width: config.showColor ? 70 : 120,
     align: "center",
     fixed: "right",
     render: (_: unknown, row) => (
@@ -59,8 +76,8 @@ function buildColumns(config: CategoryPanelConfig, onEdit: Props["onEdit"], onDe
   return columns;
 }
 
-/** One category list: title + description, search, "Thêm mục", table, "Hiển thị X trên Y mục". */
-export function CategoryPanel({ config, categories, loading, onAdd, onEdit, onDelete }: Props) {
+/** One category list: title + description, search, "Thêm mục", paged table. */
+export function CategoryPanel({ config, categories, loading, canCreate, onAdd, onEdit, onDelete }: Props) {
   const [keyword, setKeyword] = useState("");
   const columns = useMemo(() => buildColumns(config, onEdit, onDelete), [config, onEdit, onDelete]);
 
@@ -69,6 +86,7 @@ export function CategoryPanel({ config, categories, loading, onAdd, onEdit, onDe
     if (!q) return categories;
     return categories.filter((c) => c.name.toLowerCase().includes(q) || (c.colorCode ?? "").toLowerCase().includes(q));
   }, [categories, keyword]);
+  const paging = useClientPaging(visible);
 
   return (
     <div className="report-category-content">
@@ -77,9 +95,11 @@ export function CategoryPanel({ config, categories, loading, onAdd, onEdit, onDe
           <div className="report-summary-card-title">{config.title()}</div>
           <div className="report-category-desc">{config.description()}</div>
         </div>
-        <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>
-          {t("Thêm mục")}
-        </Button>
+        {canCreate && (
+          <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>
+            {t("Thêm mục")}
+          </Button>
+        )}
       </div>
 
       <Input.Search
@@ -93,12 +113,14 @@ export function CategoryPanel({ config, categories, loading, onAdd, onEdit, onDe
       <ReportTableCard<CategoryVm>
         rowKey="id"
         columns={columns}
-        dataSource={visible}
+        dataSource={paging.pageRows}
         loading={loading}
-        pagination={false}
-        locale={{ emptyText: t("Không có danh mục nào") }}
+        totalCount={paging.totalCount}
+        page={paging.page}
+        pageSize={paging.pageSize}
+        onPageChange={paging.onPageChange}
+        locale={{ emptyText: config.emptyText() }}
       />
-      <div className="report-category-footer">{t("Hiển thị {0} trên {1} mục", visible.length, categories.length)}</div>
     </div>
   );
 }

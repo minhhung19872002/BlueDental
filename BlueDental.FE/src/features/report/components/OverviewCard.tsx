@@ -1,7 +1,7 @@
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { formatMoneyUnit } from "@/utils/format";
 import { t } from "@/lib/i18n";
-import type { MonthlyPointVm, OverviewRowVm } from "../types/mock";
+import type { MonthlyPointDto, OverviewRowDto } from "../api/clinicReportApi";
 import type { StatTone } from "./ReportStatCards";
 
 export interface OverviewSeriesConfig {
@@ -12,8 +12,8 @@ export interface OverviewSeriesConfig {
 
 interface Props {
   title: string;
-  rows: OverviewRowVm[];
-  series: MonthlyPointVm[];
+  rows: OverviewRowDto[];
+  series: MonthlyPointDto[];
   config: OverviewSeriesConfig[];
   /** Values are money ("1.300.000 đ / 450.000 đ") instead of plain counts. */
   money?: boolean;

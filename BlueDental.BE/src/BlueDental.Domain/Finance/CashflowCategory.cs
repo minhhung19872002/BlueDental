@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Volo.Abp;
 using Volo.Abp.Domain.Entities.Auditing;
 
@@ -32,6 +33,12 @@ public class CashflowCategory : FullAuditedAggregateRoot<Guid>
 
     public string? Description { get; private set; }
 
+    /// <summary>
+    /// Hex swatch (<c>#RRGGBB</c>) shown next to a cash-management category on the
+    /// reference "Danh mục sổ quỹ" list; sales categories carry none.
+    /// </summary>
+    public string? ColorCode { get; private set; }
+
     protected CashflowCategory() { }
 
     public static CashflowCategory Create(
@@ -42,7 +49,8 @@ public class CashflowCategory : FullAuditedAggregateRoot<Guid>
         bool appliesToTransfers = false,
         bool isSystem = false,
         int sortOrder = 0,
-        string? description = null)
+        string? description = null,
+        string? colorCode = null)
     {
         Check.NotNullOrWhiteSpace(name, nameof(name));
 
@@ -56,8 +64,37 @@ public class CashflowCategory : FullAuditedAggregateRoot<Guid>
             IsSystem = isSystem,
             IsActive = true,
             SortOrder = sortOrder,
-            Description = description
+            Description = description,
+            ColorCode = NormalizeColor(colorCode)
         };
+    }
+
+    public CashflowCategory SetColor(string? colorCode)
+    {
+        ColorCode = NormalizeColor(colorCode);
+        return this;
+    }
+
+    /// <summary>Accepts <c>#abc</c> / <c>#aabbcc</c> (any case) and stores it upper-case; anything else is refused.</summary>
+    private static string? NormalizeColor(string? colorCode)
+    {
+        var trimmed = colorCode?.Trim();
+        if (string.IsNullOrEmpty(trimmed))
+        {
+            return null;
+        }
+
+        var isHex = trimmed.Length is 4 or 7
+            && trimmed[0] == '#'
+            && trimmed.Skip(1).All(Uri.IsHexDigit);
+        if (!isHex)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Finance.InvalidColorCode,
+                $"'{colorCode}' is not a #RRGGBB colour.");
+        }
+
+        return trimmed.ToUpperInvariant();
     }
 
     public CashflowCategory Rename(string name)

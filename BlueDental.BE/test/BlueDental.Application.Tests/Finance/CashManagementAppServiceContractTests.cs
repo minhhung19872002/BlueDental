@@ -59,6 +59,13 @@ public class CashManagementAppServiceContractTests
     }
 
     [Fact]
+    public void UpdateEntryAsync_Should_Have_Authorize_Attribute()
+    {
+        _serviceType.GetMethod("UpdateEntryAsync")!
+            .GetCustomAttribute<AuthorizeAttribute>().ShouldNotBeNull();
+    }
+
+    [Fact]
     public void DeleteEntryAsync_Should_Have_Authorize_Attribute()
     {
         _serviceType.GetMethod("DeleteEntryAsync")!

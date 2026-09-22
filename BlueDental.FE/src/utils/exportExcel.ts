@@ -7,12 +7,40 @@ export interface ExportColumn<T extends object> {
   format?: (v: unknown) => string;
 }
 
+export interface ExportOptions {
+  /** Worksheet tab name; "Sheet1" when omitted. */
+  sheetName?: string;
+  /** A title merged across every column on row 1, followed by one blank row. */
+  title?: string;
+  /** A second merged row under the title (only written when `title` is set). */
+  description?: string;
+  /**
+   * Column widths in characters (SheetJS `wch`), one per column; omit to size
+   * each column to its longest cell. Use `excelColumnWidths` for widths read
+   * off a workbook Excel itself wrote.
+   */
+  columnWidths?: number[];
+}
+
+/**
+ * Excel stores a column width as its character count plus 5/6 of a character
+ * of padding, so a `<col width="16">` reads back as wch 15.17. Subtracting the
+ * padding here makes SheetJS write the same `width="16"` again.
+ */
+const EXCEL_WIDTH_PADDING = 5 / 6;
+
+/** Convert widths taken from an Excel-authored workbook into `columnWidths`. */
+export function excelColumnWidths(widths: number[]): number[] {
+  return widths.map((w) => w - EXCEL_WIDTH_PADDING);
+}
+
 export function exportToExcel<T extends object>(
   rows: T[],
   columns: ExportColumn<T>[],
   filename: string,
+  options: ExportOptions = {},
 ) {
-  const data = [
+  const body = [
     columns.map((c) => c.header),
     ...rows.map((row) =>
       columns.map((c) => {
@@ -22,10 +50,24 @@ export function exportToExcel<T extends object>(
     ),
   ];
 
+  const headRows: unknown[][] = [];
+  if (options.title) {
+    headRows.push([options.title]);
+    if (options.description) headRows.push([options.description]);
+    headRows.push([]);
+  }
+  const data = [...headRows, ...body];
+
   const ws = XLSX.utils.aoa_to_sheet(data);
-  ws["!cols"] = fitColumnWidths(data);
+  ws["!cols"] = options.columnWidths?.map((wch) => ({ wch })) ?? fitColumnWidths(body);
+  const lastColumn = columns.length - 1;
+  const merges = headRows
+    .map((row, r) => (row.length ? { s: { r, c: 0 }, e: { r, c: lastColumn } } : null))
+    .filter((m): m is XLSX.Range => m !== null);
+  if (merges.length) ws["!merges"] = merges;
+
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+  XLSX.utils.book_append_sheet(wb, ws, options.sheetName ?? "Sheet1");
   XLSX.writeFile(wb, `${filename}.xlsx`);
 }
 

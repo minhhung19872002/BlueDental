@@ -172,6 +172,7 @@ public static class BlueDentalDomainErrorCodes
         public const string SalesEntryNotFound = "BlueDental:Finance:0007";
         public const string CategoryNotFound = "BlueDental:Finance:0008";
         public const string CashflowEntryNotFound = "BlueDental:Finance:0009";
+        public const string InvalidColorCode = "BlueDental:Finance:0010";
     }
 
     public static class Timekeeping

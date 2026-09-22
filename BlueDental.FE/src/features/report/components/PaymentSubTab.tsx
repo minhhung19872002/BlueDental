@@ -2,11 +2,10 @@ import { useCallback, useMemo } from "react";
 import type { TableColumnsType } from "antd";
 import { t } from "@/lib/i18n";
 import { formatDate, formatMoneyUnit } from "@/utils/format";
-import { exportToExcel, type ExportColumn } from "@/utils/exportExcel";
+import { excelColumnWidths, exportToExcel, type ExportColumn } from "@/utils/exportExcel";
 import { paymentChannelLabels, type PaymentChannel } from "../api/financeApi";
-import { useMockPaymentLines, useMockSalesSummary, type RangeQuery } from "../api/reportMockQueries";
+import { usePaymentLines, useSalesSummary, buildDailyTotals, type RangeQuery, type PaymentLineDto } from "../api/clinicReportApi";
 import { useClientPaging } from "../hooks/useClientPaging";
-import type { PaymentLineVm } from "../types/mock";
 import { ReportStatCards, type StatCardItem } from "./ReportStatCards";
 import { ReportStatsBar } from "./ReportStatsBar";
 import { ReportTableCard } from "./ReportTableCard";
@@ -16,7 +15,24 @@ const money = (cls = "") => (v: number) => (
   <span className={`report-money ${cls}`.trim()}>{formatMoneyUnit(v)}</span>
 );
 
-function buildColumns(): TableColumnsType<PaymentLineVm> {
+/** One line per service, the cancelled ones chipped red "(đã huỷ)" like the reference. */
+function ServiceList({ row }: { row: PaymentLineDto }) {
+  const names = row.serviceNames ? row.serviceNames.split(", ") : [];
+  if (names.length === 0) return <>—</>;
+  const cancelled = new Set(row.cancelledServiceNames);
+  return (
+    <div className="report-service-list">
+      {names.map((name, i) => (
+        <span key={`${name}-${i}`}>
+          {name}
+          {cancelled.has(name) && <span className="report-status-chip report-status-chip--danger">{t("(đã huỷ)")}</span>}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function buildColumns(): TableColumnsType<PaymentLineDto> {
   const channels = paymentChannelLabels();
   return [
     { title: t("Ngày tạo"), dataIndex: "date", width: 110, render: (v: string) => formatDate(v) },
@@ -27,14 +43,21 @@ function buildColumns(): TableColumnsType<PaymentLineVm> {
       render: (v: string) => <span className="report-patient-link">{v}</span>,
     },
     { title: t("Mã thanh toán"), dataIndex: "paymentCode", width: 190 },
-    { title: t("Dịch vụ điều trị"), dataIndex: "serviceNames" },
+    { title: t("Dịch vụ điều trị"), key: "serviceNames", render: (_: unknown, row) => <ServiceList row={row} /> },
     { title: t("Tổng tiền phiếu"), dataIndex: "invoiceAmount", width: 130, align: "right", render: money() },
     { title: t("Thanh toán"), dataIndex: "paidAmount", width: 130, align: "right", render: money("report-money--bold") },
     { title: t("Tổng thực thu"), dataIndex: "actualReceived", width: 130, align: "right", render: money("report-money--green") },
     { title: t("Tổng tạm ứng còn lại"), dataIndex: "remainingPrepaid", width: 150, align: "right", render: money("report-money--green") },
-    { title: t("Phương thức thanh toán"), dataIndex: "channel", width: 160, render: (v: PaymentLineVm["channel"]) => channels[v] },
+    { title: t("Phương thức thanh toán"), dataIndex: "channel", width: 160, render: (v: PaymentLineDto["channel"]) => channels[v] },
+    { title: t("Thông tin thanh toán"), dataIndex: "paymentInfo", width: 180, render: (v: string) => v || "—" },
+    { title: t("Ghi chú"), dataIndex: "note", width: 180, render: (v: string) => v || "—" },
   ];
 }
+
+/** The reference downloads `thanh-toan.xlsx` whatever the period. */
+const PAYMENT_EXPORT_FILENAME = "thanh-toan";
+/** `<cols>` of the reference download (server-generated), in Excel width units. */
+const PAYMENT_EXPORT_WIDTHS = [16, 26, 18, 16, 22, 20, 20, 28, 18, 18, 22, 18, 22, 24, 28];
 
 /**
  * The reference workbook is wider than the table: it splits the patient into
@@ -42,7 +65,7 @@ function buildColumns(): TableColumnsType<PaymentLineVm> {
  * writes amounts as plain numbers so Excel can sum them. Column order matches
  * the reference file exactly (docs/clone/pages/report.md).
  */
-function buildExportColumns(): ExportColumn<PaymentLineVm>[] {
+function buildExportColumns(): ExportColumn<PaymentLineDto>[] {
   return [
     { header: t("Ngày tạo"), key: "date", format: (v) => formatDate(String(v)) },
     { header: t("Mã thanh toán"), key: "paymentCode" },
@@ -64,9 +87,12 @@ function buildExportColumns(): ExportColumn<PaymentLineVm>[] {
 
 /** Sub-tab "Thanh toán": 5 tiles + Thực thu pill on one row, then main table + daily side table. */
 export function PaymentSubTab(range: RangeQuery) {
-  const { data, isLoading } = useMockPaymentLines(range);
-  const { data: summary, isLoading: summaryLoading } = useMockSalesSummary(range);
-  const lines = useMemo(() => data?.lines ?? [], [data]);
+  const { data: lines = [], isLoading } = usePaymentLines(range);
+  const { data: summary, isLoading: summaryLoading } = useSalesSummary(range);
+  const daily = useMemo(
+    () => buildDailyTotals(range.fromDate, range.toDate, lines.map((l) => ({ date: l.date, amount: l.actualReceived }))),
+    [lines, range.fromDate, range.toDate],
+  );
   const paging = useClientPaging(lines);
   const columns = useMemo(buildColumns, []);
 
@@ -76,11 +102,15 @@ export function PaymentSubTab(range: RangeQuery) {
     { label: t("Cà Thẻ"), value: summary?.byCard ?? 0, tone: "gold" },
     { label: t("Dư nợ"), value: summary?.byDebt ?? 0, tone: "green" },
     { label: t("Hoàn tiền"), value: summary?.refund ?? 0, tone: "gold" },
+    { label: t("Tạm ứng"), value: summary?.prepaidIncurred ?? 0, tone: "blue" },
   ];
 
   const handleExport = useCallback(() => {
-    exportToExcel<PaymentLineVm>(lines, buildExportColumns(), `thanh-toan-${range.fromDate}-${range.toDate}`);
-  }, [lines, range.fromDate, range.toDate]);
+    exportToExcel<PaymentLineDto>(lines, buildExportColumns(), PAYMENT_EXPORT_FILENAME, {
+      sheetName: t("Thanh toán"),
+      columnWidths: excelColumnWidths(PAYMENT_EXPORT_WIDTHS),
+    });
+  }, [lines]);
 
   return (
     <>
@@ -95,7 +125,7 @@ export function PaymentSubTab(range: RangeQuery) {
         />
       </div>
       <div className="report-payment-layout">
-        <ReportTableCard<PaymentLineVm>
+        <ReportTableCard<PaymentLineDto>
           className="report-payment-main"
           rowKey="id"
           columns={columns}
@@ -105,8 +135,9 @@ export function PaymentSubTab(range: RangeQuery) {
           page={paging.page}
           pageSize={paging.pageSize}
           onPageChange={paging.onPageChange}
+          countUnit={t("phiếu")}
         />
-        <DailyTotalsTable rows={data?.daily ?? []} valueLabel={t("Thực thu")} />
+        <DailyTotalsTable rows={daily} valueLabel={t("Thực thu")} />
       </div>
     </>
   );

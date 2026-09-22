@@ -115,7 +115,7 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
             input.Kind,
             input.Method,
             input.Amount,
-            await GenerateCodeAsync(input.ClinicBranchId, input.Kind),
+            await GenerateCodeAsync(input.ClinicBranchId, input.Kind, input.TreatmentPlanId),
             input.StaffId,
             input.PaidAt ?? Clock.Now,
             input.TreatmentPlanId,
@@ -303,16 +303,12 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
         }
     }
 
-    /// <summary>Per-branch, per-year sequence — e.g. PT26-0007 / HT26-0002.</summary>
-    private async Task<string> GenerateCodeAsync(Guid clinicBranchId, PatientPaymentKind kind)
+    /// <summary>
+    /// Per-branch, per-year, per-kind sequence, plus the slip's code for a
+    /// payment — see <see cref="PatientPayment.FormatCode"/>.
+    /// </summary>
+    private async Task<string> GenerateCodeAsync(Guid clinicBranchId, PatientPaymentKind kind, Guid? treatmentPlanId)
     {
-        var prefix = kind switch
-        {
-            PatientPaymentKind.Refund => "HT",
-            PatientPaymentKind.Prepaid => "GH",
-            _ => "PT"
-        };
-
         var year = Clock.Now.Year;
         var query = await _repository.GetQueryableAsync();
         var sequence = query.Count(x =>
@@ -320,7 +316,17 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
             && x.Kind == kind
             && x.CreationTime.Year == year) + 1;
 
-        return $"{prefix}{year % 100:D2}-{sequence:D4}";
+        string? planCode = null;
+        if (treatmentPlanId.HasValue)
+        {
+            var plans = await _planRepository.GetQueryableAsync();
+            planCode = plans
+                .Where(x => x.Id == treatmentPlanId.Value)
+                .Select(x => x.Code)
+                .FirstOrDefault();
+        }
+
+        return PatientPayment.FormatCode(kind, sequence, year, planCode);
     }
 
     private async Task<List<PatientPaymentDto>> MapManyAsync(IReadOnlyCollection<PatientPayment> items)

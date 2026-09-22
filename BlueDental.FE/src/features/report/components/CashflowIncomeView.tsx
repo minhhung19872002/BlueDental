@@ -1,17 +1,16 @@
 import { useMemo } from "react";
 import { RiseOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
-import { SALES_ENTRY_TYPE } from "../api/financeApi";
+import { SALES_ENTRY_TYPE, type SalesEntryDto } from "../api/financeApi";
 import { useClientPaging } from "../hooks/useClientPaging";
-import type { SalesEntryVm } from "../types/mock";
 import { ReportStatCards } from "./ReportStatCards";
 import { ReportTableCard } from "./ReportTableCard";
 import { buildSalesEntryColumns } from "./cashflowColumns";
 
 interface Props {
-  entries: SalesEntryVm[];
+  entries: SalesEntryDto[];
   loading: boolean;
-  onEdit: (entry: SalesEntryVm) => void;
+  onEdit: (entry: SalesEntryDto) => void;
 }
 
 /** "Thu nhập": one card (Tổng doanh thu) + voucher table. */
@@ -31,7 +30,7 @@ export function CashflowIncomeView({ entries, loading, onEdit }: Props) {
         columns={3}
         items={[{ label: t("Tổng doanh thu"), value: total, tone: "green", icon: <RiseOutlined /> }]}
       />
-      <ReportTableCard<SalesEntryVm>
+      <ReportTableCard<SalesEntryDto>
         rowKey="id"
         columns={columns}
         dataSource={paging.pageRows}
@@ -40,6 +39,7 @@ export function CashflowIncomeView({ entries, loading, onEdit }: Props) {
         page={paging.page}
         pageSize={paging.pageSize}
         onPageChange={paging.onPageChange}
+        countUnit={t("phiếu")}
       />
     </>
   );

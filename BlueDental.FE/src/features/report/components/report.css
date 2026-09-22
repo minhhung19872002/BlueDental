@@ -167,6 +167,14 @@
   justify-content: center;
 }
 
+/* Tab 4 is an all-time ledger: the reference swaps the date navigator for a
+   disabled "Tổng" button of the same footprint. */
+.report-toolbar-total.ant-btn {
+  min-width: 230px;
+  height: 36px;
+  font-weight: 500;
+}
+
 .report-toolbar-doctor {
   flex: 0 0 330px;
   margin-left: auto;
@@ -189,10 +197,16 @@
 .report-money--gold { color: var(--bd-gold); }
 .report-money--red { color: var(--bd-red); }
 .report-money--ink { color: var(--bd-ink); }
+.report-money--violet { color: var(--bd-violet); }
 
 .report-patient-link {
   color: var(--bd-blue);
   font-weight: 500;
+}
+
+/* Tạm ứng "Phiếu thanh toán" cell: the voucher code (or "-") is blue on staging. */
+.report-voucher-code {
+  color: var(--bd-blue);
 }
 
 .report-cancelled-label {
@@ -201,8 +215,383 @@
   margin-left: 4px;
 }
 
-.report-action--approve {
+/* Service cells that stack one line per service, with the reference's status chip. */
+.report-service-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.report-status-chip {
+  font-size: 12px;
+  font-weight: 500;
+  margin-left: 4px;
+}
+
+.report-status-chip--danger { color: var(--bd-red); }
+.report-status-chip--info { color: var(--bd-blue); }
+
+/* ---------- Row actions (Thu nhập / Chi phí tables) ---------- */
+
+/* The reference: four 32px round outline buttons, 4px apart. */
+.report-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.report-row-actions .ant-btn.report-row-action {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  padding: 0;
+  color: var(--bd-sub);
+  border-color: var(--bd-line);
+}
+
+.report-row-actions .ant-btn.report-row-action:hover {
+  color: var(--bd-blue);
+  border-color: var(--bd-blue);
+}
+
+.report-row-actions .ant-btn.report-row-action--approve {
   color: var(--bd-green);
+  border-color: var(--bd-green);
+}
+
+.report-row-actions .ant-btn.report-row-action--approve:hover {
+  color: var(--bd-card);
+  background: var(--bd-green);
+  border-color: var(--bd-green);
+}
+
+.report-row-actions .ant-btn.report-row-action--danger {
+  color: var(--bd-red);
+  border-color: var(--bd-red);
+}
+
+.report-row-actions .ant-btn.report-row-action--danger:hover {
+  color: var(--bd-card);
+  background: var(--bd-red);
+  border-color: var(--bd-red);
+}
+
+/* ---------- Confirm dialogs (Duyệt / Xoá) ---------- */
+
+.report-confirm-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.report-confirm-question {
+  margin: 0;
+}
+
+.report-confirm-note {
+  margin: 4px 0 0;
+  color: var(--bd-dim);
+  font-size: 13px;
+}
+
+/* ---------- "Chi tiết phiếu" (print preview) ---------- */
+
+.report-detail-body {
+  display: grid;
+  gap: 32px;
+  color: var(--bd-ink);
+}
+
+.report-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 32px;
+}
+
+.report-detail-section {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.report-detail-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.report-detail-title--bold {
+  font-weight: 700;
+}
+
+.report-detail-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+}
+
+.report-detail-label {
+  font-weight: 600;
+}
+
+.report-detail-total {
+  width: 100%;
+  max-width: 380px;
+  margin-left: auto;
+}
+
+.report-detail-total-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 0;
+  font-size: 14px;
+}
+
+/* The A4 sheet lives off-screen until print, exactly as the reference keeps it. */
+.report-print-sheet {
+  position: fixed;
+  top: 0;
+  left: -10000px;
+}
+
+.report-print-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 980px;
+  width: 794px;
+  padding: 32px;
+  background: var(--bd-card);
+  color: var(--bd-ink);
+  font-size: 12px;
+}
+
+.report-print-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+}
+
+.report-print-party {
+  display: grid;
+  gap: 4px;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.report-print-party--end {
+  justify-self: end;
+}
+
+.report-print-line {
+  margin: 0;
+}
+
+.report-print-heading {
+  display: grid;
+  gap: 4px;
+  text-align: center;
+}
+
+.report-print-heading h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.report-print-heading p {
+  margin: 0;
+}
+
+.report-print-table {
+  width: 100%;
+  margin-top: 24px;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.report-print-table th,
+.report-print-table td {
+  padding: 6px 8px;
+  border: 1px solid var(--bd-ink);
+  text-align: left;
+  vertical-align: top;
+}
+
+.report-print-total {
+  margin: 16px 0 0;
+  text-align: right;
+}
+
+.report-print-cell--amount {
+  text-align: right;
+  font-weight: 600;
+}
+
+.report-print-signatures {
+  display: flex;
+  justify-content: center;
+  gap: 64px;
+  margin-top: 112px;
+  padding-top: 24px;
+  text-align: center;
+}
+
+.report-print-signature {
+  display: grid;
+  gap: 4px;
+  width: 176px;
+}
+
+.report-print-signature-name {
+  margin-top: 64px;
+  font-weight: 600;
+}
+
+@media print {
+  /* Assumption: the reference prints through a per-clinic template; A4 with a 10mm margin is ours. */
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .report-print-sheet,
+  .report-print-sheet * {
+    visibility: visible;
+  }
+  .report-print-sheet {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+  .report-print-page {
+    width: auto;
+    min-height: 0;
+  }
+}
+
+/* ---------- Tab 4 "Chi tiết phiếu" (cash voucher) ---------- */
+
+.report-voucher {
+  display: grid;
+  gap: 24px;
+  color: var(--bd-ink);
+}
+
+.report-voucher-heading {
+  margin: 0;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.report-voucher-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 32px;
+}
+
+.report-voucher-col {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.report-voucher-row {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+}
+
+.report-voucher-row dt {
+  font-weight: 600;
+}
+
+.report-voucher-row dd {
+  margin: 0;
+}
+
+.report-voucher-row--bold dd {
+  font-weight: 700;
+}
+
+.report-voucher-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.report-voucher-table th,
+.report-voucher-table td {
+  padding: 8px 12px;
+  border: 1px solid var(--bd-line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.report-voucher-table th {
+  background: var(--bd-bg-soft);
+  font-weight: 600;
+}
+
+.report-voucher-table .report-voucher-cell--amount {
+  text-align: right;
+  font-weight: 700;
+}
+
+.report-voucher-total {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  width: 100%;
+  max-width: 360px;
+  margin: 0 0 0 auto;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.report-voucher-signature {
+  display: grid;
+  gap: 48px;
+  width: 100%;
+  max-width: 260px;
+  margin: 8px 0 0 auto;
+  text-align: center;
+  font-weight: 700;
+}
+
+.report-voucher-signature p {
+  margin: 0;
+}
+
+/* Print copy: the reference's grid uses 150px labels ending in a colon. */
+.report-print-sheet .report-voucher-row {
+  grid-template-columns: 150px minmax(0, 1fr);
+  font-size: 12px;
+}
+
+.report-print-sheet .report-voucher-row dt::after {
+  content: ":";
+}
+
+.report-print-sheet .report-voucher-table {
+  font-size: 11px;
+}
+
+.report-print-sheet .report-voucher-table th,
+.report-print-sheet .report-voucher-table td {
+  border-color: var(--bd-ink);
 }
 
 .report-btn--green.ant-btn-primary {
@@ -270,6 +659,7 @@
 .report-stat-tile--gold { --stat-tone: var(--bd-gold); }
 .report-stat-tile--red { --stat-tone: var(--bd-red); }
 .report-stat-tile--ink { --stat-tone: var(--bd-ink); }
+.report-stat-tile--violet { --stat-tone: var(--bd-violet); }
 
 .report-stat-tile-value {
   font-size: 16px;
@@ -290,6 +680,7 @@
 .report-stat-card--gold { --stat-tone: var(--bd-gold); }
 .report-stat-card--red { --stat-tone: var(--bd-red); }
 .report-stat-card--ink { --stat-tone: var(--bd-ink); }
+.report-stat-card--violet { --stat-tone: var(--bd-violet); }
 
 .report-stat-card-icon {
   display: inline-flex;
@@ -365,6 +756,7 @@
 .report-stats-pill--gold { --stat-tone: var(--bd-gold); }
 .report-stats-pill--red { --stat-tone: var(--bd-red); }
 .report-stats-pill--ink { --stat-tone: var(--bd-ink); }
+.report-stats-pill--violet { --stat-tone: var(--bd-violet); }
 
 .report-stats-label {
   font-weight: 600;
@@ -423,6 +815,29 @@
 
 .report-table-card .ant-table-wrapper .ant-table-tbody > tr > td[rowspan] {
   vertical-align: top;
+}
+
+/* Reference pager: "Trước" / "Sau" text buttons, "N / trang" sizes and a
+   "Hiển thị x–y trên z dòng" caption — and it stays on screen at zero rows,
+   which AntD's table pager does not, hence the standalone one below. */
+.report-pager-step {
+  padding: 0 6px;
+  font-size: 13px;
+}
+
+.report-table-card .ant-pagination .ant-pagination-prev,
+.report-table-card .ant-pagination .ant-pagination-next {
+  min-width: auto;
+}
+
+.report-table-card .ant-pagination .ant-pagination-prev .ant-pagination-item-link,
+.report-table-card .ant-pagination .ant-pagination-next .ant-pagination-item-link {
+  padding: 0 4px;
+}
+
+.report-empty-pager.ant-pagination {
+  padding: 16px;
+  border-top: 1px solid var(--bd-line);
 }
 
 /* ---------- Payment / refund layout (table + daily totals) ---------- */
@@ -642,6 +1057,9 @@
 .report-result-list {
   display: flex;
   flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
   border: 1px solid var(--bd-line);
   border-radius: var(--bd-radius);
   overflow: hidden;
@@ -678,6 +1096,22 @@
   font-size: 15px;
 }
 
+/* One row per mục thu / mục chi under "Thu khác" and "Chi phí" (reference: px-5 py-2 bg-gray-50, pl-8 13px). */
+.report-result-row--category {
+  padding: 8px 16px 8px 48px;
+  background: var(--bd-bg-soft);
+  font-size: 13px;
+}
+
+.report-result-row--category .report-result-label {
+  color: var(--bd-sub);
+  font-weight: 400;
+}
+
+.report-result-row--category .report-result-value {
+  font-weight: 500;
+}
+
 .report-result-label {
   color: var(--bd-ink);
   font-weight: 600;
@@ -706,18 +1140,68 @@
   font-size: 16px;
 }
 
+/* Ledger table: bold type label, tone badge for the method, neutral category pill. */
+.report-type-label {
+  font-weight: 600;
+}
+
+/* Reference chips (measured): 1px border in the text colour, pastel fill. */
+.report-method-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border: 1px solid currentColor;
+  border-radius: var(--bd-radius-pill);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.report-method-badge--cash {
+  background: #e7f8ef;
+  color: #12a960;
+}
+
+.report-method-badge--bank {
+  background: #fff4d8;
+  color: #f5a400;
+}
+
+.report-method-badge--card {
+  background: #f3e8ff;
+  color: #7c3aed;
+}
+
+/* Transfer arrow "→": white chip, ink text, grey border. */
+.report-method-badge--transfer {
+  background: #ffffff;
+  color: #1b2a41;
+  border-color: #c0c8d5;
+}
+
+.report-category-pill {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: var(--bd-radius-pill);
+  background: var(--pill-color, var(--bd-muted));
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
 .report-balance-hint {
   margin-top: 16px;
-  padding: 14px 16px;
-  border-radius: 10px;
+  padding: 12px 16px;
+  border-radius: 8px;
   background: var(--bd-bg-soft);
   font-size: 13px;
-  color: var(--bd-sub);
+  color: var(--bd-ink);
 }
 
 .report-balance-hint-value {
   margin-top: 4px;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--bd-ink);
 }
@@ -801,18 +1285,16 @@
   margin: 14px 0;
 }
 
-.report-category-footer {
-  margin-top: 10px;
-  font-size: 13px;
-  color: var(--bd-muted);
-}
-
 .report-color-cell {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-family: var(--bd-font-mono, monospace);
   font-size: 12.5px;
+}
+
+.report-color-code {
+  text-transform: uppercase;
 }
 
 .report-color-swatch {

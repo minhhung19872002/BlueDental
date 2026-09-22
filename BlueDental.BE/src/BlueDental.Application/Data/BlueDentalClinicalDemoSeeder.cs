@@ -570,6 +570,7 @@ public class BlueDentalClinicalDemoSeeder(
         var planByPatient = plans
             .GroupBy(p => p.PatientId)
             .ToDictionary(g => g.Key, g => g.First().Id);
+        var planCodes = plans.ToDictionary(p => p.Id, p => p.Code);
 
         for (var i = 0; i < chosen.Count; i++)
         {
@@ -602,7 +603,7 @@ public class BlueDentalClinicalDemoSeeder(
                 kind,
                 method,
                 amount,
-                $"TT26-{i + 1:D4}",
+                PatientPayment.FormatCode(kind, i + 1, 2026, kind == PatientPaymentKind.Payment ? planCodes[planId] : null),
                 dentistIds[i % dentistIds.Count],
                 DateTimeOffset.UtcNow.AddDays(-random.Next(0, 30)),
                 treatmentPlanId: kind == PatientPaymentKind.Prepaid ? null : planId,

@@ -1,6 +1,6 @@
 import { Spin } from "antd";
 import { t } from "@/lib/i18n";
-import { useMockOverviewStats, useMockSalesSummary, type RangeQuery } from "../api/reportMockQueries";
+import { useOverviewStats, useSalesSummary, type RangeQuery } from "../api/clinicReportApi";
 import { OverviewPieCard } from "./OverviewPieCard";
 import { OverviewCard, type OverviewSeriesConfig } from "./OverviewCard";
 
@@ -23,15 +23,14 @@ const INCOME_EXPENSE_SERIES: OverviewSeriesConfig[] = [
 ];
 
 interface Props {
-  /** When set, only the income/expense card is rendered (tab "Quản lý thu chi"). */
   variant?: "full" | "income-expense";
   range: RangeQuery;
 }
 
 /** Bottom block of tab 1: pie (Thực thu vs Công nợ) + 2×2 info cards with monthly bars. */
 export function ReportOverviewSection({ variant = "full", range }: Props) {
-  const { data: stats, isLoading } = useMockOverviewStats();
-  const { data: summary } = useMockSalesSummary(range);
+  const { data: stats, isLoading } = useOverviewStats(range);
+  const { data: summary } = useSalesSummary(range);
 
   if (isLoading || !stats) {
     return (

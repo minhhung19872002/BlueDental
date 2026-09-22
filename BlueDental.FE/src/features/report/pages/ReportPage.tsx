@@ -1,5 +1,5 @@
 import { useState } from "react";
-import dayjs, { type Dayjs } from "dayjs";
+import type { Dayjs } from "dayjs";
 import { PageHeader } from "@/components/PageHeader";
 import { PillTabs } from "@/components/PillTabs";
 import { t } from "@/lib/i18n";
@@ -8,13 +8,12 @@ import { ExpenseTab } from "../components/ExpenseTab";
 import { CashflowTab } from "../components/CashflowTab";
 import { BusinessResultTab } from "../components/BusinessResultTab";
 import { CashflowV2Tab } from "../components/CashflowV2Tab";
+import { useReportUrlState, type ReportTabKey } from "../hooks/useReportUrlState";
 import type { ReportViewMode } from "../types/viewMode";
 import "../components/report.css";
 
-type ReportTabKey = "expense" | "cashflow" | "result" | "cashflow-v2";
-
 const REPORT_TABS: { key: ReportTabKey; label: () => string }[] = [
-  { key: "expense", label: () => t("Doanh số và lượt khách") },
+  { key: "sales", label: () => t("Doanh số và lượt khách") },
   { key: "cashflow", label: () => t("Quản lý thu chi") },
   { key: "result", label: () => t("Kết quả kinh doanh") },
   { key: "cashflow-v2", label: () => t("Luân chuyển dòng tiền V2") },
@@ -22,6 +21,9 @@ const REPORT_TABS: { key: ReportTabKey; label: () => string }[] = [
 
 /** Tabs where the reference hides the "Bác sĩ điều trị" filter. */
 const TABS_WITHOUT_DOCTOR: ReportTabKey[] = ["result"];
+
+/** Tabs where the reference replaces the date navigator with a locked "Tổng" (all-time). */
+const TABS_WITH_LOCKED_PERIOD: ReportTabKey[] = ["cashflow-v2"];
 
 function getBounds(mode: ReportViewMode, date: Dayjs) {
   if (mode === "day") return { start: date, end: date };
@@ -32,12 +34,22 @@ function getBounds(mode: ReportViewMode, date: Dayjs) {
 
 /**
  * /report — one white shell like the reference: period toolbar on top,
- * underline main tabs, then the active tab's content. No page header.
+ * underline main tabs, then the active tab's content. Tab, period and date
+ * live in the URL like the reference's, so a link reopens the same view.
  */
 export function ReportPage() {
-  const [viewMode, setViewMode] = useState<ReportViewMode>("month");
-  const [currentDate, setCurrentDate] = useState<Dayjs>(dayjs());
-  const [activeTab, setActiveTab] = useState<ReportTabKey>("expense");
+  const {
+    activeTab,
+    setActiveTab,
+    viewMode,
+    setViewMode,
+    currentDate,
+    setCurrentDate,
+    salesSub,
+    setSalesSub,
+    cashflowSub,
+    setCashflowSub,
+  } = useReportUrlState();
   const [doctorId, setDoctorId] = useState<string | undefined>();
 
   const bounds = getBounds(viewMode, currentDate);
@@ -61,6 +73,7 @@ export function ReportPage() {
           currentDate={currentDate}
           doctorId={doctorId}
           showDoctor={!TABS_WITHOUT_DOCTOR.includes(activeTab)}
+          periodLocked={TABS_WITH_LOCKED_PERIOD.includes(activeTab)}
           onViewModeChange={setViewMode}
           onDateChange={setCurrentDate}
           onDoctorChange={setDoctorId}
@@ -73,8 +86,8 @@ export function ReportPage() {
           onChange={(key) => setActiveTab(key as ReportTabKey)}
         />
 
-        {activeTab === "expense" && <ExpenseTab {...range} doctorId={doctorId} />}
-        {activeTab === "cashflow" && <CashflowTab {...range} />}
+        {activeTab === "sales" && <ExpenseTab {...range} doctorId={doctorId} sub={salesSub} onSubChange={setSalesSub} />}
+        {activeTab === "cashflow" && <CashflowTab {...range} sub={cashflowSub} onSubChange={setCashflowSub} />}
         {activeTab === "result" && <BusinessResultTab {...range} />}
         {activeTab === "cashflow-v2" && <CashflowV2Tab />}
       </section>

@@ -15,7 +15,8 @@ public interface ISalesEntryAppService : IApplicationService
     Task<SalesEntryDto> GetAsync(Guid id);
     Task<SalesEntryDto> CreateAsync(CreateSalesEntryDto input);
     Task<SalesEntryDto> UpdateAsync(Guid id, UpdateSalesEntryDto input);
-    Task<SalesEntryDto> ApproveAsync(Guid id, ApproveSalesEntryInput input);
+    /// <summary>Reference: <c>PUT /sales/{id}/approve</c> with no body — the approver is the caller.</summary>
+    Task<SalesEntryDto> ApproveAsync(Guid id);
     Task<SalesEntryDto> RejectAsync(Guid id, RejectSalesEntryInput input);
     Task DeleteAsync(Guid id);
 
@@ -45,5 +46,6 @@ public interface ICashManagementAppService : IApplicationService
     Task<CashflowOverviewDto> GetOverviewAsync(GetCashflowEntryListInput input);
     Task<PagedResultDto<CashflowEntryDto>> GetEntriesAsync(GetCashflowEntryListInput input);
     Task<CashflowEntryDto> CreateEntryAsync(CreateCashflowEntryDto input);
+    Task<CashflowEntryDto> UpdateEntryAsync(Guid id, UpdateCashflowEntryDto input);
     Task DeleteEntryAsync(Guid id);
 }

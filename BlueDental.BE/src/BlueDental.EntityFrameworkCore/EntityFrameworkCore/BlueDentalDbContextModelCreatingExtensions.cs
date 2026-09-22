@@ -875,6 +875,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Amount).HasColumnType("numeric(18,2)");
             entity.Property(x => x.Description).HasMaxLength(1000).IsRequired();
             entity.Property(x => x.RejectionReason).HasMaxLength(500);
+            entity.Property(x => x.PayerName).HasMaxLength(200);
             entity.Ignore(x => x.CountsTowardsCashflow);
             entity.Ignore(x => x.SignedAmount);
             entity.HasIndex(x => new { x.ClinicBranchId, x.EntryDate, x.Type });
@@ -890,6 +891,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
             entity.Property(x => x.Type).HasConversion<short>();
             entity.Property(x => x.Description).HasMaxLength(500);
+            entity.Property(x => x.ColorCode).HasMaxLength(16);
             entity.HasIndex(x => new { x.ClinicBranchId, x.AppliesToTransfers, x.Type });
         });
 
@@ -1256,6 +1258,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Amount).HasColumnType("numeric(18,2)");
             entity.Property(x => x.Description).HasMaxLength(1000).IsRequired();
             entity.Property(x => x.RejectionReason).HasMaxLength(500);
+            entity.Property(x => x.PayerName).HasMaxLength(200);
             entity.Ignore(x => x.CountsTowardsCashflow);
             entity.Ignore(x => x.SignedAmount);
             entity.HasIndex(x => new { x.ClinicBranchId, x.EntryDate, x.Type });
@@ -1270,6 +1273,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
             entity.Property(x => x.Type).HasConversion<short>();
             entity.Property(x => x.Description).HasMaxLength(500);
+            entity.Property(x => x.ColorCode).HasMaxLength(16);
             entity.HasIndex(x => new { x.ClinicBranchId, x.AppliesToTransfers, x.Type });
         });
 

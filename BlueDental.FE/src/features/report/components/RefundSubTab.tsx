@@ -2,16 +2,15 @@ import { useCallback, useMemo } from "react";
 import type { TableColumnsType } from "antd";
 import { t } from "@/lib/i18n";
 import { formatDate, formatMoneyUnit } from "@/utils/format";
-import { exportToExcel, type ExportColumn } from "@/utils/exportExcel";
-import { useMockRefundLines, useMockSalesSummary, type RangeQuery } from "../api/reportMockQueries";
+import { excelColumnWidths, exportToExcel, type ExportColumn } from "@/utils/exportExcel";
+import { useRefundLines, useSalesSummary, buildDailyTotals, type RangeQuery, type RefundLineDto } from "../api/clinicReportApi";
 import { useClientPaging } from "../hooks/useClientPaging";
-import type { RefundLineVm } from "../types/mock";
 import { ReportStatCards, type StatCardItem } from "./ReportStatCards";
 import { ReportStatsBar } from "./ReportStatsBar";
 import { ReportTableCard } from "./ReportTableCard";
 import { DailyTotalsTable } from "./DailyTotalsTable";
 
-function buildColumns(): TableColumnsType<RefundLineVm> {
+function buildColumns(): TableColumnsType<RefundLineDto> {
   return [
     { title: t("Ngày tạo"), dataIndex: "date", width: 110, render: (v: string) => formatDate(v) },
     {
@@ -39,7 +38,7 @@ function buildColumns(): TableColumnsType<RefundLineVm> {
  * name, and the amount is a plain number. Order matches the reference file
  * exactly (docs/clone/pages/report.md).
  */
-function buildExportColumns(): ExportColumn<RefundLineVm>[] {
+function buildExportColumns(): ExportColumn<RefundLineDto>[] {
   return [
     { header: t("Ngày tạo"), key: "date", format: (v) => formatDate(String(v)) },
     { header: t("Mã hoàn tiền"), key: "refundCode" },
@@ -51,11 +50,19 @@ function buildExportColumns(): ExportColumn<RefundLineVm>[] {
   ];
 }
 
+/** The reference downloads `hoan-tien.xlsx` whatever the period. */
+const REFUND_EXPORT_FILENAME = "hoan-tien";
+/** `<cols>` of the reference download (server-generated), in Excel width units. */
+const REFUND_EXPORT_WIDTHS = [16, 22, 16, 24, 28, 18, 36];
+
 /** Sub-tab "Hoàn tiền": 3 tiles + Hoàn tiền pill on one row, then table + daily side table. */
 export function RefundSubTab(range: RangeQuery) {
-  const { data, isLoading } = useMockRefundLines(range);
-  const { data: summary, isLoading: summaryLoading } = useMockSalesSummary(range);
-  const lines = useMemo(() => data?.lines ?? [], [data]);
+  const { data: lines = [], isLoading } = useRefundLines(range);
+  const { data: summary, isLoading: summaryLoading } = useSalesSummary(range);
+  const daily = useMemo(
+    () => buildDailyTotals(range.fromDate, range.toDate, lines.map((l) => ({ date: l.date, amount: l.refundAmount }))),
+    [lines, range.fromDate, range.toDate],
+  );
   const paging = useClientPaging(lines);
   const columns = useMemo(buildColumns, []);
 
@@ -66,8 +73,11 @@ export function RefundSubTab(range: RangeQuery) {
   ];
 
   const handleExport = useCallback(() => {
-    exportToExcel<RefundLineVm>(lines, buildExportColumns(), `hoan-tien-${range.fromDate}-${range.toDate}`);
-  }, [lines, range.fromDate, range.toDate]);
+    exportToExcel<RefundLineDto>(lines, buildExportColumns(), REFUND_EXPORT_FILENAME, {
+      sheetName: t("Hoàn tiền"),
+      columnWidths: excelColumnWidths(REFUND_EXPORT_WIDTHS),
+    });
+  }, [lines]);
 
   return (
     <>
@@ -82,7 +92,7 @@ export function RefundSubTab(range: RangeQuery) {
         />
       </div>
       <div className="report-payment-layout">
-        <ReportTableCard<RefundLineVm>
+        <ReportTableCard<RefundLineDto>
           className="report-payment-main"
           rowKey="id"
           columns={columns}
@@ -93,7 +103,7 @@ export function RefundSubTab(range: RangeQuery) {
           pageSize={paging.pageSize}
           onPageChange={paging.onPageChange}
         />
-        <DailyTotalsTable rows={data?.daily ?? []} valueLabel={t("Hoàn tiền")} />
+        <DailyTotalsTable rows={daily} valueLabel={t("Hoàn tiền")} />
       </div>
     </>
   );

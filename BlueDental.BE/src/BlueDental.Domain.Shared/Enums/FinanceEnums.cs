@@ -74,5 +74,12 @@ public enum CashHolding
     Bank = 2,
 
     /// <summary>Đang Giữ Hộ Khách — customer prepaid held by the clinic.</summary>
-    CustomerPrepaid = 3
+    CustomerPrepaid = 3,
+
+    /// <summary>
+    /// "Cà thẻ (đối soát)" — card takings the bank has not settled yet. The
+    /// reference offers it only as a deposit target (Nạp); Rút and Luân chuyển
+    /// list Tiền mặt / Chuyển khoản alone.
+    /// </summary>
+    Card = 4
 }

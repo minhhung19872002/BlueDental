@@ -2144,6 +2144,10 @@ namespace BlueDental.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<string>("ColorCode")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
                     b.Property<string>("ExtraProperties")
                         .IsRequired()
                         .HasColumnType("text")
@@ -2354,6 +2358,10 @@ namespace BlueDental.Migrations
 
                     b.Property<Guid?>("PatientId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("PayerName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("RejectionReason")
                         .HasMaxLength(500)

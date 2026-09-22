@@ -5,6 +5,11 @@ import { t } from "@/lib/i18n";
 const BASE_PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 const DEFAULT_PAGE_SIZE = 20;
 
+export interface TablePaginationOptions {
+  /** A screen whose reference offers a different size menu (e.g. 5…100 on the report). */
+  pageSizeOptions?: number[];
+}
+
 export interface TablePagination {
   page: number;
   pageSize: number;
@@ -20,12 +25,13 @@ export interface TablePagination {
 
 export function useTablePagination(
   defaultPageSize: number = DEFAULT_PAGE_SIZE,
+  options: TablePaginationOptions = {},
 ): TablePagination {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(defaultPageSize);
 
   const pageSizeOptions = [
-    ...new Set([...BASE_PAGE_SIZE_OPTIONS, defaultPageSize]),
+    ...new Set([...(options.pageSizeOptions ?? BASE_PAGE_SIZE_OPTIONS), defaultPageSize]),
   ].sort((a, b) => a - b);
 
   const handleChange = (nextPage: number, nextPageSize: number) => {

@@ -129,6 +129,48 @@ public class CashflowEntry : FullAuditedAggregateRoot<Guid>
         };
     }
 
+    /// <summary>
+    /// "Cập nhật giao dịch nạp/rút/luân chuyển" — the reference lets the
+    /// method, amount, category and note of a booked movement be corrected;
+    /// the transaction type and the execution date stay as booked.
+    /// </summary>
+    public CashflowEntry Revise(
+        CashHolding? fromHolding,
+        CashHolding? toHolding,
+        decimal amount,
+        Guid? categoryId,
+        string? note)
+    {
+        GuardAmount(amount);
+
+        switch (TransactionType)
+        {
+            case CashTransactionType.Deposit:
+                ToHolding = RequireHolding(toHolding);
+                FromHolding = null;
+                break;
+            case CashTransactionType.Withdraw:
+                FromHolding = RequireHolding(fromHolding);
+                ToHolding = null;
+                break;
+            case CashTransactionType.Transfer:
+                if (fromHolding == toHolding)
+                {
+                    throw new BusinessException(
+                        BlueDentalDomainErrorCodes.Finance.SameTransferHolding,
+                        "A transfer must move money between two different holdings.");
+                }
+                FromHolding = RequireHolding(fromHolding);
+                ToHolding = RequireHolding(toHolding);
+                break;
+        }
+
+        Amount = amount;
+        CategoryId = categoryId;
+        Note = note;
+        return this;
+    }
+
     public CashflowEntry UpdateNote(string? note)
     {
         Note = note;
@@ -157,6 +199,13 @@ public class CashflowEntry : FullAuditedAggregateRoot<Guid>
         }
 
         return effect;
+    }
+
+    private static CashHolding RequireHolding(CashHolding? holding)
+    {
+        return holding ?? throw new BusinessException(
+            BlueDentalDomainErrorCodes.Finance.SameTransferHolding,
+            "A holding is required for this transaction type.");
     }
 
     private static void GuardAmount(decimal amount)

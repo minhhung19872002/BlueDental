@@ -6,13 +6,13 @@ import {
   paymentChannelLabels,
   SALES_APPROVAL_STATUS,
   type SalesApprovalStatus,
+  type SalesEntryDto,
 } from "../api/financeApi";
-import type { SalesEntryVm } from "../types/mock";
 import { CashflowRowActions } from "./CashflowRowActions";
 
 const APPROVAL_CONFIG: Record<SalesApprovalStatus, { color: string; label: () => string }> = {
   [SALES_APPROVAL_STATUS.NotRequired]: { color: "default", label: () => t("Không cần duyệt") },
-  [SALES_APPROVAL_STATUS.Pending]: { color: "gold", label: () => t("Chờ duyệt") },
+  [SALES_APPROVAL_STATUS.Pending]: { color: "gold", label: () => t("Dự chi") },
   [SALES_APPROVAL_STATUS.Approved]: { color: "green", label: () => t("Đã duyệt") },
   [SALES_APPROVAL_STATUS.Rejected]: { color: "red", label: () => t("Từ chối") },
 };
@@ -28,33 +28,44 @@ export function ApprovalTag({ status }: { status: SalesApprovalStatus }) {
 
 interface ColumnOptions {
   kind: "income" | "expense";
-  onEdit: (entry: SalesEntryVm) => void;
+  onEdit: (entry: SalesEntryDto) => void;
 }
 
-/**
- * Column set for Thu nhập / Chi phí. The reference's income table has no
- * "Ngày thực thu": the customer sits right after "Ngày tạo" and the headers
- * are the income-specific "Nội dung thu / Nhân viên thu / Doanh thu". The
- * expense table keeps the generic headers plus "Ngày thực chi" and approval.
- */
-export function buildSalesEntryColumns({ kind, onEdit }: ColumnOptions): TableColumnsType<SalesEntryVm> {
-  const patientColumn: TableColumnsType<SalesEntryVm>[number] = {
+/** The reference links the patient as "[code] - name"; a voucher without one reads "Không có". */
+export function salesEntryCustomerLabel(row: SalesEntryDto): string {
+  if (!row.patientName) return t("Không có");
+  return row.patientCode ? `[${row.patientCode}] - ${row.patientName}` : row.patientName;
+}
+
+/** Column widths of the reference tables (its `minWidth`s), income then expense. */
+const INCOME_WIDTHS = { date: 140, customer: 150, staff: 170, category: 140, amount: 150, channel: 150 };
+const EXPENSE_WIDTHS = { date: 130, actualDate: 140, customer: 150, staff: 150, category: 140, amount: 150, channel: 150, status: 120 };
+
+export function buildSalesEntryColumns({ kind, onEdit }: ColumnOptions): TableColumnsType<SalesEntryDto> {
+  const isExpense = kind === "expense";
+  const widths = isExpense ? EXPENSE_WIDTHS : INCOME_WIDTHS;
+  // Only a linked patient shows here (the typed payer / receiver stays in the dialog and the Excel file).
+  const patientColumn: TableColumnsType<SalesEntryDto>[number] = {
     title: t("Khách hàng"),
-    dataIndex: "patientLabel",
-    width: 200,
-    render: (v: string | null) => (v ? <span className="report-patient-link">{v}</span> : "—"),
+    key: "customer",
+    width: widths.customer,
+    render: (_: unknown, row) =>
+      row.patientName ? (
+        <span className="report-patient-link">{salesEntryCustomerLabel(row)}</span>
+      ) : (
+        <span className="report-muted">{t("Không có")}</span>
+      ),
   };
   const channels = paymentChannelLabels();
-  const isExpense = kind === "expense";
-  const columns: TableColumnsType<SalesEntryVm> = [
-    { title: t("Ngày tạo"), dataIndex: "entryDate", width: 110, render: (v: string) => formatDate(v) },
+  const columns: TableColumnsType<SalesEntryDto> = [
+    { title: t("Ngày tạo"), dataIndex: "entryDate", width: widths.date, render: (v: string) => formatDate(v) },
   ];
 
   if (isExpense) {
     columns.push({
       title: t("Ngày thực chi"),
-      dataIndex: "paidDate",
-      width: 120,
+      dataIndex: "entryDate",
+      width: EXPENSE_WIDTHS.actualDate,
       render: (v: string) => formatDate(v),
     });
   } else {
@@ -64,12 +75,12 @@ export function buildSalesEntryColumns({ kind, onEdit }: ColumnOptions): TableCo
   columns.push({ title: isExpense ? t("Nội dung") : t("Nội dung thu"), dataIndex: "description" });
   if (isExpense) columns.push(patientColumn);
   columns.push(
-    { title: isExpense ? t("Nhân viên") : t("Nhân viên thu"), dataIndex: "staffName", width: 170 },
-    { title: isExpense ? t("Mục chi") : t("Mục thu"), dataIndex: "categoryName", width: 150 },
+    { title: isExpense ? t("Nhân viên") : t("Nhân viên thu"), dataIndex: "staffName", width: widths.staff },
+    { title: isExpense ? t("Mục chi") : t("Mục thu"), dataIndex: "categoryName", width: widths.category },
     {
       title: isExpense ? t("Tổng tiền") : t("Doanh thu"),
       dataIndex: "amount",
-      width: 130,
+      width: widths.amount,
       align: "right",
       render: (v: number) => (
         <span className={`report-money ${isExpense ? "report-money--red" : "report-money--green"}`}>
@@ -80,8 +91,8 @@ export function buildSalesEntryColumns({ kind, onEdit }: ColumnOptions): TableCo
     {
       title: t("Hình thức"),
       dataIndex: "channel",
-      width: 130,
-      render: (v: SalesEntryVm["channel"]) => channels[v],
+      width: widths.channel,
+      render: (v: SalesEntryDto["channel"]) => channels[v],
     },
   );
 
@@ -89,15 +100,17 @@ export function buildSalesEntryColumns({ kind, onEdit }: ColumnOptions): TableCo
     columns.push({
       title: t("Trạng thái"),
       dataIndex: "approvalStatus",
-      width: 120,
+      width: EXPENSE_WIDTHS.status,
       render: (v: SalesApprovalStatus) => <ApprovalTag status={v} />,
     });
   }
 
+  // The reference declares 70px and lets its sticky cell grow; four round buttons need the room.
   columns.push({
     title: t("Thao tác"),
     key: "actions",
-    width: 200,
+    width: isExpense ? 180 : 100,
+    align: "center",
     fixed: "right",
     render: (_: unknown, entry) => <CashflowRowActions entry={entry} onEdit={onEdit} />,
   });

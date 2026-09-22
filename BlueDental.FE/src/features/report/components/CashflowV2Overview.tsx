@@ -1,97 +1,88 @@
 import { useCallback, useMemo, useState } from "react";
-import { Button, Space, Tooltip, type TableColumnsType } from "antd";
-import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
+import type { TablePaginationConfig } from "antd";
+import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
-import { t } from "@/lib/i18n";
-import { formatDate, formatMoneyUnit } from "@/utils/format";
-import { cashTransactionLabels, formatCashMovement } from "../api/financeApi";
-import { notifyDemoAction, useMockCashBalance, useMockCashflowEntries } from "../api/reportMockQueries";
-import { useClientPaging } from "../hooks/useClientPaging";
-import type { CashflowEntryVm } from "../types/mock";
+import { t, tRich } from "@/lib/i18n";
+import { useCurrentBranchId } from "@/lib/clinicBranch";
+import { formatMoneyUnit } from "@/utils/format";
+import { useCashBalance, useDeleteCashflowEntry, type CashBalanceDto, type CashflowEntryDto } from "../api/financeApi";
+import { REPORT_PERMISSION, useReportPermission } from "../hooks/useReportPermissions";
 import { BalancePanels } from "./BalancePanels";
+import { CashflowEntryDetailModal } from "./CashflowEntryDetailModal";
+import { buildLedgerColumns } from "./cashflowLedgerColumns";
 import { ReportTableCard } from "./ReportTableCard";
+import type { StatTone } from "./ReportStatCards";
 
 interface Props {
-  onEdit: (entry: CashflowEntryVm) => void;
+  rows: CashflowEntryDto[];
+  loading: boolean;
+  pagination: TablePaginationConfig;
+  onEdit: (entry: CashflowEntryDto) => void;
 }
 
-function buildColumns(onEdit: Props["onEdit"], onDelete: (entry: CashflowEntryVm) => void): TableColumnsType<CashflowEntryVm> {
-  const types = cashTransactionLabels();
-  return [
-    { title: t("Ngày"), dataIndex: "entryDate", width: 110, render: (v: string) => formatDate(v) },
-    { title: t("Loại giao dịch"), dataIndex: "transactionType", width: 130, render: (v: CashflowEntryVm["transactionType"]) => types[v] },
-    {
-      title: t("Hình thức"),
-      key: "holding",
-      width: 220,
-      render: (_: unknown, row) => formatCashMovement(row.fromHolding, row.toHolding),
-    },
-    { title: t("Danh mục"), dataIndex: "categoryName", width: 150, render: (v: string | null) => v ?? "—" },
-    {
-      title: t("Số tiền"),
-      dataIndex: "amount",
-      width: 140,
-      align: "right",
-      render: (v: number) => <span className="report-money report-money--bold">{formatMoneyUnit(v)}</span>,
-    },
-    { title: t("Người tạo"), dataIndex: "createdByName", width: 170 },
-    { title: t("Ghi chú"), dataIndex: "note", render: (v: string | null) => v ?? "—" },
-    {
-      title: t("Thao tác"),
-      key: "actions",
-      width: 100,
-      align: "center",
-      fixed: "right",
-      render: (_: unknown, row) => (
-        <Space size={4}>
-          <Tooltip title={t("Chỉnh sửa")}>
-            <Button size="small" type="text" icon={<EditOutlined />} onClick={() => onEdit(row)} />
-          </Tooltip>
-          <Tooltip title={t("Xóa")}>
-            <Button size="small" type="text" danger icon={<DeleteOutlined />} onClick={() => onDelete(row)} />
-          </Tooltip>
-        </Space>
-      ),
-    },
-  ];
-}
+/** Two lines under the balance panels, both served by the cash balance; the reference colours them green and violet. */
+const SUMMARY_LINES: { key: keyof CashBalanceDto; label: () => string; tone: StatTone }[] = [
+  { key: "serviceRevenue", label: () => t("Doanh thu dịch vụ"), tone: "green" },
+  { key: "cardPending", label: () => t("Cà thẻ chờ đối soát"), tone: "violet" },
+];
 
-/** "Tổng quan" of tab 4: balance panels, service revenue line, transaction table. */
-export function CashflowV2Overview({ onEdit }: Props) {
-  const { data: balance } = useMockCashBalance();
-  const { data: entries = [], isLoading } = useMockCashflowEntries();
-  const [deleting, setDeleting] = useState<CashflowEntryVm | null>(null);
-  const paging = useClientPaging(entries);
+/** "Tổng quan" of tab 4: balance panels, two summary lines, transaction table. */
+export function CashflowV2Overview({ rows, loading, pagination, onEdit }: Props) {
+  const branchId = useCurrentBranchId();
+  const { data: balance } = useCashBalance(branchId);
+  const [deleting, setDeleting] = useState<CashflowEntryDto | null>(null);
+  const [viewing, setViewing] = useState<CashflowEntryDto | null>(null);
+  const canEdit = useReportPermission(REPORT_PERMISSION.transferUpdate);
+  const canDelete = useReportPermission(REPORT_PERMISSION.transferDelete);
 
   const closeDelete = useCallback(() => setDeleting(null), []);
+  const closeView = useCallback(() => setViewing(null), []);
+  const deleteMutation = useDeleteCashflowEntry();
   const handleDelete = useCallback(() => {
-    if (deleting) notifyDemoAction(t("Xóa giao dịch ngày {0}", formatDate(deleting.entryDate)));
-    setDeleting(null);
-  }, [deleting]);
+    if (!deleting) return;
+    deleteMutation.mutate(deleting.id, {
+      onSuccess: () => {
+        toast.success(t("Đã hủy giao dịch"));
+        setDeleting(null);
+      },
+    });
+  }, [deleting, deleteMutation]);
 
-  const columns = useMemo(() => buildColumns(onEdit, setDeleting), [onEdit]);
+  const columns = useMemo(
+    () => buildLedgerColumns({ onView: setViewing, onEdit, onDelete: setDeleting, canEdit, canDelete }),
+    [onEdit, canEdit, canDelete],
+  );
 
   return (
     <>
       <BalancePanels balance={balance} />
-      <div className="report-service-revenue">
-        <span>{t("Doanh thu dịch vụ")}</span>
-        <span className="report-money report-money--green">{formatMoneyUnit(balance?.serviceRevenue ?? 0)}</span>
-      </div>
-      <ReportTableCard<CashflowEntryVm>
+      {SUMMARY_LINES.map((line) => (
+        <div key={line.key} className="report-service-revenue">
+          <span>{line.label()}</span>
+          <span className={`report-money report-money--${line.tone}`}>{formatMoneyUnit(balance?.[line.key] ?? 0)}</span>
+        </div>
+      ))}
+      <ReportTableCard<CashflowEntryDto>
         rowKey="id"
         columns={columns}
-        dataSource={paging.pageRows}
-        loading={isLoading}
-        totalCount={paging.totalCount}
-        page={paging.page}
-        pageSize={paging.pageSize}
-        onPageChange={paging.onPageChange}
+        dataSource={rows}
+        loading={loading}
+        pagination={pagination}
+        countUnit={t("giao dịch")}
       />
+      <CashflowEntryDetailModal entry={viewing} onClose={closeView} />
+      {/* The reference calls this "hủy" (cancel), not "xoá". Wording = owner's decision 2026-09-22 (dialog never opened on staging). */}
       <ConfirmDeleteDialog
         open={deleting !== null}
         noun={t("giao dịch")}
-        name={deleting ? formatMoneyUnit(deleting.amount) : ""}
+        title={t("Xác nhận hủy giao dịch")}
+        question={
+          deleting?.note
+            ? tRich("Bạn có chắc muốn hủy giao dịch {0} không?", <strong>{deleting.note}</strong>)
+            : t("Bạn có chắc muốn hủy giao dịch này không?")
+        }
+        confirmLabel={t("Hủy giao dịch")}
+        pending={deleteMutation.isPending}
         onConfirm={handleDelete}
         onClose={closeDelete}
       />

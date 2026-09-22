@@ -1,35 +1,61 @@
+import { Fragment } from "react";
 import { Spin } from "antd";
 import { t } from "@/lib/i18n";
 import { formatMoneyUnit } from "@/utils/format";
-import { useMockBusinessResult, type RangeQuery } from "../api/reportMockQueries";
-import type { BusinessResultVm } from "../types/mock";
+import {
+  useBusinessResult,
+  type BusinessResultCategoryDto,
+  type BusinessResultDto,
+  type RangeQuery,
+} from "../api/clinicReportApi";
 import type { StatTone } from "./ReportStatCards";
 
+type AmountKey = {
+  [K in keyof BusinessResultDto]: BusinessResultDto[K] extends number ? K : never;
+}[keyof BusinessResultDto];
+
+type BreakdownKey = "otherIncomeByCategory" | "expenseByCategory";
+
 interface ResultRow {
-  key: keyof BusinessResultVm;
+  key: AmountKey;
   label: () => string;
   tone: StatTone | "signed";
   variant?: "sub" | "total";
+  /** Category rows the reference lists right under this one (tab 3, `taxonomy`). */
+  breakdown?: BreakdownKey;
 }
 
 /** Same order as the reference: total, its two parts (indented), refund, expense, result. */
 const RESULT_ROWS: ResultRow[] = [
   { key: "totalRevenue", label: () => t("Doanh thu tổng"), tone: "green" },
   { key: "treatmentIncome", label: () => t("Thu từ dịch vụ điều trị"), tone: "ink", variant: "sub" },
-  { key: "otherIncome", label: () => t("Thu khác"), tone: "ink", variant: "sub" },
+  { key: "otherIncome", label: () => t("Thu khác"), tone: "ink", variant: "sub", breakdown: "otherIncomeByCategory" },
   { key: "treatmentRefund", label: () => t("Hoàn tiền từ dịch vụ điều trị"), tone: "red" },
-  { key: "expense", label: () => t("Chi phí"), tone: "red" },
+  { key: "expense", label: () => t("Chi phí"), tone: "red", breakdown: "expenseByCategory" },
   { key: "result", label: () => t("Kết quả kinh doanh"), tone: "signed", variant: "total" },
 ];
 
-function resolveTone(row: ResultRow, value: number): StatTone {
+function resolveTone(row: ResultRow, result: number): StatTone {
   if (row.tone !== "signed") return row.tone;
-  return value >= 0 ? "green" : "red";
+  return result >= 0 ? "green" : "red";
 }
 
-/** Tab "Kết quả kinh doanh": a bordered list of rows; no doctor filter and no export on the reference. */
+function rowClassName(row: ResultRow): string {
+  return ["report-result-row", row.variant && `report-result-row--${row.variant}`].filter(Boolean).join(" ");
+}
+
+function CategoryRow({ item, tone }: { item: BusinessResultCategoryDto; tone: StatTone }) {
+  return (
+    <li className="report-result-row report-result-row--category">
+      <span className="report-result-label">{item.name}</span>
+      <span className={`report-result-value report-money report-money--${tone}`}>{formatMoneyUnit(item.amount)}</span>
+    </li>
+  );
+}
+
+/** Tab "Kết quả kinh doanh": the reference's bordered `<ul>` of rows; no doctor filter and no export. */
 export function BusinessResultTab(range: RangeQuery) {
-  const { data, isLoading } = useMockBusinessResult(range);
+  const { data, isLoading } = useBusinessResult(range);
 
   if (isLoading || !data) {
     return (
@@ -41,22 +67,25 @@ export function BusinessResultTab(range: RangeQuery) {
 
   return (
     <div className="report-tab">
-      <div className="report-result-list">
+      <ul className="report-result-list">
         {RESULT_ROWS.map((row) => {
-          const value = data[row.key];
-          const className = ["report-result-row", row.variant && `report-result-row--${row.variant}`]
-            .filter(Boolean)
-            .join(" ");
+          const tone = resolveTone(row, data.result);
+          const breakdown = row.breakdown ? data[row.breakdown] : [];
           return (
-            <div key={row.key} className={className}>
-              <span className="report-result-label">{row.label()}</span>
-              <span className={`report-result-value report-money report-money--${resolveTone(row, value)}`}>
-                {formatMoneyUnit(value)}
-              </span>
-            </div>
+            <Fragment key={row.key}>
+              <li className={rowClassName(row)}>
+                <span className="report-result-label">{row.label()}</span>
+                <span className={`report-result-value report-money report-money--${tone}`}>
+                  {formatMoneyUnit(data[row.key])}
+                </span>
+              </li>
+              {breakdown.map((item) => (
+                <CategoryRow key={item.categoryId} item={item} tone={tone} />
+              ))}
+            </Fragment>
           );
         })}
-      </div>
+      </ul>
     </div>
   );
 }

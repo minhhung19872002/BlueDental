@@ -13,6 +13,8 @@ interface Props {
   title?: string;
   /** The question line, when the reference words it differently; the "cannot be undone" line stays. */
   question?: ReactNode;
+  /** The red button's label when the reference calls the action something other than "Xoá" (e.g. "Hủy giao dịch"). */
+  confirmLabel?: string;
   pending?: boolean;
   onConfirm: () => void;
   onClose: () => void;
@@ -32,6 +34,7 @@ export function ConfirmDeleteDialog({
   name,
   title,
   question,
+  confirmLabel,
   pending,
   onConfirm,
   onClose,
@@ -56,7 +59,7 @@ export function ConfirmDeleteDialog({
             disabled={pending}
             onClick={onConfirm}
           >
-            {pending ? t("Đang xoá…") : t("Xoá")}
+            {pending ? t("Đang xoá…") : (confirmLabel ?? t("Xoá"))}
           </Button>
         </div>
       }

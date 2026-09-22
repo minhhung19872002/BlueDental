@@ -33,9 +33,8 @@ public sealed class SalesEntryController(ISalesEntryAppService service) : BlueDe
     public Task<SalesEntryDto> UpdateAsync(Guid id, [FromBody] UpdateSalesEntryDto input) =>
         service.UpdateAsync(id, input);
 
-    [HttpPost("{id:guid}/approve")]
-    public Task<SalesEntryDto> ApproveAsync(Guid id, [FromBody] ApproveSalesEntryInput input) =>
-        service.ApproveAsync(id, input);
+    [HttpPut("{id:guid}/approve")]
+    public Task<SalesEntryDto> ApproveAsync(Guid id) => service.ApproveAsync(id);
 
     [HttpPost("{id:guid}/reject")]
     public Task<SalesEntryDto> RejectAsync(Guid id, [FromBody] RejectSalesEntryInput input) =>
@@ -95,6 +94,10 @@ public sealed class CashManagementController(ICashManagementAppService service) 
     [HttpPost("cashflow-entries")]
     public Task<CashflowEntryDto> CreateEntryAsync([FromBody] CreateCashflowEntryDto input) =>
         service.CreateEntryAsync(input);
+
+    [HttpPut("cashflow-entries/{id:guid}")]
+    public Task<CashflowEntryDto> UpdateEntryAsync(Guid id, [FromBody] UpdateCashflowEntryDto input) =>
+        service.UpdateEntryAsync(id, input);
 
     [HttpDelete("cashflow-entries/{id:guid}")]
     public Task DeleteEntryAsync(Guid id) => service.DeleteEntryAsync(id);

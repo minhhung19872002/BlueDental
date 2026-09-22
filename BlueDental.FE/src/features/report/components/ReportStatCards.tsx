@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { formatMoneyUnit } from "@/utils/format";
 
-export type StatTone = "green" | "blue" | "gold" | "red" | "ink";
+export type StatTone = "green" | "blue" | "gold" | "red" | "ink" | "violet";
 
 export interface StatCardItem {
   label: string;

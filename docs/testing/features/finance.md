@@ -47,8 +47,13 @@ POST /api/v1/app/cash-management/cashflow-entries
 
 Both assert deltas, because the branch accumulates vouchers across runs.
 
-## Not covered yet
+## Covered since 2026-09-21 by `e2e/report.spec.ts`
 
-- Rejection flow through the UI (server rule is unit-tested)
-- Category management screen ("Danh mục" sub-tab)
-- Excel export
+- Rejection flow through the UI (reject with reason → edit → approve)
+- Category management screen ("Danh mục" sub-tab) for income, expense and
+  cashbook categories
+- Excel export of Thu nhập, Chi phí and Luân chuyển dòng tiền (files opened
+  and checked against the reference bundle's layout)
+- Withdraw above balance refused, transfer, edit through `PUT`, hủy
+
+See `features/report.md`.
