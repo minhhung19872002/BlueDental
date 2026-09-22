@@ -1,0 +1,167 @@
+/* "In bệnh án" dialog — treatment-management feature.
+   Measured on staging 2026-09-09; see docs/clone/pages/treatment-plan.md. */
+
+.pmr-dialog .ant-modal-body {
+  padding: 12px 24px 0;
+}
+
+/* The reference gives the whole body a fixed 78vh and scrolls inside it, so
+   the footer stays put however long the chosen form is. */
+.pmr-body {
+  display: flex;
+  height: 78vh;
+  min-height: 0;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+}
+
+/* ── Toolbar ── */
+
+.pmr-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  /* Room for the floating label, which rides on the select's top border and
+     would otherwise be clipped by the body's overflow. */
+  padding-top: 10px;
+}
+
+.pmr-file {
+  width: 380px;
+  flex-shrink: 0;
+  --ff-input-height: 40px;
+}
+
+.pmr-file .ant-select {
+  width: 100%;
+}
+
+.pmr-tools {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.pmr-hint {
+  font-size: 13px;
+  color: var(--bd-muted);
+}
+
+.pmr-zoom {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+}
+
+.pmr-dialog .pmr-zoom-btn.ant-btn {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  padding: 0;
+  border-radius: 8px;
+}
+
+.pmr-zoom-value {
+  width: 48px;
+  text-align: center;
+  font-weight: 500;
+  color: var(--bd-heading);
+}
+
+.pmr-dialog .pmr-zoom-fit.ant-btn {
+  height: auto;
+  padding: 4px 8px;
+}
+
+/* ── Preview ── */
+
+/* The frame the reference draws around the paper: one flat grey card filling
+   what is left of the body, scrolling the sheet inside it. */
+.pmr-canvas {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 16px;
+  background: #f5f5f5;
+  padding: 16px;
+}
+
+/*
+ * CSS zoom, not a transform: it shrinks the layout box too, so the scroller
+ * measures the sheet at the size it is drawn and centres it without a
+ * measurement pass. `margin-inline: auto` rather than `justify-content`, which
+ * would clip the left edge once the sheet is wider than the frame.
+ */
+.pmr-scale {
+  flex: 0 0 auto;
+  margin-inline: auto;
+  zoom: var(--pmr-zoom, 1);
+}
+
+/* The sheet brings its own grey page inside its frame, so the preview needs no
+   card of its own around it. */
+.pmr-scale .mr-doc {
+  zoom: 1;
+}
+
+/* The sheet inside this dialog prints through the same rules as the one on the
+   Bệnh án tab; see medical-record.css and printing.ts. */
+
+.pmr-spin {
+  margin: auto;
+}
+
+/* ── Footer ── */
+
+.pmr-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 1100px) {
+  .pmr-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pmr-file {
+    width: 100%;
+  }
+
+  .pmr-tools {
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 640px) {
+  .pmr-dialog .ant-modal-body {
+    padding: 12px 12px 0;
+  }
+
+  .pmr-tools {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .pmr-zoom {
+    align-self: flex-end;
+  }
+
+  .pmr-foot {
+    flex-direction: column;
+  }
+
+  .pmr-foot .ant-btn {
+    width: 100%;
+  }
+}

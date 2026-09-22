@@ -142,6 +142,37 @@ public class TreatmentPlanSlipTests
     }
 
     [Fact]
+    public void The_rollup_discount_and_what_is_owed_add_back_up_to_the_gross()
+    {
+        // The treatment-plan table prints "Tổng phiếu" − "Giảm giá" = "Thành tiền",
+        // and reads the last two straight off this rollup, so the first has to be
+        // recoverable from them.
+        var plan = OpenPlan(DiscountType.Money, 820_000m);
+        AddLine(plan, 2_500_000m, discountType: DiscountType.Money, discountValue: 100_000m);
+
+        var rollup = _money.ForPlan(plan, new List<PatientPayment>());
+
+        rollup.TotalPrice.ShouldBe(1_580_000m);
+        rollup.Discount.ShouldBe(920_000m);
+        (rollup.TotalPrice + rollup.Discount).ShouldBe(2_500_000m);
+    }
+
+    [Fact]
+    public void A_cancelled_line_discounts_nothing()
+    {
+        var plan = OpenPlan();
+        AddLine(plan, 1_000_000m);
+        var dropped = AddLine(plan, 4_000_000m, discountType: DiscountType.Money, discountValue: 500_000m);
+
+        dropped.Cancel();
+
+        var rollup = _money.ForPlan(plan, new List<PatientPayment>());
+
+        rollup.Discount.ShouldBe(0m);
+        (rollup.TotalPrice + rollup.Discount).ShouldBe(1_000_000m);
+    }
+
+    [Fact]
     public void A_slip_closes_once_every_counted_line_is_done()
     {
         var plan = OpenPlan();

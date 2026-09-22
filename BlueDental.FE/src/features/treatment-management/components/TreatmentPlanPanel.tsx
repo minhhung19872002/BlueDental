@@ -12,6 +12,7 @@ import { useTreatmentPlans, type TreatmentPlanSlipDto } from "../api/treatmentPl
 import { InvoiceModal } from "./InvoiceModal";
 import { CreatePlanDialog } from "./plan/CreatePlanDialog";
 import { PlanColumnConfigPopover } from "./plan/PlanColumnConfigPopover";
+import { PrintMedicalRecordDialog } from "./plan/PrintMedicalRecordDialog";
 import { PlanServiceListModal } from "./plan/PlanServiceListModal";
 import { PlanSummaryCards } from "./plan/PlanSummaryCards";
 import { PlanTable } from "./plan/PlanTable";
@@ -49,6 +50,7 @@ export function TreatmentPlanPanel({ patientId, patient }: Props) {
   const [serviceList, setServiceList] = useState<ServiceListTarget | null>(null);
   const [stagePlan, setStagePlan] = useState<TreatmentPlanSlipDto | null>(null);
   const [invoicePlan, setInvoicePlan] = useState<TreatmentPlanSlipDto | null>(null);
+  const [printOpen, setPrintOpen] = useState(false);
 
   const plansQuery = useTreatmentPlans(patientId, branchId);
   const advises = usePatientAdvises({ patientId, clinicBranchId: branchId, maxResultCount: 200 });
@@ -73,6 +75,9 @@ export function TreatmentPlanPanel({ patientId, patient }: Props) {
     () => ({
       onAddStage: setStagePlan,
       onViewServices: (plan) => setServiceList({ kind: "plan", plan }),
+      // The reference's print dialog is about the patient, not the slip: it
+      // reads the record files and the patient, and nothing off the row.
+      onPrintRecord: () => setPrintOpen(true),
       onReceipt: setInvoicePlan,
       onOpenPlan: (plan) => navigate(planDetailPath(patientId, plan.id, branchId)),
     }),
@@ -142,6 +147,9 @@ export function TreatmentPlanPanel({ patientId, patient }: Props) {
           }
         }}
       />
+      {printOpen && (
+        <PrintMedicalRecordDialog patient={patient} onClose={() => setPrintOpen(false)} />
+      )}
       {invoicePlan && (
         <InvoiceModal open patient={patient} plan={invoicePlan} onClose={() => setInvoicePlan(null)} />
       )}

@@ -67,13 +67,20 @@ export interface PlanMoney {
   receivable: number;
 }
 
-/** The seven money columns, read off the slip's payment summary. */
+/**
+ * The seven money columns, read off the slip's payment summary.
+ *
+ * `payment.totalPrice` is already net of every discount — it is what the patient
+ * owes. "Tổng phiếu" is the gross the reference prints above the discount, so it
+ * is rebuilt by adding the discount back; that keeps the row's arithmetic
+ * ("Tổng phiếu" − "Giảm giá" = "Thành tiền") true by construction.
+ */
 export function planMoney(plan: TreatmentPlanSlipDto): PlanMoney {
   const payment = plan.payment;
   return {
-    total: payment.totalPrice,
+    total: payment.totalPrice + payment.discount,
     discount: payment.discount,
-    amount: payment.totalPrice - payment.discount,
+    amount: payment.totalPrice,
     paid: payment.totalPaid,
     refund: payment.totalRefund,
     remaining: payment.debt,

@@ -11,15 +11,6 @@ import {
  * what the reference does. Measured off its own computed styles — see
  * docs/clone/pages/patient-detail.md §Bệnh án.
  */
-/**
- * How a form is drawn.
- *
- * `cover`, `outpatient` and `consultation` are the three whose printed layout
- * was observed on the reference; `free` is the clinic's own plain A4 page,
- * used for the forms whose layout has not been.
- */
-export type MedicalRecordFormKind = "cover" | "outpatient" | "consultation" | "free";
-
 export interface MedicalRecordFormSpec {
   form: MedicalRecordForm;
   /** Position in the index, as the reference numbers them. */
@@ -31,19 +22,36 @@ export interface MedicalRecordFormSpec {
   accent: string;
   /** Icon chip background. */
   iconBg: string;
-  kind: MedicalRecordFormKind;
   /**
-   * Whether the sheet has anything to type into. The reference's
-   * "Phiếu Tư Vấn Tổng Quát" carries no input at all — it is printed and then
-   * filled in by hand — so saving it would store nothing.
+   * Whether the form has any blanks to type into. All nine do, now that each is
+   * drawn from its printed original — "Phiếu Tư Vấn Tổng Quát" carries
+   * twenty-three, which the earlier hand-drawn version of it did not.
    */
   fillable: boolean;
+  /**
+   * Whether a row of this form's table may be added, and whether one may be
+   * removed. Three forms carry a table that is really a list — the cost lines
+   * and the two treatment logs — and the reference offers `+` on all three but
+   * `−` only on the two logs, where a whole printed block can go.
+   */
+  canAddRows?: boolean;
+  canDeleteRows?: boolean;
+  /**
+   * The date the form is filled in for, shown beside the doctor picker. Five of
+   * the nine carry one; the wording is the reference's own — "Ngày tư vấn" on
+   * the consent form, "Ngày thực hiện" on the rest.
+   */
+  dateLabel?: string;
+  /**
+   * The blanks that date is printed into. Two of the five have none: there the
+   * date only says which day's clinical notes the sheet is about.
+   */
+  dateFieldKeys?: string[];
 }
 
 export const MEDICAL_RECORD_FORMS: MedicalRecordFormSpec[] = [
   {
     form: MEDICAL_RECORD_FORM.Cover,
-    kind: "cover",
     fillable: true,
     index: 1,
     label: "Bìa hồ sơ bệnh án",
@@ -53,7 +61,6 @@ export const MEDICAL_RECORD_FORMS: MedicalRecordFormSpec[] = [
   },
   {
     form: MEDICAL_RECORD_FORM.OutpatientDental,
-    kind: "outpatient",
     fillable: true,
     index: 2,
     label: "Bệnh án ngoại trú Răng Hàm Mặt",
@@ -63,7 +70,6 @@ export const MEDICAL_RECORD_FORMS: MedicalRecordFormSpec[] = [
   },
   {
     form: MEDICAL_RECORD_FORM.Orthodontic,
-    kind: "free",
     fillable: true,
     index: 3,
     label: "Bệnh án chỉnh nha",
@@ -73,8 +79,9 @@ export const MEDICAL_RECORD_FORMS: MedicalRecordFormSpec[] = [
   },
   {
     form: MEDICAL_RECORD_FORM.GeneralConsultation,
-    kind: "consultation",
-    fillable: false,
+    fillable: true,
+    dateLabel: "Ngày thực hiện",
+    dateFieldKeys: ["general-consultation.text.14", "consultation.text.4"],
     index: 4,
     label: "Phiếu Tư Vấn Tổng Quát",
     tint: "#faf6ff",
@@ -83,8 +90,10 @@ export const MEDICAL_RECORD_FORMS: MedicalRecordFormSpec[] = [
   },
   {
     form: MEDICAL_RECORD_FORM.TreatmentConsent,
-    kind: "free",
     fillable: true,
+    canAddRows: true,
+    dateLabel: "Ngày tư vấn",
+    dateFieldKeys: ["consultation.text.4"],
     index: 5,
     label: "Phiếu tư vấn và xác nhận đồng ý điều trị",
     tint: "#fff9ef",
@@ -93,8 +102,8 @@ export const MEDICAL_RECORD_FORMS: MedicalRecordFormSpec[] = [
   },
   {
     form: MEDICAL_RECORD_FORM.SurgeryConsent,
-    kind: "free",
     fillable: true,
+    dateLabel: "Ngày thực hiện",
     index: 6,
     label: "Giấy đồng ý thực hiện phẫu thuật/thủ thuật",
     tint: "#f2fcf5",
@@ -103,7 +112,6 @@ export const MEDICAL_RECORD_FORMS: MedicalRecordFormSpec[] = [
   },
   {
     form: MEDICAL_RECORD_FORM.SurgeryRecord,
-    kind: "free",
     fillable: true,
     index: 7,
     label: "Phiếu phẫu thuật/thủ thuật",
@@ -113,8 +121,10 @@ export const MEDICAL_RECORD_FORMS: MedicalRecordFormSpec[] = [
   },
   {
     form: MEDICAL_RECORD_FORM.TreatmentFollowUp,
-    kind: "free",
     fillable: true,
+    canAddRows: true,
+    canDeleteRows: true,
+    dateLabel: "Ngày thực hiện",
     index: 8,
     label: "Phiếu theo dõi điều trị",
     tint: "#f4f8ff",
@@ -123,8 +133,10 @@ export const MEDICAL_RECORD_FORMS: MedicalRecordFormSpec[] = [
   },
   {
     form: MEDICAL_RECORD_FORM.CareSheet,
-    kind: "free",
     fillable: true,
+    canAddRows: true,
+    canDeleteRows: true,
+    dateLabel: "Ngày thực hiện",
     index: 9,
     label: "Phiếu chăm sóc",
     tint: "#f0fbf9",

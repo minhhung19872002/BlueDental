@@ -20,10 +20,11 @@ interface Props {
   /** Position among the sheets of this same form: 1 renders as `Bản 01`. */
   ordinal: number;
   active: boolean;
-  checked: boolean;
+  /** Ticked to say this copy carries the clinic's stamp. */
+  stamped: boolean;
   onSelect: () => void;
-  onCheck: (checked: boolean) => void;
-  onPrint?: () => void;
+  onStamp: (stamped: boolean) => void;
+  onPrint: () => void;
   onRename?: () => void;
   onDelete?: () => void;
 }
@@ -46,9 +47,9 @@ export function MedicalRecordSheetCard({
   spec,
   ordinal,
   active,
-  checked,
+  stamped,
   onSelect,
-  onCheck,
+  onStamp,
   onPrint,
   onRename,
   onDelete,
@@ -75,36 +76,32 @@ export function MedicalRecordSheetCard({
 
       <Checkbox
         className="pd-sheet-check"
-        checked={checked}
-        onChange={(event) => onCheck(event.target.checked)}
-        aria-label={t("Chọn {0} để in", sheet.title)}
+        checked={stamped}
+        onChange={(event) => onStamp(event.target.checked)}
+        aria-label={t("Phiếu {0} có tem", sheet.title)}
       />
 
-      {(onPrint || onRename || onDelete) && (
-        <div className="pd-sheet-actions">
-          {onPrint && (
-            <Tooltip title={t("In phiếu")}>
-              <button type="button" aria-label={t("In phiếu")} onClick={onPrint}>
-                <PrinterOutlined />
-              </button>
-            </Tooltip>
-          )}
-          {onRename && (
-            <Tooltip title={t("Đổi tên phiếu")}>
-              <button type="button" aria-label={t("Đổi tên phiếu")} onClick={onRename}>
-                <EditOutlined />
-              </button>
-            </Tooltip>
-          )}
-          {onDelete && (
-            <Tooltip title={t("Xoá phiếu")}>
-              <button type="button" aria-label={t("Xoá phiếu")} onClick={onDelete}>
-                <DeleteOutlined />
-              </button>
-            </Tooltip>
-          )}
-        </div>
-      )}
+      <div className="pd-sheet-actions">
+        <Tooltip title={t("In nhanh")}>
+          <button type="button" aria-label={t("In nhanh {0}", sheet.title)} onClick={onPrint}>
+            <PrinterOutlined />
+          </button>
+        </Tooltip>
+        {onRename && (
+          <Tooltip title={t("Đổi tên")}>
+            <button type="button" aria-label={t("Đổi tên {0}", sheet.title)} onClick={onRename}>
+              <EditOutlined />
+            </button>
+          </Tooltip>
+        )}
+        {onDelete && (
+          <Tooltip title={t("Xóa")}>
+            <button type="button" aria-label={t("Xóa {0}", sheet.title)} onClick={onDelete}>
+              <DeleteOutlined />
+            </button>
+          </Tooltip>
+        )}
+      </div>
     </div>
   );
 }

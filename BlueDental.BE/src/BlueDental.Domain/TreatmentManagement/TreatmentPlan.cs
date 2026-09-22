@@ -55,6 +55,12 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
     /// <summary>Sum of the line amounts before the slip-level discount.</summary>
     public decimal ServicesTotal => CountedServices.Sum(s => s.CountedAmount);
 
+    /// <summary>
+    /// Line-level discounts that still count. A cancelled line was never charged,
+    /// so its discount must not swell the slip's "Giảm giá" either.
+    /// </summary>
+    public decimal ServicesDiscountAmount => CountedServices.Sum(s => s.DiscountAmount);
+
     /// <summary>Slip-level discount, capped at the slip total.</summary>
     public decimal PlanDiscountAmount
     {

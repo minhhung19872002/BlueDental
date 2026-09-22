@@ -4013,3 +4013,401 @@ Hồi quy vòng 2 (preview 8082, host 5000, sau khi bật thực thi `[Authorize
 `routes` "/timekeeping" (route không tồn tại), `taxonomy-dialogs` :152 và :207
 (option Tên thuốc ngoài viewport, cặn e2e), `taxonomy` :277 (document không
 cuộn từ shell v2). Không có màn hình nào của admin bị 403 mới.
+---
+
+## 2026-09-09 — Cột tiền của phiếu điều trị bị trừ giảm giá hai lần
+
+Chủ dự án hỏi vì sao thẻ tóm tắt, bảng phiếu và "Xem tất cả dịch vụ" hiện dữ
+liệu khác nhau; trả lời xong thì thấy hàng DT05 không cân: một dịch vụ đơn giá
+`2.500.000`, thành tiền `2.400.000`, mà hàng in `Tổng phiếu 1.580.000 / Giảm giá
+920.000 / Thành tiền 660.000`.
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-343 | `Thành tiền` của hàng phiếu trừ giảm giá **hai lần**, và `Tổng phiếu` in số đã trừ chứ không phải số gộp | `payment.totalPrice` mà API trả **đã** net cả chiết khấu dòng lẫn chiết khấu phiếu (`TreatmentPlan.TotalAmount = ServicesTotal − PlanDiscountAmount`), còn `payment.discount` là **tổng hai tầng** — nên `totalPrice − discount` trừ lần nữa. `planMoney()` đổi thành `total = totalPrice + discount` (gộp) và `amount = totalPrice`; đẳng thức `Tổng phiếu − Giảm giá = Thành tiền` nay đúng theo cấu trúc, không còn tự định nghĩa vòng quanh. Tờ in "Chi tiết phiếu" (`receiptView.receiptOf`) cũng lấy số gộp cho dòng `Tổng phí` vì ngay dưới nó là `Giảm giá` |
+| R-344 | `Giảm giá` của rollup cộng cả chiết khấu của **dòng đã huỷ** | `PatientMoneyCalculator` cộng `plan.Services.Sum(s => s.DiscountAmount)` trên **mọi** dòng, trong khi `ServicesTotal` chỉ tính dòng còn sống — dòng huỷ chưa từng bị thu tiền thì cũng không được giảm giá. Thêm `TreatmentPlan.ServicesDiscountAmount` (chỉ `CountedServices`) và dùng nó ở cả `ForPlan` lẫn `ForPatient` |
+
+Chỗ **không** đụng, vì không có dòng `Giảm giá` bên cạnh nên không cộng dồn sai:
+`PatientAccountPanel` (`Tổng phiếu` = số còn phải thu), `PlanDetailHead` và
+`slipView` (`Doanh thu dự kiến` / `Tổng phí` = `totalAmount`), `PatientProfileTab`
+(`Tổng dự kiến thu`).
+
+Mức retest: **2** — Kế hoạch điều trị (F-21) và Chi tiết kế hoạch (F-39).
+
+Kết quả — BE thật (`:5019`, build lại sau khi sửa), PostgreSQL thật, không mock:
+
+- Domain **312** / Application **556** xanh. Hai test mới trong
+  `TreatmentPlanSlipTests`: rollup cộng lại ra đúng số gộp `2.500.000`, và dòng
+  huỷ không giảm giá gì. Test thứ hai **đã đối chứng**: hoàn nguyên bản sửa BE
+  thì đỏ.
+- `e2e/treatment-plan.spec.ts` **6/6** trên **cả** bản build production
+  (`vite preview` :8080) **và** dev server :5173. Spec mới
+  *"a discounted slip prints the gross, the discount and what is owed"* tự đặt
+  đơn giá `2.500.000` + giảm `100.000 VNĐ` rồi đối chiếu ba ô tiền của hàng với
+  hai ô của chính dòng dịch vụ trong modal. **Đã đối chứng**: hoàn nguyên
+  `planMoney` thì ô `Tổng phiếu` trả về `2.400.000` và spec đỏ.
+- `treatment-plan-detail` **4/5**, `treatment-stage` **2/2**. Một đỏ là
+  `under 640px…` (chiều cao ô `Nội dung` trong dialog Hoàn tiền, dòng 374) —
+  **có sẵn từ trước**, chứng minh bằng `git stash` toàn bộ thay đổi rồi build
+  lại và chạy: đỏ y hệt cùng dòng.
+- `tsc --noEmit` sạch.
+
+
+## 2026-09-09 — Tooltip hàng phiếu, modal "In bệnh án", và nhãn ô của modal Hóa đơn
+
+Ba việc chủ dự án chỉ ra trên tab **Kế hoạch điều trị**. Khảo sát bản gốc trên
+`staging.nfcdental.com` — **chỉ đọc**: mở modal, đổi file, bấm zoom, đọc
+`getComputedStyle`. Không bấm nút in, không lưu, không gửi POST/PUT/DELETE nào.
+Ảnh chụp và bản bắt `clinic-files` để trong `reference-private/` (rule 01).
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-345 | Hai nút cột **Thao tác** (và nút mắt) hover không hiện tooltip | Bản gốc bọc cả ba bằng `tooltip-trigger`: `In bệnh án` · `Hóa đơn` · `Danh sách dịch vụ`. Nút `+` thì **không** có — giữ nguyên. Thêm tooltip ở cả bảng (`planColumns`) lẫn thẻ ≤640px (`PlanCardList`) |
+| R-346 | **Tooltip nuốt phím `Esc`.** Bọc bằng `<Tooltip>` trần làm hỏng một hành vi đang chạy: hover nút mắt → bấm → tooltip vẫn mở đè lên mask, `Esc` đầu tiên đóng **tooltip** chứ không đóng dialog, người dùng phải bấm hai lần | `ActionTooltip`: `open` do component giữ, `onPointerDownCapture` đóng tooltip **trước** click của nút và **giữ khoá** (con trỏ vẫn nằm trên trigger nên rc-trigger sẽ xin mở lại ngay), khoá nhả khi con trỏ rời. Đây là lỗi **do đợt này gây ra** — chứng minh bằng cách gỡ riêng tooltip nút mắt thì spec xanh lại, và đo trực tiếp: trước `Esc` DOM có `.ant-tooltip` với `hidden=false`; sau khi vá thì không còn tooltip nào |
+| R-347 | Nút **In bệnh án** không có hành vi (comment cũ: "để dành đợt sau") | `PrintMedicalRecordDialog` dựng theo bản gốc: chọn file (chín biểu mẫu, mở sẵn **Bìa hồ sơ bệnh án**), dòng nhắc "ô nền vàng vẫn có thể chỉnh trước khi in", zoom **40–120% bước 5%**, **`Fit` = reset về 85%** (đo ở ba bề rộng khung, không phải fit-width), khung xem trước xám `#F5F5F5` bo 16 viền `#E0E0E0`, chân `Đóng` / `🖨 In bệnh án`. Modal theo **bệnh nhân**, không theo phiếu — bản gốc mở ra cũng chỉ gọi `clinic-files` + đọc lại bệnh nhân. Dùng lại `MedicalRecordSheetView` của tab Bệnh án; sửa trong modal **không lưu**, đúng như bản gốc nói |
+| R-348 | Modal **Hóa đơn** để nhãn tĩnh phía trên ô, lệch với mọi form khác trong source | `FloatingLabel` cho cả 13 ô (không phải `FloatingField` — modal này không nằm trong `Form`), `floated` theo ô có giá trị hay không. Kèm ba số đo lại từ bản gốc: gap hai cột 32→**20px**, tiêu đề mục 15/600→**16/700**, và `Mẫu` chuyển kính lúp từ `suffixIcon` sang **`prefix`** (bản gốc để bên trái, chevron vẫn bên phải) |
+
+Hai chỗ tiện tay sửa vì đợt này làm lộ:
+
+- **Zoom của tờ xem trước.** Ba trong bốn kiểu tờ (`cover`, `consultation`,
+  `free`) đặt `width: PAGE_WIDTH * zoom + 34` và biến `--sheet-zoom`, nhưng chỉ
+  `.pd-a4-free-page` thực sự dùng biến đó — nên ở zoom ≠ 1 tờ bìa bị **cắt cụt**
+  chứ không thu nhỏ (ở tab Bệnh án zoom mặc định là 1 nên chưa ai thấy). Modal in
+  không dùng `zoom` của tờ nữa: truyền `zoom={1}` và tự thu bằng CSS `zoom` ở
+  `.pmr-scale` — `zoom` co cả hộp layout nên khung cuộn đo đúng cỡ tờ đang vẽ.
+- **Giới tính trên tờ bìa.** Bản gốc tick sẵn Nam/Nữ từ hồ sơ
+  (`cover.patient.gender-male` / `-female`); ta để trống. `tick()` của
+  `MedicalRecordCoverSheet` nhận thêm `seed`, cùng luật với `cell()`: ô chưa ai
+  đụng thì lấy hồ sơ, ô đã bấm thì giữ nguyên — kể cả khi bấm cho **bỏ** tick.
+
+Mức retest: **2** cho F-21, **3** cho `MedicalRecordCoverSheet` (dùng chung với
+tab Bệnh án).
+
+Kết quả — BE thật (`:5019`), PostgreSQL thật, đăng nhập thật, không chặn API:
+
+- `e2e/treatment-plan.spec.ts` **6/6** trên **cả** build production
+  (`vite preview` :8080) **và** dev :5173. Spec cũ mở rộng: modal In bệnh án mở
+  ở 85% với mã bệnh nhân đã điền, `+` → 90%, `Fit` → 85%, đổi sang *Bệnh án
+  ngoại trú* thì tờ vẽ lại; và modal Hóa đơn phải có đúng 13 `.inv-field`
+  floating, ô đã có giá trị thì `--floated`, ô rỗng thì không.
+- `e2e/patient-medical-record.spec.ts` **7/7** (bao gồm spec tờ bìa) trên build
+  production — đây là bộ bảo vệ chỗ sửa `MedicalRecordCoverSheet`.
+- `tsc --noEmit` sạch; eslint sạch trên các file đã đụng.
+- `treatment-plan-detail` còn **1 đỏ** (`under 640px…`, chiều cao ô `Nội dung`
+  của dialog Hoàn tiền) — **có sẵn từ trước**, chứng minh bằng `git stash` toàn
+  bộ thay đổi của đợt này, build lại rồi chạy: đỏ y hệt cùng dòng.
+
+Còn treo (`unknowns.md`): bản gốc điền danh tính bệnh nhân cho **tám trên chín**
+biểu mẫu; BlueDental mới điền cho tờ bìa. Tờ *Bệnh án ngoại trú* nằm trong
+`features/taxonomy/` (mục 17 CLAUDE.md — sửa phải chạy lại 38 spec Danh mục),
+nên tách thành việc riêng thay vì kèm vào đợt này.
+
+## 2026-09-09 — Bệnh án: dựng chín tờ A4 từ chính bản in
+
+Chủ dự án yêu cầu tab Bệnh án phải **giống 100%** bản gốc, cả chữ, bố cục lẫn ô
+nhập. Khảo sát chỉ đọc trên staging (mở tab, đổi tờ, bấm zoom, đọc computed
+style và **bundle tĩnh** — rule 00 cho phép). Không bấm In, không tick "có tem",
+không chọn bác sĩ, không ghi gì lên bản gốc.
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-349 | **Chín biểu mẫu không thể vẽ bằng component.** BlueDental vẽ tay ba tờ (Bìa, Ngoại trú, Tư vấn) và cho sáu tờ còn lại một trang kẻ dòng trống. Đo bản gốc: chín tờ là **801 ô nhập, 155 ô tick, 17 trang A4** | Chuyển sang đúng kiến trúc bản gốc: mỗi biểu mẫu là **một tài liệu HTML** với ô `data-medical-record-field`, render trong `<iframe srcdoc>` cùng bộ style của chính nó. Một đường code cho cả chín tờ: `medical-record/templates/*.ts` (chín bản trắng), `sheetCss.ts` (bộ style đo nguyên văn), `renderSheet.ts` (điền ô + token qua DOM, không qua chuỗi), `MedicalRecordDocument.tsx` (khung + bắt sự kiện sửa). Ba component vẽ tay và `coverSheetRows.ts` bị gỡ |
+| R-350 | Ô nhập bị **đóng băng dữ liệu hồ sơ**: lượt lưu đầu ghi cả 56 ô của tờ Bìa, kể cả những ô do hồ sơ điền | Chỉ lưu ô **khác** với câu trả lời của hồ sơ. Đối chứng chạy thật: bỏ tick "Nữ" → khoá `cover.patient.gender-female` xuất hiện trong `fieldValues`; tick lại → khoá **biến mất**. Nhờ vậy sửa hồ sơ bệnh nhân sau này vẫn hiện lên phiếu |
+| R-351 | Ô tick trong tờ lưu thành `""` chứ không phải `true`/`false` | `instanceof HTMLInputElement` **luôn sai** ở đây: tờ là một tài liệu riêng, có bản sao lớp DOM của chính nó, nên checkbox trong iframe không phải instance của lớp bên ngoài. Đọc bằng `tagName` |
+| R-352 | Tờ dựng ra **trắng** dù đã lưu | Tài liệu được dựng trong `useMemo` ở lần render đầu, còn giá trị đã lưu lại được nạp bằng `useEffect` — chậm một nhịp, mà memo thì không dựng lại (dựng lại khi đang gõ sẽ mất con trỏ). Bỏ effect: bản nháp giữ theo từng phiếu (`edits[sheetId]`) và giá trị hiển thị tính ngay trong render |
+| R-353 | Tên phiếu trong mục lục **cắt giữa chữ** ("Bệnh án chỉnh nh\|a") | Ba nút hành động nằm trong luồng flex nên cột chữ chỉ còn **121px**. Bản gốc đặt chúng **tuyệt đối** ở giữa cạnh phải, chừa `padding-right` 40px cho tên và 84px cho hàng meta |
+| R-354 | Thanh dưới có nút **"Xoá phiếu"** mà bản gốc không có, và thiếu **"Đồng bộ phiếu"** | Bỏ "Xoá phiếu" (xoá nằm ở icon thùng rác trên thẻ, đúng như bản gốc), thêm "Đồng bộ phiếu" — luôn disabled, vì đọc bundle thấy bản gốc cũng **chưa nối handler** cho nó |
+| R-355 | Thiếu ô chọn **"Bác sĩ"** ở đầu khung xem trước; zoom sai dải | Thêm ô chọn (chưa nối — `unknowns.md`); zoom đổi từ 50–200% bước 10 sang **60–140% bước 10**, đúng số đo |
+| R-356 | "In biểu mẫu" chỉ có một dạng | Ở `Toàn bộ` bản gốc đổi nó thành **popover "Chọn phiếu in"**: dòng nhắc, ô "Tất cả phiếu" có trạng thái indeterminate, danh sách phiếu kèm pill `Bản NN`, nút `In` primary. Dựng lại đúng vậy |
+| R-357 | Phiếu mở mặc định là phiếu **API trả về đầu tiên**, không phải thẻ đầu mục lục | Sắp phiếu theo thứ tự mục lục (biểu mẫu, rồi ngày tạo) để hai bên khớp nhau — nếu không, tải lại trang có thể mở nhầm tờ |
+| R-358 | "Phiếu Tư Vấn Tổng Quát" bị khoá nút Lưu (`fillable: false`) | Tờ đó có **23 ô nhập** trên bản in thật; cờ `fillable` là kết luận sai từ bản vẽ tay cũ. Cả chín tờ nay đều ghi được. Bỏ luôn `kind` — nó dùng để chọn component vẽ, mà không còn component nào để chọn |
+
+Mức retest: **2** cho Bệnh án, **3** cho `medicalRecordDraft` (dùng chung với
+modal "In bệnh án" ở Kế hoạch điều trị).
+
+Kết quả — BE thật (`:5019`), PostgreSQL thật, đăng nhập thật, không chặn API:
+
+- `e2e/patient-medical-record.spec.ts` viết lại cho kiến trúc mới (đọc vào
+  `frameLocator` của tờ): **7/7** trên **cả** build production (`vite preview`
+  :8080) **và** dev :5173. Trong đó có spec đếm đúng **ô nhập / ô tick / số
+  trang của cả chín tờ** (56/20/3 … 118/2/1), spec ghi–lưu–tải lại, và spec
+  chứng minh ô trùng với hồ sơ thì không bị lưu đè.
+- `e2e/treatment-plan.spec.ts` **6/6** trên build production sau khi sửa spec
+  modal in trỏ vào tài liệu của tờ.
+- `tsc --noEmit` sạch, eslint sạch trên các file đã đụng.
+
+Còn treo, đã ghi `unknowns.md`: ô chọn **Bác sĩ** (chưa biết nó điền ô nào),
+ô tick **"có tem"** và nút **"Đồng bộ phiếu"** (bản gốc cũng chưa nối), và chế
+độ **"Toàn bộ"** (mới dựng, chưa đối chiếu ảnh chụp bản gốc). Bản in ra giấy
+mới có CSS `@media print`, **chưa đối chiếu** với bản in của bản gốc.
+
+Dữ liệu cũ: phiếu lưu trước đợt này dùng bộ tên ô khác (`nextOfKin`,
+`illnessHistory`, …) — không phải ô nào trên chín bản in, nên bị bỏ lại thay vì
+đổ vào ô không đúng nghĩa.
+
+## 2026-09-09 (chiều) — Bệnh án: hình vẽ, sửa dòng, và bản in
+
+Năm chỗ chủ dự án chỉ ra trên các tờ, cộng phần in. Khảo sát bản gốc bằng
+**asset tĩnh** (bundle JS + hai ảnh của biểu mẫu) và **ảnh chụp** — rule 00 cho
+phép. Xem thêm mục sự cố ở `unknowns.md`: một cú bấm sai selector đã tạo một
+phiếu trên staging.
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-359 | **Bệnh án 2, mục IV-3 thiếu hình.** Template trỏ `/medical-record-templates/outpatient-dental-{diagram,legend}.png` — đường dẫn của bản gốc, ta không có file | Tải hai ảnh về `BlueDental.FE/public/medical-record-templates/`, giữ nguyên đường dẫn trong template. Tờ nằm trong `srcdoc` nhưng `baseURI` thừa hưởng từ trang cha nên đường dẫn tuyệt đối vẫn phân giải đúng; đo lại `naturalWidth` 1094×244 và 171×80 |
+| R-360 | **Bệnh án 8 "Số ngoại trú" bám mã bệnh nhân.** Số ngoại trú là số chạy của phòng khám, không phải mã hồ sơ | Bản gốc **bỏ `data-field-source="patient.code"`** khỏi các span `treatment-tracking.page-N.patient.code` khi render (đọc được trong bundle). Làm y hệt, ở bước điền — bỏ nguồn chứ không bỏ ô, nên vẫn còn chỗ để viết |
+| R-361 | **Bệnh án 5 thiếu nút `+` khi hover** để thêm dòng ở "IV - Chi phí điều trị" | Dựng `rowEditing.ts` + `rowHandles.ts` theo đúng bundle: nút tròn 20px, `+` xanh `#16a34a` đặt ở `right+4`, `−` đỏ `#dc2626` đặt ở `right-10`, cả hai `position:fixed` trong tài liệu của tờ. Thêm dòng = nhân bản dòng dưới con trỏ, đánh số lại quá dòng cao nhất, bỏ `data-field-source`, xoá nội dung, đánh dấu `data-medical-record-generated-row`. Bảng chi phí nhận ra qua `consultation.text.21…44` (8 dòng in sẵn, 3 ô một dòng) nên dòng thêm là `consultation.treatment-cost.row-9.{serial,service,amount}` |
+| R-362 | **Bệnh án 8 và 9 thiếu cả `+` và `−`** — kể cả cụm MS / tờ điều trị số / số ngoại trú | Bundle cho biết `−` chỉ có ở `file-7` và `file-9`, `+` có ở `file-4`/`file-7`/`file-9`, và **cả hai chỉ dành cho quản trị phòng khám**. Đưa vào `medicalRecordForms` thành `canAddRows`/`canDeleteRows`, gác bằng role `admin`. Xoá dòng = bỏ `<tr>` và để lại một ô ẩn `custom.deleted-table-row.<hash>` — hash 32-bit của id ô đầu dòng, đúng thuật toán bản gốc — nên ghi chú sống lâu hơn chính cái dòng nó nói về |
+| R-363 | Dòng thêm/xoá **không sống qua lần lưu** | `applyStoredRows` dựng lại hình dạng đã lưu trước khi điền ô: mọc thêm dòng cho mọi `row-N` có trong dữ liệu, rồi bỏ những dòng có ghi chú xoá. Và `collect` **luôn** lưu ô của dòng do người dùng thêm, kể cả khi rỗng — ở đó sự rỗng chính là thông tin, nó là thứ nói rằng dòng đó tồn tại |
+| R-364 | **Viền thẻ phiếu đang mở luôn xanh**, kể cả trong biểu mẫu màu cam | Ăn màu của biểu mẫu: viền, nền, chip icon (đặc + chữ trắng) và pill `Bản NN` đều lấy `--form-accent`. Kèm một lỗi thứ tự CSS: `:hover` khai sau `--active` nên hover vào thẻ đang mở làm viền nhạt đi — thêm `.pd-sheet-card--active:hover` |
+| R-365 | **Bản in bệnh án ra giấy trắng.** Class `pd-printing` mang hợp đồng cũ *"ẩn mọi con của body trừ `.pd-print-sheet`"* của ba dialog in trước đây — nó ẩn luôn cả tờ bệnh án | Tách class riêng `mr-printing`. Không thể portal bản sao: tờ là iframe, chuyển chỗ là nó tải lại và mất chữ vừa gõ. Cũng không thể chỉ `visibility:hidden`: hộp vô hình vẫn chiếm giấy, đo được tờ bắt đầu ở **y=946px** — in ra một trang trắng trước. `printing.ts` đi từ body xuống, gỡ khỏi layout mọi nhánh **không** chứa `.mr-doc` (nên chế độ"Toàn bộ" giữ đủ các tờ), và trả lại nguyên trạng ở `afterprint`. Đo lại: tờ nằm ở **(1, 1)** đúng cỡ 834×2693 |
+
+Mức retest: **2** cho Bệnh án, **3** cho đường in (dùng chung với modal
+"In bệnh án" ở Kế hoạch điều trị).
+
+Kết quả — BE thật (`:5019`), PostgreSQL thật, đăng nhập thật, không chặn API:
+
+- `patient-medical-record.spec.ts` **12/12** và `treatment-plan.spec.ts` **6/6**
+  trên bản build production (`vite preview` :8080); bộ bệnh án cũng **12/12**
+  trên dev :5173. Năm spec mới: hai hình của tờ ngoại trú thật sự tải được
+  (`naturalWidth > 0`), số ngoại trú rỗng và không còn `data-field-source`,
+  thêm một dòng chi phí rồi tải lại vẫn còn, xoá một dòng của phiếu chăm sóc
+  thì mất hẳn, và viền thẻ đang mở trùng màu nút "Thêm" của biểu mẫu.
+- Vòng đời sửa dòng đo trực tiếp trên máy: hover ra `−` ở `right-10` và `+` ở
+  `right+4`; `+` cho 28→29 dòng, id mới `…row-27.*`, lưu ra đúng **4** khoá;
+  tải lại dựng lại dòng; `−` cho 29→28 và để lại đúng một ghi chú
+  `custom.deleted-table-row.nbbbnz`.
+- `tsc --noEmit` sạch, eslint sạch trên các file đã đụng.
+
+Còn treo: ô chọn **Bác sĩ** vẫn chưa nối (chưa đo được nó điền ô nào), tick
+**"có tem"** và **"Đồng bộ phiếu"** vẫn chỉ sống trong phiên (bản gốc cũng chưa
+nối), và chế độ **"Toàn bộ"** chưa đối chiếu ảnh chụp bản gốc.
+
+## 2026-09-09 (chiều muộn) — Bệnh án: tên bị cắt, và responsive
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-366 | **Tên phiếu bị cắt giữa chữ** ("Bệnh án ngoại trú Răng Hà…") dù đã có `-webkit-line-clamp: 2` | Thẻ nằm trong `<button>`, và `white-space: nowrap` của button **thừa hưởng** xuống khối chữ — nên tên chỉ có **một** dòng để clamp, phần còn lại bị `overflow: hidden` cắt. Đo được `scrollHeight` = 20px = một dòng. Đặt `white-space: normal` cho khối chữ, và `nowrap` cho pill + ngày (chúng xuống dòng theo cụm, không ngắt giữa) |
+| R-367 | **Responsive dưới breakpoint sai**: mục lục vẫn mở và bị cắt ngang thẻ, thẻ thấp và bị kéo ngang, thanh dưới lệch | Dựng theo đúng số đo bản gốc: breakpoint **1024px**; dưới nó bỏ hẳn `height: calc(100dvh − 180px)` + `overflow: hidden` (đây là thứ bóp thẻ và tờ thành một dải thấp), gập một cột, mục lục **tự thu về thanh tiêu đề**, khung tờ cao tự nhiên và trang cuộn |
+| R-368 | Thanh dưới canh bằng `left: calc(50% + 168px)` — một con số chặn cứng, lệch khi mục lục thu | Dựng lại cấu trúc của bản gốc: một khối bọc trong suốt `pointer-events: none` trải hết cột tờ, thanh trắng canh giữa trong đó, `flex-wrap` để tự xuống hai hàng khi hẹp; `absolute` trong cột tờ ở desktop, `fixed inset 12px` khi gập. Đo lại: tâm thanh **961** = tâm cột tờ **961** |
+| R-369 | **Dòng "THUỘC" của letterhead trống** ở lần vẽ đầu | Tờ được dựng một lần theo `documentKey`, còn tên chi nhánh là một request riêng và về **sau** đó. Thêm tên chi nhánh vào `documentKey` — nó chỉ đổi trước khi ai kịp gõ, nên không có nguy cơ mất con trỏ |
+
+| R-370 | **Mục lục và khung tờ vẫn thấp** ở khổ hẹp dù đã gập cột đúng | Thứ chặn nằm **ngoài** CSS của tab: vỏ trang `.pd-page` tự khoá mình ở chiều cao cửa sổ (`height: 520px; overflow: hidden` ở khổ 768×604), và `flex: 1` của lưới bên trong bị thuật toán flex co theo — nên `height: auto` khai ở lưới không có tác dụng. Đo được mục lục **148px** / khung tờ **181px**. Dưới breakpoint nhấc chính cái chặn đó bằng `.pd-page:has(.pd-medical)`, và đổi `flex` của lưới + khung tờ sang `0 0 auto`. Đo lại cùng khổ: khung tờ **2856px**, mục lục mở **1561px**, trang cuộn, app không trượt ngang. Khoảng chừa 132px cho thanh dưới chuyển từ khung tờ sang **đáy cả vùng**, vì khi gập một cột thì mục lục có thể là thứ cuộn tới cuối |
+
+Kết quả: `patient-medical-record.spec.ts` **14/14** trên bản build production
+:8080 (và 14/14 trên dev :5173), `treatment-plan.spec.ts` **6/6**. Hai spec mới:
+không tờ nào bị cắt tên (`scrollHeight`/`scrollWidth` không vượt hộp), và hợp
+đồng gập cột — 1440px: hai cột `320px …`, mục lục mở, thanh `absolute` canh giữa
+cột tờ; 900px: một cột, mục lục thu, thanh `fixed`; 640px: chỉ khung tờ trượt
+ngang, cả app thì không.
+
+## 2026-09-09 (tối) — Bệnh án: ô ngày của từng mẫu, và chỗ cuộn khi hẹp
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-371 | **Thiếu ô ngày** ở các mẫu 4, 5, 6, 8, 9 | Đọc bảng cấu hình trong bundle bản gốc: bốn mẫu khai trực tiếp (`file-8`, `file-4`, `file-5`, `file-9`) cộng `file-7` bật qua cờ riêng — ra đúng năm mẫu anh chỉ. Nhãn cũng theo bản gốc: **"Ngày tư vấn"** riêng cho mẫu 5, còn lại "Ngày thực hiện". Hai mẫu có ô in ngày (`dateFieldKeys`), ba mẫu không |
+| R-372 | Chọn ngày mà **ô in trên tờ chưa đổi** cho tới khi tải lại | Tài liệu chỉ dựng lại theo `documentKey`, nên một giá trị ghi từ bên ngoài không tới được nó. Thêm một đường ghi vào **tài liệu đang mở**: bỏ qua ô đang có con trỏ và bỏ qua ô đã trùng giá trị, nên không bao giờ tranh với người đang gõ |
+| R-373 | **Cuộn khi hẹp sai kiểu**: lần trước tôi cho mọi thứ cao tự nhiên và chỉ để trang cuộn | Bản gốc cho cột tờ scroller riêng ở **mọi** bề rộng: `h-[calc(100dvh-180px)] min-h-[560px] overflow-y-auto pb-20`. Sàn 560px là thứ quan trọng trên cửa sổ thấp — 100dvh−180px chỉ còn ~400px trên màn 600px. Đo lại ở 768×604: cột 560px, cuộn nội dung của nó, tờ bên trong 2800px, app không trượt ngang |
+
+Ba chỗ sửa trong chính bộ test, vì suite đã tự làm bẩn dữ liệu dev:
+
+- `openFreshSheet` trước đây **thêm** một phiếu mỗi lần gọi. Sau vài lượt chạy,
+  mục lục có hàng chục bản (dọn ra **122** bản rác, giữ 22) và assert số tuyệt
+  đối bắt đầu đỏ. Nay nó **xoá trắng bản đầu của mẫu** thay vì thêm bản mới, và
+  khoá theo **số hiệu mẫu** chứ không theo tên (phiếu đổi tên được).
+- Phát hiện một hành vi API đáng ghi: `PUT { content: null }` nghĩa là **"đừng
+  đổi"**, không phải "xoá" — `if (input.Content is not null)` ở app service,
+  đúng thứ cho phép lệnh đổi tên chỉ gửi `title`. Muốn xoá trắng phải gửi giá
+  trị rỗng tường minh (`{"fieldValues":{}}`).
+- Spec đếm ô của cả chín mẫu nay xoá trắng từng mẫu trước khi đếm, nên một dòng
+  do spec khác thêm vào và lưu không còn làm sai số đếm; kèm `test.slow()`.
+
+Kết quả: `patient-medical-record.spec.ts` **16/16** trên **cả** bản build
+production :8080 và dev :5173; `treatment-plan.spec.ts` **6/6**. Hai spec mới:
+năm mẫu có ô ngày với đúng nhãn (bốn mẫu còn lại không có), và chọn ngày thì in
+ngay lên tờ rồi sống qua lần tải lại.
+
+## 2026-09-09 (khuya) — Bệnh án: đầu phiếu dính, mục lục có scroller, khe ô tích
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-374 | **Đầu khung tờ cuộn theo tờ**: `Bản NN`, tên phiếu và ô ngày trôi mất khi cuộn A4 | Đọc bản gốc (chỉ đọc layout, không bấm): đầu thẻ của nó là `header.sticky.z-10` cao 65px, nền trắng, bóng `0 8px 16px -14px rgba(27,42,65,.45)`, và **vùng cuộn là cả cột** (`clientH 720 / scrollH 4146`). Thanh dưới neo vào một lớp `relative` **bọc ngoài** vùng cuộn — nếu để trong, hộp `absolute` sẽ neo vào padding box của scroller và trôi theo giấy. Dựng lại đúng ba lớp: `.pd-medical-canvas` (neo thanh, không cuộn) › `.pd-medical-canvas-scroll` (cuộn) › `.pd-medical-canvas-head` (sticky) + `.pd-medical-paper` (cao theo tờ, giữ cuộn ngang của riêng nó) |
+| R-375 | **Mục lục không có scroller riêng khi hẹp** — mở ra là phải cuộn cả app qua nó | Chặn panel vào một khung `calc(100dvh − 180px)` sàn 560px, `overflow: hidden`; thứ cuộn bên trong là `.pd-medical-forms` (vốn đã là scroller), nên thanh tiêu đề đứng yên. Đây là chỗ **thêm** so với bản gốc: dưới breakpoint bản gốc ẩn hẳn danh sách (`display: none`, panel còn 70px) nên không gặp ca này, còn ta cho mở lại. Bản thu gọn phải nhả cả `min-height`, không thì panel giữ 560px trống |
+| R-376 | **Ô tích dính ba nút chức năng** khi mục lục rộng ra | Đo bản gốc: thẻ **268×93** (113 khi tên hai dòng), ô tích 16px ở `top/right: 10`, hàng nút **82×26** ở `right: 8` canh giữa → khe **7,5px**. Thẻ của ta chỉ ~65px khi mục lục rộng — vì lúc đó dòng meta gộp lại **một** hàng — nên hàng nút canh giữa dạt lên ngang ô tích. Đặt sàn `min-height: 93px` cho thẻ (đúng chiều cao bản gốc, không phải số tự nghĩ) và `line-height: 16.5px` cho dòng meta như bản gốc: thẻ ra đúng **93 / 113px**, meta **41px**. Nút cũng cố định **26×26** cho khớp |
+
+Hai chỗ lệch còn lại, đã đo và cố ý giữ:
+
+- Ô tích của ta là AntD 6 — hộp **20px**, bản gốc 16px. Giữ cỡ tích chung của
+  app và đặt **tâm** trùng tâm bản gốc (`top/right: 6px` + 2px viền thẻ), nên
+  khe còn **5,5px** thay vì 7,5px.
+- Khoảng chừa đáy vùng khi hẹp giảm **132px → 24px**. Cột tờ giờ là hộp có
+  chặn và kết thúc bằng 76px trống của giấy, nên chỗ thanh dưới che vốn đã
+  rỗng; giữ 132px chỉ làm trang cuộn đủ xa để đẩy đầu phiếu dính ra khỏi mép
+  trên cửa sổ (đo được −120px, nay −12px).
+
+Đo lại ở 768×604: mục lục **560px** với danh sách cuộn trong nó (client 454 /
+scroll 1648, tiêu đề đứng yên), cột tờ **560px** với scroller riêng (client 558
+/ scroll 2870), đầu phiếu `sticky` đứng yên khi tờ chạy 1200px, giấy trượt ngang
+(789 > 712) mà app thì không, thẻ **93px**. Vùng cuộn thật của app là
+`main.app-content` (client 542 / scroll 1455), không phải `documentElement`.
+
+Đường in kiểm lại bằng script riêng (media `print` + đúng bước cô lập của app):
+tờ bìa bắt đầu ở **y=18**, `zoom: 1`, **7** nhánh ngoài tờ bị gỡ khỏi layout
+(có cả `pd-medical-canvas-head`), scroller mới được `@media print` trung hoà về
+`height: auto; overflow: visible` — thiếu dòng đó thì nó chặn ở 678px và in ra
+một trang.
+
+Kết quả: `patient-medical-record.spec.ts` **18/18** trên **cả** dev :5173 và bản
+build production :8080; `treatment-plan.spec.ts` **6/6** → **24/24**. Hai spec
+mới: đầu phiếu đứng yên khi cuộn tờ 600px ở cả 1440px và 900px (tờ đi đúng
+600px, đầu phiếu 0px), và ô tích cách hàng nút ≥4px trên **mọi** thẻ ở cả hai
+bề rộng, thẻ ≥93px, không nút nào tràn khỏi thẻ. Test responsive cũ cập nhật
+sang scroller mới (`.pd-medical-canvas-scroll`) và kiểm thêm scroller của mục
+lục.
+
+`tsc -b --noEmit` sạch; oxlint không thêm cảnh báo nào ở các file đã đụng.
+
+### Rebase lên `origin/main` (13 commit mới, trong đó có Design v2)
+
+Một xung đột đáng ghi ở `patient-detail.css`: main mới có khối
+`@media (max-width: 640px)` chỉnh `.pd-medical-bar` (`left`, `right`,
+`transform`, `white-space`, `flex-wrap`) — viết cho **thanh dưới cũ**, hồi nó
+là một hộp `absolute` đặt tay bằng `left: calc(50% + 168px)` + `translateX` và
+`white-space: nowrap`. Cấu trúc mới không còn thuộc tính nào trong đó có tác
+dụng: thanh là con flex canh giữa trong `.pd-medical-barwrap` (trải hết cột,
+`inset` 12px khi gập) và tự xuống hàng bằng `flex-wrap` của chính nó. Bỏ khối
+đó, thay bằng một ghi chú để không ai thêm lại — kèm số đo trên bản build sau
+rebase:
+
+| Khổ | Thanh dưới | Ghi chú |
+|---|---|---|
+| 375×700 | `left 12 / right 363`, **4 hàng** (154px), **mọi** nút trong khung nhìn | giấy trượt ngang, app không |
+| 640×800 | `left 12 / right 628`, 2 hàng (106px), không nút nào bị cắt | mục lục thu về **78px** (nhả cả `min-height`), đầu phiếu `sticky` |
+
+Chạy lại sau rebase trên bản build production: `patient-medical-record` **18/18**
++ `treatment-plan` **6/6** = **24/24**. Domain.Tests **312/312**.
+
+Một lỗi **có sẵn trên `origin/main`**, không phải của đợt này: `npm run build`
+đứt ở `tsc` vì `ReceptionPage.tsx` khai `type ViewMode = "day" | "week" |
+"month"` rồi truyền `setViewMode` vào `onViewModeChange` của `DateNavigator`,
+mà `DateNavigatorMode` đã thêm `"year"` (commit `c8e129d`). Đối chứng: đọc
+thẳng hai file **tại `origin/main`** — lệch sẵn ở đó, và không file nào nằm
+trong bốn commit của đợt này. Chưa sửa: đó là feature đang làm của người khác,
+sửa kiểu cho hết đỏ có thể chặn đúng cái "year" họ đang thêm. Cách chặn tối
+thiểu nếu cần gấp: `onViewModeChange={(mode) => mode !== "year" && setViewMode(mode)}`.
+
+## 2026-09-10 — Bệnh án: nút `+` không bấm được, bản in cụt một trang; và một bản vá kiểu của main
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-377 | **`+` trên hàng bảng không bấm được** ở mẫu 5, 8, 9: hover thì hiện ở cuối hàng, rê tới thì mất | `−` nằm ở `right − 10` (đè mép hàng) nên đi tới được; `+` ở `right + 4` — **ngoài** hàng — nên phải băng qua 4px trống, và phần tử bên kia khoảng trống là trang giấy, không phải nút. Cách ẩn cũ nghe `mouseout` của hàng nên tắt nút ngay dưới bàn tay. Nay ẩn theo **toạ độ con trỏ**: giữ nút khi con trỏ còn trong hàng nới thêm 44px sang phải hoặc đang trên nút; thêm `mouseleave` ở `documentElement` cho ca rời hẳn tờ |
+| R-378 | **In ra chỉ một trang**, và bản xem trước có cả thanh cuộn của app | Máy in phân trang theo cái mà gốc tài liệu dàn ra; từ `.app-shell` xuống tới vùng cuộn của cột tờ, mỗi lớp là một hộp cao cố định và cắt. Bước cô lập cũ chỉ **ẩn** nhánh ngoài tờ, không **mở** các lớp tờ treo vào. Nay đánh dấu cả hai loại và `@media print` mở hết đường đi, cộng `html`/`body`. Đo mẫu 5 (tờ 2312px): không mở → **1 trang**, gốc tài liệu 900px; có mở → **2 trang**, gốc 2312px, tờ bắt đầu ở y=0 |
+| R-379 | Dấu in bị **mất giữa chừng**: mục lục in cả vào giấy | Dấu đặt bằng `class`, mà `className` là prop React dựng — một lần render đè lên. Đổi sang `data-mr-print` (không ai dựng nên không ai đè). Đo lại: dấu còn nguyên, tờ ở y=0, gốc tài liệu đúng bằng chiều cao tờ, không lớp nào còn cắt |
+
+Kèm bản vá cho lỗi **có sẵn trên `origin/main`** đã báo ở đợt trước:
+`ReceptionPage` khai `ViewMode = "day" | "week" | "month"` rồi truyền
+`setViewMode` vào `onViewModeChange`, trong khi `DateNavigatorMode` đã thêm
+`"year"` — `npm run build` đứt ở `tsc`. Sửa ở chỗ đúng của nó: thanh công cụ
+Tiếp nhận chỉ có **ba** nút (đo trên máy: `Ngày`, `Tuần`, `Tháng`) nên
+`labelToViewMode` không bao giờ trả `"year"`; khai `Exclude<DateNavigatorMode,
+"year">` cho đúng sự thật, thay vì chặn `mode !== "year"` ở chỗ gọi — làm vậy
+là giấu đi, và khi ai đó thêm "Năm" thật thì lỗi biên dịch phải nổ ở
+`ReceptionPage`, đúng nơi cần biết. `npm run build` xanh trở lại; kiểm tay:
+chọn "Tuần" ra `07/09 - 13/09/2026`.
+
+Ba spec mới, và cả ba đều đã **soi đỏ trên code cũ** trước khi nhận:
+
+- `+` sống sót khi con trỏ **đi từng bước** tới nó (3px một nhịp) rồi bấm ra
+  dòng mới. Test cũ không bắt được vì `locator.click()` nhảy thẳng vào nút.
+- In từ tab: bấm nút thật (chỉ chặn hộp thoại `window.print`), rồi ở media
+  `print` khẳng định tờ ở y=0, gốc tài liệu **bằng** chiều cao tờ, không tổ
+  tiên nào còn `overflow` khác `visible`, và mục lục mang dấu `hide`.
+- In từ modal "In bệnh án" — nơi có thêm bốn lớp modal — cùng bộ khẳng định,
+  thêm `zoom: 1` để bản xem trước phóng to không theo vào giấy.
+
+Kết quả: `patient-medical-record.spec.ts` **21/21** trên cả dev :5173 và bản
+build production :8080; `treatment-plan.spec.ts` **6/6** → **27/27**.
+`tsc -b --noEmit` sạch.
+
+Còn đỏ và **không** phải của đợt này: `reception.spec.ts` 2/2 đỏ vì
+`assertRealApiTraffic(page, "/api/v1/app/visits")` chờ một endpoint màn Tiếp
+nhận **không còn gọi**. Bắt mạng trên bản build: màn này nay gọi
+`/api/v1/app/appointments` và `/api/v1/app/appointments/stats`. Đó là hệ quả
+của đợt sửa Tiếp nhận trên main (`35c653f`, `c8e129d`), không phải của bản vá
+kiểu ở trên — sửa kiểu bị xoá lúc biên dịch, JS sinh ra y hệt. Chưa đụng spec
+vì phải biết ý đồ: màn thực sự chuyển sang `appointments`, hay chính việc mất
+`visits` mới là lỗi.
+
+## 2026-09-21 — Bệnh án: popover "Chọn phiếu in" bị chật, và bản in bị rách giữa trang
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-380 | **Popover "Chọn phiếu in" chật hơn bản gốc** | Thẻ ngoài chỉ có **padding 4px**: luật cũ nhắm `.ant-popover-inner-content`/`.ant-popover-inner`, mà AntD 6 dựng `.ant-popover-container` nên không trúng đâu cả. Nhắm đúng class, cộng viền 1px + bo 16px + bóng `0 6px 16px rgba(27,42,65,.08)`, panel 294 — đúng số đo bản gốc (thẻ 320×408, dòng 54, bước dòng 62). Thêm `line-height: 20px` cho dòng "Tất cả phiếu", vốn thừa hưởng 22.6px của AntD |
+| R-381 | **Bản in rách giữa trang**: một dải nội dung chồng lên nhau, cắt ngang hàng "Giấy cam kết chấp thuận phẫu thuật…" | Ta in **tài liệu của app**, mà tờ nằm trong iframe — với máy in, iframe là **một khối**, bị cắt đúng chỗ hết trang, bất kể `break-after:page` và `tr{break-inside:avoid}` bên trong nó. Bản gốc chép nội dung tờ vào một khối ẩn trong chính trang rồi in khối đó; làm theo (`copySheetsForPrint`), khối là con trực tiếp của `<body>` nên cô lập chỉ còn **một** luật thay cho cả bộ đánh dấu đường đi của R-374/R-378 |
+| R-382 | **Chỉ trang đầu có lề**, các trang sau chạy sát mép giấy | Đọc stylesheet bản gốc: `@page{size:A4;margin:5mm;@bottom-right{content:counter(page)}}` — lề **5mm cho mọi trang** và **số trang góc dưới phải**. Ta đang để `margin:0`, mà 12mm padding của tờ nằm trên cả khối chứ không trên từng trang, nên chỉ trang đầu có mép. Lấy đúng 5mm của họ, cộng 7mm của tờ để trang đầu vẫn ra 12mm như bản xem trước |
+
+Hai lỗi cùng đường đi, lộ ra khi sửa:
+
+- **Ô tích trong "Chọn phiếu in" không có tác dụng** — `printSheets` chỉ kiểm
+  tra danh sách rỗng rồi in tất cả những gì đang vẽ. Nay chỉ chép đúng các tờ
+  được tick.
+- **"In nhanh" từ thẻ phiếu in nhầm tờ trước đó** — nó in ngay sau
+  `setActiveId`, trước khi React vẽ tờ mới. Nay chờ khung của đúng tờ xuất hiện
+  và tải xong rồi mới in.
+
+Cách đo, vì chỉ số đầu tiên tôi dùng đã **sai**: đếm "hàng nằm vắt qua ranh giới
+trang" trên layout chưa phân trang là một **dự đoán**, nó bỏ qua việc Chrome tự
+đẩy hàng sang trang nhờ `break-inside:avoid` — chỉ số đó vẫn báo đỏ cả khi bản
+in đã đúng. Phải nhìn trang in thật: xuất PDF rồi **dựng ảnh từng trang bằng
+pdf.js** (máy không có `pdftoppm`/Ghostscript). Tờ Bìa sau khi sửa: **3 trang**,
+trang 2 và 3 liền lạc, không hàng nào bị cắt, có số trang góc dưới phải; chữ và
+số ô tích của bản chép trùng khít bản đang mở.
+
+Một điều đáng ghi về công cụ: `page.pdf()` của Playwright **bắn sự kiện
+`afterprint`**, và app dọn bản chép ngay khi nhận sự kiện đó — nên mọi phép đo
+trên bản chép phải làm **trước** khi gọi `page.pdf()`.
+
+Kết quả: `patient-medical-record.spec.ts` **22/22**, `treatment-plan.spec.ts`
+**6/6** trên dev :5173 (bản preview :8080 không chạy trong phiên này — máy đang
+do chủ dự án tự chạy FE/BE). Hai spec mới: bản in là **bản chép** mang đủ chữ
+đã gõ và ô đã tick, và trên giấy chỉ còn `.mr-print-copy`; ô tích của popover
+quyết định đúng số tờ được chép. Spec in của modal "In bệnh án" cập nhật sang
+cùng hợp đồng. `tsc -b --noEmit` sạch.
+
+### Ô tick phải giữ màu xanh trên giấy (cùng đợt R-380…R-382)
+
+Chủ dự án lưu ý: chỗ có dấu tick trong bản in phải **xanh** như trang đích.
+
+Đo trước khi sửa: bản in của ta **đã xanh sẵn**, kể cả khi tắt "Background
+graphics" trong hộp thoại in (đo bằng `page.pdf({printBackground:false})` rồi
+dựng ảnh trang 1) — Chrome vẽ `accent-color` của ô tích bất kể tuỳ chọn đó.
+Bản gốc cũng không ép gì: đọc stylesheet của họ chỉ có
+`accent-color:#2671d8`, `print-color-adjust` để mặc định (`economy`).
+
+Dù vậy vẫn ghim màu lại cho chắc — máy in hoặc driver đặt ở chế độ tiết kiệm có
+thể bỏ màu giao diện:
+
+```css
+@media print{ .nfc-tpl .nfc-medical-record-checkbox{
+  accent-color:#2671d8;print-color-adjust:exact} }
+```
+
+Chỉ ghim **ô tích**: màu xanh của ô đã điền và viền hổ phách của ô gợi ý là thứ
+**cố ý** phẳng về đen khi in. Spec in kiểm thêm hai điều này ở media `print`.
+
+### Tick ở "Toàn bộ" bị xám, và popover nên tick sẵn tất cả
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-383 | **Ô tích ở chế độ "Toàn bộ" không xanh** (bên "Từng phiếu" thì xanh), và bản in từ đó cũng xám | `renderSheet` đặt `node.disabled = !editable`, mà ở "Toàn bộ" mọi tờ đều không cho sửa — trình duyệt tô xám ô bị vô hiệu hoá, tick và tất cả. Bỏ hẳn `disabled`; tờ chỉ-đọc nay mang `data-readonly="true"` và giữ yên bằng `pointer-events: none` trong stylesheet của tờ. Đo lại ở "Toàn bộ": `disabled: false`, `accent-color: rgb(38,113,216)`, `pointer-events: none`, không ô chữ nào sửa được |
+| R-384 | Popover "Chọn phiếu in" mở ra **chưa tick gì** | Mỗi lần mở panel là tick sẵn toàn bộ — in cả bệnh án là việc người ta mở nó ra để làm; bỏ tick vài tờ nhẹ hơn là tick từng tờ |
+
+Một điều đo được trên bản gốc và **cố ý không theo**: ở "Toàn bộ" bản gốc
+**không khoá gì cả** — ô tích `disabled: false`, ô chữ vẫn `contenteditable`,
+`pointer-events: auto`. Ta giữ chỉ-đọc vì nút **"Lưu" của ta chỉ lưu tờ đang
+mở**, nên cho sửa mọi tờ ở đó là mời người dùng gõ vào chỗ sẽ mất. Muốn theo
+đúng bản gốc thì phải mở rộng đường lưu trước.
+
+Chưa chạy lại e2e cho hai mục này — chủ dự án nói để tự thao tác kiểm cho nhanh.
+Hai spec liên quan đã sửa theo hợp đồng mới (tờ chỉ-đọc không dùng `disabled`;
+popover mở ra tick sẵn, bỏ bớt còn hai tờ thì chỉ hai tờ ra giấy). `tsc` sạch.

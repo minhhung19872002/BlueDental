@@ -1,6 +1,7 @@
 import { DatePicker, Input, Select } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import type { Dayjs } from "dayjs";
+import { FloatingLabel } from "@/components/FloatingLabel";
 import { t } from "@/lib/i18n";
 import type { InvoicePaymentMethod } from "./invoiceTypes";
 import { INVOICE_TEMPLATES, invoicePaymentOptions } from "./invoiceConstants";
@@ -43,41 +44,37 @@ export function InvoiceFormInfo({
     <div>
       <h4 className="inv-section-title">{t("Thông tin hóa đơn")}</h4>
       <div className="inv-fields">
-        <div className="inv-field">
-          <span className="inv-field-label">{t("Mẫu")}</span>
+        {/* The reference puts the magnifier inside "Mẫu" as a prefix and keeps
+            the chevron on the right; the resting label clears it. */}
+        <FloatingLabel label={t("Mẫu")} floated={templateId !== ""} className="inv-field">
           <Select
-            value={templateId}
+            value={templateId || undefined}
             onChange={onTemplateChange}
             options={templateOptions()}
             showSearch
             optionFilterProp="label"
-            suffixIcon={<SearchOutlined />}
+            prefix={<SearchOutlined aria-hidden="true" />}
           />
-        </div>
-        <div className="inv-field">
-          <span className="inv-field-label">{t("Ký hiệu")}</span>
+        </FloatingLabel>
+        <FloatingLabel label={t("Ký hiệu")} floated={templateSymbol !== ""} className="inv-field">
           <Input value={templateSymbol} onChange={(e) => onTemplateSymbolChange(e.target.value)} />
-        </div>
-        <div className="inv-field">
-          <span className="inv-field-label">{t("Ngày hóa đơn")}</span>
+        </FloatingLabel>
+        <FloatingLabel label={t("Ngày hóa đơn")} floated className="inv-field">
           <DatePicker value={invoiceDate} onChange={onInvoiceDateChange} format="DD/MM/YYYY" />
-        </div>
-        <div className="inv-field">
-          <span className="inv-field-label">{t("Hình thức thanh toán")}</span>
+        </FloatingLabel>
+        <FloatingLabel label={t("Hình thức thanh toán")} floated className="inv-field">
           <Select
             value={paymentMethod}
             onChange={onPaymentMethodChange}
             options={invoicePaymentOptions()}
           />
-        </div>
-        <div className="inv-field">
-          <span className="inv-field-label">{t("Đơn vị tiền tệ")}</span>
+        </FloatingLabel>
+        <FloatingLabel label={t("Đơn vị tiền tệ")} floated={currency !== ""} className="inv-field">
           <Input value={currency} onChange={(e) => onCurrencyChange(e.target.value)} />
-        </div>
-        <div className="inv-field">
-          <span className="inv-field-label">{t("Tỷ giá")}</span>
+        </FloatingLabel>
+        <FloatingLabel label={t("Tỷ giá")} floated={exchangeRate !== ""} className="inv-field">
           <Input value={exchangeRate} onChange={(e) => onExchangeRateChange(e.target.value)} />
-        </div>
+        </FloatingLabel>
       </div>
     </div>
   );

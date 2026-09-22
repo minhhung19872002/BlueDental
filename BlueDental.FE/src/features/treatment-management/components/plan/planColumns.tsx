@@ -1,6 +1,7 @@
 import type { TableColumnsType } from "antd";
 import { ClipboardList, Eye, Plus, Receipt } from "lucide-react";
 import { t } from "@/lib/i18n";
+import { ActionTooltip } from "./ActionTooltip";
 import { formatDate } from "@/utils/format";
 import type { TreatmentPlanSlipDto } from "../../api/treatmentPlanApi";
 import {
@@ -16,6 +17,7 @@ import {
 export interface PlanRowActions {
   onAddStage: (plan: TreatmentPlanSlipDto) => void;
   onViewServices: (plan: TreatmentPlanSlipDto) => void;
+  onPrintRecord: (plan: TreatmentPlanSlipDto) => void;
   onReceipt: (plan: TreatmentPlanSlipDto) => void;
   /** The code link — the slip's own screen. */
   onOpenPlan: (plan: TreatmentPlanSlipDto) => void;
@@ -40,7 +42,9 @@ function money(field: keyof PlanMoney, width: number, modifier?: string): Column
 
 function statusPill(plan: TreatmentPlanSlipDto) {
   const pill = planPill(plan);
-  return <span className={["tp-pill", pill.modifier].filter(Boolean).join(" ")}>{t(pill.label)}</span>;
+  return (
+    <span className={["tp-pill", pill.modifier].filter(Boolean).join(" ")}>{t(pill.label)}</span>
+  );
 }
 
 /** The twelve configurable columns, by key; widths measured on the reference. */
@@ -62,14 +66,16 @@ function configurableColumns(actions: PlanRowActions): Record<PlanColumnKey, Col
       width: 48,
       align: "center",
       render: (_, plan) => (
-        <button
-          type="button"
-          className="tp-eye"
-          aria-label={t("Danh sách dịch vụ - {0}", plan.code)}
-          onClick={() => actions.onViewServices(plan)}
-        >
-          <Eye size={18} aria-hidden="true" />
-        </button>
+        <ActionTooltip title={t("Danh sách dịch vụ")}>
+          <button
+            type="button"
+            className="tp-eye"
+            aria-label={t("Danh sách dịch vụ - {0}", plan.code)}
+            onClick={() => actions.onViewServices(plan)}
+          >
+            <Eye size={18} aria-hidden="true" />
+          </button>
+        </ActionTooltip>
       ),
     },
     dentist: {
@@ -134,18 +140,26 @@ export function buildPlanColumns(
       fixed: "right",
       render: (_, plan) => (
         <span className="tp-actions">
-          {/* "In bệnh án" is kept as a control only; its action is a later round. */}
-          <button type="button" className="tp-action" aria-label={t("In bệnh án")}>
-            <ClipboardList size={16} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className="tp-action"
-            aria-label={t("Phiếu thu {0}", plan.code)}
-            onClick={() => actions.onReceipt(plan)}
-          >
-            <Receipt size={16} aria-hidden="true" />
-          </button>
+          <ActionTooltip title={t("In bệnh án")}>
+            <button
+              type="button"
+              className="tp-action"
+              aria-label={t("In bệnh án {0}", plan.code)}
+              onClick={() => actions.onPrintRecord(plan)}
+            >
+              <ClipboardList size={16} aria-hidden="true" />
+            </button>
+          </ActionTooltip>
+          <ActionTooltip title={t("Hóa đơn")}>
+            <button
+              type="button"
+              className="tp-action"
+              aria-label={t("Phiếu thu {0}", plan.code)}
+              onClick={() => actions.onReceipt(plan)}
+            >
+              <Receipt size={16} aria-hidden="true" />
+            </button>
+          </ActionTooltip>
         </span>
       ),
     },

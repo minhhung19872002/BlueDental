@@ -3,6 +3,7 @@ import { ClipboardList, Eye, Plus, Receipt } from "lucide-react";
 import { RecordCard } from "@/components/RecordCard";
 import type { TablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
+import { ActionTooltip } from "./ActionTooltip";
 import type { TreatmentPlanSlipDto } from "../../api/treatmentPlanApi";
 import { planCardRows } from "./planCardRows";
 import type { PlanRowActions } from "./planColumns";
@@ -25,6 +26,7 @@ interface ActionsProps {
 function PlanCardActions({ plan, actions }: ActionsProps) {
   return (
     <>
+      {/* No tooltip on "+": the reference leaves this one untipped. */}
       <button
         type="button"
         className="bd-rc-action"
@@ -33,26 +35,36 @@ function PlanCardActions({ plan, actions }: ActionsProps) {
       >
         <Plus size={16} aria-hidden="true" />
       </button>
-      <button
-        type="button"
-        className="bd-rc-action"
-        aria-label={t("Danh sách dịch vụ - {0}", plan.code)}
-        onClick={() => actions.onViewServices(plan)}
-      >
-        <Eye size={16} aria-hidden="true" />
-      </button>
-      {/* "In bệnh án" is kept as a control only; its action is a later round. */}
-      <button type="button" className="bd-rc-action" aria-label={t("In bệnh án")}>
-        <ClipboardList size={16} aria-hidden="true" />
-      </button>
-      <button
-        type="button"
-        className="bd-rc-action"
-        aria-label={t("Phiếu thu {0}", plan.code)}
-        onClick={() => actions.onReceipt(plan)}
-      >
-        <Receipt size={16} aria-hidden="true" />
-      </button>
+      <ActionTooltip title={t("Danh sách dịch vụ")}>
+        <button
+          type="button"
+          className="bd-rc-action"
+          aria-label={t("Danh sách dịch vụ - {0}", plan.code)}
+          onClick={() => actions.onViewServices(plan)}
+        >
+          <Eye size={16} aria-hidden="true" />
+        </button>
+      </ActionTooltip>
+      <ActionTooltip title={t("In bệnh án")}>
+        <button
+          type="button"
+          className="bd-rc-action"
+          aria-label={t("In bệnh án {0}", plan.code)}
+          onClick={() => actions.onPrintRecord(plan)}
+        >
+          <ClipboardList size={16} aria-hidden="true" />
+        </button>
+      </ActionTooltip>
+      <ActionTooltip title={t("Hóa đơn")}>
+        <button
+          type="button"
+          className="bd-rc-action"
+          aria-label={t("Phiếu thu {0}", plan.code)}
+          onClick={() => actions.onReceipt(plan)}
+        >
+          <Receipt size={16} aria-hidden="true" />
+        </button>
+      </ActionTooltip>
     </>
   );
 }
@@ -84,9 +96,7 @@ export function PlanCardList({ plans, total, settings, pagination, actions }: Pr
           );
         })}
       </div>
-      {total > 0 && (
-        <Pagination className="tp-card-pager" {...pagination.buildConfig(total)} />
-      )}
+      {total > 0 && <Pagination className="tp-card-pager" {...pagination.buildConfig(total)} />}
     </div>
   );
 }

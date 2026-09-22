@@ -6,6 +6,7 @@ import {
   type TreatmentPlanSlipDto,
   type TreatmentServiceDto,
 } from "../../api/treatmentPlanApi";
+import { planMoney } from "../plan/planTypes";
 
 /** One service row of "Chi tiết dịch vụ". */
 export interface ReceiptLine {
@@ -66,7 +67,8 @@ export function receiptOf(
     staffName: payment.staffName,
     amount: payment.amount,
     totals: [
-      { label: t("Tổng phí"), value: plan.payment.totalPrice },
+      // Gross, so the sheet's "Tổng phí" − "Giảm giá" lands on what is owed.
+      { label: t("Tổng phí"), value: planMoney(plan).total },
       { label: t("Giảm giá"), value: plan.payment.discount },
       { label: t("Đã trả trước đó"), value: paidBefore },
       { label: t("Số tiền TT"), value: payment.amount },

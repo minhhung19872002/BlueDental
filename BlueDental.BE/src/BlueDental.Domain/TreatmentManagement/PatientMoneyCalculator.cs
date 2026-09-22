@@ -25,7 +25,7 @@ public class PatientMoneyCalculator : IDomainService
             totalPaid: ofPlan.Where(p => p.Kind == PatientPaymentKind.Payment).Sum(p => p.Amount),
             completedValue: plan.CompletedValue,
             totalRefund: ofPlan.Where(p => p.Kind == PatientPaymentKind.Refund).Sum(p => p.Amount),
-            discount: plan.PlanDiscountAmount + plan.Services.Sum(s => s.DiscountAmount));
+            discount: plan.PlanDiscountAmount + plan.ServicesDiscountAmount);
     }
 
     /// <summary>Rollup of everything a patient owes and has paid, across every slip.</summary>
@@ -40,7 +40,7 @@ public class PatientMoneyCalculator : IDomainService
             totalPaid: againstSlips.Where(p => p.Kind == PatientPaymentKind.Payment).Sum(p => p.Amount),
             completedValue: plans.Sum(p => p.CompletedValue),
             totalRefund: againstSlips.Where(p => p.Kind == PatientPaymentKind.Refund).Sum(p => p.Amount),
-            discount: plans.Sum(p => p.PlanDiscountAmount + p.Services.Sum(s => s.DiscountAmount)),
+            discount: plans.Sum(p => p.PlanDiscountAmount + p.ServicesDiscountAmount),
             prepaid: HeldForPatient(payments));
     }
 
