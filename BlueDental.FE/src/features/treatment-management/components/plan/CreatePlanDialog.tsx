@@ -1,20 +1,15 @@
 import { useMemo } from "react";
-import { Form, Input, Modal, Select } from "antd";
-import { ChevronDown, Save, Search, X } from "lucide-react";
+import { Form, Input, Modal } from "antd";
+import { Save, X } from "lucide-react";
 import { FloatingField } from "@/components/FloatingField";
-import { useAuthStore } from "@/features/auth/store/authStore";
-import { useDentistList } from "@/features/staff/api/staffQueries";
-import {
-  CATALOG_GROUP,
-  useCatalogOptions,
-  useTaxonomyGroupOptions,
-} from "@/hooks/useCatalogOptions";
 import { t } from "@/lib/i18n";
 import { DISCOUNT_TYPE, type PatientAdviseDto } from "../../api/consultingApi";
 import { withAdviseService } from "./adviseEditing";
 import { PlanAdvisorFields } from "./PlanAdvisorFields";
 import { PlanPricingFields } from "./PlanPricingFields";
 import { PlanServicePicker } from "./PlanServicePicker";
+import { ServerSearchSelect } from "@/components/ServerSearchSelect";
+import { useDentistOptions } from "@/hooks/usePickerOptions";
 import { ToothPickerDialog } from "./ToothPickerDialog";
 import { formatToothValue } from "./toothPicker";
 import { useCreatePlanForm, type CreatePlanValues } from "./useCreatePlanForm";
@@ -41,17 +36,11 @@ const INITIAL_VALUES: Partial<CreatePlanValues> = {
  * note and teeth open.
  */
 export function CreatePlanDialog({ open, patientId, branchId, advise, onClose }: Props) {
-  const userName = useAuthStore((state) => state.user?.name ?? "");
-  const services = useCatalogOptions(CATALOG_GROUP.CareService);
-  const groups = useTaxonomyGroupOptions(CATALOG_GROUP.CareService);
-  const diagnoses = useCatalogOptions(CATALOG_GROUP.Diagnosis);
-  const dentists = useDentistList();
   const editing = Boolean(advise);
 
-  const pickerServices = useMemo(
-    () => withAdviseService(services.data ?? [], advise),
-    [services.data, advise],
-  );
+  // The service a slip already carries may have left the catalog; it travels
+  // with the picker so its name still renders beside the fresh search results.
+  const pickerServices = useMemo(() => withAdviseService([], advise), [advise]);
 
   const state = useCreatePlanForm({
     patientId,
@@ -60,28 +49,23 @@ export function CreatePlanDialog({ open, patientId, branchId, advise, onClose }:
     advise,
     onCreated: onClose,
   });
-  const { form, teeth, selectedService, totals } = state;
-  const hasService = selectedService !== null;
-  const locked = !hasService || editing;
-  const diagnosisId = Form.useWatch("diagnosisId", form);
-  const diagnosisName = diagnoses.data?.find((item) => item.id === diagnosisId)?.name;
-
+  const { form, teeth, totals } = state;
   const handleClose = () => {
     state.reset();
     onClose();
   };
 
   const handleValuesChange = (changed: Partial<CreatePlanValues>) => {
-    if ("serviceId" in changed) state.handleServiceChange(changed.serviceId);
+    // Picking goes through the picker's own callback; this only catches the
+    // Select's clear button, which empties the field without a pick.
+    if ("serviceId" in changed && !changed.serviceId) state.handleServiceCleared();
   };
 
   const picker = (
     <PlanServicePicker
-      services={pickerServices}
-      groups={groups.data ?? []}
-      loading={services.isLoading || groups.isLoading}
+      extraServices={pickerServices}
       disabled={editing}
-      onPickService={(service) => state.handleServiceChange(service.id)}
+      onPickService={state.handlePickService}
     />
   );
 
@@ -115,51 +99,39 @@ export function CreatePlanDialog({ open, patientId, branchId, advise, onClose }:
         initialValues={INITIAL_VALUES}
         onValuesChange={handleValuesChange}
       >
-        {editing ? (
-          <PlanAdvisorFields
-            dentists={dentists.data ?? []}
-            hasSecond={Boolean(advise?.secondStaffId)}
-            picker={picker}
-          />
-        ) : (
-          <>
-            <div className="tp-create-doctor" aria-label={t("Người tạo")}>
-              <Search size={16} aria-hidden="true" />
-              <span>{userName}</span>
-            </div>
-            {picker}
-          </>
-        )}
+        {/* Both modes open on the advising staff with the service picker beside
+            them; the reference dropped the read-only "Người tạo" chip the
+            create form used to carry (re-measured 2026-09-21). */}
+        <PlanAdvisorFields
+          hasSecond={Boolean(advise?.secondStaffId)}
+          advisorName={advise?.staffName}
+          secondAdvisorName={advise?.secondStaffName}
+          picker={picker}
+        />
 
         <div className="tp-create-grid">
-          <FloatingField
-            name="staffId"
-            label={t("Bác sĩ chẩn đoán 1")}
-            rules={[{ required: true, message: t("Vui lòng chọn bác sĩ") }]}
-          >
-            <Select
-              showSearch
-              disabled={locked}
-              prefix={<Search size={20} aria-hidden="true" />}
-              suffixIcon={<ChevronDown size={16} aria-hidden="true" />}
-              optionFilterProp="label"
-              options={(dentists.data ?? []).map((item) => ({ value: item.id, label: item.name }))}
+          {/* Both are the **chẩn đoán's** doctors, and both are read-only: a
+              slip raised from here files no chẩn đoán, and one opened on an
+              existing line shows the doctors of the chẩn đoán it came from.
+              Neither carries an asterisk or a required rule. */}
+          <FloatingField name="staffId" label={t("Bác sĩ chẩn đoán 1")}>
+            <ServerSearchSelect
+              disabled
+              useOptions={useDentistOptions}
+              valueLabel={advise?.diagnosisStaffName}
+              notFoundText={t("Không tìm thấy bác sĩ")}
             />
           </FloatingField>
-          <FloatingField
-            name="diagnosisId"
-            label={t("Chẩn đoán 2")}
-            rules={[{ required: true, message: t("Vui lòng chọn chẩn đoán") }]}
-          >
-            <Select
-              showSearch
-              disabled={locked}
-              prefix={<Search size={20} aria-hidden="true" />}
-              suffixIcon={<ChevronDown size={16} aria-hidden="true" />}
-              optionFilterProp="label"
-              options={(diagnoses.data ?? []).map((item) => ({ value: item.id, label: item.name }))}
-            />
-          </FloatingField>
+          <div className="tp-create-field">
+            <FloatingField name="diagnosisId" label={t("Chẩn đoán 2")}>
+              <ServerSearchSelect
+                disabled
+                useOptions={useDentistOptions}
+                valueLabel={advise?.diagnosisSecondStaffName}
+                notFoundText={t("Không tìm thấy bác sĩ")}
+              />
+            </FloatingField>
+          </div>
         </div>
 
         <div className="tp-create-split">
@@ -178,14 +150,22 @@ export function CreatePlanDialog({ open, patientId, branchId, advise, onClose }:
                 <img src="/img/teeth/teeth.svg" alt="" draggable={false} />
               </button>
             </div>
+            {state.fieldErrors.teeth && <p className="tp-create-error">{state.fieldErrors.teeth}</p>}
+            {/* The reference prints the label with nothing after it: this
+                dialog names no condition. */}
             <p className="tp-create-condition">
-              <span>{t("Tình trạng răng")}:</span> <span>{diagnosisName ?? "—"}</span>
+              <span>{t("Tình trạng răng")}:</span>
             </p>
-            <FloatingField name="note" label={t("Ghi chú")} className="tp-create-note">
-              <Input.TextArea rows={4} />
+            <FloatingField
+              name="note"
+              label={t("Ghi chú")}
+              className="tp-create-note"
+              rules={[{ max: 255, message: t("Nội dung ghi chú vượt quá 255 ký tự.") }]}
+            >
+              <Input.TextArea rows={4} maxLength={255} />
             </FloatingField>
           </div>
-          <PlanPricingFields form={form} enabled={!locked} totals={totals} />
+          <PlanPricingFields form={form} totals={totals} />
         </div>
       </Form>
 

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Volo.Abp;
@@ -148,6 +148,47 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>
         return payment;
     }
 
+    /// <summary>
+    /// Moves this receipt's share of one service onto another, up to
+    /// <paramref name="limit"/> — what "Chuyển đổi dịch vụ" does with money
+    /// already collected. Returns how much actually moved.
+    ///
+    /// The receipt's own total never changes: a share too big for the new line
+    /// is split, and the remainder stays on the old one for the caller to
+    /// refund or leave as credit.
+    /// </summary>
+    public decimal Redirect(
+        Guid fromServiceId, Guid toServiceId, decimal limit, Func<Guid> lineIdFactory)
+    {
+        if (limit <= 0m)
+        {
+            return 0m;
+        }
+
+        var moved = 0m;
+        foreach (var line in _lines.Where(l => l.TreatmentServiceId == fromServiceId).ToList())
+        {
+            var take = Math.Min(line.Amount, limit - moved);
+            if (take <= 0m)
+            {
+                break;
+            }
+
+            _lines.Remove(line);
+            _lines.Add(new PatientPaymentLine(lineIdFactory(), toServiceId, take));
+
+            if (take < line.Amount)
+            {
+                _lines.Add(
+                    new PatientPaymentLine(lineIdFactory(), fromServiceId, line.Amount - take));
+            }
+
+            moved += take;
+        }
+
+        return moved;
+    }
+
     /// <summary>What this receipt put against one service line.</summary>
     public decimal AmountFor(Guid treatmentServiceId) =>
         _lines.Where(line => line.TreatmentServiceId == treatmentServiceId).Sum(line => line.Amount);
@@ -187,6 +228,32 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>
 
     public PatientPayment UpdateNote(string? note)
     {
+        Note = note;
+        return this;
+    }
+
+    /// <summary>
+    /// "Chỉnh sửa" on a receipt: the facts about how the money was taken, not
+    /// how much. The amount and the service lines stay put — they are what the
+    /// slip's rollup and every per-line "Còn nợ" are built from, so correcting
+    /// them means voiding the receipt and writing a new one.
+    /// </summary>
+    public PatientPayment Revise(
+        PaymentMethodKind method,
+        Guid? paymentAccountId,
+        DateTimeOffset paidAt,
+        string? note)
+    {
+        if (Kind != PatientPaymentKind.Refund && RequiresAccount(method) && !paymentAccountId.HasValue)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Billing.PaymentAccountRequired,
+                "A bank or e-wallet payment must name the account it was collected into.");
+        }
+
+        Method = method;
+        PaymentAccountId = RequiresAccount(method) ? paymentAccountId : null;
+        PaidAt = paidAt;
         Note = note;
         return this;
     }

@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { useAbility } from "@/hooks/useAbility";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -9,6 +8,7 @@ import { useServiceGroupOptions } from "@/hooks/useServiceGroupOptions";
 import { useStaffOptions } from "@/hooks/useStaffOptions";
 import { t } from "@/lib/i18n";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { useBranchFilter } from "@/lib/clinicBranch";
 import { patientApi } from "../api/patientApi";
 import { usePatientDto, usePatientList } from "../api/patientQueries";
@@ -75,7 +75,7 @@ export function PatientManagementPage() {
         branchId,
       });
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     } finally {
       setExporting(false);
     }

@@ -49,6 +49,7 @@ function cardRows(line: RefundLine, onAmountChange: Props["onAmountChange"]) {
 export function RefundLineCards({ lines, total, pagination, onAmountChange, showTotal }: Props) {
   return (
     <div className="tp-card-list pdt-card-list pdt-refund-cards">
+      {lines.length === 0 && <p className="bd-rc-empty">{t("Không có dữ liệu")}</p>}
       <div className="bd-rc-list">
         {lines.map((line, position) => {
           const card = cardRows(line, onAmountChange);
@@ -62,7 +63,9 @@ export function RefundLineCards({ lines, total, pagination, onAmountChange, show
           );
         })}
       </div>
-      <Pagination className="tp-card-pager" {...pagination.buildConfig(total, showTotal)} />
+      {total > 0 && (
+        <Pagination className="tp-card-pager" {...pagination.buildConfig(total, showTotal)} />
+      )}
     </div>
   );
 }

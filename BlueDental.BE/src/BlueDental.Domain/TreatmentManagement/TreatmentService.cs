@@ -1,9 +1,10 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using BlueDental.TreatmentManagement.Values;
 using Volo.Abp;
 using Volo.Abp.Domain.Entities.Auditing;
+using BlueDental.Values;
 
 namespace BlueDental.TreatmentManagement;
 
@@ -43,6 +44,14 @@ public class TreatmentService : FullAuditedEntity<Guid>
     public TreatmentServiceStatus Status { get; private set; }
 
     /// <summary>
+    /// 1-based position of the line on its slip, which the reference lets the
+    /// clinic set by dragging the row. Lines written before the slip was ever
+    /// reordered carry 0 and fall back to their code, so the order a clinic
+    /// already knows does not shuffle the first time it loads.
+    /// </summary>
+    public int SortOrder { get; private set; }
+
+    /// <summary>
     /// The per-line details the reference's inline "new row" writes: Chẩn đoán,
     /// Bác sĩ điều trị, Ghi chú, two diagnosing doctors, two consultants. A line
     /// pulled from a consulting line leaves these null and reads them from the
@@ -56,6 +65,14 @@ public class TreatmentService : FullAuditedEntity<Guid>
     public Guid? ConsultantStaffId { get; private set; }
     public Guid? SecondConsultantStaffId { get; private set; }
 
+    /// <summary>
+    /// The other half of a "Chuyển đổi dịch vụ": on the closed line it points at
+    /// the line that took its place, and on the new line back at what it
+    /// replaced. The reference carries the same single field (`replacedId`) on
+    /// both rows, measured 2026-09-22.
+    /// </summary>
+    public Guid? ReplacedId { get; private set; }
+
     /// <summary>Teeth this line treats, inherited from the consulting line.</summary>
     public IReadOnlyCollection<ToothSelection> Teeth => _teeth.AsReadOnly();
 
@@ -68,7 +85,7 @@ public class TreatmentService : FullAuditedEntity<Guid>
             var discount = DiscountType switch
             {
                 DiscountType.Money => DiscountValue,
-                DiscountType.Percentage => GrossAmount * DiscountValue / 100m,
+                DiscountType.Percentage => Vnd.Round(GrossAmount * DiscountValue / 100m),
                 _ => 0m
             };
 
@@ -171,6 +188,35 @@ public class TreatmentService : FullAuditedEntity<Guid>
         }
 
         Status = status;
+        return this;
+    }
+
+    /// <summary>
+    /// Puts the line at a position on its slip. Called by the aggregate, which
+    /// owns the sequence — a line alone cannot know what the others hold.
+    /// </summary>
+    public TreatmentService Reorder(int sortOrder)
+    {
+        SortOrder = sortOrder;
+        return this;
+    }
+
+    /// <summary>Points this line at its counterpart in a conversion.</summary>
+    public TreatmentService LinkReplacement(Guid otherLineId)
+    {
+        ReplacedId = otherLineId;
+        return this;
+    }
+
+    /// <summary>
+    /// Closes the line because another one took its place. The reference calls
+    /// the state `replaced` and prints it as "Chuyển đổi"; the money already
+    /// collected moves to the new line rather than staying here.
+    /// </summary>
+    public TreatmentService MarkReplaced()
+    {
+        GuardOpen();
+        Status = TreatmentServiceStatus.Replaced;
         return this;
     }
 

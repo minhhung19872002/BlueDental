@@ -6,7 +6,7 @@ import { t } from "@/lib/i18n";
 import { formatTeeth } from "../../api/consultingApi";
 import { moneyText } from "../plan/planTypes";
 import { DiscountCell, ServiceNameCell, type ServiceRowActions } from "./serviceColumns";
-import { dash, type PlanDetailRow } from "./planDetailTypes";
+import { advanceOn, dash, type PlanDetailRow } from "./planDetailTypes";
 
 interface Props {
   rows: PlanDetailRow[];
@@ -29,6 +29,7 @@ function cardRows(row: PlanDetailRow, actions: ServiceRowActions) {
     { key: "price", label: t("Đơn giá"), value: moneyText(row.service.price) },
     { key: "discount", label: t("Tổng giảm giá"), value: <DiscountCell row={row} /> },
     { key: "amount", label: t("Thành tiền"), value: <strong>{moneyText(row.service.effectiveAmount)}</strong> },
+    { key: "advance", label: t("Tạm ứng"), value: moneyText(advanceOn(row.service)) },
     { key: "note", label: t("Ghi chú"), value: dash(row.advise?.note) },
     { key: "diagnoser1", label: t("Bác sĩ chẩn đoán 1"), value: dash(row.advise?.staffName) },
     { key: "diagnoser2", label: t("Chẩn đoán 2"), value: dash(row.advise?.secondStaffName) },

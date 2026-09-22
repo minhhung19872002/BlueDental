@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Button, Modal } from "antd";
 import { DollarOutlined, PrinterOutlined } from "@ant-design/icons";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { useBranchInfo } from "@/hooks/useBranchInfo";
-import { useStaffOptions } from "@/hooks/useStaffOptions";
 import { t } from "@/lib/i18n";
 import { IMAGE_ACCEPT } from "@/utils/validateImageFile";
 import { toothLabels } from "@/features/treatment-management/api/consultingApi";
@@ -62,13 +62,26 @@ export function TreatmentStageDialog({
   onClose,
   onOpenPlan,
 }: Props) {
-  const staff = useStaffOptions();
   const branch = useBranchInfo(branchId);
   const composer = useStageComposer({ open, patientId, branchId, plan, focusServiceId });
 
   const [printing, setPrinting] = useState(false);
   const [laboStage, setLaboStage] = useState<TreatmentStageDto | null>(null);
   const [warrantyStage, setWarrantyStage] = useState<TreatmentStageDto | null>(null);
+  const [discarding, setDiscarding] = useState(false);
+
+  /**
+   * Leaving with something written asks first.
+   *
+   * The reference hangs one guarded close off both the ✕ and the form's "Hủy"
+   * — its own `onCancel` on the stage card is the very callback it gives the
+   * dialog — so "Hủy" leaves the whole "Chi tiết phiếu", it does not just drop
+   * the picked line.
+   */
+  const requestClose = () => {
+    if (composer.dirty) setDiscarding(true);
+    else onClose();
+  };
 
   return (
     <Modal
@@ -77,7 +90,7 @@ export function TreatmentStageDialog({
       className="pd-stage-dialog"
       title={t("Chi tiết phiếu")}
       footer={null}
-      onCancel={onClose}
+      onCancel={requestClose}
       destroyOnHidden
     >
       <input
@@ -168,7 +181,6 @@ export function TreatmentStageDialog({
             ) : (
               <StageForm
                 line={composer.line}
-                options={staff.data ?? []}
                 staffId={composer.staffId}
                 subStaffId={composer.subStaffId}
                 secondStaffId={composer.secondStaffId}
@@ -179,7 +191,7 @@ export function TreatmentStageDialog({
                 errors={composer.errors}
                 saving={composer.saving}
                 primaryLabel={
-                  composer.tab === "add" ? t("Thêm công đoạn") : t("Tiếp tục công đoạn")
+                  composer.tab === "add" ? t("Lưu công đoạn") : t("Tiếp tục công đoạn")
                 }
                 onStaff={composer.setStaffId}
                 onSubStaff={composer.setSubStaffId}
@@ -188,7 +200,7 @@ export function TreatmentStageDialog({
                 onPickImages={() => composer.pickFor(null)}
                 onRemoveImage={composer.removePending}
                 onToggleStep={composer.toggleStep}
-                onCancel={() => composer.setSelected(null)}
+                onCancel={requestClose}
                 onSave={() => void composer.save()}
               />
             )}
@@ -233,6 +245,20 @@ export function TreatmentStageDialog({
         stage={warrantyStage}
         kind="guarantee"
         onClose={() => setWarrantyStage(null)}
+      />
+
+      <ConfirmDeleteDialog
+        open={discarding}
+        noun={t("thay đổi")}
+        title={t("Hủy thay đổi")}
+        question={t("Bạn có chắc muốn hủy? Dữ liệu vừa nhập sẽ không được lưu.")}
+        confirmLabel={t("Xác nhận hủy")}
+        cancelLabel={t("Tiếp tục chỉnh sửa")}
+        onConfirm={() => {
+          setDiscarding(false);
+          onClose();
+        }}
+        onClose={() => setDiscarding(false)}
       />
 
       <LaboOrderDialog

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { t } from "@/lib/i18n";
 import { validateImageFile } from "@/utils/validateImageFile";
 import {
@@ -12,6 +13,7 @@ import {
 import type { TreatmentPlanSlipDto } from "@/features/treatment-management/api/treatmentPlanApi";
 import { useUploadPatientImage } from "../../../api/patientImageApi";
 import { reExaminationChecklist } from "./reExaminationChecklist";
+import { syncStageContent } from "./syncStageContent";
 import {
   hasStageFieldError,
   stageFieldErrors,
@@ -122,10 +124,19 @@ export function useFollowUpForm({
     setNote(value);
   };
 
-  const toggleStep = (stepId: string, next: boolean) =>
-    setPickedSteps((current) =>
-      next ? [...current, stepId] : current.filter((id) => id !== stepId),
-    );
+  /**
+   * Ticking a công đoạn writes its text into Nội dung điều trị, unticking takes
+   * it back out — the reference runs both off one helper, see
+   * {@link syncStageContent}.
+   */
+  const toggleStep = (stepId: string, next: boolean) => {
+    const picked = next
+      ? [...pickedSteps, stepId]
+      : pickedSteps.filter((id) => id !== stepId);
+    setPickedSteps(picked);
+    setNote((current) => syncStageContent(current, checklist, picked));
+    if (picked.length > 0) setErrors((current) => ({ ...current, note: undefined }));
+  };
 
   const addFiles = (files: File[]) => {
     const valid = files.filter((file) => {
@@ -199,7 +210,7 @@ export function useFollowUpForm({
       toast.success(t(saved));
       onClose();
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 

@@ -54,14 +54,23 @@ function serviceRows(
         key: "diagnosis",
         label: t("Chẩn đoán"),
         value:
+          service.diagnosisName ||
           (service.sourceAdviseId && diagnosisByAdviseId.get(service.sourceAdviseId)) ||
           NO_DIAGNOSIS,
       },
-      { key: "dentist", label: t("Bác sĩ"), value: plan.dentistName },
+      {
+        key: "dentist",
+        label: t("Bác sĩ"),
+        value: service.dentistName || plan.dentistName || NO_DIAGNOSIS,
+      },
       {
         key: "price",
         label: t("Đơn giá"),
-        value: <span className="tp-cell-money">{moneyText(service.price)}</span>,
+        value: (
+          <span className="tp-cell-money">
+            {moneyText(Math.round(service.effectiveAmount / Math.max(service.quantity, 1)))}
+          </span>
+        ),
       },
     ],
   };
@@ -71,7 +80,7 @@ function serviceRows(
 export function PlanServiceCardList({ rows, total, offset, diagnosisByAdviseId, pagination }: Props) {
   return (
     <div className="tp-card-list">
-      {rows.length === 0 && <p className="bd-rc-empty">{t("Chưa có dịch vụ")}</p>}
+      {rows.length === 0 && <p className="bd-rc-empty">{t("Không có dữ liệu")}</p>}
       <div className="bd-rc-list">
         {rows.map((row, index) => {
           const card = serviceRows(row, diagnosisByAdviseId);

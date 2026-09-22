@@ -3031,7 +3031,6 @@
     "Tổng quan": "Overview",
     "Tài chính": "Finance",
     "MENU": "MENU",
-    "Tìm theo tên {0}...": "Search by {0} name...",
     "Tiền Mặt": "Cash",
     "Chuyển Khoản": "Bank transfer",
     "đã tạo": "created",
@@ -3044,7 +3043,6 @@
     "Tháng này": "This month",
     "Năm nay": "This year",
     "Tổng kế hoạch": "Plan total",
-
     "TT": "No.",
     "SL": "Qty",
     "20 / trang": "20 / page",
@@ -3060,7 +3058,6 @@
     "{0} nhóm chủ đề": "{0} topic groups",
     "1. Chi phí thủ thuật/dụng cụ dùng cho kỹ thuật cao (nếu có):": "1. Cost of procedures/instruments for advanced techniques (if any):",
     "2. Chi phí khác (thuốc, vật tư y tế, xét nghiệm, siêu âm, …): theo thực tế sử dụng.": "2. Other costs (medicines, medical supplies, tests, ultrasound, ...): based on actual use.",
-
     "Bìa hồ sơ bệnh án": "Medical record cover",
     "Bệnh án ngoại trú Răng Hàm Mặt": "Oral & Maxillofacial outpatient record",
     "Bệnh án chỉnh nha": "Orthodontic record",
@@ -3070,7 +3067,6 @@
     "Phiếu phẫu thuật/thủ thuật": "Surgery/procedure record",
     "Phiếu theo dõi điều trị": "Treatment follow-up form",
     "Phiếu chăm sóc": "Care form",
-
     "Thông tin hành chính, mẫu cam kết, tài liệu của cơ sở khám bệnh, chữa bệnh chuyển đến": "Administrative info, commitment forms, documents from referring clinic",
     "Các bệnh án (Nội khoa, ngoại khoa, sản khoa, nhi khoa,...)": "Medical records (Internal medicine, surgery, obstetrics, pediatrics, ...)",
     "Giấy, phiếu chỉ định xét nghiệm, cận lâm sàng, kết quả": "Test orders, clinical exam orders, results",
@@ -3079,7 +3075,6 @@
     "Giấy, phiếu gây mê, phẫu thuật, thủ thuật": "Anesthesia, surgery, procedure forms",
     "Giấy, phiếu chuyển viện, ra viện, bản tóm tắt hồ sơ bệnh án": "Transfer, discharge, medical record summary forms",
     "Các mẫu giấy, phiếu khác": "Other forms and documents",
-
     "1. Phần hành chính": "1. Administrative section",
     "2. Phần tổng kết bệnh án ra viện": "2. Discharge medical record summary",
     "3. Cận lâm sàng": "3. Paraclinical",
@@ -3100,7 +3095,6 @@
     "Bệnh án chưa đạt lần 1: Trả lại khoa": "Record not met (1st): Return to department",
     "Bệnh án chưa đạt lần 2: Trả lại khoa": "Record not met (2nd): Return to department",
     "Bệnh án đạt yêu cầu: chuyển lưu trữ": "Record meets requirements: transfer to archive",
-
     "Chẩn đoán:": "Diagnosis:",
     "Phương pháp điều trị:": "Treatment method:",
     "Tình trạng bệnh nhân hiện nay:": "Current patient condition:",
@@ -3108,12 +3102,10 @@
     "1. Tiếp tục điều trị tại phòng khám theo phương thức đã giải thích": "1. Continue treatment at the clinic as explained",
     "2. Tiếp tục điều trị, không xét nghiệm hay can thiệp gì thêm": "2. Continue treatment, no further tests or intervention",
     "3. Khác": "3. Other",
-
     "Tổng dự kiến thu": "Total expected",
     "Dự kiến thu còn lại": "Remaining expected",
     "Các chẩn đoán": "Diagnoses",
     "Chi tiết hồ sơ": "Record details",
-
     "LÝ DO ĐẾN KHÁM": "REASON FOR VISIT",
     "LỊCH HẸN GẦN NHẤT": "UPCOMING APPOINTMENT",
     "Bệnh án": "Medical record",
@@ -3168,6 +3160,34 @@
     "Kho tri thức": "Knowledge base",
     "Mẫu labo": "Labo templates",
     "Phân nhóm & CSKH": "Segmentation & Customer care",
-    "Trợ lý AI": "AI Assistant"
+    "Trợ lý AI": "AI Assistant",
+    "BlueDental:Billing:0090": "Pick the account this payment is collected into.",
+    "BlueDental:Billing:0091": "The amount split across the services is not valid.",
+    "BlueDental:Authorization:0001": "You do not have access to this branch's data.",
+    "BlueDental:BranchManager:0001": "That email already belongs to another manager.",
+    "BlueDental:BranchManager:0002": "The phone number is not valid.",
+    "BlueDental:BranchManager:0003": "Pick an avatar image.",
+    "BlueDental:BranchManager:0004": "That avatar image type is not supported.",
+    "BlueDental:BranchManager:0005": "The avatar image is larger than allowed.",
+    "BlueDental:BranchManager:0006": "The avatar image was not found.",
+    "BlueDental:FileManagement:0001": "That image type is not supported.",
+    "BlueDental:FileManagement:0002": "The image is larger than allowed.",
+    "BlueDental:FileManagement:0003": "The image was not found.",
+    "BlueDental:Labo:0004": "A labo material has to belong to a group.",
+    "BlueDental:Labo:0005": "The logo is larger than allowed.",
+    "BlueDental:Labo:0006": "The logo file is not an image.",
+    "BlueDental:Labo:0007": "The logo was not found.",
+    "BlueDental:Operations:0001": "The task cannot move to that state.",
+    "BlueDental:Operations:0002": "An article needs some content.",
+    "BlueDental:Organizations:0005": "This account is not assigned to any branch.",
+    "BlueDental:Patient:0009": "The medical record content is larger than allowed.",
+    "BlueDental:Timekeeping:0011": "Attendance cannot be recorded for a past day.",
+    "BlueDental:Tools:0001": "The configuration was not found.",
+    "BlueDental:Tools:0002": "That SIP extension is already in use.",
+    "BlueDental:Treatment:0026": "The quote was not found.",
+    "BlueDental:Billing:0092": "A service cannot be paid more than it still owes.",
+    "BlueDental:Billing:0093": "A service cannot be refunded more than it was paid.",
+    "BlueDental:Treatment:0027": "Completed or cancelled services cannot be converted.",
+    "BlueDental:Treatment:0028": "This service already has a completed treatment stage and cannot be converted."
   }
 }

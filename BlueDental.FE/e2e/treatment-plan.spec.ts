@@ -69,6 +69,16 @@ async function pickFirstOption(page: Page, combobox: ReturnType<Page["getByRole"
   await option.click();
 }
 
+/** "2.500.000 đ" → 2500000. */
+function money(text: string): number {
+  return Number(text.replace(/[^\d]/g, ""));
+}
+
+/** 2500000 → "2.500.000", the way the app prints it. */
+function vnd(value: number): string {
+  return value.toLocaleString("vi-VN");
+}
+
 test.describe.configure({ mode: "serial" });
 
 test.describe("Kế hoạch điều trị", () => {
@@ -85,6 +95,10 @@ test.describe("Kế hoạch điều trị", () => {
     const dialog = page.getByRole("dialog", { name: "Tạo phiếu dịch vụ" });
     await expect(dialog).toBeVisible();
 
+    // "Nhân sự tư vấn 1" is the one field the dialog opens with, and it is
+    // required before anything else can be saved.
+    await pickFirstOption(page, dialog.getByRole("combobox", { name: /Nhân sự tư vấn 1/ }));
+
     // The service picker: a group row opens the group, a service row is the value.
     await dialog.getByRole("combobox", { name: /Thêm dịch vụ mới/ }).click();
     const service = openDropdown(page, ".tp-service-dropdown")
@@ -93,9 +107,6 @@ test.describe("Kế hoạch điều trị", () => {
     await expect(service).toBeVisible();
     pickedService = (await service.locator(".tp-opt-name").innerText()).trim();
     await service.click();
-
-    await pickFirstOption(page, dialog.getByRole("combobox", { name: /Bác sĩ chẩn đoán/ }));
-    await pickFirstOption(page, dialog.getByRole("combobox", { name: /^Chẩn đoán/ }));
 
     // Teeth come from the chart dialog; the pick lands on the slip as "Răng: 14".
     await dialog.locator(".tp-tooth-btn").click();
@@ -133,6 +144,56 @@ test.describe("Kế hoạch điều trị", () => {
     await expect(pager.locator(".ant-pagination-total-text")).toHaveText(PAGER_TOTAL);
     await expect(pager.locator(".ant-pagination-prev")).toBeVisible();
     await expect(pager.locator(".ant-pagination-next")).toBeVisible();
+  });
+
+  test("the form says what is missing under the field, and the price is the catalog's", async ({
+    page,
+  }) => {
+    await login(page);
+    await page.goto(`${patientUrl}?tab=treatment-plan`);
+    await page.getByRole("button", { name: "Tạo kế hoạch mới" }).click();
+    const dialog = page.getByRole("dialog", { name: "Tạo phiếu dịch vụ" });
+    await expect(dialog).toBeVisible();
+
+    await pickFirstOption(page, dialog.getByRole("combobox", { name: /Nhân sự tư vấn 1/ }));
+    await dialog.getByRole("combobox", { name: /Thêm dịch vụ mới/ }).click();
+    const service = openDropdown(page, ".tp-service-dropdown")
+      .locator(".ant-select-item-option:has(.tp-opt-service)")
+      .first();
+    await expect(service).toBeVisible();
+    const listed = (await service.locator(".tp-opt-price").innerText()).trim();
+    await service.click();
+
+    // The service sets the money, and neither figure can be typed over.
+    const price = dialog.getByRole("textbox", { name: "Đơn giá" });
+    const quantity = dialog.getByRole("spinbutton", { name: "Số lượng" });
+    await expect(price).toBeDisabled();
+    await expect(quantity).toBeDisabled();
+    expect(`${await price.inputValue()} đ`).toBe(listed);
+    await expect(quantity).toHaveValue("1");
+
+    // Neither diagnosis field can be touched: a slip raised here files no
+    // chẩn đoán, so there is nothing to pick and nothing to require.
+    await expect(dialog.getByRole("combobox", { name: "Bác sĩ chẩn đoán 1" })).toBeDisabled();
+    await expect(dialog.getByRole("combobox", { name: "Chẩn đoán 2" })).toBeDisabled();
+    await expect(dialog.locator(".floating-field", { hasText: "Chẩn đoán 2" })).not.toContainText(
+      "*",
+    );
+
+    // Saving with no teeth says so **under the field**, not in a toast.
+    await dialog.getByRole("button", { name: "Lưu" }).click();
+    await expect(dialog.locator(".tp-create-error")).toHaveText("Vui lòng chọn ít nhất 1 răng");
+    await expect(page.locator("[data-sonner-toast]")).toHaveCount(0);
+    await expect(dialog).toBeVisible();
+
+    // Picking teeth clears it again.
+    await dialog.locator(".tp-tooth-btn").click();
+    const picker = page.getByRole("dialog", { name: "Chọn răng" });
+    await picker.getByRole("button", { name: "Răng 14", exact: true }).click();
+    await picker.locator(".tp-teeth-foot button").click();
+    await expect(dialog.locator(".tp-create-error")).toHaveCount(0);
+
+    await dialog.getByRole("button", { name: "Đóng" }).last().click();
   });
 
   test("the slip survives a reload and opens its service list and actions", async ({ page }) => {
@@ -228,11 +289,17 @@ test.describe("Kế hoạch điều trị", () => {
     await print.locator(".pmr-foot").getByRole("button", { name: "Đóng" }).click();
     await expect(print).toBeHidden();
 
-    // The receipt action opens the invoice for this slip.
+    // The receipt action opens the invoice for this slip. It bills the slip as
+    // one line — "Kế hoạch điều trị DT…", a single unit of "Răng" — not the
+    // services inside it, which is how the reference hands the dialog its items.
     await row.getByRole("button", { name: `Phiếu thu ${createdCode}` }).click();
     const invoice = page.getByRole("dialog", { name: "Hóa đơn" });
     await expect(invoice).toBeVisible();
-    await expect(invoice).toContainText(pickedService);
+    const invoiceLine = invoice.locator("tbody tr.ant-table-row");
+    await expect(invoiceLine).toHaveCount(1);
+    await expect(invoiceLine).toContainText(`Kế hoạch điều trị ${createdCode}`);
+    await expect(invoiceLine).toContainText("Răng");
+    await expect(invoice).not.toContainText(pickedService);
     // Every field carries the app's floating label rather than a caption above
     // it: a filled one lifts the label onto the border, an empty one keeps it
     // resting inside as the placeholder.
@@ -275,16 +342,30 @@ test.describe("Kế hoạch điều trị", () => {
     const dialog = page.getByRole("dialog", { name: "Tạo phiếu dịch vụ" });
     await expect(dialog).toBeVisible();
 
+    await pickFirstOption(page, dialog.getByRole("combobox", { name: /Nhân sự tư vấn 1/ }));
+
     await dialog.getByRole("combobox", { name: /Thêm dịch vụ mới/ }).click();
-    const service = openDropdown(page, ".tp-service-dropdown")
-      .locator(".ant-select-item-option:has(.tp-opt-service)")
-      .first();
-    await expect(service).toBeVisible();
+    // The price is the catalog's now — it cannot be typed — so the figures
+    // below are read off the service rather than dictated to it. A service
+    // worth more than the discount, or there would be nothing left to check.
+    const DISCOUNT = 100_000;
+    const options = openDropdown(page, ".tp-service-dropdown").locator(
+      ".ant-select-item-option:has(.tp-opt-service)",
+    );
+    await expect(options.first()).toBeVisible();
+    let service = options.first();
+    let gross = 0;
+    for (let index = 0; index < (await options.count()); index++) {
+      const price = money(await options.nth(index).locator(".tp-opt-price").innerText());
+      if (price > DISCOUNT) {
+        service = options.nth(index);
+        gross = price;
+        break;
+      }
+    }
+    expect(gross).toBeGreaterThan(DISCOUNT);
     const lineName = (await service.locator(".tp-opt-name").innerText()).trim();
     await service.click();
-
-    await pickFirstOption(page, dialog.getByRole("combobox", { name: /Bác sĩ chẩn đoán/ }));
-    await pickFirstOption(page, dialog.getByRole("combobox", { name: /^Chẩn đoán/ }));
 
     await dialog.locator(".tp-tooth-btn").click();
     const picker = page.getByRole("dialog", { name: "Chọn răng" });
@@ -293,10 +374,10 @@ test.describe("Kế hoạch điều trị", () => {
     await picker.locator(".tp-teeth-foot button").click();
     await expect(picker).toBeHidden();
 
-    await dialog.getByRole("textbox", { name: "Đơn giá" }).fill("2500000");
+    const net = gross - DISCOUNT;
     await dialog.locator(".tp-toggle button", { hasText: "VNĐ" }).click();
-    await dialog.locator(".tp-create-discount input:visible").fill("100000");
-    await expect(dialog.locator(".tp-create-summary")).toContainText("2.400.000");
+    await dialog.locator(".tp-create-discount input:visible").fill(String(DISCOUNT));
+    await expect(dialog.locator(".tp-create-summary")).toContainText(vnd(net));
 
     await dialog.getByRole("button", { name: "Lưu" }).click();
     await expect(page.getByText("Đã tạo kế hoạch điều trị")).toBeVisible();
@@ -310,19 +391,21 @@ test.describe("Kế hoạch điều trị", () => {
     const code = (await planCodes(page)).find((item) => !before.includes(item)) ?? "";
 
     const cells = page.locator(".tp-table tr.ant-table-row", { hasText: code }).locator(".tp-cell-money");
-    await expect(cells.nth(0)).toHaveText("2.500.000 đ"); // Tổng phiếu — gross
-    await expect(cells.nth(1)).toHaveText("100.000 đ"); // Giảm giá
-    await expect(cells.nth(2)).toHaveText("2.400.000 đ"); // Thành tiền
+    await expect(cells.nth(0)).toHaveText(`${vnd(gross)} đ`); // Tổng phiếu — gross
+    await expect(cells.nth(1)).toHaveText(`${vnd(DISCOUNT)} đ`); // Giảm giá
+    await expect(cells.nth(2)).toHaveText(`${vnd(net)} đ`); // Thành tiền
 
-    // The line the row rolls up: the same gross, the same amount owed.
+    // The line the row rolls up. "Đơn giá" in this list is the reference's
+    // net unit price — what the line is worth divided by its quantity — so on a
+    // single unit it reads the same as "Thành tiền", discount already taken off.
     await page
       .locator(".tp-table tr.ant-table-row", { hasText: code })
       .getByRole("button", { name: `Danh sách dịch vụ - ${code}` })
       .click();
     const services = page.getByRole("dialog", { name: `Danh sách dịch vụ - ${code}` });
     const line = services.locator("tr.ant-table-row", { hasText: lineName }).first();
-    await expect(line.locator(".tp-cell-money").nth(0)).toHaveText("2.500.000 đ");
-    await expect(line.locator(".tp-cell-money").nth(1)).toHaveText("2.400.000 đ");
+    await expect(line.locator(".tp-cell-money").nth(0)).toHaveText(`${vnd(net)} đ`);
+    await expect(line.locator(".tp-cell-money").nth(1)).toHaveText(`${vnd(net)} đ`);
     await page.keyboard.press("Escape");
     await expect(services).toBeHidden();
   });
@@ -361,6 +444,115 @@ test.describe("Kế hoạch điều trị", () => {
     const pager = page.locator(".tp-card-pager");
     await expect(pager).toBeVisible();
     await expect(pager.locator(".ant-pagination-total-text")).toHaveText(PAGER_TOTAL);
+  });
+
+  /**
+   * Leaving the stàge dialog with something written asks first.
+   *
+   * Measured on the reference 2026-09-22 out of its published stage chunk: one
+   * guarded close sits behind both the ✕ and the form's "Hủy", and only the
+   * treatment content and the pictures make it dirty — not the doctor pickers.
+   */
+  test("leaving Công đoạn with something written asks before it throws it away", async ({
+    page,
+  }) => {
+    await login(page);
+    await page.goto(`${patientUrl}?tab=treatment-plan`);
+    await assertRealApiTraffic(page, PLANS_API);
+
+    const row = page.locator(".tp-table tr.ant-table-row", { hasText: createdCode });
+    const stage = page.getByRole("dialog", { name: "Chi tiết phiếu" });
+    const ask = page.getByRole("dialog", { name: "Hủy thay đổi" });
+
+    const openForm = async () => {
+      await row.getByRole("button", { name: `Thêm công đoạn ${createdCode}` }).click();
+      await expect(stage).toBeVisible();
+      await stage.locator(".pd-stage-picks button").first().click();
+      await expect(stage.locator(".pd-stage-form")).toBeVisible();
+    };
+
+    // Nothing written: "Hủy" leaves straight away, and it leaves the whole
+    // dialog rather than only dropping the picked line.
+    await openForm();
+    await expect(stage.getByRole("button", { name: /Lưu công đoạn/ })).toBeVisible();
+    await stage.getByRole("button", { name: "Hủy", exact: true }).click();
+    await expect(ask).toBeHidden();
+    await expect(stage).toBeHidden();
+
+    // Something written: the same button asks, and answering "Tiếp tục chỉnh
+    // sửa" hands the text back untouched.
+    await openForm();
+    const note = stage.locator(".pd-stage-form textarea");
+    await note.fill("Đã lấy cao răng hàm trên");
+    await stage.getByRole("button", { name: "Hủy", exact: true }).click();
+    await expect(ask).toBeVisible();
+    await expect(ask).toContainText("Bạn có chắc muốn hủy? Dữ liệu vừa nhập sẽ không được lưu.");
+    await ask.getByRole("button", { name: "Tiếp tục chỉnh sửa" }).click();
+    await expect(ask).toBeHidden();
+    await expect(stage).toBeVisible();
+    await expect(note).toHaveValue("Đã lấy cao răng hàm trên");
+
+    // The ✕ is guarded by the very same close.
+    await stage.locator(".ant-modal-close").click();
+    await expect(ask).toBeVisible();
+    // The confirm's name carries its icon: "delete Xác nhận hủy".
+    await ask.getByRole("button", { name: /Xác nhận hủy/ }).click();
+    await expect(ask).toBeHidden();
+    await expect(stage).toBeHidden();
+
+    // And nothing was written to the slip — no công đoạn was created.
+    await row.getByRole("button", { name: `Thêm công đoạn ${createdCode}` }).click();
+    await expect(stage).toBeVisible();
+    await expect(stage).toContainText("Chưa có dữ liệu công đoạn");
+    await page.keyboard.press("Escape");
+    await expect(stage).toBeHidden();
+  });
+
+  /**
+   * The slip table either fits or scrolls — never a sliver in between.
+   *
+   * "Thao tác" is pinned, so at rest it floats over whatever is under it and you
+   * scroll to reveal that. That is fine while there is a real amount to scroll.
+   * It stops being fine when the table overflows by a handful of pixels: the
+   * pinned column then sits on "Phải thu" and no amount of dragging can move a
+   * scrollbar that short. A global `min-width: 100px` on every header used to
+   * cause exactly that — it blew the 48px eye column up to 100 and, because Ant
+   * Design 6 renamed `…-fix-right` to `…-fix-end`, the pinned column escaped its
+   * own exemption too (R-462).
+   */
+  test("the slip table either fits or leaves enough to scroll, never a few pixels", async ({
+    page,
+  }) => {
+    await login(page);
+
+    for (const width of [1280, 1728, 1860]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(`${patientUrl}?tab=treatment-plan`);
+      const content = page.locator(".tp-table .ant-table-content");
+      await expect(content).toBeVisible();
+      await expect(page.locator(".tp-table tbody tr.ant-table-row").first()).toBeVisible();
+
+      const overflow = await content.evaluate((el) => el.scrollWidth - el.clientWidth);
+      expect(overflow === 0 || overflow > 20).toBe(true);
+
+      // Scrolled to the end, the pinned cell clears the last money column.
+      await content.evaluate((el) => { el.scrollLeft = el.scrollWidth; });
+      const overlap = await content.evaluate((el) => {
+        const row = [...el.querySelectorAll("tbody tr.ant-table-row")].at(-1)!;
+        const tds = [...row.querySelectorAll("td")];
+        const money = tds[tds.length - 2].getBoundingClientRect();
+        const pinned = tds[tds.length - 1].getBoundingClientRect();
+        return Math.round(money.right - pinned.x);
+      });
+      expect(overlap).toBeLessThanOrEqual(0);
+
+      // The eye column keeps the narrow width it declares.
+      const eye = await page
+        .locator(".tp-table thead th")
+        .nth(2)
+        .evaluate((el) => Math.round(el.getBoundingClientRect().width));
+      expect(eye).toBeLessThan(60);
+    }
   });
 
   test("an account limited to another branch is refused the slips", async ({ browser }) => {

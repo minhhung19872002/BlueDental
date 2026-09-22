@@ -70,8 +70,9 @@ export interface PatientAdviseDto {
   patientId: string;
   clinicBranchId: string;
   serviceId: string;
-  diagnosisId: string;
-  patientDiagnosisId: string;
+  /** Null on a line raised straight off a service, with no chẩn đoán filed. */
+  diagnosisId: string | null;
+  patientDiagnosisId: string | null;
   treatmentPlanId: string | null;
   adviseGroupId: string | null;
   staffId: string;
@@ -95,6 +96,11 @@ export interface PatientAdviseDto {
   staffName: string | null;
   secondStaffName: string | null;
   diagnosisName: string | null;
+  /** The doctors on the chẩn đoán this line was raised from, not the advisor. */
+  diagnosisStaffId: string | null;
+  diagnosisSecondStaffId: string | null;
+  diagnosisStaffName: string | null;
+  diagnosisSecondStaffName: string | null;
   creationTime: string;
 }
 
@@ -162,8 +168,9 @@ export interface ReorderPatientAdviseDto {
 export interface CreatePatientAdviseDto {
   patientId: string;
   clinicBranchId: string;
-  patientDiagnosisId: string;
-  diagnosisId: string;
+  /** Both optional: "Tạo phiếu dịch vụ" files no chẩn đoán of its own. */
+  patientDiagnosisId?: string | null;
+  diagnosisId?: string | null;
   serviceId: string;
   staffId: string;
   secondStaffId?: string;
@@ -179,11 +186,13 @@ export interface CreatePatientAdviseDto {
 }
 
 /**
- * What `PUT patient-diagnoses/{id}` accepts: the doctors, the note and the
- * teeth. The diagnosis itself cannot be changed on the server yet — see
- * docs/clone/unknowns.md.
+ * What `PUT patient-diagnoses/{id}` accepts: the condition, the doctors, the
+ * note and the teeth. The condition became editable on 2026-09-22 (R-450); the
+ * server still refuses a slip that has been cancelled or already treated.
  */
 export interface UpdatePatientDiagnosisDto {
+  /** The condition found; "Cập nhật Chẩn Đoán" lets it be corrected. */
+  diagnosisId: string;
   staffId: string;
   secondStaffId?: string;
   note?: string;
@@ -264,6 +273,18 @@ function formatTooth(tooth: ToothSelectionDto): string {
 /** "18, 16 - Mặt ngoài, Mặt nhai" — how the reference renders a tooth set in list rows. */
 export function formatTeeth(teeth: ToothSelectionDto[]): string {
   return teeth.length === 0 ? "—" : teeth.map(formatTooth).join(", ");
+}
+
+/**
+ * Only the tooth numbers: "12, 11, 22, 23, 24".
+ *
+ * The consulting table's "Chẩn đoán" cell names the teeth **without** their
+ * surfaces — measured on staging 2026-09-22 against a row whose teeth do carry
+ * surfaces (22 top, 23 right, 24 centre) and which still prints the bare
+ * numbers. Empty when nothing was picked, so the caller can leave the cell out.
+ */
+export function formatToothCodes(teeth: ToothSelectionDto[]): string {
+  return teeth.map((tooth) => String(tooth.toothCode)).join(", ");
 }
 
 /**

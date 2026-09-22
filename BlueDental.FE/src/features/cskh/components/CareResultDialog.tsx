@@ -3,6 +3,7 @@ import { Input } from "antd";
 import { toast } from "sonner";
 import { t } from "@/lib/i18n";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { AppDialog } from "@/components/AppDialog";
 import {
   CARE_STATUS,
@@ -74,7 +75,7 @@ export function CareResultDialog({ open, tab, record, onClose }: CareResultDialo
       toast.success(t("Đã lưu kết quả chăm sóc"));
       onClose();
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 

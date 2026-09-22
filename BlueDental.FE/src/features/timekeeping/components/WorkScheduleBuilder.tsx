@@ -21,6 +21,7 @@ import {
 import { useStaffList } from "@/features/staff/api/staffQueries";
 import { useBranchFilter } from "@/lib/clinicBranch";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { t } from "@/lib/i18n";
 import { useAbility } from "@/hooks/useAbility";
 
@@ -291,7 +292,7 @@ export function WorkScheduleBuilder({ currentDate, onBack }: Props) {
       }
       setConfirmOpen(false);
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
       setConfirmOpen(false);
     }
   };

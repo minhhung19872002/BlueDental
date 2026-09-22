@@ -1,9 +1,10 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using BlueDental.TreatmentManagement.Values;
 using Volo.Abp;
 using Volo.Abp.Domain.Entities.Auditing;
+using BlueDental.Values;
 
 namespace BlueDental.TreatmentManagement;
 
@@ -48,9 +49,24 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
 
     public IReadOnlyCollection<TreatmentService> Services => _services.AsReadOnly();
 
-    /// <summary>Lines that still count — cancelled ones are worth nothing.</summary>
+    /// <summary>
+    /// Lines that still count towards the slip's money.
+    ///
+    /// A cancelled line was never charged. A "Chuyển đổi" line has been replaced
+    /// by a newer one on the same slip, and an "Đã chuyển" line has moved to
+    /// another slip — charging either here would bill the same work twice.
+    /// Measured on the reference 2026-09-21: DT33 holds a 1.000.000 đ line plus
+    /// a 909.091 đ <c>replaced</c> one and reports <c>totalPrice: 1000000</c>.
+    /// </summary>
     private IEnumerable<TreatmentService> CountedServices =>
-        _services.Where(s => s.Status != TreatmentServiceStatus.Cancelled);
+        _services.Where(s => !UnchargedStatuses.Contains(s.Status));
+
+    private static readonly TreatmentServiceStatus[] UnchargedStatuses =
+    [
+        TreatmentServiceStatus.Cancelled,
+        TreatmentServiceStatus.Replaced,
+        TreatmentServiceStatus.Transferred
+    ];
 
     /// <summary>Sum of the line amounts before the slip-level discount.</summary>
     public decimal ServicesTotal => CountedServices.Sum(s => s.CountedAmount);
@@ -69,7 +85,7 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
             var discount = DiscountType switch
             {
                 DiscountType.Money => DiscountValue,
-                DiscountType.Percentage => ServicesTotal * DiscountValue / 100m,
+                DiscountType.Percentage => Vnd.Round(ServicesTotal * DiscountValue / 100m),
                 _ => 0m
             };
 
@@ -93,8 +109,10 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
 
             var completed = CountedServices.Where(s => s.IsCompleted).Sum(s => s.CountedAmount);
 
-            // The slip-level discount is spread across the lines proportionally.
-            return completed - (PlanDiscountAmount * completed / ServicesTotal);
+            // The slip-level discount is spread across the lines proportionally,
+            // which is where the đồng has to be put back together: the share is
+            // a repeating decimal as soon as the ratio is not exact.
+            return completed - Vnd.Round(PlanDiscountAmount * completed / ServicesTotal);
         }
     }
 
@@ -207,6 +225,99 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
             teeth);
 
         _services.Add(line);
+        return line;
+    }
+
+    /// <summary>
+    /// Moves one service line to a 1-based position on the slip and renumbers
+    /// the rest, which is what dragging a row does on the reference.
+    ///
+    /// A line is born without a position (<c>SortOrder = 0</c>) so that an
+    /// untouched slip keeps the reference's default order — newest first. The
+    /// first drag numbers every line on the slip, and they stay numbered.
+    ///
+    /// The position is clamped rather than rejected: a client that dropped onto
+    /// a row cancelled in the meantime still lands somewhere sensible.
+    ///
+    /// Allowed on a closed slip too — the order is how the clinic reads the
+    /// slip, not a change to the treatment or to any money on it.
+    /// </summary>
+    public TreatmentPlan ReorderService(Guid serviceLineId, int sortOrder)
+    {
+        var moved = GetService(serviceLineId);
+
+        // The same order the slip is read in, or a drop would be measured
+        // against a list the clinic never saw.
+        var sequence = _services
+            .OrderBy(s => s.SortOrder)
+            .ThenByDescending(s => s.CreationTime)
+            .ToList();
+
+        sequence.Remove(moved);
+        var target = Math.Clamp(sortOrder, 1, sequence.Count + 1);
+        sequence.Insert(target - 1, moved);
+
+        for (var index = 0; index < sequence.Count; index++)
+        {
+            sequence[index].Reorder(index + 1);
+        }
+
+        return this;
+    }
+
+    /// <summary>
+    /// "Chuyển đổi dịch vụ": closes one line and writes the line that takes its
+    /// place, the two pointing at each other.
+    ///
+    /// <paramref name="chargeAmount"/> is the reference's editable "Thanh toán"
+    /// field — what the patient is actually charged for the new service. It is
+    /// carried as a money discount off the catalog price so the new line still
+    /// shows its real "Đơn giá", which is how the reference prints it.
+    /// </summary>
+    public TreatmentService ConvertService(
+        Guid serviceLineId,
+        Guid newLineId,
+        Guid newServiceId,
+        decimal unitPrice,
+        int quantity,
+        decimal chargeAmount,
+        IEnumerable<ToothSelection>? teeth = null)
+    {
+        if (Status is TreatmentPlanStatus.Completed or TreatmentPlanStatus.Cancelled)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.InvalidPlanTransition,
+                $"No service line can be converted on a plan in status {Status}.");
+        }
+
+        var old = GetService(serviceLineId);
+        var gross = unitPrice * quantity;
+
+        if (chargeAmount < 0m || chargeAmount > gross)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.NegativePaymentAmount,
+                "The amount charged for the new service must sit between zero and its price.");
+        }
+
+        var line = TreatmentService.FromAdvise(
+            newLineId,
+            Id,
+            PatientId,
+            BranchId,
+            newServiceId,
+            sourceAdviseId: null,
+            $"{Code}-{_services.Count + 1:D2}",
+            unitPrice,
+            quantity,
+            DiscountType.Money,
+            gross - chargeAmount,
+            teeth);
+
+        old.MarkReplaced().LinkReplacement(line.Id);
+        line.LinkReplacement(old.Id);
+        _services.Add(line);
+
         return line;
     }
 

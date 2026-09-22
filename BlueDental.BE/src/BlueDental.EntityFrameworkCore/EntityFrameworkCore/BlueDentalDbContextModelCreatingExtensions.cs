@@ -744,7 +744,9 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Ignore(x => x.CountedAmount);
             entity.Ignore(x => x.IsCompleted);
             entity.HasIndex(x => new { x.TreatmentPlanId, x.Code });
+            entity.HasIndex(x => new { x.TreatmentPlanId, x.SortOrder });
             entity.HasIndex(x => x.SourceAdviseId);
+            entity.HasIndex(x => x.ReplacedId);
             entity.HasIndex(x => new { x.PatientId, x.Status });
         });
 

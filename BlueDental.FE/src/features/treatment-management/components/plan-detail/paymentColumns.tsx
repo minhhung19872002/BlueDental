@@ -1,5 +1,5 @@
 import type { TableColumnsType } from "antd";
-import { Eye } from "lucide-react";
+import { Eye, Pencil, Trash2 } from "lucide-react";
 import type { RecordCardRow } from "@/components/RecordCard";
 import { t } from "@/lib/i18n";
 import { formatDateTime } from "@/utils/format";
@@ -8,6 +8,7 @@ import {
   type PatientPaymentDto,
   type TreatmentPlanSlipDto,
 } from "../../api/treatmentPlanApi";
+import { ActionTooltip } from "../plan/ActionTooltip";
 import { moneyText } from "../plan/planTypes";
 import { dash, paymentServiceNames } from "./planDetailTypes";
 
@@ -29,10 +30,59 @@ function viewButton(payment: PatientPaymentDto, onView: (payment: PatientPayment
   );
 }
 
+/** What a receipt row can do: look at it, correct it, or take it back. */
+export interface PaymentRowActions {
+  onView: (payment: PatientPaymentDto) => void;
+  onEdit: (payment: PatientPaymentDto) => void;
+  onCancel: (payment: PatientPaymentDto) => void;
+}
+
+/**
+ * The three actions the reference puts on a receipt row: Xem, Chỉnh sửa and a
+ * red Huỷ. They sit in a 28px ghost button each, the last one in the danger
+ * colour, as its own toolbar does.
+ */
+function rowActions(payment: PatientPaymentDto, actions: PaymentRowActions) {
+  return (
+    <span className="pdt-row-actions">
+      <ActionTooltip title={t("Xem")}>
+        <button
+          type="button"
+          className="pdt-row-action"
+          aria-label={t("Xem phiếu {0}", payment.code)}
+          onClick={() => actions.onView(payment)}
+        >
+          <Eye size={16} aria-hidden="true" />
+        </button>
+      </ActionTooltip>
+      <ActionTooltip title={t("Chỉnh sửa")}>
+        <button
+          type="button"
+          className="pdt-row-action"
+          aria-label={t("Chỉnh sửa phiếu {0}", payment.code)}
+          onClick={() => actions.onEdit(payment)}
+        >
+          <Pencil size={16} aria-hidden="true" />
+        </button>
+      </ActionTooltip>
+      <ActionTooltip title={t("Huỷ")}>
+        <button
+          type="button"
+          className="pdt-row-action pdt-row-action--danger"
+          aria-label={t("Huỷ phiếu {0}", payment.code)}
+          onClick={() => actions.onCancel(payment)}
+        >
+          <Trash2 size={16} aria-hidden="true" />
+        </button>
+      </ActionTooltip>
+    </span>
+  );
+}
+
 /** Tab "Thanh toán": the nine columns of production's receipt table. */
 export function buildPaymentColumns(
   plan: TreatmentPlanSlipDto,
-  onView: (payment: PatientPaymentDto) => void,
+  actions: PaymentRowActions,
 ): TableColumnsType<PatientPaymentDto> {
   const methods = paymentMethodLabels();
   return [
@@ -47,10 +97,10 @@ export function buildPaymentColumns(
     {
       key: "actions",
       title: t("Thao tác"),
-      width: 88,
+      width: 120,
       align: "center",
       fixed: "right",
-      render: (_, p) => viewButton(p, onView),
+      render: (_, p) => rowActions(p, actions),
     },
   ];
 }

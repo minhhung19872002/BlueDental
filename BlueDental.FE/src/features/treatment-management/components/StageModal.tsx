@@ -11,6 +11,7 @@ import { useDentistList } from "@/features/staff/api/staffQueries";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { toast } from "sonner";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { formatVND } from "@/utils/format";
 import { t } from "@/lib/i18n";
 
@@ -90,7 +91,7 @@ export function StageModal({ open, patientId, onClose }: StageModalProps) {
       toast.success(t("Đã thêm công đoạn"));
       onClose();
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 

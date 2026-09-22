@@ -16,6 +16,7 @@ import {
 } from "@/features/cskh/api/careApi";
 import { useDentistList } from "@/features/staff/api/staffQueries";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import type { PatientDto } from "../../../types/patient";
@@ -111,7 +112,7 @@ export function PatientCareDialog({ open, patient, record, onClose }: Props) {
       toast.success(record ? t("Đã cập nhật nội dung chăm sóc") : t("Đã tạo nội dung chăm sóc"));
       onClose();
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 

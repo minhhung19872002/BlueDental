@@ -1,9 +1,10 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using BlueDental.TreatmentManagement.Values;
 using Volo.Abp;
 using Volo.Abp.Domain.Entities.Auditing;
+using BlueDental.Values;
 
 namespace BlueDental.TreatmentManagement;
 
@@ -25,11 +26,17 @@ public class PatientAdvise : FullAuditedAggregateRoot<Guid>
     /// <summary>Service being offered (Danh mục dịch vụ).</summary>
     public Guid ServiceId { get; private set; }
 
-    /// <summary>Diagnosis catalog entry this advise answers.</summary>
-    public Guid DiagnosisId { get; private set; }
+    /// <summary>
+    /// Diagnosis catalog entry this advise answers, when it names one.
+    ///
+    /// Null since 2026-09-22: "Tạo phiếu dịch vụ" raises a slip straight off a
+    /// service, and the reference does not file a chẩn đoán for it. A line
+    /// raised from a diagnosis row still carries both.
+    /// </summary>
+    public Guid? DiagnosisId { get; private set; }
 
     /// <summary>The patient-specific diagnosis this advise was raised from.</summary>
-    public Guid PatientDiagnosisId { get; private set; }
+    public Guid? PatientDiagnosisId { get; private set; }
 
     /// <summary>Set once the advise has been pulled into a treatment plan.</summary>
     public Guid? TreatmentPlanId { get; private set; }
@@ -76,7 +83,7 @@ public class PatientAdvise : FullAuditedAggregateRoot<Guid>
             var discount = DiscountType switch
             {
                 DiscountType.Money => DiscountValue,
-                DiscountType.Percentage => GrossAmount * DiscountValue / 100m,
+                DiscountType.Percentage => Vnd.Round(GrossAmount * DiscountValue / 100m),
                 _ => 0m
             };
 
@@ -94,8 +101,8 @@ public class PatientAdvise : FullAuditedAggregateRoot<Guid>
         Guid id,
         Guid patientId,
         Guid clinicBranchId,
-        Guid patientDiagnosisId,
-        Guid diagnosisId,
+        Guid? patientDiagnosisId,
+        Guid? diagnosisId,
         Guid serviceId,
         Guid staffId,
         string code,

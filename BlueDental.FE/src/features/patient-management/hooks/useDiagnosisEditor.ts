@@ -61,6 +61,7 @@ export function useDiagnosisEditor(
       intent === "update"
         ? editing &&
           (await writer.update(editing.id, {
+            diagnosisId: input.diagnosisId,
             staffId: input.staffId,
             secondStaffId: input.secondStaffId,
             note: input.note,

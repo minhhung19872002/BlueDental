@@ -2,6 +2,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/axios";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { t } from "@/lib/i18n";
 import { formatClock } from "@/utils/format";
 import { RECEPTION_FLOW, SERVER_STATUS } from "@/features/appointments/api/appointmentAdapters";
@@ -83,7 +84,7 @@ export function ReceptionSteps({ appointment, onAdvanced }: Props) {
       toast.success(t("Đã cập nhật tiếp nhận"));
       onAdvanced();
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     } finally {
       setBusy(false);
     }

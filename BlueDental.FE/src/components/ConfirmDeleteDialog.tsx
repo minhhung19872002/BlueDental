@@ -13,8 +13,14 @@ interface Props {
   title?: string;
   /** The question line, when the reference words it differently; the "cannot be undone" line stays. */
   question?: ReactNode;
-  /** The red button's label when the reference calls the action something other than "Xoá" (e.g. "Hủy giao dịch"). */
+  /**
+   * The two footer labels, for the confirms the reference words differently —
+   * "Hủy thay đổi" answers "Xác nhận hủy" / "Tiếp tục chỉnh sửa". Its own
+   * component takes them the same way (`confirmLabel` / `cancelLabel`,
+   * defaulting to "Xoá" / "Huỷ"), so this is the one dialog, not a second one.
+   */
   confirmLabel?: string;
+  cancelLabel?: string;
   pending?: boolean;
   onConfirm: () => void;
   onClose: () => void;
@@ -35,6 +41,7 @@ export function ConfirmDeleteDialog({
   title,
   question,
   confirmLabel,
+  cancelLabel,
   pending,
   onConfirm,
   onClose,
@@ -49,7 +56,7 @@ export function ConfirmDeleteDialog({
       footer={
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
           <Button onClick={onClose} disabled={pending}>
-            {t("Huỷ")}
+            {cancelLabel ?? t("Huỷ")}
           </Button>
           <Button
             danger

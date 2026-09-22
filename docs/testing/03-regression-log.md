@@ -4411,3 +4411,658 @@ mở**, nên cho sửa mọi tờ ở đó là mời người dùng gõ vào ch�
 Chưa chạy lại e2e cho hai mục này — chủ dự án nói để tự thao tác kiểm cho nhanh.
 Hai spec liên quan đã sửa theo hợp đồng mới (tờ chỉ-đọc không dùng `disabled`;
 popover mở ra tick sẵn, bỏ bớt còn hai tờ thì chỉ hai tờ ra giấy). `tsc` sạch.
+
+---
+
+## 2026-09-21 — Kế hoạch điều trị: "Còn lại" và "Phải thu" bị đảo, và một vòng rà soát lại cả tab
+
+Rà soát lại tab `?tab=treatment-plan` với bản gốc (staging). Ngoài soi DOM và
+computed style như thường lệ, lần này đọc thẳng **component của bản gốc trong
+gói JavaScript đã publish** (`fetch` một file tĩnh trang đã tải sẵn — không gọi
+API, không ghi gì), nên danh sách cột, công thức tiền, màu nền dòng và bảng màu
+pill dưới đây là số của chính nó, rồi đối chiếu lại với trang đã render.
+
+### Tiền: hai cột bị đảo nghĩa
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-385 | **`Còn lại` hiện 0 đ trên phiếu chưa điều trị gì**, còn `Phải thu` in số **âm** khi khách trả trước | `PaymentSummary.From` gán ngược: ta để `debt = max(receivable, 0)` và `totalDue = totalPrice − netPaid`, trong khi bản gốc là `debt = totalPrice − netPaid` (tất cả những gì phiếu còn nợ) và `receivable = completedValue − netPaid` (chỉ phần việc đã xong mà chưa thu). Đo trên ba payload: phiếu DT33 có một dòng 1.000.000 đ chưa ai đụng trả về `debt: 1000000, receivable: 0`; DT32 và rollup của bệnh nhân khớp cùng công thức. Đổi lại đúng nghĩa; `totalDue` nay lặp lại `receivable` như payload gốc (chính bản gốc không đọc trường này bao giờ) |
+| R-386 | `Phải thu` in `-6.000.000 đ` | Bản gốc kẹp ở 0 bằng `resolveReceivable` của nó. `planMoney()` nay trả `Math.max(0, receivable)`; `PatientProfileTab` và `PatientAccountPanel` kẹp y hệt |
+| R-387 | Dòng **`Chuyển đổi`** vẫn được tính tiền trên phiếu | DT33 giữ một dòng 1.000.000 đ và một dòng `replaced` 909.091 đ, mà `totalPrice` chỉ là 1.000.000. `TreatmentPlan.CountedServices` nay loại cả `Replaced` và `Transferred` bên cạnh `Cancelled` — việc đó được tính ở dòng khác hoặc phiếu khác |
+| R-388 | Bốn màn khác đọc rollup theo nghĩa cũ | `PatientAccountPanel` ("Còn lại"/"Phải thu" đang đảo để bù trừ), `PatientDebtHistoryPanel` (cũng đảo), `CreatePaymentDialog` (`planDue`), `PatientProfileTab` ("Dự kiến thu còn lại" nay tự tính `max(totalPrice − totalPaid, 0)` như bản gốc). Sửa hết theo nghĩa mới |
+
+`Tổng phiếu / Giảm giá / Thành tiền / Đã trả / Hoàn tiền` không đổi — đối chiếu
+lại với adapter của bản gốc thì đã đúng từng trường.
+
+### Bảng: cỡ chữ, màu theo giá trị, nền dòng, cột ghim
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-389 | Ô tiền **14px**, bản gốc **13px** | `.tp-cell-money` thêm `font-size: 13px` |
+| R-390 | `Còn lại` **luôn đỏ**, `Phải thu` **luôn xám** | Bản gốc: cả hai đỏ **chỉ khi > 0**, còn lại về `text-label`. Gom một `moneyCellClass(field, value)` dùng chung cho bảng và cho card ≤640 |
+| R-391 | Phiếu **Hoàn thành không có nền xanh** | Bản gốc tô cả dòng `bg-green-default-50/60`; ô "Thao tác" ghim vẫn trắng. Thêm `tp-row--done` qua `rowClassName` |
+| R-392 | Cột "Thao tác" ghim **không có nền trắng, không có bóng** | Luật cũ nhắm `.ant-table-cell-fix-right…`, AntD 6 đổi tên thành `.ant-table-cell-fix-end` / `-fix-end-shadow` nên không trúng gì cả (cùng họ lỗi với R-380). Nhắm cả hai tên |
+| R-393 | Nền dải tiêu đề bảng `#F6F8FB` | Bảng phiếu của bản gốc để **trắng** (dải xám chỉ dùng trong dialog). Đổi lại |
+| R-394 | Icon con mắt 18px | Bản gốc `size-4` = 16px |
+| R-395 | Pill sai màu ở ba trạng thái | `Đang điều trị` và `Bảo hành` là `#EFF6FF`/`#1D4ED8`, `Đã chuyển` là `#F5F3FF`/`#6D28D9` — ta đang dùng chung màu cyan của `Chuyển đổi` cho cả ba. Thêm `tp-pill--progress`, `tp-pill--transferred`. Nhãn dòng dịch vụ bị huỷ cũng đổi thành "Hủy dịch vụ" ("Huỷ phiếu" là chữ dành cho cả phiếu) |
+
+### Thẻ tóm tắt, hai danh sách dịch vụ, hoá đơn, form tạo
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-396 | Thẻ tóm tắt **liệt kê hết** mọi dòng | Bản gốc cắt **4 mục** mỗi thẻ, còn huy hiệu đếm **toàn bộ** số dòng đang điều trị chứ không phải 4 mục đang hiện. `summariseServices` trả thêm `activeCount` |
+| R-397 | Thẻ "công đoạn gần nhất" để trống khi công đoạn không có ghi chú | Bản gốc in dấu gạch ngang |
+| R-398 | "Danh sách dịch vụ - DT<n>" **thiếu mã phiếu** trước tên dịch vụ | Chỉ bản một-phiếu mới in mã (và mã bấm được, mở màn chi tiết phiếu); bản "Xem tất cả dịch vụ" thì không. Thêm `showCode` |
+| R-399 | Cột `Bác sĩ` lấy bác sĩ **của phiếu** | Bản gốc lấy bác sĩ **của chính dòng dịch vụ** |
+| R-400 | Cột `Đơn giá` lấy `price` thô | Bản gốc lấy `round(thành tiền / số lượng)` — đơn giá **sau giảm**, nên với số lượng 1 nó bằng đúng `Thành tiền`. Sửa cả bảng lẫn card ≤640; chữ rỗng đổi thành "Không có dữ liệu" |
+| R-401 | "Hóa đơn" liệt kê **từng dịch vụ** | Bản gốc lập hoá đơn cho **cả phiếu**: một dòng `Kế hoạch điều trị DT<n>`, đơn vị `Răng`, số lượng 1, đơn giá = `Thành tiền` của phiếu. Tiêu đề bảng cũng để sentence case 14/500 thay vì chữ hoa 11.5px của nhà |
+| R-402 | Form "Tạo phiếu dịch vụ" mở ra bằng chip **"Người tạo"** | Bản gốc bỏ chip đó; nay cả hai chế độ đều mở bằng `Nhân sự tư vấn 1*` kèm nút `+` thêm người thứ hai — đúng hàng mà bản cập nhật đang dùng. Advisor được gửi lên làm `staffId` của advise. `Ghi chú` chốt 255 ký tự |
+| R-403 | Thẻ tóm tắt xuống **một cột** ở ≤640 | Bản gốc giữ hai cột ở mọi bề ngang, để chữ tự cắt |
+
+### Kiểm thử
+
+- `dotnet test BlueDental.Domain.Tests --filter TreatmentManagement`: **126 pass**.
+  `PaymentSummaryTests` và `TreatmentPlanSlipTests` viết lại theo nghĩa mới,
+  thêm hai ca: phiếu chưa điều trị gì vẫn nợ nguyên, và dòng
+  `Chuyển đổi`/`Đã chuyển` không được tính tiền.
+- Playwright trên **bản build production** (`vite preview`, cổng 8080):
+  `treatment-plan` **6/6**, `treatment-plan-detail` **6/6**, `consulting-plan`
+  **12/12**. Ba spec tạo phiếu phải thêm bước chọn `Nhân sự tư vấn 1`;
+  assertion của hoá đơn đổi sang dòng `Kế hoạch điều trị DT<n>`; assertion đơn
+  giá của dòng dịch vụ đổi sang số sau giảm.
+- `patient.spec.ts` 64/66, `finance.spec.ts` 0/2 — **bốn ca đỏ này đỏ sẵn trên
+  `main`**, đã dựng lại bản build từ `git stash` để đối chứng: `finance` cả hai
+  ca không nhận được GET `/api/v1/app/sales`, `patient` "the appointment card
+  reassigns its doctor" và (không ổn định) "Tạo bảo hành builds no checklist".
+  Không liên quan tới thay đổi lần này.
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-404 | `treatment-plan-detail` — ca ≤640 đỏ sẵn trên `main` | Đo `boundingBox()` của ô "Nội dung" **một lần** ngay khi dialog vừa mở, mà AntD mở bằng `ant-zoom` từ `scale(0.2)` — đọc trúng khung hình đầu nên nhận 29.8px thay vì 152px. Đổi sang `expect.poll` |
+
+### Còn treo
+
+- Bản gốc chỉ còn **chín** tab hồ sơ bệnh nhân, không có "Hóa đơn"; ta vẫn giữ
+  tab thứ mười. Không tự bỏ — chờ chủ dự án quyết (ghi ở `unknowns.md`).
+- `Bác sĩ chẩn đoán 1` / `Chẩn đoán 2` bên bản gốc là ô **khoá, không sao đỏ**,
+  lấy từ chẩn đoán của dịch vụ; ta vẫn để mở và bắt buộc vì chuỗi tạo phiếu của
+  ta (chẩn đoán → tư vấn → duyệt → phiếu) cần một chẩn đoán.
+- Dòng phiếu **đã huỷ**: bản gốc gọi tên lớp `bg-red-default-50/60` nhưng lớp đó
+  không có trong stylesheet của chính nó, nên dòng không được tô. Ta cũng để
+  không tô, theo cái nó **render** chứ không theo cái nó định làm.
+
+---
+
+## 2026-09-21 (đợt 2) — Tìm kiếm phải gọi API, và các thao tác còn thiếu của tab Kế hoạch điều trị
+
+Chủ dự án chỉ ra tám điểm sau đợt rà soát đầu. Vẫn soi bản gốc **chỉ đọc** (mở
+trang, mở dialog, gõ vào ô tìm kiếm — chỉ sinh GET — và đọc component trong gói
+JavaScript đã publish).
+
+### Lỗi chặn: "Không thể thực hiện thao tác này trên kế hoạch điều trị"
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-405 | Thêm dịch vụ vào **phiếu đã Hoàn thành** trả lỗi `BlueDental:Treatment:0002` | Log của API chỉ đúng chỗ: `AddService` chặn phiếu `Completed`/`Cancelled`. Soi bản gốc thì trên phiếu `done` **không có ô "Thêm dịch vụ mới"** trong thanh công cụ (DT32 chỉ còn `Thêm công đoạn` · `Tạo Đơn Thuốc` · `In Hóa Đơn`), trong khi phiếu đang mở thì có. Ẩn ô picker khi phiếu đã đóng — đúng bản gốc, và đường sinh lỗi biến mất |
+
+### Tìm kiếm: lọc trên FE → gọi API
+
+Đo trên bản gốc: gõ vào "Thêm dịch vụ mới" sinh
+`GET /v1/care-service/list?search=rang&page=1&perPage=20`, và component của nó
+nhận `fetchServices/fetchGroups/fetchGroupServices`, cuộn tới đâu tải tiếp tới
+đó (IntersectionObserver). Ta đang nạp sẵn một trang 200 dòng rồi lọc trong
+trình duyệt — phòng khám nào có danh mục dài hơn một trang thì gõ không ra.
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-406 | Picker **dịch vụ** (cả form Tạo phiếu lẫn thanh công cụ trang chi tiết) lọc trên FE | `useCatalogOptionSearch` — `useInfiniteQuery` gửi `filter` + `skipCount`, 20 dòng một trang, `keepPreviousData` để popup không nháy trắng giữa hai phím; `useLoadMoreSentinel` xin trang kế khi cuộn tới đáy. Bảng dịch vụ trong panel nhóm cũng vậy (`taxonomyId` + `filter`). Debounce 300ms, có spinner |
+| R-407 | Picker **nhóm dịch vụ** lọc trên FE | `useTaxonomyGroupSearch` gửi `filter` lên `/taxonomies` |
+| R-408 | Picker **nhân sự / bác sĩ / chẩn đoán** lọc trên FE | Thêm `ServerSearchSelect` (dùng chung, `src/components/`) + `usePickerOptions` (`useDentistOptions`, `useStaffOptionsSearch`, `useDiagnosisOptions`). Áp cho: `Nhân sự tư vấn 1/2`, `Bác sĩ chẩn đoán 1`, `Chẩn đoán 2`, hàng nhập liệu của trang chi tiết (6 ô), form công đoạn (`Bác sĩ` · `Phụ tá` · `Bác sĩ hỗ trợ`), form tái khám (3 ô), `Chọn bác sĩ` của Đơn thuốc |
+| R-409 | **Tìm nhân sự phân biệt hoa thường**: gõ "thu" không ra "Lê Thu Hà", gõ "Thu" thì ra | Lộ ra ngay khi tìm kiếm chạm tới server. `filter` của `IIdentityUserRepository` so sánh phân biệt hoa thường trên PostgreSQL; `StaffAppService` nay tự khớp (`MatchesTerm`) trên UserName / Name / Surname / họ-tên ghép / Email / PhoneNumber, không phân biệt hoa thường — giống cách danh mục vẫn khớp |
+
+`ServerSearchSelect` chuyển tiếp `id` / `placeholder` / `onFocus` / `onBlur` /
+`onOpenChange` mà `FloatingField` gán vào con của nó — thiếu cái này thì nhãn
+nổi mất liên kết `htmlFor` và spec không tìm thấy ô nữa (bắt được bằng e2e).
+
+### Tab Thanh toán: thiếu thao tác
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-410 | Cột "Thao tác" chỉ có **con mắt**; bản gốc có **ba** nút: `Xem` · `Chỉnh sửa` · `Huỷ` (nút cuối màu đỏ `#E5484D`) | Dựng đủ ba, nút 28px ghost đúng kiểu bản gốc. `Chỉnh sửa` mở dialog mới sửa **cách thu tiền** (hình thức, tài khoản, ngày, ghi chú) — số tiền và phần chia theo dịch vụ **không** đổi được, vì rollup của phiếu và "Còn nợ" từng dòng dựng từ đó; muốn sửa số thì `Huỷ` rồi thu lại. `Huỷ` hỏi xác nhận rồi gọi delete (aggregate là `FullAuditedAggregateRoot` nên đây là xoá mềm) |
+| R-411 | BE không có đường cập nhật phiếu thu | Thêm `PatientPayment.Revise(...)` (giữ nguyên guard tài khoản cho Ngân hàng/Ví momo), `UpdatePatientPaymentDto`, `PatientPaymentAppService.UpdateAsync` (quyền `payment.update`, có `BranchAccessChecker`), và `PUT api/v1/app/patient-payments/{id}`. Controller của module này viết tay chứ không dựng theo quy ước, nên phải khai cả ở `IPatientPaymentAppService` **và** `PatientPaymentController` — thiếu một trong hai là 405 |
+
+### Giao diện
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-412 | Modal **Hóa đơn**: ô tích ở tiêu đề lệch ô tích của dòng 7px | Tiêu đề bảng (luật mới của đợt trước) padding `8px 16px`, còn ô dòng vẫn nhận `padding-left: 20px` của luật `td:first-child` toàn app. Cho đầu bảng và thân bảng dùng chung padding ngang 16px |
+| R-413 | Modal **Hoàn tiền**: không có dữ liệu thì bảng biến mất, chỉ còn một câu | Giữ nguyên khung bảng, in "Không có dữ liệu" trong một ô trải hết 6 cột; bản ≤640 cũng vậy. Pager ẩn khi rỗng |
+| R-414 | Modal **In bệnh án**: thừa một thanh cuộn dọc cho cả dialog | `.pmr-body` cao `78vh` cộng 12px padding của `.ant-modal-body` vượt chiều cao antd chốt cho modal đúng 11px. Cho thân modal thành flex column có `overflow: hidden`, `.pmr-body` `flex: 1 1 auto` để co lại khi cửa sổ không đủ chỗ; chỉ còn thanh cuộn của chính tờ giấy |
+
+### Kiểm thử
+
+- Domain **314**, Application **556** xanh.
+- Playwright trên bản build production (`vite preview` :8080, API :5019, DB
+  thật): `treatment-plan` **6/6**, `treatment-plan-detail` **6/6**,
+  `consulting-plan` **12/12**, `prescription` + `treatment-stage` + phần còn
+  lại của `patient` — **80 xanh / 2 đỏ**.
+- Hai ca đỏ đã đối chứng bằng `git stash` + build lại là **đỏ sẵn trên `main`**:
+  `the appointment card reassigns its doctor` và `the công đoạn form reports its
+  empty fields` (ca sau chết ở bước dựng dữ liệu — bệnh nhân demo không còn dòng
+  dịch vụ nào thêm công đoạn được).
+- Kiểm tay trên trình duyệt: gõ "nhổ" ở picker dịch vụ →
+  `catalog-entries?...&filter=nhổ&skipCount=0&maxResultCount=20` trả đúng 2
+  dòng; gõ "thu" ở picker nhân sự → `staff?...&Filter=thu` nay ra "BS. Lê Thu
+  Hà"; sửa ghi chú phiếu thu → `PUT patient-payments/{id}` 200 và ô Ghi chú đổi
+  ngay trên bảng; phiếu `Hoàn thành` không còn ô "Thêm dịch vụ mới".
+
+### Còn treo
+
+- Picker **đơn thuốc mẫu** và **tên thuốc** trong dialog Đơn thuốc vẫn nạp sẵn
+  danh mục: cả hai được tra ngược theo id để đổ nội dung mẫu và để hiện tên
+  thuốc của những dòng đã lưu, nên đổi sang tìm kiếm cần mang theo cả bản ghi
+  đã chọn — làm riêng, không ghép vào đợt này.
+- `useCatalogOptions` / `useDentistList` / `useStaffOptions` (bản nạp sẵn) vẫn
+  còn cho các màn ngoài phạm vi đợt này.
+
+---
+
+## 2026-09-22 (đợt 3) — Chuyển đổi dịch vụ, Tạm ứng, kéo thả dòng, và cuộn ngang không mở modal
+
+Chủ dự án chỉ ra bốn điểm. Vẫn soi bản gốc **chỉ đọc**: mở trang, mở menu trạng
+thái, mở dialog "Chuyển đổi dịch vụ" (chỉ dựng giao diện, không bấm Lưu), đọc
+`GET /patient-treatments/{id}` và `GET /treatment-services?...` đã có sẵn trong
+Network, và đọc component trong gói JavaScript đã publish. **Không** gửi
+POST/PUT/PATCH/DELETE nào tới bản gốc.
+
+### Chuyển đổi dịch vụ
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-415 | Menu trạng thái của dòng dịch vụ có "Chuyển đổi" nhưng bấm vào chỉ hiện toast "Chức năng đang phát triển" | Dựng đủ modal **"Chuyển đổi dịch vụ"** của bản gốc (rộng 1024, hai cột `grid gap-8 lg:grid-cols-2`): cột trái là dòng đang đóng (5 dòng dữ kiện + pill trạng thái) rồi "THÔNG TIN THANH TOÁN HIỆN TẠI" (Tổng tiền / Giảm giá / Đã thanh toán / Công nợ / Còn lại); cột phải là "DỊCH VỤ MỚI" — cặp radio `Thay thế` · `Dịch vụ cũ`, ô chọn dịch vụ (tìm kiếm bằng API như mọi picker khác), ô `Thanh toán`, `Ghi chú*` cao 112px, hộp nhân sự `#F8FAFD`/`#E7EDF6` bo 12 có nút `+` thêm người thứ hai và `×` đỏ bỏ đi, rồi `Răng: …` với nút chọn răng, cuối cùng là "THÔNG TIN THANH TOÁN" có dòng **Hoàn trả chênh lệch**. Chân modal một nút `Lưu` |
+| R-416 | BE chưa có đường chuyển đổi | `TreatmentService.ReplacedId` + `MarkReplaced()`, `TreatmentPlan.ConvertService(...)`, `PatientPayment.Redirect(...)`, `ConvertTreatmentServiceDto`, `PatientTreatmentAppService.ConvertServiceAsync` và `POST api/v1/app/patient-treatments/{id}/services/{serviceLineId}/convert`. Dòng cũ sang trạng thái `Replaced` (bản gốc gọi là `replaced`, in ra là "Chuyển đổi"), dòng mới được ghi mới hoàn toàn, hai dòng trỏ vào nhau qua `replacedId` — đúng như payload `treatment-services` của bản gốc |
+| R-417 | Tiền đã thu nằm lại ở dòng đã đóng | Tiền đi theo dịch vụ: phần chia của dòng cũ trong từng phiếu thu được chuyển sang dòng mới, tối đa bằng số tiền tính cho dịch vụ mới (phiếu thu **không** đổi tổng, chỉ đổi phần chia). Phần dư xử lý theo lựa chọn `Xử lý chênh lệch` của bản gốc: `Hoàn tiền` sinh một phiếu hoàn `HT…` cho dòng cũ, `Dư nợ` để nguyên làm tiền giữ hộ khách |
+| R-418 | Số tiền `Thanh toán` nhập tay nhỏ hơn giá dịch vụ mới thì mất chỗ ghi | Ghi thành **giảm giá tiền** trên dòng mới, nên "Đơn giá" vẫn là giá niêm yết còn "Thành tiền" đúng bằng số đã nhập — giống cách bản gốc in dòng sau chuyển đổi |
+
+### Tạm ứng
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-419 | Bảng dịch vụ của trang chi tiết thiếu **một cột**: bản gốc có `Tạm ứng` giữa `Thành tiền` và `Ghi chú` (16 cột, ta đang có 15) | Thêm cột, canh phải, rộng 160 |
+| R-420 | Ô "Tạm ứng" ở đầu trang đọc `prepaid`, mà `ForPlan` không bao giờ tính trường này nên luôn ra `0 đ` | Đọc `paidUncompleted` — tiền đã thu của phần việc chưa hoàn tất. Trên phiếu quan sát được, bản gốc trả `paidUncompleted` và `prepaid` **bằng nhau**, nên không phân biệt được nó in trường nào; ghi vào `unknowns.md` |
+
+### Kéo thả dòng dịch vụ
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-421 | Cái tay cầm (grip) ở cột đầu bảng dịch vụ chỉ là hình vẽ, không kéo được | `TreatmentService.SortOrder` + migration, `TreatmentPlan.ReorderService(...)` (kẹp vị trí rồi đánh số lại cả phiếu, y như `PatientAdviseAppService.ReorderAsync`), `POST .../services/reorder`, và `useDragReorder` + `DragContext`/`DraggableRow` ở FE. Grip là **nút thật**: kéo được bằng chuột, và mũi tên lên/xuống cũng đổi chỗ được, nên thứ tự không chỉ với tới bằng con trỏ |
+| R-422 | Thứ tự mặc định của bảng dịch vụ đang là theo mã tăng dần | Bản gốc gọi `treatment-services?...&sortBy=createdAt&sortDirection=desc` — **mới nhất trước**. Đổi thành `OrderBy(SortOrder).ThenByDescending(CreationTime)`; dòng chưa từng bị kéo đều mang `SortOrder = 0` nên giữ đúng thứ tự bản gốc cho tới khi phòng khám tự sắp |
+| R-424 | Lượt đầu, `AddService` gán luôn `SortOrder = số dòng + 1`, thành ra phiếu mới lại xếp **cũ trước** — đúng cái vừa sửa ở R-422 | Dòng mới sinh ra **không có vị trí** (`SortOrder = 0`); chỉ cú kéo đầu tiên mới đánh số cả phiếu. `ReorderService` cũng đổi tiêu chí phụ sang `ThenByDescending(CreationTime)` cho khớp đúng thứ tự người dùng đang nhìn — lệch nhau là thả một đằng, lưu một nẻo (e2e bắt được: kéo xong mà bảng không đổi) |
+| R-425 | Tiền không đi theo dịch vụ khi chuyển đổi | `GetListAsync(predicate)` của ABP mặc định `includeDetails: false`, nên `Lines` của phiếu thu về rỗng và `Redirect` không có gì để chuyển. Đổi sang `WithDetailsAsync(x => x.Lines)` rồi lọc. Test domain không bắt được (dựng aggregate trong bộ nhớ) và e2e đầu tiên cũng không (phiếu chưa thu đồng nào) — ca e2e thứ ba, thu đủ rồi mới chuyển đổi, mới lộ ra |
+
+### Cuộn ngang bảng
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-423 | Kéo ngang bảng rồi thả chuột trên một dòng/nút thì nó mở modal | Sau một cú kéo đã đi quá `4px`, nuốt **một** click kế tiếp ở pha capture rồi gỡ listener ngay frame sau, nên click bình thường không bị ảnh hưởng. Đo tay: kéo kết thúc trên nút "Thêm công đoạn" → không mở gì; click thẳng vào đúng nút đó → mở bình thường |
+
+### Sửa tiếp sau khi chủ dự án xem (cùng ngày)
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-426 | Ô radio "Loại chuyển đổi": chữ không căn giữa theo chiều dọc | `ant-radio-wrapper` của AntD mặc định `align-items: baseline`; đổi sang `center`. Đo lại: tâm chữ lệch tâm ô **0px** |
+| R-427 | Dialog có thanh cuộn dọc riêng, cắt mất nội dung | Dialog này đọc như một tờ, nên **không cuộn bên trong**: bỏ trần chiều cao và `overflow` của thân, để nó cao bằng đúng nội dung; cửa sổ không đủ chỗ thì lớp phủ cuộn. `margin-block: auto` giữ dialog ở giữa khi vừa và thả xuống mép trên khi không vừa — với `align-items: center` thì phần đầu bị cắt lên trên gốc cuộn, không kéo tới được. Đo: ở 1000px không chỗ nào cuộn; ở 900px thân dialog vẫn không cuộn, chỉ lớp phủ |
+| R-428 | Ô Ghi chú cao 67px thay vì **112px** như bản gốc | `.cvt-note.ant-input` (0,2,0) thua luật `.ant-modal.tp-dialog .ant-input` (0,3,0) đặt `min-height: 42px`; nâng lên `.cvt-dialog .cvt-note.ant-input`. Tiện thể hạ `line-height` của tiêu đề khối và nhãn về 20/18 như bản gốc |
+
+Hai điểm đầu có test giữ: ca `Chuyển đổi closes a line…` nay đo cả độ lệch tâm
+của chữ trong ô radio và `scrollHeight − clientHeight` của thân dialog.
+
+### Tìm thấy thêm, chưa sửa trong đợt này
+
+- Menu trạng thái của dòng `Đã tạo` trên bản gốc chỉ có **hai** mục — `Chuyển
+  đổi` và `Hủy dịch vụ`, **không** có `Hoàn thành`; bản của ta luôn hiện đủ ba.
+  Mới quan sát được đúng một trạng thái nên chưa đủ để chốt luật; ghi vào
+  `unknowns.md`.
+
+### Kiểm thử
+
+- Domain **323** (thêm 9 ca: đánh số dòng, kéo thả, chuyển đổi, tiền đi theo
+  dịch vụ), Application **556**, HttpApi.Host **16** (thêm một ca quét: mọi
+  method của `IPatientTreatmentAppService` / `IPatientPaymentAppService` phải có
+  route trên controller viết tay — đúng cái bẫy 405 của đợt trước) — tất cả xanh.
+- Playwright trên bản build production (`vite preview` :8080, API :5019, DB
+  thật): `treatment-plan-detail` **9/9** (thêm 3 ca: kéo dòng, chuyển đổi, và
+  chuyển đổi có tiền — thu đủ rồi chuyển sang "Dịch vụ cũ" tính 1 đ, kiểm
+  đúng 1 đ theo sang dòng mới và phần còn lại thành phiếu hoàn), `treatment-plan`
+  **6/6**, `consulting-plan` **12/12**, `prescription` **5/5**,
+  `treatment-stage` **2/2**, `patient` **62 xanh / 1 đỏ** — ca đỏ
+  (`the appointment card reassigns its doctor`) đã ghi từ đợt trước là **đỏ sẵn
+  trên `main`**.
+- Ca `both printed sheets end on the reference's signature strip` của
+  `consulting-plan` đỏ khi chạy riêng bằng `--grep` nhưng **xanh khi chạy cả
+  bộ**: nó ăn theo dữ liệu mấy ca trước dựng. Đã đối chứng thêm bằng cách tắt
+  hẳn đoạn nuốt click của `useDragScroll` rồi chạy lại — vẫn đỏ, tức là không
+  liên quan tới đợt này.
+- Kiểm tay trên trình duyệt: kéo dòng đầu xuống cuối → `POST .../services/reorder`
+  200, `SortOrder` trong DB thành 1·2·3 và thứ tự giữ nguyên sau khi tải lại;
+  chuyển "Nhổ răng khôn mọc lệch" (3.500.000) sang "Trám bít hố rãnh" (400.000)
+  → dòng cũ thành "Chuyển đổi", dòng mới `DT01-04` với `ReplacedId` trỏ ngược,
+  và "Doanh thu dự kiến" xuống đúng 6.800.000.
+
+---
+
+## 2026-09-22 (đợt 4) — Hai tab còn lại: Hóa đơn và Lịch sử dư nợ
+
+Chủ dự án yêu cầu clone nốt hai tab cuối của hồ sơ bệnh nhân. Tab **Hóa đơn**
+chỉ có trên **bản production** (`app.nfcdental.com`), tab **Lịch sử dư nợ** vẫn
+đo được trên staging.
+
+Trên production chỉ: đăng nhập, mở trang, đọc DOM / `getComputedStyle`, đọc gói
+JavaScript tĩnh. **Không bấm một nút nghiệp vụ nào**, không mở dialog nào,
+không sinh POST/PUT/PATCH/DELETE nào.
+
+### Tab Hóa đơn — bản gốc chưa dựng
+
+| ID | Phát hiện | Xử lý |
+|---|--------|-----|
+| R-429 | Tab "Hóa đơn" của bản gốc **không có nội dung**: bộ chuyển tab là một chuỗi ternary qua 9 khoá, `invoice` không khớp cái nào nên rơi vào nhánh mặc định — khung viền đứt `#DCE3EE` bo 16, padding 40, chữ 16/400 `#5A6B82`, in "Nội dung đang được hoàn thiện." | Không có gì để clone. Hỏi chủ dự án và **giữ bảng hóa đơn của ta** (quyết định 2026-09-22), ghi rõ trong `unknowns.md` rằng đây là phần mở rộng chứ không phải clone |
+
+### Tab Lịch sử dư nợ — dựng lại đúng bản gốc
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-430 | Tab đang đọc **danh sách phiếu thu** (`usePatientAccount().payments`) — sai hẳn khái niệm: nó phải là sổ các lần dư nợ của bệnh nhân | Thêm `GET api/v1/app/patient-payments/debt-history`. Sổ này **suy ra** chứ không lưu: `Nạp dư nợ` ← phiếu Prepaid, `Sử dụng dư nợ` ← phiếu thu phương thức Dư nợ, `Hoàn trả dư nợ` ← phiếu hoàn, `Huỷ dịch vụ - Cộng dư nợ` ← tiền còn nằm trên dòng đã huỷ, `Thay thế dịch vụ` ← tiền còn nằm trên dòng vừa bị chuyển đổi |
+| R-431 | Cột "Loại" in nhãn của ta ("Thu tiền" / "Hoàn tiền" / "Nạp quỹ") | Dùng đúng sáu nhãn của bản gốc, đọc từ gói đã publish: `topup` Nạp dư nợ · `use` Sử dụng dư nợ · `withdraw` Rút dư nợ · `replace` Thay thế dịch vụ · `refund` Hoàn trả dư nợ · `cancel` Huỷ dịch vụ - Cộng dư nợ |
+| R-432 | Cột "Số tiền" in số trần, không dấu, không màu | Tiền vào tài khoản in `+` màu `#1F9254`, tiền ra in `-` màu `#E5484D`, đều 14px/500. Ba loại vào là `topup` · `refund` · `cancel`; riêng `replace` tự đọc dấu của chính nó và in `|amount|` — luật lấy nguyên từ component của bản gốc |
+| R-433 | Ô trống in `—` (em dash) | Bản gốc in `-` (gạch nối thường), và chuỗi rỗng thì để trống hẳn |
+| R-434 | Đầu bảng viết hoa 11.5px/700, ô đầu thụt 20px | Về đúng số đo bản gốc: đầu bảng 14/500 `#5A6B82` nền `#F6F8FB` padding `8px 16px` không viết hoa; ô 14px `#1B2A41` padding `12px 16px`, cao 56, kẻ dưới `#DCE3EE`; cột đầu cũng 16 chứ không 20 |
+| R-435 | Không có bản thu gọn cho màn hẹp | Dưới **769px** (không phải 640 như các bảng khác của hồ sơ) gập thành thẻ dùng chung: số thứ tự trên đầu xanh, 4 dòng hiện, Ghi chú nằm sau "Xem thêm" |
+
+### Kiểm thử
+
+- Domain **323**, Application **556**, HttpApi.Host **16** xanh (ca quét route
+  của controller viết tay tự bắt luôn endpoint mới).
+- Playwright trên bản build production: `debt-history` **3/3** — ca đầu tự dựng
+  dữ liệu bằng đường thật (mở phiếu → thu tiền → hoàn một phần) rồi mới đọc tab,
+  kiểm đúng nhãn "Hoàn trả dư nợ", dấu `+`, màu `rgb(31,146,84)` và câu đếm
+  "giao dịch"; ca hai kiểm bản thẻ dưới 769px; ca ba kiểm tài khoản chi nhánh
+  khác không đọc được sổ của bệnh nhân này.
+
+---
+
+## 2026-09-22 (đợt 5) — Hoàn tiền trên dòng đã trả đủ, và toast báo lỗi nhân đôi
+
+Chủ dự án bấm "Hoàn tiền" trên một phiếu mà **cả hai dòng đã trả đủ** (Còn lại
+0 đ) thì nhận "Có một lỗi nội bộ xảy ra…" — và câu đó hiện **hai lần**. Ba lỗi
+riêng biệt nằm sau một cú bấm.
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-436 | **Hoàn tiền trên dòng đã trả đủ luôn bị từ chối.** `AllocateAsync` áp một luật cho cả tiền vào lẫn tiền ra: mỗi dòng không được vượt quá **Còn nợ**. Dòng trả đủ thì Còn nợ = 0, nên mọi khoản hoàn đều lớn hơn 0 → chặn | Trần phụ thuộc chiều đi của tiền: tiền vào chặn ở **Còn nợ**, tiền ra chặn ở **số đã thu trên chính dòng đó** (trừ phần đã hoàn). `OutstandingByServiceAsync` thành `CapByServiceAsync(..., refunding)` |
+| R-437 | **Câu báo lỗi của server không bao giờ tới người dùng.** ABP in chuỗi trong tài nguyên ngôn ngữ **theo mã lỗi**, không in câu truyền vào `BusinessException`. Mã `BlueDental:Billing:0091` không có trong `vi.json` nên ABP rơi về câu mặc định "Có một lỗi nội bộ xảy ra…" | Tách hai mã riêng cho hai lý do tiền (`0092` vượt Còn nợ, `0093` vượt số đã thu) và khai câu tiếng Việt cho chúng. Rà luôn cả bảng mã: **22 mã** khác cũng không có chữ — mọi lỗi của Ảnh, Labo, Chấm công, Công cụ, Quản lý chi nhánh… đều đang hiện "lỗi nội bộ". Đã bổ sung đủ cả `vi.json` và `en.json` |
+| R-438 | **Toast lỗi hiện hai lần.** `MutationCache.onError` bắn một toast chung, còn màn hình lại `catch` rồi `toast.error(extractApiError(e))` thêm một cái nữa. Toast chung có `id` nên không tự nhân đôi, toast của màn hình thì không có `id` → hai toast cùng nội dung | Một kênh lỗi dùng chung: thêm `notifyError()` trong `lib/notify.tsx` dùng đúng `id` mà bộ xử lý chung dùng, và đổi **60 chỗ** `toast.error(extractApiError(...))` ở 38 tệp sang nó. Cùng một câu thì sonner gộp làm một |
+
+### Kiểm thử
+
+- Domain **323**, Application **556** xanh.
+- Playwright trên bản build production: `debt-history` **4/4** (thêm ca
+  *a line paid in full can still be refunded* — dựng đúng tình huống chủ dự án
+  gặp, và đếm luôn số toast), `treatment-plan-detail` **9/9**.
+- Kiểm tay: hoàn 150.000 + 120.000 trên phiếu hai dòng đã trả đủ → `HT26-0059`
+  với đúng hai dòng; hoàn quá số đã thu → **403** kèm câu
+  "Số tiền hoàn của dịch vụ không được vượt quá số tiền đã thanh toán." thay vì
+  "lỗi nội bộ".
+
+### Hai ca đỏ do **dữ liệu** của DB dev, không phải do đợt này
+
+- `taxonomy` *a phone-width window scrolls the page*: ca này đòi trang cao hơn
+  780px, tức là nhóm đầu tiên phải đủ nhiều dòng. DB dev nay đầy **nhóm rỗng do
+  chính e2e để lại** ("NHÓM CN2 958480", "NHÓM CN2 390746"…), nhóm đầu 0 dòng
+  nên trang vừa khít màn hình. Không có gì trong đợt này đụng tới giao diện
+  Danh mục.
+- `treatment-plan-detail` ca đầu từng đỏ vì `createSlip` bốc trúng **dịch vụ giá
+  0** trong danh mục (rác e2e đã ghi từ F-39), làm "Doanh thu dự kiến" bằng 0.
+  Đã sửa spec: chọn mục đầu tiên **còn giá** (`pickPricedService`), dùng chung
+  cho cả `debt-history`.
+
+---
+
+## 2026-09-22 (đợt 6) — Báo giá hỏi trước khi xoá, và form "Tạo phiếu dịch vụ"
+
+Sáu điểm chủ dự án chỉ ra, gộp hai lượt.
+
+### Tab Chẩn đoán & Tư vấn
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-439 | ✕ trên tab báo giá **xoá ngay**, không hỏi | Hỏi bằng `ConfirmDeleteDialog` như mọi chỗ xoá khác: tiêu đề "Xóa báo giá", câu "Phiếu báo giá BG n sẽ bị xoá và thao tác này không thể khôi phục.", dòng phụ "Hành động này không thể hoàn tác.", nút `Xoá` đỏ. Xoá là ghi xuống server, không lấy lại được |
+| R-440 | Bấm tab **"Phiếu tư vấn"** lúc nó đang mở thì bật dialog "Tạo phiếu tư vấn" | Bỏ hẳn. Hành vi đó là do **ta tự nghĩ ra** — `unknowns.md` đã ghi rõ là suy luận chứ không đo được — và chủ dự án xác nhận bản gốc không làm vậy. Nay bấm vào chỉ quay về danh sách; đang mở thì không có gì xảy ra. Phiếu tư vấn vẫn tạo từ dòng chẩn đoán như bản gốc |
+
+### Form "Tạo phiếu dịch vụ"
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-441 | Thiếu răng thì báo bằng **toast** | In **dưới ô Răng**: "Vui lòng chọn ít nhất 1 răng", và tự mất khi chọn răng. Toast bay đi trước khi đọc kịp |
+| R-442 | "Đơn giá" và "Số lượng" sửa được sau khi chọn dịch vụ | **Khoá cả hai**: giá là của danh mục, để gõ đè thì phiếu lên sổ với cái giá danh mục không biết. Chỉ "Giảm giá" còn sửa được |
+| R-443 | "Bác sĩ chẩn đoán 1" và "Chẩn đoán 2" bắt buộc chọn | **Khoá cả hai**, bỏ luôn dấu sao và luật bắt buộc. Bác sĩ của phiếu lấy theo "Nhân sự tư vấn 1" khi không có ai được chỉ định |
+| R-444 | Lưu xong sinh thêm **một phiếu chẩn đoán (CD)** | Bỏ bước `createDiagnosis`: lưu nay chỉ ghi **phiếu dịch vụ + phiếu DT**. Kéo theo sửa BE — `PatientAdvise.DiagnosisId` và `PatientDiagnosisId` thành **nullable** (migration `AdviseDiagnosisOptional`), `CreateAsync` chỉ kiểm chẩn đoán khi có, và các chỗ đọc tên chẩn đoán chịu được null |
+
+### Kiểm thử
+
+- Domain **323**, Application **556** xanh.
+- Playwright trên bản build production: `treatment-plan` **7/7** (thêm ca
+  *the form says what is missing under the field…* giữ cả bốn điểm trên),
+  `treatment-plan-detail` **9/9**, `debt-history` **4/4**,
+  `consulting-plan` **12/12** (ca báo giá nay trả lời hộp xác nhận, và kiểm
+  luôn rằng bấm "Phiếu tư vấn" không mở dialog nào).
+- Đối chứng bằng dữ liệu: đếm `bd_patient_diagnoses` trước và sau khi chạy cả
+  bộ — **529 → 529**, không sinh CD nào; hai dòng tư vấn mới nhất mang
+  `PatientDiagnosisId` và `DiagnosisId` đều `NULL`.
+
+### Hai ca e2e vốn mong manh, đã làm chắc lại
+
+- Bộ `treatment-plan`/`debt-history` từng bốc trúng **dịch vụ giá 0** trong danh
+  mục (rác e2e) làm "Doanh thu dự kiến" bằng 0 → nay chọn mục đầu tiên **còn
+  giá** (`pickPricedService`).
+- `consulting-plan` ca voucher tick "dòng đầu tiên", mà dòng đầu nay là một
+  dòng giá 0 → nay tìm dòng đầu tiên **có tiền** rồi mới tick.
+
+---
+
+## 2026-09-22 (đợt 7) — Ô "Chẩn đoán" của bảng Phiếu tư vấn
+
+Chủ dự án chỉ ra ô này in `11 - Mặt nhai - —`, đúng ra chỉ là số răng rồi tới
+một đoạn chữ. Đo lại trên staging (chỉ đọc: mở trang, đọc DOM và đọc chính
+payload `patient-advises` đã có sẵn trong Network).
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-445 | Ô in **kèm mặt răng** (`formatTeeth`) | Bản gốc chỉ in **số răng**. Đối chứng chắc: dòng `TV26` có răng 22 `top`, 23 `right`, 24 `center` — mặt răng chọn hẳn hoi — mà ô vẫn in `12, 11, 22, 23, 24 - vôi răng`. Thêm `formatToothCodes` |
+| R-446 | Không có chẩn đoán thì in `- —` | Bản gốc **dừng ở số răng**: `13, 12`, `12`, `11`. Nay nối ` - ` chỉ khi có tên chẩn đoán |
+| R-447 | Cột **"Bác sĩ chẩn đoán 1"** đọc `staffName` — trùng y hệt cột "Nhân sự tư vấn 1" | Bản gốc đọc **bác sĩ của phiếu CD**. Đối chứng: ba dòng cuối của bệnh nhân quan sát được có người tư vấn nhưng `patientDiagnosis: null` → cột này in `-` trong khi "Nhân sự tư vấn 1" vẫn có tên. BE thêm `diagnosisStaffName` lên `PatientAdviseDto` |
+| R-448 | Cột **"Chẩn đoán 2"** đọc `diagnosisName` — in lại đúng tên chẩn đoán đã có ở cột "Chẩn đoán" | Bản gốc đọc **bác sĩ thứ hai của phiếu CD**. BE thêm `diagnosisSecondStaffName` |
+| R-449 | Ô rỗng in `—` (em dash) | Bảng này dùng `-` (gạch nối), giống sổ dư nợ. "Nhân sự tư vấn 2" cũng thôi in "Chưa cập nhật" |
+
+### Kiểm thử
+
+- Application **556** xanh.
+- Playwright trên bản build production: `consulting-plan` **12/12** (ca
+  *the diagnosis cell…* nay soi từng ô theo `^\d+(, \d+)*( - .+)?$`, tức là bắt
+  được cả mặt răng lẫn dấu `-` thừa), `treatment-plan` **7/7**,
+  `patient` **62/63**.
+- Hai ca đỏ khi chạy gộp đều đã ghi từ trước: `both printed sheets…` của
+  `consulting-plan` chỉ đỏ khi chạy sau bộ khác (chạy riêng bộ đó thì 12/12), và
+  `the appointment card reassigns its doctor` là đỏ sẵn trên `main`.
+
+## 2026-09-22 (đợt 8) — Sửa được chẩn đoán, và hai ô đọc nhầm người trong "Cập nhật phiếu dịch vụ"
+
+Chủ dự án đưa hai ảnh cạnh ảnh trang đích: (1) mở "Cập nhật Chẩn Đoán" thì ô
+"Chẩn đoán" khoá cứng, không sửa được cái đã chọn sai; (2) mở "Cập nhật phiếu
+dịch vụ" từ một dòng dịch vụ thì ô "Chẩn đoán 2" đang đổ **tên chẩn đoán**, còn
+trang đích để trống.
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-450 | Ô "Chẩn đoán" của form CD `disabled` khi đang sửa — ghi chú cũ nói server không cho đổi | Bản gốc cho đổi. Bỏ `disabled={Boolean(editing)}`; BE thêm `PatientDiagnosis.ChangeDiagnosis(Guid)` đi qua `GuardEditable()` (phiếu đã huỷ / đã điều trị vẫn khoá), `UpdatePatientDiagnosisDto` thêm `DiagnosisId`, `UpdateAsync` chỉ áp khi id khác `Guid.Empty` |
+| R-451 | "Bác sĩ chẩn đoán 1" đổ `staffId` (người tư vấn) | Đổ `diagnosisStaffId` — đúng bác sĩ của phiếu CD, cùng nguồn với cột bảng đã sửa ở R-447 |
+| R-452 | "Chẩn đoán 2" đổ `diagnosisId` (tên chẩn đoán) | Đổ `diagnosisSecondStaffId`. Trang đích để trống vì phiếu CD quan sát được không có bác sĩ thứ hai — không phải vì ô này in chẩn đoán |
+| R-453 | "Chẩn đoán 2" lấy danh sách chẩn đoán | Lấy `useDentistOptions` — ô này là **người**, không phải bệnh |
+| R-454 | "Tình trạng răng:" in kèm một giá trị | Bản gốc để trống sau dấu hai chấm |
+
+Hai ô "Bác sĩ chẩn đoán 1" và "Chẩn đoán 2" **luôn** `disabled` (đợt 6, R-441) —
+đợt này chỉ sửa chúng đọc gì, không mở lại.
+
+### Kiểm thử
+
+- Domain **323** xanh, Application **556** xanh.
+- Playwright trên bản build production: `consulting-plan` **13/13** (thêm ca
+  *Cập nhật Chẩn Đoán may correct the condition it found*: đổi "Sâu ngà" →
+  "Sai khớp cắn hạng II", chờ toast, tải lại trang rồi đọc lại ô "Chẩn đoán"
+  của dòng CD).
+- Ca `both printed sheets end on the reference's signature strip` lại đỏ một lần
+  ở lần chạy gộp đầu (`|leftGap - rightGap| = 920.5`), rồi xanh khi chạy lại cả
+  bộ — đúng kiểu phụ thuộc thứ tự đã ghi ở đợt 7, không phải do đợt này.
+
+### Đã đo trên trang đích (chỉ đọc)
+
+Mở `staging.nfcdental.com/patient/…?tab=consulting`, đọc DOM và payload
+`patient-advises` đã có sẵn trong Network. Không bấm nút nào có thể ghi.
+
+## 2026-09-22 (đợt 9) — Select của dòng thêm mới bị co lại, và hỏi trước khi bỏ công đoạn đang nhập
+
+Chủ dự án đưa hai ảnh: (1) thêm dịch vụ mới ở trang Chi tiết phiếu thì ô chọn
+"Chẩn đoán" và "Bác sĩ điều trị" chỉ còn bằng cái icon, danh sách xổ ra cũng bị
+cắt (`Sai …`, `Sâu …`, `Răn…`); (2) đang nhập công đoạn mà bấm đóng thì bản gốc
+hỏi lại bằng dialog "Hủy thay đổi".
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-455 | Sáu ô chọn của dòng nhập mới co về **71px** trong ô bảng **200px** | `.pdt-draft-select` rộng 100% nhưng `Select` của AntD tự co theo nội dung, mà ô rỗng thì chỉ có icon kính lúp + mũi tên. Thêm `.pdt-draft-select .ant-select { width: 100% }` — cùng một luật đã có ở `.cvt-staff-row`. Đo lại: **168px** trong ô 200px, **148px** trong ô 180px; popover xổ ra rộng theo nên thôi cắt chữ |
+| R-456 | Đang nhập công đoạn, bấm ✕ hoặc "Hủy" là mất trắng, không hỏi | Dựng dialog **"Hủy thay đổi"** đúng bản gốc |
+| R-457 | Nút chính của tab "THÊM CÔNG ĐOẠN" ghi "Thêm công đoạn" | Bản gốc ghi **"Lưu công đoạn"** (`add`); `continue` → "Tiếp tục công đoạn", `continueWarranty` → "Tiếp tục bảo hành" |
+| R-458 | "Hủy" của form chỉ bỏ chọn dòng | Bản gốc gắn **cùng một** hàm đóng cho ✕ và "Hủy", nên "Hủy" rời hẳn "Chi tiết phiếu" |
+
+### Đã đo trên bản gốc (chỉ đọc)
+
+Không bấm gì, không gõ gì vào form của bản gốc — chỉ mở trang đã đăng nhập sẵn
+rồi `fetch` các file `.js` **đã nạp** (tài nguyên tĩnh, GET) và đọc:
+
+```js
+e1 = useMemo(() => [...ex, ...eb].some(
+       e => (e.treatmentContent ?? "").trim().length > 0 || (e.imageIds?.length ?? 0) > 0
+     ), [ex, eb]);
+e2 = useCallback(() => { e1 ? eG(!0) : k() }, [e1, k]);
+// <Modal show={e} onClose={e2} …>            ← ✕ của dialog
+// <StageDetailBlock … onCancel={e2} …>        ← nút "Hủy" của form
+```
+
+Rút ra ba điều:
+
+- **"Bẩn" chỉ tính nội dung điều trị và ảnh.** Chọn bác sĩ / phụ tá / bác sĩ hỗ
+  trợ hay tích công đoạn **không** tính — nên mở ra, chọn bác sĩ rồi đổi ý vẫn
+  đóng thẳng, không bị hỏi.
+- ✕ và "Hủy" dùng **chung một** hàm đóng.
+- Nhãn nút lưu đổi theo tab (R-457).
+
+Nội dung dialog lấy nguyên văn: tiêu đề `"Hủy thay đổi"`, câu hỏi
+`"Bạn có chắc muốn hủy? Dữ liệu vừa nhập sẽ không được lưu."`, nút
+`"Xác nhận hủy"` / `"Tiếp tục chỉnh sửa"`. Dòng
+`"Hành động này không thể hoàn tác."` nằm sẵn trong component xác nhận dùng
+chung của bản gốc — giống hệt `ConfirmDeleteDialog` của ta, vốn đã clone từ nó;
+component đó cũng nhận `confirmLabel` / `cancelLabel`, nên ta thêm đúng hai prop
+ấy thay vì dựng dialog thứ hai.
+
+### Kiểm thử
+
+- Real-stack Playwright, DB + API thật, không chặn request nào:
+  `treatment-plan` + `treatment-plan-detail` **17/17** trên bản build production
+  (`vite preview` :8080, API :5019), và `treatment-plan` **8/8** chạy lại trên
+  dev :5173 (StrictMode — bản build che được lỗi updater không thuần khiết).
+- Hai ca mới: *leaving Công đoạn with something written asks before it throws it
+  away* (đi đủ ba nhánh: sạch thì đóng thẳng, "Tiếp tục chỉnh sửa" trả lại
+  nguyên chữ đã gõ, ✕ cũng hỏi, "Xác nhận hủy" đóng hết và **không** tạo công
+  đoạn nào), và phần đo bề rộng sáu ô chọn trong ca kéo thả dòng dịch vụ.
+- `tsc` sạch, `npm run lint` không thêm cảnh báo.
+
+## 2026-09-22 (đợt 10) — Giá lẻ trên cột "Phải thu", và đo lại chuyện bảng cuộn ngang
+
+Chủ dự án chỉ vào dòng `DT01` của `/patient/…?tab=treatment-plan`: cột cuối in
+`204.545,455 đ` giữa toàn số tròn, và kèm một câu "table không scroll ngang đc".
+
+### Giá lẻ — có thật, sửa tận gốc
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-459 | `TreatmentPlan.CompletedValue` chia tiền mà **không làm tròn** | Giảm giá mức phiếu được rải theo tỉ lệ: `completed − PlanDiscountAmount × completed / ServicesTotal`. Với phiếu 2.750.000, giảm 500.000, dòng đã xong 250.000 → `204545,4545…`. Thêm `BlueDental.Values.Vnd.Round` và bọc phép chia |
+| R-460 | Ba chỗ chia tiền khác cũng không làm tròn | `TreatmentPlan.PlanDiscountAmount`, `TreatmentService.DiscountAmount`, `PatientAdvise.DiscountAmount` — nhánh `Percentage` của cả ba |
+| R-461 | `formatVND` in tới **3 số lẻ** | `toLocaleString(locale)` mặc định `maximumFractionDigits: 3`, khác hẳn `formatCurrency` ngay bên trên vốn đặt `0`. Nay đặt `0` — lớp chắn cuối, số phải tròn từ BE |
+
+`Vnd.Round` dùng `MidpointRounding.AwayFromZero`: `Math.Round` mặc định là làm
+tròn ngân hàng, `0,5` sẽ về `0`.
+
+Kiểm lại trên trình duyệt, đúng dòng bản gốc chỉ ra: `DT01` nay in
+**`204.545 đ`**, và không còn ô tiền nào khớp `/\d\.\d{3},\d/` trên cả trang.
+
+### Cuộn ngang — hỏng thật, nhưng không phải ở chỗ tưởng
+
+Vòng đo đầu chưa ra: kéo và lăn ngang đều chạy ở mọi bề rộng có tràn
+(1280 → tràn 563, kéo 360; 1440 → 403; 1600 → 243; 1728 → 115), còn từ ~1850px
+trở lên bảng vừa khít nên không còn gì để cuộn. Chủ dự án gửi thêm ảnh cắt
+cột "Phải thu" bị cột "Thao tác" đè lên, và đo lại ở **1860px** thì ra:
+
+| | trước | sau |
+|---|---|---|
+| Bảng rộng | 1795 | 1789 |
+| Khung cuộn | 1789 | 1789 |
+| **Tràn** | **6px** | **0** |
+| Cột ghim đè lên "Phải thu" | **6px** | 0 |
+| Cột con mắt (khai báo 48) | **100px** | 49px |
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-462 | Luật chung `min-width: 100px` cho **mọi** `th` thổi cột con mắt từ 48 lên 100, và cột "Thao tác" thoát luôn phần miễn trừ của chính nó vì **AntD 6 đổi tên** `…-fix-right` → `…-fix-end` | Thêm `…-fix-end` vào phần miễn trừ, và thêm `.bd-col-icon` cho cột chỉ có icon. Bảng hết dôi 77px so với tổng bề rộng khai báo (1718) |
+| R-462b | `useDragScroll` cũng chỉ biết tên cũ | Thêm `…-fix-start` / `…-fix-end` vào danh sách ô không được kéo |
+
+Chỗ chết người là **6px**: cột ghim `position: sticky; right: 0` luôn nổi trên
+phần chưa cuộn tới — đúng bản chất của cột ghim — nhưng tràn 6px thì không ai
+kéo nổi 6px đó ra, nên nhìn như "bị đè mà không cuộn được". Có test mới chốt
+lại: hoặc vừa khít (tràn 0), hoặc tràn > 20px — không được rơi vào khoảng giữa.
+
+Cũng đối chiếu bản gốc (chỉ đọc, đo DOM): nó **cũng** đặt bảng trong một khối
+`min-h-0 flex-1 overflow-auto` cao cố định, trang không cuộn dọc
+(`docScrollH === docClientH`), y hệt `.pd-pane--fill` của ta — nên "bảng cao cố
+định, cuộn bên trong, dòng cuối bị cắt ngang" không phải sai lệch.
+
+### Kiểm thử
+
+- Domain **325** (thêm 2 ca: `Phai_thu_stays_a_whole_dong_when_the_discount_does_not_divide`
+  và `A_percentage_discount_is_rounded_to_a_whole_dong`), Application **556**.
+- Host bị khoá DLL khi build (đang chạy) → dừng, build lại, chạy test, bật lại.
+
+## 2026-09-22 (đợt 11) — Dòng dịch vụ không "vào điều trị", và ô tích công đoạn không đổ nội dung
+
+Ba việc chủ dự án nêu từ trang đích
+`staging.nfcdental.com/patient/…/treatment-plan/…`. Hai việc đã xong, một việc
+mới dựng xong phần đo.
+
+### Đã sửa
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-463 | `DT01` mang pill "Đang điều trị" mà thẻ **DỊCH VỤ ĐANG ĐIỀU TRỊ** vẫn rỗng (badge 0) | Thẻ đó lọc **dòng dịch vụ** `status === InProgress`, mà dòng không bao giờ tới trạng thái đó: `MoveServiceLineAsync` được gọi ở `ContinueAsync` / `CompleteAsync` / `RevertAsync` nhưng **không** ở `CreateAsync`. Đối chứng trên DB thật: dòng "Tẩy trắng răng tại phòng" có **2** công đoạn mà vẫn `Created`. Nay tạo công đoạn đầu tiên cũng gọi `MoveServiceLineAsync`, đúng như `Start()` tự mô tả ("the first công đoạn moved it") |
+| R-464 | Tích một công đoạn trong **Danh sách công đoạn** không đổ gì vào **Nội dung điều trị** | Bản gốc chạy `syncTreatmentContentWithStages` trên **mỗi** lần tích, ở cả form công đoạn lẫn "Tạo tái khám" (hai chỗ dùng chung một block). Clone thành `syncStageContent` |
+
+Hàm của bản gốc, đọc nguyên văn từ chunk đã publish (GET file tĩnh):
+
+```js
+function L(content, checklist) {
+  const a = checklist.filter(e => e.checked).map(e => e.label.trim()).filter(Boolean);
+  const r = new Set(checklist.map(e => e.label.trim()).filter(Boolean));
+  return [...a, ...content.split("\n").map(e => e.trim()).filter(e => e && !r.has(e))].join("\n");
+}
+```
+
+Ba điều rút ra, và cả ba đều quan trọng:
+
+- Tên các mục **đã tích** đứng **trước**, theo thứ tự danh sách, trên phần gõ tay.
+- Mọi dòng trùng với **bất kỳ** tên nào trong danh sách bị gỡ khỏi phần gõ tay
+  trước khi ghép lại — nên bỏ tích là mất dòng đó, và tích hai lần không nhân đôi.
+- Dòng nào cũng được trim, dòng trắng bị bỏ.
+
+### Còn lại — tab "TIẾP TỤC BẢO HÀNH" (chưa dựng)
+
+Bản gốc có **ba** tab trong "Chi tiết phiếu", ta mới có hai. Đã đo xong luật,
+chưa viết code:
+
+```js
+e5 = useMemo(() => {
+  const e = [];
+  Y && e.push({ value: "add",              label: "THÊM CÔNG ĐOẠN",      count: ex.length });
+  Q && e.push({ value: "continue",         label: "TIẾP TỤC CÔNG ĐOẠN",  count: eb.length });
+  J && e.push({ value: "continueWarranty", label: "TIẾP TỤC BẢO HÀNH",   count: eq.length });
+  return e;
+}, [ex.length, Q, J, Y, eb.length, eq.length]);
+```
+
+- Mỗi tab chỉ hiện khi **có quyền** tương ứng (`Y` / `Q` / `J`), không phải khi
+  có dữ liệu. Tab đang chọn mà mất quyền thì rơi về `add` → `continue` →
+  `continueWarranty`.
+- Nhãn nút lưu theo tab: `add` → `Lưu công đoạn`, `continue` →
+  `Tiếp tục công đoạn`, `continueWarranty` → `Tiếp tục bảo hành` (R-457).
+- Lưu xong, các dòng vừa lưu được **dọn tại chỗ** chứ không đóng form:
+  `treatmentContent: ""`, `imageIds: []`, `images: []`, `imageLabel: "(Trống)"`,
+  và **bỏ tích toàn bộ** `stageChecklist`.
+- Đáng chú ý: phép kiểm "bẩn" của bản gốc (`e1`) chỉ gộp `[...ex, ...eb]` —
+  **không** gộp danh sách bảo hành `eq`. Ghi lại nguyên trạng, chưa bắt chước.
+
+Hành vi "tích Hoàn thành → lưu → bỏ tích" mà chủ dự án dặn soi kỹ thuộc phần
+này; `MoveServiceLineAsync` của ta đã suy trạng thái dòng **từ các công đoạn anh
+em** (`allDone` → `Complete`, ngược lại `Reopen`/`Start`) nên bỏ tích đã đưa dòng
+về `InProgress` đúng chiều — nhưng chưa đối chứng được với tab bảo hành.
+
+### Kiểm thử
+
+- Domain **325**, Application **556**.
+- `patient` **61/63** trên bản build production. Hai ca đỏ: `the appointment card
+  reassigns its doctor` (đỏ sẵn trên `main`, đã ghi từ đợt 3) và
+  `dragging a card by its grip…` (chạy riêng thì **xanh** — phụ thuộc thứ tự).
+- Ca `Danh sách công đoạn carries…` được nối thêm phần kiểm binding: tích thì ô
+  nội dung nhận đúng chữ, bỏ tích thì mất chữ đó mà **giữ** phần gõ tay, tích lại
+  thì không nhân đôi.
+
+### Ba chỗ fixture phải sửa (không phải lỗi sản phẩm)
+
+Chạy đi chạy lại các bộ test làm trôi dữ liệu: mỗi lần chạy lại đẻ thêm phiếu,
+mà fixture chỉ đọc **50** phiếu mới nhất nên các phiếu seed có bảo hành rơi ra
+ngoài cửa sổ — đo được 125 dòng bảo hành còn mở nhưng **0** dòng trong 50 phiếu
+đầu. Đã nới cả ba chỗ lên 300. Đồng thời tách `stageable` thành hai chế độ:
+`stageable` (dòng còn mở) và `freshLine` (còn mở **và chưa có công đoạn** — thứ
+tab THÊM CÔNG ĐOẠN thực sự liệt kê), vì một dòng chưa có công đoạn vẫn chiếm
+**một** dòng giữ chỗ trong bảng điều trị, làm lệch các ca đếm dòng.
+
+## 2026-09-22 (đợt 12) — Chuyển đổi dịch vụ phải từ chối dòng đã có công đoạn hoàn thành
+
+Chủ dự án dặn: dịch vụ nào đã có công đoạn hoàn thành thì bấm Lưu ở modal
+"Chuyển đổi dịch vụ" phải báo rõ, và bảo rà soát trang đích cho đúng.
+
+### Đã đo trên bản gốc (chỉ đọc)
+
+Câu báo **không** nằm trong bundle dưới dạng chữ cứng — nó là **khoá i18n**, tức
+là server từ chối và client in lại. Đọc được đủ bốn khoá của luồng chuyển đổi
+(GET file tĩnh, không bấm gì trên bản gốc):
+
+| Khoá | Tiếng Việt của bản gốc |
+|---|---|
+| `treatment.validation.convertNotAllowed` | **Dịch vụ đã hoàn thành/huỷ không được phép chuyển đổi.** |
+| `treatment.validation.convertNoteRequired` | Vui lòng nhập lý do chuyển đổi dịch vụ. |
+| `treatment.validation.convertDifferenceRequired` | Bạn chưa chọn phương thức xử lý tiền chênh lệch. |
+| `treatment.validation.convertTypeUnsupported` | Loại chuyển đổi này chưa được hỗ trợ. |
+| `treatment.validation.selectNewService` | Vui lòng chọn dịch vụ mới |
+
+Đáng chú ý: luật của bản gốc tính theo **trạng thái dòng** (hoàn thành / huỷ),
+không phải theo "đã có công đoạn hoàn thành". Hai cái trùng nhau khi **mọi**
+công đoạn đã xong — lúc đó dòng thành `Done`. Nhưng dòng mới xong **một phần**
+(có công đoạn đã hoàn thành, còn công đoạn khác dở) thì bản gốc **vẫn cho**
+chuyển đổi. Luật chủ dự án yêu cầu chặt hơn, và chặt hơn là đúng: phần việc đó
+đã làm và đã tính tiền vào chính dịch vụ này.
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-465 | Dòng đã hoàn thành/huỷ/đã chuyển bị chặn bằng `GuardOpen` với mã chung `InvalidPlanTransition`, nên màn hình chỉ thấy câu chung chung | Mã riêng `BlueDental:Treatment:0027` + bản dịch **đúng câu của bản gốc**. Kiểm ở tầng AppService trước khi vào aggregate để lý do ra được tới màn hình |
+| R-466 | Dòng còn mở mà đã có công đoạn hoàn thành vẫn chuyển đổi được | Mã riêng `BlueDental:Treatment:0028` — *"Dịch vụ đã có công đoạn hoàn thành, không được chuyển đổi."* Công đoạn là aggregate khác nên câu hỏi phải đặt ở AppService |
+
+Nhắc lại vì đã mất một vòng: ABP in **bản dịch của mã lỗi**, không in câu truyền
+vào `BusinessException`. Thiếu entry trong `vi.json` là ra "Có một lỗi nội bộ".
+
+### Kiểm thử
+
+Ca real-stack mới, `a line with a finished công đoạn refuses to be converted,
+and says why`: tạo **hai** công đoạn rồi chỉ hoàn thành **một** — đó mới là ca
+cần đo, vì dòng vẫn `Đang điều trị` nên còn menu trạng thái để mở được modal;
+hoàn thành công đoạn duy nhất thì dòng đóng luôn và **không còn menu** (đường đó
+ca này cũng phủ, bằng cách gọi thẳng API và đọc mã `0027`).
+
+Ca kiểm: server trả lỗi, câu tiếng Việt hiện trên màn hình, **không** có chữ
+"lỗi nội bộ", và tải lại thì phiếu vẫn đúng **một** dòng — không có gì bị chuyển.
+
+`treatment-plan-detail` + `treatment-plan` **19/19** trên bản build production.

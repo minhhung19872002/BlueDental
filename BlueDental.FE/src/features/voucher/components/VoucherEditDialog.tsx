@@ -4,6 +4,7 @@ import { ConfigProvider, Form } from "antd";
 import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { AppDialog } from "@/components/AppDialog";
 import { voucherDialogTheme } from "@/theme";
 import {
@@ -120,7 +121,7 @@ export function VoucherEditDialog({ voucher, onClose }: Props) {
       toast.success(t("Đã cập nhật voucher"));
       onClose();
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   }, [voucher, form, updateVoucher, onClose]);
 

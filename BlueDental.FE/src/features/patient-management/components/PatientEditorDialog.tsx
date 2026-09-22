@@ -5,6 +5,7 @@ import dayjs, { type Dayjs } from "dayjs";
 import { AppDialog } from "@/components/AppDialog";
 import { CATALOG_GROUP, useCreateTaxonomyGroupOption } from "@/hooks/useCatalogOptions";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { t } from "@/lib/i18n";
 // The dialog carries its own styling: it opens from the list *and* from a
 // patient's record, and the record's page does not import the list's CSS.
@@ -260,7 +261,7 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated }: Props
       toast.success(patient ? t("Đã cập nhật hồ sơ") : t("Đã tạo hồ sơ"));
       onClose();
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 

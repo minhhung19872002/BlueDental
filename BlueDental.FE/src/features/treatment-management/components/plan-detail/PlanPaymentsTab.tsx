@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import { DollarSign, Printer } from "lucide-react";
+import { toast } from "sonner";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { DataTable } from "@/components/DataTable";
 import { CreatePaymentDialog } from "@/features/patient-management/components/patient-detail/CreatePaymentDialog";
 import type { PatientDto } from "@/features/patient-management/types/patient";
@@ -12,12 +14,16 @@ import { countedTotal } from "@/utils/countedTotal";
 import { usePatientAdvises } from "../../api/consultingQueries";
 import {
   PAYMENT_KIND,
+  useDeletePayment,
   usePatientAccount,
   usePatientPayments,
   type PatientPaymentDto,
   type TreatmentPlanSlipDto,
 } from "../../api/treatmentPlanApi";
+import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { PaymentCardList } from "./PaymentCardList";
+import { PaymentEditDialog } from "./PaymentEditDialog";
 import { PaymentReceiptDialog } from "./PaymentReceiptDialog";
 import { buildPaymentColumns, paymentCardRows } from "./paymentColumns";
 import { aggregateReceiptOf, receiptOf, type ReceiptView } from "./receiptView";
@@ -52,6 +58,9 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
 
   const [creating, setCreating] = useState(false);
   const [receipt, setReceipt] = useState<ReceiptView | null>(null);
+  const [editing, setEditing] = useState<PatientPaymentDto | null>(null);
+  const [cancelling, setCancelling] = useState<PatientPaymentDto | null>(null);
+  const remove = useDeletePayment();
 
   const receipts = useMemo(() => query.data?.items ?? [], [query.data]);
   const pageRows = receipts.slice(pagination.skipCount, pagination.skipCount + pagination.pageSize);
@@ -59,7 +68,23 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
 
   const handleView = (payment: PatientPaymentDto) => setReceipt(receiptOf(payment, plan, receipts));
   const handleAggregate = () => setReceipt(aggregateReceiptOf(plan, new Date()));
-  const columns = useMemo(() => buildPaymentColumns(plan, handleView), [plan, receipts]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** Huỷ takes the movement back off the slip, so every rollup is recomputed. */
+  const handleCancel = async () => {
+    if (!cancelling) return;
+    try {
+      await remove.mutateAsync({ id: cancelling.id });
+      toast.success(t("Đã huỷ phiếu thanh toán"));
+      setCancelling(null);
+    } catch (error) {
+      notifyError(extractApiError(error) || t("Không thể huỷ phiếu thanh toán"));
+    }
+  };
+
+  const columns = useMemo(
+    () => buildPaymentColumns(plan, { onView: handleView, onEdit: setEditing, onCancel: setCancelling }),
+    [plan, receipts], // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   return (
     <div className="pdt-pane">
@@ -83,6 +108,8 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
           pagination={pagination}
           cardRows={(payment) => paymentCardRows(payment, plan)}
           onView={handleView}
+          onEdit={setEditing}
+          onCancel={setCancelling}
           showTotal={showTotal}
         />
       ) : (
@@ -107,6 +134,21 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
         heldForPatient={account.data?.heldForPatient ?? 0}
         onClose={() => setCreating(false)}
         onSaved={() => setCreating(false)}
+      />
+      <PaymentEditDialog
+        payment={editing}
+        branchId={branchId}
+        onClose={() => setEditing(null)}
+        onSaved={() => setEditing(null)}
+      />
+      <ConfirmDeleteDialog
+        open={cancelling !== null}
+        noun={t("phiếu thanh toán")}
+        name={cancelling?.code}
+        title={t("Xác nhận huỷ phiếu thanh toán")}
+        pending={remove.isPending}
+        onConfirm={() => void handleCancel()}
+        onClose={() => setCancelling(null)}
       />
       <PaymentReceiptDialog
         receipt={receipt}

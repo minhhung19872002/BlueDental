@@ -24,6 +24,14 @@
   --tp-pill: #f0f3f8;
   --tp-cyan-pale: #b8e8f4;
   --tp-cyan-ink: #16626d;
+  /* "Đang điều trị" / "Bảo hành" and "Đã chuyển" — the reference's own pill
+     palette, read from its bundle 2026-09-21. */
+  --tp-progress-pale: #eff6ff;
+  --tp-progress-ink: #1d4ed8;
+  --tp-violet-pale: #f5f3ff;
+  --tp-violet-ink: #6d28d9;
+  /* A finished slip tints its whole row. */
+  --tp-row-done: rgba(231, 248, 239, 0.6);
   --tp-accent: var(--bd-primary);
 }
 
@@ -308,7 +316,7 @@
 .tp-table .ant-table-thead > tr > th {
   height: 40px;
   padding: 8px 16px;
-  background: var(--tp-ground);
+  background: #fff;
   color: var(--tp-label);
   font-size: 14px;
   font-weight: 500;
@@ -329,10 +337,24 @@
 .tp-table .ant-table-tbody > tr:hover > td {
   background: var(--tp-ground);
 }
-.tp-table .ant-table-cell-fix-right {
+/* A finished slip tints its whole row — except the pinned actions cell, which
+   the reference keeps white so the shadow still reads against it. */
+.tp-table .ant-table-tbody > tr.tp-row--done > td {
+  background: var(--tp-row-done);
+}
+.tp-table .ant-table-tbody > tr.tp-row--done > td.ant-table-cell-fix-right,
+.tp-table .ant-table-tbody > tr.tp-row--done > td.ant-table-cell-fix-end {
   background: #fff;
 }
-.tp-table .ant-table-cell-fix-right-first::after {
+/* "Thao tác" is pinned to the right edge on a white backing with the
+   reference's hairline shadow. Ant Design 6 renamed these parts from
+   `…-fix-right…` to `…-fix-end…`; both are listed so the rule survives either. */
+.tp-table .ant-table-cell-fix-right,
+.tp-table .ant-table-cell-fix-end {
+  background: #fff;
+}
+.tp-table .ant-table-cell-fix-right-first::after,
+.tp-table .ant-table-cell-fix-end-shadow::after {
   box-shadow: -4px 0 6px -2px rgba(27, 42, 65, 0.06);
 }
 .tp-card-pager .ant-pagination-item {
@@ -344,9 +366,15 @@
 .tp-cell-small--muted {
   color: var(--tp-label);
 }
+/* Every money figure in this tab is 13px/500 — a notch under the 14px the row
+   sets — except "Giảm giá", which the reference keeps at the regular weight. */
 .tp-cell-money {
+  font-size: 13px;
   font-weight: 500;
   white-space: nowrap;
+}
+.tp-cell-money--muted {
+  color: var(--tp-label);
 }
 .tp-cell-money--discount {
   font-weight: 400;
@@ -357,9 +385,6 @@
 }
 .tp-cell-money--due {
   color: var(--tp-red);
-}
-.tp-cell-money--receivable {
-  color: var(--tp-label);
 }
 .tp-code {
   border: 0;
@@ -388,6 +413,14 @@
 .tp-pill--converted {
   background: var(--tp-cyan-pale);
   color: var(--tp-cyan-ink);
+}
+.tp-pill--progress {
+  background: var(--tp-progress-pale);
+  color: var(--tp-progress-ink);
+}
+.tp-pill--transferred {
+  background: var(--tp-violet-pale);
+  color: var(--tp-violet-ink);
 }
 .tp-pill--done {
   background: var(--tp-green-pale);
@@ -687,6 +720,20 @@
   color: var(--tp-accent);
   font-weight: 600;
 }
+/* The slip code in front of a service name, on one slip's "Danh sách dịch vụ". */
+.tp-service-code {
+  border: 0;
+  background: none;
+  margin-right: 4px;
+  padding: 0;
+  color: var(--tp-blue);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tp-service-code:hover {
+  text-decoration: underline;
+}
 .tp-service-name {
   margin: 4px 0 0;
   font-size: 14px;
@@ -736,6 +783,17 @@
   align-items: center;
   justify-content: space-between;
   gap: 20px;
+}
+/* What the save could not accept, said under the field it belongs to rather
+   than in a toast that fades before it is read. */
+.tp-create-error {
+  margin: 4px 0 0;
+  color: var(--tp-red);
+  font-size: 13px;
+  line-height: 18px;
+}
+.tp-create-field {
+  min-width: 0;
 }
 .tp-create-teeth > p,
 .tp-create-condition {
@@ -1015,6 +1073,17 @@
   text-align: center;
 }
 
+/* The popup pages its search: an invisible strip at the bottom asks for the
+   next page as it scrolls into view, and the spinner sits under the last row. */
+.tp-more-sentinel {
+  height: 1px;
+}
+.tp-more-spinner {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+}
+
 /* Group mode, a group opened: round back button + name over a bordered table.
    560 wide with 12px around it on the reference (8 here + the popup's own 4). */
 .tp-group-panel {
@@ -1154,9 +1223,8 @@
   }
 }
 @media (max-width: 640px) {
-  .tp-card-body {
-    grid-template-columns: minmax(0, 1fr);
-  }
+  /* The cards keep their two columns all the way down — the reference never
+     collapses them, it lets the item text truncate instead. */
   .tp-btn {
     flex: 1;
     justify-content: center;

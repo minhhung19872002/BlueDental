@@ -128,28 +128,30 @@ a.pdt-crumb:hover {
   align-items: flex-end;
   gap: 2px;
 }
+/* Re-measured on the reference 2026-09-22: 15/700 over a 12/18 label, and the
+   three tones are its own, a shade off the app's green/red/amber tokens. */
 .pdt-stat dd {
   margin: 0;
   color: var(--tp-ink);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
-  line-height: 24px;
+  line-height: 22.5px;
   white-space: nowrap;
 }
 .pdt-stat dt {
   color: var(--tp-label);
   font-size: 12px;
-  line-height: 16px;
+  line-height: 18px;
   white-space: nowrap;
 }
 .pdt-stat--green dd {
-  color: var(--tp-green);
+  color: #2bb673;
 }
 .pdt-stat--red dd {
-  color: var(--tp-red);
+  color: #e5484d;
 }
 .pdt-stat--amber dd {
-  color: var(--bd-amber);
+  color: #d97706;
 }
 
 /* ── One tab's content ── */
@@ -210,8 +212,28 @@ a.pdt-crumb:hover {
 
 /* ── Service table cells ── */
 .pdt-grip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: none;
   color: var(--tp-label);
   cursor: grab;
+}
+.pdt-grip:focus-visible {
+  outline: 2px solid var(--bd-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.pdt-grip--off {
+  cursor: default;
+  opacity: 0.4;
+}
+/* The lifted row has to read as one piece while it travels over the others. */
+.pdt-row--dragging > td {
+  background: var(--bd-card);
+  box-shadow: 0 8px 20px rgb(15 23 42 / 12%);
 }
 .pdt-service {
   display: flex;
@@ -272,10 +294,72 @@ a.pdt-crumb:hover {
   font-weight: 600;
 }
 
+/* ── Row actions on the Thanh toán table: Xem · Chỉnh sửa · Huỷ ──
+   28px ghost buttons in the label grey, the last one in the danger colour,
+   as the reference draws them. */
+.pdt-row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.pdt-row-action {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  padding: 0;
+  color: var(--tp-label);
+  cursor: pointer;
+  transition:
+    background-color 0.12s,
+    color 0.12s;
+}
+.pdt-row-action:hover {
+  background: var(--tp-ground);
+  color: var(--tp-ink);
+}
+.pdt-row-action--danger {
+  color: #e5484d;
+}
+.pdt-row-action--danger:hover {
+  background: rgba(229, 72, 77, 0.1);
+  color: #e5484d;
+}
+
+/* The two read-only facts at the top of "Chỉnh sửa phiếu thanh toán". */
+.pdt-edit-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  border-radius: 8px;
+  background: var(--tp-ground);
+  padding: 10px 12px;
+}
+.pdt-edit-facts > p {
+  margin: 0;
+  color: var(--tp-label);
+  font-size: 13px;
+  line-height: 20px;
+}
+.pdt-edit-facts b {
+  color: var(--tp-ink);
+  font-weight: 600;
+}
+
 /* ── The inline new row the picker appends (Lưu / Hủy) ── */
 .pdt-draft-select,
 .pdt-draft-qty,
 .pdt-draft-price {
+  width: 100%;
+}
+/* The wrapper stretching is not enough: AntD's Select sizes to its own content,
+   and an empty one is just the search icon and the caret — about 66px inside a
+   200px column, with a dropdown cropped to match. Same rule as `.cvt-staff-row`. */
+.pdt-draft-select .ant-select {
   width: 100%;
 }
 .pdt-draft-teeth {
@@ -555,11 +639,11 @@ a.pdt-crumb:hover {
 .pdt-refund-row--over td {
   background: var(--tp-red-pale);
 }
+/* The "no data" row of the refund table — a cell inside the grid, not a card
+   standing in for it, so the head and the frame stay on screen. */
 .pdt-refund-empty {
   margin: 0;
-  padding: 24px;
-  border: 1px dashed var(--tp-line);
-  border-radius: 8px;
+  padding: 32px 16px;
   color: var(--tp-label);
   text-align: center;
 }
@@ -877,4 +961,195 @@ a.pdt-crumb:hover {
   .pdt-receipt-sum {
     width: 100%;
   }
+}
+
+/* ---------------------------------------------------------------------------
+   "Chuyển đổi dịch vụ" — measured on the reference 2026-09-22: two columns of
+   14px text, a 150px label column with a 64px gutter, and every block headed
+   by an icon and one uppercase line.
+--------------------------------------------------------------------------- */
+.cvt-dialog .ant-modal-body {
+  padding: 12px 24px 24px;
+}
+/* This dialog is read as one piece, so it never scrolls inside: it grows to its
+   content and, on a window too short to hold it, the overlay scrolls instead.
+   `margin-block: auto` keeps it centred while it fits and drops it to the top
+   when it does not — with `align-items: center` an oversized dialog would have
+   its head cut off above the scroll origin, out of reach. */
+.ant-modal-root:has(.cvt-dialog) .ant-modal-wrap {
+  overflow-y: auto !important;
+  align-items: flex-start;
+}
+.ant-modal-wrap .ant-modal.cvt-dialog {
+  max-height: none;
+  margin-block: auto;
+}
+.cvt-dialog .ant-modal-container {
+  max-height: none;
+}
+.cvt-dialog .ant-modal-body {
+  overflow: visible;
+}
+.cvt-grid {
+  display: grid;
+  gap: 32px;
+  font-size: 14px;
+  color: var(--tp-ink);
+}
+@media (min-width: 1024px) {
+  .cvt-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.cvt-col {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+.cvt-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.cvt-section--divided {
+  border-top: 1px solid var(--tp-line);
+  padding-top: 16px;
+}
+.cvt-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--tp-ink);
+}
+.cvt-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.cvt-facts--tight {
+  gap: 8px;
+}
+.cvt-fact {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  column-gap: 64px;
+  align-items: center;
+}
+.cvt-fact-label {
+  color: var(--tp-label);
+}
+.cvt-fact-value {
+  color: var(--tp-ink);
+  overflow-wrap: anywhere;
+}
+.cvt-label {
+  margin: 0;
+  line-height: 18px;
+  color: var(--tp-label);
+}
+.cvt-kind {
+  display: flex;
+  gap: 12px;
+}
+.cvt-kind .ant-radio-wrapper {
+  flex: 1 1 0;
+  align-items: center;
+  min-height: 40px;
+  margin: 0;
+  padding: 0 8px;
+  border: 1px solid var(--tp-line);
+  border-radius: 8px;
+  background: var(--bd-card);
+}
+.cvt-kind .ant-radio-wrapper-checked {
+  border-color: var(--bd-primary);
+}
+.cvt-picker .ant-form-item {
+  margin-bottom: 0;
+}
+.cvt-dialog .cvt-note.ant-input {
+  min-height: 112px;
+}
+.cvt-staff-box {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #e7edf6;
+  border-radius: 12px;
+  background: #f8fafd;
+}
+.cvt-staff-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cvt-staff-row > .floating-field {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+/* The floating label is positioned, so only the control itself has to stretch;
+   left to itself AntD's Select shrinks to its (empty) content. */
+.cvt-staff-row .ant-select {
+  width: 100%;
+}
+.cvt-staff-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--bd-primary);
+  color: #ffffff;
+  cursor: pointer;
+}
+.cvt-staff-add--remove {
+  background: var(--tp-red);
+}
+.cvt-difference {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cvt-hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--tp-label);
+}
+.cvt-error {
+  margin: 0;
+  font-size: 13px;
+  color: var(--tp-red);
+}
+.cvt-teeth {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+.cvt-teeth-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--bd-primary);
+  color: #ffffff;
+  cursor: pointer;
+}
+.cvt-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
 }

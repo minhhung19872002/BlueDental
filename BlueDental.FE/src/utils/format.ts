@@ -55,10 +55,17 @@ export function formatCurrency(value: number): string {
   }).format(value);
 }
 
-/** Format VND amount as dot-separated number without symbol (e.g. 24.000.000) */
+/**
+ * Format VND amount as dot-separated number without symbol (e.g. 24.000.000).
+ *
+ * Whole đồng, always: the currency has no minor unit. Left to itself
+ * `toLocaleString` prints up to three decimals, so a rollup that had divided
+ * money somewhere came out as "204.545,455 đ" — see R-459. The rounding here is
+ * only the last guard; the amount should already arrive whole.
+ */
 export function formatVND(value: number | null | undefined): string {
   if (!value) return "0";
-  return value.toLocaleString(getLocale());
+  return value.toLocaleString(getLocale(), { maximumFractionDigits: 0 });
 }
 
 /** Table-cell fallback — an em dash when there is no value (a 0 stays 0). */

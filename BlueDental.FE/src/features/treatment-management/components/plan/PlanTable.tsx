@@ -6,7 +6,7 @@ import { t } from "@/lib/i18n";
 import type { TreatmentPlanSlipDto } from "../../api/treatmentPlanApi";
 import { PlanCardList } from "./PlanCardList";
 import { buildPlanColumns, type PlanRowActions } from "./planColumns";
-import type { PlanColumnSetting } from "./planTypes";
+import { planRowClass, type PlanColumnSetting } from "./planTypes";
 
 interface Props {
   plans: TreatmentPlanSlipDto[];
@@ -45,6 +45,7 @@ export function PlanTable({ plans, settings, pagination, actions }: Props) {
         rowKey="id"
         columns={columns}
         dataSource={pageRows}
+        rowClassName={planRowClass}
         pagination={pagination.buildConfig(plans.length)}
         locale={{ emptyText: t("Chưa có kế hoạch điều trị") }}
       />

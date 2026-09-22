@@ -90,6 +90,9 @@ export function TreatmentPlanPanel({ patientId, patient }: Props) {
     serviceList?.kind === "plan"
       ? t("Danh sách dịch vụ - {0}", serviceList.plan.code)
       : t("Danh sách dịch vụ");
+  // One slip's list prints the DT code in front of each service, and the code
+  // opens that slip; the list of every slip leaves it off (measured 2026-09-21).
+  const showServiceCode = serviceList?.kind === "plan";
 
   if (plansQuery.isLoading) {
     return (
@@ -107,6 +110,7 @@ export function TreatmentPlanPanel({ patientId, patient }: Props) {
       />
       <PlanSummaryCards
         active={summary.active}
+        activeCount={summary.activeCount}
         recent={summary.recent}
         onOpen={(row) => navigate(planDetailPath(patientId, row.plan.id, branchId))}
       />
@@ -126,8 +130,13 @@ export function TreatmentPlanPanel({ patientId, patient }: Props) {
         open={serviceList !== null}
         title={serviceTitle}
         rows={serviceRows}
+        showCode={showServiceCode}
         diagnosisByAdviseId={diagnosisByAdviseId}
         onClose={() => setServiceList(null)}
+        onOpenPlan={(planId) => {
+          setServiceList(null);
+          navigate(planDetailPath(patientId, planId, branchId));
+        }}
       />
       <TreatmentStageDialog
         open={stagePlan !== null}

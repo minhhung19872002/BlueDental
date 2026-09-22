@@ -1,9 +1,8 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
-import { useDentistList } from "@/features/staff/api/staffQueries";
-import { CATALOG_GROUP, useCatalogOptions, type CatalogOption } from "@/hooks/useCatalogOptions";
-import { useStaffOptions, type StaffOption } from "@/hooks/useStaffOptions";
+import type { CatalogOption } from "@/hooks/useCatalogOptions";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { t } from "@/lib/i18n";
 import { DISCOUNT_TYPE } from "../../api/consultingApi";
 import {
@@ -39,7 +38,6 @@ export interface DraftServiceController {
   /** Hủy: asks "Xác nhận xóa" before the row is dropped. */
   cancel: () => void;
   saving: boolean;
-  options: { diagnoses: StaffOption[]; dentists: StaffOption[]; staff: StaffOption[] };
 }
 
 const EMPTY_VALUES: DraftServiceValues = {
@@ -88,19 +86,6 @@ export function useDraftServiceRow(planId: string) {
   const [teethOpen, setTeethOpen] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
   const add = useAddServiceLine();
-  const diagnoses = useCatalogOptions(CATALOG_GROUP.Diagnosis);
-  const dentists = useDentistList();
-  const staff = useStaffOptions();
-
-  const options = useMemo(
-    () => ({
-      diagnoses: (diagnoses.data ?? []).map((d) => ({ value: d.id, label: d.name })),
-      dentists: (dentists.data ?? []).map((d) => ({ value: d.id, label: d.name })),
-      staff: staff.data ?? [],
-    }),
-    [diagnoses.data, dentists.data, staff.data],
-  );
-
   const start = (picked: CatalogOption) => {
     setService(picked);
     setValues({ ...EMPTY_VALUES, price: picked.price ?? 0 });
@@ -124,7 +109,7 @@ export function useDraftServiceRow(planId: string) {
       toast.success(t("Đã thêm dịch vụ"));
       discard();
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 
@@ -137,7 +122,6 @@ export function useDraftServiceRow(planId: string) {
         save: () => void save(),
         cancel: () => setDiscardOpen(true),
         saving: add.isPending,
-        options,
       }
     : null;
 

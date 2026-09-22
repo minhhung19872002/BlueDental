@@ -1,12 +1,7 @@
 import { useEffect } from "react";
 import { Form } from "antd";
 import { Pill, Plus, Printer, Receipt } from "lucide-react";
-import {
-  CATALOG_GROUP,
-  useCatalogOptions,
-  useTaxonomyGroupOptions,
-  type CatalogOption,
-} from "@/hooks/useCatalogOptions";
+import type { CatalogOption } from "@/hooks/useCatalogOptions";
 import { useAbility } from "@/hooks/useAbility";
 import { t } from "@/lib/i18n";
 import { PlanServicePicker } from "../plan/PlanServicePicker";
@@ -14,6 +9,11 @@ import { PlanServicePicker } from "../plan/PlanServicePicker";
 interface Props {
   /** The service on the inline new row, or null once it was saved or discarded. */
   draftServiceId: string | null;
+  /**
+   * A finished slip takes no new service line — the server refuses it, and the
+   * reference drops the picker from this toolbar altogether on such a slip.
+   */
+  canAddService: boolean;
   onPickService: (service: CatalogOption) => void;
   onAddStage: () => void;
   onPrescription: () => void;
@@ -36,6 +36,7 @@ interface PickerValues {
  */
 export function PlanServicesToolbar({
   draftServiceId,
+  canAddService,
   onPickService,
   onAddStage,
   onPrescription,
@@ -45,8 +46,6 @@ export function PlanServicesToolbar({
   const [form] = Form.useForm<PickerValues>();
   const stageAbility = useAbility("treatmentStage");
   const rxAbility = useAbility("prescription");
-  const services = useCatalogOptions(CATALOG_GROUP.CareService);
-  const groups = useTaxonomyGroupOptions(CATALOG_GROUP.CareService);
 
   useEffect(() => {
     form.setFieldValue("serviceId", draftServiceId ?? undefined);
@@ -55,14 +54,11 @@ export function PlanServicesToolbar({
   return (
     <div className="pdt-toolbar">
       <div className="pdt-toolbar-start">
-        <Form form={form} className="pdt-picker">
-          <PlanServicePicker
-            services={services.data ?? []}
-            groups={groups.data ?? []}
-            loading={services.isLoading || groups.isLoading}
-            onPickService={onPickService}
-          />
-        </Form>
+        {canAddService && (
+          <Form form={form} className="pdt-picker">
+            <PlanServicePicker onPickService={onPickService} />
+          </Form>
+        )}
         {stageAbility.canCreate && (
           <button type="button" className="tp-btn tp-btn--primary" onClick={onAddStage}>
             <Plus size={16} aria-hidden="true" />

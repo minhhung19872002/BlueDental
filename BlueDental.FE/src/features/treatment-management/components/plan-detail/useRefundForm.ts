@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { t } from "@/lib/i18n";
 import {
   PAYMENT_KIND,
@@ -124,7 +125,7 @@ export function useRefundForm({ open, plan, branchId, refunds, heldForPatient, o
       toast.success(t("Đã tạo phiếu hoàn tiền"));
       onSaved();
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 

@@ -8,6 +8,7 @@ import { AppDialog } from "@/components/AppDialog";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { useAbility } from "@/hooks/useAbility";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { t } from "@/lib/i18n";
@@ -207,7 +208,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
       openSheet(created.id);
       toast.success(t("Đã thêm phiếu bệnh án"));
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 
@@ -225,7 +226,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
       });
       toast.success(t("Đã lưu phiếu bệnh án"));
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 
@@ -236,7 +237,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
       setRenaming(null);
       toast.success(t("Đã đổi tên phiếu"));
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 
@@ -248,7 +249,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
       setRemoving(null);
       toast.success(t("Đã xoá phiếu bệnh án"));
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 

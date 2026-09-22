@@ -17,6 +17,7 @@ import { useAbility } from "@/hooks/useAbility";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { toast } from "sonner";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { formatDate } from "@/utils/format";
 import { t } from "@/lib/i18n";
 
@@ -57,7 +58,7 @@ export function TreatmentStagePanel({ patientId }: TreatmentStagePanelProps) {
       await action;
       toast.success(success);
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 

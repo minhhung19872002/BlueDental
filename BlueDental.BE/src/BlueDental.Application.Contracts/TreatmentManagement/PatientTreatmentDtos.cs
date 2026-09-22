@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using BlueDental.Billing;
@@ -50,6 +50,13 @@ public class TreatmentServiceDto : EntityDto<Guid>
     public decimal DiscountAmount { get; set; }
     public decimal EffectiveAmount { get; set; }
     public TreatmentServiceStatus Status { get; set; }
+
+    /// <summary>1-based position on the slip; 0 on lines never reordered.</summary>
+    public int SortOrder { get; set; }
+
+    /// <summary>The other half of a conversion — see TreatmentService.ReplacedId.</summary>
+    public Guid? ReplacedId { get; set; }
+
     public List<ToothSelectionDto> Teeth { get; set; } = new();
     public string? ServiceName { get; set; }
 
@@ -136,6 +143,66 @@ public class AddTreatmentServiceDto
     public Guid? SecondDiagnoserStaffId { get; set; }
     public Guid? ConsultantStaffId { get; set; }
     public Guid? SecondConsultantStaffId { get; set; }
+}
+
+/// <summary>What the reference's "Loại chuyển đổi" offers.</summary>
+public enum ServiceConversionType
+{
+    /// <summary>Thay thế — the line is redone as a different service.</summary>
+    Replace = 1,
+
+    /// <summary>Dịch vụ cũ — the same service again, at the price it was sold for.</summary>
+    OldService = 2
+}
+
+/// <summary>What happens to money already collected beyond the new price.</summary>
+public enum ConversionDifferenceHandling
+{
+    /// <summary>Hoàn tiền — the difference is refunded on the old service.</summary>
+    Refund = 1,
+
+    /// <summary>Dư nợ — the difference stays with the patient as credit.</summary>
+    Debt = 2
+}
+
+/// <summary>
+/// "Chuyển đổi dịch vụ": what the dialog saves. The old line is named by the
+/// route, so only the new one is described here.
+/// </summary>
+public class ConvertTreatmentServiceDto
+{
+    public ServiceConversionType ConversionType { get; set; } = ServiceConversionType.Replace;
+
+    /// <summary>The service to convert to; required for Thay thế, ignored otherwise.</summary>
+    public Guid? ServiceId { get; set; }
+
+    /// <summary>
+    /// "Thanh toán" — what the patient is charged for the new service. Null
+    /// means the new service's full price.
+    /// </summary>
+    public decimal? PaymentAmount { get; set; }
+
+    /// <summary>Only read when money already collected exceeds the new price.</summary>
+    public ConversionDifferenceHandling? DifferenceHandling { get; set; }
+
+    /// <summary>Ghi chú — required by the reference's dialog.</summary>
+    public string Note { get; set; } = string.Empty;
+
+    public List<ToothSelectionDto> Teeth { get; set; } = new();
+
+    public Guid? DiagnoserStaffId { get; set; }
+    public Guid? SecondDiagnoserStaffId { get; set; }
+    public Guid? ConsultantStaffId { get; set; }
+    public Guid? SecondConsultantStaffId { get; set; }
+}
+
+/// <summary>Where a dragged service line was dropped on its slip.</summary>
+public class ReorderTreatmentServiceDto
+{
+    public Guid ServiceLineId { get; set; }
+
+    /// <summary>1-based position within the slip's service lines.</summary>
+    public int SortOrder { get; set; }
 }
 
 public class TreatmentPlanSlipDto : FullAuditedEntityDto<Guid>
@@ -230,6 +297,21 @@ public class PatientPaymentDto : FullAuditedEntityDto<Guid>
     public Guid? PaymentAccountId { get; set; }
 }
 
+/// <summary>
+/// "Chỉnh sửa" on a receipt row: how the money was taken, not how much. The
+/// amount and the service split are fixed once written — correcting those means
+/// voiding the receipt and collecting again.
+/// </summary>
+public class UpdatePatientPaymentDto
+{
+    public PaymentMethodKind Method { get; set; }
+    public DateTimeOffset? PaidAt { get; set; }
+    public string? Note { get; set; }
+
+    /// <summary>Required when Method is Banking or EWallet; ignored otherwise.</summary>
+    public Guid? PaymentAccountId { get; set; }
+}
+
 public class RecordPatientPaymentDto
 {
     public Guid PatientId { get; set; }
@@ -298,6 +380,10 @@ public interface IPatientTreatmentAppService : IApplicationService
     Task<TreatmentPlanSlipDto> AddServiceAsync(Guid id, AddTreatmentServiceDto input);
     Task<TreatmentPlanSlipDto> CompleteServiceAsync(Guid id, Guid serviceLineId);
     Task<TreatmentPlanSlipDto> CancelServiceAsync(Guid id, Guid serviceLineId);
+    Task<TreatmentPlanSlipDto> ReorderServiceAsync(Guid id, ReorderTreatmentServiceDto input);
+
+    Task<TreatmentPlanSlipDto> ConvertServiceAsync(
+        Guid id, Guid serviceLineId, ConvertTreatmentServiceDto input);
 
     /// <summary>In phiếu điều trị.</summary>
     Task<byte[]> ExportPdfAsync(Guid id);
@@ -306,10 +392,65 @@ public interface IPatientTreatmentAppService : IApplicationService
 /// <summary>
 /// Thanh toán của bệnh nhân — thu tiền, hoàn tiền, giữ hộ.
 /// </summary>
+/// <summary>
+/// The six movements the reference's "Lịch sử dư nợ" knows, with its own
+/// wording. Read off its published bundle 2026-09-22:
+/// <c>{topup, use, withdraw, replace, refund, cancel}</c>.
+/// </summary>
+public enum DebtMovementType
+{
+    /// <summary>Nạp dư nợ — money put on the patient's account.</summary>
+    Topup = 1,
+
+    /// <summary>Sử dụng dư nợ — a slip settled out of that account.</summary>
+    Use = 2,
+
+    /// <summary>
+    /// Rút dư nợ. No BlueDental operation pays the held balance back out in
+    /// cash, so nothing writes this yet — see docs/clone/unknowns.md.
+    /// </summary>
+    Withdraw = 3,
+
+    /// <summary>Thay thế dịch vụ — what a conversion left on the closed line.</summary>
+    Replace = 4,
+
+    /// <summary>Hoàn trả dư nợ — money refunded to the patient.</summary>
+    Refund = 5,
+
+    /// <summary>Huỷ dịch vụ - Cộng dư nợ — a cancelled line gives its money back.</summary>
+    Cancel = 6
+}
+
+/// <summary>One line of "Lịch sử dư nợ".</summary>
+public class DebtHistoryEntryDto
+{
+    public Guid Id { get; set; }
+    public DateTimeOffset Date { get; set; }
+    public DebtMovementType Type { get; set; }
+
+    /// <summary>
+    /// The size of the movement; which way it goes is read off the type, the
+    /// way the reference's own table does it. <see cref="DebtMovementType.Replace"/>
+    /// is the one type that can go either way, and only it is ever negative.
+    /// </summary>
+    public decimal Amount { get; set; }
+
+    public string? Note { get; set; }
+    public string? StaffName { get; set; }
+}
+
+public class GetDebtHistoryInput : PagedAndSortedResultRequestDto
+{
+    public Guid PatientId { get; set; }
+    public Guid? ClinicBranchId { get; set; }
+}
+
 public interface IPatientPaymentAppService : IApplicationService
 {
     Task<PagedResultDto<PatientPaymentDto>> GetListAsync(GetPatientPaymentListInput input);
     Task<PatientAccountDto> GetAccountAsync(Guid patientId, Guid? clinicBranchId = null);
     Task<PatientPaymentDto> RecordAsync(RecordPatientPaymentDto input);
+    Task<PatientPaymentDto> UpdateAsync(Guid id, UpdatePatientPaymentDto input);
+    Task<PagedResultDto<DebtHistoryEntryDto>> GetDebtHistoryAsync(GetDebtHistoryInput input);
     Task DeleteAsync(Guid id);
 }

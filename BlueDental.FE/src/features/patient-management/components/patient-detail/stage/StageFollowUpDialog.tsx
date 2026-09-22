@@ -1,7 +1,8 @@
-import { Button, Input, Modal, Select } from "antd";
+import { Button, Input, Modal } from "antd";
 import { SaveOutlined } from "@ant-design/icons";
 import { FloatingLabel } from "@/components/FloatingLabel";
-import { useStaffOptions } from "@/hooks/useStaffOptions";
+import { ServerSearchSelect } from "@/components/ServerSearchSelect";
+import { useStaffOptionsSearch } from "@/hooks/usePickerOptions";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
 import type { TreatmentStageDto } from "@/features/treatment-management/api/stageApi";
@@ -70,7 +71,6 @@ export function StageFollowUpDialog({
   onClose,
 }: Props) {
   const copy = KIND[kind];
-  const staff = useStaffOptions();
   const form = useFollowUpForm({
     open,
     patientId,
@@ -82,7 +82,6 @@ export function StageFollowUpDialog({
     onClose,
   });
 
-  const options = staff.data ?? [];
   const { line } = form;
 
   return (
@@ -113,33 +112,25 @@ export function StageFollowUpDialog({
             <Input disabled value={formatDate(new Date().toISOString())} />
           </FloatingLabel>
           <FloatingLabel label={t("Bác sĩ")} floated={Boolean(form.staffId)}>
-            <Select
-              showSearch
-              optionFilterProp="label"
+            <ServerSearchSelect
               value={form.staffId}
-              options={options}
-              onChange={form.setStaffId}
-              status={form.errors.staff ? "error" : undefined}
+              useOptions={useStaffOptionsSearch}
+              allowClear={false}
+              onChange={(value) => form.setStaffId(value ?? "")}
             />
           </FloatingLabel>
           {form.errors.staff && <p className="pd-stage-error">{form.errors.staff}</p>}
           <FloatingLabel label={t("Phụ tá")} floated={Boolean(form.subStaffId)}>
-            <Select
-              allowClear
-              showSearch
-              optionFilterProp="label"
+            <ServerSearchSelect
               value={form.subStaffId}
-              options={options}
+              useOptions={useStaffOptionsSearch}
               onChange={form.setSubStaffId}
             />
           </FloatingLabel>
           <FloatingLabel label={t("Bác sĩ hỗ trợ")} floated={Boolean(form.secondStaffId)}>
-            <Select
-              allowClear
-              showSearch
-              optionFilterProp="label"
+            <ServerSearchSelect
               value={form.secondStaffId}
-              options={options}
+              useOptions={useStaffOptionsSearch}
               onChange={form.setSecondStaffId}
             />
           </FloatingLabel>

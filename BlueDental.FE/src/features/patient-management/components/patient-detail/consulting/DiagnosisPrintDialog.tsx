@@ -5,6 +5,7 @@ import { Printer, Save, SquarePen } from "lucide-react";
 import { toast } from "sonner";
 import { RichTextField } from "@/components/RichTextField";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
 import {
@@ -173,7 +174,7 @@ export function DiagnosisPrintDialog({ diagnosis, clinic, patient, images, onClo
       toast.success(t("Đã cập nhật phiếu chẩn đoán"));
       setEditing(false);
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 

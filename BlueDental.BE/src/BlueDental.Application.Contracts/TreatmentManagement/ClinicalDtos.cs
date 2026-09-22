@@ -55,6 +55,9 @@ public class CreatePatientDiagnosisDto
 
 public class UpdatePatientDiagnosisDto
 {
+    /// <summary>The condition found; the form lets it be corrected.</summary>
+    public Guid DiagnosisId { get; set; }
+
     public Guid StaffId { get; set; }
     public Guid? SecondStaffId { get; set; }
     public string? Note { get; set; }
@@ -88,8 +91,11 @@ public class PatientAdviseDto : FullAuditedEntityDto<Guid>
     public Guid PatientId { get; set; }
     public Guid ClinicBranchId { get; set; }
     public Guid ServiceId { get; set; }
-    public Guid DiagnosisId { get; set; }
-    public Guid PatientDiagnosisId { get; set; }
+
+    /// <summary>Null on a line raised straight off a service — see PatientAdvise.</summary>
+    public Guid? DiagnosisId { get; set; }
+    public Guid? PatientDiagnosisId { get; set; }
+
     public Guid? TreatmentPlanId { get; set; }
     public Guid? AdviseGroupId { get; set; }
     public Guid StaffId { get; set; }
@@ -115,14 +121,31 @@ public class PatientAdviseDto : FullAuditedEntityDto<Guid>
     public string? StaffName { get; set; }
     public string? SecondStaffName { get; set; }
     public string? DiagnosisName { get; set; }
+
+    /// <summary>
+    /// The doctors on the chẩn đoán this line was raised from — the reference's
+    /// "Bác sĩ chẩn đoán 1" and "Chẩn đoán 2" columns. Both null on a line with
+    /// no diagnosis, which is where those columns print "-".
+    /// </summary>
+    public string? DiagnosisStaffName { get; set; }
+    public string? DiagnosisSecondStaffName { get; set; }
+
+    /// <summary>The same two doctors by id, for the form's read-only pickers.</summary>
+    public Guid? DiagnosisStaffId { get; set; }
+    public Guid? DiagnosisSecondStaffId { get; set; }
 }
 
 public class CreatePatientAdviseDto
 {
     public Guid PatientId { get; set; }
     public Guid ClinicBranchId { get; set; }
-    public Guid PatientDiagnosisId { get; set; }
-    public Guid DiagnosisId { get; set; }
+    /// <summary>
+    /// Both are optional: "Tạo phiếu dịch vụ" writes a service line without
+    /// filing a chẩn đoán for it, which is what the reference does.
+    /// </summary>
+    public Guid? PatientDiagnosisId { get; set; }
+    public Guid? DiagnosisId { get; set; }
+
     public Guid ServiceId { get; set; }
     public Guid StaffId { get; set; }
     public Guid? SecondStaffId { get; set; }

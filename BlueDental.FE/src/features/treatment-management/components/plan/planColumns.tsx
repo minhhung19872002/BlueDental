@@ -6,6 +6,7 @@ import { formatDate } from "@/utils/format";
 import type { TreatmentPlanSlipDto } from "../../api/treatmentPlanApi";
 import {
   PLAN_COLUMN_LABELS,
+  moneyCellClass,
   moneyText,
   planPill,
   planMoney,
@@ -25,18 +26,17 @@ export interface PlanRowActions {
 
 type Column = TableColumnsType<TreatmentPlanSlipDto>[number];
 
-function money(field: keyof PlanMoney, width: number, modifier?: string): Column {
+function money(field: keyof PlanMoney, width: number): Column {
   const key = field satisfies PlanColumnKey;
   return {
     key,
     title: t(PLAN_COLUMN_LABELS[key]),
     width,
     align: "right",
-    render: (_, plan) => (
-      <span className={["tp-cell-money", modifier].filter(Boolean).join(" ")}>
-        {moneyText(planMoney(plan)[field])}
-      </span>
-    ),
+    render: (_, plan) => {
+      const value = planMoney(plan)[field];
+      return <span className={moneyCellClass(field, value)}>{moneyText(value)}</span>;
+    },
   };
 }
 
@@ -65,6 +65,8 @@ function configurableColumns(actions: PlanRowActions): Record<PlanColumnKey, Col
       title: "",
       width: 48,
       align: "center",
+      // Icon only: opt out of the 100px floor every other header carries.
+      className: "bd-col-icon",
       render: (_, plan) => (
         <ActionTooltip title={t("Danh sách dịch vụ")}>
           <button
@@ -73,7 +75,7 @@ function configurableColumns(actions: PlanRowActions): Record<PlanColumnKey, Col
             aria-label={t("Danh sách dịch vụ - {0}", plan.code)}
             onClick={() => actions.onViewServices(plan)}
           >
-            <Eye size={18} aria-hidden="true" />
+            <Eye size={16} aria-hidden="true" />
           </button>
         </ActionTooltip>
       ),
@@ -99,12 +101,12 @@ function configurableColumns(actions: PlanRowActions): Record<PlanColumnKey, Col
       ),
     },
     total: money("total", 130),
-    discount: money("discount", 110, "tp-cell-money--discount"),
+    discount: money("discount", 110),
     amount: money("amount", 130),
-    paid: money("paid", 130, "tp-cell-money--paid"),
+    paid: money("paid", 130),
     refund: money("refund", 130),
-    remaining: money("remaining", 130, "tp-cell-money--due"),
-    receivable: money("receivable", 130, "tp-cell-money--receivable"),
+    remaining: money("remaining", 130),
+    receivable: money("receivable", 130),
   };
 }
 

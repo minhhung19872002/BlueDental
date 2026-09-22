@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -144,6 +144,12 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
             input.ServiceItemIds);
 
         await _repository.InsertAsync(stage, autoSave: true);
+
+        // The first công đoạn is what puts a line to work, so the line has to be
+        // moved here too. Without this the line sat at "Đã tạo" however many
+        // công đoạn it carried, and "Dịch vụ đang điều trị" stayed empty while the
+        // slip beside it already read "Đang điều trị" (R-463).
+        await MoveServiceLineAsync(stage);
         return MapToDto(stage, await BuildLookupsAsync([stage]));
     }
 

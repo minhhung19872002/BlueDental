@@ -9,6 +9,7 @@ import {
 import { CurrencyInput } from "@/components/CurrencyInput";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { t } from "@/lib/i18n";
 
 interface SupplyModalProps {
@@ -98,7 +99,7 @@ export function SupplyModal({
 
       onClose();
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 

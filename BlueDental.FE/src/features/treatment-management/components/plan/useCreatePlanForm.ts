@@ -3,13 +3,13 @@ import { Form } from "antd";
 import { toast } from "sonner";
 import type { CatalogOption } from "@/hooks/useCatalogOptions";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { t } from "@/lib/i18n";
 import { toothSelectionsToValue } from "@/components/ToothChart";
 import { DISCOUNT_TYPE, type DiscountType, type PatientAdviseDto } from "../../api/consultingApi";
 import {
   useAcceptAdvise,
   useCreateAdvise,
-  useCreateDiagnosis,
   useUpdateAdvise,
 } from "../../api/consultingQueries";
 import { useOpenTreatmentPlan } from "../../api/treatmentPlanApi";
@@ -23,7 +23,7 @@ import {
 
 export interface CreatePlanValues {
   serviceId?: string;
-  /** "Nhân sự tư vấn 1/2" — only asked for on an existing slip. */
+  /** "Nhân sự tư vấn 1/2" — the staff who advised; both modes ask for them. */
   advisorId?: string;
   secondAdvisorId?: string;
   staffId?: string;
@@ -33,6 +33,12 @@ export interface CreatePlanValues {
   quantity?: number;
   discountType: DiscountType;
   discountValue?: number;
+}
+
+/** Messages the dialog prints under the field they belong to. */
+export interface PlanFieldErrors {
+  teeth?: string;
+  diagnosis?: string;
 }
 
 export interface PlanTotals {
@@ -70,11 +76,17 @@ interface Options {
  */
 export function useCreatePlanForm({ patientId, branchId, services, advise, onCreated }: Options) {
   const [form] = Form.useForm<CreatePlanValues>();
-  const [teeth, setTeeth] = useState<ToothPickerValue>(EMPTY_TOOTH_VALUE);
+  const [teeth, setTeethValue] = useState<ToothPickerValue>(EMPTY_TOOTH_VALUE);
+  const [fieldErrors, setFieldErrors] = useState<PlanFieldErrors>({});
+
+  /** Picking teeth answers the error the save asked about. */
+  const setTeeth = (value: ToothPickerValue) => {
+    setTeethValue(value);
+    if (!isToothValueEmpty(value)) setFieldErrors((prev) => ({ ...prev, teeth: undefined }));
+  };
   const [toothPickerOpen, setToothPickerOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const createDiagnosis = useCreateDiagnosis();
   const createAdvise = useCreateAdvise();
   const acceptAdvise = useAcceptAdvise();
   const openPlan = useOpenTreatmentPlan();
@@ -84,22 +96,38 @@ export function useCreatePlanForm({ patientId, branchId, services, advise, onCre
   useEffect(() => {
     if (!advise) return;
     form.setFieldsValue(adviseToFormValues(advise));
-    setTeeth(toothSelectionsToValue(advise.teeth));
+    setTeethValue(toothSelectionsToValue(advise.teeth));
   }, [advise, form]);
 
   const serviceId = Form.useWatch("serviceId", form);
-  const selectedService = services.find((service) => service.id === serviceId) ?? null;
+  /**
+   * The picker searches the server, so the catalog is not held here any more —
+   * it hands the whole entry over and this keeps the last one for the price and
+   * the summary. `services` still carries the slip's own service when editing.
+   */
+  const [pickedService, setPickedService] = useState<CatalogOption | null>(null);
+  const selectedService =
+    (serviceId ? services.find((service) => service.id === serviceId) : null) ??
+    (pickedService?.id === serviceId ? pickedService : null);
   const watched = Form.useWatch([], form);
   const totals = planTotals(watched ?? { discountType: DISCOUNT_TYPE.Percentage });
 
-  const handleServiceChange = (nextId: string | undefined) => {
-    const service = services.find((item) => item.id === nextId);
-    form.setFieldsValue({ price: service?.price ?? 0, quantity: service ? 1 : 0 });
+  const handlePickService = (service: CatalogOption) => {
+    setPickedService(service);
+    form.setFieldsValue({ price: service.price ?? 0, quantity: 1 });
+  };
+
+  /** The field was cleared from the Select's own × rather than by a pick. */
+  const handleServiceCleared = () => {
+    setPickedService(null);
+    form.setFieldsValue({ price: 0, quantity: 0 });
   };
 
   const reset = () => {
     form.resetFields();
-    setTeeth(EMPTY_TOOTH_VALUE);
+    setPickedService(null);
+    setTeethValue(EMPTY_TOOTH_VALUE);
+    setFieldErrors({});
   };
 
   /**
@@ -115,7 +143,7 @@ export function useCreatePlanForm({ patientId, branchId, services, advise, onCre
       reset();
       onCreated();
     } catch (error) {
-      toast.error(extractApiError(error) || t("Không thể cập nhật phiếu dịch vụ"));
+      notifyError(extractApiError(error) || t("Không thể cập nhật phiếu dịch vụ"));
     } finally {
       setSubmitting(false);
     }
@@ -123,33 +151,38 @@ export function useCreatePlanForm({ patientId, branchId, services, advise, onCre
 
   const submit = async () => {
     const values = await form.validateFields();
-    if (isToothValueEmpty(teeth)) {
-      toast.error(t("Vui lòng chọn răng"));
-      return;
-    }
+
+    // Reported under the field rather than as a toast: a toast leaves the user
+    // hunting for what it meant once it has faded.
+    const errors: PlanFieldErrors = {};
+    if (isToothValueEmpty(teeth)) errors.teeth = t("Vui lòng chọn ít nhất 1 răng");
+    setFieldErrors(errors);
+    if (errors.teeth) return;
+
     if (advise) {
       await submitUpdate(values);
       return;
     }
-    if (!values.serviceId || !values.staffId || !values.diagnosisId) return;
+    // The doctor who advised stands in when no diagnosing doctor was named —
+    // the two diagnosis fields are read-only on this form.
+    const dentistId = values.staffId ?? values.advisorId;
+    if (!values.serviceId || !dentistId) return;
 
     setSubmitting(true);
     try {
       const teethDto = toothValueToDtos(teeth);
-      const diagnosis = await createDiagnosis.mutateAsync({
-        patientId,
-        clinicBranchId: branchId,
-        diagnosisId: values.diagnosisId,
-        staffId: values.staffId,
-        teeth: teethDto,
-      });
+      // No chẩn đoán is filed here: saving writes the service line and the
+      // slip, and nothing else (measured against the reference 2026-09-22).
       const advise = await createAdvise.mutateAsync({
         patientId,
         clinicBranchId: branchId,
-        patientDiagnosisId: diagnosis.id,
-        diagnosisId: values.diagnosisId,
+        patientDiagnosisId: null,
+        diagnosisId: values.diagnosisId ?? null,
         serviceId: values.serviceId,
-        staffId: values.staffId,
+        // The advise belongs to whoever advised; the diagnosis keeps the
+        // diagnosing doctor. The reference sends the same pair.
+        staffId: values.advisorId ?? dentistId,
+        secondStaffId: values.secondAdvisorId,
         originalPrice: selectedService?.price ?? values.price ?? 0,
         price: values.price ?? 0,
         quantity: values.quantity ?? 1,
@@ -162,14 +195,14 @@ export function useCreatePlanForm({ patientId, branchId, services, advise, onCre
       await openPlan.mutateAsync({
         patientId,
         clinicBranchId: branchId,
-        dentistId: values.staffId,
+        dentistId,
         adviseIds: [advise.id],
       });
       toast.success(t("Đã tạo kế hoạch điều trị"));
       reset();
       onCreated();
     } catch (error) {
-      toast.error(extractApiError(error) || t("Không thể tạo kế hoạch điều trị"));
+      notifyError(extractApiError(error) || t("Không thể tạo kế hoạch điều trị"));
     } finally {
       setSubmitting(false);
     }
@@ -179,12 +212,14 @@ export function useCreatePlanForm({ patientId, branchId, services, advise, onCre
     form,
     teeth,
     setTeeth,
+    fieldErrors,
     toothPickerOpen,
     setToothPickerOpen,
     selectedService,
     totals,
     submitting,
-    handleServiceChange,
+    handlePickService,
+    handleServiceCleared,
     submit,
     reset,
   };

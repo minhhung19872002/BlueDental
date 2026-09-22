@@ -75,8 +75,23 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
             return;
         }
 
+        // The diagnosis carries its own pair of doctors, and they are not the
+        // ones who advised: the reference prints the advisor under "Nhân sự tư
+        // vấn" and the diagnosing doctors under "Bác sĩ chẩn đoán".
+        var diagnosisIds = dtos
+            .Where(d => d.PatientDiagnosisId.HasValue)
+            .Select(d => d.PatientDiagnosisId!.Value)
+            .Distinct()
+            .ToList();
+
+        var diagnoses = diagnosisIds.Count == 0
+            ? new List<PatientDiagnosis>()
+            : await _diagnosisRepository.GetListAsync(x => diagnosisIds.Contains(x.Id));
+        var diagnosisById = diagnoses.ToDictionary(x => x.Id);
+
         var staffIds = dtos
             .SelectMany(d => new[] { (Guid?)d.StaffId, d.SecondStaffId })
+            .Concat(diagnoses.SelectMany(d => new[] { (Guid?)d.StaffId, d.SecondStaffId }))
             .Where(id => id.HasValue)
             .Select(id => id!.Value)
             .Distinct()
@@ -86,7 +101,9 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
             .ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
 
         var catalogIds = dtos
-            .SelectMany(d => new[] { d.ServiceId, d.DiagnosisId })
+            .SelectMany(d => d.DiagnosisId.HasValue
+                ? new[] { d.ServiceId, d.DiagnosisId.Value }
+                : new[] { d.ServiceId })
             .Distinct()
             .ToList();
 
@@ -102,7 +119,19 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
                 ? staff.GetValueOrDefault(dto.SecondStaffId.Value)
                 : null;
             dto.ServiceName = catalogs.GetValueOrDefault(dto.ServiceId);
-            dto.DiagnosisName = catalogs.GetValueOrDefault(dto.DiagnosisId);
+            dto.DiagnosisName = dto.DiagnosisId.HasValue
+                ? catalogs.GetValueOrDefault(dto.DiagnosisId.Value)
+                : null;
+
+            var diagnosis = dto.PatientDiagnosisId.HasValue
+                ? diagnosisById.GetValueOrDefault(dto.PatientDiagnosisId.Value)
+                : null;
+            dto.DiagnosisStaffId = diagnosis?.StaffId;
+            dto.DiagnosisSecondStaffId = diagnosis?.SecondStaffId;
+            dto.DiagnosisStaffName = diagnosis is null ? null : staff.GetValueOrDefault(diagnosis.StaffId);
+            dto.DiagnosisSecondStaffName = diagnosis?.SecondStaffId is null
+                ? null
+                : staff.GetValueOrDefault(diagnosis.SecondStaffId.Value);
         }
     }
 
@@ -133,16 +162,22 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
     public async Task<PatientAdviseDto> CreateAsync(CreatePatientAdviseDto input)
     {
         var clinicBranchId = _branchResolver.GetRequiredClinicBranchId();
-        var diagnosis = await _diagnosisRepository.FindAsync(input.PatientDiagnosisId)
-            ?? throw new BusinessException(
-                BlueDentalDomainErrorCodes.TreatmentManagement.PatientDiagnosisNotFound,
-                $"Patient diagnosis {input.PatientDiagnosisId} was not found.");
 
-        if (diagnosis.PatientId != input.PatientId)
+        // A line raised from a diagnosis row names it and it has to hold up; a
+        // line raised straight off a service names none at all.
+        if (input.PatientDiagnosisId.HasValue)
         {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.TreatmentManagement.PatientDiagnosisNotFound,
-                "The diagnosis does not belong to the given patient.");
+            var diagnosis = await _diagnosisRepository.FindAsync(input.PatientDiagnosisId.Value)
+                ?? throw new BusinessException(
+                    BlueDentalDomainErrorCodes.TreatmentManagement.PatientDiagnosisNotFound,
+                    $"Patient diagnosis {input.PatientDiagnosisId} was not found.");
+
+            if (diagnosis.PatientId != input.PatientId)
+            {
+                throw new BusinessException(
+                    BlueDentalDomainErrorCodes.TreatmentManagement.PatientDiagnosisNotFound,
+                    "The diagnosis does not belong to the given patient.");
+            }
         }
 
         var code = await GenerateCodeAsync(clinicBranchId);

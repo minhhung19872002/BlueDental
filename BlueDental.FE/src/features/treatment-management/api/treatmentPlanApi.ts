@@ -109,6 +109,54 @@ export const afterCareLabels = (): Record<CareStatusCode, string> => ({
   [CARE_STATUS.Cancelled]: t("Đã huỷ chăm sóc"),
 });
 
+/**
+ * "Lịch sử dư nợ" — the six movements the reference's own table knows, read
+ * off its published bundle 2026-09-22.
+ */
+export const DEBT_MOVEMENT = {
+  Topup: 1,
+  Use: 2,
+  Withdraw: 3,
+  Replace: 4,
+  Refund: 5,
+  Cancel: 6,
+} as const;
+export type DebtMovementType = (typeof DEBT_MOVEMENT)[keyof typeof DEBT_MOVEMENT];
+
+/** The reference's wording, verbatim. */
+export const debtMovementLabels = (): Record<DebtMovementType, string> => ({
+  [DEBT_MOVEMENT.Topup]: t("Nạp dư nợ"),
+  [DEBT_MOVEMENT.Use]: t("Sử dụng dư nợ"),
+  [DEBT_MOVEMENT.Withdraw]: t("Rút dư nợ"),
+  [DEBT_MOVEMENT.Replace]: t("Thay thế dịch vụ"),
+  [DEBT_MOVEMENT.Refund]: t("Hoàn trả dư nợ"),
+  [DEBT_MOVEMENT.Cancel]: t("Huỷ dịch vụ - Cộng dư nợ"),
+});
+
+/** The three that put money back on the account; the rest take it off. */
+const DEBT_CREDITS: DebtMovementType[] = [
+  DEBT_MOVEMENT.Topup,
+  DEBT_MOVEMENT.Refund,
+  DEBT_MOVEMENT.Cancel,
+];
+
+/**
+ * Which way a movement goes. "Thay thế dịch vụ" is the one type that can go
+ * either way, so it reads its own sign; the others are decided by the type.
+ */
+export function isDebtCredit(type: DebtMovementType, amount: number): boolean {
+  return type === DEBT_MOVEMENT.Replace ? amount >= 0 : DEBT_CREDITS.includes(type);
+}
+
+export interface DebtHistoryEntryDto {
+  id: string;
+  date: string;
+  type: DebtMovementType;
+  amount: number;
+  note: string | null;
+  staffName: string | null;
+}
+
 export interface PaymentSummaryDto {
   totalPrice: number;
   totalPaid: number;
@@ -147,6 +195,10 @@ export interface TreatmentServiceDto {
   discountAmount: number;
   effectiveAmount: number;
   status: TreatmentServiceStatus;
+  /** 1-based position on the slip; 0 on lines never dragged. */
+  sortOrder: number;
+  /** The other half of a "Chuyển đổi dịch vụ", on both the old and new line. */
+  replacedId: string | null;
   teeth: ToothSelectionDto[];
   serviceName: string | null;
   stageCount: number;
@@ -203,6 +255,30 @@ export interface AddTreatmentServiceInput {
   secondConsultantStaffId: string | null;
 }
 
+/** "Loại chuyển đổi" — the reference's two conversion kinds. */
+export const CONVERSION_TYPE = { Replace: 1, OldService: 2 } as const;
+export type ConversionType = (typeof CONVERSION_TYPE)[keyof typeof CONVERSION_TYPE];
+
+/** "Xử lý chênh lệch" — what happens to money collected beyond the new price. */
+export const DIFFERENCE_HANDLING = { Refund: 1, Debt: 2 } as const;
+export type DifferenceHandling =
+  (typeof DIFFERENCE_HANDLING)[keyof typeof DIFFERENCE_HANDLING];
+
+export interface ConvertServiceInput {
+  conversionType: ConversionType;
+  /** Required for Thay thế; ignored for Dịch vụ cũ. */
+  serviceId: string | null;
+  /** "Thanh toán" — null charges the new service's full price. */
+  paymentAmount: number | null;
+  differenceHandling: DifferenceHandling | null;
+  note: string;
+  teeth: ToothSelectionDto[];
+  diagnoserStaffId: string | null;
+  secondDiagnoserStaffId: string | null;
+  consultantStaffId: string | null;
+  secondConsultantStaffId: string | null;
+}
+
 export interface TreatmentPlanSlipDto {
   id: string;
   patientId: string;
@@ -251,6 +327,8 @@ export interface PatientPaymentDto {
   paidAt: string;
   staffId: string;
   note: string | null;
+  /** Which of the clinic's accounts took the money; only Ngân hàng and Ví momo carry one. */
+  paymentAccountId: string | null;
   staffName: string | null;
   treatmentPlanCode: string | null;
 }
@@ -346,6 +424,33 @@ const treatmentApi = {
       .post<TreatmentPlanSlipDto>(`${PLANS}/${planId}/services/${lineId}/cancel`)
       .then((r) => r.data),
 
+  convertService: (
+    planId: string,
+    lineId: string,
+    input: ConvertServiceInput,
+  ): Promise<TreatmentPlanSlipDto> =>
+    api
+      .post<TreatmentPlanSlipDto>(`${PLANS}/${planId}/services/${lineId}/convert`, input)
+      .then((r) => r.data),
+
+  reorderService: (
+    planId: string,
+    input: { serviceLineId: string; sortOrder: number },
+  ): Promise<TreatmentPlanSlipDto> =>
+    api
+      .post<TreatmentPlanSlipDto>(`${PLANS}/${planId}/services/reorder`, input)
+      .then((r) => r.data),
+
+  debtHistory: (params: {
+    patientId: string;
+    clinicBranchId?: string;
+    skipCount: number;
+    maxResultCount: number;
+  }): Promise<PagedResult<DebtHistoryEntryDto>> =>
+    api
+      .get<PagedResult<DebtHistoryEntryDto>>(`${PAYMENTS}/debt-history`, { params })
+      .then((r) => r.data),
+
   account: (patientId: string, clinicBranchId: string): Promise<PatientAccountDto> =>
     api
       .get<PatientAccountDto>(`${PAYMENTS}/account`, { params: { patientId, clinicBranchId } })
@@ -353,7 +458,21 @@ const treatmentApi = {
 
   recordPayment: (input: RecordPaymentInput): Promise<PatientPaymentDto> =>
     api.post<PatientPaymentDto>(PAYMENTS, input).then((r) => r.data),
+
+  updatePayment: (id: string, input: UpdatePaymentInput): Promise<PatientPaymentDto> =>
+    api.put<PatientPaymentDto>(`${PAYMENTS}/${id}`, input).then((r) => r.data),
+
+  deletePayment: (id: string): Promise<void> =>
+    api.delete(`${PAYMENTS}/${id}`).then(() => undefined),
 };
+
+/** Body of `PUT patient-payments/{id}` — how the money was taken, not how much. */
+export interface UpdatePaymentInput {
+  method: PaymentMethodKind;
+  paidAt?: string;
+  note?: string | null;
+  paymentAccountId?: string | null;
+}
 
 export const treatmentKeys = {
   all: ["patient-treatments"] as const,
@@ -437,6 +556,55 @@ export function useCancelServiceLine() {
   );
 }
 
+/** "Lịch sử dư nợ" of one patient, newest first. */
+export function usePatientDebtHistory(
+  patientId: string,
+  clinicBranchId: string | undefined,
+  page: { skipCount: number; maxResultCount: number },
+) {
+  return useQuery({
+    queryKey: [...treatmentKeys.all, "debt-history", patientId, clinicBranchId, page],
+    queryFn: () => treatmentApi.debtHistory({ patientId, clinicBranchId, ...page }),
+    enabled: Boolean(patientId),
+  });
+}
+
+/** "Chuyển đổi dịch vụ" on a service line. */
+export function useConvertServiceLine() {
+  return useTreatmentMutation(
+    (input: { planId: string; lineId: string; body: ConvertServiceInput }) =>
+      treatmentApi.convertService(input.planId, input.lineId, input.body),
+  );
+}
+
+/** Where a dragged service line was dropped — `sortOrder` is 1-based. */
+export function useReorderServiceLine() {
+  return useTreatmentMutation(
+    (input: { planId: string; serviceLineId: string; sortOrder: number }) =>
+      treatmentApi.reorderService(input.planId, {
+        serviceLineId: input.serviceLineId,
+        sortOrder: input.sortOrder,
+      }),
+  );
+}
+
 export function useRecordPayment() {
   return useTreatmentMutation(treatmentApi.recordPayment);
+}
+
+/**
+ * "Chỉnh sửa" on a receipt row: the channel, the account, the date and the
+ * note. The amount and the per-service split cannot move — the slip's rollup is
+ * built from them, so a wrong amount is voided and collected again instead.
+ */
+export function useUpdatePayment() {
+  return useTreatmentMutation((input: { id: string } & UpdatePaymentInput) => {
+    const { id, ...body } = input;
+    return treatmentApi.updatePayment(id, body);
+  });
+}
+
+/** "Huỷ" on a receipt row — the movement is taken back off the slip. */
+export function useDeletePayment() {
+  return useTreatmentMutation((input: { id: string }) => treatmentApi.deletePayment(input.id));
 }

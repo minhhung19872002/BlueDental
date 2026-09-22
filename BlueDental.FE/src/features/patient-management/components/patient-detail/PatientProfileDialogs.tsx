@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { DataTable } from "@/components/DataTable";
 import { usePatientTagOptions } from "@/hooks/usePatientTagOptions";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { t } from "@/lib/i18n";
 import { formatDateTime, formatMoneyUnit } from "@/utils/format";
 import {
@@ -79,7 +80,7 @@ export function PatientTagPicker({ patient }: { patient: PatientDto }) {
       await update.mutateAsync({ ...patientPayload(patient), tagIds });
       toast.success(selected ? t("Đã bỏ tag") : t("Đã thêm tag"));
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 
@@ -164,7 +165,7 @@ export function ExaminationReasonDialog({
       toast.success(t("Đã thêm lý do đến khám"));
       onClose();
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 

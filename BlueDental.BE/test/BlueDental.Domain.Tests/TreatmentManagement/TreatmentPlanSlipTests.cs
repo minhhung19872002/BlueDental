@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using BlueDental.Billing;
 using BlueDental.TreatmentManagement;
@@ -141,6 +141,25 @@ public class TreatmentPlanSlipTests
         plan.ProgressPercent.ShouldBe(100);
     }
 
+    /// <summary>
+    /// A "Chuyển đổi" line has been superseded and an "Đã chuyển" line has moved
+    /// to another slip, so neither is charged here. Measured on the reference
+    /// (staging, 2026-09-21): DT33 carries a 1.000.000 đ line plus a 909.091 đ
+    /// <c>replaced</c> one and answers <c>totalPrice: 1000000</c>.
+    /// </summary>
+    [Fact]
+    public void A_converted_or_transferred_line_is_not_charged_on_this_slip()
+    {
+        var plan = OpenPlan();
+        AddLine(plan, 1_000_000m);
+        AddLine(plan, 909_091m).SetInitialStatus(TreatmentServiceStatus.Replaced);
+        AddLine(plan, 500_000m).SetInitialStatus(TreatmentServiceStatus.Transferred);
+
+        plan.ServicesTotal.ShouldBe(1_000_000m);
+        plan.TotalAmount.ShouldBe(1_000_000m);
+        plan.ProgressPercent.ShouldBe(0);
+    }
+
     [Fact]
     public void The_rollup_discount_and_what_is_owed_add_back_up_to_the_gross()
     {
@@ -202,10 +221,50 @@ public class TreatmentPlanSlipTests
         summary.TotalPrice.ShouldBe(4_000_000m);
         summary.CompletedValue.ShouldBe(1_000_000m);
 
-        // Nothing paid yet, so the finished work is what the clinic may collect.
+        // Nothing paid yet, so the finished work is what the clinic may collect
+        // now, while the whole slip is still owed.
         summary.Receivable.ShouldBe(1_000_000m);
-        summary.Debt.ShouldBe(1_000_000m);
-        summary.TotalDue.ShouldBe(4_000_000m);
+        summary.Debt.ShouldBe(4_000_000m);
+    }
+
+    /// <summary>
+    /// The slip discount is spread over the lines in proportion, so the share of
+    /// a finished line is a repeating decimal as soon as the ratio is not exact.
+    /// Đồng has no minor unit, and the table printed "204.545,455 đ" until this
+    /// was rounded (R-459).
+    /// </summary>
+    [Fact]
+    public void Phai_thu_stays_a_whole_dong_when_the_discount_does_not_divide()
+    {
+        // 2.750.000 over three lines, 500.000 off the slip, one 250.000 line done.
+        var plan = OpenPlan(DiscountType.Money, 500_000m);
+        var done = AddLine(plan, 250_000m);
+        AddLine(plan, 1_500_000m);
+        AddLine(plan, 1_000_000m);
+        done.Complete();
+
+        plan.ServicesTotal.ShouldBe(2_750_000m);
+        plan.PlanDiscountAmount.ShouldBe(500_000m);
+
+        // 250.000 − 500.000×250.000/2.750.000 = 204545,4545… → 204.545.
+        plan.CompletedValue.ShouldBe(204_545m);
+        plan.CompletedValue.ShouldBe(decimal.Truncate(plan.CompletedValue));
+
+        var summary = _money.ForPlan(plan, new List<PatientPayment>());
+        summary.CompletedValue.ShouldBe(204_545m);
+        summary.Receivable.ShouldBe(204_545m);
+    }
+
+    /// <summary>A percentage that does not land on a whole đồng is rounded too.</summary>
+    [Fact]
+    public void A_percentage_discount_is_rounded_to_a_whole_dong()
+    {
+        var plan = OpenPlan();
+        var line = AddLine(plan, 333_333m, discountType: DiscountType.Percentage, discountValue: 7m);
+
+        // 333.333 × 7% = 23333,31 → 23.333.
+        line.DiscountAmount.ShouldBe(23_333m);
+        line.EffectiveAmount.ShouldBe(310_000m);
     }
 
     [Fact]
@@ -219,9 +278,9 @@ public class TreatmentPlanSlipTests
         var summary = _money.ForPlan(plan, [Pay(plan, 2_500_000m)]);
 
         summary.TotalPaid.ShouldBe(2_500_000m);
-        summary.Debt.ShouldBe(0m);
+        summary.Receivable.ShouldBe(-1_500_000m);   // the UI clamps this at zero
         summary.PaidUncompleted.ShouldBe(1_500_000m);
-        summary.TotalDue.ShouldBe(1_500_000m);
+        summary.Debt.ShouldBe(1_500_000m);          // 4tr slip, 2,5tr collected
     }
 
     [Fact]
@@ -237,7 +296,7 @@ public class TreatmentPlanSlipTests
 
         summary.TotalPaid.ShouldBe(2_000_000m);
         summary.TotalRefund.ShouldBe(500_000m);
-        summary.TotalDue.ShouldBe(500_000m);
+        summary.Receivable.ShouldBe(500_000m);
         summary.Debt.ShouldBe(500_000m);
     }
 
@@ -392,6 +451,136 @@ public class TreatmentPlanSlipTests
         plan.ReopenIfAnyServiceActive();
 
         plan.Status.ShouldBe(TreatmentPlanStatus.Completed);
+    }
+
+    [Fact]
+    public void A_new_line_is_born_without_a_slot()
+    {
+        // Until the clinic drags something, the slip reads newest first — which
+        // only works while every line is still unnumbered.
+        var plan = OpenPlan();
+
+        AddLine(plan, 1_000_000m).SortOrder.ShouldBe(0);
+        AddLine(plan, 2_000_000m).SortOrder.ShouldBe(0);
+    }
+
+    [Fact]
+    public void A_dragged_line_renumbers_the_ones_it_passes()
+    {
+        var plan = OpenPlan();
+        var first = AddLine(plan, 1_000_000m);
+        var second = AddLine(plan, 2_000_000m);
+        var third = AddLine(plan, 3_000_000m);
+
+        plan.ReorderService(first.Id, 3);
+
+        second.SortOrder.ShouldBe(1);
+        third.SortOrder.ShouldBe(2);
+        first.SortOrder.ShouldBe(3);
+    }
+
+    [Fact]
+    public void A_drop_past_the_end_lands_on_the_last_slot()
+    {
+        var plan = OpenPlan();
+        var first = AddLine(plan, 1_000_000m);
+        AddLine(plan, 2_000_000m);
+
+        plan.ReorderService(first.Id, 99);
+
+        first.SortOrder.ShouldBe(2);
+    }
+
+    [Fact]
+    public void Converting_a_line_closes_it_and_writes_the_one_that_replaces_it()
+    {
+        var plan = OpenPlan();
+        var old = AddLine(plan, 3_500_000m);
+        var newServiceId = Guid.NewGuid();
+
+        var line = plan.ConvertService(old.Id, Guid.NewGuid(), newServiceId, 400_000m, 1, 400_000m);
+
+        old.Status.ShouldBe(TreatmentServiceStatus.Replaced);
+        old.ReplacedId.ShouldBe(line.Id);
+        line.ReplacedId.ShouldBe(old.Id);
+        line.ServiceId.ShouldBe(newServiceId);
+        line.Status.ShouldBe(TreatmentServiceStatus.Created);
+        line.EffectiveAmount.ShouldBe(400_000m);
+    }
+
+    [Fact]
+    public void A_converted_line_is_no_longer_worth_anything_to_the_slip()
+    {
+        var plan = OpenPlan();
+        var old = AddLine(plan, 3_500_000m);
+
+        plan.ConvertService(old.Id, Guid.NewGuid(), Guid.NewGuid(), 400_000m, 1, 400_000m);
+
+        plan.TotalAmount.ShouldBe(400_000m);
+    }
+
+    [Fact]
+    public void Charging_less_than_the_list_price_shows_up_as_a_discount()
+    {
+        var plan = OpenPlan();
+        var old = AddLine(plan, 3_500_000m);
+
+        var line = plan.ConvertService(old.Id, Guid.NewGuid(), Guid.NewGuid(), 1_000_000m, 2, 1_500_000m);
+
+        line.Price.ShouldBe(1_000_000m);
+        line.Quantity.ShouldBe(2);
+        line.DiscountAmount.ShouldBe(500_000m);
+        line.EffectiveAmount.ShouldBe(1_500_000m);
+    }
+
+    [Fact]
+    public void A_conversion_cannot_charge_more_than_the_new_service_costs()
+    {
+        var plan = OpenPlan();
+        var old = AddLine(plan, 3_500_000m);
+
+        Should.Throw<BusinessException>(
+            () => plan.ConvertService(old.Id, Guid.NewGuid(), Guid.NewGuid(), 400_000m, 1, 900_000m));
+    }
+
+    [Fact]
+    public void A_finished_line_cannot_be_converted()
+    {
+        var plan = OpenPlan();
+        var old = AddLine(plan, 3_500_000m);
+        old.Complete();
+
+        Should.Throw<BusinessException>(
+            () => plan.ConvertService(old.Id, Guid.NewGuid(), Guid.NewGuid(), 400_000m, 1, 400_000m));
+    }
+
+    [Fact]
+    public void Money_already_collected_follows_the_service_it_was_paid_for()
+    {
+        var plan = OpenPlan();
+        var old = AddLine(plan, 3_500_000m);
+        var newLineId = Guid.NewGuid();
+        var receipt = PatientPayment.Record(
+            Guid.NewGuid(),
+            _patientId,
+            _branchId,
+            PatientPaymentKind.Payment,
+            PaymentMethodKind.Cash,
+            1_000_000m,
+            "PT26-0001",
+            _dentistId,
+            DateTimeOffset.UtcNow,
+            plan.Id,
+            lines: [(old.Id, 1_000_000m)],
+            lineIdFactory: Guid.NewGuid);
+
+        var moved = receipt.Redirect(old.Id, newLineId, 400_000m, Guid.NewGuid);
+
+        moved.ShouldBe(400_000m);
+        receipt.AmountFor(newLineId).ShouldBe(400_000m);
+        // The rest stays where it was, for the dialog's "Xử lý chênh lệch" to settle.
+        receipt.AmountFor(old.Id).ShouldBe(600_000m);
+        receipt.Amount.ShouldBe(1_000_000m);
     }
 
 }

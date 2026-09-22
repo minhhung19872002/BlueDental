@@ -58,16 +58,72 @@ test.describe("Chẩn đoán & Tư vấn — kế hoạch", () => {
   }) => {
     await openConsulting(page);
 
-    // "28 - âsasa" — the teeth and the diagnosis read as one fact in link blue.
-    const diagnosis = page.locator(".pd-advise-table tbody tr.ant-table-row .pd-cell-link").first();
-    await expect(diagnosis).toBeVisible();
-    await expect(diagnosis).toHaveText(/.+ - .+/);
-    await expect(diagnosis).toHaveCSS("color", "rgb(38, 113, 216)");
+    // "12, 11, 22 - vôi răng" — the tooth **numbers** and the diagnosis read as
+    // one fact in link blue. No surfaces: the reference prints the bare numbers
+    // even on teeth whose surfaces are picked, and a line with no diagnosis
+    // stops after the numbers, with no trailing dash.
+    const cells = page.locator(".pd-advise-table tbody tr.ant-table-row .pd-cell-link");
+    await expect(cells.first()).toBeVisible();
+    for (const text of await cells.allInnerTexts()) {
+      expect(text.trim()).toMatch(/^\d+(, \d+)*( - .+)?$/);
+    }
+    await expect(cells.first()).toHaveCSS("color", "rgb(38, 113, 216)");
+
+    // Empty cells of this table read "-", the reference's hyphen, never "—".
+    const headers = await page.locator(".pd-advise-table thead th").allInnerTexts();
+    const secondDiagnosisAt = headers.findIndex((h) => h.trim().toLowerCase() === "chẩn đoán 2");
+    expect(secondDiagnosisAt).toBeGreaterThan(-1);
+    const secondDiagnosis = page
+      .locator(".pd-advise-table tbody tr.ant-table-row")
+      .first()
+      .locator("td")
+      .nth(secondDiagnosisAt);
+    await expect(secondDiagnosis).not.toHaveText("—");
 
     // The service names itself and nothing else: the teeth moved one column on.
     const service = page.locator(".pd-advise-table tbody tr.ant-table-row .pd-cell-strong").first();
     await expect(service).toBeVisible();
     await expect(service).not.toHaveText(/ - /);
+  });
+
+  test("Cập nhật Chẩn Đoán may correct the condition it found", async ({ page }) => {
+    await openConsulting(page);
+
+    const row = page.locator(".pd-diagnosis-card tbody tr.ant-table-row").first();
+    await expect(row).toBeVisible();
+    await row.locator("td").nth(1).click();
+
+    const form = page.locator('[data-testid="diagnosis-form"]');
+    await expect(form).toBeVisible();
+
+    // The select is the point of this form, so it is editable while editing.
+    const picker = form.locator(".ant-select").nth(1);
+    await expect(picker).not.toHaveClass(/ant-select-disabled/);
+    const before = (await picker.innerText()).trim();
+
+    await picker.click();
+    const option = page
+      .locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option")
+      .filter({ hasNotText: before })
+      .first();
+    await expect(option).toBeVisible();
+    const chosen = (await option.innerText()).trim();
+    await option.click();
+
+    const saved = page.waitForResponse(
+      (res) => res.url().includes("/patient-diagnoses/") && res.request().method() === "PUT",
+    );
+    await form.getByRole("button", { name: "Cập nhật Chẩn Đoán" }).click();
+    expect((await saved).ok()).toBeTruthy();
+    await expect(page.getByText("Đã cập nhật phiếu chẩn đoán")).toBeVisible();
+
+    // The correction is the server's: the row carries it, and so does a reload.
+    await expect.poll(async () => (await row.innerText()).includes(chosen)).toBe(true);
+    await page.reload();
+    await expect(page.locator(".pd-diagnosis-card tbody tr.ant-table-row").first()).toContainText(
+      chosen,
+      { timeout: 20000 },
+    );
   });
 
   test("the plan commands stay disabled until a service is ticked", async ({ page }) => {
@@ -237,6 +293,31 @@ test.describe("Chẩn đoán & Tư vấn — kế hoạch", () => {
   }) => {
     await openConsulting(page);
 
+    // A voucher is offered against a total, so the row ticked here has to be
+    // worth something. The catalog collects zero-priced junk from earlier runs
+    // and a consulting line written off one of those totals nothing.
+    const rows = page.locator(".pd-advise-table tbody tr.ant-table-row");
+    await expect(rows.first()).toBeVisible();
+
+    // The biggest money figure on the row stands for what it is worth; the
+    // column it sits in moves with "Cột hiển thị", so it is not indexed.
+    const worthOf = async (index: number): Promise<number> => {
+      const text = await rows.nth(index).innerText();
+      const figures = [...text.matchAll(/([\d.]+)\s*đ/g)].map((m) =>
+        Number(m[1].replace(/\D/g, "")),
+      );
+      return figures.length > 0 ? Math.max(...figures) : 0;
+    };
+
+    let priced = -1;
+    for (let index = 0; index < (await rows.count()); index++) {
+      if ((await worthOf(index)) > 0) {
+        priced = index;
+        break;
+      }
+    }
+    expect(priced).toBeGreaterThan(-1);
+
     // The picker asks the server what applies to the ticked total, so the read
     // goes out on the tick — before the popover is ever opened.
     const available = page.waitForResponse(
@@ -246,11 +327,7 @@ test.describe("Chẩn đoán & Tư vấn — kế hoạch", () => {
         !res.url().includes("orderAmount=0") &&
         res.request().method() === "GET",
     );
-    await page
-      .locator(".pd-advise-table tbody tr.ant-table-row")
-      .first()
-      .locator(".ant-checkbox-input")
-      .check();
+    await rows.nth(priced).locator(".ant-checkbox-input").check();
     expect((await available).ok()).toBeTruthy();
 
     await page.getByRole("button", { name: /Chọn voucher|Voucher \(/ }).click();
@@ -543,14 +620,38 @@ test.describe("Chẩn đoán & Tư vấn — kế hoạch", () => {
       "true",
     );
 
-    // The ✕ drops the quote it belongs to, and the drop is the server's too, so
-    // it does not come back on the next load. Also leaves this patient with no
-    // quotes, so a re-run starts where this one did.
-    await page.getByRole("tab", { name: newestLabel }).click();
-    await page.getByRole("button", { name: `Bỏ ${newestLabel}` }).click();
+    // Clicking "Phiếu tư vấn" while it is already open does nothing at all —
+    // no dialog, no navigation.
+    const openTabs = await page.getByRole("tab").allInnerTexts();
+    await page.getByRole("tab", { name: "Phiếu tư vấn" }).click();
+    await expect(page.locator(".ant-modal-wrap:not([style*='display: none'])")).toHaveCount(0);
+    expect(await page.getByRole("tab").allInnerTexts()).toEqual(openTabs);
+
+    // The ✕ asks first — a quote is dropped on the server and does not come
+    // back. Answering "Huỷ" leaves it where it was.
+    const dropQuote = async (label: string) => {
+      await page.getByRole("tab", { name: label }).click();
+      await page.getByRole("button", { name: `Bỏ ${label}` }).click();
+      const ask = page.getByRole("dialog", { name: "Xóa báo giá" });
+      await expect(ask).toBeVisible();
+      await expect(ask).toContainText(`Phiếu báo giá ${label} sẽ bị xoá`);
+      await expect(ask).toContainText("Hành động này không thể hoàn tác.");
+      await ask.getByRole("button", { name: "Huỷ" }).click();
+      await expect(ask).toBeHidden();
+      await expect(page.getByRole("tab", { name: label })).toBeVisible();
+
+      await page.getByRole("button", { name: `Bỏ ${label}` }).click();
+      await expect(ask).toBeVisible();
+      // The confirm button's name carries its icon: "delete Xoá".
+      await ask.getByRole("button", { name: /Xoá/ }).click();
+      await expect(ask).toBeHidden();
+    };
+
+    // Also leaves this patient with no quotes, so a re-run starts where this
+    // one did.
+    await dropQuote(newestLabel);
     await expect(quoteTabs()).toHaveCount(1);
-    await page.getByRole("tab", { name: firstLabel }).click();
-    await page.getByRole("button", { name: `Bỏ ${firstLabel}` }).click();
+    await dropQuote(firstLabel);
     await expect(quoteTabs()).toHaveCount(0);
 
     await page.reload();

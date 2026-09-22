@@ -1,20 +1,22 @@
+import { useState } from "react";
 import { CloseCircleFilled } from "@ant-design/icons";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { t } from "@/lib/i18n";
 import type { AdviseQuotesState } from "../../hooks/useAdviseQuotes";
 
 /**
  * The tab strip at the head of Phiếu tư vấn: the consulting list itself, then
  * one tab per báo giá raised off it. Each quote tab carries the reference's
- * round red ✕ at its corner, which drops that quote.
+ * round red ✕ at its corner, which drops that quote — after asking, because
+ * the drop reaches the server and cannot be taken back.
+ *
+ * The "Phiếu tư vấn" tab only ever switches back to the list. Clicking it while
+ * it is already open does nothing; an earlier draft opened "Tạo phiếu tư vấn"
+ * from here, which the reference does not do (measured 2026-09-22).
  */
-export function AdviseQuoteTabs({
-  quotes,
-  onReopenAdvise,
-}: {
-  quotes: AdviseQuotesState;
-  /** Clicking the plan tab while it is already open opens "Tạo phiếu tư vấn". */
-  onReopenAdvise: () => void;
-}) {
+export function AdviseQuoteTabs({ quotes }: { quotes: AdviseQuotesState }) {
+  const [dropping, setDropping] = useState<{ id: string; label: string } | null>(null);
+
   return (
     <div className="pd-advise-tabs" role="tablist" aria-label={t("Phiếu tư vấn và báo giá")}>
       <button
@@ -24,7 +26,7 @@ export function AdviseQuoteTabs({
         className={["pd-advise-tab", quotes.activeId === null && "pd-advise-tab--on"]
           .filter(Boolean)
           .join(" ")}
-        onClick={() => (quotes.activeId === null ? onReopenAdvise() : quotes.show(null))}
+        onClick={() => quotes.show(null)}
       >
         {t("Phiếu tư vấn")}
       </button>
@@ -51,7 +53,7 @@ export function AdviseQuoteTabs({
                 type="button"
                 className="pd-advise-tab-drop"
                 aria-label={t("Bỏ {0}", quote.label)}
-                onClick={() => quotes.remove(quote.id)}
+                onClick={() => setDropping({ id: quote.id, label: quote.label })}
               >
                 <CloseCircleFilled aria-hidden="true" />
               </button>
@@ -59,6 +61,21 @@ export function AdviseQuoteTabs({
           </span>
         );
       })}
+
+      <ConfirmDeleteDialog
+        open={dropping !== null}
+        noun={t("báo giá")}
+        title={t("Xóa báo giá")}
+        question={t(
+          "Phiếu báo giá {0} sẽ bị xoá và thao tác này không thể khôi phục.",
+          dropping?.label ?? "",
+        )}
+        onConfirm={() => {
+          if (dropping) quotes.remove(dropping.id);
+          setDropping(null);
+        }}
+        onClose={() => setDropping(null)}
+      />
     </div>
   );
 }

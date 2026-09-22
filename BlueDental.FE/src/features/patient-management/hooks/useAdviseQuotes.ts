@@ -1,5 +1,4 @@
 import { useCallback, useMemo, useState } from "react";
-import { toast } from "sonner";
 import type { PatientAdviseDto } from "@/features/treatment-management/api/consultingApi";
 import {
   useCreatePatientQuote,
@@ -10,6 +9,7 @@ import {
   type PatientQuoteLineDto,
 } from "@/features/treatment-management/api/patientQuoteApi";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { moveItem } from "@/utils/array";
 
 /** One báo giá raised off Phiếu tư vấn, with its lines resolved to their rows. */
@@ -113,7 +113,7 @@ export function useAdviseQuotes(
         // Opening the new one is what the reference does: the quote just made
         // is the tab showing.
         .then((quote) => setActiveId(quote.id))
-        .catch((error) => toast.error(extractApiError(error)));
+        .catch((error) => notifyError(extractApiError(error)));
     },
     [branchId, patientId, createQuote],
   );
@@ -123,7 +123,7 @@ export function useAdviseQuotes(
       duplicateQuote
         .mutateAsync(id)
         .then((quote) => setActiveId(quote.id))
-        .catch((error) => toast.error(extractApiError(error)));
+        .catch((error) => notifyError(extractApiError(error)));
     },
     [duplicateQuote],
   );
@@ -133,7 +133,7 @@ export function useAdviseQuotes(
       deleteQuote
         .mutateAsync(id)
         .then(() => setActiveId((current) => (current === id ? null : current)))
-        .catch((error) => toast.error(extractApiError(error)));
+        .catch((error) => notifyError(extractApiError(error)));
     },
     [deleteQuote],
   );
@@ -152,7 +152,7 @@ export function useAdviseQuotes(
             sortOrder: index + 1,
           })),
         })
-        .catch((error) => toast.error(extractApiError(error)));
+        .catch((error) => notifyError(extractApiError(error)));
     },
     [active, updateQuote],
   );

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import dayjs from "dayjs";
 import { useReceiveStock, type SupplyDto } from "../api/suppliesApi";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { t } from "@/lib/i18n";
 
 interface ReceiveStockModalProps {
@@ -57,7 +58,7 @@ export function ReceiveStockModal({ open, supply, onClose }: ReceiveStockModalPr
       toast.success(t("Đã nhập kho"));
       onClose();
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 

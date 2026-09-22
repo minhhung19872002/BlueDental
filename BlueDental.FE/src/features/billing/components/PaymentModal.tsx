@@ -9,6 +9,7 @@ import {
 } from "../api";
 import { toast } from "sonner";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { formatVND } from "@/utils/format";
 import { t } from "@/lib/i18n";
 
@@ -61,7 +62,7 @@ export function PaymentModal({ open, invoice, onClose }: Props) {
       toast.success(t("Đã ghi nhận thanh toán"));
       onClose();
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 

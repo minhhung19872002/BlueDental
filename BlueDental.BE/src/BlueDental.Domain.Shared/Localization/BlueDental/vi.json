@@ -1,4 +1,4 @@
-﻿{
+{
   "culture": "vi",
   "texts": {
     "BlueDental:Organizations:0001": "Không tìm thấy chi nhánh.",
@@ -160,6 +160,34 @@
     "đ": "đ",
     "Đơn vị: triệu đồng": "Đơn vị: triệu đồng",
     "tr": "tr",
-    "<1 tr": "<1 tr"
+    "<1 tr": "<1 tr",
+    "BlueDental:Billing:0090": "Vui lòng chọn tài khoản nhận tiền cho hình thức này.",
+    "BlueDental:Billing:0091": "Số tiền chia cho dịch vụ không hợp lệ.",
+    "BlueDental:Authorization:0001": "Bạn không có quyền với dữ liệu của chi nhánh này.",
+    "BlueDental:BranchManager:0001": "Email này đã được dùng cho một quản lý khác.",
+    "BlueDental:BranchManager:0002": "Số điện thoại không hợp lệ.",
+    "BlueDental:BranchManager:0003": "Vui lòng chọn ảnh đại diện.",
+    "BlueDental:BranchManager:0004": "Định dạng ảnh đại diện không được hỗ trợ.",
+    "BlueDental:BranchManager:0005": "Ảnh đại diện vượt quá dung lượng cho phép.",
+    "BlueDental:BranchManager:0006": "Không tìm thấy ảnh đại diện.",
+    "BlueDental:FileManagement:0001": "Định dạng ảnh không được hỗ trợ.",
+    "BlueDental:FileManagement:0002": "Ảnh vượt quá dung lượng cho phép.",
+    "BlueDental:FileManagement:0003": "Không tìm thấy ảnh.",
+    "BlueDental:Labo:0004": "Vật tư Labo phải thuộc một nhóm.",
+    "BlueDental:Labo:0005": "Logo vượt quá dung lượng cho phép.",
+    "BlueDental:Labo:0006": "Tệp logo không phải là ảnh.",
+    "BlueDental:Labo:0007": "Không tìm thấy logo.",
+    "BlueDental:Operations:0001": "Không thể chuyển công việc sang trạng thái này.",
+    "BlueDental:Operations:0002": "Nội dung bài viết không được để trống.",
+    "BlueDental:Organizations:0005": "Tài khoản chưa được phân công chi nhánh nào.",
+    "BlueDental:Patient:0009": "Nội dung bệnh án vượt quá dung lượng cho phép.",
+    "BlueDental:Timekeeping:0011": "Không thể chấm công cho ngày đã qua.",
+    "BlueDental:Tools:0001": "Không tìm thấy cấu hình.",
+    "BlueDental:Tools:0002": "Số máy nhánh SIP này đã được dùng.",
+    "BlueDental:Treatment:0026": "Không tìm thấy báo giá.",
+    "BlueDental:Billing:0092": "Số tiền thanh toán của dịch vụ không được vượt quá số tiền còn phải thanh toán.",
+    "BlueDental:Billing:0093": "Số tiền hoàn của dịch vụ không được vượt quá số tiền đã thanh toán.",
+    "BlueDental:Treatment:0027": "Dịch vụ đã hoàn thành/huỷ không được phép chuyển đổi.",
+    "BlueDental:Treatment:0028": "Dịch vụ đã có công đoạn hoàn thành, không được chuyển đổi."
   }
 }

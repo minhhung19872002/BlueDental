@@ -11,8 +11,9 @@ import {
   PrescriptionLineEditor,
   type PrescriptionLine,
 } from "@/components/prescription-lines";
-import { useDentistList } from "@/features/staff/api/staffQueries";
+import { ServerSearchSelect } from "@/components/ServerSearchSelect";
 import { CATALOG_GROUP, useCatalogOptions, type CatalogOption } from "@/hooks/useCatalogOptions";
+import { useDentistOptions } from "@/hooks/usePickerOptions";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import {
@@ -96,7 +97,6 @@ export function PrescriptionDialog({ open, patient, prescription, onClose }: Pro
   const branchId = useCurrentBranchId();
   const templates = useCatalogOptions(CATALOG_GROUP.PrescriptionTemplate).data ?? [];
   const medicines = useCatalogOptions(CATALOG_GROUP.MedicationType).data ?? [];
-  const dentists = useDentistList().data ?? [];
   const create = useCreatePrescription();
   const update = useUpdatePrescription();
 
@@ -227,18 +227,11 @@ export function PrescriptionDialog({ open, patient, prescription, onClose }: Pro
               name="staffId"
               rules={[{ required: true, message: t("Vui lòng chọn bác sĩ") }]}
             >
-              <Select
-                showSearch
-                optionFilterProp="label"
-                placeholder={
-                  <>
-                    {t("Chọn bác sĩ")}
-                    <span className="rx-required">*</span>
-                  </>
-                }
+              <ServerSearchSelect
                 aria-label={t("Chọn bác sĩ")}
-                prefix={<SearchOutlined />}
-                options={dentists.map((dentist) => ({ value: dentist.id, label: dentist.name }))}
+                allowClear={false}
+                useOptions={useDentistOptions}
+                notFoundText={t("Không tìm thấy bác sĩ")}
               />
             </Form.Item>
             <Form.Item name="diagnosisText">

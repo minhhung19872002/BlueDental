@@ -17,6 +17,7 @@ import {
   type UpdatePatientDiagnosisDto,
 } from "@/features/treatment-management/api/consultingApi";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { t } from "@/lib/i18n";
 import { useDeletePatientImage, useUploadPatientImage } from "../api/patientImageApi";
 import { useConsultingImageReorder } from "./usePatientImageReorder";
@@ -48,7 +49,7 @@ export function useConsultingActions(patientId: string, branchId: string | null)
       }
       toast.success(t("Đã tải ảnh lên"));
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 
@@ -57,7 +58,7 @@ export function useConsultingActions(patientId: string, branchId: string | null)
       await deleteImage.mutateAsync(id);
       toast.success(t("Đã xoá ảnh"));
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 
@@ -75,7 +76,7 @@ export function useConsultingActions(patientId: string, branchId: string | null)
       toast.success(t("Đã tạo phiếu chẩn đoán"));
       return created;
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
       return null;
     }
   };
@@ -90,7 +91,7 @@ export function useConsultingActions(patientId: string, branchId: string | null)
       toast.success(t("Đã cập nhật phiếu chẩn đoán"));
       return updated;
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
       return null;
     }
   };
@@ -102,7 +103,7 @@ export function useConsultingActions(patientId: string, branchId: string | null)
       toast.success(t("Đã xoá chẩn đoán"));
       setRemovingDiagnosis(null);
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 
@@ -117,7 +118,7 @@ export function useConsultingActions(patientId: string, branchId: string | null)
       toast.success(t("Đã từ chối dịch vụ tư vấn"));
       setRemovingAdvise(null);
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 
@@ -130,7 +131,7 @@ export function useConsultingActions(patientId: string, branchId: string | null)
     try {
       await reorderAdvise.mutateAsync({ id, sortOrder });
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 
@@ -180,7 +181,7 @@ export function useConsultingActions(patientId: string, branchId: string | null)
       toast.success(t("Đã tạo kế hoạch điều trị"));
       return true;
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
       return false;
     }
   };

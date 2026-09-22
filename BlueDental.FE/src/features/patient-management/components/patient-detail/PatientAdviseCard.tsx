@@ -9,7 +9,7 @@ import {
 } from "@ant-design/icons";
 import { DataTable } from "@/components/DataTable";
 import {
-  formatTeeth,
+  formatToothCodes,
   type PatientAdviseDto,
 } from "@/features/treatment-management/api/consultingApi";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -78,7 +78,6 @@ interface Props {
   diagnosisNotes: Record<string, string | null>;
   selected: string[];
   onSelect: (ids: string[]) => void;
-  onOpenAdvise?: () => void;
   /** A row was clicked: open that slip in "Cập nhật phiếu dịch vụ". */
   onEdit?: (row: PatientAdviseDto) => void;
   onDelete?: (row: PatientAdviseDto) => void;
@@ -100,7 +99,6 @@ export function PatientAdviseCard({
   diagnosisNotes,
   selected,
   onSelect,
-  onOpenAdvise,
   onEdit,
   onDelete,
   onReorder,
@@ -138,7 +136,7 @@ export function PatientAdviseCard({
       return;
     }
     setDentistError(false);
-    onAddToPlan(dentistId);
+    onAddToPlan?.(dentistId);
   };
 
   /** "Có" on the confirmation raises the quote off what is ticked. */
@@ -175,15 +173,19 @@ export function PatientAdviseCard({
           title: t("Chẩn đoán"),
           key: "diagnosis",
           width: 200,
-          // "28 - âsasa" over "(sdfs)": the teeth and the diagnosis read as one
-          // fact in the reference's link blue, with the slip's own note under it.
+          // "12, 11, 22, 23, 24 - vôi răng": the teeth by number and the
+          // diagnosis read as one fact in the reference's link blue. Re-measured
+          // on staging 2026-09-22 — the numbers come **without** their surfaces,
+          // and a row with no diagnosis prints the teeth alone, no trailing
+          // dash. The slip's own note sits under it when it has one.
           render: (_, row) => {
-            const note = diagnosisNotes[row.patientDiagnosisId];
-            const teeth = formatTeeth(row.teeth);
-            const name = row.diagnosisName ?? "—";
+            const note = row.patientDiagnosisId ? diagnosisNotes[row.patientDiagnosisId] : undefined;
+            const fact = [formatToothCodes(row.teeth), row.diagnosisName?.trim()]
+              .filter(Boolean)
+              .join(" - ");
             return (
               <div className="pd-cell-stack">
-                <b className="pd-cell-link">{teeth === "—" ? name : `${teeth} - ${name}`}</b>
+                <b className="pd-cell-link">{fact || "—"}</b>
                 {note && <span>({note})</span>}
               </div>
             );
@@ -205,26 +207,28 @@ export function PatientAdviseCard({
           title: t("Nhân sự tư vấn 2"),
           dataIndex: "secondStaffName",
           width: 170,
-          render: (value: string | null) =>
-            value ?? <span className="pd-cell-missing">{t("Chưa cập nhật")}</span>,
+          render: (value: string | null) => value ?? "-",
         },
       },
+      // The doctors on the chẩn đoán, not the ones who advised — re-measured on
+      // staging 2026-09-22: a line with no diagnosis prints "-" in both, even
+      // though its own advisor is right there in "Nhân sự tư vấn 1".
       {
         key: "diagnosisStaff",
         column: {
           title: t("Bác sĩ chẩn đoán 1"),
-          dataIndex: "staffName",
+          dataIndex: "diagnosisStaffName",
           width: 170,
-          render: (value: string | null) => value ?? "—",
+          render: (value: string | null) => value ?? "-",
         },
       },
       {
         key: "secondDiagnosis",
         column: {
           title: t("Chẩn đoán 2"),
-          dataIndex: "diagnosisName",
+          dataIndex: "diagnosisSecondStaffName",
           width: 170,
-          render: (value: string | null) => value ?? "—",
+          render: (value: string | null) => value ?? "-",
         },
       },
       {
@@ -344,10 +348,10 @@ export function PatientAdviseCard({
     <div className="bd-cat-card pd-advise-card">
       <header className="pd-card-head">
         {/* The reference turns this into a tab strip once a báo giá exists:
-            "Phiếu tư vấn" beside "BG 1", "BG 2"… Clicking the plan tab while
-            it is already open is what opens "Tạo phiếu tư vấn", which is what
-            the button did before there were tabs. */}
-        <AdviseQuoteTabs quotes={quotes} onReopenAdvise={onOpenAdvise} />
+            "Phiếu tư vấn" beside "BG 1", "BG 2"… The plan tab only switches
+            back to the list; a consulting line is raised from a diagnosis row,
+            not from here. */}
+        <AdviseQuoteTabs quotes={quotes} />
         <div className="pd-card-note">
           <span>
             {t(

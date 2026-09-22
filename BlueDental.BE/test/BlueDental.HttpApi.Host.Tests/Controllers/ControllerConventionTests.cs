@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -113,6 +113,32 @@ public class ControllerConventionTests
 
         foreach (var action in actionTemplates)
             yield return (controller.Name, $"{classTemplate.TrimEnd('/')}/{action!.TrimStart('/')}");
+    }
+
+    /// <summary>
+    /// The treatment module's controllers are written by hand rather than built
+    /// by ABP's convention, so a method added to the app service without a route
+    /// beside it answers 405 at runtime and nothing at build time says so. That
+    /// is how "Chỉnh sửa" on a receipt first shipped broken.
+    /// </summary>
+    [Theory]
+    [InlineData(typeof(IPatientTreatmentAppService), typeof(PatientTreatmentController))]
+    [InlineData(typeof(IPatientPaymentAppService), typeof(PatientPaymentController))]
+    public void Hand_Written_Controllers_Should_Route_Every_AppService_Method(
+        Type contract, Type controller)
+    {
+        var routed = controller
+            .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+            .Where(m => m.GetCustomAttributes<HttpMethodAttribute>().Any())
+            .Select(m => m.Name)
+            .ToHashSet();
+
+        var missing = contract.GetMethods()
+            .Select(m => m.Name)
+            .Where(name => !routed.Contains(name))
+            .ToList();
+
+        missing.ShouldBeEmpty();
     }
 
     [Fact]

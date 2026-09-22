@@ -1,4 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import type { PagedResult } from "@/types";
@@ -102,6 +108,113 @@ export function useCatalogOptions(group: CatalogGroup) {
       }));
     },
     enabled: Boolean(branchId),
+  });
+}
+
+/** One page of a catalog, as the pickers read it. */
+export interface CatalogOptionPage {
+  items: CatalogOption[];
+  totalCount: number;
+}
+
+/** The reference's pickers ask for twenty rows at a time and scroll for more. */
+export const CATALOG_PAGE_SIZE = 20;
+
+function toOption(entry: CatalogEntryResponse): CatalogOption {
+  return {
+    id: entry.id,
+    name: entry.name,
+    code: entry.code,
+    price: entry.price,
+    taxonomyId: entry.taxonomyId,
+    taxonomyName: entry.taxonomyName,
+    isImageRequired: entry.isImageRequired,
+    content: entry.content ?? null,
+    description: entry.description ?? null,
+    prescriptionLines: entry.prescriptionLines ?? [],
+  };
+}
+
+interface CatalogSearchInput {
+  /** What the user typed. Sent to the server as `filter`, never matched here. */
+  search?: string;
+  /** Narrow to one group — the picker's group panel does. */
+  taxonomyId?: string;
+  enabled?: boolean;
+}
+
+/**
+ * A catalog searched **on the server**, a page at a time.
+ *
+ * The reference's service picker does not hold the catalog in the browser: it
+ * calls its list endpoint with `search` and `page` on every keystroke and grows
+ * the list as the popup is scrolled. A clinic's catalog outgrows any one page,
+ * so filtering a prefetched slice would quietly hide rows that do exist.
+ */
+export function useCatalogOptionSearch(group: CatalogGroup, input: CatalogSearchInput = {}) {
+  const branchId = useCurrentBranchId();
+  const search = input.search?.trim() ?? "";
+
+  return useInfiniteQuery({
+    queryKey: [
+      ...catalogOptionKeys.group(branchId, group),
+      "search",
+      search,
+      input.taxonomyId ?? null,
+    ] as const,
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }): Promise<CatalogOptionPage> => {
+      const page = await api
+        .get<PagedResult<CatalogEntryResponse>>("/v1/app/catalog-entries", {
+          params: {
+            clinicBranchId: branchId,
+            group,
+            isActive: true,
+            taxonomyId: input.taxonomyId,
+            filter: search || undefined,
+            skipCount: pageParam,
+            maxResultCount: CATALOG_PAGE_SIZE,
+          },
+        })
+        .then((r) => r.data);
+
+      return { items: page.items.map(toOption), totalCount: page.totalCount };
+    },
+    getNextPageParam: (last, pages) => {
+      const loaded = pages.reduce((sum, item) => sum + item.items.length, 0);
+      return loaded < last.totalCount ? loaded : undefined;
+    },
+    // The old rows stay on screen while the next search lands, so the popup
+    // does not blink empty between keystrokes.
+    placeholderData: keepPreviousData,
+    enabled: Boolean(branchId) && (input.enabled ?? true),
+  });
+}
+
+/** The same server-side search over a catalog's groups. */
+export function useTaxonomyGroupSearch(group: CatalogGroup, search: string, enabled = true) {
+  const branchId = useCurrentBranchId();
+  const term = search.trim();
+
+  return useQuery({
+    queryKey: [...catalogOptionKeys.group(branchId, group), "taxonomies", "search", term] as const,
+    queryFn: async (): Promise<TaxonomyGroupOption[]> => {
+      const page = await api
+        .get<PagedResult<TaxonomyResponse>>("/v1/app/taxonomies", {
+          params: {
+            clinicBranchId: branchId,
+            group,
+            includeCount: true,
+            filter: term || undefined,
+            maxResultCount: 100,
+          },
+        })
+        .then((r) => r.data);
+
+      return page.items.map((item) => ({ id: item.id, name: item.name, itemCount: item.itemCount }));
+    },
+    placeholderData: keepPreviousData,
+    enabled: Boolean(branchId) && enabled,
   });
 }
 

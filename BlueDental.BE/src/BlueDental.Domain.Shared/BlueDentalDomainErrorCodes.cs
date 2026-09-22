@@ -98,6 +98,20 @@ public static class BlueDentalDomainErrorCodes
 
         /// <summary>A step ticked that the công đoạn does not cover.</summary>
         public const string UnknownStageServiceItem = "BlueDental:Treatment:0025";
+
+        /// <summary>
+        /// "Chuyển đổi dịch vụ" on a line that is finished, cancelled or already
+        /// replaced. The reference words this itself — its
+        /// `treatment.validation.convertNotAllowed`.
+        /// </summary>
+        public const string ServiceConvertNotAllowed = "BlueDental:Treatment:0027";
+
+        /// <summary>
+        /// "Chuyển đổi dịch vụ" on a line that already has a finished công đoạn:
+        /// the work is done and paid against this service, so moving the line to
+        /// another one would leave that công đoạn behind.
+        /// </summary>
+        public const string ServiceHasCompletedStage = "BlueDental:Treatment:0028";
     }
 
     public static class Billing
@@ -107,6 +121,15 @@ public static class BlueDentalDomainErrorCodes
         public const string InvoiceAlreadyPaid = "BlueDental:Billing:0003";
         public const string PaymentAccountRequired = "BlueDental:Billing:0090";
         public const string InvalidPaymentAllocation = "BlueDental:Billing:0091";
+
+        /// <summary>
+        /// ABP prints the string its resource holds for the code, not the one
+        /// passed to the exception — so a reason the cashier needs to read has
+        /// to have a code of its own.
+        /// </summary>
+        public const string PaymentExceedsOutstanding = "BlueDental:Billing:0092";
+
+        public const string RefundExceedsPaid = "BlueDental:Billing:0093";
         public const string InsufficientPaymentAmount = "BlueDental:Billing:0004";
         public const string InsuranceClaimNotFound = "BlueDental:Billing:0005";
         public const string InvalidCurrency = "BlueDental:Billing:0006";

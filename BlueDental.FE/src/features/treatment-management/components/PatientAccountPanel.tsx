@@ -28,6 +28,7 @@ import { useDentistList } from "@/features/staff/api/staffQueries";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { toast } from "sonner";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { formatDateTime, formatVND } from "@/utils/format";
 import { CurrencyInput } from "@/components/CurrencyInput";
 import { t } from "@/lib/i18n";
@@ -69,8 +70,13 @@ export function PatientAccountPanel({ patientId }: PatientAccountPanelProps) {
     { label: t("Tổng phiếu"), value: account?.payment.totalPrice ?? 0, testId: "acc-total", color: "#171c33" },
     { label: t("Đã thanh toán"), value: account?.payment.totalPaid ?? 0, testId: "acc-paid", color: "#0e9f6e" },
     { label: t("Hoàn tiền"), value: account?.payment.totalRefund ?? 0, testId: "acc-refund", color: "#d98b0f" },
-    { label: t("Còn lại"), value: account?.payment.totalDue ?? 0, testId: "acc-due", color: "#e5484d" },
-    { label: t("Phải thu"), value: account?.payment.debt ?? 0, testId: "acc-debt", color: "#e5484d" },
+    { label: t("Còn lại"), value: account?.payment.debt ?? 0, testId: "acc-due", color: "#e5484d" },
+    {
+      label: t("Phải thu"),
+      value: Math.max(0, account?.payment.receivable ?? 0),
+      testId: "acc-debt",
+      color: "#e5484d",
+    },
     { label: t("Đang giữ hộ"), value: account?.heldForPatient ?? 0, testId: "acc-held", color: "#6366f1" },
   ];
 
@@ -92,7 +98,7 @@ export function PatientAccountPanel({ patientId }: PatientAccountPanelProps) {
       setModalOpen(false);
       form.resetFields();
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 
@@ -221,7 +227,7 @@ export function PatientAccountPanel({ patientId }: PatientAccountPanelProps) {
                 }
                 options={slips.map((slip) => ({
                   value: slip.id,
-                  label: t("{0} — còn lại {1} đ", slip.code, formatVND(slip.payment.totalDue)),
+                  label: t("{0} — còn lại {1} đ", slip.code, formatVND(slip.payment.debt)),
                 }))}
               />
             </Form.Item>

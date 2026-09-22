@@ -139,7 +139,6 @@ export function PatientDiagnosisForm({
             optionFilterProp="label"
             prefix={<SearchOutlined />}
             options={diagnoses}
-            disabled={Boolean(editing)}
             notFoundContent={t("Không tìm thấy kết quả")}
           />
         </FloatingField>

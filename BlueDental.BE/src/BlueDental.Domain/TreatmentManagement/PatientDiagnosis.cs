@@ -153,6 +153,25 @@ public class PatientDiagnosis : FullAuditedAggregateRoot<Guid>
         return this;
     }
 
+    /// <summary>
+    /// "Cập nhật Chẩn Đoán" may correct which condition was found — it is the
+    /// one thing the form is for, and it was read-only here until 2026-09-22.
+    /// </summary>
+    public PatientDiagnosis ChangeDiagnosis(Guid diagnosisId)
+    {
+        GuardEditable();
+
+        if (diagnosisId == Guid.Empty)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.PatientDiagnosisNotFound,
+                "A diagnosis has to name the condition it found.");
+        }
+
+        DiagnosisId = diagnosisId;
+        return this;
+    }
+
     /// <summary>Called when a consulting line derived from this diagnosis becomes a treatment service.</summary>
     public PatientDiagnosis MarkTreatmentServiceCreated()
     {

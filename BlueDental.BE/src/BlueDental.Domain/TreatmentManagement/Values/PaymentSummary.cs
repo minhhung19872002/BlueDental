@@ -20,10 +20,19 @@ public class PaymentSummary : ComparableValueObject
     /// <summary>Đã thu — money actually collected.</summary>
     public decimal TotalPaid { get; private set; }
 
-    /// <summary>Dự kiến thu còn lại — <see cref="TotalPrice"/> not yet collected.</summary>
+    /// <summary>
+    /// The reference repeats <see cref="Receivable"/> here on every payload it
+    /// sends (patient summary, slip, service line), so this mirrors it. Its own
+    /// screens never read the field — they derive what they need from the
+    /// primary amounts.
+    /// </summary>
     public decimal TotalDue { get; private set; }
 
-    /// <summary>Phải thu — collectable now (completed work that is unpaid).</summary>
+    /// <summary>
+    /// Phải thu — collectable now: the value of finished work that is still
+    /// unpaid. Negative once the patient has paid ahead of the work; the UI
+    /// clamps it at zero, as the reference's own <c>resolveReceivable</c> does.
+    /// </summary>
     public decimal Receivable { get; private set; }
 
     /// <summary>Đã thu của phần chưa hoàn tất.</summary>
@@ -35,7 +44,11 @@ public class PaymentSummary : ComparableValueObject
     /// <summary>Đã hoàn — refunded to the patient.</summary>
     public decimal TotalRefund { get; private set; }
 
-    /// <summary>Dư nợ — debt arising from completed but unpaid work.</summary>
+    /// <summary>
+    /// Còn lại — everything still owed on the record, finished or not:
+    /// <see cref="TotalPrice"/> less what has actually been collected. This is
+    /// the column the reference prints as "Còn lại" / "Công nợ".
+    /// </summary>
     public decimal Debt { get; private set; }
 
     /// <summary>Chiết khấu đã áp dụng.</summary>
@@ -109,10 +122,17 @@ public class PaymentSummary : ComparableValueObject
         decimal prepaid = 0m,
         decimal? carryOverAmount = null)
     {
+        // Measured against the reference on 2026-09-21 (staging, three payloads:
+        // two slips and the patient rollup). Its arithmetic is
+        //   debt       = totalPrice    - (totalPaid - totalRefund)
+        //   receivable = completedValue - (totalPaid - totalRefund)
+        //   totalDue   = receivable
+        // A slip whose work has not started therefore still reports its whole
+        // price as "Còn lại" while "Phải thu" stays at zero.
         var netPaid = totalPaid - totalRefund;
-        var totalDue = totalPrice - netPaid;
         var receivable = completedValue - netPaid;
-        var debt = receivable > 0m ? receivable : 0m;
+        var debt = totalPrice - netPaid;
+        var totalDue = receivable;
         var paidUncompleted = netPaid - completedValue;
 
         return new PaymentSummary(

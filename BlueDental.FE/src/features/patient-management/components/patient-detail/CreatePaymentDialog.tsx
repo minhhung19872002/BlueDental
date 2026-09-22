@@ -22,6 +22,7 @@ import {
   type PaymentAccountKindCode,
 } from "@/hooks/usePaymentAccountOptions";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { t } from "@/lib/i18n";
 import { formatDate, formatMoneyUnit } from "@/utils/format";
 import {
@@ -148,7 +149,8 @@ export function CreatePaymentDialog({
     manual[line.id] === undefined ? line.outstandingAmount : manual[line.id];
   const manualTotal = chosen.reduce((sum, line) => sum + (shareOf(line) ?? 0), 0);
 
-  const planDue = plan ? plan.payment.totalDue : 0;
+  /** What the slip still owes altogether — the reference's "Còn lại". */
+  const planDue = plan ? plan.payment.debt : 0;
   const noService = chosen.length === 0;
 
   const accountKind = ACCOUNT_KIND_BY_METHOD[method] ?? null;
@@ -223,7 +225,7 @@ export function CreatePaymentDialog({
       onSaved();
       onClose();
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 

@@ -1,10 +1,15 @@
 import type { ReactNode } from "react";
-import { Input, InputNumber, Select } from "antd";
+import { Input, InputNumber } from "antd";
 import { Check, Loader2, X } from "lucide-react";
 import { CurrencyInput } from "@/components/CurrencyInput";
-import type { StaffOption } from "@/hooks/useStaffOptions";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
+import {
+  useDentistOptions,
+  useDiagnosisOptions,
+  useStaffOptionsSearch,
+} from "@/hooks/usePickerOptions";
+import { ServerSearchSelect } from "@/components/ServerSearchSelect";
 import { moneyText } from "../plan/planTypes";
 import { formatToothValue } from "../plan/toothPicker";
 import { DraftStatusPill } from "./DraftStatusPill";
@@ -31,25 +36,33 @@ function DraftNameCell({ draft }: DraftProps) {
   );
 }
 
-/** One of the people / diagnosis pickers: a searchable select bound to an id field. */
+/**
+ * One of the people / diagnosis pickers. Each asks its own endpoint for what
+ * was typed — the row sits over a whole catalog, which no prefetched page can
+ * stand in for.
+ */
 function IdSelect({
   draft,
   field,
-  options,
+  useOptions,
   placeholder,
-}: DraftProps & { field: IdField; options: StaffOption[]; placeholder: string }) {
+}: DraftProps & {
+  field: IdField;
+  useOptions: (search: string, enabled: boolean) => {
+    options: { value: string; label: string }[];
+    loading: boolean;
+  };
+  placeholder: string;
+}) {
   return (
-    <Select<string>
-      className="pdt-draft-select"
-      showSearch
-      allowClear
-      placeholder={placeholder}
-      aria-label={placeholder}
-      value={draft.values[field] ?? undefined}
-      options={options}
-      optionFilterProp="label"
-      onChange={(value) => draft.update(field, value ?? null)}
-    />
+    <div className="pdt-draft-select">
+      <ServerSearchSelect
+        value={draft.values[field] ?? undefined}
+        aria-label={placeholder}
+        useOptions={useOptions}
+        onChange={(value) => draft.update(field, value ?? null)}
+      />
+    </div>
   );
 }
 
@@ -101,10 +114,10 @@ const DRAFT_CELLS: Record<string, DraftCell> = {
   grip: () => null,
   service: (draft) => <DraftNameCell draft={draft} />,
   diagnosis: (draft) => (
-    <IdSelect draft={draft} field="diagnosisId" options={draft.options.diagnoses} placeholder={t("Chẩn đoán")} />
+    <IdSelect draft={draft} field="diagnosisId" useOptions={useDiagnosisOptions} placeholder={t("Chẩn đoán")} />
   ),
   dentist: (draft) => (
-    <IdSelect draft={draft} field="dentistId" options={draft.options.dentists} placeholder={t("Bác sĩ")} />
+    <IdSelect draft={draft} field="dentistId" useOptions={useDentistOptions} placeholder={t("Bác sĩ")} />
   ),
   teeth: (draft) => <DraftTeethCell draft={draft} />,
   quantity: (draft) => (
@@ -137,24 +150,24 @@ const DRAFT_CELLS: Record<string, DraftCell> = {
     />
   ),
   diagnoser1: (draft) => (
-    <IdSelect draft={draft} field="diagnoserStaffId" options={draft.options.staff} placeholder={t("BS chẩn đoán 1")} />
+    <IdSelect draft={draft} field="diagnoserStaffId" useOptions={useStaffOptionsSearch} placeholder={t("BS chẩn đoán 1")} />
   ),
   diagnoser2: (draft) => (
     <IdSelect
       draft={draft}
       field="secondDiagnoserStaffId"
-      options={draft.options.staff}
+      useOptions={useStaffOptionsSearch}
       placeholder={t("BS chẩn đoán 2")}
     />
   ),
   consultant1: (draft) => (
-    <IdSelect draft={draft} field="consultantStaffId" options={draft.options.staff} placeholder={t("Tư vấn 1")} />
+    <IdSelect draft={draft} field="consultantStaffId" useOptions={useStaffOptionsSearch} placeholder={t("Tư vấn 1")} />
   ),
   consultant2: (draft) => (
     <IdSelect
       draft={draft}
       field="secondConsultantStaffId"
-      options={draft.options.staff}
+      useOptions={useStaffOptionsSearch}
       placeholder={t("Tư vấn 2")}
     />
   ),

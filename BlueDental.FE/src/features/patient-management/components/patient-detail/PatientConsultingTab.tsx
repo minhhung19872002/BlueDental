@@ -139,7 +139,6 @@ export function PatientConsultingTab({ patient }: { patient: PatientDto }) {
         diagnosisNotes={diagnosisNotes}
         selected={shownSelected}
         onSelect={quotes.active ? quotes.select : setSelectedAdvises}
-        onOpenAdvise={consultationAbility.canCreate ? () => setAdviseDiagnosis(data.diagnoses.data?.items[0] ?? null) : undefined}
         onEdit={consultationAbility.canUpdate ? setEditingAdvise : undefined}
         onDelete={consultationAbility.canDelete ? actions.setRemovingAdvise : undefined}
         onReorder={actions.moveAdvise}

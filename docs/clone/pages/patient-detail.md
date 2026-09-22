@@ -465,6 +465,43 @@ A tinted card (`#F7FAFF`, radius 16, padding 12, border `#DCE3EE`) holds:
   at once rather than one press at a time, and a field's message clears as soon
   as it is filled. Nothing is sent while any of them stands.
 
+  **The two footer buttons.** The primary one is named for the tab, not for the
+  act: `add` → **`Lưu công đoạn`**, `continue` → `Tiếp tục công đoạn`,
+  `continueWarranty` → `Tiếp tục bảo hành`. **`Hủy` leaves the whole dialog** —
+  the reference gives the stage card the very callback it gives the modal's
+  ✕ — it does not merely drop the picked line.
+
+  **Leaving with something written asks first** (measured 2026-09-22, from the
+  reference's published stage chunk — a GET on a static asset; nothing was typed
+  into or clicked on the reference's own form):
+
+  ```js
+  e1 = useMemo(() => [...ex, ...eb].some(
+         e => (e.treatmentContent ?? "").trim().length > 0 || (e.imageIds?.length ?? 0) > 0
+       ), [ex, eb]);
+  e2 = useCallback(() => { e1 ? eG(!0) : k() }, [e1, k]);
+  ```
+
+  ✕ and `Hủy` both run `e2`. **Only the treatment content and the pictures make
+  it dirty** — picking a doctor, an assistant or a supporting doctor, or ticking
+  a step under "Danh sách công đoạn", does not, so opening a line, choosing a
+  doctor and thinking better of it closes without a question. When it is dirty,
+  the shared confirm opens:
+
+  | Part | Text |
+  |---|---|
+  | Title | `Hủy thay đổi` |
+  | Question | `Bạn có chắc muốn hủy? Dữ liệu vừa nhập sẽ không được lưu.` (14px `#1B2A41`) |
+  | Sub-line | `Hành động này không thể hoàn tác.` (12px muted — the confirm's own, not passed in) |
+  | Confirm | `Xác nhận hủy`, red, trash icon |
+  | Cancel | `Tiếp tục chỉnh sửa` |
+
+  Answering `Tiếp tục chỉnh sửa` closes only the confirm and hands the text
+  back; `Xác nhận hủy` closes both. It is the **same** component as the delete
+  confirm — the reference's takes `confirmLabel` / `cancelLabel` and defaults
+  them to `Xoá` / `Huỷ` — so BlueDental gave `ConfirmDeleteDialog` those two
+  props rather than building a second dialog.
+
 #### LỊCH SỬ ĐIỀU TRỊ
 
 Header bar white, `px-4 py-3`, title 14px/600 uppercase `#2671D8`, `n công đoạn`
@@ -881,17 +918,45 @@ Consultation table columns (14):
 | 2 | (checkbox) | Select | Multi-select |
 | 3 | Ngày | Date | DD/MM/YYYY |
 | 4 | Dịch vụ | Service | Service name |
-| 5 | Chẩn đoán | Diagnosis | Tooth + diagnosis; notes in parentheses button |
-| 6 | Nhân sự tư vấn 1 | Counselor 1 | Staff name |
+| 5 | Chẩn đoán | Diagnosis | **`<tooth numbers> - <diagnosis>`**, bold in link blue `#2671D8`. Re-measured 2026-09-22 — see below |
+| 6 | Nhân sự tư vấn 1 | Counselor 1 | the advise's own staff |
 | 7 | Nhân sự tư vấn 2 | Counselor 2 | "-" if none |
-| 8 | Bác sĩ chẩn đoán 1 | Diagnosing doctor 1 | |
-| 9 | Chẩn đoán 2 | Diagnosis 2 | "-" if none |
+| 8 | Bác sĩ chẩn đoán 1 | Diagnosing doctor 1 | the **chẩn đoán's** doctor, not the advisor; "-" when the line has no chẩn đoán |
+| 9 | Chẩn đoán 2 | Diagnosis 2 | the chẩn đoán's **second doctor**; "-" if none |
 | 10 | Số lượng | Quantity | Integer |
 | 11 | Đơn giá | Unit price | VND |
 | 12 | Giảm giá | Discount | VND |
 | 13 | Thành tiền | Total | VND |
 | 14 | Ghi chú tư vấn | Consultation notes | "---" if empty |
 | 15 | Thao tác | Actions | "Xoá" |
+
+#### Ô "Chẩn đoán" (đo lại trên staging 2026-09-22)
+
+Một dòng duy nhất, `font-bold text-[#2671D8]`, không có dòng nào khác dưới nó:
+
+```
+<số răng, cách nhau bằng ", "> - <tên chẩn đoán>
+```
+
+- **Chỉ số răng, không có mặt răng.** Đối chứng: dòng `TV26` mang
+  `content` với răng 22 `top`, 23 `right`, 24 `center` — mặt răng có chọn hẳn
+  hoi — mà ô vẫn in `12, 11, 22, 23, 24 - vôi răng`.
+- **Không có chẩn đoán thì dừng ở số răng**, không có dấu `-` thừa: `13, 12`,
+  `12`, `11`.
+- Một cú chọn cả hàm in tên hàm: `Hàm trên - vôi răng`.
+- `<tên chẩn đoán>` là **tên mục trong danh mục chẩn đoán** (`diagnosis.name`),
+  không phải ghi chú của phiếu CD — phiếu CD trong ca quan sát được có
+  `note: ""` mà ô vẫn in "vôi răng".
+
+Trước đó bản của ta in `formatTeeth` (kèm mặt răng) rồi luôn nối ` - ` với tên
+chẩn đoán hoặc `—`, thành ra `11 - Mặt nhai - —`. Nay dùng `formatToothCodes`.
+
+Ba ô còn lại đo cùng lúc: `Bác sĩ chẩn đoán 1` là **bác sĩ của phiếu CD**
+(`patientDiagnosis.staff`) chứ không phải người tư vấn — hai dòng cuối của bệnh
+nhân quan sát được có người tư vấn nhưng không có CD nên in `-`, trong khi
+`Nhân sự tư vấn 1` vẫn có tên. `Chẩn đoán 2` là **bác sĩ thứ hai của phiếu CD**,
+không phải tên chẩn đoán. BE thêm `diagnosisStaffName` / `diagnosisSecondStaffName`
+lên `PatientAdviseDto` để hai ô này có cái để đọc.
 
 Pagination: 20/page default; "Hiển thị 1 trên 1 dịch vụ"
 
@@ -907,42 +972,64 @@ Pagination: 20/page default; "Hiển thị 1 trên 1 dịch vụ"
 ## Tab 3: Kế hoạch điều trị (Treatment Plan)
 
 URL: `?tab=treatment-plan`
-Status: OBSERVED (re-surveyed 2026-09-07 on staging, one patient with three
-slips; captures in `reference-private/treatment-plan-tab/`)
+Status: OBSERVED (re-surveyed 2026-09-21 on staging — the tab, its two service
+lists, the invoice, the print dialog and the create form; captures in
+`reference-private/treatment-plan-tab/`)
 
 > The slip code link, the items in the two summary cards and the ≤640 card head
 > open **Chi tiết kế hoạch điều trị** — `/patient/:id/treatment-plan/:planId`,
 > documented in `treatment-plan-detail.md` (built 2026-09-07, F-39).
 
-### Toolbar (top-right, 2 buttons)
+### How this section was measured (2026-09-21)
+
+Alongside the usual DOM and computed-style reading, the reference's own tab
+component was read out of its published JavaScript bundle over `fetch` — a read
+of a static asset the page had already loaded, no request to its API and no
+write of any kind. That is where the exact column list, the money mapping, the
+row tint and the status palette below come from; each was then checked against
+the rendered page.
+
+### Toolbar (top-left, 2 buttons)
+
+`flex flex-col gap-2 md:flex-row md:justify-start` — stacked full width under
+768px, side by side above it.
 
 | Button | Notes |
 |--------|-------|
-| `+ Tạo kế hoạch mới` | primary, opens **"Tạo phiếu dịch vụ"** (below) |
-| `👁 Xem tất cả dịch vụ` | outlined, opens **"Danh sách dịch vụ"** — every service line of every slip |
+| `+ Tạo kế hoạch mới` | primary, 40px, opens **"Tạo phiếu dịch vụ"** (below). Hidden without `treatmentStage.create`. |
+| `👁 Xem tất cả dịch vụ` | secondary (pale blue), opens **"Danh sách dịch vụ"** — every service line of every slip. Hidden without `treatmentStage.read`. |
 
 ### Summary widgets (2 cards above table)
 
-Each card: tinted round icon chip, UPPERCASE title, a 2-column grid of items
-(`grid grid-cols-2 content-start gap-2`), and the count as a red round badge on
-the far right.
+Wrapper `flex flex-col gap-3 lg:flex-row lg:items-stretch`. Each card:
+`flex flex-1 flex-col rounded-2xl border border-[#DCE3EE] bg-white p-3`.
 
-Item (measured on staging 2026-09-07, both cards share it): flex row,
-`items-center gap-2`, `rounded-lg` (8px), `border #DCE3EE`, `px-3 py-2`,
-57.5px tall, `cursor-pointer`, hover `bg #F6F8FB`. Text block `min-w-0 flex-1`
-then a lucide `chevron-right` 16px in `text-label` (#5A6B82).
+Head `mb-2 flex items-center gap-2`: a 32px `rounded-lg` icon chip, then the
+title at 14/700 uppercase.
 
-- line 1: service name, 13px / 600 / #1B2A41, single line, ellipsis.
+- **DỊCH VỤ ĐANG ĐIỀU TRỊ** — chip `bg-orange-default-50` with a
+  `clipboard-list` in `#F96B3C`; a badge on the far right, `size-5 rounded-full
+  bg-orange-default text-[11px] font-bold text-white`.
+- **DỊCH VỤ CÓ CÔNG ĐOẠN GẦN NHẤT** — chip `bg-green-default-50` with a `zap`
+  in `#12A960`; **no badge**.
+
+Body `grid grid-cols-2 content-start gap-2` — two columns at every width, the
+item text truncating rather than the grid collapsing. **Each card draws at most
+four items**; the badge counts every line in treatment, not the four shown. An
+empty card renders an empty grid with no placeholder text.
+
+Item: `flex min-w-0 items-center gap-2 rounded-lg border border-[#DCE3EE]
+px-3 py-2 hover:bg-[#F6F8FB]`, 57.5px tall, closing with a `chevron-right` 16px
+in `text-label`.
+
+- line 1: service name, 13/600 `#1B2A41`, truncated.
 - line 2 (`mt-0.5 flex items-center gap-1.5`, 12px):
-  - **DỊCH VỤ ĐANG ĐIỀU TRỊ** — slip code 500 blue, then the slip date in
-    11px `text-label`; badge = count of lines in treatment.
-  - **DỊCH VỤ CÓ CÔNG ĐOẠN GẦN NHẤT** — slip code 600 blue (`hover:underline`),
-    then the latest stage note, ellipsised.
+  - **đang điều trị** — slip code `font-medium text-[#2671D8]`, then the slip
+    date in 11px `text-label`.
+  - **công đoạn gần nhất** — slip code 600 blue (`hover:underline`), then the
+    latest stage note, ellipsised, an em dash when the stage carries none.
 
-Clicking an item navigates to
-`/patient/:id/treatment-plan/:planId` (the plan-detail page — deferred, see
-unknowns), so BlueDental keeps the pointer cursor and the hover tint but no
-navigation, the same treatment as the DT code link.
+An item navigates to `/patient/:id/treatment-plan/:treatmentId` (no `planTab`).
 
 `/patient-treatments/summary` answered `{ active: [], recent: [] }` on every
 surveyed record, so BlueDental derives both cards from the slip list (see
@@ -950,46 +1037,125 @@ unknowns).
 
 ### Treatment Plan Table
 
-`Cột hiển thị` (right-aligned above the table) opens the **"Cấu hình cột"**
-popover: one switch per column, drag handle to reorder, `Lưu`. The layout is
-kept in memory only — a reload restores the default.
+`Cột hiển thị` (right-aligned above the table, 32px, 13/500) opens the
+**"Cấu hình cột"** popover: 240px, `rounded-xl`, shadow
+`0 8px 24px rgba(27,42,65,.12)`; a header row, one draggable switch row per
+column (`grip-vertical` + label + a 36×20 switch), and a full-width `Lưu`. The
+layout is kept in memory only — a reload restores the default.
 
-Columns, default order. "Thêm công đoạn" and "Thao tác" are pinned to the
-edges and are not in the popover.
+Columns, default order. "Thêm công đoạn" and "Thao tác" are pinned to the edges
+and are not in the popover. Row height 57px (`h-14` + hairline), head 40px on
+**white**, hairline `#DCE3EE`, hover `#F6F8FB`.
 
-| # | Column | Cell |
-|---|--------|------|
-| 1 | Thêm công đoạn | `+` icon button → "Chi tiết phiếu" (công đoạn dialog, see Tab 1) |
-| 2 | Số phiếu | `DT<n>`, link-styled (the reference navigates to `/patient/{id}/treatment-plan/{planId}` — not built yet) |
-| 3 | *(no header)* | eye icon → **"Danh sách dịch vụ - DT<n>"** modal |
-| 4 | Bác sĩ tiếp nhận | staff name |
-| 5 | Trạng thái - Tiến độ | pill: `Đã tạo` (grey) · `Đang điều trị` (blue) · `Hoàn thành` (green) · `Huỷ phiếu` (red) |
-| 6 | Ngày tạo | `DD/MM/YYYY` |
-| 7–13 | Tổng phiếu · Giảm giá · Thành tiền · Đã trả · Hoàn tiền · Còn lại · Phải thu | right-aligned, every cell carries the unit: `4.000.000 đ`, `0 đ` |
-| 14 | Thao tác | `In bệnh án` (clipboard icon, no action wired) · `Phiếu thu` (receipt icon → the invoice modal for the slip) |
+| # | Column | Width | Cell |
+|---|--------|-------|------|
+| 1 | Thêm công đoạn | 130 | `+` in a 28px green circle (`bg-green-default-50 text-green-default`, hover inverts) → "Chi tiết phiếu" (công đoạn dialog, see Tab 1) |
+| 2 | Số phiếu | min 110 | `DT<n>`, `font-semibold text-[#2671D8] hover:underline` → `/patient/{id}/treatment-plan/{planId}` |
+| 3 | *(no header)* | 84 | 16px eye in `#2671D8`, tooltip "Danh sách dịch vụ" → **"Danh sách dịch vụ - DT<n>"** |
+| 4 | Bác sĩ tiếp nhận | min 150 | staff name, 13px |
+| 5 | Trạng thái - Tiến độ | min 160 | status pill (palette below) |
+| 6 | Ngày tạo | min 120 | `DD/MM/YYYY`, 13px `text-label` |
+| 7–13 | Tổng phiếu · Giảm giá · Thành tiền · Đã trả · Hoàn tiền · Còn lại · Phải thu | 130 / 110 / 130 … | right-aligned, **13px**, every cell carries the unit: `4.000.000 đ` |
+| 14 | Thao tác | 70, sticky right | `In bệnh án` (clipboard) · `Hóa đơn` (receipt) — 32px `rounded-lg bg-blue-default-50 text-[#2671D8]`, on a white backing with `-4px 0 6px -2px rgba(27,42,65,.06)` |
+
+Money cell tones, exactly as the reference paints them:
+
+| Column | Tone |
+|---|---|
+| Tổng phiếu · Thành tiền · Hoàn tiền | ink `#1B2A41`, weight 500 |
+| Giảm giá | `text-label` at the **regular** weight |
+| Đã trả | green `#12A960`, 500 — green even at `0 đ` |
+| Còn lại · Phải thu | red `#F04438` **only while above zero**, otherwise `text-label` |
+
+Row tint by slip status (the reference's own `rowClass`): a finished slip goes
+`bg-green-default-50/60`, a slip under warranty `bg-blue-default-50/60`. The
+pinned actions cell stays white either way. It names a red class for a
+cancelled slip, but that class is undefined in its own stylesheet, so a
+cancelled row renders untinted — BlueDental leaves it untinted too.
+
+#### The money mapping (measured 2026-09-21, three payloads)
+
+The row is built from the slip's `payment` rollup:
+
+```
+Tổng phiếu = totalPrice + discount     Đã trả    = totalPaid
+Giảm giá   = discount                  Hoàn tiền = totalRefund
+Thành tiền = totalPrice                Còn lại   = debt
+                                       Phải thu  = max(0, receivable)
+```
+
+and the server derives the rollup itself as
+
+```
+netPaid    = totalPaid      − totalRefund
+debt       = totalPrice     − netPaid    ← everything the slip still owes
+receivable = completedValue − netPaid    ← only the finished work, unpaid
+totalDue   = receivable                  ← repeated; the reference never reads it
+```
+
+The case that separates the two columns: slip DT33 carried a 1.000.000 đ line
+nobody had started and answered `debt: 1000000` with `receivable: 0` — "Còn
+lại" showed the whole slip while "Phải thu" stayed at zero. "Phải thu" is
+clamped in the UI (the reference's own `resolveReceivable`), because the payload
+goes negative once a patient has paid ahead of the work.
+
+A **`Chuyển đổi`** line is not charged on the slip: DT33 also held a 909.091 đ
+`replaced` line and still reported `totalPrice: 1000000`. BlueDental excludes
+`Chuyển đổi` and `Đã chuyển` alongside `Đã huỷ` for the same reason — that work
+is billed elsewhere.
+
+#### Status pills (shared by slips and service lines)
+
+| Status | Label | Background | Text |
+|---|---|---|---|
+| created | Đã tạo | `#F0F3F8` | `#5A6B82` |
+| inProgress | Đang điều trị | `#EFF6FF` | `#1D4ED8` |
+| pending | Chưa phát sinh | muted | muted |
+| done | Hoàn thành | `#E7F8EF` | `#12A960` |
+| converted | Chuyển đổi | `#B8E8F4` | `#16626D` |
+| transferred | Đã chuyển | `#F5F3FF` | `#6D28D9` |
+| guarantee | Bảo hành | `#EFF6FF` | `#1D4ED8` |
+| cancelledService | Hủy dịch vụ | `#FEF2F2` | `#F04444` |
+| cancelled | Huỷ phiếu | `#FEF2F2` | `#F04444` |
+
+All pills: `rounded-full px-2 py-0.5 text-[12px] font-semibold`. Note the two
+wordings for cancelled — a **slip** reads "Huỷ phiếu", a **service line** reads
+"Hủy dịch vụ".
 
 Reference pager: `[20 / trang] Hiển thị 1–3 trên 3 kế hoạch … [‹ Trước][1][Sau ›]`
-(outlined 32px buttons). **BlueDental uses the app's shared pager instead**
-(`useTablePagination`: `20 / trang`, `Hiển thị 1-3/3`, antd prev/next) — the
-owner's rule of 2026-09-07 is one pager for the whole app.
+(outlined 32px buttons), paged on the server. **BlueDental uses the app's shared
+pager instead** (`useTablePagination`: `20 / trang`, `Hiển thị 1-3/3`, antd
+prev/next) — the owner's rule of 2026-09-07 is one pager for the whole app.
 
-### "Tạo phiếu dịch vụ" (Tạo kế hoạch mới — observed on staging, form filled, never saved)
+### "Tạo phiếu dịch vụ" (Tạo kế hoạch mới — observed on staging, never saved)
 
-Modal ≈ 1024px, title left, `×` right, `Lưu` in the header row.
+Modal **772×577**, title left, `×` right, `Lưu` (primary, save icon) alone in
+the footer, right-aligned.
 
 | Field | Notes |
 |-------|-------|
-| Người tạo | read-only chip with the signed-in staff |
-| Thêm dịch vụ mới* | the voucher dialog's "Tìm dịch vụ hoặc nhóm dịch vụ" picker: type to search, a swap icon toggles service ↔ group mode; a group row opens the group, a service row is the value |
-| Đơn giá / Số lượng | price prefilled from the service; quantity ≥ 1 |
-| Giảm giá | amount with a `%` / `đ` toggle |
-| Bác sĩ chẩn đoán 1* / Chẩn đoán 2* | floating-label selects |
-| Răng | `Chọn răng` button → **"Chọn răng"** dialog; the pick renders as `Răng: 14, 21` (or `Hàm trên` / `Hàm dưới` / `Toàn hàm`) |
-| Tình trạng răng | mirrors the chosen diagnosis |
-| Ghi chú | textarea |
+| Nhân sự tư vấn 1* | searchable select with a leading search icon; a round 36px `+` beside it opens "Nhân sự tư vấn 2". The only required field the form opens with — the older "Người tạo" chip is gone. Searched on the server, like every picker on this screen. |
+| Thêm dịch vụ mới | the voucher dialog's picker: type to search, a `bg-[#EEF5FF]` swap button toggles service ↔ group mode; a group row opens the group, a service row is the value |
+| Bác sĩ chẩn đoán 1 / Chẩn đoán 2 | floating-label selects, **disabled, no asterisk**. **Measured 2026-09-22**: they hold the **chẩn đoán's two doctors** — `diagnosisStaffName` and `diagnosisSecondStaffName` of the line, the same pair the table's columns 8 and 9 read (see R-447/R-448). Not the advisor, and not the condition: a line whose chẩn đoán has no second doctor leaves "Chẩn đoán 2" **empty**, which is what the reference screenshot shows. Both are lists of **people** |
+| Đơn giá / Số lượng | read-only before a service is picked; quantity starts at 0. **BlueDental keeps them read-only afterwards too** (owner's call, 2026-09-22): the price is the catalog's, and typing over it would put a slip on the books at a figure the catalog does not know |
+| Giảm giá | a `%` / `VNĐ` pill toggle (`bg-[#EEF2F7]`, active pill filled) beside the amount |
+| Răng | `Răng: Chưa chọn răng` + a 28px `rounded-xl` blue tooth button → **"Chọn răng"**; at least one tooth is required |
+| Tình trạng răng | label only — the reference prints `Tình trạng răng:` with **nothing after it** (measured 2026-09-22; an earlier draft echoed the diagnosis name here) |
+| Ghi chú | textarea, `min-h-[100px]`, **max 255 characters** |
 | Thông tin thanh toán | `Tổng cộng` · `Giảm giá` · `Thành tiền`, recomputed as the fields change |
 
-Saving creates the slip and one service line; the tab lists it as `Đã tạo`.
+Saving posts the advisor as the advise's staff. **Corrected 2026-09-22**: both
+diagnosis fields are disabled on BlueDental too, and saving writes **only** the
+service line and the DT slip — no chẩn đoán (CD) record of its own, which is
+what the owner measured on the reference. The create chain lost its
+`createDiagnosis` step, and `PatientAdvise.DiagnosisId` /
+`PatientDiagnosisId` became nullable (migration `AdviseDiagnosisOptional`) so a
+line can exist without one. A line raised from a diagnosis row still carries
+both. The slip's doctor falls back to "Nhân sự tư vấn 1" when no diagnosing
+doctor was named.
+
+Missing teeth is reported **under the field** ("Vui lòng chọn ít nhất 1 răng"),
+not as a toast.
 
 ### "Chọn răng" dialog
 
@@ -1001,25 +1167,61 @@ selects the tooth; clicking a wedge selects that surface. A jaw tab hides the
 chart and stands for the whole jaw. Footer `Chọn răng`. Switching dentition
 clears the picks.
 
-### Secondary modals
+### "Danh sách dịch vụ" — both variants (re-measured 2026-09-21)
 
-- **Danh sách dịch vụ - DT<n>** (eye): the slip's lines — teeth above the
-  service name, dentist, status pill, quantity, price, discount, amount, and
-  the same shared pager.
-- **Danh sách dịch vụ** (`Xem tất cả dịch vụ`): the same table over every slip,
-  with the slip code in front of each line.
-- **Chi tiết phiếu** (`+`): the công đoạn dialog documented under Tab 1.
-- **Hóa đơn** (`Phiếu thu`): the existing invoice modal for the slip (it shows
-  the service lines, not the slip code).
+1240px wide, six columns, own pager (`20 / trang`, "Hiển thị 1–3 trên 3 dịch
+vụ"), empty text "Không có dữ liệu", table `min-w-[1080px]`, head sticky on
+`#F6F8FB`.
+
+| Column | Width | Cell |
+|---|---|---|
+| Dịch vụ | min 180 | the teeth in `font-semibold text-[#165DFF]` over the service name; an em dash when either is missing |
+| Chẩn đoán | min 260 | em dash when none |
+| Bác sĩ | min 180 | **the line's own treating dentist**, not the slip's |
+| Trạng thái | min 180 | the service pill |
+| Đơn giá | min 160, right | **net unit price** — the line's amount over its quantity, so at quantity 1 it reads the same as Thành tiền |
+| Thành tiền | min 170, right | the line's amount |
+
+The two variants differ in exactly one place: **one slip's list (the eye) prints
+the DT code in front of each service name**, in blue 600, and that code opens
+the slip's detail screen; **"Xem tất cả dịch vụ" leaves the code off**.
+
+### "Hóa đơn" (the receipt action)
+
+The reference bills **the slip, not its services**: the dialog opens with a
+single line named `Kế hoạch điều trị DT<n>`, unit `Răng`, quantity 1, priced at
+the slip's Thành tiền, `% thuế` = `Chưa xuất`, tax 0. `Thông tin khách hàng`
+(7 fields) and `Thông tin hóa đơn` (6 fields) sit above it; the totals block
+reads `Tổng tiền` · `Thành tiền thuế` · `Tổng tiền`; the footer is `Lưu Nháp` +
+`Phát Hành`. Its table head is sentence case at 14/500, not the house uppercase.
+Lines whose service is `replaced` are left out.
+
+### "In bệnh án" (the clipboard action)
+
+Near-full-width dialog, 78vh of content: a 380px `Chọn file bệnh án` select
+(opens on "Bìa hồ sơ bệnh án"), the hint *"Thông tin bệnh nhân được điền từ API;
+ô nền vàng vẫn có thể chỉnh trước khi in"*, and a `− 85% Fit +` zoom group; the
+sheet renders in an 860px iframe scaled to fit, inside a `rounded-[16px] border
+border-[#E0E0E0] bg-[#F5F5F5]` frame. Footer `Đóng` + `In bệnh án`. It is about
+the patient, not the row it was opened from.
 
 ### Responsive (BlueDental)
 
-At 640px and below the table and both service lists fold into the
-"Thêm đơn thuốc" record cards (`RecordCard`): code + pill in the head, the
-first rows visible, `Xem thêm` / `Rút gọn` for the money rows, the four row
-actions as card buttons, and the same pager under the list. The create dialog
-and the tooth chart go single-column. The reference's own <769px pager is a
-two-row strip; BlueDental keeps the shared pager here too.
+At 640px and below the table and both service lists fold into the "Thêm đơn
+thuốc" record cards (`RecordCard`): code + pill in the head, the first rows
+visible, `Xem thêm` / `Rút gọn` for the money rows, the four row actions as card
+buttons, and the same pager under the list. The reference puts only the row's
+index in the card head and keeps "Thêm công đoạn" / "Số phiếu" / "Danh sách
+dịch vụ" as ordinary rows; BlueDental's head is the app's own. The create dialog
+and the tooth chart go single-column.
+
+### Tab strip
+
+The reference's own tab list holds **nine** tabs — Hồ sơ, Chẩn đoán & Tư vấn,
+Kế hoạch điều trị, Lịch hẹn, Hình ảnh, Labo, Đơn thuốc, Chăm sóc KH, Lịch sử dư
+nợ — each gated by a permission subject. BlueDental has a tenth, **Hóa đơn**,
+which the reference no longer carries. Left in place pending the owner's call
+(see unknowns).
 
 ---
 
@@ -1656,28 +1858,96 @@ colorCode:"blue", status:"success", branchId }` — POST giả định tương t
 
 URL: `?tab=invoice`
 
-**State observed**: "Nội dung đang được hoàn thiện." — feature not yet implemented in production.
+The tab exists only on the production reference — staging's record has nine tabs
+and no Hóa đơn at all.
+
+**It is not built there either.** Re-checked 2026-09-22 on production
+(read-only): the record's tab switch is a chain of ternaries over
+`profile · consulting · treatment-plan · appointment · image · labo ·
+prescription · care · debt-history`, and `invoice` matches none of them, so it
+falls through to the default branch:
+
+```
+<div class="rounded-2xl border border-dashed border-[#DCE3EE] bg-white p-10 text-center text-label">
+  Nội dung đang được hoàn thiện.
+</div>
+```
+
+Measured: radius 16, 1px dashed `#DCE3EE`, white, padding 40, centred, 16/400
+`#5A6B82`. No toolbar, no table, no request of its own.
+
+BlueDental keeps its **own** invoice table here (`PatientInvoiceTab`: Mã hóa đơn
+· Ngày tạo · Tổng tiền · Đã thanh toán · Còn lại · Trạng thái · Thu tiền), by
+the owner's decision on 2026-09-22 — it is an extension, not a clone, and must
+be re-measured against the reference once that screen is actually built.
 
 ---
 
 ## Tab 10: Lịch sử dư nợ (Debt History)
 
-URL: `?tab=debt-history`
+URL: `?tab=debt-history` (not `debt`).
 
-Note: URL param is `debt-history`, not `debt`.
+Measured on staging 2026-09-22, read-only, plus the component in the published
+bundle. Nothing above the table: no toolbar, no filters, no column picker.
 
-### Table Columns (5 columns)
+### Table (5 columns)
 
-| # | Column (VI) | English |
-|---|------------|---------|
-| 1 | Ngày giao dịch | Transaction date |
-| 2 | Loại | Type |
-| 3 | Số tiền | Amount |
-| 4 | Nhân viên | Staff |
-| 5 | Ghi chú | Notes |
+| # | Column | minWidth | Renders |
+|---|--------|----------|---------|
+| 1 | Ngày giao dịch | 160 | `formatDateTime(date)` → `dd/MM/yyyy HH:mm` |
+| 2 | Loại | 160 | the movement's label, below |
+| 3 | Số tiền | 140 | sign + amount, coloured |
+| 4 | Nhân viên | 140 | `staffName ?? "-"` |
+| 5 | Ghi chú | 200 | `note ?? "-"` |
 
-Empty state: "Chưa có lịch sử dư nợ"
-Pagination text: "Hiển thị 0 trên 0 giao dịch"
+All five are left-aligned, including the money. Head 14/500 `#5A6B82` on
+`#F6F8FB`, padding `8px 16px`; rows 56 tall, 14px `#1B2A41`, padding
+`12px 16px`, separated by 1px `#DCE3EE`. Empty cells print `-`, an ASCII hyphen
+— **not** the em dash the rest of the record uses, and an empty string stays
+empty.
+
+### The six movements
+
+```
+topup    Nạp dư nợ                   +
+use      Sử dụng dư nợ               −
+withdraw Rút dư nợ                   −
+replace  Thay thế dịch vụ            ±   (reads its own sign; prints |amount|)
+refund   Hoàn trả dư nợ              +
+cancel   Huỷ dịch vụ - Cộng dư nợ    +
+```
+
+`topup`, `refund` and `cancel` are the credits: `+` in `#1F9254`. Everything
+else is `-` in `#E5484D`. Both at the row's 14px in weight 500. `replace` is the
+only one that can go either way, and it is the only amount that ever arrives
+negative.
+
+Feed: `GET /v1/payment/debt-history?patientId=&page=&take=` →
+`{ items: [{ id, date, type, amount, note, staffName }], total, page, take }`.
+Default 20 a page, pager counts "giao dịch", empty reads "Chưa có lịch sử dư nợ",
+and a spinner (32px, in a 200px-tall box) covers the first load.
+
+Below **769px** — not 640, as elsewhere on this record — the table folds into the
+shared record cards: the row's position on the blue head, four rows on the face
+and Ghi chú behind "Xem thêm".
+
+### What BlueDental does
+
+The reference stores this ledger; BlueDental derives it, because every movement
+it makes is already recorded somewhere:
+
+| Movement | Derived from |
+|---|---|
+| `topup` | a receipt of kind Prepaid |
+| `use` | a payment whose method is Dư nợ |
+| `refund` | a receipt of kind Refund |
+| `cancel` | money still sitting on a line that was cancelled |
+| `replace` | money still sitting on a line a conversion closed |
+| `withdraw` | nothing — BlueDental has no operation that pays the held balance back out in cash. See unknowns |
+
+Local: `PatientDebtTab` + `debtHistoryRows.tsx`, styles under `.pd-debt-*` in
+`patient-detail.css`; server side `PatientPaymentAppService.GetDebtHistoryAsync`
+behind `GET api/v1/app/patient-payments/debt-history`.
 
 ---
 
@@ -2755,7 +3025,7 @@ Nguồn: ảnh chụp production do chủ dự án gửi, staging (được bấ
 |---|---|---|
 | Click dòng "Phiếu tư vấn" | mở dialog "Cập nhật phiếu dịch vụ" (cùng khung với "Tạo kế hoạch điều trị") | dùng lại `CreatePlanDialog` với prop `advise` (không tạo modal mới); click ô tick / nút thao tác không mở |
 | Form "Tạo chẩn đoán" | form nằm **ngoài** bảng, cuộn xuống vẫn thấy hết bảng | `PatientDiagnosisCard` nhận form qua `children`, đặt giữa header sticky và `.pd-diagnosis-table`; thẻ tự cuộn (`overflow:auto`), header `position:sticky` |
-| Click dòng "Phiếu chẩn đoán" | mở lại form phía trên với dữ liệu phiếu, nút xanh lá "Cập nhật Chẩn Đoán" | `useDiagnosisEditor.edit(row)` → `PatientDiagnosisForm editing=…` (select Chẩn đoán khoá — server chưa đổi được, xem unknowns.md), `PUT patient-diagnoses/{id}` + toast; **tự cuộn** thẻ lên đầu để lộ form (`revealForm`: `scrollTo top 0` + `scrollIntoView nearest`), cả khi mở bằng nút "+" trên header |
+| Click dòng "Phiếu chẩn đoán" | mở lại form phía trên với dữ liệu phiếu, nút xanh lá "Cập nhật Chẩn Đoán" | `useDiagnosisEditor.edit(row)` → `PatientDiagnosisForm editing=…` (select Chẩn đoán **sửa được** — sửa 2026-09-22, R-450: `PUT patient-diagnoses/{id}` nay nhận `diagnosisId`, đi qua `PatientDiagnosis.ChangeDiagnosis` nên phiếu đã huỷ / đã điều trị vẫn khoá), `PUT patient-diagnoses/{id}` + toast; **tự cuộn** thẻ lên đầu để lộ form (`revealForm`: `scrollTo top 0` + `scrollIntoView nearest`), cả khi mở bằng nút "+" trên header |
 | Nút "Cột hiển thị" | nút 32px, cách bảng 8px, bảng có viền | `.pd-advise-tools` gap 8 + `.pd-advise-table` |
 | Toolbar thư viện | mỗi nút có tooltip: "Thu nhỏ", "Phóng to", "Đặt lại", "Đảo tương phản", "Bật chế độ vẽ" / "Đổi màu hoặc độ dày nét vẽ", "Hoàn tác nét vẽ" | `Tool` bọc `Tooltip`, popup mount trong `.pd-lib` (dialog z-index cao hơn body) |
 | Bút vẽ | lần đầu bấm: bật vẽ + mở popover "Màu bút / Độ dày nét / Tắt chế độ vẽ"; đang vẽ bấm lại chỉ mở popover; **đóng popover khi đang vẽ** → hiện nút **X đỏ** cạnh bút (tooltip "Tắt chế độ vẽ", nền đỏ 10%, hover 20%); vẽ được cả trên trạng thái rỗng "Chưa có dữ liệu tư vấn" | `ConsultingLibraryToolbar`: `drawing && !paletteOpen` → `Tool danger` (lucide `X` 16); `ConsultingLibrarySheet` đặt `ViewerAnnotationCanvas` lên cả `.pd-lib-body` rỗng; điều kiện hiện X theo bản gốc (không phụ thuộc đã có nét vẽ hay chưa) |
@@ -2980,10 +3250,15 @@ BlueDental: `useAdviseQuotes` + `AdviseQuoteTabs`. Số "BG n" chỉ tăng. Châ
 `TỔNG KẾ HOẠCH` **không** lặp lại dưới tab báo giá. Việc bản gốc có lưu bản báo
 giá xuống server hay không thì chưa soi được — xem `docs/clone/unknowns.md`.
 
-UNKNOWN_REFERENCE_BEHAVIOR (suy luận, ghi để không ai tưởng là đo được): khi
-chưa có báo giá nào, tab `Phiếu tư vấn` là tab đang mở nên trông giống hệt cái
-nút primary trước đây. Ta cho bấm vào nó lúc đang mở thì mở "Tạo phiếu tư vấn" —
-giữ nguyên việc cái nút vẫn làm. Bản gốc có thể tạo phiếu tư vấn từ chỗ khác.
+~~UNKNOWN_REFERENCE_BEHAVIOR (suy luận…): bấm tab `Phiếu tư vấn` lúc đang mở thì
+mở "Tạo phiếu tư vấn".~~ **Đã bỏ 2026-09-22** — chủ dự án xác nhận bản gốc không
+làm vậy: bấm vào tab đang mở thì **không có gì xảy ra**. Phiếu tư vấn được tạo
+từ dòng chẩn đoán ("Tạo Dịch Vụ"), không phải từ tab strip này.
+
+✕ trên tab báo giá **hỏi trước khi xoá** (đo lại 2026-09-22): hộp "Xóa báo giá"
+với câu "Phiếu báo giá BG n sẽ bị xoá và thao tác này không thể khôi phục.", một
+dòng phụ "Hành động này không thể hoàn tác.", `Huỷ` và `Xoá` đỏ — đúng hộp
+`ConfirmDeleteDialog` mà mọi chỗ xoá khác của app dùng.
 
 ### 2. Grip là ô ngoài cùng bên trái
 

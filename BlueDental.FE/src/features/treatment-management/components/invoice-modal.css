@@ -58,6 +58,33 @@
   margin-top: 20px;
 }
 
+/* The reference heads this table the way it heads every dialog table: sentence
+   case at 14px/500 on the tinted strip, not the house's uppercase 11.5px. */
+.inv-table .ant-table-wrapper .ant-table-thead > tr > th {
+  height: 40px;
+  padding: 8px 16px;
+  color: #5a6b82;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+/* Head and body share one horizontal padding, so every column lines up with
+   its title. The house grid gives the first and last cells an extra 20px on
+   the outside, which left the tick column's header checkbox 7px off its own
+   rows. */
+.inv-table .ant-table-wrapper .ant-table-thead > tr > th,
+.inv-table .ant-table-wrapper .ant-table-tbody > tr > td,
+.inv-table .ant-table-wrapper .ant-table-thead > tr > th:first-child,
+.inv-table .ant-table-wrapper .ant-table-tbody > tr > td:first-child,
+.inv-table .ant-table-wrapper .ant-table-thead > tr > th:last-child,
+.inv-table .ant-table-wrapper .ant-table-tbody > tr > td:last-child {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
 .inv-service-name {
   display: flex;
   flex-direction: column;

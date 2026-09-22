@@ -80,7 +80,7 @@ async function lineDue(dialog: Locator): Promise<number> {
  * a slip that still has money on it — these specs collect as they go, so the
  * first slip is not reliably unpaid by the time a later one runs.
  */
-type LineMode = "any" | "owing" | "stageable" | "warrantable";
+type LineMode = "any" | "owing" | "stageable" | "freshLine" | "warrantable";
 
 async function openPatientWithTreatment(page: Page, owing: boolean | LineMode = false) {
   await page.goto("/patient");
@@ -88,7 +88,11 @@ async function openPatientWithTreatment(page: Page, owing: boolean | LineMode = 
 
   const mode: LineMode = owing === true ? "owing" : owing === false ? "any" : owing;
   const found = await page.evaluate(async (want) => {
-    const res = await fetch("/api/v1/app/patient-treatments?maxResultCount=50", {
+    // Deep enough to survive the specs' own slips. These suites create a slip
+    // per run and the list is newest-first, so a 50-row window fills up with
+    // freshly created lines and the seeded warranty ones drop off the end —
+    // which reads as "the demo clinic has no slip" when it has 125 of them.
+    const res = await fetch("/api/v1/app/patient-treatments?maxResultCount=300", {
       credentials: "include",
     });
     const items = (await res.json()).items as {
@@ -100,6 +104,7 @@ async function openPatientWithTreatment(page: Page, owing: boolean | LineMode = 
         outstandingAmount: number;
         status: number;
         warrantyDays: number;
+        stageCount: number;
       }[];
     }[];
     for (const slip of items) {
@@ -110,6 +115,15 @@ async function openPatientWithTreatment(page: Page, owing: boolean | LineMode = 
             ? // 1 = Created, 2 = InProgress: the only statuses the reference
               // offers a công đoạn on.
               slip.services.find((service) => service.status === 1 || service.status === 2)
+            : want === "freshLine"
+              ? // Open *and* carrying no công đoạn yet — what THÊM CÔNG ĐOẠN
+                // lists. Only for specs that need that tab to offer the line: a
+                // line with no công đoạn still occupies one placeholder row in
+                // the treatment table, so row-counting specs must not use it.
+                slip.services.find(
+                  (service) =>
+                    (service.status === 1 || service.status === 2) && service.stageCount === 0,
+                )
             : want === "warrantable"
               ? // Warranty *and* still open: a line the earlier specs have
                 // driven to Completed offers no Công đoạn cell at all, so it
@@ -1815,7 +1829,7 @@ test.describe("Bệnh nhân", () => {
         res.url().includes("/api/v1/app/treatment-stages") && res.request().method() === "POST",
     );
     await form.locator("textarea").fill(note);
-    await dialog.getByRole("button", { name: /Thêm công đoạn|Tiếp tục công đoạn/ }).click();
+    await dialog.getByRole("button", { name: /Lưu công đoạn|Tiếp tục công đoạn|Tiếp tục bảo hành/ }).click();
     expect((await created).ok()).toBeTruthy();
 
     // The history grows and the row behind it picks the note up as its
@@ -1880,7 +1894,7 @@ test.describe("Bệnh nhân", () => {
       // Nothing to edit yet — add one so the spec always exercises the pencil.
       await dialog.locator(".pd-stage-picks button").first().click();
       await dialog.locator(".pd-stage-form textarea").fill(`e2e ${runId()}`);
-      await dialog.getByRole("button", { name: /Thêm công đoạn|Tiếp tục công đoạn/ }).click();
+      await dialog.getByRole("button", { name: /Lưu công đoạn|Tiếp tục công đoạn|Tiếp tục bảo hành/ }).click();
       await expect(rows).not.toHaveCount(0);
     }
 
@@ -1988,7 +2002,7 @@ test.describe("Bệnh nhân", () => {
     if ((await rows.count()) === 0) {
       await dialog.locator(".pd-stage-picks button").first().click();
       await dialog.locator(".pd-stage-form textarea").fill(`e2e ${runId()}`);
-      await dialog.getByRole("button", { name: /Thêm công đoạn|Tiếp tục công đoạn/ }).click();
+      await dialog.getByRole("button", { name: /Lưu công đoạn|Tiếp tục công đoạn|Tiếp tục bảo hành/ }).click();
       await expect(rows).not.toHaveCount(0);
     }
 
@@ -2276,7 +2290,9 @@ test.describe("Bệnh nhân", () => {
     // the demo data seeds steps on purpose, and a fixture that lost them is a
     // fixture worth fixing rather than a test worth passing quietly.
     const target = await page.evaluate(async () => {
-      const res = await fetch("/api/v1/app/patient-treatments?maxResultCount=50", {
+      // Deep enough to survive the specs' own slips — see the note on the main
+      // fixture: the list is newest-first and these suites add to the front.
+      const res = await fetch("/api/v1/app/patient-treatments?maxResultCount=300", {
         credentials: "include",
       });
       const slips = (await res.json()).items as {
@@ -2347,7 +2363,7 @@ test.describe("Bệnh nhân", () => {
       (res) =>
         res.url().includes("/api/v1/app/treatment-stages") && res.request().method() === "POST",
     );
-    await dialog.getByRole("button", { name: /Thêm công đoạn|Tiếp tục công đoạn/ }).click();
+    await dialog.getByRole("button", { name: /Lưu công đoạn|Tiếp tục công đoạn|Tiếp tục bảo hành/ }).click();
     const madeStage = await (await created).json();
     expect(madeStage.serviceItems, "the chosen step is stored on the công đoạn").toHaveLength(1);
     expect(
@@ -2613,7 +2629,7 @@ test.describe("Bệnh nhân", () => {
     page,
   }) => {
     await page.setViewportSize({ width: 1600, height: 900 });
-    const { serviceId } = await openPatientWithTreatment(page, "stageable");
+    const { serviceId } = await openPatientWithTreatment(page, "freshLine");
 
     const dialog = await openStageDialog(page, serviceId);
     await dialog.locator(".pd-stage-picks button").first().click();
@@ -2631,12 +2647,14 @@ test.describe("Bệnh nhân", () => {
       }
     });
 
-    await dialog.getByRole("button", { name: /Thêm công đoạn|Tiếp tục công đoạn/ }).click();
+    await dialog.getByRole("button", { name: /Lưu công đoạn|Tiếp tục công đoạn|Tiếp tục bảo hành/ }).click();
 
     // Reported beneath the field it belongs to, the way "Tạo tái khám" reports
     // its own: a toast does not say which input it meant, and it is gone by the
     // time you look away from it.
-    const message = form.locator(".pd-stage-error");
+    // A line with nothing on it reports every empty field at once, so this names
+    // the one under test rather than assuming it is the only message.
+    const message = form.locator(".pd-stage-error", { hasText: "nội dung điều trị" });
     await expect(message).toHaveText("Vui lòng nhập nội dung điều trị");
     await expect(page.locator(".sonner-toast, [data-sonner-toast]")).toHaveCount(0);
     expect(posted, "an empty form should not be sent").toBe(false);
@@ -2651,7 +2669,7 @@ test.describe("Bệnh nhân", () => {
       (res) =>
         res.url().includes("/api/v1/app/treatment-stages") && res.request().method() === "POST",
     );
-    await dialog.getByRole("button", { name: /Thêm công đoạn|Tiếp tục công đoạn/ }).click();
+    await dialog.getByRole("button", { name: /Lưu công đoạn|Tiếp tục công đoạn|Tiếp tục bảo hành/ }).click();
     expect((await created).ok(), "the filled form should be accepted").toBeTruthy();
     await expect(dialog.locator(".pd-stage-note").filter({ hasText: note })).toHaveCount(1);
   });
@@ -2705,6 +2723,25 @@ test.describe("Bệnh nhân", () => {
     await expect(step.locator("input")).toBeEnabled();
     await step.click();
     await expect(step.locator("input")).toBeChecked();
+
+    /*
+     * And ticking it writes the công đoạn's text into Nội dung điều trị — the
+     * reference runs `syncTreatmentContentWithStages` on every tick, putting the
+     * ticked names above whatever was typed and taking them out again on untick.
+     */
+    const content = form.locator("textarea").first();
+    await expect(content).toHaveValue(note);
+
+    // Typed text survives under it, and is not duplicated when the box goes
+    // off and on again.
+    await content.fill(`${note}
+typed by hand`);
+    await step.click();
+    await expect(step.locator("input")).not.toBeChecked();
+    await expect(content).toHaveValue("typed by hand");
+    await step.click();
+    await expect(content).toHaveValue(`${note}
+typed by hand`);
   });
 
   test("Tạo bảo hành builds no checklist, so the heading stays (Trống)", async ({ page }) => {
@@ -3098,7 +3135,9 @@ test.describe("Bệnh nhân", () => {
     await assertRealApiTraffic(page, "/api/v1/app/patients");
 
     const line = await page.evaluate(async () => {
-      const res = await fetch("/api/v1/app/patient-treatments?maxResultCount=50", {
+      // Deep enough to survive the specs' own slips — see the note on the main
+      // fixture: the list is newest-first and these suites add to the front.
+      const res = await fetch("/api/v1/app/patient-treatments?maxResultCount=300", {
         credentials: "include",
       });
       const items = (await res.json()).items as {

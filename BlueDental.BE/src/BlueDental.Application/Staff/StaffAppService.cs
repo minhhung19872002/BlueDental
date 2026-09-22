@@ -46,13 +46,23 @@ public class StaffAppService(
             branchStaffIds = assignments.Select(a => a.StaffId).ToHashSet();
         }
 
-        var needsInMemoryFilter = branchStaffIds != null || input.IsActive.HasValue;
+        // The identity repository's own `filter` is case-sensitive on PostgreSQL,
+        // so "thu" would miss "Lê Thu Hà". The pickers search as the user types,
+        // which makes that a real miss rather than a curiosity — so the term is
+        // matched here instead, the way the catalog list matches its own.
+        var term = input.Filter?.Trim();
+        var needsInMemoryFilter =
+            branchStaffIds != null || input.IsActive.HasValue || !term.IsNullOrEmpty();
 
         var users = await userRepository.GetListAsync(
             sorting: input.Sorting ?? "Name",
             maxResultCount: needsInMemoryFilter ? int.MaxValue : input.MaxResultCount,
-            skipCount: needsInMemoryFilter ? 0 : input.SkipCount,
-            filter: input.Filter);
+            skipCount: needsInMemoryFilter ? 0 : input.SkipCount);
+
+        if (!term.IsNullOrEmpty())
+        {
+            users = users.Where(u => MatchesTerm(u, term!)).ToList();
+        }
 
         if (branchStaffIds != null)
         {
@@ -76,6 +86,26 @@ public class StaffAppService(
         }
 
         return new PagedResultDto<StaffDto>(totalCount, dtos);
+    }
+
+    /// <summary>
+    /// Whether a member of staff answers to what was typed — the same fields the
+    /// identity repository looks at, matched without regard to case or spacing.
+    /// </summary>
+    private static bool MatchesTerm(Volo.Abp.Identity.IdentityUser user, string term)
+    {
+        var needle = term.ToLowerInvariant();
+        var fullName = string.Join(" ", new[] { user.Surname, user.Name }.Where(x => !x.IsNullOrWhiteSpace()));
+
+        return Contains(user.UserName, needle)
+            || Contains(user.Name, needle)
+            || Contains(user.Surname, needle)
+            || Contains(fullName, needle)
+            || Contains(user.Email, needle)
+            || Contains(user.PhoneNumber, needle);
+
+        static bool Contains(string? value, string needle) =>
+            !value.IsNullOrWhiteSpace() && value!.ToLowerInvariant().Contains(needle);
     }
 
     [Authorize(BlueDentalPermissions.Staff.View)]

@@ -8,6 +8,7 @@ import {
   type VoucherDto,
 } from "../api/voucherApi";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { t } from "@/lib/i18n";
 import { useBranchFilter } from "@/lib/clinicBranch";
 import { useAbility } from "@/hooks/useAbility";
@@ -42,7 +43,7 @@ export function VoucherPage() {
         await action;
         toast.success(successMessage);
       } catch (error) {
-        toast.error(extractApiError(error));
+        notifyError(extractApiError(error));
       }
     },
     [],

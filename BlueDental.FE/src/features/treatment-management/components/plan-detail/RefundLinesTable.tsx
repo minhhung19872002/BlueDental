@@ -23,9 +23,6 @@ interface Props {
 export function RefundLinesTable({ lines, onAmountChange }: Props) {
   const pagination = useTablePagination(20);
   const narrow = useMediaQuery(NARROW_SCREEN);
-  if (lines.length === 0) {
-    return <p className="pdt-refund-empty">{t("Phiếu này chưa có dịch vụ nào được thanh toán")}</p>;
-  }
   const pageLines = lines.slice(pagination.skipCount, pagination.skipCount + pagination.pageSize);
   const showTotal = countedTotal(t("dịch vụ"));
   if (narrow) {
@@ -53,6 +50,15 @@ export function RefundLinesTable({ lines, onAmountChange }: Props) {
           </tr>
         </thead>
         <tbody>
+          {/* An empty refund keeps its table: the reference never swaps the grid
+              for a bare sentence, it prints the head and one "no data" row. */}
+          {pageLines.length === 0 && (
+            <tr>
+              <td colSpan={6} className="pdt-refund-empty">
+                {t("Không có dữ liệu")}
+              </td>
+            </tr>
+          )}
           {pageLines.map((line) => {
             const name = line.service.serviceName ?? line.service.code;
             const over = (line.amount ?? 0) > line.refundable;
@@ -78,7 +84,12 @@ export function RefundLinesTable({ lines, onAmountChange }: Props) {
           })}
         </tbody>
       </table>
-      <Pagination className="pdt-refund-pager" {...pagination.buildConfig(lines.length, showTotal)} />
+      {lines.length > 0 && (
+        <Pagination
+          className="pdt-refund-pager"
+          {...pagination.buildConfig(lines.length, showTotal)}
+        />
+      )}
     </div>
   );
 }

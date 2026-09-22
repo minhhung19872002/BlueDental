@@ -91,7 +91,7 @@ export function toQuoteRow(
     unitPrice: row.price,
     clinicDiscount: row.discountAmount,
     voucherDiscount: row.voucherDiscountAmount ?? 0,
-    diagnosisContent: slips.get(row.patientDiagnosisId)?.note?.trim() ?? "",
+    diagnosisContent: (row.patientDiagnosisId ? slips.get(row.patientDiagnosisId) : undefined)?.note?.trim() ?? "",
     doctors: [row.staffName, row.secondStaffName].map((name) => name?.trim() ?? "").filter(Boolean),
   };
 }

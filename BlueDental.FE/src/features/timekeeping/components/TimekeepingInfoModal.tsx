@@ -9,6 +9,7 @@ import { useUpdateInfo, useOpenWorkDay } from "../api/timekeepingQueries";
 import type { TimeKeepingRecordDto } from "../api/timekeepingApi";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { t } from "@/lib/i18n";
 
 interface Props {
@@ -91,7 +92,7 @@ export function TimekeepingInfoModal({ open, record, onClose }: Props) {
       toast.success(t("Đã cập nhật thông tin."));
       onClose();
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 

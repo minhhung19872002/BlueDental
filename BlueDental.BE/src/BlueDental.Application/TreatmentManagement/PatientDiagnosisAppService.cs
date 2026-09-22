@@ -139,6 +139,11 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
     {
         var diagnosis = await _repository.GetAsync(id);
 
+        if (input.DiagnosisId != Guid.Empty)
+        {
+            diagnosis.ChangeDiagnosis(input.DiagnosisId);
+        }
+
         diagnosis.ChangeStaff(input.StaffId, input.SecondStaffId);
         diagnosis.UpdateNote(input.Note);
         diagnosis.UpdateTeeth(ToToothSelections(input.Teeth));

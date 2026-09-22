@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -203,6 +203,211 @@ public class PatientTreatmentAppService : ApplicationService, IPatientTreatmentA
         var plan = await LoadAsync(id);
         plan.GetService(serviceLineId).Cancel();
         plan.CloseIfAllServicesDone();
+
+        await _planRepository.UpdateAsync(plan, autoSave: true);
+        return (await MapManyAsync([plan])).Single();
+    }
+
+    /// <summary>
+    /// "Chuyển đổi dịch vụ" — closes the line and writes the one that takes its
+    /// place, then moves the money already collected across.
+    ///
+    /// Measured on the reference 2026-09-22: the closed line keeps its own price
+    /// and goes to status `replaced` (printed "Chuyển đổi"), a fresh line is
+    /// written for the new service, and the two point at each other through
+    /// `replacedId`. What the reference does with công đoạn of the closed line
+    /// could not be reproduced here — see docs/clone/unknowns.md.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Update)]
+    public async Task<TreatmentPlanSlipDto> ConvertServiceAsync(
+        Guid id, Guid serviceLineId, ConvertTreatmentServiceDto input)
+    {
+        if (string.IsNullOrWhiteSpace(input.Note))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.InvalidPlanTransition,
+                "A conversion must say why.");
+        }
+
+        var plan = await LoadAsync(id);
+        var old = plan.GetService(serviceLineId);
+
+        // The reference refuses the conversion outright on a line that is
+        // finished or cancelled — its own `treatment.validation.convertNotAllowed`,
+        // "Dịch vụ đã hoàn thành/huỷ không được phép chuyển đổi." (read off its
+        // published bundle 2026-09-22). A line already replaced is closed the
+        // same way. Checked here rather than left to the aggregate's GuardOpen
+        // so the reason reaches the screen instead of a generic transition error.
+        if (old.Status is TreatmentServiceStatus.Done
+            or TreatmentServiceStatus.Cancelled
+            or TreatmentServiceStatus.Replaced)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.ServiceConvertNotAllowed,
+                $"A service line in status {old.Status} cannot be converted.");
+        }
+
+        // And a line with a finished công đoạn stays put even while its own status
+        // is still open: that work was done and charged against *this* service,
+        // so moving the line would strand it. Stages are their own aggregate, so
+        // the question has to be asked here.
+        if (await _stageRepository.AnyAsync(stage =>
+                stage.TreatmentServiceId == serviceLineId
+                && stage.Status == TreatmentStageStatus.Completed))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.ServiceHasCompletedStage,
+                "A service line with a completed công đoạn cannot be converted.");
+        }
+
+        var newServiceId = input.ConversionType == ServiceConversionType.Replace
+            ? input.ServiceId ?? Guid.Empty
+            : old.ServiceId;
+
+        if (newServiceId == Guid.Empty)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Catalogs.CatalogEntryNotFound,
+                "A replacement must name the service it converts to.");
+        }
+
+        var unitPrice = input.ConversionType == ServiceConversionType.Replace
+            ? await CatalogPriceAsync(newServiceId)
+            : old.Price;
+
+        var teeth = PatientDiagnosisAppService.ToToothSelections(input.Teeth);
+        var quantity = Math.Max(teeth.Count, 1);
+        var gross = unitPrice * quantity;
+        var charge = Math.Clamp(input.PaymentAmount ?? gross, 0m, gross);
+
+        var line = plan.ConvertService(
+            serviceLineId, GuidGenerator.Create(), newServiceId, unitPrice, quantity, charge, teeth);
+
+        line.SetDetails(
+            old.DiagnosisId,
+            old.DentistId,
+            input.Note,
+            input.DiagnoserStaffId,
+            input.SecondDiagnoserStaffId,
+            input.ConsultantStaffId,
+            input.SecondConsultantStaffId);
+
+        await _planRepository.UpdateAsync(plan, autoSave: true);
+        await MoveCollectedMoneyAsync(plan, old.Id, line.Id, charge, input.DifferenceHandling);
+
+        return (await MapManyAsync([plan])).Single();
+    }
+
+    private async Task<decimal> CatalogPriceAsync(Guid serviceId)
+    {
+        var catalog = await _catalogRepository.FirstOrDefaultAsync(c => c.Id == serviceId)
+            ?? throw new BusinessException(
+                BlueDentalDomainErrorCodes.Catalogs.CatalogEntryNotFound,
+                "That service is not in the catalog.");
+
+        return catalog.Price ?? 0m;
+    }
+
+    /// <summary>
+    /// Follows the money across a conversion: what was collected on the closed
+    /// line moves to the new one, up to what the new one costs. Anything over
+    /// is refunded or left as the patient's credit, which is the choice the
+    /// dialog's "Xử lý chênh lệch" offers.
+    /// </summary>
+    private async Task MoveCollectedMoneyAsync(
+        TreatmentPlan plan,
+        Guid oldLineId,
+        Guid newLineId,
+        decimal charge,
+        ConversionDifferenceHandling? handling)
+    {
+        // The receipt's own lines are what say which service was paid, and a bare
+        // GetListAsync leaves them unloaded — the money would then move nowhere.
+        var receiptQuery = await _paymentRepository.WithDetailsAsync(x => x.Lines);
+        var receipts = receiptQuery
+            .Where(p => p.TreatmentPlanId == plan.Id && p.Kind == PatientPaymentKind.Payment)
+            .OrderBy(p => p.PaidAt)
+            .ToList();
+
+        var budget = charge;
+        var touched = new List<PatientPayment>();
+
+        foreach (var receipt in receipts)
+        {
+            if (budget <= 0m)
+            {
+                break;
+            }
+
+            var moved = receipt.Redirect(oldLineId, newLineId, budget, GuidGenerator.Create);
+            if (moved <= 0m)
+            {
+                continue;
+            }
+
+            budget -= moved;
+            touched.Add(receipt);
+        }
+
+        if (touched.Count > 0)
+        {
+            await _paymentRepository.UpdateManyAsync(touched, autoSave: true);
+        }
+
+        if (handling != ConversionDifferenceHandling.Refund)
+        {
+            return;
+        }
+
+        var leftOnOldLine = receipts.Sum(p => p.AmountFor(oldLineId));
+        if (leftOnOldLine <= 0m)
+        {
+            return;
+        }
+
+        var refund = PatientPayment.Record(
+            GuidGenerator.Create(),
+            plan.PatientId,
+            plan.BranchId,
+            PatientPaymentKind.Refund,
+            PaymentMethodKind.Cash,
+            leftOnOldLine,
+            await NextRefundCodeAsync(plan.BranchId),
+            CurrentUser.Id ?? plan.DentistId,
+            Clock.Now,
+            plan.Id,
+            "Hoàn trả chênh lệch chuyển đổi dịch vụ",
+            splitMode: PaymentSplitMode.Manual,
+            lines: [(oldLineId, leftOnOldLine)],
+            lineIdFactory: GuidGenerator.Create);
+
+        await _paymentRepository.InsertAsync(refund, autoSave: true);
+    }
+
+    /// <summary>Per-branch, per-year refund sequence — HT26-0002, as receipts use.</summary>
+    private async Task<string> NextRefundCodeAsync(Guid clinicBranchId)
+    {
+        var year = Clock.Now.Year;
+        var query = await _paymentRepository.GetQueryableAsync();
+        var sequence = query.Count(x =>
+            x.ClinicBranchId == clinicBranchId
+            && x.Kind == PatientPaymentKind.Refund
+            && x.CreationTime.Year == year) + 1;
+
+        return string.Format("HT{0:D2}-{1:D4}", year % 100, sequence);
+    }
+
+    /// <summary>
+    /// Drag-and-drop of a service line. Only the reading order moves, so this
+    /// runs on a finished slip as well — and it deliberately leaves the slip's
+    /// own status alone, unlike the calls that change a line's state.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Update)]
+    public async Task<TreatmentPlanSlipDto> ReorderServiceAsync(
+        Guid id, ReorderTreatmentServiceDto input)
+    {
+        var plan = await LoadAsync(id);
+        plan.ReorderService(input.ServiceLineId, input.SortOrder);
 
         await _planRepository.UpdateAsync(plan, autoSave: true);
         return (await MapManyAsync([plan])).Single();
@@ -414,7 +619,10 @@ public class PatientTreatmentAppService : ApplicationService, IPatientTreatmentA
             TotalAmount = plan.TotalAmount,
             Payment = MapPayment(_money.ForPlan(plan, payments)),
             Services = plan.Services
-                .OrderBy(s => s.Code)
+                // Lines never dragged all hold 0, so the slip keeps the
+                // reference's default — newest first — until the clinic drags one.
+                .OrderBy(s => s.SortOrder)
+                .ThenByDescending(s => s.CreationTime)
                 .Select(line => new TreatmentServiceDto
                 {
                     Id = line.Id,
@@ -430,6 +638,8 @@ public class PatientTreatmentAppService : ApplicationService, IPatientTreatmentA
                     DiscountAmount = line.DiscountAmount,
                     EffectiveAmount = line.EffectiveAmount,
                     Status = line.Status,
+                    SortOrder = line.SortOrder,
+                    ReplacedId = line.ReplacedId,
                     Teeth = PatientDiagnosisAppService.ToToothDtos(line.Teeth),
                     ServiceName = serviceNames.TryGetValue(line.ServiceId, out var name) ? name : null,
                     WarrantyDays = warrantyDays.TryGetValue(line.ServiceId, out var days) ? days : 0,

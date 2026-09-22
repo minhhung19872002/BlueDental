@@ -1,7 +1,14 @@
 const GRAB_SCROLL_SELECTORS = '.ant-table-content, .ant-table-body, .appt-mini-cal-content, .wsb-table-scroll';
 
+/**
+ * How far the pointer has to travel before a grab counts as a scroll rather
+ * than a click. Below this a shaky hand on a row still opens it.
+ */
+const DRAG_SLOP_PX = 4;
+
 export const initTableGrabScroll = () => {
   let isGrabbing = false;
+  let didScroll = false;
   let startX = 0;
   let scrollLeft = 0;
   let currentContainer: HTMLElement | null = null;
@@ -51,8 +58,12 @@ export const initTableGrabScroll = () => {
       target.closest('.ant-btn') ||
       target.closest('.ant-tag') ||
       target.closest('[role="button"]') ||
+      // Ant Design 6 renamed these parts from `…-fix-left/right` to
+      // `…-fix-start/end`; both are listed so a pinned cell stays a pinned cell.
       target.closest('.ant-table-cell-fix-left') ||
-      target.closest('.ant-table-cell-fix-right')
+      target.closest('.ant-table-cell-fix-right') ||
+      target.closest('.ant-table-cell-fix-start') ||
+      target.closest('.ant-table-cell-fix-end')
     );
   };
 
@@ -64,6 +75,7 @@ export const initTableGrabScroll = () => {
     if (!container) return;
 
     isGrabbing = true;
+    didScroll = false;
     currentContainer = container;
     startX = e.pageX;
     scrollLeft = container.scrollLeft;
@@ -77,14 +89,37 @@ export const initTableGrabScroll = () => {
 
     e.preventDefault();
     const x = e.pageX;
+    if (Math.abs(x - startX) > DRAG_SLOP_PX) didScroll = true;
     const walk = (x - startX) * 1.2;
     currentContainer.scrollLeft = scrollLeft - walk;
+  };
+
+  /**
+   * Dragging a table sideways must not also activate what is under the cursor.
+   * The browser still fires a click after the grab, so once the pointer has
+   * actually travelled, the next click is swallowed in the capture phase —
+   * otherwise letting go over a row opened that row's dialog.
+   */
+  const swallowNextClick = (e: MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
   };
 
   const handleMouseUp = () => {
     if (currentContainer) {
       currentContainer.classList.remove('is-grabbing');
     }
+    if (didScroll) {
+      document.addEventListener('click', swallowNextClick, { capture: true, once: true });
+      // Nothing to swallow if the drag ended without a click (dropped outside
+      // the document, say): the listener is dropped on the next frame so it
+      // cannot eat an unrelated click later on.
+      window.setTimeout(
+        () => document.removeEventListener('click', swallowNextClick, true),
+        0,
+      );
+    }
+    didScroll = false;
     isGrabbing = false;
     currentContainer = null;
   };

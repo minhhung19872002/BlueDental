@@ -4,6 +4,7 @@ import dayjs, { type Dayjs } from "dayjs";
 import { toast } from "sonner";
 import { t } from "@/lib/i18n";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { AppDialog } from "@/components/AppDialog";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import {
@@ -70,7 +71,7 @@ export function BaseCareDialog({ open, patient, onClose }: BaseCareDialogProps) 
       toast.success(t("Đã lưu lần chăm sóc"));
       onClose();
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 

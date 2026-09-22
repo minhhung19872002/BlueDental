@@ -1,5 +1,4 @@
 import { Button, Popconfirm, Tag } from "antd";
-import { toast } from "sonner";
 import {
   useOpenWorkDay,
   useRegisterDayOff,
@@ -10,6 +9,7 @@ import type { StaffDto } from "../api/staffApi";
 import type { RosterDay } from "../api/rosterQueries";
 import { useAbility } from "@/hooks/useAbility";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { brand } from "@/theme/index";
 import { t } from "@/lib/i18n";
 
@@ -72,7 +72,7 @@ export function StaffRosterCard({
         })) as TimeKeepingRecordDto);
       await registerWorking.mutateAsync(record.id);
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from "react";
 import type { TableColumnsType } from "antd";
 import { Tooltip } from "antd";
 import { Eye, GripVertical } from "lucide-react";
@@ -8,11 +8,53 @@ import { formatTeeth } from "../../api/consultingApi";
 import { moneyText } from "../plan/planTypes";
 import { ServiceStatusPill, type ServiceAction } from "./ServiceStatusPill";
 import { renderDraftCell } from "./draftServiceCells";
-import { dash, discountTooltip, isDraftRow, type PlanDetailRow, type ServiceTableRow } from "./planDetailTypes";
+import {
+  advanceOn,
+  dash,
+  discountTooltip,
+  isDraftRow,
+  type PlanDetailRow,
+  type ServiceTableRow,
+} from "./planDetailTypes";
 
 export interface ServiceRowActions {
   onView: (row: PlanDetailRow) => void;
   onStatus: (row: PlanDetailRow, action: ServiceAction) => void;
+}
+
+/** What the grip needs to move its row — see {@link useDragReorder}. */
+export interface ServiceDragHandle {
+  enabled: boolean;
+  handleProps: (key: string) => {
+    onPointerDown: (event: ReactPointerEvent) => void;
+    style: CSSProperties;
+  };
+  /** The keyboard's way out: one slot up or down from where the line sits now. */
+  onNudge: (row: PlanDetailRow, delta: -1 | 1) => void;
+}
+
+/**
+ * The grip that starts a drag. A real button, not a decoration: the order has
+ * to be reachable without a pointer, so the arrow keys move the row too.
+ */
+function ServiceGrip({ row, drag }: { row: PlanDetailRow; drag: ServiceDragHandle }) {
+  return (
+    <button
+      type="button"
+      className={["pdt-grip", !drag.enabled && "pdt-grip--off"].filter(Boolean).join(" ")}
+      disabled={!drag.enabled}
+      title={t("Kéo, hoặc dùng phím mũi tên lên/xuống, để sắp xếp")}
+      aria-label={t("Sắp xếp {0}", row.service.serviceName ?? row.service.code)}
+      {...drag.handleProps(row.service.id)}
+      onKeyDown={(event) => {
+        if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+        event.preventDefault();
+        drag.onNudge(row, event.key === "ArrowUp" ? -1 : 1);
+      }}
+    >
+      <GripVertical size={16} aria-hidden="true" />
+    </button>
+  );
 }
 
 type Column = TableColumnsType<ServiceTableRow>[number];
@@ -64,9 +106,12 @@ function text(key: string, title: string, width: number, value: (row: PlanDetail
 }
 
 /** The reference's fifteen columns, widths as measured on production. */
-export function buildServiceColumns(actions: ServiceRowActions): TableColumnsType<ServiceTableRow> {
+export function buildServiceColumns(
+  actions: ServiceRowActions,
+  drag: ServiceDragHandle,
+): TableColumnsType<ServiceTableRow> {
   return [
-    column("grip", "", 36, () => <GripVertical size={16} className="pdt-grip" aria-hidden="true" />, {
+    column("grip", "", 36, (row) => <ServiceGrip row={row} drag={drag} />, {
       align: "center",
     }),
     column("service", t("Dịch vụ"), 260, (row) => <ServiceNameCell row={row} actions={actions} />),
@@ -77,6 +122,9 @@ export function buildServiceColumns(actions: ServiceRowActions): TableColumnsTyp
     column("price", t("Đơn giá"), 170, (row) => moneyText(row.service.price), { align: "right" }),
     column("discount", t("Tổng giảm giá"), 160, (row) => <DiscountCell row={row} />, { align: "right" }),
     column("amount", t("Thành tiền"), 170, (row) => <strong>{moneyText(row.service.effectiveAmount)}</strong>, {
+      align: "right",
+    }),
+    column("advance", t("Tạm ứng"), 160, (row) => moneyText(advanceOn(row.service)), {
       align: "right",
     }),
     text("note", "Ghi chú", 200, (row) => row.service.note ?? row.advise?.note ?? ""),

@@ -2,7 +2,6 @@ import { useState, useCallback, useEffect } from "react";
 import dayjs, { type Dayjs } from "dayjs";
 import type { PatientDto } from "@/features/patient-management/types/patient";
 import type { TreatmentPlanSlipDto } from "../api/treatmentPlanApi";
-import { SERVICE_LINE_STATUS } from "../api/treatmentPlanApi";
 import type { InvoiceServiceRow, InvoicePaymentMethod } from "./invoiceTypes";
 import { t } from "@/lib/i18n";
 import {
@@ -13,27 +12,28 @@ import {
   DEFAULT_EXCHANGE_RATE,
 } from "./invoiceConstants";
 
-function buildRows(plan: TreatmentPlanSlipDto): InvoiceServiceRow[] {
-  return plan.services
-    .filter((s) => s.status !== SERVICE_LINE_STATUS.Cancelled)
-    .map((s, i) => {
-      const unitPrice = s.quantity > 0 ? s.effectiveAmount / s.quantity : s.effectiveAmount;
-      const taxBasePrice = unitPrice * s.quantity;
-      return {
-        key: s.id,
-        stt: i + 1,
-        serviceName: s.serviceName ?? s.code,
-        taxType: DEFAULT_TAX_TYPE,
-        unit: t(DEFAULT_UNIT_KEY),
-        quantity: s.quantity,
-        unitPrice,
-        taxBasePrice,
-        taxPercent: DEFAULT_TAX_TYPE,
-        taxAmount: 0,
-        totalAfterTax: taxBasePrice,
-        selected: true,
-      };
-    });
+/**
+ * The reception's "Hóa đơn" bills the slip, not its services: the reference
+ * hands the dialog a single line called "Kế hoạch điều trị DT32", quantity 1,
+ * priced at the slip's Thành tiền (measured 2026-09-21, and confirmed against
+ * its own row adapter).
+ */
+function buildPlanRow(plan: TreatmentPlanSlipDto): InvoiceServiceRow {
+  const amount = plan.payment.totalPrice;
+  return {
+    key: `invoice-${plan.id}`,
+    stt: 1,
+    serviceName: t("Kế hoạch điều trị {0}", plan.code),
+    taxType: DEFAULT_TAX_TYPE,
+    unit: t(DEFAULT_UNIT_KEY),
+    quantity: 1,
+    unitPrice: amount,
+    taxBasePrice: amount,
+    taxPercent: DEFAULT_TAX_TYPE,
+    taxAmount: 0,
+    totalAfterTax: amount,
+    selected: true,
+  };
 }
 
 export function useInvoiceForm(open: boolean, patient: PatientDto, plan: TreatmentPlanSlipDto) {
@@ -64,7 +64,7 @@ export function useInvoiceForm(open: boolean, patient: PatientDto, plan: Treatme
       setExchangeRate(String(DEFAULT_EXCHANGE_RATE));
       setInvoiceDate(dayjs());
       setPaymentMethod("cash");
-      setServiceRows(buildRows(plan));
+      setServiceRows([buildPlanRow(plan)]);
     }
   }, [open, patient, plan]);
 

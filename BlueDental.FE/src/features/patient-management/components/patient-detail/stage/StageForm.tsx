@@ -1,6 +1,8 @@
-import { Button, Input, Select } from "antd";
+import { Button, Input } from "antd";
 import { PictureOutlined, SaveOutlined } from "@ant-design/icons";
 import { FloatingLabel } from "@/components/FloatingLabel";
+import { ServerSearchSelect } from "@/components/ServerSearchSelect";
+import { useStaffOptionsSearch } from "@/hooks/usePickerOptions";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
 import { toothLabels } from "@/features/treatment-management/api/consultingApi";
@@ -19,7 +21,6 @@ export interface StaffOption {
 
 interface Props {
   line: TreatmentServiceDto;
-  options: StaffOption[];
   staffId: string | undefined;
   subStaffId: string | undefined;
   secondStaffId: string | undefined;
@@ -54,7 +55,6 @@ interface Props {
  */
 export function StageForm({
   line,
-  options,
   staffId,
   subStaffId,
   secondStaffId,
@@ -82,33 +82,25 @@ export function StageForm({
           <Input disabled value={formatDate(new Date().toISOString())} />
         </FloatingLabel>
         <FloatingLabel label={t("Bác sĩ")} floated={Boolean(staffId)}>
-          <Select
-            showSearch
-            optionFilterProp="label"
+          <ServerSearchSelect
             value={staffId}
-            options={options}
-            onChange={onStaff}
-            status={errors.staff ? "error" : undefined}
+            useOptions={useStaffOptionsSearch}
+            allowClear={false}
+            onChange={(value) => onStaff(value ?? "")}
           />
         </FloatingLabel>
         {errors.staff && <p className="pd-stage-error">{errors.staff}</p>}
         <FloatingLabel label={t("Phụ tá")} floated={Boolean(subStaffId)}>
-          <Select
-            allowClear
-            showSearch
-            optionFilterProp="label"
+          <ServerSearchSelect
             value={subStaffId}
-            options={options}
+            useOptions={useStaffOptionsSearch}
             onChange={onSubStaff}
           />
         </FloatingLabel>
         <FloatingLabel label={t("Bác sĩ hỗ trợ")} floated={Boolean(secondStaffId)}>
-          <Select
-            allowClear
-            showSearch
-            optionFilterProp="label"
+          <ServerSearchSelect
             value={secondStaffId}
-            options={options}
+            useOptions={useStaffOptionsSearch}
             onChange={onSecondStaff}
           />
         </FloatingLabel>

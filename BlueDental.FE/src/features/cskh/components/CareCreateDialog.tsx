@@ -4,6 +4,7 @@ import dayjs, { type Dayjs } from "dayjs";
 import { toast } from "sonner";
 import { t } from "@/lib/i18n";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { AppDialog } from "@/components/AppDialog";
 import { SearchSelect } from "@/components/SearchSelect/SearchSelect";
 import { useStaffOptions } from "@/hooks/useStaffOptions";
@@ -74,7 +75,7 @@ export function CareCreateDialog({ open, tab, onClose }: CareCreateDialogProps) 
       toast.success(t("Đã tạo công việc chăm sóc"));
       onClose();
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 

@@ -4,6 +4,7 @@ import { Button, ConfigProvider, Form, Modal, Tabs } from "antd";
 import { SaveOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { voucherDialogTheme } from "@/theme";
 import {
@@ -180,7 +181,7 @@ export function VoucherCreateDialog({ open, onClose }: Props) {
       resetAll();
       onClose();
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   }, [form, tab, batch, branchId, createVoucher, createBatch, prefixLabel, resetAll, onClose]);
 

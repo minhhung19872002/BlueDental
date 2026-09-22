@@ -1,16 +1,24 @@
 /* "In bệnh án" dialog — treatment-management feature.
    Measured on staging 2026-09-09; see docs/clone/pages/treatment-plan.md. */
 
+/* A flex column that clips: the sheet has its own scroller (.pmr-canvas), and
+   without this the body's 12px of padding pushed the 78vh block past the height
+   antd caps the modal at, leaving a second scrollbar down the whole dialog. */
 .pmr-dialog .ant-modal-body {
+  display: flex;
+  flex-direction: column;
   padding: 12px 24px 0;
+  overflow: hidden;
 }
 
 /* The reference gives the whole body a fixed 78vh and scrolls inside it, so
-   the footer stays put however long the chosen form is. */
+   the footer stays put however long the chosen form is. It may shrink below
+   that when the window cannot give it 78vh — the canvas takes up the slack. */
 .pmr-body {
   display: flex;
   height: 78vh;
   min-height: 0;
+  flex: 1 1 auto;
   flex-direction: column;
   gap: 12px;
   overflow: hidden;

@@ -1,25 +1,30 @@
-import { useMemo, useState } from "react";
+import { createContext, useContext, useMemo, useState, type HTMLAttributes } from "react";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { DataTable } from "@/components/DataTable";
 import { TreatmentStageDialog } from "@/features/patient-management/components/patient-detail/TreatmentStageDialog";
 import { GENDER, type GenderCode, type PatientDto } from "@/features/patient-management/types/patient";
 import { useBranchInfo } from "@/hooks/useBranchInfo";
+import { useDragReorder, type DragReorder } from "@/hooks/useDragReorder";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { t } from "@/lib/i18n";
 import { countedTotal } from "@/utils/countedTotal";
 import { usePatientAdvises } from "../../api/consultingQueries";
 import {
+  PLAN_STATUS,
   useCancelServiceLine,
   useCompleteServiceLine,
+  useReorderServiceLine,
   type TreatmentPlanSlipDto,
 } from "../../api/treatmentPlanApi";
 import type { PrescriptionPatientSummary } from "../../types/prescription";
 import { InvoiceModal } from "../InvoiceModal";
 import { PrescriptionDialog } from "../PrescriptionDialog";
 import { CancelServiceDialog } from "./CancelServiceDialog";
+import { ConvertServiceDialog } from "./convert/ConvertServiceDialog";
 import { EMPTY_TOOTH_VALUE } from "../plan/toothPicker";
 import { ToothPickerDialog } from "../plan/ToothPickerDialog";
 import { PlanServicesToolbar } from "./PlanServicesToolbar";
@@ -27,7 +32,7 @@ import { PlanSlipDialog } from "./PlanSlipDialog";
 import { ServiceCardList } from "./ServiceCardList";
 import { ServiceDetailDialog } from "./ServiceDetailDialog";
 import type { ServiceAction } from "./ServiceStatusPill";
-import { buildServiceColumns, type ServiceRowActions } from "./serviceColumns";
+import { buildServiceColumns, type ServiceDragHandle, type ServiceRowActions } from "./serviceColumns";
 import {
   DRAFT_ROW_KEY,
   isDraftRow,
@@ -38,6 +43,38 @@ import {
 import { useDraftServiceRow } from "./useDraftServiceRow";
 
 const NARROW_SCREEN = "(max-width: 640px)";
+
+/**
+ * The drag state has to reach the row element antd builds, and antd gives no
+ * way to pass props into it — hence a context rather than a closure.
+ */
+const DragContext = createContext<DragReorder<PlanDetailRow> | null>(null);
+
+/**
+ * One table row, wired for dragging. antd hands the row its key through
+ * `data-row-key`, which is how a row it constructed finds its own drag state.
+ * The inline draft row is not in the drag list, so it stays an ordinary row.
+ */
+function DraggableRow({ children, ...rest }: HTMLAttributes<HTMLTableRowElement>) {
+  const drag = useContext(DragContext);
+  const key = (rest as { "data-row-key"?: string })["data-row-key"];
+
+  if (!drag || !key || key === DRAFT_ROW_KEY) {
+    return <tr {...rest}>{children}</tr>;
+  }
+
+  return (
+    <tr
+      {...rest}
+      ref={drag.registerRow(key)}
+      className={[rest.className, drag.draggingKey === key && "pdt-row--dragging"]
+        .filter(Boolean)
+        .join(" ")}
+    >
+      {children}
+    </tr>
+  );
+}
 
 const GENDER_LABELS: Record<GenderCode, string> = {
   [GENDER.Male]: "Nam",
@@ -77,10 +114,12 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
   const clinic = useBranchInfo(branchId);
   const complete = useCompleteServiceLine();
   const cancel = useCancelServiceLine();
+  const reorder = useReorderServiceLine();
   const draft = useDraftServiceRow(plan.id);
 
   const [viewing, setViewing] = useState<PlanDetailRow | null>(null);
   const [cancelling, setCancelling] = useState<PlanDetailRow | null>(null);
+  const [converting, setConverting] = useState<PlanDetailRow | null>(null);
   const [stageOpen, setStageOpen] = useState(false);
   const [prescriptionOpen, setPrescriptionOpen] = useState(false);
   const [invoiceOpen, setInvoiceOpen] = useState(false);
@@ -88,10 +127,30 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
 
   const rows = useMemo(() => planDetailRows(plan, advises.data?.items ?? []), [plan, advises.data]);
   const pageRows = rows.slice(pagination.skipCount, pagination.skipCount + pagination.pageSize);
+
+  /**
+   * Saves a drop. `to` counts within the page being looked at, while the slip
+   * numbers its lines from one — hence the page offset.
+   */
+  const moveLine = async (lineId: string, sortOrder: number) => {
+    try {
+      await reorder.mutateAsync({ planId: plan.id, serviceLineId: lineId, sortOrder });
+    } catch (error) {
+      notifyError(extractApiError(error));
+    }
+  };
+
+  const drag = useDragReorder<PlanDetailRow>({
+    items: pageRows,
+    getKey: (row) => row.service.id,
+    enabled: !narrow,
+    onCommit: (from, to) => moveLine(pageRows[from].service.id, pagination.skipCount + to + 1),
+  });
+
   // The new row sits on top of the table on the reference.
   const tableRows: ServiceTableRow[] = draft.controller
-    ? [{ kind: "draft", draft: draft.controller }, ...pageRows]
-    : pageRows;
+    ? [{ kind: "draft", draft: draft.controller }, ...drag.items]
+    : drag.items;
   const showTotal = countedTotal(t("dịch vụ"));
 
   const handleStatus = async (row: PlanDetailRow, action: ServiceAction) => {
@@ -100,14 +159,14 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
       return;
     }
     if (action === "convert") {
-      toast.info(t("Chức năng đang phát triển"));
+      setConverting(row);
       return;
     }
     try {
       await complete.mutateAsync({ planId: plan.id, lineId: row.service.id });
       toast.success(t("Đã hoàn thành dịch vụ"));
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 
@@ -118,7 +177,7 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
       toast.success(t("Đã hủy dịch vụ"));
       setCancelling(null);
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 
@@ -127,12 +186,24 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- handlers close over stable mutations
     [plan.id],
   );
-  const columns = useMemo(() => buildServiceColumns(actions), [actions]);
+  const dragHandle = useMemo<ServiceDragHandle>(
+    () => ({
+      enabled: !narrow,
+      handleProps: drag.handleProps,
+      // `row.index` is the line's position on the whole slip, so a keyboard
+      // nudge needs no page arithmetic; the server clamps the ends.
+      onNudge: (row, delta) => void moveLine(row.service.id, row.index + delta),
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- moveLine closes over stable mutations
+    [narrow, drag.handleProps],
+  );
+  const columns = useMemo(() => buildServiceColumns(actions, dragHandle), [actions, dragHandle]);
 
   return (
     <div className="pdt-pane">
       <PlanServicesToolbar
         draftServiceId={draft.controller?.service.id ?? null}
+        canAddService={plan.status !== PLAN_STATUS.Completed && plan.status !== PLAN_STATUS.Cancelled}
         onPickService={draft.start}
         onAddStage={() => setStageOpen(true)}
         onPrescription={() => setPrescriptionOpen(true)}
@@ -149,16 +220,19 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
           showTotal={showTotal}
         />
       ) : (
-        <div className="bd-cat-card tp-table pdt-table">
-          <DataTable<ServiceTableRow>
-            rowKey={(row) => (isDraftRow(row) ? DRAFT_ROW_KEY : row.service.id)}
-            rowClassName={(row) => (isDraftRow(row) ? "pdt-row--draft" : "")}
-            columns={columns}
-            dataSource={tableRows}
-            pagination={pagination.buildConfig(rows.length, showTotal)}
-            locale={{ emptyText: t("Không có dữ liệu") }}
-          />
-        </div>
+        <DragContext.Provider value={drag}>
+          <div className="bd-cat-card tp-table pdt-table">
+            <DataTable<ServiceTableRow>
+              rowKey={(row) => (isDraftRow(row) ? DRAFT_ROW_KEY : row.service.id)}
+              rowClassName={(row) => (isDraftRow(row) ? "pdt-row--draft" : "")}
+              components={{ body: { row: DraggableRow } }}
+              columns={columns}
+              dataSource={tableRows}
+              pagination={pagination.buildConfig(rows.length, showTotal)}
+              locale={{ emptyText: t("Không có dữ liệu") }}
+            />
+          </div>
+        </DragContext.Provider>
       )}
 
       <ToothPickerDialog
@@ -176,6 +250,7 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
         onClose={draft.closeDiscard}
       />
       <ServiceDetailDialog row={viewing} patient={patient} onClose={() => setViewing(null)} />
+      <ConvertServiceDialog row={converting} onClose={() => setConverting(null)} />
       <CancelServiceDialog
         service={cancelling?.service ?? null}
         saving={cancel.isPending}

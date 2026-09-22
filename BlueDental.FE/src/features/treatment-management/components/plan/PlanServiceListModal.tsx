@@ -13,23 +13,54 @@ interface Props {
   open: boolean;
   title: string;
   rows: PlanServiceRow[];
+  /**
+   * Print the slip's DT code in front of each service name. The reference does
+   * this on one slip's list — where the code is also a link back to that slip —
+   * and leaves it off on "Xem tất cả dịch vụ" (measured 2026-09-21).
+   */
+  showCode?: boolean;
   /** Diagnosis name per source advise; a service line carries only the advise id. */
   diagnosisByAdviseId: ReadonlyMap<string, string>;
   onClose: () => void;
+  onOpenPlan?: (planId: string) => void;
 }
 
-function buildColumns(
-  diagnosisByAdviseId: ReadonlyMap<string, string>,
-): TableColumnsType<PlanServiceRow> {
+interface ColumnOptions {
+  showCode: boolean;
+  diagnosisByAdviseId: ReadonlyMap<string, string>;
+  onOpenPlan?: (planId: string) => void;
+}
+
+/** The reference's Đơn giá is the line's net amount spread over its quantity. */
+function unitPrice(amount: number, quantity: number): number {
+  return Math.round(amount / Math.max(quantity, 1));
+}
+
+function buildColumns({
+  showCode,
+  diagnosisByAdviseId,
+  onOpenPlan,
+}: ColumnOptions): TableColumnsType<PlanServiceRow> {
   return [
     {
       key: "service",
       title: t("Dịch vụ"),
       width: 190,
-      render: (_, { service }) => (
+      render: (_, { plan, service }) => (
         <>
-          <p className="tp-service-teeth">{formatTeeth(service.teeth)}</p>
-          <p className="tp-service-name">{service.serviceName}</p>
+          <p className="tp-service-teeth">{formatTeeth(service.teeth) || "—"}</p>
+          <p className="tp-service-name">
+            {showCode && (
+              <button
+                type="button"
+                className="tp-service-code"
+                onClick={() => onOpenPlan?.(plan.id)}
+              >
+                {plan.code}
+              </button>
+            )}
+            {service.serviceName || "—"}
+          </p>
         </>
       ),
     },
@@ -38,13 +69,17 @@ function buildColumns(
       title: t("Chẩn đoán"),
       width: 274,
       render: (_, { service }) =>
-        (service.sourceAdviseId && diagnosisByAdviseId.get(service.sourceAdviseId)) || "—",
+        service.diagnosisName ||
+        (service.sourceAdviseId && diagnosisByAdviseId.get(service.sourceAdviseId)) ||
+        "—",
     },
     {
       key: "dentist",
+      // The line's own treating dentist, not the slip's — they differ once a
+      // line is reassigned, and the reference prints the line's.
       title: t("Bác sĩ"),
       width: 190,
-      render: (_, { plan }) => plan.dentistName,
+      render: (_, { plan, service }) => service.dentistName || plan.dentistName || "—",
     },
     {
       key: "status",
@@ -64,7 +99,11 @@ function buildColumns(
       title: t("Đơn giá"),
       width: 168,
       align: "right",
-      render: (_, { service }) => <span className="tp-cell-money">{moneyText(service.price)}</span>,
+      render: (_, { service }) => (
+        <span className="tp-cell-money">
+          {moneyText(unitPrice(service.effectiveAmount, service.quantity))}
+        </span>
+      ),
     },
     {
       key: "amount",
@@ -85,10 +124,21 @@ const NARROW_SCREEN = "(max-width: 640px)";
  * "Danh sách dịch vụ": one row per service line. Opened for a single slip from
  * the eye button, or for every slip from "Xem tất cả dịch vụ".
  */
-export function PlanServiceListModal({ open, title, rows, diagnosisByAdviseId, onClose }: Props) {
+export function PlanServiceListModal({
+  open,
+  title,
+  rows,
+  showCode = false,
+  diagnosisByAdviseId,
+  onClose,
+  onOpenPlan,
+}: Props) {
   const pagination = useTablePagination(20);
   const narrow = useMediaQuery(NARROW_SCREEN);
-  const columns = useMemo(() => buildColumns(diagnosisByAdviseId), [diagnosisByAdviseId]);
+  const columns = useMemo(
+    () => buildColumns({ showCode, diagnosisByAdviseId, onOpenPlan }),
+    [showCode, diagnosisByAdviseId, onOpenPlan],
+  );
   const pageRows = rows.slice(pagination.skipCount, pagination.skipCount + pagination.pageSize);
 
   return (
@@ -117,7 +167,7 @@ export function PlanServiceListModal({ open, title, rows, diagnosisByAdviseId, o
             columns={columns}
             dataSource={pageRows}
             pagination={pagination.buildConfig(rows.length)}
-            locale={{ emptyText: t("Chưa có dịch vụ") }}
+            locale={{ emptyText: t("Không có dữ liệu") }}
           />
         </div>
       )}

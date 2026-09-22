@@ -14,26 +14,32 @@ const DISCOUNT_UNITS = [
 
 interface Props {
   form: FormInstance<CreatePlanValues>;
-  enabled: boolean;
   totals: PlanTotals;
 }
 
-/** Right column of "Tạo phiếu dịch vụ": price, quantity, discount and the payment summary. */
-export function PlanPricingFields({ form, enabled, totals }: Props) {
+/**
+ * Right column of "Tạo phiếu dịch vụ": price, quantity, discount and the
+ * payment summary.
+ *
+ * "Đơn giá" and "Số lượng" are **never typed** — they come from the service
+ * that was picked, so letting them be edited would put a slip on the books at a
+ * price the catalog does not know. Only the discount is the clinic's to set.
+ */
+export function PlanPricingFields({ form, totals }: Props) {
   const discountType = Form.useWatch("discountType", form) ?? DISCOUNT_TYPE.Percentage;
 
   return (
     <div>
       <div className="tp-create-money">
         <FloatingField name="price" label={t("Đơn giá")}>
-          <CurrencyInput disabled={!enabled} />
+          <CurrencyInput disabled />
         </FloatingField>
         <FloatingField
           name="quantity"
           label={t("Số lượng")}
           rules={[{ type: "number", min: 1, message: t("Số lượng phải lớn hơn 0") }]}
         >
-          <InputNumber disabled={!enabled} className="tp-input-full" />
+          <InputNumber disabled className="tp-input-full" />
         </FloatingField>
       </div>
       <div className="tp-create-discount">

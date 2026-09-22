@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using BlueDental.Controllers;
 using Microsoft.AspNetCore.Authorization;
@@ -42,6 +42,16 @@ public sealed class PatientTreatmentController(IPatientTreatmentAppService servi
     public Task<TreatmentPlanSlipDto> CancelServiceAsync(Guid id, Guid serviceLineId) =>
         service.CancelServiceAsync(id, serviceLineId);
 
+    [HttpPost("{id:guid}/services/{serviceLineId:guid}/convert")]
+    public Task<TreatmentPlanSlipDto> ConvertServiceAsync(
+        Guid id, Guid serviceLineId, [FromBody] ConvertTreatmentServiceDto input) =>
+        service.ConvertServiceAsync(id, serviceLineId, input);
+
+    [HttpPost("{id:guid}/services/reorder")]
+    public Task<TreatmentPlanSlipDto> ReorderServiceAsync(
+        Guid id, [FromBody] ReorderTreatmentServiceDto input) =>
+        service.ReorderServiceAsync(id, input);
+
     [HttpGet("{id:guid}/pdf")]
     public async Task<IActionResult> ExportPdfAsync(Guid id) =>
         Pdf(await service.ExportPdfAsync(id), $"phieu-dieu-tri-{id}");
@@ -63,9 +73,17 @@ public sealed class PatientPaymentController(IPatientPaymentAppService service)
         [FromQuery] Guid patientId, [FromQuery] Guid? clinicBranchId) =>
         service.GetAccountAsync(patientId, clinicBranchId);
 
+    [HttpGet("debt-history")]
+    public Task<PagedResultDto<DebtHistoryEntryDto>> GetDebtHistoryAsync(
+        [FromQuery] GetDebtHistoryInput input) => service.GetDebtHistoryAsync(input);
+
     [HttpPost]
     public Task<PatientPaymentDto> RecordAsync([FromBody] RecordPatientPaymentDto input) =>
         service.RecordAsync(input);
+
+    [HttpPut("{id:guid}")]
+    public Task<PatientPaymentDto> UpdateAsync(Guid id, [FromBody] UpdatePatientPaymentDto input) =>
+        service.UpdateAsync(id, input);
 
     [HttpDelete("{id:guid}")]
     public Task DeleteAsync(Guid id) => service.DeleteAsync(id);

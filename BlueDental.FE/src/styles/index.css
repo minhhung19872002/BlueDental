@@ -1786,7 +1786,22 @@ body::-webkit-scrollbar-track {
   padding-right: 20px;
 }
 
-.ant-table-wrapper .ant-table-thead > tr > th.ant-table-cell-fix-right {
+/* The pinned column is exempt from the 100px floor — it is sized to its icons.
+   Ant Design 6 renamed this part from `…-fix-right` to `…-fix-end`; both are
+   listed so the rule survives either. Without the new name the pinned cell was
+   held at 100px, which pushed the table a few pixels past its container: just
+   enough overflow for the pinned cell to sit over "Phải thu", and far too
+   little to scroll out of the way (R-462). */
+.ant-table-wrapper .ant-table-thead > tr > th.ant-table-cell-fix-right,
+.ant-table-wrapper .ant-table-thead > tr > th.ant-table-cell-fix-end {
+  min-width: unset;
+}
+
+/* An icon-only column declares its own narrow width and means it. The floor
+   above exists to keep text columns on the design's rhythm; a 48px cell holding
+   one 16px glyph is not one of those. */
+.ant-table-wrapper .ant-table-thead > tr > th.bd-col-icon,
+.ant-table-wrapper .ant-table-tbody > tr > td.bd-col-icon {
   min-width: unset;
 }
 

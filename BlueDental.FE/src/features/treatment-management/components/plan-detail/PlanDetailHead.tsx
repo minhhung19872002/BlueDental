@@ -9,12 +9,22 @@ interface Stat {
   tone: "ink" | "green" | "red" | "amber";
 }
 
-/** The five figures on the right of the tab strip, in the reference's order. */
+/**
+ * The six figures on the right of the tab strip, in the reference's order
+ * (re-measured 2026-09-22 — "Tạm ứng" sits between "Đã hoàn" and "Dư nợ", and
+ * was missing here).
+ *
+ * "Tạm ứng" reads `paidUncompleted`: money collected on the slip that the work
+ * has not earned yet. The reference's payload carries the same figure in
+ * `prepaid` on the one slip that could be observed, so which of the two it
+ * prints is recorded as unknown — see docs/clone/unknowns.md.
+ */
 const STATS: Stat[] = [
   { key: "totalPrice", label: "Doanh thu dự kiến", tone: "ink" },
   { key: "totalPaid", label: "Đã thanh toán", tone: "ink" },
   { key: "debt", label: "Công nợ", tone: "green" },
   { key: "totalRefund", label: "Đã hoàn", tone: "red" },
+  { key: "paidUncompleted", label: "Tạm ứng", tone: "amber" },
   { key: "outstandingDebt", label: "Dư nợ", tone: "amber" },
 ];
 

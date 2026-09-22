@@ -4842,7 +4842,7 @@ namespace BlueDental.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("DeletionTime");
 
-                    b.Property<Guid>("DiagnosisId")
+                    b.Property<Guid?>("DiagnosisId")
                         .HasColumnType("uuid");
 
                     b.Property<short>("DiscountType")
@@ -4881,7 +4881,7 @@ namespace BlueDental.Migrations
                     b.Property<decimal>("OriginalPrice")
                         .HasColumnType("numeric(18,2)");
 
-                    b.Property<Guid>("PatientDiagnosisId")
+                    b.Property<Guid?>("PatientDiagnosisId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("PatientId")
@@ -5572,6 +5572,9 @@ namespace BlueDental.Migrations
                     b.Property<int>("Quantity")
                         .HasColumnType("integer");
 
+                    b.Property<Guid?>("ReplacedId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid?>("SecondConsultantStaffId")
                         .HasColumnType("uuid");
 
@@ -5580,6 +5583,9 @@ namespace BlueDental.Migrations
 
                     b.Property<Guid>("ServiceId")
                         .HasColumnType("uuid");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
 
                     b.Property<Guid?>("SourceAdviseId")
                         .HasColumnType("uuid");
@@ -5592,11 +5598,15 @@ namespace BlueDental.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ReplacedId");
+
                     b.HasIndex("SourceAdviseId");
 
                     b.HasIndex("PatientId", "Status");
 
                     b.HasIndex("TreatmentPlanId", "Code");
+
+                    b.HasIndex("TreatmentPlanId", "SortOrder");
 
                     b.ToTable("bd_treatment_services", (string)null);
                 });

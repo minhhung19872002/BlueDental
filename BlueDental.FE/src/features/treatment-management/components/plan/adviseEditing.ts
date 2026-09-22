@@ -35,8 +35,12 @@ export function adviseToFormValues(advise: PatientAdviseDto): CreatePlanValues {
     serviceId: advise.serviceId,
     advisorId: advise.staffId,
     secondAdvisorId: advise.secondStaffId ?? undefined,
-    staffId: advise.staffId,
-    diagnosisId: advise.diagnosisId,
+    // The two read-only fields hold the **chẩn đoán's** doctors, not the
+    // advisor and not the condition — measured on staging 2026-09-22, where a
+    // line with a diagnosis shows its doctor in "Bác sĩ chẩn đoán 1" and leaves
+    // "Chẩn đoán 2" empty.
+    staffId: advise.diagnosisStaffId ?? undefined,
+    diagnosisId: advise.diagnosisSecondStaffId ?? undefined,
     note: advise.note ?? undefined,
     price: advise.price,
     quantity: advise.quantity,

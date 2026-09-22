@@ -109,7 +109,14 @@ export function PatientDebtHistoryPanel({ patientId }: PatientDebtHistoryPanelPr
     <Card size="small">
       <div style={{ marginBottom: 12 }} data-testid="debt-summary">
         <Text type="secondary" style={{ fontSize: 12 }}>
-          {t("Phải thu hiện tại:")} <strong>{formatVND(account?.payment.debt ?? 0)} {t("đ")}</strong> {t("· Còn lại trên phiếu:")} <strong>{formatVND(account?.payment.totalDue ?? 0)} {t("đ")}</strong>
+          {t("Phải thu hiện tại:")}{" "}
+          <strong>
+            {formatVND(Math.max(0, account?.payment.receivable ?? 0))} {t("đ")}
+          </strong>{" "}
+          {t("· Còn lại trên phiếu:")}{" "}
+          <strong>
+            {formatVND(account?.payment.debt ?? 0)} {t("đ")}
+          </strong>
         </Text>
       </div>
 

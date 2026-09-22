@@ -15,9 +15,9 @@ import { useAbility } from "@/hooks/useAbility";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
-import { toast } from "sonner";
 import { downloadFile } from "@/lib/download";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { formatDate, formatVND } from "@/utils/format";
 import { brand } from "@/theme/index";
 import { t } from "@/lib/i18n";
@@ -72,7 +72,7 @@ export function BillingPage() {
         filter: debouncedSearch || undefined,
       });
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 

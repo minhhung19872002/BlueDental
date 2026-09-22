@@ -4,6 +4,7 @@ import { FloatingLabel } from "@/components/FloatingLabel";
 import { SearchSelect } from "@/components/SearchSelect";
 import { useStaffOptions } from "@/hooks/useStaffOptions";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { t } from "@/lib/i18n";
 import { useUpdateAppointment } from "@/features/appointments/api/appointmentMutations";
 import type { Appointment } from "@/features/appointments/types/appointment";
@@ -45,7 +46,7 @@ export function AppointmentDoctorPicker({ appointment, onChanged }: Props) {
       onChanged();
     } catch (error) {
       setPending(undefined);
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 

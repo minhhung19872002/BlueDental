@@ -1490,8 +1490,9 @@ Control: "Chuyển đổi" status on a service line
 Reason: Seen once on staging on a line that had been replaced; what replaces it
   and whether the original stays billable was not observable.
 Action taken: NONE
-BlueDental: `SERVICE_LINE_STATUS.Replaced` renders "Chuyển đổi" with the blue
-  pill; nothing else is done with it.
+BlueDental: `SERVICE_LINE_STATUS.Replaced` renders "Chuyển đổi" in the
+  reference's cyan pill. **Updated 2026-09-21**: such a line is measured out of
+  the slip's money — DT33 holds one and does not charge it.
 
 UNKNOWN_REFERENCE_BEHAVIOR
 
@@ -1501,6 +1502,113 @@ Reason: Every surveyed record already had slips, so the empty-state text was
   never seen.
 Action taken: NONE
 BlueDental: "Chưa có kế hoạch điều trị".
+
+Re-survey 2026-09-21 (staging) — what the second pass settled and what it did not:
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}?tab=treatment-plan — "Tạo phiếu dịch vụ"
+Control: `Bác sĩ chẩn đoán 1` / `Chẩn đoán 2`
+Reason: Both are disabled on the reference and carry no asterisk; nothing could
+  be typed into them, and picking a service far enough to watch them fill would
+  have meant saving.
+Action taken: NONE
+
+RESOLVED 2026-09-22 — settled without touching the reference, by opening
+  "Cập nhật phiếu dịch vụ" on an existing line (read-only) and reading the
+  `patient-advises` payload already in the Network tab. The two fields hold the
+  **chẩn đoán's own two doctors**, not the advisor and not the condition: the
+  line's `patientDiagnosis.staffId` / `.secondStaffId`. They are lists of
+  **people**. A line whose chẩn đoán has no second doctor leaves
+  "Chẩn đoán 2" **empty**, which is what the reference shows — an earlier draft
+  read that emptiness as "the field holds the condition" and bound the diagnosis
+  name into it. `Tình trạng răng:` prints with nothing after it.
+BlueDental: both disabled, fed by `diagnosisStaffId` / `diagnosisSecondStaffId`
+  on `PatientAdviseDto`. The create chain no longer needs a diagnosis id at all
+  — saving writes only the service line and the DT slip, and
+  `PatientAdvise.DiagnosisId` / `.PatientDiagnosisId` became nullable
+  (migration `AdviseDiagnosisOptional`). See R-441, R-447/R-448, R-451…R-454.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}?tab=treatment-plan — table row tint
+Control: a cancelled slip
+Reason: The reference's own row map names `bg-red-default-50/60` for a cancelled
+  slip, but `bg-red-default-50` is not defined anywhere in its stylesheet, so
+  the class resolves to nothing and such a row renders untinted. No cancelled
+  slip was on hand to confirm what it actually looks like.
+Action taken: NONE
+BlueDental: a finished slip is tinted green; a cancelled one is left untinted,
+  matching what the reference renders rather than what it intends.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}?tab=treatment-plan — money rollup
+Control: `Đã chuyển` (transferred) service lines
+Reason: A `Chuyển đổi` line was measured out of the slip total (DT33 held one
+  and did not charge it). No slip with an `Đã chuyển` line was available, so
+  whether it is excluded the same way is inferred, not observed.
+Action taken: NONE
+BlueDental: excludes `Chuyển đổi` and `Đã chuyển` alike, on the reasoning that
+  both mean the work is billed on another line or another slip.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id} — the tab strip
+Control: the "Hóa đơn" tab
+Reason: The reference's tab list carries nine tabs and no "Hóa đơn"; the earlier
+  survey recorded ten. Whether the tab was withdrawn or is gated by a permission
+  this account lacks could not be told apart from outside.
+Action taken: NONE
+BlueDental: the tenth tab is left in place pending the owner's call.
+
+Re-survey 2026-09-21 (đợt 2) — what the search sweep settled:
+
+- **Every picker on this screen searches on the server.** Typing in the
+  reference's "Thêm dịch vụ mới" fires
+  `care-service/list?search=…&page=1&perPage=20`, and its own component takes
+  `fetchServices` / `fetchGroups` / `fetchGroupServices` and pages as the popup
+  is scrolled. BlueDental was holding one capped page and matching it in the
+  browser, which quietly hid every row past that page.
+- **A finished slip has no "Thêm dịch vụ mới".** The `done` slip DT32's toolbar
+  is `Thêm công đoạn` · `Tạo Đơn Thuốc` · `In Hóa Đơn` · printer; the open slip
+  DT33 also has the picker.
+- **The Thanh toán row has three actions**, not one: `Xem` · `Chỉnh sửa` · a red
+  `Huỷ`.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}/treatment-plan/{planId}?planTab=payment-v2
+Control: `Chỉnh sửa` on a receipt row
+Reason: The dialog behind it was not opened — it writes, and the surveyed
+  account has no `payment` ability on staging, so a PATCH could not be taken
+  back if it went through. What it may change is therefore unobserved; the
+  bundle's own API list shows the receipt endpoints as
+  `create · PATCH · void · finalize · export`.
+Action taken: NONE
+BlueDental: the dialog edits only how the money was taken — channel, account,
+  date, note — and leaves the amount and the per-service split alone, because
+  the slip's rollup and every line's "Còn nợ" are derived from those. `Huỷ` maps
+  to the reference's `void`: locally a delete on a fully audited aggregate, so
+  the row is soft-deleted rather than erased.
+
+Settled by this pass (previously unknown):
+
+- **The two money columns.** "Còn lại" is `debt` = totalPrice − net paid, and
+  "Phải thu" is `max(0, receivable)` = completed value − net paid. DT33, a slip
+  with an untouched 1.000.000 đ line, answered `debt: 1000000, receivable: 0`;
+  the patient rollup and DT32 agreed. BlueDental had the two swapped, which
+  showed 0 đ where the reference shows the outstanding balance and printed a
+  negative "Phải thu" whenever a patient had paid ahead.
+- **"Chuyển đổi" is not charged.** DT33 carries a 1.000.000 đ line plus a
+  909.091 đ `replaced` one and reports `totalPrice: 1000000`.
+- **The status palette** for every pill, including the three BlueDental had
+  wrong (Đang điều trị, Bảo hành, Đã chuyển).
+- **The two service lists differ** only in the DT code chip: the per-slip list
+  prints it, "Xem tất cả dịch vụ" does not.
+- **"Hóa đơn" bills the slip**, one line named `Kế hoạch điều trị DT<n>`.
+- **The create form** no longer opens on "Người tạo"; it opens on
+  `Nhân sự tư vấn 1*` with the same `+` the update form has.
 
 Deliberate deviations recorded with the owner (2026-09-07):
 
@@ -1516,6 +1624,11 @@ Deliberate deviations recorded with the owner (2026-09-07):
   discount input overflows its cell at 640px and is not reproduced; staging's
   care-service list returned 403 for the surveyed role; the invoice modal's
   pager belongs to the invoice feature and is out of scope here.
+- **The slip table scrolls inside its card, the page does not** (2026-09-21).
+  The tab sits in `pd-pane--fill`, the house pane seven patient tabs share, so
+  once a patient has more slips than fit the card grows a scroller of its own
+  while the page stays put; the reference lets the page grow instead. Left as
+  is — the pane is an app-wide decision, not this tab's.
 
 ---
 
@@ -2276,3 +2389,123 @@ Action taken: NONE — không chọn ngày trên bản gốc.
 BlueDental: ô ngày dựng đúng năm mẫu, đúng nhãn, in vào `dateFieldKeys` và lưu
   cùng phiếu. Phần sinh dòng từ chẩn đoán/công đoạn **chưa dựng**; chỗ nối là
   `useSheetFieldValues` cộng một bước mọc dòng như `applyStoredRows` đang làm.
+
+---
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: Chi tiết kế hoạch điều trị → ô "Tạm ứng" (đầu trang và cột trong bảng)
+Control: trường nào của `payment` được in ra
+Reason: Trên phiếu quan sát được (DT33, một dòng `created` đã thu đủ), payload
+  `GET /patient-treatments/{id}` trả `paidUncompleted: 1000000` **và**
+  `prepaid: 1000000` — hai trường bằng nhau, nên con số hiển thị không phân biệt
+  được chúng. Muốn phân biệt phải có một phiếu đã hoàn tất một phần rồi mới thu,
+  mà dựng ra tình huống đó trên bản gốc là ghi dữ liệu.
+Action taken: NONE — không tạo phiếu, không thu tiền trên bản gốc.
+BlueDental: đọc `paidUncompleted` ("Đã thu của phần chưa hoàn tất"), vì đó là
+  nghĩa của chữ "tạm ứng" và vì `prepaid` trong rollup của ta là tiền giữ hộ
+  khách ở mức bệnh nhân, không thuộc về một phiếu. Nếu sau này quan sát được
+  phiếu có hai số khác nhau, đổi ở `PlanDetailHead.STATS` và `advanceOn`.
+
+---
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: Chi tiết kế hoạch điều trị → menu trạng thái của dòng dịch vụ
+Control: khi nào mục "Hoàn thành" xuất hiện
+Reason: Trên dòng trạng thái `created` của bản gốc, menu chỉ có **hai** mục —
+  "Chuyển đổi" và "Hủy dịch vụ". Bản của ta luôn hiện đủ ba. Chỉ quan sát được
+  đúng một trạng thái; muốn biết luật đầy đủ phải có dòng `in_progress` /
+  `warranty` … trên bản gốc, hoặc phải tự chuyển trạng thái một dòng — tức là
+  ghi.
+Action taken: NONE — không đổi trạng thái dòng nào trên bản gốc.
+BlueDental: giữ nguyên ba mục cho tới khi quan sát được thêm một trạng thái nữa.
+  Chỗ sửa là `menuItems()` trong `ServiceStatusPill.tsx`.
+
+---
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: Chi tiết kế hoạch điều trị → dialog "Chuyển đổi dịch vụ"
+Control: điều gì xảy ra với **công đoạn** của dòng bị đóng, và dòng "Giảm giá"
+  của khối "THÔNG TIN THANH TOÁN"
+Reason: Payload `treatment-services` của bản gốc cho thấy mọi `patientStages`
+  của dòng đã chuyển đổi cũng mang `status: "replaced"` — nhưng
+  `TreatmentStageStatus` của ta chỉ có `Pending/InProgress/Completed`, không có
+  trạng thái tương ứng, và không quan sát được bản gốc làm gì với công đoạn
+  **đang dở**. Với dòng "Giảm giá": lúc mở dialog chưa chọn dịch vụ thì mọi số
+  đều bằng 0, nên không phân biệt được nó là hằng 0 hay là `giá gộp − số tiền
+  nhập ở ô "Thanh toán"`. Cả hai chỉ chốt được bằng cách bấm **Lưu** trên bản
+  gốc — đúng thứ rule cấm.
+Action taken: NONE — chỉ mở dialog để đo giao diện, không bấm Lưu.
+BlueDental: công đoạn của dòng bị đóng **giữ nguyên trạng thái**; "Giảm giá"
+  hiển thị `giá gộp − số tiền tính`, khớp với cách BE ghi phần chênh thành giảm
+  giá tiền trên dòng mới. Xem `convertMoney.ts` và `TreatmentPlan.ConvertService`.
+
+---
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: Hồ sơ bệnh nhân → tab "Hóa đơn" (`?tab=invoice`)
+Control: toàn bộ nội dung tab
+Reason: Tab này **chỉ có trên bản production**; staging không có nó. Và trên
+  production nó cũng chưa được dựng: bộ chuyển tab của bản gốc là một chuỗi
+  ternary qua `profile · consulting · treatment-plan · appointment · image ·
+  labo · prescription · care · debt-history`, `invoice` không khớp cái nào nên
+  rơi vào nhánh mặc định — một khung viền đứt in "Nội dung đang được hoàn
+  thiện.". Không bảng, không toolbar, không gọi API nào để mà đọc hợp đồng.
+Action taken: NONE — chỉ mở trang và đọc, không bấm gì trên production.
+BlueDental: giữ **bảng hóa đơn của riêng ta** (Mã hóa đơn · Ngày tạo · Tổng tiền
+  · Đã thanh toán · Còn lại · Trạng thái · Thu tiền) theo quyết định của chủ dự
+  án ngày 2026-09-22. Đây là phần **mở rộng**, không phải bản clone; khi nào bản
+  gốc dựng thật thì phải đo lại từ đầu.
+
+---
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: Hồ sơ bệnh nhân → tab "Lịch sử dư nợ" (`?tab=debt-history`)
+Control: bốn trong sáu loại giao dịch
+Reason: Bệnh nhân quan sát được trên staging chỉ có hai dòng, cả hai đều là
+  `refund`. Bốn loại còn lại (`topup`, `use`, `withdraw`, `replace`, `cancel`)
+  đọc được **tên** từ gói JavaScript đã publish nhưng **không thấy dữ liệu
+  thật**: muốn thấy phải nạp tiền / tiêu tiền / huỷ dịch vụ trên bản gốc, tức là
+  ghi. Riêng `withdraw` ("Rút dư nợ") thì BlueDental không có thao tác nào tương
+  ứng — không rõ bản gốc rút bằng màn nào.
+Action taken: NONE — không tạo giao dịch nào trên bản gốc.
+BlueDental: suy ra từ dữ liệu đã có (xem bảng trong
+  docs/clone/pages/patient-detail.md, Tab 10). `withdraw` **không bao giờ được
+  phát ra**; enum vẫn khai để khi nào có thao tác rút thì chỉ cần thêm ở server.
+  Con số quan sát được khớp đúng một trường hợp: hai phiếu hoàn của bệnh nhân
+  ST8490 bằng đúng `totalRefund` 400.000 của hồ sơ.
+
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: /patient/{id}/treatment-plan/{planId} — "Chi tiết phiếu"
+Control: tab `TIẾP TỤC BẢO HÀNH`
+Reason: The reference has a **third** tab BlueDental does not build yet.
+  Measured 2026-09-22 from its published chunk (a GET on a static asset; nothing
+  was clicked or typed on the reference):
+
+    e5 = useMemo(() => {
+      const e = [];
+      Y && e.push({ value: "add",              label: "THÊM CÔNG ĐOẠN",     count: ex.length });
+      Q && e.push({ value: "continue",         label: "TIẾP TỤC CÔNG ĐOẠN", count: eb.length });
+      J && e.push({ value: "continueWarranty", label: "TIẾP TỤC BẢO HÀNH",  count: eq.length });
+      return e;
+    }, [ex.length, Q, J, Y, eb.length, eq.length]);
+
+  Each tab is gated by an **ability** (Y / Q / J), not by whether its list has
+  rows; losing the current tab falls back add → continue → continueWarranty.
+  What fills `eq` — which lines count as "continue the warranty" — could not be
+  read off the bundle, and finding out by hand would have meant saving on the
+  reference.
+Action taken: NONE
+
+BlueDental: two tabs only (`add`, `continue`). What IS known and already cloned:
+  the per-tab save label (`Lưu công đoạn` / `Tiếp tục công đoạn` /
+  `Tiếp tục bảo hành`, R-457), the guarded close shared by ✕ and Hủy (R-456),
+  and the checklist → Nội dung điều trị sync (R-464). Also recorded, not copied:
+  the reference's own dirty check spans only `[...ex, ...eb]` and ignores the
+  warranty list.

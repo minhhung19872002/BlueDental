@@ -4,6 +4,7 @@ import { formatDate } from "@/utils/format";
 import type { TreatmentPlanSlipDto } from "../../api/treatmentPlanApi";
 import {
   PLAN_COLUMN_LABELS,
+  moneyCellClass,
   moneyText,
   planPill,
   planMoney,
@@ -15,19 +16,9 @@ import {
 /** How many rows a plan card shows before "Xem thêm". */
 const CARD_FOLD_AT = 4;
 
-const MONEY_MODIFIER: Partial<Record<keyof PlanMoney, string>> = {
-  discount: "tp-cell-money--discount",
-  paid: "tp-cell-money--paid",
-  remaining: "tp-cell-money--due",
-  receivable: "tp-cell-money--receivable",
-};
-
 function moneyValue(plan: TreatmentPlanSlipDto, field: keyof PlanMoney) {
-  return (
-    <span className={["tp-cell-money", MONEY_MODIFIER[field]].filter(Boolean).join(" ")}>
-      {moneyText(planMoney(plan)[field])}
-    </span>
-  );
+  const value = planMoney(plan)[field];
+  return <span className={moneyCellClass(field, value)}>{moneyText(value)}</span>;
 }
 
 function statusPill(plan: TreatmentPlanSlipDto) {

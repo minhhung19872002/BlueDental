@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -91,6 +91,163 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
         };
     }
 
+    /// <summary>
+    /// "Lịch sử dư nợ" — every movement on the patient's account, newest first.
+    ///
+    /// Derived rather than stored: the reference keeps no ledger the clone can
+    /// read, and every movement BlueDental makes is already recorded somewhere.
+    /// Receipts give Nạp / Sử dụng / Hoàn trả; the slips' own lines give the two
+    /// that leave no receipt — a cancelled line hands its money back, and a
+    /// converted one leaves behind whatever the new service could not absorb.
+    /// "Rút dư nợ" has no BlueDental operation, so nothing emits it.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.Payment.Read)]
+    public async Task<PagedResultDto<DebtHistoryEntryDto>> GetDebtHistoryAsync(
+        GetDebtHistoryInput input)
+    {
+        var payments = await QueryAsync(new GetPatientPaymentListInput
+        {
+            PatientId = input.PatientId,
+            ClinicBranchId = input.ClinicBranchId
+        });
+
+        var entries = payments
+            .Select(payment => new
+            {
+                Payment = payment,
+                Type = MovementOf(payment)
+            })
+            .Where(x => x.Type.HasValue)
+            .Select(x => new DebtEntry
+            {
+                Id = x.Payment.Id,
+                Date = x.Payment.PaidAt,
+                Type = x.Type!.Value,
+                Amount = x.Payment.Amount,
+                Note = x.Payment.Note,
+                StaffId = x.Payment.StaffId
+            })
+            .ToList();
+
+        entries.AddRange(await ClosedLineMovementsAsync(input));
+
+        var ordered = entries.OrderByDescending(x => x.Date).ToList();
+        var page = ordered.Skip(input.SkipCount).Take(input.MaxResultCount).ToList();
+        await NameStaffAsync(page);
+
+        return new PagedResultDto<DebtHistoryEntryDto>(
+            ordered.Count,
+            page.Select(x => x.ToDto()).ToList());
+    }
+
+    /// <summary>Which movement a receipt is, or none when it does not touch the account.</summary>
+    private static DebtMovementType? MovementOf(PatientPayment payment) => payment.Kind switch
+    {
+        PatientPaymentKind.Prepaid => DebtMovementType.Topup,
+        PatientPaymentKind.Refund => DebtMovementType.Refund,
+        PatientPaymentKind.Payment when payment.Method == PaymentMethodKind.OutstandingDebt
+            => DebtMovementType.Use,
+        _ => null
+    };
+
+    /// <summary>
+    /// The two movements no receipt records: money left on a line that was
+    /// cancelled, and money the new service of a conversion could not absorb.
+    /// </summary>
+    private async Task<List<DebtEntry>> ClosedLineMovementsAsync(GetDebtHistoryInput input)
+    {
+        var branchFilter = await _branchAccess.ResolveFilterAsync(input.ClinicBranchId);
+        var planQuery = await _planRepository.WithDetailsAsync(x => x.Services);
+        var plans = planQuery.Where(x => x.PatientId == input.PatientId).ToList();
+
+        if (branchFilter.Count > 0)
+            plans = plans.Where(x => branchFilter.Contains(x.BranchId)).ToList();
+
+        var receipts = await QueryAsync(new GetPatientPaymentListInput
+        {
+            PatientId = input.PatientId,
+            ClinicBranchId = input.ClinicBranchId
+        });
+
+        var left = new List<DebtEntry>();
+
+        foreach (var line in plans.SelectMany(plan => plan.Services))
+        {
+            var type = line.Status switch
+            {
+                TreatmentServiceStatus.Cancelled => DebtMovementType.Cancel,
+                TreatmentServiceStatus.Replaced => DebtMovementType.Replace,
+                _ => (DebtMovementType?)null
+            };
+
+            if (type is null)
+                continue;
+
+            // What the patient still has sitting on a line that no longer
+            // charges for anything.
+            var stranded = receipts
+                .Where(p => p.Kind == PatientPaymentKind.Payment)
+                .Sum(p => p.AmountFor(line.Id));
+
+            if (stranded <= 0m)
+                continue;
+
+            left.Add(new DebtEntry
+            {
+                Id = line.Id,
+                Date = line.LastModificationTime ?? line.CreationTime,
+                Type = type.Value,
+                Amount = stranded,
+                Note = line.Note,
+                StaffId = line.LastModifierId ?? line.CreatorId
+            });
+        }
+
+        return left;
+    }
+
+    /// <summary>Fills in the staff names of one page, in one round trip.</summary>
+    private async Task NameStaffAsync(List<DebtEntry> page)
+    {
+        var ids = page.Select(x => x.StaffId).Where(id => id.HasValue).Select(id => id!.Value)
+            .Distinct().ToList();
+        if (ids.Count == 0)
+            return;
+
+        var users = await _userRepository.GetListAsync();
+        var names = users
+            .Where(u => ids.Contains(u.Id))
+            .ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
+
+        foreach (var entry in page)
+        {
+            if (entry.StaffId.HasValue && names.TryGetValue(entry.StaffId.Value, out var name))
+                entry.StaffName = name;
+        }
+    }
+
+    /// <summary>The entry while it is being built, before its staff has a name.</summary>
+    private sealed class DebtEntry
+    {
+        public Guid Id { get; init; }
+        public DateTimeOffset Date { get; init; }
+        public DebtMovementType Type { get; init; }
+        public decimal Amount { get; init; }
+        public string? Note { get; init; }
+        public Guid? StaffId { get; init; }
+        public string? StaffName { get; set; }
+
+        public DebtHistoryEntryDto ToDto() => new()
+        {
+            Id = Id,
+            Date = Date,
+            Type = Type,
+            Amount = Amount,
+            Note = Note,
+            StaffName = StaffName
+        };
+    }
+
     [Authorize(BlueDentalAbilityPermissions.Payment.Create)]
     public async Task<PatientPaymentDto> RecordAsync(RecordPatientPaymentDto input)
     {
@@ -158,7 +315,11 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
                 "A receipt must name at least one service.");
         }
 
-        var outstanding = await OutstandingByServiceAsync(input.TreatmentPlanId.Value, chosen);
+        // Money coming in may not push a line past what it still owes; money
+        // going back out may not exceed what that line actually holds. Capping a
+        // refund by "Còn nợ" refused every refund on a line paid in full.
+        var refunding = input.Kind == PatientPaymentKind.Refund;
+        var cap = await CapByServiceAsync(input.TreatmentPlanId.Value, chosen, refunding);
 
         if (input.SplitMode == PaymentSplitMode.Manual)
         {
@@ -169,7 +330,7 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
 
             foreach (var (serviceId, share) in manual)
             {
-                GuardWithinOutstanding(outstanding, serviceId, share);
+                GuardWithinCap(cap, serviceId, share, refunding);
             }
 
             return manual;
@@ -181,7 +342,7 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
         foreach (var serviceId in chosen)
         {
             if (left <= 0m) break;
-            var take = Math.Min(left, outstanding.GetValueOrDefault(serviceId));
+            var take = Math.Min(left, cap.GetValueOrDefault(serviceId));
             if (take <= 0m) continue;
 
             spread.Add((serviceId, take));
@@ -191,30 +352,40 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
         if (left > 0m)
         {
             throw new BusinessException(
-                BlueDentalDomainErrorCodes.Billing.InvalidPaymentAllocation,
-                "Số tiền thanh toán không được vượt quá số tiền còn phải thanh toán.");
+                refunding
+                    ? BlueDentalDomainErrorCodes.Billing.RefundExceedsPaid
+                    : BlueDentalDomainErrorCodes.Billing.PaymentExceedsOutstanding);
         }
 
         return spread;
     }
 
-    private static void GuardWithinOutstanding(
-        IReadOnlyDictionary<Guid, decimal> outstanding,
+    private static void GuardWithinCap(
+        IReadOnlyDictionary<Guid, decimal> cap,
         Guid serviceId,
-        decimal share)
+        decimal share,
+        bool refunding)
     {
-        if (share > outstanding.GetValueOrDefault(serviceId))
+        if (share <= cap.GetValueOrDefault(serviceId))
         {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.Billing.InvalidPaymentAllocation,
-                "Số tiền thanh toán của dịch vụ không được vượt quá số tiền còn phải thanh toán.");
+            return;
         }
+
+        throw new BusinessException(
+            refunding
+                ? BlueDentalDomainErrorCodes.Billing.RefundExceedsPaid
+                : BlueDentalDomainErrorCodes.Billing.PaymentExceedsOutstanding);
     }
 
     /// <summary>Còn nợ per line: what it is worth, less what receipts already put on it.</summary>
-    private async Task<Dictionary<Guid, decimal>> OutstandingByServiceAsync(
+    /// <summary>
+    /// The most each named line may take: what it still owes when money is
+    /// coming in, what it has actually collected when money is going back out.
+    /// </summary>
+    private async Task<Dictionary<Guid, decimal>> CapByServiceAsync(
         Guid treatmentPlanId,
-        IReadOnlyCollection<Guid> serviceIds)
+        IReadOnlyCollection<Guid> serviceIds,
+        bool refunding)
     {
         // WithDetails, or plan.Services comes back empty and every line reads
         // as owing nothing.
@@ -237,7 +408,30 @@ public class PatientPaymentAppService : ApplicationService, IPatientPaymentAppSe
             .Where(line => serviceIds.Contains(line.Id))
             .ToDictionary(
                 line => line.Id,
-                line => Math.Max(0m, line.EffectiveAmount - paid.GetValueOrDefault(line.Id)));
+                line => refunding
+                    ? Math.Max(0m, paid.GetValueOrDefault(line.Id))
+                    : Math.Max(0m, line.EffectiveAmount - paid.GetValueOrDefault(line.Id)));
+    }
+
+    /// <summary>
+    /// "Chỉnh sửa" on the Thanh toán row. Only the channel, the account, the
+    /// date and the note move; the amount and the per-service split stay, so no
+    /// rollup can drift out from under the slip.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.Payment.Update)]
+    public async Task<PatientPaymentDto> UpdateAsync(Guid id, UpdatePatientPaymentDto input)
+    {
+        var payment = await _repository.GetAsync(id);
+        await _branchAccess.CheckAsync(payment.ClinicBranchId);
+
+        payment.Revise(
+            input.Method,
+            input.PaymentAccountId,
+            input.PaidAt ?? payment.PaidAt,
+            input.Note);
+
+        await _repository.UpdateAsync(payment, autoSave: true);
+        return (await MapManyAsync([payment])).Single();
     }
 
     [Authorize(BlueDentalAbilityPermissions.Payment.Delete)]

@@ -14,6 +14,7 @@ import {
 import { useAbility } from "@/hooks/useAbility";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { t, tRich } from "@/lib/i18n";
 import type { PatientDto } from "../../../types/patient";
 import { CareDetailDialog } from "./CareDetailDialog";
@@ -73,7 +74,7 @@ export function PatientCareTab({ patient }: { patient: PatientDto }) {
       toast.success(t("Đã xoá lượt chăm sóc"));
       close();
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 

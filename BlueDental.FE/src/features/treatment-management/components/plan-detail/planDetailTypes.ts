@@ -73,6 +73,16 @@ export function planDetailRows(
   }));
 }
 
+/**
+ * "Tạm ứng" of one service line: what was collected on it beyond the work it
+ * has actually delivered. A line only delivers value once it is finished, so
+ * everything paid on an open line is still an advance.
+ */
+export function advanceOn(service: TreatmentServiceDto): number {
+  const earned = service.status === SERVICE_LINE_STATUS.Done ? service.effectiveAmount : 0;
+  return Math.max(service.paidAmount - earned, 0);
+}
+
 /** Empty text cells read "—" on the reference. */
 export function dash(value: string | null | undefined): string {
   return value && value.trim() ? value : "—";

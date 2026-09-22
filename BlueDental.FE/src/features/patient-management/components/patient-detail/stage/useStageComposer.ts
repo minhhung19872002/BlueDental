@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { t } from "@/lib/i18n";
 import { validateImageFile } from "@/utils/validateImageFile";
 import {
@@ -25,6 +26,7 @@ import {
   stageFieldErrors,
   type StageFieldErrors,
 } from "./stageFieldErrors";
+import { syncStageContent } from "./syncStageContent";
 
 /**
  * The reference splits the eligible services in two: those with no công đoạn
@@ -218,10 +220,33 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
   const removePending = (at: number) =>
     setPending((current) => current.filter((_, index) => index !== at));
 
-  const toggleStep = (stepId: string, next: boolean) =>
-    setPickedSteps((current) =>
-      next ? [...current, stepId] : current.filter((id) => id !== stepId),
-    );
+  /**
+   * Whether closing now would throw work away.
+   *
+   * Measured on the reference 2026-09-22 (its published stage chunk): only the
+   * **treatment content** and the **pictures** count —
+   * `some(e => (e.treatmentContent ?? "").trim().length > 0 || (e.imageIds?.length ?? 0) > 0)`.
+   * Picking a doctor, an assistant, a supporting doctor or ticking a step does
+   * not, so the everyday case of opening a line, choosing a doctor and thinking
+   * better of it closes without a question.
+   */
+  const dirty = note.trim().length > 0 || pending.length > 0;
+
+  /**
+   * Same rule as the tái khám form: a ticked công đoạn puts its name into
+   * Nội dung điều trị and unticking takes it out again — see
+   * {@link syncStageContent}, cloned from the reference's own helper.
+   */
+  const toggleStep = (stepId: string, next: boolean) => {
+    const picked = next
+      ? [...pickedSteps, stepId]
+      : pickedSteps.filter((id) => id !== stepId);
+    setPickedSteps(picked);
+
+    const steps = (line?.serviceSteps ?? []).map((step) => ({ id: step.id, name: step.name }));
+    setNote((current) => syncStageContent(current, steps, picked));
+    if (picked.length > 0) setErrors((current) => ({ ...current, note: undefined }));
+  };
 
   const upload = async (stageId: string, files: File[]) => {
     for (const file of files) {
@@ -272,7 +297,7 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
       setNote("");
       setPending([]);
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 
@@ -297,7 +322,7 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
       toast.success(t("Cập nhật thành công"));
     } catch (error) {
       // The reference's own wording when this call fails.
-      toast.error(extractApiError(error) || t("Không thể cập nhật công đoạn"));
+      notifyError(extractApiError(error) || t("Không thể cập nhật công đoạn"));
     } finally {
       setBusyStage(null);
     }
@@ -318,7 +343,7 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
       });
       toast.success(t("Đã lưu ghi chú"));
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     } finally {
       setBusyStage(null);
     }
@@ -341,7 +366,7 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
         toast.success(t("Đã hoàn thành công đoạn"));
       }
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     } finally {
       setBusyStage(null);
     }
@@ -373,7 +398,7 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
       await upload(stageId, files);
       toast.success(t("Đã tải ảnh"));
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     } finally {
       setBusyStage(null);
       uploadFor.current = null;
@@ -405,6 +430,7 @@ export function useStageComposer({ open, patientId, branchId, plan, focusService
     removePending,
     pickedSteps,
     toggleStep,
+    dirty,
     saving: createStage.isPending || uploadImage.isPending,
 
     days: byDay(slipStages),

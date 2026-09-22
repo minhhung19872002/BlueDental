@@ -3,6 +3,7 @@ import type { Dayjs } from "dayjs";
 import { toast } from "sonner";
 import { t } from "@/lib/i18n";
 import { extractApiError } from "@/lib/apiError";
+import { notifyError } from "@/lib/notify";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import {
@@ -80,7 +81,7 @@ export function useCareBoard({ branchId, tab, mode, date }: UseCareBoardArgs) {
     try {
       await exportCareExcel({ ...baseParams, status });
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     } finally {
       setExporting(false);
     }
@@ -101,7 +102,7 @@ export function useCareBoard({ branchId, tab, mode, date }: UseCareBoardArgs) {
         stageIds: record.stageIds,
       });
     } catch (error) {
-      toast.error(extractApiError(error));
+      notifyError(extractApiError(error));
     }
   };
 
