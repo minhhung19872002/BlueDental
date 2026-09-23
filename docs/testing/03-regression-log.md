@@ -5223,3 +5223,48 @@ liên quan.
 - `consulting-plan` cần **seed lại dữ liệu** rồi chạy lại để chốt hai ca đỏ ở
   trên; hai ca đó đo theo chiều dài tờ in nên phải chạy trên dữ liệu sạch.
 
+## 2026-09-23 — Đã đăng nhập nhưng mở lại /login thì đứng ở trang login
+
+Chủ dự án báo: "đã login rồi nhưng khi vào lại thì nó vẫn ở trang login".
+
+Đo trước khi sửa — gọi thẳng API **từ chính trang `/login`** đang hiện form:
+
+```
+GET /api/v1/app/account/current-user  →  200 OK,  userName: "admin"
+```
+
+Nên **không phải mất phiên**. Cookie còn nguyên và server vẫn nhận. Router chỉ
+bảo vệ **một chiều**: `PrivateRoute` đá người chưa đăng nhập ra `/login`, còn
+`/login` thì render `LoginPage` vô điều kiện, không ai hỏi phiên hiện tại.
+
+Không đọc phiên từ auth store được: store **không persist**, nó rỗng cho tới khi
+`PrivateRoute` đổ vào — mà `PrivateRoute` không chạy trên route này. Guard phải
+tự hỏi server.
+
+Đây **không phải lỗi mới**: bản trước commit phân quyền (`3747b2c^`) route
+`/login` cũng y hệt. Chỉ là mở thẳng URL `/login` sau khi restart server thì mới
+gặp.
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-478 | `/login` render form cho cả người đang có phiên hợp lệ → mở lại URL đăng nhập là kẹt ở đó | `PublicOnlyRoute` bọc route `/login`: hỏi `current-user` dưới **đúng** `queryKey` mà `PrivateRoute` dùng (vào từ trong app thì đọc cache, không tốn request; mở nguội mới gọi một lần), 200 thì `Navigate` về `state.from` nếu có, không thì `/`. Trong lúc kiểm hiện spinner "Đang xác thực phiên đăng nhập" như `PrivateRoute`, để người đã đăng nhập không thấy form loé lên |
+
+401 ở đây là ca bình thường và **không** gây nhiễu: interceptor của `lib/axios`
+chỉ `clearAuth()` chứ không điều hướng khi đang ở `/login`, cũng không toast.
+
+### Kiểm thử
+
+Thật trên dev server :5173 + API :5019 + DB thật, đăng nhập qua màn hình login,
+không nhét token:
+
+| Tình huống | Kết quả |
+|---|---|
+| Đang đăng nhập, mở `/login` | vào thẳng `/dashboard`, không còn form |
+| Đăng xuất rồi mở `/login` | `current-user` 401, form hiện bình thường |
+| Điền form đăng nhập | vào `/dashboard` như cũ |
+
+Thêm một ca vào `e2e/auth.spec.ts` giữ **cả hai** chiều. `auth` **5/5** trên
+:5173 (có StrictMode — bản dev mới là bản chặt hơn cho loại lỗi này). `tsc`
+sạch, lint không phát sinh gì mới. **Chưa** chạy trên bản build production: làm
+vậy phải bật thêm một preview server trong khi chủ dự án đang tự chạy máy.
+
