@@ -243,6 +243,8 @@
     "Queue:Display:NoWaiting": "No patients waiting",
     "Queue:Display:MissingBranch": "Missing branchId in URL",
     "Queue:Display:Footer": "Dental Clinic Management System",
+    "Queue:Table:WaitingTime": "Wait Time",
+    "Queue:Stats:OverThreshold": "Over Threshold",
     "BlueDental:Appointment:InvalidSlot": "An appointment must end after it starts.",
     "BlueDental:Appointment:SlotTooLong": "That appointment is longer than allowed.",
     "BlueDental:Auth:ChangePasswordFailed": "The password could not be changed.",

@@ -33,6 +33,37 @@
   }
 }
 
+/* ── Waiting time warning row tints ── */
+
+.ant-table-wrapper .ant-table-tbody > tr.queue-row--warning > td {
+  background: #fef9ee;
+}
+
+.ant-table-wrapper .ant-table-tbody > tr.queue-row--danger > td {
+  background: #fef0f0;
+}
+
+.ant-table-wrapper .ant-table-tbody > tr.queue-row--warning:hover > td,
+.ant-table-wrapper .ant-table-tbody > tr.queue-row--danger:hover > td {
+  background: #fef3dc;
+}
+
+.ant-table-wrapper .ant-table-tbody > tr.queue-row--danger:hover > td {
+  background: #fde5e5;
+}
+
+/* ── Alert KPI card (pulsing border) ── */
+
+.queue-kpi--alert {
+  border-color: var(--bd-red, #e5484d);
+  animation: queue-kpi-pulse 2s ease-in-out infinite;
+}
+
+@keyframes queue-kpi-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px color-mix(in srgb, var(--bd-red, #e5484d) 20%, transparent); }
+  50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--bd-red, #e5484d) 35%, transparent); }
+}
+
 /* ── TV display — standalone public page, dark theme ── */
 
 .queue-display {

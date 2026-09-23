@@ -22,4 +22,11 @@ public class SignalRQueueNotifier(IHubContext<QueueHub> hubContext)
         await hubContext.Clients.Group($"queue:{branchId}")
             .SendAsync("TicketCalled", payload);
     }
+
+    public async Task NotifyWaitingTimeWarningAsync(Guid branchId, int warningCount, int dangerCount)
+    {
+        var payload = new { BranchId = branchId, WarningCount = warningCount, DangerCount = dangerCount };
+        await hubContext.Clients.Group($"queue:{branchId}")
+            .SendAsync("WaitingTimeWarning", payload);
+    }
 }

@@ -1,5 +1,6 @@
 using BlueDental.Permissions;
 using BlueDental.Promotions;
+using BlueDental.Queue;
 using BlueDental.Timekeeping;
 using Microsoft.Extensions.DependencyInjection;
 using Volo.Abp;
@@ -58,5 +59,6 @@ public class BlueDentalApplicationModule : AbpModule
     {
         await context.AddBackgroundWorkerAsync<VoucherExpirationWorker>();
         await context.AddBackgroundWorkerAsync<TimekeepingEndOfDayWorker>();
+        await context.AddBackgroundWorkerAsync<QueueWaitingTimeWorker>();
     }
 }

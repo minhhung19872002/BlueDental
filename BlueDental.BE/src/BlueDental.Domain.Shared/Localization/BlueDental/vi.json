@@ -194,6 +194,8 @@
     "Queue:Display:NoWaiting": "Không có bệnh nhân chờ",
     "Queue:Display:MissingBranch": "Thiếu branchId trong URL",
     "Queue:Display:Footer": "Hệ thống quản lý phòng khám nha khoa",
+    "Queue:Table:WaitingTime": "Thời gian đợi",
+    "Queue:Stats:OverThreshold": "Chờ quá lâu",
     "BlueDental:Appointment:InvalidSlot": "Lịch hẹn phải kết thúc sau khi bắt đầu.",
     "BlueDental:Appointment:SlotTooLong": "Thời lượng lịch hẹn vượt quá mức cho phép.",
     "BlueDental:Auth:ChangePasswordFailed": "Không đổi được mật khẩu.",

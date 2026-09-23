@@ -17,7 +17,7 @@ Kiểm tra lần cuối: 2026-09-23
 - [x] 1.7 Màn hình đợi — Màn hình số thứ tự đợi đến lượt. Lấy số tự động.
 - [ ] 1.8 Lịch tái khám — Tạo danh sách lịch tái khám theo tháng, năm cho khách hàng bằng 1 thao tác, tránh sai sót và thiếu lịch. Tự động dời lịch tái khám khi có thay đổi.
 - [x] 1.9 Lịch tuần — Tạo danh sách lịch hẹn theo thứ trong tuần bằng 1 thao tác, tránh sai sót và thiếu lịch. Tự động dời lịch khi có thay đổi.
-- [ ] 1.10 Cảnh báo thời gian đợi — Kiểm tra thời gian khách hàng đến trước đến sau của từng khách hàng. Tự động cảnh báo thời gian khi khách đợi lâu.
+- [x] 1.10 Cảnh báo thời gian đợi — Kiểm tra thời gian khách hàng đến trước đến sau của từng khách hàng. Tự động cảnh báo thời gian khi khách đợi lâu.
 - [x] 1.11 Lịch sử chỉnh sửa, chuyển trạng thái Lịch hẹn — Lịch sử người dùng chỉnh sửa lịch hẹn, ai chỉnh sửa và chỉnh sửa vào lúc nào. Chi tiết thời gian điều trị, tư vấn & thời gian đợi khi checked in.
 
 ## 2. CHĂM SÓC (Tự động phân loại chăm sóc theo loại)
@@ -183,7 +183,7 @@ Kiểm tra lần cuối: 2026-09-23
 
 | Nhóm | Tổng | Đã xong | Chưa xong |
 |---|---|---|---|
-| 1. Lịch hẹn | 11 | 7 | 4 |
+| 1. Lịch hẹn | 11 | 8 | 3 |
 | 2. Chăm sóc | 10 | 5 | 5 |
 | 3. Thẻ trả trước | 2 | 0 | 2 |
 | 4. Khách hàng | 28 | 18 | 10 |
@@ -199,4 +199,4 @@ Kiểm tra lần cuối: 2026-09-23
 | 14. Form in | 1 | 0 | 1 |
 | 15. Media | 1 | 1 | 0 |
 | 16. Báo cáo | 13 | 4 | 9 |
-| **Tổng cộng** | **123** | **57** | **66** |
+| **Tổng cộng** | **123** | **58** | **65** |

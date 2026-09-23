@@ -69,6 +69,9 @@ public class QueueStatsDto
     public int Serving { get; set; }
     public int Completed { get; set; }
     public int Skipped { get; set; }
+    public int WaitingWarning { get; set; }
+    public int WaitingDanger { get; set; }
+    public double? AverageWaitMinutes { get; set; }
 }
 
 public class ServiceCounterDto

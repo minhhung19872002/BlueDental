@@ -16,16 +16,25 @@ interface TicketCalledPayload {
   callCount: number;
 }
 
+interface WaitingTimeWarningPayload {
+  branchId: string;
+  warningCount: number;
+  dangerCount: number;
+}
+
 interface UseQueueSignalROptions {
   branchId: string;
   onTicketCalled?: (payload: TicketCalledPayload) => void;
+  onWaitingTimeWarning?: (payload: WaitingTimeWarningPayload) => void;
 }
 
-export function useQueueSignalR({ branchId, onTicketCalled }: UseQueueSignalROptions) {
+export function useQueueSignalR({ branchId, onTicketCalled, onWaitingTimeWarning }: UseQueueSignalROptions) {
   const queryClient = useQueryClient();
   const connRef = useRef<HubConnection | null>(null);
   const callbackRef = useRef(onTicketCalled);
   callbackRef.current = onTicketCalled;
+  const warningCallbackRef = useRef(onWaitingTimeWarning);
+  warningCallbackRef.current = onWaitingTimeWarning;
 
   useEffect(() => {
     if (!branchId) return;
@@ -52,6 +61,11 @@ export function useQueueSignalR({ branchId, onTicketCalled }: UseQueueSignalROpt
     connection.on("TicketCalled", (payload: TicketCalledPayload) => {
       invalidateAll();
       callbackRef.current?.(payload);
+    });
+
+    connection.on("WaitingTimeWarning", (payload: WaitingTimeWarningPayload) => {
+      invalidateAll();
+      warningCallbackRef.current?.(payload);
     });
 
     connection.onreconnected(() => {

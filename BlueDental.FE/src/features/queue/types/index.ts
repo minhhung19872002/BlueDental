@@ -84,6 +84,15 @@ export interface QueueStats {
   serving: number;
   completed: number;
   skipped: number;
+  waitingWarning: number;
+  waitingDanger: number;
+  averageWaitMinutes: number | null;
+}
+
+export interface WaitingTimeWarningPayload {
+  branchId: string;
+  warningCount: number;
+  dangerCount: number;
 }
 
 export interface ServiceCounter {

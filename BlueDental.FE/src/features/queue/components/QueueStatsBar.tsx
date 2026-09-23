@@ -22,6 +22,8 @@ const KPI_ITEMS: {
 ];
 
 export function QueueStatsBar({ stats, loading, activeStatus, onStatusClick }: QueueStatsBarProps) {
+  const overThreshold = (stats?.waitingWarning ?? 0) + (stats?.waitingDanger ?? 0);
+
   return (
     <div className="queue-kpis">
       {KPI_ITEMS.map(({ key, labelKey, color, status }) => {
@@ -40,6 +42,17 @@ export function QueueStatsBar({ stats, loading, activeStatus, onStatusClick }: Q
           </div>
         );
       })}
+      {overThreshold > 0 && (
+        <div
+          className="page-card queue-kpi queue-kpi--alert"
+          style={{ "--queue-kpi-accent": "var(--bd-red, #e5484d)" } as React.CSSProperties}
+        >
+          <div className="billing-kpi-label">{t("Queue:Stats:OverThreshold")}</div>
+          <div className="billing-kpi-value" style={{ color: "var(--bd-red, #e5484d)" }}>
+            {overThreshold}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

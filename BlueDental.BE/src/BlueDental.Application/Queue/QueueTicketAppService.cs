@@ -199,6 +199,8 @@ public class QueueTicketAppService : ApplicationService, IQueueTicketAppService
         return dto;
     }
 
+    private const int WaitingTimeThresholdMinutes = 30;
+
     public async Task<QueueStatsDto> GetStatsAsync(DateOnly? date = null, Guid? counterId = null)
     {
         var branchId = _branchResolver.GetRequiredClinicBranchId();
@@ -210,16 +212,28 @@ public class QueueTicketAppService : ApplicationService, IQueueTicketAppService
         if (counterId.HasValue)
             query = query.Where(q => q.CounterId == counterId.Value);
 
-        var tickets = await AsyncExecuter.ToListAsync(query.Select(q => q.Status));
+        var tickets = await AsyncExecuter.ToListAsync(
+            query.Select(q => new { q.Status, q.CreationTime }));
+
+        var now = DateTime.UtcNow;
+        var waitingCreationTimes = tickets
+            .Where(t => t.Status == QueueTicketStatus.Waiting)
+            .Select(t => (now - t.CreationTime).TotalMinutes)
+            .ToList();
 
         return new QueueStatsDto
         {
             TotalToday = tickets.Count,
-            Waiting = tickets.Count(s => s == QueueTicketStatus.Waiting),
-            Called = tickets.Count(s => s == QueueTicketStatus.Called),
-            Serving = tickets.Count(s => s == QueueTicketStatus.Serving),
-            Completed = tickets.Count(s => s == QueueTicketStatus.Completed),
-            Skipped = tickets.Count(s => s == QueueTicketStatus.Skipped),
+            Waiting = tickets.Count(t => t.Status == QueueTicketStatus.Waiting),
+            Called = tickets.Count(t => t.Status == QueueTicketStatus.Called),
+            Serving = tickets.Count(t => t.Status == QueueTicketStatus.Serving),
+            Completed = tickets.Count(t => t.Status == QueueTicketStatus.Completed),
+            Skipped = tickets.Count(t => t.Status == QueueTicketStatus.Skipped),
+            WaitingWarning = waitingCreationTimes.Count(m => m >= WaitingTimeThresholdMinutes && m < WaitingTimeThresholdMinutes * 2),
+            WaitingDanger = waitingCreationTimes.Count(m => m >= WaitingTimeThresholdMinutes * 2),
+            AverageWaitMinutes = waitingCreationTimes.Count > 0
+                ? Math.Round(waitingCreationTimes.Average(), 1)
+                : null,
         };
     }
 

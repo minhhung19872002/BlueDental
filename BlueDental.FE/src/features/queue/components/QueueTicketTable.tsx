@@ -2,6 +2,13 @@ import { Button, Popconfirm, Space, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { t } from "@/lib/i18n";
 import { QueueTicketStatus, QueueTicketPriority, type QueueTicket } from "../types";
+import { useWaitingTimer } from "../hooks/useWaitingTimer";
+import {
+  getElapsedMinutes,
+  formatElapsed,
+  getWaitingLevel,
+  getWaitingRowClass,
+} from "../utils/waitingTime";
 
 const STATUS_CONFIG: Record<QueueTicketStatus, { color: string; labelKey: string }> = {
   [QueueTicketStatus.Waiting]: { color: "default", labelKey: "Queue:Status:Waiting" },
@@ -24,6 +31,11 @@ interface QueueTicketTableProps {
   actionLoading: boolean;
 }
 
+const WAITING_LEVEL_COLORS: Record<string, string | undefined> = {
+  danger: "var(--bd-red, #e5484d)",
+  warning: "var(--bd-amber, #f59e0b)",
+};
+
 export function QueueTicketTable({
   data,
   loading,
@@ -35,6 +47,8 @@ export function QueueTicketTable({
   onRecall,
   actionLoading,
 }: QueueTicketTableProps) {
+  useWaitingTimer();
+
   const columns: ColumnsType<QueueTicket> = [
     {
       title: t("Queue:Table:TicketNumber"),
@@ -63,12 +77,6 @@ export function QueueTicketTable({
       render: (val: string | undefined) => val ?? "—",
     },
     {
-      title: t("Queue:Table:Dentist"),
-      dataIndex: "dentistName",
-      ellipsis: true,
-      render: (val: string | undefined) => val ?? "—",
-    },
-    {
       title: t("Queue:Table:Counter"),
       dataIndex: "counterName",
       width: 100,
@@ -88,6 +96,27 @@ export function QueueTicketTable({
       dataIndex: "callCount",
       width: 80,
       align: "center",
+    },
+    {
+      title: t("Queue:Table:WaitingTime"),
+      key: "waitingTime",
+      width: 110,
+      align: "center",
+      render: (_: unknown, record: QueueTicket) => {
+        const elapsed = getElapsedMinutes(record);
+        if (elapsed === null) return "—";
+        const level = getWaitingLevel(record);
+        return (
+          <span
+            style={{
+              fontWeight: level !== "normal" ? 600 : 400,
+              color: WAITING_LEVEL_COLORS[level],
+            }}
+          >
+            {formatElapsed(elapsed)}
+          </span>
+        );
+      },
     },
     {
       title: t("Queue:Table:Note"),
@@ -167,6 +196,7 @@ export function QueueTicketTable({
       pagination={paginationConfig}
       size="small"
       scroll={{ x: 900 }}
+      rowClassName={(record) => getWaitingRowClass(record)}
     />
   );
 }
