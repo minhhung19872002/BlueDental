@@ -474,7 +474,7 @@ export function PatientProfileTab({ patient }: Props) {
             ))}
           </div>
           <div>
-            {stageAbility.canCreate && (
+            {stageAbility.can("complete") && (
               <Button type="primary" icon={<PlusOutlined />} onClick={() => setRecallOpen(true)}>
                 {t("Tạo Tái khám")}
               </Button>

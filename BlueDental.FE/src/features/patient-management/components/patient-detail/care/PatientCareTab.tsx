@@ -83,9 +83,9 @@ export function PatientCareTab({ patient }: { patient: PatientDto }) {
       buildCareColumns({
         onDetail: (record) => setDialog({ kind: "detail", record }),
         onEdit: ability.canUpdate ? (record) => setDialog({ kind: "edit", record }) : undefined,
-        onDelete: ability.canDelete ? (record) => setDialog({ kind: "delete", record }) : undefined,
+        onDelete: ability.canUpdate ? (record) => setDialog({ kind: "delete", record }) : undefined,
       }),
-    [ability.canUpdate, ability.canDelete],
+    [ability.canUpdate],
   );
 
   return (

@@ -27,7 +27,8 @@ function menuItems(): MenuProps["items"] {
 
 interface Props {
   service: TreatmentServiceDto;
-  onAction: (action: ServiceAction) => void;
+  /** Left out when the user may not move the line (treatmentConsultation.update). */
+  onAction?: (action: ServiceAction) => void;
 }
 
 /**
@@ -38,7 +39,7 @@ export function ServiceStatusPill({ service, onAction }: Props) {
   const pill = SERVICE_PILL[service.status] ?? SERVICE_PILL[SERVICE_LINE_STATUS.Created];
   const className = ["pdt-status", STATUS_MODIFIER[service.status]].filter(Boolean).join(" ");
 
-  if (!isLineOpen(service)) {
+  if (!onAction || !isLineOpen(service)) {
     return <span className={className}>{t(pill.label)}</span>;
   }
 

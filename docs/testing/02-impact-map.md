@@ -17,6 +17,7 @@ What to retest when a shared piece changes. Levels are defined in
 | `BlueDentalPermissionBridge` / `AbilityBridgePermissionValueProvider` | 3 | F-40 (`role-permissions-abilities.spec.ts`), then any spec signing in as a non-admin role — a dropped pairing refuses a whole module for custom roles |
 | A new `I*AppService` contract or a new hand-written controller | 2 | `HostModuleConfigurationTests.Every_Application_Service_Contract_Should_Be_Served_By_A_Controller` — a contract without a controller (or `[RemoteService(IsEnabled = false)]`) has no route at all now |
 | `src/hooks/useAbility.ts` | 3 | F-40, then Bệnh nhân / Lịch hẹn / Thanh toán / Nhân sự specs — every gated button reads it |
+| Any `useAbility(subject, action)` pair on a button | 2 | `patient-permission-gates.spec.ts` for the Bệnh nhân record. The subject is a free string and the action is a guess: a wrong subject hides the button from everyone (R-467), a wrong action shows it to someone the server then refuses (R-471…R-477). Read the endpoint's own `[Authorize]`, and mind that `BlueDentalPermissionBridge` grants a legacy name for **any** of its leaves |
 | `BlueDentalAbilitySeedContributor` | 3 | Every acceptance spec |
 | `lib/clinicBranch.ts` (branch scope, branch store) | 3 | F-30 first, then F-02, F-03, F-04, F-05, F-06, F-08, F-12..F-15, F-19, F-20 — every screen reads its branch from here |
 | `BranchAccessChecker` / `StaffBranchAssignment` | 3 | F-20 first, then every branch-scoped spec |

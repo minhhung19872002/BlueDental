@@ -19,7 +19,8 @@ import {
 
 export interface ServiceRowActions {
   onView: (row: PlanDetailRow) => void;
-  onStatus: (row: PlanDetailRow, action: ServiceAction) => void;
+  /** Left out when the user may not move a line (treatmentConsultation.update). */
+  onStatus?: (row: PlanDetailRow, action: ServiceAction) => void;
 }
 
 /** What the grip needs to move its row — see {@link useDragReorder}. */
@@ -66,7 +67,10 @@ export function ServiceNameCell({ row, actions }: { row: PlanDetailRow; actions:
       <span className="pdt-service-name">{row.service.serviceName}</span>
       <span className="pdt-service-meta">
         <span className="pdt-service-date">{formatDate(row.plan.creationTime)}</span>
-        <ServiceStatusPill service={row.service} onAction={(action) => actions.onStatus(row, action)} />
+        <ServiceStatusPill
+          service={row.service}
+          onAction={actions.onStatus && ((action) => actions.onStatus?.(row, action))}
+        />
       </span>
     </div>
   );

@@ -5117,3 +5117,109 @@ login (không nhét token): nút hiện lại trên tab Kế hoạch điều tr�
 đúng dialog **"Tạo phiếu dịch vụ"**. Quét lại toàn bộ: không còn subject nào
 giao diện gọi mà backend không có. `tsc -b --noEmit` sạch.
 
+## 2026-09-22 (đợt 14) — Rà hết phân quyền của màn Bệnh nhân
+
+Sau R-467, soát **toàn bộ** chỗ giao diện đọc quyền trong phạm vi hồ sơ bệnh
+nhân: 24 subject giao diện gọi, đối chiếu từng nút với `[Authorize]` của đúng
+endpoint mà nút đó bắn. Cách soát: dựng bảng *method → quyền* cho mọi
+`*AppService` liên quan, rồi lần ngược từ nút → mutation → endpoint.
+
+Hai điều phải biết trước khi đọc bảng dưới:
+
+- **Không có tên `Delete` ở lớp quyền cũ.** `BlueDentalPermissions
+  .TreatmentManagement.TreatmentPlans` chỉ có `View` / `Create` / `Edit` /
+  `Approve`, `CustomerCare` chỉ có `View` / `Create` / `Manage`. Nên
+  `DeleteAsync` của phiếu tư vấn, chẩn đoán và CSKH đều gác bằng **Edit /
+  Manage**, và cầu nối quy chúng về `.update`. Lá **`.delete`** của
+  `treatmentConsultation` / `treatmentDiagnosis` / `treatmentCskh` trên màn
+  Phân quyền **không được server đọc ở đâu cả** — xem "Còn treo".
+- **Cầu nối là "bất kỳ lá nào"**, không phải "đủ mọi lá": một quyền cũ coi như
+  được cấp khi **một** trong các lá nó liệt kê được cấp. Nên gate của tab
+  Chẩn đoán & Tư vấn phải là *hoặc*, không phải *và*.
+
+### Tab bị thiếu hẳn gate đọc
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-468 | Tab **Lịch sử dư nợ** không ẩn khi thiếu `payment.read`, trong khi tab **Hóa đơn** — cùng một quyền — thì có. Mở tab là 403 | Cùng gate với Hóa đơn |
+| R-469 | Tab **Kế hoạch điều trị** không ẩn khi thiếu `treatmentConsultation.read`, dù `GET patient-treatments` kiểm đúng lá đó | Ẩn theo `treatmentConsultation.read` |
+| R-470 | Tab **Chẩn đoán & Tư vấn** không ẩn khi không đọc được gì | Ẩn khi **cả ba** lá đọc (`treatmentStage` / `treatmentDiagnosis` / `treatmentConsultation`) đều thiếu — đúng ngữ nghĩa "bất kỳ" của cầu nối |
+
+### Nút hiện ra rồi mới bị server từ chối
+
+| ID | Sai lệch | Sửa |
+|---|--------|-----|
+| R-471 | Nút xoá phiếu chẩn đoán gác bằng `treatmentDiagnosis.delete`, server đọc `TreatmentRecords.Edit` ← `.update` | Gác bằng `.canUpdate` |
+| R-472 | Nút xoá phiếu tư vấn gác bằng `treatmentConsultation.delete`, server đọc `TreatmentPlans.Edit` ← `.update` | Gác bằng `.canUpdate` |
+| R-473 | Nút xoá phiếu CSKH gác bằng `treatmentCskh.delete`, server đọc `CustomerCare.Manage` ← `.update` | Gác bằng `.canUpdate` |
+| R-474 | **"Tạo Tái khám"** gác bằng `treatmentStage.create`, nhưng `POST patient-re-examinations` đọc `treatmentStage.complete` — tái khám đi sau một công đoạn đã xong, nên là quyền *hoàn thành* chứ không phải *thêm* | `can("complete")` |
+| R-475 | Cột thao tác của bảng **Công đoạn điều trị** gác bằng `treatmentStage.update`, nhưng hai nút trong đó là **Tiếp tục** (`.continue`) và **Hoàn thành** (`.complete`) — `.update` không gác cái nào | Mỗi nút theo lá của nó; cột chỉ hiện khi còn ít nhất một nút |
+| R-476 | Tab **Thanh toán** của phiếu điều trị chỉ gác nút *Tạo Phiếu Thanh Toán*; hai thao tác trên dòng — **Chỉnh sửa** (`payment.update`) và **Huỷ** (`payment.delete`) — không gác gì, ai đọc được phiếu cũng thấy | `onEdit` / `onCancel` thành optional, truyền theo đúng lá; bản thẻ ≤640 vốn đã optional sẵn |
+| R-477 | Bảng **dịch vụ** của phiếu điều trị không gác gì: menu trạng thái (Hoàn thành / Chuyển đổi / Hủy dịch vụ), ô thêm dịch vụ và kéo thả đều hiện với người chỉ có quyền đọc. Cả năm thao tác đều là `treatmentConsultation.update` | Một cờ `canEditLines` cho cả năm; dòng không còn lệnh nào thì pill in ra chữ thường như dòng đã đóng |
+
+### Đã soát và **đúng** (không đụng)
+
+`patient.update` (sửa hồ sơ) · `appointment.create/update/delete` (tab Lịch hẹn)
+· `patientMedicalRecord.create/update/delete` (Bệnh án) · `prescription.*` (Đơn
+thuốc) · `treatmentImage.create/update/delete` (`usePatientImagePermissions`) ·
+`payment.create` (Thu tiền, Tạo phiếu thanh toán, Hoàn tiền) ·
+`treatmentLabo.create` (Labo: *Tiếp tục quy trình* và *Bảo hành* đều **tạo
+phiếu mới**, nên `.create` là đúng).
+
+### Kiểm thử
+
+Spec mới `e2e/patient-permission-gates.spec.ts` — thật từ đầu đến cuối: admin
+tạo nha sĩ qua dialog Nhân sự, bật từng lá trên màn Phân quyền, nha sĩ đăng
+nhập ở **phiên cookie riêng**, không nhét token, không chặn API nào.
+
+Bốn bước, mỗi bước một lá: chỉ `patient.read` → hồ sơ mở được nhưng **không**
+có Hóa đơn, Lịch sử dư nợ, Kế hoạch điều trị, Chẩn đoán & Tư vấn; thêm
+`payment.read` → **cả hai** tab tiền hiện ra; thêm `treatmentConsultation.read`
+→ hai tab phiếu hiện, vẫn **chưa** có "Tạo kế hoạch mới"; thêm
+`treatmentConsultation.create` → nút hiện.
+
+Một chỗ suýt sai khi viết spec, ghi lại: lấy hồ sơ bằng `page.request.get`
+**không dùng được** — chỉ axios của ứng dụng mới gắn `X-Clinic-Branch-Id`, gọi
+thô thì danh sách theo chi nhánh trả 403 bất kể quyền. Phải lấy qua trang thật.
+
+Trên bản build production (`vite preview` :8080, API :5019, DB thật):
+`patient-permission-gates` **1/1**, `treatment-plan-detail` **11/11**,
+`treatment-plan` **8/8** — 20/20. `patient-permission-gates` cũng chạy lại trên
+dev :5173 (StrictMode) và xanh. `tsc` sạch, lint chỉ còn warning ở file không
+liên quan.
+
+### Hai bộ đỏ **không** do đợt này — đã đo để loại trừ
+
+- `role-permissions-abilities` đỏ ở chốt R-405: `GET insurance-claims` trả
+  **500**. DB dev **chưa chạy** migration `20260922100000_AddInsuranceClaimBranchId`
+  mà merge mang về — truy vấn `information_schema.columns` cho `BranchId`
+  của `AppInsuranceClaims` trả 0, và `__EFMigrationsHistory` không có bản ghi
+  đó. Chạy DbMigrator là hết; chưa màn hình nào gọi endpoint này.
+- `consulting-plan` đỏ 2 ca ("…and one comes off the total", "signature
+  strip"). Ban đầu **tưởng** do đợt này: baseline xanh 13/13, bản sửa đỏ. Đo
+  tiếp mới ra: khoảng trống chữ ký đọc được 15.5 → 19.0 → 12.4 → 920.9 qua các
+  lượt, tức là **theo dữ liệu**, không theo mã. Probe xác nhận lúc đo chỉ có
+  **một** tờ (`dx-visible 1, cols 2`), nên không phải chồng hai bản in. Cất
+  toàn bộ thay đổi đi (`git stash`), build lại **baseline** và chạy lại: baseline
+  **cũng đỏ đúng hai ca đó**. Kết luận: dữ liệu của DB dev đã trôi sau nhiều
+  lượt chạy spec này lên cùng một hồ sơ seed; tờ in dài ra thì dải chữ ký bị
+  ép. Không sửa spec trong đợt này — cần seed lại rồi đo, xem "Còn treo".
+
+### Còn treo
+
+- **Lá `.delete` của ba subject kia là lá chết.** `treatmentConsultation
+  .delete`, `treatmentDiagnosis.delete`, `treatmentCskh.delete` bật hay tắt
+  đều không đổi gì, vì lớp quyền cũ không có tên `Delete` để gác. Giao diện
+  nay bám theo đúng cái server đọc (`.update`), nên **không còn 403**, nhưng
+  người quản trị tick "Xoá" thì vẫn không có tác dụng. Sửa cho đúng là việc
+  **backend**: thêm `TreatmentPlans.Delete` / `TreatmentRecords.Delete` /
+  `CustomerCare.Delete`, nối cầu sang `.delete`, rồi đổi `[Authorize]` của
+  `DeleteAsync`. Việc này **siết** quyền lại (ai đang chỉ có `.update` sẽ mất
+  quyền xoá) nên chờ chủ dự án quyết.
+- **`PatientAppService.ExportAsync` gác bằng `Patient.Read`**, không phải
+  `Patient.Export`. Giao diện vẫn ẩn nút "Xuất file" theo `patient.export`
+  (chặt hơn, không gây 403), nhưng ai đọc được danh sách thì gọi thẳng
+  endpoint vẫn xuất được cả danh sách bệnh nhân. Cần chốt.
+- `consulting-plan` cần **seed lại dữ liệu** rồi chạy lại để chốt hai ca đỏ ở
+  trên; hai ca đó đo theo chiều dài tờ in nên phải chạy trên dữ liệu sạch.
+

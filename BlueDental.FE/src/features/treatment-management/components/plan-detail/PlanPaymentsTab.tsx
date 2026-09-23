@@ -42,7 +42,7 @@ interface Props {
  * "Tạo Phiếu Thanh Toán" and "In hóa đơn tổng" above the table.
  */
 export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
-  const { canCreate } = useAbility("payment");
+  const { canCreate, canUpdate, canDelete } = useAbility("payment");
   const narrow = useMediaQuery(NARROW_SCREEN);
   const pagination = useTablePagination(20);
   const query = usePatientPayments({
@@ -82,8 +82,13 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
   };
 
   const columns = useMemo(
-    () => buildPaymentColumns(plan, { onView: handleView, onEdit: setEditing, onCancel: setCancelling }),
-    [plan, receipts], // eslint-disable-line react-hooks/exhaustive-deps
+    () =>
+      buildPaymentColumns(plan, {
+        onView: handleView,
+        onEdit: canUpdate ? setEditing : undefined,
+        onCancel: canDelete ? setCancelling : undefined,
+      }),
+    [plan, receipts, canUpdate, canDelete], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   return (
@@ -108,8 +113,8 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
           pagination={pagination}
           cardRows={(payment) => paymentCardRows(payment, plan)}
           onView={handleView}
-          onEdit={setEditing}
-          onCancel={setCancelling}
+          onEdit={canUpdate ? setEditing : undefined}
+          onCancel={canDelete ? setCancelling : undefined}
           showTotal={showTotal}
         />
       ) : (
