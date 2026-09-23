@@ -15,13 +15,13 @@ interface CurrencyInputProps
  * Input nên ăn theo style form hiện có. Dùng trong Form.Item/FloatingField
  * như mọi control khác.
  */
-export function CurrencyInput({ value, onChange, ...rest }: CurrencyInputProps) {
+const MAX_VND = 9_999_999_999;
+
+export function CurrencyInput({ value, onChange, isAllowed, ...rest }: CurrencyInputProps) {
   return (
     <NumericFormat
       customInput={Input}
       value={value ?? ""}
-      // Chỉ đẩy lên form khi người dùng gõ; thay đổi đến từ prop mà bắn
-      // ngược lại sẽ tạo vòng lặp setFieldsValue → onValueChange.
       onValueChange={(values, sourceInfo) => {
         if (sourceInfo.source === "event") onChange?.(values.floatValue);
       }}
@@ -29,6 +29,7 @@ export function CurrencyInput({ value, onChange, ...rest }: CurrencyInputProps) 
       decimalSeparator=","
       decimalScale={0}
       allowNegative={false}
+      isAllowed={isAllowed ?? ((values) => !values.floatValue || values.floatValue <= MAX_VND)}
       {...rest}
     />
   );
