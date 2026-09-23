@@ -42,11 +42,29 @@ export function AppointmentCalendarPage() {
     [dentistData],
   );
 
-  const { data: dayAppointments } = useAppointmentList({
-    date: state.currentDate.format("YYYY-MM-DD"),
-    maxResultCount: 500,
-  });
-  const counts = useStatusCounts(dayAppointments?.items ?? []);
+  const statsQuery = useMemo(() => {
+    if (state.viewMode === "week") {
+      const weekStart = state.currentDate.startOf("week");
+      return {
+        fromDate: weekStart.format("YYYY-MM-DD"),
+        toDate: weekStart.add(6, "day").format("YYYY-MM-DD"),
+        maxResultCount: 500,
+      };
+    }
+    if (state.viewMode === "month") {
+      const monthStart = state.currentDate.startOf("month");
+      const monthEnd = state.currentDate.endOf("month");
+      return {
+        fromDate: monthStart.startOf("week").format("YYYY-MM-DD"),
+        toDate: monthEnd.endOf("week").format("YYYY-MM-DD"),
+        maxResultCount: 1000,
+      };
+    }
+    return { date: state.currentDate.format("YYYY-MM-DD"), maxResultCount: 500 };
+  }, [state.viewMode, state.currentDate]);
+
+  const { data: viewAppointments } = useAppointmentList(statsQuery);
+  const counts = useStatusCounts(viewAppointments?.items ?? []);
 
   const [addOpen, setAddOpen] = useState(false);
   const [tempOpen, setTempOpen] = useState(false);
@@ -78,7 +96,7 @@ export function AppointmentCalendarPage() {
 
   const handleExport = () => {
     exportToExcel(
-      dayAppointments?.items ?? [],
+      viewAppointments?.items ?? [],
       [
         { header: t("Common:Patient"), key: "patientName" },
         { header: t("Appointment:Form:Doctor"), key: "doctorName" },
@@ -139,7 +157,7 @@ export function AppointmentCalendarPage() {
   const handleCardAction = useCallback((action: string, id: string) => {
     switch (action) {
       case "edit": {
-        const appt = dayAppointments?.items?.find((a) => a.id === id);
+        const appt = viewAppointments?.items?.find((a) => a.id === id);
         if (appt?.isTemporary) {
           setEditTempId(id);
           setTempOpen(true);
@@ -167,7 +185,7 @@ export function AppointmentCalendarPage() {
         handleDeleteSingle(id);
         break;
     }
-  }, [handleDeleteSingle, dayAppointments]);
+  }, [handleDeleteSingle, viewAppointments]);
 
   const handleClearSelection = useCallback(() => {
     setSelectedIds(new Set());
